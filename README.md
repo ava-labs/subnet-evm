@@ -12,6 +12,12 @@ This chain implements the Ethereum Virtual Machine and supports Solidity smart c
 
 The Subnet EVM runs in a separate process from the main AvalancheGo process and communicates with it over a local gRPC connection.
 
+### AvalancheGo Compatibility
+```
+[v0.1.0] AvalancheGo@v1.7.0-v1.7.4
+[v0.1.1] AvalancheGo@v1.7.5
+```
+
 ## API
 
 The Subnet EVM supports the following API namespaces:
@@ -41,15 +47,17 @@ By default, all fees are burned (sent to the blackhole address). However, it is
 possible to enable block producers to set a fee recipient (get compensated for
 blocks they produce).
 
-To enabke this feature, you'll need to add the following to your
-genesis file:
+To enable this feature, you'll need to add the following to your
+genesis file (under the `"config"` key):
 ```json
 {
-  "allowFeeRecipients":true
+  "config": {
+    "allowFeeRecipients":true
+  }
 }
 ```
 
-Next, you'll need to update your VM config with the following:
+Next, you'll need to update your [chain config](https://docs.avax.network/build/references/command-line-interface/#chain-configs) with the following:
 ```json
 {
   "feeRecipient":"<YOU 0x-ADDRESS>"
@@ -66,12 +74,12 @@ and creates a `subnet-evm` genesis file.
 ```bash
 # to startup a local cluster (good for development)
 cd ${HOME}/go/src/github.com/ava-labs/subnet-evm
-./scripts/run.sh 1.7.4
+./scripts/run.sh 1.7.5
 ```
 
 ```bash
 # inspect cluster endpoints when ready
-cat /tmp/avalanchego-v1.7.4/output.yaml
+cat /tmp/avalanchego-v1.7.5/output.yaml
 <<COMMENT
 endpoint: /ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM
 logsDir: ...
