@@ -272,9 +272,18 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		)
 	}
 	// Configure each address in [ContractAllowListAdmin] to be an admin for the allow list precompile
+	var setAllowList bool
 	for _, addr := range g.ContractAllowListAdmin {
 		if err := vm.SetAllowListStatus(statedb, addr, vm.Admin); err != nil {
 			panic(fmt.Errorf("set allow list errored during genesis configuration: %w", err))
+		}
+		setAllowList = true
+	}
+	// If an admin was added to the allow list, make sure to enable it
+	if setAllowList {
+		// TODO: change naming
+		if err := vm.SetAllowListEnabled(statedb, vm.Enabled); err != nil {
+			panic(fmt.Errorf("set allow list enabled errored during genesis configuration: %w", err))
 		}
 	}
 	// Do cusotm allocation after airdrop in case an address shows up in standard

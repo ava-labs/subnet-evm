@@ -17,9 +17,38 @@ const (
 
 type allowListPrecompile struct{}
 
+var (
+	enabledKey = common.Hash{}
+)
+
+type EnabledStatus common.Hash
+
+// enum consts for enabled statuses
+var (
+	Disabled EnabledStatus = EnabledStatus(common.Hash{})
+	Enabled  EnabledStatus = EnabledStatus(common.Hash{1})
+)
+
+// valid returns nil if the status is a valid status.
+func (s EnabledStatus) Valid() bool {
+	switch s {
+	case Enabled, Disabled:
+		return true
+	default:
+		return false
+	}
+}
+
+// getEnabledStatus checks the state storage of [AllowListPrecompileAddress] and returns
+// whether or not the allow list is enabled
+func getAllowListEnabled(state StateDB) bool {
+	res := state.GetState(AllowListPrecompileAddress, enabledKey)
+	return EnabledStatus(res) == Enabled
+}
+
 type ModifyStatus common.Hash
 
-// enum consts for statuses
+// enum consts for modify statuses
 var (
 	None     ModifyStatus = ModifyStatus(common.Hash{})  // No role assigned - this is equivalent to common.Hash{}
 	Deployer ModifyStatus = ModifyStatus(common.Hash{1}) // Deployers are allowed to create new contracts
@@ -116,6 +145,19 @@ func SetAllowListStatus(stateDB StateDB, address common.Address, status ModifySt
 	return nil
 }
 
+// SetAllowListStatus sets the permissions of [address] to [status]
+func SetAllowListEnabled(stateDB StateDB, enabled EnabledStatus) error {
+	if !enabled.Valid() {
+		return fmt.Errorf("invalid status used as input for allow list precompile: %v", enabled)
+	}
+	// Update the type of [status] for the call to SetState
+	newStatus := common.Hash(enabled)
+	log.Info("modify allow list enabled", "status", enabled)
+	// Assign [role] to the address
+	stateDB.SetState(AllowListPrecompileAddress, enabledKey, newStatus)
+	return nil
+}
+
 func (al *allowListPrecompile) Run(evm *EVM, caller ContractRef, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if suppliedGas < allowListGasCost {
 		return nil, 0, ErrOutOfGas
@@ -138,8 +180,16 @@ func (al *allowListPrecompile) Run(evm *EVM, caller ContractRef, addr common.Add
 		return nil, remainingGas, ErrExecutionReverted
 	}
 
-	if err := SetAllowListStatus(evm.StateDB, address, status); err != nil {
-		return nil, remainingGas, err
+	// TODO: make this WAY less gross
+	if address == enabledKey {
+		if err := SetAllowListEnabled(evm.StateDB, status); err != nil {
+			return nil, remainingGas, err
+		}
+	} else {
+		if err := SetAllowListStatus(evm.StateDB, address, status); err != nil {
+			return nil, remainingGas, err
+		}
+
 	}
 
 	// Return an empty output and the remaining gas
