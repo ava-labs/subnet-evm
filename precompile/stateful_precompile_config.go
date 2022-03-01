@@ -11,9 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-var (
-	statefulPrecompileMarker = []byte{0x1}
-)
+var statefulPrecompileMarker = []byte{0x1}
 
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 type StatefulPrecompileConfig interface {
@@ -34,6 +32,8 @@ type StatefulPrecompileConfig interface {
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
 	Configure(StateDB)
+	// Name returns a human-readable string for the StatefulPrecompileConfig
+	Name() string
 }
 
 // CheckConfigure checks if [config] is activated by the transition from block at [parentTimestamp] to [currentTimestamp].

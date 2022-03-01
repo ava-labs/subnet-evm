@@ -234,12 +234,12 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 	return utils.IsForked(c.SubnetEVMTimestamp, blockTimestamp)
 }
 
-// IsAllowList returns whether [blockTimestamp] is either equal to the AllowList fork block timestamp or greater.
-func (c *ChainConfig) IsAllowList(blockTimestamp *big.Int) bool {
-	if c.AllowListConfig == nil {
+// IsPrecompileActivated returns whether [blockTimestamp] is either equal to the [precompileConfig] fork block timestamp or greater.
+func (c *ChainConfig) IsPrecompileActivated(preCompileConfig precompile.StatefulPrecompileConfig, blockTimestamp *big.Int) bool {
+	if preCompileConfig == nil {
 		return false
 	}
-	return utils.IsForked(c.AllowListConfig.Timestamp(), blockTimestamp)
+	return utils.IsForked(preCompileConfig.Timestamp(), blockTimestamp)
 }
 
 // GetFeeConfig returns the *FeeConfig if it exists.
@@ -400,7 +400,7 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 		return newCompatError("SubnetEVM fork block timestamp", c.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
 
-	if err := precompileTimestampCheck(c.AllowListConfig, newcfg.AllowListConfig, headTimestamp, "AllowList"); err != nil {
+	if err := precompileTimestampCheck(c.AllowListConfig, newcfg.AllowListConfig, headTimestamp); err != nil {
 		return err
 	}
 
@@ -417,14 +417,14 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 	return nil
 }
 
-func precompileTimestampCheck(cfg precompile.StatefulPrecompileConfig, newcfg precompile.StatefulPrecompileConfig, headTimestamp *big.Int, what string) *ConfigCompatError {
+func precompileTimestampCheck(cfg precompile.StatefulPrecompileConfig, newcfg precompile.StatefulPrecompileConfig, headTimestamp *big.Int) *ConfigCompatError {
 	currentTime := big.NewInt(time.Now().Unix())
 	if match, ni := matchNil(cfg, newcfg); match && !ni {
 		if isForkIncompatible(cfg.Timestamp(), newcfg.Timestamp(), headTimestamp) {
-			return newCompatError(fmt.Sprintf("%s fork block timestamp", what), cfg.Timestamp(), newcfg.Timestamp())
+			return newCompatError(fmt.Sprintf("%s fork block timestamp", cfg.Name()), cfg.Timestamp(), newcfg.Timestamp())
 		}
 	} else if !match {
-		return newCompatError(what, currentTime, currentTime)
+		return newCompatError(cfg.Name(), currentTime, currentTime)
 	}
 	return nil
 }
@@ -490,7 +490,7 @@ type Rules struct {
 	IsSubnetEVM bool
 
 	// Optional stateful precompile rules
-	IsAllowListEnabled bool
+	isPrecompileMap map[string]bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -518,8 +518,20 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules := c.rules(blockNum)
 
 	rules.IsSubnetEVM = c.IsSubnetEVM(blockTimestamp)
-	rules.IsAllowListEnabled = c.IsAllowList(blockTimestamp)
+
+	precompileMap := make(map[string]bool, len(c.enabledStatefulPrecompiles()))
+	for _, enabledPrecompile := range c.enabledStatefulPrecompiles() {
+		precompileMap[enabledPrecompile.Name()] = c.IsPrecompileActivated(enabledPrecompile, blockTimestamp)
+	}
+	rules.isPrecompileMap = precompileMap
+
 	return rules
+}
+
+// Returns rule for precompile with [name]
+func (r *Rules) IsPrecompile(name string) bool {
+	activated, ok := r.isPrecompileMap[name]
+	return activated && ok
 }
 
 // enabledStatefulPrecompiles returns a list of stateful precompile configs in the order that they are enabled
