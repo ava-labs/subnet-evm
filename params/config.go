@@ -400,7 +400,7 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 		return newCompatError("SubnetEVM fork block timestamp", c.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
 
-	if err := precompileTimestampCheck(c.AllowListConfig, newcfg.AllowListConfig, headTimestamp); err != nil {
+	if err := precompileTimestampCheck(c.AllowListConfig, newcfg.AllowListConfig, headTimestamp, "AllowList"); err != nil {
 		return err
 	}
 
@@ -417,14 +417,14 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 	return nil
 }
 
-func precompileTimestampCheck(cfg precompile.StatefulPrecompileConfig, newcfg precompile.StatefulPrecompileConfig, headTimestamp *big.Int) *ConfigCompatError {
+func precompileTimestampCheck(cfg precompile.StatefulPrecompileConfig, newcfg precompile.StatefulPrecompileConfig, headTimestamp *big.Int, what string) *ConfigCompatError {
 	currentTime := big.NewInt(time.Now().Unix())
 	if match, ni := matchNil(cfg, newcfg); match && !ni {
 		if isForkIncompatible(cfg.Timestamp(), newcfg.Timestamp(), headTimestamp) {
-			return newCompatError(fmt.Sprintf("%s fork block timestamp", cfg.Name()), cfg.Timestamp(), newcfg.Timestamp())
+			return newCompatError(fmt.Sprintf("%s fork block timestamp", what), cfg.Timestamp(), newcfg.Timestamp())
 		}
 	} else if !match {
-		return newCompatError(cfg.Name(), currentTime, currentTime)
+		return newCompatError(what, currentTime, currentTime)
 	}
 	return nil
 }
@@ -490,7 +490,7 @@ type Rules struct {
 	IsSubnetEVM bool
 
 	// Optional stateful precompile rules
-	isPrecompileMap map[string]bool
+	isPrecompileMap map[common.Address]struct{}
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -519,19 +519,21 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 
 	rules.IsSubnetEVM = c.IsSubnetEVM(blockTimestamp)
 
-	precompileMap := make(map[string]bool, len(c.enabledStatefulPrecompiles()))
+	precompileMap := make(map[common.Address]struct{}, len(c.enabledStatefulPrecompiles()))
 	for _, enabledPrecompile := range c.enabledStatefulPrecompiles() {
-		precompileMap[enabledPrecompile.Name()] = c.IsPrecompileActivated(enabledPrecompile, blockTimestamp)
+		if c.IsPrecompileActivated(enabledPrecompile, blockTimestamp) {
+			precompileMap[enabledPrecompile.Address()] = struct{}{}
+		}
 	}
 	rules.isPrecompileMap = precompileMap
 
 	return rules
 }
 
-// Returns rule for precompile with [name]
-func (r *Rules) IsPrecompileEnabled(name string) bool {
-	activated, ok := r.isPrecompileMap[name]
-	return activated && ok
+// Returns rule for precompile with [address]
+func (r *Rules) IsPrecompileEnabled(address common.Address) bool {
+	_, ok := r.isPrecompileMap[address]
+	return ok
 }
 
 // enabledStatefulPrecompiles returns a list of stateful precompile configs in the order that they are enabled

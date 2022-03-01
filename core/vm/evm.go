@@ -86,7 +86,7 @@ func (evm *EVM) precompile(addr common.Address) (precompile.StatefulPrecompiledC
 	}
 
 	// Enable the optional stateful precompiles
-	if evm.chainRules.IsPrecompileEnabled(precompile.AllowListName) {
+	if evm.chainRules.IsPrecompileEnabled(precompile.AllowListAddress) {
 		precompiles[precompile.AllowListAddress] = precompile.AllowListPrecompile
 	}
 	p, ok := precompiles[addr]
@@ -482,7 +482,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		return nil, common.Address{}, 0, ErrContractAddressCollision
 	}
 	// If the allow list is enabled, check that [evm.TxContext.Origin] has permission to deploy a contract.
-	if evm.chainRules.IsPrecompileEnabled(precompile.AllowListName) {
+	if evm.chainRules.IsPrecompileEnabled(precompile.AllowListAddress) {
 		allowListRole := precompile.GetAllowListStatus(evm.StateDB, evm.TxContext.Origin)
 		if !precompile.IsAllowListDeployer(allowListRole) {
 			log.Info("tx.origin is not authorized to deploy a contract", "origin", evm.TxContext.Origin, "status", allowListRole)

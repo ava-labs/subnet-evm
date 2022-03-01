@@ -32,8 +32,6 @@ type StatefulPrecompileConfig interface {
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
 	Configure(StateDB)
-	// Name returns a human-readable string for the StatefulPrecompileConfig
-	Name() string
 }
 
 // CheckConfigure checks if [config] is activated by the transition from block at [parentTimestamp] to [currentTimestamp].

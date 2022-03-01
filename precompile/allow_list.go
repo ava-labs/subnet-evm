@@ -11,8 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-const AllowListName = "AllowList"
-
 // Singleton StatefulPrecompiledContract for W/R access to the contract deployer allow list.
 var (
 	AllowListPrecompile StatefulPrecompiledContract = createAllowListPrecompile()
@@ -46,9 +44,6 @@ func (c *AllowListConfig) Address() common.Address { return AllowListAddress }
 
 // Timestamp returns the timestamp at which the allow list should be enabled
 func (c *AllowListConfig) Timestamp() *big.Int { return c.BlockTimestamp }
-
-// Name returns the name of this precompile
-func (c *AllowListConfig) Name() string { return AllowListName }
 
 // Configure initializes the address space of [ModifyAllowListAddress] by initializing the role of each of
 // the addresses in [AllowListAdmins].
