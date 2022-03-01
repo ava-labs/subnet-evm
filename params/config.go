@@ -529,7 +529,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 }
 
 // Returns rule for precompile with [name]
-func (r *Rules) IsPrecompile(name string) bool {
+func (r *Rules) IsPrecompileEnabled(name string) bool {
 	activated, ok := r.isPrecompileMap[name]
 	return activated && ok
 }
