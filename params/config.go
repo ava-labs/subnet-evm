@@ -399,17 +399,14 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 	if isForkIncompatible(c.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, headTimestamp) {
 		return newCompatError("SubnetEVM fork block timestamp", c.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
-	currentTime := big.NewInt(time.Now().Unix())
-	if match, ni := matchNil(c.AllowListConfig, newcfg.AllowListConfig); match && !ni {
-		if isForkIncompatible(c.AllowListConfig.Timestamp(), newcfg.AllowListConfig.Timestamp(), headTimestamp) {
-			return newCompatError("AllowList fork block timestamp", c.AllowListConfig.Timestamp(), newcfg.AllowListConfig.Timestamp())
-		}
-	} else if !match {
-		return newCompatError("AllowList", currentTime, currentTime)
+
+	if err := precompileTimestampCheck(c.AllowListConfig, newcfg.AllowListConfig, headTimestamp, "AllowList"); err != nil {
+		return err
 	}
 
 	// Check compatibility of misc, non-timed configs ([currentTime] returns on
 	// incompatibility to force error propagation)
+	currentTime := big.NewInt(time.Now().Unix())
 	if match, _ := matchNil(c.FeeConfig, newcfg.FeeConfig); !match {
 		return newCompatError("FeeConfig", currentTime, currentTime)
 	}
@@ -417,6 +414,18 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 		return newCompatError("AllowFeeRecipients", currentTime, currentTime)
 	}
 
+	return nil
+}
+
+func precompileTimestampCheck(cfg precompile.StatefulPrecompileConfig, newcfg precompile.StatefulPrecompileConfig, headTimestamp *big.Int, what string) *ConfigCompatError {
+	currentTime := big.NewInt(time.Now().Unix())
+	if match, ni := matchNil(cfg, newcfg); match && !ni {
+		if isForkIncompatible(cfg.Timestamp(), newcfg.Timestamp(), headTimestamp) {
+			return newCompatError(fmt.Sprintf("%s fork block timestamp", what), cfg.Timestamp(), newcfg.Timestamp())
+		}
+	} else if !match {
+		return newCompatError(what, currentTime, currentTime)
+	}
 	return nil
 }
 
