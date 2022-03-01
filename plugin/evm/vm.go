@@ -17,6 +17,7 @@ import (
 	schain "github.com/ava-labs/subnet-evm/chain"
 	subnetEVM "github.com/ava-labs/subnet-evm/chain"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	"github.com/ava-labs/subnet-evm/metrics/prometheus"
@@ -361,6 +362,11 @@ func (vm *VM) Initialize(
 			return err
 		}
 	}
+
+	// Perform DB inspection
+	log.Info("inspecting database...")
+	rawdb.InspectDatabase(vm.chaindb, nil, nil)
+	log.Info("databse inspection finished", "err", err)
 
 	return nil
 }
