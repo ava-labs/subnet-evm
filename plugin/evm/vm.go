@@ -365,7 +365,7 @@ func (vm *VM) Initialize(
 
 	// Perform DB inspection
 	log.Info("inspecting database...")
-	rawdb.InspectDatabase(vm.chaindb, nil, nil)
+	rawdb.InspectDatabase(originalStderr, vm.chaindb, nil, nil)
 	log.Info("databse inspection finished", "err", err)
 
 	return nil

@@ -106,7 +106,7 @@ func (s *stat) Count() string {
 
 // InspectDatabase traverses the entire database and checks the size
 // of all different categories of data.
-func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
+func InspectDatabase(out *os.File, db ethdb.Database, keyPrefix, keyStart []byte) error {
 	it := db.NewIterator(keyPrefix, keyStart)
 	defer it.Release()
 
@@ -228,7 +228,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		{"Light client", "CHT trie nodes", chtTrieNodes.Size(), chtTrieNodes.Count()},
 		{"Light client", "Bloom trie nodes", bloomTrieNodes.Size(), bloomTrieNodes.Count()},
 	}
-	table := tablewriter.NewWriter(os.Stderr)
+	table := tablewriter.NewWriter(out)
 	table.SetHeader([]string{"Database", "Category", "Size", "Items"})
 	table.SetFooter([]string{"", "Total", total.String(), " "})
 	table.AppendBulk(stats)
