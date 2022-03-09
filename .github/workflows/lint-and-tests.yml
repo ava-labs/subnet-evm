@@ -1,5 +1,9 @@
 name: Lint + Unit Tests
-on: [push]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   lint:
@@ -18,7 +22,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        go: ["1.16"]
+        go: ["1.17"]
         os: [ubuntu-20.04]
     steps:
       - uses: actions/checkout@v2
@@ -29,5 +33,7 @@ jobs:
         shell: bash
       - run: ./scripts/build.sh ./build/subnetevm
         shell: bash
-      - run: ./scripts/build_test.sh
+      - run: ./scripts/build_test.sh -race
+        shell: bash
+      - run: ./scripts/coverage.sh
         shell: bash

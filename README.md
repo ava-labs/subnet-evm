@@ -15,7 +15,7 @@ The Subnet EVM runs in a separate process from the main AvalancheGo process and 
 ### AvalancheGo Compatibility
 ```
 [v0.1.0] AvalancheGo@v1.7.0-v1.7.4
-[v0.1.1] AvalancheGo@v1.7.5
+[v0.1.1-v0.1.2] AvalancheGo@v1.7.5-v1.7.6
 ```
 
 ## API
@@ -40,7 +40,6 @@ The Subnet EVM is compatible with almost all Ethereum tooling, including [Remix,
 - Merged Avalanche hardforks into the single "Subnet EVM" hardfork
 - Removed Atomic Txs and Shared Memory
 - Removed Multicoin Contract and State
-- Removed DAO Hardfork Support
 
 ## Setting a Custom Fee Recipient
 By default, all fees are burned (sent to the blackhole address). However, it is
@@ -67,6 +66,100 @@ Next, you'll need to update your [chain config](https://docs.avax.network/build/
 _Note: If you enable this feature but a validator doesn't specify
 a "feeRecipient", the fees will be burned in blocks they produce._
 
+## Restricting Smart Contract Deployers
+If you'd like to restrict who has the ability to deploy contracts on your
+subnet, you can provide an `AllowList` configuration in your genesis file:
+```json
+{
+  "config": {
+    "chainId": 99999,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "muirGlacierBlock": 0,
+    "subnetEVMTimestamp": 0,
+    "feeConfig": {
+      "gasLimit": 20000000,
+      "minBaseFee": 1000000000,
+      "targetGas": 100000000,
+      "baseFeeChangeDenominator": 48,
+      "minBlockGasCost": 0,
+      "maxBlockGasCost": 10000000,
+      "targetBlockRate": 2,
+      "blockGasCostStep": 500000
+    },
+    "contractDeployerAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses":["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    }
+  },
+  "alloc": {
+    "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
+      "balance": "0x52B7D2DCC80CD2E4000000"
+    }
+  },
+  "nonce": "0x0",
+  "timestamp": "0x0",
+  "extraData": "0x00",
+  "gasLimit": "0x1312D00",
+  "difficulty": "0x0",
+  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "coinbase": "0x0000000000000000000000000000000000000000",
+  "number": "0x0",
+  "gasUsed": "0x0",
+  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+In this example, `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is named as the
+`Admin` of the `ContractDeployerAllowList`. This enables them to add other `Admins` or to add
+`Deployers`. Both `Admins` and `Deployers` can deploy contracts. To provide
+a great UX with factory contracts, the `tx.Origin` is checked for being a valid
+deployer instead of the caller of `CREATE`. This means that factory contracts will still be
+able to create new contracts as long as the sender of the original transaction is an allow
+listed deployer.
+
+The `Stateful Precompile` powering the `ContractDeployerAllowList` adheres to the following
+Solidity interface at `0x0200000000000000000000000000000000000000` (you can
+load this interface and interact directly in Remix):
+```solidity
+// (c) 2022-2023, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
+// SPDX-License-Identifier: MIT
+
+pragma solidity >=0.8.0;
+
+interface AllowListInterface {
+    // Set [addr] to have the admin role over the allow list
+    function setAdmin(address addr) external;
+
+    // Set [addr] to be enabled on the allow list
+    function setEnabled(address addr) external;
+
+    // Set [addr] to have no role over the allow list
+    function setNone(address addr) external;
+
+    // Read the status of [addr]
+    function readAllowList(address addr) external view returns (uint256);
+}
+```
+
+If you attempt to add a `Deployer` and you are not an `Admin`, you will see
+something like:
+![admin fail](./imgs/admin_fail.png)
+
+If you attempt to deploy a contract but you are not an `Admin` not
+a `Deployer`, you will see something like:
+![deploy fail](./imgs/deploy_fail.png)
+
+
 ## Run Local Network
 [`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego], sets up a local network,
 and creates a `subnet-evm` genesis file.
@@ -74,26 +167,42 @@ and creates a `subnet-evm` genesis file.
 ```bash
 # to startup a local cluster (good for development)
 cd ${HOME}/go/src/github.com/ava-labs/subnet-evm
-./scripts/run.sh 1.7.5
+./scripts/run.sh 1.7.5 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 ```
 
+Once the the network is started up, the following info will be printed to the
+console:
 ```bash
-# inspect cluster endpoints when ready
-cat /tmp/avalanchego-v1.7.5/output.yaml
-<<COMMENT
-endpoint: /ext/bc/2VCAhX6vE3UnXC6s1CBPE6jJ4c4cHWMfPgCptuWS59pQ9vbeLM
-logsDir: ...
-pid: 12811
-uris:
-- http://localhost:56239
-- http://localhost:56251
-- http://localhost:56253
-- http://localhost:56255
-- http://localhost:56257
-COMMENT
+Logs Directory: /var/folders/mp/6jm81gc11dv3xtcwxmrd8mcr0000gn/T/runnerlogs2402729383
+PID: 90118
 
-# ping the local cluster
-curl --location --request POST 'http://localhost:62045/ext/bc/x7gVMwHuGG4H1zXytxN8LRpShExiHnAiXG336EAhavpPmm8gF/rpc' \
+EVM Chain ID: 99999
+Funded Address: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+RPC Endpoints:
+- http://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
+- http://localhost:53425/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
+- http://localhost:53427/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
+- http://localhost:53429/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
+- http://localhost:53431/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
+
+WS Endpoints:
+- ws://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
+- ws://localhost:53425/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
+- ws://localhost:53427/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
+- ws://localhost:53429/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
+- ws://localhost:53431/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
+
+MetaMask Quick Start:
+Funded Address: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Network Name: Local EVM
+RPC URL: http://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
+Chain ID: 99999
+Curreny Symbol: LEVM
+```
+
+You can then ping the local cluster or add the network to MetaMask:
+```bash
+curl --location --request POST 'http://localhost:61278/ext/bc/2Z36RnQuk1hvsnFeGWzfZUfXNr7w1SjzmDQ78YxfTVNAkDq3nZ/rpc' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "jsonrpc": "2.0",
@@ -108,9 +217,11 @@ curl --location --request POST 'http://localhost:62045/ext/bc/x7gVMwHuGG4H1zXytx
     "result": "0x0"
 }
 COMMENT
+```
 
-# to terminate the cluster
-kill 12811
+To terminate the cluster, kill the PID:
+```bash
+kill -2 55547
 ```
 
 ## Fuji Subnet Deployment
