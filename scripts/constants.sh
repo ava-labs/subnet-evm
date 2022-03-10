@@ -6,9 +6,6 @@ GOPATH="$(go env GOPATH)"
 # Avalabs docker hub
 dockerhub_repo="avaplatform/avalanchego"
 
-# Current branch
-current_branch=${CURRENT_BRANCH:-$(git describe --tags --exact-match 2> /dev/null || git symbolic-ref -q --short HEAD || git rev-parse --short HEAD)}
-echo "Using branch: ${current_branch}"
 
 # Image build id
 # Use an abbreviated version of the full commit to tag the image.
