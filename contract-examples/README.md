@@ -1,3 +1,5 @@
+CONTRACTS HERE ARE CONSIDERED IN ALPHA PHASE. USE AT YOUR OWN RISK! AVA LABS TAKES NO RESPONSIBILITY OR LIABILITY IF THERE IS A BUG IN IMPLEMENTATIONS.
+
 # Subnet EVM Contracts
 
 ## Introduction
@@ -43,8 +45,6 @@ $ yarn
 Both of these `NativeMinter` and `AllowList` should be enabled by a chain config in genesis or as an upgrade. See the example genesis under [Tests](#tests) section.
 
 For more information about precompiles see [subnet-evm precompiles](https://github.com/ava-labs/subnet-evm#precompiles).
-
-**NOTE**: These contracts are solely presented for providing examples. They were not audited and not meant to be used in production.
 
 ## Hardhat Config
 
