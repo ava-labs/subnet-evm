@@ -32,7 +32,7 @@ contract ERC20NativeMinter is ERC20, Ownable {
     _burn(from, amount);
   }
 
-  // Swaps [amount] number of ERC20 token for native gas coins.
+  // Swaps [amount] number of ERC20 token for native coin.
   function mintdraw(uint256 wad) external {
     // Burn ERC20 token first.
     _burn(_msgSender(), wad);
