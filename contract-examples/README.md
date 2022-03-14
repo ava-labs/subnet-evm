@@ -1,4 +1,4 @@
-CONTRACTS HERE ARE CONSIDERED [ALPHA SOFTWARE](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha). USE AT YOUR OWN RISK! AVA LABS ASSUMES NO RESPONSIBILITY OR LIABILITY IF THERE IS A BUG IN IMPLEMENTATIONS.
+CONTRACTS HERE ARE CONSIDERED [ALPHA SOFTWARE](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha). USE AT YOUR OWN RISK!
 
 # Subnet EVM Contracts
 
