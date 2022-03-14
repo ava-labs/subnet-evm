@@ -36,7 +36,7 @@ $ yarn
 
 ## Write Contracts
 
-`ERC20NativeMinter.sol` is an [Open Zeppelin](https://openzeppelin.com) [ERC20](https://eips.ethereum.org/EIPS/eip-20) contract powered by native minting capabilities of Subnet EVM. ERC20 is a popular smart contract interface. It uses `INativeMinter` interface to interact with `NativeMinter` precompile.
+`ERC20NativeMinter.sol` is based on [Open Zeppelin](https://openzeppelin.com) [ERC20](https://eips.ethereum.org/EIPS/eip-20) contract powered by native minting capabilities of Subnet EVM. ERC20 is a popular smart contract interface. It uses `INativeMinter` interface to interact with `NativeMinter` precompile.
 
 `ExampleDeployerList` shows how `ContractDeployerAllowList` precompile can be used in a smart contract. It uses `IAllowList` to interact with `ContractDeployerAllowList` precompile. When the precompile is activated only those allowed can deploy contracts.
 
