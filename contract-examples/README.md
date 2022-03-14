@@ -44,6 +44,8 @@ Both of these `NativeMinter` and `AllowList` should be enabled by a chain config
 
 For more information about precompiles see [subnet-evm precompiles](https://github.com/ava-labs/subnet-evm#precompiles).
 
+**NOTE**: These contracts are solely presented for providing examples. They were not audited and not meant to be used in production.
+
 ## Hardhat Config
 
 Hardhat uses `hardhat.config.js` as the configuration file. You can define tasks, networks, compilers and more in that file. For more information see [here](https://hardhat.org/config/).

@@ -160,7 +160,7 @@ export default {
   networks: {
     local: {
       //"http://{ip}:{port}/ext/bc/{chainID}/rpc
-      url: "http://127.0.0.1:9658/ext/bc/dRTfPJh4jEaRZoGkPc7xreeYbDGBrGWRV48WAYVyUgApsmzGo/rpc",
+      url: "http://127.0.0.1:9650/ext/bc/dRTfPJh4jEaRZoGkPc7xreeYbDGBrGWRV48WAYVyUgApsmzGo/rpc",
       chainId: 43214,
       accounts: [
         "0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027",
