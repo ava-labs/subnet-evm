@@ -10,9 +10,10 @@ contract ERC20NativeMinter is ERC20, Ownable {
   address constant MINTER_ADDRESS = 0x0200000000000000000000000000000000000001;
   // Designated Blackhole Address
   address constant BLACKHOLE_ADDRESS = 0x0100000000000000000000000000000000000000;
+  string private constant TOKEN_NAME = "ERC20NativeMinterToken";
+  string private constant TOKEN_SYMBOL = "XMPL";
+
   INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
-  string private TOKEN_NAME = "ERC20NativeMinterToken";
-  string private TOKEN_SYMBOL = "XMPL";
 
   event Deposit(address indexed dst, uint256 wad);
   event Mintdrawal(address indexed src, uint256 wad);
@@ -49,5 +50,9 @@ contract ERC20NativeMinter is ERC20, Ownable {
     // Mint ERC20 token.
     _mint(_msgSender(), msg.value);
     emit Deposit(_msgSender(), msg.value);
+  }
+
+  function decimals() public view virtual override returns (uint8) {
+    return 18;
   }
 }
