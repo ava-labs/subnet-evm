@@ -57,6 +57,16 @@ const (
 	DynamicFeeTxType
 )
 
+// Special Address Mempool Behavior
+const (
+	defaultAccountTxs = 1
+	bridgeAccountTxs  = 10
+)
+
+var (
+	bridgeAddress = common.HexToAddress("0x230a1ac45690b9ae1176389434610b9526d2f21b")
+)
+
 // Transaction is an Ethereum transaction.
 type Transaction struct {
 	inner TxData    // Consensus contents of a transaction
@@ -530,15 +540,26 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 	// Initialize a price and received time based heap with the head transactions
 	heads := make(TxByPriceAndTime, 0, len(txs))
 	for from, accTxs := range txs {
-		acc, _ := Sender(signer, accTxs[0])
-		wrapped, err := NewTxWithMinerFee(accTxs[0], baseFee)
-		// Remove transaction if sender doesn't match from, or if wrapping fails.
-		if acc != from || err != nil {
-			delete(txs, from)
-			continue
+		accountLimit := defaultAccountTxs
+		if from == bridgeAddress {
+			accountLimit = bridgeAccountTxs
 		}
-		heads = append(heads, wrapped)
-		txs[from] = accTxs[1:]
+		if len(accTxs) < accountLimit {
+			accountLimit = len(accTxs)
+		}
+		for i := 0; i < accountLimit; i++ {
+			tx := accTxs[0]
+			acc, _ := Sender(signer, tx)
+			wrapped, err := NewTxWithMinerFee(tx, baseFee)
+			// Remove transaction if sender doesn't match from, or if wrapping fails.
+			if acc != from || err != nil {
+				delete(txs, from)
+				break
+			}
+			heads = append(heads, wrapped)
+			txs[from] = accTxs[1:]
+			accTxs[0] = nil
+		}
 	}
 	heap.Init(&heads)
 
