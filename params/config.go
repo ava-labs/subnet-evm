@@ -488,9 +488,10 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	return rules
 }
 
-// enabledStatefulPrecompiles returns a list of stateful precompile configs in the order that they are enabled
-// by block timestamp.
+// enabledStatefulPrecompiles returns a list of stateful precompile configs ordered by their respective addresses.
 func (c *ChainConfig) enabledStatefulPrecompiles() []precompile.StatefulPrecompileConfig {
+	// The stateful precompiles are returned in order of their addresses if they are enabled.
+	// In the future, we may want to explicitly sort them before returning.
 	statefulPrecompileConfigs := make([]precompile.StatefulPrecompileConfig, 0)
 
 	if c.ContractDeployerAllowListConfig.Timestamp() != nil {
@@ -506,9 +507,16 @@ func (c *ChainConfig) enabledStatefulPrecompiles() []precompile.StatefulPrecompi
 
 // CheckConfigurePrecompiles iterates over any stateful precompile configs that go into effect at some point and configures them
 // if they are activated between [parentTimestamp] and [currentTimestamp].
+// If the precompile is active for [currentTimestamp], call Process to give the precompile a chance to perform a state transition
+// on a per block basis.
 func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, currentTimestamp *big.Int, statedb precompile.StateDB) {
 	// Iterate the enabled stateful precompiles and configure them if needed
 	for _, config := range c.enabledStatefulPrecompiles() {
 		precompile.CheckConfigure(parentTimestamp, currentTimestamp, config, statedb)
+
+		// If the precompile is active, call Process on the stateful precompile.
+		if utils.IsForked(config.Timestamp(), currentTimestamp) {
+			config.Process(currentTimestamp, statedb)
+		}
 	}
 }

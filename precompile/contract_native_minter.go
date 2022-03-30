@@ -40,6 +40,9 @@ func (c *ContractNativeMinterConfig) Configure(state StateDB) {
 	c.AllowListConfig.Configure(state, ContractNativeMinterAddress)
 }
 
+// Process is a no-op for this precompile
+func (c *ContractNativeMinterConfig) Process(*big.Int, StateDB) {}
+
 // Contract returns the singleton stateful precompiled contract to be used for the native minter.
 func (c *ContractNativeMinterConfig) Contract() StatefulPrecompiledContract {
 	return ContractNativeMinterPrecompile

@@ -30,6 +30,9 @@ type StatefulPrecompileConfig interface {
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
 	Configure(StateDB)
+	// Process is called on every block where the stateful precompile is enabled (including the first block it is enabled in).
+	// This allows the stateful precompile to perform a state transition in each block regardless of if it is invoked directly.
+	Process(*big.Int, StateDB)
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
 	Contract() StatefulPrecompiledContract

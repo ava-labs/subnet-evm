@@ -3,7 +3,11 @@
 
 package precompile
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 var (
 	_ StatefulPrecompileConfig = &ContractDeployerAllowListConfig{}
@@ -26,6 +30,9 @@ func (c *ContractDeployerAllowListConfig) Address() common.Address {
 func (c *ContractDeployerAllowListConfig) Configure(state StateDB) {
 	c.AllowListConfig.Configure(state, ContractDeployerAllowListAddress)
 }
+
+// Process is a no-op for this precompile
+func (c *ContractDeployerAllowListConfig) Process(*big.Int, StateDB) {}
 
 // Contract returns the singleton stateful precompiled contract to be used for the allow list.
 func (c *ContractDeployerAllowListConfig) Contract() StatefulPrecompiledContract {
