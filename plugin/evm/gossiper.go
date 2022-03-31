@@ -37,6 +37,16 @@ const (
 	txsGossipInterval = 500 * time.Millisecond
 )
 
+// Special Address Mempool Behavior
+const (
+	defaultAccountTxs = 1
+	bridgeAccountTxs  = 10
+)
+
+var (
+	bridgeAddress = common.HexToAddress("0x230a1ac45690b9ae1176389434610b9526d2f21b")
+)
+
 // Gossiper handles outgoing gossip of transactions
 type Gossiper interface {
 	// GossipTxs sends AppGossip message containing the given [txs]
@@ -107,14 +117,27 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 		// Ensure any transactions regossiped are immediately executable
 		var (
 			currentNonce = state.GetNonce(addr)
-			tx           *types.Transaction
+			txs          = []*types.Transaction{}
 		)
 		for _, accountTx := range accountTxs {
 			// The tx pool may be out of sync with current state, so we iterate
 			// through the account transactions until we get to one that is
 			// executable.
 			if accountTx.Nonce() == currentNonce {
-				tx = accountTx
+				// NEED TO BE SURE WE GET NONCES IN ORDER
+				if addr == bridgeAddress {
+					currentNonce++
+					txs = append(txs, accountTx)
+					if len(txs) == bridgeAccountTxs {
+						break
+					}
+					continue
+				} else {
+					// Don't try to regossip a transaction too frequently
+					if time.Since(accountTx.FirstSeen()) >= n.config.TxRegossipFrequency.Duration {
+						txs = append(txs, accountTx)
+					}
+				}
 				break
 			}
 			// There may be gaps in the tx pool and we could jump past the nonce we'd
@@ -123,28 +146,27 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 				break
 			}
 		}
-		if tx == nil {
+
+		if len(txs) == 0 {
 			continue
 		}
 
-		// Don't try to regossip a transaction too frequently
-		if time.Since(tx.FirstSeen()) < n.config.TxRegossipFrequency.Duration {
-			continue
-		}
+		for _, tx := range txs {
+			// Ensure the fee the transaction pays is valid at tip
+			wrapped, err := types.NewTxWithMinerFee(tx, baseFee, addr)
+			if err != nil {
+				log.Debug(
+					"not queuing tx for regossip",
+					"tx", tx.Hash(),
+					"err", err,
+				)
+				continue
+			}
 
-		// Ensure the fee the transaction pays is valid at tip
-		wrapped, err := types.NewTxWithMinerFee(tx, baseFee)
-		if err != nil {
-			log.Debug(
-				"not queuing tx for regossip",
-				"tx", tx.Hash(),
-				"err", err,
-			)
-			continue
+			heads = append(heads, wrapped)
 		}
-
-		heads = append(heads, wrapped)
 	}
+	// TODO: should still add nonce sorting here
 	heap.Init(&heads)
 
 	// Add up to [maxTxs] transactions to be gossiped
