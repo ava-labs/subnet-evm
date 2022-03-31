@@ -39,8 +39,7 @@ const (
 
 // Special Address Mempool Behavior
 const (
-	defaultAccountTxs = 1
-	bridgeAccountTxs  = 10
+	bridgeAccountTxs = 10
 )
 
 var (
@@ -146,10 +145,6 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 			}
 		}
 
-		if len(txs) == 0 {
-			continue
-		}
-
 		for _, tx := range txs {
 			// Ensure the fee the transaction pays is valid at tip
 			wrapped, err := types.NewTxWithMinerFee(tx, baseFee, addr)
@@ -165,7 +160,6 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 			heads = append(heads, wrapped)
 		}
 	}
-	// TODO: should still add nonce sorting here
 	heap.Init(&heads)
 
 	// Add up to [maxTxs] transactions to be gossiped
