@@ -531,7 +531,7 @@ func (bc *BlockChain) Stop() {
 	}
 
 	// Unsubscribe all subscriptions registered from blockchain.
-	log.Info("Clsoing subscriptions scope")
+	log.Info("Closing subscriptions scope")
 	bc.scope.Close()
 	log.Info("Blockchain subscriptions closed")
 
