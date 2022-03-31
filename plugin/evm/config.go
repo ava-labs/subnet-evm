@@ -24,8 +24,8 @@ const (
 	defaultMaxBlocksPerRequest                  = 0 // Default to no maximum on the number of blocks per getLogs request
 	defaultContinuousProfilerFrequency          = 15 * time.Minute
 	defaultContinuousProfilerMaxFiles           = 5
-	defaultTxRegossipFrequency                  = 1 * time.Minute
-	defaultTxRegossipMaxSize                    = 15
+	defaultTxRegossipFrequency                  = 1 * time.Second
+	defaultTxRegossipMaxSize                    = 128
 	defaultOfflinePruningBloomFilterSize uint64 = 512 // Default size (MB) for the offline pruner to use
 	defaultLogLevel                             = "info"
 	defaultMaxOutboundActiveRequests            = 8
