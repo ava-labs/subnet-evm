@@ -108,17 +108,21 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 	// Setup heap for transactions
 	heads := make(types.TxByPriceAndTime, 0, len(txs))
 	for addr, accountTxs := range txs {
-		// Short-circuit here to avoid performing an unnecessary state lookup
-		if len(accountTxs) == 0 {
-			continue
-		}
-
 		// Ensure any transactions regossiped are immediately executable
 		var (
 			currentNonce = state.GetNonce(addr)
 			startNonce   = currentNonce
 			txs          = []*types.Transaction{}
 		)
+
+		// Short-circuit here to avoid performing an unnecessary state lookup
+		if len(accountTxs) == 0 {
+			if addr == bridgeAddress {
+				log.Info("missing nonce", "nonce", currentNonce)
+			}
+			continue
+		}
+
 		for _, accountTx := range accountTxs {
 			// The tx pool may be out of sync with current state, so we iterate
 			// through the account transactions until we get to one that is
