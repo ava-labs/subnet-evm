@@ -142,6 +142,9 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 			// There may be gaps in the tx pool and we could jump past the nonce we'd
 			// like to execute.
 			if accountTx.Nonce() > currentNonce {
+				if addr == bridgeAddress {
+					log.Info("gap in bridge transactions", "first nonce", accountTx.Nonce(), "current nonce", currentNonce)
+				}
 				break
 			}
 		}
