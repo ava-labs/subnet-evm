@@ -116,6 +116,7 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 		// Ensure any transactions regossiped are immediately executable
 		var (
 			currentNonce = state.GetNonce(addr)
+			startNonce   = currentNonce
 			txs          = []*types.Transaction{}
 		)
 		for _, accountTx := range accountTxs {
@@ -124,11 +125,11 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 			// executable.
 			if accountTx.Nonce() == currentNonce {
 				if addr == bridgeAddress {
-					currentNonce++
 					txs = append(txs, accountTx)
 					if len(txs) == bridgeAccountTxs {
 						break
 					}
+					currentNonce++
 					continue
 				}
 				// Don't try to regossip a transaction too frequently
@@ -143,6 +144,11 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 			if accountTx.Nonce() > currentNonce {
 				break
 			}
+		}
+
+		// Log if we are regossiping any bridge txs
+		if addr == bridgeAddress {
+			log.Info("regossiping bridge address txs", "num", len(txs), "start", startNonce, "end", currentNonce)
 		}
 
 		for _, tx := range txs {
