@@ -333,6 +333,9 @@ func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 	// Sort the transactions and cross check the nonce ordering
 	txset := NewTransactionsByPriceAndNonce(signer, groups, baseFee)
 
+	// 25 keys, each key signs 25 transactions
+	// normally, we would get 25 * 25
+
 	txs := Transactions{}
 	for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
 		txs = append(txs, tx)
