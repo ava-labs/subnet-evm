@@ -39,7 +39,7 @@ const (
 
 // Special Address Mempool Behavior
 const (
-	bridgeAccountTxs = 32
+	bridgeAccountTxs = 48
 )
 
 var (
