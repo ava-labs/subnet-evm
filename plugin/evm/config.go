@@ -25,7 +25,7 @@ const (
 	defaultMaxBlocksPerRequest                  = 0 // Default to no maximum on the number of blocks per getLogs request
 	defaultContinuousProfilerFrequency          = 15 * time.Minute
 	defaultContinuousProfilerMaxFiles           = 5
-	defaultTxRegossipFrequency                  = 1 * time.Second
+	defaultTxRegossipFrequency                  = 1 * time.Minute
 	defaultTxRegossipMaxSize                    = 16
 	defaultPriorityTxRegossipFrequency          = 1 * time.Second
 	defaultPriorityTxRegossipSize               = 32
