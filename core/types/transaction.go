@@ -463,7 +463,9 @@ func (s TxByNonce) Len() int           { return len(s) }
 func (s TxByNonce) Less(i, j int) bool { return s[i].Nonce() < s[j].Nonce() }
 func (s TxByNonce) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-// TxWithMinerFee wraps a transaction with its gas price or effective miner gasTipCap
+// TxWithMinerFee wraps a transaction with its gas price or effective miner
+// gasTipCap and its sender (used for sorting by nonce when there are multiple
+// transactions from the same sender)
 type TxWithMinerFee struct {
 	Tx       *Transaction
 	minerFee *big.Int
@@ -491,7 +493,7 @@ type TxByPriceAndTime []*TxWithMinerFee
 
 func (s TxByPriceAndTime) Len() int { return len(s) }
 func (s TxByPriceAndTime) Less(i, j int) bool {
-	// If the senders are equal, use the nonce in the transaction
+	// If the senders are equal, sort by the nonce in the transaction
 	if s[i].sender == s[j].sender {
 		return s[i].Tx.Nonce() < s[j].Tx.Nonce()
 	}
