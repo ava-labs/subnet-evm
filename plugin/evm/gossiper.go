@@ -37,15 +37,6 @@ const (
 	txsGossipInterval = 500 * time.Millisecond
 )
 
-// Special Address Mempool Behavior
-const (
-	bridgeAccountTxs = 48
-)
-
-var (
-	bridgeAddress = common.HexToAddress("0x230a1ac45690b9ae1176389434610b9526d2f21b")
-)
-
 // Gossiper handles outgoing gossip of transactions
 type Gossiper interface {
 	// GossipTxs sends AppGossip message containing the given [txs]
@@ -57,6 +48,7 @@ type pushGossiper struct {
 	ctx                  *snow.Context
 	gossipActivationTime time.Time
 	config               Config
+	priorityAddresses    map[common.Address]struct{}
 
 	client     peer.Client
 	blockchain *core.BlockChain
@@ -84,6 +76,7 @@ func (vm *VM) newPushGossiper() Gossiper {
 		ctx:                  vm.ctx,
 		gossipActivationTime: time.Unix(vm.chainConfig.SubnetEVMTimestamp.Int64(), 0),
 		config:               vm.config,
+		priorityAddresses:    make(map[common.Address]struct{}),
 		client:               vm.client,
 		blockchain:           vm.chain.BlockChain(),
 		txPool:               vm.chain.GetTxPool(),
@@ -93,6 +86,9 @@ func (vm *VM) newPushGossiper() Gossiper {
 		shutdownWg:           &vm.shutdownWg,
 		recentTxs:            &cache.LRU{Size: recentCacheSize},
 		codec:                vm.networkCodec,
+	}
+	for _, addr := range vm.config.TxPriorityRegossipAddresses {
+		net.priorityAddresses[addr] = struct{}{}
 	}
 	net.awaitEthTxGossip()
 	return net
@@ -105,6 +101,7 @@ func (vm *VM) newPushGossiper() Gossiper {
 // account. This array of transactions can have gaps and start at a nonce lower
 // than the current state of an account.
 func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int, txs map[common.Address]types.Transactions, maxTxs int) types.Transactions {
+	// TODO: only do priority
 	// Setup heap for transactions
 	heads := make(types.TxByPriceAndTime, 0, len(txs))
 	for addr, accountTxs := range txs {
@@ -117,9 +114,6 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 
 		// Short-circuit here to avoid performing an unnecessary state lookup
 		if len(accountTxs) == 0 {
-			if addr == bridgeAddress {
-				log.Info("missing nonce", "nonce", currentNonce)
-			}
 			continue
 		}
 
@@ -128,36 +122,35 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 			// through the account transactions until we get to one that is
 			// executable.
 			if accountTx.Nonce() == currentNonce {
-				if addr == bridgeAddress {
-					txs = append(txs, accountTx)
-					if len(txs) == bridgeAccountTxs {
+				if _, ok := n.priorityAddresses[addr]; !ok {
+					if time.Since(accountTx.FirstSeen()) < n.config.TxRegossipFrequency.Duration {
 						break
 					}
-					currentNonce++
-					continue
+					txs = append(txs, accountTx)
+					break
 				}
-				// Don't try to regossip a transaction too frequently
-				if time.Since(accountTx.FirstSeen()) < n.config.TxRegossipFrequency.Duration {
+
+				if time.Since(accountTx.FirstSeen()) < n.config.TxPriorityRegossipFrequency.Duration {
 					break
 				}
 				txs = append(txs, accountTx)
-				break
+				if len(txs) >= n.config.TxPriorityRegossipAddressTxs {
+					break
+				}
+				currentNonce++
 			}
+
 			// There may be gaps in the tx pool and we could jump past the nonce we'd
 			// like to execute.
 			if accountTx.Nonce() > currentNonce {
-				if addr == bridgeAddress {
-					log.Info("gap in bridge transactions", "first nonce", accountTx.Nonce(), "current nonce", currentNonce)
-				}
 				break
 			}
 		}
 
-		// Log if we are regossiping any bridge txs
-		if addr == bridgeAddress {
-			log.Info("regossiping bridge address txs", "num", len(txs), "start", startNonce, "end", currentNonce)
+		// Add all account transactions to regossip heap
+		if _, ok := n.priorityAddresses[addr]; ok {
+			log.Debug("regossiping priority txs", "address", addr, "num", len(txs), "start", startNonce, "end", currentNonce)
 		}
-
 		for _, tx := range txs {
 			// Ensure the fee the transaction pays is valid at tip
 			wrapped, err := types.NewTxWithMinerFee(tx, baseFee, addr)
@@ -169,7 +162,6 @@ func (n *pushGossiper) queueExecutableTxs(state *state.StateDB, baseFee *big.Int
 				)
 				continue
 			}
-
 			heads = append(heads, wrapped)
 		}
 	}
@@ -230,8 +222,9 @@ func (n *pushGossiper) awaitEthTxGossip() {
 		defer n.shutdownWg.Done()
 
 		var (
-			gossipTicker   = time.NewTicker(txsGossipInterval)
-			regossipTicker = time.NewTicker(n.config.TxRegossipFrequency.Duration)
+			gossipTicker           = time.NewTicker(txsGossipInterval)
+			regossipTicker         = time.NewTicker(n.config.TxRegossipFrequency.Duration)
+			priorityRegossipTicker = time.NewTicker(n.config.TxPriorityRegossipFrequency.Duration)
 		)
 
 		for {
@@ -250,7 +243,19 @@ func (n *pushGossiper) awaitEthTxGossip() {
 				}
 				if attempted, err := n.gossipTxs(true); err != nil {
 					log.Warn(
-						"failed to send eth transactions",
+						"failed to regossip eth transactions",
+						"len(txs)", attempted,
+						"err", err,
+					)
+				}
+			case <-priorityRegossipTicker.C:
+				// TODO: call different function
+				for _, tx := range n.queueRegossipTxs() {
+					n.txsToGossip[tx.Hash()] = tx
+				}
+				if attempted, err := n.gossipTxs(true); err != nil {
+					log.Warn(
+						"failed to regossip priority eth transactions",
 						"len(txs)", attempted,
 						"err", err,
 					)
