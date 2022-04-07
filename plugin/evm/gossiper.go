@@ -201,16 +201,8 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 // queueRegossipTxs finds the best priority transactions in the mempool and adds up to
 // [PriorityRegossipMaxTxs] of them to [txsToGossip].
 func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
-	// Fetch all pending transactions
-	pending := n.txPool.Pending(true)
-
-	// Extract all priority transactions
-	priorityTxs := make(map[common.Address]types.Transactions)
-	for _, account := range n.config.PriorityRegossipAddresses {
-		if txs := pending[account]; len(txs) > 0 {
-			priorityTxs[account] = txs
-		}
-	}
+	// Fetch all pending transactions from the priority addresses
+	priorityTxs := n.txPool.PendingFrom(n.config.PriorityRegossipAddresses, true)
 
 	// Add best transactions to be gossiped
 	tip := n.blockchain.CurrentBlock()

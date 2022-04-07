@@ -606,6 +606,34 @@ func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transacti
 	return pending
 }
 
+func (pool *TxPool) PendingFrom(addrs []common.Address, enforceTips bool) map[common.Address]types.Transactions {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	pending := make(map[common.Address]types.Transactions)
+	for _, addr := range addrs {
+		list := pool.pending[addr]
+		if list == nil {
+			continue
+		}
+		txs := list.Flatten()
+
+		// If the miner requests tip enforcement, cap the lists now
+		if enforceTips && !pool.locals.contains(addr) {
+			for i, tx := range txs {
+				if tx.EffectiveGasTipIntCmp(pool.gasPrice, pool.priced.urgent.baseFee) < 0 {
+					txs = txs[:i]
+					break
+				}
+			}
+		}
+		if len(txs) > 0 {
+			pending[addr] = txs
+		}
+	}
+	return pending
+}
+
 // Locals retrieves the accounts currently considered local by the pool.
 func (pool *TxPool) Locals() []common.Address {
 	pool.mu.Lock()
