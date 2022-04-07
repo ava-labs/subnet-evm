@@ -93,8 +93,8 @@ func (vm *VM) newPushGossiper() Gossiper {
 // addrStatus used to track the metadata of addresses being queued for
 // regossip.
 type addrStatus struct {
-	nonce uint64
-	added int
+	nonce    uint64
+	txsAdded int
 }
 
 // queueExecutableTxs attempts to select up to [maxTxs] from the tx pool for
@@ -142,13 +142,13 @@ func (n *pushGossiper) queueExecutableTxs(
 			stxs.Shift()
 			continue
 		case next.Nonce() > status.nonce, time.Since(next.FirstSeen()) < regossipFrequency.Duration,
-			status.added >= maxAcctTxs:
+			status.txsAdded >= maxAcctTxs:
 			stxs.Pop()
 			continue
 		}
 		queued = append(queued, next)
 		status.nonce++
-		status.added++
+		status.txsAdded++
 		stxs.Shift()
 	}
 	return queued
@@ -188,12 +188,13 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 	}
 	rgFrequency := n.config.RegossipFrequency
 	rgMaxTxs := n.config.RegossipMaxTxs
-	localQueued := n.queueExecutableTxs(state, tip.BaseFee(), localTxs, rgFrequency, rgMaxTxs, 1)
+	rgTxsPerAddr := n.config.RegossipTxsPerAddress
+	localQueued := n.queueExecutableTxs(state, tip.BaseFee(), localTxs, rgFrequency, rgMaxTxs, rgTxsPerAddr)
 	localCount := len(localQueued)
 	if localCount >= rgMaxTxs {
 		return localQueued
 	}
-	remoteQueued := n.queueExecutableTxs(state, tip.BaseFee(), remoteTxs, rgFrequency, rgMaxTxs-localCount, 1)
+	remoteQueued := n.queueExecutableTxs(state, tip.BaseFee(), remoteTxs, rgFrequency, rgMaxTxs-localCount, rgTxsPerAddr)
 	return append(localQueued, remoteQueued...)
 }
 

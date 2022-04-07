@@ -27,6 +27,7 @@ const (
 	defaultContinuousProfilerMaxFiles           = 5
 	defaultRegossipFrequency                    = 1 * time.Minute
 	defaultRegossipMaxTxs                       = 16
+	defaultRegossipTxsPerAddress                = 1
 	defaultPriorityRegossipFrequency            = 1 * time.Second
 	defaultPriorityRegossipMaxTxs               = 32
 	defaultPriorityRegossipTxsPerAddress        = 16
@@ -96,11 +97,12 @@ type Config struct {
 	// Gossip Settings
 	RemoteGossipOnlyEnabled       bool             `json:"remote-gossip-only-enabled"`
 	RegossipFrequency             Duration         `json:"regossip-frequency"`
-	RegossipMaxTxs                int              `json:"regossip-max-size"`
-	PriorityRegossipFrequency     Duration         `json:"tx-priority-regossip-frequency"`
-	PriorityRegossipMaxTxs        int              `json:"tx-priority-regossip-max-size"`
-	PriorityRegossipAddresses     []common.Address `json:"tx-priority-regossip-addresses"`
+	RegossipMaxTxs                int              `json:"regossip-max-txs"`
+	RegossipTxsPerAddress         int              `json:"regossip-txs-per-address"`
+	PriorityRegossipFrequency     Duration         `json:"priority-regossip-frequency"`
+	PriorityRegossipMaxTxs        int              `json:"priority-regossip-max-txs"`
 	PriorityRegossipTxsPerAddress int              `json:"priority-regossip-txs-per-address"`
+	PriorityRegossipAddresses     []common.Address `json:"priority-regossip-addresses"`
 
 	// Log level
 	LogLevel string `json:"log-level"`
@@ -142,6 +144,7 @@ func (c *Config) SetDefaults() {
 	c.SnapshotAsync = defaultSnapshotAsync
 	c.RegossipFrequency.Duration = defaultRegossipFrequency
 	c.RegossipMaxTxs = defaultRegossipMaxTxs
+	c.RegossipTxsPerAddress = defaultRegossipTxsPerAddress
 	c.PriorityRegossipFrequency.Duration = defaultPriorityRegossipFrequency
 	c.PriorityRegossipMaxTxs = defaultPriorityRegossipMaxTxs
 	c.PriorityRegossipTxsPerAddress = defaultPriorityRegossipTxsPerAddress
