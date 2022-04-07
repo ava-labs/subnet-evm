@@ -36,6 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/trie"
@@ -288,6 +289,71 @@ func TestStateProcessorErrors(t *testing.T) {
 					mkDynamicTx(0, common.Address{}, params.TxGas-1000, big.NewInt(0), big.NewInt(0)),
 				},
 				want: "could not apply tx 0 [0x88626ac0d53cb65308f2416103c62bb1f18b805573d4f96a3640bbbfff13c14f]: sender not an eoa: address 0x71562b71999873DB5b286dF957af199Ec94617F7, codehash: 0x9280914443471259d4570a8661015ae4a5b80186dbc619658fb494bebc3da3d1",
+			},
+		} {
+			block := GenerateBadBlock(genesis, dummy.NewFaker(), tt.txs, gspec.Config)
+			_, err := blockchain.InsertChain(types.Blocks{block})
+			if err == nil {
+				t.Fatal("block imported without errors")
+			}
+			if have, want := err.Error(), tt.want; have != want {
+				t.Errorf("test %d:\nhave \"%v\"\nwant \"%v\"\n", i, have, want)
+			}
+		}
+	}
+
+	{
+		var (
+			db = rawdb.NewMemoryDatabase()
+
+			testAddr = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
+
+			config = &params.ChainConfig{
+				ChainID:             big.NewInt(1),
+				HomesteadBlock:      big.NewInt(0),
+				EIP150Block:         big.NewInt(0),
+				EIP150Hash:          common.Hash{},
+				EIP155Block:         big.NewInt(0),
+				EIP158Block:         big.NewInt(0),
+				ByzantiumBlock:      big.NewInt(0),
+				ConstantinopleBlock: big.NewInt(0),
+				PetersburgBlock:     big.NewInt(0),
+				IstanbulBlock:       big.NewInt(0),
+				MuirGlacierBlock:    big.NewInt(0),
+				SubnetEVMTimestamp:  big.NewInt(0),
+				FeeConfig:           params.DefaultFeeConfig,
+				TxAllowListConfig: precompile.TxAllowListConfig{
+					AllowListConfig: precompile.AllowListConfig{
+						BlockTimestamp:  big.NewInt(0),
+						AllowListAdmins: []common.Address{},
+					},
+				},
+			}
+
+			gspec = &Genesis{
+				Config: config,
+				Alloc: GenesisAlloc{
+					testAddr: GenesisAccount{
+						Balance: big.NewInt(1000000000000000000), // 1 ether
+						Nonce:   0,
+					},
+				},
+
+				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			}
+			genesis       = gspec.MustCommit(db)
+			blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec.Config, dummy.NewFaker(), vm.Config{}, common.Hash{})
+		)
+		defer blockchain.Stop()
+		for i, tt := range []struct {
+			txs  []*types.Transaction
+			want string
+		}{
+			{ // Nonwhitelisted address
+				txs: []*types.Transaction{
+					mkDynamicTx(0, common.Address{}, params.TxGas, big.NewInt(0), big.NewInt(225000000000)),
+				},
+				want: "could not apply tx 0 [0xc5725e8baac950b2925dd4fea446ccddead1cc0affdae18b31a7d910629d9225]: cannot issue transaction from non-allow listed address: 0x71562b71999873DB5b286dF957af199Ec94617F7",
 			},
 		} {
 			block := GenerateBadBlock(genesis, dummy.NewFaker(), tt.txs, gspec.Config)
