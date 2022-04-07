@@ -463,8 +463,7 @@ func (s TxByNonce) Len() int           { return len(s) }
 func (s TxByNonce) Less(i, j int) bool { return s[i].Nonce() < s[j].Nonce() }
 func (s TxByNonce) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-// TxWithMinerFee wraps a transaction with its gas price or effective miner
-// gasTipCap
+// TxWithMinerFee wraps a transaction with its gas price or effective miner gasTipCap
 type TxWithMinerFee struct {
 	Tx       *Transaction
 	minerFee *big.Int
