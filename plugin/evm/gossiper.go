@@ -160,11 +160,6 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 	// Fetch all pending transactions
 	pending := n.txPool.Pending(true)
 
-	// Remove all priority transactions
-	for _, account := range n.config.PriorityRegossipAddresses {
-		delete(pending, account)
-	}
-
 	// Split the pending transactions into locals and remotes
 	localTxs := make(map[common.Address]types.Transactions)
 	remoteTxs := pending
