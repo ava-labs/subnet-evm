@@ -378,15 +378,18 @@ func TestMempoolTxsRegossip(t *testing.T) {
 	// to assert as well).
 }
 
-func TestMempoolTxsPriorityRegossipSingleAccount(t *testing.T) {
+func TestMempoolTxsPriorityRegossip(t *testing.T) {
 	assert := assert.New(t)
 
 	key, err := crypto.GenerateKey()
 	assert.NoError(err)
-
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 
-	cfgJson, err := fundAddressByGenesis([]common.Address{addr})
+	key2, err := crypto.GenerateKey()
+	assert.NoError(err)
+	addr2 := crypto.PubkeyToAddress(key2.PublicKey)
+
+	cfgJson, err := fundAddressByGenesis([]common.Address{addr, addr2})
 	assert.NoError(err)
 
 	cfg := fmt.Sprintf(`{"local-txs-enabled":true,"tx-priority-regossip-addresses":["%s"]}`, addr)
@@ -400,14 +403,17 @@ func TestMempoolTxsPriorityRegossipSingleAccount(t *testing.T) {
 
 	// create eth txes
 	txs := getValidTxs(key, 10, big.NewInt(226*params.GWei))
+	txs2 := getValidTxs(key2, 10, big.NewInt(226*params.GWei))
 
 	// Notify VM about eth txs
-	errs := vm.chain.GetTxPool().AddRemotesSync(txs)
-	for _, err := range errs {
+	for _, err := range vm.chain.GetTxPool().AddRemotesSync(txs) {
 		assert.NoError(err, "failed adding subnet-evm tx to remote mempool")
 	}
+	for _, err := range vm.chain.GetTxPool().AddRemotesSync(txs2) {
+		assert.NoError(err, "failed adding subnet-evm tx 2 to remote mempool")
+	}
 
-	// 10 transactions will be regossiped for a priority address
+	// 10 transactions will be regossiped for a priority address (others ignored)
 	pushNetwork := vm.gossiper.(*pushGossiper)
 	queued := pushNetwork.queuePriorityRegossipTxs()
 	assert.Len(queued, 10, "unexpected length of queued txs")
