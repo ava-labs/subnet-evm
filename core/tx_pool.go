@@ -606,14 +606,16 @@ func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transacti
 	return pending
 }
 
+// PendingFrom returns the same set of transactions that would be returned from Pending restricted to only
+// transactions from [addrs].
 func (pool *TxPool) PendingFrom(addrs []common.Address, enforceTips bool) map[common.Address]types.Transactions {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
 	pending := make(map[common.Address]types.Transactions)
 	for _, addr := range addrs {
-		list := pool.pending[addr]
-		if list == nil {
+		list, ok := pool.pending[addr]
+		if !ok {
 			continue
 		}
 		txs := list.Flatten()
