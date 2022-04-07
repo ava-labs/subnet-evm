@@ -111,9 +111,11 @@ func (n *pushGossiper) queueExecutableTxs(
 	maxTxs int,
 	maxAcctTxs int,
 ) types.Transactions {
-	stxs := types.NewTransactionsByPriceAndNonce(n.signer, txs, baseFee)
-	statuses := make(map[common.Address]*addrStatus)
-	queued := make([]*types.Transaction, 0, maxTxs)
+	var (
+		stxs     = types.NewTransactionsByPriceAndNonce(n.signer, txs, baseFee)
+		statuses = make(map[common.Address]*addrStatus)
+		queued   = make([]*types.Transaction, 0, maxTxs)
+	)
 
 	// Iterate over possible transactions until there are none left or we have
 	// hit the regossip target.
@@ -139,12 +141,14 @@ func (n *pushGossiper) queueExecutableTxs(
 		case next.Nonce() < status.nonce:
 			stxs.Shift()
 			continue
-		case next.Nonce() > status.nonce, time.Since(next.FirstSeen()) < regossipFrequency.Duration, status.added >= maxAcctTxs:
+		case next.Nonce() > status.nonce, time.Since(next.FirstSeen()) < regossipFrequency.Duration,
+			status.added >= maxAcctTxs:
 			stxs.Pop()
 			continue
 		}
 		queued = append(queued, next)
 		status.nonce++
+		stxs.Pop()
 	}
 	return queued
 }
