@@ -25,11 +25,11 @@ const (
 	defaultMaxBlocksPerRequest                  = 0 // Default to no maximum on the number of blocks per getLogs request
 	defaultContinuousProfilerFrequency          = 15 * time.Minute
 	defaultContinuousProfilerMaxFiles           = 5
-	defaultTxRegossipFrequency                  = 1 * time.Minute
-	defaultTxRegossipMaxSize                    = 16
-	defaultPriorityTxRegossipFrequency          = 1 * time.Second
-	defaultPriorityTxRegossipSize               = 32
-	defaultPriorityTxRegossipAddressTxs         = 16
+	defaultRegossipFrequency                    = 1 * time.Minute
+	defaultRegossipMaxTxs                       = 16
+	defaultPriorityRegossipFrequency            = 1 * time.Second
+	defaultPriorityRegossipMaxTxs               = 32
+	defaultPriorityRegossipTxsPerAddress        = 16
 	defaultOfflinePruningBloomFilterSize uint64 = 512 // Default size (MB) for the offline pruner to use
 	defaultLogLevel                             = "info"
 	defaultMaxOutboundActiveRequests            = 8
@@ -94,13 +94,13 @@ type Config struct {
 	KeystoreInsecureUnlockAllowed bool   `json:"keystore-insecure-unlock-allowed"`
 
 	// Gossip Settings
-	RemoteTxGossipOnlyEnabled    bool             `json:"remote-tx-gossip-only-enabled"`
-	TxRegossipFrequency          Duration         `json:"tx-regossip-frequency"`
-	TxRegossipMaxSize            int              `json:"tx-regossip-max-size"`
-	TxPriorityRegossipFrequency  Duration         `json:"tx-priority-regossip-frequency"`
-	TxPriorityRegossipMaxSize    int              `json:"tx-priority-regossip-max-size"`
-	TxPriorityRegossipAddresses  []common.Address `json:"tx-priority-regossip-addresses"`
-	TxPriorityRegossipAddressTxs int              `json:"tx-priority-regossip-address-txs"` // how many txs per address to regossip at once
+	RemoteGossipOnlyEnabled       bool             `json:"remote-gossip-only-enabled"`
+	RegossipFrequency             Duration         `json:"regossip-frequency"`
+	RegossipMaxTxs                int              `json:"regossip-max-size"`
+	PriorityRegossipFrequency     Duration         `json:"tx-priority-regossip-frequency"`
+	PriorityRegossipMaxTxs        int              `json:"tx-priority-regossip-max-size"`
+	PriorityRegossipAddresses     []common.Address `json:"tx-priority-regossip-addresses"`
+	PriorityRegossipTxsPerAddress int              `json:"priority-regossip-txs-per-address"`
 
 	// Log level
 	LogLevel string `json:"log-level"`
@@ -140,11 +140,11 @@ func (c *Config) SetDefaults() {
 	c.ContinuousProfilerMaxFiles = defaultContinuousProfilerMaxFiles
 	c.Pruning = defaultPruningEnabled
 	c.SnapshotAsync = defaultSnapshotAsync
-	c.TxRegossipFrequency.Duration = defaultTxRegossipFrequency
-	c.TxRegossipMaxSize = defaultTxRegossipMaxSize
-	c.TxPriorityRegossipFrequency.Duration = defaultPriorityTxRegossipFrequency
-	c.TxPriorityRegossipMaxSize = defaultPriorityTxRegossipSize
-	c.TxPriorityRegossipAddressTxs = defaultPriorityTxRegossipAddressTxs
+	c.RegossipFrequency.Duration = defaultRegossipFrequency
+	c.RegossipMaxTxs = defaultRegossipMaxTxs
+	c.PriorityRegossipFrequency.Duration = defaultPriorityRegossipFrequency
+	c.PriorityRegossipMaxTxs = defaultPriorityRegossipMaxTxs
+	c.PriorityRegossipTxsPerAddress = defaultPriorityRegossipTxsPerAddress
 	c.OfflinePruningBloomFilterSize = defaultOfflinePruningBloomFilterSize
 	c.LogLevel = defaultLogLevel
 	c.MaxOutboundActiveRequests = defaultMaxOutboundActiveRequests

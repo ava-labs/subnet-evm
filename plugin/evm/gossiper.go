@@ -155,13 +155,13 @@ func (n *pushGossiper) queueExecutableTxs(
 }
 
 // queueRegossipTxs finds the best non-priority transactions in the mempool and adds up to
-// [TxRegossipMaxSize] of them to [txsToGossip].
+// [RegossipMaxTxs] of them to [txsToGossip].
 func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 	// Fetch all pending transactions
 	pending := n.txPool.Pending(true)
 
 	// Remove all priority transactions
-	for _, account := range n.config.TxPriorityRegossipAddresses {
+	for _, account := range n.config.PriorityRegossipAddresses {
 		delete(pending, account)
 	}
 
@@ -186,26 +186,26 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 		)
 		return nil
 	}
-	rgFrequency := n.config.TxRegossipFrequency
-	rgMaxSize := n.config.TxRegossipMaxSize
-	localQueued := n.queueExecutableTxs(state, tip.BaseFee(), localTxs, rgFrequency, rgMaxSize, 1)
+	rgFrequency := n.config.RegossipFrequency
+	rgMaxTxs := n.config.RegossipMaxTxs
+	localQueued := n.queueExecutableTxs(state, tip.BaseFee(), localTxs, rgFrequency, rgMaxTxs, 1)
 	localCount := len(localQueued)
-	if localCount >= rgMaxSize {
+	if localCount >= rgMaxTxs {
 		return localQueued
 	}
-	remoteQueued := n.queueExecutableTxs(state, tip.BaseFee(), remoteTxs, rgFrequency, rgMaxSize-localCount, 1)
+	remoteQueued := n.queueExecutableTxs(state, tip.BaseFee(), remoteTxs, rgFrequency, rgMaxTxs-localCount, 1)
 	return append(localQueued, remoteQueued...)
 }
 
 // queueRegossipTxs finds the best priority transactions in the mempool and adds up to
-// [TxPriorityRegossipMaxSize] of them to [txsToGossip].
+// [PriorityRegossipMaxTxs] of them to [txsToGossip].
 func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 	// Fetch all pending transactions
 	pending := n.txPool.Pending(true)
 
 	// Extract all priority transactions
 	priorityTxs := make(map[common.Address]types.Transactions)
-	for _, account := range n.config.TxPriorityRegossipAddresses {
+	for _, account := range n.config.PriorityRegossipAddresses {
 		if txs := pending[account]; len(txs) > 0 {
 			priorityTxs[account] = txs
 		}
@@ -224,9 +224,9 @@ func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 	}
 	return n.queueExecutableTxs(
 		state, tip.BaseFee(), priorityTxs,
-		n.config.TxPriorityRegossipFrequency,
-		n.config.TxPriorityRegossipMaxSize,
-		n.config.TxPriorityRegossipAddressTxs,
+		n.config.PriorityRegossipFrequency,
+		n.config.PriorityRegossipMaxTxs,
+		n.config.PriorityRegossipTxsPerAddress,
 	)
 }
 
@@ -239,8 +239,8 @@ func (n *pushGossiper) awaitEthTxGossip() {
 
 		var (
 			gossipTicker           = time.NewTicker(txsGossipInterval)
-			regossipTicker         = time.NewTicker(n.config.TxRegossipFrequency.Duration)
-			priorityRegossipTicker = time.NewTicker(n.config.TxPriorityRegossipFrequency.Duration)
+			regossipTicker         = time.NewTicker(n.config.RegossipFrequency.Duration)
+			priorityRegossipTicker = time.NewTicker(n.config.PriorityRegossipFrequency.Duration)
 		)
 
 		for {
@@ -337,7 +337,7 @@ func (n *pushGossiper) gossipTxs(force bool) (int, error) {
 			continue
 		}
 
-		if n.config.RemoteTxGossipOnlyEnabled && n.txPool.HasLocal(txHash) {
+		if n.config.RemoteGossipOnlyEnabled && n.txPool.HasLocal(txHash) {
 			continue
 		}
 
