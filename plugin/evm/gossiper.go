@@ -148,7 +148,8 @@ func (n *pushGossiper) queueExecutableTxs(
 		}
 		queued = append(queued, next)
 		status.nonce++
-		stxs.Pop()
+		status.added++
+		stxs.Shift()
 	}
 	return queued
 }
