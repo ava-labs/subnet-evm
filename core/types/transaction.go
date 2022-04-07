@@ -464,18 +464,16 @@ func (s TxByNonce) Less(i, j int) bool { return s[i].Nonce() < s[j].Nonce() }
 func (s TxByNonce) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // TxWithMinerFee wraps a transaction with its gas price or effective miner
-// gasTipCap and its sender (used for sorting by nonce when there are multiple
-// transactions from the same sender)
+// gasTipCap
 type TxWithMinerFee struct {
 	Tx       *Transaction
 	minerFee *big.Int
-	sender   common.Address
 }
 
 // NewTxWithMinerFee creates a wrapped transaction, calculating the effective
 // miner gasTipCap if a base fee is provided.
 // Returns error in case of a negative effective miner gasTipCap.
-func NewTxWithMinerFee(tx *Transaction, baseFee *big.Int, sender common.Address) (*TxWithMinerFee, error) {
+func NewTxWithMinerFee(tx *Transaction, baseFee *big.Int) (*TxWithMinerFee, error) {
 	minerFee, err := tx.EffectiveGasTip(baseFee)
 	if err != nil {
 		return nil, err
@@ -483,7 +481,6 @@ func NewTxWithMinerFee(tx *Transaction, baseFee *big.Int, sender common.Address)
 	return &TxWithMinerFee{
 		Tx:       tx,
 		minerFee: minerFee,
-		sender:   sender,
 	}, nil
 }
 
@@ -493,11 +490,6 @@ type TxByPriceAndTime []*TxWithMinerFee
 
 func (s TxByPriceAndTime) Len() int { return len(s) }
 func (s TxByPriceAndTime) Less(i, j int) bool {
-	// If the senders are equal, sort by the nonce in the transaction
-	if s[i].sender == s[j].sender {
-		return s[i].Tx.Nonce() < s[j].Tx.Nonce()
-	}
-
 	// If the prices are equal, use the time the transaction was first seen for
 	// deterministic sorting
 	cmp := s[i].minerFee.Cmp(s[j].minerFee)
@@ -540,7 +532,7 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 	heads := make(TxByPriceAndTime, 0, len(txs))
 	for from, accTxs := range txs {
 		acc, _ := Sender(signer, accTxs[0])
-		wrapped, err := NewTxWithMinerFee(accTxs[0], baseFee, acc)
+		wrapped, err := NewTxWithMinerFee(accTxs[0], baseFee)
 		// Remove transaction if sender doesn't match from, or if wrapping fails.
 		if acc != from || err != nil {
 			delete(txs, from)
@@ -572,7 +564,7 @@ func (t *TransactionsByPriceAndNonce) Peek() *Transaction {
 func (t *TransactionsByPriceAndNonce) Shift() {
 	acc, _ := Sender(t.signer, t.heads[0].Tx)
 	if txs, ok := t.txs[acc]; ok && len(txs) > 0 {
-		if wrapped, err := NewTxWithMinerFee(txs[0], t.baseFee, acc); err == nil {
+		if wrapped, err := NewTxWithMinerFee(txs[0], t.baseFee); err == nil {
 			t.heads[0], t.txs[acc] = wrapped, txs[1:]
 			heap.Fix(&t.heads, 0)
 			return

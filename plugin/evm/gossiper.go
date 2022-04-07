@@ -4,7 +4,6 @@
 package evm
 
 import (
-	"container/heap"
 	"math/big"
 	"sync"
 	"time"
@@ -65,7 +64,8 @@ type pushGossiper struct {
 	// same transaction in a short period of time.
 	recentTxs *cache.LRU
 
-	codec codec.Manager
+	codec  codec.Manager
+	signer types.Signer
 }
 
 // newPushGossiper constructs and returns a pushGossiper
@@ -84,9 +84,17 @@ func (vm *VM) newPushGossiper() Gossiper {
 		shutdownWg:           &vm.shutdownWg,
 		recentTxs:            &cache.LRU{Size: recentCacheSize},
 		codec:                vm.networkCodec,
+		signer:               types.LatestSigner(vm.chain.BlockChain().Config()),
 	}
 	net.awaitEthTxGossip()
 	return net
+}
+
+// addrStatus used to track the metadata of addresses being queued for
+// regossip.
+type addrStatus struct {
+	nonce uint64
+	added int
 }
 
 // queueExecutableTxs attempts to select up to [maxTxs] from the tx pool for
@@ -103,67 +111,41 @@ func (n *pushGossiper) queueExecutableTxs(
 	maxTxs int,
 	maxAcctTxs int,
 ) types.Transactions {
-	// Setup heap for transactions
-	heads := make(types.TxByPriceAndTime, 0, len(txs))
-	for addr, accountTxs := range txs {
-		// Ensure any transactions regossiped are immediately executable
-		var (
-			currentNonce = state.GetNonce(addr)
-			txs          = []*types.Transaction{}
-		)
+	stxs := types.NewTransactionsByPriceAndNonce(n.signer, txs, baseFee)
+	statuses := make(map[common.Address]*addrStatus)
+	queued := make([]*types.Transaction, 0, maxTxs)
 
-		// Short-circuit here to avoid performing an unnecessary state lookup
-		if len(accountTxs) == 0 {
+	// Iterate over possible transactions until there are none left or we have
+	// hit the regossip target.
+	for len(queued) < maxTxs {
+		next := stxs.Peek()
+		if next == nil {
+			break
+		}
+
+		sender, _ := types.Sender(n.signer, next)
+		status, ok := statuses[sender]
+		if !ok {
+			status = &addrStatus{
+				nonce: state.GetNonce(sender),
+			}
+			statuses[sender] = status
+		}
+
+		// The tx pool may be out of sync with current state, so we iterate
+		// through the account transactions until we get to one that is
+		// executable.
+		switch {
+		case next.Nonce() < status.nonce:
+			stxs.Shift()
+			continue
+		case next.Nonce() > status.nonce, time.Since(next.FirstSeen()) < regossipFrequency.Duration, status.added >= maxAcctTxs:
+			stxs.Pop()
 			continue
 		}
-
-		for _, accountTx := range accountTxs {
-			// The tx pool may be out of sync with current state, so we iterate
-			// through the account transactions until we get to one that is
-			// executable.
-			if accountTx.Nonce() == currentNonce {
-				// Don't regossip too shortly after original gossip
-				if time.Since(accountTx.FirstSeen()) < regossipFrequency.Duration {
-					break
-				}
-				txs = append(txs, accountTx)
-				if len(txs) >= maxAcctTxs {
-					break
-				}
-				currentNonce++
-			}
-
-			// There may be gaps in the tx pool and we could jump past the nonce we'd
-			// like to execute.
-			if accountTx.Nonce() > currentNonce {
-				break
-			}
-		}
-
-		for _, tx := range txs {
-			// Ensure the fee the transaction pays is valid at tip
-			wrapped, err := types.NewTxWithMinerFee(tx, baseFee, addr)
-			if err != nil {
-				log.Debug(
-					"not queuing tx for regossip",
-					"tx", tx.Hash(),
-					"err", err,
-				)
-				continue
-			}
-			heads = append(heads, wrapped)
-		}
+		queued = append(queued, next)
+		status.nonce++
 	}
-	heap.Init(&heads)
-
-	// Add up to [maxTxs] transactions to be gossiped
-	queued := make([]*types.Transaction, 0, maxTxs)
-	for len(heads) > 0 && len(queued) < maxTxs {
-		tx := heads[0].Tx
-		queued = append(queued, tx)
-		heap.Pop(&heads)
-	}
-
 	return queued
 }
 
