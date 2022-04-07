@@ -392,7 +392,7 @@ func TestMempoolTxsPriorityRegossip(t *testing.T) {
 	cfgJson, err := fundAddressByGenesis([]common.Address{addr, addr2})
 	assert.NoError(err)
 
-	cfg := fmt.Sprintf(`{"local-txs-enabled":true,"tx-priority-regossip-addresses":["%s"]}`, addr)
+	cfg := fmt.Sprintf(`{"local-txs-enabled":true,"priority-regossip-addresses":["%s"]}`, addr)
 	_, vm, _, _ := GenesisVM(t, true, cfgJson, cfg, "")
 	defer func() {
 		err := vm.Shutdown()
