@@ -75,42 +75,48 @@ pushd ./runner
 go build -v -o /tmp/runner .
 popd
 
-echo "launch local test cluster in the background"
-/tmp/runner \
---avalanchego-path=/tmp/avalanchego-v${VERSION}/avalanchego \
---vm-id=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
---vm-genesis-path=${GENESIS_PATH} \
---output-path=/tmp/avalanchego-v${VERSION}/output.yaml 1> /dev/null &
-PID=${!}
-
-sleep 30
-while [[ ! -s /tmp/avalanchego-v${VERSION}/output.yaml ]]; do
-  echo "waiting for local cluster on PID ${PID}"
-  sleep 5
-  # wait up to 5-minute
-  ((c++)) && ((c==60)) && break
-done
-
-if [[ -f "/tmp/avalanchego-v${VERSION}/output.yaml" ]]; then
-  echo "cluster is ready!"
-  stty tostop
-  go run scripts/tests/main.go /tmp/avalanchego-v${VERSION}/output.yaml $CHAIN_ID $GENESIS_ADDRESS
-else
-  echo "cluster is not ready in time... terminating ${PID}"
-  kill ${PID}
-  exit 255
-fi
-
-cd ${CONTRACT_DIR}
-if yarn hardhat test ${TEST_PATH} --network subnet; then
-  kill ${PID}
-  echo "Tests passed successfully"
-else
-  kill ${PID}
-  echo "Some tests failed"
-fi
-
 # first argument is genesis, second is hardhat test path
 runTest () {
+  echo "launching subnet in the background for genesis $1 and test $2"
+  /tmp/runner \
+  --avalanchego-path=/tmp/avalanchego-v${VERSION}/avalanchego \
+  --vm-id=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
+  --vm-genesis-path=$1 \
+  --output-path=/tmp/avalanchego-v${VERSION}/output.yaml 1> /dev/null &
+  PID=${!}
 
+  sleep 30
+  while [[ ! -s /tmp/avalanchego-v${VERSION}/output.yaml ]]; do
+    echo "waiting for local cluster on PID ${PID}"
+    sleep 5
+    # wait up to 5-minute
+    ((c++)) && ((c==60)) && break
+  done
+
+  if [[ -f "/tmp/avalanchego-v${VERSION}/output.yaml" ]]; then
+    echo "cluster is ready!"
+    go run scripts/tests/main.go /tmp/avalanchego-v${VERSION}/output.yaml $CHAIN_ID $GENESIS_ADDRESS
+  else
+    echo "cluster is not ready in time... terminating ${PID}"
+    kill ${PID}
+    exit 255
+  fi
+
+  pushd ${CONTRACT_DIR}
+  if yarn hardhat test $2 --network subnet; then
+    echo "killing subnet"
+    kill ${PID}
+    echo "tests passed successfully"
+    sleep 2s
+  else
+    echo "killing subnet"
+    kill ${PID}
+    echo "some tests failed"
+    sleep 2s
+  fi
+  popd
+  rm /tmp/avalanchego-v${VERSION}/output.yaml
 }
+
+runTest ${GENESIS_PATH} ${TEST_PATH}
+runTest "scripts/tests/deployer_allow_list_genesis.json" "test/ExampleDeployerList.ts"
