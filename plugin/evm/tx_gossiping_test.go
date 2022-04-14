@@ -6,6 +6,7 @@ package evm
 import (
 	"crypto/ecdsa"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -106,10 +107,10 @@ func TestMempoolTxsAddedTxsGossipedAfterActivation(t *testing.T) {
 	seen := 0
 	sender.SendAppGossipF = func(gossipedBytes []byte) error {
 		if seen == 0 {
-			notifyMsgIntf, err := message.ParseMessage(vm.networkCodec, gossipedBytes)
+			notifyMsgIntf, err := message.ParseGossipMessage(vm.networkCodec, gossipedBytes)
 			assert.NoError(err)
 
-			requestMsg, ok := notifyMsgIntf.(*message.Txs)
+			requestMsg, ok := notifyMsgIntf.(message.TxsGossip)
 			assert.True(ok)
 			assert.NotEmpty(requestMsg.Txs)
 
@@ -123,10 +124,10 @@ func TestMempoolTxsAddedTxsGossipedAfterActivation(t *testing.T) {
 			seen++
 			wg2.Done()
 		} else if seen == 1 {
-			notifyMsgIntf, err := message.ParseMessage(vm.networkCodec, gossipedBytes)
+			notifyMsgIntf, err := message.ParseGossipMessage(vm.networkCodec, gossipedBytes)
 			assert.NoError(err)
 
-			requestMsg, ok := notifyMsgIntf.(*message.Txs)
+			requestMsg, ok := notifyMsgIntf.(message.TxsGossip)
 			assert.True(ok)
 			assert.NotEmpty(requestMsg.Txs)
 
@@ -190,10 +191,10 @@ func TestMempoolTxsAddedTxsGossipedAfterActivationChunking(t *testing.T) {
 	sender.CantSendAppGossip = false
 	seen := map[common.Hash]struct{}{}
 	sender.SendAppGossipF = func(gossipedBytes []byte) error {
-		notifyMsgIntf, err := message.ParseMessage(vm.networkCodec, gossipedBytes)
+		notifyMsgIntf, err := message.ParseGossipMessage(vm.networkCodec, gossipedBytes)
 		assert.NoError(err)
 
-		requestMsg, ok := notifyMsgIntf.(*message.Txs)
+		requestMsg, ok := notifyMsgIntf.(message.TxsGossip)
 		assert.True(ok)
 		assert.NotEmpty(requestMsg.Txs)
 
@@ -263,10 +264,10 @@ func TestMempoolTxsAppGossipHandling(t *testing.T) {
 	// show that unknown subnet-evm hashes is requested
 	txBytes, err := rlp.EncodeToBytes([]*types.Transaction{tx})
 	assert.NoError(err)
-	msg := message.Txs{
+	msg := message.TxsGossip{
 		Txs: txBytes,
 	}
-	msgBytes, err := message.BuildMessage(vm.networkCodec, &msg)
+	msgBytes, err := message.BuildGossipMessage(vm.networkCodec, msg)
 	assert.NoError(err)
 
 	nodeID := ids.GenerateTestShortID()
@@ -357,16 +358,16 @@ func TestMempoolTxsRegossip(t *testing.T) {
 		assert.NoError(err, "failed adding subnet-evm tx to local mempool")
 	}
 
-	// We expect 15 transactions (the default max number of transactions to
+	// We expect 16 transactions (the default max number of transactions to
 	// regossip) comprised of 10 local txs and 5 remote txs (we prioritize local
 	// txs over remote).
 	pushNetwork := vm.gossiper.(*pushGossiper)
 	queued := pushNetwork.queueRegossipTxs()
-	assert.Len(queued, 15, "unexpected length of queued txs")
+	assert.Len(queued, 16, "unexpected length of queued txs")
 
 	// Confirm queued transactions (should be ordered based on
 	// timestamp submitted, with local priorized over remote)
-	queuedTxHashes := make([]common.Hash, 15)
+	queuedTxHashes := make([]common.Hash, 16)
 	for i, tx := range queued {
 		queuedTxHashes[i] = tx.Hash()
 	}
@@ -375,4 +376,46 @@ func TestMempoolTxsRegossip(t *testing.T) {
 	// NOTE: We don't care which remote transactions are included in this test
 	// (due to the non-deterministic way pending transactions are surfaced, this can be difficult
 	// to assert as well).
+}
+
+func TestMempoolTxsPriorityRegossip(t *testing.T) {
+	assert := assert.New(t)
+
+	key, err := crypto.GenerateKey()
+	assert.NoError(err)
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+
+	key2, err := crypto.GenerateKey()
+	assert.NoError(err)
+	addr2 := crypto.PubkeyToAddress(key2.PublicKey)
+
+	cfgJson, err := fundAddressByGenesis([]common.Address{addr, addr2})
+	assert.NoError(err)
+
+	cfg := fmt.Sprintf(`{"local-txs-enabled":true,"priority-regossip-addresses":["%s"]}`, addr)
+	_, vm, _, _ := GenesisVM(t, true, cfgJson, cfg, "")
+	defer func() {
+		err := vm.Shutdown()
+		assert.NoError(err)
+	}()
+	vm.chain.GetTxPool().SetGasPrice(common.Big1)
+	vm.chain.GetTxPool().SetMinFee(common.Big0)
+
+	// create eth txes
+	txs := getValidTxs(key, 10, big.NewInt(226*params.GWei))
+	txs2 := getValidTxs(key2, 10, big.NewInt(226*params.GWei))
+
+	// Notify VM about eth txs
+	for _, err := range vm.chain.GetTxPool().AddRemotesSync(txs) {
+		assert.NoError(err, "failed adding subnet-evm tx to remote mempool")
+	}
+	for _, err := range vm.chain.GetTxPool().AddRemotesSync(txs2) {
+		assert.NoError(err, "failed adding subnet-evm tx 2 to remote mempool")
+	}
+
+	// 10 transactions will be regossiped for a priority address (others ignored)
+	pushNetwork := vm.gossiper.(*pushGossiper)
+	queued := pushNetwork.queuePriorityRegossipTxs()
+	assert.Len(queued, 10, "unexpected length of queued txs")
+	assert.ElementsMatch(txs, queued)
 }
