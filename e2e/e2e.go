@@ -102,21 +102,3 @@ func GetURIs() []string {
 	urisMu.RUnlock()
 	return us
 }
-
-var (
-	enableWhitelistTxTestMu sync.RWMutex
-	enableWhitelistTxTests  bool
-)
-
-func SetEnableWhitelistTxTests(b bool) {
-	enableWhitelistTxTestMu.Lock()
-	enableWhitelistTxTests = b
-	enableWhitelistTxTestMu.Unlock()
-}
-
-func GetEnableWhitelistTxTests() (b bool) {
-	enableWhitelistTxTestMu.RLock()
-	b = enableWhitelistTxTests
-	enableWhitelistTxTestMu.RUnlock()
-	return b
-}

@@ -18,13 +18,10 @@ import (
 	runner_client "github.com/ava-labs/avalanche-network-runner/client"
 
 	"github.com/ava-labs/avalanchego/tests"
-	"github.com/ava-labs/avalanchego/tests/e2e"
+	"github.com/ava-labs/subnet-evm/e2e"
 
 	// ensure test packages are scanned by ginkgo
-	_ "github.com/ava-labs/avalanchego/tests/e2e/ping"
-	_ "github.com/ava-labs/avalanchego/tests/e2e/static-handlers"
-	_ "github.com/ava-labs/avalanchego/tests/e2e/whitelist-vtx"
-	_ "github.com/ava-labs/avalanchego/tests/e2e/x/transfer"
+	_ "github.com/ava-labs/subnet-evm/e2e/ping"
 )
 
 func TestE2E(t *testing.T) {
@@ -72,13 +69,6 @@ func init() {
 		"[optional] avalanchego executable path (only required for local network-runner tests)",
 	)
 
-	// TODO: set timestamp on the test network machines to be more realistic
-	flag.BoolVar(
-		&enableWhitelistTxTests,
-		"enable-whitelist-vtx-tests",
-		false,
-		"true to enable whitelist vtx tests",
-	)
 	flag.StringVar(
 		&uris,
 		"uris",
@@ -88,8 +78,6 @@ func init() {
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	e2e.SetEnableWhitelistTxTests(enableWhitelistTxTests)
-
 	if execPath != "" {
 		_, err := os.Stat(execPath)
 		gomega.Expect(err).Should(gomega.BeNil())
@@ -103,6 +91,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		gomega.Expect(uris).Should(gomega.BeEmpty())
 
 		runnerCli, err := e2e.SetRunnerClient(logLevel, networkRunnerGRPCEp)
+		tests.Outf("{{green}}Setting runner grpc %s\n", networkRunnerGRPCEp)
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
