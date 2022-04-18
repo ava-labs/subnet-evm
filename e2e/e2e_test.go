@@ -15,13 +15,12 @@ import (
 
 	"github.com/onsi/gomega"
 
-	runner_client "github.com/ava-labs/avalanche-network-runner/client"
-
 	"github.com/ava-labs/avalanchego/tests"
 	"github.com/ava-labs/subnet-evm/e2e"
 
 	// ensure test packages are scanned by ginkgo
 	_ "github.com/ava-labs/subnet-evm/e2e/ping"
+	_ "github.com/ava-labs/subnet-evm/e2e/solidity"
 )
 
 func TestE2E(t *testing.T) {
@@ -36,8 +35,7 @@ var (
 	networkRunnerGRPCEp string
 	execPath            string
 
-	enableWhitelistTxTests bool
-	uris                   string
+	uris string
 )
 
 // TODO: support existing keys
@@ -100,27 +98,29 @@ var _ = ginkgo.BeforeSuite(func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		tests.Outf("{{green}}network-runner running in PID %d{{/}}\n", presp.Pid)
 
-		tests.Outf("{{magenta}}starting network-runner with %q{{/}}\n", execPath)
-		ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
-		resp, err := runnerCli.Start(ctx, execPath, runner_client.WithLogLevel(avalanchegoLogLevel))
-		cancel()
-		gomega.Expect(err).Should(gomega.BeNil())
-		tests.Outf("{{green}}successfully started network-runner :{{/}} %+v\n", resp.ClusterInfo.NodeNames)
+		e2e.SetLogLevel(avalanchegoLogLevel)
 
-		// start is async, so wait some time for cluster health
-		time.Sleep(time.Minute)
+		// tests.Outf("{{magenta}}starting network-runner with %q{{/}}\n", execPath)
+		// ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
+		// resp, err := runnerCli.Start(ctx, execPath, runner_client.WithLogLevel(avalanchegoLogLevel))
+		// cancel()
+		// gomega.Expect(err).Should(gomega.BeNil())
+		// tests.Outf("{{green}}successfully started network-runner :{{/}} %+v\n", resp.ClusterInfo.NodeNames)
 
-		ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
-		_, err = runnerCli.Health(ctx)
-		cancel()
-		gomega.Expect(err).Should(gomega.BeNil())
+		// // start is async, so wait some time for cluster health
+		// time.Sleep(time.Minute)
 
-		var uriSlice []string
-		ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
-		uriSlice, err = runnerCli.URIs(ctx)
-		cancel()
-		gomega.Expect(err).Should(gomega.BeNil())
-		e2e.SetURIs(uriSlice)
+		// ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
+		// _, err = runnerCli.Health(ctx)
+		// cancel()
+		// gomega.Expect(err).Should(gomega.BeNil())
+
+		// var uriSlice []string
+		// ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
+		// uriSlice, err = runnerCli.URIs(ctx)
+		// cancel()
+		// gomega.Expect(err).Should(gomega.BeNil())
+		// e2e.SetURIs(uriSlice)
 	}
 
 	// connect directly to existing cluster
@@ -136,18 +136,18 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	if networkRunnerGRPCEp != "" {
-		runnerCli := e2e.GetRunnerClient()
-		gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
+	// if networkRunnerGRPCEp != "" {
+	// 	runnerCli := e2e.GetRunnerClient()
+	// 	gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
 
-		tests.Outf("{{red}}shutting down network-runner cluster{{/}}\n")
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		_, err := runnerCli.Stop(ctx)
-		cancel()
-		gomega.Expect(err).Should(gomega.BeNil())
+	// 	tests.Outf("{{red}}shutting down network-runner cluster{{/}}\n")
+	// 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	// 	_, err := runnerCli.Stop(ctx)
+	// 	cancel()
+	// 	gomega.Expect(err).Should(gomega.BeNil())
 
-		tests.Outf("{{red}}shutting down network-runner client{{/}}\n")
-		err = e2e.CloseRunnerClient()
-		gomega.Expect(err).Should(gomega.BeNil())
-	}
+	// 	tests.Outf("{{red}}shutting down network-runner client{{/}}\n")
+	// 	err = e2e.CloseRunnerClient()
+	// 	gomega.Expect(err).Should(gomega.BeNil())
+	// }
 })

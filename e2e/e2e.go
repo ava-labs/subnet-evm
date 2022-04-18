@@ -86,6 +86,24 @@ func GetExecPath() (p string) {
 }
 
 var (
+	logLevelMu sync.RWMutex
+	logLevel   string
+)
+
+func SetLogLevel(p string) {
+	logLevelMu.Lock()
+	logLevel = p
+	logLevelMu.Unlock()
+}
+
+func GetLogLevel() (p string) {
+	logLevelMu.RLock()
+	p = logLevel
+	logLevelMu.RUnlock()
+	return p
+}
+
+var (
 	urisMu sync.RWMutex
 	uris   []string
 )

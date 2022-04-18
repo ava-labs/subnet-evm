@@ -13,6 +13,10 @@ func DescribeLocal(text string, body func()) bool {
 	return ginkgo.Describe("[Local] "+text, body)
 }
 
+func DescribePrecompile(text string, body func()) bool {
+	return ginkgo.Describe("[Precompile] "+text, body)
+}
+
 // DescribeXChain annotates the tests for X-Chain.
 // Can run with any type of cluster (e.g., local, fuji, mainnet).
 func DescribeXChain(text string, body func()) bool {

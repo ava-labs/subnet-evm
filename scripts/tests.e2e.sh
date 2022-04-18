@@ -132,10 +132,10 @@ echo "running e2e tests against the local cluster with /tmp/avalanchego-v${VERSI
 ./e2e/e2e.test \
 --ginkgo.v \
 --log-level debug \
---ginkgo.focus "\[Local\]" \
 --network-runner-grpc-endpoint="0.0.0.0:12342" \
 --avalanchego-log-level=INFO \
 --avalanchego-path=/tmp/avalanchego-v${VERSION}/avalanchego || EXIT_CODE=$?
+# --ginkgo.focus "\[Local\]" \
 # --enable-whitelist-vtx-tests=${ENABLE_WHITELIST_VTX_TESTS}
 # --enable-whitelist-vtx-tests=false || EXIT_CODE=$?
 
