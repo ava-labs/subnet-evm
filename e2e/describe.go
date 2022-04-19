@@ -14,7 +14,7 @@ func DescribeLocal(text string, body func()) bool {
 }
 
 func DescribePrecompile(text string, body func()) bool {
-	return ginkgo.Describe("[Precompile] "+text, body)
+	return ginkgo.Describe("[Precompile] "+text, ginkgo.Ordered, body)
 }
 
 // DescribeXChain annotates the tests for X-Chain.

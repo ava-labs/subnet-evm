@@ -6,6 +6,8 @@ package solidity
 
 import (
 	"context"
+	"fmt"
+	"os/exec"
 	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -18,39 +20,11 @@ import (
 	"github.com/ava-labs/subnet-evm/e2e"
 )
 
-var _ = e2e.DescribePrecompile("[Solidity]", func() {
-	ginkgo.BeforeEach(func() {
+var _ = e2e.DescribePrecompile("[TX Allow List]", func() {
+	ginkgo.BeforeAll(func() {
 		if e2e.GetRunnerGRPCEndpoint() == "" {
 			ginkgo.Skip("no local network-runner, failing")
 		}
-	})
-
-	ginkgo.AfterEach(func() {
-		// if e2e.GetRunnerGRPCEndpoint() == "" {
-		// 	ginkgo.Fail("no local network-runner, skipping")
-		// }
-		// runnerCli := e2e.GetRunnerClient()
-		// ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		// runnerCli.Stop(ctx)
-		// cancel()
-
-		if e2e.GetRunnerGRPCEndpoint() != "" {
-			runnerCli := e2e.GetRunnerClient()
-			gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
-
-			tests.Outf("{{red}}shutting down network-runner cluster{{/}}\n")
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-			_, err := runnerCli.Stop(ctx)
-			cancel()
-			gomega.Expect(err).Should(gomega.BeNil())
-
-			tests.Outf("{{red}}shutting down network-runner client{{/}}\n")
-			err = e2e.CloseRunnerClient()
-			gomega.Expect(err).Should(gomega.BeNil())
-		}
-	})
-
-	ginkgo.It("can ping network-runner RPC server", func() {
 
 		runnerCli := e2e.GetRunnerClient()
 		gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
@@ -81,5 +55,29 @@ var _ = e2e.DescribePrecompile("[Solidity]", func() {
 		e2e.SetURIs(uriSlice)
 
 		gomega.Expect(err).Should(gomega.BeNil())
+	})
+
+	ginkgo.AfterAll(func() {
+		if e2e.GetRunnerGRPCEndpoint() != "" {
+			runnerCli := e2e.GetRunnerClient()
+			gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
+
+			tests.Outf("{{red}}shutting down network-runner cluster{{/}}\n")
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			_, err := runnerCli.Stop(ctx)
+			cancel()
+			gomega.Expect(err).Should(gomega.BeNil())
+
+			tests.Outf("{{red}}shutting down network-runner client{{/}}\n")
+			err = e2e.CloseRunnerClient()
+			gomega.Expect(err).Should(gomega.BeNil())
+		}
+	})
+
+	ginkgo.It("hardhat tests", func() {
+		tests.Outf("{{green}}run hardhat{{/}}\n")
+		out, err := exec.Command("ls").Output()
+		gomega.Expect(err).Should(gomega.BeNil())
+		fmt.Println(string(out))
 	})
 })
