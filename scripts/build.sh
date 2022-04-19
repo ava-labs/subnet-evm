@@ -51,5 +51,5 @@ fi
 subnet_evm_commit=${SUBNET_EVM_COMMIT:-$( git rev-list -1 HEAD )}
 
 # Build Subnet EVM, which is run as a subprocess
-echo "Building Subnet EVM Version: $subnet_evm_version; GitCommit: $subnet_evm_commit"
+echo "Building Subnet EVM Version: $subnet_evm_version; GitCommit: $subnet_evm_commit at $binary_path"
 go build -ldflags "-X github.com/ava-labs/subnet-evm/plugin/evm.GitCommit=$subnet_evm_commit -X github.com/ava-labs/subnet-evm/plugin/evm.Version=$subnet_evm_version $static_ld_flags" -o "$binary_path" "plugin/"*.go
