@@ -1,0 +1,38 @@
+# Dexalot Fuji Subnet
+
+## Fuji Subnet Info
+
+| Dexalot Fuji Subnet   |                                                                                            |
+| :-------------------- | ------------------------------------------------------------------------------------------:|
+| Subnet Name           | DexalotSubnet                                                                             |
+| Subnet Logo           | ![subnet logo](https://dexalot.com/images/logo.svg)                                           |
+| Subnet ID             | 9m6a3Qte8FaRbLZixLhh8Ptdkemm4csNaLwQeKkENx5wskbWP                                          |
+| Chain Name            | DexalotMain                                                                               |
+| Chain Logo            |  ![chain logo](https://dexalot.com/images/logo.svg)                                          |
+| Blockchain ID         | XuEPnCE59rtutASDPCDeYw8geQaGWwteWjkDXYLWvssfuirde                                          |
+| Eth Chain ID          | 432201                                                                                     |
+| RPC URL               | https://node.dexalot-test.com/ext/bc/XuEPnCE59rtutASDPCDeYw8geQaGWwteWjkDXYLWvssfuirde/rpc | 
+| Description           | Dexalot Exchange EVM subnet v1. This subnet only has one chain.                            |
+| Site                  | https://subnetapp.dexalot-test.com/trade                                                   | 
+| Multicall2 contracts  | TBA                                                                                        |
+
+
+## Fuji Subnet ERC-20 Tokens
+
+| Symbol    | Address   | Decimals  | Logo | Description | 
+| ---:      | ----:                                      | --:| :----: | -----:    |
+| ALOT      |                                            | 18 | [ALOT logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/0x093783055F9047C2BfF99c4e414501F8A147bC69/logo.png) | Daxalot Subnet native token |
+| AVAX      | 0x8B32CF176c409d7d40838295fb225c22d3937032 | 18 | [Mock AVAX logo](https://subnetapp.dexalot-test.com/icons/avax.png) | Mock AVAX |
+| LFG       | 0x3aF43E5a9bc53Ec5cC7cF614D209ac52F26A2B8c | 18 | [Mock LFG logo](https://subnetapp.dexalot-test.com/icons/lfg.png) | Mock LFG |
+| SER       | 0x2B21b816e82A4f186c4e9a8C9ae654ba353B91A2 | 18 | [Mock SER logo](https://subnetapp.dexalot-test.com/icons/ser.png) | Mock SER |
+| USDT.e    | 0x0b0E3a1F937F59359795E1ACfb9FC744F21a6894 | 6 | [Mock USDT.e logo](https://subnetapp.dexalot-test.com/icons/usdt.e.png) | Mock USDT.e |
+
+## Fuji Subnet Contracts
+
+| Contract      | Address                                    | Description | 
+| ---:          | ----:                                      | ---:        |
+| Exchange      | 0xede0E7C02848709dd41932278f10C0517eCBBB6e |  |
+| OrderBooks    | 0xcEA6375208Ca81BCE5Fc33B289e8c4b9DDf74523 |  |
+| Portfolio     | 0xB4691bd740e390b584F229aCbd25aB9fcEFeB9AE |  |
+| TradePairs    | 0x772A38B39C5991bF6b88d10218eB63295aC57B87 |  |
+
