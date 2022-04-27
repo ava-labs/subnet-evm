@@ -1,9 +1,10 @@
 module github.com/ava-labs/subnet-evm/tests/e2e
 
-go 1.17
+go 1.18
 
 require (
 	github.com/ava-labs/avalanche-network-runner v1.0.11
+	github.com/ava-labs/avalanchego v1.7.11-0.20220416161358-8755486a274e
 	github.com/onsi/ginkgo/v2 v2.1.3
 	github.com/onsi/gomega v1.19.0
 	sigs.k8s.io/yaml v1.3.0
@@ -14,7 +15,6 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/VictoriaMetrics/fastcache v1.9.0 // indirect
-	github.com/ava-labs/avalanchego v1.7.11-0.20220416161358-8755486a274e // indirect
 	github.com/ava-labs/coreth v0.8.9-rc.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.21.0-beta // indirect
