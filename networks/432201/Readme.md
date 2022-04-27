@@ -7,6 +7,7 @@
 | Subnet Name           | DexalotSubnet                                                                              |
 | Subnet Logo           | ![subnet logo](https://dexalot.com/images/logo.svg)                                        |
 | Subnet ID             | 9m6a3Qte8FaRbLZixLhh8Ptdkemm4csNaLwQeKkENx5wskbWP                                          |
+| VM ID                 | mDVSxzeWHpEU3eSqMwwGQsD787xGp7hv9Qgoe3R9SdjPapte8
 | Chain Name            | DexalotMain                                                                                |
 | Chain Logo            |  ![chain logo](https://dexalot.com/images/logo.svg)                                        |
 | Blockchain ID         | XuEPnCE59rtutASDPCDeYw8geQaGWwteWjkDXYLWvssfuirde                                          |
