@@ -4,17 +4,17 @@
 
 | Dexalot Fuji Subnet   |                                                                                            |
 | :-------------------- | ------------------------------------------------------------------------------------------:|
-| Subnet Name           | DexalotSubnet                                                                             |
-| Subnet Logo           | ![subnet logo](https://dexalot.com/images/logo.svg)                                           |
+| Subnet Name           | DexalotSubnet                                                                              |
+| Subnet Logo           | ![subnet logo](https://dexalot.com/images/logo.svg)                                        |
 | Subnet ID             | 9m6a3Qte8FaRbLZixLhh8Ptdkemm4csNaLwQeKkENx5wskbWP                                          |
-| Chain Name            | DexalotMain                                                                               |
-| Chain Logo            |  ![chain logo](https://dexalot.com/images/logo.svg)                                          |
+| Chain Name            | DexalotMain                                                                                |
+| Chain Logo            |  ![chain logo](https://dexalot.com/images/logo.svg)                                        |
 | Blockchain ID         | XuEPnCE59rtutASDPCDeYw8geQaGWwteWjkDXYLWvssfuirde                                          |
 | Eth Chain ID          | 432201                                                                                     |
 | RPC URL               | https://node.dexalot-test.com/ext/bc/XuEPnCE59rtutASDPCDeYw8geQaGWwteWjkDXYLWvssfuirde/rpc | 
-| Description           | Dexalot Exchange EVM subnet v1. This subnet only has one chain.                            |
+| Description           | Dexalot Exchange EVM subnet.                                                               |
 | Site                  | https://subnetapp.dexalot-test.com/trade                                                   | 
-| Multicall2 contracts  | TBA                                                                                        |
+| Multicall2 contracts  | 0xe07e60594653D03165402D3B491d30Fe2d2C0A6A                                                 |
 
 
 ## Fuji Subnet ERC-20 Tokens
