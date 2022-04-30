@@ -37,7 +37,7 @@ import (
 
 const (
 	commitInterval = 4096
-	tipBufferSize  = 16
+	tipBufferSize  = 48
 )
 
 type TrieWriter interface {
