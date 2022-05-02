@@ -22,11 +22,11 @@
 
 | Symbol    | Address   | Decimals  | Logo | Description | 
 | ---:      | ----:                                      | --:| :----: | -----:    |
-| ALOT      |                                            | 18 | [ALOT logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/0x093783055F9047C2BfF99c4e414501F8A147bC69/logo.png) | Daxalot Subnet native token |
-| AVAX      | 0x8B32CF176c409d7d40838295fb225c22d3937032 | 18 | [Mock AVAX logo](https://subnetapp.dexalot-test.com/icons/avax.png) | Mock AVAX |
-| LFG       | 0x3aF43E5a9bc53Ec5cC7cF614D209ac52F26A2B8c | 18 | [Mock LFG logo](https://subnetapp.dexalot-test.com/icons/lfg.png) | Mock LFG |
-| SER       | 0x2B21b816e82A4f186c4e9a8C9ae654ba353B91A2 | 18 | [Mock SER logo](https://subnetapp.dexalot-test.com/icons/ser.png) | Mock SER |
-| USDT.e    | 0x0b0E3a1F937F59359795E1ACfb9FC744F21a6894 | 6 | [Mock USDT.e logo](https://subnetapp.dexalot-test.com/icons/usdt.e.png) | Mock USDT.e |
+| ALOT      |                                            | 18 | [ALOT logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/alot/logo.png) | Daxalot Subnet native token |
+| AVAX      | 0x8B32CF176c409d7d40838295fb225c22d3937032 | 18 | [Mock AVAX logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/avax/logo.png) | Mock AVAX |
+| LFG       | 0x3aF43E5a9bc53Ec5cC7cF614D209ac52F26A2B8c | 18 | [Mock LFG logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/fuji_battle_icons/lfg.png) | Mock LFG |
+| SER       | 0x2B21b816e82A4f186c4e9a8C9ae654ba353B91A2 | 18 | [Mock SER logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/fuji_battle_icons/ser.png) | Mock SER |
+| USDT.e    | 0x0b0E3a1F937F59359795E1ACfb9FC744F21a6894 | 6 | [Mock USDT.e logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/usdt/logo.png) | Mock USDT.e |
 
 ## Fuji Subnet Contracts
 
