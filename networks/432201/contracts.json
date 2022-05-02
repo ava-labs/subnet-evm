@@ -7,7 +7,7 @@
         "contractType": "ERC-20",
         "decimals": 18,
         "assetType": "Fixed Cap",
-        "logoUrl": "https://subnetapp.dexalot-test.com/icons/avax.png"
+        "logoUrl": "https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/avax/logo.png"
     },
     {
         "address": "0x3aF43E5a9bc53Ec5cC7cF614D209ac52F26A2B8c",
@@ -17,7 +17,7 @@
         "contractType": "ERC-20",
         "decimals": 18,
         "assetType": "Fixed Cap",
-        "logoUrl": "https://subnetapp.dexalot-test.com/icons/lfg.png"
+        "logoUrl": "https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/fuji_battle_icons/lfg.png"
     },
     {
         "address": "0x2B21b816e82A4f186c4e9a8C9ae654ba353B91A2",
@@ -27,7 +27,7 @@
         "contractType": "ERC-20",
         "decimals": 18,
         "assetType": "Fixed Cap",
-        "logoUrl": "https://subnetapp.dexalot-test.com/icons/ser.png"
+        "logoUrl": "https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/fuji_battle_icons/ser.png"
     },
     {
         "address": "0x0b0E3a1F937F59359795E1ACfb9FC744F21a6894",
@@ -37,7 +37,7 @@
         "contractType": "ERC-20",
         "decimals": 6,
         "assetType": "Fixed Cap",
-        "logoUrl": "https://subnetapp.dexalot-test.com/icons/usdt.e.png"
+        "logoUrl": "https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/usdt/logo.png"
     },
     {
         "address": "0xede0E7C02848709dd41932278f10C0517eCBBB6e",
