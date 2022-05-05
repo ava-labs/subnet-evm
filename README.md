@@ -8,6 +8,29 @@ Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/learn/platfor
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
+## Forking Subnet EVM
+
+If you want to create your own subnet and run subnet-evm, you should fork the subnet-evm repository and maintain it as a separate code base. You will want to update the VMID specified [here](./plugin/evm/factory.go) so that the VMID will not overlap with subnet-evm. The VMID must be unique, so that when a validator processes a CreateBlockchain transaction containing a VMID, the validator can determine which VM it needs to use to validate that blockchain.
+
+In addition, you should update the following table to provide basic information about your subnet for each network that it's deployed to ie. Testnet/Mainnet. The following table is for WAGMI on the Fuji Testnet:
+
+### WAGMI Subnet Info
+
+| WAGMI Subnet          |                                                                                            |
+| :-------------------- | ------------------------------------------------------------------------------------------:|
+| Public Repository     | https://github.com/ava-labs/subnet-evm                                                     |
+| Subnet Name           | WAGMI                                                                                      |
+| Subnet ID             | 28nrH5T2BMvNrWecFcV3mfccjs6axM1TVyqe79MCv2Mhs8kxiY                                         |
+| Blockchain Name       | WAGMI Chain                                                                                |
+| Blockchain ID         | 2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt                                         |
+| Eth Chain ID          | 11111                                                                                      |
+| VM Name               | Subnet-EVM                                                                                 |
+| VM ID                 | srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy                                          |
+| RPC URL               | https://subnets.avax.network/wagmi/wagmi-chain-testnet/rpc                                 | 
+| WS URL                | wss://subnets.avax.network/wagmi/wagmi-chain-testnet/ws                                    | 
+| Description           | We Are All Going to Make It.                                                               |
+| Multicall2 contracts  | 0xe07e60594653D03165402D3B491d30Fe2d2C0A6A                                                 |
+
 ## Building
 
 The Subnet EVM runs in a separate process from the main AvalancheGo process and communicates with it over a local gRPC connection.
