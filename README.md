@@ -483,6 +483,10 @@ cd ${HOME}/go/src/github.com/ava-labs/subnet-evm
 _This address (`0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`) is a prefunded address on the local network, see [here](https://docs.avax.network/quickstart/fund-a-local-test-network) for more info. The private key for this address is
 `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`._
 
+
+With this command, `avalanchego`, `avalanche-network-runner` and GoLang packages will be downloaded and installed on a
+`/tmp` directory. 
+
 Once the the network is started up, the following info will be printed to the
 console:
 
@@ -517,7 +521,7 @@ Curreny Symbol: LEVM
 You can then ping the local cluster or add the network to MetaMask:
 
 ```bash
-curl --location --request POST 'http://localhost:61278/ext/bc/2Z36RnQuk1hvsnFeGWzfZUfXNr7w1SjzmDQ78YxfTVNAkDq3nZ/rpc' \
+curl --location --request POST 'http://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "jsonrpc": "2.0",
