@@ -476,7 +476,7 @@ cd ${HOME}/go/src/github.com/ava-labs/subnet-evm
 ./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 ```
 
-_The private key for the ewoq address (`0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`) is
+_ewop address (`0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`) is a prefunded address on the local network, see [here](https://docs.avax.network/quickstart/fund-a-local-test-network) for more info. The private key for this address is
 `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`._
 
 Once the the network is started up, the following info will be printed to the
