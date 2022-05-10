@@ -544,7 +544,7 @@ Response:
 To terminate the cluster, kill the PID:
 
 ```bash
-kill -2 55547
+kill -2 90118
 ```
 
 ## Load Simulator
