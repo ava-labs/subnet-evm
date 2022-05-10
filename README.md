@@ -484,8 +484,7 @@ _This address (`0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`) is a prefunded addr
 `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`._
 
 
-With this command, `avalanchego`, `avalanche-network-runner` and GoLang packages will be downloaded and installed on a
-`/tmp` directory. 
+With this command, `avalanchego`, `avalanche-network-runner` and GoLang packages will be downloaded and installed on a `/tmp` directory. Note: please make sure that your have fast internet connection to download these packages, otherwise, it will take a long time.
 
 Once the the network is started up, the following info will be printed to the
 console:
