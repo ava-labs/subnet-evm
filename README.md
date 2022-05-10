@@ -529,13 +529,16 @@ curl --location --request POST 'http://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHN
     "params":[],
     "id": 1
 }'
-<<COMMENT
+```
+
+Response:
+
+```json
 {
     "jsonrpc": "2.0",
     "id": 1,
     "result": "0x0"
 }
-COMMENT
 ```
 
 To terminate the cluster, kill the PID:
