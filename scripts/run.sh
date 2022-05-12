@@ -66,15 +66,17 @@ if [[ ! -d ${AVAGO_FILEPATH} ]]; then
   fi
   echo "extracting downloaded avalanchego to ${AVAGO_FILEPATH}"
   if [[ ${GOOS} == "linux" ]]; then
-    mkdir -p ${AVAGO_FILEPATH} && tar xzvf ${AVAGO_DOWNLOAD_PATH} -C ${AVAGO_FILEPATH}
+    mkdir -p ${AVAGO_FILEPATH} && tar xzvf ${AVAGO_DOWNLOAD_PATH} --directory ${AVAGO_FILEPATH} --strip-components 1
   elif [[ ${GOOS} == "darwin" ]]; then
     unzip ${AVAGO_DOWNLOAD_PATH} -d ${AVAGO_FILEPATH}
+    mv ${AVAGO_FILEPATH}/build/* ${AVAGO_FILEPATH}
+    rm -rf ${AVAGO_FILEPATH}/build/
   fi
   find ${BASEFILE}/avalanchego-v${VERSION}
 fi
 
-AVALANCHEGO_PATH=${AVAGO_FILEPATH}/build/avalanchego
-AVALANCHEGO_PLUGIN_DIR=${AVAGO_FILEPATH}/build/plugins
+AVALANCHEGO_PATH=${AVAGO_FILEPATH}/avalanchego
+AVALANCHEGO_PLUGIN_DIR=${AVAGO_FILEPATH}/plugins
 
 #################################
 # compile subnet-evm
@@ -216,6 +218,7 @@ echo "building e2e.test"
 go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
 ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 
+trap "trap - SIGTERM && kill -- -$$" SIGTERM SIGKILL EXIT
 #################################
 # run "avalanche-network-runner" server
 echo "launch avalanche-network-runner in the background"
@@ -263,6 +266,5 @@ if [[ ${MODE} == "test" ]]; then
   pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy || true # in case pkill didn't work
 else
   echo "CTRL + C to exit and kill all background processes"
-  trap "trap - SIGTERM && kill -- -$$" SIGTERM
   wait
 fi
