@@ -19,14 +19,14 @@ fi
 VERSION=$1
 if [[ -z "${VERSION}" ]]; then
   echo "Missing version argument!"
-  echo "Usage: ${0} [VERSION] [GENESIS_ADDRESS]" >> /dev/stderr
+  echo "Usage: ${0} [VERSION] [GENESIS_ADDRESS]" >>/dev/stderr
   exit 255
 fi
 
 GENESIS_ADDRESS=$2
 if [[ -z "${GENESIS_ADDRESS}" ]]; then
   echo "Missing address argument!"
-  echo "Usage: ${0} [VERSION] [GENESIS_ADDRESS]" >> /dev/stderr
+  echo "Usage: ${0} [VERSION] [GENESIS_ADDRESS]" >>/dev/stderr
   exit 255
 fi
 
@@ -49,45 +49,46 @@ echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 # https://github.com/ava-labs/avalanchego/releases
 GOARCH=$(go env GOARCH)
 GOOS=$(go env GOOS)
-DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-linux-${GOARCH}-v${VERSION}.tar.gz
-DOWNLOAD_PATH=/tmp/avalanchego.tar.gz
+BASEFILE=/tmp/subnet-evm-runner
+mkdir -p ${BASEFILE}
+AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-linux-${GOARCH}-v${VERSION}.tar.gz
+AVAGO_DOWNLOAD_PATH=${BASEFILE}/avalanchego-linux-${GOARCH}-v${VERSION}.tar.gz
 if [[ ${GOOS} == "darwin" ]]; then
-  DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-macos-v${VERSION}.zip
-  DOWNLOAD_PATH=/tmp/avalanchego.zip
+  AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-macos-v${VERSION}.zip
+  AVAGO_DOWNLOAD_PATH=${BASEFILE}/avalanchego-macos-v${VERSION}.zip
 fi
 
-rm -rf /tmp/avalanchego-v${VERSION}
-rm -f ${DOWNLOAD_PATH}
-
-echo "downloading avalanchego ${VERSION} at ${DOWNLOAD_URL}"
-curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
-
-echo "extracting downloaded avalanchego"
-if [[ ${GOOS} == "linux" ]]; then
-  tar xzvf ${DOWNLOAD_PATH} -C /tmp
-elif [[ ${GOOS} == "darwin" ]]; then
-  unzip ${DOWNLOAD_PATH} -d /tmp/avalanchego-build
-  mv /tmp/avalanchego-build/build /tmp/avalanchego-v${VERSION}
+AVAGO_FILEPATH=${BASEFILE}/avalanchego-v${VERSION}
+if [[ ! -d ${AVAGO_FILEPATH} ]]; then
+  if [[ ! -f ${AVAGO_DOWNLOAD_PATH} ]]; then
+    echo "downloading avalanchego ${VERSION} at ${AVAGO_DOWNLOAD_URL} to ${AVAGO_DOWNLOAD_PATH}"
+    curl -L ${AVAGO_DOWNLOAD_URL} -o ${AVAGO_DOWNLOAD_PATH}
+  fi
+  echo "extracting downloaded avalanchego to ${AVAGO_FILEPATH}"
+  if [[ ${GOOS} == "linux" ]]; then
+    mkdir -p ${AVAGO_FILEPATH} && tar xzvf ${AVAGO_DOWNLOAD_PATH} -C ${AVAGO_FILEPATH}
+  elif [[ ${GOOS} == "darwin" ]]; then
+    unzip ${AVAGO_DOWNLOAD_PATH} -d ${AVAGO_FILEPATH}
+  fi
+  find ${BASEFILE}/avalanchego-v${VERSION}
 fi
-find /tmp/avalanchego-v${VERSION}
 
-AVALANCHEGO_PATH=/tmp/avalanchego-v${VERSION}/avalanchego
-AVALANCHEGO_PLUGIN_DIR=/tmp/avalanchego-v${VERSION}/plugins
+AVALANCHEGO_PATH=${AVAGO_FILEPATH}/build/avalanchego
+AVALANCHEGO_PLUGIN_DIR=${AVAGO_FILEPATH}/build/plugins
 
 #################################
 # compile subnet-evm
 # Check if SUBNET_EVM_COMMIT is set, if not retrieve the last commit from the repo.
 # This is used in the Dockerfile to allow a commit hash to be passed in without
 # including the .git/ directory within the Docker image.
-subnet_evm_commit=${SUBNET_EVM_COMMIT:-$( git rev-list -1 HEAD )}
+subnet_evm_commit=${SUBNET_EVM_COMMIT:-$(git rev-list -1 HEAD)}
 
 # Build Subnet EVM, which is run as a subprocess
 echo "Building Subnet EVM Version: $subnet_evm_version; GitCommit: $subnet_evm_commit"
 go build \
--ldflags "-X github.com/ava-labs/subnet_evm/plugin/evm.GitCommit=$subnet_evm_commit -X github.com/ava-labs/subnet_evm/plugin/evm.Version=$subnet_evm_version" \
--o /tmp/avalanchego-v${VERSION}/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
-"plugin/"*.go
-find /tmp/avalanchego-v${VERSION}
+  -ldflags "-X github.com/ava-labs/subnet_evm/plugin/evm.GitCommit=$subnet_evm_commit -X github.com/ava-labs/subnet_evm/plugin/evm.Version=$subnet_evm_version" \
+  -o $AVALANCHEGO_PLUGIN_DIR/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
+  "plugin/"*.go
 
 #################################
 # write subnet-evm genesis
@@ -96,7 +97,7 @@ find /tmp/avalanchego-v${VERSION}
 # "alloc")
 export CHAIN_ID=99999
 echo "creating genesis"
-cat <<EOF > /tmp/genesis.json
+cat <<EOF >${BASEFILE}/genesis.json
 {
   "config": {
     "chainId": $CHAIN_ID,
@@ -141,7 +142,7 @@ cat <<EOF > /tmp/genesis.json
 EOF
 
 # If you'd like to try the airdrop feature, use the commented genesis
-# cat <<EOF > /tmp/genesis.json
+# cat <<EOF > ${BASEFILE}/genesis.json
 # {
 #   "config": {
 #     "chainId": $CHAIN_ID,
@@ -192,37 +193,37 @@ EOF
 # https://github.com/ava-labs/avalanche-network-runner
 # TODO: use "go install -v github.com/ava-labs/avalanche-network-runner/cmd/avalanche-network-runner@v${NETWORK_RUNNER_VERSION}"
 NETWORK_RUNNER_VERSION=1.0.12
-DOWNLOAD_PATH=/tmp/avalanche-network-runner.tar.gz
-DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
+ANR_TARNAME=avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
 if [[ ${GOOS} == "darwin" ]]; then
-  DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_darwin_amd64.tar.gz
+  ANR_TARNAME=avalanche-network-runner_${NETWORK_RUNNER_VERSION}_darwin_amd64.tar.gz
 fi
 
-rm -f ${DOWNLOAD_PATH}
-rm -f /tmp/avalanche-network-runner
-
-echo "downloading avalanche-network-runner ${NETWORK_RUNNER_VERSION} at ${DOWNLOAD_URL}"
-curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
-
-echo "extracting downloaded avalanche-network-runner"
-tar xzvf ${DOWNLOAD_PATH} -C /tmp
-/tmp/avalanche-network-runner -h
+ANR_DOWNLOAD_PATH=${BASEFILE}/${ANR_TARNAME}
+ANR_DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/${ANR_TARNAME}
+ANR_FILEPATH=${BASEFILE}/avalanche-network-runner-v${NETWORK_RUNNER_VERSION}
+if [[ ! -d ${ANR_FILEPATH} ]]; then
+  if [[ ! -f ${ANR_DOWNLOAD_PATH} ]]; then
+    echo "downloading avalanche-network-runner ${NETWORK_RUNNER_VERSION} at ${ANR_DOWNLOAD_URL} to ${ANR_DOWNLOAD_PATH}"
+    curl -L ${ANR_DOWNLOAD_URL} -o ${ANR_DOWNLOAD_PATH}
+  fi
+  echo "extracting downloaded avalanche-network-runner to ${ANR_FILEPATH}"
+  mkdir -p ${ANR_FILEPATH} && tar xzvf ${ANR_DOWNLOAD_PATH} -C ${ANR_FILEPATH}
+fi
 
 #################################
 echo "building e2e.test"
 # to install the ginkgo binary (required for test build and run)
 go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
 ACK_GINKGO_RC=true ginkgo build ./tests/e2e
-./tests/e2e/e2e.test --help
 
 #################################
 # run "avalanche-network-runner" server
 echo "launch avalanche-network-runner in the background"
-/tmp/avalanche-network-runner \
-server \
---log-level debug \
---port=":12342" \
---grpc-gateway-port=":12343" &
+${ANR_FILEPATH}/avalanche-network-runner \
+  server \
+  --log-level debug \
+  --port=":12342" \
+  --grpc-gateway-port=":12343" &
 PID=${!}
 
 #################################
@@ -231,21 +232,21 @@ PID=${!}
 # Use "--ginkgo.focus" to select tests.
 echo "running e2e tests"
 ./tests/e2e/e2e.test \
---ginkgo.v \
---network-runner-log-level debug \
---network-runner-grpc-endpoint="0.0.0.0:12342" \
---avalanchego-path=${AVALANCHEGO_PATH} \
---avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
---avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
---vm-genesis-path=/tmp/genesis.json \
---output-path=/tmp/avalanchego-v${VERSION}/output.yaml \
---mode=${MODE}
+  --ginkgo.v \
+  --network-runner-log-level debug \
+  --network-runner-grpc-endpoint="0.0.0.0:12342" \
+  --avalanchego-path=${AVALANCHEGO_PATH} \
+  --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+  --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
+  --vm-genesis-path=${BASEFILE}/genesis.json \
+  --output-path=${BASEFILE}/avalanchego-v${VERSION}/output.yaml \
+  --mode=${MODE}
 
 #################################
 # e.g., print out MetaMask endpoints
-if [[ -f "/tmp/avalanchego-v${VERSION}/output.yaml" ]]; then
+if [[ -f "${BASEFILE}/avalanchego-v${VERSION}/output.yaml" ]]; then
   echo "cluster is ready!"
-  go run scripts/parser/main.go /tmp/avalanchego-v${VERSION}/output.yaml $CHAIN_ID $GENESIS_ADDRESS
+  go run scripts/parser/main.go ${BASEFILE}/avalanchego-v${VERSION}/output.yaml $CHAIN_ID $GENESIS_ADDRESS
 else
   echo "cluster is not ready in time... terminating ${PID}"
   kill ${PID}
@@ -261,12 +262,7 @@ if [[ ${MODE} == "test" ]]; then
   kill -2 ${PID}
   pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy || true # in case pkill didn't work
 else
-  echo "network-runner RPC server is running on PID ${PID}..."
-  echo ""
-  echo "use the following command to terminate:"
-  echo ""
-  echo "pkill -P ${PID}"
-  echo "kill -2 ${PID}"
-  echo "pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
-  echo ""
+  echo "CTRL + C to exit and kill all background processes"
+  trap "trap - SIGTERM && kill -- -$$" SIGTERM
+  wait
 fi
