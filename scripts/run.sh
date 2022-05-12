@@ -262,7 +262,7 @@ if [[ ${MODE} == "test" ]]; then
   # just in case tests are aborted, manually terminate them again
   echo "network-runner RPC server was running on PID ${PID} as test mode; terminating the process..."
   pkill -P ${PID} || true
-  kill -2 ${PID}
+  kill -2 ${PID} || true
   pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy || true # in case pkill didn't work
 else
   echo "CTRL + C to exit and kill all background processes"
