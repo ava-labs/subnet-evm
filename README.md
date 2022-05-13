@@ -126,6 +126,13 @@ A fully populated genesis JSON with the above allocation would look like (note t
 }
 ```
 
+_Another example of a genesis file can be found in the [networks folder](./networks/11111/genesis.json)._
+
+Here are a few examples on how a genesis file is used:
+* https://github.com/ava-labs/subnet-evm/blob/master/scripts/run.sh#L10
+* https://github.com/ava-labs/subnet-cli#subnet-cli-create-blockchain
+
+
 ## Setting a Custom Fee Recipient
 
 By default, all fees are burned (sent to the blackhole address). However, it is
