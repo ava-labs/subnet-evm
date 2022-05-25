@@ -3602,9 +3602,9 @@ flow-stoplight@^1.0.0:
   integrity sha1-SiksW8/4s5+mzAyxqFPYbyfu/3s=
 
 follow-redirects@^1.10.0, follow-redirects@^1.12.1:
-  version "1.14.2"
-  resolved "https://registry.npmjs.org/follow-redirects/-/follow-redirects-1.14.2.tgz"
-  integrity sha512-yLR6WaE2lbF0x4K2qE2p9PEXKLDjUjnR/xmjS3wHAYxtlsI9MLLBJUZirAHKzUZDGLxje7w/cXR49WOUo4rbsA==
+  version "1.15.0"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.0.tgz#06441868281c86d0dda4ad8bdaead2d02dca89d4"
+  integrity sha512-aExlJShTV4qOUOL7yF1U5tvLCB0xQuudbf6toyYA0E/acBNw71mvjFTnLaRp50aQaYocMR0a/RMMBIHeZnGyjQ==
 
 for-each@^0.3.3, for-each@~0.3.3:
   version "0.3.3"
