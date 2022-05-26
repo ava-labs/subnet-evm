@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 set -e
 
+# e.g.,
+#
+# run without e2e tests
+# ./scripts/run.sh 1.7.11 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+#
+# run without e2e tests with DEBUG log level
+# AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh 1.7.11 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+#
+# run with e2e tests
+# E2E=true ./scripts/run.sh 1.7.11 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
 fi
-
-SUBNET_EVM_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd .. && pwd )
-
-# Load the versions
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
-
-# Load the constants
-source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 VERSION=$1
 if [[ -z "${VERSION}" ]]; then
@@ -22,12 +24,27 @@ if [[ -z "${VERSION}" ]]; then
 fi
 
 GENESIS_ADDRESS=$2
-if [ -z "${GENESIS_ADDRESS}" ]; then
+if [[ -z "${GENESIS_ADDRESS}" ]]; then
   echo "Missing address argument!"
   echo "Usage: ${0} [VERSION] [GENESIS_ADDRESS]" >> /dev/stderr
   exit 255
 fi
 
+MODE=${MODE:-run}
+E2E=${E2E:-false}
+if [[ ${E2E} == true ]]; then
+  MODE="test"
+fi
+
+AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
+
+echo "Running with:"
+echo VERSION: ${VERSION}
+echo MODE: ${MODE}
+echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
+echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
+
+############################
 # download avalanchego
 # https://github.com/ava-labs/avalanchego/releases
 GOARCH=$(go env GOARCH)
@@ -40,7 +57,6 @@ if [[ ${GOOS} == "darwin" ]]; then
 fi
 
 rm -rf /tmp/avalanchego-v${VERSION}
-rm -rf /tmp/avalanchego-build
 rm -f ${DOWNLOAD_PATH}
 
 echo "downloading avalanchego ${VERSION} at ${DOWNLOAD_URL}"
@@ -55,6 +71,11 @@ elif [[ ${GOOS} == "darwin" ]]; then
 fi
 find /tmp/avalanchego-v${VERSION}
 
+AVALANCHEGO_PATH=/tmp/avalanchego-v${VERSION}/avalanchego
+AVALANCHEGO_PLUGIN_DIR=/tmp/avalanchego-v${VERSION}/plugins
+
+#################################
+# compile subnet-evm
 # Check if SUBNET_EVM_COMMIT is set, if not retrieve the last commit from the repo.
 # This is used in the Dockerfile to allow a commit hash to be passed in without
 # including the .git/ directory within the Docker image.
@@ -67,6 +88,9 @@ go build \
 -o /tmp/avalanchego-v${VERSION}/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
 "plugin/"*.go
 find /tmp/avalanchego-v${VERSION}
+
+#################################
+# write subnet-evm genesis
 
 # Create genesis file to use in network (make sure to add your address to
 # "alloc")
@@ -163,27 +187,62 @@ EOF
 # }
 # EOF
 
-echo "building runner"
-pushd ./runner
-go build -v -o /tmp/runner .
-popd
+#################################
+# download avalanche-network-runner
+# https://github.com/ava-labs/avalanche-network-runner
+# TODO: use "go install -v github.com/ava-labs/avalanche-network-runner/cmd/avalanche-network-runner@v${NETWORK_RUNNER_VERSION}"
+NETWORK_RUNNER_VERSION=1.0.16
+DOWNLOAD_PATH=/tmp/avalanche-network-runner.tar.gz
+DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
+if [[ ${GOOS} == "darwin" ]]; then
+  DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_darwin_amd64.tar.gz
+fi
 
-echo "launch local test cluster in the background"
-/tmp/runner \
---avalanchego-path=/tmp/avalanchego-v${VERSION}/avalanchego \
---vm-id=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
---vm-genesis-path=/tmp/genesis.json \
---output-path=/tmp/avalanchego-v${VERSION}/output.yaml 2> /dev/null &
+rm -f ${DOWNLOAD_PATH}
+rm -f /tmp/avalanche-network-runner
+
+echo "downloading avalanche-network-runner ${NETWORK_RUNNER_VERSION} at ${DOWNLOAD_URL}"
+curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
+
+echo "extracting downloaded avalanche-network-runner"
+tar xzvf ${DOWNLOAD_PATH} -C /tmp
+/tmp/avalanche-network-runner -h
+
+#################################
+echo "building e2e.test"
+# to install the ginkgo binary (required for test build and run)
+go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
+ACK_GINKGO_RC=true ginkgo build ./tests/e2e
+./tests/e2e/e2e.test --help
+
+#################################
+# run "avalanche-network-runner" server
+echo "launch avalanche-network-runner in the background"
+/tmp/avalanche-network-runner \
+server \
+--log-level debug \
+--port=":12342" \
+--grpc-gateway-port=":12343" &
 PID=${!}
 
-sleep 30
-while [[ ! -s /tmp/avalanchego-v${VERSION}/output.yaml ]]; do
-  echo "waiting for local cluster on PID ${PID}"
-  sleep 5
-  # wait up to 5-minute
-  ((c++)) && ((c==60)) && break
-done
+#################################
+# By default, it runs all e2e test cases!
+# Use "--ginkgo.skip" to skip tests.
+# Use "--ginkgo.focus" to select tests.
+echo "running e2e tests"
+./tests/e2e/e2e.test \
+--ginkgo.v \
+--network-runner-log-level debug \
+--network-runner-grpc-endpoint="0.0.0.0:12342" \
+--avalanchego-path=${AVALANCHEGO_PATH} \
+--avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+--avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
+--vm-genesis-path=/tmp/genesis.json \
+--output-path=/tmp/avalanchego-v${VERSION}/output.yaml \
+--mode=${MODE}
 
+#################################
+# e.g., print out MetaMask endpoints
 if [[ -f "/tmp/avalanchego-v${VERSION}/output.yaml" ]]; then
   echo "cluster is ready!"
   go run scripts/parser/main.go /tmp/avalanchego-v${VERSION}/output.yaml $CHAIN_ID $GENESIS_ADDRESS
@@ -191,4 +250,23 @@ else
   echo "cluster is not ready in time... terminating ${PID}"
   kill ${PID}
   exit 255
+fi
+
+#################################
+if [[ ${MODE} == "test" ]]; then
+  # "e2e.test" already terminates the cluster for "test" mode
+  # just in case tests are aborted, manually terminate them again
+  echo "network-runner RPC server was running on PID ${PID} as test mode; terminating the process..."
+  pkill -P ${PID} || true
+  kill -2 ${PID}
+  pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy || true # in case pkill didn't work
+else
+  echo "network-runner RPC server is running on PID ${PID}..."
+  echo ""
+  echo "use the following command to terminate:"
+  echo ""
+  echo "pkill -P ${PID}"
+  echo "kill -2 ${PID}"
+  echo "pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+  echo ""
 fi
