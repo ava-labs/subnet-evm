@@ -68,9 +68,12 @@ type pushGossiper struct {
 	signer types.Signer
 }
 
-// newPushGossiper constructs and returns a pushGossiper
-// assumes vm.chainConfig.SubnetEVMTimestamp is set
-func (vm *VM) newPushGossiper() Gossiper {
+// createGossipper constructs and returns a pushGossiper or noopGossiper
+// based on whether vm.chainConfig.SubnetEVMTimestamp is set
+func (vm *VM) createGossipper() Gossiper {
+	if vm.chainConfig.SubnetEVMTimestamp == nil {
+		return &noopGossiper{}
+	}
 	net := &pushGossiper{
 		ctx:                  vm.ctx,
 		gossipActivationTime: time.Unix(vm.chainConfig.SubnetEVMTimestamp.Int64(), 0),
@@ -399,7 +402,7 @@ func NewGossipHandler(vm *VM) *GossipHandler {
 	}
 }
 
-func (h *GossipHandler) HandleTxs(nodeID ids.ShortID, msg message.TxsGossip) error {
+func (h *GossipHandler) HandleTxs(nodeID ids.NodeID, msg message.TxsGossip) error {
 	log.Trace(
 		"AppGossip called with TxsGossip",
 		"peerID", nodeID,

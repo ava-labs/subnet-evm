@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/client"
+	runner_sdk "github.com/ava-labs/avalanche-network-runner-sdk"
 	"github.com/ava-labs/avalanchego/ids"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/formatter"
@@ -120,7 +120,7 @@ const (
 )
 
 var (
-	cli             client.Client
+	cli             runner_sdk.Client
 	subnetEVMRPCEps []string
 )
 
@@ -128,7 +128,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(mode).Should(gomega.Or(gomega.Equal("test"), gomega.Equal("run")))
 
 	var err error
-	cli, err = client.New(client.Config{
+	cli, err = runner_sdk.New(runner_sdk.Config{
 		LogLevel:    networkRunnerLogLevel,
 		Endpoint:    gRPCEp,
 		DialTimeout: 10 * time.Second,
@@ -141,8 +141,9 @@ var _ = ginkgo.BeforeSuite(func() {
 		resp, err := cli.Start(
 			ctx,
 			execPath,
-			client.WithPluginDir(pluginDir),
-			client.WithCustomVMs(map[string]string{
+			runner_sdk.WithLogLevel(logLevel),
+			runner_sdk.WithPluginDir(pluginDir),
+			runner_sdk.WithCustomVMs(map[string]string{
 				vmName: vmGenesisPath,
 			}))
 		cancel()
@@ -153,6 +154,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	// TODO: network runner health should imply custom VM healthiness
 	// or provide a separate API for custom VM healthiness
 	// "start" is async, so wait some time for cluster health
+	outf("\n{{magenta}}sleeping before checking custom VM status...{{/}}\n")
 	time.Sleep(2 * time.Minute)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -164,6 +166,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	blockchainID, logsDir := "", ""
 
 	// wait up to 5-minute for custom VM installation
+	outf("\n{{magenta}}waiting for all custom VMs to report healthy...{{/}}\n")
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Minute)
 done:
 	for ctx.Err() == nil {
