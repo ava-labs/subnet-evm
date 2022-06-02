@@ -29,6 +29,7 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -359,12 +360,31 @@ func (vm *VM) Initialize(
 
 func (vm *VM) initializeMetrics() error {
 	vm.multiGatherer = avalanchegoMetrics.NewMultiGatherer()
-	// If metrics are enabled, register the default metrics regitry
+
 	if metrics.Enabled {
+		// Register the default metrics registry
 		gatherer := subnetEVMPrometheus.Gatherer(metrics.DefaultRegistry)
 		if err := vm.multiGatherer.Register(ethMetricsPrefix, gatherer); err != nil {
 			return err
 		}
+		registerer := prometheus.NewRegistry()
+
+		// Current state of process metrics.
+		processCollector := collectors.NewProcessCollector(collectors.ProcessCollectorOpts{})
+		if err := registerer.Register(processCollector); err != nil {
+			return err
+		}
+
+		// Go process metrics using debug.GCStats.
+		goCollector := collectors.NewGoCollector()
+		if err := registerer.Register(goCollector); err != nil {
+			return err
+		}
+
+		if err := vm.multiGatherer.Register("", registerer); err != nil {
+			return err
+		}
+
 		// Register [multiGatherer] after registerers have been registered to it
 		if err := vm.ctx.Metrics.Register(vm.multiGatherer); err != nil {
 			return err
