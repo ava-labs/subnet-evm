@@ -4,7 +4,6 @@
 package precompile
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,37 +12,51 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+const (
+	// must preserve order of these fields
+	gasLimitKey = iota
+	targetBlockRateKey
+	minBaseFeeKey
+	targetGasKey
+	baseFeeChangeDenominatorKey
+	minBlockGasCostKey
+	maxBlockGasCostKey
+	blockGasCostStepKey
+
+	minKey = gasLimitKey
+	maxKey = blockGasCostStepKey
+)
+
 // TODO: edit comments
 var (
 	_ StatefulPrecompileConfig = &FeeConfigManagerConfig{}
 
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
-	FeeConfigManagerPrecompile StatefulPrecompiledContract = createFeeConfigManagerPrecompile(ContractNativeMinterAddress)
+	FeeConfigManagerPrecompile StatefulPrecompiledContract = createFeeConfigManagerPrecompile(FeeConfigManagerAddress)
 
 	setFeeConfigSignature = CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
+	// TODO: do we need that?
 	// getFeeConfigSignature = CalculateFunctionSelector("getFeeConfig()")
-
-	storageKey = common.Hash{}
 
 	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
 
 	// 8 fields in FeeConfig struct
-	feeConfigInputLen = common.HashLength * 8
+	feeConfigInputLen = common.HashLength * (maxKey - minKey + 1)
 )
 
 // TODO: find a common place with this and params.FeeConfig
 type FeeConfig struct {
-	GasLimit *big.Int `json:"gasLimit,omitempty"`
+	GasLimit *big.Int
 	// TODO: make this uint64?
-	TargetBlockRate *big.Int `json:"targetBlockRate,omitempty"`
+	TargetBlockRate *big.Int
 
-	MinBaseFee               *big.Int `json:"minBaseFee,omitempty"`
-	TargetGas                *big.Int `json:"targetGas,omitempty"`
-	BaseFeeChangeDenominator *big.Int `json:"baseFeeChangeDenominator,omitempty"`
+	MinBaseFee               *big.Int
+	TargetGas                *big.Int
+	BaseFeeChangeDenominator *big.Int
 
-	MinBlockGasCost  *big.Int `json:"minBlockGasCost,omitempty"`
-	MaxBlockGasCost  *big.Int `json:"maxBlockGasCost,omitempty"`
-	BlockGasCostStep *big.Int `json:"blockGasCostStep,omitempty"`
+	MinBlockGasCost  *big.Int
+	MaxBlockGasCost  *big.Int
+	BlockGasCostStep *big.Int
 }
 
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -79,7 +92,7 @@ func SetFeeConfigManagerStatus(stateDB StateDB, address common.Address, role All
 }
 
 // PackMintInput packs [address] and [amount] into the appropriate arguments for minting operation.
-func PackFeeConfigInput(feeConfig FeeConfig) ([]byte, error) {
+func PackSetFeeConfigInput(feeConfig FeeConfig) ([]byte, error) {
 	// function selector (4 bytes) + input(hash for address + hash for amount)
 	fullLen := selectorLen + feeConfigInputLen
 	packed := [][]byte{
@@ -114,25 +127,62 @@ func UnpackFeeConfigInput(input []byte) (FeeConfig, error) {
 	}, nil
 }
 
-func getFeeConfig(state StateDB) (FeeConfig, error) {
-	// Generate the state key for [address]
-	feeHash := state.GetState(FeeConfigManagerAddress, storageKey)
-	if (feeHash == common.Hash{}) {
+func GetFeeConfig(stateDB StateDB) (FeeConfig, error) {
+	if !stateDB.Exist(FeeConfigManagerAddress) {
 		return FeeConfig{}, nil
 	}
-	v := FeeConfig{}
-	err := json.Unmarshal(feeHash.Bytes(), &v)
-	return v, err
+	feeConfig := FeeConfig{}
+	for i := minKey; i <= maxKey; i++ {
+		val := stateDB.GetState(FeeConfigManagerAddress, common.Hash{byte(i)})
+		switch i {
+		case gasLimitKey:
+			feeConfig.GasLimit = new(big.Int).Set(val.Big())
+		case targetBlockRateKey:
+			feeConfig.TargetBlockRate = new(big.Int).Set(val.Big())
+		case minBaseFeeKey:
+			feeConfig.MinBaseFee = new(big.Int).Set(val.Big())
+		case targetGasKey:
+			feeConfig.TargetGas = new(big.Int).Set(val.Big())
+		case baseFeeChangeDenominatorKey:
+			feeConfig.BaseFeeChangeDenominator = new(big.Int).Set(val.Big())
+		case minBlockGasCostKey:
+			feeConfig.MinBlockGasCost = new(big.Int).Set(val.Big())
+		case maxBlockGasCostKey:
+			feeConfig.MaxBlockGasCost = new(big.Int).Set(val.Big())
+		case blockGasCostStepKey:
+			feeConfig.BlockGasCostStep = new(big.Int).Set(val.Big())
+		default:
+			return FeeConfig{}, fmt.Errorf("unknown field key %d", i)
+		}
+	}
+	return feeConfig, nil
 }
 
 func setFeeConfig(stateDB StateDB, feeConfig FeeConfig) error {
-	// TODO: use a better serilization?
-	feeBytes, err := json.Marshal(feeConfig)
-	if err != nil {
-		return err
+	for i := minKey; i <= maxKey; i++ {
+		var hashInput common.Hash
+		switch i {
+		case gasLimitKey:
+			hashInput = common.BigToHash(feeConfig.GasLimit)
+		case targetBlockRateKey:
+			hashInput = common.BigToHash(feeConfig.TargetBlockRate)
+		case minBaseFeeKey:
+			hashInput = common.BigToHash(feeConfig.MinBaseFee)
+		case targetGasKey:
+			hashInput = common.BigToHash(feeConfig.TargetGas)
+		case baseFeeChangeDenominatorKey:
+			hashInput = common.BigToHash(feeConfig.BaseFeeChangeDenominator)
+		case minBlockGasCostKey:
+			hashInput = common.BigToHash(feeConfig.MinBlockGasCost)
+		case maxBlockGasCostKey:
+			hashInput = common.BigToHash(feeConfig.MaxBlockGasCost)
+		case blockGasCostStepKey:
+			hashInput = common.BigToHash(feeConfig.BlockGasCostStep)
+		default:
+			return fmt.Errorf("unknown field key %d", i)
+		}
+		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, hashInput)
 	}
-	// Assign [role] to the address
-	stateDB.SetState(FeeConfigManagerAddress, storageKey, common.BytesToHash(feeBytes))
 	return nil
 }
 
