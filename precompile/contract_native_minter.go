@@ -79,9 +79,9 @@ func UnpackMintInput(input []byte) (common.Address, *big.Int, error) {
 	return to, assetAmount, nil
 }
 
-// createMintNativeCoin checks if the caller is permissioned for minting operation.
+// mintNativeCoin checks if the caller is permissioned for minting operation.
 // The execution function parses the [input] into native coin amount and receiver address.
-func createMintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = deductGas(suppliedGas, MintGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -119,7 +119,7 @@ func createNativeMinterPrecompile(precompileAddr common.Address) StatefulPrecomp
 	setNone := newStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, AllowListNoRole))
 	read := newStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
 
-	mint := newStatefulPrecompileFunction(mintSignature, createMintNativeCoin)
+	mint := newStatefulPrecompileFunction(mintSignature, mintNativeCoin)
 
 	// Construct the contract with no fallback function.
 	contract := newStatefulPrecompileWithFunctionSelectors(nil, []*statefulPrecompileFunction{setAdmin, setEnabled, setNone, read, mint})

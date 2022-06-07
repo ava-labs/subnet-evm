@@ -6,16 +6,16 @@
 pragma solidity >=0.8.0;
 
 interface FeeConfigManagerInterface {
-    // Set [addr] to have the admin role over the minter list
+    // Set [addr] to have the admin role over the fee config manager list
     function setAdmin(address addr) external;
 
-    // Set [addr] to be enabled on the minter list
+    // Set [addr] to be enabled on the fee config manager list
     function setEnabled(address addr) external;
 
-    // Set [addr] to have no role over the minter list
+    // Set [addr] to have no role over the fee config manager list
     function setNone(address addr) external;
 
-    // Mint [amount] number of native coins and send to [addr]
+    // Set fee config fields to contract storage
     function setFeeConfig(
         uint256 gasLimit,
         uint256 targetBlockRate,

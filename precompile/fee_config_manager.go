@@ -23,15 +23,16 @@ const (
 	maxBlockGasCostKey
 	blockGasCostStepKey
 
-	minKey = gasLimitKey
-	maxKey = blockGasCostStepKey
+	minFeeConfigFieldKey = gasLimitKey
+	maxFeeConfigFieldKey = blockGasCostStepKey
+
+	numFeeConfigField = (maxFeeConfigFieldKey - minFeeConfigFieldKey + 1)
 )
 
-// TODO: edit comments
 var (
 	_ StatefulPrecompileConfig = &FeeConfigManagerConfig{}
 
-	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
+	// Singleton StatefulPrecompiledContract for setting fee configs by permissioned callers.
 	FeeConfigManagerPrecompile StatefulPrecompiledContract = createFeeConfigManagerPrecompile(FeeConfigManagerAddress)
 
 	setFeeConfigSignature = CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
@@ -41,7 +42,7 @@ var (
 	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
 
 	// 8 fields in FeeConfig struct
-	feeConfigInputLen = common.HashLength * (maxKey - minKey + 1)
+	feeConfigInputLen = common.HashLength * numFeeConfigField
 )
 
 // TODO: find a common place with this and params.FeeConfig
@@ -75,23 +76,23 @@ func (c *FeeConfigManagerConfig) Configure(state StateDB) {
 	c.AllowListConfig.Configure(state, FeeConfigManagerAddress)
 }
 
-// Contract returns the singleton stateful precompiled contract to be used for the native minter.
+// Contract returns the singleton stateful precompiled contract to be used for the fee manager.
 func (c *FeeConfigManagerConfig) Contract() StatefulPrecompiledContract {
 	return FeeConfigManagerPrecompile
 }
 
-// GetContractNativeMinterStatus returns the role of [address] for the minter list.
+// GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.
 func GetFeeConfigManagerStatus(stateDB StateDB, address common.Address) AllowListRole {
 	return getAllowListStatus(stateDB, FeeConfigManagerAddress, address)
 }
 
-// SetContractNativeMinterStatus sets the permissions of [address] to [role] for the
-// minter list. assumes [role] has already been verified as valid.
+// SetFeeConfigManagerStatus sets the permissions of [address] to [role] for the
+// fee config manager list. assumes [role] has already been verified as valid.
 func SetFeeConfigManagerStatus(stateDB StateDB, address common.Address, role AllowListRole) {
 	setAllowListRole(stateDB, FeeConfigManagerAddress, address, role)
 }
 
-// PackMintInput packs [address] and [amount] into the appropriate arguments for minting operation.
+// PackSetFeeConfigInput packs [address] and [amount] into the appropriate arguments for settinge fee config operation.
 func PackSetFeeConfigInput(feeConfig FeeConfig) ([]byte, error) {
 	// function selector (4 bytes) + input(hash for address + hash for amount)
 	fullLen := selectorLen + feeConfigInputLen
@@ -109,8 +110,8 @@ func PackSetFeeConfigInput(feeConfig FeeConfig) ([]byte, error) {
 	return inputPackOrdered(packed, fullLen)
 }
 
-// UnpackMintInput attempts to unpack [input] into the arguments to the mint precompile
-// assumes that [input] does not include selector (omits first 4 bytes in PackMintInput)
+// UnpackFeeConfigInput attempts to unpack [input] into the arguments to the fee config precompile
+// assumes that [input] does not include selector (omits first 4 bytes in PackSetFeeConfigInput)
 func UnpackFeeConfigInput(input []byte) (FeeConfig, error) {
 	if len(input) != feeConfigInputLen {
 		return FeeConfig{}, fmt.Errorf("invalid input length for fee config input: %d", len(input))
@@ -132,7 +133,7 @@ func GetFeeConfig(stateDB StateDB) (FeeConfig, error) {
 		return FeeConfig{}, nil
 	}
 	feeConfig := FeeConfig{}
-	for i := minKey; i <= maxKey; i++ {
+	for i := minFeeConfigFieldKey; i <= maxFeeConfigFieldKey; i++ {
 		val := stateDB.GetState(FeeConfigManagerAddress, common.Hash{byte(i)})
 		switch i {
 		case gasLimitKey:
@@ -158,8 +159,8 @@ func GetFeeConfig(stateDB StateDB) (FeeConfig, error) {
 	return feeConfig, nil
 }
 
-func setFeeConfig(stateDB StateDB, feeConfig FeeConfig) error {
-	for i := minKey; i <= maxKey; i++ {
+func setStateFeeConfig(stateDB StateDB, feeConfig FeeConfig) error {
+	for i := minFeeConfigFieldKey; i <= maxFeeConfigFieldKey; i++ {
 		var hashInput common.Hash
 		switch i {
 		case gasLimitKey:
@@ -186,9 +187,9 @@ func setFeeConfig(stateDB StateDB, feeConfig FeeConfig) error {
 	return nil
 }
 
-// createMintNativeCoin checks if the caller is permissioned for minting operation.
-// The execution function parses the [input] into native coin amount and receiver address.
-func createSetFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+// setFeeConfig checks if the caller is permissioned for setting fee config operation.
+// The execution function parses the [input] into FeeConfig structure and sets contract storage accordingly.
+func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = deductGas(suppliedGas, SetFeeConfigGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -209,20 +210,21 @@ func createSetFeeConfig(accessibleState PrecompileAccessibleState, caller common
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
 
-	setFeeConfig(accessibleState.GetStateDB(), feeConfig)
+	setStateFeeConfig(accessibleState.GetStateDB(), feeConfig)
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
 }
 
-// createNativeMinterPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr] and a native coin minter.
+// createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr],
+// and a storage setter for fee configs.
 func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	setAdmin := newStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AllowListAdmin))
 	setEnabled := newStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, AllowListEnabled))
 	setNone := newStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, AllowListNoRole))
 	read := newStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
 
-	setFeeConfig := newStatefulPrecompileFunction(setFeeConfigSignature, createSetFeeConfig)
+	setFeeConfig := newStatefulPrecompileFunction(setFeeConfigSignature, setFeeConfig)
 
 	// Construct the contract with no fallback function.
 	contract := newStatefulPrecompileWithFunctionSelectors(nil, []*statefulPrecompileFunction{setAdmin, setEnabled, setNone, read, setFeeConfig})
