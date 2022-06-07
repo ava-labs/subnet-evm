@@ -129,7 +129,8 @@ type ChainConfig struct {
 type FeeConfig struct {
 	// GasLimit sets the max amount of gas consumed per block.
 	GasLimit *big.Int `json:"gasLimit,omitempty"`
-	// This sets the target rate of block production in seconds.
+
+	// TargetBlockRate sets the target rate of block production in seconds.
 	// A target of 2 will target producing a block every 2 seconds.
 	TargetBlockRate uint64 `json:"targetBlockRate,omitempty"`
 
@@ -141,10 +142,9 @@ type FeeConfig struct {
 	// When the dynamic fee algorithm observes that network activity is above/below the [TargetGas], it increases/decreases the base fee proportionally to
 	// how far above/below the target actual network activity is.
 
-	// TargetGas specifies the targeted amount of gas (including block gas cost) to consume within a given 10s window.
+	// TargetGas specifies the targeted amount of gas (including block gas cost) to consume within a rolling 10s window.
 	TargetGas *big.Int `json:"targetGas,omitempty"`
 	// The BaseFeeChangeDenominator divides the difference between actual and target utilization to determine how much to increase/decrease the base fee.
-	//
 	// This means that a larger denominator indicates a slower changing, stickier base fee, while a lower denominator will allow the base fee to adjust
 	// more quickly.
 	BaseFeeChangeDenominator *big.Int `json:"baseFeeChangeDenominator,omitempty"`
@@ -157,8 +157,9 @@ type FeeConfig struct {
 	// If the block is produced at the target rate, the block gas cost will stay the same as the block gas cost for the parent block.
 	// If it is produced faster/slower, the block gas cost will be increased/decreased by the step value for each second faster/slower than the target
 	// block rate accordingly.
+	// Note: if the BlockGasCostStep is set to a very large number, it effectively requires block production to go no faster than the TargetBlockRate.
 	//
-	// Ex. if a block is produced two seconds faster than the target block rate, the block gas cost will increase by 2 * BlockGasCostStep.
+	// Ex: if a block is produced two seconds faster than the target block rate, the block gas cost will increase by 2 * BlockGasCostStep.
 	BlockGasCostStep *big.Int `json:"blockGasCostStep,omitempty"`
 }
 
