@@ -200,7 +200,7 @@ func testDynamicFeesStaysWithinRange(t *testing.T, test test) {
 	for index, block := range blocks[1:] {
 		tc := params.TestChainConfig
 		tc.FeeConfig.MinBaseFee = params.TestMinBaseFee
-		nextExtraData, nextBaseFee, err := CalcBaseFee(params.TestChainConfig, header, block.timestamp)
+		nextExtraData, nextBaseFee, err := CalcBaseFee(params.TestChainConfig, params.TestChainConfig.FeeConfig, header, block.timestamp)
 		if err != nil {
 			t.Fatalf("Failed to calculate base fee at index %d: %s", index, err)
 		}

@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -51,7 +52,7 @@ var (
 	ExtraDataSize        = 80
 	RollupWindow  uint64 = 10
 
-	DefaultFeeConfig = FeeConfig{
+	DefaultFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
 		TargetBlockRate: 2, // in seconds
 
@@ -113,26 +114,13 @@ type ChainConfig struct {
 
 	SubnetEVMTimestamp *big.Int `json:"subnetEVMTimestamp,omitempty"` // A placeholder for the latest avalanche forks (nil = no fork, 0 = already activated)
 
-	FeeConfig          FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
-	AllowFeeRecipients bool      `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
+	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
+	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
 
 	ContractDeployerAllowListConfig precompile.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`
-}
-
-type FeeConfig struct {
-	GasLimit        *big.Int `json:"gasLimit,omitempty"`
-	TargetBlockRate uint64   `json:"targetBlockRate,omitempty"`
-
-	MinBaseFee               *big.Int `json:"minBaseFee,omitempty"`
-	TargetGas                *big.Int `json:"targetGas,omitempty"`
-	BaseFeeChangeDenominator *big.Int `json:"baseFeeChangeDenominator,omitempty"`
-
-	MinBlockGasCost  *big.Int `json:"minBlockGasCost,omitempty"`
-	MaxBlockGasCost  *big.Int `json:"maxBlockGasCost,omitempty"`
-	BlockGasCostStep *big.Int `json:"blockGasCostStep,omitempty"`
 }
 
 // String implements the fmt.Stringer interface.
@@ -231,14 +219,6 @@ func (c *ChainConfig) IsTxAllowList(blockTimestamp *big.Int) bool {
 // IsFeeConfigManager returns whether [blockTimestamp] is either equal to the FeeConfigManager fork block timestamp or greater.
 func (c *ChainConfig) IsFeeConfigManager(blockTimestamp *big.Int) bool {
 	return utils.IsForked(c.FeeManagerConfig.Timestamp(), blockTimestamp)
-}
-
-// GetFeeConfig returns the *FeeConfig if it exists, otherwise it returns [DefaultFeeConfig()].
-func (c *ChainConfig) GetFeeConfig() FeeConfig {
-	if c.FeeConfig == (FeeConfig{}) {
-		return DefaultFeeConfig
-	}
-	return c.FeeConfig
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported

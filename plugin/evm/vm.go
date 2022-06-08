@@ -17,6 +17,7 @@ import (
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 
 	subnetEVM "github.com/ava-labs/subnet-evm/chain"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -273,7 +274,7 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
-	if g.Config.FeeConfig == (params.FeeConfig{}) {
+	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 
@@ -684,7 +685,7 @@ func (vm *VM) currentRules() params.Rules {
 // follows the ruleset defined by [rules]
 func (vm *VM) getBlockValidator(rules params.Rules) BlockValidator {
 	if rules.IsSubnetEVM {
-		return subnetEVMBlockValidator
+		return blockValidatorSubnetEVM{feeConfigManagerEnabled: rules.IsFeeConfigManagerEnabled}
 	}
 
 	return legacyBlockValidator

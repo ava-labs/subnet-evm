@@ -57,7 +57,7 @@ func NewFullFaker() *DummyEngine {
 	}
 }
 
-func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header *types.Header, parent *types.Header) error {
+func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
 	timestamp := new(big.Int).SetUint64(header.Time)
 
 	// Verify that the gas limit is <= 2^63-1
@@ -68,8 +68,12 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 	if header.GasUsed > header.GasLimit {
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
+	feeConfig, err := chain.GetFeeConfigAt(parent)
+	if err != nil {
+		return err
+	}
 	if config.IsSubnetEVM(timestamp) {
-		expectedGasLimit := config.GetFeeConfig().GasLimit.Uint64()
+		expectedGasLimit := feeConfig.GasLimit.Uint64()
 		if header.GasLimit != expectedGasLimit {
 			return fmt.Errorf("expected gas limit to be %d, but found %d", expectedGasLimit, header.GasLimit)
 		}
@@ -96,7 +100,7 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 
 	// Verify baseFee and rollupWindow encoding as part of header verification
 	// starting in Subnet EVM
-	expectedRollupWindowBytes, expectedBaseFee, err := CalcBaseFee(config, parent, header.Time)
+	expectedRollupWindowBytes, expectedBaseFee, err := CalcBaseFee(config, feeConfig, parent, header.Time)
 	if err != nil {
 		return fmt.Errorf("failed to calculate base fee: %w", err)
 	}
@@ -114,10 +118,10 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 	}
 
 	// Enforce BlockGasCost constraints
-	blockGasCostStep := config.GetFeeConfig().BlockGasCostStep
-	targetBlockRate := config.GetFeeConfig().TargetBlockRate
-	minBlockGasCost := config.GetFeeConfig().MinBlockGasCost
-	maxBlockGasCost := config.GetFeeConfig().MaxBlockGasCost
+	blockGasCostStep := feeConfig.BlockGasCostStep
+	targetBlockRate := feeConfig.TargetBlockRate
+	minBlockGasCost := feeConfig.MinBlockGasCost
+	maxBlockGasCost := feeConfig.MaxBlockGasCost
 
 	expectedBlockGasCost := calcBlockGasCost(
 		targetBlockRate,
@@ -161,7 +165,7 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 		}
 	}
 	// Ensure gas-related header fields are correct
-	if err := self.verifyHeaderGasFields(config, header, parent); err != nil {
+	if err := self.verifyHeaderGasFields(config, header, parent, chain); err != nil {
 		return err
 	}
 	// Verify the header's timestamp
@@ -266,10 +270,14 @@ func (self *DummyEngine) verifyBlockFee(
 
 func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
 	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(block.Time())) {
-		blockGasCostStep := chain.Config().GetFeeConfig().BlockGasCostStep
-		targetBlockRate := chain.Config().GetFeeConfig().TargetBlockRate
-		minBlockGasCost := chain.Config().GetFeeConfig().MinBlockGasCost
-		maxBlockGasCost := chain.Config().GetFeeConfig().MaxBlockGasCost
+		feeConfig, err := chain.GetFeeConfigAt(parent)
+		if err != nil {
+			return err
+		}
+		blockGasCostStep := feeConfig.BlockGasCostStep
+		targetBlockRate := feeConfig.TargetBlockRate
+		minBlockGasCost := feeConfig.MinBlockGasCost
+		maxBlockGasCost := feeConfig.MaxBlockGasCost
 		blockGasCost := calcBlockGasCost(
 			targetBlockRate,
 			minBlockGasCost,
@@ -295,12 +303,17 @@ func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *type
 }
 
 func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB, txs []*types.Transaction,
-	uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	uncles []*types.Header, receipts []*types.Receipt,
+) (*types.Block, error) {
 	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(header.Time)) {
-		blockGasCostStep := chain.Config().GetFeeConfig().BlockGasCostStep
-		targetBlockRate := chain.Config().GetFeeConfig().TargetBlockRate
-		minBlockGasCost := chain.Config().GetFeeConfig().MinBlockGasCost
-		maxBlockGasCost := chain.Config().GetFeeConfig().MaxBlockGasCost
+		feeConfig, err := chain.GetFeeConfigAt(parent)
+		if err != nil {
+			return nil, err
+		}
+		blockGasCostStep := feeConfig.BlockGasCostStep
+		targetBlockRate := feeConfig.TargetBlockRate
+		minBlockGasCost := feeConfig.MinBlockGasCost
+		maxBlockGasCost := feeConfig.MaxBlockGasCost
 		header.BlockGasCost = calcBlockGasCost(
 			targetBlockRate,
 			minBlockGasCost,

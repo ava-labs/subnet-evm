@@ -27,6 +27,9 @@
 package core
 
 import (
+	"math/big"
+
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -34,8 +37,10 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // CurrentHeader retrieves the current head header of the canonical chain. The
@@ -342,4 +347,32 @@ func (bc *BlockChain) SubscribeAcceptedLogsEvent(ch chan<- []*types.Log) event.S
 // SubscribeAcceptedTransactionEvent registers a subscription of accepted transactions
 func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) event.Subscription {
 	return bc.scope.Track(bc.txAcceptedFeed.Subscribe(ch))
+}
+
+func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error) {
+	config := bc.Config()
+	bigTime := new(big.Int).SetUint64(parent.Time)
+	if !config.IsFeeConfigManager(bigTime) {
+		log.Debug("feeConfigManager is not activated, returning fees from config")
+		return config.FeeConfig, nil
+	}
+
+	if feeConfig, ok := bc.feeConfigCache.Get(parent.Root); ok {
+		return feeConfig.(commontype.FeeConfig), nil
+	}
+
+	stateDB, err := bc.StateAt(parent.Root)
+	if err != nil {
+		log.Debug("feeConfigManager is activated, but no state found; returning err", "err", err)
+		return commontype.EmptyFeeConfig, err
+	}
+
+	storedFeeConfig, ok := precompile.GetStoredFeeConfig(stateDB)
+	if !ok {
+		log.Debug("feeConfigManager is activated, but no stored config found; returning fees from config")
+		storedFeeConfig = config.FeeConfig
+	}
+
+	bc.feeConfigCache.Add(parent.Root, storedFeeConfig)
+	return storedFeeConfig, nil
 }

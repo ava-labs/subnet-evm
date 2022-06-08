@@ -61,12 +61,13 @@ var (
 )
 
 const (
-	bodyCacheLimit     = 256
-	blockCacheLimit    = 256
-	receiptsCacheLimit = 32
-	txLookupCacheLimit = 1024
-	badBlockLimit      = 10
-	TriesInMemory      = 128
+	bodyCacheLimit      = 256
+	blockCacheLimit     = 256
+	receiptsCacheLimit  = 32
+	txLookupCacheLimit  = 1024
+	feeConfigCacheLimit = 256
+	badBlockLimit       = 10
+	TriesInMemory       = 128
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	//
@@ -160,12 +161,13 @@ type BlockChain struct {
 
 	currentBlock atomic.Value // Current head of the block chain
 
-	stateCache    state.Database // State database to reuse between imports (contains state cache)
-	stateManager  TrieWriter
-	bodyCache     *lru.Cache // Cache for the most recent block bodies
-	receiptsCache *lru.Cache // Cache for the most recent receipts per block
-	blockCache    *lru.Cache // Cache for the most recent entire blocks
-	txLookupCache *lru.Cache // Cache for the most recent transaction lookup data.
+	stateCache     state.Database // State database to reuse between imports (contains state cache)
+	stateManager   TrieWriter
+	bodyCache      *lru.Cache // Cache for the most recent block bodies
+	receiptsCache  *lru.Cache // Cache for the most recent receipts per block
+	blockCache     *lru.Cache // Cache for the most recent entire blocks
+	txLookupCache  *lru.Cache // Cache for the most recent transaction lookup data.
+	feeConfigCache *lru.Cache // Cache for the most recent feeConfig lookup data.
 
 	running int32 // 0 if chain is running, 1 when stopped
 

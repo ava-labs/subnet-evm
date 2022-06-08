@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -45,21 +46,6 @@ var (
 	feeConfigInputLen = common.HashLength * numFeeConfigField
 )
 
-// TODO: find a common place with this and params.FeeConfig
-type FeeConfig struct {
-	GasLimit *big.Int
-	// TODO: make this uint64?
-	TargetBlockRate *big.Int
-
-	MinBaseFee               *big.Int
-	TargetGas                *big.Int
-	BaseFeeChangeDenominator *big.Int
-
-	MinBlockGasCost  *big.Int
-	MaxBlockGasCost  *big.Int
-	BlockGasCostStep *big.Int
-}
-
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the contract deployer specific precompile address.
 type FeeConfigManagerConfig struct {
@@ -93,13 +79,13 @@ func SetFeeConfigManagerStatus(stateDB StateDB, address common.Address, role All
 }
 
 // PackSetFeeConfigInput packs [address] and [amount] into the appropriate arguments for settinge fee config operation.
-func PackSetFeeConfigInput(feeConfig FeeConfig) ([]byte, error) {
+func PackSetFeeConfigInput(feeConfig commontype.FeeConfig) ([]byte, error) {
 	// function selector (4 bytes) + input(hash for address + hash for amount)
 	fullLen := selectorLen + feeConfigInputLen
 	packed := [][]byte{
 		setFeeConfigSignature,
 		feeConfig.GasLimit.FillBytes(make([]byte, 32)),
-		feeConfig.TargetBlockRate.FillBytes(make([]byte, 32)),
+		new(big.Int).SetUint64(feeConfig.TargetBlockRate).FillBytes(make([]byte, 32)),
 		feeConfig.MinBaseFee.FillBytes(make([]byte, 32)),
 		feeConfig.TargetGas.FillBytes(make([]byte, 32)),
 		feeConfig.BaseFeeChangeDenominator.FillBytes(make([]byte, 32)),
@@ -112,13 +98,13 @@ func PackSetFeeConfigInput(feeConfig FeeConfig) ([]byte, error) {
 
 // UnpackFeeConfigInput attempts to unpack [input] into the arguments to the fee config precompile
 // assumes that [input] does not include selector (omits first 4 bytes in PackSetFeeConfigInput)
-func UnpackFeeConfigInput(input []byte) (FeeConfig, error) {
+func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 	if len(input) != feeConfigInputLen {
-		return FeeConfig{}, fmt.Errorf("invalid input length for fee config input: %d", len(input))
+		return commontype.FeeConfig{}, fmt.Errorf("invalid input length for fee config input: %d", len(input))
 	}
-	return FeeConfig{
+	return commontype.FeeConfig{
 		GasLimit:                 new(big.Int).SetBytes(returnPackedElement(input, 0)),
-		TargetBlockRate:          new(big.Int).SetBytes(returnPackedElement(input, 1)),
+		TargetBlockRate:          new(big.Int).SetBytes(returnPackedElement(input, 1)).Uint64(),
 		MinBaseFee:               new(big.Int).SetBytes(returnPackedElement(input, 2)),
 		TargetGas:                new(big.Int).SetBytes(returnPackedElement(input, 3)),
 		BaseFeeChangeDenominator: new(big.Int).SetBytes(returnPackedElement(input, 4)),
@@ -128,18 +114,18 @@ func UnpackFeeConfigInput(input []byte) (FeeConfig, error) {
 	}, nil
 }
 
-func GetFeeConfig(stateDB StateDB) (FeeConfig, error) {
+func GetStoredFeeConfig(stateDB StateDB) (commontype.FeeConfig, bool) {
 	if !stateDB.Exist(FeeConfigManagerAddress) {
-		return FeeConfig{}, nil
+		return commontype.FeeConfig{}, false
 	}
-	feeConfig := FeeConfig{}
+	feeConfig := commontype.FeeConfig{}
 	for i := minFeeConfigFieldKey; i <= maxFeeConfigFieldKey; i++ {
 		val := stateDB.GetState(FeeConfigManagerAddress, common.Hash{byte(i)})
 		switch i {
 		case gasLimitKey:
 			feeConfig.GasLimit = new(big.Int).Set(val.Big())
 		case targetBlockRateKey:
-			feeConfig.TargetBlockRate = new(big.Int).Set(val.Big())
+			feeConfig.TargetBlockRate = val.Big().Uint64()
 		case minBaseFeeKey:
 			feeConfig.MinBaseFee = new(big.Int).Set(val.Big())
 		case targetGasKey:
@@ -153,20 +139,20 @@ func GetFeeConfig(stateDB StateDB) (FeeConfig, error) {
 		case blockGasCostStepKey:
 			feeConfig.BlockGasCostStep = new(big.Int).Set(val.Big())
 		default:
-			return FeeConfig{}, fmt.Errorf("unknown field key %d", i)
+			panic("unknown key")
 		}
 	}
-	return feeConfig, nil
+	return feeConfig, true
 }
 
-func setStateFeeConfig(stateDB StateDB, feeConfig FeeConfig) error {
+func setStateFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig) error {
 	for i := minFeeConfigFieldKey; i <= maxFeeConfigFieldKey; i++ {
 		var hashInput common.Hash
 		switch i {
 		case gasLimitKey:
 			hashInput = common.BigToHash(feeConfig.GasLimit)
 		case targetBlockRateKey:
-			hashInput = common.BigToHash(feeConfig.TargetBlockRate)
+			hashInput = common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate))
 		case minBaseFeeKey:
 			hashInput = common.BigToHash(feeConfig.MinBaseFee)
 		case targetGasKey:

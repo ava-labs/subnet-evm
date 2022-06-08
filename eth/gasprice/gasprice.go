@@ -33,6 +33,7 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -92,6 +93,7 @@ type OracleBackend interface {
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 	MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error)
 	LastAcceptedBlock() *types.Block
+	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error)
 }
 
 // Oracle recommends gas prices based on the content of recent
@@ -176,7 +178,15 @@ func NewOracle(backend OracleBackend, config Config) *Oracle {
 			lastHead = ev.Block.Hash()
 		}
 	}()
-	minBaseFee := backend.ChainConfig().GetFeeConfig().MinBaseFee
+	feeConfig, err := backend.GetFeeConfigAt(backend.LastAcceptedBlock().Header())
+	// resort back to chain config
+	var minBaseFee *big.Int
+	if err != nil {
+		log.Warn("Got error while getting fee config, defaulting to genesis fee config")
+		minBaseFee = backend.ChainConfig().FeeConfig.MinBaseFee
+	} else {
+		minBaseFee = feeConfig.MinBaseFee
+	}
 	return &Oracle{
 		backend:             backend,
 		lastPrice:           minPrice,
@@ -237,7 +247,12 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	// If the block does have a baseFee, calculate the next base fee
 	// based on the current time and add it to the tip to estimate the
 	// total gas price estimate.
-	_, nextBaseFee, err := dummy.EstimateNextBaseFee(oracle.backend.ChainConfig(), block.Header(), oracle.clock.Unix())
+	feeConfig, err := oracle.backend.GetFeeConfigAt(block.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	_, nextBaseFee, err := dummy.EstimateNextBaseFee(oracle.backend.ChainConfig(), feeConfig, block.Header(), oracle.clock.Unix())
 	return nextBaseFee, err
 }
 

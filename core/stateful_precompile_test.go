@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile"
@@ -17,9 +18,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testFeeConfig = precompile.FeeConfig{
+var testFeeConfig = commontype.FeeConfig{
 	GasLimit:        big.NewInt(8_000_000),
-	TargetBlockRate: big.NewInt(2), // in seconds
+	TargetBlockRate: 2, // in seconds
 
 	MinBaseFee:               big.NewInt(25_000_000_000),
 	TargetGas:                big.NewInt(15_000_000),
@@ -805,8 +806,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				res := precompile.GetFeeConfigManagerStatus(state, allowAddr)
 				assert.Equal(t, precompile.AllowListEnabled, res)
 
-				feeConfig, err := precompile.GetFeeConfig(state)
-				assert.NoError(t, err)
+				feeConfig, ok := precompile.GetStoredFeeConfig(state)
+				assert.True(t, ok)
 				assert.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
@@ -827,8 +828,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				res := precompile.GetFeeConfigManagerStatus(state, adminAddr)
 				assert.Equal(t, precompile.AllowListAdmin, res)
 
-				feeConfig, err := precompile.GetFeeConfig(state)
-				assert.NoError(t, err)
+				feeConfig, ok := precompile.GetStoredFeeConfig(state)
+				assert.True(t, ok)
 				assert.Equal(t, testFeeConfig, feeConfig)
 			},
 		},

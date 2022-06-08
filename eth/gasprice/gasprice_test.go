@@ -31,6 +31,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -88,6 +89,10 @@ func (b *testBackend) ChainConfig() *params.ChainConfig {
 
 func (b *testBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription {
 	return nil
+}
+
+func (b *testBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error) {
+	return b.chain.GetFeeConfigAt(parent)
 }
 
 func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
