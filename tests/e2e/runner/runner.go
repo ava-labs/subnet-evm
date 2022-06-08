@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	networkRunnerLogLevel string
+	// networkRunnerLogLevel string
 	// gRPCEp                string
 	// gRPCGatewayEp         string
 
@@ -27,8 +27,8 @@ var (
 
 	// outputPath string
 
-	mode string
-	cli  client.Client
+	// mode string
+	cli client.Client
 )
 
 type clusterInfo struct {
@@ -48,8 +48,11 @@ func (ci clusterInfo) Save(p string) error {
 	return os.WriteFile(p, ob, fsModeWrite)
 }
 
-func InitializeRunner(logLevel_ string, execPath_ string, grpcEp string, networkRunnerLogLevel string) {
-	logLevel = logLevel_
+func GetClient() client.Client {
+	return cli
+}
+
+func InitializeRunner(execPath_ string, grpcEp string, networkRunnerLogLevel string) {
 	execPath = execPath_
 
 	var err error

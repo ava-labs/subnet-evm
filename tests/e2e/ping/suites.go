@@ -9,19 +9,15 @@ import (
 	"time"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
-
 	"github.com/onsi/gomega"
 
 	"github.com/ava-labs/subnet-evm/tests/e2e"
+	"github.com/ava-labs/subnet-evm/tests/e2e/runner"
 )
 
 var _ = e2e.DescribeLocal("[Ping]", func() {
 	ginkgo.It("can ping network-runner RPC server", func() {
-		if e2e.GetRunnerGRPCEndpoint() == "" {
-			ginkgo.Skip("no local network-runner, skipping")
-		}
-
-		runnerCli := e2e.GetRunnerClient()
+		runnerCli := runner.GetClient()
 		gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
 
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
