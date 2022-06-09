@@ -34,13 +34,14 @@ type client struct {
 // NewClient returns a Client for interacting with EVM [chain]
 func NewClient(uri, chain string) Client {
 	return &client{
-		requester:      rpc.NewEndpointRequester(uri, fmt.Sprintf("/ext/bc/%s/avax", chain), "avax"),
-		adminRequester: rpc.NewEndpointRequester(uri, fmt.Sprintf("/ext/bc/%s/admin", chain), "admin"),
+		requester:      rpc.NewEndpointRequester(uri, fmt.Sprintf("/ext/bc/%s/avax", chain)),
+		adminRequester: rpc.NewEndpointRequester(uri, fmt.Sprintf("/ext/bc/%s/admin", chain)),
 	}
 }
 
 // NewCChainClient returns a Client for interacting with the C Chain
 func NewCChainClient(uri string) Client {
+	// TODO: Update for Subnet-EVM compatibility
 	return NewClient(uri, "C")
 }
 
