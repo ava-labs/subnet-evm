@@ -198,6 +198,7 @@ func NewBlockChain(
 	receiptsCache, _ := lru.New(receiptsCacheLimit)
 	blockCache, _ := lru.New(blockCacheLimit)
 	txLookupCache, _ := lru.New(txLookupCacheLimit)
+	feeConfigCache, _ := lru.New(feeConfigCacheLimit)
 	badBlocks, _ := lru.New(badBlockLimit)
 
 	bc := &BlockChain{
@@ -208,14 +209,15 @@ func NewBlockChain(
 			Cache:     cacheConfig.TrieCleanLimit,
 			Preimages: cacheConfig.Preimages,
 		}),
-		bodyCache:     bodyCache,
-		receiptsCache: receiptsCache,
-		blockCache:    blockCache,
-		txLookupCache: txLookupCache,
-		engine:        engine,
-		vmConfig:      vmConfig,
-		badBlocks:     badBlocks,
-		senderCacher:  newTxSenderCacher(runtime.NumCPU()),
+		bodyCache:      bodyCache,
+		receiptsCache:  receiptsCache,
+		blockCache:     blockCache,
+		txLookupCache:  txLookupCache,
+		feeConfigCache: feeConfigCache,
+		engine:         engine,
+		vmConfig:       vmConfig,
+		badBlocks:      badBlocks,
+		senderCacher:   newTxSenderCacher(runtime.NumCPU()),
 	}
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
