@@ -92,8 +92,10 @@ and creates a `subnet-evm` genesis file. The usage of this script is
 # to startup a local cluster (good for development)
 cd ${HOME}/go/src/github.com/ava-labs/subnet-evm
 git pull
-./scripts/run.sh 1.7.11 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 ```
+
+Note: make sure you check the version compatibility above between AvalancheGo and Subnet-evm and use the proper version of AvalancheGo.
 
 Note that this ewoq address (`0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`) is a prefunded address on the local network, see [here](https://docs.avax.network/quickstart/fund-a-local-test-network) for more info. The private key for this address is
 `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`.
