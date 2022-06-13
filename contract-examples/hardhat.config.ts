@@ -7,6 +7,8 @@ const BLACKHOLE_ADDRESS = "0x0100000000000000000000000000000000000000"
 const CONTRACT_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000000"
 const MINT_ADDRESS = "0x0200000000000000000000000000000000000001"
 const TX_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000002"
+const FEE_MANAGER_ADDRESS = "0x0200000000000000000000000000000000000003"
+
 
 
 const ROLES = {
@@ -175,6 +177,56 @@ task("minter:burn", "burn")
     console.log(transactionHash)
   })
 
+// npx hardhat feeManager:set --network local --address [address]
+task("feeManager:set", "sets fee config")
+  .addParam("gaslimit", "", undefined, undefined, false)
+  .addParam("targetblockrate", "", undefined, undefined, false)
+  .addParam("minbasefee", "", undefined, undefined, false)
+  .addParam("targetgas", "", undefined, undefined, false)
+  .addParam("basefeechangedenominator", "", undefined, undefined, false)
+  .addParam("minblockgascost", "", undefined, undefined, false)
+  .addParam("maxblockgascost", "", undefined, undefined, false)
+  .addParam("blockgascoststep", "", undefined, undefined, false)
+
+  .setAction(async (args, hre) => {
+    const feeManager = await hre.ethers.getContractAt("IFeeManager", FEE_MANAGER_ADDRESS)
+    const feeConfig = await feeManager.setFeeConfig(
+      args.gaslimit,
+      args.targetblockrate,
+      args.minbasefee,
+      args.targetgas,
+      args.basefeechangedenominator,
+      args.minblockgascost,
+      args.maxblockgascost,
+      args.blockgascoststep)
+  })
+
+task("feeManager:get", "gets fee config")
+  .setAction(async (_, hre) => {
+    const feeManager = await hre.ethers.getContractAt("IFeeManager", FEE_MANAGER_ADDRESS)
+    const result = await feeManager.getFeeConfig()
+    console.log(`Fee Manager Precompile Config is set to:
+    gasLimit: ${result[0]}
+    targetBlockRate: ${result[1]}
+    minBaseFee: ${result[2]}
+    targetGas: ${result[3]}
+    baseFeeChangeDenominator: ${result[4]}
+    minBlockGasCost: ${result[5]}
+    maxBlockGasCost: ${result[6]}
+    blockGasCostStep: ${result[7]}`)
+  })
+
+
+// npx hardhat minter:readRole --network local --address [address]
+task("feeManager:readRole", "a task to get the network deployer minter list")
+  .addParam("address", "the address you want to know the minter role for")
+  .setAction(async (args, hre) => {
+    const allowList = await hre.ethers.getContractAt("IFeeManager", FEE_MANAGER_ADDRESS)
+    await getRole(allowList, args.address)
+  })
+
+
+
 export default {
   solidity: {
     compilers: [
@@ -198,7 +250,7 @@ export default {
   networks: {
     local: {
       //"http://{ip}:{port}/ext/bc/{chainID}/rpc
-      url: "http://127.0.0.1:9650/ext/bc/dRTfPJh4jEaRZoGkPc7xreeYbDGBrGWRV48WAYVyUgApsmzGo/rpc",
+      url: "http://127.0.0.1:9650/ext/bc/bWeTNmehHHLWZH2jMsCCnqdpMfAXWgb7XEkWcVjLd6eFaCM4Y/rpc",
       chainId: 43214,
       accounts: [
         "0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027",
