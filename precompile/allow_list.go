@@ -157,13 +157,14 @@ func createAllowListRoleSetter(precompileAddr common.Address, role AllowListRole
 			return nil, remainingGas, vmerrs.ErrWriteProtection
 		}
 
+		stateDB := evm.GetStateDB()
 		// Verify that the caller is in the allow list and therefore has the right to modify it
-		callerStatus := getAllowListStatus(evm.GetStateDB(), precompileAddr, callerAddr)
+		callerStatus := getAllowListStatus(stateDB, precompileAddr, callerAddr)
 		if !callerStatus.IsAdmin() {
 			return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotModifyAllowList, callerAddr)
 		}
 
-		setAllowListRole(evm.GetStateDB(), precompileAddr, modifyAddress, role)
+		setAllowListRole(stateDB, precompileAddr, modifyAddress, role)
 		// Return an empty output and the remaining gas
 		return []byte{}, remainingGas, nil
 	}

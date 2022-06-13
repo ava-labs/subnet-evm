@@ -33,25 +33,43 @@ func deductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
 	return suppliedGas - requiredGas, nil
 }
 
-func inputPackOrdered(input [][]byte, fullLength int) ([]byte, error) {
+func packOrderedHashesWithSelector(input [][]byte, fullLength int) ([]byte, error) {
 	// checks fullLength of given [input]
 	// it excludes first member since it should be the function selector
 	// then checks if the given [fullLength] is a multiple of member count * common.HashLength
-	expectedLen := fullLength - selectorLen
+	hashLen := fullLength - selectorLen
 	realLen := (len(input) - 1) * common.HashLength
-	if expectedLen != realLen {
-		return nil, fmt.Errorf("expected %d, got %d length", expectedLen, realLen)
+	if hashLen != realLen {
+		return nil, fmt.Errorf("expected %d, got %d length", hashLen, realLen)
 	}
 
 	// check function selector
 	if selectorLen != len(input[0]) {
 		return nil, fmt.Errorf("first element of the input must be a function selector with length %d", selectorLen)
 	}
+	// first handle selector
 	buf := make([]byte, fullLength)
 	copy(buf[:selectorLen], input[0])
 
-	for index, inputByte := range input[1:] {
-		start := selectorLen + (common.HashLength * index)
+	// handle bytesHashes
+	bytesHashes, err := packOrderedHashes(input[1:], hashLen)
+	if err != nil {
+		return nil, err
+	}
+	copy(buf[selectorLen:], bytesHashes)
+
+	return buf, nil
+}
+
+func packOrderedHashes(input [][]byte, fullLength int) ([]byte, error) {
+	realLen := len(input) * common.HashLength
+	if fullLength != realLen {
+		return nil, fmt.Errorf("expected %d, got %d length", fullLength, realLen)
+	}
+
+	buf := make([]byte, fullLength)
+	for index, inputByte := range input {
+		start := (common.HashLength * index)
 		end := start + common.HashLength
 		copy(buf[start:end], inputByte)
 	}

@@ -65,7 +65,7 @@ func PackMintInput(address common.Address, amount *big.Int) ([]byte, error) {
 		address.Hash().Bytes(),
 		amount.FillBytes(make([]byte, 32)),
 	}
-	return inputPackOrdered(packed, fullLen)
+	return packOrderedHashesWithSelector(packed, fullLen)
 }
 
 // UnpackMintInput attempts to unpack [input] into the arguments to the mint precompile

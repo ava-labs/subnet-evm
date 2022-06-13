@@ -760,6 +760,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 	type test struct {
 		caller         common.Address
 		precompileAddr common.Address
+		preCondition   func(t *testing.T, state *state.StateDB)
 		input          func() []byte
 		suppliedGas    uint64
 		readOnly       bool
@@ -779,7 +780,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller:         noRoleAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
-				input, err := precompile.PackSetFeeConfigInput(testFeeConfig)
+				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
 					panic(err)
 				}
@@ -793,7 +794,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller:         allowAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
-				input, err := precompile.PackSetFeeConfigInput(testFeeConfig)
+				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
 					panic(err)
 				}
@@ -815,7 +816,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller:         adminAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
-				input, err := precompile.PackSetFeeConfigInput(testFeeConfig)
+				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
 					panic(err)
 				}
@@ -833,11 +834,53 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				assert.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
+		"get empty config from non-enabled address": {
+			caller:         noRoleAddr,
+			precompileAddr: precompile.FeeConfigManagerAddress,
+			input: func() []byte {
+				return precompile.PackGetFeeConfigInput()
+			},
+			suppliedGas: precompile.GetFeeConfigGasCost,
+			readOnly:    true,
+			expectedRes: func() []byte {
+				// it should return all zeroes
+				res, err := precompile.PackFeeConfig(commontype.ZeroFeeConfig)
+				assert.NoError(t, err)
+				return res
+			}(),
+			assertState: func(t *testing.T, state *state.StateDB) {
+				feeConfig, ok := precompile.GetStoredFeeConfig(state)
+				assert.False(t, ok)
+				assert.Equal(t, commontype.EmptyFeeConfig, feeConfig)
+			},
+		},
+		"get fee config from non-enabled address": {
+			caller:         noRoleAddr,
+			precompileAddr: precompile.FeeConfigManagerAddress,
+			preCondition: func(t *testing.T, state *state.StateDB) {
+				precompile.StoreFeeConfig(state, testFeeConfig)
+			},
+			input: func() []byte {
+				return precompile.PackGetFeeConfigInput()
+			},
+			suppliedGas: precompile.GetFeeConfigGasCost,
+			readOnly:    true,
+			expectedRes: func() []byte {
+				res, err := precompile.PackFeeConfig(testFeeConfig)
+				assert.NoError(t, err)
+				return res
+			}(),
+			assertState: func(t *testing.T, state *state.StateDB) {
+				feeConfig, ok := precompile.GetStoredFeeConfig(state)
+				assert.True(t, ok)
+				assert.Equal(t, testFeeConfig, feeConfig)
+			},
+		},
 		"readOnly setFeeConfig with noRole fails": {
 			caller:         noRoleAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
-				input, err := precompile.PackSetFeeConfigInput(testFeeConfig)
+				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
 					panic(err)
 				}
@@ -851,7 +894,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller:         allowAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
-				input, err := precompile.PackSetFeeConfigInput(testFeeConfig)
+				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
 					panic(err)
 				}
@@ -865,7 +908,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller:         adminAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
-				input, err := precompile.PackSetFeeConfigInput(testFeeConfig)
+				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
 					panic(err)
 				}
@@ -879,7 +922,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller:         adminAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
-				input, err := precompile.PackSetFeeConfigInput(testFeeConfig)
+				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
 					panic(err)
 				}
@@ -935,6 +978,10 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			precompile.SetFeeConfigManagerStatus(state, adminAddr, precompile.AllowListAdmin)
 			precompile.SetFeeConfigManagerStatus(state, allowAddr, precompile.AllowListEnabled)
 			precompile.SetFeeConfigManagerStatus(state, noRoleAddr, precompile.AllowListNoRole)
+
+			if test.preCondition != nil {
+				test.preCondition(t, state)
+			}
 
 			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {

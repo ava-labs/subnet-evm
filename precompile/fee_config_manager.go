@@ -37,8 +37,7 @@ var (
 	FeeConfigManagerPrecompile StatefulPrecompiledContract = createFeeConfigManagerPrecompile(FeeConfigManagerAddress)
 
 	setFeeConfigSignature = CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
-	// TODO: do we need that?
-	// getFeeConfigSignature = CalculateFunctionSelector("getFeeConfig()")
+	getFeeConfigSignature = CalculateFunctionSelector("getFeeConfig()")
 
 	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
 
@@ -78,12 +77,26 @@ func SetFeeConfigManagerStatus(stateDB StateDB, address common.Address, role All
 	setAllowListRole(stateDB, FeeConfigManagerAddress, address, role)
 }
 
-// PackSetFeeConfigInput packs [address] and [amount] into the appropriate arguments for settinge fee config operation.
-func PackSetFeeConfigInput(feeConfig commontype.FeeConfig) ([]byte, error) {
-	// function selector (4 bytes) + input(hash for address + hash for amount)
-	fullLen := selectorLen + feeConfigInputLen
+// PackGetFeeConfigInput packs the getFeeConfig signature
+func PackGetFeeConfigInput() []byte {
+	return getFeeConfigSignature
+}
+
+// PackFeeConfig packs [feeConfig] without the selector into the appropriate arguments for fee config operations.
+func PackFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
+	//  input(feeConfig)
+	return packHelper(feeConfig, false)
+}
+
+// PackSetFeeConfig packs [feeConfig] with the selector into the appropriate arguments for set fee config operations.
+func PackSetFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
+	// function selector (4 bytes) + input(feeConfig)
+	return packHelper(feeConfig, true)
+}
+
+func packHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]byte, error) {
+	fullLen := feeConfigInputLen
 	packed := [][]byte{
-		setFeeConfigSignature,
 		feeConfig.GasLimit.FillBytes(make([]byte, 32)),
 		new(big.Int).SetUint64(feeConfig.TargetBlockRate).FillBytes(make([]byte, 32)),
 		feeConfig.MinBaseFee.FillBytes(make([]byte, 32)),
@@ -93,7 +106,12 @@ func PackSetFeeConfigInput(feeConfig commontype.FeeConfig) ([]byte, error) {
 		feeConfig.MaxBlockGasCost.FillBytes(make([]byte, 32)),
 		feeConfig.BlockGasCostStep.FillBytes(make([]byte, 32)),
 	}
-	return inputPackOrdered(packed, fullLen)
+	if useSelector {
+		packed = append([][]byte{setFeeConfigSignature}, packed...)
+		return packOrderedHashesWithSelector(packed, fullLen+selectorLen)
+	}
+
+	return packOrderedHashes(packed, fullLen)
 }
 
 // UnpackFeeConfigInput attempts to unpack [input] into the arguments to the fee config precompile
@@ -119,8 +137,13 @@ func GetStoredFeeConfig(stateDB StateDB) (commontype.FeeConfig, bool) {
 		return commontype.FeeConfig{}, false
 	}
 	feeConfig := commontype.FeeConfig{}
+	isAllZeros := true
 	for i := minFeeConfigFieldKey; i <= maxFeeConfigFieldKey; i++ {
 		val := stateDB.GetState(FeeConfigManagerAddress, common.Hash{byte(i)})
+		// even if one of these vals are non-zero means that this state exist
+		if isAllZeros && val != (common.Hash{0}) {
+			isAllZeros = false
+		}
 		switch i {
 		case gasLimitKey:
 			feeConfig.GasLimit = new(big.Int).Set(val.Big())
@@ -142,10 +165,13 @@ func GetStoredFeeConfig(stateDB StateDB) (commontype.FeeConfig, bool) {
 			panic("unknown key")
 		}
 	}
+	if isAllZeros {
+		return commontype.EmptyFeeConfig, false
+	}
 	return feeConfig, true
 }
 
-func setStateFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig) error {
+func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig) {
 	for i := minFeeConfigFieldKey; i <= maxFeeConfigFieldKey; i++ {
 		var hashInput common.Hash
 		switch i {
@@ -166,11 +192,10 @@ func setStateFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig) error {
 		case blockGasCostStepKey:
 			hashInput = common.BigToHash(feeConfig.BlockGasCostStep)
 		default:
-			return fmt.Errorf("unknown field key %d", i)
+			panic("unknown key")
 		}
 		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, hashInput)
 	}
-	return nil
 }
 
 // setFeeConfig checks if the caller is permissioned for setting fee config operation.
@@ -196,10 +221,33 @@ func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Addre
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
 
-	setStateFeeConfig(accessibleState.GetStateDB(), feeConfig)
+	StoreFeeConfig(stateDB, feeConfig)
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
+}
+
+// getFeeConfig returns the stored fee config as an output
+func getFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	if remainingGas, err = deductGas(suppliedGas, GetFeeConfigGasCost); err != nil {
+		return nil, 0, err
+	}
+
+	feeConfig, ok := GetStoredFeeConfig(accessibleState.GetStateDB())
+	if !ok {
+		// we cannot pack empty fee config, instead use zero fee config
+		output, err := PackFeeConfig(commontype.ZeroFeeConfig)
+		// should never fail to packing an empty fee config
+		if err != nil {
+			panic(err)
+		}
+		return output, remainingGas, nil
+	}
+
+	output, err := PackFeeConfig(feeConfig)
+
+	// Return an empty output and the remaining gas
+	return output, remainingGas, err
 }
 
 // createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr],
@@ -211,8 +259,9 @@ func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPre
 	read := newStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
 
 	setFeeConfig := newStatefulPrecompileFunction(setFeeConfigSignature, setFeeConfig)
+	getFeeConfig := newStatefulPrecompileFunction(getFeeConfigSignature, getFeeConfig)
 
 	// Construct the contract with no fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, []*statefulPrecompileFunction{setAdmin, setEnabled, setNone, read, setFeeConfig})
+	contract := newStatefulPrecompileWithFunctionSelectors(nil, []*statefulPrecompileFunction{setAdmin, setEnabled, setNone, read, setFeeConfig, getFeeConfig})
 	return contract
 }
