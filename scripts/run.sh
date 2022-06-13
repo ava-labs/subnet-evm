@@ -4,13 +4,13 @@ set -e
 # e.g.,
 #
 # run without e2e tests
-# ./scripts/run.sh 1.7.11 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 #
 # run without e2e tests with DEBUG log level
-# AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh 1.7.11 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 #
 # run with e2e tests
-# E2E=true ./scripts/run.sh 1.7.11 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# E2E=true ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -265,8 +265,6 @@ else
   echo ""
   echo "use the following command to terminate:"
   echo ""
-  echo "pkill -P ${PID}"
-  echo "kill -2 ${PID}"
-  echo "pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+  echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
   echo ""
 fi

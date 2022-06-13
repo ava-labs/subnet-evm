@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 )
@@ -103,7 +104,7 @@ func CalcBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, par
 	}
 
 	expectedMinBaseFee := feeConfig.MinBaseFee
-	baseFee = selectBigWithinBounds(expectedMinBaseFee, baseFee, nil)
+	baseFee = utils.SelectBigWithinBounds(expectedMinBaseFee, baseFee, nil)
 
 	return newRollupWindow, baseFee, nil
 }
@@ -118,20 +119,6 @@ func EstimateNextBaseFee(config *params.ChainConfig, feeConfig commontype.FeeCon
 		timestamp = parent.Time
 	}
 	return CalcBaseFee(config, feeConfig, parent, timestamp)
-}
-
-// selectBigWithinBounds returns [value] if it is within the bounds:
-// lowerBound <= value <= upperBound or the bound at either end if [value]
-// is outside of the defined boundaries.
-func selectBigWithinBounds(lowerBound, value, upperBound *big.Int) *big.Int {
-	switch {
-	case lowerBound != nil && value.Cmp(lowerBound) < 0:
-		return new(big.Int).Set(lowerBound)
-	case upperBound != nil && value.Cmp(upperBound) > 0:
-		return new(big.Int).Set(upperBound)
-	default:
-		return value
-	}
 }
 
 // rollWindow rolls the longs within [consumptionWindow] over by [roll] places.
@@ -234,7 +221,7 @@ func calcBlockGasCost(
 		blockGasCost = new(big.Int).Sub(parentBlockGasCost, blockGasCostDelta)
 	}
 
-	blockGasCost = selectBigWithinBounds(minBlockGasCost, blockGasCost, maxBlockGasCost)
+	blockGasCost = utils.SelectBigWithinBounds(minBlockGasCost, blockGasCost, maxBlockGasCost)
 	if !blockGasCost.IsUint64() {
 		blockGasCost = new(big.Int).SetUint64(math.MaxUint64)
 	}
