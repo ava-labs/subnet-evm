@@ -436,3 +436,7 @@ func (b *EthAPIBackend) StateAtTransaction(ctx context.Context, block *types.Blo
 func (b *EthAPIBackend) MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error) {
 	return dummy.MinRequiredTip(b.ChainConfig(), header)
 }
+
+func (b *EthAPIBackend) GetFeeConfig(parent *types.Header) (commontype.FeeConfig, error) {
+	return b.eth.blockchain.GetFeeConfigAt(parent)
+}

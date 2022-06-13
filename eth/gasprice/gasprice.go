@@ -179,9 +179,9 @@ func NewOracle(backend OracleBackend, config Config) *Oracle {
 		}
 	}()
 	feeConfig, err := backend.GetFeeConfigAt(backend.LastAcceptedBlock().Header())
-	// resort back to chain config
 	var minBaseFee *big.Int
 	if err != nil {
+		// resort back to chain config
 		log.Warn("Got error while getting fee config, defaulting to genesis fee config")
 		minBaseFee = backend.ChainConfig().FeeConfig.MinBaseFee
 	} else {
@@ -190,7 +190,7 @@ func NewOracle(backend OracleBackend, config Config) *Oracle {
 	return &Oracle{
 		backend:             backend,
 		lastPrice:           minPrice,
-		lastBaseFee:         minBaseFee,
+		lastBaseFee:         new(big.Int).Set(minBaseFee),
 		minPrice:            minPrice,
 		maxPrice:            maxPrice,
 		minGasUsed:          minGasUsed,

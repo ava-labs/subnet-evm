@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts"
 	"github.com/ava-labs/subnet-evm/accounts/keystore"
 	"github.com/ava-labs/subnet-evm/accounts/scwallet"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -606,6 +607,22 @@ func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
 		return (*hexutil.Big)(config.ChainID), nil
 	}
 	return nil, fmt.Errorf("chain not synced beyond EIP-155 replay-protection fork block")
+}
+
+func (s *PublicBlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockNumberOrHash) (*commontype.FeeConfig, error) {
+	var header *types.Header
+	var err error
+	if blockNrOrHash == nil {
+		header = s.b.CurrentHeader()
+	} else {
+		header, err = s.b.HeaderByNumberOrHash(ctx, *blockNrOrHash)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	feeConfig, err := s.b.GetFeeConfig(header)
+	return &feeConfig, err
 }
 
 // BlockNumber returns the block number of the chain head.
