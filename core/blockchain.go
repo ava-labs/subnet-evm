@@ -105,7 +105,7 @@ const (
 // that's resident in a blockchain.
 type CacheConfig struct {
 	TrieCleanLimit                  int     // Memory allowance (MB) to use for caching trie nodes in memory
-	TrieDirtyLimit                  int     // Memory limit (MB) at which to start flushing dirty trie nodes to disk
+	TrieDirtyLimit                  int     // Memory limit (MB) at which to block on insert and force a flush of dirty trie nodes to disk
 	TrieDirtyCommitTarget           int     // Memory limit (MB) to target for the dirties cache before invoking commit
 	CommitInterval                  uint64  // Commit the trie every [CommitInterval] blocks.
 	Pruning                         bool    // Whether to disable trie write caching and GC altogether (archive node)
