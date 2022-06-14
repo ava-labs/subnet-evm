@@ -88,7 +88,7 @@ func PackFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
 	return packHelper(feeConfig, false)
 }
 
-// PackSetFeeConfig packs [feeConfig] with the selector into the appropriate arguments for set fee config operations.
+// PackSetFeeConfig packs [feeConfig] with the selector into the appropriate arguments for setting fee config operations.
 func PackSetFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
 	// function selector (4 bytes) + input(feeConfig)
 	return packHelper(feeConfig, true)
@@ -132,6 +132,7 @@ func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 	}, nil
 }
 
+// GetStoredFeeConfig returns fee config from contract storage in given state
 func GetStoredFeeConfig(stateDB StateDB) (commontype.FeeConfig, bool) {
 	if !stateDB.Exist(FeeConfigManagerAddress) {
 		return commontype.FeeConfig{}, false
