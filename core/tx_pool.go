@@ -1418,12 +1418,15 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentStateLock.Unlock()
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
-	feeConfig, err := pool.chain.GetFeeConfigAt(newHead)
-	if err != nil {
-		log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)
-		return
+
+	if pool.chainconfig.IsFeeConfigManager(new(big.Int).SetUint64(newHead.Time)) {
+		feeConfig, err := pool.chain.GetFeeConfigAt(newHead)
+		if err != nil {
+			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)
+			return
+		}
+		pool.minimumFee = feeConfig.MinBaseFee
 	}
-	pool.minimumFee = feeConfig.MinBaseFee
 
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))
