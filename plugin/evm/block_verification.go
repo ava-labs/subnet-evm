@@ -144,7 +144,7 @@ func (v blockValidatorSubnetEVM) SyntacticVerify(b *Block) error {
 		)
 	}
 
-	// if fee config manager is, we cannot check state at this point; so skip checking gas limit.
+	// if fee config manager is enabled, FeeConfig depends on state. State is not available here, so skip checking the gas limit.
 	if !v.feeConfigManagerEnabled {
 		expectedGas := b.vm.chainConfig.FeeConfig.GasLimit.Uint64()
 		if ethHeader.GasLimit != expectedGas {
