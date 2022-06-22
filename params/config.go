@@ -120,7 +120,7 @@ type ChainConfig struct {
 	ContractDeployerAllowListConfig precompile.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
-	FeeManagerConfig                precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`
+	FeeManagerConfig                precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
 }
 
 // String implements the fmt.Stringer interface.
@@ -356,22 +356,22 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 		return newCompatError("SubnetEVM fork block timestamp", c.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
 
-	// Check that the configuration of the optional stateful precompiles is compatible.
+	// Check that the configuration of the optional AllowList stateful precompile is compatible.
 	if isForkIncompatible(c.ContractDeployerAllowListConfig.Timestamp(), newcfg.ContractDeployerAllowListConfig.Timestamp(), headTimestamp) {
 		return newCompatError("AllowList fork block timestamp", c.ContractDeployerAllowListConfig.Timestamp(), newcfg.ContractDeployerAllowListConfig.Timestamp())
 	}
 
-	// Check that the configuration of the optional stateful precompiles is compatible.
+	// Check that the configuration of the optional ContractNativeMinter stateful precompile is compatible.
 	if isForkIncompatible(c.ContractNativeMinterConfig.Timestamp(), newcfg.ContractNativeMinterConfig.Timestamp(), headTimestamp) {
 		return newCompatError("ContractNativeMinter fork block timestamp", c.ContractNativeMinterConfig.Timestamp(), newcfg.ContractNativeMinterConfig.Timestamp())
 	}
 
-	// Check that the configuration of the optional stateful precompiles is compatible.
+	// Check that the configuration of the optional TxAllowList stateful precompile is compatible.
 	if isForkIncompatible(c.TxAllowListConfig.Timestamp(), newcfg.TxAllowListConfig.Timestamp(), headTimestamp) {
 		return newCompatError("TxAllowList fork block timestamp", c.TxAllowListConfig.Timestamp(), newcfg.TxAllowListConfig.Timestamp())
 	}
 
-	// Check that the configuration of the optional stateful precompiles is compatible.
+	// Check that the configuration of the optional FeeManagerConfig stateful precompile is compatible.
 	if isForkIncompatible(c.FeeManagerConfig.Timestamp(), newcfg.FeeManagerConfig.Timestamp(), headTimestamp) {
 		return newCompatError("FeeManagerConfig fork block timestamp", c.FeeManagerConfig.Timestamp(), newcfg.FeeManagerConfig.Timestamp())
 	}

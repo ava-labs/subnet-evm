@@ -1,6 +1,11 @@
+// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package commontype
 
-import "math/big"
+import (
+	"math/big"
+)
 
 // FeeConfig specifies the parameters for the dynamic fee algorithm, which determines the gas limit, base fee, and block gas cost of blocks
 // on the network.
@@ -47,15 +52,18 @@ type FeeConfig struct {
 	BlockGasCostStep *big.Int `json:"blockGasCostStep,omitempty"`
 }
 
-var EmptyFeeConfig = FeeConfig{}
-
-var ZeroFeeConfig = FeeConfig{
-	GasLimit:                 big.NewInt(0),
-	TargetBlockRate:          0,
-	MinBaseFee:               big.NewInt(0),
-	TargetGas:                big.NewInt(0),
-	BaseFeeChangeDenominator: big.NewInt(0),
-	MinBlockGasCost:          big.NewInt(0),
-	MaxBlockGasCost:          big.NewInt(0),
-	BlockGasCostStep:         big.NewInt(0),
-}
+var (
+	// represents an empty fee config without any field
+	EmptyFeeConfig = FeeConfig{}
+	// represents a zero fee config which contains zeros for Number types
+	ZeroFeeConfig = FeeConfig{
+		GasLimit:                 new(big.Int),
+		TargetBlockRate:          0,
+		MinBaseFee:               new(big.Int),
+		TargetGas:                new(big.Int),
+		BaseFeeChangeDenominator: new(big.Int),
+		MinBlockGasCost:          new(big.Int),
+		MaxBlockGasCost:          new(big.Int),
+		BlockGasCostStep:         new(big.Int),
+	}
+)

@@ -9,11 +9,12 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
+	minFeeConfigFieldKey = iota + 1
+	// add new fields below this
 	// must preserve order of these fields
 	gasLimitKey = iota
 	targetBlockRateKey
@@ -23,11 +24,8 @@ const (
 	minBlockGasCostKey
 	maxBlockGasCostKey
 	blockGasCostStepKey
-
-	minFeeConfigFieldKey = gasLimitKey
-	maxFeeConfigFieldKey = blockGasCostStepKey
-
-	numFeeConfigField = (maxFeeConfigFieldKey - minFeeConfigFieldKey + 1)
+	// add new fields above this
+	numFeeConfigField = iota - 1
 )
 
 var (
@@ -97,14 +95,14 @@ func PackSetFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
 func packHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]byte, error) {
 	fullLen := feeConfigInputLen
 	packed := [][]byte{
-		feeConfig.GasLimit.FillBytes(make([]byte, 32)),
-		new(big.Int).SetUint64(feeConfig.TargetBlockRate).FillBytes(make([]byte, 32)),
-		feeConfig.MinBaseFee.FillBytes(make([]byte, 32)),
-		feeConfig.TargetGas.FillBytes(make([]byte, 32)),
-		feeConfig.BaseFeeChangeDenominator.FillBytes(make([]byte, 32)),
-		feeConfig.MinBlockGasCost.FillBytes(make([]byte, 32)),
-		feeConfig.MaxBlockGasCost.FillBytes(make([]byte, 32)),
-		feeConfig.BlockGasCostStep.FillBytes(make([]byte, 32)),
+		feeConfig.GasLimit.FillBytes(make([]byte, common.HashLength)),
+		new(big.Int).SetUint64(feeConfig.TargetBlockRate).FillBytes(make([]byte, common.HashLength)),
+		feeConfig.MinBaseFee.FillBytes(make([]byte, common.HashLength)),
+		feeConfig.TargetGas.FillBytes(make([]byte, common.HashLength)),
+		feeConfig.BaseFeeChangeDenominator.FillBytes(make([]byte, common.HashLength)),
+		feeConfig.MinBlockGasCost.FillBytes(make([]byte, common.HashLength)),
+		feeConfig.MaxBlockGasCost.FillBytes(make([]byte, common.HashLength)),
+		feeConfig.BlockGasCostStep.FillBytes(make([]byte, common.HashLength)),
 	}
 	if useSelector {
 		packed = append([][]byte{setFeeConfigSignature}, packed...)
@@ -121,14 +119,14 @@ func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 		return commontype.FeeConfig{}, fmt.Errorf("invalid input length for fee config input: %d", len(input))
 	}
 	return commontype.FeeConfig{
-		GasLimit:                 new(big.Int).SetBytes(returnPackedElement(input, 0)),
-		TargetBlockRate:          new(big.Int).SetBytes(returnPackedElement(input, 1)).Uint64(),
-		MinBaseFee:               new(big.Int).SetBytes(returnPackedElement(input, 2)),
-		TargetGas:                new(big.Int).SetBytes(returnPackedElement(input, 3)),
-		BaseFeeChangeDenominator: new(big.Int).SetBytes(returnPackedElement(input, 4)),
-		MinBlockGasCost:          new(big.Int).SetBytes(returnPackedElement(input, 5)),
-		MaxBlockGasCost:          new(big.Int).SetBytes(returnPackedElement(input, 6)),
-		BlockGasCostStep:         new(big.Int).SetBytes(returnPackedElement(input, 7)),
+		GasLimit:                 new(big.Int).SetBytes(returnPackedElement(input, gasLimitKey)),
+		TargetBlockRate:          new(big.Int).SetBytes(returnPackedElement(input, targetBlockRateKey)).Uint64(),
+		MinBaseFee:               new(big.Int).SetBytes(returnPackedElement(input, minBaseFeeKey)),
+		TargetGas:                new(big.Int).SetBytes(returnPackedElement(input, targetGasKey)),
+		BaseFeeChangeDenominator: new(big.Int).SetBytes(returnPackedElement(input, baseFeeChangeDenominatorKey)),
+		MinBlockGasCost:          new(big.Int).SetBytes(returnPackedElement(input, minBlockGasCostKey)),
+		MaxBlockGasCost:          new(big.Int).SetBytes(returnPackedElement(input, maxBlockGasCostKey)),
+		BlockGasCostStep:         new(big.Int).SetBytes(returnPackedElement(input, blockGasCostStepKey)),
 	}, nil
 }
 
@@ -139,10 +137,10 @@ func GetStoredFeeConfig(stateDB StateDB) (commontype.FeeConfig, bool) {
 	}
 	feeConfig := commontype.FeeConfig{}
 	isAllZeros := true
-	for i := minFeeConfigFieldKey; i <= maxFeeConfigFieldKey; i++ {
+	for i := minFeeConfigFieldKey; i < numFeeConfigField; i++ {
 		val := stateDB.GetState(FeeConfigManagerAddress, common.Hash{byte(i)})
 		// even if one of these vals are non-zero means that this state exist
-		if isAllZeros && val != (common.Hash{0}) {
+		if isAllZeros && val != (common.Hash{}) {
 			isAllZeros = false
 		}
 		switch i {
@@ -172,54 +170,63 @@ func GetStoredFeeConfig(stateDB StateDB) (commontype.FeeConfig, bool) {
 	return feeConfig, true
 }
 
-func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig) {
-	for i := minFeeConfigFieldKey; i <= maxFeeConfigFieldKey; i++ {
+// StoreFeeConfig checks given [feeConfig] for lengths and stores it in the [stateDB]
+func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig) error {
+	hashes, err := getFeeConfigHashes(feeConfig)
+	if err != nil {
+		return err
+	}
+	for index, hashInput := range hashes {
+		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(index)}, hashInput)
+	}
+	return nil
+}
+
+func getFeeConfigHashes(feeConfig commontype.FeeConfig) ([]common.Hash, error) {
+	res := make([]common.Hash, 0)
+	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
 		var hashInput common.Hash
+		var err error
 		switch i {
 		case gasLimitKey:
-			hashInput = common.BigToHash(feeConfig.GasLimit)
+			hashInput, err = bigToHashSafe(feeConfig.GasLimit)
 		case targetBlockRateKey:
-			hashInput = common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate))
+			hashInput, err = bigToHashSafe(new(big.Int).SetUint64(feeConfig.TargetBlockRate))
 		case minBaseFeeKey:
-			hashInput = common.BigToHash(feeConfig.MinBaseFee)
+			hashInput, err = bigToHashSafe(feeConfig.MinBaseFee)
 		case targetGasKey:
-			hashInput = common.BigToHash(feeConfig.TargetGas)
+			hashInput, err = bigToHashSafe(feeConfig.TargetGas)
 		case baseFeeChangeDenominatorKey:
-			hashInput = common.BigToHash(feeConfig.BaseFeeChangeDenominator)
+			hashInput, err = bigToHashSafe(feeConfig.BaseFeeChangeDenominator)
 		case minBlockGasCostKey:
-			hashInput = common.BigToHash(feeConfig.MinBlockGasCost)
+			hashInput, err = bigToHashSafe(feeConfig.MinBlockGasCost)
 		case maxBlockGasCostKey:
-			hashInput = common.BigToHash(feeConfig.MaxBlockGasCost)
+			hashInput, err = bigToHashSafe(feeConfig.MaxBlockGasCost)
 		case blockGasCostStepKey:
-			hashInput = common.BigToHash(feeConfig.BlockGasCostStep)
+			hashInput, err = bigToHashSafe(feeConfig.BlockGasCostStep)
 		default:
 			panic("unknown key")
 		}
-		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, hashInput)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, hashInput)
 	}
+	return res, nil
 }
 
 // setFeeConfig checks if the caller is permissioned for setting fee config operation.
 // The execution function parses the [input] into FeeConfig structure and sets contract storage accordingly.
 func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = deductGas(suppliedGas, SetFeeConfigGasCost); err != nil {
-		return nil, 0, err
-	}
+	stateDB := accessibleState.GetStateDB()
 
-	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
+	if remainingGas, err = allowListSetterEnabledCheck(FeeConfigManagerAddress, addr, suppliedGas, SetFeeConfigGasCost, readOnly, stateDB); err != nil {
+		return nil, remainingGas, err
 	}
 
 	feeConfig, err := UnpackFeeConfigInput(input)
 	if err != nil {
 		return nil, remainingGas, err
-	}
-
-	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, FeeConfigManagerAddress, caller)
-	if !callerStatus.IsEnabled() {
-		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
 
 	StoreFeeConfig(stateDB, feeConfig)
@@ -254,15 +261,12 @@ func getFeeConfig(accessibleState PrecompileAccessibleState, caller common.Addre
 // createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr],
 // and a storage setter for fee configs.
 func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
-	setAdmin := newStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AllowListAdmin))
-	setEnabled := newStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, AllowListEnabled))
-	setNone := newStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, AllowListNoRole))
-	read := newStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
+	allowListFuncs := createAllowListFunctions(precompileAddr)
 
 	setFeeConfig := newStatefulPrecompileFunction(setFeeConfigSignature, setFeeConfig)
 	getFeeConfig := newStatefulPrecompileFunction(getFeeConfigSignature, getFeeConfig)
 
 	// Construct the contract with no fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, []*statefulPrecompileFunction{setAdmin, setEnabled, setNone, read, setFeeConfig, getFeeConfig})
+	contract := newStatefulPrecompileWithFunctionSelectors(nil, append(allowListFuncs, setFeeConfig, getFeeConfig))
 	return contract
 }

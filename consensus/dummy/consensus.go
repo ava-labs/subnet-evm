@@ -118,16 +118,11 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 	}
 
 	// Enforce BlockGasCost constraints
-	blockGasCostStep := feeConfig.BlockGasCostStep
-	targetBlockRate := feeConfig.TargetBlockRate
-	minBlockGasCost := feeConfig.MinBlockGasCost
-	maxBlockGasCost := feeConfig.MaxBlockGasCost
-
 	expectedBlockGasCost := calcBlockGasCost(
-		targetBlockRate,
-		minBlockGasCost,
-		maxBlockGasCost,
-		blockGasCostStep,
+		feeConfig.TargetBlockRate,
+		feeConfig.MinBlockGasCost,
+		feeConfig.MaxBlockGasCost,
+		feeConfig.BlockGasCostStep,
 		parent.BlockGasCost,
 		parent.Time, header.Time,
 	)
@@ -274,15 +269,12 @@ func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *type
 		if err != nil {
 			return err
 		}
-		blockGasCostStep := feeConfig.BlockGasCostStep
-		targetBlockRate := feeConfig.TargetBlockRate
-		minBlockGasCost := feeConfig.MinBlockGasCost
-		maxBlockGasCost := feeConfig.MaxBlockGasCost
+
 		blockGasCost := calcBlockGasCost(
-			targetBlockRate,
-			minBlockGasCost,
-			maxBlockGasCost,
-			blockGasCostStep,
+			feeConfig.TargetBlockRate,
+			feeConfig.MinBlockGasCost,
+			feeConfig.MaxBlockGasCost,
+			feeConfig.BlockGasCostStep,
 			parent.BlockGasCost,
 			parent.Time, block.Time(),
 		)
@@ -310,15 +302,12 @@ func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, 
 		if err != nil {
 			return nil, err
 		}
-		blockGasCostStep := feeConfig.BlockGasCostStep
-		targetBlockRate := feeConfig.TargetBlockRate
-		minBlockGasCost := feeConfig.MinBlockGasCost
-		maxBlockGasCost := feeConfig.MaxBlockGasCost
+
 		header.BlockGasCost = calcBlockGasCost(
-			targetBlockRate,
-			minBlockGasCost,
-			maxBlockGasCost,
-			blockGasCostStep,
+			feeConfig.TargetBlockRate,
+			feeConfig.MinBlockGasCost,
+			feeConfig.MaxBlockGasCost,
+			feeConfig.BlockGasCostStep,
 			parent.BlockGasCost,
 			parent.Time, header.Time,
 		)

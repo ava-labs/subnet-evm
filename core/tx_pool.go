@@ -1297,7 +1297,9 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	if reset != nil {
 		pool.demoteUnexecutables()
 		if reset.newHead != nil && pool.chainconfig.IsSubnetEVM(new(big.Int).SetUint64(reset.newHead.Time)) {
-			pool.updateBaseFeeAt(reset.newHead)
+			if err := pool.updateBaseFeeAt(reset.newHead); err != nil {
+				log.Error("error at updating base fee in tx pool", "error", err)
+			}
 		}
 
 		// Update all accounts to the latest known pending nonce
@@ -1419,6 +1421,8 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
 
+	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
+	// so that we can correctly drop txs with < minBaseFee from tx pool.
 	if pool.chainconfig.IsFeeConfigManager(new(big.Int).SetUint64(newHead.Time)) {
 		feeConfig, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {

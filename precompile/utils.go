@@ -5,6 +5,7 @@ package precompile
 
 import (
 	"fmt"
+	"math/big"
 	"regexp"
 
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -33,10 +34,10 @@ func deductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
 	return suppliedGas - requiredGas, nil
 }
 
+// packOrderedHashesWithSelector checks fullLength of given [input]
+// it excludes first member since it should be the function selector
+// then checks if the given [fullLength] is a multiple of member count * common.HashLength
 func packOrderedHashesWithSelector(input [][]byte, fullLength int) ([]byte, error) {
-	// checks fullLength of given [input]
-	// it excludes first member since it should be the function selector
-	// then checks if the given [fullLength] is a multiple of member count * common.HashLength
 	hashLen := fullLength - selectorLen
 	realLen := (len(input) - 1) * common.HashLength
 	if hashLen != realLen {
@@ -61,6 +62,7 @@ func packOrderedHashesWithSelector(input [][]byte, fullLength int) ([]byte, erro
 	return buf, nil
 }
 
+// packOrderedHashes packs 2-d [input] array of hashes into a 1-d array.
 func packOrderedHashes(input [][]byte, fullLength int) ([]byte, error) {
 	realLen := len(input) * common.HashLength
 	if fullLength != realLen {
@@ -76,8 +78,18 @@ func packOrderedHashes(input [][]byte, fullLength int) ([]byte, error) {
 	return buf, nil
 }
 
+// returnPackedElement returns packed element with common.HashLength from the [packed] at [index]
 func returnPackedElement(packed []byte, index int) []byte {
 	start := common.HashLength * index
 	end := start + common.HashLength
 	return packed[start:end]
+}
+
+func bigToHashSafe(b *big.Int) (common.Hash, error) {
+	bytes := b.Bytes()
+	len := len(bytes)
+	if len > common.HashLength {
+		return common.Hash{}, fmt.Errorf("expected %d, got %d length", common.HashLength, len)
+	}
+	return common.BigToHash(b), nil
 }

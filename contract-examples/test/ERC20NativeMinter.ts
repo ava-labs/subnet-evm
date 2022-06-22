@@ -50,7 +50,7 @@ describe("ERC20NativeMinter", function () {
   });
 
   // this contract is not given minter permission yet, so should not mintdraw
-  it("should be able to mintdraw", async function () {
+  it("contract should not be able to mintdraw", async function () {
     const minterList = await ethers.getContractAt("INativeMinter", MINT_PRECOMPILE_ADDRESS, owner);
     let contractRole = await minterList.readAllowList(contract.address);
     expect(contractRole).to.be.equal(ROLES.NONE)

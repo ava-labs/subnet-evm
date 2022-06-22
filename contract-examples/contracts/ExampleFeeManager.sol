@@ -1,55 +1,88 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./IAllowList.sol";
+import "./AllowList.sol";
 import "./IFeeManager.sol";
 
-// ExampleDeployerList shows how ContractDeployerAllowList precompile can be used in a smart contract
+// ExampleFeeManager shows how FeeConfigManager precompile can be used in a smart contract
 // All methods of [allowList] can be directly called. There are example calls as tasks in hardhat.config.ts file.
-contract ExampleFeeManager is Ownable {
+contract ExampleFeeManager is AllowList {
   // Precompiled Fee Manager Contract Address
-  address constant FEE_MANAGER = 0x0200000000000000000000000000000000000003;
-  IFeeManager feeManager = IFeeManager(FEE_MANAGER);
+  address constant FEE_MANAGER_ADDRESS = 0x0200000000000000000000000000000000000003;
+  IFeeManager feeManager = IFeeManager(FEE_MANAGER_ADDRESS);
 
-  uint256 constant STATUS_NONE = 0;
-  uint256 constant STATUS_ENABLED = 1;
-  uint256 constant STATUS_ADMIN = 2;
+  bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
-  struct fee_config {
-    uint256 gas_limit;
-    uint256 target_block_rate;
-    uint256 min_base_fee;
-    uint256 target_gas;
-    uint256 base_fee_change_denominator;
-    uint256 min_block_gas_cost;
-    uint256 max_block_gas_cost;
-    uint256 block_gas_cost_step;
+  struct FeeConfig {
+    uint256 gasLimit;
+    uint256 targetBlockRate;
+    uint256 minBaseFee;
+    uint256 targetGas;
+    uint256 baseFeeChangeDenominator;
+    uint256 minBlockGasCost;
+    uint256 maxBlockGasCost;
+    uint256 blockGasCostStep;
   }
 
-  constructor() Ownable() {}
+  constructor() AllowList(FEE_MANAGER_ADDRESS) {}
 
-  function isAdmin(address addr) public view returns (bool) {
-    uint256 result = feeManager.readAllowList(addr);
-    return result == STATUS_ADMIN;
+  function enableWAGMIFees() public onlyEnabled {
+    feeManager.setFeeConfig(
+      2_000_0000, // gasLimit
+      2, // targetBlockRate
+      1_000_000_000, // minBaseFee
+      100_000_000, // targetGas
+      48, // baseFeeChangeDenominator
+      0, // minBlockGasCost
+      10_000_000, // maxBlockGasCost
+      500_000 // blockGasCostStep
+    );
   }
 
-  function isAllowed(address addr) public view returns (bool) {
-    uint256 result = feeManager.readAllowList(addr);
-    // if address is ENABLED or ADMIN, it can change the fee
-    return result != STATUS_NONE;
+  function enableCChainFees() public onlyEnabled {
+    feeManager.setFeeConfig(
+      8_000_000, // gasLimit
+      2, // targetBlockRate
+      25_000_000_000, // minBaseFee
+      15_000_000, // targetGas
+      36, // baseFeeChangeDenominator
+      0, // minBlockGasCost
+      1_000_000, // maxBlockGasCost
+      200_000 // blockGasCostStep
+    );
   }
 
-  function addAdmin(address addr) public onlyOwner {
-    feeManager.setAdmin(addr);
+  function enableCustomFees(FeeConfig memory config) public onlyEnabled {
+    feeManager.setFeeConfig(
+      config.gasLimit,
+      config.targetBlockRate,
+      config.minBaseFee,
+      config.targetGas,
+      config.baseFeeChangeDenominator,
+      config.minBlockGasCost,
+      config.maxBlockGasCost,
+      config.blockGasCostStep
+    );
   }
 
-  function addAllowed(address addr) public onlyOwner {
-    feeManager.setEnabled(addr);
+  function resetFeeConfig() public onlyEnabled {
+    feeManager.setFeeConfig(0, 0, 0, 0, 0, 0, 0, 0);
   }
 
-  function revoke(address addr) public onlyOwner {
-    require(_msgSender() != addr, "cannot revoke own role");
-    feeManager.setNone(addr);
+  function getCurrentFeeConfig() public view returns (FeeConfig memory) {
+    FeeConfig memory config;
+    (
+      config.gasLimit,
+      config.targetBlockRate,
+      config.minBaseFee,
+      config.targetGas,
+      config.baseFeeChangeDenominator,
+      config.minBlockGasCost,
+      config.maxBlockGasCost,
+      config.blockGasCostStep
+    ) = feeManager.getFeeConfig();
+    return config;
   }
 }

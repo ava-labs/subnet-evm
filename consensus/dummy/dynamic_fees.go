@@ -103,8 +103,7 @@ func CalcBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, par
 		baseFee.Sub(baseFee, baseFeeDelta)
 	}
 
-	expectedMinBaseFee := feeConfig.MinBaseFee
-	baseFee = utils.SelectBigWithinBounds(expectedMinBaseFee, baseFee, nil)
+	baseFee = utils.SelectBigWithinBounds(feeConfig.MinBaseFee, baseFee, nil)
 
 	return newRollupWindow, baseFee, nil
 }

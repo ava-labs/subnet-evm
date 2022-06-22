@@ -621,7 +621,7 @@ func (s *PublicBlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.
 	if err != nil {
 		return nil, err
 	}
-	feeConfig, err := s.b.GetFeeConfig(header)
+	feeConfig, err := s.b.GetFeeConfigAt(header)
 	return &feeConfig, err
 }
 
