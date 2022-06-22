@@ -102,7 +102,7 @@ describe("ExampleTxAllowList", function () {
     const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, admin)
     let role = await allowList.readAllowList(contract.address)
     expect(role).to.be.equal(ROLES.NONE)
-    const result = await contract.isAllowed(contract.address)
+    const result = await contract.isEnabled(contract.address)
     expect(result).to.be.false
     try {
       await contract.setEnabled(noRole.address)

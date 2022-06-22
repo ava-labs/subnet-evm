@@ -53,4 +53,12 @@ var _ = utils.DescribePrecompile("[TX Allow List]", func() {
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ExampleTxAllowList.ts")
 	})
+
+	ginkgo.It("deployer allow list", func() {
+		err := startSubnet("./tests/e2e/genesis/deployer_allow_list.json")
+		gomega.Expect(err).Should(gomega.BeNil())
+		running := runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeTrue())
+		runHardhatTests("./test/ExampleDeployerList.ts")
+	})
 })
