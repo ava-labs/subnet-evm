@@ -67,10 +67,6 @@ contract ExampleFeeManager is AllowList {
     );
   }
 
-  function resetFeeConfig() public onlyEnabled {
-    feeManager.setFeeConfig(0, 0, 0, 0, 0, 0, 0, 0);
-  }
-
   function getCurrentFeeConfig() public view returns (FeeConfig memory) {
     FeeConfig memory config;
     (

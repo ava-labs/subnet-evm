@@ -4,7 +4,6 @@
 package precompile
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -17,8 +16,6 @@ var (
 	ContractNativeMinterPrecompile StatefulPrecompiledContract = createNativeMinterPrecompile(ContractNativeMinterAddress)
 
 	mintSignature = CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
-
-	ErrCannotMint = errors.New("non-enabled cannot mint")
 
 	mintInputLen = common.HashLength + common.HashLength
 )
@@ -83,19 +80,13 @@ func UnpackMintInput(input []byte) (common.Address, *big.Int, error) {
 func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	stateDB := accessibleState.GetStateDB()
 
-	if remainingGas, err = allowListSetterEnabledCheck(ContractNativeMinterAddress, addr, suppliedGas, MintGasCost, readOnly, stateDB); err != nil {
+	if remainingGas, err = allowListSetterEnabledCheck(ContractNativeMinterAddress, caller, suppliedGas, MintGasCost, readOnly, stateDB); err != nil {
 		return nil, remainingGas, err
 	}
 
 	to, amount, err := UnpackMintInput(input)
 	if err != nil {
 		return nil, remainingGas, err
-	}
-
-	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, ContractNativeMinterAddress, caller)
-	if !callerStatus.IsEnabled() {
-		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
 
 	// if there is no address in the state, create one.

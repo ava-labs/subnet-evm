@@ -147,7 +147,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role AllowListRole
 	return func(evm PrecompileAccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 		stateDB := evm.GetStateDB()
 
-		if remainingGas, err = allowListSetterAdminCheck(precompileAddr, addr, suppliedGas, ModifyAllowListGasCost, readOnly, stateDB); err != nil {
+		if remainingGas, err = allowListSetterAdminCheck(precompileAddr, callerAddr, suppliedGas, ModifyAllowListGasCost, readOnly, stateDB); err != nil {
 			return nil, remainingGas, err
 		}
 
@@ -191,7 +191,7 @@ func allowListSetterAdminCheck(precompileAddr common.Address, callerAddr common.
 	// Verify that the caller is in the allow list and therefore has the right to modify it
 	callerStatus := getAllowListStatus(stateDB, precompileAddr, callerAddr)
 	if !callerStatus.IsAdmin() {
-		return remainingGas, fmt.Errorf("%w: %s", ErrNonAdmin, callerAddr)
+		return remainingGas, fmt.Errorf("%w: caller = %s, precompile = %s", ErrNonAdmin, callerAddr, precompileAddr)
 	}
 
 	return remainingGas, nil
@@ -205,7 +205,7 @@ func allowListSetterEnabledCheck(precompileAddr common.Address, callerAddr commo
 	// Verify that the caller is in the allow list and therefore has the right to modify it
 	callerStatus := getAllowListStatus(stateDB, precompileAddr, callerAddr)
 	if !callerStatus.IsEnabled() {
-		return remainingGas, fmt.Errorf("%w: %s", ErrNonEnabled, callerAddr)
+		return remainingGas, fmt.Errorf("%w: caller = %s, precompile = %s", ErrNonEnabled, callerAddr, precompileAddr)
 	}
 
 	return remainingGas, nil

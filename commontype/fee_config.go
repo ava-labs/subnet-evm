@@ -4,7 +4,10 @@
 package commontype
 
 import (
+	"fmt"
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // FeeConfig specifies the parameters for the dynamic fee algorithm, which determines the gas limit, base fee, and block gas cost of blocks
@@ -67,3 +70,26 @@ var (
 		BlockGasCostStep:         new(big.Int),
 	}
 )
+
+// Verify checks fields of this config to ensure a valid fee configuration is provided.
+func (f *FeeConfig) Verify() error {
+	switch {
+	case f.GasLimit.Cmp(common.Big0) != 1:
+		return fmt.Errorf("gasLimit = %d cannot be less than or equal to 0", f.GasLimit)
+	case f.TargetBlockRate < 1:
+		return fmt.Errorf("targetBlockRate = %d cannot be less than 1", f.TargetBlockRate)
+	case f.MinBaseFee.Cmp(common.Big0) == -1:
+		return fmt.Errorf("minBaseFee = %d cannot be less than 0", f.MinBaseFee)
+	case f.TargetGas.Cmp(common.Big0) != 1:
+		return fmt.Errorf("targetGas = %d cannot be less than or equal to 0", f.TargetGas)
+	case f.BaseFeeChangeDenominator.Cmp(common.Big0) == -1:
+		return fmt.Errorf("baseFeeChangeDenominator = %d cannot be less than 0", f.BaseFeeChangeDenominator)
+	case f.MinBlockGasCost.Cmp(common.Big0) == -1:
+		return fmt.Errorf("minBlockGasCost = %d cannot be less than 0", f.MinBlockGasCost)
+	case f.MinBlockGasCost.Cmp(f.MaxBlockGasCost) == 1:
+		return fmt.Errorf("minBlockGasCost = %d cannot be greater than maxBlockGasCost = %d", f.MinBlockGasCost, f.MaxBlockGasCost)
+	case f.BlockGasCostStep.Cmp(common.Big0) == -1:
+		return fmt.Errorf("blockGasCostStep = %d cannot be less than 0", f.BlockGasCostStep)
+	}
+	return nil
+}

@@ -212,6 +212,41 @@ func (oracle *Oracle) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
 		return nil, err
 	}
 
+	// We calculate the [nextBaseFee] if a block were to be produced immediately.
+	// If [nextBaseFee] is lower than the estimate from sampling, then we return it
+	// to prevent returning an incorrectly high fee when the network is quiescent.
+	nextBaseFee, err := oracle.estimateNextBaseFee(ctx)
+	if err != nil {
+		log.Warn("failed to estimate next base fee", "err", err)
+		return baseFee, nil
+	}
+	// If base fees have not been enabled, return a nil value.
+	if nextBaseFee == nil {
+		return nil, nil
+	}
+
+	baseFee = math.BigMin(baseFee, nextBaseFee)
+	header, err := oracle.backend.HeaderByNumber(ctx, rpc.LatestBlockNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(header.Time)) {
+		feeConfig, err := oracle.backend.GetFeeConfigAt(header)
+		if err != nil {
+			return nil, err
+		}
+		return utils.SelectBigWithinBounds(feeConfig.MinBaseFee, baseFee, nil), nil
+	}
+	return baseFee, nil
+}
+
+// estimateNextBaseFee calculates what the base fee should be on the next block if it
+// were produced immediately. If the current time is less than the timestamp of the latest
+// block, this esimtate uses the timestamp of the latest block instead.
+// If the latest block has a nil base fee, this function will return nil as the base fee
+// of the next block.
+func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error) {
 	// Fetch the most recent block by number
 	block, err := oracle.backend.BlockByNumber(ctx, rpc.LatestBlockNumber)
 	if err != nil {
@@ -225,39 +260,14 @@ func (oracle *Oracle) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// We calculate the [nextBaseFee] if a block were to be produced immediately.
-	// If [nextBaseFee] is lower than the estimate from sampling, then we return it
-	// to prevent returning an incorrectly high fee when the network is quiescent.
-	nextBaseFee, err := oracle.estimateNextBaseFee(block, feeConfig)
-	if err != nil {
-		log.Warn("failed to estimate next base fee", "err", err)
-		return baseFee, nil
-	}
-	// If base fees have not been enabled, return a nil value.
-	if nextBaseFee == nil {
-		return nil, nil
-	}
-
-	baseFee = math.BigMin(baseFee, nextBaseFee)
-
-	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(block.Header().Time)) {
-		return utils.SelectBigWithinBounds(feeConfig.MinBaseFee, baseFee, nil), nil
-	}
-	return baseFee, nil
-}
-
-// estimateNextBaseFee calculates what the base fee should be on the next block if it
-// were produced immediately. If the current time is less than the timestamp of the latest
-// block, this esimtate uses the timestamp of the latest block instead.
-// If the latest block has a nil base fee, this function will return nil as the base fee
-// of the next block.
-func (oracle *Oracle) estimateNextBaseFee(block *types.Block, feeConfig commontype.FeeConfig) (*big.Int, error) {
 	// If the fetched block does not have a base fee, return nil as the base fee
 	if block.BaseFee() == nil {
 		return nil, nil
 	}
 
+	// If the block does have a baseFee, calculate the next base fee
+	// based on the current time and add it to the tip to estimate the
+	// total gas price estimate.
 	_, nextBaseFee, err := dummy.EstimateNextBaseFee(oracle.backend.ChainConfig(), feeConfig, block.Header(), oracle.clock.Unix())
 	return nextBaseFee, err
 }
@@ -270,24 +280,10 @@ func (oracle *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 		return nil, err
 	}
 
-	// Fetch the most recent block by number
-	block, err := oracle.backend.BlockByNumber(ctx, rpc.LatestBlockNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	// If the block does have a baseFee, calculate the next base fee
-	// based on the current time and add it to the tip to estimate the
-	// total gas price estimate.
-	feeConfig, err := oracle.backend.GetFeeConfigAt(block.Header())
-	if err != nil {
-		return nil, err
-	}
-
 	// We calculate the [nextBaseFee] if a block were to be produced immediately.
 	// If [nextBaseFee] is lower than the estimate from sampling, then we return it
 	// to prevent returning an incorrectly high fee when the network is quiescent.
-	nextBaseFee, err := oracle.estimateNextBaseFee(block, feeConfig)
+	nextBaseFee, err := oracle.estimateNextBaseFee(ctx)
 	if err != nil {
 		log.Warn("failed to estimate next base fee", "err", err)
 	}
@@ -297,10 +293,18 @@ func (oracle *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 		baseFee = math.BigMin(baseFee, nextBaseFee)
 	}
 
-	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(block.Header().Time)) {
-		baseFee = utils.SelectBigWithinBounds(feeConfig.MinBaseFee, baseFee, nil)
+	header, err := oracle.backend.HeaderByNumber(ctx, rpc.LatestBlockNumber)
+	if err != nil {
+		return nil, err
 	}
 
+	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(header.Time)) {
+		feeConfig, err := oracle.backend.GetFeeConfigAt(header)
+		if err != nil {
+			return nil, err
+		}
+		return utils.SelectBigWithinBounds(feeConfig.MinBaseFee, baseFee, nil), nil
+	}
 	return new(big.Int).Add(tip, baseFee), nil
 }
 

@@ -189,6 +189,11 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	if gasLimitConfig != genesis.GasLimit {
 		return nil, fmt.Errorf("gas limit in fee config (%d) does not match gas limit in header (%d)", gasLimitConfig, genesis.GasLimit)
 	}
+
+	// Verify config
+	if err := genesis.Config.Verify(); err != nil {
+		return nil, err
+	}
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {

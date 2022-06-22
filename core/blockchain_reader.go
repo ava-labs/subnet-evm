@@ -349,30 +349,31 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 	return bc.scope.Track(bc.txAcceptedFeed.Subscribe(ch))
 }
 
+// GetFeeConfigAt returns the fee configuration at [parent].
+// If FeeConfigManager is activated at [parent], returns the fee config in the precompile contract state.
+// Otherwise returns the fee config in the chain config.
+// Assumes that a valid configuration is stored when the precompile is activated.
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error) {
 	config := bc.Config()
 	bigTime := new(big.Int).SetUint64(parent.Time)
 	if !config.IsFeeConfigManager(bigTime) {
-		log.Debug("feeConfigManager is not activated, returning fees from config")
 		return config.FeeConfig, nil
 	}
 
+	// try to return it from the cache
 	if feeConfig, ok := bc.feeConfigCache.Get(parent.Root); ok {
 		return feeConfig.(commontype.FeeConfig), nil
 	}
 
 	stateDB, err := bc.StateAt(parent.Root)
 	if err != nil {
-		log.Debug("feeConfigManager is activated, but no state found; returning err", "err", err)
+		log.Error("feeConfigManager is activated, but could not retrieve the state", "err", err)
 		return commontype.EmptyFeeConfig, err
 	}
 
-	storedFeeConfig, ok := precompile.GetStoredFeeConfig(stateDB)
-	if !ok {
-		log.Debug("feeConfigManager is activated, but no stored config found; returning fees from config")
-		storedFeeConfig = config.FeeConfig
-	}
+	storedFeeConfig := precompile.GetStoredFeeConfig(stateDB)
 
+	// add it to the cache
 	bc.feeConfigCache.Add(parent.Root, storedFeeConfig)
 	return storedFeeConfig, nil
 }

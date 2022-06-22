@@ -537,7 +537,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 			suppliedGas: precompile.MintGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotMint.Error(),
+			expectedErr: precompile.ErrNonEnabled.Error(),
 		},
 		"mint funds from allow address": {
 			caller:         allowAddr,
@@ -788,7 +788,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotChangeFee.Error(),
+			expectedErr: precompile.ErrNonEnabled.Error(),
 		},
 		"set config from allow address": {
 			caller:         allowAddr,
@@ -807,8 +807,31 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				res := precompile.GetFeeConfigManagerStatus(state, allowAddr)
 				assert.Equal(t, precompile.AllowListEnabled, res)
 
-				feeConfig, ok := precompile.GetStoredFeeConfig(state)
-				assert.True(t, ok)
+				feeConfig := precompile.GetStoredFeeConfig(state)
+				assert.Equal(t, testFeeConfig, feeConfig)
+			},
+		},
+		"set invalid config from allow address": {
+			caller:         allowAddr,
+			precompileAddr: precompile.FeeConfigManagerAddress,
+			input: func() []byte {
+				feeConfig := testFeeConfig
+				feeConfig.MinBlockGasCost = new(big.Int).Mul(feeConfig.MaxBlockGasCost, common.Big2)
+				input, err := precompile.PackSetFeeConfig(feeConfig)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.SetFeeConfigGasCost,
+			readOnly:    false,
+			expectedRes: []byte{},
+			expectedErr: "cannot be greater than maxBlockGasCost",
+			assertState: func(t *testing.T, state *state.StateDB) {
+				res := precompile.GetFeeConfigManagerStatus(state, allowAddr)
+				assert.Equal(t, precompile.AllowListEnabled, res)
+
+				feeConfig := precompile.GetStoredFeeConfig(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
@@ -829,36 +852,18 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				res := precompile.GetFeeConfigManagerStatus(state, adminAddr)
 				assert.Equal(t, precompile.AllowListAdmin, res)
 
-				feeConfig, ok := precompile.GetStoredFeeConfig(state)
-				assert.True(t, ok)
+				feeConfig := precompile.GetStoredFeeConfig(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
-			},
-		},
-		"get empty config from non-enabled address": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
-			input: func() []byte {
-				return precompile.PackGetFeeConfigInput()
-			},
-			suppliedGas: precompile.GetFeeConfigGasCost,
-			readOnly:    true,
-			expectedRes: func() []byte {
-				// it should return all zeroes
-				res, err := precompile.PackFeeConfig(commontype.ZeroFeeConfig)
-				assert.NoError(t, err)
-				return res
-			}(),
-			assertState: func(t *testing.T, state *state.StateDB) {
-				feeConfig, ok := precompile.GetStoredFeeConfig(state)
-				assert.False(t, ok)
-				assert.Equal(t, commontype.EmptyFeeConfig, feeConfig)
 			},
 		},
 		"get fee config from non-enabled address": {
 			caller:         noRoleAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			preCondition: func(t *testing.T, state *state.StateDB) {
-				precompile.StoreFeeConfig(state, testFeeConfig)
+				err := precompile.StoreFeeConfig(state, testFeeConfig)
+				if err != nil {
+					panic(err)
+				}
 			},
 			input: func() []byte {
 				return precompile.PackGetFeeConfigInput()
@@ -871,8 +876,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				return res
 			}(),
 			assertState: func(t *testing.T, state *state.StateDB) {
-				feeConfig, ok := precompile.GetStoredFeeConfig(state)
-				assert.True(t, ok)
+				feeConfig := precompile.GetStoredFeeConfig(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
 			},
 		},

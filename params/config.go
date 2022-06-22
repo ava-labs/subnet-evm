@@ -129,7 +129,7 @@ func (c *ChainConfig) String() string {
 	if err != nil {
 		feeBytes = []byte("cannot unmarshal FeeConfig")
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, ContractDeployerAllowListConfig: %v, ContractNativeMinterConfig: %v, TxAllowListConfig: %v, Engine: Dummy Consensus Engine}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, ContractDeployerAllowListConfig: %v, ContractNativeMinterConfig: %v, TxAllowListConfig: %v, FeeConfigManager: %v, Engine: Dummy Consensus Engine}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.EIP150Block,
@@ -146,6 +146,7 @@ func (c *ChainConfig) String() string {
 		c.ContractDeployerAllowListConfig,
 		c.ContractNativeMinterConfig,
 		c.TxAllowListConfig,
+		c.FeeManagerConfig,
 	)
 }
 
@@ -238,6 +239,20 @@ func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, timest
 		bhead.SetUint64(err.RewindTo)
 	}
 	return lasterr
+}
+
+// Verify verifies chain config and returns error
+func (c *ChainConfig) Verify() error {
+	if err := c.FeeConfig.Verify(); err != nil {
+		return err
+	}
+
+	// this can be empty and empty config is allowed.
+	if c.FeeManagerConfig.FeeConfig != commontype.EmptyFeeConfig {
+		return c.FeeManagerConfig.Verify()
+	}
+
+	return nil
 }
 
 // CheckConfigForkOrder checks that we don't "skip" any forks, geth isn't pluggable enough
@@ -513,7 +528,15 @@ func (c *ChainConfig) enabledStatefulPrecompiles() []precompile.StatefulPrecompi
 	}
 
 	if c.FeeManagerConfig.Timestamp() != nil {
-		statefulPrecompileConfigs = append(statefulPrecompileConfigs, &c.FeeManagerConfig)
+		managerConfig := c.FeeManagerConfig
+		// set the default as Chain config's fee config.
+		if c.FeeManagerConfig.FeeConfig == commontype.EmptyFeeConfig {
+			managerConfig = precompile.FeeConfigManagerConfig{
+				AllowListConfig: c.FeeManagerConfig.AllowListConfig,
+				FeeConfig:       c.FeeConfig,
+			}
+		}
+		statefulPrecompileConfigs = append(statefulPrecompileConfigs, &managerConfig)
 	}
 
 	return statefulPrecompileConfigs

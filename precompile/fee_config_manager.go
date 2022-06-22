@@ -4,7 +4,6 @@
 package precompile
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -37,8 +36,6 @@ var (
 	setFeeConfigSignature = CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
 	getFeeConfigSignature = CalculateFunctionSelector("getFeeConfig()")
 
-	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
-
 	// 8 fields in FeeConfig struct
 	feeConfigInputLen = common.HashLength * numFeeConfigField
 )
@@ -47,6 +44,7 @@ var (
 // interface while adding in the contract deployer specific precompile address.
 type FeeConfigManagerConfig struct {
 	AllowListConfig
+	commontype.FeeConfig
 }
 
 // Address returns the address of the fee config manager contract.
@@ -56,6 +54,9 @@ func (c *FeeConfigManagerConfig) Address() common.Address {
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *FeeConfigManagerConfig) Configure(state StateDB) {
+	if err := StoreFeeConfig(state, c.FeeConfig); err != nil {
+		panic(err) // this should be already verified in genesis
+	}
 	c.AllowListConfig.Configure(state, FeeConfigManagerAddress)
 }
 
@@ -118,31 +119,39 @@ func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 	if len(input) != feeConfigInputLen {
 		return commontype.FeeConfig{}, fmt.Errorf("invalid input length for fee config input: %d", len(input))
 	}
-	return commontype.FeeConfig{
-		GasLimit:                 new(big.Int).SetBytes(returnPackedElement(input, gasLimitKey)),
-		TargetBlockRate:          new(big.Int).SetBytes(returnPackedElement(input, targetBlockRateKey)).Uint64(),
-		MinBaseFee:               new(big.Int).SetBytes(returnPackedElement(input, minBaseFeeKey)),
-		TargetGas:                new(big.Int).SetBytes(returnPackedElement(input, targetGasKey)),
-		BaseFeeChangeDenominator: new(big.Int).SetBytes(returnPackedElement(input, baseFeeChangeDenominatorKey)),
-		MinBlockGasCost:          new(big.Int).SetBytes(returnPackedElement(input, minBlockGasCostKey)),
-		MaxBlockGasCost:          new(big.Int).SetBytes(returnPackedElement(input, maxBlockGasCostKey)),
-		BlockGasCostStep:         new(big.Int).SetBytes(returnPackedElement(input, blockGasCostStepKey)),
-	}, nil
+	feeConfig := commontype.FeeConfig{}
+	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
+		listIndex := i - 1
+		packedElement := returnPackedElement(input, listIndex)
+		switch i {
+		case gasLimitKey:
+			feeConfig.GasLimit = new(big.Int).SetBytes(packedElement)
+		case targetBlockRateKey:
+			feeConfig.TargetBlockRate = new(big.Int).SetBytes(packedElement).Uint64()
+		case minBaseFeeKey:
+			feeConfig.MinBaseFee = new(big.Int).SetBytes(packedElement)
+		case targetGasKey:
+			feeConfig.TargetGas = new(big.Int).SetBytes(packedElement)
+		case baseFeeChangeDenominatorKey:
+			feeConfig.BaseFeeChangeDenominator = new(big.Int).SetBytes(packedElement)
+		case minBlockGasCostKey:
+			feeConfig.MinBlockGasCost = new(big.Int).SetBytes(packedElement)
+		case maxBlockGasCostKey:
+			feeConfig.MaxBlockGasCost = new(big.Int).SetBytes(packedElement)
+		case blockGasCostStepKey:
+			feeConfig.BlockGasCostStep = new(big.Int).SetBytes(packedElement)
+		default:
+			panic("unknown key")
+		}
+	}
+	return feeConfig, nil
 }
 
 // GetStoredFeeConfig returns fee config from contract storage in given state
-func GetStoredFeeConfig(stateDB StateDB) (commontype.FeeConfig, bool) {
-	if !stateDB.Exist(FeeConfigManagerAddress) {
-		return commontype.FeeConfig{}, false
-	}
+func GetStoredFeeConfig(stateDB StateDB) commontype.FeeConfig {
 	feeConfig := commontype.FeeConfig{}
-	isAllZeros := true
-	for i := minFeeConfigFieldKey; i < numFeeConfigField; i++ {
+	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
 		val := stateDB.GetState(FeeConfigManagerAddress, common.Hash{byte(i)})
-		// even if one of these vals are non-zero means that this state exist
-		if isAllZeros && val != (common.Hash{}) {
-			isAllZeros = false
-		}
 		switch i {
 		case gasLimitKey:
 			feeConfig.GasLimit = new(big.Int).Set(val.Big())
@@ -164,26 +173,28 @@ func GetStoredFeeConfig(stateDB StateDB) (commontype.FeeConfig, bool) {
 			panic("unknown key")
 		}
 	}
-	if isAllZeros {
-		return commontype.EmptyFeeConfig, false
-	}
-	return feeConfig, true
+	return feeConfig
 }
 
-// StoreFeeConfig checks given [feeConfig] for lengths and stores it in the [stateDB]
+// StoreFeeConfig checks given [feeConfig] and stores it in the [stateDB]
 func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig) error {
+	if err := feeConfig.Verify(); err != nil {
+		return err
+	}
+
 	hashes, err := getFeeConfigHashes(feeConfig)
 	if err != nil {
 		return err
 	}
-	for index, hashInput := range hashes {
-		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(index)}, hashInput)
+	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
+		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, hashes[i])
 	}
 	return nil
 }
 
+// getFeeConfigHashes takes [feeConfig] and converts them to an array of hashes, with ordered with key indexes.
 func getFeeConfigHashes(feeConfig commontype.FeeConfig) ([]common.Hash, error) {
-	res := make([]common.Hash, 0)
+	res := make([]common.Hash, minFeeConfigFieldKey+numFeeConfigField)
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
 		var hashInput common.Hash
 		var err error
@@ -210,7 +221,8 @@ func getFeeConfigHashes(feeConfig commontype.FeeConfig) ([]common.Hash, error) {
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, hashInput)
+		// omits first slot in order to normalize indexes with keys
+		res[i] = hashInput
 	}
 	return res, nil
 }
@@ -220,7 +232,7 @@ func getFeeConfigHashes(feeConfig commontype.FeeConfig) ([]common.Hash, error) {
 func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	stateDB := accessibleState.GetStateDB()
 
-	if remainingGas, err = allowListSetterEnabledCheck(FeeConfigManagerAddress, addr, suppliedGas, SetFeeConfigGasCost, readOnly, stateDB); err != nil {
+	if remainingGas, err = allowListSetterEnabledCheck(FeeConfigManagerAddress, caller, suppliedGas, SetFeeConfigGasCost, readOnly, stateDB); err != nil {
 		return nil, remainingGas, err
 	}
 
@@ -229,30 +241,27 @@ func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Addre
 		return nil, remainingGas, err
 	}
 
-	StoreFeeConfig(stateDB, feeConfig)
+	if err := StoreFeeConfig(stateDB, feeConfig); err != nil {
+		return nil, remainingGas, err
+	}
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
 }
 
-// getFeeConfig returns the stored fee config as an output
+// getFeeConfig returns the stored fee config as an output.
+// The execution function reads the contract state for the stored fee config and returns the output accordingly.
 func getFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = deductGas(suppliedGas, GetFeeConfigGasCost); err != nil {
 		return nil, 0, err
 	}
 
-	feeConfig, ok := GetStoredFeeConfig(accessibleState.GetStateDB())
-	if !ok {
-		// we cannot pack empty fee config, instead use zero fee config
-		output, err := PackFeeConfig(commontype.ZeroFeeConfig)
-		// should never fail to packing an empty fee config
-		if err != nil {
-			panic(err)
-		}
-		return output, remainingGas, nil
-	}
+	feeConfig := GetStoredFeeConfig(accessibleState.GetStateDB())
 
 	output, err := PackFeeConfig(feeConfig)
+	if err != nil {
+		return nil, remainingGas, err
+	}
 
 	// Return an empty output and the remaining gas
 	return output, remainingGas, err

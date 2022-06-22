@@ -137,23 +137,15 @@ describe("ExampleFeeManager", function () {
     expect.fail("should have errored")
   })
 
-  it("admin should be able to reset fees", async function () {
-    let enableTx = await contract.resetFeeConfig()
-    await enableTx.wait()
-
-    var res = await contract.getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(0)
-  })
-
   it("should be able to get current fee config", async function () {
     var res = await contract.getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(0)
+    expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
 
     var res = await contract.connect(manager).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(0)
+    expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
 
     var res = await contract.connect(nonEnabled).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(0)
+    expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
   });
 
   it("manager should not be able to set fee config before enabled", async function () {
@@ -178,7 +170,7 @@ describe("ExampleFeeManager", function () {
 
   it("manager should be able to change fees through contract", async function () {
     var res = await contract.connect(manager).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(0)
+    expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
 
     let enableTx = await contract.connect(manager).enableWAGMIFees()
     await enableTx.wait()
@@ -187,20 +179,10 @@ describe("ExampleFeeManager", function () {
     expect(res.gasLimit).to.equal(2_000_0000)
   })
 
-  it("manager should be able to reset fees", async function () {
-    let enableTx = await contract.connect(manager).resetFeeConfig()
-    await enableTx.wait()
-
-    var res = await contract.connect(manager).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(0)
-  })
 
   it("non-enabled should not be able to change fees through contract", async function () {
-    var res = await contract.connect(nonEnabled).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(0)
-
     try {
-      let enableTx = await contract.connect(nonEnabled).enableWAGMIFees()
+      let enableTx = await contract.connect(nonEnabled).enableCustomFees(LOW_FEES)
       await enableTx.wait()
     }
     catch (err) {
