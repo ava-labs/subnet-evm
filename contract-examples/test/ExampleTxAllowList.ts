@@ -105,7 +105,7 @@ describe("ExampleTxAllowList", function () {
     const result = await contract.isAllowed(contract.address)
     expect(result).to.be.false
     try {
-      await contract.addAllowed(noRole.address)
+      await contract.setEnabled(noRole.address)
     }
     catch (err) {
       return
@@ -126,11 +126,11 @@ describe("ExampleTxAllowList", function () {
   })
 
   it("should allow admin to add allowed address as allowed through contract", async function () {
-    let result = await contract.isAllowed(allowed.address)
+    let result = await contract.isEnabled(allowed.address)
     expect(result).to.be.false
-    let tx = await contract.addAllowed(allowed.address)
+    let tx = await contract.setEnabled(allowed.address)
     await tx.wait()
-    result = await contract.isAllowed(allowed.address)
+    result = await contract.isEnabled(allowed.address)
     expect(result).to.be.true
   })
 
@@ -146,7 +146,7 @@ describe("ExampleTxAllowList", function () {
     try {
       const signers: SignerWithAddress[] = await ethers.getSigners()
       const testAddress = signers.slice(-2)[0]
-      await contract.connect(allowed).addDeployer(noRole)
+      await contract.connect(allowed).setEnabled(noRole)
     }
     catch (err) {
       return

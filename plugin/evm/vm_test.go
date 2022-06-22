@@ -2499,7 +2499,6 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 
 	// Contract is initialized but no state is given, reader should return genesis fee config
