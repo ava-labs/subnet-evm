@@ -39,7 +39,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/event"
@@ -281,18 +280,6 @@ func (oracle *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 		baseFee = math.BigMin(baseFee, nextBaseFee)
 	}
 
-	header, err := oracle.backend.HeaderByNumber(ctx, rpc.LatestBlockNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(header.Time)) {
-		feeConfig, _, err := oracle.backend.GetFeeConfigAt(header)
-		if err != nil {
-			return nil, err
-		}
-		return utils.SelectBigWithinBounds(feeConfig.MinBaseFee, baseFee, nil), nil
-	}
 	return new(big.Int).Add(tip, baseFee), nil
 }
 
