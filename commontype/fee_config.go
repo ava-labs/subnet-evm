@@ -55,21 +55,8 @@ type FeeConfig struct {
 	BlockGasCostStep *big.Int `json:"blockGasCostStep,omitempty"`
 }
 
-var (
-	// represents an empty fee config without any field
-	EmptyFeeConfig = FeeConfig{}
-	// represents a zero fee config which contains zeros for Number types
-	ZeroFeeConfig = FeeConfig{
-		GasLimit:                 new(big.Int),
-		TargetBlockRate:          0,
-		MinBaseFee:               new(big.Int),
-		TargetGas:                new(big.Int),
-		BaseFeeChangeDenominator: new(big.Int),
-		MinBlockGasCost:          new(big.Int),
-		MaxBlockGasCost:          new(big.Int),
-		BlockGasCostStep:         new(big.Int),
-	}
-)
+// represents an empty fee config without any field
+var EmptyFeeConfig = FeeConfig{}
 
 // Verify checks fields of this config to ensure a valid fee configuration is provided.
 func (f *FeeConfig) Verify() error {

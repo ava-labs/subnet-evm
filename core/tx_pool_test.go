@@ -119,8 +119,8 @@ func (bc *testBlockChain) SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) even
 	return bc.chainHeadFeed.Subscribe(ch)
 }
 
-func (bc *testBlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error) {
-	return testFeeConfig, nil
+func (bc *testBlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
+	return testFeeConfig, common.Big0, nil
 }
 
 func (bc *testBlockChain) SenderCacher() *TxSenderCacher {

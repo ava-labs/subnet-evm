@@ -81,4 +81,8 @@ contract ExampleFeeManager is AllowList {
     ) = feeManager.getFeeConfig();
     return config;
   }
+
+  function getLastChangedAt() public view returns (uint256) {
+    return feeManager.getLastChangedAt();
+  }
 }

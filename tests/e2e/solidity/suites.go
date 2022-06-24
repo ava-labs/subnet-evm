@@ -35,7 +35,7 @@ func startSubnet(genesisPath string) error {
 	return utils.UpdateHardhatConfig()
 }
 
-var _ = utils.DescribePrecompile("[TX Allow List]", func() {
+var _ = utils.DescribePrecompile(func() {
 	ginkgo.BeforeAll(func() {
 		b := make([]byte, 32)
 		copy(b, []byte(vmName))
@@ -46,19 +46,35 @@ var _ = utils.DescribePrecompile("[TX Allow List]", func() {
 		}
 	})
 
-	ginkgo.It("tx allow list", func() {
-		err := startSubnet("./tests/e2e/genesis/tx_allow_list_genesis.json")
-		gomega.Expect(err).Should(gomega.BeNil())
-		running := runner.IsRunnerUp()
-		gomega.Expect(running).Should(gomega.BeTrue())
-		runHardhatTests("./test/ExampleTxAllowList.ts")
-	})
+	// ginkgo.It("tx allow list", func() {
+	// 	err := startSubnet("./tests/e2e/genesis/tx_allow_list.json")
+	// 	gomega.Expect(err).Should(gomega.BeNil())
+	// 	running := runner.IsRunnerUp()
+	// 	gomega.Expect(running).Should(gomega.BeTrue())
+	// 	runHardhatTests("./test/ExampleTxAllowList.ts")
+	// })
 
-	ginkgo.It("deployer allow list", func() {
-		err := startSubnet("./tests/e2e/genesis/deployer_allow_list.json")
+	// ginkgo.It("deployer allow list", func() {
+	// 	err := startSubnet("./tests/e2e/genesis/deployer_allow_list.json")
+	// 	gomega.Expect(err).Should(gomega.BeNil())
+	// 	running := runner.IsRunnerUp()
+	// 	gomega.Expect(running).Should(gomega.BeTrue())
+	// 	runHardhatTests("./test/ExampleDeployerList.ts")
+	// })
+
+	// ginkgo.It("contract native minter", func() {
+	// 	err := startSubnet("./tests/e2e/genesis/contract_native_minter.json")
+	// 	gomega.Expect(err).Should(gomega.BeNil())
+	// 	running := runner.IsRunnerUp()
+	// 	gomega.Expect(running).Should(gomega.BeTrue())
+	// 	runHardhatTests("./test/ERC20NativeMinter.ts")
+	// })
+
+	ginkgo.It("fee manager", func() {
+		err := startSubnet("./tests/e2e/genesis/fee_manager.json")
 		gomega.Expect(err).Should(gomega.BeNil())
 		running := runner.IsRunnerUp()
 		gomega.Expect(running).Should(gomega.BeTrue())
-		runHardhatTests("./test/ExampleDeployerList.ts")
+		runHardhatTests("./test/ExampleFeeManager.ts")
 	})
 })

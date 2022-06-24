@@ -38,6 +38,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -101,6 +102,11 @@ const (
 	// always print out progress. This avoids the user wondering what's going on.
 	statsReportLimit = 8 * time.Second
 )
+
+type cachableFeeConfig struct {
+	feeConfig     commontype.FeeConfig
+	lastChangedAt *big.Int
+}
 
 // CacheConfig contains the configuration values for the trie caching/pruning
 // that's resident in a blockchain.

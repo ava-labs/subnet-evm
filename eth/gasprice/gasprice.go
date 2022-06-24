@@ -94,7 +94,7 @@ type OracleBackend interface {
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 	MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error)
 	LastAcceptedBlock() *types.Block
-	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error)
+	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
 }
 
 // Oracle recommends gas prices based on the content of recent
@@ -179,7 +179,7 @@ func NewOracle(backend OracleBackend, config Config) *Oracle {
 			lastHead = ev.Block.Hash()
 		}
 	}()
-	feeConfig, err := backend.GetFeeConfigAt(backend.LastAcceptedBlock().Header())
+	feeConfig, _, err := backend.GetFeeConfigAt(backend.LastAcceptedBlock().Header())
 	var minBaseFee *big.Int
 	if err != nil {
 		// resort back to chain config
@@ -226,18 +226,6 @@ func (oracle *Oracle) EstimateBaseFee(ctx context.Context) (*big.Int, error) {
 	}
 
 	baseFee = math.BigMin(baseFee, nextBaseFee)
-	header, err := oracle.backend.HeaderByNumber(ctx, rpc.LatestBlockNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(header.Time)) {
-		feeConfig, err := oracle.backend.GetFeeConfigAt(header)
-		if err != nil {
-			return nil, err
-		}
-		return utils.SelectBigWithinBounds(feeConfig.MinBaseFee, baseFee, nil), nil
-	}
 	return baseFee, nil
 }
 
@@ -256,7 +244,7 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 	// If the block does have a baseFee, calculate the next base fee
 	// based on the current time and add it to the tip to estimate the
 	// total gas price estimate.
-	feeConfig, err := oracle.backend.GetFeeConfigAt(block.Header())
+	feeConfig, _, err := oracle.backend.GetFeeConfigAt(block.Header())
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +287,7 @@ func (oracle *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 	}
 
 	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(header.Time)) {
-		feeConfig, err := oracle.backend.GetFeeConfigAt(header)
+		feeConfig, _, err := oracle.backend.GetFeeConfigAt(header)
 		if err != nil {
 			return nil, err
 		}
@@ -324,6 +312,14 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 	head, err := oracle.backend.HeaderByNumber(ctx, rpc.LatestBlockNumber)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	var feeLastChangedAt *big.Int
+	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(head.Time)) {
+		_, feeLastChangedAt, err = oracle.backend.GetFeeConfigAt(head)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	headHash := head.Hash()
@@ -353,7 +349,9 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 		tipResults     []*big.Int
 		baseFeeResults []*big.Int
 	)
-	for sent < oracle.checkBlocks && number > 0 {
+
+	// iterates backwards until enough blocks are sent or until the block number that fee last changed at
+	for sent < oracle.checkBlocks && number > 0 && (feeLastChangedAt == nil || feeLastChangedAt.Uint64() < number) {
 		go oracle.getBlockTips(ctx, number, result, quit)
 		sent++
 		exp++

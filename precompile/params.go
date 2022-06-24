@@ -15,8 +15,9 @@ const (
 
 	MintGasCost = 30_000
 
-	SetFeeConfigGasCost = writeGasCostPerSlot * numFeeConfigField
-	GetFeeConfigGasCost = readGasCostPerSlot * numFeeConfigField
+	SetFeeConfigGasCost     = writeGasCostPerSlot * numFeeConfigField
+	GetFeeConfigGasCost     = readGasCostPerSlot * numFeeConfigField
+	GetLastChangedAtGasCost = readGasCostPerSlot
 )
 
 // Designated addresses of stateful precompiles

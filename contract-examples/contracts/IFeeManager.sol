@@ -29,4 +29,7 @@ interface IFeeManager is IAllowList {
       uint256 maxBlockGasCost,
       uint256 blockGasCostStep
     );
+
+  // Get the last block number changed the fee config from the contract storage
+  function getLastChangedAt() external view returns (uint256 blockNumber);
 }

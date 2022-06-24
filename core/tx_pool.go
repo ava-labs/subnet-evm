@@ -162,7 +162,7 @@ type blockChain interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	SenderCacher() *TxSenderCacher
-	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error)
+	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
 
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 }
@@ -1424,7 +1424,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
 	// so that we can correctly drop txs with < minBaseFee from tx pool.
 	if pool.chainconfig.IsFeeConfigManager(new(big.Int).SetUint64(newHead.Time)) {
-		feeConfig, err := pool.chain.GetFeeConfigAt(newHead)
+		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
 			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)
 			return
@@ -1758,7 +1758,7 @@ func (pool *TxPool) updateBaseFee() {
 
 // assumes lock is already held
 func (pool *TxPool) updateBaseFeeAt(head *types.Header) error {
-	feeConfig, err := pool.chain.GetFeeConfigAt(head)
+	feeConfig, _, err := pool.chain.GetFeeConfigAt(head)
 	if err != nil {
 		return err
 	}

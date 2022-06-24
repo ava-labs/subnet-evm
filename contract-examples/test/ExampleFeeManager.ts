@@ -10,11 +10,10 @@ import { ethers } from "hardhat"
 // make sure this is always an admin for minter precompile
 const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const FEE_MANAGER = "0x0200000000000000000000000000000000000003";
-const initialValue = ethers.utils.parseEther("10")
 
 const ROLES = {
   NONE: 0,
-  MANAGER: 1,
+  ENABLED: 1,
   ADMIN: 2
 };
 
@@ -26,7 +25,7 @@ const HIGH_FEES = {
   baseFeeChangeDenominator: 36, // baseFeeChangeDenominator
   minBlockGasCost: 0, // minBlockGasCost
   maxBlockGasCost: 1_000_000, // maxBlockGasCost
-  blockGasCostStep: 0 // blockGasCostStep
+  blockGasCostStep: 100_000 // blockGasCostStep
 }
 
 const LOW_FEES = {
@@ -37,11 +36,13 @@ const LOW_FEES = {
   baseFeeChangeDenominator: 48, // baseFeeChangeDenominator
   minBlockGasCost: 0, // minBlockGasCost
   maxBlockGasCost: 10_000_000, // maxBlockGasCost
-  blockGasCostStep: 0 // blockGasCostStep
+  blockGasCostStep: 100_000 // blockGasCostStep
 }
 
 
 describe("ExampleFeeManager", function () {
+  this.timeout("30s")
+
   let owner: SignerWithAddress
   let contract: Contract
   let manager: SignerWithAddress
@@ -57,7 +58,44 @@ describe("ExampleFeeManager", function () {
     const signers: SignerWithAddress[] = await ethers.getSigners()
     manager = signers.slice(-1)[0]
     nonEnabled = signers.slice(-2)[0]
+
+    const feeManager = await ethers.getContractAt("IFeeManager", FEE_MANAGER, owner);
+    let tx = await feeManager.setEnabled(manager.address);
+    await tx.wait()
+
+    tx = await owner.sendTransaction({
+      to: manager.address,
+      value: ethers.utils.parseEther("1")
+    })
+    await tx.wait()
+
+    tx = await owner.sendTransaction({
+      to: nonEnabled.address,
+      value: ethers.utils.parseEther("1")
+    })
+    await tx.wait()
   });
+
+
+  it("manager should be able to change fees from precompile", async function () {
+    const feeManager = await ethers.getContractAt("IFeeManager", FEE_MANAGER, owner);
+    let testMinBaseFee = LOW_FEES.minBaseFee + 123
+
+    let enableTx = await feeManager.setFeeConfig(
+      LOW_FEES.gasLimit,
+      LOW_FEES.targetBlockRate,
+      testMinBaseFee,
+      LOW_FEES.targetGas,
+      LOW_FEES.baseFeeChangeDenominator,
+      LOW_FEES.minBlockGasCost,
+      LOW_FEES.maxBlockGasCost,
+      LOW_FEES.blockGasCostStep
+    )
+    await enableTx.wait();
+
+    var res = await contract.connect(manager).getCurrentFeeConfig()
+    expect(res.minBaseFee).to.equal(testMinBaseFee)
+  })
 
   it("should add contract deployer as owner", async function () {
     const contractOwnerAddr: string = await contract.owner()
@@ -88,56 +126,67 @@ describe("ExampleFeeManager", function () {
     let enableTx = await managerList.setEnabled(contract.address);
     await enableTx.wait()
     contractRole = await managerList.readAllowList(contract.address);
-    expect(contractRole).to.be.equal(ROLES.MANAGER)
+    expect(contractRole).to.be.equal(ROLES.ENABLED)
   });
 
   it("admin should be able to change fees through contract", async function () {
-    var res = await contract.getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(0)
-
     let enableTx = await contract.enableCustomFees(LOW_FEES)
-    await enableTx.wait()
+    let txRes = await enableTx.wait()
 
     var res = await contract.getCurrentFeeConfig()
     expect(res.gasLimit).to.equal(LOW_FEES.gasLimit)
     expect(res.minBaseFee).to.be.equal(LOW_FEES.minBaseFee)
+
+    var res = await contract.getLastChangedAt()
+
+    expect(res).to.equal(txRes.blockNumber)
   })
 
-  it("should not let low fee tx to be in mempool", async function () {
+  it("should let low fee tx to be in mempool", async function () {
     var res = await contract.getCurrentFeeConfig()
     expect(res.minBaseFee).to.be.equal(LOW_FEES.minBaseFee)
-    // Send 1 ether to an ens name.
+
+    var testMaxFeePerGas = HIGH_FEES.minBaseFee - 10000
+
     let tx = await owner.sendTransaction({
       to: manager.address,
       value: ethers.utils.parseEther("0.1"),
-      maxFeePerGas: LOW_FEES.minBaseFee * 2 // safe value
+      maxFeePerGas: testMaxFeePerGas,
+      maxPriorityFeePerGas: 0
     });
     let confirmedTx = await tx.wait()
     expect(confirmedTx.confirmations).to.be.greaterThanOrEqual(1)
+  })
+
+  it("should not let low fee tx to be in mempool", async function () {
+    var testMaxFeePerGas = HIGH_FEES.minBaseFee - 10000
 
     let enableTx = await contract.enableCustomFees(HIGH_FEES)
     await enableTx.wait()
     let getRes = await contract.getCurrentFeeConfig()
     expect(getRes.minBaseFee).to.equal(HIGH_FEES.minBaseFee)
 
-    // send tx with WAGMI_FEES minBaseFee
+    // send tx with lower han HIGH_FEES minBaseFee
     try {
       let tx = await owner.sendTransaction({
         to: manager.address,
         value: ethers.utils.parseEther("0.1"),
-        maxFeePerGas: LOW_FEES.minBaseFee * 2, // safe value
+        maxFeePerGas: testMaxFeePerGas,
+        maxPriorityFeePerGas: 0
       });
-
-      await tx.wait()
+      let res = await tx.wait()
     }
     catch (err) {
-      expect(err).to.include("max fee per gas less than block base fee")
+      expect(err.toString()).to.include("transaction underpriced")
       return
     }
     expect.fail("should have errored")
   })
 
   it("should be able to get current fee config", async function () {
+    let enableTx = await contract.enableCustomFees(HIGH_FEES)
+    await enableTx.wait()
+
     var res = await contract.getCurrentFeeConfig()
     expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
 
@@ -148,12 +197,14 @@ describe("ExampleFeeManager", function () {
     expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
   });
 
-  it("manager should not be able to set fee config before enabled", async function () {
-    const managerPrecompile = await ethers.getContractAt("IFeeManager", FEE_MANAGER, owner);
-    let contractRole = await managerPrecompile.readAllowList(manager.address);
-    expect(contractRole).to.be.equal(ROLES.NONE)
+  it("nonEnabled should not be able to set fee config", async function () {
+    const feeManager = await ethers.getContractAt("IFeeManager", FEE_MANAGER, owner);
+
+    let nonEnabledRole = await feeManager.readAllowList(nonEnabled.address);
+
+    expect(nonEnabledRole).to.be.equal(ROLES.NONE)
     try {
-      await contract.connect(manager).enableWAGMIFees()
+      await contract.connect(nonEnabled).enableWAGMIFees()
     }
     catch (err) {
       return
@@ -161,22 +212,12 @@ describe("ExampleFeeManager", function () {
     expect.fail("should have errored")
   })
 
-  it("manager should be enabled", async function () {
-    let enableTx = await contract.setEnabled(manager.address);
-    await enableTx.wait()
-    let contractRole = await contract.isEnabled(manager.address);
-    expect(contractRole).to.be.true
-  });
-
   it("manager should be able to change fees through contract", async function () {
-    var res = await contract.connect(manager).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
-
-    let enableTx = await contract.connect(manager).enableWAGMIFees()
+    let enableTx = await contract.connect(manager).enableCustomFees(LOW_FEES)
     await enableTx.wait()
 
     var res = await contract.connect(manager).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(2_000_0000)
+    expect(res.minBaseFee).to.equal(LOW_FEES.minBaseFee)
   })
 
 

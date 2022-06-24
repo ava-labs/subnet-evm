@@ -42,6 +42,12 @@ describe("ERC20NativeMinter", function () {
 
     const signers: SignerWithAddress[] = await ethers.getSigners()
     minter = signers.slice(-1)[0]
+
+    // Fund minter address
+    await owner.sendTransaction({
+      to: minter.address,
+      value: ethers.utils.parseEther("1")
+    })
   });
 
   it("should add contract deployer as owner", async function () {

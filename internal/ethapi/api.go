@@ -609,7 +609,12 @@ func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
 	return nil, fmt.Errorf("chain not synced beyond EIP-155 replay-protection fork block")
 }
 
-func (s *PublicBlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockNumberOrHash) (*commontype.FeeConfig, error) {
+type FeeConfigResult struct {
+	FeeConfig     commontype.FeeConfig `json:"feeConfig"`
+	LastChangedAt *big.Int             `json:"lastChangedAt,omitempty"`
+}
+
+func (s *PublicBlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockNumberOrHash) (*FeeConfigResult, error) {
 	var header *types.Header
 	var err error
 	if blockNrOrHash == nil {
@@ -621,8 +626,8 @@ func (s *PublicBlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.
 	if err != nil {
 		return nil, err
 	}
-	feeConfig, err := s.b.GetFeeConfigAt(header)
-	return &feeConfig, err
+	feeConfig, lastChangedAt, err := s.b.GetFeeConfigAt(header)
+	return &FeeConfigResult{FeeConfig: feeConfig, LastChangedAt: lastChangedAt}, err
 }
 
 // BlockNumber returns the block number of the chain head.

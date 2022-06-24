@@ -29,7 +29,7 @@ func (c *TxAllowListConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *TxAllowListConfig) Configure(state StateDB) {
+func (c *TxAllowListConfig) Configure(state StateDB, _ BlockContext) {
 	c.AllowListConfig.Configure(state, TxAllowListAddress)
 }
 

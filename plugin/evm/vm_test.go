@@ -2382,9 +2382,10 @@ func TestFeeManagerGetsInitialFeeConfig(t *testing.T) {
 	vm.chain.GetTxPool().SubscribeNewReorgEvent(newTxPoolHeadChan)
 
 	// Contract is initialized and preconfig is given, reader should return given fee config
-	feeConfig, err := vm.chain.BlockChain().GetFeeConfigAt(vm.chain.LastAcceptedBlock().Header())
+	feeConfig, lastChangedAt, err := vm.chain.BlockChain().GetFeeConfigAt(vm.chain.LastAcceptedBlock().Header())
 	assert.NoError(t, err)
-	assert.EqualValues(t, feeConfig, testFeeConfig)
+	assert.EqualValues(t, testFeeConfig, feeConfig)
+	assert.EqualValues(t, vm.chain.CurrentBlock().Number(), lastChangedAt)
 }
 
 // Test that the fee manager changes fee configuration
@@ -2433,9 +2434,10 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
 	}
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
-	feeConfig, err := vm.chain.BlockChain().GetFeeConfigAt(vm.chain.GetGenesisBlock().Header())
+	feeConfig, lastChangedAt, err := vm.chain.BlockChain().GetFeeConfigAt(vm.chain.GetGenesisBlock().Header())
 	assert.NoError(t, err)
 	assert.EqualValues(t, feeConfig, params.DefaultFeeConfig)
+	assert.EqualValues(t, vm.chain.CurrentBlock().Number(), lastChangedAt)
 
 	// set a different fee config now
 	testFeeConfig := commontype.FeeConfig{
@@ -2502,9 +2504,10 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 
 	// Contract is initialized but no state is given, reader should return genesis fee config
-	feeConfig, err = vm.chain.BlockChain().GetFeeConfigAt(block.Header())
+	feeConfig, lastChangedAt, err = vm.chain.BlockChain().GetFeeConfigAt(block.Header())
 	assert.NoError(t, err)
 	assert.EqualValues(t, testFeeConfig, feeConfig)
+	assert.EqualValues(t, vm.chain.CurrentBlock().Number(), lastChangedAt)
 
 	// should fail, with same params since fee is higher now
 	tx2 := types.NewTx(&types.DynamicFeeTx{

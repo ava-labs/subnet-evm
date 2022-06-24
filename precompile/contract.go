@@ -19,6 +19,11 @@ type RunStatefulPrecompileFunc func(accessibleState PrecompileAccessibleState, c
 // PrecompileAccessibleState defines the interface exposed to stateful precompile contracts
 type PrecompileAccessibleState interface {
 	GetStateDB() StateDB
+	GetBlockContext() BlockContext
+}
+
+type BlockContext interface {
+	Number() *big.Int
 }
 
 // StateDB is the interface for accessing EVM state

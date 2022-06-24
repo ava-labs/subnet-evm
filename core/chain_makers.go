@@ -279,7 +279,7 @@ func makeHeader(chain consensus.ChainReader, config *params.ChainConfig, parent 
 
 	timestamp := new(big.Int).SetUint64(time)
 	if chain.Config().IsSubnetEVM(timestamp) {
-		feeConfig, err := chain.GetFeeConfigAt(parent.Header())
+		feeConfig, _, err := chain.GetFeeConfigAt(parent.Header())
 		if err != nil {
 			panic(err)
 		}
@@ -309,6 +309,6 @@ func (cr *fakeChainReader) GetHeaderByNumber(number uint64) *types.Header       
 func (cr *fakeChainReader) GetHeaderByHash(hash common.Hash) *types.Header          { return nil }
 func (cr *fakeChainReader) GetHeader(hash common.Hash, number uint64) *types.Header { return nil }
 func (cr *fakeChainReader) GetBlock(hash common.Hash, number uint64) *types.Block   { return nil }
-func (cr *fakeChainReader) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error) {
-	return cr.config.FeeConfig, nil
+func (cr *fakeChainReader) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
+	return cr.config.FeeConfig, nil, nil
 }

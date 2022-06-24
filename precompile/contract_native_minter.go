@@ -32,7 +32,7 @@ func (c *ContractNativeMinterConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *ContractNativeMinterConfig) Configure(state StateDB) {
+func (c *ContractNativeMinterConfig) Configure(state StateDB, _ BlockContext) {
 	c.AllowListConfig.Configure(state, ContractNativeMinterAddress)
 }
 

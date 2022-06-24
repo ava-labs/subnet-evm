@@ -91,7 +91,7 @@ func (b *testBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) eve
 	return nil
 }
 
-func (b *testBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error) {
+func (b *testBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return b.chain.GetFeeConfigAt(parent)
 }
 

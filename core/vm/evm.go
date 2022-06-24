@@ -118,6 +118,10 @@ type BlockContext struct {
 	BaseFee     *big.Int       // Provides information for BASEFEE
 }
 
+func (b *BlockContext) Number() *big.Int {
+	return b.BlockNumber
+}
+
 // TxContext provides the EVM with information about a transaction.
 // All fields can change between transactions.
 type TxContext struct {
@@ -199,6 +203,11 @@ func (evm *EVM) Cancelled() bool {
 // GetStateDB returns the evm's StateDB
 func (evm *EVM) GetStateDB() precompile.StateDB {
 	return evm.StateDB
+}
+
+// GetBlockContext returns the evm's BlockContext
+func (evm *EVM) GetBlockContext() precompile.BlockContext {
+	return &evm.Context
 }
 
 // Interpreter returns the current interpreter

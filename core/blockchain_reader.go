@@ -27,6 +27,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -349,31 +350,36 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 	return bc.scope.Track(bc.txAcceptedFeed.Subscribe(ch))
 }
 
-// GetFeeConfigAt returns the fee configuration at [parent].
+// GetFeeConfigAt returns the fee configuration and the last changed block number at [parent].
 // If FeeConfigManager is activated at [parent], returns the fee config in the precompile contract state.
 // Otherwise returns the fee config in the chain config.
 // Assumes that a valid configuration is stored when the precompile is activated.
-func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error) {
+func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	config := bc.Config()
 	bigTime := new(big.Int).SetUint64(parent.Time)
 	if !config.IsFeeConfigManager(bigTime) {
-		return config.FeeConfig, nil
+		return config.FeeConfig, common.Big0, nil
 	}
 
 	// try to return it from the cache
-	if feeConfig, ok := bc.feeConfigCache.Get(parent.Root); ok {
-		return feeConfig.(commontype.FeeConfig), nil
+	if cached, hit := bc.feeConfigCache.Get(parent.Root); hit {
+		cachedFeeConfig, ok := cached.(*cachableFeeConfig)
+		if !ok {
+			return commontype.EmptyFeeConfig, nil, fmt.Errorf("expected type cachableFeeConfig, got %T", cached)
+		}
+		return cachedFeeConfig.feeConfig, cachedFeeConfig.lastChangedAt, nil
 	}
 
 	stateDB, err := bc.StateAt(parent.Root)
 	if err != nil {
 		log.Error("feeConfigManager is activated, but could not retrieve the state", "err", err)
-		return commontype.EmptyFeeConfig, err
+		return commontype.EmptyFeeConfig, nil, err
 	}
 
 	storedFeeConfig := precompile.GetStoredFeeConfig(stateDB)
-
+	lastChangedAt := precompile.GetStoredLastChangedAt(stateDB)
+	cachable := &cachableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache
-	bc.feeConfigCache.Add(parent.Root, storedFeeConfig)
-	return storedFeeConfig, nil
+	bc.feeConfigCache.Add(parent.Root, cachable)
+	return storedFeeConfig, lastChangedAt, nil
 }

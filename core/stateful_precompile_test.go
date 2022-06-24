@@ -18,24 +18,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testFeeConfig = commontype.FeeConfig{
-	GasLimit:        big.NewInt(8_000_000),
-	TargetBlockRate: 2, // in seconds
+var (
+	testFeeConfig = commontype.FeeConfig{
+		GasLimit:        big.NewInt(8_000_000),
+		TargetBlockRate: 2, // in seconds
 
-	MinBaseFee:               big.NewInt(25_000_000_000),
-	TargetGas:                big.NewInt(15_000_000),
-	BaseFeeChangeDenominator: big.NewInt(36),
+		MinBaseFee:               big.NewInt(25_000_000_000),
+		TargetGas:                big.NewInt(15_000_000),
+		BaseFeeChangeDenominator: big.NewInt(36),
 
-	MinBlockGasCost:  big.NewInt(0),
-	MaxBlockGasCost:  big.NewInt(1_000_000),
-	BlockGasCostStep: big.NewInt(200_000),
+		MinBlockGasCost:  big.NewInt(0),
+		MaxBlockGasCost:  big.NewInt(1_000_000),
+		BlockGasCostStep: big.NewInt(200_000),
+	}
+
+	testBlockNumber = big.NewInt(7)
+)
+
+type mockBlockContext struct {
+	blockNumber *big.Int
 }
 
+func (mb *mockBlockContext) Number() *big.Int { return mb.blockNumber }
+
 type mockAccessibleState struct {
-	state *state.StateDB
+	state        *state.StateDB
+	blockContext *mockBlockContext
 }
 
 func (m *mockAccessibleState) GetStateDB() precompile.StateDB { return m.state }
+
+func (m *mockAccessibleState) GetBlockContext() precompile.BlockContext { return m.blockContext }
 
 // This test is added within the core package so that it can import all of the required code
 // without creating any import cycles
@@ -250,8 +263,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetContractDeployerAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
 			precompile.SetContractDeployerAllowListStatus(state, noRoleAddr, precompile.AllowListNoRole)
-
-			ret, remainingGas, err := precompile.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			blockContext := &mockBlockContext{blockNumber: common.Big0}
+			ret, remainingGas, err := precompile.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
 					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
@@ -483,8 +496,8 @@ func TestTxAllowListRun(t *testing.T) {
 
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetTxAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
-
-			ret, remainingGas, err := precompile.TxAllowListPrecompile.Run(&mockAccessibleState{state: state}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			blockContext := &mockBlockContext{blockNumber: common.Big0}
+			ret, remainingGas, err := precompile.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
 					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
@@ -733,8 +746,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			precompile.SetContractNativeMinterStatus(state, adminAddr, precompile.AllowListAdmin)
 			precompile.SetContractNativeMinterStatus(state, allowAddr, precompile.AllowListEnabled)
 			precompile.SetContractNativeMinterStatus(state, noRoleAddr, precompile.AllowListNoRole)
-
-			ret, remainingGas, err := precompile.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			blockContext := &mockBlockContext{blockNumber: common.Big0}
+			ret, remainingGas, err := precompile.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
 					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
@@ -854,13 +867,15 @@ func TestFeeConfigManagerRun(t *testing.T) {
 
 				feeConfig := precompile.GetStoredFeeConfig(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
+				lastChangedAt := precompile.GetStoredLastChangedAt(state)
+				assert.EqualValues(t, testBlockNumber, lastChangedAt)
 			},
 		},
 		"get fee config from non-enabled address": {
 			caller:         noRoleAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			preCondition: func(t *testing.T, state *state.StateDB) {
-				err := precompile.StoreFeeConfig(state, testFeeConfig)
+				err := precompile.StoreFeeConfig(state, testFeeConfig, &mockBlockContext{blockNumber: big.NewInt(6)})
 				if err != nil {
 					panic(err)
 				}
@@ -877,7 +892,31 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			}(),
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
+				lastChangedAt := precompile.GetStoredLastChangedAt(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
+				assert.EqualValues(t, big.NewInt(6), lastChangedAt)
+			},
+		},
+		"get last changed at from non-enabled address": {
+			caller:         noRoleAddr,
+			precompileAddr: precompile.FeeConfigManagerAddress,
+			preCondition: func(t *testing.T, state *state.StateDB) {
+				err := precompile.StoreFeeConfig(state, testFeeConfig, &mockBlockContext{blockNumber: testBlockNumber})
+				if err != nil {
+					panic(err)
+				}
+			},
+			input: func() []byte {
+				return precompile.PackGetLastChangedAtInput()
+			},
+			suppliedGas: precompile.GetLastChangedAtGasCost,
+			readOnly:    true,
+			expectedRes: common.BigToHash(testBlockNumber).Bytes(),
+			assertState: func(t *testing.T, state *state.StateDB) {
+				feeConfig := precompile.GetStoredFeeConfig(state)
+				lastChangedAt := precompile.GetStoredLastChangedAt(state)
+				assert.Equal(t, testFeeConfig, feeConfig)
+				assert.Equal(t, testBlockNumber, lastChangedAt)
 			},
 		},
 		"readOnly setFeeConfig with noRole fails": {
@@ -987,7 +1026,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				test.preCondition(t, state)
 			}
 
-			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			blockContext := &mockBlockContext{blockNumber: testBlockNumber}
+			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
 					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)

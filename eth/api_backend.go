@@ -100,7 +100,7 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 	return b.eth.blockchain.GetHeaderByNumber(uint64(number)), nil
 }
 
-func (b *EthAPIBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, error) {
+func (b *EthAPIBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return b.eth.blockchain.GetFeeConfigAt(parent)
 }
 

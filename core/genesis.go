@@ -278,21 +278,6 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		)
 	}
 
-	genesisTimestamp := new(big.Int).SetUint64(g.Timestamp)
-	// Configure any stateful precompiles that should be enabled in the genesis.
-	g.Config.CheckConfigurePrecompiles(nil, genesisTimestamp, statedb)
-
-	// Do cusotm allocation after airdrop in case an address shows up in standard
-	// allocation
-	for addr, account := range g.Alloc {
-		statedb.SetBalance(addr, account.Balance)
-		statedb.SetCode(addr, account.Code)
-		statedb.SetNonce(addr, account.Nonce)
-		for key, value := range account.Storage {
-			statedb.SetState(addr, key, value)
-		}
-	}
-	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
 		Nonce:      types.EncodeNonce(g.Nonce),
@@ -305,8 +290,25 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Difficulty: g.Difficulty,
 		MixDigest:  g.Mixhash,
 		Coinbase:   g.Coinbase,
-		Root:       root,
 	}
+
+	genesisTimestamp := new(big.Int).SetUint64(g.Timestamp)
+	// Configure any stateful precompiles that should be enabled in the genesis.
+	g.Config.CheckConfigurePrecompiles(nil, genesisTimestamp, statedb, types.NewBlockWithHeader(head))
+
+	// Do custom allocation after airdrop in case an address shows up in standard
+	// allocation
+	for addr, account := range g.Alloc {
+		statedb.SetBalance(addr, account.Balance)
+		statedb.SetCode(addr, account.Code)
+		statedb.SetNonce(addr, account.Nonce)
+		for key, value := range account.Storage {
+			statedb.SetState(addr, key, value)
+		}
+	}
+	root := statedb.IntermediateRoot(false)
+	head.Root = root
+
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}

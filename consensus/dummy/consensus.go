@@ -68,7 +68,7 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 	if header.GasUsed > header.GasLimit {
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
-	feeConfig, err := chain.GetFeeConfigAt(parent)
+	feeConfig, _, err := chain.GetFeeConfigAt(parent)
 	if err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func (self *DummyEngine) verifyBlockFee(
 
 func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
 	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(block.Time())) {
-		feeConfig, err := chain.GetFeeConfigAt(parent)
+		feeConfig, _, err := chain.GetFeeConfigAt(parent)
 		if err != nil {
 			return err
 		}
@@ -298,7 +298,7 @@ func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, 
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
 	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(header.Time)) {
-		feeConfig, err := chain.GetFeeConfigAt(parent)
+		feeConfig, _, err := chain.GetFeeConfigAt(parent)
 		if err != nil {
 			return nil, err
 		}
