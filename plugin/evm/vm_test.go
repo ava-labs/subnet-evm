@@ -2385,7 +2385,7 @@ func TestFeeManagerGetsInitialFeeConfig(t *testing.T) {
 	feeConfig, lastChangedAt, err := vm.chain.BlockChain().GetFeeConfigAt(vm.chain.LastAcceptedBlock().Header())
 	assert.NoError(t, err)
 	assert.EqualValues(t, testFeeConfig, feeConfig)
-	assert.EqualValues(t, vm.chain.CurrentBlock().Number(), lastChangedAt)
+	assert.Equal(t, 0, vm.chain.CurrentBlock().Number().Cmp(lastChangedAt))
 }
 
 // Test that the fee manager changes fee configuration

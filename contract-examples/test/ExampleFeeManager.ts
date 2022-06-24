@@ -121,15 +121,15 @@ describe("ExampleFeeManager", function () {
   })
 
   it("contract should be added to manager list", async function () {
-    const managerList = await ethers.getContractAt("IFeeManager", FEE_MANAGER, owner);
-    let adminRole = await managerList.readAllowList(adminAddress);
+    const feeManager = await ethers.getContractAt("IFeeManager", FEE_MANAGER, owner);
+    let adminRole = await feeManager.readAllowList(adminAddress);
     expect(adminRole).to.be.equal(ROLES.ADMIN)
-    let contractRole = await managerList.readAllowList(contract.address);
+    let contractRole = await feeManager.readAllowList(contract.address);
     expect(contractRole).to.be.equal(ROLES.NONE)
 
-    let enableTx = await managerList.setEnabled(contract.address);
+    let enableTx = await feeManager.setEnabled(contract.address);
     await enableTx.wait()
-    contractRole = await managerList.readAllowList(contract.address);
+    contractRole = await feeManager.readAllowList(contract.address);
     expect(contractRole).to.be.equal(ROLES.ENABLED)
   });
 
