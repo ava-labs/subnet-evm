@@ -91,10 +91,14 @@ describe("ExampleFeeManager", function () {
       LOW_FEES.maxBlockGasCost,
       LOW_FEES.blockGasCostStep
     )
-    await enableTx.wait();
+    let txRes = await enableTx.wait();
 
     var res = await contract.connect(manager).getCurrentFeeConfig()
     expect(res.minBaseFee).to.equal(testMinBaseFee)
+
+    var res = await contract.getLastChangedAt()
+
+    expect(res).to.equal(txRes.blockNumber)
   })
 
   it("should add contract deployer as owner", async function () {
