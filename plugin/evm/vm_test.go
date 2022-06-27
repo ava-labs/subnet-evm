@@ -2437,7 +2437,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	feeConfig, lastChangedAt, err := vm.chain.BlockChain().GetFeeConfigAt(vm.chain.GetGenesisBlock().Header())
 	assert.NoError(t, err)
 	assert.EqualValues(t, feeConfig, params.DefaultFeeConfig)
-	assert.EqualValues(t, vm.chain.CurrentBlock().Number(), lastChangedAt)
+	assert.Zero(t, vm.chain.CurrentBlock().Number().Cmp(lastChangedAt))
 
 	// set a different fee config now
 	testFeeConfig := commontype.FeeConfig{

@@ -87,7 +87,8 @@ describe("ExampleFeeManager", function () {
     let contractRole = await managerPrecompile.readAllowList(contract.address);
     expect(contractRole).to.be.equal(ROLES.NONE)
     try {
-      await contract.enableWAGMIFees()
+      let tx = await contract.enableWAGMIFees()
+      await tx.wait()
     }
     catch (err) {
       return
@@ -153,7 +154,7 @@ describe("ExampleFeeManager", function () {
         maxFeePerGas: testMaxFeePerGas,
         maxPriorityFeePerGas: 0
       });
-      let res = await tx.wait()
+      await tx.wait()
     }
     catch (err) {
       expect(err.toString()).to.include("transaction underpriced")
@@ -163,7 +164,11 @@ describe("ExampleFeeManager", function () {
   })
 
   it("should be able to get current fee config", async function () {
-    let enableTx = await contract.enableCustomFees(HIGH_FEES)
+    let enableTx = await contract.enableCustomFees(HIGH_FEES,
+      {
+        maxFeePerGas: HIGH_FEES.minBaseFee * 2,
+        maxPriorityFeePerGas: 0
+      })
     await enableTx.wait()
 
     var res = await contract.getCurrentFeeConfig()
@@ -183,7 +188,10 @@ describe("ExampleFeeManager", function () {
 
     expect(nonEnabledRole).to.be.equal(ROLES.NONE)
     try {
-      await contract.connect(nonEnabled).enableWAGMIFees()
+      await contract.connect(nonEnabled).enableWAGMIFees({
+        maxFeePerGas: HIGH_FEES.minBaseFee * 2,
+        maxPriorityFeePerGas: 0
+      })
     }
     catch (err) {
       return
@@ -192,7 +200,11 @@ describe("ExampleFeeManager", function () {
   })
 
   it("manager should be able to change fees through contract", async function () {
-    let enableTx = await contract.connect(manager).enableCustomFees(LOW_FEES)
+    let enableTx = await contract.connect(manager).enableCustomFees(LOW_FEES,
+      {
+        maxFeePerGas: HIGH_FEES.minBaseFee * 2,
+        maxPriorityFeePerGas: 0
+      })
     await enableTx.wait()
 
     var res = await contract.connect(manager).getCurrentFeeConfig()
@@ -202,7 +214,11 @@ describe("ExampleFeeManager", function () {
 
   it("non-enabled should not be able to change fees through contract", async function () {
     try {
-      let enableTx = await contract.connect(nonEnabled).enableCustomFees(LOW_FEES)
+      let enableTx = await contract.connect(nonEnabled).enableCustomFees(LOW_FEES,
+        {
+          maxFeePerGas: LOW_FEES.minBaseFee * 2,
+          maxPriorityFeePerGas: 0
+        })
       await enableTx.wait()
     }
     catch (err) {
@@ -223,7 +239,10 @@ describe("ExampleFeeManager", function () {
       LOW_FEES.baseFeeChangeDenominator,
       LOW_FEES.minBlockGasCost,
       LOW_FEES.maxBlockGasCost,
-      LOW_FEES.blockGasCostStep
+      LOW_FEES.blockGasCostStep, {
+      maxFeePerGas: LOW_FEES.minBaseFee * 2,
+      maxPriorityFeePerGas: 0
+    }
     )
     let txRes = await enableTx.wait();
 
