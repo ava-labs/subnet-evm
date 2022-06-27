@@ -2403,7 +2403,21 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		},
 	}
 
-	genesis.Config.FeeConfig = params.DefaultFeeConfig
+	// set a lower fee config now
+	testLowFeeConfig := commontype.FeeConfig{
+		GasLimit:        big.NewInt(8_000_000),
+		TargetBlockRate: 5, // in seconds
+
+		MinBaseFee:               big.NewInt(5_000_000_000),
+		TargetGas:                big.NewInt(18_000_000),
+		BaseFeeChangeDenominator: big.NewInt(3396),
+
+		MinBlockGasCost:  big.NewInt(0),
+		MaxBlockGasCost:  big.NewInt(4_000_000),
+		BlockGasCostStep: big.NewInt(500_000),
+	}
+
+	genesis.Config.FeeConfig = testLowFeeConfig
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2436,33 +2450,23 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err := vm.chain.BlockChain().GetFeeConfigAt(vm.chain.GetGenesisBlock().Header())
 	assert.NoError(t, err)
-	assert.EqualValues(t, feeConfig, params.DefaultFeeConfig)
+	assert.EqualValues(t, feeConfig, testLowFeeConfig)
 	assert.Zero(t, vm.chain.CurrentBlock().Number().Cmp(lastChangedAt))
 
 	// set a different fee config now
-	testFeeConfig := commontype.FeeConfig{
-		GasLimit:        big.NewInt(11_000_000),
-		TargetBlockRate: 5, // in seconds
+	testHighFeeConfig := testLowFeeConfig
+	testHighFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
 
-		MinBaseFee:               big.NewInt(28_000_000_000),
-		TargetGas:                big.NewInt(18_000_000),
-		BaseFeeChangeDenominator: big.NewInt(3396),
-
-		MinBlockGasCost:  big.NewInt(0),
-		MaxBlockGasCost:  big.NewInt(4_000_000),
-		BlockGasCostStep: big.NewInt(500_000),
-	}
-
-	data, err := precompile.PackSetFeeConfig(testFeeConfig)
+	data, err := precompile.PackSetFeeConfig(testHighFeeConfig)
 	assert.NoError(t, err)
 
 	tx := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(0),
 		To:        &precompile.FeeConfigManagerAddress,
-		Gas:       genesis.Config.FeeConfig.GasLimit.Uint64(),
+		Gas:       testLowFeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
-		GasFeeCap: genesis.Config.FeeConfig.MinBaseFee,
+		GasFeeCap: testLowFeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
 		GasTipCap: common.Big0,
 		Data:      data,
 	})
@@ -2501,12 +2505,17 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	newHead := <-newTxPoolHeadChan
+	if newHead.Head.Hash() != common.Hash(blk.ID()) {
+		t.Fatalf("Expected new block to match")
+	}
+
 	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 
 	// Contract is initialized but no state is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err = vm.chain.BlockChain().GetFeeConfigAt(block.Header())
 	assert.NoError(t, err)
-	assert.EqualValues(t, testFeeConfig, feeConfig)
+	assert.EqualValues(t, testHighFeeConfig, feeConfig)
 	assert.EqualValues(t, vm.chain.CurrentBlock().Number(), lastChangedAt)
 
 	// should fail, with same params since fee is higher now
@@ -2516,7 +2525,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		To:        &precompile.FeeConfigManagerAddress,
 		Gas:       genesis.Config.FeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
-		GasFeeCap: genesis.Config.FeeConfig.MinBaseFee,
+		GasFeeCap: testLowFeeConfig.MinBaseFee, // this is too low for applied config, should fail
 		GasTipCap: common.Big0,
 		Data:      data,
 	})

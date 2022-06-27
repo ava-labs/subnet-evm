@@ -226,31 +226,4 @@ describe("ExampleFeeManager", function () {
     }
     expect.fail("should have errored")
   })
-
-  it("manager should be able to change fees from precompile", async function () {
-    const feeManager = await ethers.getContractAt("IFeeManager", FEE_MANAGER, owner);
-    let testMinBaseFee = LOW_FEES.minBaseFee + 123
-
-    let enableTx = await feeManager.setFeeConfig(
-      LOW_FEES.gasLimit,
-      LOW_FEES.targetBlockRate,
-      testMinBaseFee,
-      LOW_FEES.targetGas,
-      LOW_FEES.baseFeeChangeDenominator,
-      LOW_FEES.minBlockGasCost,
-      LOW_FEES.maxBlockGasCost,
-      LOW_FEES.blockGasCostStep, {
-      maxFeePerGas: LOW_FEES.minBaseFee * 2,
-      maxPriorityFeePerGas: 0
-    }
-    )
-    let txRes = await enableTx.wait();
-
-    var res = await contract.connect(manager).getCurrentFeeConfig()
-    expect(res.minBaseFee).to.equal(testMinBaseFee)
-
-    var res = await contract.getLastChangedAt()
-
-    expect(res).to.equal(txRes.blockNumber)
-  })
 })
