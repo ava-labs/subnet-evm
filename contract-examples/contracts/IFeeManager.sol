@@ -31,5 +31,5 @@ interface IFeeManager is IAllowList {
     );
 
   // Get the last block number changed the fee config from the contract storage
-  function getLastChangedAt() external view returns (uint256 blockNumber);
+  function getFeeConfigLastChangedAt() external view returns (uint256 blockNumber);
 }

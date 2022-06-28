@@ -117,7 +117,7 @@ describe("ExampleFeeManager", function () {
     expect(res.gasLimit).to.equal(LOW_FEES.gasLimit)
     expect(res.minBaseFee).to.be.equal(LOW_FEES.minBaseFee)
 
-    var res = await contract.getLastChangedAt()
+    var res = await contract.getFeeConfigLastChangedAt()
 
     expect(res).to.equal(txRes.blockNumber)
   })

@@ -377,7 +377,7 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	}
 
 	storedFeeConfig := precompile.GetStoredFeeConfig(stateDB)
-	lastChangedAt := precompile.GetStoredLastChangedAt(stateDB)
+	lastChangedAt := precompile.GetFeeConfigLastUpdatedAt(stateDB)
 	cachable := &cachableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache
 	bc.feeConfigCache.Add(parent.Root, cachable)
