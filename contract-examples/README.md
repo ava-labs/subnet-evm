@@ -54,11 +54,17 @@ For more information about precompiles see [subnet-evm precompiles](https://gith
 
 Hardhat uses `hardhat.config.js` as the configuration file. You can define tasks, networks, compilers and more in that file. For more information see [here](https://hardhat.org/config/).
 
-In our repository we use a pre-configured file [hardhat.config.ts](https://github.com/ava-labs/avalanche-smart-contract-quickstart/blob/main/hardhat.config.ts). This file configures necessary network information to provide smooth interaction with Avalanche. There are also some pre-defined private keys for testing on a local test network. Each chain in subnets has their own RPC URL. Subnet EVM's RPC URL is in form of: `"http://{ip}:{port}/ext/bc/{chainID}/rpc`. When you create your own subnet and Subnet EVM chain `{chainID}` will be different. Do not forget to set correct URL under the `networks` in the configuration file.
+In our repository we use a pre-configured file [hardhat.config.ts](https://github.com/ava-labs/avalanche-smart-contract-quickstart/blob/main/hardhat.config.ts). This file configures necessary network information to provide smooth interaction with Avalanche. There are two networks in the hardhat config: `e2e` and `local`. `e2e` network is used for e2e tests and should not be changed. `local` network is used by tasks and for local deployments. There are also some pre-defined private keys for these networks. Each chain in subnets has their own RPC URL. Subnet EVM's RPC URL is in form of: `"http://{ip}:{port}/ext/bc/{chainID}/rpc`. When you create your own subnet and Subnet EVM chain `{chainID}` will be different. You can change `local` network RPC url with the `local_rpc.json`. There is a example file named with `local_rpc_example.json`. You can copy & rename this file to customize the url:
+
+```
+cp local_rpc.example.json local_rpc.json
+```
+
+Do not forget to set correct URL in the `local_rpc.json` file.
 
 ## Hardhat Tasks
 
-You can define custom hardhat tasks in [hardhat.config.ts](https://github.com/ava-labs/avalanche-smart-contract-quickstart/blob/main/hardhat.config.ts). Tasks contain helpers for precompiles `allowList` and `minter`. Precompiles have their own contract already-deployed when they're activated. So these can be called without deploying any intermediate contract. See `npx hardhat --help` for more information about available tasks.
+You can define custom hardhat tasks in [tasks.ts](https://github.com/ava-labs/avalanche-smart-contract-quickstart/blob/main/tasks.ts). Tasks contain helpers for precompiles `allowList` and `minter`. Precompiles have their own contract already-deployed when they're activated. So these can be called without deploying any intermediate contract. See `npx hardhat --help` for more information about available tasks.
 
 ## Tests
 
