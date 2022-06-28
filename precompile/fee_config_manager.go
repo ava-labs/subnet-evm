@@ -310,7 +310,8 @@ func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPre
 	getFeeConfigFunc := newStatefulPrecompileFunction(getFeeConfigSignature, getFeeConfig)
 	getLastChangedAtFunc := newStatefulPrecompileFunction(getLastChangedAtSignature, getLastChangedAt)
 
+	enabledFuncs := append(allowListFuncs, setFeeConfigFunc, getFeeConfigFunc, getLastChangedAtFunc)
 	// Construct the contract with no fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, append(allowListFuncs, setFeeConfigFunc, getFeeConfigFunc, getLastChangedAtFunc))
+	contract := newStatefulPrecompileWithFunctionSelectors(nil, enabledFuncs)
 	return contract
 }
