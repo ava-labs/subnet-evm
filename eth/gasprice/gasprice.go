@@ -28,6 +28,7 @@ package gasprice
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"sort"
 	"sync"
@@ -126,7 +127,7 @@ type Oracle struct {
 
 // NewOracle returns a new gasprice oracle which can recommend suitable
 // gasprice for newly created transaction.
-func NewOracle(backend OracleBackend, config Config) *Oracle {
+func NewOracle(backend OracleBackend, config Config) (*Oracle, error) {
 	blocks := config.Blocks
 	if blocks < 1 {
 		blocks = 1
@@ -182,8 +183,7 @@ func NewOracle(backend OracleBackend, config Config) *Oracle {
 	var minBaseFee *big.Int
 	if err != nil {
 		// resort back to chain config
-		log.Warn("Got error while getting fee config, defaulting to genesis fee config")
-		minBaseFee = backend.ChainConfig().FeeConfig.MinBaseFee
+		return nil, fmt.Errorf("failed getting fee config in the oracle: %w", err)
 	} else {
 		minBaseFee = feeConfig.MinBaseFee
 	}
@@ -199,7 +199,7 @@ func NewOracle(backend OracleBackend, config Config) *Oracle {
 		maxCallBlockHistory: maxCallBlockHistory,
 		maxBlockHistory:     maxBlockHistory,
 		historyCache:        cache,
-	}
+	}, nil
 }
 
 // EstimateBaseFee returns an estimate of what the base fee will be on a block

@@ -184,7 +184,10 @@ func applyGasPriceTest(t *testing.T, test suggestTipCapTest) {
 		test.genBlock = func(i int, b *core.BlockGen) {}
 	}
 	backend := newTestBackend(t, test.chainConfig, test.numBlocks, test.genBlock)
-	oracle := NewOracle(backend, config)
+	oracle, err := NewOracle(backend, config)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	got, err := oracle.SuggestTipCap(context.Background())
 	if err != nil {
@@ -414,9 +417,12 @@ func TestSuggestGasPricePreSubnetEVM(t *testing.T) {
 			b.AddTx(tx)
 		}
 	})
-	oracle := NewOracle(backend, config)
+	oracle, err := NewOracle(backend, config)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	_, err := oracle.SuggestPrice(context.Background())
+	_, err = oracle.SuggestPrice(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,9 +457,12 @@ func TestSuggestGasPricePreAP3(t *testing.T) {
 			b.AddTx(tx)
 		}
 	})
-	oracle := NewOracle(backend, config)
+	oracle, err := NewOracle(backend, config)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	_, err := oracle.SuggestPrice(context.Background())
+	_, err = oracle.SuggestPrice(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
