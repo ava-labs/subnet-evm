@@ -292,9 +292,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Coinbase:   g.Coinbase,
 	}
 
-	genesisTimestamp := new(big.Int).SetUint64(g.Timestamp)
 	// Configure any stateful precompiles that should be enabled in the genesis.
-	g.Config.CheckConfigurePrecompiles(nil, genesisTimestamp, statedb, types.NewBlockWithHeader(head))
+	g.Config.CheckConfigurePrecompiles(nil, types.NewBlockWithHeader(head), statedb)
 
 	// Do custom allocation after airdrop in case an address shows up in standard
 	// allocation

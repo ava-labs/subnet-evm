@@ -544,9 +544,9 @@ func (c *ChainConfig) enabledStatefulPrecompiles() []precompile.StatefulPrecompi
 
 // CheckConfigurePrecompiles iterates over any stateful precompile configs that go into effect at some point and configures them
 // if they are activated between [parentTimestamp] and [currentTimestamp].
-func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, currentTimestamp *big.Int, statedb precompile.StateDB, blockContext precompile.BlockContext) {
+func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) {
 	// Iterate the enabled stateful precompiles and configure them if needed
 	for _, config := range c.enabledStatefulPrecompiles() {
-		precompile.CheckConfigure(parentTimestamp, currentTimestamp, config, statedb, blockContext)
+		precompile.CheckConfigure(parentTimestamp, blockContext, config, statedb)
 	}
 }

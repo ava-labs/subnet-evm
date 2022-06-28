@@ -42,10 +42,10 @@ type StatefulPrecompileConfig interface {
 // TODO: add ability to call Configure at different timestamps, so that developers can easily re-configure by updating the
 // stateful precompile config.
 // Assumes that [config] is non-nil.
-func CheckConfigure(parentTimestamp *big.Int, currentTimestamp *big.Int, config StatefulPrecompileConfig, state StateDB, blockContext BlockContext) {
+func CheckConfigure(parentTimestamp *big.Int, blockContext BlockContext, config StatefulPrecompileConfig, state StateDB) {
 	forkTimestamp := config.Timestamp()
 	// If the network upgrade goes into effect within this transition, configure the stateful precompile
-	if utils.IsForkTransition(forkTimestamp, parentTimestamp, currentTimestamp) {
+	if utils.IsForkTransition(forkTimestamp, parentTimestamp, blockContext.Timestamp()) {
 		// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
 		// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
 		state.SetNonce(config.Address(), 1)
