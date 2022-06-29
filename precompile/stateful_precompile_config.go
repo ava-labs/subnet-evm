@@ -33,6 +33,9 @@ type StatefulPrecompileConfig interface {
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
 	Contract() StatefulPrecompiledContract
+
+	// Validate checks the given genesis config and returns an error.
+	Validate() error
 }
 
 // CheckConfigure checks if [config] is activated by the transition from block at [parentTimestamp] to [currentTimestamp].

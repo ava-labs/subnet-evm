@@ -247,11 +247,6 @@ func (c *ChainConfig) Verify() error {
 		return err
 	}
 
-	// this can be empty and empty config is allowed.
-	if c.FeeManagerConfig.FeeConfig != commontype.EmptyFeeConfig {
-		return c.FeeManagerConfig.Verify()
-	}
-
 	return nil
 }
 
@@ -528,13 +523,12 @@ func (c *ChainConfig) enabledStatefulPrecompiles() []precompile.StatefulPrecompi
 	}
 
 	if c.FeeManagerConfig.Timestamp() != nil {
+		// FeeManagerConfig can default to chain fee config.
+		// So we should check and set it before returning this config.
 		managerConfig := c.FeeManagerConfig
 		// set the default as Chain config's fee config.
 		if c.FeeManagerConfig.FeeConfig == commontype.EmptyFeeConfig {
-			managerConfig = precompile.FeeConfigManagerConfig{
-				AllowListConfig: c.FeeManagerConfig.AllowListConfig,
-				FeeConfig:       c.FeeConfig,
-			}
+			managerConfig.FeeConfig = c.FeeConfig
 		}
 		statefulPrecompileConfigs = append(statefulPrecompileConfigs, &managerConfig)
 	}
@@ -547,6 +541,9 @@ func (c *ChainConfig) enabledStatefulPrecompiles() []precompile.StatefulPrecompi
 func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) {
 	// Iterate the enabled stateful precompiles and configure them if needed
 	for _, config := range c.enabledStatefulPrecompiles() {
+		if err := config.Validate(); err != nil {
+			panic(err)
+		}
 		precompile.CheckConfigure(parentTimestamp, blockContext, config, statedb)
 	}
 }

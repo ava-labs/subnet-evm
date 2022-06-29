@@ -38,6 +38,11 @@ func (c *TxAllowListConfig) Contract() StatefulPrecompiledContract {
 	return TxAllowListPrecompile
 }
 
+// Validate validates given config and returns error.
+func (c *TxAllowListConfig) Validate() error {
+	return nil // no special verification
+}
+
 // GetTxAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
 func GetTxAllowListStatus(stateDB StateDB, address common.Address) AllowListRole {

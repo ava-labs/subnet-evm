@@ -28,7 +28,7 @@ type FeeConfig struct {
 
 	// The minimum base fee sets a lower bound on the EIP-1559 base fee of a block.
 	// Since the block's base fee sets the minimum gas price for any transaction included in that block, this effectively sets a minimum
-	// gas price for any tranasction.
+	// gas price for any transaction.
 	MinBaseFee *big.Int `json:"minBaseFee,omitempty"`
 
 	// When the dynamic fee algorithm observes that network activity is above/below the [TargetGas], it increases/decreases the base fee proportionally to
@@ -78,5 +78,40 @@ func (f *FeeConfig) Verify() error {
 	case f.BlockGasCostStep.Cmp(common.Big0) == -1:
 		return fmt.Errorf("blockGasCostStep = %d cannot be less than 0", f.BlockGasCostStep)
 	}
+	return f.checkByteLens()
+}
+
+// checkByteLens checks byte lengths against common.HashLen (32 bytes) and returns error
+func (f *FeeConfig) checkByteLens() error {
+	if isBiggerThanHashLen(f.GasLimit) {
+		return fmt.Errorf("gasLimit exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(new(big.Int).SetUint64(f.TargetBlockRate)) {
+		return fmt.Errorf("targetBlockRate exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.MinBaseFee) {
+		return fmt.Errorf("minBaseFee exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.TargetGas) {
+		return fmt.Errorf("targetGas exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.BaseFeeChangeDenominator) {
+		return fmt.Errorf("baseFeeChangeDenominator exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.MinBlockGasCost) {
+		return fmt.Errorf("minBlockGasCost exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.MaxBlockGasCost) {
+		return fmt.Errorf("maxBlockGasCost exceeds %d bytes", common.HashLength)
+	}
+	if isBiggerThanHashLen(f.BlockGasCostStep) {
+		return fmt.Errorf("blockGasCostStep exceeds %d bytes", common.HashLength)
+	}
 	return nil
+}
+
+func isBiggerThanHashLen(bigint *big.Int) bool {
+	buf := bigint.Bytes()
+	isBigger := len(buf) > common.HashLength
+	return isBigger
 }

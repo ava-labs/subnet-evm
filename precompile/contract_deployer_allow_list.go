@@ -32,6 +32,11 @@ func (c *ContractDeployerAllowListConfig) Contract() StatefulPrecompiledContract
 	return ContractDeployerAllowListPrecompile
 }
 
+// Validate validates given config and returns error.
+func (c *ContractDeployerAllowListConfig) Validate() error {
+	return nil // no special verification
+}
+
 // GetContractDeployerAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
 func GetContractDeployerAllowListStatus(stateDB StateDB, address common.Address) AllowListRole {

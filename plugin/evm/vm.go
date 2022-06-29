@@ -275,6 +275,7 @@ func (vm *VM) Initialize(
 	}
 
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
+		log.Warn("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 

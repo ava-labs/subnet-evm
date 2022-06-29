@@ -72,6 +72,11 @@ func (c *FeeConfigManagerConfig) Contract() StatefulPrecompiledContract {
 	return FeeConfigManagerPrecompile
 }
 
+// Validate validates given config and returns error.
+func (c *FeeConfigManagerConfig) Validate() error {
+	return c.FeeConfig.Verify() // no special verification
+}
+
 // GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.
 func GetFeeConfigManagerStatus(stateDB StateDB, address common.Address) AllowListRole {
 	return getAllowListStatus(stateDB, FeeConfigManagerAddress, address)

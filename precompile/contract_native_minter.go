@@ -44,6 +44,11 @@ func (c *ContractNativeMinterConfig) Contract() StatefulPrecompiledContract {
 	return ContractNativeMinterPrecompile
 }
 
+// Validate validates given config and returns error.
+func (c *ContractNativeMinterConfig) Validate() error {
+	return nil // no special verification
+}
+
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
 func GetContractNativeMinterStatus(stateDB StateDB, address common.Address) AllowListRole {
 	return getAllowListStatus(stateDB, ContractNativeMinterAddress, address)
