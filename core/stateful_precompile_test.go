@@ -144,7 +144,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonAdmin.Error(),
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set deployer from non-admin": {
 			caller:         noRoleAddr,
@@ -158,7 +158,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonAdmin.Error(),
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from non-admin": {
 			caller:         noRoleAddr,
@@ -172,7 +172,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonAdmin.Error(),
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
 			caller:         adminAddr,
@@ -378,7 +378,7 @@ func TestTxAllowListRun(t *testing.T) {
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonAdmin.Error(),
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set allowed from non-admin": {
 			caller:         noRoleAddr,
@@ -392,7 +392,7 @@ func TestTxAllowListRun(t *testing.T) {
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonAdmin.Error(),
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from non-admin": {
 			caller:         noRoleAddr,
@@ -406,7 +406,7 @@ func TestTxAllowListRun(t *testing.T) {
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonAdmin.Error(),
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
 			caller:         adminAddr,
@@ -552,7 +552,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 			suppliedGas: precompile.MintGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonEnabled.Error(),
+			expectedErr: precompile.ErrCannotMint.Error(),
 		},
 		"mint funds from allow address": {
 			caller:         allowAddr,
@@ -735,7 +735,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonAdmin.Error(),
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -803,7 +803,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonEnabled.Error(),
+			expectedErr: precompile.ErrCannotChangeFee.Error(),
 		},
 		"set config from allow address": {
 			caller:         allowAddr,
@@ -1010,7 +1010,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrNonAdmin.Error(),
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

@@ -4,9 +4,11 @@
 package precompile
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -16,6 +18,7 @@ var (
 	ContractNativeMinterPrecompile StatefulPrecompiledContract = createNativeMinterPrecompile(ContractNativeMinterAddress)
 
 	mintSignature = CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
+	ErrCannotMint = errors.New("non-enabled cannot mint")
 
 	mintInputLen = common.HashLength + common.HashLength
 )
@@ -78,15 +81,24 @@ func UnpackMintInput(input []byte) (common.Address, *big.Int, error) {
 // mintNativeCoin checks if the caller is permissioned for minting operation.
 // The execution function parses the [input] into native coin amount and receiver address.
 func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	stateDB := accessibleState.GetStateDB()
+	if remainingGas, err = deductGas(suppliedGas, MintGasCost); err != nil {
+		return nil, 0, err
+	}
 
-	if remainingGas, err = allowListSetterEnabledCheck(ContractNativeMinterAddress, caller, suppliedGas, MintGasCost, readOnly, stateDB); err != nil {
-		return nil, remainingGas, err
+	if readOnly {
+		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
 	to, amount, err := UnpackMintInput(input)
 	if err != nil {
 		return nil, remainingGas, err
+	}
+
+	stateDB := accessibleState.GetStateDB()
+	// Verify that the caller is in the allow list and therefore has the right to modify it
+	callerStatus := getAllowListStatus(stateDB, ContractNativeMinterAddress, caller)
+	if !callerStatus.IsEnabled() {
+		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
 
 	// if there is no address in the state, create one.
