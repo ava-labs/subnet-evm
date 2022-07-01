@@ -84,8 +84,8 @@ var (
 		AllowFeeRecipients:  false,
 	}
 
-	TestChainConfig        = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), DefaultFeeConfig, false, precompile.ContractDeployerAllowListConfig{}, precompile.ContractNativeMinterConfig{}, precompile.TxAllowListConfig{}}
-	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, DefaultFeeConfig, false, precompile.ContractDeployerAllowListConfig{}, precompile.ContractNativeMinterConfig{}, precompile.TxAllowListConfig{}}
+	TestChainConfig        = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), DefaultFeeConfig, false, precompile.ContractDeployerAllowListConfig{}, precompile.ContractNativeMinterConfig{}, precompile.TxAllowListConfig{}, precompile.ContractXChainECRecoverConfig{}}
+	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, DefaultFeeConfig, false, precompile.ContractDeployerAllowListConfig{}, precompile.ContractNativeMinterConfig{}, precompile.TxAllowListConfig{}, precompile.ContractXChainECRecoverConfig{}}
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -119,6 +119,7 @@ type ChainConfig struct {
 	ContractDeployerAllowListConfig precompile.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
+	ContractXChainECRecoverConfig	precompile.ContractXChainECRecoverConfig   `json:"contractXChainECRecover,omitempty"` 		  // Config for the contract XChain ECrecover
 }
 
 // FeeConfig specifies the parameters for the dynamic fee algorithm, which determines the gas limit, base fee, and block gas cost of blocks
@@ -169,7 +170,7 @@ func (c *ChainConfig) String() string {
 	if err != nil {
 		feeBytes = []byte("cannot unmarshal FeeConfig")
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, ContractDeployerAllowListConfig: %v, ContractNativeMinterConfig: %v, TxAllowListConfig: %v, Engine: Dummy Consensus Engine}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, ContractDeployerAllowListConfig: %v, ContractNativeMinterConfig: %v, TxAllowListConfig: %v, ContractXChainECRecoverConfig: %v, Engine: Dummy Consensus Engine}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.EIP150Block,
@@ -186,6 +187,7 @@ func (c *ChainConfig) String() string {
 		c.ContractDeployerAllowListConfig,
 		c.ContractNativeMinterConfig,
 		c.TxAllowListConfig,
+		c.ContractXChainECRecoverConfig,
 	)
 }
 
@@ -255,6 +257,11 @@ func (c *ChainConfig) IsContractNativeMinter(blockTimestamp *big.Int) bool {
 func (c *ChainConfig) IsTxAllowList(blockTimestamp *big.Int) bool {
 	return utils.IsForked(c.TxAllowListConfig.Timestamp(), blockTimestamp)
 }
+
+func (c *ChainConfig) IsXChainECRecover(blockTimestamp *big.Int) bool {
+	return utils.IsForked(c.ContractXChainECRecoverConfig.Timestamp(), blockTimestamp)
+}
+
 
 // GetFeeConfig returns the *FeeConfig if it exists, otherwise it returns [DefaultFeeConfig()].
 func (c *ChainConfig) GetFeeConfig() FeeConfig {
@@ -414,6 +421,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 		return newCompatError("AllowList fork block timestamp", c.TxAllowListConfig.Timestamp(), newcfg.TxAllowListConfig.Timestamp())
 	}
 
+	if isForkIncompatible(c.ContractXChainECRecoverConfig.Timestamp(), newcfg.ContractXChainECRecoverConfig.Timestamp(), headTimestamp) {
+		return newCompatError("ContractXChainECRecoverConfig fork block timestamp", c.ContractXChainECRecoverConfig.Timestamp(), newcfg.ContractXChainECRecoverConfig.Timestamp())
+	}
 	// TODO verify that the fee config is fully compatible between [c] and [newcfg].
 
 	return nil
@@ -483,6 +493,7 @@ type Rules struct {
 	IsContractDeployerAllowListEnabled bool
 	IsContractNativeMinterEnabled      bool
 	IsTxAllowListEnabled               bool
+	IsContractXChainECRecoverEnabled   bool
 
 	// Precompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
@@ -519,6 +530,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsContractDeployerAllowListEnabled = c.IsContractDeployerAllowList(blockTimestamp)
 	rules.IsContractNativeMinterEnabled = c.IsContractNativeMinter(blockTimestamp)
 	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
+	rules.IsContractXChainECRecoverEnabled = c.IsXChainECRecover(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)
@@ -546,6 +558,10 @@ func (c *ChainConfig) enabledStatefulPrecompiles() []precompile.StatefulPrecompi
 
 	if c.TxAllowListConfig.Timestamp() != nil {
 		statefulPrecompileConfigs = append(statefulPrecompileConfigs, &c.TxAllowListConfig)
+	}
+
+	if c.ContractXChainECRecoverConfig.Timestamp() != nil {
+		statefulPrecompileConfigs = append(statefulPrecompileConfigs, &c.ContractXChainECRecoverConfig)
 	}
 
 	return statefulPrecompileConfigs

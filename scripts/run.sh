@@ -121,6 +121,9 @@ if [[ ${E2E} != true ]]; then
       "maxBlockGasCost": 10000000,
       "targetBlockRate": 2,
       "blockGasCostStep": 500000
+    },
+    "contractXChainECRecover": {
+      "blockTimestamp": 0
     }
   },
   "alloc": {
