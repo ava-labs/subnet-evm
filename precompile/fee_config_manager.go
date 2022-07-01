@@ -114,7 +114,7 @@ func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) []byt
 	}
 
 	if useSelector {
-		res := make([]byte, len(setFeeConfigSignature)+len(hashes)*common.HashLength)
+		res := make([]byte, len(setFeeConfigSignature)+feeConfigInputLen)
 		packOrderedHashesWithSelector(res, setFeeConfigSignature, hashes)
 		return res
 	}
@@ -187,7 +187,7 @@ func GetStoredFeeConfig(stateDB StateDB) commontype.FeeConfig {
 	return feeConfig
 }
 
-func GetFeeConfigLastUpdatedAt(stateDB StateDB) *big.Int {
+func GetFeeConfigLastChangedAt(stateDB StateDB) *big.Int {
 	val := stateDB.GetState(FeeConfigManagerAddress, feeConfigLastChangedAtKey)
 	return val.Big()
 }
@@ -199,36 +199,36 @@ func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig, blockContex
 		return err
 	}
 
+	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
+		var input common.Hash
+		switch i {
+		case gasLimitKey:
+			input = common.BigToHash(feeConfig.GasLimit)
+		case targetBlockRateKey:
+			input = common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate))
+		case minBaseFeeKey:
+			input = common.BigToHash(feeConfig.MinBaseFee)
+		case targetGasKey:
+			input = common.BigToHash(feeConfig.TargetGas)
+		case baseFeeChangeDenominatorKey:
+			input = common.BigToHash(feeConfig.BaseFeeChangeDenominator)
+		case minBlockGasCostKey:
+			input = common.BigToHash(feeConfig.MinBlockGasCost)
+		case maxBlockGasCostKey:
+			input = common.BigToHash(feeConfig.MaxBlockGasCost)
+		case blockGasCostStepKey:
+			input = common.BigToHash(feeConfig.BlockGasCostStep)
+		default:
+			panic(fmt.Sprintf("unknown fee config key: %d", i))
+		}
+		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, input)
+	}
+
 	blockNumber := blockContext.Number()
 	if blockNumber == nil {
 		return fmt.Errorf("blockNumber cannot be nil")
 	}
 	stateDB.SetState(FeeConfigManagerAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
-
-	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
-		var input *big.Int
-		switch i {
-		case gasLimitKey:
-			input = feeConfig.GasLimit
-		case targetBlockRateKey:
-			input = new(big.Int).SetUint64(feeConfig.TargetBlockRate)
-		case minBaseFeeKey:
-			input = feeConfig.MinBaseFee
-		case targetGasKey:
-			input = feeConfig.TargetGas
-		case baseFeeChangeDenominatorKey:
-			input = feeConfig.BaseFeeChangeDenominator
-		case minBlockGasCostKey:
-			input = feeConfig.MinBlockGasCost
-		case maxBlockGasCostKey:
-			input = feeConfig.MaxBlockGasCost
-		case blockGasCostStepKey:
-			input = feeConfig.BlockGasCostStep
-		default:
-			panic(fmt.Sprintf("unknown fee config key: %d", i))
-		}
-		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, common.BigToHash(input))
-	}
 
 	return nil
 }
@@ -280,7 +280,7 @@ func getFeeConfigLastChangedAt(accessibleState PrecompileAccessibleState, caller
 		return nil, 0, err
 	}
 
-	lastChangedAt := GetFeeConfigLastUpdatedAt(accessibleState.GetStateDB())
+	lastChangedAt := GetFeeConfigLastChangedAt(accessibleState.GetStateDB())
 
 	// Return an empty output and the remaining gas
 	return common.BigToHash(lastChangedAt).Bytes(), remainingGas, err
