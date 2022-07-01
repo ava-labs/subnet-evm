@@ -14,11 +14,12 @@ import (
 )
 
 const (
+	defaultAcceptorQueueLimit                     = 64 // Provides 2 minutes of buffer (2s block target) for a commit delay
 	defaultPruningEnabled                         = true
+	defaultCommitInterval                         = 4096
 	defaultSnapshotAsync                          = true
 	defaultRpcGasCap                              = 50_000_000 // Default to 50M Gas Limit
 	defaultRpcTxFeeCap                            = 100        // 100 AVAX
-	defaultMetricsEnabled                         = true
 	defaultMetricsExpensiveEnabled                = false
 	defaultApiMaxDuration                         = 0 // Default to no maximum API call duration
 	defaultWsCpuRefillRate                        = 0 // Default to no maximum WS CPU usage
@@ -79,13 +80,14 @@ type Config struct {
 
 	// Pruning Settings
 	Pruning                         bool    `json:"pruning-enabled"`                    // If enabled, trie roots are only persisted every 4096 blocks
+	AcceptorQueueLimit              int     `json:"accepted-queue-limit"`               // Maximum blocks to queue before blocking during acceptance
+	CommitInterval                  uint64  `json:"commit-interval"`                    // Specifies the commit interval at which to persist EVM and atomic tries.
 	AllowMissingTries               bool    `json:"allow-missing-tries"`                // If enabled, warnings preventing an incomplete trie index are suppressed
 	PopulateMissingTries            *uint64 `json:"populate-missing-tries,omitempty"`   // Sets the starting point for re-populating missing tries. Disables re-generation if nil.
 	PopulateMissingTriesParallelism int     `json:"populate-missing-tries-parallelism"` // Number of concurrent readers to use when re-populating missing tries on startup.
 
 	// Metric Settings
-	MetricsEnabled          bool `json:"metrics-enabled"`
-	MetricsExpensiveEnabled bool `json:"metrics-expensive-enabled"`
+	MetricsExpensiveEnabled bool `json:"metrics-expensive-enabled"` // Debug-level metrics that might impact runtime performance
 
 	// API Settings
 	LocalTxsEnabled         bool     `json:"local-txs-enabled"`
@@ -139,7 +141,6 @@ func (c *Config) SetDefaults() {
 	c.EnabledEthAPIs = defaultEnabledAPIs
 	c.RPCGasCap = defaultRpcGasCap
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
-	c.MetricsEnabled = defaultMetricsEnabled
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
 	c.APIMaxDuration.Duration = defaultApiMaxDuration
 	c.WSCPURefillRate.Duration = defaultWsCpuRefillRate
@@ -148,6 +149,8 @@ func (c *Config) SetDefaults() {
 	c.ContinuousProfilerFrequency.Duration = defaultContinuousProfilerFrequency
 	c.ContinuousProfilerMaxFiles = defaultContinuousProfilerMaxFiles
 	c.Pruning = defaultPruningEnabled
+	c.AcceptorQueueLimit = defaultAcceptorQueueLimit
+	c.CommitInterval = defaultCommitInterval
 	c.SnapshotAsync = defaultSnapshotAsync
 	c.RegossipFrequency.Duration = defaultRegossipFrequency
 	c.RegossipMaxTxs = defaultRegossipMaxTxs
@@ -183,5 +186,9 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("cannot run offline pruning while pruning is disabled")
 	}
 
+	// If pruning is enabled, the commit interval must be non-zero so the node commits state tries every CommitInterval blocks.
+	if c.Pruning && c.CommitInterval == 0 {
+		return fmt.Errorf("cannot use commit interval of 0 with pruning enabled")
+	}
 	return nil
 }
