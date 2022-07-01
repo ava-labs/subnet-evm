@@ -24,6 +24,7 @@ type PrecompileAccessibleState interface {
 
 type BlockContext interface {
 	Number() *big.Int
+	Timestamp() *big.Int
 }
 
 // StateDB is the interface for accessing EVM state

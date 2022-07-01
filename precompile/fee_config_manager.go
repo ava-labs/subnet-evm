@@ -4,10 +4,12 @@
 package precompile
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -41,6 +43,8 @@ var (
 	feeConfigInputLen = common.HashLength * numFeeConfigField
 
 	feeConfigLastChangedAtKey = common.Hash{'l', 'c', 'a'}
+
+	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
 )
 
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -236,15 +240,24 @@ func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig, blockContex
 // setFeeConfig checks if the caller is permissioned for setting fee config operation.
 // The execution function parses the [input] into FeeConfig structure and sets contract storage accordingly.
 func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	stateDB := accessibleState.GetStateDB()
+	if remainingGas, err = deductGas(suppliedGas, SetFeeConfigGasCost); err != nil {
+		return nil, 0, err
+	}
 
-	if remainingGas, err = allowListSetterEnabledCheck(FeeConfigManagerAddress, caller, suppliedGas, SetFeeConfigGasCost, readOnly, stateDB); err != nil {
-		return nil, remainingGas, err
+	if readOnly {
+		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
 	feeConfig, err := UnpackFeeConfigInput(input)
 	if err != nil {
 		return nil, remainingGas, err
+	}
+
+	stateDB := accessibleState.GetStateDB()
+	// Verify that the caller is in the allow list and therefore has the right to modify it
+	callerStatus := getAllowListStatus(stateDB, FeeConfigManagerAddress, caller)
+	if !callerStatus.IsEnabled() {
+		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
 
 	if err := StoreFeeConfig(stateDB, feeConfig, accessibleState.GetBlockContext()); err != nil {
@@ -289,13 +302,14 @@ func getFeeConfigLastChangedAt(accessibleState PrecompileAccessibleState, caller
 // createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr],
 // and a storage setter for fee configs.
 func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
-	allowListFuncs := createAllowListFunctions(precompileAddr)
+	feeConfigManagerFunctions := createAllowListFunctions(precompileAddr)
 
 	setFeeConfigFunc := newStatefulPrecompileFunction(setFeeConfigSignature, setFeeConfig)
 	getFeeConfigFunc := newStatefulPrecompileFunction(getFeeConfigSignature, getFeeConfig)
 	getFeeConfigLastChangedAtFunc := newStatefulPrecompileFunction(getFeeConfigLastChangedAtSignature, getFeeConfigLastChangedAt)
 
+	feeConfigManagerFunctions = append(feeConfigManagerFunctions, setFeeConfigFunc, getFeeConfigFunc, getFeeConfigLastChangedAtFunc)
 	// Construct the contract with no fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, append(allowListFuncs, setFeeConfigFunc, getFeeConfigFunc, getFeeConfigLastChangedAtFunc))
+	contract := newStatefulPrecompileWithFunctionSelectors(nil, feeConfigManagerFunctions)
 	return contract
 }

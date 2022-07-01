@@ -615,17 +615,19 @@ type FeeConfigResult struct {
 }
 
 func (s *PublicBlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockNumberOrHash) (*FeeConfigResult, error) {
-	var header *types.Header
-	var err error
+	var (
+		header *types.Header
+		err    error
+	)
 	if blockNrOrHash == nil {
 		header = s.b.CurrentHeader()
 	} else {
 		header, err = s.b.HeaderByNumberOrHash(ctx, *blockNrOrHash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	feeConfig, lastChangedAt, err := s.b.GetFeeConfigAt(header)
 	return &FeeConfigResult{FeeConfig: feeConfig, LastChangedAt: lastChangedAt}, err
 }

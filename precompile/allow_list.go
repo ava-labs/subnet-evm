@@ -25,11 +25,8 @@ var (
 	setEnabledSignature    = CalculateFunctionSelector("setEnabled(address)")
 	setNoneSignature       = CalculateFunctionSelector("setNone(address)")
 	readAllowListSignature = CalculateFunctionSelector("readAllowList(address)")
-
-	// Error returned when a non-admin attempts to execute
-	ErrNonAdmin = errors.New("non-admins are not allowed for this operation")
-	// Error returned when a non-enabled attempts to execute
-	ErrNonEnabled = errors.New("non-enableds are not allowed for this operation")
+	// Error returned when an invalid write is attempted
+	ErrCannotModifyAllowList = errors.New("non-admin cannot modify allow list")
 
 	allowListInputLen = common.HashLength
 )
@@ -145,10 +142,12 @@ func PackReadAllowList(address common.Address) []byte {
 // This execution function is speciifc to [precompileAddr].
 func createAllowListRoleSetter(precompileAddr common.Address, role AllowListRole) RunStatefulPrecompileFunc {
 	return func(evm PrecompileAccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-		stateDB := evm.GetStateDB()
+		if remainingGas, err = deductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
+			return nil, 0, err
+		}
 
-		if remainingGas, err = allowListSetterAdminCheck(precompileAddr, callerAddr, suppliedGas, ModifyAllowListGasCost, readOnly, stateDB); err != nil {
-			return nil, remainingGas, err
+		if readOnly {
+			return nil, remainingGas, vmerrs.ErrWriteProtection
 		}
 
 		if len(input) != allowListInputLen {
@@ -156,6 +155,14 @@ func createAllowListRoleSetter(precompileAddr common.Address, role AllowListRole
 		}
 
 		modifyAddress := common.BytesToAddress(input)
+
+		stateDB := evm.GetStateDB()
+
+		// Verify that the caller is in the allow list and therefore has the right to modify it
+		callerStatus := getAllowListStatus(stateDB, precompileAddr, callerAddr)
+		if !callerStatus.IsAdmin() {
+			return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotModifyAllowList, callerAddr)
+		}
 
 		setAllowListRole(stateDB, precompileAddr, modifyAddress, role)
 		// Return an empty output and the remaining gas
@@ -181,46 +188,6 @@ func createReadAllowList(precompileAddr common.Address) RunStatefulPrecompileFun
 		roleBytes := common.Hash(role).Bytes()
 		return roleBytes, remainingGas, nil
 	}
-}
-
-func allowListSetterAdminCheck(precompileAddr common.Address, callerAddr common.Address, suppliedGas uint64, gasCost uint64, readOnly bool, stateDB StateDB) (remainingGas uint64, err error) {
-	if remainingGas, err = allowListSetterPreCheck(suppliedGas, readOnly, gasCost); err != nil {
-		return remainingGas, err
-	}
-
-	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, precompileAddr, callerAddr)
-	if !callerStatus.IsAdmin() {
-		return remainingGas, fmt.Errorf("%w: caller = %s, precompile = %s", ErrNonAdmin, callerAddr, precompileAddr)
-	}
-
-	return remainingGas, nil
-}
-
-func allowListSetterEnabledCheck(precompileAddr common.Address, callerAddr common.Address, suppliedGas uint64, gasCost uint64, readOnly bool, stateDB StateDB) (remainingGas uint64, err error) {
-	if remainingGas, err = allowListSetterPreCheck(suppliedGas, readOnly, gasCost); err != nil {
-		return remainingGas, err
-	}
-
-	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, precompileAddr, callerAddr)
-	if !callerStatus.IsEnabled() {
-		return remainingGas, fmt.Errorf("%w: caller = %s, precompile = %s", ErrNonEnabled, callerAddr, precompileAddr)
-	}
-
-	return remainingGas, nil
-}
-
-func allowListSetterPreCheck(suppliedGas uint64, readOnly bool, gasCost uint64) (remainingGas uint64, err error) {
-	if remainingGas, err = deductGas(suppliedGas, gasCost); err != nil {
-		return 0, err
-	}
-
-	if readOnly {
-		return remainingGas, vmerrs.ErrWriteProtection
-	}
-
-	return remainingGas, nil
 }
 
 // createAllowListPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr]

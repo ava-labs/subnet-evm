@@ -41,7 +41,10 @@ import (
 	"github.com/holiman/uint256"
 )
 
-var _ precompile.PrecompileAccessibleState = &EVM{}
+var (
+	_ precompile.PrecompileAccessibleState = &EVM{}
+	_ precompile.BlockContext              = &BlockContext{}
+)
 
 var prohibitedAddresses = map[common.Address]struct{}{
 	constants.BlackholeAddr: {},
@@ -120,6 +123,10 @@ type BlockContext struct {
 
 func (b *BlockContext) Number() *big.Int {
 	return b.BlockNumber
+}
+
+func (b *BlockContext) Timestamp() *big.Int {
+	return b.Time
 }
 
 // TxContext provides the EVM with information about a transaction.

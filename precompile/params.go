@@ -15,7 +15,7 @@ const (
 
 	MintGasCost = 30_000
 
-	SetFeeConfigGasCost     = writeGasCostPerSlot * numFeeConfigField
+	SetFeeConfigGasCost     = writeGasCostPerSlot * (numFeeConfigField + 1) // plus one for setting last changed at
 	GetFeeConfigGasCost     = readGasCostPerSlot * numFeeConfigField
 	GetLastChangedAtGasCost = readGasCostPerSlot
 )
