@@ -5,7 +5,6 @@ package precompile
 
 import (
 	"fmt"
-	"math/big"
 	"regexp"
 
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -34,62 +33,37 @@ func deductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
 	return suppliedGas - requiredGas, nil
 }
 
-// packOrderedHashesWithSelector checks fullLength of given [input]
-// it excludes first member since it should be the function selector
-// then checks if the given [fullLength] is a multiple of member count * common.HashLength
-func packOrderedHashesWithSelector(input [][]byte, fullLength int) ([]byte, error) {
-	hashLen := fullLength - selectorLen
-	realLen := (len(input) - 1) * common.HashLength
-	if hashLen != realLen {
-		return nil, fmt.Errorf("expected %d, got %d length", hashLen, realLen)
-	}
-
-	// check function selector
-	if selectorLen != len(input[0]) {
-		return nil, fmt.Errorf("first element of the input must be a function selector with length %d", selectorLen)
-	}
-	// first handle selector
-	buf := make([]byte, fullLength)
-	copy(buf[:selectorLen], input[0])
-
-	// handle bytesHashes
-	bytesHashes, err := packOrderedHashes(input[1:], hashLen)
-	if err != nil {
-		return nil, err
-	}
-	copy(buf[selectorLen:], bytesHashes)
-
-	return buf, nil
+// packOrderedHashesWithSelector packs the function selector and ordered list of hashes into [dst]
+// byte slice.
+// assumes that [dst] has sufficient room for [functionSelector] and [hashes].
+func packOrderedHashesWithSelector(dst []byte, functionSelector []byte, hashes []common.Hash) {
+	copy(dst[0:len(functionSelector)], functionSelector)
+	packOrderedHashes(dst[len(functionSelector):], hashes)
 }
 
-// packOrderedHashes packs 2-d [input] array of hashes into a 1-d array.
-func packOrderedHashes(input [][]byte, fullLength int) ([]byte, error) {
-	realLen := len(input) * common.HashLength
-	if fullLength != realLen {
-		return nil, fmt.Errorf("expected %d, got %d length", fullLength, realLen)
+// packOrderedHashes packs the ordered list of [hashes] into the [dst] byte buffer.
+// assumes that [dst] has sufficient space to pack [hashes] or else this function will panic.
+func packOrderedHashes(dst []byte, hashes []common.Hash) {
+	if len(dst) != len(hashes)*common.HashLength {
+		panic(fmt.Sprintf("destination byte buffer has insufficient length (%d) for %d hashes", len(dst), len(hashes)))
 	}
 
-	buf := make([]byte, fullLength)
-	for index, inputByte := range input {
-		start := (common.HashLength * index)
-		end := start + common.HashLength
-		copy(buf[start:end], inputByte)
+	var (
+		start = 0
+		end   = common.HashLength
+	)
+	for _, hash := range hashes {
+		copy(dst[start:end], hash.Bytes())
+		start += common.HashLength
+		end += common.HashLength
 	}
-	return buf, nil
 }
 
-// returnPackedElement returns packed element with common.HashLength from the [packed] at [index]
-func returnPackedElement(packed []byte, index int) []byte {
+// returnPackedHash returns packed the byte slice with common.HashLength from [packed]
+// at the given [index].
+// Assumes that [packed] is composed entirely of packed 32 byte segments.
+func returnPackedHash(packed []byte, index int) []byte {
 	start := common.HashLength * index
 	end := start + common.HashLength
 	return packed[start:end]
-}
-
-func bigToHashSafe(b *big.Int) (common.Hash, error) {
-	bytes := b.Bytes()
-	len := len(bytes)
-	if len > common.HashLength {
-		return common.Hash{}, fmt.Errorf("expected %d, got %d length", common.HashLength, len)
-	}
-	return common.BigToHash(b), nil
 }
