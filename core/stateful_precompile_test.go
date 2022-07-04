@@ -869,7 +869,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 
 				feeConfig := precompile.GetStoredFeeConfig(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
-				lastChangedAt := precompile.GetStoredLastChangedAt(state)
+				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
 				assert.EqualValues(t, testBlockNumber, lastChangedAt)
 			},
 		},
@@ -894,7 +894,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			}(),
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
-				lastChangedAt := precompile.GetStoredLastChangedAt(state)
+				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
 				assert.EqualValues(t, big.NewInt(6), lastChangedAt)
 			},
@@ -916,7 +916,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedRes: common.BigToHash(testBlockNumber).Bytes(),
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
-				lastChangedAt := precompile.GetStoredLastChangedAt(state)
+				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
 				assert.Equal(t, testBlockNumber, lastChangedAt)
 			},
