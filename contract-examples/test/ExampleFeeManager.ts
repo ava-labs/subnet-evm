@@ -29,7 +29,7 @@ const HIGH_FEES = {
 }
 
 const LOW_FEES = {
-  gasLimit: 2_000_0000, // gasLimit
+  gasLimit: 20_000_000, // gasLimit
   targetBlockRate: 2, // targetBlockRate
   minBaseFee: 1_000_000_000, // minBaseFee
   targetGas: 100_000_000, // targetGas
