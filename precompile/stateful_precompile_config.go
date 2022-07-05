@@ -29,13 +29,10 @@ type StatefulPrecompileConfig interface {
 	// Configure is called on the first block where the stateful precompile should be enabled. This
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
-	Configure(StateDB, BlockContext)
+	Configure(ChainConfig, StateDB, BlockContext)
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
 	Contract() StatefulPrecompiledContract
-
-	// Validate checks the given genesis config and returns an error.
-	Validate() error
 }
 
 // CheckConfigure checks if [config] is activated by the transition from block at [parentTimestamp] to [currentTimestamp].
@@ -45,17 +42,17 @@ type StatefulPrecompileConfig interface {
 // TODO: add ability to call Configure at different timestamps, so that developers can easily re-configure by updating the
 // stateful precompile config.
 // Assumes that [config] is non-nil.
-func CheckConfigure(parentTimestamp *big.Int, blockContext BlockContext, config StatefulPrecompileConfig, state StateDB) {
-	forkTimestamp := config.Timestamp()
+func CheckConfigure(chainConfig ChainConfig, parentTimestamp *big.Int, blockContext BlockContext, precompileConfig StatefulPrecompileConfig, state StateDB) {
+	forkTimestamp := precompileConfig.Timestamp()
 	// If the network upgrade goes into effect within this transition, configure the stateful precompile
 	if utils.IsForkTransition(forkTimestamp, parentTimestamp, blockContext.Timestamp()) {
 		// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
 		// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
-		state.SetNonce(config.Address(), 1)
+		state.SetNonce(precompileConfig.Address(), 1)
 		// Set the code of the precompile's address to a non-zero length byte slice to ensure that the precompile
 		// can be called from within Solidity contracts. Solidity adds a check before invoking a contract to ensure
 		// that it does not attempt to invoke a non-existent contract.
-		state.SetCode(config.Address(), []byte{0x1})
-		config.Configure(state, blockContext)
+		state.SetCode(precompileConfig.Address(), []byte{0x1})
+		precompileConfig.Configure(chainConfig, state, blockContext)
 	}
 }

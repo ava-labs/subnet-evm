@@ -35,18 +35,13 @@ func (c *ContractNativeMinterConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *ContractNativeMinterConfig) Configure(state StateDB, _ BlockContext) {
+func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
 	c.AllowListConfig.Configure(state, ContractNativeMinterAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the native minter.
 func (c *ContractNativeMinterConfig) Contract() StatefulPrecompiledContract {
 	return ContractNativeMinterPrecompile
-}
-
-// Validate validates given config and returns error.
-func (c *ContractNativeMinterConfig) Validate() error {
-	return nil // no special verification
 }
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.

@@ -32,7 +32,7 @@ Clone the repo and install the necessary packages via `yarn`.
 
 ```zsh
 $ git clone https://github.com/ava-labs/subnet-evm.git
-$ cd smart-contract-examples
+$ cd contract-examples
 $ yarn
 ```
 

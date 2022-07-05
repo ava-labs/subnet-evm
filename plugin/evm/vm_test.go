@@ -2362,7 +2362,7 @@ func TestFeeManagerGetsInitialFeeConfig(t *testing.T) {
 			BlockTimestamp:  big.NewInt(0),
 			AllowListAdmins: testEthAddrs[0:1],
 		},
-		FeeConfig: testFeeConfig,
+		// FeeConfig: testFeeConfig, replace this
 	}
 
 	genesis.Config.FeeConfig = params.DefaultFeeConfig

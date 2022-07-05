@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -25,6 +26,12 @@ type PrecompileAccessibleState interface {
 type BlockContext interface {
 	Number() *big.Int
 	Timestamp() *big.Int
+}
+
+// ChainConfig provides an interface for accessing the chain configuration information.
+type ChainConfig interface {
+	// GetFeeConfig returns the original FeeConfig
+	GetFeeConfig() commontype.FeeConfig
 }
 
 // StateDB is the interface for accessing EVM state
