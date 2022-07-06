@@ -37,7 +37,7 @@ func deductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
 // byte slice.
 // assumes that [dst] has sufficient room for [functionSelector] and [hashes].
 func packOrderedHashesWithSelector(dst []byte, functionSelector []byte, hashes []common.Hash) {
-	copy(dst[0:len(functionSelector)], functionSelector)
+	copy(dst[:len(functionSelector)], functionSelector)
 	packOrderedHashes(dst[len(functionSelector):], hashes)
 }
 

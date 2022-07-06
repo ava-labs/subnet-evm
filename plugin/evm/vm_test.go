@@ -2336,58 +2336,6 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
 }
 
-func TestFeeManagerGetsInitialFeeConfig(t *testing.T) {
-	// Setup chain params
-	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
-		t.Fatal(err)
-	}
-
-	// set a different fee config now
-	testFeeConfig := commontype.FeeConfig{
-		GasLimit:        big.NewInt(11_000_000),
-		TargetBlockRate: 5, // in seconds
-
-		MinBaseFee:               big.NewInt(28_000_000_000),
-		TargetGas:                big.NewInt(18_000_000),
-		BaseFeeChangeDenominator: big.NewInt(3396),
-
-		MinBlockGasCost:  big.NewInt(0),
-		MaxBlockGasCost:  big.NewInt(4_000_000),
-		BlockGasCostStep: big.NewInt(500_000),
-	}
-
-	genesis.Config.FeeManagerConfig = precompile.FeeConfigManagerConfig{
-		AllowListConfig: precompile.AllowListConfig{
-			BlockTimestamp:  big.NewInt(0),
-			AllowListAdmins: testEthAddrs[0:1],
-		},
-		FeeConfig: testFeeConfig,
-	}
-
-	genesis.Config.FeeConfig = params.DefaultFeeConfig
-	genesisJSON, err := genesis.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
-
-	defer func() {
-		if err := vm.Shutdown(); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	vm.chain.GetTxPool().SubscribeNewReorgEvent(newTxPoolHeadChan)
-
-	// Contract is initialized and preconfig is given, reader should return given fee config
-	feeConfig, lastChangedAt, err := vm.chain.BlockChain().GetFeeConfigAt(vm.chain.LastAcceptedBlock().Header())
-	assert.NoError(t, err)
-	assert.EqualValues(t, testFeeConfig, feeConfig)
-	assert.Equal(t, 0, vm.chain.CurrentBlock().Number().Cmp(lastChangedAt))
-}
-
 // Test that the fee manager changes fee configuration
 func TestFeeManagerChangeFee(t *testing.T) {
 	// Setup chain params

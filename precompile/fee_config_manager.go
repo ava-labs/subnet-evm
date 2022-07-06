@@ -50,8 +50,7 @@ var (
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the contract deployer specific precompile address.
 type FeeConfigManagerConfig struct {
-	AllowListConfig
-	commontype.FeeConfig
+	AllowListConfig // Config for the fee config manager allow list
 }
 
 // Address returns the address of the fee config manager contract.
@@ -60,8 +59,9 @@ func (c *FeeConfigManagerConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *FeeConfigManagerConfig) Configure(state StateDB, blockContext BlockContext) {
-	if err := StoreFeeConfig(state, c.FeeConfig, blockContext); err != nil {
+func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateDB, blockContext BlockContext) {
+	// Store the initial fee config into the state when the fee config manager activates.
+	if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
 		panic(fmt.Sprintf("fee config should have been verified in genesis: %s", err))
 	}
 	c.AllowListConfig.Configure(state, FeeConfigManagerAddress)
@@ -70,11 +70,6 @@ func (c *FeeConfigManagerConfig) Configure(state StateDB, blockContext BlockCont
 // Contract returns the singleton stateful precompiled contract to be used for the fee manager.
 func (c *FeeConfigManagerConfig) Contract() StatefulPrecompiledContract {
 	return FeeConfigManagerPrecompile
-}
-
-// Validate validates given config and returns error.
-func (c *FeeConfigManagerConfig) Validate() error {
-	return c.FeeConfig.Verify() // no special verification
 }
 
 // GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.

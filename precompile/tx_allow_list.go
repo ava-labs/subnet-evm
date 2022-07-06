@@ -29,18 +29,13 @@ func (c *TxAllowListConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *TxAllowListConfig) Configure(state StateDB, _ BlockContext) {
+func (c *TxAllowListConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
 	c.AllowListConfig.Configure(state, TxAllowListAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the allow list.
 func (c *TxAllowListConfig) Contract() StatefulPrecompiledContract {
 	return TxAllowListPrecompile
-}
-
-// Validate validates given config and returns error.
-func (c *TxAllowListConfig) Validate() error {
-	return nil // no special verification
 }
 
 // GetTxAllowListStatus returns the role of [address] for the contract deployer
