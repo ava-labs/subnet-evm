@@ -41,7 +41,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // CurrentHeader retrieves the current head header of the canonical chain. The
@@ -372,7 +371,6 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 
 	stateDB, err := bc.StateAt(parent.Root)
 	if err != nil {
-		log.Error("feeConfigManager is activated, but could not retrieve the state", "err", err)
 		return commontype.EmptyFeeConfig, nil, err
 	}
 
