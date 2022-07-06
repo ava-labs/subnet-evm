@@ -1,3 +1,6 @@
+// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import {

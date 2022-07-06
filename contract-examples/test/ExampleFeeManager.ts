@@ -1,3 +1,6 @@
+// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import {
@@ -17,7 +20,7 @@ const ROLES = {
   ADMIN: 2
 };
 
-const HIGH_FEES = {
+const C_FEES = {
   gasLimit: 8_000_000, // gasLimit
   targetBlockRate: 2, // targetBlockRate
   minBaseFee: 25_000_000_000, // minBaseFee
@@ -28,7 +31,7 @@ const HIGH_FEES = {
   blockGasCostStep: 100_000 // blockGasCostStep
 }
 
-const LOW_FEES = {
+const WAGMI_FEES = {
   gasLimit: 20_000_000, // gasLimit
   targetBlockRate: 2, // targetBlockRate
   minBaseFee: 1_000_000_000, // minBaseFee
@@ -110,12 +113,12 @@ describe("ExampleFeeManager", function () {
   });
 
   it("admin should be able to change fees through contract", async function () {
-    let enableTx = await contract.enableCustomFees(LOW_FEES)
+    let enableTx = await contract.enableCustomFees(WAGMI_FEES)
     let txRes = await enableTx.wait()
 
     var res = await contract.getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(LOW_FEES.gasLimit)
-    expect(res.minBaseFee).to.be.equal(LOW_FEES.minBaseFee)
+    expect(res.gasLimit).to.equal(WAGMI_FEES.gasLimit)
+    expect(res.minBaseFee).to.be.equal(WAGMI_FEES.minBaseFee)
 
     var res = await contract.getFeeConfigLastChangedAt()
 
@@ -124,9 +127,9 @@ describe("ExampleFeeManager", function () {
 
   it("should let low fee tx to be in mempool", async function () {
     var res = await contract.getCurrentFeeConfig()
-    expect(res.minBaseFee).to.be.equal(LOW_FEES.minBaseFee)
+    expect(res.minBaseFee).to.be.equal(WAGMI_FEES.minBaseFee)
 
-    var testMaxFeePerGas = HIGH_FEES.minBaseFee - 10000
+    var testMaxFeePerGas = C_FEES.minBaseFee - 10000
 
     let tx = await owner.sendTransaction({
       to: manager.address,
@@ -139,14 +142,14 @@ describe("ExampleFeeManager", function () {
   })
 
   it("should not let low fee tx to be in mempool", async function () {
-    var testMaxFeePerGas = HIGH_FEES.minBaseFee - 10000
+    var testMaxFeePerGas = C_FEES.minBaseFee - 10000
 
-    let enableTx = await contract.enableCustomFees(HIGH_FEES)
+    let enableTx = await contract.enableCustomFees(C_FEES)
     await enableTx.wait()
     let getRes = await contract.getCurrentFeeConfig()
-    expect(getRes.minBaseFee).to.equal(HIGH_FEES.minBaseFee)
+    expect(getRes.minBaseFee).to.equal(C_FEES.minBaseFee)
 
-    // send tx with lower han HIGH_FEES minBaseFee
+    // send tx with lower han C_FEES minBaseFee
     try {
       let tx = await owner.sendTransaction({
         to: manager.address,
@@ -164,21 +167,21 @@ describe("ExampleFeeManager", function () {
   })
 
   it("should be able to get current fee config", async function () {
-    let enableTx = await contract.enableCustomFees(HIGH_FEES,
+    let enableTx = await contract.enableCustomFees(C_FEES,
       {
-        maxFeePerGas: HIGH_FEES.minBaseFee * 2,
+        maxFeePerGas: C_FEES.minBaseFee * 2,
         maxPriorityFeePerGas: 0
       })
     await enableTx.wait()
 
     var res = await contract.getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
+    expect(res.gasLimit).to.equal(C_FEES.gasLimit)
 
     var res = await contract.connect(manager).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
+    expect(res.gasLimit).to.equal(C_FEES.gasLimit)
 
     var res = await contract.connect(nonEnabled).getCurrentFeeConfig()
-    expect(res.gasLimit).to.equal(HIGH_FEES.gasLimit)
+    expect(res.gasLimit).to.equal(C_FEES.gasLimit)
   });
 
   it("nonEnabled should not be able to set fee config", async function () {
@@ -189,7 +192,7 @@ describe("ExampleFeeManager", function () {
     expect(nonEnabledRole).to.be.equal(ROLES.NONE)
     try {
       await contract.connect(nonEnabled).enableWAGMIFees({
-        maxFeePerGas: HIGH_FEES.minBaseFee * 2,
+        maxFeePerGas: C_FEES.minBaseFee * 2,
         maxPriorityFeePerGas: 0
       })
     }
@@ -200,23 +203,23 @@ describe("ExampleFeeManager", function () {
   })
 
   it("manager should be able to change fees through contract", async function () {
-    let enableTx = await contract.connect(manager).enableCustomFees(LOW_FEES,
+    let enableTx = await contract.connect(manager).enableCustomFees(WAGMI_FEES,
       {
-        maxFeePerGas: HIGH_FEES.minBaseFee * 2,
+        maxFeePerGas: C_FEES.minBaseFee * 2,
         maxPriorityFeePerGas: 0
       })
     await enableTx.wait()
 
     var res = await contract.connect(manager).getCurrentFeeConfig()
-    expect(res.minBaseFee).to.equal(LOW_FEES.minBaseFee)
+    expect(res.minBaseFee).to.equal(WAGMI_FEES.minBaseFee)
   })
 
 
   it("non-enabled should not be able to change fees through contract", async function () {
     try {
-      let enableTx = await contract.connect(nonEnabled).enableCustomFees(LOW_FEES,
+      let enableTx = await contract.connect(nonEnabled).enableCustomFees(WAGMI_FEES,
         {
-          maxFeePerGas: LOW_FEES.minBaseFee * 2,
+          maxFeePerGas: WAGMI_FEES.minBaseFee * 2,
           maxPriorityFeePerGas: 0
         })
       await enableTx.wait()
