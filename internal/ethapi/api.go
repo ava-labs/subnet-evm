@@ -629,7 +629,10 @@ func (s *PublicBlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.
 	}
 
 	feeConfig, lastChangedAt, err := s.b.GetFeeConfigAt(header)
-	return &FeeConfigResult{FeeConfig: feeConfig, LastChangedAt: lastChangedAt}, err
+	if err != nil {
+		return nil, err
+	}
+	return &FeeConfigResult{FeeConfig: feeConfig, LastChangedAt: lastChangedAt}, nil
 }
 
 // BlockNumber returns the block number of the chain head.
