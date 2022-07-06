@@ -366,6 +366,12 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 		return newCompatError("SubnetEVM fork block timestamp", c.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
 
+	// TODO verify that the fee config is fully compatible between [c] and [newcfg].
+
+	return c.CheckPrecompilesIncompatible(newcfg, headTimestamp)
+}
+
+func (c *ChainConfig) CheckPrecompilesIncompatible(newcfg *ChainConfig, headTimestamp *big.Int) *ConfigCompatError {
 	// Check that the configuration of the optional AllowList stateful precompile is compatible.
 	if isForkIncompatible(c.ContractDeployerAllowListConfig.Timestamp(), newcfg.ContractDeployerAllowListConfig.Timestamp(), headTimestamp) {
 		return newCompatError("AllowList fork block timestamp", c.ContractDeployerAllowListConfig.Timestamp(), newcfg.ContractDeployerAllowListConfig.Timestamp())
@@ -385,9 +391,6 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 	if isForkIncompatible(c.FeeManagerConfig.Timestamp(), newcfg.FeeManagerConfig.Timestamp(), headTimestamp) {
 		return newCompatError("FeeManagerConfig fork block timestamp", c.FeeManagerConfig.Timestamp(), newcfg.FeeManagerConfig.Timestamp())
 	}
-
-	// TODO verify that the fee config is fully compatible between [c] and [newcfg].
-
 	return nil
 }
 

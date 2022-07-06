@@ -28,6 +28,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/precompile"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -279,6 +280,12 @@ func (vm *VM) Initialize(
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 
+	if len(upgradeBytes) != 0 {
+		if err := vm.handleUpgradeBytes(upgradeBytes); err != nil {
+			return err
+		}
+	}
+
 	ethConfig := ethconfig.NewDefaultConfig()
 	ethConfig.Genesis = g
 	ethConfig.NetworkId = g.Config.ChainID.Uint64()
@@ -360,6 +367,83 @@ func (vm *VM) Initialize(
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
 
 	return nil
+}
+
+type upgradable struct {
+	ContractDeployerAllowListConfig *precompile.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
+	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
+	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
+	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+}
+
+type upgrade struct {
+	BlockTimestamp uint64      `json:"blockTimestamp"`
+	Enable         *upgradable `json:"enable,omitempty"`
+}
+
+func (vm *VM) handleUpgradeBytes(upgradeBytes []byte) error {
+	var upgradeArr []upgrade
+
+	if err := json.Unmarshal(upgradeBytes, &upgradeArr); err != nil {
+		return fmt.Errorf("failed to unmarshal upgrade config %s: %w", string(upgradeBytes), err)
+	}
+
+	for i, u := range upgradeArr {
+		if i > 0 {
+			prev := upgradeArr[i-1]
+			if prev.BlockTimestamp < u.BlockTimestamp {
+				return fmt.Errorf("next blockTimestamp (%d) cannot be less than previous one (%d)", u.BlockTimestamp, prev.BlockTimestamp)
+			}
+		}
+
+		config, err := vm.getUpgradeConfig(u)
+		if err != nil {
+			return err
+		}
+
+		// set vm chain config
+		if u.Enable.ContractDeployerAllowListConfig != nil {
+			vm.chainConfig.ContractDeployerAllowListConfig = config.ContractDeployerAllowListConfig
+		}
+		if u.Enable.ContractNativeMinterConfig != nil {
+			vm.chainConfig.ContractNativeMinterConfig = config.ContractNativeMinterConfig
+		}
+		if u.Enable.TxAllowListConfig != nil {
+			vm.chainConfig.TxAllowListConfig = config.TxAllowListConfig
+		}
+		if u.Enable.FeeManagerConfig != nil {
+			vm.chainConfig.FeeManagerConfig = config.FeeManagerConfig
+		}
+	}
+	return nil
+}
+
+func (vm *VM) getUpgradeConfig(u upgrade) (*params.ChainConfig, error) {
+	if u.Enable == nil {
+		return nil, fmt.Errorf("upgrade enable at blockTimestamp (%d) is empty", u.BlockTimestamp)
+	}
+	c := new(params.ChainConfig)
+	// set all config blocktimestamps with upgrade timestamp
+	if u.Enable.ContractDeployerAllowListConfig != nil {
+		u.Enable.ContractDeployerAllowListConfig.BlockTimestamp = new(big.Int).SetUint64(u.BlockTimestamp)
+		c.ContractDeployerAllowListConfig = *u.Enable.ContractDeployerAllowListConfig
+	}
+	if u.Enable.ContractNativeMinterConfig != nil {
+		u.Enable.ContractNativeMinterConfig.BlockTimestamp = new(big.Int).SetUint64(u.BlockTimestamp)
+		c.ContractNativeMinterConfig = *u.Enable.ContractNativeMinterConfig
+	}
+	if u.Enable.TxAllowListConfig != nil {
+		u.Enable.TxAllowListConfig.BlockTimestamp = new(big.Int).SetUint64(u.BlockTimestamp)
+		c.TxAllowListConfig = *u.Enable.TxAllowListConfig
+	}
+	if u.Enable.FeeManagerConfig != nil {
+		u.Enable.FeeManagerConfig.BlockTimestamp = new(big.Int).SetUint64(u.BlockTimestamp)
+		c.FeeManagerConfig = *u.Enable.FeeManagerConfig
+	}
+
+	header := vm.chain.APIBackend().CurrentHeader()
+	time := big.NewInt(int64(header.Time))
+	return c, vm.chainConfig.CheckPrecompilesIncompatible(c, time)
 }
 
 func (vm *VM) initializeMetrics() error {
@@ -556,11 +640,6 @@ func (vm *VM) SetPreference(blkID ids.ID) error {
 	return vm.chain.SetPreference(block.(*Block).ethBlock)
 }
 
-func (vm *VM) VerifyHeightIndex() error {
-	// our index is vm.chain.GetBlockByNumber
-	return nil
-}
-
 // GetBlockIDAtHeight retrieves the blkID of the canonical block at [blkHeight]
 // if [blkHeight] is less than the height of the last accepted block, this will return
 // a canonical block. Otherwise, it may return a blkID that has not yet been accepted.
@@ -677,12 +756,6 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 		return 0, err
 	}
 	return state.GetNonce(address), nil
-}
-
-// currentRules returns the chain rules for the current block.
-func (vm *VM) currentRules() params.Rules {
-	header := vm.chain.APIBackend().CurrentHeader()
-	return vm.chainConfig.AvalancheRules(header.Number, big.NewInt(int64(header.Time)))
 }
 
 // getBlockValidator returns the block validator that should be used for a block that
