@@ -42,7 +42,6 @@ const WAGMI_FEES = {
   blockGasCostStep: 100_000 // blockGasCostStep
 }
 
-
 // TODO: These tests keep state to the next state. It means that some tests cases assumes some preconditions
 // set by previous test cases. We should make these tests stateless.
 describe("ExampleFeeManager", function () {
@@ -119,7 +118,7 @@ describe("ExampleFeeManager", function () {
     const testFees = {
       gasLimit: 12_345_678, // gasLimit
       targetBlockRate: 2, // targetBlockRate
-      minBaseFee: 123_456_789, // minBaseFee
+      minBaseFee: 1_234_567, // minBaseFee
       targetGas: 100_000_000, // targetGas
       baseFeeChangeDenominator: 48, // baseFeeChangeDenominator
       minBlockGasCost: 0, // minBlockGasCost
@@ -139,10 +138,15 @@ describe("ExampleFeeManager", function () {
 
     var res = await contract.getFeeConfigLastChangedAt()
     expect(res).to.be.equal(txRes.blockNumber)
+  })
 
+  it("admin should be able to enable wagmi fees through contract", async function () {
+    var res = await contract.getCurrentFeeConfig()
+    expect(res.gasLimit).to.be.not.equal(WAGMI_FEES.gasLimit)
+    expect(res.minBaseFee).to.be.not.equal(WAGMI_FEES.minBaseFee)
     // set wagmi fees now
-    enableTx = await contract.enableWAGMIFees()
-    txRes = await enableTx.wait()
+    let enableTx = await contract.enableWAGMIFees()
+    let txRes = await enableTx.wait()
 
     res = await contract.getCurrentFeeConfig()
     expect(res.gasLimit).to.be.equal(WAGMI_FEES.gasLimit)
@@ -175,7 +179,7 @@ describe("ExampleFeeManager", function () {
     let getRes = await contract.getCurrentFeeConfig()
     expect(getRes.minBaseFee).to.be.equal(C_FEES.minBaseFee)
 
-    var testMaxFeePerGas = C_FEES.minBaseFee - 10000
+    var testMaxFeePerGas = C_FEES.minBaseFee - 100000
 
     // send tx with lower han C_FEES minBaseFee
     try {
@@ -183,7 +187,7 @@ describe("ExampleFeeManager", function () {
         to: manager.address,
         value: ethers.utils.parseEther("0.1"),
         maxFeePerGas: testMaxFeePerGas,
-        maxPriorityFeePerGas: 0
+        maxPriorityFeePerGas: 10000
       });
       await tx.wait()
     }
