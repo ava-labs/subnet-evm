@@ -151,109 +151,108 @@ describe("ExampleFeeManager", function () {
     var res = await contract.getFeeConfigLastChangedAt()
     expect(res).to.be.equal(txRes.blockNumber)
   })
-})
 
-it("should let low fee tx to be in mempool", async function () {
-  var res = await contract.getCurrentFeeConfig()
-  expect(res.minBaseFee).to.be.equal(WAGMI_FEES.minBaseFee)
+  it("should let low fee tx to be in mempool", async function () {
+    var res = await contract.getCurrentFeeConfig()
+    expect(res.minBaseFee).to.be.equal(WAGMI_FEES.minBaseFee)
 
-  var testMaxFeePerGas = WAGMI_FEES.minBaseFee + 10000
+    var testMaxFeePerGas = WAGMI_FEES.minBaseFee + 10000
 
-  let tx = await owner.sendTransaction({
-    to: manager.address,
-    value: ethers.utils.parseEther("0.1"),
-    maxFeePerGas: testMaxFeePerGas,
-    maxPriorityFeePerGas: 0
-  });
-  let confirmedTx = await tx.wait()
-  expect(confirmedTx.confirmations).to.be.greaterThanOrEqual(1)
-})
-
-it("should not let low fee tx to be in mempool", async function () {
-
-  let enableTx = await contract.enableCustomFees(C_FEES)
-  await enableTx.wait()
-  let getRes = await contract.getCurrentFeeConfig()
-  expect(getRes.minBaseFee).to.be.equal(C_FEES.minBaseFee)
-
-  var testMaxFeePerGas = C_FEES.minBaseFee - 10000
-
-  // send tx with lower han C_FEES minBaseFee
-  try {
     let tx = await owner.sendTransaction({
       to: manager.address,
       value: ethers.utils.parseEther("0.1"),
       maxFeePerGas: testMaxFeePerGas,
       maxPriorityFeePerGas: 0
     });
-    await tx.wait()
-  }
-  catch (err) {
-    expect(err.toString()).to.include("transaction underpriced")
-    return
-  }
-  expect.fail("should have errored")
-})
+    let confirmedTx = await tx.wait()
+    expect(confirmedTx.confirmations).to.be.greaterThanOrEqual(1)
+  })
 
-it("should be able to get current fee config", async function () {
-  let enableTx = await contract.enableCustomFees(C_FEES,
-    {
-      maxFeePerGas: C_FEES.minBaseFee * 2,
-      maxPriorityFeePerGas: 0
-    })
-  await enableTx.wait()
+  it("should not let low fee tx to be in mempool", async function () {
 
-  var res = await contract.getCurrentFeeConfig()
-  expect(res.gasLimit).to.be.equal(C_FEES.gasLimit)
+    let enableTx = await contract.enableCustomFees(C_FEES)
+    await enableTx.wait()
+    let getRes = await contract.getCurrentFeeConfig()
+    expect(getRes.minBaseFee).to.be.equal(C_FEES.minBaseFee)
 
-  var res = await contract.connect(manager).getCurrentFeeConfig()
-  expect(res.gasLimit).to.be.equal(C_FEES.gasLimit)
+    var testMaxFeePerGas = C_FEES.minBaseFee - 10000
 
-  var res = await contract.connect(nonEnabled).getCurrentFeeConfig()
-  expect(res.gasLimit).to.be.equal(C_FEES.gasLimit)
-});
+    // send tx with lower han C_FEES minBaseFee
+    try {
+      let tx = await owner.sendTransaction({
+        to: manager.address,
+        value: ethers.utils.parseEther("0.1"),
+        maxFeePerGas: testMaxFeePerGas,
+        maxPriorityFeePerGas: 0
+      });
+      await tx.wait()
+    }
+    catch (err) {
+      expect(err.toString()).to.include("transaction underpriced")
+      return
+    }
+    expect.fail("should have errored")
+  })
 
-it("nonEnabled should not be able to set fee config", async function () {
-  let nonEnabledRole = await ownerPrecompile.readAllowList(nonEnabled.address);
-
-  expect(nonEnabledRole).to.be.equal(ROLES.NONE)
-  try {
-    await contract.connect(nonEnabled).enableWAGMIFees({
-      maxFeePerGas: C_FEES.minBaseFee * 2,
-      maxPriorityFeePerGas: 0
-    })
-  }
-  catch (err) {
-    return
-  }
-  expect.fail("should have errored")
-})
-
-it("manager should be able to change fees through contract", async function () {
-  let enableTx = await contract.connect(manager).enableCustomFees(WAGMI_FEES,
-    {
-      maxFeePerGas: C_FEES.minBaseFee * 2,
-      maxPriorityFeePerGas: 0
-    })
-  await enableTx.wait()
-
-  var res = await contract.connect(manager).getCurrentFeeConfig()
-  expect(res.minBaseFee).to.be.equal(WAGMI_FEES.minBaseFee)
-})
-
-
-it("non-enabled should not be able to change fees through contract", async function () {
-  try {
-    let enableTx = await contract.connect(nonEnabled).enableCustomFees(WAGMI_FEES,
+  it("should be able to get current fee config", async function () {
+    let enableTx = await contract.enableCustomFees(C_FEES,
       {
-        maxFeePerGas: WAGMI_FEES.minBaseFee * 2,
+        maxFeePerGas: C_FEES.minBaseFee * 2,
         maxPriorityFeePerGas: 0
       })
     await enableTx.wait()
-  }
-  catch (err) {
-    return
-  }
-  expect.fail("should have errored")
-})
+
+    var res = await contract.getCurrentFeeConfig()
+    expect(res.gasLimit).to.be.equal(C_FEES.gasLimit)
+
+    var res = await contract.connect(manager).getCurrentFeeConfig()
+    expect(res.gasLimit).to.be.equal(C_FEES.gasLimit)
+
+    var res = await contract.connect(nonEnabled).getCurrentFeeConfig()
+    expect(res.gasLimit).to.be.equal(C_FEES.gasLimit)
+  });
+
+  it("nonEnabled should not be able to set fee config", async function () {
+    let nonEnabledRole = await ownerPrecompile.readAllowList(nonEnabled.address);
+
+    expect(nonEnabledRole).to.be.equal(ROLES.NONE)
+    try {
+      await contract.connect(nonEnabled).enableWAGMIFees({
+        maxFeePerGas: C_FEES.minBaseFee * 2,
+        maxPriorityFeePerGas: 0
+      })
+    }
+    catch (err) {
+      return
+    }
+    expect.fail("should have errored")
+  })
+
+  it("manager should be able to change fees through contract", async function () {
+    let enableTx = await contract.connect(manager).enableCustomFees(WAGMI_FEES,
+      {
+        maxFeePerGas: C_FEES.minBaseFee * 2,
+        maxPriorityFeePerGas: 0
+      })
+    await enableTx.wait()
+
+    var res = await contract.connect(manager).getCurrentFeeConfig()
+    expect(res.minBaseFee).to.be.equal(WAGMI_FEES.minBaseFee)
+  })
+
+
+  it("non-enabled should not be able to change fees through contract", async function () {
+    try {
+      let enableTx = await contract.connect(nonEnabled).enableCustomFees(WAGMI_FEES,
+        {
+          maxFeePerGas: WAGMI_FEES.minBaseFee * 2,
+          maxPriorityFeePerGas: 0
+        })
+      await enableTx.wait()
+    }
+    catch (err) {
+      return
+    }
+    expect.fail("should have errored")
+  })
 })

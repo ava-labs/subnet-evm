@@ -30,7 +30,7 @@ contract ExampleFeeManager is AllowList {
 
   function enableWAGMIFees() public onlyEnabled {
     feeManager.setFeeConfig(
-      20_000_0000, // gasLimit
+      20_000_000, // gasLimit
       2, // targetBlockRate
       1_000_000_000, // minBaseFee
       100_000_000, // targetGas
