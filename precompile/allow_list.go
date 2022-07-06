@@ -146,15 +146,15 @@ func createAllowListRoleSetter(precompileAddr common.Address, role AllowListRole
 			return nil, 0, err
 		}
 
-		if readOnly {
-			return nil, remainingGas, vmerrs.ErrWriteProtection
-		}
-
 		if len(input) != allowListInputLen {
 			return nil, remainingGas, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
 		}
 
 		modifyAddress := common.BytesToAddress(input)
+
+		if readOnly {
+			return nil, remainingGas, vmerrs.ErrWriteProtection
+		}
 
 		stateDB := evm.GetStateDB()
 

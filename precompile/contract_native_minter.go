@@ -12,6 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+const (
+	mintInputAddressSlot = iota
+	mintInputAmountSlot
+)
+
 var (
 	_ StatefulPrecompileConfig = &ContractNativeMinterConfig{}
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
@@ -79,8 +84,8 @@ func UnpackMintInput(input []byte) (common.Address, *big.Int, error) {
 	if len(input) != mintInputLen {
 		return common.Address{}, nil, fmt.Errorf("invalid input length for minting: %d", len(input))
 	}
-	to := common.BytesToAddress(returnPackedHash(input, 0))
-	assetAmount := new(big.Int).SetBytes(returnPackedHash(input, 1))
+	to := common.BytesToAddress(returnPackedHash(input, mintInputAddressSlot))
+	assetAmount := new(big.Int).SetBytes(returnPackedHash(input, mintInputAmountSlot))
 	return to, assetAmount, nil
 }
 
