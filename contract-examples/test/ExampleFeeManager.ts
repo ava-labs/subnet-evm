@@ -145,7 +145,10 @@ describe("ExampleFeeManager", function () {
     expect(res.gasLimit).to.be.not.equal(WAGMI_FEES.gasLimit)
     expect(res.minBaseFee).to.be.not.equal(WAGMI_FEES.minBaseFee)
     // set wagmi fees now
-    let enableTx = await contract.enableWAGMIFees()
+    let enableTx = await contract.enableWAGMIFees({
+      maxFeePerGas: WAGMI_FEES.minBaseFee * 2,
+      maxPriorityFeePerGas: WAGMI_FEES.minBaseFee
+    })
     let txRes = await enableTx.wait()
 
     res = await contract.getCurrentFeeConfig()
