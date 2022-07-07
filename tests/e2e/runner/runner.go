@@ -106,9 +106,9 @@ done:
 		logsDir = resp.GetClusterInfo().GetRootDataDir()
 
 		for chainID, vmInfo := range resp.ClusterInfo.CustomVms {
-			if vmInfo.VmID == vmId.String() {
+			if vmInfo.VmId == vmId.String() {
 				blockchainID = chainID
-				outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", v)
+				outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", vmInfo)
 				break done
 			}
 		}
