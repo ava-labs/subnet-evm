@@ -73,13 +73,6 @@ func startRunner(vmName string, genesisPath string, pluginDir string) error {
 	return nil
 }
 
-func checkRunnerHealth() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	_, err := cli.Health(ctx)
-	cancel()
-	return err
-}
-
 func WaitForCustomVm(vmId ids.ID) (string, string, error) {
 	blockchainID, logsDir := "", ""
 
