@@ -29,7 +29,6 @@ var (
 
 	execPath  string
 	pluginDir string
-	logLevel  string
 
 	vmGenesisPath string
 	outputPath    string
@@ -62,12 +61,6 @@ func init() {
 		"avalanchego-path",
 		"",
 		"avalanchego executable path",
-	)
-	flag.StringVar(
-		&logLevel,
-		"avalanchego-log-level",
-		"INFO",
-		"avalanchego log level",
 	)
 	flag.StringVar(
 		&pluginDir,

@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	runner_sdk "github.com/ava-labs/avalanche-network-runner-sdk"
+	"github.com/ava-labs/avalanche-network-runner/client"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
 	"github.com/onsi/ginkgo/v2/formatter"
@@ -17,9 +17,8 @@ import (
 
 var (
 	execPath string
-	logLevel string
 
-	cli runner_sdk.Client
+	cli client.Client
 )
 
 type clusterInfo struct {
@@ -39,7 +38,7 @@ func (ci clusterInfo) Save(p string) error {
 	return os.WriteFile(p, ob, fsModeWrite)
 }
 
-func GetClient() runner_sdk.Client {
+func GetClient() client.Client {
 	return cli
 }
 
@@ -47,7 +46,7 @@ func InitializeRunner(execPath_ string, grpcEp string, networkRunnerLogLevel str
 	execPath = execPath_
 
 	var err error
-	cli, err = runner_sdk.New(runner_sdk.Config{
+	cli, err = client.New(client.Config{
 		LogLevel:    networkRunnerLogLevel,
 		Endpoint:    grpcEp,
 		DialTimeout: 10 * time.Second,
@@ -62,9 +61,8 @@ func startRunner(vmName string, genesisPath string, pluginDir string) error {
 	resp, err := cli.Start(
 		ctx,
 		execPath,
-		runner_sdk.WithLogLevel(logLevel),
-		runner_sdk.WithPluginDir(pluginDir),
-		runner_sdk.WithCustomVMs(map[string]string{
+		client.WithPluginDir(pluginDir),
+		client.WithCustomVMs(map[string]string{
 			vmName: genesisPath,
 		}))
 	cancel()
