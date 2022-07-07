@@ -6,7 +6,6 @@ package e2e
 
 import (
 	"flag"
-	"fmt"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -127,9 +126,10 @@ var _ = ginkgo.BeforeSuite(func() {
 var _ = ginkgo.AfterSuite(func() {
 	// if cluster is running, shut it down
 	running := runner.IsRunnerUp()
-	fmt.Println("Cluster running status:", running)
 	if running {
-		err := runner.ShutdownClient()
+		err := runner.StopNetwork()
 		gomega.Expect(err).Should(gomega.BeNil())
 	}
+	err := runner.ShutdownClient()
+	gomega.Expect(err).Should(gomega.BeNil())
 })

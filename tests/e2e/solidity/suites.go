@@ -35,6 +35,11 @@ func startSubnet(genesisPath string) error {
 	return utils.UpdateHardhatConfig()
 }
 
+func stopSubnet() {
+	err := runner.StopNetwork()
+	gomega.Expect(err).Should(gomega.BeNil())
+}
+
 var _ = utils.DescribePrecompile("[TX Allow List]", func() {
 	ginkgo.BeforeAll(func() {
 		b := make([]byte, 32)
@@ -52,8 +57,9 @@ var _ = utils.DescribePrecompile("[TX Allow List]", func() {
 		running := runner.IsRunnerUp()
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ExampleTxAllowList.ts")
-		err = runner.StopNetwork()
-		gomega.Expect(err).Should(gomega.BeNil())
+		stopSubnet()
+		running = runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 
 	ginkgo.It("tx allow list 2", func() {
@@ -62,7 +68,8 @@ var _ = utils.DescribePrecompile("[TX Allow List]", func() {
 		running := runner.IsRunnerUp()
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ExampleTxAllowList.ts")
-		err = runner.StopNetwork()
-		gomega.Expect(err).Should(gomega.BeNil())
+		stopSubnet()
+		running = runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 })
