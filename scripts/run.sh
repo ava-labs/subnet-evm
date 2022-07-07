@@ -44,35 +44,32 @@ echo MODE: ${MODE}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
-if [ ! -f /tmp/avalanchego-v${VERSION}/avalanchego ]
-then
-    ############################
-    # download avalanchego
-    # https://github.com/ava-labs/avalanchego/releases
-    GOARCH=$(go env GOARCH)
-    GOOS=$(go env GOOS)
-    DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-linux-${GOARCH}-v${VERSION}.tar.gz
-    DOWNLOAD_PATH=/tmp/avalanchego.tar.gz
-    if [[ ${GOOS} == "darwin" ]]; then
-      DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-macos-v${VERSION}.zip
-      DOWNLOAD_PATH=/tmp/avalanchego.zip
-    fi
-
-    rm -rf /tmp/avalanchego-v${VERSION}
-    rm -f ${DOWNLOAD_PATH}
-
-    echo "downloading avalanchego ${VERSION} at ${DOWNLOAD_URL}"
-    curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
-
-    echo "extracting downloaded avalanchego"
-    if [[ ${GOOS} == "linux" ]]; then
-      tar xzvf ${DOWNLOAD_PATH} -C /tmp
-    elif [[ ${GOOS} == "darwin" ]]; then
-      unzip ${DOWNLOAD_PATH} -d /tmp/avalanchego-build
-      mv /tmp/avalanchego-build/build /tmp/avalanchego-v${VERSION}
-    fi
-    find /tmp/avalanchego-v${VERSION}
+############################
+# download avalanchego
+# https://github.com/ava-labs/avalanchego/releases
+GOARCH=$(go env GOARCH)
+GOOS=$(go env GOOS)
+DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-linux-${GOARCH}-v${VERSION}.tar.gz
+DOWNLOAD_PATH=/tmp/avalanchego.tar.gz
+if [[ ${GOOS} == "darwin" ]]; then
+  DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-macos-v${VERSION}.zip
+  DOWNLOAD_PATH=/tmp/avalanchego.zip
 fi
+
+rm -rf /tmp/avalanchego-v${VERSION}
+rm -f ${DOWNLOAD_PATH}
+
+echo "downloading avalanchego ${VERSION} at ${DOWNLOAD_URL}"
+curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
+
+echo "extracting downloaded avalanchego"
+if [[ ${GOOS} == "linux" ]]; then
+  tar xzvf ${DOWNLOAD_PATH} -C /tmp
+elif [[ ${GOOS} == "darwin" ]]; then
+  unzip ${DOWNLOAD_PATH} -d /tmp/avalanchego-build
+  mv /tmp/avalanchego-build/build /tmp/avalanchego-v${VERSION}
+fi
+find /tmp/avalanchego-v${VERSION}
 
 AVALANCHEGO_PATH=/tmp/avalanchego-v${VERSION}/avalanchego
 AVALANCHEGO_PLUGIN_DIR=/tmp/avalanchego-v${VERSION}/plugins
@@ -192,28 +189,25 @@ fi
 # }
 # EOF
 
-if [ ! -f /tmp/avalanche-network-runner ]
-then
-    #################################
-    # download avalanche-network-runner
-    # https://github.com/ava-labs/avalanche-network-runner
-    # TODO: use "go install -v github.com/ava-labs/avalanche-network-runner/cmd/avalanche-network-runner@v${NETWORK_RUNNER_VERSION}"
-    NETWORK_RUNNER_VERSION=1.0.16
-    DOWNLOAD_PATH=/tmp/avalanche-network-runner.tar.gz
-    DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
-    if [[ ${GOOS} == "darwin" ]]; then
-      DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_darwin_amd64.tar.gz
-    fi
-
-    rm -f ${DOWNLOAD_PATH}
-    rm -f /tmp/avalanche-network-runner
-
-    echo "downloading avalanche-network-runner ${NETWORK_RUNNER_VERSION} at ${DOWNLOAD_URL}"
-    curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
-
-    echo "extracting downloaded avalanche-network-runner"
-    tar xzvf ${DOWNLOAD_PATH} -C /tmp
+#################################
+# download avalanche-network-runner
+# https://github.com/ava-labs/avalanche-network-runner
+# TODO: use "go install -v github.com/ava-labs/avalanche-network-runner/cmd/avalanche-network-runner@v${NETWORK_RUNNER_VERSION}"
+NETWORK_RUNNER_VERSION=1.1.3
+DOWNLOAD_PATH=/tmp/avalanche-network-runner.tar.gz
+DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
+if [[ ${GOOS} == "darwin" ]]; then
+  DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_darwin_amd64.tar.gz
 fi
+
+rm -f ${DOWNLOAD_PATH}
+rm -f /tmp/avalanche-network-runner
+
+echo "downloading avalanche-network-runner ${NETWORK_RUNNER_VERSION} at ${DOWNLOAD_URL}"
+curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
+
+echo "extracting downloaded avalanche-network-runner"
+tar xzvf ${DOWNLOAD_PATH} -C /tmp
 
 #################################
 # run "avalanche-network-runner" server
@@ -243,7 +237,6 @@ if [[ ${E2E} == true ]]; then
   --network-runner-grpc-endpoint="0.0.0.0:12342" \
   --avalanchego-path=${AVALANCHEGO_PATH} \
   --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
-  --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
   --output-path=/tmp/avalanchego-v${VERSION}/output.yaml \
   --mode=${MODE}
 
