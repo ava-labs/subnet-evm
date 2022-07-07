@@ -180,21 +180,17 @@ func StartNetwork(vmId ids.ID, vmName string, genesisPath string, pluginDir stri
 	return GetClusterInfo(blockchainId, logsDir)
 }
 
-func ShutdownCluster() error {
-	outf("{{red}}shutting down cluster{{/}}\n")
+func StopNetwork() error {
+	outf("{{red}}shutting down network{{/}}\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	_, err := cli.Stop(ctx)
 	cancel()
-	if err != nil {
-		return err
-	}
+	return err
+}
 
+func ShutdownClient() error {
 	outf("{{red}}shutting down client{{/}}\n")
-	err = cli.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return cli.Close()
 }
 
 func outf(format string, args ...interface{}) {

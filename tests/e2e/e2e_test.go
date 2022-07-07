@@ -129,7 +129,7 @@ var _ = ginkgo.AfterSuite(func() {
 	running := runner.IsRunnerUp()
 	fmt.Println("Cluster running status:", running)
 	if running {
-		err := runner.ShutdownCluster()
+		err := runner.ShutdownClient()
 		gomega.Expect(err).Should(gomega.BeNil())
 	}
 })

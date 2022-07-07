@@ -52,5 +52,17 @@ var _ = utils.DescribePrecompile("[TX Allow List]", func() {
 		running := runner.IsRunnerUp()
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ExampleTxAllowList.ts")
+		err = runner.StopNetwork()
+		gomega.Expect(err).Should(gomega.BeNil())
+	})
+
+	ginkgo.It("tx allow list 2", func() {
+		err := startSubnet("./tests/e2e/genesis/tx_allow_list_genesis.json")
+		gomega.Expect(err).Should(gomega.BeNil())
+		running := runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeTrue())
+		runHardhatTests("./test/ExampleTxAllowList.ts")
+		err = runner.StopNetwork()
+		gomega.Expect(err).Should(gomega.BeNil())
 	})
 })
