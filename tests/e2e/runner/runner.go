@@ -95,11 +95,23 @@ done:
 
 		outf("{{magenta}}checking custom VM status{{/}}\n")
 		cctx, ccancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		resp, err := cli.Status(cctx)
+		resp, err := cli.Health(cctx)
 		ccancel()
 		if err != nil {
 			cancel()
 			return "", "", err
+		}
+
+		if resp.ClusterInfo == nil {
+			continue
+		}
+
+		if !resp.ClusterInfo.Healthy {
+			continue
+		}
+
+		if !resp.ClusterInfo.CustomVmsHealthy {
+			continue
 		}
 
 		// all logs are stored under root data dir
@@ -163,14 +175,6 @@ func StartNetwork(vmId ids.ID, vmName string, genesisPath string, pluginDir stri
 	fmt.Println("Starting network")
 	startRunner(vmName, genesisPath, pluginDir)
 
-	// TODO: network runner health should imply custom VM healthiness
-	// or provide a separate API for custom VM healthiness
-	// "start" is async, so wait some time for cluster health
-	fmt.Println("About to sleep")
-	time.Sleep(2 * time.Minute)
-	checkRunnerHealth()
-
-	fmt.Println("Health checked")
 	blockchainId, logsDir, err := WaitForCustomVm(vmId)
 	if err != nil {
 		return clusterInfo{}, err
