@@ -105,10 +105,12 @@ done:
 		// all logs are stored under root data dir
 		logsDir = resp.GetClusterInfo().GetRootDataDir()
 
-		if v, ok := resp.ClusterInfo.CustomVms[vmId.String()]; ok {
-			blockchainID = v.BlockchainId
-			outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", v)
-			break done
+		for chainID, vmInfo := range resp.ClusterInfo.CustomVms {
+			if vmInfo.VmID == vmId.String() {
+				blockchainID = chainID
+				outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", v)
+				break done
+			}
 		}
 	}
 	err := ctx.Err()
