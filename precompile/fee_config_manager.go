@@ -301,7 +301,7 @@ func getFeeConfigLastChangedAt(accessibleState PrecompileAccessibleState, caller
 
 // createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract
 // with getters and setters for the chain's fee config. Access to the getters/setters
-// is controlled by an allow list for [precompileAddr],
+// is controlled by an allow list for [precompileAddr].
 func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	feeConfigManagerFunctions := createAllowListFunctions(precompileAddr)
 
