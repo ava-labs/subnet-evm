@@ -18,7 +18,7 @@ var (
 )
 
 // TxAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
-// interface while adding in the contract deployer specific precompile address.
+// interface while adding in the TxAllowList specific precompile address.
 type TxAllowListConfig struct {
 	AllowListConfig
 }
