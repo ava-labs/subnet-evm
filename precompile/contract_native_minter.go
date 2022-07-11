@@ -15,6 +15,8 @@ import (
 const (
 	mintInputAddressSlot = iota
 	mintInputAmountSlot
+
+	mintInputLen = common.HashLength + common.HashLength
 )
 
 var (
@@ -24,8 +26,6 @@ var (
 
 	mintSignature = CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
 	ErrCannotMint = errors.New("non-enabled cannot mint")
-
-	mintInputLen = common.HashLength + common.HashLength
 )
 
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig

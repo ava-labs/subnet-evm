@@ -27,8 +27,7 @@ func CalcBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, par
 
 	if !isSubnetEVM || parent.Number.Cmp(common.Big0) == 0 {
 		initialSlice := make([]byte, extraDataSize)
-		minBaseFee := feeConfig.MinBaseFee
-		return initialSlice, minBaseFee, nil
+		return initialSlice, feeConfig.MinBaseFee, nil
 	}
 	if len(parent.Extra) != extraDataSize {
 		return nil, nil, fmt.Errorf("expected length of parent extra data to be %d, but found %d", extraDataSize, len(parent.Extra))
