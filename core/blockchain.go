@@ -103,9 +103,9 @@ const (
 	statsReportLimit = 8 * time.Second
 )
 
-// cachableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
+// cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
 // in order to cache them together.
-type cachableFeeConfig struct {
+type cacheableFeeConfig struct {
 	feeConfig     commontype.FeeConfig
 	lastChangedAt *big.Int
 }

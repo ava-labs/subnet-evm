@@ -119,11 +119,11 @@ func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Add
 
 // createNativeMinterPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr] and a native coin minter.
 func createNativeMinterPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
-	allowListFuncs := createAllowListFunctions(precompileAddr)
+	enabledFuncs := createAllowListFunctions(precompileAddr)
 
 	mintFunc := newStatefulPrecompileFunction(mintSignature, mintNativeCoin)
 
-	enabledFuncs := append(allowListFuncs, mintFunc)
+	enabledFuncs = append(enabledFuncs, mintFunc)
 	// Construct the contract with no fallback function.
 	contract := newStatefulPrecompileWithFunctionSelectors(nil, enabledFuncs)
 	return contract

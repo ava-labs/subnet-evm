@@ -362,9 +362,9 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 
 	// try to return it from the cache
 	if cached, hit := bc.feeConfigCache.Get(parent.Root); hit {
-		cachedFeeConfig, ok := cached.(*cachableFeeConfig)
+		cachedFeeConfig, ok := cached.(*cacheableFeeConfig)
 		if !ok {
-			return commontype.EmptyFeeConfig, nil, fmt.Errorf("expected type cachableFeeConfig, got %T", cached)
+			return commontype.EmptyFeeConfig, nil, fmt.Errorf("expected type cacheableFeeConfig, got %T", cached)
 		}
 		return cachedFeeConfig.feeConfig, cachedFeeConfig.lastChangedAt, nil
 	}
@@ -376,8 +376,8 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 
 	storedFeeConfig := precompile.GetStoredFeeConfig(stateDB)
 	lastChangedAt := precompile.GetFeeConfigLastChangedAt(stateDB)
-	cachable := &cachableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
+	cacheable := &cacheableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache
-	bc.feeConfigCache.Add(parent.Root, cachable)
+	bc.feeConfigCache.Add(parent.Root, cacheable)
 	return storedFeeConfig, lastChangedAt, nil
 }
