@@ -27,6 +27,9 @@ const (
 	blockGasCostStepKey
 	// add new fields above this
 	numFeeConfigField = iota - 1
+
+	// [numFeeConfigField] fields in FeeConfig struct
+	feeConfigInputLen = common.HashLength * numFeeConfigField
 )
 
 var (
@@ -38,9 +41,6 @@ var (
 	setFeeConfigSignature              = CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
 	getFeeConfigSignature              = CalculateFunctionSelector("getFeeConfig()")
 	getFeeConfigLastChangedAtSignature = CalculateFunctionSelector("getFeeConfigLastChangedAt()")
-
-	// 8 fields in FeeConfig struct
-	feeConfigInputLen = common.HashLength * numFeeConfigField
 
 	feeConfigLastChangedAtKey = common.Hash{'l', 'c', 'a'}
 
@@ -237,8 +237,8 @@ func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig, blockContex
 	return nil
 }
 
-// setFeeConfig checks if the caller is permissioned for setting fee config operation.
-// The execution function parses the [input] into FeeConfig structure and sets contract storage accordingly.
+// setFeeConfig checks if the caller has permissions to set the fee config.
+// The execution function parses [input] into FeeConfig structure and sets contract storage accordingly.
 func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = deductGas(suppliedGas, SetFeeConfigGasCost); err != nil {
 		return nil, 0, err
@@ -269,7 +269,7 @@ func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Addre
 }
 
 // getFeeConfig returns the stored fee config as an output.
-// The execution function reads the contract state for the stored fee config and returns the output accordingly.
+// The execution function reads the contract state for the stored fee config and returns the output.
 func getFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = deductGas(suppliedGas, GetFeeConfigGasCost); err != nil {
 		return nil, 0, err
@@ -282,12 +282,12 @@ func getFeeConfig(accessibleState PrecompileAccessibleState, caller common.Addre
 		return nil, remainingGas, err
 	}
 
-	// Return an empty output and the remaining gas
+	// Return the fee config as output and the remaining gas
 	return output, remainingGas, err
 }
 
 // getFeeConfigLastChangedAt returns the block number that fee config was last changed in.
-// The execution function reads the contract state for the stored block number and returns the output accordingly.
+// The execution function reads the contract state for the stored block number and returns the output.
 func getFeeConfigLastChangedAt(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = deductGas(suppliedGas, GetLastChangedAtGasCost); err != nil {
 		return nil, 0, err
@@ -299,8 +299,9 @@ func getFeeConfigLastChangedAt(accessibleState PrecompileAccessibleState, caller
 	return common.BigToHash(lastChangedAt).Bytes(), remainingGas, err
 }
 
-// createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr],
-// and a storage setter for fee configs.
+// createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract
+// with getters and setters for the chain's fee config. Access to the getters/setters
+// is controlled by an allow list for [precompileAddr],
 func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	feeConfigManagerFunctions := createAllowListFunctions(precompileAddr)
 
