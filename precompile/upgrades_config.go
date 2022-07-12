@@ -31,16 +31,28 @@ func (c *UpgradesConfig) MarshalJSON() ([]byte, error) {
 // Upgrade specifies a single network upgrade that may
 // enable or disable a set of precompiles.
 type Upgrade struct {
-	BlockTimestamp *big.Int     `json:"blockTimestamp"`
-	Enable         *upgradeable `json:"enable,omitempty"`
-	Disable        *upgradeable `json:"disable,omitempty"`
+	BlockTimestamp *big.Int `json:"blockTimestamp"`
+
+	enable
+	disable
 }
 
-type upgradeable struct {
+// enable is a helper struct embedded in Upgrade, representing
+// configs of stateful precompiles being enabled after Upgrade occurs.
+type enable struct {
 	ContractDeployerAllowListConfig *ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      *ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+}
+
+// disable is a helper struct embedded in Upgrade, representing
+// stateful precompiles being disabled after Upgrade occurs.
+type disable struct {
+	DisableContractDeployerAllowList *struct{} `json:"disableContractDeployerAllowList,omitempty"`
+	DisableContractNativeMinter      *struct{} `json:"disableContractNativeMinter,omitempty"`
+	DisableTxAllowList               *struct{} `json:"disableTxAllowList,omitempty"`
+	DisableFeeManager                *struct{} `json:"disableFeeManager,omitempty"`
 }
 
 // TODO: Validate the config
@@ -49,7 +61,7 @@ type upgradeable struct {
 func (c *UpgradesConfig) AddContractDeployerAllowListUpgrade(blockTimestamp *big.Int, config *ContractDeployerAllowListConfig) {
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
-		Enable: &upgradeable{
+		enable: enable{
 			ContractDeployerAllowListConfig: config,
 		},
 	})
@@ -59,7 +71,7 @@ func (c *UpgradesConfig) AddContractDeployerAllowListUpgrade(blockTimestamp *big
 func (c *UpgradesConfig) AddContractNativeMinterUpgrade(blockTimestamp *big.Int, config *ContractNativeMinterConfig) {
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
-		Enable: &upgradeable{
+		enable: enable{
 			ContractNativeMinterConfig: config,
 		},
 	})
@@ -69,7 +81,7 @@ func (c *UpgradesConfig) AddContractNativeMinterUpgrade(blockTimestamp *big.Int,
 func (c *UpgradesConfig) AddTxAllowListUpgrade(blockTimestamp *big.Int, config *TxAllowListConfig) {
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
-		Enable: &upgradeable{
+		enable: enable{
 			TxAllowListConfig: config,
 		},
 	})
@@ -79,7 +91,7 @@ func (c *UpgradesConfig) AddTxAllowListUpgrade(blockTimestamp *big.Int, config *
 func (c *UpgradesConfig) AddFeeManagerUpgrade(blockTimestamp *big.Int, config *FeeConfigManagerConfig) {
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
-		Enable: &upgradeable{
+		enable: enable{
 			FeeManagerConfig: config,
 		},
 	})
@@ -92,17 +104,13 @@ func (c *UpgradesConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.
 	for i := len(c.Upgrades) - 1; i >= 0; i-- {
 		upgrade := c.Upgrades[i]
 		// check disable first
-		if upgrade.Disable != nil {
-			if upgrade.Disable.ContractDeployerAllowListConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
-				return nil
-			}
+		if upgrade.DisableContractDeployerAllowList != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
+			return nil
 		}
 
 		// then check enables
-		if upgrade.Enable != nil {
-			if upgrade.Enable.ContractDeployerAllowListConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
-				return upgrade.Enable.ContractDeployerAllowListConfig
-			}
+		if upgrade.ContractDeployerAllowListConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
+			return upgrade.ContractDeployerAllowListConfig
 		}
 	}
 	return nil
@@ -115,17 +123,13 @@ func (c *UpgradesConfig) GetContractNativeMinterConfig(blockTimestamp *big.Int) 
 	for i := len(c.Upgrades) - 1; i >= 0; i-- {
 		upgrade := c.Upgrades[i]
 		// check disable first
-		if upgrade.Disable != nil {
-			if upgrade.Disable.ContractNativeMinterConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
-				return nil
-			}
+		if upgrade.DisableContractNativeMinter != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
+			return nil
 		}
 
 		// then check enables
-		if upgrade.Enable != nil {
-			if upgrade.Enable.ContractNativeMinterConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
-				return upgrade.Enable.ContractNativeMinterConfig
-			}
+		if upgrade.ContractNativeMinterConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
+			return upgrade.ContractNativeMinterConfig
 		}
 	}
 	return nil
@@ -138,17 +142,13 @@ func (c *UpgradesConfig) GetTxAllowListConfig(blockTimestamp *big.Int) *TxAllowL
 	for i := len(c.Upgrades) - 1; i >= 0; i-- {
 		upgrade := c.Upgrades[i]
 		// check disable first
-		if upgrade.Disable != nil {
-			if upgrade.Disable.TxAllowListConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
-				return nil
-			}
+		if upgrade.DisableTxAllowList != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
+			return nil
 		}
 
 		// then check enables
-		if upgrade.Enable != nil {
-			if upgrade.Enable.TxAllowListConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
-				return upgrade.Enable.TxAllowListConfig
-			}
+		if upgrade.TxAllowListConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
+			return upgrade.TxAllowListConfig
 		}
 	}
 	return nil
@@ -161,17 +161,13 @@ func (c *UpgradesConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *Fee
 	for i := len(c.Upgrades) - 1; i >= 0; i-- {
 		upgrade := c.Upgrades[i]
 		// check disable first
-		if upgrade.Disable != nil {
-			if upgrade.Disable.FeeManagerConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
-				return nil
-			}
+		if upgrade.DisableFeeManager != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
+			return nil
 		}
 
 		// then check enables
-		if upgrade.Enable != nil {
-			if upgrade.Enable.FeeManagerConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
-				return upgrade.Enable.FeeManagerConfig
-			}
+		if upgrade.FeeManagerConfig != nil && utils.IsForked(upgrade.BlockTimestamp, blockTimestamp) {
+			return upgrade.FeeManagerConfig
 		}
 	}
 	return nil
@@ -246,35 +242,31 @@ func (c *UpgradesConfig) CheckConfigure(chainConfig ChainConfig, parentTimestamp
 		// If [upgrade] goes into effect within this transition, configure the stateful precompile
 		if utils.IsForkTransition(upgrade.BlockTimestamp, parentTimestamp, blockContext.Timestamp()) {
 			// handle disables first (in case an upgrade is disabled and enabled in the same fork)
-			if upgrade.Disable != nil {
-				if upgrade.Disable.ContractDeployerAllowListConfig != nil {
-					Deconfigure(upgrade.Disable.ContractDeployerAllowListConfig, statedb)
-				}
-				if upgrade.Disable.ContractNativeMinterConfig != nil {
-					Deconfigure(upgrade.Disable.ContractNativeMinterConfig, statedb)
-				}
-				if upgrade.Disable.TxAllowListConfig != nil {
-					Deconfigure(upgrade.Disable.TxAllowListConfig, statedb)
-				}
-				if upgrade.Disable.FeeManagerConfig != nil {
-					Deconfigure(upgrade.Disable.FeeManagerConfig, statedb)
-				}
+			if upgrade.DisableContractDeployerAllowList != nil {
+				Deconfigure(ContractDeployerAllowListAddress, statedb)
+			}
+			if upgrade.DisableContractNativeMinter != nil {
+				Deconfigure(ContractNativeMinterAddress, statedb)
+			}
+			if upgrade.DisableTxAllowList != nil {
+				Deconfigure(TxAllowListAddress, statedb)
+			}
+			if upgrade.DisableFeeManager != nil {
+				Deconfigure(FeeConfigManagerAddress, statedb)
 			}
 
 			// handle upgrades that are enabled
-			if upgrade.Enable != nil {
-				if upgrade.Enable.ContractDeployerAllowListConfig != nil {
-					Configure(chainConfig, blockContext, upgrade.Enable.ContractDeployerAllowListConfig, statedb)
-				}
-				if upgrade.Enable.ContractNativeMinterConfig != nil {
-					Configure(chainConfig, blockContext, upgrade.Enable.ContractNativeMinterConfig, statedb)
-				}
-				if upgrade.Enable.TxAllowListConfig != nil {
-					Configure(chainConfig, blockContext, upgrade.Enable.TxAllowListConfig, statedb)
-				}
-				if upgrade.Enable.FeeManagerConfig != nil {
-					Configure(chainConfig, blockContext, upgrade.Enable.FeeManagerConfig, statedb)
-				}
+			if upgrade.ContractDeployerAllowListConfig != nil {
+				Configure(chainConfig, blockContext, upgrade.ContractDeployerAllowListConfig, statedb)
+			}
+			if upgrade.ContractNativeMinterConfig != nil {
+				Configure(chainConfig, blockContext, upgrade.ContractNativeMinterConfig, statedb)
+			}
+			if upgrade.TxAllowListConfig != nil {
+				Configure(chainConfig, blockContext, upgrade.TxAllowListConfig, statedb)
+			}
+			if upgrade.FeeManagerConfig != nil {
+				Configure(chainConfig, blockContext, upgrade.FeeManagerConfig, statedb)
 			}
 		}
 	}
