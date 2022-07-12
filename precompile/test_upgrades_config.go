@@ -58,7 +58,7 @@ func (c *UpgradesConfig) DisableContractDeployerAllowListUpgrade(blockTimestamp 
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
 		disable: disable{
-			DisableTxAllowList: &struct{}{},
+			DisableContractDeployerAllowList: &struct{}{},
 		},
 	})
 }
@@ -69,7 +69,7 @@ func (c *UpgradesConfig) DisableContractNativeMinterUpgrade(blockTimestamp *big.
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
 		disable: disable{
-			DisableTxAllowList: &struct{}{},
+			DisableContractNativeMinter: &struct{}{},
 		},
 	})
 }
@@ -91,7 +91,7 @@ func (c *UpgradesConfig) DisableFeeManagerUpgrade(blockTimestamp *big.Int) {
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
 		disable: disable{
-			DisableTxAllowList: &struct{}{},
+			DisableFeeManager: &struct{}{},
 		},
 	})
 }
