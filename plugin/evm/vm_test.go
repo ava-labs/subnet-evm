@@ -2339,6 +2339,153 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
 }
 
+// Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
+// and the allowlist is removed after the precompile is disabled.
+func TestTxAllowListDisablePrecompile(t *testing.T) {
+	// Setup chain params
+	genesis := &core.Genesis{}
+	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
+		t.Fatal(err)
+	}
+	genesis.Config.PrecompileUpgradesConfig.AddTxAllowListUpgrade(
+		big.NewInt(0),
+		&precompile.TxAllowListConfig{
+			AllowListConfig: precompile.AllowListConfig{
+				AllowListAdmins: testEthAddrs[0:1],
+			},
+		},
+	)
+	genesisJSON, err := genesis.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+
+	defer func() {
+		if err := vm.Shutdown(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+	vm.chain.GetTxPool().SubscribeNewReorgEvent(newTxPoolHeadChan)
+
+	genesisState, err := vm.chain.BlockChain().StateAt(vm.chain.GetGenesisBlock().Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that address 0 is whitelisted and address 1 is not
+	role := precompile.GetTxAllowListStatus(genesisState, testEthAddrs[0])
+	if role != precompile.AllowListAdmin {
+		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", precompile.AllowListAdmin, role)
+	}
+	role = precompile.GetTxAllowListStatus(genesisState, testEthAddrs[1])
+	if role != precompile.AllowListNoRole {
+		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", precompile.AllowListNoRole, role)
+	}
+
+	// Submit a successful transaction
+	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	assert.NoError(t, err)
+
+	err = vm.chain.GetTxPool().AddRemote(signedTx0)
+	if err != nil {
+		t.Fatalf("Failed to add tx at index: %s", err)
+	}
+
+	// Submit a rejected transaction, should throw an error
+	tx1 := types.NewTransaction(uint64(0), testEthAddrs[1], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = vm.chain.GetTxPool().AddRemote(signedTx1)
+	if err == nil {
+		t.Fatal("Tx not rejected at index")
+	}
+
+	// patch in a network upgrade to remove the allowlist
+	disableAllowListTimestamp := big.NewInt(time.Now().Unix())
+	precompileConfig := &vm.chain.BlockChain().Config().PrecompileUpgradesConfig
+	precompileConfig.DisableTxAllowListUpgrade(disableAllowListTimestamp)
+
+	// Construct the block
+	<-issuer
+
+	blk, err := vm.BuildBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := blk.Verify(); err != nil {
+		t.Fatal(err)
+	}
+
+	if status := blk.Status(); status != choices.Processing {
+		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
+	}
+
+	if err := vm.SetPreference(blk.ID()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := blk.Accept(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify that the constructed block only has the whitelisted tx
+	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	txs := block.Transactions()
+	if txs.Len() != 1 {
+		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
+	}
+	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
+
+	// verify the issued block is after the network upgrade
+	assert.True(t, block.Timestamp().Cmp(disableAllowListTimestamp) >= 0)
+
+	// retry the rejected Tx, which should now succeed
+	err = vm.chain.GetTxPool().AddRemote(signedTx1)
+	if err != nil {
+		t.Fatalf("Failed to add tx at index: %s", err)
+	}
+
+	// Construct the block
+	<-issuer
+
+	blk, err = vm.BuildBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := blk.Verify(); err != nil {
+		t.Fatal(err)
+	}
+
+	if status := blk.Status(); status != choices.Processing {
+		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
+	}
+
+	if err := vm.SetPreference(blk.ID()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := blk.Accept(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify that the constructed block only has the previously rejected tx
+	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	txs = block.Transactions()
+	if txs.Len() != 1 {
+		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
+	}
+	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
+}
+
 // Test that the fee manager changes fee configuration
 func TestFeeManagerChangeFee(t *testing.T) {
 	// Setup chain params
