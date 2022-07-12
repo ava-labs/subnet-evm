@@ -233,7 +233,7 @@ func TestVMNilConfig(t *testing.T) {
 	assert.NoError(t, vm.Shutdown())
 }
 
-func TestVMContinuosProfiler(t *testing.T) {
+func TestVMContinuousProfiler(t *testing.T) {
 	profilerDir := t.TempDir()
 	profilerFrequency := 500 * time.Millisecond
 	configJSON := fmt.Sprintf("{\"continuous-profiler-dir\": %q,\"continuous-profiler-frequency\": \"500ms\"}", profilerDir)
@@ -2454,6 +2454,8 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	}
 
 	// Construct the block
+	time.Sleep(2 * time.Second)
+
 	<-issuer
 
 	blk, err = vm.BuildBlock()
@@ -2483,7 +2485,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	if txs.Len() != 1 {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
 	}
-	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
+	assert.Equal(t, signedTx1.Hash(), txs[0].Hash())
 }
 
 // Test that the fee manager changes fee configuration
