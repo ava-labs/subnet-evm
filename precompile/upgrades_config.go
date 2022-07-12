@@ -57,7 +57,8 @@ type disable struct {
 
 // TODO: Validate the config
 
-// AddContractDeployerAllowListUpgrade adds a ContractDeployerAllowListConfig upgrade at [blockTimestamp].
+// AddContractDeployerAllowListUpgrade adds a ContractDeployerAllowListConfig
+// upgrade at [blockTimestamp].
 func (c *UpgradesConfig) AddContractDeployerAllowListUpgrade(blockTimestamp *big.Int, config *ContractDeployerAllowListConfig) {
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
@@ -67,7 +68,8 @@ func (c *UpgradesConfig) AddContractDeployerAllowListUpgrade(blockTimestamp *big
 	})
 }
 
-// AddContractNativeMinterUpgrade adds a ContractNativeMinterConfig upgrade at [blockTimestamp].
+// AddContractNativeMinterUpgrade adds a ContractNativeMinterConfig upgrade at
+// [blockTimestamp].
 func (c *UpgradesConfig) AddContractNativeMinterUpgrade(blockTimestamp *big.Int, config *ContractNativeMinterConfig) {
 	c.Upgrades = append(c.Upgrades, Upgrade{
 		BlockTimestamp: blockTimestamp,
@@ -97,8 +99,52 @@ func (c *UpgradesConfig) AddFeeManagerUpgrade(blockTimestamp *big.Int, config *F
 	})
 }
 
-// GetContractDeployerAllowListConfig returns the latest ContractDeployerAllowListConfig specified by [c] or nil if
-// ContractDeployerAllowListConfig was disabled or never enabled.
+// DisableContractDeployerAllowListUpgrade disables a previously added
+// ContractDeployerAllowListConfig upgrade at [blockTimestamp].
+func (c *UpgradesConfig) DisableContractDeployerAllowListUpgrade(blockTimestamp *big.Int) {
+	c.Upgrades = append(c.Upgrades, Upgrade{
+		BlockTimestamp: blockTimestamp,
+		disable: disable{
+			DisableTxAllowList: &struct{}{},
+		},
+	})
+}
+
+// DisableContractNativeMinterUpgrade disables a previously added
+// ContractDeployerAllowListConfig upgrade at [blockTimestamp].
+func (c *UpgradesConfig) DisableContractNativeMinterUpgrade(blockTimestamp *big.Int) {
+	c.Upgrades = append(c.Upgrades, Upgrade{
+		BlockTimestamp: blockTimestamp,
+		disable: disable{
+			DisableTxAllowList: &struct{}{},
+		},
+	})
+}
+
+// DisableTxAllowListUpgrade disables a previously added TxAllowListConfig
+// upgrade at [blockTimestamp].
+func (c *UpgradesConfig) DisableTxAllowListUpgrade(blockTimestamp *big.Int) {
+	c.Upgrades = append(c.Upgrades, Upgrade{
+		BlockTimestamp: blockTimestamp,
+		disable: disable{
+			DisableTxAllowList: &struct{}{},
+		},
+	})
+}
+
+// DisableFeeManagerUpgrade disables a previously added FeeConfigManagerConfig
+// upgrade at [blockTimestamp].
+func (c *UpgradesConfig) DisableFeeManagerUpgrade(blockTimestamp *big.Int) {
+	c.Upgrades = append(c.Upgrades, Upgrade{
+		BlockTimestamp: blockTimestamp,
+		disable: disable{
+			DisableTxAllowList: &struct{}{},
+		},
+	})
+}
+
+// GetContractDeployerAllowListConfig returns the latest ContractDeployerAllowListConfig
+// specified by [c] or nil if ContractDeployerAllowListConfig was disabled or never enabled.
 func (c *UpgradesConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.Int) *ContractDeployerAllowListConfig {
 	// loop backwards on all upgrades
 	for i := len(c.Upgrades) - 1; i >= 0; i-- {
@@ -116,8 +162,8 @@ func (c *UpgradesConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.
 	return nil
 }
 
-// GetContractNativeMinterConfig returns the latest ContractNativeMinterConfig specified by [c] or nil if
-// ContractNativeMinterConfig was disabled or never enabled.
+// GetContractNativeMinterConfig returns the latest ContractNativeMinterConfig specified
+// by [c] or nil if ContractNativeMinterConfig was disabled or never enabled.
 func (c *UpgradesConfig) GetContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNativeMinterConfig {
 	// loop backwards on all upgrades
 	for i := len(c.Upgrades) - 1; i >= 0; i-- {
