@@ -4,6 +4,7 @@
 package precompile
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -14,7 +15,17 @@ import (
 // UpgradesConfig includes a list of network upgrades.
 // Upgrades must be sorted in increasing order of BlockTimestamp.
 type UpgradesConfig struct {
-	Upgrades []Upgrade `json:"upgrades,omitempty"`
+	Upgrades []Upgrade
+}
+
+// UnmarshalJSON directly unmarshals [data] into [c.Upgrades] (to avoid a nested map)
+func (c *UpgradesConfig) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &c.Upgrades)
+}
+
+// MarshalJSON directly returns the marshalled json for [c.Upgrades] (to avoid a nested map)
+func (c *UpgradesConfig) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.Upgrades)
 }
 
 // Upgrade specifies a single network upgrade that may
