@@ -14,7 +14,7 @@ import (
 // UpgradesConfig includes a list of network upgrades.
 // Upgrades must be sorted in increasing order of BlockTimestamp.
 type UpgradesConfig struct {
-	Upgrades []Upgrade `json:"upgrades,omitEmpty"`
+	Upgrades []Upgrade `json:"upgrades,omitempty"`
 }
 
 // Upgrade specifies a single network upgrade that may
