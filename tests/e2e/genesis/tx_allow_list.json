@@ -23,14 +23,18 @@
       "blockGasCostStep": 500000
     },
     "precompileUpgrades": {
-      "blockTimestamp": 0,
-      "enable": {
-        "txAllowListConfig": {
-          "adminAddresses": [
-            "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-          ]
+      "upgrades": [
+        {
+          "blockTimestamp": 0,
+          "enable": {
+            "txAllowListConfig": {
+              "adminAddresses": [
+                "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+              ]
+            }
+          }
         }
-      }
+      ]
     }
   },
   "alloc": {
