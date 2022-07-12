@@ -177,7 +177,7 @@ func (c *UpgradesConfig) CheckCompatible(newcfg *UpgradesConfig, headTimestamp *
 			// to allow modifying upgrades that have not forked yet.
 			break
 		}
-		if len(newcfg.Upgrades) < i {
+		if len(newcfg.Upgrades) <= i {
 			// missing upgrade
 			return utils.NewCompatError(
 				fmt.Sprintf("missing PrecompileUpgradeConfig[%d]", i),
