@@ -31,16 +31,10 @@ var (
 	allowListInputLen = common.HashLength
 )
 
-// AllowListConfig specifies the configuration of the allow list.
-// Specifies the block timestamp at which it goes into effect as well as the initial set of allow list admins.
+// AllowListConfig specifies the initial set of allow list admins.
 type AllowListConfig struct {
-	BlockTimestamp *big.Int `json:"blockTimestamp"`
-
 	AllowListAdmins []common.Address `json:"adminAddresses"`
 }
-
-// Timestamp returns the timestamp at which the allow list should be enabled
-func (c *AllowListConfig) Timestamp() *big.Int { return c.BlockTimestamp }
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].

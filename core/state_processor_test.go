@@ -308,8 +308,7 @@ func TestStateProcessorErrors(t *testing.T) {
 // non-whitelisted TX Allow List address.
 func TestBadTxAllowListBlock(t *testing.T) {
 	var (
-		db = rawdb.NewMemoryDatabase()
-
+		db       = rawdb.NewMemoryDatabase()
 		testAddr = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
 
 		config = &params.ChainConfig{
@@ -326,12 +325,6 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			MuirGlacierBlock:    big.NewInt(0),
 			SubnetEVMTimestamp:  big.NewInt(0),
 			FeeConfig:           params.DefaultFeeConfig,
-			TxAllowListConfig: precompile.TxAllowListConfig{
-				AllowListConfig: precompile.AllowListConfig{
-					BlockTimestamp:  big.NewInt(0),
-					AllowListAdmins: []common.Address{},
-				},
-			},
 		}
 		signer     = types.LatestSigner(config)
 		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -349,6 +342,15 @@ func TestBadTxAllowListBlock(t *testing.T) {
 		}
 		genesis       = gspec.MustCommit(db)
 		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec.Config, dummy.NewFaker(), vm.Config{}, common.Hash{})
+	)
+
+	config.PrecompileUpgradesConfig.AddTxAllowListUpgrade(
+		big.NewInt(0),
+		&precompile.TxAllowListConfig{
+			AllowListConfig: precompile.AllowListConfig{
+				AllowListAdmins: []common.Address{},
+			},
+		},
 	)
 
 	mkDynamicTx := func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {

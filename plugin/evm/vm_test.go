@@ -2151,12 +2151,14 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.ContractDeployerAllowListConfig = precompile.ContractDeployerAllowListConfig{
-		AllowListConfig: precompile.AllowListConfig{
-			BlockTimestamp:  big.NewInt(time.Now().Unix()),
-			AllowListAdmins: testEthAddrs,
+	genesis.Config.PrecompileUpgradesConfig.AddContractDeployerAllowListUpgrade(
+		big.NewInt(time.Now().Unix()),
+		&precompile.ContractDeployerAllowListConfig{
+			AllowListConfig: precompile.AllowListConfig{
+				AllowListAdmins: testEthAddrs,
+			},
 		},
-	}
+	)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2241,13 +2243,14 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-
-	genesis.Config.TxAllowListConfig = precompile.TxAllowListConfig{
-		AllowListConfig: precompile.AllowListConfig{
-			BlockTimestamp:  big.NewInt(0),
-			AllowListAdmins: testEthAddrs[0:1],
+	genesis.Config.PrecompileUpgradesConfig.AddTxAllowListUpgrade(
+		big.NewInt(0),
+		&precompile.TxAllowListConfig{
+			AllowListConfig: precompile.AllowListConfig{
+				AllowListAdmins: testEthAddrs[0:1],
+			},
 		},
-	}
+	)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2343,13 +2346,14 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-
-	genesis.Config.FeeManagerConfig = precompile.FeeConfigManagerConfig{
-		AllowListConfig: precompile.AllowListConfig{
-			BlockTimestamp:  big.NewInt(0),
-			AllowListAdmins: testEthAddrs[0:1],
+	genesis.Config.PrecompileUpgradesConfig.AddFeeManagerUpgrade(
+		big.NewInt(0),
+		&precompile.FeeConfigManagerConfig{
+			AllowListConfig: precompile.AllowListConfig{
+				AllowListAdmins: testEthAddrs[0:1],
+			},
 		},
-	}
+	)
 
 	// set a lower fee config now
 	testLowFeeConfig := commontype.FeeConfig{
@@ -2389,7 +2393,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	// Check that address 0 is whitelisted and address 1 is not
 	role := precompile.GetFeeConfigManagerStatus(genesisState, testEthAddrs[0])
 	if role != precompile.AllowListAdmin {
-		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
+		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
 	}
 	role = precompile.GetFeeConfigManagerStatus(genesisState, testEthAddrs[1])
 	if role != precompile.AllowListNoRole {

@@ -39,6 +39,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -136,7 +137,7 @@ func TestSetupGenesis(t *testing.T) {
 			},
 			wantHash:   customghash,
 			wantConfig: customg.Config,
-			wantErr: &params.ConfigCompatError{
+			wantErr: &utils.ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredConfig: big.NewInt(90),
 				NewConfig:    big.NewInt(100),
@@ -183,12 +184,14 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
-				config.ContractDeployerAllowListConfig = precompile.ContractDeployerAllowListConfig{
-					AllowListConfig: precompile.AllowListConfig{
-						BlockTimestamp:  big.NewInt(0),
-						AllowListAdmins: []common.Address{addr},
+				config.PrecompileUpgradesConfig.AddContractDeployerAllowListUpgrade(
+					big.NewInt(0),
+					&precompile.ContractDeployerAllowListConfig{
+						AllowListConfig: precompile.AllowListConfig{
+							AllowListAdmins: []common.Address{addr},
+						},
 					},
-				}
+				)
 				return &config
 			},
 			assertState: func(t *testing.T, sdb *state.StateDB) {
