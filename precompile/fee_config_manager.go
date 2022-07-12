@@ -48,7 +48,7 @@ var (
 )
 
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
-// interface while adding in the contract deployer specific precompile address.
+// interface while adding in the FeeConfigManager specific precompile address.
 type FeeConfigManagerConfig struct {
 	AllowListConfig // Config for the fee config manager allow list
 }

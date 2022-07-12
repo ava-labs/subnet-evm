@@ -29,7 +29,7 @@ var (
 )
 
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
-// interface while adding in the contract deployer specific precompile address.
+// interface while adding in the ContractNativeMinter specific precompile address.
 type ContractNativeMinterConfig struct {
 	AllowListConfig
 }

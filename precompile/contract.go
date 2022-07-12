@@ -30,7 +30,7 @@ type BlockContext interface {
 
 // ChainConfig provides an interface for accessing the chain configuration information.
 type ChainConfig interface {
-	// GetFeeConfig returns the original FeeConfig
+	// GetFeeConfig returns the original FeeConfig that was set in the genesis.
 	GetFeeConfig() commontype.FeeConfig
 }
 

@@ -240,9 +240,6 @@ func (oracle *Oracle) estimateNextBaseFee(ctx context.Context) (*big.Int, error)
 		return nil, err
 	}
 
-	// If the block does have a baseFee, calculate the next base fee
-	// based on the current time and add it to the tip to estimate the
-	// total gas price estimate.
 	feeConfig, _, err := oracle.backend.GetFeeConfigAt(block.Header())
 	if err != nil {
 		return nil, err
