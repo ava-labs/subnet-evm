@@ -2274,7 +2274,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	// Check that address 0 is whitelisted and address 1 is not
 	role := precompile.GetTxAllowListStatus(genesisState, testEthAddrs[0])
 	if role != precompile.AllowListAdmin {
-		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", precompile.AllowListAdmin, role)
+		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", precompile.AllowListAdmin, role)
 	}
 	role = precompile.GetTxAllowListStatus(genesisState, testEthAddrs[1])
 	if role != precompile.AllowListNoRole {
@@ -2447,15 +2447,17 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	// verify the issued block is after the network upgrade
 	assert.True(t, block.Timestamp().Cmp(disableAllowListTimestamp) >= 0)
 
+	// wait between blocks for gas price and txPool to process chain event
+	// TODO: is it possible to fix this?
+	time.Sleep(2 * time.Second)
+
 	// retry the rejected Tx, which should now succeed
-	err = vm.chain.GetTxPool().AddRemote(signedTx1)
-	if err != nil {
+	errs := vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx1})
+	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
 	// Construct the block
-	time.Sleep(2 * time.Second)
-
 	<-issuer
 
 	blk, err = vm.BuildBlock()
