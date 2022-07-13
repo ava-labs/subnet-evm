@@ -84,8 +84,8 @@ var (
 		AllowFeeRecipients:  false,
 	}
 
-	TestChainConfig        = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), DefaultFeeConfig, false, precompile.ContractDeployerAllowListConfig{}, precompile.ContractNativeMinterConfig{}, precompile.TxAllowListConfig{}}
-	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, DefaultFeeConfig, false, precompile.ContractDeployerAllowListConfig{}, precompile.ContractNativeMinterConfig{}, precompile.TxAllowListConfig{}}
+	TestChainConfig        = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), DefaultFeeConfig, false, precompile.ContractDeployerAllowListConfig{}, precompile.ContractNativeMinterConfig{}, precompile.TxAllowListConfig{}, precompile.HelloWorldConfig{}}
+	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, DefaultFeeConfig, false, precompile.ContractDeployerAllowListConfig{}, precompile.ContractNativeMinterConfig{}, precompile.TxAllowListConfig{}, precompile.HelloWorldConfig{}}
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -119,6 +119,8 @@ type ChainConfig struct {
 	ContractDeployerAllowListConfig precompile.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
+
+	HelloWorldConfig precompile.HelloWorldConfig `json:"helloWorldConfig,omitempty"` // Config for the hello world precompile
 }
 
 // FeeConfig specifies the parameters for the dynamic fee algorithm, which determines the gas limit, base fee, and block gas cost of blocks
@@ -169,7 +171,7 @@ func (c *ChainConfig) String() string {
 	if err != nil {
 		feeBytes = []byte("cannot unmarshal FeeConfig")
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, ContractDeployerAllowListConfig: %v, ContractNativeMinterConfig: %v, TxAllowListConfig: %v, Engine: Dummy Consensus Engine}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, ContractDeployerAllowListConfig: %v, ContractNativeMinterConfig: %v, TxAllowListConfig: %v, HelloWorldConfig: %v, Engine: Dummy Consensus Engine}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.EIP150Block,
@@ -186,6 +188,7 @@ func (c *ChainConfig) String() string {
 		c.ContractDeployerAllowListConfig,
 		c.ContractNativeMinterConfig,
 		c.TxAllowListConfig,
+		c.HelloWorldConfig,
 	)
 }
 
@@ -254,6 +257,11 @@ func (c *ChainConfig) IsContractNativeMinter(blockTimestamp *big.Int) bool {
 // IsTxAllowList returns whether [blockTimestamp] is either equal to the TxAllowList fork block timestamp or greater.
 func (c *ChainConfig) IsTxAllowList(blockTimestamp *big.Int) bool {
 	return utils.IsForked(c.TxAllowListConfig.Timestamp(), blockTimestamp)
+}
+
+// IsHelloWorld returns whether [blockTimestamp] is either equal to the HelloWorld fork block timestamp or greater.
+func (c *ChainConfig) IsHelloWorld(blockTimestamp *big.Int) bool {
+	return utils.IsForked(c.HelloWorldConfig.Timestamp(), blockTimestamp)
 }
 
 // GetFeeConfig returns the *FeeConfig if it exists, otherwise it returns [DefaultFeeConfig()].
@@ -416,6 +424,11 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 
 	// TODO verify that the fee config is fully compatible between [c] and [newcfg].
 
+	// Check that the configuration of the HelloWorld config is compatible.
+	if isForkIncompatible(c.HelloWorldConfig.Timestamp(), newcfg.HelloWorldConfig.Timestamp(), headTimestamp) {
+		return newCompatError("HelloWorld fork block timestamp", c.HelloWorldConfig.Timestamp(), newcfg.HelloWorldConfig.Timestamp())
+	}
+
 	return nil
 }
 
@@ -483,6 +496,7 @@ type Rules struct {
 	IsContractDeployerAllowListEnabled bool
 	IsContractNativeMinterEnabled      bool
 	IsTxAllowListEnabled               bool
+	IsHelloWorld                       bool
 
 	// Precompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
@@ -519,6 +533,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsContractDeployerAllowListEnabled = c.IsContractDeployerAllowList(blockTimestamp)
 	rules.IsContractNativeMinterEnabled = c.IsContractNativeMinter(blockTimestamp)
 	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
+	rules.IsHelloWorld = c.IsHelloWorld(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)
@@ -546,6 +561,10 @@ func (c *ChainConfig) enabledStatefulPrecompiles() []precompile.StatefulPrecompi
 
 	if c.TxAllowListConfig.Timestamp() != nil {
 		statefulPrecompileConfigs = append(statefulPrecompileConfigs, &c.TxAllowListConfig)
+	}
+
+	if c.HelloWorldConfig.Timestamp() != nil {
+		statefulPrecompileConfigs = append(statefulPrecompileConfigs, &c.HelloWorldConfig)
 	}
 
 	return statefulPrecompileConfigs
