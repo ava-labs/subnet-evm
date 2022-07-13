@@ -4,13 +4,13 @@ set -e
 # e.g.,
 #
 # run without e2e tests
-# ./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 #
 # run without e2e tests with DEBUG log level
-# AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 #
 # run with e2e tests
-# E2E=true ./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# E2E=true ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -94,9 +94,10 @@ find /tmp/avalanchego-v${VERSION}
 
 # Create genesis file to use in network (make sure to add your address to
 # "alloc")
-export CHAIN_ID=99999
-echo "creating genesis"
-cat <<EOF > /tmp/genesis.json
+if [[ ${E2E} != true ]]; then
+  export CHAIN_ID=99999
+  echo "creating genesis"
+  cat <<EOF > /tmp/genesis.json
 {
   "config": {
     "chainId": $CHAIN_ID,
@@ -139,6 +140,7 @@ cat <<EOF > /tmp/genesis.json
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
 EOF
+fi
 
 # If you'd like to try the airdrop feature, use the commented genesis
 # cat <<EOF > /tmp/genesis.json
@@ -191,7 +193,7 @@ EOF
 # download avalanche-network-runner
 # https://github.com/ava-labs/avalanche-network-runner
 # TODO: use "go install -v github.com/ava-labs/avalanche-network-runner/cmd/avalanche-network-runner@v${NETWORK_RUNNER_VERSION}"
-NETWORK_RUNNER_VERSION=1.0.12
+NETWORK_RUNNER_VERSION=1.0.16
 DOWNLOAD_PATH=/tmp/avalanche-network-runner.tar.gz
 DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
 if [[ ${GOOS} == "darwin" ]]; then
@@ -206,14 +208,6 @@ curl -L ${DOWNLOAD_URL} -o ${DOWNLOAD_PATH}
 
 echo "extracting downloaded avalanche-network-runner"
 tar xzvf ${DOWNLOAD_PATH} -C /tmp
-/tmp/avalanche-network-runner -h
-
-#################################
-echo "building e2e.test"
-# to install the ginkgo binary (required for test build and run)
-go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
-ACK_GINKGO_RC=true ginkgo build ./tests/e2e
-./tests/e2e/e2e.test --help
 
 #################################
 # run "avalanche-network-runner" server
@@ -225,31 +219,37 @@ server \
 --grpc-gateway-port=":12343" &
 PID=${!}
 
-#################################
-# By default, it runs all e2e test cases!
-# Use "--ginkgo.skip" to skip tests.
-# Use "--ginkgo.focus" to select tests.
-echo "running e2e tests"
-./tests/e2e/e2e.test \
---ginkgo.v \
---network-runner-log-level debug \
---network-runner-grpc-endpoint="0.0.0.0:12342" \
---avalanchego-path=${AVALANCHEGO_PATH} \
---avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
---avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
---vm-genesis-path=/tmp/genesis.json \
---output-path=/tmp/avalanchego-v${VERSION}/output.yaml \
---mode=${MODE}
+if [[ ${E2E} == true ]]; then
+  #################################
+  echo "building e2e.test"
+  # to install the ginkgo binary (required for test build and run)
+  go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
+  ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 
-#################################
-# e.g., print out MetaMask endpoints
-if [[ -f "/tmp/avalanchego-v${VERSION}/output.yaml" ]]; then
-  echo "cluster is ready!"
-  go run scripts/parser/main.go /tmp/avalanchego-v${VERSION}/output.yaml $CHAIN_ID $GENESIS_ADDRESS
+  #################################
+  # By default, it runs all e2e test cases!
+  # Use "--ginkgo.skip" to skip tests.
+  # Use "--ginkgo.focus" to select tests.
+  echo "running e2e tests"
+  ./tests/e2e/e2e.test \
+  --ginkgo.v \
+  --network-runner-log-level debug \
+  --network-runner-grpc-endpoint="0.0.0.0:12342" \
+  --avalanchego-path=${AVALANCHEGO_PATH} \
+  --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+  --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
+  --output-path=/tmp/avalanchego-v${VERSION}/output.yaml \
+  --mode=${MODE}
+
+  EXIT_CODE=$?
 else
-  echo "cluster is not ready in time... terminating ${PID}"
-  kill ${PID}
-  exit 255
+  go run scripts/parser/main.go \
+    /tmp/avalanchego-v${VERSION}/output.yaml \
+    $CHAIN_ID $GENESIS_ADDRESS \
+    /tmp/avalanchego-v${VERSION}/avalanchego \
+    ${AVALANCHEGO_PLUGIN_DIR} \
+    "0.0.0.0:12342" \
+    "/tmp/genesis.json"
 fi
 
 #################################
@@ -265,8 +265,8 @@ else
   echo ""
   echo "use the following command to terminate:"
   echo ""
-  echo "pkill -P ${PID}"
-  echo "kill -2 ${PID}"
-  echo "pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+  echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
   echo ""
 fi
+
+exit ${EXIT_CODE}

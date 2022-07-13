@@ -31,8 +31,8 @@ import (
 	"bytes"
 	"encoding/binary"
 
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/metrics"
 )
 
 // The fields below define the low level database schema prefixing.
@@ -67,6 +67,9 @@ var (
 	// pruningDisabledKey tracks whether the node has ever run in archival mode
 	// to ensure that a user does not accidentally corrupt an archival node.
 	pruningDisabledKey = []byte("PruningDisabled")
+
+	// acceptorTipKey tracks the tip of the last accepted block that has been fully processed.
+	acceptorTipKey = []byte("AcceptorTipKey")
 
 	// Data item prefixes (use single byte to avoid mixing data types, avoid `i`, used for indexes).
 	headerPrefix       = []byte("h") // headerPrefix + num (uint64 big endian) + hash -> header
