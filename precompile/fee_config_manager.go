@@ -51,6 +51,7 @@ var (
 // interface while adding in the FeeConfigManager specific precompile address.
 type FeeConfigManagerConfig struct {
 	AllowListConfig // Config for the fee config manager allow list
+	UpgradeableConfig
 }
 
 // Address returns the address of the fee config manager contract.

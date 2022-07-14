@@ -32,6 +32,7 @@ var (
 // interface while adding in the ContractNativeMinter specific precompile address.
 type ContractNativeMinterConfig struct {
 	AllowListConfig
+	UpgradeableConfig
 }
 
 // Address returns the address of the native minter contract.

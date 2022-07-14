@@ -116,7 +116,7 @@ type ChainConfig struct {
 	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
 
-	PrecompileUpgradesConfig precompile.UpgradesConfig `json:"precompileUpgrades,omitempty"` // Config for enabling and disabling precompiles as network upgrades.
+	precompile.UpgradesConfig // Config for enabling and disabling precompiles as network upgrades.
 }
 
 // String implements the fmt.Stringer interface.
@@ -139,7 +139,7 @@ func (c *ChainConfig) String() string {
 		c.SubnetEVMTimestamp,
 		string(feeBytes),
 		c.AllowFeeRecipients,
-		c.PrecompileUpgradesConfig,
+		c.UpgradesConfig,
 	)
 }
 
@@ -197,22 +197,26 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 
 // IsContractDeployerAllowList returns whether [blockTimestamp] is either equal to the ContractDeployerAllowList fork block timestamp or greater.
 func (c *ChainConfig) IsContractDeployerAllowList(blockTimestamp *big.Int) bool {
-	return c.PrecompileUpgradesConfig.GetContractDeployerAllowListConfig(blockTimestamp) != nil
+	config := c.UpgradesConfig.GetContractDeployerAllowListConfig(blockTimestamp)
+	return config != nil && !config.Disable
 }
 
 // IsContractNativeMinter returns whether [blockTimestamp] is either equal to the NativeMinter fork block timestamp or greater.
 func (c *ChainConfig) IsContractNativeMinter(blockTimestamp *big.Int) bool {
-	return c.PrecompileUpgradesConfig.GetContractNativeMinterConfig(blockTimestamp) != nil
+	config := c.UpgradesConfig.GetContractNativeMinterConfig(blockTimestamp)
+	return config != nil && !config.Disable
 }
 
 // IsTxAllowList returns whether [blockTimestamp] is either equal to the TxAllowList fork block timestamp or greater.
 func (c *ChainConfig) IsTxAllowList(blockTimestamp *big.Int) bool {
-	return c.PrecompileUpgradesConfig.GetTxAllowListConfig(blockTimestamp) != nil
+	config := c.UpgradesConfig.GetTxAllowListConfig(blockTimestamp)
+	return config != nil && !config.Disable
 }
 
 // IsFeeConfigManager returns whether [blockTimestamp] is either equal to the FeeConfigManager fork block timestamp or greater.
 func (c *ChainConfig) IsFeeConfigManager(blockTimestamp *big.Int) bool {
-	return c.PrecompileUpgradesConfig.GetFeeConfigManagerConfig(blockTimestamp) != nil
+	config := c.UpgradesConfig.GetFeeConfigManagerConfig(blockTimestamp)
+	return config != nil && !config.Disable
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -360,7 +364,7 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 	}
 
 	// Check that the precompiles upgrades is compatible.
-	if err := c.PrecompileUpgradesConfig.CheckCompatible(&newcfg.PrecompileUpgradesConfig, headTimestamp); err != nil {
+	if err := c.UpgradesConfig.CheckCompatible(&newcfg.UpgradesConfig, headTimestamp); err != nil {
 		return err
 	}
 
@@ -442,7 +446,10 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)
-	for _, config := range c.PrecompileUpgradesConfig.ActiveStatefulPrecompiles(blockTimestamp) {
+	for _, config := range c.UpgradesConfig.ActiveStatefulPrecompiles(blockTimestamp) {
+		if config.IsDisabled() {
+			continue
+		}
 		rules.Precompiles[config.Address()] = config.Contract()
 	}
 
@@ -452,7 +459,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 // CheckConfigurePrecompiles iterates over any stateful precompile configs that go into effect at some point and configures them
 // if they are activated between [parentTimestamp] and [currentTimestamp].
 func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) {
-	c.PrecompileUpgradesConfig.CheckConfigure(c, parentTimestamp, blockContext, statedb)
+	c.UpgradesConfig.CheckConfigure(c, parentTimestamp, blockContext, statedb)
 }
 
 // GetFeeConfig returns the FeeConfig

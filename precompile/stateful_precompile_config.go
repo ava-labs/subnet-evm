@@ -4,6 +4,8 @@
 package precompile
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -11,6 +13,13 @@ import (
 type StatefulPrecompileConfig interface {
 	// Address returns the address where the stateful precompile is accessible.
 	Address() common.Address
+	// Timestamp returns the timestamp at which this stateful precompile should be enabled.
+	// 1) 0 indicates that the precompile should be enabled from genesis.
+	// 2) n indicates that the precompile should be enabled in the first block with timestamp >= [n].
+	// 3) nil indicates that the precompile is never enabled.
+	Timestamp() *big.Int
+	// IsDisabled returns true if this network upgrade should disable the precompile.
+	IsDisabled() bool
 	// Configure is called on the first block where the stateful precompile should be enabled.
 	// This allows the stateful precompile to configure its own state via [StateDB] and [BlockContext] as necessary.
 	// This function must be deterministic since it will impact the EVM state. If a change to the

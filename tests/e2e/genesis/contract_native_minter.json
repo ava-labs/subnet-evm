@@ -22,16 +22,12 @@
       "targetBlockRate": 2,
       "blockGasCostStep": 500000
     },
-    "precompileUpgrades": [
-      {
-        "blockTimestamp": 0,
-        "contractNativeMinterConfig": {
-          "adminAddresses": [
-            "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-          ]
-        }
-      }
-    ]
+    "contractNativeMinterConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": [
+        "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+      ]
+    }
   },
   "alloc": {
     "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {

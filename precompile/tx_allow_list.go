@@ -21,6 +21,7 @@ var (
 // interface while adding in the TxAllowList specific precompile address.
 type TxAllowListConfig struct {
 	AllowListConfig
+	UpgradeableConfig
 }
 
 // Address returns the address of the contract deployer allow list.

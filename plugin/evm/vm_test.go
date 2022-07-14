@@ -2151,14 +2151,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.PrecompileUpgradesConfig.AddContractDeployerAllowListUpgrade(
-		big.NewInt(time.Now().Unix()),
-		&precompile.ContractDeployerAllowListConfig{
-			AllowListConfig: precompile.AllowListConfig{
-				AllowListAdmins: testEthAddrs,
-			},
-		},
-	)
+	genesis.Config.UpgradesConfig.AddContractDeployerAllowListUpgrade(big.NewInt(time.Now().Unix()), testEthAddrs)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2243,14 +2236,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.PrecompileUpgradesConfig.AddTxAllowListUpgrade(
-		big.NewInt(0),
-		&precompile.TxAllowListConfig{
-			AllowListConfig: precompile.AllowListConfig{
-				AllowListAdmins: testEthAddrs[0:1],
-			},
-		},
-	)
+	genesis.Config.UpgradesConfig.AddTxAllowListUpgrade(big.NewInt(0), testEthAddrs[0:1])
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2347,14 +2333,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.PrecompileUpgradesConfig.AddTxAllowListUpgrade(
-		big.NewInt(0),
-		&precompile.TxAllowListConfig{
-			AllowListConfig: precompile.AllowListConfig{
-				AllowListAdmins: testEthAddrs[0:1],
-			},
-		},
-	)
+	genesis.Config.UpgradesConfig.AddTxAllowListUpgrade(big.NewInt(0), testEthAddrs[0:1])
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2409,7 +2388,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 
 	// patch in a network upgrade to remove the allowlist
 	disableAllowListTimestamp := big.NewInt(time.Now().Unix())
-	precompileConfig := &vm.chain.BlockChain().Config().PrecompileUpgradesConfig
+	precompileConfig := &vm.chain.BlockChain().Config().UpgradesConfig
 	precompileConfig.DisableTxAllowListUpgrade(disableAllowListTimestamp)
 
 	// Construct the block
@@ -2497,14 +2476,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.PrecompileUpgradesConfig.AddFeeManagerUpgrade(
-		big.NewInt(0),
-		&precompile.FeeConfigManagerConfig{
-			AllowListConfig: precompile.AllowListConfig{
-				AllowListAdmins: testEthAddrs[0:1],
-			},
-		},
-	)
+	genesis.Config.UpgradesConfig.AddFeeManagerUpgrade(big.NewInt(0), testEthAddrs[0:1])
 
 	// set a lower fee config now
 	testLowFeeConfig := commontype.FeeConfig{

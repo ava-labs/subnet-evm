@@ -17,6 +17,7 @@ var (
 // interface while adding in the contract deployer specific precompile address.
 type ContractDeployerAllowListConfig struct {
 	AllowListConfig
+	UpgradeableConfig
 }
 
 // Address returns the address of the contract deployer allow list.
