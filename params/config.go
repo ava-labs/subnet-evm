@@ -446,7 +446,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)
-	for _, config := range c.UpgradesConfig.ActiveStatefulPrecompiles(blockTimestamp) {
+	for _, config := range c.UpgradesConfig.EnabledStatefulPrecompiles(blockTimestamp) {
 		if config.IsDisabled() {
 			continue
 		}

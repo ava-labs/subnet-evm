@@ -133,13 +133,8 @@ func (c *UpgradesConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *Fee
 // are missing from [newcfg]. Upgrades that have not forked yet may be modified
 // or absent from [newcfg]. Returns nil if [newcfg] is compatible with [c].
 func (c *UpgradesConfig) CheckCompatible(newcfg *UpgradesConfig, headTimestamp *big.Int) *utils.ConfigCompatError {
-	newUpgrades := newcfg.ActiveStatefulPrecompiles(headTimestamp)
-	for i, upgrade := range c.ActiveStatefulPrecompiles(headTimestamp) {
-		if !utils.IsForked(upgrade.Timestamp(), headTimestamp) {
-			// we have checked all the forked upgrades, so we can break here
-			// to allow modifying upgrades that have not forked yet.
-			break
-		}
+	newUpgrades := newcfg.EnabledStatefulPrecompiles(headTimestamp)
+	for i, upgrade := range c.EnabledStatefulPrecompiles(headTimestamp) {
 		if len(newUpgrades) <= i {
 			// missing upgrade
 			return utils.NewCompatError(
@@ -162,9 +157,9 @@ func (c *UpgradesConfig) CheckCompatible(newcfg *UpgradesConfig, headTimestamp *
 	return nil // newcfg is compatible
 }
 
-// ActiveStatefulPrecompiles returns a slice of stateful precompiles that have been
-// activated through an upgrade but not deactivated yet.
-func (c *UpgradesConfig) ActiveStatefulPrecompiles(blockTimestamp *big.Int) []StatefulPrecompileConfig {
+// EnabledStatefulPrecompiles returns a slice of stateful precompile configss that
+// have been activated through an upgrade.
+func (c *UpgradesConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []StatefulPrecompileConfig {
 	statefulPrecompileConfigs := make([]StatefulPrecompileConfig, 0)
 	if config := c.GetContractDeployerAllowListConfig(blockTimestamp); config != nil {
 		statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
@@ -182,40 +177,23 @@ func (c *UpgradesConfig) ActiveStatefulPrecompiles(blockTimestamp *big.Int) []St
 	return statefulPrecompileConfigs
 }
 
-// Timestamp returns the timestamp of one of the specified upgrades.
-// Note: Block timestamps specified for upgrades must be the same if multiple are specified.
-func (u *upgrade) Get() *big.Int {
-	if u.ContractDeployerAllowListConfig != nil {
-		return u.ContractDeployerAllowListConfig.BlockTimestamp
-	}
-	if u.ContractNativeMinterConfig != nil {
-		return u.ContractDeployerAllowListConfig.BlockTimestamp
-	}
-	if u.TxAllowListConfig != nil {
-		return u.TxAllowListConfig.BlockTimestamp
-	}
-	if u.FeeManagerConfig != nil {
-		return u.TxAllowListConfig.BlockTimestamp
-	}
-	return nil
-}
-
 // CheckConfigure checks if any of the precompiles specified by [c] is enabled or disabled by the block transition
-// from [parentTimestamp] to [currentTimestamp]. If this is the case, it calls [Configure] or [Deconfigure] to apply
-// the necessary state transitions for the upgrade.
-// Note: this function is called within genesis to configure the starting state if it [config] specifies that it should be
-// configured at genesis, or happens during block processing to update the state before processing the given block.
+// from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure] or
+// [Deconfigure] to apply the necessary state transitions for the upgrade.
+// This function is called:
+// - within genesis setup to configure the starting state for precompiles enabled at genesis,
+// - during block processing to update the state before processing the given block.
 func (c *UpgradesConfig) CheckConfigure(chainConfig ChainConfig, parentTimestamp *big.Int, blockContext BlockContext, statedb StateDB) {
 	blockTimestamp := blockContext.Timestamp()
-	for _, config := range c.ActiveStatefulPrecompiles(blockTimestamp) {
-		// If [upgrade] goes into effect within this transition, configure the stateful precompile
+	for _, config := range c.EnabledStatefulPrecompiles(blockTimestamp) {
+		// If [config] this transition activates the upgrade, configure the stateful precompile.
+		// (or deconfigure it if it is being disabled.)
 		if utils.IsForkTransition(config.Timestamp(), parentTimestamp, blockTimestamp) {
 			if config.IsDisabled() {
 				Deconfigure(config.Address(), statedb)
 			} else {
 				Configure(chainConfig, blockContext, config, statedb)
 			}
-
 		}
 	}
 }
