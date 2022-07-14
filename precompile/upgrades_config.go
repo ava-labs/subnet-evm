@@ -21,8 +21,9 @@ type UpgradesConfig struct {
 	upgrade
 }
 
-// enable is a helper struct embedded in upgrade, representing
-// configs of stateful precompiles being enabled after upgrade occurs.
+// upgrade is a helper struct embedded in UpgradesConfig, representing
+// each of the possible stateful precompile types that can be activated
+// through UpgradesConfig.
 type upgrade struct {
 	ContractDeployerAllowListConfig *ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      *ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
