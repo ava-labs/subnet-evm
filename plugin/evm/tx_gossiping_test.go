@@ -42,8 +42,8 @@ func fundAddressByGenesis(addrs []common.Address) (string, error) {
 	genesis.Alloc = funds
 
 	genesis.Config = &params.ChainConfig{
-		ChainID:            params.TestChainConfig.ChainID,
-		SubnetEVMTimestamp: big.NewInt(0),
+		ChainID:         params.TestChainConfig.ChainID,
+		NetworkUpgrades: params.NetworkUpgrades{SubnetEVMTimestamp: big.NewInt(0)},
 	}
 
 	bytes, err := json.Marshal(genesis)

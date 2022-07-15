@@ -63,18 +63,20 @@ type Config struct {
 func setDefaults(cfg *Config) {
 	if cfg.ChainConfig == nil {
 		cfg.ChainConfig = &params.ChainConfig{
-			ChainID:             big.NewInt(1),
-			HomesteadBlock:      new(big.Int),
-			EIP150Block:         new(big.Int),
-			EIP150Hash:          common.Hash{},
-			EIP155Block:         new(big.Int),
-			EIP158Block:         new(big.Int),
-			ByzantiumBlock:      new(big.Int),
-			ConstantinopleBlock: new(big.Int),
-			PetersburgBlock:     new(big.Int),
-			IstanbulBlock:       new(big.Int),
-			MuirGlacierBlock:    new(big.Int),
-			SubnetEVMTimestamp:  new(big.Int),
+			ChainID: big.NewInt(1),
+			NetworkUpgrades: params.NetworkUpgrades{
+				HomesteadBlock:      new(big.Int),
+				EIP150Block:         new(big.Int),
+				EIP150Hash:          common.Hash{},
+				EIP155Block:         new(big.Int),
+				EIP158Block:         new(big.Int),
+				ByzantiumBlock:      new(big.Int),
+				ConstantinopleBlock: new(big.Int),
+				PetersburgBlock:     new(big.Int),
+				IstanbulBlock:       new(big.Int),
+				MuirGlacierBlock:    new(big.Int),
+				SubnetEVMTimestamp:  new(big.Int),
+			},
 		}
 	}
 

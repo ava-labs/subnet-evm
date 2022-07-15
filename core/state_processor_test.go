@@ -49,19 +49,21 @@ import (
 func TestStateProcessorErrors(t *testing.T) {
 	var (
 		config = &params.ChainConfig{
-			ChainID:             big.NewInt(1),
-			HomesteadBlock:      big.NewInt(0),
-			EIP150Block:         big.NewInt(0),
-			EIP150Hash:          common.Hash{},
-			EIP155Block:         big.NewInt(0),
-			EIP158Block:         big.NewInt(0),
-			ByzantiumBlock:      big.NewInt(0),
-			ConstantinopleBlock: big.NewInt(0),
-			PetersburgBlock:     big.NewInt(0),
-			IstanbulBlock:       big.NewInt(0),
-			MuirGlacierBlock:    big.NewInt(0),
-			SubnetEVMTimestamp:  big.NewInt(0),
-			FeeConfig:           params.DefaultFeeConfig,
+			ChainID:   big.NewInt(1),
+			FeeConfig: params.DefaultFeeConfig,
+			NetworkUpgrades: params.NetworkUpgrades{
+				HomesteadBlock:      big.NewInt(0),
+				EIP150Block:         big.NewInt(0),
+				EIP150Hash:          common.Hash{},
+				EIP155Block:         big.NewInt(0),
+				EIP158Block:         big.NewInt(0),
+				ByzantiumBlock:      big.NewInt(0),
+				ConstantinopleBlock: big.NewInt(0),
+				PetersburgBlock:     big.NewInt(0),
+				IstanbulBlock:       big.NewInt(0),
+				MuirGlacierBlock:    big.NewInt(0),
+				SubnetEVMTimestamp:  big.NewInt(0),
+			},
 		}
 		signer     = types.LatestSigner(config)
 		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -212,19 +214,21 @@ func TestStateProcessorErrors(t *testing.T) {
 			db    = rawdb.NewMemoryDatabase()
 			gspec = &Genesis{
 				Config: &params.ChainConfig{
-					ChainID:             big.NewInt(1),
-					HomesteadBlock:      big.NewInt(0),
-					EIP150Block:         big.NewInt(0),
-					EIP150Hash:          common.Hash{},
-					EIP155Block:         big.NewInt(0),
-					EIP158Block:         big.NewInt(0),
-					ByzantiumBlock:      big.NewInt(0),
-					ConstantinopleBlock: big.NewInt(0),
-					PetersburgBlock:     big.NewInt(0),
-					IstanbulBlock:       big.NewInt(0),
-					MuirGlacierBlock:    big.NewInt(0),
-					SubnetEVMTimestamp:  big.NewInt(0),
-					FeeConfig:           params.DefaultFeeConfig,
+					ChainID:   big.NewInt(1),
+					FeeConfig: params.DefaultFeeConfig,
+					NetworkUpgrades: params.NetworkUpgrades{
+						HomesteadBlock:      big.NewInt(0),
+						EIP150Block:         big.NewInt(0),
+						EIP150Hash:          common.Hash{},
+						EIP155Block:         big.NewInt(0),
+						EIP158Block:         big.NewInt(0),
+						ByzantiumBlock:      big.NewInt(0),
+						ConstantinopleBlock: big.NewInt(0),
+						PetersburgBlock:     big.NewInt(0),
+						IstanbulBlock:       big.NewInt(0),
+						MuirGlacierBlock:    big.NewInt(0),
+						SubnetEVMTimestamp:  big.NewInt(0),
+					},
 				},
 				Alloc: GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): GenesisAccount{
@@ -311,19 +315,21 @@ func TestBadTxAllowListBlock(t *testing.T) {
 		testAddr = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
 
 		config = &params.ChainConfig{
-			ChainID:             big.NewInt(1),
-			HomesteadBlock:      big.NewInt(0),
-			EIP150Block:         big.NewInt(0),
-			EIP150Hash:          common.Hash{},
-			EIP155Block:         big.NewInt(0),
-			EIP158Block:         big.NewInt(0),
-			ByzantiumBlock:      big.NewInt(0),
-			ConstantinopleBlock: big.NewInt(0),
-			PetersburgBlock:     big.NewInt(0),
-			IstanbulBlock:       big.NewInt(0),
-			MuirGlacierBlock:    big.NewInt(0),
-			SubnetEVMTimestamp:  big.NewInt(0),
-			FeeConfig:           params.DefaultFeeConfig,
+			ChainID:   big.NewInt(1),
+			FeeConfig: params.DefaultFeeConfig,
+			NetworkUpgrades: params.NetworkUpgrades{
+				HomesteadBlock:      big.NewInt(0),
+				EIP150Block:         big.NewInt(0),
+				EIP150Hash:          common.Hash{},
+				EIP155Block:         big.NewInt(0),
+				EIP158Block:         big.NewInt(0),
+				ByzantiumBlock:      big.NewInt(0),
+				ConstantinopleBlock: big.NewInt(0),
+				PetersburgBlock:     big.NewInt(0),
+				IstanbulBlock:       big.NewInt(0),
+				MuirGlacierBlock:    big.NewInt(0),
+				SubnetEVMTimestamp:  big.NewInt(0),
+			},
 		}
 		signer     = types.LatestSigner(config)
 		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")

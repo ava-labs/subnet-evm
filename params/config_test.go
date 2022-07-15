@@ -44,15 +44,15 @@ func TestCheckCompatible(t *testing.T) {
 		{stored: TestChainConfig, new: TestChainConfig, headHeight: 0, headTimestamp: 0, wantErr: nil},
 		{stored: TestChainConfig, new: TestChainConfig, headHeight: 100, headTimestamp: 1000, wantErr: nil},
 		{
-			stored:        &ChainConfig{EIP150Block: big.NewInt(10)},
-			new:           &ChainConfig{EIP150Block: big.NewInt(20)},
+			stored:        &ChainConfig{NetworkUpgrades: NetworkUpgrades{EIP150Block: big.NewInt(10)}},
+			new:           &ChainConfig{NetworkUpgrades: NetworkUpgrades{EIP150Block: big.NewInt(20)}},
 			headHeight:    9,
 			headTimestamp: 90,
 			wantErr:       nil,
 		},
 		{
 			stored:        TestChainConfig,
-			new:           &ChainConfig{HomesteadBlock: nil},
+			new:           &ChainConfig{NetworkUpgrades: NetworkUpgrades{HomesteadBlock: nil}},
 			headHeight:    3,
 			headTimestamp: 30,
 			wantErr: &utils.ConfigCompatError{
@@ -64,7 +64,7 @@ func TestCheckCompatible(t *testing.T) {
 		},
 		{
 			stored:        TestChainConfig,
-			new:           &ChainConfig{HomesteadBlock: big.NewInt(1)},
+			new:           &ChainConfig{NetworkUpgrades: NetworkUpgrades{HomesteadBlock: big.NewInt(1)}},
 			headHeight:    3,
 			headTimestamp: 30,
 			wantErr: &utils.ConfigCompatError{
@@ -75,8 +75,8 @@ func TestCheckCompatible(t *testing.T) {
 			},
 		},
 		{
-			stored:        &ChainConfig{HomesteadBlock: big.NewInt(30), EIP150Block: big.NewInt(10)},
-			new:           &ChainConfig{HomesteadBlock: big.NewInt(25), EIP150Block: big.NewInt(20)},
+			stored:        &ChainConfig{NetworkUpgrades: NetworkUpgrades{HomesteadBlock: big.NewInt(30), EIP150Block: big.NewInt(10)}},
+			new:           &ChainConfig{NetworkUpgrades: NetworkUpgrades{HomesteadBlock: big.NewInt(25), EIP150Block: big.NewInt(20)}},
 			headHeight:    25,
 			headTimestamp: 250,
 			wantErr: &utils.ConfigCompatError{
@@ -87,15 +87,15 @@ func TestCheckCompatible(t *testing.T) {
 			},
 		},
 		{
-			stored:        &ChainConfig{ConstantinopleBlock: big.NewInt(30)},
-			new:           &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(30)},
+			stored:        &ChainConfig{NetworkUpgrades: NetworkUpgrades{ConstantinopleBlock: big.NewInt(30)}},
+			new:           &ChainConfig{NetworkUpgrades: NetworkUpgrades{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(30)}},
 			headHeight:    40,
 			headTimestamp: 400,
 			wantErr:       nil,
 		},
 		{
-			stored:        &ChainConfig{ConstantinopleBlock: big.NewInt(30)},
-			new:           &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(31)},
+			stored:        &ChainConfig{NetworkUpgrades: NetworkUpgrades{ConstantinopleBlock: big.NewInt(30)}},
+			new:           &ChainConfig{NetworkUpgrades: NetworkUpgrades{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(31)}},
 			headHeight:    40,
 			headTimestamp: 400,
 			wantErr: &utils.ConfigCompatError{
