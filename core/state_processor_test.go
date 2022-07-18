@@ -49,20 +49,20 @@ import (
 func TestStateProcessorErrors(t *testing.T) {
 	var (
 		config = &params.ChainConfig{
-			ChainID:   big.NewInt(1),
-			FeeConfig: params.DefaultFeeConfig,
+			ChainID:             big.NewInt(1),
+			FeeConfig:           params.DefaultFeeConfig,
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP150Hash:          common.Hash{},
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
 			NetworkUpgrades: params.NetworkUpgrades{
-				HomesteadBlock:      big.NewInt(0),
-				EIP150Block:         big.NewInt(0),
-				EIP150Hash:          common.Hash{},
-				EIP155Block:         big.NewInt(0),
-				EIP158Block:         big.NewInt(0),
-				ByzantiumBlock:      big.NewInt(0),
-				ConstantinopleBlock: big.NewInt(0),
-				PetersburgBlock:     big.NewInt(0),
-				IstanbulBlock:       big.NewInt(0),
-				MuirGlacierBlock:    big.NewInt(0),
-				SubnetEVMTimestamp:  big.NewInt(0),
+				SubnetEVMTimestamp: big.NewInt(0),
 			},
 		}
 		signer     = types.LatestSigner(config)
@@ -214,20 +214,20 @@ func TestStateProcessorErrors(t *testing.T) {
 			db    = rawdb.NewMemoryDatabase()
 			gspec = &Genesis{
 				Config: &params.ChainConfig{
-					ChainID:   big.NewInt(1),
-					FeeConfig: params.DefaultFeeConfig,
+					ChainID:             big.NewInt(1),
+					FeeConfig:           params.DefaultFeeConfig,
+					HomesteadBlock:      big.NewInt(0),
+					EIP150Block:         big.NewInt(0),
+					EIP150Hash:          common.Hash{},
+					EIP155Block:         big.NewInt(0),
+					EIP158Block:         big.NewInt(0),
+					ByzantiumBlock:      big.NewInt(0),
+					ConstantinopleBlock: big.NewInt(0),
+					PetersburgBlock:     big.NewInt(0),
+					IstanbulBlock:       big.NewInt(0),
+					MuirGlacierBlock:    big.NewInt(0),
 					NetworkUpgrades: params.NetworkUpgrades{
-						HomesteadBlock:      big.NewInt(0),
-						EIP150Block:         big.NewInt(0),
-						EIP150Hash:          common.Hash{},
-						EIP155Block:         big.NewInt(0),
-						EIP158Block:         big.NewInt(0),
-						ByzantiumBlock:      big.NewInt(0),
-						ConstantinopleBlock: big.NewInt(0),
-						PetersburgBlock:     big.NewInt(0),
-						IstanbulBlock:       big.NewInt(0),
-						MuirGlacierBlock:    big.NewInt(0),
-						SubnetEVMTimestamp:  big.NewInt(0),
+						SubnetEVMTimestamp: big.NewInt(0),
 					},
 				},
 				Alloc: GenesisAlloc{
@@ -315,20 +315,20 @@ func TestBadTxAllowListBlock(t *testing.T) {
 		testAddr = common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7")
 
 		config = &params.ChainConfig{
-			ChainID:   big.NewInt(1),
-			FeeConfig: params.DefaultFeeConfig,
+			ChainID:             big.NewInt(1),
+			FeeConfig:           params.DefaultFeeConfig,
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP150Hash:          common.Hash{},
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
 			NetworkUpgrades: params.NetworkUpgrades{
-				HomesteadBlock:      big.NewInt(0),
-				EIP150Block:         big.NewInt(0),
-				EIP150Hash:          common.Hash{},
-				EIP155Block:         big.NewInt(0),
-				EIP158Block:         big.NewInt(0),
-				ByzantiumBlock:      big.NewInt(0),
-				ConstantinopleBlock: big.NewInt(0),
-				PetersburgBlock:     big.NewInt(0),
-				IstanbulBlock:       big.NewInt(0),
-				MuirGlacierBlock:    big.NewInt(0),
-				SubnetEVMTimestamp:  big.NewInt(0),
+				SubnetEVMTimestamp: big.NewInt(0),
 			},
 		}
 		signer     = types.LatestSigner(config)
