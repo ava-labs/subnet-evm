@@ -141,7 +141,9 @@ func (c *UpgradesConfig) CheckCompatible(newcfg *UpgradesConfig, headTimestamp *
 func (c *UpgradesConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []StatefulPrecompileConfig {
 	statefulPrecompileConfigs := make([]StatefulPrecompileConfig, 0)
 	for _, getter := range getters {
-		statefulPrecompileConfigs = append(statefulPrecompileConfigs, c.getActiveConfig(blockTimestamp, getter))
+		if config := c.getActiveConfig(blockTimestamp, getter); config != nil {
+			statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
+		}
 	}
 
 	return statefulPrecompileConfigs
