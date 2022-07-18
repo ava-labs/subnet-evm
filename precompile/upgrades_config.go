@@ -69,10 +69,9 @@ func (c *UpgradesConfig) getActiveConfigs(from *big.Int, to *big.Int, getter get
 	for _, upgrade := range c.Upgrades {
 		if config := getter(&upgrade); config != nil {
 			// check if fork is activating in the specified range
-			if !utils.IsForkTransition(config.Timestamp(), from, to) {
-				continue
+			if utils.IsForkTransition(config.Timestamp(), from, to) {
+				configs = append(configs, config)
 			}
-			configs = append(configs, config)
 		}
 	}
 	return configs
