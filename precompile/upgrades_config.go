@@ -41,6 +41,21 @@ var getters = []getterFn{
 	func(u *upgrade) StatefulPrecompileConfig { return u.FeeManagerConfig },
 }
 
+// TODO: can we do better?
+func isNil(s StatefulPrecompileConfig) bool {
+	switch s := s.(type) {
+	case *ContractDeployerAllowListConfig:
+		return s == nil
+	case *ContractNativeMinterConfig:
+		return s == nil
+	case *TxAllowListConfig:
+		return s == nil
+	case *FeeConfigManagerConfig:
+		return s == nil
+	}
+	panic("unknown type of StatefulPrecompileConfig")
+}
+
 // TODO: Validate the config
 
 // getActiveConfig returns the most recent config that has
@@ -60,14 +75,14 @@ func (c *UpgradesConfig) getActiveConfigs(from *big.Int, to *big.Int, getter get
 	configs := make([]StatefulPrecompileConfig, 0)
 	// first check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
-	if config := getter(&c.upgrade); config != nil {
+	if config := getter(&c.upgrade); !isNil(config) {
 		if utils.IsForkTransition(config.Timestamp(), from, to) {
 			configs = append(configs, config)
 		}
 	}
 	// loop on all upgrades
 	for _, upgrade := range c.Upgrades {
-		if config := getter(&upgrade); config != nil {
+		if config := getter(&upgrade); !isNil(config) {
 			// check if fork is activating in the specified range
 			if utils.IsForkTransition(config.Timestamp(), from, to) {
 				configs = append(configs, config)
@@ -81,28 +96,40 @@ func (c *UpgradesConfig) getActiveConfigs(from *big.Int, to *big.Int, getter get
 // specified by [c] or nil if it was never enabled.
 func (c *UpgradesConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.Int) *ContractDeployerAllowListConfig {
 	getter := func(u *upgrade) StatefulPrecompileConfig { return u.ContractDeployerAllowListConfig }
-	return c.getActiveConfig(blockTimestamp, getter).(*ContractDeployerAllowListConfig)
+	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
+		return val.(*ContractDeployerAllowListConfig)
+	}
+	return nil
 }
 
 // GetContractNativeMinterConfig returns the latest forked ContractNativeMinterConfig
 // specified by [c] or nil if it was never enabled.
 func (c *UpgradesConfig) GetContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNativeMinterConfig {
 	getter := func(u *upgrade) StatefulPrecompileConfig { return u.ContractNativeMinterConfig }
-	return c.getActiveConfig(blockTimestamp, getter).(*ContractNativeMinterConfig)
+	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
+		return val.(*ContractNativeMinterConfig)
+	}
+	return nil
 }
 
 // GetTxAllowListConfig returns the latest forked TxAllowListConfig
 // specified by [c] or nil if it was never enabled.
 func (c *UpgradesConfig) GetTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
 	getter := func(u *upgrade) StatefulPrecompileConfig { return u.TxAllowListConfig }
-	return c.getActiveConfig(blockTimestamp, getter).(*TxAllowListConfig)
+	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
+		return val.(*TxAllowListConfig)
+	}
+	return nil
 }
 
 // GetFeeConfigManagerConfig returns the latest forked FeeManagerConfig
 // specified by [c] or nil if it was never enabled.
 func (c *UpgradesConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *FeeConfigManagerConfig {
 	getter := func(u *upgrade) StatefulPrecompileConfig { return u.FeeManagerConfig }
-	return c.getActiveConfig(blockTimestamp, getter).(*FeeConfigManagerConfig)
+	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
+		return val.(*FeeConfigManagerConfig)
+	}
+	return nil
 }
 
 // CheckCompatible checks if [newcfg] is compatible with [c] at [headTimestamp].
