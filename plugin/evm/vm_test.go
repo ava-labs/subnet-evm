@@ -2339,12 +2339,21 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.UpgradesConfig.AddTxAllowListUpgrade(big.NewInt(0), testEthAddrs[0:1])
+	enableAllowListTimestamp := time.Time{} // enable at genesis
+	genesis.Config.UpgradesConfig.AddTxAllowListUpgrade(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1])
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+
+	// arbitrary choice ahead of enableAllowListTimestamp
+	disableAllowListTimestamp := enableAllowListTimestamp.Add(10 * time.Hour)
+
+	// configure a network upgrade to remove the allowlist
+	precompileConfigs := &vm.chain.BlockChain().Config().UpgradesConfig
+	precompileConfigs.DisableTxAllowListUpgrade(big.NewInt(disableAllowListTimestamp.Unix()))
+	vm.clock.Set(disableAllowListTimestamp) // note the upgrade does not take effect until a block is created
 
 	defer func() {
 		if err := vm.Shutdown(); err != nil {
@@ -2390,11 +2399,6 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	err = vm.chain.GetTxPool().AddRemote(signedTx1)
 	assert.ErrorIs(t, err, precompile.ErrSenderAddressNotAllowListed)
 
-	// patch in a network upgrade to remove the allowlist
-	disableAllowListTimestamp := big.NewInt(time.Now().Unix())
-	precompileConfig := &vm.chain.BlockChain().Config().UpgradesConfig
-	precompileConfig.DisableTxAllowListUpgrade(disableAllowListTimestamp)
-
 	// Construct the block
 	<-issuer
 
@@ -2428,11 +2432,9 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
-	assert.True(t, block.Timestamp().Cmp(disableAllowListTimestamp) >= 0)
+	assert.True(t, block.Timestamp().Cmp(big.NewInt(disableAllowListTimestamp.Unix())) >= 0)
 
-	// wait between blocks for gas price and txPool to process chain event
-	// TODO: is it possible to fix this?
-	time.Sleep(2 * time.Second)
+	<-newTxPoolHeadChan // wait for new head in tx pool
 
 	// retry the rejected Tx, which should now succeed
 	errs := vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx1})
@@ -2440,8 +2442,8 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
-	// Construct the block
-	<-issuer
+	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
+	<-issuer                                           // Construct the block
 
 	blk, err = vm.BuildBlock()
 	if err != nil {
