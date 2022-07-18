@@ -410,8 +410,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 		}
 	}
 
-	time.Sleep(2 * time.Second)
-
+	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
 	blk2 := issueAndAccept(t, issuer, vm)
 	newHead = <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk2.ID()) {
@@ -2330,7 +2329,6 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	}
 
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
-
 	blk = issueAndAccept(t, issuer, vm)
 
 	// Verify that the constructed block only has the previously rejected tx
