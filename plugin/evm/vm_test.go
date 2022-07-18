@@ -2293,9 +2293,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	}
 
 	err = vm.chain.GetTxPool().AddRemote(signedTx1)
-	if err == nil {
-		t.Fatal("Tx not rejected at index")
-	}
+	assert.ErrorIs(t, err, precompile.ErrSenderAddressNotAllowListed)
 
 	// Construct the block
 	<-issuer
@@ -2390,9 +2388,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	}
 
 	err = vm.chain.GetTxPool().AddRemote(signedTx1)
-	if err == nil {
-		t.Fatal("Tx not rejected at index")
-	}
+	assert.ErrorIs(t, err, precompile.ErrSenderAddressNotAllowListed)
 
 	// patch in a network upgrade to remove the allowlist
 	disableAllowListTimestamp := big.NewInt(time.Now().Unix())
