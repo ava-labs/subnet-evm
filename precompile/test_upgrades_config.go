@@ -24,36 +24,6 @@ func (c *UpgradesConfig) AddContractDeployerAllowListUpgrade(blockTimestamp *big
 	})
 }
 
-// AddContractNativeMinterUpgrade adds a ContractNativeMinter upgrade at [blockTimestamp].
-func (c *UpgradesConfig) AddContractNativeMinterUpgrade(blockTimestamp *big.Int, admins []common.Address) {
-	c.Upgrades = append(c.Upgrades, upgrade{
-		ContractNativeMinterConfig: &ContractNativeMinterConfig{
-			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
-			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
-		},
-	})
-}
-
-// AddTxAllowListUpgrade adds a TxAllowList upgrade at [blockTimestamp].
-func (c *UpgradesConfig) AddTxAllowListUpgrade(blockTimestamp *big.Int, admins []common.Address) {
-	c.Upgrades = append(c.Upgrades, upgrade{
-		TxAllowListConfig: &TxAllowListConfig{
-			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
-			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
-		},
-	})
-}
-
-// AddFeeManagerUpgrade adds a FeeConfigManager upgrade at [blockTimestamp].
-func (c *UpgradesConfig) AddFeeManagerUpgrade(blockTimestamp *big.Int, admins []common.Address) {
-	c.Upgrades = append(c.Upgrades, upgrade{
-		FeeManagerConfig: &FeeConfigManagerConfig{
-			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
-			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
-		},
-	})
-}
-
 // DisableContractDeployerAllowListUpgrade disables a previously added
 // ContractDeployerAllowList upgrade at [blockTimestamp].
 func (c *UpgradesConfig) DisableContractDeployerAllowListUpgrade(blockTimestamp *big.Int) {
@@ -63,6 +33,16 @@ func (c *UpgradesConfig) DisableContractDeployerAllowListUpgrade(blockTimestamp 
 				BlockTimestamp: blockTimestamp,
 				Disable:        true,
 			},
+		},
+	})
+}
+
+// AddContractNativeMinterUpgrade adds a ContractNativeMinter upgrade at [blockTimestamp].
+func (c *UpgradesConfig) AddContractNativeMinterUpgrade(blockTimestamp *big.Int, admins []common.Address) {
+	c.Upgrades = append(c.Upgrades, upgrade{
+		ContractNativeMinterConfig: &ContractNativeMinterConfig{
+			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
+			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
 		},
 	})
 }
@@ -80,6 +60,16 @@ func (c *UpgradesConfig) DisableContractNativeMinterUpgrade(blockTimestamp *big.
 	})
 }
 
+// AddTxAllowListUpgrade adds a TxAllowList upgrade at [blockTimestamp].
+func (c *UpgradesConfig) AddTxAllowListUpgrade(blockTimestamp *big.Int, admins []common.Address) {
+	c.Upgrades = append(c.Upgrades, upgrade{
+		TxAllowListConfig: &TxAllowListConfig{
+			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
+			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
+		},
+	})
+}
+
 // DisableTxAllowListUpgrade disables a previously added TxAllowList
 // upgrade at [blockTimestamp].
 func (c *UpgradesConfig) DisableTxAllowListUpgrade(blockTimestamp *big.Int) {
@@ -89,6 +79,16 @@ func (c *UpgradesConfig) DisableTxAllowListUpgrade(blockTimestamp *big.Int) {
 				BlockTimestamp: blockTimestamp,
 				Disable:        true,
 			},
+		},
+	})
+}
+
+// AddFeeManagerUpgrade adds a FeeConfigManager upgrade at [blockTimestamp].
+func (c *UpgradesConfig) AddFeeManagerUpgrade(blockTimestamp *big.Int, admins []common.Address) {
+	c.Upgrades = append(c.Upgrades, upgrade{
+		FeeManagerConfig: &FeeConfigManagerConfig{
+			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
+			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
 		},
 	})
 }
