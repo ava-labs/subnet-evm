@@ -31,6 +31,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
+	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/avalanchego/utils/logging"
@@ -329,6 +330,34 @@ func TestVMUpgrades(t *testing.T) {
 	}
 }
 
+func issueAndAccept(t *testing.T, issuer <-chan engCommon.Message, vm *VM) snowman.Block {
+	t.Helper()
+	<-issuer
+
+	blk, err := vm.BuildBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := blk.Verify(); err != nil {
+		t.Fatal(err)
+	}
+
+	if status := blk.Status(); status != choices.Processing {
+		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
+	}
+
+	if err := vm.SetPreference(blk.ID()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := blk.Accept(); err != nil {
+		t.Fatal(err)
+	}
+
+	return blk
+}
+
 func TestBuildEthTxBlock(t *testing.T) {
 	// reduce block gas cost
 	issuer, vm, dbManager, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
@@ -359,29 +388,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 		}
 	}
 
-	<-issuer
-
-	blk1, err := vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk1.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk1.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := vm.SetPreference(blk1.ID()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk1.Accept(); err != nil {
-		t.Fatal(err)
-	}
-
+	blk1 := issueAndAccept(t, issuer, vm)
 	newHead := <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk1.ID()) {
 		t.Fatalf("Expected new block to match")
@@ -405,25 +412,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 
 	time.Sleep(2 * time.Second)
 
-	<-issuer
-
-	blk2, err := vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk2.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk2.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := blk2.Accept(); err != nil {
-		t.Fatal(err)
-	}
-
+	blk2 := issueAndAccept(t, issuer, vm)
 	newHead = <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk2.ID()) {
 		t.Fatalf("Expected new block to match")
@@ -2055,29 +2044,7 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 		}
 	}
 
-	<-issuer
-
-	blk, err := vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := vm.SetPreference(blk.ID()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Accept(); err != nil {
-		t.Fatal(err)
-	}
-
+	blk := issueAndAccept(t, issuer, vm)
 	newHead := <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk.ID()) {
 		t.Fatalf("Expected new block to match")
@@ -2099,25 +2066,7 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 		}
 	}
 
-	<-issuer
-
-	blk, err = vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := blk.Accept(); err != nil {
-		t.Fatal(err)
-	}
-
+	blk = issueAndAccept(t, issuer, vm)
 	ethBlk := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	if ethBlk.BlockGasCost() == nil || ethBlk.BlockGasCost().Cmp(big.NewInt(100)) < 0 {
 		t.Fatalf("expected blockGasCost to be at least 100 but got %d", ethBlk.BlockGasCost())
@@ -2198,29 +2147,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 		}
 	}
 
-	<-issuer
-
-	blk, err := vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := vm.SetPreference(blk.ID()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Accept(); err != nil {
-		t.Fatal(err)
-	}
-
+	blk := issueAndAccept(t, issuer, vm)
 	newHead := <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk.ID()) {
 		t.Fatalf("Expected new block to match")
@@ -2293,31 +2220,11 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	}
 
 	err = vm.chain.GetTxPool().AddRemote(signedTx1)
-	assert.ErrorIs(t, err, precompile.ErrSenderAddressNotAllowListed)
-
-	// Construct the block
-	<-issuer
-
-	blk, err := vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
+	if !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
+		t.Fatal("expected ErrSenderAddressNotAllowListed, got: %w", err)
 	}
 
-	if err := blk.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := vm.SetPreference(blk.ID()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Accept(); err != nil {
-		t.Fatal(err)
-	}
+	blk := issueAndAccept(t, issuer, vm)
 
 	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -2339,7 +2246,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	enableAllowListTimestamp := time.Time{} // enable at genesis
+	enableAllowListTimestamp := time.Unix(0, 0) // enable at genesis
 	genesis.Config.UpgradesConfig.AddTxAllowListUpgrade(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1])
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
@@ -2353,7 +2260,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	// configure a network upgrade to remove the allowlist
 	precompileConfigs := &vm.chain.BlockChain().Config().UpgradesConfig
 	precompileConfigs.DisableTxAllowListUpgrade(big.NewInt(disableAllowListTimestamp.Unix()))
-	vm.clock.Set(disableAllowListTimestamp) // note the upgrade does not take effect until a block is created
+	vm.clock.Set(disableAllowListTimestamp) // upgrade takes effect after a block is issued, so we can set vm's clock here.
 
 	defer func() {
 		if err := vm.Shutdown(); err != nil {
@@ -2397,31 +2304,11 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	}
 
 	err = vm.chain.GetTxPool().AddRemote(signedTx1)
-	assert.ErrorIs(t, err, precompile.ErrSenderAddressNotAllowListed)
-
-	// Construct the block
-	<-issuer
-
-	blk, err := vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
+	if !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
+		t.Fatal("expected ErrSenderAddressNotAllowListed, got: %w", err)
 	}
 
-	if err := blk.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := vm.SetPreference(blk.ID()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Accept(); err != nil {
-		t.Fatal(err)
-	}
+	blk := issueAndAccept(t, issuer, vm)
 
 	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -2443,28 +2330,8 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	}
 
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
-	<-issuer                                           // Construct the block
 
-	blk, err = vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := vm.SetPreference(blk.ID()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Accept(); err != nil {
-		t.Fatal(err)
-	}
+	blk = issueAndAccept(t, issuer, vm)
 
 	// Verify that the constructed block only has the previously rejected tx
 	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -2562,30 +2429,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
-	// Construct the block
-	<-issuer
-
-	blk, err := vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Verify(); err != nil {
-		t.Fatal(err)
-	}
-
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
-
-	if err := vm.SetPreference(blk.ID()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := blk.Accept(); err != nil {
-		t.Fatal(err)
-	}
-
+	blk := issueAndAccept(t, issuer, vm)
 	newHead := <-newTxPoolHeadChan
 	if newHead.Head.Hash() != common.Hash(blk.ID()) {
 		t.Fatalf("Expected new block to match")
