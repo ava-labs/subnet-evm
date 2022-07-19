@@ -13,32 +13,34 @@ import (
 // UpgradesConfig includes a list of network upgrades.
 // Upgrades must be sorted in increasing order of BlockTimestamp.
 type UpgradesConfig struct {
-	// upgrade is embedded here to deserialize precompiles configured
+	// Upgrade is embedded here to deserialize precompiles configured
 	// in the genesis chain config.
-	upgrade
+	Upgrade
 
-	Upgrades []upgrade
+	// UpgradesFromUpgradeBytes are specified in upgrade bytes that
+	// are passed in to the VM during initialization.
+	UpgradesFromUpgradeBytes []Upgrade
 }
 
-// upgrade is a helper struct embedded in UpgradesConfig, representing
+// Upgrade is a helper struct embedded in UpgradesConfig, representing
 // each of the possible stateful precompile types that can be activated
 // through UpgradesConfig.
-type upgrade struct {
+type Upgrade struct {
 	ContractDeployerAllowListConfig *ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      *ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
 }
 
-type getterFn func(*upgrade) StatefulPrecompileConfig
+type getterFn func(*Upgrade) StatefulPrecompileConfig
 
 // getters contains a list of functions that return each of the stateful precompile
 // types that can be retrieved from an upgrade.
 var getters = []getterFn{
-	func(u *upgrade) StatefulPrecompileConfig { return u.ContractDeployerAllowListConfig },
-	func(u *upgrade) StatefulPrecompileConfig { return u.ContractNativeMinterConfig },
-	func(u *upgrade) StatefulPrecompileConfig { return u.TxAllowListConfig },
-	func(u *upgrade) StatefulPrecompileConfig { return u.FeeManagerConfig },
+	func(u *Upgrade) StatefulPrecompileConfig { return u.ContractDeployerAllowListConfig },
+	func(u *Upgrade) StatefulPrecompileConfig { return u.ContractNativeMinterConfig },
+	func(u *Upgrade) StatefulPrecompileConfig { return u.TxAllowListConfig },
+	func(u *Upgrade) StatefulPrecompileConfig { return u.FeeManagerConfig },
 }
 
 // TODO: can we do better?
@@ -56,7 +58,58 @@ func isNil(s StatefulPrecompileConfig) bool {
 	panic("unknown type of StatefulPrecompileConfig")
 }
 
-// TODO: Validate the config
+// Validate checks the UpgradesConfig is well formed:
+// - UpgradesFromUpgradeBytes must specify only one key per Upgrade
+// - the specified blockTimestamps must monotonically increase
+// - the specified blockTimestamps must be compatible with those
+//   specified in the chainConfig by genesis.
+// - check a precompile is disabled before it is re-enabled
+func (c *UpgradesConfig) Validate() error {
+	for i, upgrade := range c.UpgradesFromUpgradeBytes {
+		hasKey := false // used to verify if there is only one key per Upgrade
+
+		for _, getter := range getters {
+			if config := getter(&upgrade); isNil(config) {
+				continue
+			}
+			if hasKey {
+				return fmt.Errorf("PrecompileUpgradeConfig[%d] has more than one key set", i)
+			}
+			hasKey = true
+		}
+	}
+
+	for _, getter := range getters {
+		var (
+			lastUpgraded *big.Int
+			disabled     bool
+		)
+		// check the genesis chain config for any enabled upgrade
+		if config := getter(&c.Upgrade); !isNil(config) {
+			disabled = false
+			lastUpgraded = config.Timestamp()
+		} else {
+			disabled = true
+		}
+		// next range over UpgradesFromUpgradeBytes
+		// to verify correct use of disabled and blockTimestamps.
+		for i, upgrade := range c.UpgradesFromUpgradeBytes {
+			if config := getter(&upgrade); !isNil(config) {
+				if disabled == config.IsDisabled() {
+					return fmt.Errorf("PrecompileUpgradeConfig[%d] disable should be [%v]", i, !disabled)
+				}
+				if lastUpgraded != nil && (config.Timestamp() == nil || lastUpgraded.Cmp(config.Timestamp()) > 0) {
+					return fmt.Errorf("PrecompileUpgradeConfig[%d] timestamp should not be less than [%v]", i, lastUpgraded)
+				}
+
+				disabled = config.IsDisabled()
+				lastUpgraded = config.Timestamp()
+			}
+		}
+	}
+
+	return nil // successfully verified all conditions
+}
 
 // getActiveConfig returns the most recent config that has
 // already forked, or nil if none have been configured or
@@ -75,13 +128,13 @@ func (c *UpgradesConfig) getActiveConfigs(from *big.Int, to *big.Int, getter get
 	configs := make([]StatefulPrecompileConfig, 0)
 	// first check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
-	if config := getter(&c.upgrade); !isNil(config) {
+	if config := getter(&c.Upgrade); !isNil(config) {
 		if utils.IsForkTransition(config.Timestamp(), from, to) {
 			configs = append(configs, config)
 		}
 	}
 	// loop on all upgrades
-	for _, upgrade := range c.Upgrades {
+	for _, upgrade := range c.UpgradesFromUpgradeBytes {
 		if config := getter(&upgrade); !isNil(config) {
 			// check if fork is activating in the specified range
 			if utils.IsForkTransition(config.Timestamp(), from, to) {
@@ -95,7 +148,7 @@ func (c *UpgradesConfig) getActiveConfigs(from *big.Int, to *big.Int, getter get
 // GetContractDeployerAllowListConfig returns the latest forked ContractDeployerAllowListConfig
 // specified by [c] or nil if it was never enabled.
 func (c *UpgradesConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.Int) *ContractDeployerAllowListConfig {
-	getter := func(u *upgrade) StatefulPrecompileConfig { return u.ContractDeployerAllowListConfig }
+	getter := func(u *Upgrade) StatefulPrecompileConfig { return u.ContractDeployerAllowListConfig }
 	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
 		return val.(*ContractDeployerAllowListConfig)
 	}
@@ -105,7 +158,7 @@ func (c *UpgradesConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.
 // GetContractNativeMinterConfig returns the latest forked ContractNativeMinterConfig
 // specified by [c] or nil if it was never enabled.
 func (c *UpgradesConfig) GetContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNativeMinterConfig {
-	getter := func(u *upgrade) StatefulPrecompileConfig { return u.ContractNativeMinterConfig }
+	getter := func(u *Upgrade) StatefulPrecompileConfig { return u.ContractNativeMinterConfig }
 	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
 		return val.(*ContractNativeMinterConfig)
 	}
@@ -115,7 +168,7 @@ func (c *UpgradesConfig) GetContractNativeMinterConfig(blockTimestamp *big.Int) 
 // GetTxAllowListConfig returns the latest forked TxAllowListConfig
 // specified by [c] or nil if it was never enabled.
 func (c *UpgradesConfig) GetTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
-	getter := func(u *upgrade) StatefulPrecompileConfig { return u.TxAllowListConfig }
+	getter := func(u *Upgrade) StatefulPrecompileConfig { return u.TxAllowListConfig }
 	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
 		return val.(*TxAllowListConfig)
 	}
@@ -125,7 +178,7 @@ func (c *UpgradesConfig) GetTxAllowListConfig(blockTimestamp *big.Int) *TxAllowL
 // GetFeeConfigManagerConfig returns the latest forked FeeManagerConfig
 // specified by [c] or nil if it was never enabled.
 func (c *UpgradesConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *FeeConfigManagerConfig {
-	getter := func(u *upgrade) StatefulPrecompileConfig { return u.FeeManagerConfig }
+	getter := func(u *Upgrade) StatefulPrecompileConfig { return u.FeeManagerConfig }
 	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
 		return val.(*FeeConfigManagerConfig)
 	}
@@ -138,8 +191,11 @@ func (c *UpgradesConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *Fee
 // or absent from [newcfg]. Returns nil if [newcfg] is compatible with [c].
 func (c *UpgradesConfig) CheckCompatible(newcfg *UpgradesConfig, headTimestamp *big.Int) *utils.ConfigCompatError {
 	for _, getter := range getters {
+		// all active upgrades must match
 		newUpgrades := newcfg.getActiveConfigs(nil, headTimestamp, getter)
-		for i, upgrade := range c.getActiveConfigs(nil, headTimestamp, getter) {
+		activeUpgrades := c.getActiveConfigs(nil, headTimestamp, getter)
+		// first, check existing upgrades are there
+		for i, upgrade := range activeUpgrades {
 			if len(newUpgrades) <= i {
 				// missing upgrade
 				return utils.NewCompatError(
@@ -158,6 +214,15 @@ func (c *UpgradesConfig) CheckCompatible(newcfg *UpgradesConfig, headTimestamp *
 					newUpgrades[i].Timestamp(),
 				)
 			}
+		}
+		// then, make sure newUpgrades does not have additional upgrades
+		// that are already activated. (cannot perform retroactive upgrade)
+		if len(newUpgrades) > len(activeUpgrades) {
+			return utils.NewCompatError(
+				fmt.Sprintf("cannot retroactively enable PrecompileUpgradeConfig[%d]", len(activeUpgrades)),
+				nil,
+				newUpgrades[len(activeUpgrades)].Timestamp(), // this indexes to the first element in newUpgrades after the end of activeUpgrades
+			)
 		}
 	}
 	return nil // newcfg is compatible

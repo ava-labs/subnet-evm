@@ -16,7 +16,7 @@ import (
 
 // AddContractDeployerAllowListUpgrade adds a ContractDeployerAllowList upgrade at [blockTimestamp].
 func (c *UpgradesConfig) AddContractDeployerAllowListUpgrade(blockTimestamp *big.Int, admins []common.Address) {
-	c.Upgrades = append(c.Upgrades, upgrade{
+	c.UpgradesFromUpgradeBytes = append(c.UpgradesFromUpgradeBytes, Upgrade{
 		ContractDeployerAllowListConfig: &ContractDeployerAllowListConfig{
 			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
 			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
@@ -27,7 +27,7 @@ func (c *UpgradesConfig) AddContractDeployerAllowListUpgrade(blockTimestamp *big
 // DisableContractDeployerAllowListUpgrade disables a previously added
 // ContractDeployerAllowList upgrade at [blockTimestamp].
 func (c *UpgradesConfig) DisableContractDeployerAllowListUpgrade(blockTimestamp *big.Int) {
-	c.Upgrades = append(c.Upgrades, upgrade{
+	c.UpgradesFromUpgradeBytes = append(c.UpgradesFromUpgradeBytes, Upgrade{
 		ContractDeployerAllowListConfig: &ContractDeployerAllowListConfig{
 			UpgradeableConfig: UpgradeableConfig{
 				BlockTimestamp: blockTimestamp,
@@ -39,7 +39,7 @@ func (c *UpgradesConfig) DisableContractDeployerAllowListUpgrade(blockTimestamp 
 
 // AddContractNativeMinterUpgrade adds a ContractNativeMinter upgrade at [blockTimestamp].
 func (c *UpgradesConfig) AddContractNativeMinterUpgrade(blockTimestamp *big.Int, admins []common.Address) {
-	c.Upgrades = append(c.Upgrades, upgrade{
+	c.UpgradesFromUpgradeBytes = append(c.UpgradesFromUpgradeBytes, Upgrade{
 		ContractNativeMinterConfig: &ContractNativeMinterConfig{
 			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
 			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
@@ -50,7 +50,7 @@ func (c *UpgradesConfig) AddContractNativeMinterUpgrade(blockTimestamp *big.Int,
 // DisableContractNativeMinterUpgrade disables a previously added
 // ContractDeployerAllowList upgrade at [blockTimestamp].
 func (c *UpgradesConfig) DisableContractNativeMinterUpgrade(blockTimestamp *big.Int) {
-	c.Upgrades = append(c.Upgrades, upgrade{
+	c.UpgradesFromUpgradeBytes = append(c.UpgradesFromUpgradeBytes, Upgrade{
 		ContractNativeMinterConfig: &ContractNativeMinterConfig{
 			UpgradeableConfig: UpgradeableConfig{
 				BlockTimestamp: blockTimestamp,
@@ -62,7 +62,7 @@ func (c *UpgradesConfig) DisableContractNativeMinterUpgrade(blockTimestamp *big.
 
 // AddTxAllowListUpgrade adds a TxAllowList upgrade at [blockTimestamp].
 func (c *UpgradesConfig) AddTxAllowListUpgrade(blockTimestamp *big.Int, admins []common.Address) {
-	c.Upgrades = append(c.Upgrades, upgrade{
+	c.UpgradesFromUpgradeBytes = append(c.UpgradesFromUpgradeBytes, Upgrade{
 		TxAllowListConfig: &TxAllowListConfig{
 			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
 			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
@@ -73,7 +73,7 @@ func (c *UpgradesConfig) AddTxAllowListUpgrade(blockTimestamp *big.Int, admins [
 // DisableTxAllowListUpgrade disables a previously added TxAllowList
 // upgrade at [blockTimestamp].
 func (c *UpgradesConfig) DisableTxAllowListUpgrade(blockTimestamp *big.Int) {
-	c.Upgrades = append(c.Upgrades, upgrade{
+	c.UpgradesFromUpgradeBytes = append(c.UpgradesFromUpgradeBytes, Upgrade{
 		TxAllowListConfig: &TxAllowListConfig{
 			UpgradeableConfig: UpgradeableConfig{
 				BlockTimestamp: blockTimestamp,
@@ -85,7 +85,7 @@ func (c *UpgradesConfig) DisableTxAllowListUpgrade(blockTimestamp *big.Int) {
 
 // AddFeeManagerUpgrade adds a FeeConfigManager upgrade at [blockTimestamp].
 func (c *UpgradesConfig) AddFeeManagerUpgrade(blockTimestamp *big.Int, admins []common.Address) {
-	c.Upgrades = append(c.Upgrades, upgrade{
+	c.UpgradesFromUpgradeBytes = append(c.UpgradesFromUpgradeBytes, Upgrade{
 		FeeManagerConfig: &FeeConfigManagerConfig{
 			UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
 			AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
@@ -96,7 +96,7 @@ func (c *UpgradesConfig) AddFeeManagerUpgrade(blockTimestamp *big.Int, admins []
 // DisableFeeManagerUpgrade disables a previously added FeeConfigManager
 // upgrade at [blockTimestamp].
 func (c *UpgradesConfig) DisableFeeManagerUpgrade(blockTimestamp *big.Int) {
-	c.Upgrades = append(c.Upgrades, upgrade{
+	c.UpgradesFromUpgradeBytes = append(c.UpgradesFromUpgradeBytes, Upgrade{
 		FeeManagerConfig: &FeeConfigManagerConfig{
 			UpgradeableConfig: UpgradeableConfig{
 				BlockTimestamp: blockTimestamp,
