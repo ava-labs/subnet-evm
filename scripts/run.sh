@@ -201,7 +201,7 @@ if [[ -z ${NETWORK_RUNNER_VERSION+x} ]]; then
   go install -v ${REPO_PATH}@latest
 else
   # version set
-  go install -v ${REPO_PATH}@${NETWORK_RUNNER_VERSION}
+  go install -v ${REPO_PATH}@v${NETWORK_RUNNER_VERSION}
 fi
 
 #################################
