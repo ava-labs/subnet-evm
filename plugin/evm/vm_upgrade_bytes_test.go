@@ -97,6 +97,11 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		if err := vm.Shutdown(); err != nil {
+			t.Fatal(err)
+		}
+	}()
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.chain.GetTxPool().SubscribeNewReorgEvent(newTxPoolHeadChan)
 	vm.clock.Set(disableAllowListTimestamp)
