@@ -39,7 +39,7 @@ fi
 AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
 
 # Commenting out this variable will run the latest version
-NETWORK_RUNNER_VERSION=1.1.3
+NETWORK_RUNNER_VERSION=1.1.4
 
 echo "Running with:"
 echo VERSION: ${VERSION}
