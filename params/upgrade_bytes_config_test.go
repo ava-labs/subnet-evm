@@ -40,7 +40,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 	}
 
 	type test struct {
-		configs             []*upgradeBytesConfig
+		configs             []*UpgradeBytesConfig
 		startTimestamps     []*big.Int
 		expectedErrorString string
 	}
@@ -49,7 +49,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 		"upgrade bytes conflicts with genesis (re-enable without disable)": {
 			expectedErrorString: "disable should be [true]",
 			startTimestamps:     []*big.Int{big.NewInt(5)},
-			configs: []*upgradeBytesConfig{
+			configs: []*UpgradeBytesConfig{
 				{
 					PrecompileUpgrades: []precompile.Upgrade{
 						{
@@ -69,7 +69,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 		"upgrade bytes conflicts with genesis (disable before enable)": {
 			expectedErrorString: "timestamp should not be less than [1]",
 			startTimestamps:     []*big.Int{big.NewInt(5)},
-			configs: []*upgradeBytesConfig{
+			configs: []*UpgradeBytesConfig{
 				{
 					PrecompileUpgrades: []precompile.Upgrade{
 						{
@@ -86,7 +86,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 		},
 		"disable and re-enable": {
 			startTimestamps: []*big.Int{big.NewInt(5)},
-			configs: []*upgradeBytesConfig{
+			configs: []*UpgradeBytesConfig{
 				{
 					PrecompileUpgrades: []precompile.Upgrade{
 						{
@@ -113,7 +113,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 		},
 		"disable and re-enable, reschedule upgrade before it happens": {
 			startTimestamps: []*big.Int{big.NewInt(5), big.NewInt(6)},
-			configs: []*upgradeBytesConfig{
+			configs: []*UpgradeBytesConfig{
 				{
 					PrecompileUpgrades: []precompile.Upgrade{
 						{
@@ -163,7 +163,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 		"disable and re-enable, reschedule upgrade after it happens": {
 			expectedErrorString: "mismatching PrecompileUpgradeConfig",
 			startTimestamps:     []*big.Int{big.NewInt(5), big.NewInt(8)},
-			configs: []*upgradeBytesConfig{
+			configs: []*UpgradeBytesConfig{
 				{
 					PrecompileUpgrades: []precompile.Upgrade{
 						{
@@ -212,7 +212,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 		},
 		"disable and re-enable, cancel upgrade before it happens": {
 			startTimestamps: []*big.Int{big.NewInt(5), big.NewInt(6)},
-			configs: []*upgradeBytesConfig{
+			configs: []*UpgradeBytesConfig{
 				{
 					PrecompileUpgrades: []precompile.Upgrade{
 						{
@@ -252,7 +252,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 		"disable and re-enable, cancel upgrade after it happens": {
 			expectedErrorString: "mismatching missing PrecompileUpgradeConfig",
 			startTimestamps:     []*big.Int{big.NewInt(5), big.NewInt(8)},
-			configs: []*upgradeBytesConfig{
+			configs: []*UpgradeBytesConfig{
 				{
 					PrecompileUpgrades: []precompile.Upgrade{
 						{

@@ -88,8 +88,8 @@ var (
 		},
 	}
 
-	TestChainConfig        = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{big.NewInt(0)}, precompile.UpgradesConfig{}}
-	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{nil}, precompile.UpgradesConfig{}}
+	TestChainConfig        = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{big.NewInt(0)}, precompile.UpgradesConfig{}, false}
+	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{nil}, precompile.UpgradesConfig{}, false}
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -118,6 +118,8 @@ type ChainConfig struct {
 
 	NetworkUpgrades           // Config for timestamps that enable avalanche network upgrades.
 	precompile.UpgradesConfig // Config for enabling and disabling precompiles as network upgrades.
+
+	networkUpgradesSetFromUpgradeBytes bool // track if NetworkUpgrades has been modified by upgrade bytes.
 }
 
 // String implements the fmt.Stringer interface.

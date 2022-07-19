@@ -10,9 +10,9 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile"
 )
 
-// upgradeBytesConfig represents part of the ChainConfig
+// UpgradeBytesConfig represents part of the ChainConfig
 // that can be upgraded via upgradeBytes
-type upgradeBytesConfig struct {
+type UpgradeBytesConfig struct {
 	// Config for blocks/timestamps that enable network upgrades.
 	// Note: if NetworkUpgrades is specified in the JSON all previously activated
 	// forks must be present or upgradeBytes will be rejected.
@@ -25,7 +25,7 @@ type upgradeBytesConfig struct {
 // ApplyUpgradeBytes applies modifications from upgradeBytes to chainConfig
 // if upgradeBytes is compatible with activated forks.
 func (c *ChainConfig) ApplyUpgradeBytes(upgradeBytes []byte, headHeght *big.Int, headTimestamp *big.Int) error {
-	var upgradeBytesConfig upgradeBytesConfig
+	var upgradeBytesConfig UpgradeBytesConfig
 
 	// Note: passing an empty slice is considered equivalent to an empty upgradeBytesConfig
 	// we will still verify the empty config against the existing chainConfig, to ensure
@@ -37,6 +37,12 @@ func (c *ChainConfig) ApplyUpgradeBytes(upgradeBytes []byte, headHeght *big.Int,
 	}
 
 	// Check compatibility of network upgrades
+	if c.networkUpgradesSetFromUpgradeBytes && upgradeBytesConfig.NetworkUpgrades == nil {
+		// if we have previously applied persisted upgrade bytes,
+		// missing "networkUpgrades" will be treated as intention to
+		// abort forks. Initialize NetworkUpgrades here.
+		upgradeBytesConfig.NetworkUpgrades = &NetworkUpgrades{}
+	}
 	if networkUpgrades := upgradeBytesConfig.NetworkUpgrades; networkUpgrades != nil {
 		if err := c.NetworkUpgrades.CheckCompatible(networkUpgrades, headHeght, headTimestamp); err != nil {
 			return err
@@ -60,6 +66,7 @@ func (c *ChainConfig) ApplyUpgradeBytes(upgradeBytes []byte, headHeght *big.Int,
 	// Apply upgrades to chainConfig.
 	if networkUpgrades := upgradeBytesConfig.NetworkUpgrades; networkUpgrades != nil {
 		c.NetworkUpgrades = *networkUpgrades
+		c.networkUpgradesSetFromUpgradeBytes = true
 	}
 	// Overwrite the current upgrade's precompiles config with the value from the upgradeBytes.
 	// This is OK because we already checked the new config was compatible with the existing ChainConfig.

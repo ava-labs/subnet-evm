@@ -62,9 +62,10 @@ var (
 	password        = "CjasdjhiPeirbSenfeI13" // #nosec G101
 	// Use chainId: 43111, so that it does not overlap with any Avalanche ChainIDs, which may have their
 	// config overridden in vm.Initialize.
-	genesisJSONSubnetEVM = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip150Hash\":\"0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0\",\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"subnetEVMTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
-	firstTxAmount        *big.Int
-	genesisBalance       *big.Int
+	genesisJSONSubnetEVM    = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip150Hash\":\"0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0\",\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0,\"subnetEVMTimestamp\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
+	genesisJSONPreSubnetEVM = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip150Hash\":\"0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0\",\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
+	firstTxAmount           *big.Int
+	genesisBalance          *big.Int
 )
 
 func init() {
@@ -2220,7 +2221,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	err = vm.chain.GetTxPool().AddRemote(signedTx1)
 	if !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
-		t.Fatal("expected ErrSenderAddressNotAllowListed, got: %w", err)
+		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
 	blk := issueAndAccept(t, issuer, vm)
@@ -2278,7 +2279,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	// Check that address 0 is whitelisted and address 1 is not
 	role := precompile.GetTxAllowListStatus(genesisState, testEthAddrs[0])
 	if role != precompile.AllowListAdmin {
-		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", precompile.AllowListAdmin, role)
+		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", precompile.AllowListAdmin, role)
 	}
 	role = precompile.GetTxAllowListStatus(genesisState, testEthAddrs[1])
 	if role != precompile.AllowListNoRole {
@@ -2304,7 +2305,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 
 	err = vm.chain.GetTxPool().AddRemote(signedTx1)
 	if !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
-		t.Fatal("expected ErrSenderAddressNotAllowListed, got: %w", err)
+		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
 	blk := issueAndAccept(t, issuer, vm)

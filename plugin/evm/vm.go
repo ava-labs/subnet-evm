@@ -281,10 +281,6 @@ func (vm *VM) Initialize(
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 
-	if err := vm.handleUpgradeBytes(upgradeBytes); err != nil {
-		return err
-	}
-
 	ethConfig := ethconfig.NewDefaultConfig()
 	ethConfig.Genesis = g
 	ethConfig.NetworkId = g.Config.ChainID.Uint64()
@@ -320,6 +316,18 @@ func (vm *VM) Initialize(
 		}
 	}
 
+	vm.chainConfig = g.Config
+	vm.networkID = ethConfig.NetworkId
+
+	// apply upgrade bytes after vm.chainConfig is set.
+	if err := vm.handleUpgradeBytes(upgradeBytes); err != nil {
+		return err
+	}
+
+	// create genesisHash after applying upgradeBytes in case
+	// upgradeBytes modifies genesis.
+	vm.genesisHash = ethConfig.Genesis.ToBlock(nil).Hash()
+
 	// Handle custom fee recipient
 	ethConfig.Miner.Etherbase = constants.BlackholeAddr
 	switch {
@@ -334,11 +342,6 @@ func (vm *VM) Initialize(
 	case g.Config.AllowFeeRecipients:
 		log.Warn("Chain enabled `AllowFeeRecipients`, but chain config has not specified any coinbase address. Defaulting to the blackhole address.")
 	}
-
-	vm.genesisHash = ethConfig.Genesis.ToBlock(nil).Hash()
-
-	vm.chainConfig = g.Config
-	vm.networkID = ethConfig.NetworkId
 
 	lastAcceptedHash, err := vm.readLastAccepted()
 	if err != nil {
@@ -770,7 +773,9 @@ func (vm *VM) handleUpgradeBytes(upgradeBytes []byte) error {
 
 	if len(persitedUpgradeBytes) > 0 {
 		// If upgradeBytes were previously applied, re-apply those first.
-		if err := vm.chainConfig.ApplyUpgradeBytes(persitedUpgradeBytes, headHeight, headTimestamp); err != nil {
+		// Note we specify nil for the fork activation timestamps (and block number)
+		// as previously applied upgrade bytes are not subject to compatibility checks
+		if err := vm.chainConfig.ApplyUpgradeBytes(persitedUpgradeBytes, nil, nil); err != nil {
 			return err
 		}
 	}
