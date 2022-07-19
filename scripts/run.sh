@@ -210,7 +210,7 @@ if [[ -z ${GOBIN+x} ]]; then
   # no gobin set
   BIN=${GOPATH}/bin/avalanche-network-runner
 else
-  # version set
+  # gobin set
   BIN=${GOBIN}/avalanche-network-runner
 fi
 echo "launch avalanche-network-runner in the background"
