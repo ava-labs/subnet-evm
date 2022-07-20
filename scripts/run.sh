@@ -206,9 +206,7 @@ fi
 
 #################################
 # run "avalanche-network-runner" server
-echo GOROOT: $(go env GOROOT)
-echo GOPATH: $(go env GOPATH)
-echo GOBIN: $(go env GOBIN)
+GOPATH=$(go env GOPATH)
 if [[ -z ${GOBIN+x} ]]; then
   # no gobin set
   BIN=${GOPATH}/bin/avalanche-network-runner
