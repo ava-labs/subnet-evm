@@ -6,7 +6,6 @@ package evm
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -25,7 +24,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// to apply as upgradeBytes.
 	enableAllowListTimestamp := time.Unix(0, 0) // enable at genesis
 	upgradeBytesConfig := &params.UpgradeBytesConfig{
-		PrecompileUpgrades: []precompile.Upgrade{
+		PrecompileUpgrades: []params.Upgrade{
 			{
 				TxAllowListConfig: &precompile.TxAllowListConfig{
 					UpgradeableConfig: precompile.UpgradeableConfig{
@@ -76,7 +75,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	disableAllowListTimestamp := enableAllowListTimestamp.Add(10 * time.Hour) // arbitrary choice
 	upgradeBytesConfig.PrecompileUpgrades = append(
 		upgradeBytesConfig.PrecompileUpgrades,
-		precompile.Upgrade{
+		params.Upgrade{
 			TxAllowListConfig: &precompile.TxAllowListConfig{
 				UpgradeableConfig: precompile.UpgradeableConfig{
 					BlockTimestamp: big.NewInt(disableAllowListTimestamp.Unix()),
@@ -202,7 +201,6 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}
 	err = vm.Initialize(ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*common.Fx{}, appSender)
-	fmt.Println(err)
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
 	// VM should not start if fork is moved forward
@@ -212,7 +210,6 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}
 	err = vm.Initialize(ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*common.Fx{}, appSender)
-	fmt.Println(err)
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 }
 

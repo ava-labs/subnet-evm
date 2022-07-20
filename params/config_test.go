@@ -30,15 +30,13 @@ import (
 	"math/big"
 	"reflect"
 	"testing"
-
-	"github.com/ava-labs/subnet-evm/utils"
 )
 
 func TestCheckCompatible(t *testing.T) {
 	type test struct {
 		stored, new               *ChainConfig
 		headHeight, headTimestamp uint64
-		wantErr                   *utils.ConfigCompatError
+		wantErr                   *ConfigCompatError
 	}
 	tests := []test{
 		{stored: TestChainConfig, new: TestChainConfig, headHeight: 0, headTimestamp: 0, wantErr: nil},
@@ -55,7 +53,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           &ChainConfig{HomesteadBlock: nil},
 			headHeight:    3,
 			headTimestamp: 30,
-			wantErr: &utils.ConfigCompatError{
+			wantErr: &ConfigCompatError{
 				What:         "Homestead fork block",
 				StoredConfig: big.NewInt(0),
 				NewConfig:    nil,
@@ -67,7 +65,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           &ChainConfig{HomesteadBlock: big.NewInt(1)},
 			headHeight:    3,
 			headTimestamp: 30,
-			wantErr: &utils.ConfigCompatError{
+			wantErr: &ConfigCompatError{
 				What:         "Homestead fork block",
 				StoredConfig: big.NewInt(0),
 				NewConfig:    big.NewInt(1),
@@ -79,7 +77,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           &ChainConfig{HomesteadBlock: big.NewInt(25), EIP150Block: big.NewInt(20)},
 			headHeight:    25,
 			headTimestamp: 250,
-			wantErr: &utils.ConfigCompatError{
+			wantErr: &ConfigCompatError{
 				What:         "EIP150 fork block",
 				StoredConfig: big.NewInt(10),
 				NewConfig:    big.NewInt(20),
@@ -98,7 +96,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           &ChainConfig{ConstantinopleBlock: big.NewInt(30), PetersburgBlock: big.NewInt(31)},
 			headHeight:    40,
 			headTimestamp: 400,
-			wantErr: &utils.ConfigCompatError{
+			wantErr: &ConfigCompatError{
 				What:         "Petersburg fork block",
 				StoredConfig: nil,
 				NewConfig:    big.NewInt(31),
@@ -110,7 +108,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           TestPreSubnetEVMConfig,
 			headHeight:    0,
 			headTimestamp: 0,
-			wantErr: &utils.ConfigCompatError{
+			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredConfig: big.NewInt(0),
 				NewConfig:    nil,
@@ -122,7 +120,7 @@ func TestCheckCompatible(t *testing.T) {
 			new:           TestPreSubnetEVMConfig,
 			headHeight:    10,
 			headTimestamp: 100,
-			wantErr: &utils.ConfigCompatError{
+			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredConfig: big.NewInt(0),
 				NewConfig:    nil,

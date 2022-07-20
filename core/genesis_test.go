@@ -39,7 +39,6 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -137,7 +136,7 @@ func TestSetupGenesis(t *testing.T) {
 			},
 			wantHash:   customghash,
 			wantConfig: customg.Config,
-			wantErr: &utils.ConfigCompatError{
+			wantErr: &params.ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
 				StoredConfig: big.NewInt(90),
 				NewConfig:    big.NewInt(100),

@@ -16,8 +16,8 @@ import (
 func TestApplyUpgradeBytes(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := &ChainConfig{
-		UpgradesConfig: precompile.UpgradesConfig{
-			Upgrade: precompile.Upgrade{
+		UpgradesConfig: UpgradesConfig{
+			Upgrade: Upgrade{
 				TxAllowListConfig: &precompile.TxAllowListConfig{
 					UpgradeableConfig: precompile.UpgradeableConfig{
 						BlockTimestamp: big.NewInt(1),
@@ -51,7 +51,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps:     []*big.Int{big.NewInt(5)},
 			configs: []*UpgradeBytesConfig{
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -71,7 +71,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps:     []*big.Int{big.NewInt(5)},
 			configs: []*UpgradeBytesConfig{
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -88,7 +88,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps: []*big.Int{big.NewInt(5)},
 			configs: []*UpgradeBytesConfig{
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -115,7 +115,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps: []*big.Int{big.NewInt(5), big.NewInt(6)},
 			configs: []*UpgradeBytesConfig{
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -137,7 +137,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -161,11 +161,11 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			},
 		},
 		"disable and re-enable, reschedule upgrade after it happens": {
-			expectedErrorString: "mismatching PrecompileUpgradeConfig",
+			expectedErrorString: "mismatching PrecompileUpgrade",
 			startTimestamps:     []*big.Int{big.NewInt(5), big.NewInt(8)},
 			configs: []*UpgradeBytesConfig{
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -187,7 +187,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -214,7 +214,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps: []*big.Int{big.NewInt(5), big.NewInt(6)},
 			configs: []*UpgradeBytesConfig{
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -236,7 +236,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -250,11 +250,11 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			},
 		},
 		"disable and re-enable, cancel upgrade after it happens": {
-			expectedErrorString: "mismatching missing PrecompileUpgradeConfig",
+			expectedErrorString: "mismatching missing PrecompileUpgrade",
 			startTimestamps:     []*big.Int{big.NewInt(5), big.NewInt(8)},
 			configs: []*UpgradeBytesConfig{
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -276,7 +276,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []precompile.Upgrade{
+					PrecompileUpgrades: []Upgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -303,7 +303,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				err = chainConfig.ApplyUpgradeBytes(upgradeBytes, big.NewInt(0), tt.startTimestamps[i])
+				err = chainConfig.ApplyUpgradeBytes(upgradeBytes, tt.startTimestamps[i])
 				// if this is not the final upgradeBytes, continue applying
 				// the next upgradeBytes. (only check the result on the last apply)
 				if i != len(tt.configs)-1 {

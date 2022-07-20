@@ -765,17 +765,16 @@ func (vm *VM) handleUpgradeBytes(upgradeBytes []byte) error {
 	}
 
 	// to determine which upgrades have forked, we need to get the head timestamp & block number
-	var headHeight, headTimestamp *big.Int
+	var headTimestamp *big.Int
 	if head := rawdb.ReadHeadBlock(vm.chaindb); head != nil {
-		headHeight = head.Number()
 		headTimestamp = head.Timestamp()
 	}
 
 	if len(persitedUpgradeBytes) > 0 {
 		// If upgradeBytes were previously applied, re-apply those first.
-		// Note we specify nil for the fork activation timestamps (and block number)
-		// as previously applied upgrade bytes are not subject to compatibility checks
-		if err := vm.chainConfig.ApplyUpgradeBytes(persitedUpgradeBytes, nil, nil); err != nil {
+		// Note we specify nil for the fork activation timestamps since
+		// previously applied upgrade bytes are not subject to compatibility checks.
+		if err := vm.chainConfig.ApplyUpgradeBytes(persitedUpgradeBytes, nil); err != nil {
 			return err
 		}
 	}
@@ -787,7 +786,7 @@ func (vm *VM) handleUpgradeBytes(upgradeBytes []byte) error {
 
 	// If new upgradeBytes are provided, apply them here.  checks for compatibility
 	// with upgrades that have activated from the ChainConfig or persistedUpgradeBytes.
-	if err := vm.chainConfig.ApplyUpgradeBytes(upgradeBytes, headHeight, headTimestamp); err != nil {
+	if err := vm.chainConfig.ApplyUpgradeBytes(upgradeBytes, headTimestamp); err != nil {
 		return err
 	}
 
