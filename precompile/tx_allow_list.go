@@ -5,6 +5,7 @@ package precompile
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -22,6 +23,26 @@ var (
 type TxAllowListConfig struct {
 	AllowListConfig
 	UpgradeableConfig
+}
+
+// NewTxAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// TxAllowList with the given [admins] as members of the allowlist.
+func NewTxAllowListConfig(blockTimestamp *big.Int, admins []common.Address) *TxAllowListConfig {
+	return &TxAllowListConfig{
+		AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
+		UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
+	}
+}
+
+// NewDisableTxAllowListConfig returns config for a network upgrade at [blockTimestamp]
+// that disables TxAllowList.
+func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
+	return &TxAllowListConfig{
+		UpgradeableConfig: UpgradeableConfig{
+			BlockTimestamp: blockTimestamp,
+			Disable:        true,
+		},
+	}
 }
 
 // Address returns the address of the contract deployer allow list.

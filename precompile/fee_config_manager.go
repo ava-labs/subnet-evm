@@ -54,6 +54,26 @@ type FeeConfigManagerConfig struct {
 	UpgradeableConfig
 }
 
+// NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// FeeConfigManager with the given [admins] as members of the allowlist.
+func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address) *FeeConfigManagerConfig {
+	return &FeeConfigManagerConfig{
+		AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
+		UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
+	}
+}
+
+// NewDisableFeeManagerConfig returns config for a network upgrade at [blockTimestamp]
+// that disables FeeConfigManager.
+func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeConfigManagerConfig {
+	return &FeeConfigManagerConfig{
+		UpgradeableConfig: UpgradeableConfig{
+			BlockTimestamp: blockTimestamp,
+			Disable:        true,
+		},
+	}
+}
+
 // Address returns the address of the fee config manager contract.
 func (c *FeeConfigManagerConfig) Address() common.Address {
 	return FeeConfigManagerAddress

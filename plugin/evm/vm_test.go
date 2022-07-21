@@ -2108,7 +2108,8 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.UpgradesConfig.AddContractDeployerAllowListUpgrade(big.NewInt(time.Now().Unix()), testEthAddrs)
+	genesis.Config.ContractDeployerAllowListConfig = precompile.NewContractDeployerAllowListConfig(big.NewInt(time.Now().Unix()), testEthAddrs)
+
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2171,7 +2172,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.UpgradesConfig.AddTxAllowListUpgrade(big.NewInt(0), testEthAddrs[0:1])
+	genesis.Config.TxAllowListConfig = precompile.NewTxAllowListConfig(big.NewInt(0), testEthAddrs[0:1])
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2247,7 +2248,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 		t.Fatal(err)
 	}
 	enableAllowListTimestamp := time.Unix(0, 0) // enable at genesis
-	genesis.Config.UpgradesConfig.AddTxAllowListUpgrade(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1])
+	genesis.Config.TxAllowListConfig = precompile.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1])
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2259,7 +2260,13 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 
 	// configure a network upgrade to remove the allowlist
 	precompileConfigs := &vm.chain.BlockChain().Config().UpgradesConfig
-	precompileConfigs.DisableTxAllowListUpgrade(big.NewInt(disableAllowListTimestamp.Unix()))
+	precompileConfigs.PrecompileUpgrades = append(
+		precompileConfigs.PrecompileUpgrades,
+		params.Upgrade{
+			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(disableAllowListTimestamp.Unix())),
+		},
+	)
+
 	vm.clock.Set(disableAllowListTimestamp) // upgrade takes effect after a block is issued, so we can set vm's clock here.
 
 	defer func() {
@@ -2347,7 +2354,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.UpgradesConfig.AddFeeManagerUpgrade(big.NewInt(0), testEthAddrs[0:1])
+	genesis.Config.FeeManagerConfig = precompile.NewFeeManagerConfig(big.NewInt(0), testEthAddrs[0:1])
 
 	// set a lower fee config now
 	testLowFeeConfig := commontype.FeeConfig{

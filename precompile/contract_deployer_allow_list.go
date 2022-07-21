@@ -4,6 +4,8 @@
 package precompile
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -18,6 +20,26 @@ var (
 type ContractDeployerAllowListConfig struct {
 	AllowListConfig
 	UpgradeableConfig
+}
+
+// NewContractDeployerAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// ContractDeployerAllowList with the given [admins] as members of the allowlist.
+func NewContractDeployerAllowListConfig(blockTimestamp *big.Int, admins []common.Address) *ContractDeployerAllowListConfig {
+	return &ContractDeployerAllowListConfig{
+		AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
+		UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
+	}
+}
+
+// NewDisableContractDeployerAllowListConfig returns config for a network upgrade at [blockTimestamp]
+// that disables ContractDeployerAllowList.
+func NewDisableContractDeployerAllowListConfig(blockTimestamp *big.Int) *ContractDeployerAllowListConfig {
+	return &ContractDeployerAllowListConfig{
+		UpgradeableConfig: UpgradeableConfig{
+			BlockTimestamp: blockTimestamp,
+			Disable:        true,
+		},
+	}
 }
 
 // Address returns the address of the contract deployer allow list.
