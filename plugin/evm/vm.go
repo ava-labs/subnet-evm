@@ -759,7 +759,7 @@ func (vm *VM) readLastAccepted() (common.Hash, error) {
 // again or replaced with a new, compatible configuration.
 func (vm *VM) handleUpgradeBytes(upgradeBytes []byte) error {
 	// load any upgradeBytes that were previously applied and persisted.
-	persitedUpgradeBytes, err := vm.db.Get(upgradeBytesKey)
+	persistedUpgradeBytes, err := vm.db.Get(upgradeBytesKey)
 	if err != nil && err != database.ErrNotFound {
 		return err
 	}
@@ -770,16 +770,16 @@ func (vm *VM) handleUpgradeBytes(upgradeBytes []byte) error {
 		headTimestamp = head.Timestamp()
 	}
 
-	if len(persitedUpgradeBytes) > 0 {
+	if len(persistedUpgradeBytes) > 0 {
 		// If upgradeBytes were previously applied, re-apply those first.
 		// Note we specify nil for the fork activation timestamps since
 		// previously applied upgrade bytes are not subject to compatibility checks.
-		if err := vm.chainConfig.ApplyUpgradeBytes(persitedUpgradeBytes, nil); err != nil {
+		if err := vm.chainConfig.ApplyUpgradeBytes(persistedUpgradeBytes, nil); err != nil {
 			return err
 		}
 	}
 
-	if bytes.Equal(upgradeBytes, persitedUpgradeBytes) {
+	if bytes.Equal(upgradeBytes, persistedUpgradeBytes) {
 		// If the provided upgradeBytes matches the persisted bytes then we are done
 		return nil
 	}
