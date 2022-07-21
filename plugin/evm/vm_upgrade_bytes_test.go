@@ -31,7 +31,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	if err != nil {
-		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
+		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 
 	// initialize the VM with these upgrade bytes
@@ -73,7 +73,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
-		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
+		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 
 	// restart the vm
@@ -149,7 +149,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	if err != nil {
-		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
+		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 
 	// initialize the VM with these upgrade bytes
@@ -185,7 +185,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(0)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
-		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
+		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 	err = vm.Initialize(ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*common.Fx{}, appSender)
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
@@ -194,7 +194,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(30)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
-		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
+		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 	err = vm.Initialize(ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*common.Fx{}, appSender)
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
@@ -223,7 +223,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	if err != nil {
-		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
+		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 
 	// initialize the VM with these upgrade bytes
@@ -241,7 +241,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = nil
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
-		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
+		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 
 	// initialize the VM with these upgrade bytes

@@ -13,7 +13,7 @@ import (
 func (c *ChainConfig) ApplyUpgradeBytes(upgradeBytes []byte, headTimestamp *big.Int) error {
 	var upgradeConfig UpgradeConfig
 
-	// Note: passing an empty slice is considered equivalent to an empty upgradeBytesConfig
+	// Note: passing an empty slice is considered equivalent to an empty upgradeConfig
 	// we will still verify the empty config against the existing chainConfig, to ensure
 	// activated upgrades are not removed.
 	if len(upgradeBytes) > 0 {
