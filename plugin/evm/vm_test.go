@@ -2262,7 +2262,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	precompileConfigs := &vm.chain.BlockChain().Config().UpgradeConfig
 	precompileConfigs.PrecompileUpgrades = append(
 		precompileConfigs.PrecompileUpgrades,
-		params.Upgrade{
+		params.PrecompileUpgrade{
 			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(disableAllowListTimestamp.Unix())),
 		},
 	)

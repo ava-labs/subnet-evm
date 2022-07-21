@@ -16,7 +16,7 @@ import (
 func TestApplyUpgradeBytes(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := &ChainConfig{
-		Upgrade: Upgrade{
+		PrecompileUpgrade: PrecompileUpgrade{
 			TxAllowListConfig: &precompile.TxAllowListConfig{
 				UpgradeableConfig: precompile.UpgradeableConfig{
 					BlockTimestamp: big.NewInt(1),
@@ -49,7 +49,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps:     []*big.Int{big.NewInt(5)},
 			configs: []*UpgradeConfig{
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -69,7 +69,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps:     []*big.Int{big.NewInt(5)},
 			configs: []*UpgradeConfig{
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -86,7 +86,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps: []*big.Int{big.NewInt(5)},
 			configs: []*UpgradeConfig{
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -113,7 +113,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps: []*big.Int{big.NewInt(5), big.NewInt(6)},
 			configs: []*UpgradeConfig{
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -135,7 +135,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -163,7 +163,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps:     []*big.Int{big.NewInt(5), big.NewInt(8)},
 			configs: []*UpgradeConfig{
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -185,7 +185,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -212,7 +212,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps: []*big.Int{big.NewInt(5), big.NewInt(6)},
 			configs: []*UpgradeConfig{
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -234,7 +234,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -252,7 +252,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 			startTimestamps:     []*big.Int{big.NewInt(5), big.NewInt(8)},
 			configs: []*UpgradeConfig{
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{
@@ -274,7 +274,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 					},
 				},
 				{
-					PrecompileUpgrades: []Upgrade{
+					PrecompileUpgrades: []PrecompileUpgrade{
 						{
 							TxAllowListConfig: &precompile.TxAllowListConfig{
 								UpgradeableConfig: precompile.UpgradeableConfig{

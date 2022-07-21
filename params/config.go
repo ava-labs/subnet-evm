@@ -88,8 +88,8 @@ var (
 		},
 	}
 
-	TestChainConfig        = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{big.NewInt(0)}, Upgrade{}, UpgradeConfig{}}
-	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{}, Upgrade{}, UpgradeConfig{}}
+	TestChainConfig        = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{big.NewInt(0)}, PrecompileUpgrade{}, UpgradeConfig{}}
+	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{}, PrecompileUpgrade{}, UpgradeConfig{}}
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -117,9 +117,9 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 
-	NetworkUpgrades          // Config for timestamps that enable avalanche network upgrades
-	Upgrade                  // Config for enabling precompiles from genesis
-	UpgradeConfig   `json:-` // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles).
+	NetworkUpgrades              // Config for timestamps that enable avalanche network upgrades
+	PrecompileUpgrade            // Config for enabling precompiles from genesis
+	UpgradeConfig     `json:"-"` // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles).
 }
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -132,7 +132,7 @@ type UpgradeConfig struct {
 	NetworkUpgrades *NetworkUpgrades `json:"networkUpgrades,omitempty"`
 
 	// Config for enabling and disabling precompiles as network upgrades.
-	PrecompileUpgrades []Upgrade `json:"precompileUpgrades,omitempty"`
+	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
 }
 
 // String implements the fmt.Stringer interface.
@@ -141,7 +141,7 @@ func (c *ChainConfig) String() string {
 	if err != nil {
 		feeBytes = []byte("cannot unmarshal FeeConfig")
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, NetworkUpgrades: %v, Upgrade: %v, UpgradeConfig: %v, Engine: Dummy Consensus Engine}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, NetworkUpgrades: %v, PrecompileUpgrade: %v, UpgradeConfig: %v, Engine: Dummy Consensus Engine}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.EIP150Block,
@@ -156,7 +156,7 @@ func (c *ChainConfig) String() string {
 		string(feeBytes),
 		c.AllowFeeRecipients,
 		c.NetworkUpgrades,
-		c.Upgrade,
+		c.PrecompileUpgrade,
 		c.UpgradeConfig,
 	)
 }

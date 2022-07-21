@@ -23,7 +23,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
 	enableAllowListTimestamp := time.Unix(0, 0) // enable at genesis
 	upgradeConfig := &params.UpgradeConfig{
-		PrecompileUpgrades: []params.Upgrade{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
 				TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1]),
 			},
@@ -67,7 +67,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	disableAllowListTimestamp := enableAllowListTimestamp.Add(10 * time.Hour) // arbitrary choice
 	upgradeConfig.PrecompileUpgrades = append(
 		upgradeConfig.PrecompileUpgrades,
-		params.Upgrade{
+		params.PrecompileUpgrade{
 			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(disableAllowListTimestamp.Unix())),
 		},
 	)

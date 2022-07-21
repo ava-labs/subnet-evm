@@ -15,7 +15,7 @@ import (
 func TestValidateWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	config := &ChainConfig{
-		Upgrade: Upgrade{
+		PrecompileUpgrade: PrecompileUpgrade{
 			TxAllowListConfig: &precompile.TxAllowListConfig{
 				UpgradeableConfig: precompile.UpgradeableConfig{
 					BlockTimestamp: big.NewInt(2),
@@ -23,7 +23,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 			},
 		},
 	}
-	config.PrecompileUpgrades = []Upgrade{
+	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
 			// disable TxAllowList at timestamp 4
 			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(4)),
@@ -42,7 +42,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 	badConfig := *config
 	badConfig.PrecompileUpgrades = append(
 		badConfig.PrecompileUpgrades,
-		Upgrade{
+		PrecompileUpgrade{
 			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(1)),
 		},
 	)
@@ -53,7 +53,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 	badConfig = *config
 	badConfig.PrecompileUpgrades = append(
 		badConfig.PrecompileUpgrades,
-		Upgrade{
+		PrecompileUpgrade{
 			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(5), admins),
 		},
 	)
@@ -64,7 +64,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 func TestValidate(t *testing.T) {
 	admins := []common.Address{{1}}
 	config := &ChainConfig{}
-	config.PrecompileUpgrades = []Upgrade{
+	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
 			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins),
 		},
