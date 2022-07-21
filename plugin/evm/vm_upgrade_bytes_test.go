@@ -22,14 +22,14 @@ import (
 func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	// Make a TxAllowListConfig upgrade at genesis and convert it to JSON to apply as upgradeBytes.
 	enableAllowListTimestamp := time.Unix(0, 0) // enable at genesis
-	upgradeBytesConfig := &params.UpgradeBytesConfig{
+	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.Upgrade{
 			{
 				TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1]),
 			},
 		},
 	}
-	upgradeBytesJSON, err := json.Marshal(upgradeBytesConfig)
+	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}
@@ -65,13 +65,13 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 
 	// prepare the new upgrade bytes to disable the TxAllowList
 	disableAllowListTimestamp := enableAllowListTimestamp.Add(10 * time.Hour) // arbitrary choice
-	upgradeBytesConfig.PrecompileUpgrades = append(
-		upgradeBytesConfig.PrecompileUpgrades,
+	upgradeConfig.PrecompileUpgrades = append(
+		upgradeConfig.PrecompileUpgrades,
 		params.Upgrade{
 			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(disableAllowListTimestamp.Unix())),
 		},
 	)
-	upgradeBytesJSON, err = json.Marshal(upgradeBytesConfig)
+	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}
@@ -142,12 +142,12 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	// Get a json specifying a Network upgrade at genesis
 	// to apply as upgradeBytes.
 	subnetEVMTimestamp := time.Unix(10, 0)
-	upgradeBytesConfig := &params.UpgradeBytesConfig{
+	upgradeConfig := &params.UpgradeConfig{
 		NetworkUpgrades: &params.NetworkUpgrades{
 			SubnetEVMTimestamp: big.NewInt(subnetEVMTimestamp.Unix()),
 		},
 	}
-	upgradeBytesJSON, err := json.Marshal(upgradeBytesConfig)
+	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}
@@ -182,8 +182,8 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
 	// VM should not start if fork is moved back
-	upgradeBytesConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(0)
-	upgradeBytesJSON, err = json.Marshal(upgradeBytesConfig)
+	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(0)
+	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}
@@ -191,8 +191,8 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
 	// VM should not start if fork is moved forward
-	upgradeBytesConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(30)
-	upgradeBytesJSON, err = json.Marshal(upgradeBytesConfig)
+	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(30)
+	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}
@@ -216,12 +216,12 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	// Get a json specifying a Network upgrade at genesis
 	// to apply as upgradeBytes.
 	subnetEVMTimestamp := time.Unix(10, 0)
-	upgradeBytesConfig := &params.UpgradeBytesConfig{
+	upgradeConfig := &params.UpgradeConfig{
 		NetworkUpgrades: &params.NetworkUpgrades{
 			SubnetEVMTimestamp: big.NewInt(subnetEVMTimestamp.Unix()),
 		},
 	}
-	upgradeBytesJSON, err := json.Marshal(upgradeBytesConfig)
+	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}
@@ -238,8 +238,8 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	}
 
 	// abort a fork specified in genesis
-	upgradeBytesConfig.NetworkUpgrades.SubnetEVMTimestamp = nil
-	upgradeBytesJSON, err = json.Marshal(upgradeBytesConfig)
+	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = nil
+	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeBytesConfig to json: %s", err)
 	}

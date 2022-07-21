@@ -14,7 +14,7 @@ import (
 
 func TestValidateWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
-	config := &UpgradesConfig{
+	config := &ChainConfig{
 		Upgrade: Upgrade{
 			TxAllowListConfig: &precompile.TxAllowListConfig{
 				UpgradeableConfig: precompile.UpgradeableConfig{
@@ -35,7 +35,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 	}
 
 	// check this config is valid
-	err := config.ValidatePrecompileUpgrades()
+	err := config.ValidatePrecompileUpgrades(config.PrecompileUpgrades)
 	assert.NoError(t, err)
 
 	// entries must be monotonically increasing
@@ -46,7 +46,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(1)),
 		},
 	)
-	err = badConfig.ValidatePrecompileUpgrades()
+	err = badConfig.ValidatePrecompileUpgrades(badConfig.PrecompileUpgrades)
 	assert.ErrorContains(t, err, "timestamp should not be less than [5]")
 
 	// cannot enable a precompile without disabling it first.
@@ -57,13 +57,13 @@ func TestValidateWithChainConfig(t *testing.T) {
 			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(5), admins),
 		},
 	)
-	err = badConfig.ValidatePrecompileUpgrades()
+	err = badConfig.ValidatePrecompileUpgrades(badConfig.PrecompileUpgrades)
 	assert.ErrorContains(t, err, "disable should be [true]")
 }
 
 func TestValidate(t *testing.T) {
 	admins := []common.Address{{1}}
-	config := &UpgradesConfig{}
+	config := &ChainConfig{}
 	config.PrecompileUpgrades = []Upgrade{
 		{
 			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins),
@@ -74,6 +74,6 @@ func TestValidate(t *testing.T) {
 	}
 
 	// check this config is valid
-	err := config.ValidatePrecompileUpgrades()
+	err := config.ValidatePrecompileUpgrades(config.PrecompileUpgrades)
 	assert.NoError(t, err)
 }

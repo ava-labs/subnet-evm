@@ -2259,7 +2259,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	disableAllowListTimestamp := enableAllowListTimestamp.Add(10 * time.Hour)
 
 	// configure a network upgrade to remove the allowlist
-	precompileConfigs := &vm.chain.BlockChain().Config().UpgradesConfig
+	precompileConfigs := &vm.chain.BlockChain().Config().UpgradeConfig
 	precompileConfigs.PrecompileUpgrades = append(
 		precompileConfigs.PrecompileUpgrades,
 		params.Upgrade{

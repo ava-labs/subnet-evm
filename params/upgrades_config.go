@@ -53,8 +53,8 @@ func isNil(s precompile.StatefulPrecompileConfig) bool {
 // - the specified blockTimestamps must be compatible with those
 //   specified in the chainConfig by genesis.
 // - check a precompile is disabled before it is re-enabled
-func (c *UpgradesConfig) ValidatePrecompileUpgrades() error {
-	for i, upgrade := range c.PrecompileUpgrades {
+func (c *ChainConfig) ValidatePrecompileUpgrades(upgrades []Upgrade) error {
+	for i, upgrade := range upgrades {
 		hasKey := false // used to verify if there is only one key per Upgrade
 
 		for _, getter := range getters {
@@ -80,9 +80,8 @@ func (c *UpgradesConfig) ValidatePrecompileUpgrades() error {
 		} else {
 			disabled = true
 		}
-		// next range over UpgradesFromUpgradeBytes
-		// to verify correct use of disabled and blockTimestamps.
-		for i, upgrade := range c.PrecompileUpgrades {
+		// next range over upgrades to verify correct use of disabled and blockTimestamps.
+		for i, upgrade := range upgrades {
 			if config := getter(&upgrade); !isNil(config) {
 				if disabled == config.IsDisabled() {
 					return fmt.Errorf("PrecompileUpgrades[%d] disable should be [%v]", i, !disabled)
@@ -103,8 +102,8 @@ func (c *UpgradesConfig) ValidatePrecompileUpgrades() error {
 // getActiveConfig returns the most recent config that has
 // already forked, or nil if none have been configured or
 // if none have forked yet.
-func (c *UpgradesConfig) getActiveConfig(blockTimestamp *big.Int, getter getterFn) precompile.StatefulPrecompileConfig {
-	configs := c.getActiveConfigs(nil, blockTimestamp, getter)
+func (c *ChainConfig) getActiveConfig(blockTimestamp *big.Int, getter getterFn, upgrades []Upgrade) precompile.StatefulPrecompileConfig {
+	configs := c.getActiveConfigs(nil, blockTimestamp, getter, upgrades)
 	if len(configs) == 0 {
 		return nil
 	}
@@ -113,7 +112,7 @@ func (c *UpgradesConfig) getActiveConfig(blockTimestamp *big.Int, getter getterF
 
 // getActiveConfigs returns all forks configured to activate in the
 // specified [from, to] range, in the order of activation.
-func (c *UpgradesConfig) getActiveConfigs(from *big.Int, to *big.Int, getter getterFn) []precompile.StatefulPrecompileConfig {
+func (c *ChainConfig) getActiveConfigs(from *big.Int, to *big.Int, getter getterFn, upgrades []Upgrade) []precompile.StatefulPrecompileConfig {
 	configs := make([]precompile.StatefulPrecompileConfig, 0)
 	// first check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
@@ -123,7 +122,7 @@ func (c *UpgradesConfig) getActiveConfigs(from *big.Int, to *big.Int, getter get
 		}
 	}
 	// loop on all upgrades
-	for _, upgrade := range c.PrecompileUpgrades {
+	for _, upgrade := range upgrades {
 		if config := getter(&upgrade); !isNil(config) {
 			// check if fork is activating in the specified range
 			if utils.IsForkTransition(config.Timestamp(), from, to) {
@@ -136,9 +135,9 @@ func (c *UpgradesConfig) getActiveConfigs(from *big.Int, to *big.Int, getter get
 
 // GetContractDeployerAllowListConfig returns the latest forked ContractDeployerAllowListConfig
 // specified by [c] or nil if it was never enabled.
-func (c *UpgradesConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.Int) *precompile.ContractDeployerAllowListConfig {
+func (c *ChainConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.Int) *precompile.ContractDeployerAllowListConfig {
 	getter := func(u *Upgrade) precompile.StatefulPrecompileConfig { return u.ContractDeployerAllowListConfig }
-	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
+	if val := c.getActiveConfig(blockTimestamp, getter, c.PrecompileUpgrades); val != nil {
 		return val.(*precompile.ContractDeployerAllowListConfig)
 	}
 	return nil
@@ -146,9 +145,9 @@ func (c *UpgradesConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.
 
 // GetContractNativeMinterConfig returns the latest forked ContractNativeMinterConfig
 // specified by [c] or nil if it was never enabled.
-func (c *UpgradesConfig) GetContractNativeMinterConfig(blockTimestamp *big.Int) *precompile.ContractNativeMinterConfig {
+func (c *ChainConfig) GetContractNativeMinterConfig(blockTimestamp *big.Int) *precompile.ContractNativeMinterConfig {
 	getter := func(u *Upgrade) precompile.StatefulPrecompileConfig { return u.ContractNativeMinterConfig }
-	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
+	if val := c.getActiveConfig(blockTimestamp, getter, c.PrecompileUpgrades); val != nil {
 		return val.(*precompile.ContractNativeMinterConfig)
 	}
 	return nil
@@ -156,9 +155,9 @@ func (c *UpgradesConfig) GetContractNativeMinterConfig(blockTimestamp *big.Int) 
 
 // GetTxAllowListConfig returns the latest forked TxAllowListConfig
 // specified by [c] or nil if it was never enabled.
-func (c *UpgradesConfig) GetTxAllowListConfig(blockTimestamp *big.Int) *precompile.TxAllowListConfig {
+func (c *ChainConfig) GetTxAllowListConfig(blockTimestamp *big.Int) *precompile.TxAllowListConfig {
 	getter := func(u *Upgrade) precompile.StatefulPrecompileConfig { return u.TxAllowListConfig }
-	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
+	if val := c.getActiveConfig(blockTimestamp, getter, c.PrecompileUpgrades); val != nil {
 		return val.(*precompile.TxAllowListConfig)
 	}
 	return nil
@@ -166,23 +165,23 @@ func (c *UpgradesConfig) GetTxAllowListConfig(blockTimestamp *big.Int) *precompi
 
 // GetFeeConfigManagerConfig returns the latest forked FeeManagerConfig
 // specified by [c] or nil if it was never enabled.
-func (c *UpgradesConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *precompile.FeeConfigManagerConfig {
+func (c *ChainConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *precompile.FeeConfigManagerConfig {
 	getter := func(u *Upgrade) precompile.StatefulPrecompileConfig { return u.FeeManagerConfig }
-	if val := c.getActiveConfig(blockTimestamp, getter); val != nil {
+	if val := c.getActiveConfig(blockTimestamp, getter, c.PrecompileUpgrades); val != nil {
 		return val.(*precompile.FeeConfigManagerConfig)
 	}
 	return nil
 }
 
-// CheckCompatible checks if [newcfg] is compatible with [c] at [headTimestamp].
-// Returns a ConfigCompatError if upgrades that have forked at [headTimestamp]
-// are missing from [newcfg]. Upgrades that have not forked yet may be modified
-// or absent from [newcfg]. Returns nil if [newcfg] is compatible with [c].
-func (c *UpgradesConfig) CheckCompatible(newcfg *UpgradesConfig, headTimestamp *big.Int) *ConfigCompatError {
+// CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
+// Returns a ConfigCompatError if upgrades already forked at [headTimestamp] are missing from
+// [precompileUpgrades]. Upgrades not already forked may be modified or absent from [precompileUpgrades].
+// Returns nil if [precompileUpgrades] is compatible with [c].
+func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []Upgrade, headTimestamp *big.Int) *ConfigCompatError {
 	for _, getter := range getters {
 		// all active upgrades must match
-		newUpgrades := newcfg.getActiveConfigs(nil, headTimestamp, getter)
-		activeUpgrades := c.getActiveConfigs(nil, headTimestamp, getter)
+		activeUpgrades := c.getActiveConfigs(nil, headTimestamp, getter, c.PrecompileUpgrades)
+		newUpgrades := c.getActiveConfigs(nil, headTimestamp, getter, precompileUpgrades)
 		// first, check existing upgrades are there
 		for i, upgrade := range activeUpgrades {
 			if len(newUpgrades) <= i {
@@ -214,15 +213,15 @@ func (c *UpgradesConfig) CheckCompatible(newcfg *UpgradesConfig, headTimestamp *
 			)
 		}
 	}
-	return nil // newcfg is compatible
+	return nil // precompileUpgrades is compatible
 }
 
 // EnabledStatefulPrecompiles returns a slice of stateful precompile configs that
 // have been activated through an upgrade.
-func (c *UpgradesConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []precompile.StatefulPrecompileConfig {
+func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []precompile.StatefulPrecompileConfig {
 	statefulPrecompileConfigs := make([]precompile.StatefulPrecompileConfig, 0)
 	for _, getter := range getters {
-		if config := c.getActiveConfig(blockTimestamp, getter); config != nil {
+		if config := c.getActiveConfig(blockTimestamp, getter, c.PrecompileUpgrades); config != nil {
 			statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
 		}
 	}
@@ -230,22 +229,22 @@ func (c *UpgradesConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []p
 	return statefulPrecompileConfigs
 }
 
-// CheckConfigure checks if any of the precompiles specified by [c] is enabled or disabled by the block transition
-// from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure] or
-// [Deconfigure] to apply the necessary state transitions for the upgrade.
+// CheckConfigurePrecompiles checks if any of the precompiles specified by [c] is enabled or disabled by the block
+// transition from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure]
+// or [Deconfigure] to apply the necessary state transitions for the upgrade.
 // This function is called:
 // - within genesis setup to configure the starting state for precompiles enabled at genesis,
 // - during block processing to update the state before processing the given block.
-func (c *UpgradesConfig) CheckConfigure(chainConfig precompile.ChainConfig, parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) {
+func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) {
 	blockTimestamp := blockContext.Timestamp()
 	for _, getter := range getters {
-		for _, config := range c.getActiveConfigs(parentTimestamp, blockTimestamp, getter) {
+		for _, config := range c.getActiveConfigs(parentTimestamp, blockTimestamp, getter, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
 			if config.IsDisabled() {
 				precompile.Deconfigure(config.Address(), statedb)
 			} else {
-				precompile.Configure(chainConfig, blockContext, config, statedb)
+				precompile.Configure(c, blockContext, config, statedb)
 			}
 		}
 	}

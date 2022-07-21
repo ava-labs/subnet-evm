@@ -62,10 +62,8 @@ func TestStateProcessorErrors(t *testing.T) {
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			UpgradesConfig: params.UpgradesConfig{
-				NetworkUpgrades: params.NetworkUpgrades{
-					SubnetEVMTimestamp: big.NewInt(0),
-				},
+			NetworkUpgrades: params.NetworkUpgrades{
+				SubnetEVMTimestamp: big.NewInt(0),
 			},
 		}
 		signer     = types.LatestSigner(config)
@@ -229,10 +227,8 @@ func TestStateProcessorErrors(t *testing.T) {
 					PetersburgBlock:     big.NewInt(0),
 					IstanbulBlock:       big.NewInt(0),
 					MuirGlacierBlock:    big.NewInt(0),
-					UpgradesConfig: params.UpgradesConfig{
-						NetworkUpgrades: params.NetworkUpgrades{
-							SubnetEVMTimestamp: big.NewInt(0),
-						},
+					NetworkUpgrades: params.NetworkUpgrades{
+						SubnetEVMTimestamp: big.NewInt(0),
 					},
 				},
 				Alloc: GenesisAlloc{
@@ -332,10 +328,8 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			UpgradesConfig: params.UpgradesConfig{
-				NetworkUpgrades: params.NetworkUpgrades{
-					SubnetEVMTimestamp: big.NewInt(0),
-				},
+			NetworkUpgrades: params.NetworkUpgrades{
+				SubnetEVMTimestamp: big.NewInt(0),
 			},
 		}
 		signer     = types.LatestSigner(config)
