@@ -51,8 +51,8 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 	panic("unknown upgrade key")
 }
 
-// ValidatePrecompileUpgrades checks the PrecompileUpgrades is well formed:
-// - PrecompileUpgrades must specify only one key per Upgrade
+// ValidatePrecompileUpgrades checks [upgrades] is well formed:
+// - [upgrades] must specify only one key per PrecompileUpgrade
 // - the specified blockTimestamps must monotonically increase
 // - the specified blockTimestamps must be compatible with those
 //   specified in the chainConfig by genesis.
