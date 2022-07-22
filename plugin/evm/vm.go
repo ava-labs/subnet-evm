@@ -92,7 +92,8 @@ const (
 )
 
 var (
-	lastAcceptedKey = []byte("last_accepted_key") // lastAcceptedKey should be longer than the keys used to store accepted block IDs.
+	// Set last accepted key to be longer than the keys used to store accepted block IDs.
+	lastAcceptedKey = []byte("last_accepted_key")
 	acceptedPrefix  = []byte("snowman_accepted")
 	ethDBPrefix     = []byte("ethdb")
 )

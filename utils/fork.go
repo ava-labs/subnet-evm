@@ -3,9 +3,7 @@
 
 package utils
 
-import (
-	"math/big"
-)
+import "math/big"
 
 // IsForked returns whether a fork scheduled at block s is active at the given head block.
 // Note: [s] and [head] can be either a block number or a block timestamp.
