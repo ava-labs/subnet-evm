@@ -2208,8 +2208,8 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	assert.NoError(t, err)
 
-	err = vm.chain.GetTxPool().AddRemoteSync(signedTx0)
-	if err != nil {
+	errs := vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx0})
+	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
@@ -2220,8 +2220,8 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = vm.chain.GetTxPool().AddRemoteSync(signedTx1)
-	if !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
+	errs = vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx1})
+	if err := errs[0]; !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
@@ -2298,8 +2298,8 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	assert.NoError(t, err)
 
-	err = vm.chain.GetTxPool().AddRemoteSync(signedTx0)
-	if err != nil {
+	errs := vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx0})
+	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
@@ -2310,8 +2310,8 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = vm.chain.GetTxPool().AddRemoteSync(signedTx1)
-	if !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
+	errs = vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx1})
+	if err := errs[0]; !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
@@ -2331,7 +2331,8 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	<-newTxPoolHeadChan // wait for new head in tx pool
 
 	// retry the rejected Tx, which should now succeed
-	if err := vm.chain.GetTxPool().AddRemoteSync(signedTx1); err != nil {
+	errs = vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx1})
+	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
@@ -2429,8 +2430,8 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = vm.chain.GetTxPool().AddRemoteSync(signedTx)
-	if err != nil {
+	errs := vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx})
+	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
