@@ -12,7 +12,54 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApplyUpgradeBytes(t *testing.T) {
+func TestVerifyUpgradeConfig(t *testing.T) {
+	admins := []common.Address{{1}}
+	chainConfig := *TestChainConfig
+	chainConfig.TxAllowListConfig = precompile.NewTxAllowListConfig(big.NewInt(1), admins)
+
+	type test struct {
+		upgrades            []PrecompileUpgrade
+		expectedErrorString string
+	}
+
+	tests := map[string]test{
+		"upgrade bytes conflicts with genesis (re-enable without disable)": {
+			expectedErrorString: "disable should be [true]",
+			upgrades: []PrecompileUpgrade{
+				{
+					TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins),
+				},
+			},
+		},
+		"upgrade bytes conflicts with genesis (disable before enable)": {
+			expectedErrorString: "timestamp should not be less than [1]",
+			upgrades: []PrecompileUpgrade{
+				{
+					TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(0)),
+				},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			// make a local copy of the chainConfig
+			chainConfig := chainConfig
+
+			// verify with the upgrades from the test
+			chainConfig.UpgradeConfig.PrecompileUpgrades = tt.upgrades
+			err := chainConfig.Verify()
+
+			if tt.expectedErrorString != "" {
+				assert.ErrorContains(t, err, tt.expectedErrorString)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := *TestChainConfig
 	chainConfig.TxAllowListConfig = precompile.NewTxAllowListConfig(big.NewInt(1), admins)
@@ -25,32 +72,6 @@ func TestApplyUpgradeBytes(t *testing.T) {
 	}
 
 	tests := map[string]test{
-		"upgrade bytes conflicts with genesis (re-enable without disable)": {
-			expectedErrorString: "disable should be [true]",
-			startTimestamps:     []*big.Int{big.NewInt(5)},
-			configs: []*UpgradeConfig{
-				{
-					PrecompileUpgrades: []PrecompileUpgrade{
-						{
-							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins),
-						},
-					},
-				},
-			},
-		},
-		"upgrade bytes conflicts with genesis (disable before enable)": {
-			expectedErrorString: "timestamp should not be less than [1]",
-			startTimestamps:     []*big.Int{big.NewInt(5)},
-			configs: []*UpgradeConfig{
-				{
-					PrecompileUpgrades: []PrecompileUpgrade{
-						{
-							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(0)),
-						},
-					},
-				},
-			},
-		},
 		"disable and re-enable": {
 			startTimestamps: []*big.Int{big.NewInt(5)},
 			configs: []*UpgradeConfig{
@@ -226,13 +247,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				newCfg := chainConfig
 				newCfg.UpgradeConfig = *upgrade
 
-				// TODO: split tests for verify vs. checkCompatible
-				err := newCfg.Verify()
-				if err == nil {
-					if compatErr := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i]); compatErr != nil {
-						err = compatErr
-					}
-				}
+				err := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i])
 
 				// if this is not the final upgradeBytes, continue applying
 				// the next upgradeBytes. (only check the result on the last apply)
@@ -247,7 +262,9 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				if tt.expectedErrorString != "" {
 					assert.ErrorContains(t, err, tt.expectedErrorString)
 				} else {
-					assert.NoError(t, err)
+					if err != nil {
+						t.Fatal(err)
+					}
 				}
 			}
 		})
