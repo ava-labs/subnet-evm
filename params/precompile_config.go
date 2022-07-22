@@ -51,14 +51,14 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 	panic("unknown upgrade key")
 }
 
-// VerifyPrecompileUpgrades checks [upgrades] is well formed:
+// VerifyPrecompileUpgrades checks [c.PrecompileUpgrades] is well formed:
 // - [upgrades] must specify only one key per PrecompileUpgrade
 // - the specified blockTimestamps must monotonically increase
 // - the specified blockTimestamps must be compatible with those
 //   specified in the chainConfig by genesis.
 // - check a precompile is disabled before it is re-enabled
-func (c *ChainConfig) VerifyPrecompileUpgrades(upgrades []PrecompileUpgrade) error {
-	for i, upgrade := range upgrades {
+func (c *ChainConfig) VerifyPrecompileUpgrades() error {
+	for i, upgrade := range c.PrecompileUpgrades {
 		hasKey := false // used to verify if there is only one key per Upgrade
 
 		for _, key := range precompileKeys {
@@ -85,7 +85,7 @@ func (c *ChainConfig) VerifyPrecompileUpgrades(upgrades []PrecompileUpgrade) err
 			disabled = true
 		}
 		// next range over upgrades to verify correct use of disabled and blockTimestamps.
-		for i, upgrade := range upgrades {
+		for i, upgrade := range c.PrecompileUpgrades {
 			if config, ok := upgrade.getByKey(key); ok {
 				if disabled == config.IsDisabled() {
 					return fmt.Errorf("PrecompileUpgrades[%d] disable should be [%v]", i, !disabled)

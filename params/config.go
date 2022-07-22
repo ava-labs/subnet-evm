@@ -263,7 +263,7 @@ func (c *ChainConfig) Verify() error {
 	}
 
 	// Verify the precompile upgrades are internally consistent given the existing chainConfig.
-	if err := c.VerifyPrecompileUpgrades(c.PrecompileUpgrades); err != nil {
+	if err := c.VerifyPrecompileUpgrades(); err != nil {
 		return err
 	}
 
