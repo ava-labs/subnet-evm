@@ -4,7 +4,6 @@
 package params
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -15,27 +14,9 @@ import (
 
 func TestApplyUpgradeBytes(t *testing.T) {
 	admins := []common.Address{{1}}
-	chainConfig := &ChainConfig{
-		PrecompileUpgrade: PrecompileUpgrade{
-			TxAllowListConfig: &precompile.TxAllowListConfig{
-				UpgradeableConfig: precompile.UpgradeableConfig{
-					BlockTimestamp: big.NewInt(1),
-				},
-				AllowListConfig: precompile.AllowListConfig{
-					AllowListAdmins: admins,
-				},
-			},
-
-			ContractDeployerAllowListConfig: &precompile.ContractDeployerAllowListConfig{
-				UpgradeableConfig: precompile.UpgradeableConfig{
-					BlockTimestamp: big.NewInt(10),
-				},
-				AllowListConfig: precompile.AllowListConfig{
-					AllowListAdmins: admins,
-				},
-			},
-		},
-	}
+	chainConfig := *TestChainConfig
+	chainConfig.TxAllowListConfig = precompile.NewTxAllowListConfig(big.NewInt(1), admins)
+	chainConfig.ContractDeployerAllowListConfig = precompile.NewContractDeployerAllowListConfig(big.NewInt(10), admins)
 
 	type test struct {
 		configs             []*UpgradeConfig
@@ -51,14 +32,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(1),
-								},
-								AllowListConfig: precompile.AllowListConfig{
-									AllowListAdmins: admins,
-								},
-							},
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins),
 						},
 					},
 				},
@@ -71,12 +45,7 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(0),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(0)),
 						},
 					},
 				},
@@ -88,22 +57,10 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(7),
-								},
-								AllowListConfig: precompile.AllowListConfig{
-									AllowListAdmins: admins,
-								},
-							},
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), admins),
 						},
 					},
 				},
@@ -115,44 +72,20 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(7),
-								},
-								AllowListConfig: precompile.AllowListConfig{
-									AllowListAdmins: admins,
-								},
-							},
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), admins),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(8),
-								},
-								AllowListConfig: precompile.AllowListConfig{
-									AllowListAdmins: admins,
-								},
-							},
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(8), admins),
 						},
 					},
 				},
@@ -165,44 +98,20 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(7),
-								},
-								AllowListConfig: precompile.AllowListConfig{
-									AllowListAdmins: admins,
-								},
-							},
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), admins),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(8),
-								},
-								AllowListConfig: precompile.AllowListConfig{
-									AllowListAdmins: admins,
-								},
-							},
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(8), admins),
 						},
 					},
 				},
@@ -214,34 +123,17 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(7),
-								},
-								AllowListConfig: precompile.AllowListConfig{
-									AllowListAdmins: admins,
-								},
-							},
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), admins),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 					},
 				},
@@ -292,22 +184,28 @@ func TestApplyUpgradeBytes(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			// make a local copy of the chainConfig
-			chainConfig := *chainConfig
+			chainConfig := chainConfig
 
 			// apply all the upgrade bytes specified in order
 			for i, upgrade := range tt.configs {
-				upgradeBytes, err := json.Marshal(upgrade)
-				if err != nil {
-					t.Fatal(err)
+				newCfg := chainConfig
+				newCfg.UpgradeConfig = *upgrade
+
+				// TODO: split tests for verify vs. checkCompatible
+				err := newCfg.Verify()
+				if err == nil {
+					if compatErr := chainConfig.checkCompatible(&newCfg, nil, tt.startTimestamps[i]); compatErr != nil {
+						err = compatErr
+					}
 				}
 
-				err = chainConfig.ApplyUpgradeBytes(upgradeBytes, tt.startTimestamps[i])
 				// if this is not the final upgradeBytes, continue applying
 				// the next upgradeBytes. (only check the result on the last apply)
 				if i != len(tt.configs)-1 {
 					if err != nil {
 						t.Fatalf("expecting ApplyUpgradeBytes call %d to return nil, got %s", i+1, err)
 					}
+					chainConfig = newCfg
 					continue
 				}
 

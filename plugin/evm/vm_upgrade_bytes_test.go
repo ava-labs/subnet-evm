@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/stretchr/testify/assert"
@@ -139,6 +140,12 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 }
 
 func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
+	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
+	metrics.Enabled = false
+	defer func() {
+		metrics.Enabled = true
+	}()
+
 	// Get a json specifying a Network upgrade at genesis
 	// to apply as upgradeBytes.
 	subnetEVMTimestamp := time.Unix(10, 0)
@@ -182,7 +189,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
 	// VM should not start if fork is moved back
-	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(0)
+	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(2)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeConfig to json: %s", err)

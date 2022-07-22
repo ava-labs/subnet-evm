@@ -4,7 +4,6 @@
 package evm
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,7 +20,6 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	"github.com/ava-labs/subnet-evm/metrics"
@@ -95,7 +93,6 @@ const (
 
 var (
 	lastAcceptedKey = []byte("last_accepted_key") // lastAcceptedKey should be longer than the keys used to store accepted block IDs.
-	upgradeBytesKey = []byte("upgrade_bytes")     // when upgradeBytes are provided to Initialize, they are persisted under this key if applied successfully.
 	acceptedPrefix  = []byte("snowman_accepted")
 	ethDBPrefix     = []byte("ethdb")
 )
@@ -319,9 +316,12 @@ func (vm *VM) Initialize(
 	vm.chainConfig = g.Config
 	vm.networkID = ethConfig.NetworkId
 
-	// apply upgrade bytes after vm.chainConfig is set.
-	if err := vm.handleUpgradeBytes(upgradeBytes); err != nil {
-		return err
+	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
+	// Initializing the chain will verify upgradeBytes are compatible with existing values.
+	if len(upgradeBytes) > 0 {
+		if err := json.Unmarshal(upgradeBytes, &vm.chainConfig.UpgradeConfig); err != nil {
+			return err
+		}
 	}
 
 	// create genesisHash after applying upgradeBytes in case
@@ -750,50 +750,4 @@ func (vm *VM) readLastAccepted() (common.Hash, error) {
 		lastAcceptedHash := common.BytesToHash(lastAcceptedBytes)
 		return lastAcceptedHash, nil
 	}
-}
-
-// handleUpgradeBytes applies the configuration of upgradeBytes
-// to the chain config. If specified upgradeBytes are not compatible
-// with previously used upgradeBytes, an error is returned.
-// If they are compatible, they are persisted and should be specified
-// again or replaced with a new, compatible configuration.
-func (vm *VM) handleUpgradeBytes(upgradeBytes []byte) error {
-	// load any upgradeBytes that were previously applied and persisted.
-	persistedUpgradeBytes, err := vm.db.Get(upgradeBytesKey)
-	if err != nil && err != database.ErrNotFound {
-		return err
-	}
-
-	// to determine which upgrades have forked, we need to get the head timestamp & block number
-	var headTimestamp *big.Int
-	if head := rawdb.ReadHeadBlock(vm.chaindb); head != nil {
-		headTimestamp = head.Timestamp()
-	}
-
-	if len(persistedUpgradeBytes) > 0 {
-		// If upgradeBytes were previously applied, re-apply those first.
-		// Note we specify nil for the fork activation timestamps since
-		// previously applied upgrade bytes are not subject to compatibility checks.
-		if err := vm.chainConfig.ApplyUpgradeBytes(persistedUpgradeBytes, nil); err != nil {
-			return err
-		}
-	}
-
-	if bytes.Equal(upgradeBytes, persistedUpgradeBytes) {
-		// If the provided upgradeBytes matches the persisted bytes then we are done
-		return nil
-	}
-
-	// If new upgradeBytes are provided, apply them here.  checks for compatibility
-	// with upgrades that have activated from the ChainConfig or persistedUpgradeBytes.
-	if err := vm.chainConfig.ApplyUpgradeBytes(upgradeBytes, headTimestamp); err != nil {
-		return err
-	}
-
-	// Persist the new upgradeBytes. This makes it possible to modify or
-	// cancel upgrades that have not activated yet.
-	if err := vm.db.Put(upgradeBytesKey, upgradeBytes); err != nil {
-		return err
-	}
-	return vm.db.Commit()
 }

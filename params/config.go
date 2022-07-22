@@ -262,6 +262,11 @@ func (c *ChainConfig) Verify() error {
 		return err
 	}
 
+	// Verify the precompile upgrades are internally consistent given the existing chainConfig.
+	if err := c.VerifyPrecompileUpgrades(c.PrecompileUpgrades); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -377,7 +382,14 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 	}
 
 	// Check subnet-evm specific activations
-	if err := c.getNetworkUpgrades().CheckCompatible(newcfg.getNetworkUpgrades(), headTimestamp); err != nil {
+	newNetworkUpgrades := newcfg.getNetworkUpgrades()
+	if c.UpgradeConfig.NetworkUpgrades != nil && newcfg.UpgradeConfig.NetworkUpgrades == nil {
+		// Note: if the current NetworkUpgrades are set via UpgradeConfig, then a new config
+		// without NetworkUpgrades will be treated as having specified an empty set of network
+		// upgrades (ie., treated as the user intends to cancel scheduled forks)
+		newNetworkUpgrades = &NetworkUpgrades{}
+	}
+	if err := c.getNetworkUpgrades().CheckCompatible(newNetworkUpgrades, headTimestamp); err != nil {
 		return err
 	}
 
@@ -390,11 +402,11 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 	return nil
 }
 
-// getNetworkUpgrades returns NetworkUpgrades from upgrades bytes if set there,
+// getNetworkUpgrades returns NetworkUpgrades from upgrade config if set there,
 // otherwise it falls back to the genesis chain config.
 func (c *ChainConfig) getNetworkUpgrades() *NetworkUpgrades {
-	if upgradeBytesOverride := c.UpgradeConfig.NetworkUpgrades; upgradeBytesOverride != nil {
-		return upgradeBytesOverride
+	if upgradeConfigOverride := c.UpgradeConfig.NetworkUpgrades; upgradeConfigOverride != nil {
+		return upgradeConfigOverride
 	}
 	return &c.NetworkUpgrades
 }

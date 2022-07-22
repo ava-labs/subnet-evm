@@ -35,7 +35,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 	}
 
 	// check this config is valid
-	err := config.ValidatePrecompileUpgrades(config.PrecompileUpgrades)
+	err := config.VerifyPrecompileUpgrades(config.PrecompileUpgrades)
 	assert.NoError(t, err)
 
 	// entries must be monotonically increasing
@@ -46,7 +46,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(1)),
 		},
 	)
-	err = badConfig.ValidatePrecompileUpgrades(badConfig.PrecompileUpgrades)
+	err = badConfig.VerifyPrecompileUpgrades(badConfig.PrecompileUpgrades)
 	assert.ErrorContains(t, err, "timestamp should not be less than [5]")
 
 	// cannot enable a precompile without disabling it first.
@@ -57,7 +57,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(5), admins),
 		},
 	)
-	err = badConfig.ValidatePrecompileUpgrades(badConfig.PrecompileUpgrades)
+	err = badConfig.VerifyPrecompileUpgrades(badConfig.PrecompileUpgrades)
 	assert.ErrorContains(t, err, "disable should be [true]")
 }
 
@@ -74,6 +74,6 @@ func TestValidate(t *testing.T) {
 	}
 
 	// check this config is valid
-	err := config.ValidatePrecompileUpgrades(config.PrecompileUpgrades)
+	err := config.VerifyPrecompileUpgrades(config.PrecompileUpgrades)
 	assert.NoError(t, err)
 }

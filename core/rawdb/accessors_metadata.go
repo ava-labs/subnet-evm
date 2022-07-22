@@ -91,6 +91,34 @@ func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.Cha
 	}
 }
 
+// ReadUpgradeConfig retrieves the most recent valid upgrade config previously applied to the chain.
+func ReadUpgradeConfig(db ethdb.KeyValueReader, hash common.Hash) *params.UpgradeConfig {
+	data, _ := db.Get(upgradeConfigKey(hash))
+	if len(data) == 0 {
+		return nil
+	}
+	var config params.UpgradeConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		log.Error("Invalid upgrade config JSON", "err", err)
+		return nil
+	}
+	return &config
+}
+
+// WriteUpgradeConfig writes the upgrade config settings to the database.
+func WriteUpgradeConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.UpgradeConfig) {
+	if cfg == nil {
+		return
+	}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		log.Crit("Failed to JSON encode upgrade config", "err", err)
+	}
+	if err := db.Put(upgradeConfigKey(hash), data); err != nil {
+		log.Crit("Failed to store upgrade config", "err", err)
+	}
+}
+
 // crashList is a list of unclean-shutdown-markers, for rlp-encoding to the
 // database
 type crashList struct {
