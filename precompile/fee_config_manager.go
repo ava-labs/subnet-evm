@@ -79,6 +79,16 @@ func (c *FeeConfigManagerConfig) Address() common.Address {
 	return FeeConfigManagerAddress
 }
 
+// Equal returns true if [s] is a [*FeeConfigManagerConfig] and it has been configured identical to [c].
+func (c *FeeConfigManagerConfig) Equal(s StatefulPrecompileConfig) bool {
+	// typecast before comparison
+	other, ok := (s).(*FeeConfigManagerConfig)
+	if !ok {
+		return false
+	}
+	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+}
+
 // Configure configures [state] with the desired admins based on [c].
 func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateDB, blockContext BlockContext) {
 	// Store the initial fee config into the state when the fee config manager activates.

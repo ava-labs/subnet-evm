@@ -146,34 +146,69 @@ func TestApplyUpgradeBytes(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(7),
-								},
-								AllowListConfig: precompile.AllowListConfig{
-									AllowListAdmins: admins,
-								},
-							},
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), admins),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: &precompile.TxAllowListConfig{
-								UpgradeableConfig: precompile.UpgradeableConfig{
-									BlockTimestamp: big.NewInt(6),
-									Disable:        true,
-								},
-							},
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
+						},
+					},
+				},
+			},
+		},
+		"disable and re-enable, change upgrade config after upgrade not allowed": {
+			expectedErrorString: "mismatching PrecompileUpgrade",
+			startTimestamps:     []*big.Int{big.NewInt(5), big.NewInt(8)},
+			configs: []*UpgradeConfig{
+				{
+					PrecompileUpgrades: []PrecompileUpgrade{
+						{
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
+						},
+						{
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), admins),
+						},
+					},
+				},
+				{
+					PrecompileUpgrades: []PrecompileUpgrade{
+						{
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
+						},
+						{
+							// uses a different (empty) admin list, not allowed
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), []common.Address{}),
+						},
+					},
+				},
+			},
+		},
+		"disable and re-enable, identical upgrade config should be accepted": {
+			startTimestamps: []*big.Int{big.NewInt(5), big.NewInt(8)},
+			configs: []*UpgradeConfig{
+				{
+					PrecompileUpgrades: []PrecompileUpgrade{
+						{
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
+						},
+						{
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), admins),
+						},
+					},
+				},
+				{
+					PrecompileUpgrades: []PrecompileUpgrade{
+						{
+							TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(6)),
+						},
+						{
+							TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(7), admins),
 						},
 					},
 				},

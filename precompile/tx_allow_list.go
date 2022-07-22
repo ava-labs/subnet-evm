@@ -60,6 +60,16 @@ func (c *TxAllowListConfig) Contract() StatefulPrecompiledContract {
 	return TxAllowListPrecompile
 }
 
+// Equal returns true if [s] is a [*TxAllowListConfig] and it has been configured identical to [c].
+func (c *TxAllowListConfig) Equal(s StatefulPrecompileConfig) bool {
+	// typecast before comparison
+	other, ok := (s).(*TxAllowListConfig)
+	if !ok {
+		return false
+	}
+	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+}
+
 // GetTxAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
 func GetTxAllowListStatus(stateDB StateDB, address common.Address) AllowListRole {

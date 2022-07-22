@@ -22,3 +22,22 @@ func (c *UpgradeableConfig) Timestamp() *big.Int {
 func (c *UpgradeableConfig) IsDisabled() bool {
 	return c.Disable
 }
+
+// Equal returns true iff [other] has the same blockTimestamp and has the
+// same on value for the Disable flag.
+func (c *UpgradeableConfig) Equal(other *UpgradeableConfig) bool {
+	if other == nil {
+		return false
+	}
+	return c.Disable == other.Disable && configNumEqual(c.BlockTimestamp, other.BlockTimestamp)
+}
+
+func configNumEqual(x, y *big.Int) bool {
+	if x == nil {
+		return y == nil
+	}
+	if y == nil {
+		return x == nil
+	}
+	return x.Cmp(y) == 0
+}

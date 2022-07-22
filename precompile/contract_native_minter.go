@@ -70,6 +70,16 @@ func (c *ContractNativeMinterConfig) Contract() StatefulPrecompiledContract {
 	return ContractNativeMinterPrecompile
 }
 
+// Equal returns true if [s] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
+func (c *ContractNativeMinterConfig) Equal(s StatefulPrecompileConfig) bool {
+	// typecast before comparison
+	other, ok := (s).(*ContractNativeMinterConfig)
+	if !ok {
+		return false
+	}
+	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+}
+
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
 func GetContractNativeMinterStatus(stateDB StateDB, address common.Address) AllowListRole {
 	return getAllowListStatus(stateDB, ContractNativeMinterAddress, address)

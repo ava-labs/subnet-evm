@@ -57,6 +57,16 @@ func (c *ContractDeployerAllowListConfig) Contract() StatefulPrecompiledContract
 	return ContractDeployerAllowListPrecompile
 }
 
+// Equal returns true if [s] is a [*ContractDeployerAllowListConfig] and it has been configured identical to [c].
+func (c *ContractDeployerAllowListConfig) Equal(s StatefulPrecompileConfig) bool {
+	// typecast before comparison
+	other, ok := (s).(*ContractDeployerAllowListConfig)
+	if !ok {
+		return false
+	}
+	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+}
+
 // GetContractDeployerAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
 func GetContractDeployerAllowListStatus(stateDB StateDB, address common.Address) AllowListRole {

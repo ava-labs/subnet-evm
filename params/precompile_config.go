@@ -193,9 +193,7 @@ func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []Precompile
 				)
 			}
 			// All upgrades that have forked must be identical.
-			// TODO: verify config?
-			if upgrade.Timestamp().Cmp(newUpgrades[i].Timestamp()) != 0 ||
-				upgrade.IsDisabled() != newUpgrades[i].IsDisabled() {
+			if !upgrade.Equal(newUpgrades[i]) {
 				return newCompatError(
 					fmt.Sprintf("PrecompileUpgrade[%d]", i),
 					upgrade.Timestamp(),

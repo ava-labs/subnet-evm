@@ -44,6 +44,22 @@ func (c *AllowListConfig) Configure(state StateDB, precompileAddr common.Address
 	}
 }
 
+// Equal returns true iff [other] has the same admins in the same order in its allowlist.
+func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
+	if other == nil {
+		return false
+	}
+	if len(c.AllowListAdmins) != len(other.AllowListAdmins) {
+		return false
+	}
+	for i, admin := range c.AllowListAdmins {
+		if admin != other.AllowListAdmins[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // Valid returns true iff [s] represents a valid role.
 func (s AllowListRole) Valid() bool {
 	switch s {
