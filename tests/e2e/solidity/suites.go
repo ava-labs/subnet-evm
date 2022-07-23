@@ -35,7 +35,7 @@ func startSubnet(genesisPath string) error {
 	return utils.UpdateHardhatConfig()
 }
 
-var _ = utils.DescribePrecompile("[TX Allow List]", func() {
+var _ = utils.DescribePrecompile("[Hello World]", func() {
 	ginkgo.BeforeAll(func() {
 		b := make([]byte, 32)
 		copy(b, []byte(vmName))
@@ -46,11 +46,11 @@ var _ = utils.DescribePrecompile("[TX Allow List]", func() {
 		}
 	})
 
-	ginkgo.It("tx allow list", func() {
-		err := startSubnet("./tests/e2e/genesis/tx_allow_list_genesis.json")
+	ginkgo.It("hello world", func() {
+		err := startSubnet("./tests/e2e/genesis/hello_world_genesis.json")
 		gomega.Expect(err).Should(gomega.BeNil())
 		running := runner.IsRunnerUp()
 		gomega.Expect(running).Should(gomega.BeTrue())
-		runHardhatTests("./test/ExampleTxAllowList.ts")
+		runHardhatTests("./test/ExampleHelloWorld.ts")
 	})
 })

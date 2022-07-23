@@ -740,3 +740,108 @@ func TestContractNativeMinterRun(t *testing.T) {
 		})
 	}
 }
+
+func TestHelloWorld(t *testing.T) {
+	type test struct {
+		caller         common.Address
+		precompileAddr common.Address
+		input          func() []byte
+		suppliedGas    uint64
+		readOnly       bool
+
+		expectedRes []byte
+		expectedErr string
+
+		assertState func(t *testing.T, state *state.StateDB)
+	}
+
+	addr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
+	modifiedGreeting := "Hey there sports fan!"
+
+	for name, test := range map[string]test{
+		"sayHello": {
+			caller:         addr,
+			precompileAddr: precompile.HelloWorldAddress,
+			input: func() []byte {
+				return precompile.PackSayHelloInput()
+			},
+			suppliedGas: precompile.HelloWorldGasCost,
+			readOnly:    false,
+			expectedRes: []byte("Hello World!"),
+			assertState: func(t *testing.T, state *state.StateDB) {},
+		},
+		"sayHello readOnly": {
+			caller:         addr,
+			precompileAddr: precompile.HelloWorldAddress,
+			input: func() []byte {
+				return precompile.PackSayHelloInput()
+			},
+			suppliedGas: precompile.HelloWorldGasCost,
+			readOnly:    true,
+			expectedRes: []byte("Hello World!"),
+			assertState: func(t *testing.T, state *state.StateDB) {},
+		},
+		"set greeting": {
+			caller:         addr,
+			precompileAddr: precompile.HelloWorldAddress,
+			input: func() []byte {
+				input, err := precompile.PackHelloWorldSetGreetingInput(modifiedGreeting)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.SetGreetingGasCost,
+			readOnly:    false,
+			expectedRes: []byte{},
+			assertState: func(t *testing.T, state *state.StateDB) {
+				greeting := precompile.GetGreeting(state)
+				assert.Equal(t, modifiedGreeting, greeting)
+			},
+		},
+		"set greeting readOnly": {
+			caller:         addr,
+			precompileAddr: precompile.HelloWorldAddress,
+			input: func() []byte {
+				input, err := precompile.PackHelloWorldSetGreetingInput(modifiedGreeting)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.SetGreetingGasCost,
+			readOnly:    true,
+			expectedErr: vmerrs.ErrWriteProtection.Error(),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := rawdb.NewMemoryDatabase()
+			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// Set up the state so that each address has the expected permissions at the start.
+			config := precompile.HelloWorldConfig{}
+			config.Configure(state)
+			ret, remainingGas, err := precompile.ContractHelloWorldPrecompile.Run(&mockAccessibleState{state: state}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			if len(test.expectedErr) != 0 {
+				if err == nil {
+					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
+				} else {
+					assert.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, uint64(0), remainingGas)
+			assert.Equal(t, test.expectedRes, ret)
+
+			test.assertState(t, state)
+		})
+	}
+}

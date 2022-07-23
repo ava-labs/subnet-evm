@@ -10,9 +10,9 @@ const (
 	ModifyAllowListGasCost = 20_000
 	ReadAllowListGasCost   = 5_000
 
-	MintGasCost         = 30_000
-	SetRecipientGasCost = 20_000
-	HelloWorldGasCost   = 5_000
+	MintGasCost        = 30_000
+	SetGreetingGasCost = 20_000
+	HelloWorldGasCost  = 5_000
 )
 
 // Designated addresses of stateful precompiles

@@ -4,9 +4,14 @@
 package precompile
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
+	hello "github.com/ava-labs/subnet-evm/precompile/hello/contracts"
+	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -14,12 +19,25 @@ var (
 	_                            StatefulPrecompileConfig    = &HelloWorldConfig{}
 	ContractHelloWorldPrecompile StatefulPrecompiledContract = createHelloWorldPrecompile()
 
-	helloWorldSignature             = CalculateFunctionSelector("helloWorld()")
-	setHelloWorldRecipientSignature = CalculateFunctionSelector("setRecipient(string)")
+	helloWorldSignature             = CalculateFunctionSelector("sayHello()")
+	setHelloWorldRecipientSignature = CalculateFunctionSelector("setGreeting(string)")
 
-	nameKey      = common.BytesToHash([]byte("recipient"))
-	initialValue = common.BytesToHash([]byte("world!"))
+	nameKey       = common.BytesToHash([]byte("recipient"))
+	helloWorldStr = "Hello World!"
+
+	ErrInvalidGreeting = errors.New("invalid input length to say hello")
+
+	helloABI abi.ABI // The ABI for the hello world interface
 )
+
+func init() {
+	parsed, err := abi.JSON(strings.NewReader(hello.HelloWorldABI))
+	if err != nil {
+		panic(err)
+	}
+
+	helloABI = parsed
+}
 
 type HelloWorldConfig struct {
 	BlockTimestamp *big.Int `json:"helloWorldTimestamp"`
@@ -37,8 +55,8 @@ func (h *HelloWorldConfig) Configure(stateDB StateDB) {
 	// 2) If BlockTimestamp is 0, this will be called while setting up the genesis block
 	// 3) If BlockTimestamp is 1000, this will be called while processing the first block whose timestamp is >= 1000
 	//
-	// Set the initial value under [nameKey] to "world!"
-	stateDB.SetState(HelloWorldAddress, nameKey, initialValue)
+	// Set the initial value under [nameKey] to "Hello World!"
+	SetGreeting(stateDB, helloWorldStr)
 }
 
 // Return the precompile contract
@@ -46,85 +64,85 @@ func (h *HelloWorldConfig) Contract() StatefulPrecompiledContract {
 	return ContractHelloWorldPrecompile
 }
 
+// PackSayHelloInput returns the calldata necessary to call HelloWorld's sayHello
+func PackSayHelloInput() []byte {
+	return common.CopyBytes(helloWorldSignature)
+}
+
 // Arguments are passed in to functions according to the ABI specification: https://docs.soliditylang.org/en/latest/abi-spec.html.
 // Therefore, we maintain compatibility with Solidity by following the same specification while encoding/decoding arguments.
-func PackHelloWorldInput(name string) ([]byte, error) {
-	byteStr := []byte(name)
-	if len(byteStr) > common.HashLength {
+func PackHelloWorldSetGreetingInput(name string) ([]byte, error) {
+	if len([]byte(name)) > common.HashLength {
 		return nil, fmt.Errorf("cannot pack hello world input with string: %s", name)
 	}
-
-	input := make([]byte, common.HashLength+len(byteStr))
-	strLength := new(big.Int).SetUint64(uint64(len(byteStr)))
-	strLengthBytes := strLength.Bytes()
-	copy(input[:common.HashLength], strLengthBytes)
-	copy(input[common.HashLength:], byteStr)
-
-	return input, nil
+	return helloABI.Pack("setGreeting", name)
 }
 
 // UnpackHelloWorldInput unpacks the recipient string from the hello world input
-func UnpackHelloWorldInput(input []byte) (string, error) {
-	if len(input) < common.HashLength {
-		return "", fmt.Errorf("cannot unpack hello world input with length: %d", len(input))
+func UnpackHelloWorldSetGreetingInput(input []byte) (string, error) {
+	res, err := helloABI.Methods["setGreeting"].Inputs.Unpack(input)
+	if err != nil {
+		return "", err
 	}
 
-	strLengthBig := new(big.Int).SetBytes(input[:common.HashLength])
-	if !strLengthBig.IsUint64() {
-		return "", fmt.Errorf("cannot unpack hello world input with stated length that is non-uint64")
+	if len(res) != 1 {
+		return "", fmt.Errorf("unexpected response length: %d", len(res))
+	}
+	str, ok := res[0].(string)
+	if !ok {
+		return "", fmt.Errorf("unexpected response type: %T of %v", res[0], res[0])
 	}
 
-	strLength := strLengthBig.Uint64()
-	if strLength > common.HashLength {
-		return "", fmt.Errorf("cannot unpack hello world string with length: %d", strLength)
+	byteStr := []byte(str)
+	if len(byteStr) > common.HashLength {
+		return "", fmt.Errorf("cannot unpack string of byte length %d", len(byteStr))
 	}
 
-	if len(input) != common.HashLength+int(strLength) {
-		return "", fmt.Errorf("input had unexpected length %d with string length defined as %d", len(input), strLength)
-	}
-
-	str := string(input[common.HashLength:])
 	return str, nil
 }
 
-func GetReceipient(state StateDB) string {
+func GetGreeting(state StateDB) string {
 	value := state.GetState(HelloWorldAddress, nameKey)
 	b := value.Bytes()
 	trimmedbytes := common.TrimLeftZeroes(b)
 	return string(trimmedbytes)
 }
 
-// SetRecipient sets the recipient for the hello world precompile
-func SetRecipient(state StateDB, recipient string) {
-	state.SetState(HelloWorldAddress, nameKey, common.BytesToHash([]byte(recipient)))
+// SetGreeting sets the recipient for the hello world precompile
+func SetGreeting(state StateDB, recipient string) {
+	res := common.LeftPadBytes([]byte(recipient), common.HashLength)
+	state.SetState(HelloWorldAddress, nameKey, common.BytesToHash(res))
 }
 
 // sayHello is the execution function of "sayHello()"
 func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if len(input) != 0 {
-		return nil, 0, fmt.Errorf("fuck")
+		return nil, 0, fmt.Errorf("%w: %d", ErrInvalidGreeting, len(input))
 	}
 	remainingGas, err = deductGas(suppliedGas, HelloWorldGasCost)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	recipient := GetReceipient(accessibleState.GetStateDB())
-	return []byte(fmt.Sprintf("Hello %s!", recipient)), suppliedGas - SetRecipientGasCost, nil
+	recipient := GetGreeting(accessibleState.GetStateDB())
+	return []byte(recipient), remainingGas, nil
 }
 
-// setRecipient is the execution function of "setRecipient(name string)" and sets the recipient in the string returned by hello world
-func setRecipient(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	recipient, err := UnpackHelloWorldInput(input)
+// setGreeting is the execution function of "SetGreeting(name string)" and sets the recipient in the string returned by hello world
+func setGreeting(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	recipient, err := UnpackHelloWorldSetGreetingInput(input)
 	if err != nil {
 		return nil, 0, err
 	}
-	remainingGas, err = deductGas(suppliedGas, SetRecipientGasCost)
+	remainingGas, err = deductGas(suppliedGas, SetGreetingGasCost)
 	if err != nil {
 		return nil, 0, err
+	}
+	if readOnly {
+		return nil, 0, vmerrs.ErrWriteProtection
 	}
 
-	SetRecipient(accessibleState.GetStateDB(), recipient)
+	SetGreeting(accessibleState.GetStateDB(), recipient)
 	return []byte{}, remainingGas, nil
 }
 
@@ -132,6 +150,6 @@ func setRecipient(accessibleState PrecompileAccessibleState, caller common.Addre
 func createHelloWorldPrecompile() StatefulPrecompiledContract {
 	return newStatefulPrecompileWithFunctionSelectors(nil, []*statefulPrecompileFunction{
 		newStatefulPrecompileFunction(helloWorldSignature, sayHello),
-		newStatefulPrecompileFunction(setHelloWorldRecipientSignature, setRecipient),
+		newStatefulPrecompileFunction(setHelloWorldRecipientSignature, setGreeting),
 	})
 }
