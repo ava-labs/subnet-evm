@@ -1,10 +1,14 @@
+
 # Subnet EVM
 
-[Avalanche](https://docs.avax.network/learn/platform-overview) is a network composed of multiple blockchains.
+[![Build + Test + Release](https://github.com/ava-labs/subnet-evm/actions/workflows/lint-tests-release.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/lint-tests-release.yml)
+[![CodeQL](https://github.com/ava-labs/subnet-evm/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/codeql-analysis.yml)
+
+[Avalanche](https://docs.avax.network/overview/getting-started/avalanche-platform) is a network composed of multiple blockchains.
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.
 That is, the VM defines the behavior of the blockchain.
 
-Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/learn/platform-overview#virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
+Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/overview/getting-started/avalanche-platform/#virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
@@ -14,11 +18,17 @@ The Subnet EVM runs in a separate process from the main AvalancheGo process and 
 
 ### AvalancheGo Compatibility
 
-```
+```text
 [v0.1.0] AvalancheGo@v1.7.0-v1.7.4
 [v0.1.1-v0.1.2] AvalancheGo@v1.7.5-v1.7.6
 [v0.2.0] AvalancheGo@v1.7.7-v1.7.9
 [v0.2.1] AvalancheGo@v1.7.10
+[v0.2.2] AvalancheGo@v1.7.11-v1.7.12
+[v0.2.3] AvalancheGo@v1.7.13-v1.7.16
+[v0.2.4] AvalancheGo@v1.7.13-v1.7.16
+[v0.2.5] AvalancheGo@v1.7.13-v1.7.16
+[v0.2.6] AvalancheGo@v1.7.13-v1.7.16
+[v0.2.7] AvalancheGo@v1.7.13-v1.7.16
 ```
 
 ## API
@@ -35,7 +45,7 @@ Full documentation for the C-Chain's API can be found [here.](https://docs.avax.
 
 ## Compatibility
 
-The Subnet EVM is compatible with almost all Ethereum tooling, including [Remix,](https://docs.avax.network/dapps/smart-contracts/deploy-a-smart-contract-on-avalanche-using-remix-and-metamask/) [Metamask](https://docs.avax.network/dapps/smart-contracts/deploy-a-smart-contract-on-avalanche-using-remix-and-metamask/) and [Truffle.](https://docs.avax.network/dapps/smart-contracts/using-truffle-with-the-avalanche-c-chain/)
+The Subnet EVM is compatible with almost all Ethereum tooling, including [Remix](https://docs.avax.network/dapps/smart-contracts/deploy-a-smart-contract-on-avalanche-using-remix-and-metamask/), [Metamask](https://docs.avax.network/dapps/smart-contracts/deploy-a-smart-contract-on-avalanche-using-remix-and-metamask/) and [Truffle](https://docs.avax.network/dapps/smart-contracts/using-truffle-with-the-avalanche-c-chain/).
 
 ## Differences Between Subnet EVM and Coreth
 
@@ -44,430 +54,40 @@ The Subnet EVM is compatible with almost all Ethereum tooling, including [Remix,
 - Removed Atomic Txs and Shared Memory
 - Removed Multicoin Contract and State
 
-## Setting the Genesis Allocation
+## Block Format
 
-When creating an instance of the subnet-evm, you will need to define the genesis
-state of the new chain. Part of this includes defining the genesis allocation
-(setting the starting balances for whatever addresses you want). If you don't
-provide any genesis allocation, you won't be able to interact with your new
-chain (all transactions require a fee to be paid from the sender's balance).
+To support these changes, there have been a number of changes to the SubnetEVM block format compared to what exists on the C-Chain and Ethereum. Here we list the changes to the block format as compared to Ethereum.
 
-To specify a genesis allocation, populate the `alloc` field in the genesis JSON as follows:
+### Block Header
 
-```json
-  "alloc": {
-    "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
-    },
-    "Ab5801a7D398351b8bE11C439e05C5B3259aeC9B": {
-      "balance": "0xa796504b1cb5a7c0000"
-    }
-  },
+- `BaseFee`: Added by EIP-1559 to represent the base fee of the block (present in Ethereum as of EIP-1559)
+- `BlockGasCost`: surcharge for producing a block faster than the target rate
+
+## Create an EVM Subnet on a Local Network
+
+### Clone Subnet-evm
+
+First install Go 1.17.9 or later, however as the time of writing, please don't use Go v1.18.x versions. Follow the instructions [here](https://golang.org/doc/install). You can verify by runing `go version`.
+
+Set `$GOPATH` environment variable properly for Go to look for Go Workspaces. Please read [this](https://go.dev/doc/gopath_code) for details. You can verify by running `echo $GOPATH`.
+
+As a few software will be installed into `$GOPATH/bin`, please make sure that `$GOPATH/bin` is in your `$PATH`, otherwise, you may get error running the commands below.
+
+Download the `subnet-evm` repository into your `$GOPATH`:
+
+```sh
+cd $GOPATH
+mkdir -p src/github.com/ava-labs
+cd src/github.com/ava-labs
+git clone git@github.com:ava-labs/subnet-evm.git
+cd subnet-evm
 ```
 
-The keys in the allocation are [hex](https://en.wikipedia.org/wiki/Hexadecimal) addresses **without the canonical `0x` prefix**.
-The balances are denominated in Wei ([10^18 Wei = 1 Whole Unit of Native Token](https://eth-converter.com/)) and expressed as
-hex strings **with the canonical `0x` prefix**. You can use [this converter](https://www.rapidtables.com/convert/number/hex-to-decimal.html)
-to translate between decimal and hex numbers.
+This will clone and checkout to `master` branch.
 
-The above example yields the following genesis allocations (denominated in whole units of the native token ie. 1 AVAX/1 WAGMI):
+### Run Local Network
 
-```
-0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC: 100000000 (0x52B7D2DCC80CD2E4000000=100000000000000000000000000 Wei)
-0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B: 49463 (0xa796504b1cb5a7c0000=49463000000000000000000 Wei)
-```
-
-A fully populated genesis JSON with the above allocation would look like (note the `alloc` field):
-
-```json
-{
-  "config": {
-    "chainId": 99999,
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "muirGlacierBlock": 0,
-    "subnetEVMTimestamp": 0,
-    "feeConfig": {
-      "gasLimit": 20000000,
-      "minBaseFee": 1000000000,
-      "targetGas": 100000000,
-      "baseFeeChangeDenominator": 48,
-      "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
-      "targetBlockRate": 2,
-      "blockGasCostStep": 500000
-    }
-  },
-  "alloc": {
-    "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
-    },
-    "Ab5801a7D398351b8bE11C439e05C5B3259aeC9B": {
-      "balance": "0xa796504b1cb5a7c0000"
-    }
-  },
-  "nonce": "0x0",
-  "timestamp": "0x0",
-  "extraData": "0x00",
-  "gasLimit": "0x1312D00",
-  "difficulty": "0x0",
-  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "number": "0x0",
-  "gasUsed": "0x0",
-  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-}
-```
-
-## Setting a Custom Fee Recipient
-
-By default, all fees are burned (sent to the blackhole address). However, it is
-possible to enable block producers to set a fee recipient (get compensated for
-blocks they produce).
-
-To enable this feature, you'll need to add the following to your
-genesis file (under the `"config"` key):
-
-```json
-{
-  "config": {
-    "allowFeeRecipients": true
-  }
-}
-```
-
-Next, you'll need to update your [chain config](https://docs.avax.network/build/references/command-line-interface/#chain-configs) with the following:
-
-```json
-{
-  "feeRecipient": "<YOUR 0x-ADDRESS>"
-}
-```
-
-_Note: If you enable this feature but a validator doesn't specify
-a "feeRecipient", the fees will be burned in blocks they produce._
-
-## Priority Regossip
-
-A transaction is "regossiped" when the node does not find the transaction in
-a block after `tx-regossip-frequency` (defaults to `1m`). By default, up to 16 transactions
-(max 1 per address) are regossiped to validators per minute.
-
-Operators can use "priority regossip" to more aggressively "regossip" transactions for a set of
-important addresses (like bridge relayers). To do so, you'll need to update your
-[chain config](https://docs.avax.network/build/references/command-line-interface/#chain-configs) with the following:
-
-```json
-{
-  "tx-priority-regossip-addresses": ["<YOUR 0x-ADDRESS>"]
-}
-```
-
-By default, up to 32 transactions from priority addresses (max 16 per address) are regossipped to validators per second.
-You can override these defaults with the following config:
-
-```json
-{
-  "tx-priority-regossip-frequency": "1s",
-  "tx-priority-regossip-max-size": 32,
-  "tx-priority-regossip-addresses": ["<YOUR 0x-ADDRESS>"],
-  "tx-priority-regossip-address-txs": 16
-}
-```
-
-## Precompiles
-
-Subnet EVM can provide custom functionalities with precompiled contracts. These precompiled contracts can be activated through `ChainConfig` (in genesis or as an upgrade).
-
-### Restricting Smart Contract Deployers
-
-If you'd like to restrict who has the ability to deploy contracts on your
-subnet, you can provide an `AllowList` configuration in your genesis file:
-
-```json
-{
-  "config": {
-    "chainId": 99999,
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "muirGlacierBlock": 0,
-    "subnetEVMTimestamp": 0,
-    "feeConfig": {
-      "gasLimit": 20000000,
-      "minBaseFee": 1000000000,
-      "targetGas": 100000000,
-      "baseFeeChangeDenominator": 48,
-      "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
-      "targetBlockRate": 2,
-      "blockGasCostStep": 500000
-    },
-    "contractDeployerAllowListConfig": {
-      "blockTimestamp": 0,
-      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
-    }
-  },
-  "alloc": {
-    "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
-    }
-  },
-  "nonce": "0x0",
-  "timestamp": "0x0",
-  "extraData": "0x00",
-  "gasLimit": "0x1312D00",
-  "difficulty": "0x0",
-  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "number": "0x0",
-  "gasUsed": "0x0",
-  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-}
-```
-
-In this example, `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is named as the
-`Admin` of the `ContractDeployerAllowList`. This enables them to add other `Admins` or to add
-`Deployers`. Both `Admins` and `Deployers` can deploy contracts. To provide
-a great UX with factory contracts, the `tx.Origin` is checked for being a valid
-deployer instead of the caller of `CREATE`. This means that factory contracts will still be
-able to create new contracts as long as the sender of the original transaction is an allow
-listed deployer.
-
-The `Stateful Precompile` powering the `ContractDeployerAllowList` adheres to the following Solidity interface at `0x0200000000000000000000000000000000000000` (you can load this interface and interact directly in Remix):
-
-```solidity
-// (c) 2022-2023, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
-
-// SPDX-License-Identifier: MIT
-
-pragma solidity >=0.8.0;
-
-interface AllowListInterface {
-    // Set [addr] to have the admin role over the allow list
-    function setAdmin(address addr) external;
-
-    // Set [addr] to be enabled on the allow list
-    function setEnabled(address addr) external;
-
-    // Set [addr] to have no role over the allow list
-    function setNone(address addr) external;
-
-    // Read the status of [addr]
-    function readAllowList(address addr) external view returns (uint256);
-}
-```
-
-If you attempt to add a `Deployer` and you are not an `Admin`, you will see
-something like:
-![admin fail](./imgs/admin_fail.png)
-
-If you attempt to deploy a contract but you are not an `Admin` not
-a `Deployer`, you will see something like:
-![deploy fail](./imgs/deploy_fail.png)
-
-The allow list has three roles: `None`, `Deployer`, and `Admin`.
-
-If you call `readAllowList(addr)` then you can read the current role of `addr`, which will return a uint256 with a value of 0, 1, or 2, corresponding to the roles `None`, `Deployer`, and `Admin` respectively.
-
-WARNING: if you remove all of the admins from the allow list, it will no longer be possible to update the allow list without modifying the subnet-evm to schedule a network upgrade.
-
-### Restricting Who Can Submit Transactions
-Similar to restricting contract deployers, this precompile restricts which addresses may submit transactions on chain. Like the previous section, you can activate the precompile by including an `AllowList` configuration in your genesis file:
-```json
-{
-  "config": {
-    "chainId": 99999,
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "muirGlacierBlock": 0,
-    "subnetEVMTimestamp": 0,
-    "feeConfig": {
-      "gasLimit": 20000000,
-      "minBaseFee": 1000000000,
-      "targetGas": 100000000,
-      "baseFeeChangeDenominator": 48,
-      "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
-      "targetBlockRate": 2,
-      "blockGasCostStep": 500000
-    },
-    "txAllowListConfig": {
-      "blockTimestamp": 0,
-      "adminAddresses":["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
-    }
-  },
-  "alloc": {
-    "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
-    }
-  },
-  "nonce": "0x0",
-  "timestamp": "0x0",
-  "extraData": "0x00",
-  "gasLimit": "0x1312D00",
-  "difficulty": "0x0",
-  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "number": "0x0",
-  "gasUsed": "0x0",
-  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-}
-```
-
-In this example, `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is named as the
-`Admin` of the `ContractDeployerAllowList`. This enables them to add other `Admins` or to add
-`Allowed`. Both `Admins` and `Allowed` can submit transactions to the chain.
-
-The `Stateful Precompile` powering the `TxAllowList` adheres to the following Solidity interface at `0x0200000000000000000000000000000000000002` (you can load this interface and interact directly in Remix):
-```solidity
-// (c) 2022-2023, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
-
-// SPDX-License-Identifier: MIT
-
-pragma solidity >=0.8.0;
-
-interface AllowListInterface {
-    // Set [addr] to have the admin role over the allow list
-    function setAdmin(address addr) external;
-
-    // Set [addr] to be enabled on the allow list
-    function setEnabled(address addr) external;
-
-    // Set [addr] to have no role over the allow list
-    function setNone(address addr) external;
-
-    // Read the status of [addr]
-    function readAllowList(address addr) external view returns (uint256);
-}
-```
-
-If you attempt to add an `Allowed` and you are not an `Admin`, you will see
-something like:
-![admin fail](./imgs/admin_fail.png)
-
-If you attempt to submit a transaction but you are not an `Admin` or not
-`Allowed`, you will see something like: `cannot issue transaction from non-allow listed address`
-
-The allow list has three roles: `None`, `Allowed`, and `Admin`.
-
-If you call `readAllowList(addr)` then you can read the current role of `addr`, which will return a `uint256` with a value of 0, 1, or 2, corresponding to the roles `None`, `Allowed`, and `Admin` respectively.
-
-WARNING: if you remove all of the admins from the allow list, it will no longer be possible to update the allow list without modifying the subnet-evm to schedule a network upgrade.
-
-### Minting Native Coins
-
-You can mint native(gas) coins with a precompiled contract. In order to activate this feature, you can provide `nativeMinterConfig` in genesis:
-
-```json
-{
-  "config": {
-    "chainId": 99999,
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "muirGlacierBlock": 0,
-    "subnetEVMTimestamp": 0,
-    "feeConfig": {
-      "gasLimit": 20000000,
-      "minBaseFee": 1000000000,
-      "targetGas": 100000000,
-      "baseFeeChangeDenominator": 48,
-      "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
-      "targetBlockRate": 2,
-      "blockGasCostStep": 500000
-    },
-    "contractNativeMinterConfig": {
-      "blockTimestamp": 0,
-      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
-    }
-  },
-  "alloc": {
-    "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
-    }
-  },
-  "nonce": "0x0",
-  "timestamp": "0x0",
-  "extraData": "0x00",
-  "gasLimit": "0x1312D00",
-  "difficulty": "0x0",
-  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "number": "0x0",
-  "gasUsed": "0x0",
-  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-}
-```
-
-`adminAddresses` denotes admin accounts who can add other `Admin` or `Minter` accounts. `Minters` and `Admins` are both eligible to mint native coins for other addresses. `ContractNativeMinter` uses same methods as in `ContractDeployerAllowList`.
-
-The `Stateful Precompile` powering the `ContractNativeMinter` adheres to the following Solidity interface at `0x0200000000000000000000000000000000000001` (you can load this interface and interact directly in Remix):
-
-```solidity
-// (c) 2022-2023, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
-
-// SPDX-License-Identifier: MIT
-
-pragma solidity >=0.8.0;
-
-interface NativeMinterInterface {
-    // Set [addr] to have the admin role over the minter list
-    function setAdmin(address addr) external;
-
-    // Set [addr] to be enabled on the minter list
-    function setEnabled(address addr) external;
-
-    // Set [addr] to have no role over the minter list
-    function setNone(address addr) external;
-
-    // Read the status of [addr]
-    function readAllowList(address addr) external view returns (uint256);
-
-    // Mint [amount] number of native coins and send to [addr]
-    function mintNativeCoin(address addr, uint256 amount) external;
-}
-```
-
-_Note: Both `ContractDeployerAllowList` and `ContractNativeMinter` can be used together._
-
-### Examples
-
-Subnet-EVM contains example contracts for precompiles under `/contract-examples`. It's a hardhat project with tests, tasks. For more information see [contract examples README](./contract-examples/README.md).
-
-## Run Local Network
-
-[`scripts/run.sh`](scripts/run.sh) automatically installs [avalanchego], sets up a local network,
+[`scripts/run.sh`](https://github.com/ava-labs/subnet-evm/blob/master/scripts/run.sh) automatically installs `avalanchego`, sets up a local network,
 and creates a `subnet-evm` genesis file. The usage of this script is
 
 ```bash
@@ -477,12 +97,14 @@ and creates a `subnet-evm` genesis file. The usage of this script is
 ```bash
 # to startup a local cluster (good for development)
 cd ${HOME}/go/src/github.com/ava-labs/subnet-evm
-./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+git pull
+./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 ```
 
-_This address (`0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`) is a prefunded address on the local network, see [here](https://docs.avax.network/quickstart/fund-a-local-test-network) for more info. The private key for this address is
-`0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`._
+Note: make sure you check the version compatibility above between AvalancheGo and Subnet-evm and use the proper version of AvalancheGo.
 
+Note that this ewoq address (`0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`) is a prefunded address on the local network, see [here](https://docs.avax.network/quickstart/fund-a-local-test-network) for more info. The private key for this address is
+`0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`.
 
 With this command, `avalanchego`, `avalanche-network-runner` and GoLang packages will be downloaded and installed on a `/tmp` directory. Note: please make sure that your have fast internet connection to download these packages, otherwise, it will take a long time.
 
@@ -490,37 +112,45 @@ Once the the network is started up, the following info will be printed to the
 console:
 
 ```bash
-Logs Directory: /var/folders/mp/6jm81gc11dv3xtcwxmrd8mcr0000gn/T/runnerlogs2402729383
-PID: 90118
+cluster is ready!
+
+Logs Directory: /var/folders/0h/v4nrbbsn1vvbr5h2wfrh5h500000gn/T/network-runner-root-data2328077371
 
 EVM Chain ID: 99999
 Funded Address: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 RPC Endpoints:
-- http://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
-- http://localhost:53425/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
-- http://localhost:53427/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
-- http://localhost:53429/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
-- http://localhost:53431/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
+- http://127.0.0.1:14463/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc
+- http://127.0.0.1:23930/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc
+- http://127.0.0.1:31984/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc
+- http://127.0.0.1:41274/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc
+- http://127.0.0.1:57529/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc
 
 WS Endpoints:
-- ws://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
-- ws://localhost:53425/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
-- ws://localhost:53427/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
-- ws://localhost:53429/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
-- ws://localhost:53431/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/ws
+- ws://127.0.0.1:14463/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/ws
+- ws://127.0.0.1:23930/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/ws
+- ws://127.0.0.1:31984/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/ws
+- ws://127.0.0.1:41274/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/ws
+- ws://127.0.0.1:57529/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/ws
 
 MetaMask Quick Start:
 Funded Address: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 Network Name: Local EVM
-RPC URL: http://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc
+RPC URL: http://127.0.0.1:14463/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc
 Chain ID: 99999
 Curreny Symbol: LEVM
+network-runner RPC server is running on PID 79100...
+
+use the following command to terminate:
+
+pkill -P 79100
+kill -2 79100
+pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
 ```
 
 You can then ping the local cluster or add the network to MetaMask:
 
 ```bash
-curl --location --request POST 'http://localhost:53423/ext/bc/AHdWCyWDaudRX4JkHNgpzyMFdhHK7iEgB4HHMTuarzWghkAdg/rpc' \
+curl --location --request POST 'http://127.0.0.1:14463/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "jsonrpc": "2.0",
@@ -534,19 +164,36 @@ Response:
 
 ```json
 {
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": "0x0"
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "0x0"
 }
 ```
 
-To terminate the cluster, kill the PID:
+To terminate the cluster, run the following commands:
 
 ```bash
-kill -2 90118
+pkill -P 79100
+kill -2 79100
+pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
 ```
 
-## Load Simulator
+### Connect with Metamask
+
+Please use the value provided by `MetaMask Quick Start` to connect with Metamask.
+
+```text
+MetaMask Quick Start:
+Funded Address: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Network Name: Local EVM
+RPC URL: http://127.0.0.1:14463/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc
+Chain ID: 99999
+Curreny Symbol: LEVM
+```
+
+You can create a new metamask account by importing the private key `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027` and start experiencing with this account.
+
+### Load Simulator
 
 When building developing your own blockchain using `subnet-evm`, you may want
 to analyze how your fee paramterization behaves and/or how many resources your VM
@@ -556,7 +203,7 @@ with a user-specified `concurrency`, `base-fee`, and `priority-fee`.
 
 To get started, open the directory `cmd/simulator` and add your network's endpoints to
 the file at `.simulator/config.yml` (these will be provided after running
-`./scripts/run.sh`):
+`./scripts/run.sh`. With the example above, the correct endpoints is `http://127.0.0.1:14463/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc` to replace `http://localhost:9650/ext/bc/my-chain/rpc`.):
 
 ```yaml
 endpoints:
@@ -566,12 +213,12 @@ priority-fee: 1
 concurrency: 10
 ```
 
-Once your config is specified, you can run the tool by either invoking `go run main.go` or by installing the tool (`go install -v .`) and running the binary
+Once your config is specified, you can run the tool by either invoking `go run main.go` under the directory `cmd/simulator` or by installing the tool (`go install -v .`) and running the binary
 (`simulator`).
 
 To make getting started easier, the ewoq key `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`
 has been pre-added to the simulator key directory and can be added to genesis during local network
-creation (`./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`).
+creation (`./scripts/run.sh [AVALANCHEGO VERSION] 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC`).
 If you do not add this key to genesis, you'll need to manually fund the
 `master` account when prompted in the terminal.
 
@@ -581,187 +228,90 @@ _The private key for the ewoq address (`0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52
 If you followed the directions successfully, you should see the following:
 
 ```bash
-2022/03/14 08:13:32 loaded config (endpoints=[http://localhost:53120/ext/bc/367dTowpd77GrwTsxcnw7EPPzkAQVnFqga4EQxHPUxcBBNjCQ/rpc http://localhost:53122/ext/bc/367dTowpd77GrwTsxcnw7EPPzkAQVnFqga4EQxHPUxcBBNjCQ/rpc http://localhost:53124/ext/bc/367dTowpd77GrwTsxcnw7EPPzkAQVnFqga4EQxHPUxcBBNjCQ/rpc http://localhost:53126/ext/bc/367dTowpd77GrwTsxcnw7EPPzkAQVnFqga4EQxHPUxcBBNjCQ/rpc http://localhost:53128/ext/bc/367dTowpd77GrwTsxcnw7EPPzkAQVnFqga4EQxHPUxcBBNjCQ/rpc] concurrency=1000 base fee=1 priority fee=250)
-2022/03/14 08:13:32 loaded worker 0x27a0D44AC25233652c02b1a92dD2C7D46059b053 (balance=100000000000000000000000000 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xdea66C24b333E0aAfD1fFA828976D8C666D73d77 (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xe15BCae0612A6fbf3f7dF99dD4Ab3FE88A33b759 (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xe2848eF46c89d235d66021d82d80DeBB009Ee787 (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xeAB317a6525298c862A07EE66A9Ea772C549834D (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xeAfA0Aa4e5f2F55C55dc32E41b87C11fBFF8770C (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xf4ee33ABa173E95179D48A0b3D52623d8b239Ba9 (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xf7C811A6563eb527e2AfF6026A11EE17994eF9F5 (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xfD27a32854e612D62858a5ac520a5f17A4d223c7 (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xfD757bc4966BB48321928a8c64A3113B682AEADa (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xfE8458B6cFA844B55331511b785cED82EBF56630 (balance=0 nonce=0)
-2022/03/14 08:13:32 loaded worker 0xfc5649FE1FC631d6B8e1D48B21300F2E8F3508E5 (balance=0 nonce=0)
-2022/03/14 08:13:32 [block created] index: 0 base fee: 1 block gas cost: <nil> block txs: 0
-2022/03/14 08:13:34 [block created] index: 1 base fee: 1 block gas cost: 0 block txs: 1
-2022/03/14 08:13:34 [block created] index: 2 base fee: 1 block gas cost: 0 block txs: 1
-2022/03/14 08:13:34 [stats] historical TPS: 1.000000 last 10s TPS: 0.100000 total txs: 2 total time(s): 2
-2022/03/14 08:13:36 [block created] index: 3 base fee: 1 block gas cost: 0 block txs: 1
-2022/03/14 08:13:36 [stats] historical TPS: 0.750000 last 10s TPS: 0.200000 total txs: 3 total time(s): 4
+> go run main.go
+go: downloading github.com/ava-labs/subnet-evm v0.1.2
+go: downloading github.com/spf13/viper v1.10.1
+2022/05/11 09:49:22 loaded config (endpoints=[http://127.0.0.1:14463/ext/bc/28N1Tv5CZziQ3FKCaXmo8xtxoFtuoVA6NvZykAT5MtGjF4JkGs/rpc] concurrency=25 base fee=1 priority fee=10)
+2022/05/11 09:49:22 loaded worker 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC (balance=100000000000000000000000000 nonce=0)
+2022/05/11 09:49:22 0xe8859AF6c05b512dF80A66b81dE89FDAB9fE5C1c requesting funds from master
+2022/05/11 09:49:22 0xa2B32bcbA31d4dC7728aD73165cdeea5eCeD5e70 requesting funds from master
+2022/05/11 09:49:22 0x837438175627A7A2ABbccf1727c5cA46fA7274b5 requesting funds from master
+2022/05/11 09:49:22 0x14c908A82047C6bC66cd9282b4D68f3e003659f8 requesting funds from master
+2022/05/11 09:49:22 0xbeE6DF853592d3699ac3292D134F59BEF278B048 requesting funds from master
+2022/05/11 09:49:22 0x028Bc164dcC1c10f1Db5a1175c58eA84a7Fd34c9 requesting funds from master
+2022/05/11 09:49:22 0x664D97348Bdb73fc3bC4447B4676573dbF6eEE5A requesting funds from master
+2022/05/11 09:49:22 0x455aAB371261DC41a048e42Bf147ced4FaDE5fCF requesting funds from master
+2022/05/11 09:49:22 0xA9b5C64E057F50730CA4Ba6205d55fa08C03ff75 requesting funds from master
+2022/05/11 09:49:22 0x57645A2bdCEb6cFbC95e6a5Cac70F0c05B8d8515 requesting funds from master
+2022/05/11 09:49:24 [block created] t: 2022-05-11 09:49:22 -0600 MDT index: 1 base fee: 1 block gas cost: 0 block txs: 1 gas used: 21000
+2022/05/11 09:49:24 [block created] t: 2022-05-11 09:49:24 -0600 MDT index: 2 base fee: 1 block gas cost: 0 block txs: 1 gas used: 21000
+2022/05/11 09:49:24 [stats] historical TPS: 1.00 last 10s TPS: 0.10 total txs: 2 historical GPS: 21000.0, last 10s GPS: 2100.0 elapsed: 2s
+2022/05/11 09:49:26 [block created] t: 2022-05-11 09:49:26 -0600 MDT index: 3 base fee: 1 block gas cost: 0 block txs: 1 gas used: 21000
+2022/05/11 09:49:26 [stats] historical TPS: 0.75 last 10s TPS: 0.20 total txs: 3 historical GPS: 15750.0, last 10s GPS: 4200.0 elapsed: 4s
+2022/05/11 09:49:28 [block created] t: 2022-05-11 09:49:28 -0600 MDT index: 4 base fee: 1 block gas cost: 0 block txs: 2 gas used: 42000
+2022/05/11 09:49:28 [stats] historical TPS: 0.83 last 10s TPS: 0.30 total txs: 5 historical GPS: 17500.0, last 10s GPS: 6300.0 elapsed: 6s
+2022/05/11 09:49:30 [block created] t: 2022-05-11 09:49:30 -0600 MDT index: 5 base fee: 1 block gas cost: 0 block txs: 4 gas used: 84000
+2022/05/11 09:49:30 [stats] historical TPS: 1.12 last 10s TPS: 0.50 total txs: 9 historical GPS: 23625.0, last 10s GPS: 10500.0 elapsed: 8s
+2022/05/11 09:49:32 [block created] t: 2022-05-11 09:49:32 -0600 MDT index: 6 base fee: 1 block gas cost: 0 block txs: 5 gas used: 105000
+2022/05/11 09:49:32 [stats] historical TPS: 1.40 last 10s TPS: 0.90 total txs: 14 historical GPS: 29400.0, last 10s GPS: 18900.0 elapsed: 10s
+2022/05/11 09:49:34 [block created] t: 2022-05-11 09:49:34 -0600 MDT index: 7 base fee: 1 block gas cost: 0 block txs: 6 gas used: 126000
+2022/05/11 09:49:34 [stats] historical TPS: 1.67 last 10s TPS: 1.30 total txs: 20 historical GPS: 35000.0, last 10s GPS: 27300.0 elapsed: 12s
+2022/05/11 09:49:36 [block created] t: 2022-05-11 09:49:36 -0600 MDT index: 8 base fee: 1 block gas cost: 0 block txs: 7 gas used: 147000
+2022/05/11 09:49:36 [stats] historical TPS: 1.93 last 10s TPS: 1.80 total txs: 27 historical GPS: 40500.0, last 10s GPS: 37800.0 elapsed: 14s
+2022/05/11 09:49:38 [block created] t: 2022-05-11 09:49:38 -0600 MDT index: 9 base fee: 1 block gas cost: 0 block txs: 8 gas used: 168000
+2022/05/11 09:49:38 [stats] historical TPS: 2.19 last 10s TPS: 2.40 total txs: 35 historical GPS: 45937.5, last 10s GPS: 50400.0 elapsed: 16s
+2022/05/11 09:49:40 [block created] t: 2022-05-11 09:49:40 -0600 MDT index: 10 base fee: 1 block gas cost: 0 block txs: 9 gas used: 189000
+2022/05/11 09:49:40 [stats] historical TPS: 2.44 last 10s TPS: 3.00 total txs: 44 historical GPS: 51333.3, last 10s GPS: 63000.0 elapsed: 18s
+2022/05/11 09:49:42 [block created] t: 2022-05-11 09:49:42 -0600 MDT index: 11 base fee: 1 block gas cost: 0 block txs: 9 gas used: 189000
+2022/05/11 09:49:42 [stats] historical TPS: 2.65 last 10s TPS: 3.50 total txs: 53 historical GPS: 55650.0, last 10s GPS: 73500.0 elapsed: 20s
+2022/05/11 09:49:44 [block created] t: 2022-05-11 09:49:44 -0600 MDT index: 12 base fee: 1 block gas cost: 0 block txs: 10 gas used: 210000
+2022/05/11 09:49:44 [stats] historical TPS: 2.86 last 10s TPS: 3.90 total txs: 63 historical GPS: 60136.4, last 10s GPS: 81900.0 elapsed: 22s
+2022/05/11 09:49:46 [block created] t: 2022-05-11 09:49:46 -0600 MDT index: 13 base fee: 1 block gas cost: 0 block txs: 10 gas used: 210000
+2022/05/11 09:49:46 [stats] historical TPS: 3.04 last 10s TPS: 4.30 total txs: 73 historical GPS: 63875.0, last 10s GPS: 90300.0 elapsed: 24s
 .....
-2022/03/14 08:17:36 [block created] index: 125 base fee: 1 block gas cost: 2000000 block txs: 101
-2022/03/14 08:17:36 [stats] historical TPS: 30.409836 last 10s TPS: 49.900000 total txs: 7420 total time(s): 244
-2022/03/14 08:17:38 0x7A3Bba23Db6247E4474D9bFF4C11bB755137276d requesting funds from master
-2022/03/14 08:17:38 [block created] index: 126 base fee: 1 block gas cost: 2000000 block txs: 101
-2022/03/14 08:17:38 [stats] historical TPS: 30.573171 last 10s TPS: 50.000000 total txs: 7521 total time(s): 246
-2022/03/14 08:17:40 0x44461F32FeCa6c5a0De1DEF46FD170325464e0fE requesting funds from master
-2022/03/14 08:17:40 [block created] index: 127 base fee: 1 block gas cost: 2000000 block txs: 101
-2022/03/14 08:17:40 [stats] historical TPS: 30.733871 last 10s TPS: 50.100000 total txs: 7622 total time(s): 248
-2022/03/14 08:17:40 0x77d027fA9E6B4a217247398abDdDA93bDeE38d30 requesting funds from master
-2022/03/14 08:17:42 [block created] index: 128 base fee: 1 block gas cost: 2000000 block txs: 99
-2022/03/14 08:17:42 [stats] historical TPS: 30.884000 last 10s TPS: 50.300000 total txs: 7721 total time(s): 250
-2022/03/14 08:17:44 0x5f46A3E9D0A94351CE60e0205A9C4028eD9474c2 requesting funds from master
-2022/03/14 08:17:44 0x7C51Ca57Ab8a3BbfE4C13a25683Ca0756eDb7f0A requesting funds from master
-2022/03/14 08:17:44 [block created] index: 129 base fee: 1 block gas cost: 2000000 block txs: 101
-2022/03/14 08:17:44 [stats] historical TPS: 31.039683 last 10s TPS: 50.200000 total txs: 7822 total time(s): 252
-2022/03/14 08:17:46 [block created] index: 130 base fee: 1 block gas cost: 2000000 block txs: 99
-2022/03/14 08:17:46 [stats] historical TPS: 31.185039 last 10s TPS: 50.300000 total txs: 7921 total time(s): 254
-2022/03/14 08:17:48 0x6e0BdcdD7813A5eb2C2767D5FD5535a4358081ed requesting funds from master
-2022/03/14 08:17:48 0x19499a0FdE9eAe40df7dd4108e174168a920499F requesting funds from master
-2022/03/14 08:17:48 [block created] index: 131 base fee: 1 block gas cost: 2000000 block txs: 100
-2022/03/14 08:17:48 [stats] historical TPS: 31.332031 last 10s TPS: 50.100000 total txs: 8021 total time(s): 256
-2022/03/14 08:17:50 [block created] index: 132 base fee: 1 block gas cost: 2000000 block txs: 99
-2022/03/14 08:17:50 [stats] historical TPS: 31.472868 last 10s TPS: 50.000000 total txs: 8120 total time(s): 258
+
+2022/05/11 09:55:51 [stats] historical TPS: 4.89 last 10s TPS: 5.00 total txs: 1896 historical GPS: 102618.6, last 10s GPS: 105000.0 elapsed: 6m28s
+2022/05/11 09:55:52 0xa2B32bcbA31d4dC7728aD73165cdeea5eCeD5e70 requesting funds from master
+2022/05/11 09:55:53 [block created] t: 2022-05-11 09:55:52 -0600 MDT index: 196 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:55:53 [stats] historical TPS: 4.89 last 10s TPS: 5.10 total txs: 1907 historical GPS: 102684.6, last 10s GPS: 107100.0 elapsed: 6m30s
+2022/05/11 09:55:54 0x14c908A82047C6bC66cd9282b4D68f3e003659f8 requesting funds from master
+2022/05/11 09:55:55 [block created] t: 2022-05-11 09:55:54 -0600 MDT index: 197 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:55:55 [stats] historical TPS: 4.89 last 10s TPS: 5.20 total txs: 1918 historical GPS: 102750.0, last 10s GPS: 109200.0 elapsed: 6m32s
+2022/05/11 09:55:56 0xbeE6DF853592d3699ac3292D134F59BEF278B048 requesting funds from master
+2022/05/11 09:55:57 [block created] t: 2022-05-11 09:55:56 -0600 MDT index: 198 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:55:57 [stats] historical TPS: 4.90 last 10s TPS: 5.30 total txs: 1929 historical GPS: 102814.7, last 10s GPS: 111300.0 elapsed: 6m34s
+2022/05/11 09:55:58 0x028Bc164dcC1c10f1Db5a1175c58eA84a7Fd34c9 requesting funds from master
+2022/05/11 09:55:59 [block created] t: 2022-05-11 09:55:58 -0600 MDT index: 199 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:55:59 [stats] historical TPS: 4.90 last 10s TPS: 5.40 total txs: 1940 historical GPS: 102878.8, last 10s GPS: 113400.0 elapsed: 6m36s
+2022/05/11 09:56:00 0x664D97348Bdb73fc3bC4447B4676573dbF6eEE5A requesting funds from master
+2022/05/11 09:56:01 [block created] t: 2022-05-11 09:56:00 -0600 MDT index: 200 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:56:01 [stats] historical TPS: 4.90 last 10s TPS: 5.50 total txs: 1951 historical GPS: 102942.2, last 10s GPS: 115500.0 elapsed: 6m38s
+2022/05/11 09:56:02 0x455aAB371261DC41a048e42Bf147ced4FaDE5fCF requesting funds from master
+2022/05/11 09:56:03 [block created] t: 2022-05-11 09:56:02 -0600 MDT index: 201 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:56:03 [stats] historical TPS: 4.91 last 10s TPS: 5.50 total txs: 1962 historical GPS: 103005.0, last 10s GPS: 115500.0 elapsed: 6m40s
+2022/05/11 09:56:04 0xA9b5C64E057F50730CA4Ba6205d55fa08C03ff75 requesting funds from master
+2022/05/11 09:56:05 [block created] t: 2022-05-11 09:56:04 -0600 MDT index: 202 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:56:05 [stats] historical TPS: 4.91 last 10s TPS: 5.50 total txs: 1973 historical GPS: 103067.2, last 10s GPS: 115500.0 elapsed: 6m42s
+2022/05/11 09:56:06 0x57645A2bdCEb6cFbC95e6a5Cac70F0c05B8d8515 requesting funds from master
+2022/05/11 09:56:07 [block created] t: 2022-05-11 09:56:06 -0600 MDT index: 203 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:56:07 [stats] historical TPS: 4.91 last 10s TPS: 5.50 total txs: 1984 historical GPS: 103128.7, last 10s GPS: 115500.0 elapsed: 6m44s
+2022/05/11 09:56:09 [block created] t: 2022-05-11 09:56:08 -0600 MDT index: 204 base fee: 1 block gas cost: 0 block txs: 11 gas used: 231000
+2022/05/11 09:56:09 [stats] historical TPS: 4.91 last 10s TPS: 5.50 total txs: 1995 historical GPS: 103189.7, last 10s GPS: 115500.0 elapsed: 6m46s
+2022/05/11 09:56:11 [block created] t: 2022-05-11 09:56:10 -0600 MDT index: 205 base fee: 1 block gas cost: 0 block txs: 10 gas used: 210000
+2022/05/11 09:56:11 [stats] historical TPS: 4.91 last 10s TPS: 5.50 total txs: 2005 historical GPS: 103198.5, last 10s GPS: 115500.0 elapsed: 6m48s
+2022/05/11 09:56:13 [block created] t: 2022-05-11 09:56:12 -0600 MDT index: 206 base fee: 1 block gas cost: 0 block txs: 10 gas used: 210000
+2022/05/11 09:56:13 [stats] historical TPS: 4.91 last 10s TPS: 5.40 total txs: 2015 historical GPS: 103207.3, last 10s GPS: 113400.0 elapsed: 6m50s
 ```
 
-## Fuji Subnet Deployment
+## Create an EVM Subnet on Fuji Testnet
 
-Ready to take the `subnet-evm` for a spin? Follow this
-tutorial and you can get your own EVM on your own subnet
-spun up on Fuji in a jiffy!
+See [this tutorial](https://docs.avax.network/subnets/create-a-fuji-subnet).
 
-_You can find an example of a genesis file to use when launching your own
-`subnet-evm` in the [networks folder](./networks/11111/genesis.json)._
+## Customize a Subnet
 
-### Prerequisites
-
-- 1+ nodes running on Fuji (does not need to be a validator)
-- [`subnet-cli`](https://github.com/ava-labs/subnet-cli) installed
-- `subnet-cli` private key with some Fuji AVAX (see [faucet](https://faucet.avax-test.network))
-
-### Build Binary
-
-First, you'll need to compile the subnet-evm into a binary that AvalancheGo
-can interact with. To do this, run the following commands (assumes you don't
-yet have the `subnet-evm` repository downloaded):
-
-```bash
-git clone https://github.com/ava-labs/subnet-evm.git;
-cd subnet-evm;
-./scripts/build.sh build/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy;
-```
-
-#### Move Binary
-
-Once the `subnet-evm` binary is built, you'll need to move it to AvalancheGo's
-plugin directory (within the `--build-dir`) so it can be run by your node.
-When building from source, this defaults to `~/avalanchego/build/plugins`.
-This build directory is structured as:
-
-```
-build-dir
-|_avalanchego
-    |_plugins
-      |_evm
-```
-
-To put the `subnet-evm` binary in the right place, run the following command
-(assuming the `avalanchego` and `subnet-evm` repos are in the same folder):
-
-```bash
-mv ./subnet-evm/build/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy ./avalanchego/build/plugins;
-```
-
-### Run `subnet-cli wizard`
-
-The easiest and fastest way to get your new subnet off the ground is to use the
-[`subnet-cli`](https://github.com/ava-labs/subnet-cli). This powerful CLI can
-add validators, create subnets, and create blockchains.
-
-_The `subnet-cli` DOES NOT need to be run on the same host where you are
-running your validator. By default, it interfaces exclusively with the public
-Avalanche API Endpoints._
-
-To make it as easy as possible to get started, the `subnet-cli` also provides
-a `wizard` command that takes care of EVERYTHING for you. TL;DR, type one
-command and you'll have a subnet with a running `subnet-evm` instance 5 minutes
-later.
-
-To make NodeID-XXXX a validator, create a subnet, add NodeID-XXXX to the
-subnet (comma separated with multiple validators), and create a `subnet-evm`-based blockhain, run the following command:
-
-```bash
-subnet-cli wizard \
---node-ids=NodeID-XXXX \
---vm-genesis-path=networks/11111/genesis.json \
---vm-id=srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
---chain-name=subnetevm
-```
-
-_The `vm-id` was generated by calling `subnet-cli create VMID subnetevm`. You can
-use any value here, the only important thing is to make sure the binary you
-generate has the same name._
-
-#### Add New Subnet to Node Whitelist
-
-During the execution of the `wizard` command, you will be prompted to add your
-new subnetID to your node. This is done using the `whitelisted-subnets` config.
-You can provide the `whitelisted-subnets` argument by modifying your config
-file or providing an argument on startup.
-
-Example Config File:
-
-```json
-{
-  "network-id": "fuji",
-  "health-check-frequency": "2s",
-  "log-display-level": "INFO",
-  "log-level": "INFO",
-  "whitelisted-subnets": "<PROVIDED BY SPACES-CLI>"
-}
-```
-
-Example Node Args:
-
-```bash
---whitelisted-subnets=<PROVIDED BY SPACES CLI> --network-id=fuji
-```
-
-#### Restart Node
-
-Once you've updated your config, you'll need to restart your
-AvalancheGo node for the changes to take effect.
-
-If you completed the steps successfully, you'll see the node print out:
-
-```bash
-INFO [01-25|16:47:04] chains/manager.go#246: creating chain:
-    ID: 2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD
-    VMID:sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm
-INFO [01-25|16:47:04] api/server/server.go#203: adding route /ext/bc/2JVSBoinj9C2J33VntvzYtVJNZdN2NKiwwKjcumHUWEb5DbBrm/events
-INFO [01-25|16:47:04] api/server/server.go#203: adding route /ext/bc/2JVSBoinj9C2J33VntvzYtVJNZdN2NKiwwKjcumHUWEb5DbBrm
-INFO [01-25|16:47:04] api/server/server.go#203: adding route /ext/bc/2JVSBoinj9C2J33VntvzYtVJNZdN2NKiwwKjcumHUWEb5DbBrm/wallet
-INFO [01-25|16:47:04] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/snowman/transitive.go#67: initializing consensus engine
-INFO [01-25|16:47:04] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/snowman/bootstrap/bootstrapper.go#225: Starting bootstrap...
-INFO [01-25|16:47:04] <P Chain> snow/engine/snowman/bootstrap/bootstrapper.go#458: waiting for the remaining chains in this subnet to finish syncing
-INFO [01-25|16:47:04] api/server/server.go#203: adding route /ext/bc/2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD/public
-INFO [01-25|16:47:04] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/common/bootstrapper.go#235: Bootstrapping started syncing with 2 vertices in the accepted frontier
-INFO [01-25|16:47:05] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/snowman/bootstrap/bootstrapper.go#419: bootstrapping fetched 69 blocks. Executing state transitions...
-INFO [01-25|16:47:06] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/common/queue/jobs.go#181: executed 69 operations
-INFO [01-25|16:47:06] <2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD Chain> snow/engine/snowman/transitive.go#354: bootstrapping finished with 2DUxceCx71L5TLTeLpKUQxSBVm8vTKPmFs2usAyRnusUzs4Q4M as the last accepted block
-```
-
-If you didn't put the `subnet-evm` binary in the right place, you'll see something
-like:
-
-```bash
-INFO [01-26|05:54:19] chains/manager.go#246: creating chain:
-    ID: 2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD
-    VMID:sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm
-ERROR[01-26|05:54:19] chains/manager.go#270: error creating chain 2AM3vsuLoJdGBGqX2ibE8RGEq4Lg7g4bot6BT1Z7B9dH5corUD: error while looking up VM: there is no ID with alias sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm
-```
+- [Genesis](https://docs.avax.network/subnets/customize-a-subnet#genesis)
+- [Precompile](https://docs.avax.network/subnets/customize-a-subnet#precompiles)
+- [Priority Regossip](https://docs.avax.network/subnets/customize-a-subnet#priority-regossip)
 
 ## Join the WAGMI Subnet Demo
 
@@ -810,7 +360,7 @@ all validators to the WAGMI subnet, and created the WAGMI chain.
 
 ### Network Parameters
 
-```
+```text
 Network ID: 11111
 Chain ID: 11111
 Block Gas Limit: 20,000,000 (2.5x C-Chain)
@@ -821,7 +371,7 @@ Target Block Rate: 2s (Same as C-Chain)
 
 ### Adding to MetaMask
 
-```
+```text
 Network Name: WAGMI
 RPC URL: https://subnets.avax.network/wagmi/wagmi-chain-testnet/rpc
 Chain ID: 11111
@@ -835,7 +385,7 @@ Explorer: https://subnets.avax.network/wagmi/wagmi-chain-testnet/explorer
 
 #### Info
 
-```
+```text
 Address: 0x3Ee7094DADda15810F191DD6AcF7E4FFa37571e4
 IPFS: /ipfs/QmVAuheeidjD2ktdX3sSHMQqSfcjtmca1g9jr7w9GQf7pU
 ```

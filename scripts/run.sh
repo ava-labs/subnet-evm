@@ -4,13 +4,13 @@ set -e
 # e.g.,
 #
 # run without e2e tests
-# ./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 #
 # run without e2e tests with DEBUG log level
-# AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 #
 # run with e2e tests
-# E2E=true ./scripts/run.sh 1.7.10 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# E2E=true ./scripts/run.sh 1.7.13 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -37,6 +37,9 @@ if [[ ${E2E} == true ]]; then
 fi
 
 AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
+
+# Commenting out this variable will run the latest version
+NETWORK_RUNNER_VERSION=1.1.4
 
 echo "Running with:"
 echo VERSION: ${VERSION}
@@ -97,9 +100,10 @@ go build \
 
 # Create genesis file to use in network (make sure to add your address to
 # "alloc")
-export CHAIN_ID=99999
-echo "creating genesis"
-cat <<EOF >${BASEFILE}/genesis.json
+if [[ ${E2E} != true ]]; then
+  export CHAIN_ID=99999
+  echo "creating genesis"
+  cat <<EOF >/tmp/genesis.json
 {
   "config": {
     "chainId": $CHAIN_ID,
@@ -142,6 +146,7 @@ cat <<EOF >${BASEFILE}/genesis.json
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
 EOF
+fi
 
 # If you'd like to try the airdrop feature, use the commented genesis
 # cat <<EOF > ${BASEFILE}/genesis.json
@@ -193,67 +198,62 @@ EOF
 #################################
 # download avalanche-network-runner
 # https://github.com/ava-labs/avalanche-network-runner
-# TODO: use "go install -v github.com/ava-labs/avalanche-network-runner/cmd/avalanche-network-runner@v${NETWORK_RUNNER_VERSION}"
-NETWORK_RUNNER_VERSION=1.0.12
-ANR_TARNAME=avalanche-network-runner_${NETWORK_RUNNER_VERSION}_linux_amd64.tar.gz
-if [[ ${GOOS} == "darwin" ]]; then
-  ANR_TARNAME=avalanche-network-runner_${NETWORK_RUNNER_VERSION}_darwin_amd64.tar.gz
+REPO_PATH=github.com/ava-labs/avalanche-network-runner
+if [[ -z ${NETWORK_RUNNER_VERSION+x} ]]; then
+  # no version set
+  go install -v ${REPO_PATH}@latest
+else
+  # version set
+  go install -v ${REPO_PATH}@v${NETWORK_RUNNER_VERSION}
 fi
 
-ANR_DOWNLOAD_PATH=${BASEFILE}/${ANR_TARNAME}
-ANR_DOWNLOAD_URL=https://github.com/ava-labs/avalanche-network-runner/releases/download/v${NETWORK_RUNNER_VERSION}/${ANR_TARNAME}
-ANR_FILEPATH=${BASEFILE}/avalanche-network-runner-v${NETWORK_RUNNER_VERSION}
-if [[ ! -d ${ANR_FILEPATH} ]]; then
-  if [[ ! -f ${ANR_DOWNLOAD_PATH} ]]; then
-    echo "downloading avalanche-network-runner ${NETWORK_RUNNER_VERSION} at ${ANR_DOWNLOAD_URL} to ${ANR_DOWNLOAD_PATH}"
-    curl -L ${ANR_DOWNLOAD_URL} -o ${ANR_DOWNLOAD_PATH}
-  fi
-  echo "extracting downloaded avalanche-network-runner to ${ANR_FILEPATH}"
-  mkdir -p ${ANR_FILEPATH} && tar xzvf ${ANR_DOWNLOAD_PATH} -C ${ANR_FILEPATH}
-fi
-
-#################################
-echo "building e2e.test"
-# to install the ginkgo binary (required for test build and run)
-go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
-ACK_GINKGO_RC=true ginkgo build ./tests/e2e
-
-trap "trap - SIGTERM && kill -- -$$" SIGTERM SIGKILL EXIT
 #################################
 # run "avalanche-network-runner" server
+GOPATH=$(go env GOPATH)
+if [[ -z ${GOBIN+x} ]]; then
+  # no gobin set
+  BIN=${GOPATH}/bin/avalanche-network-runner
+else
+  # gobin set
+  BIN=${GOBIN}/avalanche-network-runner
+fi
 echo "launch avalanche-network-runner in the background"
-${ANR_FILEPATH}/avalanche-network-runner \
-  server \
+$BIN server \
   --log-level debug \
   --port=":12342" \
   --grpc-gateway-port=":12343" &
 PID=${!}
 
-#################################
-# By default, it runs all e2e test cases!
-# Use "--ginkgo.skip" to skip tests.
-# Use "--ginkgo.focus" to select tests.
-echo "running e2e tests"
-./tests/e2e/e2e.test \
-  --ginkgo.v \
-  --network-runner-log-level debug \
-  --network-runner-grpc-endpoint="0.0.0.0:12342" \
-  --avalanchego-path=${AVALANCHEGO_PATH} \
-  --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
-  --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
-  --vm-genesis-path=${BASEFILE}/genesis.json \
-  --output-path=${BASEFILE}/avalanchego-v${VERSION}/output.yaml \
-  --mode=${MODE}
+if [[ ${E2E} == true ]]; then
+  #################################
+  echo "building e2e.test"
+  # to install the ginkgo binary (required for test build and run)
+  go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
+  ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 
-#################################
-# e.g., print out MetaMask endpoints
-if [[ -f "${BASEFILE}/avalanchego-v${VERSION}/output.yaml" ]]; then
-  echo "cluster is ready!"
-  go run scripts/parser/main.go ${BASEFILE}/avalanchego-v${VERSION}/output.yaml $CHAIN_ID $GENESIS_ADDRESS
+  #################################
+  # By default, it runs all e2e test cases!
+  # Use "--ginkgo.skip" to skip tests.
+  # Use "--ginkgo.focus" to select tests.
+  echo "running e2e tests"
+  ./tests/e2e/e2e.test \
+    --ginkgo.v \
+    --network-runner-log-level debug \
+    --network-runner-grpc-endpoint="0.0.0.0:12342" \
+    --avalanchego-path=${AVALANCHEGO_PATH} \
+    --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+    --output-path=/tmp/avalanchego-v${VERSION}/output.yaml \
+    --mode=${MODE}
+
+  EXIT_CODE=$?
 else
-  echo "cluster is not ready in time... terminating ${PID}"
-  kill ${PID}
-  exit 255
+  go run scripts/parser/main.go \
+    /tmp/avalanchego-v${VERSION}/output.yaml \
+    $CHAIN_ID $GENESIS_ADDRESS \
+    /tmp/avalanchego-v${VERSION}/avalanchego \
+    ${AVALANCHEGO_PLUGIN_DIR} \
+    "0.0.0.0:12342" \
+    "/tmp/genesis.json"
 fi
 
 #################################
@@ -261,10 +261,16 @@ if [[ ${MODE} == "test" ]]; then
   # "e2e.test" already terminates the cluster for "test" mode
   # just in case tests are aborted, manually terminate them again
   echo "network-runner RPC server was running on PID ${PID} as test mode; terminating the process..."
-  # pkill -P ${PID} || true
-  # kill -2 ${PID} || true
-  # pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy || true # in case pkill didn't work
+  pkill -P ${PID} || true
+  kill -2 ${PID}
+  pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy || true # in case pkill didn't work
 else
-  echo "CTRL + C to exit and kill all background processes"
-  wait
+  echo "network-runner RPC server is running on PID ${PID}..."
+  echo ""
+  echo "use the following command to terminate:"
+  echo ""
+  echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+  echo ""
 fi
+
+exit ${EXIT_CODE}

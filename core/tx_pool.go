@@ -36,16 +36,17 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
 )
 
 const (
@@ -161,6 +162,7 @@ type blockChain interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
 	SenderCacher() *TxSenderCacher
+	GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error)
 
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 }
@@ -663,14 +665,30 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 	return txs
 }
 
-func (pool *TxPool) CheckNonceOrdering(from common.Address, txNonce uint64) error {
+// checks transaction validity against the current state.
+func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) error {
 	pool.currentStateLock.Lock()
 	defer pool.currentStateLock.Unlock()
 
+	// cost == V + GP * GL
+	if balance, cost := pool.currentState.GetBalance(from), tx.Cost(); balance.Cmp(cost) < 0 {
+		return fmt.Errorf("%w: address %s have (%d) want (%d)", ErrInsufficientFunds, from.Hex(), balance, cost)
+	}
+
+	txNonce := tx.Nonce()
 	// Ensure the transaction adheres to nonce ordering
-	if currentNonce, txNonce := pool.currentState.GetNonce(from), txNonce; currentNonce > txNonce {
+	if currentNonce := pool.currentState.GetNonce(from); currentNonce > txNonce {
 		return fmt.Errorf("%w: address %s current nonce (%d) > tx nonce (%d)",
 			ErrNonceTooLow, from.Hex(), currentNonce, txNonce)
+	}
+
+	// If the tx allow list is enabled, return an error if the from address is not allow listed.
+	headTimestamp := big.NewInt(int64(pool.currentHead.Time))
+	if pool.chainconfig.IsTxAllowList(headTimestamp) {
+		txAllowListRole := precompile.GetTxAllowListStatus(pool.currentState, from)
+		if !txAllowListRole.IsEnabled() {
+			return fmt.Errorf("%w: %s", precompile.ErrSenderAddressNotAllowListed, from)
+		}
 	}
 	return nil
 }
@@ -723,28 +741,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.minimumFee != nil && tx.GasFeeCapIntCmp(pool.minimumFee) < 0 {
 		return fmt.Errorf("%w: address %s have gas fee cap (%d) < pool minimum fee cap (%d)", ErrUnderpriced, from.Hex(), tx.GasFeeCap(), pool.minimumFee)
 	}
+
 	// Ensure the transaction adheres to nonce ordering
-	if err := pool.CheckNonceOrdering(from, tx.Nonce()); err != nil {
+	if err := pool.checkTxState(from, tx); err != nil {
 		return err
 	}
 
-	isTxAllowList := pool.chainconfig.IsTxAllowList(pool.currentHead.Number)
-	// Transactor should have enough funds to cover the costs
-	// cost == V + GP * GL
-	pool.currentStateLock.Lock()
-	if balance, cost := pool.currentState.GetBalance(from), tx.Cost(); balance.Cmp(cost) < 0 {
-		pool.currentStateLock.Unlock()
-		return fmt.Errorf("%w: address %s have (%d) want (%d)", ErrInsufficientFunds, from.Hex(), balance, cost)
-	}
-	// If the tx allow list is enabled, return an error if the from address is not allow listed.
-	if isTxAllowList {
-		txAllowListRole := precompile.GetTxAllowListStatus(pool.currentState, from)
-		if !txAllowListRole.IsEnabled() {
-			pool.currentStateLock.Unlock()
-			return fmt.Errorf("%w: %s", precompile.ErrSenderAddressNotAllowListed, from)
-		}
-	}
-	pool.currentStateLock.Unlock()
 	// Ensure the transaction has more gas than the basic tx fee.
 	intrGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, true, pool.istanbul)
 	if err != nil {
@@ -1296,9 +1298,8 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	if reset != nil {
 		pool.demoteUnexecutables()
 		if reset.newHead != nil && pool.chainconfig.IsSubnetEVM(new(big.Int).SetUint64(reset.newHead.Time)) {
-			_, baseFeeEstimate, err := dummy.EstimateNextBaseFee(pool.chainconfig, reset.newHead, uint64(time.Now().Unix()))
-			if err == nil {
-				pool.priced.SetBaseFee(baseFeeEstimate)
+			if err := pool.updateBaseFeeAt(reset.newHead); err != nil {
+				log.Error("error at updating base fee in tx pool", "error", err)
 			}
 		}
 
@@ -1420,6 +1421,17 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentStateLock.Unlock()
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
+
+	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
+	// so that we can correctly drop txs with < minBaseFee from tx pool.
+	if pool.chainconfig.IsFeeConfigManager(new(big.Int).SetUint64(newHead.Time)) {
+		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
+		if err != nil {
+			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)
+			return
+		}
+		pool.minimumFee = feeConfig.MinBaseFee
+	}
 
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))
@@ -1739,12 +1751,24 @@ func (pool *TxPool) updateBaseFee() {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	_, baseFeeEstimate, err := dummy.EstimateNextBaseFee(pool.chainconfig, pool.currentHead, uint64(time.Now().Unix()))
-	if err == nil {
-		pool.priced.SetBaseFee(baseFeeEstimate)
-	} else {
+	err := pool.updateBaseFeeAt(pool.currentHead)
+	if err != nil {
 		log.Error("failed to update base fee", "currentHead", pool.currentHead.Hash(), "err", err)
 	}
+}
+
+// assumes lock is already held
+func (pool *TxPool) updateBaseFeeAt(head *types.Header) error {
+	feeConfig, _, err := pool.chain.GetFeeConfigAt(head)
+	if err != nil {
+		return err
+	}
+	_, baseFeeEstimate, err := dummy.EstimateNextBaseFee(pool.chainconfig, feeConfig, head, uint64(time.Now().Unix()))
+	if err != nil {
+		return err
+	}
+	pool.priced.SetBaseFee(baseFeeEstimate)
+	return nil
 }
 
 // addressByHeartbeat is an account address tagged with its last activity timestamp.
