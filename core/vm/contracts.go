@@ -171,16 +171,23 @@ func init() {
 
 // ActivePrecompiles returns the precompiles enabled with the current configuration.
 func ActivePrecompiles(rules params.Rules) []common.Address {
+	var precompiles []common.Address
 	switch {
 	case rules.IsSubnetEVM:
-		return PrecompiledAddressesBerlin
+		precompiles = PrecompiledAddressesBerlin
 	case rules.IsIstanbul:
-		return PrecompiledAddressesIstanbul
+		precompiles = PrecompiledAddressesIstanbul
 	case rules.IsByzantium:
-		return PrecompiledAddressesByzantium
+		precompiles = PrecompiledAddressesByzantium
 	default:
-		return PrecompiledAddressesHomestead
+		precompiles = PrecompiledAddressesHomestead
 	}
+
+	// add stateful precompiles to the return value
+	for addr := range rules.Precompiles {
+		precompiles = append(precompiles, addr)
+	}
+	return precompiles
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
