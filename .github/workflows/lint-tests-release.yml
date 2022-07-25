@@ -63,7 +63,7 @@ jobs:
         working-directory: ./contract-examples
       - name: Run e2e tests
         shell: bash
-        run: E2E=true AVALANCHE_VERSION=v1.7.13 scripts/run.sh
+        run: E2E=true scripts/run.sh
 
   release:
     needs: [lint_test] # TODO: re-add after flaky tests are fixed (unit_test, e2e_test)
