@@ -16,19 +16,16 @@ if ! [[ "$0" =~ scripts/run.sh ]]; then
   exit 255
 fi
 
-VERSION=$1
-if [[ -z "${VERSION}" ]]; then
-  echo "Missing version argument!"
-  echo "Usage: ${0} [VERSION] [GENESIS_ADDRESS]" >>/dev/stderr
-  exit 255
-fi
+# Load the versions
+SUBNET_EVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
-GENESIS_ADDRESS=$2
-if [[ -z "${GENESIS_ADDRESS}" ]]; then
-  echo "Missing address argument!"
-  echo "Usage: ${0} [VERSION] [GENESIS_ADDRESS]" >>/dev/stderr
-  exit 255
-fi
+VERSION=$avalanche_version
+DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
 MODE=${MODE:-run}
 E2E=${E2E:-false}
@@ -37,12 +34,11 @@ if [[ ${E2E} == true ]]; then
 fi
 
 AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
-
-# Commenting out this variable will run the latest version
-NETWORK_RUNNER_VERSION=1.1.4
+ANR_VERSION=$network_runner_version
 
 echo "Running with:"
-echo VERSION: ${VERSION}
+echo AVALANCE_VERSION: ${VERSION}
+echo ANR_VERSION: ${ANR_VERSION}
 echo MODE: ${MODE}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
@@ -54,14 +50,14 @@ GOARCH=$(go env GOARCH)
 GOOS=$(go env GOOS)
 BASEFILE=/tmp/subnet-evm-runner
 mkdir -p ${BASEFILE}
-AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-linux-${GOARCH}-v${VERSION}.tar.gz
-AVAGO_DOWNLOAD_PATH=${BASEFILE}/avalanchego-linux-${GOARCH}-v${VERSION}.tar.gz
+AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/${VERSION}/avalanchego-linux-${GOARCH}-${VERSION}.tar.gz
+AVAGO_DOWNLOAD_PATH=${BASEFILE}/avalanchego-linux-${GOARCH}-${VERSION}.tar.gz
 if [[ ${GOOS} == "darwin" ]]; then
-  AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/v${VERSION}/avalanchego-macos-v${VERSION}.zip
-  AVAGO_DOWNLOAD_PATH=${BASEFILE}/avalanchego-macos-v${VERSION}.zip
+  AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/${VERSION}/avalanchego-macos-${VERSION}.zip
+  AVAGO_DOWNLOAD_PATH=${BASEFILE}/avalanchego-macos-${VERSION}.zip
 fi
 
-AVAGO_FILEPATH=${BASEFILE}/avalanchego-v${VERSION}
+AVAGO_FILEPATH=${BASEFILE}/avalanchego-${VERSION}
 if [[ ! -d ${AVAGO_FILEPATH} ]]; then
   if [[ ! -f ${AVAGO_DOWNLOAD_PATH} ]]; then
     echo "downloading avalanchego ${VERSION} at ${AVAGO_DOWNLOAD_URL} to ${AVAGO_DOWNLOAD_PATH}"
@@ -75,7 +71,7 @@ if [[ ! -d ${AVAGO_FILEPATH} ]]; then
     mv ${AVAGO_FILEPATH}/build/* ${AVAGO_FILEPATH}
     rm -rf ${AVAGO_FILEPATH}/build/
   fi
-  find ${BASEFILE}/avalanchego-v${VERSION}
+  find ${BASEFILE}/avalanchego-${VERSION}
 fi
 
 AVALANCHEGO_PATH=${AVAGO_FILEPATH}/avalanchego
@@ -198,14 +194,9 @@ fi
 #################################
 # download avalanche-network-runner
 # https://github.com/ava-labs/avalanche-network-runner
-REPO_PATH=github.com/ava-labs/avalanche-network-runner
-if [[ -z ${NETWORK_RUNNER_VERSION+x} ]]; then
-  # no version set
-  go install -v ${REPO_PATH}@latest
-else
-  # version set
-  go install -v ${REPO_PATH}@v${NETWORK_RUNNER_VERSION}
-fi
+ANR_REPO_PATH=github.com/ava-labs/avalanche-network-runner
+# version set
+go install -v ${ANR_REPO_PATH}@${ANR_VERSION}
 
 #################################
 # run "avalanche-network-runner" server
@@ -242,15 +233,15 @@ if [[ ${E2E} == true ]]; then
     --network-runner-grpc-endpoint="0.0.0.0:12342" \
     --avalanchego-path=${AVALANCHEGO_PATH} \
     --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
-    --output-path=/tmp/avalanchego-v${VERSION}/output.yaml \
+    --output-path=/tmp/avalanchego-${VERSION}/output.yaml \
     --mode=${MODE}
 
   EXIT_CODE=$?
 else
   go run scripts/parser/main.go \
-    /tmp/avalanchego-v${VERSION}/output.yaml \
+    /tmp/avalanchego-${VERSION}/output.yaml \
     $CHAIN_ID $GENESIS_ADDRESS \
-    /tmp/avalanchego-v${VERSION}/avalanchego \
+    /tmp/avalanchego-${VERSION}/avalanchego \
     ${AVALANCHEGO_PLUGIN_DIR} \
     "0.0.0.0:12342" \
     "/tmp/genesis.json"
