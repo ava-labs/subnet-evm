@@ -99,7 +99,7 @@ go build \
 if [[ ${E2E} != true ]]; then
   export CHAIN_ID=99999
   echo "creating genesis"
-  cat <<EOF >/tmp/genesis.json
+  cat <<EOF >$BASEFILE/genesis.json
 {
   "config": {
     "chainId": $CHAIN_ID,
@@ -233,18 +233,18 @@ if [[ ${E2E} == true ]]; then
     --network-runner-grpc-endpoint="0.0.0.0:12342" \
     --avalanchego-path=${AVALANCHEGO_PATH} \
     --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
-    --output-path=/tmp/avalanchego-${VERSION}/output.yaml \
+    --output-path=$BASEFILE/avalanchego-${VERSION}/output.yaml \
     --mode=${MODE}
 
   EXIT_CODE=$?
 else
   go run scripts/parser/main.go \
-    /tmp/avalanchego-${VERSION}/output.yaml \
+    $BASEFILE/avalanchego-${VERSION}/output.yaml \
     $CHAIN_ID $GENESIS_ADDRESS \
-    /tmp/avalanchego-${VERSION}/avalanchego \
+    $BASEFILE/avalanchego-${VERSION}/avalanchego \
     ${AVALANCHEGO_PLUGIN_DIR} \
     "0.0.0.0:12342" \
-    "/tmp/genesis.json"
+    "$BASEFILE/genesis.json"
 fi
 
 #################################
