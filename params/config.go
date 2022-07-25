@@ -119,7 +119,7 @@ type ChainConfig struct {
 
 	NetworkUpgrades              // Config for timestamps that enable avalanche network upgrades
 	PrecompileUpgrade            // Config for enabling precompiles from genesis
-	UpgradeConfig     `json:"-"` // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles).
+	UpgradeConfig     `json:"-"` // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:

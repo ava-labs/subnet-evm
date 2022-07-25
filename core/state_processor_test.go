@@ -331,6 +331,9 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			NetworkUpgrades: params.NetworkUpgrades{
 				SubnetEVMTimestamp: big.NewInt(0),
 			},
+			PrecompileUpgrade: params.PrecompileUpgrade{
+				TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(0), []common.Address{}),
+			},
 		}
 		signer     = types.LatestSigner(config)
 		testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -349,7 +352,6 @@ func TestBadTxAllowListBlock(t *testing.T) {
 		genesis       = gspec.MustCommit(db)
 		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec.Config, dummy.NewFaker(), vm.Config{}, common.Hash{})
 	)
-	config.TxAllowListConfig = precompile.NewTxAllowListConfig(big.NewInt(0), []common.Address{})
 
 	mkDynamicTx := func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {
 		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{
