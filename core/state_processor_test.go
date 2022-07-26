@@ -36,6 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/trie"
@@ -329,6 +330,9 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			MuirGlacierBlock:    big.NewInt(0),
 			NetworkUpgrades: params.NetworkUpgrades{
 				SubnetEVMTimestamp: big.NewInt(0),
+			},
+			PrecompileUpgrade: params.PrecompileUpgrade{
+				TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(0), []common.Address{}),
 			},
 		}
 		signer     = types.LatestSigner(config)

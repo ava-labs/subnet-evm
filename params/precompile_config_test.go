@@ -47,7 +47,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 		},
 	)
 	err = badConfig.VerifyPrecompileUpgrades()
-	assert.ErrorContains(t, err, "timestamp should not be less than [5]")
+	assert.ErrorContains(t, err, "config timestamp (1) <= previous timestamp (5)")
 
 	// cannot enable a precompile without disabling it first.
 	badConfig = *config
