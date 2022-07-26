@@ -227,7 +227,7 @@ func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []prec
 	return statefulPrecompileConfigs
 }
 
-// CheckConfigurePrecompiles checks if any of the precompiles specified by [c] is enabled or disabled by the block
+// CheckConfigurePrecompiles checks if any of the precompiles specified by the chain config are enabled or disabled by the block
 // transition from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure]
 // or [Deconfigure] to apply the necessary state transitions for the upgrade.
 // This function is called:
