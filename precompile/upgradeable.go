@@ -3,7 +3,11 @@
 
 package precompile
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ava-labs/subnet-evm/utils"
+)
 
 // UpgradeableConfig contains the timestamp for the upgrade along with
 // a boolean [Disable]. If [Disable] is set, the upgrade deactivates
@@ -29,15 +33,5 @@ func (c *UpgradeableConfig) Equal(other *UpgradeableConfig) bool {
 	if other == nil {
 		return false
 	}
-	return c.Disable == other.Disable && configNumEqual(c.BlockTimestamp, other.BlockTimestamp)
-}
-
-func configNumEqual(x, y *big.Int) bool {
-	if x == nil {
-		return y == nil
-	}
-	if y == nil {
-		return x == nil
-	}
-	return x.Cmp(y) == 0
+	return c.Disable == other.Disable && utils.BigNumEqual(c.BlockTimestamp, other.BlockTimestamp)
 }

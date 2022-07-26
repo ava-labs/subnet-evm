@@ -22,3 +22,15 @@ func IsForkTransition(fork *big.Int, parent *big.Int, current *big.Int) bool {
 	currentForked := IsForked(fork, current)
 	return !parentForked && currentForked
 }
+
+// BigNumEqual returns true if x and y are equivalent ie. both nil or both
+// contain the same value.
+func BigNumEqual(x, y *big.Int) bool {
+	if x == nil {
+		return y == nil
+	}
+	if y == nil {
+		return x == nil
+	}
+	return x.Cmp(y) == 0
+}

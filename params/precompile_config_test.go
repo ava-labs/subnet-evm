@@ -77,3 +77,24 @@ func TestValidate(t *testing.T) {
 	err := config.VerifyPrecompileUpgrades()
 	assert.NoError(t, err)
 }
+
+func TestGetPrecompileConfig(t *testing.T) {
+	assert := assert.New(t)
+	baseConfig := *SubnetEVMDefaultChainConfig
+	config := &baseConfig
+	config.PrecompileUpgrade = PrecompileUpgrade{
+		ContractDeployerAllowListConfig: precompile.NewContractDeployerAllowListConfig(big.NewInt(10), []common.Address{}),
+	}
+
+	deployerConfig := config.GetContractDeployerAllowListConfig(big.NewInt(0))
+	assert.Nil(deployerConfig)
+
+	deployerConfig = config.GetContractDeployerAllowListConfig(big.NewInt(10))
+	assert.NotNil(deployerConfig)
+
+	deployerConfig = config.GetContractDeployerAllowListConfig(big.NewInt(11))
+	assert.NotNil(deployerConfig)
+
+	txAllowListConfig := config.GetTxAllowListConfig(big.NewInt(0))
+	assert.Nil(txAllowListConfig)
+}

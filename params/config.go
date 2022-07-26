@@ -345,6 +345,9 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 	return nil
 }
 
+// checkCompatible confirms that [newcfg] is backwards compatible with [c] to upgrade with the given head block height and timestamp.
+// This confirms that all Ethereum and Avalanche upgrades are backwards compatible as well as that the precompile config is backwards
+// compatible.
 func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, headTimestamp *big.Int) *ConfigCompatError {
 	if isForkIncompatible(c.HomesteadBlock, newcfg.HomesteadBlock, headHeight) {
 		return newCompatError("Homestead fork block", c.HomesteadBlock, newcfg.HomesteadBlock)
@@ -358,7 +361,7 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 	if isForkIncompatible(c.EIP158Block, newcfg.EIP158Block, headHeight) {
 		return newCompatError("EIP158 fork block", c.EIP158Block, newcfg.EIP158Block)
 	}
-	if c.IsEIP158(headHeight) && !configNumEqual(c.ChainID, newcfg.ChainID) {
+	if c.IsEIP158(headHeight) && !utils.BigNumEqual(c.ChainID, newcfg.ChainID) {
 		return newCompatError("EIP158 chain ID", c.EIP158Block, newcfg.EIP158Block)
 	}
 	if isForkIncompatible(c.ByzantiumBlock, newcfg.ByzantiumBlock, headHeight) {
@@ -393,7 +396,7 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headHeight *big.Int, 
 		return err
 	}
 
-	// Check that the precompiles upgrades is compatible.
+	// Check that the precompiles on the new config are compatible with the existing precompile config.
 	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, headTimestamp); err != nil {
 		return err
 	}
@@ -414,17 +417,7 @@ func (c *ChainConfig) getNetworkUpgrades() *NetworkUpgrades {
 // isForkIncompatible returns true if a fork scheduled at s1 cannot be rescheduled to
 // block s2 because head is already past the fork.
 func isForkIncompatible(s1, s2, head *big.Int) bool {
-	return (utils.IsForked(s1, head) || utils.IsForked(s2, head)) && !configNumEqual(s1, s2)
-}
-
-func configNumEqual(x, y *big.Int) bool {
-	if x == nil {
-		return y == nil
-	}
-	if y == nil {
-		return x == nil
-	}
-	return x.Cmp(y) == 0
+	return (utils.IsForked(s1, head) || utils.IsForked(s2, head)) && !utils.BigNumEqual(s1, s2)
 }
 
 // ConfigCompatError is raised if the locally-stored blockchain is initialised with a
