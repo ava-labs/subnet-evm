@@ -48,16 +48,16 @@ echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 # https://github.com/ava-labs/avalanchego/releases
 GOARCH=$(go env GOARCH)
 GOOS=$(go env GOOS)
-BASEFILE=/tmp/subnet-evm-runner
-mkdir -p ${BASEFILE}
+BASEDIR=/tmp/subnet-evm-runner
+mkdir -p ${BASEDIR}
 AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/${VERSION}/avalanchego-linux-${GOARCH}-${VERSION}.tar.gz
-AVAGO_DOWNLOAD_PATH=${BASEFILE}/avalanchego-linux-${GOARCH}-${VERSION}.tar.gz
+AVAGO_DOWNLOAD_PATH=${BASEDIR}/avalanchego-linux-${GOARCH}-${VERSION}.tar.gz
 if [[ ${GOOS} == "darwin" ]]; then
   AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/${VERSION}/avalanchego-macos-${VERSION}.zip
-  AVAGO_DOWNLOAD_PATH=${BASEFILE}/avalanchego-macos-${VERSION}.zip
+  AVAGO_DOWNLOAD_PATH=${BASEDIR}/avalanchego-macos-${VERSION}.zip
 fi
 
-AVAGO_FILEPATH=${BASEFILE}/avalanchego-${VERSION}
+AVAGO_FILEPATH=${BASEDIR}/avalanchego-${VERSION}
 if [[ ! -d ${AVAGO_FILEPATH} ]]; then
   if [[ ! -f ${AVAGO_DOWNLOAD_PATH} ]]; then
     echo "downloading avalanchego ${VERSION} at ${AVAGO_DOWNLOAD_URL} to ${AVAGO_DOWNLOAD_PATH}"
@@ -71,7 +71,7 @@ if [[ ! -d ${AVAGO_FILEPATH} ]]; then
     mv ${AVAGO_FILEPATH}/build/* ${AVAGO_FILEPATH}
     rm -rf ${AVAGO_FILEPATH}/build/
   fi
-  find ${BASEFILE}/avalanchego-${VERSION}
+  find ${BASEDIR}/avalanchego-${VERSION}
 fi
 
 AVALANCHEGO_PATH=${AVAGO_FILEPATH}/avalanchego
@@ -99,7 +99,7 @@ go build \
 if [[ ${E2E} != true ]]; then
   export CHAIN_ID=99999
   echo "creating genesis"
-  cat <<EOF >$BASEFILE/genesis.json
+  cat <<EOF >$BASEDIR/genesis.json
 {
   "config": {
     "chainId": $CHAIN_ID,
@@ -145,7 +145,7 @@ EOF
 fi
 
 # If you'd like to try the airdrop feature, use the commented genesis
-# cat <<EOF > ${BASEFILE}/genesis.json
+# cat <<EOF > ${BASEDIR}/genesis.json
 # {
 #   "config": {
 #     "chainId": $CHAIN_ID,
@@ -233,18 +233,18 @@ if [[ ${E2E} == true ]]; then
     --network-runner-grpc-endpoint="0.0.0.0:12342" \
     --avalanchego-path=${AVALANCHEGO_PATH} \
     --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
-    --output-path=$BASEFILE/avalanchego-${VERSION}/output.yaml \
+    --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
     --mode=${MODE}
 
   EXIT_CODE=$?
 else
   go run scripts/parser/main.go \
-    $BASEFILE/avalanchego-${VERSION}/output.yaml \
+    $BASEDIR/avalanchego-${VERSION}/output.yaml \
     $CHAIN_ID $GENESIS_ADDRESS \
-    $BASEFILE/avalanchego-${VERSION}/avalanchego \
+    $BASEDIR/avalanchego-${VERSION}/avalanchego \
     ${AVALANCHEGO_PLUGIN_DIR} \
     "0.0.0.0:12342" \
-    "$BASEFILE/genesis.json"
+    "$BASEDIR/genesis.json"
 fi
 
 #################################
