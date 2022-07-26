@@ -151,7 +151,7 @@ func (c *ChainConfig) getActivatingPrecompileConfigs(from *big.Int, to *big.Int,
 // GetContractDeployerAllowListConfig returns the latest forked ContractDeployerAllowListConfig
 // specified by [c] or nil if it was never enabled.
 func (c *ChainConfig) GetContractDeployerAllowListConfig(blockTimestamp *big.Int) *precompile.ContractDeployerAllowListConfig {
-	if val := c.getActivePrecompileConfig(blockTimestamp, contractDeployerAllowListKey, c.PrecompileUpgrades); val == nil {
+	if val := c.getActivePrecompileConfig(blockTimestamp, contractDeployerAllowListKey, c.PrecompileUpgrades); val != nil {
 		return val.(*precompile.ContractDeployerAllowListConfig)
 	}
 	return nil
