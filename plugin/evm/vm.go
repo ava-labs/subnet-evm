@@ -135,8 +135,6 @@ type VM struct {
 	networkID   uint64
 	genesisHash common.Hash
 	chain       *subnetEVM.ETHChain
-	// The chainConfig is unmarshalled into from the genesisBytes and we set the upgradeConfig
-	// on this config by unmarshalling the upgradeBytes into chainConfig.UpgradeConfig.
 	chainConfig *params.ChainConfig
 
 	// [db] is the VM's current database managed by ChainState
