@@ -77,7 +77,7 @@ func (c *ChainConfig) VerifyPrecompileUpgrades() error {
 			}
 			// Verify specified timestamps are monotonically increasing across all precompile keys.
 			// Note: It is OK for multiple configs of different keys to specify the same timestamp.
-			if lastBlockTimestamp != nil && lastBlockTimestamp.Cmp(configTimestamp) > 0 {
+			if lastBlockTimestamp != nil && configTimestamp.Cmp(lastBlockTimestamp) < 0 {
 				return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) < previous timestamp (%v)", i, configTimestamp, lastBlockTimestamp)
 			}
 			lastBlockTimestamp = configTimestamp
