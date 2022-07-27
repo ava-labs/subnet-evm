@@ -235,13 +235,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
-		rawdb.WriteUpgradeConfig(db, stored, &newcfg.UpgradeConfig)
 		return newcfg, nil
-	}
-
-	// Read upgrade config
-	if upgradeCfg := rawdb.ReadUpgradeConfig(db, stored); upgradeCfg != nil {
-		storedcfg.UpgradeConfig = *upgradeCfg
 	}
 
 	// Check config compatibility and write the config. Compatibility errors
@@ -257,7 +251,6 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		return newcfg, compatErr
 	}
 	rawdb.WriteChainConfig(db, stored, newcfg)
-	rawdb.WriteUpgradeConfig(db, stored, &newcfg.UpgradeConfig)
 	return newcfg, nil
 }
 
@@ -363,7 +356,6 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
 	rawdb.WriteChainConfig(batch, block.Hash(), config)
-	rawdb.WriteUpgradeConfig(batch, block.Hash(), &config.UpgradeConfig)
 	if err := batch.Write(); err != nil {
 		return nil, fmt.Errorf("failed to write genesis block: %w", err)
 	}
