@@ -39,6 +39,14 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 				},
 			},
 		},
+		"upgrade bytes conflicts with genesis (disable same time as enable)": {
+			expectedErrorString: "config timestamp (1) <= previous timestamp (1)",
+			upgrades: []PrecompileUpgrade{
+				{
+					TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(1)),
+				},
+			},
+		},
 	}
 
 	for name, tt := range tests {
