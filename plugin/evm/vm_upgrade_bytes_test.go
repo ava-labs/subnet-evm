@@ -168,7 +168,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 		t.Fatal("expected subnet-evm network upgrade to have been enabled")
 	}
 
-	// Submit a successful transaction
+	// Submit a successful transaction and build a block to move the chain head past the SubnetEVMTimestamp network upgrade
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	assert.NoError(t, err)
