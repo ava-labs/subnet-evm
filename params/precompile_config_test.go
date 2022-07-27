@@ -47,7 +47,7 @@ func TestValidateWithChainConfig(t *testing.T) {
 		},
 	)
 	err = badConfig.VerifyPrecompileUpgrades()
-	assert.ErrorContains(t, err, "timestamp should not be less than [5]")
+	assert.ErrorContains(t, err, "config timestamp (1) <= previous timestamp (5)")
 
 	// cannot enable a precompile without disabling it first.
 	badConfig = *config
@@ -76,4 +76,25 @@ func TestValidate(t *testing.T) {
 	// check this config is valid
 	err := config.VerifyPrecompileUpgrades()
 	assert.NoError(t, err)
+}
+
+func TestGetPrecompileConfig(t *testing.T) {
+	assert := assert.New(t)
+	baseConfig := *SubnetEVMDefaultChainConfig
+	config := &baseConfig
+	config.PrecompileUpgrade = PrecompileUpgrade{
+		ContractDeployerAllowListConfig: precompile.NewContractDeployerAllowListConfig(big.NewInt(10), []common.Address{}),
+	}
+
+	deployerConfig := config.GetContractDeployerAllowListConfig(big.NewInt(0))
+	assert.Nil(deployerConfig)
+
+	deployerConfig = config.GetContractDeployerAllowListConfig(big.NewInt(10))
+	assert.NotNil(deployerConfig)
+
+	deployerConfig = config.GetContractDeployerAllowListConfig(big.NewInt(11))
+	assert.NotNil(deployerConfig)
+
+	txAllowListConfig := config.GetTxAllowListConfig(big.NewInt(0))
+	assert.Nil(txAllowListConfig)
 }

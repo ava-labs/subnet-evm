@@ -44,7 +44,7 @@ func (c *AllowListConfig) Configure(state StateDB, precompileAddr common.Address
 	}
 }
 
-// Equal returns true iff [other] has the same admins in the same order in its allowlist.
+// Equal returns true iff [other] has the same admins in the same order in its allow list.
 func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 	if other == nil {
 		return false

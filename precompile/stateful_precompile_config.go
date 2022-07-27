@@ -50,9 +50,3 @@ func Configure(chainConfig ChainConfig, blockContext BlockContext, precompileCon
 	state.SetCode(precompileConfig.Address(), []byte{0x1})
 	precompileConfig.Configure(chainConfig, state, blockContext)
 }
-
-// Deconfigure is called to undo the effects of calling Configure for a stateful precompile at [address]
-// Called when an upgrade is activated that disables a stateful precompile.
-func Deconfigure(address common.Address, state StateDB) {
-	state.Suicide(address) // call Suicide to destruct the contents of the storage.
-}
