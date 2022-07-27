@@ -27,7 +27,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 			expectedErrorString: "disable should be [true]",
 			upgrades: []PrecompileUpgrade{
 				{
-					TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins),
+					TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(2), admins),
 				},
 			},
 		},
