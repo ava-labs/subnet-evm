@@ -320,9 +320,11 @@ func (vm *VM) Initialize(
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
 	if len(upgradeBytes) > 0 {
-		if err := json.Unmarshal(upgradeBytes, &vm.chainConfig.UpgradeConfig); err != nil {
+		var upgradeConfig params.UpgradeConfig
+		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
 			return err
 		}
+		vm.chainConfig.UpgradeConfig = upgradeConfig
 	}
 
 	// create genesisHash after applying upgradeBytes in case
