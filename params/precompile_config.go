@@ -59,6 +59,7 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 //   specified in the chainConfig by genesis.
 // - check a precompile is disabled before it is re-enabled
 func (c *ChainConfig) VerifyPrecompileUpgrades() error {
+	var lastBlockTimestamp *big.Int
 	for i, upgrade := range c.PrecompileUpgrades {
 		hasKey := false // used to verify if there is only one key per Upgrade
 
@@ -70,9 +71,16 @@ func (c *ChainConfig) VerifyPrecompileUpgrades() error {
 			if hasKey {
 				return fmt.Errorf("PrecompileUpgrades[%d] has more than one key set", i)
 			}
-			if config.Timestamp() == nil {
+			configTimestamp := config.Timestamp()
+			if configTimestamp == nil {
 				return fmt.Errorf("PrecompileUpgrades[%d] cannot have a nil timestamp", i)
 			}
+			// Verify specified timestamps are monotonically increasing across all precompile keys.
+			// Note: It is OK for multiple configs of different keys to specify the same timestamp.
+			if lastBlockTimestamp != nil && configTimestamp.Cmp(lastBlockTimestamp) < 0 {
+				return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) < previous timestamp (%v)", i, configTimestamp, lastBlockTimestamp)
+			}
+			lastBlockTimestamp = configTimestamp
 			hasKey = true
 		}
 		if !hasKey {

@@ -38,16 +38,16 @@ func TestValidateWithChainConfig(t *testing.T) {
 	err := config.VerifyPrecompileUpgrades()
 	assert.NoError(t, err)
 
-	// entries must be monotonically increasing
+	// same precompile cannot be configured twice for the same timestamp
 	badConfig := *config
 	badConfig.PrecompileUpgrades = append(
 		badConfig.PrecompileUpgrades,
 		PrecompileUpgrade{
-			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(1)),
+			TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(5)),
 		},
 	)
 	err = badConfig.VerifyPrecompileUpgrades()
-	assert.ErrorContains(t, err, "config timestamp (1) <= previous timestamp (5)")
+	assert.ErrorContains(t, err, "config timestamp (5) <= previous timestamp (5)")
 
 	// cannot enable a precompile without disabling it first.
 	badConfig = *config
@@ -76,6 +76,23 @@ func TestValidate(t *testing.T) {
 	// check this config is valid
 	err := config.VerifyPrecompileUpgrades()
 	assert.NoError(t, err)
+}
+
+func TestValidateRequiresSortedTimestamps(t *testing.T) {
+	admins := []common.Address{{1}}
+	config := &ChainConfig{}
+	config.PrecompileUpgrades = []PrecompileUpgrade{
+		{
+			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(2), admins),
+		},
+		{
+			ContractDeployerAllowListConfig: precompile.NewContractDeployerAllowListConfig(big.NewInt(1), admins),
+		},
+	}
+
+	// block timestamps must be monotonically increasing, so this config is invalid
+	err := config.VerifyPrecompileUpgrades()
+	assert.ErrorContains(t, err, "config timestamp (1) < previous timestamp (2)")
 }
 
 func TestGetPrecompileConfig(t *testing.T) {
