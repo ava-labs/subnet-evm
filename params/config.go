@@ -137,10 +137,24 @@ type UpgradeConfig struct {
 
 // String implements the fmt.Stringer interface.
 func (c *ChainConfig) String() string {
+	// convert nested data structures to json
 	feeBytes, err := json.Marshal(c.FeeConfig)
 	if err != nil {
-		feeBytes = []byte("cannot unmarshal FeeConfig")
+		feeBytes = []byte("cannot marshal FeeConfig")
 	}
+	networkUpgradesBytes, err := json.Marshal(c.NetworkUpgrades)
+	if err != nil {
+		networkUpgradesBytes = []byte("cannot marshal NetworkUpgrades")
+	}
+	precompileUpgradeBytes, err := json.Marshal(c.PrecompileUpgrade)
+	if err != nil {
+		precompileUpgradeBytes = []byte("cannot marshal PrecompileUpgrade")
+	}
+	upgradeConfigBytes, err := json.Marshal(c.UpgradeConfig)
+	if err != nil {
+		upgradeConfigBytes = []byte("cannot marshal UpgradeConfig")
+	}
+
 	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, FeeConfig: %v, AllowFeeRecipients: %v, NetworkUpgrades: %v, PrecompileUpgrade: %v, UpgradeConfig: %v, Engine: Dummy Consensus Engine}",
 		c.ChainID,
 		c.HomesteadBlock,
@@ -155,9 +169,9 @@ func (c *ChainConfig) String() string {
 		c.SubnetEVMTimestamp,
 		string(feeBytes),
 		c.AllowFeeRecipients,
-		c.NetworkUpgrades,
-		c.PrecompileUpgrade,
-		c.UpgradeConfig,
+		string(networkUpgradesBytes),
+		string(precompileUpgradeBytes),
+		string(upgradeConfigBytes),
 	)
 }
 
