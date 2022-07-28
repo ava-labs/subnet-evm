@@ -173,7 +173,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			preimages.Add(size)
 		case bytes.HasPrefix(key, configPrefix) && len(key) == (len(configPrefix)+common.HashLength):
 			metadata.Add(size)
-		case bytes.HasPrefix(key, upgradeConfigPrefix) && len(key) == (len(configPrefix)+common.HashLength):
+		case bytes.HasPrefix(key, upgradeConfigPrefix) && len(key) == (len(upgradeConfigPrefix)+common.HashLength):
 			metadata.Add(size)
 		case bytes.HasPrefix(key, bloomBitsPrefix) && len(key) == (len(bloomBitsPrefix)+10+common.HashLength):
 			bloomBits.Add(size)
