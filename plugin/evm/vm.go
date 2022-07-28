@@ -337,7 +337,7 @@ func (vm *VM) Initialize(
 	if len(upgradeBytes) > 0 {
 		var upgradeConfig params.UpgradeConfig
 		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
-			return err
+			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
 		}
 		vm.chainConfig.UpgradeConfig = upgradeConfig
 	}
