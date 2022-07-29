@@ -125,7 +125,12 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 	}
 
 	recipient := GetGreeting(accessibleState.GetStateDB())
-	return []byte(recipient), remainingGas, nil
+
+	output, err := helloABI.Methods["sayHello"].Outputs.Pack(recipient)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	return output, remainingGas, nil
 }
 
 // setGreeting is the execution function of "SetGreeting(name string)" and sets the recipient in the string returned by hello world
