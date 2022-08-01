@@ -9,15 +9,6 @@ import "github.com/ethereum/go-ethereum/common"
 const (
 	writeGasCostPerSlot = 20_000
 	readGasCostPerSlot  = 5_000
-
-	ModifyAllowListGasCost = writeGasCostPerSlot
-	ReadAllowListGasCost   = readGasCostPerSlot
-
-	MintGasCost = 30_000
-
-	SetFeeConfigGasCost     = writeGasCostPerSlot * (numFeeConfigField + 1) // plus one for setting last changed at
-	GetFeeConfigGasCost     = readGasCostPerSlot * numFeeConfigField
-	GetLastChangedAtGasCost = readGasCostPerSlot
 )
 
 // Designated addresses of stateful precompiles

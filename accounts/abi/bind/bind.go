@@ -41,6 +41,7 @@ import (
 	"unicode"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -57,7 +58,7 @@ const (
 // to be used as is in client code, but rather as an intermediate struct which
 // enforces compile time type safety and naming convention opposed to having to
 // manually maintain hard coded strings that break on runtime.
-func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string) (string, error) {
+func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, isPrecompile bool) (string, error) {
 	var (
 		// contracts is the map of each individual contract requested binding
 		contracts = make(map[string]*tmplContract)
@@ -68,6 +69,8 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		// isLib is the map used to flag each encountered library as such
 		isLib = make(map[string]struct{})
 	)
+
+	templateSource := tmplSource[lang]
 	for i := 0; i < len(types); i++ {
 		// Parse the actual ABI to generate the binding for
 		evmABI, err := abi.JSON(strings.NewReader(abis[i]))
@@ -219,18 +222,54 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			}
 		}
 	}
+
 	// Check if that type has already been identified as a library
 	for i := 0; i < len(types); i++ {
 		_, ok := isLib[types[i]]
 		contracts[types[i]].Library = ok
 	}
-	// Generate the contract template data content and render it
-	data := &tmplData{
-		Package:   pkg,
-		Contracts: contracts,
-		Libraries: libs,
-		Structs:   structs,
+
+	var data interface{}
+
+	if isPrecompile {
+		templateSource = tmplSourcePrecompileGo
+		if lang == LangJava {
+			return "", errors.New("java binding for precompiled contracts is not supported yet")
+		}
+
+		if len(contracts) != 1 {
+			return "", errors.New("cannot generate more than 1 contract")
+		}
+		precompileType := types[0]
+		firstContract := contracts[precompileType]
+
+		_, isAllowList := firstContract.Calls[precompile.ReadAllowListFuncKey]
+		if isAllowList {
+			// remove these functions as we will directly inherit AllowList
+			delete(firstContract.Calls, precompile.ReadAllowListFuncKey)
+			delete(firstContract.Transacts, precompile.SetAdminFuncKey)
+			delete(firstContract.Transacts, precompile.SetEnabledFuncKey)
+			delete(firstContract.Transacts, precompile.SetNoneFuncKey)
+		}
+
+		precompileContract := &tmplPrecompileContract{
+			tmplContract: firstContract,
+			AllowList:    isAllowList,
+		}
+
+		data = &tmplPrecompileData{
+			Contract: precompileContract,
+		}
+	} else {
+		data = &tmplData{
+			Package:   pkg,
+			Contracts: contracts,
+			Libraries: libs,
+			Structs:   structs,
+		}
 	}
+	// Generate the contract template data content and render it
+
 	buffer := new(bytes.Buffer)
 
 	funcs := map[string]interface{}{
@@ -240,7 +279,8 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		"capitalise":    capitalise,
 		"decapitalise":  decapitalise,
 	}
-	tmpl := template.Must(template.New("").Funcs(funcs).Parse(tmplSource[lang]))
+
+	tmpl := template.Must(template.New("").Funcs(funcs).Parse(templateSource))
 	if err := tmpl.Execute(buffer, data); err != nil {
 		return "", err
 	}
