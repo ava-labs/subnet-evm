@@ -21,10 +21,11 @@ const (
 	contractNativeMinterKey
 	txAllowListKey
 	feeManagerKey
+    testPrecompileKey
 )
 
 var (
-	precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey}
+	precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey, testPrecompileKey}
 )
 
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig, representing
@@ -35,6 +36,7 @@ type PrecompileUpgrade struct {
 	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+    TestPrecompileConfig            *precompile.TestPrecompileConfig            `json:"testPrecompileConfig,omitempty"`            // Config for the test precompile
 }
 
 func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrecompileConfig, bool) {
@@ -47,6 +49,8 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 		return p.TxAllowListConfig, p.TxAllowListConfig != nil
 	case feeManagerKey:
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
+    case testPrecompileKey:
+        return p.TestPrecompileConfig, p.TestPrecompileConfig != nil
 	default:
 		panic(fmt.Sprintf("unknown upgrade key: %v", key))
 	}

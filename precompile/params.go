@@ -14,6 +14,7 @@ const (
 	ReadAllowListGasCost   = readGasCostPerSlot
 
 	MintGasCost = 30_000
+    XChainECRecoverCost = 10_000
 
 	SetFeeConfigGasCost     = writeGasCostPerSlot * (numFeeConfigField + 1) // plus one for setting last changed at
 	GetFeeConfigGasCost     = readGasCostPerSlot * numFeeConfigField
@@ -33,11 +34,13 @@ var (
 	ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
 	TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
 	FeeConfigManagerAddress          = common.HexToAddress("0x0200000000000000000000000000000000000003")
+    TestPrecompileAddress            = common.HexToAddress("0x0300000000000000000000000000000000000000")
 
 	UsedAddresses = []common.Address{
 		ContractDeployerAllowListAddress,
 		ContractNativeMinterAddress,
 		TxAllowListAddress,
 		FeeConfigManagerAddress,
+        TestPrecompileAddress,
 	}
 )
