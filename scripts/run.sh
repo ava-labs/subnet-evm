@@ -6,11 +6,14 @@ set -e
 # run without e2e tests
 # ./scripts/run.sh
 #
+# run without e2e tests, and with simulator
+# MODE=test SIMULATOR=true ./scripts/run.sh
+#
 # run without e2e tests with DEBUG log level
 # AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh
 #
 # run with e2e tests
-# E2E=true ./scripts/run.sh
+# MODE=test ./scripts/run.sh
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -28,17 +31,15 @@ DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
 MODE=${MODE:-run}
-E2E=${E2E:-false}
-if [[ ${E2E} == true ]]; then
-  MODE="test"
-fi
-
+SIMULATOR=${SIMULATOR:-false}
 AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
 ANR_VERSION=$network_runner_version
+GINKGO_VERSION=$ginkgo_version
 
 echo "Running with:"
 echo AVALANCE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
+echo GINKGO_VERSION: ${GINKGO_VERSION}
 echo MODE: ${MODE}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
@@ -96,7 +97,7 @@ go build \
 
 # Create genesis file to use in network (make sure to add your address to
 # "alloc")
-if [[ ${E2E} != true ]]; then
+if [[ ${MODE} == "run" ]]; then
   export CHAIN_ID=99999
   echo "creating genesis"
   cat <<EOF >$BASEDIR/genesis.json
@@ -215,14 +216,12 @@ $BIN server \
   --grpc-gateway-port=":12343" &
 PID=${!}
 
-if [[ ${E2E} == true ]]; then
-  #################################
+run_ginkgo() {
   echo "building e2e.test"
   # to install the ginkgo binary (required for test build and run)
-  go install -v github.com/onsi/ginkgo/v2/ginkgo@v2.1.3
+  go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
   ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 
-  #################################
   # By default, it runs all e2e test cases!
   # Use "--ginkgo.skip" to skip tests.
   # Use "--ginkgo.focus" to select tests.
@@ -233,10 +232,40 @@ if [[ ${E2E} == true ]]; then
     --network-runner-grpc-endpoint="0.0.0.0:12342" \
     --avalanchego-path=${AVALANCHEGO_PATH} \
     --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+    --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
     --mode=${MODE}
+}
 
+run_simulator() {
+  #################################
+  echo "building simulator"
+  pushd ./cmd/simulator
+  # to use the latest subnet-evm from the local repository
+  go mod edit -replace github.com/ava-labs/subnet-evm=../..
+  go install -v .
+  popd
+
+  echo "running simulator"
+  simulator \
+  --network-runner-output=$BASEDIR/avalanchego-${VERSION}/output.yaml \
+  --keys=./cmd/simulator/.simulator/keys \
+  --timeout=30s \
+  --concurrency=10 \
+  --base-fee=25 \
+  --priority-fee=1
+}
+
+if [[ ${MODE} == "test" || ${SIMULATOR} == true ]]; then
+  run_ginkgo
+
+  if [[ ${SIMULATOR} == true ]]; then
+    run_simulator
+  fi
+
+  # to fail the script if ginkgo/simulator failed
   EXIT_CODE=$?
+
 else
   go run scripts/parser/main.go \
     $BASEDIR/avalanchego-${VERSION}/output.yaml \
