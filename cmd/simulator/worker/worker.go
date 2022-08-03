@@ -184,7 +184,7 @@ func (w *worker) waitForBalance(ctx context.Context, stdout bool, minBalance *bi
 	return ctx.Err()
 }
 
-func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *big.Int) error {
+func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *big.Int, dynamicFeeTxDataN uint64) error {
 	for ctx.Err() == nil {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainID,
@@ -194,7 +194,7 @@ func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *bi
 			GasFeeCap: feeCap,
 			GasTipCap: priorityFee,
 			Value:     value,
-			Data:      []byte{},
+			Data:      make([]byte, dynamicFeeTxDataN),
 		})
 		signedTx, err := types.SignTx(tx, signer, w.k.PrivKey)
 		if err != nil {
@@ -222,7 +222,7 @@ func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *bi
 	return ctx.Err()
 }
 
-func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundRequest chan common.Address) error {
+func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundRequest chan common.Address, dynamicFeeTxDataN uint64) error {
 	for ctx.Err() == nil {
 		if w.balance.Cmp(maxTransferCost) < 0 {
 			log.Printf("%s requesting funds from master\n", w.k.Address.Hex())
@@ -235,7 +235,7 @@ func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundReque
 		if recipient.k.Address == w.k.Address {
 			continue
 		}
-		if err := w.sendTx(ctx, recipient.k.Address, transferAmount); err != nil {
+		if err := w.sendTx(ctx, recipient.k.Address, transferAmount, dynamicFeeTxDataN); err != nil {
 			return err
 		}
 		time.Sleep(workDelay)
@@ -243,7 +243,7 @@ func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundReque
 	return ctx.Err()
 }
 
-func (w *worker) fund(ctx context.Context, fundRequest chan common.Address) error {
+func (w *worker) fund(ctx context.Context, fundRequest chan common.Address, dynamicFeeTxDataN uint64) error {
 	for {
 		select {
 		case recipient := <-fundRequest:
@@ -252,7 +252,7 @@ func (w *worker) fund(ctx context.Context, fundRequest chan common.Address) erro
 					return fmt.Errorf("could not get minimum balance: %w", err)
 				}
 			}
-			if err := w.sendTx(ctx, recipient, requestAmount); err != nil {
+			if err := w.sendTx(ctx, recipient, requestAmount, dynamicFeeTxDataN); err != nil {
 				return fmt.Errorf("unable to send tx: %w", err)
 			}
 		case <-ctx.Done():
@@ -275,7 +275,7 @@ func (w *worker) confirmTransaction(ctx context.Context, tx common.Hash) (*big.I
 
 // Run attempts to apply load to a network specified in .simulator/config.yml
 // and periodically prints metrics about the traffic it generates.
-func Run(ctx context.Context, cfg *Config, keysDir string) error {
+func Run(ctx context.Context, cfg *Config, keysDir string, dynamicFeeTxDataN uint64) error {
 	rclient, err := ethclient.Dial(cfg.Endpoints[0])
 	if err != nil {
 		return err
@@ -297,12 +297,12 @@ func Run(ctx context.Context, cfg *Config, keysDir string) error {
 	})
 	fundRequest := make(chan common.Address)
 	g.Go(func() error {
-		return master.fund(gctx, fundRequest)
+		return master.fund(gctx, fundRequest, dynamicFeeTxDataN)
 	})
 	for _, worker := range workers {
 		w := worker
 		g.Go(func() error {
-			return w.work(gctx, workers, fundRequest)
+			return w.work(gctx, workers, fundRequest, dynamicFeeTxDataN)
 		})
 	}
 	return g.Wait()

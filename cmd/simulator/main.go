@@ -38,9 +38,10 @@ var (
 	networkRunnerOutputPath string
 	rpcEndpoints            []string
 
-	concurrency int
-	baseFee     uint64
-	priorityFee uint64
+	concurrency       int
+	baseFee           uint64
+	priorityFee       uint64
+	dynamicFeeTxDataN uint64
 )
 
 func newCommand() *cobra.Command {
@@ -58,6 +59,7 @@ func newCommand() *cobra.Command {
 	cmd.PersistentFlags().IntVarP(&concurrency, "concurrency", "c", 10, "Concurrency")
 	cmd.PersistentFlags().Uint64VarP(&baseFee, "base-fee", "f", 25, "Base fee")
 	cmd.PersistentFlags().Uint64VarP(&priorityFee, "priority-fee", "p", 1, "Base fee")
+	cmd.PersistentFlags().Uint64VarP(&dynamicFeeTxDataN, "dynamic-fee-tx-data-size", "b", 0, "Size of data field in DynamicFeeTx (useful for increasing tx payloads)")
 
 	return cmd
 }
@@ -105,7 +107,7 @@ func runFunc(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	errc := make(chan error)
 	go func() {
-		errc <- worker.Run(ctx, cfg, keysDir)
+		errc <- worker.Run(ctx, cfg, keysDir, dynamicFeeTxDataN)
 	}()
 
 	sigs := make(chan os.Signal, 1)
