@@ -53,7 +53,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 8
+          go-version: 1.18
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
