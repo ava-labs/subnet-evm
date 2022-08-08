@@ -41,8 +41,14 @@ import (
 	"unicode"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/log"
+)
+
+const (
+	setAdminFuncKey      = "setAdmin"
+	setEnabledFuncKey    = "setEnabled"
+	setNoneFuncKey       = "setNone"
+	readAllowListFuncKey = "readAllowList"
 )
 
 // Lang is a target programming language selector to generate bindings for.
@@ -243,22 +249,34 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		precompileType := types[0]
 		firstContract := contracts[precompileType]
 
-		_, isAllowList := firstContract.Calls[precompile.ReadAllowListFuncKey]
+		funcs := make(map[string]*tmplMethod)
+
+		for k, v := range firstContract.Transacts {
+			funcs[k] = v
+		}
+
+		for k, v := range firstContract.Calls {
+			funcs[k] = v
+		}
+
+		_, isAllowList := funcs[readAllowListFuncKey]
 		if isAllowList {
 			// remove these functions as we will directly inherit AllowList
-			delete(firstContract.Calls, precompile.ReadAllowListFuncKey)
-			delete(firstContract.Transacts, precompile.SetAdminFuncKey)
-			delete(firstContract.Transacts, precompile.SetEnabledFuncKey)
-			delete(firstContract.Transacts, precompile.SetNoneFuncKey)
+			delete(funcs, readAllowListFuncKey)
+			delete(funcs, setAdminFuncKey)
+			delete(funcs, setEnabledFuncKey)
+			delete(funcs, setNoneFuncKey)
 		}
 
 		precompileContract := &tmplPrecompileContract{
 			tmplContract: firstContract,
 			AllowList:    isAllowList,
+			Funcs:        funcs,
 		}
 
 		data = &tmplPrecompileData{
 			Contract: precompileContract,
+			Structs:  structs,
 		}
 	} else {
 		data = &tmplData{

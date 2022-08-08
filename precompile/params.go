@@ -31,12 +31,16 @@ var (
 	ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
 	TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
 	FeeConfigManagerAddress          = common.HexToAddress("0x0200000000000000000000000000000000000003")
+	// ADD YOUR PRECOMPILE HERE
+	// 	YourPrecompileAddress        = common.HexToAddress("0x0?0000000000000000000000000000000000000?")
 
 	UsedAddresses = []common.Address{
 		ContractDeployerAllowListAddress,
 		ContractNativeMinterAddress,
 		TxAllowListAddress,
 		FeeConfigManagerAddress,
+		// ADD YOUR PRECOMPILE HERE
+		// YourPrecompileAddress
 	}
 	reservedRanges = []AddressRange{
 		{

@@ -91,6 +91,37 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 	return append(method.ID, arguments...), nil
 }
 
+// Pack the given intf as the output of [method] to conform the ABI.
+// This does not include method ids.
+func (abi ABI) PackOutput(name string, intf ...interface{}) ([]byte, error) {
+	// Fetch the ABI of the requested method
+	method, exist := abi.Methods[name]
+	if !exist {
+		return nil, fmt.Errorf("method '%s' not found", name)
+	}
+	arguments, err := method.Outputs.Pack(intf...)
+	if err != nil {
+		return nil, err
+	}
+	return arguments, nil
+}
+
+func (abi ABI) getInputs(name string, data []byte) (Arguments, error) {
+	// since there can't be naming collisions with contracts and events,
+	// we need to decide whether we're calling a method or an event
+	var args Arguments
+	if method, ok := abi.Methods[name]; ok {
+		if len(data)%32 != 0 {
+			return nil, fmt.Errorf("abi: improperly formatted input: %s - Bytes: [%+v]", string(data), data)
+		}
+		args = method.Inputs
+	}
+	if args == nil {
+		return nil, errors.New("abi: could not locate named method or event")
+	}
+	return args, nil
+}
+
 func (abi ABI) getArguments(name string, data []byte) (Arguments, error) {
 	// since there can't be naming collisions with contracts and events,
 	// we need to decide whether we're calling a method or an event
@@ -110,6 +141,15 @@ func (abi ABI) getArguments(name string, data []byte) (Arguments, error) {
 	return args, nil
 }
 
+// Unpack unpacks the input according to the abi specification.
+func (abi ABI) UnpackInput(name string, data []byte) ([]interface{}, error) {
+	args, err := abi.getInputs(name, data)
+	if err != nil {
+		return nil, err
+	}
+	return args.Unpack(data)
+}
+
 // Unpack unpacks the output according to the abi specification.
 func (abi ABI) Unpack(name string, data []byte) ([]interface{}, error) {
 	args, err := abi.getArguments(name, data)
@@ -117,6 +157,21 @@ func (abi ABI) Unpack(name string, data []byte) ([]interface{}, error) {
 		return nil, err
 	}
 	return args.Unpack(data)
+}
+
+// UnpackIntoInterface unpacks the input in v according to the abi specification.
+// It performs an additional copy. Please only use, if you want to unpack into a
+// structure that does not strictly conform to the abi structure (e.g. has additional arguments)
+func (abi ABI) UnpackInputIntoInterface(v interface{}, name string, data []byte) error {
+	args, err := abi.getInputs(name, data)
+	if err != nil {
+		return err
+	}
+	unpacked, err := args.Unpack(data)
+	if err != nil {
+		return err
+	}
+	return args.Copy(v, unpacked)
 }
 
 // UnpackIntoInterface unpacks the output in v according to the abi specification.
