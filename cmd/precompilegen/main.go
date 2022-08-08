@@ -37,7 +37,6 @@ import (
 	"github.com/ava-labs/subnet-evm/internal/flags"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/nxadm/tail/util"
 	"github.com/urfave/cli/v2"
 )
 
@@ -100,7 +99,7 @@ func precompilegen(c *cli.Context) error {
 		aliases = make(map[string]string)
 	)
 	if c.String(abiFlag.Name) == "" {
-		util.Fatal("no abi path is specified (--abi)")
+		utils.Fatalf("no abi path is specified (--abi)")
 	}
 	// Load up the ABI
 	var (
