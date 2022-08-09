@@ -17,6 +17,7 @@ const (
 	defaultAcceptorQueueLimit                     = 64 // Provides 2 minutes of buffer (2s block target) for a commit delay
 	defaultPruningEnabled                         = true
 	defaultCommitInterval                         = 4096
+	defaultSyncableCommitInterval                 = defaultCommitInterval * 4
 	defaultSnapshotAsync                          = true
 	defaultRpcGasCap                              = 50_000_000 // Default to 50M Gas Limit
 	defaultRpcTxFeeCap                            = 100        // 100 AVAX
@@ -37,6 +38,16 @@ const (
 	defaultLogLevel                               = "info"
 	defaultMaxOutboundActiveRequests              = 8
 	defaultPopulateMissingTriesParallelism        = 1024
+	defaultStateSyncServerTrieCache               = 64 // MB
+
+	// defaultStateSyncMinBlocks is the minimum number of blocks the blockchain
+	// should be ahead of local last accepted to perform state sync.
+	// This constant is chosen so normal bootstrapping is preferred when it would
+	// be faster than state sync.
+	// time assumptions:
+	// - normal bootstrap processing time: ~14 blocks / second
+	// - state sync time: ~6 hrs.
+	defaultStateSyncMinBlocks = 300_000
 )
 
 var defaultEnabledAPIs = []string{
@@ -170,6 +181,9 @@ func (c *Config) SetDefaults() {
 	c.LogLevel = defaultLogLevel
 	c.MaxOutboundActiveRequests = defaultMaxOutboundActiveRequests
 	c.PopulateMissingTriesParallelism = defaultPopulateMissingTriesParallelism
+	c.StateSyncServerTrieCache = defaultStateSyncServerTrieCache
+	c.StateSyncCommitInterval = defaultSyncableCommitInterval
+	c.StateSyncMinBlocks = defaultStateSyncMinBlocks
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {
