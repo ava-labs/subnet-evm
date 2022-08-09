@@ -120,14 +120,12 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		go vmSetup.serverVM.AppRequest(nodeID, requestID, time.Now().Add(1*time.Second), request)
 		return nil
 	}
-	// Disable metrics to prevent duplicate registerer
-	configJSON := "{\"metrics-enabled\":false}"
 	if err := syncDisabledVM.Initialize(
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDBManager,
 		[]byte(genesisJSONSubnetEVM),
 		nil,
-		[]byte(configJSON),
+		nil,
 		vmSetup.syncerVM.toEngine,
 		[]*commonEng.Fx{},
 		appSender,
@@ -179,9 +177,9 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 
 	// Create a new VM from the same database with state sync enabled.
 	syncReEnabledVM := &VM{}
-	// Disable metrics to prevent duplicate registerer
-	configJSON = fmt.Sprintf(
-		"{\"metrics-enabled\":false, \"state-sync-enabled\":true, \"state-sync-min-blocks\":%d}",
+	// Enable state sync in configJSON
+	configJSON := fmt.Sprintf(
+		"{\"state-sync-enabled\":true, \"state-sync-min-blocks\":%d}",
 		test.stateSyncMinBlocks,
 	)
 	if err := syncReEnabledVM.Initialize(
