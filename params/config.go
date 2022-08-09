@@ -533,7 +533,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
 	rules.IsFeeConfigManagerEnabled = c.IsFeeConfigManager(blockTimestamp)
 	// ADD YOUR PRECOMPILE HERE
-	// rules.ISYourPrecompileEnabled = c.IsYourPrecompile(blockTimestamp)
+	// rules.IsYourPrecompileEnabled = c.IsYourPrecompile(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)
