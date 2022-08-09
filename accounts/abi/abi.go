@@ -91,7 +91,7 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 	return append(method.ID, arguments...), nil
 }
 
-// Pack the given intf as the output of [method] to conform the ABI.
+// PackOutput packs the given intf as the output of [method] to conform the ABI.
 // This does not include method ids.
 func (abi ABI) PackOutput(name string, intf ...interface{}) ([]byte, error) {
 	// Fetch the ABI of the requested method
