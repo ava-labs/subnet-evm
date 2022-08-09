@@ -28,6 +28,9 @@ func GenerateTrie(t *testing.T, trieDB *Database, numKeys int, keySize int) (com
 		t.Fatal("key size must be at least 9 bytes (8 bytes for uint64 and 1 random byte)")
 	}
 	testTrie, err := New(common.Hash{}, trieDB)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	keys, values := FillTrie(t, numKeys, keySize, testTrie)
 
