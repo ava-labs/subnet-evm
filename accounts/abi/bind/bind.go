@@ -236,6 +236,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 	var data interface{}
 	var templateSource string
 
+	// Generate the contract template data according to contract type (precompile/non)
 	if isPrecompile {
 		if lang == LangJava {
 			return "", errors.New("java binding for precompiled contracts is not supported yet")
@@ -256,8 +257,6 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			Structs:   structs,
 		}
 	}
-	// Generate the contract template data content and render it
-
 	buffer := new(bytes.Buffer)
 
 	funcs := map[string]interface{}{
@@ -268,6 +267,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		"decapitalise":  decapitalise,
 	}
 
+	// render the template
 	tmpl := template.Must(template.New("").Funcs(funcs).Parse(templateSource))
 	if err := tmpl.Execute(buffer, data); err != nil {
 		return "", err
