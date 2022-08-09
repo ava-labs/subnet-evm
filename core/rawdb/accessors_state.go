@@ -99,6 +99,14 @@ func ReadTrieNode(db ethdb.KeyValueReader, hash common.Hash) []byte {
 	return data
 }
 
+// HasCode checks if the contract code corresponding to the
+// provided code hash is present in the db.
+func HasCode(db ethdb.KeyValueReader, hash common.Hash) bool {
+	// Try with the prefixed code scheme first and only. The legacy scheme was never used in coreth.
+	ok, _ := db.Has(codeKey(hash))
+	return ok
+}
+
 // HasTrieNode checks if the trie node with the provided hash is present in db.
 func HasTrieNode(db ethdb.KeyValueReader, hash common.Hash) bool {
 	ok, _ := db.Has(hash.Bytes())
@@ -112,9 +120,23 @@ func WriteTrieNode(db ethdb.KeyValueWriter, hash common.Hash, node []byte) {
 	}
 }
 
+// AddCodeToFetch adds a marker that we need to fetch the code for [hash].
+func AddCodeToFetch(db ethdb.KeyValueWriter, hash common.Hash) {
+	if err := db.Put(hash[:], nil); err != nil {
+		log.Crit("Failed to put code to fetch", "codeHash", hash, "err", err)
+	}
+}
+
 // DeleteTrieNode deletes the specified trie node from the database.
 func DeleteTrieNode(db ethdb.KeyValueWriter, hash common.Hash) {
 	if err := db.Delete(hash.Bytes()); err != nil {
 		log.Crit("Failed to delete trie node", "err", err)
+	}
+}
+
+// DeleteCodeToFetch removes the marker that the code corresponding to [hash] needs to be fetched.
+func DeleteCodeToFetch(db ethdb.KeyValueWriter, hash common.Hash) {
+	if err := db.Delete(hash[:]); err != nil {
+		log.Crit("Failed to delete code to fetch", "codeHash", hash, "err", err)
 	}
 }

@@ -48,7 +48,7 @@ type pushGossiper struct {
 	gossipActivationTime time.Time
 	config               Config
 
-	client     peer.Client
+	client     peer.NetworkClient
 	blockchain *core.BlockChain
 	txPool     *core.TxPool
 

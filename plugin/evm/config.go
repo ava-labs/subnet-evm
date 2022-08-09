@@ -126,6 +126,14 @@ type Config struct {
 
 	// VM2VM network
 	MaxOutboundActiveRequests int64 `json:"max-outbound-active-requests"`
+
+	// Sync settings
+	StateSyncEnabled         bool   `json:"state-sync-enabled"`
+	StateSyncSkipResume      bool   `json:"state-sync-skip-resume"` // Forces state sync to use the highest available summary block
+	StateSyncServerTrieCache int    `json:"state-sync-server-trie-cache"`
+	StateSyncIDs             string `json:"state-sync-ids"`
+	StateSyncCommitInterval  uint64 `json:"state-sync-commit-interval"`
+	StateSyncMinBlocks       uint64 `json:"state-sync-min-blocks"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
