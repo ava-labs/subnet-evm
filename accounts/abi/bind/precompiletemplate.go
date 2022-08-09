@@ -287,7 +287,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 	}
 	{{- end}}
 
-	// Return an empty output and the remaining gas
+	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
 }
 {{end}}
