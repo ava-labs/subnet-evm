@@ -259,7 +259,7 @@ func (bc *BlockChain) State() (*state.StateDB, error) {
 
 // StateAt returns a new mutable state based on a particular point in time.
 func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
-	return state.New(root, bc.stateCache, bc.snaps)
+	return state.New(root, bc.StateCache(), bc.Snapshots())
 }
 
 // Config retrieves the chain's fork configuration.
@@ -270,6 +270,9 @@ func (bc *BlockChain) Engine() consensus.Engine { return bc.engine }
 
 // Snapshots returns the blockchain snapshot tree.
 func (bc *BlockChain) Snapshots() *snapshot.Tree {
+	bc.stateChacheLock.RLock()
+	defer bc.stateChacheLock.RUnlock()
+
 	return bc.snaps
 }
 
@@ -285,6 +288,9 @@ func (bc *BlockChain) Processor() Processor {
 
 // StateCache returns the caching database underpinning the blockchain instance.
 func (bc *BlockChain) StateCache() state.Database {
+	bc.stateChacheLock.RLock()
+	defer bc.stateChacheLock.RUnlock()
+
 	return bc.stateCache
 }
 

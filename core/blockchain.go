@@ -181,7 +181,9 @@ type BlockChain struct {
 
 	currentBlock atomic.Value // Current head of the block chain
 
-	stateCache     state.Database // State database to reuse between imports (contains state cache)
+	stateCache      state.Database // State database to reuse between imports (contains state cache)
+	stateChacheLock sync.RWMutex   // lock held during reset state to update stateCache
+
 	stateManager   TrieWriter
 	bodyCache      *lru.Cache // Cache for the most recent block bodies
 	receiptsCache  *lru.Cache // Cache for the most recent receipts per block
@@ -1392,6 +1394,9 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 
 // initSnapshot instantiates a Snapshot instance and adds it to [bc]
 func (bc *BlockChain) initSnapshot(b *types.Block) {
+	bc.stateChacheLock.Lock()
+	defer bc.stateChacheLock.Unlock()
+
 	if bc.cacheConfig.SnapshotLimit <= 0 || bc.snaps != nil {
 		return
 	}
@@ -1743,6 +1748,7 @@ func (bc *BlockChain) ResetState(block *types.Block) error {
 	bc.hc.SetCurrentHeader(block.Header())
 
 	lastAcceptedHash := block.Hash()
+
 	bc.stateCache = state.NewDatabaseWithConfig(bc.db, &trie.Config{
 		Cache:     bc.cacheConfig.TrieCleanLimit,
 		Preimages: bc.cacheConfig.Preimages,
