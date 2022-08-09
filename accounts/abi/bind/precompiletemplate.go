@@ -2,7 +2,7 @@
 // See the file LICENSE for licensing terms.
 package bind
 
-// tmplData is the data structure required to fill the binding template.
+// tmplPrecompileData is the data structure required to fill the binding template.
 type tmplPrecompileData struct {
 	Contract *tmplPrecompileContract // The contract to generate into this file
 	Structs  map[string]*tmplStruct  // Contract struct type definitions
