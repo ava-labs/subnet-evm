@@ -844,7 +844,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			suppliedGas: precompile.SetFeeConfigGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
-			expectedErr: "",
+			expectedErr: "cannot be greater than maxBlockGasCost",
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetFeeConfigManagerStatus(state, allowAddr)
 				assert.Equal(t, precompile.AllowListEnabled, res)
