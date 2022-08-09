@@ -15,7 +15,7 @@ type tmplPrecompileContract struct {
 	Funcs     map[string]*tmplMethod // Contract functions that include both Calls + Transacts in tmplContract
 }
 
-// tmplSourceGo is the Go precompiled source template.
+// tmplSourcePrecompileGo is the Go precompiled source template.
 const tmplSourcePrecompileGo = `
 // Code generated
 // This file is a generated precompile contract with stubbed abstract functions.
