@@ -141,7 +141,7 @@ func (abi ABI) getArguments(name string, data []byte) (Arguments, error) {
 	return args, nil
 }
 
-// Unpack unpacks the input according to the abi specification.
+// UnpackInput unpacks the input according to the abi specification.
 func (abi ABI) UnpackInput(name string, data []byte) ([]interface{}, error) {
 	args, err := abi.getInputs(name, data)
 	if err != nil {
