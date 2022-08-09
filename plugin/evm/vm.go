@@ -287,49 +287,49 @@ func (vm *VM) Initialize(
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 
-	ethConfig := ethconfig.NewDefaultConfig()
-	ethConfig.Genesis = g
-	ethConfig.NetworkId = g.Config.ChainID.Uint64()
+	vm.ethConfig = ethconfig.NewDefaultConfig()
+	vm.ethConfig.Genesis = g
+	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
 
 	// Set minimum price for mining and default gas price oracle value to the min
 	// gas price to prevent so transactions and blocks all use the correct fees
-	ethConfig.RPCGasCap = vm.config.RPCGasCap
-	ethConfig.RPCEVMTimeout = vm.config.APIMaxDuration.Duration
-	ethConfig.RPCTxFeeCap = vm.config.RPCTxFeeCap
-	ethConfig.TxPool.NoLocals = !vm.config.LocalTxsEnabled
-	ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
-	ethConfig.AllowUnfinalizedQueries = vm.config.AllowUnfinalizedQueries
-	ethConfig.AllowUnprotectedTxs = vm.config.AllowUnprotectedTxs
-	ethConfig.Preimages = vm.config.Preimages
-	ethConfig.Pruning = vm.config.Pruning
-	ethConfig.AcceptorQueueLimit = vm.config.AcceptorQueueLimit
-	ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
-	ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
-	ethConfig.AllowMissingTries = vm.config.AllowMissingTries
-	ethConfig.SnapshotDelayInit = false // state sync enabled
-	ethConfig.SnapshotAsync = vm.config.SnapshotAsync
-	ethConfig.SnapshotVerify = vm.config.SnapshotVerify
-	ethConfig.OfflinePruning = vm.config.OfflinePruning
-	ethConfig.OfflinePruningBloomFilterSize = vm.config.OfflinePruningBloomFilterSize
-	ethConfig.OfflinePruningDataDirectory = vm.config.OfflinePruningDataDirectory
-	ethConfig.CommitInterval = vm.config.CommitInterval
+	vm.ethConfig.RPCGasCap = vm.config.RPCGasCap
+	vm.ethConfig.RPCEVMTimeout = vm.config.APIMaxDuration.Duration
+	vm.ethConfig.RPCTxFeeCap = vm.config.RPCTxFeeCap
+	vm.ethConfig.TxPool.NoLocals = !vm.config.LocalTxsEnabled
+	vm.ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
+	vm.ethConfig.AllowUnfinalizedQueries = vm.config.AllowUnfinalizedQueries
+	vm.ethConfig.AllowUnprotectedTxs = vm.config.AllowUnprotectedTxs
+	vm.ethConfig.Preimages = vm.config.Preimages
+	vm.ethConfig.Pruning = vm.config.Pruning
+	vm.ethConfig.AcceptorQueueLimit = vm.config.AcceptorQueueLimit
+	vm.ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
+	vm.ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
+	vm.ethConfig.AllowMissingTries = vm.config.AllowMissingTries
+	vm.ethConfig.SnapshotDelayInit = false // state sync enabled
+	vm.ethConfig.SnapshotAsync = vm.config.SnapshotAsync
+	vm.ethConfig.SnapshotVerify = vm.config.SnapshotVerify
+	vm.ethConfig.OfflinePruning = vm.config.OfflinePruning
+	vm.ethConfig.OfflinePruningBloomFilterSize = vm.config.OfflinePruningBloomFilterSize
+	vm.ethConfig.OfflinePruningDataDirectory = vm.config.OfflinePruningDataDirectory
+	vm.ethConfig.CommitInterval = vm.config.CommitInterval
 
 	// Create directory for offline pruning
-	if len(ethConfig.OfflinePruningDataDirectory) != 0 {
-		if err := os.MkdirAll(ethConfig.OfflinePruningDataDirectory, perms.ReadWriteExecute); err != nil {
+	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
+		if err := os.MkdirAll(vm.ethConfig.OfflinePruningDataDirectory, perms.ReadWriteExecute); err != nil {
 			log.Error("failed to create offline pruning data directory", "error", err)
 			return err
 		}
 	}
 
 	// Handle custom fee recipient
-	ethConfig.Miner.Etherbase = constants.BlackholeAddr
+	vm.ethConfig.Miner.Etherbase = constants.BlackholeAddr
 	switch {
 	case common.IsHexAddress(vm.config.FeeRecipient):
 		if g.Config.AllowFeeRecipients {
 			address := common.HexToAddress(vm.config.FeeRecipient)
 			log.Info("Setting fee recipient", "address", address)
-			ethConfig.Miner.Etherbase = address
+			vm.ethConfig.Miner.Etherbase = address
 			break
 		}
 		return errors.New("cannot specify a custom fee recipient on this blockchain")
@@ -338,7 +338,7 @@ func (vm *VM) Initialize(
 	}
 
 	vm.chainConfig = g.Config
-	vm.networkID = ethConfig.NetworkId
+	vm.networkID = vm.ethConfig.NetworkId
 
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
@@ -352,7 +352,7 @@ func (vm *VM) Initialize(
 
 	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
-	vm.genesisHash = ethConfig.Genesis.ToBlock(nil).Hash()
+	vm.genesisHash = vm.ethConfig.Genesis.ToBlock(nil).Hash()
 
 	lastAcceptedHash, err := vm.readLastAccepted()
 	if err != nil {
@@ -373,7 +373,7 @@ func (vm *VM) Initialize(
 	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, ctx.NodeID, vm.config.MaxOutboundActiveRequests)
 	vm.client = peer.NewClient(vm.Network)
 
-	if err := vm.initializeChain(lastAcceptedHash, ethConfig); err != nil {
+	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
 	}
 
