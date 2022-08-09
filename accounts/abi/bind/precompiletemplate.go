@@ -8,7 +8,7 @@ type tmplPrecompileData struct {
 	Structs  map[string]*tmplStruct  // Contract struct type definitions
 }
 
-// tmplContract contains the data needed to generate an individual contract binding.
+// tmplPrecompileContract contains the data needed to generate an individual contract binding.
 type tmplPrecompileContract struct {
 	*tmplContract
 	AllowList bool                   // Indicator whether the contract uses AllowList precompile
