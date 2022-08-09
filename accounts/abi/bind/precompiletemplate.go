@@ -80,7 +80,7 @@ var (
 	{{.Contract.Type}}ABI abi.ABI // will be filled by init func
 )
 
-// {{.Contract.Type}}Config {{if .Contract.AllowList}}wraps [AllowListConfig] and uses it to implement {{else}}implements{{end}} the StatefulPrecompileConfig
+// {{.Contract.Type}}Config implements the StatefulPrecompileConfig
 // interface while adding in the {{.Contract.Type}} specific precompile address.
 type {{.Contract.Type}}Config struct {
 	{{- if .Contract.AllowList}}
@@ -231,7 +231,7 @@ func Pack{{capitalise .Normalized.Name}}Output (outputStruct {{capitalise .Norma
 		{{- range .Normalized.Outputs}}
 		outputStruct.{{capitalise .Name}},
 		{{- end}}
-  )
+	)
 }
 
 {{else if len .Normalized.Outputs | eq 1 }}
@@ -249,7 +249,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 		return nil, 0, err
 	}
 
-  {{- if not .Original.IsConstant}}
+	{{- if not .Original.IsConstant}}
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
@@ -258,8 +258,8 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 	{{- if len .Normalized.Inputs | eq 0}}
 	// no input provided for this function
 	{{else}}
-  // attempts to unpack [input] into the arguments to the {{.Normalized.Name}}Input.
-  // Assumes that [input] does not include selector
+	// attempts to unpack [input] into the arguments to the {{.Normalized.Name}}Input.
+	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
 	inputStruct, err := Unpack{{capitalise .Normalized.Name}}Input(input)
 	if err != nil{
@@ -292,20 +292,19 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 }
 {{end}}
 
-// create{{.Contract.Type}}Precompile returns a StatefulPrecompiledContract
-// with getters and setters for the precompile.
-{{if .Contract.AllowList}} //Access to the getters/setters is controlled by an allow list for [precompileAddr].{{end}}
+// create{{.Contract.Type}}Precompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
+{{if .Contract.AllowList}} // Access to the getters/setters is controlled by an allow list for [precompileAddr].{{end}}
 func create{{.Contract.Type}}Precompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	var functions []*statefulPrecompileFunction
 	{{- if .Contract.AllowList}}
 	functions = append(functions, createAllowListFunctions(precompileAddr)...)
-  {{- end}}
+	{{- end}}
 
 	{{- range .Contract.Funcs}}
 	functions = append(functions, newStatefulPrecompileFunction({{decapitalise .Normalized.Name}}Signature, {{decapitalise .Normalized.Name}}))
 	{{- end}}
 
-  // Construct the contract with no fallback function.
+	// Construct the contract with no fallback function.
 	contract := newStatefulPrecompileWithFunctionSelectors(nil, functions)
 	return contract
 }

@@ -116,6 +116,9 @@ func (abi ABI) getInputs(name string, data []byte) (Arguments, error) {
 		}
 		args = method.Inputs
 	}
+	if event, ok := abi.Events[name]; ok {
+		args = event.Inputs
+	}
 	if args == nil {
 		return nil, fmt.Errorf("abi: could not locate named method or event: %s", name)
 	}
@@ -136,7 +139,7 @@ func (abi ABI) getArguments(name string, data []byte) (Arguments, error) {
 		args = event.Inputs
 	}
 	if args == nil {
-		return nil, errors.New("abi: could not locate named method or event")
+		return nil, fmt.Errorf("abi: could not locate named method or event: %s", name)
 	}
 	return args, nil
 }
