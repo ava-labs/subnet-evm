@@ -146,7 +146,11 @@ func (c *{{.Contract.Type}}Config) Equal(s StatefulPrecompileConfig) bool {
 	if !ok {
 		return false
 	}
-	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) {{if .Contract.AllowList}} && c.AllowListConfig.Equal(&other.AllowListConfig) {{end}}
+	// CUSTOM CODE STARTS HERE
+	// modify this boolean accordingly with your custom {{.Contract.Type}}Config, to check if [other] and the current [c] are equal
+	// if {{.Contract.Type}}Config contains only UpgradeableConfig {{if .Contract.AllowList}} and AllowListConfig {{end}} you can skip modifying it.
+	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) {{if .Contract.AllowList}} && c.AllowListConfig.Equal(&other.AllowListConfig) {{end}}
+	return equals
 }
 
 // Address returns the address of the {{.Contract.Type}}. Addresses reside under the precompile/params.go

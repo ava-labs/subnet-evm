@@ -238,8 +238,8 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 
 	// Generate the contract template data according to contract type (precompile/non)
 	if isPrecompile {
-		if lang == LangJava {
-			return "", errors.New("java binding for precompiled contracts is not supported yet")
+		if lang != LangGo {
+			return "", errors.New("only GoLang binding for precompiled contracts is supported yet")
 		}
 
 		if len(contracts) != 1 {
