@@ -92,7 +92,7 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 }
 
 // PackOutput packs the given intf as the output of [method] to conform the ABI.
-// This does not include method ids.
+// This does not include method ID.
 func (abi ABI) PackOutput(name string, intf ...interface{}) ([]byte, error) {
 	// Fetch the ABI of the requested method
 	method, exist := abi.Methods[name]
