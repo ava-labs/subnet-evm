@@ -78,7 +78,8 @@ func startRunner(vmName string, genesisPath string, pluginDir string) error {
 	return nil
 }
 
-func WaitForCustomVm(vmId ids.ID) (string, string, error) {
+func WaitForCustomVm(vmId ids.ID) (string, string, []string, error) {
+	var nodeNames []string
 	blockchainID, logsDir := "", ""
 
 	// wait up to 5-minute for custom VM installation
@@ -97,7 +98,7 @@ done:
 		ccancel()
 		if err != nil {
 			cancel()
-			return "", "", err
+			return "", "", nil, err
 		}
 
 		if !resp.ClusterInfo.Healthy {
@@ -111,6 +112,7 @@ done:
 		// all logs are stored under root data dir
 		logsDir = resp.GetClusterInfo().GetRootDataDir()
 
+		nodeNames = resp.ClusterInfo.NodeNames
 		for chainID, chainInfo := range resp.ClusterInfo.CustomChains {
 			if chainInfo.VmId == vmId.String() {
 				blockchainID = chainID
@@ -122,17 +124,18 @@ done:
 	err := ctx.Err()
 	if err != nil {
 		cancel()
-		return "", "", err
+		return "", "", nil, err
 	}
 	cancel()
 
 	if blockchainID == "" {
-		return "", "", errors.New("BlockchainId not found")
+		return "", "", nil, errors.New("BlockchainId not found")
 	}
 	if logsDir == "" {
-		return "", "", errors.New("logsDir not found")
+		return "", "", nil, errors.New("logsDir not found")
 	}
-	return blockchainID, logsDir, nil
+
+	return blockchainID, logsDir, nodeNames, nil
 }
 
 func GetClusterInfo(blockchainId string, logsDir string) (clusterInfo, error) {
@@ -169,13 +172,37 @@ func StartNetwork(vmId ids.ID, vmName string, genesisPath string, pluginDir stri
 	fmt.Println("Starting network")
 	startRunner(vmName, genesisPath, pluginDir)
 
-	blockchainId, logsDir, err := WaitForCustomVm(vmId)
+	blockchainId, _, nodes, err := WaitForCustomVm(vmId)
 	if err != nil {
 		return clusterInfo{}, err
 	}
 	fmt.Println("Got custom vm")
 
+	commitInterval := 16
+	configJson := fmt.Sprintf(`{"log-level":"info", "commit-interval": %d, "state-sync-commit-interval": %d}`, commitInterval, commitInterval)
+	for _, node := range nodes {
+		fmt.Printf("Restarting node %s\n", node)
+		if err := RestartNodeWithChainConfigs(node, map[string]string{
+			blockchainId: configJson,
+		}); err != nil {
+			return clusterInfo{}, err
+		}
+	}
+
+	_, logsDir, _, err := WaitForCustomVm(vmId)
+	if err != nil {
+		return clusterInfo{}, err
+	}
+	fmt.Println("Got custom vm after installing config and resetting")
+
 	return GetClusterInfo(blockchainId, logsDir)
+}
+
+func RestartNodeWithChainConfigs(node string, configs map[string]string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	_, err := cli.RestartNode(ctx, node, client.WithChainConfigs(configs))
+	cancel()
+	return err
 }
 
 func StopNetwork() error {
