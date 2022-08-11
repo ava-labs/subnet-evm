@@ -76,7 +76,6 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		isLib = make(map[string]struct{})
 	)
 
-	templateSource := tmplSource[lang]
 	for i := 0; i < len(types); i++ {
 		// Parse the actual ABI to generate the binding for
 		evmABI, err := abi.JSON(strings.NewReader(abis[i]))
@@ -228,7 +227,6 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			}
 		}
 	}
-
 	// Check if that type has already been identified as a library
 	for i := 0; i < len(types); i++ {
 		_, ok := isLib[types[i]]
@@ -236,11 +234,12 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 	}
 
 	var data interface{}
+	var templateSource string
 
+	// Generate the contract template data according to contract type (precompile/non)
 	if isPrecompile {
-		templateSource = tmplSourcePrecompileGo
-		if lang == LangJava {
-			return "", errors.New("java binding for precompiled contracts is not supported yet")
+		if lang != LangGo {
+			return "", errors.New("only GoLang binding for precompiled contracts is supported yet")
 		}
 
 		if len(contracts) != 1 {
@@ -248,37 +247,9 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		}
 		precompileType := types[0]
 		firstContract := contracts[precompileType]
-
-		funcs := make(map[string]*tmplMethod)
-
-		for k, v := range firstContract.Transacts {
-			funcs[k] = v
-		}
-
-		for k, v := range firstContract.Calls {
-			funcs[k] = v
-		}
-
-		_, isAllowList := funcs[readAllowListFuncKey]
-		if isAllowList {
-			// remove these functions as we will directly inherit AllowList
-			delete(funcs, readAllowListFuncKey)
-			delete(funcs, setAdminFuncKey)
-			delete(funcs, setEnabledFuncKey)
-			delete(funcs, setNoneFuncKey)
-		}
-
-		precompileContract := &tmplPrecompileContract{
-			tmplContract: firstContract,
-			AllowList:    isAllowList,
-			Funcs:        funcs,
-		}
-
-		data = &tmplPrecompileData{
-			Contract: precompileContract,
-			Structs:  structs,
-		}
+		data, templateSource = createPrecompileDataAndTemplate(firstContract, structs)
 	} else {
+		templateSource = tmplSource[lang]
 		data = &tmplData{
 			Package:   pkg,
 			Contracts: contracts,
@@ -286,8 +257,6 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			Structs:   structs,
 		}
 	}
-	// Generate the contract template data content and render it
-
 	buffer := new(bytes.Buffer)
 
 	funcs := map[string]interface{}{
@@ -298,6 +267,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		"decapitalise":  decapitalise,
 	}
 
+	// render the template
 	tmpl := template.Must(template.New("").Funcs(funcs).Parse(templateSource))
 	if err := tmpl.Execute(buffer, data); err != nil {
 		return "", err
@@ -658,4 +628,46 @@ func hasStruct(t abi.Type) bool {
 	default:
 		return false
 	}
+}
+
+func createPrecompileDataAndTemplate(contract *tmplContract, structs map[string]*tmplStruct) (interface{}, string) {
+	funcs := make(map[string]*tmplMethod)
+
+	for k, v := range contract.Transacts {
+		funcs[k] = v
+	}
+
+	for k, v := range contract.Calls {
+		funcs[k] = v
+	}
+	isAllowList := allowListEnabled(funcs)
+	if isAllowList {
+		// remove these functions as we will directly inherit AllowList
+		delete(funcs, readAllowListFuncKey)
+		delete(funcs, setAdminFuncKey)
+		delete(funcs, setEnabledFuncKey)
+		delete(funcs, setNoneFuncKey)
+	}
+
+	precompileContract := &tmplPrecompileContract{
+		tmplContract: contract,
+		AllowList:    isAllowList,
+		Funcs:        funcs,
+	}
+
+	data := &tmplPrecompileData{
+		Contract: precompileContract,
+		Structs:  structs,
+	}
+	return data, tmplSourcePrecompileGo
+}
+
+func allowListEnabled(funcs map[string]*tmplMethod) bool {
+	keys := []string{readAllowListFuncKey, setAdminFuncKey, setEnabledFuncKey, setNoneFuncKey}
+	for _, key := range keys {
+		if _, ok := funcs[key]; !ok {
+			return false
+		}
+	}
+	return true
 }
