@@ -1114,6 +1114,16 @@ func TestFeeConfigManagerPCRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: precompile.ErrCannotSetFeeConfigPC.Error(),
 		},
+		"fallback from no role fails": {
+			caller:         noRoleAddr,
+			precompileAddr: precompile.FeeConfigManagerPCAddress,
+			input: func() []byte {
+				return []byte{} // empty input for fallback
+			},
+			suppliedGas: precompile.FeeConfigManagerPCFallbackGasCost,
+			readOnly:    false,
+			expectedErr: precompile.ErrFeeConfigManagerPCCannotFallback.Error(),
+		},
 		"set config from allow address": {
 			caller:         allowAddr,
 			precompileAddr: precompile.FeeConfigManagerPCAddress,
@@ -1246,6 +1256,16 @@ func TestFeeConfigManagerPCRun(t *testing.T) {
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
+		"readOnly fallback with admin role fails": {
+			caller:         adminAddr,
+			precompileAddr: precompile.FeeConfigManagerPCAddress,
+			input: func() []byte {
+				return []byte{}
+			},
+			suppliedGas: precompile.FeeConfigManagerPCFallbackGasCost,
+			readOnly:    true,
+			expectedErr: vmerrs.ErrWriteProtection.Error(),
+		},
 		"insufficient gas setFeeConfig from admin": {
 			caller:         adminAddr,
 			precompileAddr: precompile.FeeConfigManagerPCAddress,
@@ -1259,6 +1279,26 @@ func TestFeeConfigManagerPCRun(t *testing.T) {
 			suppliedGas: precompile.SetFeeConfigGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"insufficient gas for fallback from admin": {
+			caller:         adminAddr,
+			precompileAddr: precompile.FeeConfigManagerPCAddress,
+			input: func() []byte {
+				return []byte{}
+			},
+			suppliedGas: precompile.FeeConfigManagerPCFallbackGasCost - 1,
+			readOnly:    false,
+			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"fallback function works with admin": {
+			caller:         adminAddr,
+			precompileAddr: precompile.FeeConfigManagerPCAddress,
+			input: func() []byte {
+				return []byte{}
+			},
+			suppliedGas: precompile.FeeConfigManagerPCFallbackGasCost,
+			readOnly:    false,
+			expectedErr: precompile.ErrTestFallback.Error(),
 		},
 		"set allow role from admin": {
 			caller:         adminAddr,

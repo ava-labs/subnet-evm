@@ -34,4 +34,6 @@ interface IFeeManagerPC is IAllowList {
   function getFeeConfigPCLastChangedAt() external view returns (uint256 blockNumber);
 
   function getTestPC(uint256 testt) external view returns (uint256 blockNumber);
+
+  fallback() external;
 }
