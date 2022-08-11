@@ -100,7 +100,6 @@ require (
 	github.com/jrick/logrotate v1.0.0 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/kkdai/bstream v1.0.0 // indirect
-	github.com/kr/pretty v0.2.0 // indirect
 	github.com/linxGnu/grocksdb v1.6.34 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
