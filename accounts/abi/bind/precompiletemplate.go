@@ -77,6 +77,7 @@ var (
 	{{decapitalise .Normalized.Name}}Signature = CalculateFunctionSelector("{{.Original.Sig}}")
 
 	{{- if not .Original.IsConstant | and $contract.AllowList}}
+
 	ErrCannot{{.Normalized.Name}} = errors.New("non-enabled cannot {{.Original.Name}}")
 	{{- end}}
 	{{- end}}
