@@ -30,7 +30,7 @@ const tmplSourcePrecompileGo = `
 1- Read the comment and set a suitable contract address in precompile/params.go. E.g:
 	{{.Contract.Type}}Address = common.HexToAddress("ASUITABLEHEXADDRESS")
 2- Set gas costs here
-3- Unless you know what you're doing write your custom code only after highlighted areas with "CUSTOM CODE STARTS HERE".
+3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 Typically, custom codes are required in only those areas.
 4- Add your precompile upgrade in params/config.go
 5- Add your upgradable config in params/precompile_config.go
