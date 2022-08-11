@@ -59,11 +59,15 @@ const (
 	{{- range .Contract.Funcs}}
 	{{.Normalized.Name}}GasCost uint64 = -1 // SET A GAS COST HERE
 	{{- end}}
+	{{- if .Contract.Fallback}}
+	{{.Contract.Type}}FallbackGasCost uint64 = -1 // SET A GAS COST LESS THAN 2300 HERE
+  {{- end}}
 
 	// {{.Contract.Type}}RawABI contains the raw ABI of {{.Contract.Type}} contract.
 	{{.Contract.Type}}RawABI = "{{.Contract.InputABI}}"
 )
 
+{{$contract := .Contract}}
 // Singleton StatefulPrecompiledContract and signatures.
 var (
 	_ StatefulPrecompileConfig = &{{.Contract.Type}}Config{}
@@ -71,10 +75,14 @@ var (
 	{{.Contract.Type}}Precompile StatefulPrecompiledContract = create{{.Contract.Type}}Precompile({{.Contract.Type}}Address)
 	{{- range .Contract.Funcs}}
 	{{decapitalise .Normalized.Name}}Signature = CalculateFunctionSelector("{{.Original.Sig}}")
-	{{- if not .Original.IsConstant}}
 
+	{{- if not .Original.IsConstant | and $contract.AllowList}}
 	ErrCannot{{.Normalized.Name}} = errors.New("non-enabled cannot {{.Original.Name}}")
 	{{- end}}
+	{{- end}}
+
+	{{- if .Contract.Fallback | and $contract.AllowList}}
+	Err{{.Contract.Type}}CannotFallback = errors.New("non-enabled cannot use fallback function")
 	{{- end}}
 
 	{{.Contract.Type}}ABI abi.ABI // will be filled by init func
@@ -183,7 +191,6 @@ func Set{{.Contract.Type}}Status(stateDB StateDB, address common.Address, role A
 }
 {{end}}
 
-{{$contract := .Contract}}
 {{range .Contract.Funcs}}
 {{if len .Normalized.Inputs | lt 1}}
 // Unpack{{capitalise .Normalized.Name}}Input attempts to unpack [input] into the arguments for the {{capitalise .Normalized.Name}}Input{}
@@ -271,13 +278,17 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 	}
 	{{- end}}
 
-	{{if not .Original.IsConstant| and $contract.AllowList}}
+	{{if not .Original.IsConstant | and $contract.AllowList}}
+	// Allow list is enabled and {{.Normalized.Name}} is a state-changer function.
+	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
+	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
 	callerStatus := getAllowListStatus(stateDB, {{$contract.Type}}Address, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannot{{.Normalized.Name}}, caller)
 	}
+	// allow list code ends here.
   {{end}}
 	// CUSTOM CODE STARTS HERE
 	// use inputStruct ...
@@ -296,6 +307,40 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 }
 {{end}}
 
+{{- if .Contract.Fallback}}
+{{- with .Contract.Fallback}}
+// {{decapitalise $contract.Type}}Fallback executed if a function identifier does not match any of the available functions in a smart contract.
+// This function cannot take an input or return an output.
+func {{decapitalise $contract.Type}}Fallback (accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (_ []byte, remainingGas uint64, err error) {
+	if remainingGas, err = deductGas(suppliedGas, {{$contract.Type}}FallbackGasCost); err != nil {
+		return nil, 0, err
+	}
+
+	if readOnly {
+		return nil, remainingGas, vmerrs.ErrWriteProtection
+	}
+
+	{{- if $contract.AllowList}}
+	// Allow list is enabled and {{.Normalized.Name}} is a state-changer function.
+	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
+	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
+	stateDB := accessibleState.GetStateDB()
+	// Verify that the caller is in the allow list and therefore has the right to modify it
+	callerStatus := getAllowListStatus(stateDB, {{$contract.Type}}Address, caller)
+	if !callerStatus.IsEnabled() {
+		return nil, remainingGas, fmt.Errorf("%w: %s", Err{{$contract.Type}}CannotFallback, caller)
+	}
+	// allow list code ends here.
+	{{- end}}
+
+	// CUSTOM CODE STARTS HERE
+
+	// Fallback function cannot return an output, return remainingGas only.
+	return nil, remainingGas, nil
+}
+{{- end}}
+{{- end}}
+
 // create{{.Contract.Type}}Precompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 {{if .Contract.AllowList}} // Access to the getters/setters is controlled by an allow list for [precompileAddr].{{end}}
 func create{{.Contract.Type}}Precompile(precompileAddr common.Address) StatefulPrecompiledContract {
@@ -308,8 +353,13 @@ func create{{.Contract.Type}}Precompile(precompileAddr common.Address) StatefulP
 	functions = append(functions, newStatefulPrecompileFunction({{decapitalise .Normalized.Name}}Signature, {{decapitalise .Normalized.Name}}))
 	{{- end}}
 
+	{{- if .Contract.Fallback}}
+	// Construct the contract with the fallback function.
+	contract := newStatefulPrecompileWithFunctionSelectors({{decapitalise $contract.Type}}Fallback, functions)
+	{{- else}}
 	// Construct the contract with no fallback function.
 	contract := newStatefulPrecompileWithFunctionSelectors(nil, functions)
+	{{- end}}
 	return contract
 }
 `
