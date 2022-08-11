@@ -45,6 +45,7 @@ Typically, custom codes are required in only those areas.
 package precompile
 
 import (
+	"math/big"
 	"errors"
 	"fmt"
 	"strings"
@@ -57,14 +58,21 @@ import (
 
 const (
 	{{- range .Contract.Funcs}}
-	{{.Normalized.Name}}GasCost uint64 = -1 // SET A GAS COST HERE
+	{{.Normalized.Name}}GasCost uint64 = 0 // SET A GAS COST HERE
 	{{- end}}
 	{{- if .Contract.Fallback}}
-	{{.Contract.Type}}FallbackGasCost uint64 = -1 // SET A GAS COST LESS THAN 2300 HERE
+	{{.Contract.Type}}FallbackGasCost uint64 = 0 // SET A GAS COST LESS THAN 2300 HERE
   {{- end}}
 
 	// {{.Contract.Type}}RawABI contains the raw ABI of {{.Contract.Type}} contract.
 	{{.Contract.Type}}RawABI = "{{.Contract.InputABI}}"
+)
+
+// Reference imports to suppress errors if they are not otherwise used.
+var (
+	_ = errors.New
+	_ = big.NewInt
+	_ = strings.NewReader
 )
 
 {{$contract := .Contract}}
@@ -74,7 +82,6 @@ var (
 
 	{{.Contract.Type}}Precompile StatefulPrecompiledContract = create{{.Contract.Type}}Precompile({{.Contract.Type}}Address)
 	{{- range .Contract.Funcs}}
-	{{decapitalise .Normalized.Name}}Signature = CalculateFunctionSelector("{{.Original.Sig}}")
 
 	{{- if not .Original.IsConstant | and $contract.AllowList}}
 
@@ -87,6 +94,9 @@ var (
 	{{- end}}
 
 	{{.Contract.Type}}ABI abi.ABI // will be filled by init func
+
+	// THIS SHOULD BE MOVED TO precompile/params.go with a suitable hex address.
+	{{.Contract.Type}}Address = common.HexToAddress("ASUITABLEHEXADDRESS")
 )
 
 // {{.Contract.Type}}Config implements the StatefulPrecompileConfig
@@ -180,14 +190,14 @@ func (c *{{.Contract.Type}}Config) Contract() StatefulPrecompiledContract {
 }
 
 {{if .Contract.AllowList}}
-// Get{{.Contract.Type}}Status returns the role of [address] for the {{.Contract.Type}} list.
-func Get{{.Contract.Type}}Status(stateDB StateDB, address common.Address) AllowListRole {
+// Get{{.Contract.Type}}AllowListStatus returns the role of [address] for the {{.Contract.Type}} list.
+func Get{{.Contract.Type}}AllowListStatus(stateDB StateDB, address common.Address) AllowListRole {
 	return getAllowListStatus(stateDB, {{.Contract.Type}}Address, address)
 }
 
-// Set{{.Contract.Type}}Status sets the permissions of [address] to [role] for the
+// Set{{.Contract.Type}}AllowListStatus sets the permissions of [address] to [role] for the
 // {{.Contract.Type}} list. Assumes [role] has already been verified as valid.
-func Set{{.Contract.Type}}Status(stateDB StateDB, address common.Address, role AllowListRole) {
+func Set{{.Contract.Type}}AllowListStatus(stateDB StateDB, address common.Address, role AllowListRole) {
 	setAllowListRole(stateDB, {{.Contract.Type}}Address, address, role)
 }
 {{end}}
@@ -248,11 +258,11 @@ func Pack{{capitalise .Normalized.Name}}Output (outputStruct {{capitalise .Norma
 
 {{else if len .Normalized.Outputs | eq 1 }}
 {{$method := .}}
-{{$input := index $method.Normalized.Outputs 0}}
-// Pack{{capitalise .Normalized.Name}}Output attempts to pack given {{decapitalise $input.Name}} of type {{bindtype $input.Type $structs}}
+{{$output := index $method.Normalized.Outputs 0}}
+// Pack{{capitalise .Normalized.Name}}Output attempts to pack given {{decapitalise $output.Name}} of type {{bindtype $output.Type $structs}}
 // to conform the ABI outputs.
-func Pack{{$method.Normalized.Name}}Output ({{decapitalise $input.Name}} {{bindtype $input.Type $structs}}) ([]byte, error) {
-	return {{$contract.Type}}ABI.PackOutput("{{$method.Original.Name}}", {{decapitalise $input.Name}})
+func Pack{{$method.Normalized.Name}}Output ({{decapitalise $output.Name}} {{bindtype $output.Type $structs}}) ([]byte, error) {
+	return {{$contract.Type}}ABI.PackOutput("{{$method.Original.Name}}", {{decapitalise $output.Name}})
 }
 {{end}}
 
@@ -292,12 +302,21 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 	// allow list code ends here.
   {{end}}
 	// CUSTOM CODE STARTS HERE
-	// use inputStruct ...
+	{{- if len .Normalized.Inputs | ne 0}}
+	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
+	{{- end}}
+
 	{{- if len .Normalized.Outputs | eq 0}}
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 	{{- else}}
-	packedOutput, err := Pack{{.Normalized.Name}}Output(nil)
+	{{- if len .Normalized.Outputs | lt 1}}
+	var output {{capitalise .Normalized.Name}}Output // CUSTOM CODE FOR AN OUTPUT
+	{{- else }}
+	{{$output := index .Normalized.Outputs 0}}
+	var output {{bindtype $output.Type $structs}} // CUSTOM CODE FOR AN OUTPUT
+	{{- end}}
+	packedOutput, err := Pack{{.Normalized.Name}}Output(output)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -312,7 +331,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 {{- with .Contract.Fallback}}
 // {{decapitalise $contract.Type}}Fallback executed if a function identifier does not match any of the available functions in a smart contract.
 // This function cannot take an input or return an output.
-func {{decapitalise $contract.Type}}Fallback (accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (_ []byte, remainingGas uint64, err error) {
+func {{decapitalise $contract.Type}}Fallback (accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = deductGas(suppliedGas, {{$contract.Type}}FallbackGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -336,8 +355,12 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState PrecompileAccessib
 
 	// CUSTOM CODE STARTS HERE
 
-	// Fallback function cannot return an output, return remainingGas only.
-	return nil, remainingGas, nil
+	// Fallback can return data in output.
+	// The returned data will not be ABI-encoded.
+	// Instead it will be returned without modifications (not even padding).
+	output := []byte{}
+	// return raw output
+	return output, remainingGas, nil
 }
 {{- end}}
 {{- end}}
@@ -351,7 +374,8 @@ func create{{.Contract.Type}}Precompile(precompileAddr common.Address) StatefulP
 	{{- end}}
 
 	{{- range .Contract.Funcs}}
-	functions = append(functions, newStatefulPrecompileFunction({{decapitalise .Normalized.Name}}Signature, {{decapitalise .Normalized.Name}}))
+	method{{.Normalized.Name}} := {{$contract.Type}}ABI.Methods["{{.Original.Name}}"]
+	functions = append(functions, newStatefulPrecompileFunction(method{{.Normalized.Name}}.ID, {{decapitalise .Normalized.Name}}))
 	{{- end}}
 
 	{{- if .Contract.Fallback}}
