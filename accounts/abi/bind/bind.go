@@ -640,8 +640,7 @@ func createPrecompileDataAndTemplate(contract *tmplContract, structs map[string]
 	for k, v := range contract.Calls {
 		funcs[k] = v
 	}
-
-	_, isAllowList := funcs[readAllowListFuncKey]
+	isAllowList := allowListEnabled(funcs)
 	if isAllowList {
 		// remove these functions as we will directly inherit AllowList
 		delete(funcs, readAllowListFuncKey)
@@ -661,4 +660,14 @@ func createPrecompileDataAndTemplate(contract *tmplContract, structs map[string]
 		Structs:  structs,
 	}
 	return data, tmplSourcePrecompileGo
+}
+
+func allowListEnabled(funcs map[string]*tmplMethod) bool {
+	keys := []string{readAllowListFuncKey, setAdminFuncKey, setEnabledFuncKey, setNoneFuncKey}
+	for _, key := range keys {
+		if _, ok := funcs[key]; !ok {
+			return false
+		}
+	}
+	return true
 }
