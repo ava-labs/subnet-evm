@@ -442,14 +442,6 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	// start goroutines to update the tx pool gas minimum gas price when upgrades go into effect
 	vm.handleGasPriceUpdates()
 
-	// start goroutines to manage block building
-	//
-	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will
-	// not work.
-	vm.gossiper = vm.createGossipper()
-	vm.builder = vm.NewBlockBuilder(vm.toEngine)
-	vm.builder.awaitSubmittedTxs()
-
 	vm.eth.Start()
 	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
 }
@@ -542,12 +534,6 @@ func (vm *VM) initializeStateSyncServer() {
 	vm.setAppRequestHandlers()
 }
 
-func (vm *VM) initGossipHandling() {
-	if vm.chainConfig.SubnetEVMTimestamp != nil {
-		vm.Network.SetGossipHandler(NewGossipHandler(vm))
-	}
-}
-
 func (vm *VM) SetState(state snow.State) error {
 	switch state {
 	case snow.StateSyncing:
@@ -561,11 +547,23 @@ func (vm *VM) SetState(state snow.State) error {
 		return nil
 	case snow.NormalOp:
 		// Initialize gossip handling once we enter normal operation as there is no need to handle mempool gossip before this point.
-		vm.initGossipHandling()
+		vm.initBlockBuilding()
 		vm.bootstrapped = true
 		return nil
 	default:
 		return snow.ErrUnknownState
+	}
+}
+
+// initBlockBuilding starts goroutines to manage block building
+func (vm *VM) initBlockBuilding() {
+	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
+	// TODO: Port gossip stats from coreth to subnet-evm
+	vm.gossiper = vm.createGossiper()
+	vm.builder = vm.NewBlockBuilder(vm.toEngine)
+	vm.builder.awaitSubmittedTxs()
+	if vm.chainConfig.SubnetEVMTimestamp != nil {
+		vm.Network.SetGossipHandler(NewGossipHandler(vm))
 	}
 }
 
