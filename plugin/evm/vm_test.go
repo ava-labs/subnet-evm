@@ -38,7 +38,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
 	engCommon "github.com/ava-labs/avalanchego/snow/engine/common"
-	avaGoConstants "github.com/ava-labs/avalanchego/utils/constants"
+	engConstants "github.com/ava-labs/avalanchego/utils/constants"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -118,9 +118,9 @@ func NewContext() *snow.Context {
 	_ = aliaser.Alias(testXChainID, testXChainID.String())
 	ctx.SNLookup = &snLookup{
 		chainsToSubnet: map[ids.ID]ids.ID{
-			avaGoConstants.PlatformChainID: avaGoConstants.PrimaryNetworkID,
-			testXChainID:                   avaGoConstants.PrimaryNetworkID,
-			testCChainID:                   avaGoConstants.PrimaryNetworkID,
+			engConstants.PlatformChainID: engConstants.PrimaryNetworkID,
+			testXChainID:                 engConstants.PrimaryNetworkID,
+			testCChainID:                 engConstants.PrimaryNetworkID,
 		},
 	}
 	return ctx
