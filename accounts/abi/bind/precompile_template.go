@@ -80,7 +80,7 @@ var (
 var (
 	_ StatefulPrecompileConfig = &{{.Contract.Type}}Config{}
 
-	{{.Contract.Type}}Precompile StatefulPrecompiledContract = create{{.Contract.Type}}Precompile({{.Contract.Type}}Address)
+	{{.Contract.Type}}Precompile StatefulPrecompiledContract
 	{{- range .Contract.Funcs}}
 
 	{{- if not .Original.IsConstant | and $contract.AllowList}}
@@ -136,6 +136,8 @@ func init() {
 		panic(err)
 	}
 	{{.Contract.Type}}ABI = parsed
+
+	{{.Contract.Type}}Precompile = create{{.Contract.Type}}Precompile({{.Contract.Type}}Address)
 }
 
 // New{{.Contract.Type}}Config returns a config for a network upgrade at [blockTimestamp] that enables
