@@ -147,7 +147,6 @@ cat <<EOF >$BASEDIR/genesis.json
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
 EOF
-fi
 
 # If you'd like to try the airdrop feature, use the commented genesis
 # cat <<EOF > ${BASEDIR}/genesis.json
