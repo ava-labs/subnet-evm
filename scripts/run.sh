@@ -254,6 +254,7 @@ run_simulator() {
   --priority-fee=1
 }
 
+# e.g., "MODE=run SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${MODE} == "test" || ${SIMULATOR} == true ]]; then
   run_ginkgo
 

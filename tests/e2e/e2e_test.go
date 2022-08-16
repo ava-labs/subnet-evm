@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanche-network-runner/client"
+	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/tests/e2e/runner"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
@@ -128,6 +129,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	err := runner.InitializeRunner(execPath, gRPCEp, networkRunnerLogLevel)
 	gomega.Expect(err).Should(gomega.BeNil())
 
+	// only launch network-runner for "run" modes
 	if utils.GetMode() != "run" {
 		return
 	}
@@ -142,9 +144,14 @@ var _ = ginkgo.BeforeSuite(func() {
 			ctx,
 			utils.GetExecPath(),
 			client.WithPluginDir(utils.GetPluginDir()),
-			client.WithCustomVMs(map[string]string{
-				vmName: utils.GetVmGenesisPath(),
-			}))
+			client.WithBlockchainSpecs(
+				[]*rpcpb.BlockchainSpec{
+					{
+						VmName:  vmName,
+						Genesis: utils.GetVmGenesisPath(),
+					},
+				},
+			))
 		cancel()
 		gomega.Expect(err).Should(gomega.BeNil())
 		outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
@@ -184,7 +191,7 @@ done:
 		// all logs are stored under root data dir
 		logsDir = resp.GetClusterInfo().GetRootDataDir()
 
-		for blkChainID, vmInfo := range resp.ClusterInfo.CustomVms {
+		for blkChainID, vmInfo := range resp.ClusterInfo.CustomChains {
 			if vmInfo.VmId == vmID.String() {
 				blockchainID = blkChainID
 				outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", vmInfo)
@@ -226,6 +233,7 @@ done:
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	// "run" mode does not shut down the cluster
 	if utils.GetMode() == "run" {
 		return
 	}
