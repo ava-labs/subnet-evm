@@ -63,7 +63,7 @@ jobs:
         working-directory: ./contract-examples
       - name: Run e2e tests
         shell: bash
-        run: SKIP_NETWORK_RUNNER_START=true ENABLE_SOLIDITY_TESTS=true scripts/run.sh
+        run: SKIP_NETWORK_RUNNER_START=true SKIP_NETWORK_RUNNER_SHUTDOWN=true ENABLE_SOLIDITY_TESTS=true scripts/run.sh
 
   simulator_test:
     name: Load testing with simulator
