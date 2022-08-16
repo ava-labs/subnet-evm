@@ -39,11 +39,15 @@ var (
 	outputFile string
 	pluginDir  string
 
+	// sets the "avalanchego" exec path
 	execPath string
 
 	vmGenesisPath string
 
-	mode string
+	skipNetworkRunnerStart    bool
+	skipNetworkRunnerShutdown bool
+
+	enableSolidityTests bool
 )
 
 func init() {
@@ -90,12 +94,23 @@ func init() {
 		"",
 		"output YAML path to write local cluster information",
 	)
-
-	flag.StringVar(
-		&mode,
-		"mode",
-		"test",
-		"'test' to shut down cluster after tests, 'run' to skip tests and only run without shutdown",
+	flag.BoolVar(
+		&skipNetworkRunnerStart,
+		"skip-network-runner-start",
+		false,
+		"'true' to skip network runner start",
+	)
+	flag.BoolVar(
+		&skipNetworkRunnerShutdown,
+		"skip-network-runner-shutdown",
+		false,
+		"'true' to skip network runner shutdown",
+	)
+	flag.BoolVar(
+		&enableSolidityTests,
+		"enable-solidity-tests",
+		false,
+		"'true' to run solidity tests",
 	)
 }
 
@@ -117,20 +132,19 @@ func init() {
 var subnetEVMRPCEps []string
 
 var _ = ginkgo.BeforeSuite(func() {
-	gomega.Expect(mode).Should(gomega.Or(gomega.Equal("test"), gomega.Equal("run")))
-
 	utils.SetOutputFile(outputFile)
 	utils.SetPluginDir(pluginDir)
 	utils.SetExecPath(execPath)
 	utils.SetPluginDir(pluginDir)
 	utils.SetVmGenesisPath(vmGenesisPath)
-	utils.SetMode(mode)
+	utils.SetSkipNetworkRunnerStart(skipNetworkRunnerStart)
+	utils.SetSkipNetworkRunnerShutdown(skipNetworkRunnerShutdown)
+	utils.SetEnableSolidityTests(enableSolidityTests)
 
 	err := runner.InitializeRunner(execPath, gRPCEp, networkRunnerLogLevel)
 	gomega.Expect(err).Should(gomega.BeNil())
 
-	// only launch network-runner for "run" modes
-	if utils.GetMode() != "run" {
+	if !utils.GetSkipNetworkRunnerStart() {
 		return
 	}
 
@@ -233,8 +247,7 @@ done:
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	// "run" mode does not shut down the cluster
-	if utils.GetMode() == "run" {
+	if !utils.GetSkipNetworkRunnerShutdown() {
 		return
 	}
 

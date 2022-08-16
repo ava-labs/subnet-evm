@@ -8,11 +8,14 @@ var (
 	outputFile string
 	pluginDir  string
 
+	// executable path for "avalanchego"
 	execPath string
 
 	vmGenesisPath string
 
-	mode string
+	skipNetworkRunnerStart    bool
+	skipNetworkRunnerShutdown bool
+	enableSolidityTests       bool
 )
 
 func SetOutputFile(filepath string) {
@@ -28,12 +31,14 @@ func GetOutputPath() string {
 	return e
 }
 
+// Sets the executable path for "avalanchego".
 func SetExecPath(p string) {
 	mu.Lock()
 	execPath = p
 	mu.Unlock()
 }
 
+// Loads the executable path for "avalanchego".
 func GetExecPath() string {
 	mu.RLock()
 	e := execPath
@@ -67,15 +72,41 @@ func GetVmGenesisPath() string {
 	return p
 }
 
-func SetMode(m string) {
+func SetSkipNetworkRunnerStart(b bool) {
 	mu.Lock()
-	mode = m
+	skipNetworkRunnerStart = b
 	mu.Unlock()
 }
 
-func GetMode() string {
+func GetSkipNetworkRunnerStart() bool {
 	mu.RLock()
-	m := mode
+	b := skipNetworkRunnerStart
 	mu.RUnlock()
-	return m
+	return b
+}
+
+func SetSkipNetworkRunnerShutdown(b bool) {
+	mu.Lock()
+	skipNetworkRunnerShutdown = b
+	mu.Unlock()
+}
+
+func GetSkipNetworkRunnerShutdown() bool {
+	mu.RLock()
+	b := skipNetworkRunnerShutdown
+	mu.RUnlock()
+	return b
+}
+
+func SetEnableSolidityTests(b bool) {
+	mu.Lock()
+	enableSolidityTests = b
+	mu.Unlock()
+}
+
+func GetEnableSolidityTests() bool {
+	mu.RLock()
+	b := enableSolidityTests
+	mu.RUnlock()
+	return b
 }

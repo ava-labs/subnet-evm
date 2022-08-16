@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// Implements ping tests, requires network-runner cluster.
+// Implements solidity tests.
 package solidity
 
 import (
@@ -41,8 +41,8 @@ func stopSubnet() {
 
 var _ = utils.DescribePrecompile(func() {
 	ginkgo.It("tx allow list", func() {
-		if utils.GetMode() != "test" {
-			ginkgo.Skip("only runs test for the mode 'test'")
+		if !utils.GetEnableSolidityTests() {
+			ginkgo.Skip("solidity tests not enabled; skipped")
 		}
 
 		err := startSubnet("./tests/e2e/genesis/tx_allow_list.json")
@@ -56,8 +56,8 @@ var _ = utils.DescribePrecompile(func() {
 	})
 
 	ginkgo.It("deployer allow list", func() {
-		if utils.GetMode() != "test" {
-			ginkgo.Skip("only runs test for the mode 'test'")
+		if !utils.GetEnableSolidityTests() {
+			ginkgo.Skip("solidity tests not enabled; skipped")
 		}
 
 		err := startSubnet("./tests/e2e/genesis/deployer_allow_list.json")
@@ -71,8 +71,8 @@ var _ = utils.DescribePrecompile(func() {
 	})
 
 	ginkgo.It("contract native minter", func() {
-		if utils.GetMode() != "test" {
-			ginkgo.Skip("only runs test for the mode 'test'")
+		if !utils.GetEnableSolidityTests() {
+			ginkgo.Skip("solidity tests not enabled; skipped")
 		}
 
 		err := startSubnet("./tests/e2e/genesis/contract_native_minter.json")
@@ -86,8 +86,8 @@ var _ = utils.DescribePrecompile(func() {
 	})
 
 	ginkgo.It("fee manager", func() {
-		if utils.GetMode() != "test" {
-			ginkgo.Skip("only runs test for the mode 'test'")
+		if !utils.GetEnableSolidityTests() {
+			ginkgo.Skip("solidity tests not enabled; skipped")
 		}
 
 		err := startSubnet("./tests/e2e/genesis/fee_manager.json")

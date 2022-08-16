@@ -7,13 +7,13 @@ set -e
 # ./scripts/run.sh
 #
 # run without e2e tests, and with simulator
-# MODE=test SIMULATOR=true ./scripts/run.sh
+# RUN_SIMULATOR=true ./scripts/run.sh
 #
 # run without e2e tests with DEBUG log level
 # AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh
 #
 # run with e2e tests
-# MODE=test ./scripts/run.sh
+# ENABLE_SOLIDITY_TESTS=true ./scripts/run.sh
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -30,8 +30,10 @@ VERSION=$avalanche_version
 DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
-MODE=${MODE:-run}
-SIMULATOR=${SIMULATOR:-false}
+SKIP_NETWORK_RUNNER_START=${SKIP_NETWORK_RUNNER_START:-false}
+SKIP_NETWORK_RUNNER_SHUTDOWN=${SKIP_NETWORK_RUNNER_SHUTDOWN:-false}
+RUN_SIMULATOR=${RUN_SIMULATOR:-false}
+ENABLE_SOLIDITY_TESTS=${ENABLE_SOLIDITY_TESTS:-false}
 AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
 ANR_VERSION=$network_runner_version
 GINKGO_VERSION=$ginkgo_version
@@ -40,8 +42,11 @@ echo "Running with:"
 echo AVALANCE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
 echo GINKGO_VERSION: ${GINKGO_VERSION}
-echo MODE: ${MODE}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
+echo SKIP_NETWORK_RUNNER_START: ${SKIP_NETWORK_RUNNER_START}
+echo SKIP_NETWORK_RUNNER_SHUTDOWN: ${SKIP_NETWORK_RUNNER_SHUTDOWN}
+echo RUN_SIMULATOR: ${RUN_SIMULATOR}
+echo ENABLE_SOLIDITY_TESTS: ${ENABLE_SOLIDITY_TESTS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
 ############################
@@ -97,7 +102,7 @@ go build \
 
 # Create genesis file to use in network (make sure to add your address to
 # "alloc")
-if [[ ${MODE} == "run" ]]; then
+if [[ ${SKIP_NETWORK_RUNNER_START} == false ]]; then
   export CHAIN_ID=99999
   echo "creating genesis"
   cat <<EOF >$BASEDIR/genesis.json
@@ -234,7 +239,9 @@ run_ginkgo() {
     --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
     --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
-    --mode=${MODE}
+    --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} \
+    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} \
+    --enable-solidity-tests=${ENABLE_SOLIDITY_TESTS}
 }
 
 run_simulator() {
@@ -254,17 +261,10 @@ run_simulator() {
   --priority-fee=1
 }
 
-# e.g., "MODE=run SIMULATOR=true scripts/run.sh" to launch network runner + simulator
-if [[ ${MODE} == "test" || ${SIMULATOR} == true ]]; then
+if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
   run_ginkgo
-
-  if [[ ${SIMULATOR} == true ]]; then
-    run_simulator
-  fi
-
-  # to fail the script if ginkgo/simulator failed
+  # to fail the script if ginkgo failed
   EXIT_CODE=$?
-
 else
   go run scripts/parser/main.go \
     $BASEDIR/avalanchego-${VERSION}/output.yaml \
@@ -275,9 +275,15 @@ else
     "$BASEDIR/genesis.json"
 fi
 
+# e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
+if [[ ${RUN_SIMULATOR} == true ]]; then
+  run_simulator
+  # to fail the script if simulator failed
+  EXIT_CODE=$?
+fi
+
 #################################
-if [[ ${MODE} == "test" ]]; then
-  # "e2e.test" already terminates the cluster for "test" mode
+if [[ ${SKIP_NETWORK_RUNNER_SHUTDOWN} == false ]]; then
   # just in case tests are aborted, manually terminate them again
   echo "network-runner RPC server was running on PID ${PID} as test mode; terminating the process..."
   pkill -P ${PID} || true
