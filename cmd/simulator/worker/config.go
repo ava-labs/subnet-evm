@@ -4,7 +4,6 @@
 package worker
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,7 +21,7 @@ type Config struct {
 // LoadConfig parses and validates the [config] in [.simulator]
 func LoadConfig(configPath string) (cfg *Config, err error) {
 	var d []byte
-	d, err = ioutil.ReadFile(configPath)
+	d, err = os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

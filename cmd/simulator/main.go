@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -75,7 +74,7 @@ func runFunc(cmd *cobra.Command, args []string) {
 
 	if networkRunnerOutputPath != "" {
 		log.Printf("loading network runner output %q", networkRunnerOutputPath)
-		b, err := ioutil.ReadFile(networkRunnerOutputPath)
+		b, err := os.ReadFile(networkRunnerOutputPath)
 		if err != nil {
 			log.Fatalf("failed to read network-runner output %v", err)
 		}
