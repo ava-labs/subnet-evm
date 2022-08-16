@@ -3,8 +3,6 @@ github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6/go.mod h1:3eOhrU
 github.com/VictoriaMetrics/fastcache v1.10.0 h1:5hDJnLsKLpnUEToub7ETuRu8RCkb40woBZAUiKonXzY=
 github.com/ava-labs/avalanchego v1.7.16 h1:8IoVA5nBu1Efus9qcYmxI5aObuYlvEBcBbOcX2R8W8o=
 github.com/ava-labs/avalanchego v1.7.16/go.mod h1:S0SlkuHBqr1EQL+N4XydI5c6q5A0YIpxAndAt3ellrM=
-github.com/ava-labs/subnet-evm v0.2.8 h1:jBbM/zSgfFcNnIJuVQ6Zw21zi8i6k+1WQJs+dV1vyvY=
-github.com/ava-labs/subnet-evm v0.2.8/go.mod h1:TLmqEeA8T4qKFZqIV+Kl7Uoo7xFVutU+VHQhc0sdIRg=
 github.com/btcsuite/btcd v0.23.1 h1:IB8cVQcC2X5mHbnfirLG5IZnkWYNTPlLZVrxUYSotbE=
 github.com/btcsuite/btcd/btcec/v2 v2.2.0 h1:fzn1qaOt32TuLjFlkzYSsBC35Q3KUjT1SwPxiMSCF5k=
 github.com/btcsuite/btcd/btcec/v2 v2.2.0/go.mod h1:U7MHm051Al6XmscBQ0BoNydpOTsFAn707034b5nY8zU=

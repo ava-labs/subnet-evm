@@ -3,12 +3,15 @@ module github.com/ava-labs/subnet-evm/cmd/simulator
 go 1.18
 
 require (
-	github.com/ava-labs/subnet-evm v0.2.8
+	github.com/ava-labs/subnet-evm v0.0.0-00010101000000-000000000000
 	github.com/ethereum/go-ethereum v1.10.20
 	github.com/spf13/cobra v1.5.0
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	sigs.k8s.io/yaml v1.3.0
 )
+
+// always depend on the local version
+replace github.com/ava-labs/subnet-evm => ../..
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
