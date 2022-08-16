@@ -2,9 +2,12 @@ name: JSON Network Config Check
 
 on:
   push:
-    paths:
-      - 'networks/**/**.json'
+    branches:
+      - master
+    tags:
+      - "*"
   pull_request:
+
 
 jobs:
   test:
