@@ -241,8 +241,6 @@ run_simulator() {
   #################################
   echo "building simulator"
   pushd ./cmd/simulator
-  # to use the latest subnet-evm from the local repository
-  go mod edit -replace github.com/ava-labs/subnet-evm=../..
   go install -v .
   popd
 
