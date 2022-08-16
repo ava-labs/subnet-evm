@@ -233,8 +233,10 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		contracts[types[i]].Library = ok
 	}
 
-	var data interface{}
-	var templateSource string
+	var (
+		data           interface{}
+		templateSource string
+	)
 
 	// Generate the contract template data according to contract type (precompile/non)
 	if isPrecompile {

@@ -80,7 +80,6 @@ var (
 var (
 	_ StatefulPrecompileConfig = &{{.Contract.Type}}Config{}
 
-	{{.Contract.Type}}Precompile StatefulPrecompiledContract
 	{{- range .Contract.Funcs}}
 
 	{{- if not .Original.IsConstant | and $contract.AllowList}}
@@ -93,7 +92,9 @@ var (
 	Err{{.Contract.Type}}CannotFallback = errors.New("non-enabled cannot use fallback function")
 	{{- end}}
 
-	{{.Contract.Type}}ABI abi.ABI // will be filled by init func
+	{{.Contract.Type}}ABI abi.ABI // will be initialized by init function
+
+	{{.Contract.Type}}Precompile StatefulPrecompiledContract // will be initialized by init function
 
 	// THIS SHOULD BE MOVED TO precompile/params.go with a suitable hex address.
 	{{.Contract.Type}}Address = common.HexToAddress("ASUITABLEHEXADDRESS")
@@ -375,10 +376,13 @@ func create{{.Contract.Type}}Precompile(precompileAddr common.Address) StatefulP
 	functions = append(functions, createAllowListFunctions(precompileAddr)...)
 	{{- end}}
 
-	{{- range .Contract.Funcs}}
-	method{{.Normalized.Name}} := {{$contract.Type}}ABI.Methods["{{.Original.Name}}"]
+	{{range .Contract.Funcs}}
+	method{{.Normalized.Name}}, ok := {{$contract.Type}}ABI.Methods["{{.Original.Name}}"]
+	if !ok{
+		panic("given method does not exist in the ABI")
+	}
 	functions = append(functions, newStatefulPrecompileFunction(method{{.Normalized.Name}}.ID, {{decapitalise .Normalized.Name}}))
-	{{- end}}
+	{{end}}
 
 	{{- if .Contract.Fallback}}
 	// Construct the contract with the fallback function.
