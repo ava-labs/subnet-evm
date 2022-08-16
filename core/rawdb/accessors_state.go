@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc.
+// c) 2019-2020, Ava Labs, Inc.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -120,23 +120,9 @@ func WriteTrieNode(db ethdb.KeyValueWriter, hash common.Hash, node []byte) {
 	}
 }
 
-// AddCodeToFetch adds a marker that we need to fetch the code for [hash].
-func AddCodeToFetch(db ethdb.KeyValueWriter, hash common.Hash) {
-	if err := db.Put(hash[:], nil); err != nil {
-		log.Crit("Failed to put code to fetch", "codeHash", hash, "err", err)
-	}
-}
-
 // DeleteTrieNode deletes the specified trie node from the database.
 func DeleteTrieNode(db ethdb.KeyValueWriter, hash common.Hash) {
 	if err := db.Delete(hash.Bytes()); err != nil {
 		log.Crit("Failed to delete trie node", "err", err)
-	}
-}
-
-// DeleteCodeToFetch removes the marker that the code corresponding to [hash] needs to be fetched.
-func DeleteCodeToFetch(db ethdb.KeyValueWriter, hash common.Hash) {
-	if err := db.Delete(hash[:]); err != nil {
-		log.Crit("Failed to delete code to fetch", "codeHash", hash, "err", err)
 	}
 }
