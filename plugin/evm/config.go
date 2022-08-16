@@ -36,6 +36,7 @@ const (
 	defaultPriorityRegossipTxsPerAddress          = 16
 	defaultOfflinePruningBloomFilterSize   uint64 = 512 // Default size (MB) for the offline pruner to use
 	defaultLogLevel                               = "info"
+	defaultLogJSONFormat                          = false
 	defaultMaxOutboundActiveRequests              = 8
 	defaultPopulateMissingTriesParallelism        = 1024
 	defaultStateSyncServerTrieCache               = 64 // MB
@@ -124,8 +125,9 @@ type Config struct {
 	PriorityRegossipTxsPerAddress int              `json:"priority-regossip-txs-per-address"`
 	PriorityRegossipAddresses     []common.Address `json:"priority-regossip-addresses"`
 
-	// Log level
-	LogLevel string `json:"log-level"`
+	// Log
+	LogLevel      string `json:"log-level"`
+	LogJSONFormat bool   `json:"log-json-format"`
 
 	// Address for Tx Fees (must be empty if not supported by blockchain)
 	FeeRecipient string `json:"feeRecipient"`
@@ -179,6 +181,7 @@ func (c *Config) SetDefaults() {
 	c.PriorityRegossipTxsPerAddress = defaultPriorityRegossipTxsPerAddress
 	c.OfflinePruningBloomFilterSize = defaultOfflinePruningBloomFilterSize
 	c.LogLevel = defaultLogLevel
+	c.LogJSONFormat = defaultLogJSONFormat
 	c.MaxOutboundActiveRequests = defaultMaxOutboundActiveRequests
 	c.PopulateMissingTriesParallelism = defaultPopulateMissingTriesParallelism
 	c.StateSyncServerTrieCache = defaultStateSyncServerTrieCache
