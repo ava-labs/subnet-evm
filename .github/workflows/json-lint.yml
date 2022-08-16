@@ -13,7 +13,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      # BASE: /github/workspace/networks
       BASE: ./networks
     steps:
       - uses: actions/checkout@v3
