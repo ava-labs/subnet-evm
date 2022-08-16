@@ -13,7 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      BASE: ./networks/*
+      BASE: /github/workspace/networks
     steps:
       - uses: actions/checkout@v3
       - name: json-syntax-check
