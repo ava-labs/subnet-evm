@@ -7,12 +7,12 @@
 | Subnet Name           | DexalotSubnet                                                                              |
 | Subnet Logo           | ![subnet logo](https://dexalot.com/images/logo.svg)                                        |
 | Subnet ID             | 9m6a3Qte8FaRbLZixLhh8Ptdkemm4csNaLwQeKkENx5wskbWP                                          |
-| VM ID                 | mDVSxzeWHpEU3eSqMwwGQsD787xGp7hv9Qgoe3R9SdjPapte8
+| VM ID                 | mDVSxzeWHpEU3eSqMwwGQsD787xGp7hv9Qgoe3R9SdjPapte8                                          |
 | Chain Name            | DexalotMain                                                                                |
-| Chain Logo            |  ![chain logo](https://dexalot.com/images/logo.svg)                                        |
+| Chain Logo            | ![chain logo](https://dexalot.com/images/logo.svg)                                         |
 | Blockchain ID         | XuEPnCE59rtutASDPCDeYw8geQaGWwteWjkDXYLWvssfuirde                                          |
 | Eth Chain ID          | 432201                                                                                     |
-| RPC URL               | https://node.dexalot-test.com/ext/bc/XuEPnCE59rtutASDPCDeYw8geQaGWwteWjkDXYLWvssfuirde/rpc | 
+| RPC URL               | https://subnets.avax.network/dexalot/testnet/rpc                                           | 
 | Description           | Dexalot Exchange EVM subnet.                                                               |
 | Site                  | https://subnetapp.dexalot-test.com/trade                                                   | 
 | Multicall2 contracts  | 0xe07e60594653D03165402D3B491d30Fe2d2C0A6A                                                 |

@@ -2,4 +2,5 @@
 
 | Chain ID              | Network   | Name                                                                           |
 | :-------------------- | --------: |-------------------------------------------------------------------------------:|
-| 432201                | Fuji      | Dexalot Fuji Subnet-Evm                                                        |
+| 11111                 | Fuji      | WAGMI                                                                          |
+| 432201                | Fuji      | Dexalot Fuji Subnet                                                            |
