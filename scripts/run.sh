@@ -102,9 +102,10 @@ go build \
 
 # Create genesis file to use in network (make sure to add your address to
 # "alloc")
-export CHAIN_ID=99999
-echo "creating genesis"
-cat <<EOF >$BASEDIR/genesis.json
+if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
+  export CHAIN_ID=99999
+  echo "creating genesis"
+  cat <<EOF >$BASEDIR/genesis.json
 {
   "config": {
     "chainId": $CHAIN_ID,
@@ -147,6 +148,7 @@ cat <<EOF >$BASEDIR/genesis.json
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
 EOF
+fi
 
 # If you'd like to try the airdrop feature, use the commented genesis
 # cat <<EOF > ${BASEDIR}/genesis.json
