@@ -79,7 +79,7 @@ jobs:
           go-version: 1.18
       - name: Run simulator tests
         shell: bash
-        run: RUN_SIMULATOR=true scripts/run.sh
+        run: SKIP_NETWORK_RUNNER_SHUTDOWN=true RUN_SIMULATOR=true scripts/run.sh
 
   release:
     needs: [lint_test, simulator_test] # TODO: re-add after flaky tests are fixed (unit_test, e2e_test)
