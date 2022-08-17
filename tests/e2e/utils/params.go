@@ -15,7 +15,6 @@ var (
 
 	skipNetworkRunnerStart    bool
 	skipNetworkRunnerShutdown bool
-	enableSolidityTests       bool
 )
 
 func SetOutputFile(filepath string) {
@@ -94,19 +93,6 @@ func SetSkipNetworkRunnerShutdown(b bool) {
 func GetSkipNetworkRunnerShutdown() bool {
 	mu.RLock()
 	b := skipNetworkRunnerShutdown
-	mu.RUnlock()
-	return b
-}
-
-func SetEnableSolidityTests(b bool) {
-	mu.Lock()
-	enableSolidityTests = b
-	mu.Unlock()
-}
-
-func GetEnableSolidityTests() bool {
-	mu.RLock()
-	b := enableSolidityTests
 	mu.RUnlock()
 	return b
 }

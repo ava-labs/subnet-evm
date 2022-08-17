@@ -38,6 +38,11 @@ AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
 ANR_VERSION=$network_runner_version
 GINKGO_VERSION=$ginkgo_version
 
+GINKGO_SKIP_FLAGS='--ginkgo.skip "\[Precompiles\]"'
+if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
+  GINKGO_SKIP_FLAGS=""
+fi
+
 echo "Running with:"
 echo AVALANCE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
@@ -47,6 +52,7 @@ echo SKIP_NETWORK_RUNNER_START: ${SKIP_NETWORK_RUNNER_START}
 echo SKIP_NETWORK_RUNNER_SHUTDOWN: ${SKIP_NETWORK_RUNNER_SHUTDOWN}
 echo RUN_SIMULATOR: ${RUN_SIMULATOR}
 echo ENABLE_SOLIDITY_TESTS: ${ENABLE_SOLIDITY_TESTS}
+echo GINKGO_SKIP_FLAGS: ${GINKGO_SKIP_FLAGS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
 ############################
@@ -238,8 +244,7 @@ run_ginkgo() {
     --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
     --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} \
-    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} \
-    --enable-solidity-tests=${ENABLE_SOLIDITY_TESTS}
+    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} ${GINKGO_SKIP_FLAGS}
 }
 
 run_simulator() {

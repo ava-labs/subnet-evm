@@ -46,8 +46,6 @@ var (
 
 	skipNetworkRunnerStart    bool
 	skipNetworkRunnerShutdown bool
-
-	enableSolidityTests bool
 )
 
 func init() {
@@ -106,12 +104,6 @@ func init() {
 		false,
 		"'true' to skip network runner shutdown",
 	)
-	flag.BoolVar(
-		&enableSolidityTests,
-		"enable-solidity-tests",
-		false,
-		"'true' to run solidity tests",
-	)
 }
 
 const vmName = "subnetevm"
@@ -139,7 +131,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	utils.SetVmGenesisPath(vmGenesisPath)
 	utils.SetSkipNetworkRunnerStart(skipNetworkRunnerStart)
 	utils.SetSkipNetworkRunnerShutdown(skipNetworkRunnerShutdown)
-	utils.SetEnableSolidityTests(enableSolidityTests)
 
 	err := runner.InitializeRunner(execPath, gRPCEp, networkRunnerLogLevel)
 	gomega.Expect(err).Should(gomega.BeNil())
