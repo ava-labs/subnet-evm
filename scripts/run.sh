@@ -261,7 +261,7 @@ run_simulator() {
   --priority-fee=1
 }
 
-if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
+if [[ ${SKIP_NETWORK_RUNNER_START} == false ]]; then
   echo "running ginkgo"
   run_ginkgo
   # to fail the script if ginkgo failed
