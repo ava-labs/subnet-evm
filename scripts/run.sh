@@ -234,6 +234,7 @@ run_ginkgo() {
   # By default, it runs all e2e test cases!
   # Use "--ginkgo.skip" to skip tests.
   # Use "--ginkgo.focus" to select tests.
+  set -x
   echo "running e2e tests"
   ./tests/e2e/e2e.test \
     --ginkgo.v \
