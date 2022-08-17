@@ -2527,7 +2527,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.AllowFeeRecipients = true // set to false initially
+	genesis.Config.AllowFeeRecipients = true
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
