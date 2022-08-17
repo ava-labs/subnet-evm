@@ -11,7 +11,7 @@ WARNING: this information is provided by the community. Please exercise caution 
 
 ## Testnet
 
-| Chain ID              | | Name                                                                           |
-| :-------------------- |---------------------------------------------------------------------------------:|
-| 11111                 | | WAGMI                                                                          |
-| 432201                | | Dexalot Fuji Subnet                                                            |
+| Chain ID              | Network   | Name                                                                           |
+| :-------------------- | --------: |-------------------------------------------------------------------------------:|
+| 11111                 | Fuji      | WAGMI                                                                          |
+| 432201                | Fuji      | Dexalot Fuji Subnet                                                            |
