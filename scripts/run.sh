@@ -102,7 +102,7 @@ go build \
 
 # Create genesis file to use in network (make sure to add your address to
 # "alloc")
-if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
+if [[ ${SKIP_NETWORK_RUNNER_START} == false ]]; then
   export CHAIN_ID=99999
   echo "creating genesis"
   cat <<EOF >$BASEDIR/genesis.json
