@@ -22,7 +22,7 @@
 
 | Symbol    | Address   | Decimals  | Logo | Description | 
 | ---:      | ----:                                      | --:| :----: | -----:    |
-| ALOT      |                                            | 18 | [ALOT logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/alot/logo.png) | Daxalot Subnet native token |
+| ALOT      |                                            | 18 | [ALOT logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/alot/logo.png) | Dexalot Subnet native token |
 | AVAX      | 0x8B32CF176c409d7d40838295fb225c22d3937032 | 18 | [Mock AVAX logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/avax/logo.png) | Mock AVAX |
 | LFG       | 0x3aF43E5a9bc53Ec5cC7cF614D209ac52F26A2B8c | 18 | [Mock LFG logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/fuji_battle_icons/lfg.png) | Mock LFG |
 | SER       | 0x2B21b816e82A4f186c4e9a8C9ae654ba353B91A2 | 18 | [Mock SER logo](https://raw.githubusercontent.com/Dexalot/tokenlist/main/imgs/fuji_battle_icons/ser.png) | Mock SER |
