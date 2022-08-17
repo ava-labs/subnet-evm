@@ -262,10 +262,12 @@ run_simulator() {
 }
 
 if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
+  echo "running ginkgo"
   run_ginkgo
   # to fail the script if ginkgo failed
   EXIT_CODE=$?
 else
+  echo "running scripts/parser/main.go"
   go run scripts/parser/main.go \
     $BASEDIR/avalanchego-${VERSION}/output.yaml \
     $CHAIN_ID $GENESIS_ADDRESS \
