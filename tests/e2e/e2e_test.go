@@ -144,7 +144,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	err := runner.InitializeRunner(execPath, gRPCEp, networkRunnerLogLevel)
 	gomega.Expect(err).Should(gomega.BeNil())
 
-	if !utils.GetSkipNetworkRunnerStart() {
+	if utils.GetSkipNetworkRunnerStart() {
 		return
 	}
 
@@ -247,7 +247,7 @@ done:
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	if !utils.GetSkipNetworkRunnerShutdown() {
+	if utils.GetSkipNetworkRunnerShutdown() {
 		return
 	}
 
