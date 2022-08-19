@@ -55,7 +55,7 @@ func InitializeRunner(execPath_ string, grpcEp string, networkRunnerLogLevel str
 
 	logFactory := logging.NewFactory(logging.Config{
 		DisplayLevel: logLevel,
-		LogLevel:     logging.Off,
+		LogLevel:     logging.Off, // Disable writing logs to files in favor of only writing logs to display
 	})
 	log, err := logFactory.Make("main")
 	if err != nil {
