@@ -40,7 +40,7 @@ func ReadPreimage(db ethdb.KeyValueReader, hash common.Hash) []byte {
 
 // ReadCode retrieves the contract code of the provided code hash.
 func ReadCode(db ethdb.KeyValueReader, hash common.Hash) []byte {
-	// Try with the prefixed code scheme first and only. The legacy scheme was never used in coreth.
+	// Try with the prefixed code scheme first and only. The legacy scheme was never used in subnet-evm.
 	data, _ := db.Get(codeKey(hash))
 	return data
 }
@@ -54,7 +54,7 @@ func ReadTrieNode(db ethdb.KeyValueReader, hash common.Hash) []byte {
 // HasCode checks if the contract code corresponding to the
 // provided code hash is present in the db.
 func HasCode(db ethdb.KeyValueReader, hash common.Hash) bool {
-	// Try with the prefixed code scheme first and only. The legacy scheme was never used in coreth.
+	// Try with the prefixed code scheme first and only. The legacy scheme was never used in subnet-evm.
 	ok, _ := db.Has(codeKey(hash))
 	return ok
 }

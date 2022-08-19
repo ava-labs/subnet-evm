@@ -113,16 +113,30 @@ var (
 	errInvalidBlock             = errors.New("invalid block")
 	errInvalidNonce             = errors.New("invalid nonce")
 	errUnclesUnsupported        = errors.New("uncles unsupported")
-	errTxHashMismatch           = errors.New("txs hash does not match header")
-	errUncleHashMismatch        = errors.New("uncle hash mismatch")
-	errInvalidDifficulty        = errors.New("invalid difficulty")
-	errInvalidMixDigest         = errors.New("invalid mix digest")
-	errHeaderExtraDataTooBig    = errors.New("header extra data too big")
 	errNilBaseFeeSubnetEVM      = errors.New("nil base fee is invalid after subnetEVM")
 	errNilBlockGasCostSubnetEVM = errors.New("nil blockGasCost is invalid after subnetEVM")
 )
 
 var originalStderr *os.File
+
+// legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
+// used in attachEthService for backward configuration compatibility.
+var legacyApiNames = map[string]string{
+	"internal-public-eth":              "internal-eth",
+	"internal-public-blockchain":       "internal-blockchain",
+	"internal-public-transaction-pool": "internal-transaction",
+	"internal-public-tx-pool":          "internal-tx-pool",
+	"internal-public-debug":            "internal-debug",
+	"internal-private-debug":           "internal-debug",
+	"internal-public-account":          "internal-account",
+	"internal-private-personal":        "internal-personal",
+
+	"public-eth":        "eth",
+	"public-eth-filter": "eth-filter",
+	"private-admin":     "admin",
+	"public-debug":      "debug",
+	"private-debug":     "debug",
+}
 
 func init() {
 	// Preserve [os.Stderr] prior to the call in plugin/main.go to plugin.Serve(...).
@@ -166,6 +180,8 @@ type VM struct {
 
 	toEngine chan<- commonEng.Message
 
+	syntacticBlockValidator BlockValidator
+
 	builder *blockBuilder
 
 	gossiper Gossiper
@@ -186,8 +202,8 @@ type VM struct {
 	multiGatherer avalanchegoMetrics.MultiGatherer
 
 	bootstrapped bool
-	logger       SubnetEVMLogger
 
+	logger SubnetEVMLogger
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
@@ -240,12 +256,7 @@ func (vm *VM) Initialize(
 	}
 	vm.logger = subnetEVMLogger
 
-	if b, err := json.Marshal(vm.config); err == nil {
-		log.Info("Initializing Subnet EVM VM", "Version", Version, "Config", string(b))
-	} else {
-		// Log a warning message since we have already successfully unmarshalled into the struct
-		log.Warn("Problem initializing Subnet EVM VM", "Version", Version, "Config", string(b), "err", err)
-	}
+	log.Info("Initializing Subnet EVM VM", "Version", Version, "Config", vm.config)
 
 	if len(fxs) > 0 {
 		return errUnsupportedFXs
@@ -271,6 +282,8 @@ func (vm *VM) Initialize(
 	if g.Config == nil {
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
+
+	vm.syntacticBlockValidator = NewBlockValidator()
 
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
 		log.Warn("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
@@ -419,6 +432,9 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 }
 
 func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
+	block := vm.newBlock(lastAcceptedBlock)
+	block.status = choices.Accepted
+
 	config := &chain.Config{
 		DecidedCacheSize:    decidedCacheSize,
 		MissingCacheSize:    missingCacheSize,
@@ -427,12 +443,7 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 		GetBlock:            vm.getBlock,
 		UnmarshalBlock:      vm.parseBlock,
 		BuildBlock:          vm.buildBlock,
-		LastAcceptedBlock: &Block{
-			id:       ids.ID(lastAcceptedBlock.Hash()),
-			ethBlock: lastAcceptedBlock,
-			vm:       vm,
-			status:   choices.Accepted,
-		},
+		LastAcceptedBlock:   block,
 	}
 
 	// Register chain state metrics
@@ -530,13 +541,11 @@ func (vm *VM) SetState(state snow.State) error {
 // initBlockBuilding starts goroutines to manage block building
 func (vm *VM) initBlockBuilding() {
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
-	// TODO: Port gossip stats from coreth to subnet-evm
-	vm.gossiper = vm.createGossiper()
+	gossipStats := NewGossipStats()
+	vm.gossiper = vm.createGossiper(gossipStats)
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
-	if vm.chainConfig.SubnetEVMTimestamp != nil {
-		vm.Network.SetGossipHandler(NewGossipHandler(vm))
-	}
+	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
 }
 
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
@@ -581,11 +590,7 @@ func (vm *VM) buildBlock() (snowman.Block, error) {
 	}
 
 	// Note: the status of block is set by ChainState
-	blk := &Block{
-		id:       ids.ID(block.Hash()),
-		ethBlock: block,
-		vm:       vm,
-	}
+	blk := vm.newBlock(block)
 
 	// Verify is called on a non-wrapped block here, such that this
 	// does not add [blk] to the processing blocks map in ChainState.
@@ -617,11 +622,7 @@ func (vm *VM) parseBlock(b []byte) (snowman.Block, error) {
 	}
 
 	// Note: the status of block is set by ChainState
-	block := &Block{
-		id:       ids.ID(ethBlock.Hash()),
-		ethBlock: ethBlock,
-		vm:       vm,
-	}
+	block := vm.newBlock(ethBlock)
 	// Performing syntactic verification in ParseBlock allows for
 	// short-circuiting bad blocks before they are processed by the VM.
 	if err := block.syntacticVerify(); err != nil {
@@ -649,12 +650,7 @@ func (vm *VM) getBlock(id ids.ID) (snowman.Block, error) {
 		return nil, database.ErrNotFound
 	}
 	// Note: the status of block is set by ChainState
-	blk := &Block{
-		id:       ids.ID(ethBlock.Hash()),
-		ethBlock: ethBlock,
-		vm:       vm,
-	}
-	return blk, nil
+	return vm.newBlock(ethBlock), nil
 }
 
 // SetPreference sets what the current tail of the chain is
@@ -800,16 +796,6 @@ func (vm *VM) currentRules() params.Rules {
 	return vm.chainConfig.AvalancheRules(header.Number, big.NewInt(int64(header.Time)))
 }
 
-// getBlockValidator returns the block validator that should be used for a block that
-// follows the ruleset defined by [rules]
-func (vm *VM) getBlockValidator(rules params.Rules) BlockValidator {
-	if rules.IsSubnetEVM {
-		return blockValidatorSubnetEVM{feeConfigManagerEnabled: rules.IsFeeConfigManagerEnabled}
-	}
-
-	return legacyBlockValidator
-}
-
 func (vm *VM) startContinuousProfiler() {
 	// If the profiler directory is empty, return immediately
 	// without creating or starting a continuous profiler.
@@ -867,6 +853,14 @@ func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error {
 	enabledServicesSet := make(map[string]struct{})
 	for _, ns := range names {
+		// handle pre geth v1.10.20 api names as aliases for their updated values
+		// to allow configurations to be backwards compatible.
+		if newName, isLegacy := legacyApiNames[ns]; isLegacy {
+			log.Info("deprecated api name referenced in configuration.", "deprecated", ns, "new", newName)
+			enabledServicesSet[newName] = struct{}{}
+			continue
+		}
+
 		enabledServicesSet[ns] = struct{}{}
 	}
 

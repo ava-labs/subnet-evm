@@ -76,8 +76,13 @@ var (
 
 type Config struct {
 	// Blocks specifies the number of blocks to fetch during gas price estimation.
-	Blocks     int
+	Blocks int
+	// Percentile is a value between 0 and 100 that we use during gas price estimation to choose
+	// the gas price estimate in which Percentile% of the gas estimate values in the array fall below it
 	Percentile int
+	// MaxLookbackSeconds specifies the maximum number of seconds that current timestamp
+	// can differ from block timestamp in order to be included in gas price estimation
+	MaxLookbackSeconds uint64
 	// MaxCallBlockHistory specifies the maximum number of blocks that can be
 	// fetched in a single eth_feeHistory call.
 	MaxCallBlockHistory int

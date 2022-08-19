@@ -226,7 +226,7 @@ func TestSuggestTipCapNetworkUpgrades(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			applyGasPriceTest(t, test)
+			applyGasPriceTest(t, test, defaultOracleConfig())
 		})
 	}
 }
@@ -489,9 +489,8 @@ func TestSuggestTipCapMaxBlocksLookback(t *testing.T) {
 	txTip := big.NewInt(550 * params.GWei)
 
 	applyGasPriceTest(t, suggestTipCapTest{
-		chainConfig:     params.TestChainConfig,
-		numBlocks:       20,
-		extDataGasUsage: common.Big0,
+		chainConfig: params.TestChainConfig,
+		numBlocks:   20,
 		genBlock: func(i int, b *core.BlockGen) {
 			b.SetCoinbase(common.Address{1})
 
@@ -522,9 +521,8 @@ func TestSuggestTipCapMaxBlocksLookback(t *testing.T) {
 func TestSuggestTipCapMaxBlocksSecondsLookback(t *testing.T) {
 	txTip := big.NewInt(550 * params.GWei)
 	applyGasPriceTest(t, suggestTipCapTest{
-		chainConfig:     params.TestChainConfig,
-		numBlocks:       20,
-		extDataGasUsage: big.NewInt(1),
+		chainConfig: params.TestChainConfig,
+		numBlocks:   20,
 		genBlock: func(i int, b *core.BlockGen) {
 			b.SetCoinbase(common.Address{1})
 
