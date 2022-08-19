@@ -702,6 +702,7 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 		if err := config.StateOverrides.Apply(statedb); err != nil {
 			return nil, err
 		}
+		config.BlockOverrides.Apply(&vmctx)
 	}
 	// Execute the trace
 	msg, err := args.ToMessage(api.backend.RPCGasCap(), block.BaseFee())
