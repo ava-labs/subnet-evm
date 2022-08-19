@@ -51,10 +51,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 )
 
-var (
-	ErrUnfinalizedData = errors.New("cannot query unfinalized data")
-	errExpired         = errors.New("request expired")
-)
+var ErrUnfinalizedData = errors.New("cannot query unfinalized data")
 
 // EthAPIBackend implements ethapi.Backend for full nodes
 type EthAPIBackend struct {

@@ -1998,9 +1998,9 @@ var bindTests = []struct {
 		imports: `
 			"math/big"
 
-			"github.com/ava-labs/coreth/accounts/abi/bind"
-			"github.com/ava-labs/coreth/accounts/abi/bind/backends"
-			"github.com/ava-labs/coreth/core"
+			"github.com/ava-labs/subnet-evm/accounts/abi/bind"
+			"github.com/ava-labs/subnet-evm/accounts/abi/bind/backends"
+			"github.com/ava-labs/subnet-evm/core"
 			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		tester: `
@@ -2038,9 +2038,9 @@ var bindTests = []struct {
 		imports: `
 			"math/big"
 
-			"github.com/ava-labs/coreth/accounts/abi/bind"
-			"github.com/ava-labs/coreth/accounts/abi/bind/backends"
-			"github.com/ava-labs/coreth/core"
+			"github.com/ava-labs/subnet-evm/accounts/abi/bind"
+			"github.com/ava-labs/subnet-evm/accounts/abi/bind/backends"
+			"github.com/ava-labs/subnet-evm/core"
 			"github.com/ethereum/go-ethereum/crypto"
 		`,
 		tester: `
