@@ -51,18 +51,16 @@ func InitializeRunner(execPath_ string, grpcEp string, networkRunnerLogLevel str
 	// Create the logger
 	logLevel, err := logging.ToLevel(networkRunnerLogLevel)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
 	logFactory := logging.NewFactory(logging.Config{
 		DisplayLevel: logLevel,
-		LogLevel:     logLevel,
+		LogLevel:     logging.Off,
 	})
 	log, err := logFactory.Make("main")
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 
 	cli, err = client.New(client.Config{
