@@ -372,9 +372,6 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 				break
 			}
 			if trieDb := statedb.Database().TrieDB(); trieDb != nil {
-				// Hold the reference for tracer, will be released at the final stage
-				trieDb.Reference(block.Root(), common.Hash{})
-
 				// Release the parent state because it's already held by the tracer
 				if parent != (common.Hash{}) {
 					trieDb.Dereference(parent)
