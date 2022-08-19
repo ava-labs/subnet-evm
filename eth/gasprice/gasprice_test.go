@@ -45,6 +45,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 )
 
+// TODO: Verify gas amounts in this file are correct.
 const testHead = 32
 
 var (
@@ -194,6 +195,7 @@ func timeCrunchOracleConfig() Config {
 }
 
 func applyGasPriceTest(t *testing.T, test suggestTipCapTest, config Config) {
+	t.Helper()
 	if test.genBlock == nil {
 		test.genBlock = func(i int, b *core.BlockGen) {}
 	}
@@ -291,7 +293,7 @@ func TestSuggestTipCapSimple(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		expectedTip: big.NewInt(5_713_963_963),
+		expectedTip: big.NewInt(643_500_643),
 	}, defaultOracleConfig())
 }
 
@@ -369,7 +371,7 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		expectedTip: big.NewInt(5_713_963_963),
+		expectedTip: big.NewInt(643_500_643),
 	}, defaultOracleConfig())
 }
 
@@ -514,7 +516,7 @@ func TestSuggestTipCapMaxBlocksLookback(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		expectedTip: big.NewInt(51_565_264_256),
+		expectedTip: big.NewInt(5_807_226_110),
 	}, defaultOracleConfig())
 }
 
@@ -546,6 +548,6 @@ func TestSuggestTipCapMaxBlocksSecondsLookback(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		expectedTip: big.NewInt(92_212_529_423),
+		expectedTip: big.NewInt(10_384_877_851),
 	}, timeCrunchOracleConfig())
 }
