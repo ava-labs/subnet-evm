@@ -47,7 +47,6 @@ func GetClient() client.Client {
 func InitializeRunner(execPath_ string, grpcEp string, networkRunnerLogLevel string) error {
 	execPath = execPath_
 
-	// TODO: is this logic to create the logger correct?
 	// Create the logger
 	logLevel, err := logging.ToLevel(networkRunnerLogLevel)
 	if err != nil {
