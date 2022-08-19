@@ -657,7 +657,6 @@ func TestCreate2Addreses(t *testing.T) {
 			expected: "0xE33C0C7F7df4809055C3ebA6c09CFe4BaF1BD9e0",
 		},
 	} {
-
 		origin := common.BytesToAddress(common.FromHex(tt.origin))
 		salt := common.BytesToHash(common.FromHex(tt.salt))
 		code := common.FromHex(tt.code)
