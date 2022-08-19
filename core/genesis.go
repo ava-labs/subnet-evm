@@ -56,8 +56,8 @@ import (
 //go:embed airdrops/011522.json
 var AirdropData []byte
 
-//go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
-//go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
+//go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
+//go:generate go run github.com/fjl/gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
@@ -171,8 +171,8 @@ func (e *GenesisMismatchError) Error() string {
 //
 //	                     genesis == nil       genesis != nil
 //	                  +------------------------------------------
-//	db has no genesis |  ErrNoGenesis      |  genesis
-//	db has genesis    |  ErrNoGenesis      |  genesis (if compatible both block hash and chain config), else error
+//	db has no genesis |  main-net default  |  genesis
+//	db has genesis    |  from DB           |  genesis (if compatible)
 
 // The argument [genesis] must be specified and must contain a valid chain config.
 // If the genesis block has already been set up, then we verify the hash matches the genesis passed in

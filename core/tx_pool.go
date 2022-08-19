@@ -619,7 +619,6 @@ func (pool *TxPool) PendingSize() int {
 		count += len(txs)
 	}
 	return count
-
 }
 
 // PendingFrom returns the same set of transactions that would be returned from Pending restricted to only

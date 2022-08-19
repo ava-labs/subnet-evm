@@ -56,7 +56,9 @@ import (
 )
 
 var (
-	acceptorQueueGauge = metrics.NewRegisteredGauge("blockchain/acceptor/queue/size", nil)
+	acceptorQueueGauge           = metrics.NewRegisteredGauge("blockchain/acceptor/queue/size", nil)
+	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("blockchain/blocks/gas/used/processed", nil)
+	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("blockchain/blocks/gas/used/accepted", nil)
 
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
@@ -545,20 +547,25 @@ func (bc *BlockChain) Export(w io.Writer) error {
 
 // ExportN writes a subset of the active chain to the given writer.
 func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
-	bc.chainmu.RLock()
-	defer bc.chainmu.RUnlock()
-
 	if first > last {
 		return fmt.Errorf("export failed: first (%d) is greater than last (%d)", first, last)
 	}
 	log.Info("Exporting batch of blocks", "count", last-first+1)
 
-	start, reported := time.Now(), time.Now()
+	var (
+		parentHash common.Hash
+		start      = time.Now()
+		reported   = time.Now()
+	)
 	for nr := first; nr <= last; nr++ {
 		block := bc.GetBlockByNumber(nr)
 		if block == nil {
 			return fmt.Errorf("export failed on #%d: not found", nr)
 		}
+		if nr > first && block.ParentHash() != parentHash {
+			return fmt.Errorf("export failed: chain reorg during export")
+		}
+		parentHash = block.Hash()
 		if err := block.EncodeRLP(w); err != nil {
 			return err
 		}
@@ -816,6 +823,8 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 
 	bc.lastAccepted = block
 	bc.addAcceptorQueue(block)
+	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
+
 	return nil
 }
 
@@ -1078,6 +1087,9 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// transactions and probabilistically some of the account/storage trie nodes.
 	// Process block using the parent state as reference point
 	receipts, logs, usedGas, err := bc.processor.Process(block, parent, statedb, bc.vmConfig)
+	if serr := statedb.Error(); serr != nil {
+		log.Error("statedb error encountered", "err", serr, "number", block.Number(), "hash", block.Hash())
+	}
 	if err != nil {
 		bc.reportBlock(block, receipts, err)
 		return err
@@ -1110,6 +1122,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 		"root", block.Root(), "baseFeePerGas", block.BaseFee(), "blockGasCost", block.BlockGasCost(),
 	)
 
+	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	return nil
 }
 
@@ -1305,7 +1318,7 @@ func (bc *BlockChain) reportBlock(block *types.Block, receipts types.Receipts, e
 Chain config: %v
 
 Number: %v
-Hash: 0x%x
+Hash: %#x
 %v
 
 Error: %v
@@ -1680,6 +1693,7 @@ func (bc *BlockChain) CleanBlockRootsAboveLastAccepted() error {
 // consensus engine will reject the lowest ancestor first. In this case, these blocks will not be considered acceptable in
 // the future.
 // Ex.
+//
 //	   A
 //	 /   \
 //	B     C
