@@ -11,14 +11,7 @@ WARNING: this information is provided by the community. Please exercise caution 
 
 ## Testnet
 
-| Chain ID | Network |                      Name |
-| :------- | ------: | ------------------------: |
-| 11111    |    Fuji |                     WAGMI |
-| 432201   |    Fuji |       Dexalot Fuji Subnet |
-| 335      |    Fuji | DeFi Kingdoms Fuji Subnet |
-
-## Mainnet
-
-| Chain ID | Network |                 Name |
-| :------- | ------: | -------------------: |
-| 53935    | Mainnet | DeFi Kingdoms Subnet |
+| Chain ID              | Network   | Name                                                                           |
+| :-------------------- | --------: |-------------------------------------------------------------------------------:|
+| 11111                 | Fuji      | WAGMI                                                                          |
+| 432201                | Fuji      | Dexalot Fuji Subnet                                                            |
