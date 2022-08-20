@@ -19,6 +19,9 @@ import (
 )
 
 var (
+	_ precompile.BlockContext              = &mockBlockContext{}
+	_ precompile.PrecompileAccessibleState = &mockAccessibleState{}
+
 	testFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
 		TargetBlockRate: 2, // in seconds
@@ -283,7 +286,9 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			assert.Equal(t, uint64(0), remainingGas)
 			assert.Equal(t, test.expectedRes, ret)
 
-			test.assertState(t, state)
+			if test.assertState != nil {
+				test.assertState(t, state)
+			}
 		})
 	}
 }
@@ -516,7 +521,9 @@ func TestTxAllowListRun(t *testing.T) {
 			assert.Equal(t, uint64(0), remainingGas)
 			assert.Equal(t, test.expectedRes, ret)
 
-			test.assertState(t, state)
+			if test.assertState != nil {
+				test.assertState(t, state)
+			}
 		})
 	}
 }
@@ -766,7 +773,9 @@ func TestContractNativeMinterRun(t *testing.T) {
 			assert.Equal(t, uint64(0), remainingGas)
 			assert.Equal(t, test.expectedRes, ret)
 
-			test.assertState(t, state)
+			if test.assertState != nil {
+				test.assertState(t, state)
+			}
 		})
 	}
 }
@@ -1046,7 +1055,9 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			assert.Equal(t, uint64(0), remainingGas)
 			assert.Equal(t, test.expectedRes, ret)
 
-			test.assertState(t, state)
+			if test.assertState != nil {
+				test.assertState(t, state)
+			}
 		})
 	}
 }

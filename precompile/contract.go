@@ -23,12 +23,17 @@ type PrecompileAccessibleState interface {
 	GetBlockContext() BlockContext
 }
 
+// BlockContext defines an interface that provides information to a stateful precompile
+// about the block that activates the upgrade. The precompile can access this information
+// to initialize its state.
 type BlockContext interface {
 	Number() *big.Int
 	Timestamp() *big.Int
 }
 
-// ChainConfig provides an interface for accessing the chain configuration information.
+// ChainContext defines an interface that provides information to a stateful precompile
+// about the chain configuration. The precompile can access this information to initialize
+// its state.
 type ChainConfig interface {
 	// GetFeeConfig returns the original FeeConfig that was set in the genesis.
 	GetFeeConfig() commontype.FeeConfig
@@ -50,6 +55,8 @@ type StateDB interface {
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
+
+	Suicide(common.Address) bool
 }
 
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
@@ -79,18 +86,13 @@ func newStatefulPrecompileFunction(selector []byte, execute RunStatefulPrecompil
 // off responsibilities to internal execution functions.
 // Note: because we only ever read from [functions] there no lock is required to make it thread-safe.
 type statefulPrecompileWithFunctionSelectors struct {
-	fallback  *statefulPrecompileFunction
+	fallback  RunStatefulPrecompileFunc
 	functions map[string]*statefulPrecompileFunction
 }
 
 // newStatefulPrecompileWithFunctionSelectors generates new StatefulPrecompile using [functions] as the available functions and [fallback]
 // as an optional fallback if there is no input data. Note: the selector of [fallback] will be ignored, so it is required to be left empty.
-func newStatefulPrecompileWithFunctionSelectors(fallback *statefulPrecompileFunction, functions []*statefulPrecompileFunction) StatefulPrecompiledContract {
-	// Ensure that if a fallback is present, it does not have a mistakenly populated function selector.
-	if fallback != nil && len(fallback.selector) != 0 {
-		panic(fmt.Errorf("fallback function cannot specify non-zero length function selector"))
-	}
-
+func newStatefulPrecompileWithFunctionSelectors(fallback RunStatefulPrecompileFunc, functions []*statefulPrecompileFunction) StatefulPrecompiledContract {
 	// Construct the contract and populate [functions].
 	contract := &statefulPrecompileWithFunctionSelectors{
 		fallback:  fallback,
@@ -112,7 +114,7 @@ func newStatefulPrecompileWithFunctionSelectors(fallback *statefulPrecompileFunc
 func (s *statefulPrecompileWithFunctionSelectors) Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	// If there is no input data present, call the fallback function if present.
 	if len(input) == 0 && s.fallback != nil {
-		return s.fallback.execute(accessibleState, caller, addr, nil, suppliedGas, readOnly)
+		return s.fallback(accessibleState, caller, addr, nil, suppliedGas, readOnly)
 	}
 
 	// Otherwise, an unexpected input size will result in an error.
