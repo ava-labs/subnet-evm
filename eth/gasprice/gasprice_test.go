@@ -45,6 +45,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 )
 
+// TODO: Verify gas amounts in this file are correct.
 const testHead = 32
 
 var (
@@ -194,6 +195,7 @@ func timeCrunchOracleConfig() Config {
 }
 
 func applyGasPriceTest(t *testing.T, test suggestTipCapTest, config Config) {
+	t.Helper()
 	if test.genBlock == nil {
 		test.genBlock = func(i int, b *core.BlockGen) {}
 	}

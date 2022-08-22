@@ -2504,9 +2504,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	<-issuer
 
 	_, err = vm.BuildBlock()
-	if !errors.Is(err, errInvalidBlock) {
-		t.Fatal("should have got error: %w", errInvalidBlock)
-	}
+	assert.ErrorContains(t, err, "block failed verification")
 
 	vm.miner.SetEtherbase(constants.BlackholeAddr) // set blackhole address
 
