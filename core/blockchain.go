@@ -1769,22 +1769,10 @@ func (bc *BlockChain) ResetState(block *types.Block) error {
 
 	// Make sure the state associated with the block is available
 	head := bc.CurrentBlock()
-	if _, err := state.New(head.Root(), bc.stateCache, nil); err != nil {
+	if !bc.HasState(head.Root()) {
 		return fmt.Errorf("head state missing %d:%s", head.Number(), head.Hash())
 	}
 
-	// Load any existing snapshot, regenerating it if loading failed
-	if bc.cacheConfig.SnapshotLimit > 0 {
-		var err error
-		// If we are starting from genesis, generate the original snapshot disk layer
-		// up front, so we can use it while executing blocks in bootstrapping. This
-		// also avoids a costly async generation process when reaching tip.
-		async := bc.cacheConfig.SnapshotAsync && head.NumberU64() > 0
-		log.Info("Initializing snapshots", "async", async)
-		bc.snaps, err = snapshot.New(bc.db, bc.stateCache.TrieDB(), bc.cacheConfig.SnapshotLimit, head.Hash(), head.Root(), async, true, bc.cacheConfig.SnapshotVerify)
-		if err != nil {
-			log.Error("failed to initialize snapshots", "headHash", head.Hash(), "headRoot", head.Root(), "err", err, "async", async)
-		}
-	}
+	bc.initSnapshot(head)
 	return nil
 }

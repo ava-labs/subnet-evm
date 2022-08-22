@@ -15,6 +15,7 @@ import (
 	"time"
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -36,8 +37,6 @@ import (
 	"github.com/ava-labs/subnet-evm/sync/handlers"
 	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/trie"
-
-	"github.com/prometheus/client_golang/prometheus"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -309,7 +308,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
 	vm.ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
 	vm.ethConfig.AllowMissingTries = vm.config.AllowMissingTries
-	vm.ethConfig.SnapshotDelayInit = false // state sync enabled
+	vm.ethConfig.SnapshotDelayInit = vm.config.StateSyncEnabled
 	vm.ethConfig.SnapshotAsync = vm.config.SnapshotAsync
 	vm.ethConfig.SnapshotVerify = vm.config.SnapshotVerify
 	vm.ethConfig.OfflinePruning = vm.config.OfflinePruning
@@ -431,32 +430,6 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
 }
 
-func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
-	block := vm.newBlock(lastAcceptedBlock)
-	block.status = choices.Accepted
-
-	config := &chain.Config{
-		DecidedCacheSize:    decidedCacheSize,
-		MissingCacheSize:    missingCacheSize,
-		UnverifiedCacheSize: unverifiedCacheSize,
-		GetBlockIDAtHeight:  vm.GetBlockIDAtHeight,
-		GetBlock:            vm.getBlock,
-		UnmarshalBlock:      vm.parseBlock,
-		BuildBlock:          vm.buildBlock,
-		LastAcceptedBlock:   block,
-	}
-
-	// Register chain state metrics
-	chainStateRegisterer := prometheus.NewRegistry()
-	state, err := chain.NewMeteredState(chainStateRegisterer, config)
-	if err != nil {
-		return fmt.Errorf("could not create metered state: %w", err)
-	}
-	vm.State = state
-
-	return vm.multiGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer)
-}
-
 // initializeStateSyncClient initializes the client for performing state sync.
 // If state sync is disabled, this function will wipe any ongoing summary from
 // disk to ensure that we do not continue syncing from an invalid snapshot.
@@ -517,6 +490,32 @@ func (vm *VM) initializeStateSyncServer() {
 	vm.setAppRequestHandlers()
 }
 
+func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
+	block := vm.newBlock(lastAcceptedBlock)
+	block.status = choices.Accepted
+
+	config := &chain.Config{
+		DecidedCacheSize:    decidedCacheSize,
+		MissingCacheSize:    missingCacheSize,
+		UnverifiedCacheSize: unverifiedCacheSize,
+		GetBlockIDAtHeight:  vm.GetBlockIDAtHeight,
+		GetBlock:            vm.getBlock,
+		UnmarshalBlock:      vm.parseBlock,
+		BuildBlock:          vm.buildBlock,
+		LastAcceptedBlock:   block,
+	}
+
+	// Register chain state metrics
+	chainStateRegisterer := prometheus.NewRegistry()
+	state, err := chain.NewMeteredState(chainStateRegisterer, config)
+	if err != nil {
+		return fmt.Errorf("could not create metered state: %w", err)
+	}
+	vm.State = state
+
+	return vm.multiGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer)
+}
+
 func (vm *VM) SetState(state snow.State) error {
 	switch state {
 	case snow.StateSyncing:
@@ -574,7 +573,10 @@ func (vm *VM) Shutdown() error {
 	if vm.ctx == nil {
 		return nil
 	}
-
+	vm.Network.Shutdown()
+	if err := vm.StateSyncClient.Shutdown(); err != nil {
+		log.Error("error stopping state syncer", "err", err)
+	}
 	close(vm.shutdownChan)
 	vm.eth.Stop()
 	vm.shutdownWg.Wait()

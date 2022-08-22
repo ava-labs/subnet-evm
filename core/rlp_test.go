@@ -97,8 +97,7 @@ func TestRlpIterator(t *testing.T) {
 
 func testRlpIterator(t *testing.T, txs, uncles, datasize int) {
 	desc := fmt.Sprintf("%d txs [%d datasize] and %d uncles", txs, datasize, uncles)
-	block := getBlock(txs, uncles, datasize).Body()
-	bodyRlp, _ := rlp.EncodeToBytes(block)
+	bodyRlp, _ := rlp.EncodeToBytes(getBlock(txs, uncles, datasize).Body())
 	it, err := rlp.NewListIterator(bodyRlp)
 	if err != nil {
 		t.Fatal(err)

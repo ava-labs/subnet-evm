@@ -324,7 +324,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		if g.BaseFee != nil {
 			head.BaseFee = g.BaseFee
 		} else {
-			head.BaseFee = g.Config.FeeConfig.MinBaseFee
+			head.BaseFee = new(big.Int).Set(g.Config.FeeConfig.MinBaseFee)
 		}
 	}
 	statedb.Commit(false, false)
@@ -377,7 +377,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	g := Genesis{
 		Config:  params.TestChainConfig,
 		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: big.NewInt(params.TestMaxBaseFee.Int64()),
+		BaseFee: new(big.Int).Set(params.TestMaxBaseFee),
 	}
 	return g.MustCommit(db)
 }
