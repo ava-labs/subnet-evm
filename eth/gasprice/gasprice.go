@@ -358,7 +358,7 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 		lowerBlockNumberLimit = latestBlockNumber - uint64(oracle.checkBlocks)
 	}
 
-	// if fee config has changed at a more recent block, we should start from that block
+	// if fee config has changed at a more recent block, it should be the lower limit
 	if feeLastChangedAt != nil && lowerBlockNumberLimit < feeLastChangedAt.Uint64() {
 		lowerBlockNumberLimit = feeLastChangedAt.Uint64()
 	}
