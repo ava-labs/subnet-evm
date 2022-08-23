@@ -1,6 +1,6 @@
 [
     {
-        "address": "0x6f51FE27fcD59d4940a78f5f0cEBaC3C90495B5C",
+        "address": "0x9c765eEE6Eff9CF1337A1846c0D93370785F6C92",
         "name": "Treasure Under Sea",
         "symbol": "WTUS",
         "description":"Wrap of native token",
@@ -10,17 +10,17 @@
         "logoUrl": "https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/tus/tus_icon-512.png"
     },
     {
-        "address": "0x5ee5731bDC8eDAEF16e462EfdE644bCC9a42D7E0",
+        "address": "0xC1a1F40D558a3E82C3981189f61EF21e17d6EB48",
         "name": "CRA",
         "symbol": "CRA",
-        "description":"Crabada  governance token",
+        "description":"Crabada governance token",
         "contractType": "ERC-20",
         "decimals": 18,
         "assetType": "Fixed Cap",
         "logoUrl": "https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/cra/cra_icon-512.png"
     },
     {
-        "address": "0xAf27c4753a491C76c35671612eb193a21fa59352",
+        "address": "0x620FF3d705EDBc1bd03e17E6afcaC36a9779f78D",
         "name": "Crabada",
         "symbol": "Crabada",
         "description":"Crabada NFT",
@@ -30,17 +30,17 @@
         "logoUrl": "https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/app/app_icon_01_crab_512.png"
     },
     {
-        "address": "0x96bb7Db0fdDf993dcB51a5aAdA454E1DBE583bc7",
+        "address": "0x134e84507b0FBc5136C2217B847BbbF4c1A074B1",
         "name": "Crabada Markeplace",
         "description":"Handles crabada nft exchange"
     },
     {
-        "address": "0x762A56d2BB4606Fd89D03d71E9570e050d16A629",
+        "address": "0xe92D85800D2645eE7cc34D1542cF701102478037",
         "name": "Crabada Battle game",
         "description":"Handles battle game"
     },
     {
-        "address": "0x40A6ECF7538Cd7819B0059e18CA62bb2f07B5Ede",
+        "address": "0x9ab9e81Be39b73de3CCd9408862b1Fc6D2144d2B",
         "name": "Crabada Idle game",
         "description":"Handles Idle game"
     },
