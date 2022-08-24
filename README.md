@@ -1,4 +1,4 @@
-
+Chek code scnanakking don't murge this
 # Subnet EVM
 
 [![Build + Test + Release](https://github.com/ava-labs/subnet-evm/actions/workflows/lint-tests-release.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/lint-tests-release.yml)
