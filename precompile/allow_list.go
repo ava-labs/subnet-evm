@@ -43,12 +43,17 @@ var (
 
 // AllowListConfig specifies the initial set of allow list admins.
 type AllowListConfig struct {
-	AllowListAdmins []common.Address `json:"adminAddresses"`
+	AllowListAdmins  []common.Address `json:"adminAddresses"`
+	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
 }
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
 func (c *AllowListConfig) Configure(state StateDB, precompileAddr common.Address) {
+	// First set enabled roles so these can be upgraded to admin addresses below.
+	for _, enabledAddr := range c.EnabledAddresses {
+		setAllowListRole(state, precompileAddr, enabledAddr, AllowListEnabled)
+	}
 	for _, adminAddr := range c.AllowListAdmins {
 		setAllowListRole(state, precompileAddr, adminAddr, AllowListAdmin)
 	}
@@ -125,6 +130,10 @@ func setAllowListRole(stateDB StateDB, precompileAddr, address common.Address, r
 	// Generate the state key for [address]
 	addressKey := address.Hash()
 	// Assign [role] to the address
+	// This stores the [role] in the contract storage with address [precompileAddr]
+	// and [addressKey] hash. It means that any reusage of the [addressKey] for different value
+	// conflicts with the same slot [role] is stored.
+	// Precompile implementations must use a different key than [addressKey]
 	stateDB.SetState(precompileAddr, addressKey, common.Hash(role))
 }
 

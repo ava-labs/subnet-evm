@@ -35,6 +35,8 @@ var (
 type ContractNativeMinterConfig struct {
 	AllowListConfig
 	UpgradeableConfig
+	// TODO: use hex amounts?
+	InitialMint map[common.Address]*big.Int `json:"initialMint,omitempty"` // initial mint config to be immediately minted
 }
 
 // NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -64,6 +66,11 @@ func (c *ContractNativeMinterConfig) Address() common.Address {
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
+	if len(c.InitialMint) != 0 {
+		for to, amount := range c.InitialMint {
+			state.AddBalance(to, amount)
+		}
+	}
 	c.AllowListConfig.Configure(state, ContractNativeMinterAddress)
 }
 

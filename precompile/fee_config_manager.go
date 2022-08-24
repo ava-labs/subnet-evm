@@ -56,6 +56,7 @@ var (
 type FeeConfigManagerConfig struct {
 	AllowListConfig // Config for the fee config manager allow list
 	UpgradeableConfig
+	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
 
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -96,6 +97,11 @@ func (c *FeeConfigManagerConfig) Equal(s StatefulPrecompileConfig) bool {
 // Configure configures [state] with the desired admins based on [c].
 func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateDB, blockContext BlockContext) {
 	// Store the initial fee config into the state when the fee config manager activates.
+	if c.InitialFeeConfig != nil {
+		if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
+			panic(fmt.Sprintf("invalid feeConfig provided: %s", err))
+		}
+	}
 	if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
 		panic(fmt.Sprintf("fee config should have been verified in genesis: %s", err))
 	}
