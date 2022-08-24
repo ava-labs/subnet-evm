@@ -37,8 +37,8 @@ import (
 )
 
 const (
-	SayHelloGasCost    uint64 = 0 // SET A GAS COST HERE
-	SetGreetingGasCost uint64 = 0 // SET A GAS COST HERE
+	SayHelloGasCost    uint64 = 30 // SET A GAS COST HERE
+	SetGreetingGasCost uint64 = 50 // SET A GAS COST HERE
 
 	// IHelloWorldRawABI contains the raw ABI of IHelloWorld contract.
 	IHelloWorldRawABI = "[{\"inputs\":[],\"name\":\"sayHello\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"}],\"name\":\"setGreeting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
