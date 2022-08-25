@@ -16,9 +16,11 @@ WARNING: this information is provided by the community. Please exercise caution 
 | 11111    |    Fuji |                     WAGMI |
 | 432201   |    Fuji |       Dexalot Fuji Subnet |
 | 335      |    Fuji | DeFi Kingdoms Fuji Subnet |
+| 73773    |    Fuji | Swimmer network Fuji Subnet |
 
 ## Mainnet
 
 | Chain ID | Network |                 Name |
 | :------- | ------: | -------------------: |
 | 53935    | Mainnet | DeFi Kingdoms Subnet |
+| 73772    | Mainnet | Swimmer network Subnet |
