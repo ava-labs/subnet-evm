@@ -5,11 +5,11 @@
 | Swimmer Subnet   |                                                                                            |
 | :-------------------- | ------------------------------------------------------------------------------------------:|
 | Subnet Name           | Swimmer Subnet                                                                             |
-| Subnet Logo           | [subnet logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                        |
+| Subnet Logo           | ![subnet logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                        |
 | Subnet ID             | 2e3CqLY8thW1WKS89WQ7WR9Qy2bCrrP5mv7psqMRGCHGXuQ1Uj                                          |
 | VM ID                 | srSGD5JeYhL8GLx4RUw53VN5TcoBbax6EeCYmy5S3DiteJhdF                                          |
 | Chain Name            | Swimmer                                                                                    |
-| Chain Logo            | [chain logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                         |
+| Chain Logo            | ![chain logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                         |
 | Blockchain ID         | 2K33xS9AyP9oCDiHYKVrHe7F54h2La5D8erpTChaAhdzeSu2RX                                          |
 | Eth Chain ID          | 73772                                                                                       |
 | RPC URL               | https://avax-cra-rpc.gateway.pokt.network/ , https://subnets.avax.network/swimmer/mainnet/rpc,  https://rpc.swimmer.network/ext/bc/2K33xS9AyP9oCDiHYKVrHe7F54h2La5D8erpTChaAhdzeSu2RX/rpc                                      |

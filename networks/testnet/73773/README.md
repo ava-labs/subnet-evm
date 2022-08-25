@@ -5,11 +5,11 @@
 | Swimmer Fuji Subnet   |                                                                                            |
 | :-------------------- | ------------------------------------------------------------------------------------------:|
 | Subnet Name           | Swimmer Subnet                                                                             |
-| Subnet Logo           | [subnet logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                        |
+| Subnet Logo           | ![subnet logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                        |
 | Subnet ID             | 2WJTQKACZWKAnkakMCafag2nuef6v6UuTFRxH1ndGXKWFg9pPJ                                          |
 | VM ID                 | srSGD5JeYhL8GLx4RUw53VN5TcoBbax6EeCYmy5S3DiteJhdF                                          |
 | Chain Name            | Swimmer                                                                                    |
-| Chain Logo            | [chain logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                         |
+| Chain Logo            | ![chain logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                         |
 | Blockchain ID         | qVd94hjZUfN5h5ZPxozos1wHjaszipeGJoYYxxMJ3dqZYFjZ3                                          |
 | Eth Chain ID          | 73773                                                                                     |
 | RPC URL               | https://subnets.avax.network/swimmer/testnet/rpc                                           | 

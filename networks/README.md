@@ -23,4 +23,4 @@ WARNING: this information is provided by the community. Please exercise caution 
 | Chain ID | Network |                 Name |
 | :------- | ------: | -------------------: |
 | 53935    | Mainnet | DeFi Kingdoms Subnet |
-| 73772    | Mainnet | Swimmer network Subnet |
+| 73772    | Mainnet | Swimmer Network Subnet |
