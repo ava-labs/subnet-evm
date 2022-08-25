@@ -118,9 +118,9 @@ Typically, custom codes are required in only those areas.
 
 ## Step 1 
 
-In `./precompile/params.go` let's set a precompile address. 
+In `./precompile/params.go` let's set a precompile address. Let's call it  `HelloWorldAddress` 
 
-![](2022-08-24-16-24-36.png)
+![](2022-08-24-16-45-48.png)
 
 Now when subnet evm sees the `HelloWorldAddress` as input when executing [`Call`](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L222), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272)
 
@@ -139,6 +139,59 @@ func (c *sha256hash) RequiredGas(input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.Sha256PerWordGas + params.Sha256BaseGas
 }
 ```
+
+
+We'll probably have to come back later and change these costs. 
+
+## Step 3
+
+Ok time to `CTRL F` throughout the file with `CUSTOM CODE STARTS HERE` to find the areas in the precompile that we need to modify. 
+
+![](2022-08-24-16-51-52.png)
+
+Ok looks like we can skip this step since our IHelloWorldConfig struct looks like this 
+```
+// IHelloWorldConfig implements the StatefulPrecompileConfig
+// interface while adding in the IHelloWorld specific precompile address.
+type IHelloWorldConfig struct {
+	UpgradeableConfig
+}
+```
+
+**Optional Note** 
+
+If our IHelloWorldConfig wrapped another config in its struct  to implement the StatefulPrecompileConfig
+like so 
+
+```
+// IHelloWorldConfig implements the StatefulPrecompileConfig
+// interface while adding in the IHelloWorld specific precompile address.
+type IHelloWorldConfig struct {
+	UpgradeableConfig
+    AllowListConfig
+}
+```
+
+We would have modify the `Equal()` function as follows 
+
+![](2022-08-24-17-01-37.png)
+
+
+The next place we see the `CUSTOM CODE STARTS HERE` is in `Configure()`
+Let's set it up. 
+![](2022-08-24-17-15-01.png)
+
+
+Next place to modify is in our `sayHello()` function.
+![](2022-08-24-17-25-53.png)
+
+Finally we can modify our `setGreeting()` function 
+
+
+
+
+
+
 
 
 

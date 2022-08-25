@@ -109,8 +109,8 @@ func (c *IHelloWorldConfig) Equal(s StatefulPrecompileConfig) bool {
 	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom IHelloWorldConfig, to check if [other] and the current [c] are equal
 	// if IHelloWorldConfig contains only UpgradeableConfig  you can skip modifying it.
-	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig)
-	return equals
+	isUpgradeEqual := c.UpgradeableConfig.Equal(&other.UpgradeableConfig)
+	return isUpgradeEqual
 }
 
 // Address returns the address of the IHelloWorld. Addresses reside under the precompile/params.go
@@ -121,8 +121,15 @@ func (c *IHelloWorldConfig) Address() common.Address {
 
 // Configure configures [state] with the initial configuration.
 func (c *IHelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
-
 	// CUSTOM CODE STARTS HERE
+	// This will be called in the first block where HelloWorld stateful precompile is enabled.
+	// 1) If BlockTimestamp is nil, this will not be called
+	// 2) If BlockTimestamp is 0, this will be called while setting up the genesis block
+	// 3) If BlockTimestamp is 1000, this will be called while processing the first block whose timestamp is >= 1000
+	//
+	// Set the initial value under [common.BytesToHash([]byte("recipient")] to "Hello World!"
+	res := common.LeftPadBytes([]byte("Hello World"), common.HashLength)
+	state.SetState(HelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for IHelloWorld.
@@ -153,7 +160,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 
 	// CUSTOM CODE STARTS HERE
 
-	var output string // CUSTOM CODE FOR AN OUTPUT
+	var output string = "sayHello"
 	packedOutput, err := PackSayHelloOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
@@ -191,13 +198,16 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	// attempts to unpack [input] into the arguments to the SetGreetingInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackSetGreetingInput(input)
+	inputStr, err := UnpackSetGreetingInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
+	// setGreeting is the execution function of "SetGreeting(name string)" and sets the recipient in the string returned by hello world
+	res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
+	accessibleState.GetStateDB().SetState(HelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
+
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 

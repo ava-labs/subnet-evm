@@ -40,6 +40,7 @@ var (
 		ContractNativeMinterAddress,
 		TxAllowListAddress,
 		FeeConfigManagerAddress,
+		HelloWorldAddress,
 		// ADD YOUR PRECOMPILE HERE
 		// YourPrecompileAddress
 	}
