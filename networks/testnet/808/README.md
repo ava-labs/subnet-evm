@@ -2,7 +2,7 @@
 
 ## Fuji Subnet Info
 
-| DFK Chain Fuji Subnet |                                                         |
+| PF Chain Fuji Subnet |                                                         |
 | :-------------------- | ------------------------------------------------------: |
 | Subnet Name           |                              Portal Fantasy Fuji Subnet |
 | Chain Name            |                                                 PFChain |
