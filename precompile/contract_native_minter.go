@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 )
 
 const (
@@ -35,8 +36,7 @@ var (
 type ContractNativeMinterConfig struct {
 	AllowListConfig
 	UpgradeableConfig
-	// TODO: use hex amounts?
-	InitialMint map[common.Address]*big.Int `json:"initialMint,omitempty"` // initial mint config to be immediately minted
+	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
 }
 
 // NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -68,7 +68,10 @@ func (c *ContractNativeMinterConfig) Address() common.Address {
 func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
 	if len(c.InitialMint) != 0 {
 		for to, amount := range c.InitialMint {
-			state.AddBalance(to, amount)
+			if amount != nil {
+				bigIntAmount := (*big.Int)(amount)
+				state.AddBalance(to, bigIntAmount)
+			}
 		}
 	}
 	c.AllowListConfig.Configure(state, ContractNativeMinterAddress)

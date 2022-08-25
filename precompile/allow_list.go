@@ -12,9 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// Enum constants for valid AllowListRole
-type AllowListRole common.Hash
-
 const (
 	SetAdminFuncKey      = "setAdmin"
 	SetEnabledFuncKey    = "setEnabled"
@@ -74,6 +71,25 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 	}
 	return true
 }
+
+// Verify returns an error if there is an overlapping address between admins and enableds
+func (c *AllowListConfig) Verify() error {
+	enabledMap := make(map[common.Address]struct{})
+	for _, enabledAddr := range c.EnabledAddresses {
+		if _, ok := enabledMap[enabledAddr]; !ok {
+			enabledMap[enabledAddr] = struct{}{}
+		}
+	}
+	for _, adminAddr := range c.AllowListAdmins {
+		if _, ok := enabledMap[adminAddr]; ok {
+			return fmt.Errorf("cannot set address %s as both admin and enabled", adminAddr)
+		}
+	}
+	return nil
+}
+
+// Enum constants for valid AllowListRole
+type AllowListRole common.Hash
 
 // Valid returns true iff [s] represents a valid role.
 func (s AllowListRole) Valid() bool {

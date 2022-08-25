@@ -98,12 +98,13 @@ func (c *FeeConfigManagerConfig) Equal(s StatefulPrecompileConfig) bool {
 func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateDB, blockContext BlockContext) {
 	// Store the initial fee config into the state when the fee config manager activates.
 	if c.InitialFeeConfig != nil {
-		if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
+		if err := StoreFeeConfig(state, *c.InitialFeeConfig, blockContext); err != nil {
 			panic(fmt.Sprintf("invalid feeConfig provided: %s", err))
 		}
-	}
-	if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
-		panic(fmt.Sprintf("fee config should have been verified in genesis: %s", err))
+	} else {
+		if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
+			panic(fmt.Sprintf("fee config should have been verified in genesis: %s", err))
+		}
 	}
 	c.AllowListConfig.Configure(state, FeeConfigManagerAddress)
 }
@@ -111,6 +112,13 @@ func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateD
 // Contract returns the singleton stateful precompiled contract to be used for the fee manager.
 func (c *FeeConfigManagerConfig) Contract() StatefulPrecompiledContract {
 	return FeeConfigManagerPrecompile
+}
+
+func (c *FeeConfigManagerConfig) Verify() error {
+	if err := c.AllowListConfig.Verify(); err != nil {
+		return err
+	}
+	return c.InitialFeeConfig.Verify()
 }
 
 // GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.
