@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
@@ -535,6 +536,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 		input          func() []byte
 		suppliedGas    uint64
 		readOnly       bool
+		config         *precompile.ContractNativeMinterConfig
 
 		expectedRes []byte
 		expectedErr string
@@ -579,6 +581,27 @@ func TestContractNativeMinterRun(t *testing.T) {
 				assert.Equal(t, precompile.AllowListEnabled, res)
 
 				assert.Equal(t, common.Big1, state.GetBalance(allowAddr), "expected minted funds")
+			},
+		},
+		"initial mint funds": {
+			caller:         allowAddr,
+			precompileAddr: precompile.ContractNativeMinterAddress,
+			config: &precompile.ContractNativeMinterConfig{
+				InitialMint: map[common.Address]*math.HexOrDecimal256{
+					allowAddr: math.NewHexOrDecimal256(2),
+				},
+			},
+			input: func() []byte {
+				return precompile.PackReadAllowList(noRoleAddr)
+			},
+			suppliedGas: precompile.ReadAllowListGasCost,
+			readOnly:    false,
+			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			assertState: func(t *testing.T, state *state.StateDB) {
+				res := precompile.GetContractNativeMinterStatus(state, allowAddr)
+				assert.Equal(t, precompile.AllowListEnabled, res)
+
+				assert.Equal(t, common.Big2, state.GetBalance(allowAddr), "expected minted funds")
 			},
 		},
 		"mint funds from admin address": {
@@ -756,6 +779,9 @@ func TestContractNativeMinterRun(t *testing.T) {
 			precompile.SetContractNativeMinterStatus(state, allowAddr, precompile.AllowListEnabled)
 			precompile.SetContractNativeMinterStatus(state, noRoleAddr, precompile.AllowListNoRole)
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
+			if test.config != nil {
+				test.config.Configure(params.TestChainConfig, state, blockContext)
+			}
 			ret, remainingGas, err := precompile.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
@@ -788,6 +814,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 		input          func() []byte
 		suppliedGas    uint64
 		readOnly       bool
+		config         *precompile.FeeConfigManagerConfig
 
 		expectedRes []byte
 		expectedErr string
@@ -906,6 +933,29 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
 				assert.Equal(t, testFeeConfig, feeConfig)
 				assert.EqualValues(t, big.NewInt(6), lastChangedAt)
+			},
+		},
+		"get initial fee config": {
+			caller:         noRoleAddr,
+			precompileAddr: precompile.FeeConfigManagerAddress,
+			input: func() []byte {
+				return precompile.PackGetFeeConfigInput()
+			},
+			suppliedGas: precompile.GetFeeConfigGasCost,
+			config: &precompile.FeeConfigManagerConfig{
+				InitialFeeConfig: &testFeeConfig,
+			},
+			readOnly: true,
+			expectedRes: func() []byte {
+				res, err := precompile.PackFeeConfig(testFeeConfig)
+				assert.NoError(t, err)
+				return res
+			}(),
+			assertState: func(t *testing.T, state *state.StateDB) {
+				feeConfig := precompile.GetStoredFeeConfig(state)
+				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
+				assert.Equal(t, testFeeConfig, feeConfig)
+				assert.EqualValues(t, testBlockNumber, lastChangedAt)
 			},
 		},
 		"get last changed at from non-enabled address": {
@@ -1038,6 +1088,9 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			}
 
 			blockContext := &mockBlockContext{blockNumber: testBlockNumber}
+			if test.config != nil {
+				test.config.Configure(params.TestChainConfig, state, blockContext)
+			}
 			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {

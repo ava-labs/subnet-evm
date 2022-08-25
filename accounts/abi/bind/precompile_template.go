@@ -192,6 +192,20 @@ func (c *{{.Contract.Type}}Config) Contract() StatefulPrecompiledContract {
 	return {{.Contract.Type}}Precompile
 }
 
+// Verify tries to verify {{.Contract.Type}}Config and returns an error accordingly.
+func (c *{{.Contract.Type}}Config) Verify() error {
+	{{if .Contract.AllowList}}
+	// Verify AllowList first
+	if err := c.AllowListConfig.Verify(); err != nil{
+		return err
+	}
+	{{end}}
+	// CUSTOM CODE STARTS HERE
+	// Add your own custom verify code for {{.Contract.Type}}Config here
+	// and return an error accordingly
+	return nil
+}
+
 {{if .Contract.AllowList}}
 // Get{{.Contract.Type}}AllowListStatus returns the role of [address] for the {{.Contract.Type}} list.
 func Get{{.Contract.Type}}AllowListStatus(stateDB StateDB, address common.Address) AllowListRole {
