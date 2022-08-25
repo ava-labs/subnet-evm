@@ -175,7 +175,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 func UnpackSetGreetingInput(input []byte) (string, error) {
 	res, err := IHelloWorldABI.UnpackInput("setGreeting", input)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	unpacked := *abi.ConvertType(res[0], new(string)).(*string)
 	return unpacked, nil

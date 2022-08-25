@@ -239,7 +239,7 @@ contract HelloWorld {
 }
 ```
 
-## Step 7 
+The remaining steps are all about testing!
 
 
 
