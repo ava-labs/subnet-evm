@@ -21,12 +21,14 @@ const (
 	contractNativeMinterKey
 	txAllowListKey
 	feeManagerKey
+	helloWorldKey
 	// ADD YOUR PRECOMPILE HERE
 	// {yourPrecompile}Key
 )
 
 // ADD YOUR PRECOMPILE HERE
-var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey /* {yourPrecompile}Key */}
+var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey,
+	txAllowListKey, feeManagerKey, helloWorldKey /* {yourPrecompile}Key */}
 
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig, representing
 // each of the possible stateful precompile types that can be activated
@@ -36,6 +38,7 @@ type PrecompileUpgrade struct {
 	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+	IHelloWorldConfig               *precompile.IHelloWorldConfig               `json:"{yourPrecompile}Config,omitempty"`
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
@@ -50,7 +53,9 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 		return p.TxAllowListConfig, p.TxAllowListConfig != nil
 	case feeManagerKey:
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
-	// ADD YOUR PRECOMPILE HERE
+	case helloWorldKey:
+		return p.IHelloWorldConfig, p.IHelloWorldConfig != nil
+		// ADD YOUR PRECOMPILE HERE
 	/*
 		case {yourPrecompile}Key:
 		return p.{YourPrecompile}Config , p.{YourPrecompile}Config  != nil
@@ -196,6 +201,13 @@ func (c *ChainConfig) GetTxAllowListConfig(blockTimestamp *big.Int) *precompile.
 func (c *ChainConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *precompile.FeeConfigManagerConfig {
 	if val := c.getActivePrecompileConfig(blockTimestamp, feeManagerKey, c.PrecompileUpgrades); val != nil {
 		return val.(*precompile.FeeConfigManagerConfig)
+	}
+	return nil
+}
+
+func (c *ChainConfig) GetIHelloWorldConfig(blockTimestamp *big.Int) *precompile.IHelloWorldConfig {
+	if val := c.getActivePrecompileConfig(blockTimestamp, helloWorldKey, c.PrecompileUpgrades); val != nil {
+		return val.(*precompile.IHelloWorldConfig)
 	}
 	return nil
 }

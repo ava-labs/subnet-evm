@@ -253,6 +253,12 @@ func (c *ChainConfig) IsFeeConfigManager(blockTimestamp *big.Int) bool {
 	return config != nil && !config.Disable
 }
 
+// IsHelloWorld returns whether [blockTimestamp] is either equal to the IHelloWorld fork block timestamp or greater.
+func (c *ChainConfig) IsIHelloWorld(blockTimestamp *big.Int) bool {
+	config := c.GetIHelloWorldConfig(blockTimestamp)
+	return config != nil && !config.Disable
+}
+
 // ADD YOUR PRECOMPILE HERE
 /*
 func (c *ChainConfig) Is{YourPrecompile}(blockTimestamp *big.Int) bool {
@@ -493,6 +499,7 @@ type Rules struct {
 	IsContractNativeMinterEnabled      bool
 	IsTxAllowListEnabled               bool
 	IsFeeConfigManagerEnabled          bool
+	IsIHelloWorldEnabled               bool
 	// ADD YOUR PRECOMPILE HERE
 	// Is{YourPrecompile}Enabled         bool
 
@@ -532,6 +539,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsContractNativeMinterEnabled = c.IsContractNativeMinter(blockTimestamp)
 	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
 	rules.IsFeeConfigManagerEnabled = c.IsFeeConfigManager(blockTimestamp)
+	rules.IsIHelloWorldEnabled = c.IsIHelloWorld(blockTimestamp)
 	// ADD YOUR PRECOMPILE HERE
 	// rules.Is{YourPrecompile}Enabled = c.{IsYourPrecompile}(blockTimestamp)
 

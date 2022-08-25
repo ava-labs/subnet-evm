@@ -32,8 +32,8 @@ const tmplSourcePrecompileGo = `
 2- Set gas costs here
 3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 Typically, custom codes are required in only those areas.
-4- Add your precompile upgrade in params/config.go
-5- Add your upgradable config in params/precompile_config.go
+4- Add your upgradable config in params/precompile_config.go
+5- Add your precompile upgrade in params/config.go
 6- Add your solidity interface and test contract to contract-examples/contracts
 7- Write solidity tests for your precompile in contract-examples/test
 8- Create e2e test for your solidity test in tests/e2e/solidity/suites.go

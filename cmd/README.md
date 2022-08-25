@@ -107,8 +107,8 @@ The precompile gives us commented instructions on the first 25 lines of the auto
 2- Set gas costs here
 3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 Typically, custom codes are required in only those areas.
-4- Add your precompile upgrade in params/config.go
-5- Add your upgradable config in params/precompile_config.go
+4- Add your upgradable config in params/precompile_config.go
+5- Add your precompile upgrade in params/config.go
 6- Add your solidity interface and test contract to contract-examples/contracts
 7- Write solidity tests for your precompile in contract-examples/test
 8- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
@@ -186,7 +186,29 @@ Next place to modify is in our `sayHello()` function.
 ![](2022-08-24-17-25-53.png)
 
 Finally we can modify our `setGreeting()` function 
+![](2022-08-25-14-01-40.png)
 
+## Step 4 
+
+Let's now modify `params/precompile_config.go`.
+
+Let's add our key. 
+![](2022-08-25-14-24-35.png)
+
+
+![](2022-08-25-14-25-27.png)
+
+![](2022-08-25-14-26-07.png)
+
+Done! All we had to do was follow the comments.
+
+
+## Step 5 
+
+Let's add our precompile upgrade in `params/config.go`. 
+![](2022-08-25-14-29-58.png)
+![](2022-08-25-14-28-01.png)
+![](2022-08-25-14-31-49.png)
 
 
 
