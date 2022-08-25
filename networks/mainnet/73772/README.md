@@ -12,7 +12,7 @@
 | Chain Logo            | [chain logo](https://raw.githubusercontent.com/crabada/logos/dcc185658745ba18511135ff6dae564d57d63768/swimmer/swimmer_icon-512.png)                                         |
 | Blockchain ID         | 2K33xS9AyP9oCDiHYKVrHe7F54h2La5D8erpTChaAhdzeSu2RX                                          |
 | Eth Chain ID          | 73772                                                                                       |
-| RPC URL               | https://subnets.avax.network/swimmer/testnet/rpc                                           | 
+| RPC URL               | https://avax-cra-rpc.gateway.pokt.network/ , https://subnets.avax.network/swimmer/mainnet/rpc,  https://rpc.swimmer.network/ext/bc/2K33xS9AyP9oCDiHYKVrHe7F54h2La5D8erpTChaAhdzeSu2RX/rpc                                      |
 | Description           | Swimmer is a dedicated blockchain for gaming.                                              |
 | Site                  | https://www.swimmer.network/                                                               | 
 | Multicall2 contracts  | 0xd46175048c125eae5a7694BDa6C723b76D24e428                                                 |
