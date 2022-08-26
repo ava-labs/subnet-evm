@@ -74,15 +74,18 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 
 // Verify returns an error if there is an overlapping address between admins and enableds
 func (c *AllowListConfig) Verify() error {
-	enabledMap := make(map[common.Address]struct{})
-	for _, enabledAddr := range c.EnabledAddresses {
-		if _, ok := enabledMap[enabledAddr]; !ok {
-			enabledMap[enabledAddr] = struct{}{}
+	// check if both lists are empty
+	if len(c.EnabledAddresses) != 0 && len(c.AllowListAdmins) != 0 {
+		enabledMap := make(map[common.Address]struct{})
+		for _, enabledAddr := range c.EnabledAddresses {
+			if _, ok := enabledMap[enabledAddr]; !ok {
+				enabledMap[enabledAddr] = struct{}{}
+			}
 		}
-	}
-	for _, adminAddr := range c.AllowListAdmins {
-		if _, ok := enabledMap[adminAddr]; ok {
-			return fmt.Errorf("cannot set address %s as both admin and enabled", adminAddr)
+		for _, adminAddr := range c.AllowListAdmins {
+			if _, ok := enabledMap[adminAddr]; ok {
+				return fmt.Errorf("cannot set address %s as both admin and enabled", adminAddr)
+			}
 		}
 	}
 	return nil

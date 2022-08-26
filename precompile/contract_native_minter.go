@@ -66,14 +66,13 @@ func (c *ContractNativeMinterConfig) Address() common.Address {
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
-	if len(c.InitialMint) != 0 {
-		for to, amount := range c.InitialMint {
-			if amount != nil {
-				bigIntAmount := (*big.Int)(amount)
-				state.AddBalance(to, bigIntAmount)
-			}
+	for to, amount := range c.InitialMint {
+		if amount != nil {
+			bigIntAmount := (*big.Int)(amount)
+			state.AddBalance(to, bigIntAmount)
 		}
 	}
+
 	c.AllowListConfig.Configure(state, ContractNativeMinterAddress)
 }
 
