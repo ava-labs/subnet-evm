@@ -210,12 +210,20 @@ func (c *ChainConfig) Get{YourPrecompile}Config(blockTimestamp *big.Int) *precom
 */
 
 func (c *ChainConfig) GetActivePrecompileUpgrades(blockTimestamp *big.Int) PrecompileUpgrade {
-	return PrecompileUpgrade{
-		ContractDeployerAllowListConfig: c.GetContractDeployerAllowListConfig(blockTimestamp),
-		ContractNativeMinterConfig:      c.GetContractNativeMinterConfig(blockTimestamp),
-		TxAllowListConfig:               c.GetTxAllowListConfig(blockTimestamp),
-		FeeManagerConfig:                c.GetFeeConfigManagerConfig(blockTimestamp),
+	pu := PrecompileUpgrade{}
+	if config := c.GetContractDeployerAllowListConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.ContractDeployerAllowListConfig = config
 	}
+	if config := c.GetContractNativeMinterConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.ContractNativeMinterConfig = config
+	}
+	if config := c.GetTxAllowListConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.TxAllowListConfig = config
+	}
+	if config := c.GetFeeConfigManagerConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.FeeManagerConfig = config
+	}
+	return pu
 }
 
 // CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
