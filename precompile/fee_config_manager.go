@@ -118,7 +118,10 @@ func (c *FeeConfigManagerConfig) Verify() error {
 	if err := c.AllowListConfig.Verify(); err != nil {
 		return err
 	}
-	return c.InitialFeeConfig.Verify()
+	if c.InitialFeeConfig != nil {
+		return c.InitialFeeConfig.Verify()
+	}
+	return nil
 }
 
 // GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.
