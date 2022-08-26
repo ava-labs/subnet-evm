@@ -209,6 +209,15 @@ func (c *ChainConfig) Get{YourPrecompile}Config(blockTimestamp *big.Int) *precom
 }
 */
 
+func (c *ChainConfig) GetActivePrecompileUpgrades(blockTimestamp *big.Int) PrecompileUpgrade {
+	return PrecompileUpgrade{
+		ContractDeployerAllowListConfig: c.GetContractDeployerAllowListConfig(blockTimestamp),
+		ContractNativeMinterConfig:      c.GetContractNativeMinterConfig(blockTimestamp),
+		TxAllowListConfig:               c.GetTxAllowListConfig(blockTimestamp),
+		FeeManagerConfig:                c.GetFeeConfigManagerConfig(blockTimestamp),
+	}
+}
+
 // CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
 // Returns a ConfigCompatError if upgrades already forked at [headTimestamp] are missing from
 // [precompileUpgrades]. Upgrades not already forked may be modified or absent from [precompileUpgrades].

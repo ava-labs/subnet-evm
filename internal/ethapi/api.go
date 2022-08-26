@@ -609,6 +609,18 @@ func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
 	return nil, fmt.Errorf("chain not synced beyond EIP-155 replay-protection fork block")
 }
 
+func (s *PublicBlockChainAPI) GetUpgrades(ctx context.Context) *params.UpgradeConfig {
+	return &s.b.ChainConfig().UpgradeConfig
+}
+
+func (s *PublicBlockChainAPI) GetActivatedPrecompiles(ctx context.Context, blockTimestamp *big.Int) params.PrecompileUpgrade {
+	if blockTimestamp == nil {
+		blockTimestampInt := s.b.CurrentHeader().Time
+		blockTimestamp = new(big.Int).SetUint64(blockTimestampInt)
+	}
+	return s.b.ChainConfig().GetActivePrecompileUpgrades(blockTimestamp)
+}
+
 type FeeConfigResult struct {
 	FeeConfig     commontype.FeeConfig `json:"feeConfig"`
 	LastChangedAt *big.Int             `json:"lastChangedAt,omitempty"`
