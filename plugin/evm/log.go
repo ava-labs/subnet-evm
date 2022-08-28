@@ -75,7 +75,9 @@ func SubnetEVMJSONFormat(alias string) log.Format {
 			if !ok {
 				props[errorKey] = fmt.Sprintf("%+v is not a string key", r.Ctx[i])
 			} else {
-				props[k] = formatJSONValue(r.Ctx[i+1]) // The number of arguments is normalized from the geth logger to prevent an index out of bounds here
+                                // The number of arguments is normalized from the geth logger 
+                                // to ensure that this will not cause an index out of bounds error
+				props[k] = formatJSONValue(r.Ctx[i+1])
 			}
 		}
 
