@@ -16,6 +16,7 @@ WARNING: this information is provided by the community. Please exercise caution 
 | 11111    |    Fuji |                     WAGMI |
 | 432201   |    Fuji |       Dexalot Fuji Subnet |
 | 335      |    Fuji | DeFi Kingdoms Fuji Subnet |
+| 808      |    Fuji | Portal Fantasy Fuji Subnet |
 | 73773    |    Fuji | Swimmer Network Fuji Subnet |
 
 ## Mainnet
@@ -23,4 +24,5 @@ WARNING: this information is provided by the community. Please exercise caution 
 | Chain ID | Network |                 Name |
 | :------- | ------: | -------------------: |
 | 53935    | Mainnet | DeFi Kingdoms Subnet |
+| 909      | Mainnet | Portal Fantasy Subnet |
 | 73772    | Mainnet | Swimmer Network Subnet |
