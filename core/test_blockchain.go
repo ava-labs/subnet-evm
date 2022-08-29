@@ -1006,10 +1006,10 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, chainConfig 
 // state root
 //
 //	  G   (genesis)
-//	/  \
-//	A1  B1
-//	|   |
-//	A2  B2 (A2 and B2 represent two different paths to the identical state trie)
+//	 /  \
+//	A1   B1
+//	|    |
+//	A2   B2 (A2 and B2 represent two different paths to the identical state trie)
 //	|
 //	A3
 func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error)) {
@@ -1154,10 +1154,10 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 // root
 //
 //	  G   (genesis)
-//	/  \
-//	A1  B1
-//	|   |
-//	A2  B2 (A2 and B2 represent two different paths to the identical state trie)
+//	 /  \
+//	A1   B1
+//	|    |
+//	A2   B2 (A2 and B2 represent two different paths to the identical state trie)
 //	|
 //	A3
 func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error)) {
