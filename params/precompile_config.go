@@ -209,7 +209,7 @@ func (c *ChainConfig) Get{YourPrecompile}Config(blockTimestamp *big.Int) *precom
 }
 */
 
-func (c *ChainConfig) GetActivePrecompileUpgrades(blockTimestamp *big.Int) PrecompileUpgrade {
+func (c *ChainConfig) GetActivePrecompiles(blockTimestamp *big.Int) PrecompileUpgrade {
 	pu := PrecompileUpgrade{}
 	if config := c.GetContractDeployerAllowListConfig(blockTimestamp); config != nil && !config.Disable {
 		pu.ContractDeployerAllowListConfig = config
@@ -223,6 +223,11 @@ func (c *ChainConfig) GetActivePrecompileUpgrades(blockTimestamp *big.Int) Preco
 	if config := c.GetFeeConfigManagerConfig(blockTimestamp); config != nil && !config.Disable {
 		pu.FeeManagerConfig = config
 	}
+	// ADD YOUR PRECOMPILE HERE
+	// if config := c.{YourPrecompile}Config(blockTimestamp); config != nil && !config.Disable {
+	// 	pu.{YourPrecompile}Config = config
+	// }
+
 	return pu
 }
 
