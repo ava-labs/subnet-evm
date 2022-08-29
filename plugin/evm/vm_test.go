@@ -1621,8 +1621,8 @@ func TestEmptyBlock(t *testing.T) {
 //	 A
 //	/  \
 //	B   C
-//		|
-//		D
+//	|
+//	D
 func TestAcceptReorg(t *testing.T) {
 	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
