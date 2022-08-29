@@ -69,8 +69,8 @@ func (f *FeeConfig) Verify() error {
 		return fmt.Errorf("minBaseFee = %d cannot be less than 0", f.MinBaseFee)
 	case f.TargetGas.Cmp(common.Big0) != 1:
 		return fmt.Errorf("targetGas = %d cannot be less than or equal to 0", f.TargetGas)
-	case f.BaseFeeChangeDenominator.Cmp(common.Big0) == -1:
-		return fmt.Errorf("baseFeeChangeDenominator = %d cannot be less than 0", f.BaseFeeChangeDenominator)
+	case f.BaseFeeChangeDenominator.Cmp(common.Big1) == -1:
+		return fmt.Errorf("baseFeeChangeDenominator = %d cannot be less than 1", f.BaseFeeChangeDenominator)
 	case f.MinBlockGasCost.Cmp(common.Big0) == -1:
 		return fmt.Errorf("minBlockGasCost = %d cannot be less than 0", f.MinBlockGasCost)
 	case f.MinBlockGasCost.Cmp(f.MaxBlockGasCost) == 1:
