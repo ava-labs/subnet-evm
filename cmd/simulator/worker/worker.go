@@ -21,10 +21,9 @@ import (
 )
 
 var (
-	transferGasLimit = uint64(21000)
-	transferAmount   = big.NewInt(1)
-	workDelay        = time.Duration(100 * time.Millisecond)
-	retryDelay       = time.Duration(500 * time.Millisecond)
+	transferAmount = big.NewInt(1)
+	workDelay      = time.Duration(100 * time.Millisecond)
+	retryDelay     = time.Duration(500 * time.Millisecond)
 
 	chainID     *big.Int
 	signer      types.Signer
@@ -36,13 +35,13 @@ var (
 	minFunderBalance *big.Int
 )
 
-func setupVars(cID *big.Int, bFee uint64, pFee uint64) {
+func setupVars(cID *big.Int, tGasLimit uint64, bFee uint64, pFee uint64) {
 	chainID = cID
 	signer = types.LatestSignerForChainID(chainID)
 	priorityFee = new(big.Int).SetUint64(pFee * params.GWei)
 	feeCap = new(big.Int).Add(new(big.Int).SetUint64(bFee*params.GWei), priorityFee)
 
-	maxTransferCost = new(big.Int).Mul(new(big.Int).SetUint64(transferGasLimit), feeCap)
+	maxTransferCost = new(big.Int).Mul(new(big.Int).SetUint64(tGasLimit), feeCap)
 	maxTransferCost = new(big.Int).Add(maxTransferCost, transferAmount)
 
 	requestAmount = new(big.Int).Mul(maxTransferCost, big.NewInt(100))
@@ -184,7 +183,7 @@ func (w *worker) waitForBalance(ctx context.Context, stdout bool, minBalance *bi
 	return ctx.Err()
 }
 
-func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *big.Int) error {
+func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *big.Int, transferGasLimit uint64, dynamicFeeTxDataLen uint64) error {
 	for ctx.Err() == nil {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainID,
@@ -194,7 +193,9 @@ func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *bi
 			GasFeeCap: feeCap,
 			GasTipCap: priorityFee,
 			Value:     value,
-			Data:      []byte{},
+
+			// artificially increases the tx size thus filling up the block
+			Data: make([]byte, dynamicFeeTxDataLen),
 		})
 		signedTx, err := types.SignTx(tx, signer, w.k.PrivKey)
 		if err != nil {
@@ -222,7 +223,7 @@ func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *bi
 	return ctx.Err()
 }
 
-func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundRequest chan common.Address) error {
+func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundRequest chan common.Address, transferGasLimit uint64, dynamicFeeTxDataLen uint64) error {
 	for ctx.Err() == nil {
 		if w.balance.Cmp(maxTransferCost) < 0 {
 			log.Printf("%s requesting funds from master\n", w.k.Address.Hex())
@@ -235,7 +236,7 @@ func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundReque
 		if recipient.k.Address == w.k.Address {
 			continue
 		}
-		if err := w.sendTx(ctx, recipient.k.Address, transferAmount); err != nil {
+		if err := w.sendTx(ctx, recipient.k.Address, transferAmount, transferGasLimit, dynamicFeeTxDataLen); err != nil {
 			return err
 		}
 		time.Sleep(workDelay)
@@ -243,7 +244,7 @@ func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundReque
 	return ctx.Err()
 }
 
-func (w *worker) fund(ctx context.Context, fundRequest chan common.Address) error {
+func (w *worker) fund(ctx context.Context, fundRequest chan common.Address, transferGasLimit uint64, dynamicFeeTxDataLen uint64) error {
 	for {
 		select {
 		case recipient := <-fundRequest:
@@ -252,7 +253,7 @@ func (w *worker) fund(ctx context.Context, fundRequest chan common.Address) erro
 					return fmt.Errorf("could not get minimum balance: %w", err)
 				}
 			}
-			if err := w.sendTx(ctx, recipient, requestAmount); err != nil {
+			if err := w.sendTx(ctx, recipient, requestAmount, transferGasLimit, dynamicFeeTxDataLen); err != nil {
 				return fmt.Errorf("unable to send tx: %w", err)
 			}
 		case <-ctx.Done():
@@ -284,7 +285,7 @@ func Run(ctx context.Context, cfg *Config, keysDir string) error {
 	if err != nil {
 		return err
 	}
-	setupVars(chainId, cfg.BaseFee, cfg.PriorityFee)
+	setupVars(chainId, cfg.TransferGasLimit, cfg.BaseFee, cfg.PriorityFee)
 
 	master, workers, err := createWorkers(ctx, keysDir, cfg.Endpoints, cfg.Concurrency)
 	if err != nil {
@@ -297,12 +298,12 @@ func Run(ctx context.Context, cfg *Config, keysDir string) error {
 	})
 	fundRequest := make(chan common.Address)
 	g.Go(func() error {
-		return master.fund(gctx, fundRequest)
+		return master.fund(gctx, fundRequest, cfg.TransferGasLimit, cfg.DynamicFeeTxDataLen)
 	})
 	for _, worker := range workers {
 		w := worker
 		g.Go(func() error {
-			return w.work(gctx, workers, fundRequest)
+			return w.work(gctx, workers, fundRequest, cfg.TransferGasLimit, cfg.DynamicFeeTxDataLen)
 		})
 	}
 	return g.Wait()

@@ -16,6 +16,9 @@ type Config struct {
 	Concurrency int      `json:"concurrency"`
 	BaseFee     uint64   `json:"base-fee"`
 	PriorityFee uint64   `json:"priority-fee"`
+
+	TransferGasLimit    uint64 `json:"transfer-gas-limit"`
+	DynamicFeeTxDataLen uint64 `json:"dynamic-fee-tx-data-len"`
 }
 
 // LoadConfig parses and validates the [config] in [.simulator]

@@ -40,6 +40,9 @@ var (
 	concurrency int
 	baseFee     uint64
 	priorityFee uint64
+
+	transferGasLimit    uint64
+	dynamicFeeTxDataLen uint64
 )
 
 func newCommand() *cobra.Command {
@@ -58,6 +61,9 @@ func newCommand() *cobra.Command {
 	cmd.PersistentFlags().Uint64VarP(&baseFee, "base-fee", "f", 25, "Base fee")
 	cmd.PersistentFlags().Uint64VarP(&priorityFee, "priority-fee", "p", 1, "Base fee")
 
+	cmd.PersistentFlags().Uint64VarP(&transferGasLimit, "transfer-gas-limit", "g", uint64(21000), "Transfer gas limit for DynamicFeeTx")
+	cmd.PersistentFlags().Uint64VarP(&dynamicFeeTxDataLen, "dynamic-fee-tx-data-size", "b", 0, "Size of data field in DynamicFeeTx (useful for increasing tx payloads)")
+
 	return cmd
 }
 
@@ -70,6 +76,9 @@ func runFunc(cmd *cobra.Command, args []string) {
 		Concurrency: concurrency,
 		BaseFee:     baseFee,
 		PriorityFee: priorityFee,
+
+		TransferGasLimit:    transferGasLimit,
+		DynamicFeeTxDataLen: dynamicFeeTxDataLen,
 	}
 
 	if networkRunnerOutputPath != "" {
