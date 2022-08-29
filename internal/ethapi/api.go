@@ -623,7 +623,7 @@ func (s *PublicBlockChainAPI) GetChainConfig(ctx context.Context) GetChainConfig
 	return resp
 }
 
-func (s *PublicBlockChainAPI) GetActivePrecompileUpgradesAt(ctx context.Context, blockTimestamp *big.Int) params.PrecompileUpgrade {
+func (s *PublicBlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) params.PrecompileUpgrade {
 	if blockTimestamp == nil {
 		blockTimestampInt := s.b.CurrentHeader().Time
 		blockTimestamp = new(big.Int).SetUint64(blockTimestampInt)
