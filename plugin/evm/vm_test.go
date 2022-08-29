@@ -495,8 +495,8 @@ func TestBuildEthTxBlock(t *testing.T) {
 //	 A
 //	/  \
 //	B   C
-//		|
-//		D
+//	    |
+//	    D
 func TestSetPreferenceRace(t *testing.T) {
 	// Create two VMs which will agree on block A and then
 	// build the two distinct preferred chains above
@@ -1097,8 +1097,8 @@ func TestNonCanonicalAccept(t *testing.T) {
 //	 A
 //	/  \
 //	B   C
-//		|
-//		D
+//	    |
+//	    D
 func TestStickyPreference(t *testing.T) {
 	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
@@ -1367,8 +1367,8 @@ func TestStickyPreference(t *testing.T) {
 //	 A
 //	/  \
 //	B   C
-//		|
-//		D
+//	    |
+//	    D
 func TestUncleBlock(t *testing.T) {
 	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
