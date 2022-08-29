@@ -290,6 +290,7 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 			// (or deconfigure it if it is being disabled.)
 			if config.IsDisabled() {
 				statedb.Suicide(config.Address())
+				statedb.Finalise(false)
 			} else {
 				precompile.Configure(c, blockContext, config, statedb)
 			}

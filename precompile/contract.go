@@ -57,6 +57,8 @@ type StateDB interface {
 	Exist(common.Address) bool
 
 	Suicide(common.Address) bool
+	HasSuicided(common.Address) bool
+	Finalise(deleteEmptyObjects bool)
 }
 
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
