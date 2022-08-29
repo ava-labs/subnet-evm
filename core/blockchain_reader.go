@@ -375,6 +375,9 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	}
 
 	storedFeeConfig := precompile.GetStoredFeeConfig(stateDB)
+	if err := storedFeeConfig.Verify(); err != nil {
+		return commontype.EmptyFeeConfig, nil, err
+	}
 	lastChangedAt := precompile.GetFeeConfigLastChangedAt(stateDB)
 	cacheable := &cacheableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache
