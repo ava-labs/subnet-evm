@@ -1683,6 +1683,7 @@ func (bc *BlockChain) CleanBlockRootsAboveLastAccepted() error {
 // consensus engine will reject the lowest ancestor first. In this case, these blocks will not be considered acceptable in
 // the future.
 // Ex.
+//
 //	   A
 //	 /   \
 //	B     C

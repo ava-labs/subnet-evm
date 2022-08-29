@@ -53,6 +53,7 @@ import (
 // Hash: 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da
 
 // TODO: move to a better location
+//
 //go:embed airdrops/011522.json
 var AirdropData []byte
 
