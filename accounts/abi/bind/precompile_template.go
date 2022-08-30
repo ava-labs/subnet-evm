@@ -214,6 +214,10 @@ func Get{{.Contract.Type}}AllowListStatus(stateDB StateDB, address common.Addres
 
 // Set{{.Contract.Type}}AllowListStatus sets the permissions of [address] to [role] for the
 // {{.Contract.Type}} list. Assumes [role] has already been verified as valid.
+// This stores the [role] in the contract storage with address [{{.Contract.Type}}Address]
+// and [address] hash. It means that any reusage of the [address] key for different value
+// conflicts with the same slot [role] is stored.
+// Precompile implementations must use a different key than [address] for their storage.
 func Set{{.Contract.Type}}AllowListStatus(stateDB StateDB, address common.Address, role AllowListRole) {
 	setAllowListRole(stateDB, {{.Contract.Type}}Address, address, role)
 }
