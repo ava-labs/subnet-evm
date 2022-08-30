@@ -115,6 +115,21 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			},
 			expectedError: "gasLimit = -1 cannot be less than or equal to 0",
 		},
+		{
+			name: "invalid initial fee manager config gas limit 0",
+			upgrades: []PrecompileUpgrade{
+				{
+					FeeManagerConfig: &precompile.FeeConfigManagerConfig{
+						AllowListConfig:   precompile.AllowListConfig{AllowListAdmins: admins},
+						UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
+						InitialFeeConfig: &commontype.FeeConfig{
+							GasLimit: big.NewInt(0),
+						},
+					},
+				},
+			},
+			expectedError: "gasLimit = 0 cannot be less than or equal to 0",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
