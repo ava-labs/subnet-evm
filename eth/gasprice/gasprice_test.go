@@ -44,7 +44,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -476,6 +475,7 @@ func TestSuggestGasPricePreAP3(t *testing.T) {
 // Regression test to ensure the last estimation of base fee is not used
 // for the block immediately following a fee configuration update.
 func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
+	require := require.New(t)
 	config := Config{
 		Blocks:     20,
 		Percentile: 60,
@@ -490,16 +490,16 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	highFeeConfig := chainConfig.FeeConfig
 	highFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
 	data, err := precompile.PackSetFeeConfig(highFeeConfig)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	// before issuing the block changing the fee into the chain, the fee estimation should
 	// follow the fee config in genesis.
 	backend := newTestBackend(t, &chainConfig, 0, func(i int, b *core.BlockGen) {})
 	oracle, err := NewOracle(backend, config)
-	require.NoError(t, err)
+	require.NoError(err)
 	got, err := oracle.SuggestPrice(context.Background())
-	require.NoError(t, err)
-	assert.Equal(t, chainConfig.FeeConfig.MinBaseFee, got)
+	require.NoError(err)
+	require.Equal(chainConfig.FeeConfig.MinBaseFee, got)
 
 	// issue the block with tx that changes the fee
 	genesis := backend.chain.Genesis()
@@ -519,15 +519,15 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 			Data:      data,
 		})
 		tx, err = types.SignTx(tx, signer, key)
-		require.NoError(t, err, "failed to create tx")
+		require.NoError(err, "failed to create tx")
 		b.AddTx(tx)
 	})
-	require.NoError(t, err)
+	require.NoError(err)
 	_, err = backend.chain.InsertChain(blocks)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	// verify the suggested price follows the new fee config.
 	got, err = oracle.SuggestPrice(context.Background())
-	require.NoError(t, err)
-	assert.Equal(t, highFeeConfig.MinBaseFee, got)
+	require.NoError(err)
+	require.Equal(highFeeConfig.MinBaseFee, got)
 }
