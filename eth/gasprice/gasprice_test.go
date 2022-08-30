@@ -474,7 +474,7 @@ func TestSuggestGasPricePreAP3(t *testing.T) {
 }
 
 // Regression test to ensure the last estimation of base fee is not used
-// for the block immediately following a fee configuraiton update.
+// for the block immediately following a fee configuration update.
 func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	config := Config{
 		Blocks:     20,
@@ -526,6 +526,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	_, err = backend.chain.InsertChain(blocks)
 	require.NoError(t, err)
 
+	// verify the suggested price follows the new fee config.
 	got, err = oracle.SuggestPrice(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, highFeeConfig.MinBaseFee, got)
