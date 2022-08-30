@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
-
 	"github.com/ethereum/go-ethereum/common"
 )
 
