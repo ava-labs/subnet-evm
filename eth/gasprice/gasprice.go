@@ -341,7 +341,6 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 	if feeLastChangedAt != nil && feeLastChangedAt.Uint64() == number {
 		if lastBaseFee.Cmp(feeConfig.MinBaseFee) < 0 {
 			lastBaseFee = feeConfig.MinBaseFee
-			// TODO: should we also reset lastPrice?
 		}
 	}
 	// iterates backwards until enough blocks are sent or until the block number that fee last changed at
