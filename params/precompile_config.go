@@ -209,6 +209,28 @@ func (c *ChainConfig) Get{YourPrecompile}Config(blockTimestamp *big.Int) *precom
 }
 */
 
+func (c *ChainConfig) GetActivePrecompiles(blockTimestamp *big.Int) PrecompileUpgrade {
+	pu := PrecompileUpgrade{}
+	if config := c.GetContractDeployerAllowListConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.ContractDeployerAllowListConfig = config
+	}
+	if config := c.GetContractNativeMinterConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.ContractNativeMinterConfig = config
+	}
+	if config := c.GetTxAllowListConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.TxAllowListConfig = config
+	}
+	if config := c.GetFeeConfigManagerConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.FeeManagerConfig = config
+	}
+	// ADD YOUR PRECOMPILE HERE
+	// if config := c.{YourPrecompile}Config(blockTimestamp); config != nil && !config.Disable {
+	// 	pu.{YourPrecompile}Config = config
+	// }
+
+	return pu
+}
+
 // CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
 // Returns a ConfigCompatError if upgrades already forked at [headTimestamp] are missing from
 // [precompileUpgrades]. Upgrades not already forked may be modified or absent from [precompileUpgrades].
@@ -290,6 +312,11 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 			// (or deconfigure it if it is being disabled.)
 			if config.IsDisabled() {
 				statedb.Suicide(config.Address())
+				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
+				// This enables re-configuration of the same contract state in the same block.
+				// Without an immediate Finalise call after the Suicide, a reconfigured precompiled state can be wiped out
+				// since Suicide will be committed after the reconfiguration.
+				statedb.Finalise(true)
 			} else {
 				precompile.Configure(c, blockContext, config, statedb)
 			}

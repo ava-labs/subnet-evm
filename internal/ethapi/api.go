@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/accounts/keystore"
 	"github.com/ava-labs/subnet-evm/accounts/scwallet"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -607,6 +608,54 @@ func NewBlockChainAPI(b Backend) *BlockChainAPI {
 // in CL clients.
 func (api *BlockChainAPI) ChainId() *hexutil.Big {
 	return (*hexutil.Big)(api.b.ChainConfig().ChainID)
+}
+
+type GetChainConfigResponse struct {
+	*params.ChainConfig
+	params.UpgradeConfig `json:"upgrades"`
+}
+
+func (s *BlockChainAPI) GetChainConfig(ctx context.Context) GetChainConfigResponse {
+	config := s.b.ChainConfig()
+	resp := GetChainConfigResponse{
+		ChainConfig:   config,
+		UpgradeConfig: config.UpgradeConfig,
+	}
+	return resp
+}
+
+func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) params.PrecompileUpgrade {
+	if blockTimestamp == nil {
+		blockTimestampInt := s.b.CurrentHeader().Time
+		blockTimestamp = new(big.Int).SetUint64(blockTimestampInt)
+	}
+	return s.b.ChainConfig().GetActivePrecompiles(blockTimestamp)
+}
+
+type FeeConfigResult struct {
+	FeeConfig     commontype.FeeConfig `json:"feeConfig"`
+	LastChangedAt *big.Int             `json:"lastChangedAt,omitempty"`
+}
+
+func (s *BlockChainAPI) FeeConfig(ctx context.Context, blockNrOrHash *rpc.BlockNumberOrHash) (*FeeConfigResult, error) {
+	var (
+		header *types.Header
+		err    error
+	)
+	if blockNrOrHash == nil {
+		header = s.b.CurrentHeader()
+	} else {
+		header, err = s.b.HeaderByNumberOrHash(ctx, *blockNrOrHash)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	feeConfig, lastChangedAt, err := s.b.GetFeeConfigAt(header)
+	if err != nil {
+		return nil, err
+	}
+	return &FeeConfigResult{FeeConfig: feeConfig, LastChangedAt: lastChangedAt}, nil
 }
 
 // BlockNumber returns the block number of the chain head.
