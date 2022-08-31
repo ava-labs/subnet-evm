@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidateWithChainConfig(t *testing.T) {
+func TestVerifyWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
