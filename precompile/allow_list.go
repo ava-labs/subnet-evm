@@ -75,63 +75,22 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 // Verify returns an error if there is an overlapping address between admins and enableds
 func (c *AllowListConfig) Verify() error {
 	// check if both lists are empty
-	if len(c.EnabledAddresses) != 0 && len(c.AllowListAdmins) != 0 {
-		enabledMap := make(map[common.Address]struct{})
-		for _, enabledAddr := range c.EnabledAddresses {
-			if _, ok := enabledMap[enabledAddr]; !ok {
-				enabledMap[enabledAddr] = struct{}{}
-			}
-		}
-		for _, adminAddr := range c.AllowListAdmins {
-			if _, ok := enabledMap[adminAddr]; ok {
-				return fmt.Errorf("cannot set address %s as both admin and enabled", adminAddr)
-			}
+	if len(c.EnabledAddresses) == 0 || len(c.AllowListAdmins) == 0 {
+		return nil
+	}
+	enabledMap := make(map[common.Address]struct{})
+	for _, enabledAddr := range c.EnabledAddresses {
+		if _, ok := enabledMap[enabledAddr]; !ok {
+			enabledMap[enabledAddr] = struct{}{}
 		}
 	}
+	for _, adminAddr := range c.AllowListAdmins {
+		if _, ok := enabledMap[adminAddr]; ok {
+			return fmt.Errorf("cannot set address %s as both admin and enabled", adminAddr)
+		}
+	}
+
 	return nil
-}
-
-// Enum constants for valid AllowListRole
-type AllowListRole common.Hash
-
-// Valid returns true iff [s] represents a valid role.
-func (s AllowListRole) Valid() bool {
-	switch s {
-	case AllowListNoRole, AllowListEnabled, AllowListAdmin:
-		return true
-	default:
-		return false
-	}
-}
-
-// IsNoRole returns true if [s] indicates no specific role.
-func (s AllowListRole) IsNoRole() bool {
-	switch s {
-	case AllowListNoRole:
-		return true
-	default:
-		return false
-	}
-}
-
-// IsAdmin returns true if [s] indicates the permission to modify the allow list.
-func (s AllowListRole) IsAdmin() bool {
-	switch s {
-	case AllowListAdmin:
-		return true
-	default:
-		return false
-	}
-}
-
-// IsEnabled returns true if [s] indicates that it has permission to access the resource.
-func (s AllowListRole) IsEnabled() bool {
-	switch s {
-	case AllowListAdmin, AllowListEnabled:
-		return true
-	default:
-		return false
-	}
 }
 
 // getAllowListStatus returns the allow list role of [address] for the precompile
