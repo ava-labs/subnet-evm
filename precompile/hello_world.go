@@ -27,7 +27,7 @@ package precompile
 
 import (
 	"errors"
-	"fmt"
+
 	"math/big"
 	"strings"
 
@@ -35,6 +35,7 @@ import (
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -160,7 +161,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 
 	// CUSTOM CODE STARTS HERE
 	packedOutput, err := PackSayHelloOutput("Hello World!")
-	fmt.Print(packedOutput)
+	log.Info("hardcoded the packed output for sayHello", string(packedOutput))
 	if err != nil {
 		return nil, remainingGas, err
 	}
