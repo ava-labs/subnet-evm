@@ -41,7 +41,7 @@ var (
 // AllowListConfig specifies the initial set of allow list admins.
 type AllowListConfig struct {
 	AllowListAdmins  []common.Address `json:"adminAddresses"`
-	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
+	EnabledAddresses []common.Address `json:"enabledAddresses"` // initial enabled addresses
 }
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
