@@ -41,7 +41,7 @@ var (
 // AllowListConfig specifies the initial set of allow list admins.
 type AllowListConfig struct {
 	AllowListAdmins  []common.Address `json:"adminAddresses"`
-	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
+	EnabledAddresses []common.Address `json:"enabledAddresses"` // initial enabled addresses
 }
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
@@ -72,7 +72,7 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 	return true
 }
 
-// Verify returns an error if there is an overlapping address between admins and enableds
+// Verify returns an error if there is an overlapping address between admin and enabled roles
 func (c *AllowListConfig) Verify() error {
 	// check if both lists are empty
 	if len(c.EnabledAddresses) == 0 || len(c.AllowListAdmins) == 0 {
