@@ -19,11 +19,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
 	config.PrecompileUpgrade = PrecompileUpgrade{
-		TxAllowListConfig: &precompile.TxAllowListConfig{
-			UpgradeableConfig: precompile.UpgradeableConfig{
-				BlockTimestamp: big.NewInt(2),
-			},
-		},
+		TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(2), []common.Address{}),
 	}
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
@@ -196,7 +192,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 	}
 }
 
-func TestValidateRequiresSortedTimestamps(t *testing.T) {
+func TestVerifyRequiresSortedTimestamps(t *testing.T) {
 	admins := []common.Address{{1}}
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
