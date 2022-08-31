@@ -4,9 +4,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-extra_imports=$(grep -r --include='*.go' '"github.com/ethereum/go-ethereum/.*"' -o -h | sort -u | comm -23 - ./scripts/geth-allow-list.txt)
+extra_imports=$(grep -r --include='*.go' '"github.com/ethereum/go-ethereum/.*"' -o -h | sort -u | comm -23 - ./scripts/geth-allowed-packages.txt)
 if [ ! -z "${extra_imports}" ]; then
-    echo "new go-etherum imports should be added to ./scripts/geth-allow-list.txt to prevent accidental imports:"
+    echo "new go-ethereum imports should be added to ./scripts/geth-allow-list.txt to prevent accidental imports:"
     echo "${extra_imports}"
     exit 1
 fi
