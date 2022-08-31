@@ -111,8 +111,8 @@ Typically, custom codes are required in only those areas.
 5- Add your precompile upgrade in params/config.go
 6- Add your solidity interface and test contract to contract-examples/contracts
 7- Write solidity tests for your precompile in contract-examples/test
-8- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
-9- Create your genesis with your precompile enabled in tests/e2e/genesis/
+8- Create your genesis with your precompile enabled in tests/e2e/genesis/
+9- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
 10- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
 ```
 
@@ -239,10 +239,12 @@ contract HelloWorld {
 }
 ```
 
-The remaining steps are all about testing!
+## Step 7 
+We can now write our hardhat tes in `contract-examples/test`. 
 
 
 
+## Step 8 
 
 
 

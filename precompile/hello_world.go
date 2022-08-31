@@ -27,6 +27,7 @@ package precompile
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -60,7 +61,7 @@ var (
 	IHelloWorldPrecompile StatefulPrecompiledContract // will be initialized by init function
 
 	// THIS SHOULD BE MOVED TO precompile/params.go with a suitable hex address.
-	IHelloWorldAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
+	IHelloWorldAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
 )
 
 // IHelloWorldConfig implements the StatefulPrecompileConfig
@@ -83,7 +84,6 @@ func init() {
 // IHelloWorld .
 func NewIHelloWorldConfig(blockTimestamp *big.Int) *IHelloWorldConfig {
 	return &IHelloWorldConfig{
-
 		UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
 	}
 }
@@ -145,8 +145,8 @@ func PackSayHello() ([]byte, error) {
 
 // PackSayHelloOutput attempts to pack given  of type string
 // to conform the ABI outputs.
-func PackSayHelloOutput(string) ([]byte, error) {
-	return IHelloWorldABI.PackOutput("sayHello")
+func PackSayHelloOutput(arg string) ([]byte, error) {
+	return IHelloWorldABI.PackOutput("sayHello", arg)
 }
 
 func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -159,9 +159,8 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 	// no input provided for this function
 
 	// CUSTOM CODE STARTS HERE
-
-	var output string = "sayHello"
-	packedOutput, err := PackSayHelloOutput(output)
+	packedOutput, err := PackSayHelloOutput("Hello World!")
+	fmt.Print(packedOutput)
 	if err != nil {
 		return nil, remainingGas, err
 	}
