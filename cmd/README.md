@@ -529,9 +529,7 @@ Now we can run it, this time with the E2E flag on. We should expect this to pass
 Going back to the root let's run
 ```E2E=true ./scripts/run.sh```
 
-
-
-
+![](2022-09-01-16-53-58.png)
 
 
 
