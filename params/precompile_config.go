@@ -60,7 +60,7 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 	}
 }
 
-// VerifyPrecompileUpgrades checks [c.PrecompileUpgrades] is well formed:
+// verifyPrecompileUpgrades checks [c.PrecompileUpgrades] is well formed:
 // - [upgrades] must specify exactly one key per PrecompileUpgrade
 // - the specified blockTimestamps must monotonically increase
 // - the specified blockTimestamps must be compatible with those

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -92,7 +93,28 @@ func (c *ContractNativeMinterConfig) Equal(s StatefulPrecompileConfig) bool {
 	if !ok {
 		return false
 	}
-	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	eq := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	if !eq {
+		return false
+	}
+
+	if len(c.InitialMint) != len(other.InitialMint) {
+		return false
+	}
+
+	for address, amount := range c.InitialMint {
+		val, ok := other.InitialMint[address]
+		if !ok {
+			return false
+		}
+		bigIntAmount := (*big.Int)(amount)
+		bigIntVal := (*big.Int)(val)
+		if !utils.BigNumEqual(bigIntAmount, bigIntVal) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.

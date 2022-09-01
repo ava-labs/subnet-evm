@@ -61,11 +61,19 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 	if other == nil {
 		return false
 	}
-	if len(c.AllowListAdmins) != len(other.AllowListAdmins) {
+	if !checkList(c.AllowListAdmins, other.AllowListAdmins) {
 		return false
 	}
-	for i, admin := range c.AllowListAdmins {
-		if admin != other.AllowListAdmins[i] {
+
+	return checkList(c.EnabledAddresses, other.EnabledAddresses)
+}
+
+func checkList(current []common.Address, other []common.Address) bool {
+	if len(current) != len(other) {
+		return false
+	}
+	for i, address := range current {
+		if address != other[i] {
 			return false
 		}
 	}

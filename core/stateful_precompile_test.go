@@ -520,7 +520,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 	}
 
 	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
-	allowAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
+	enabledAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
 	noRoleAddr := common.HexToAddress("0xF60C45c607D0f41687c94C314d300f483661E13a")
 	testAddr := common.BigToAddress(common.Big2)
 
@@ -539,11 +539,11 @@ func TestContractNativeMinterRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: precompile.ErrCannotMint.Error(),
 		},
-		"mint funds from allow address": {
-			caller:         allowAddr,
+		"mint funds from enabled address": {
+			caller:         enabledAddr,
 			precompileAddr: precompile.ContractNativeMinterAddress,
 			input: func() []byte {
-				input, err := precompile.PackMintInput(allowAddr, common.Big1)
+				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
 				if err != nil {
 					panic(err)
 				}
@@ -553,7 +553,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				assert.Equal(t, common.Big1, state.GetBalance(allowAddr), "expected minted funds")
+				assert.Equal(t, common.Big1, state.GetBalance(enabledAddr), "expected minted funds")
 			},
 		},
 		"enabled role by config": {
@@ -573,11 +573,11 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 		},
 		"initial mint funds": {
-			caller:         allowAddr,
+			caller:         enabledAddr,
 			precompileAddr: precompile.ContractNativeMinterAddress,
 			config: &precompile.ContractNativeMinterConfig{
 				InitialMint: map[common.Address]*math.HexOrDecimal256{
-					allowAddr: math.NewHexOrDecimal256(2),
+					enabledAddr: math.NewHexOrDecimal256(2),
 				},
 			},
 			input: func() []byte {
@@ -587,7 +587,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
 			assertState: func(t *testing.T, state *state.StateDB) {
-				assert.Equal(t, common.Big2, state.GetBalance(allowAddr), "expected minted funds")
+				assert.Equal(t, common.Big2, state.GetBalance(enabledAddr), "expected minted funds")
 			},
 		},
 		"mint funds from admin address": {
@@ -639,10 +639,10 @@ func TestContractNativeMinterRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly mint with allow role fails": {
-			caller:         allowAddr,
+			caller:         enabledAddr,
 			precompileAddr: precompile.ContractNativeMinterAddress,
 			input: func() []byte {
-				input, err := precompile.PackMintInput(allowAddr, common.Big1)
+				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
 				if err != nil {
 					panic(err)
 				}
@@ -670,7 +670,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller:         adminAddr,
 			precompileAddr: precompile.ContractNativeMinterAddress,
 			input: func() []byte {
-				input, err := precompile.PackMintInput(allowAddr, common.Big1)
+				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
 				if err != nil {
 					panic(err)
 				}
@@ -731,7 +731,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 		},
 		"set allow role from non-admin fails": {
-			caller:         allowAddr,
+			caller:         enabledAddr,
 			precompileAddr: precompile.ContractNativeMinterAddress,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
@@ -753,10 +753,10 @@ func TestContractNativeMinterRun(t *testing.T) {
 			}
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetContractNativeMinterStatus(state, adminAddr, precompile.AllowListAdmin)
-			precompile.SetContractNativeMinterStatus(state, allowAddr, precompile.AllowListEnabled)
+			precompile.SetContractNativeMinterStatus(state, enabledAddr, precompile.AllowListEnabled)
 			precompile.SetContractNativeMinterStatus(state, noRoleAddr, precompile.AllowListNoRole)
 			assert.Equal(t, precompile.AllowListAdmin, precompile.GetContractNativeMinterStatus(state, adminAddr))
-			assert.Equal(t, precompile.AllowListEnabled, precompile.GetContractNativeMinterStatus(state, allowAddr))
+			assert.Equal(t, precompile.AllowListEnabled, precompile.GetContractNativeMinterStatus(state, enabledAddr))
 			assert.Equal(t, precompile.AllowListNoRole, precompile.GetContractNativeMinterStatus(state, noRoleAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
@@ -804,7 +804,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 	}
 
 	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
-	allowAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
+	enabledAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
 	noRoleAddr := common.HexToAddress("0xF60C45c607D0f41687c94C314d300f483661E13a")
 
 	for name, test := range map[string]test{
@@ -822,8 +822,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: precompile.ErrCannotChangeFee.Error(),
 		},
-		"set config from allow address": {
-			caller:         allowAddr,
+		"set config from enabled address": {
+			caller:         enabledAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
@@ -840,8 +840,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				assert.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
-		"set invalid config from allow address": {
-			caller:         allowAddr,
+		"set invalid config from enabled address": {
+			caller:         enabledAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
 				feeConfig := testFeeConfig
@@ -967,7 +967,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with allow role fails": {
-			caller:         allowAddr,
+			caller:         enabledAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
@@ -1027,7 +1027,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			},
 		},
 		"set allow role from non-admin fails": {
-			caller:         allowAddr,
+			caller:         enabledAddr,
 			precompileAddr: precompile.FeeConfigManagerAddress,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
@@ -1049,7 +1049,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			}
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetFeeConfigManagerStatus(state, adminAddr, precompile.AllowListAdmin)
-			precompile.SetFeeConfigManagerStatus(state, allowAddr, precompile.AllowListEnabled)
+			precompile.SetFeeConfigManagerStatus(state, enabledAddr, precompile.AllowListEnabled)
 			precompile.SetFeeConfigManagerStatus(state, noRoleAddr, precompile.AllowListNoRole)
 
 			if test.preCondition != nil {

@@ -95,7 +95,16 @@ func (c *FeeConfigManagerConfig) Equal(s StatefulPrecompileConfig) bool {
 	if !ok {
 		return false
 	}
-	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	eq := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	if !eq {
+		return false
+	}
+
+	if c.InitialFeeConfig == nil {
+		return other.InitialFeeConfig == nil
+	}
+
+	return c.InitialFeeConfig.Equal(other.InitialFeeConfig)
 }
 
 // Configure configures [state] with the desired admins based on [c].
@@ -103,10 +112,12 @@ func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateD
 	// Store the initial fee config into the state when the fee config manager activates.
 	if c.InitialFeeConfig != nil {
 		if err := StoreFeeConfig(state, *c.InitialFeeConfig, blockContext); err != nil {
+			// This should not happen since we already checked this config with Verify()
 			panic(fmt.Sprintf("invalid feeConfig provided: %s", err))
 		}
 	} else {
 		if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
+			// This should not happen since we already checked the chain config in the genesis creation.
 			panic(fmt.Sprintf("fee config should have been verified in genesis: %s", err))
 		}
 	}
