@@ -491,8 +491,48 @@ In `tests/e2e/genesis/`, let's create our own genesis file,  `hello_world.json`.
 }
 ```
 
+## Step 9
+In `tests/e2e/solidity/suites.go` we can now write our first e2e test!
+It's another nice copy and paste situation. 
 
-## Step 9 
+```
+ginkgo.It("hello world", func() {
+		err := startSubnet("./tests/e2e/genesis/hello_world.json")
+		gomega.Expect(err).Should(gomega.BeNil())
+		running := runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeTrue())
+		runHardhatTests("./test/HelloWorld.ts")
+		stopSubnet()
+		running = runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeFalse())
+	})
+
+	// ADD YOUR PRECOMPILE HERE
+	/*
+			ginkgo.It("your precompile", func() {
+			err := startSubnet("./tests/e2e/genesis/{your_precompile}.json")
+			gomega.Expect(err).Should(gomega.BeNil())
+			running := runner.IsRunnerUp()
+			gomega.Expect(running).Should(gomega.BeTrue())
+			runHardhatTests("./test/Example{YourPrecompile}Test.ts")
+			stopSubnet()
+			running = runner.IsRunnerUp()
+			gomega.Expect(running).Should(gomega.BeFalse())
+		})
+	*/
+```
+
+
+## Step 10
+
+Now we can run it, this time with the E2E flag on. We should expect this to pass since we did such thorough testing in Step 7. 
+Going back to the root let's run
+```E2E=true ./scripts/run.sh```
+
+
+
+
+
 
 
 
