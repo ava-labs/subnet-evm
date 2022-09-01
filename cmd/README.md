@@ -282,6 +282,80 @@ describe("HelloWorld", function () {
 
 Cool now let's see if it passes. We need to get a local subnet-evm up and running. If we go to the `./scripts/run.sh` file, we can see a script that installs avalanchego, sets up a local network, and spins up a subnet-evm using the genesis. 
 
+Before we run this script, we actually need to modify the genesis within `./scripts/run.sh` to enable our precompile. 
+
+
+```
+{
+  "config": {
+    "chainId": $CHAIN_ID,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "muirGlacierBlock": 0,
+    "subnetEVMTimestamp": 0,
+    "feeConfig": {
+      "gasLimit": 20000000,
+      "minBaseFee": 1000000000,
+      "targetGas": 100000000,
+      "baseFeeChangeDenominator": 48,
+      "minBlockGasCost": 0,
+      "maxBlockGasCost": 10000000,
+      "targetBlockRate": 2,
+      "blockGasCostStep": 500000
+    },
+    "helloWorldConfig": {
+      "blockTimestamp":0
+    }
+  },
+  "alloc": {
+    "${GENESIS_ADDRESS:2}": {
+      "balance": "0x52B7D2DCC80CD2E4000000"
+    }
+  },
+  "nonce": "0x0",
+  "timestamp": "0x0",
+  "extraData": "0x00",
+  "gasLimit": "0x1312D00",
+  "difficulty": "0x0",
+  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "coinbase": "0x0000000000000000000000000000000000000000",
+  "number": "0x0",
+  "gasUsed": "0x0",
+  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+Adding this to the config enables our precompile. 
+```
+  "helloWorldConfig": {
+      "blockTimestamp":0
+    }
+```
+
+As a reminder, we get the name `helloWorldConfig` by setting it in `./params/precompile_config.go`
+
+```
+// PrecompileUpgrade is a helper struct embedded in UpgradeConfig, representing
+// each of the possible stateful precompile types that can be activated
+// as a network upgrade.
+type PrecompileUpgrade struct {
+	ContractDeployerAllowListConfig *precompile.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
+	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
+	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
+	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+	IHelloWorldConfig               *precompile.IHelloWorldConfig               `json:"helloWorldConfig,omitempty"`
+	// ADD YOUR PRECOMPILE HERE
+	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
+}
+```
+
 Here's the usage of the script: 
 ```./scripts/run.sh [AVALANCHEGO VERSION] [GENESIS_ADDRESS] ```
 
@@ -360,6 +434,66 @@ Now if we go to `./contract-examples`, we can finally run our tests.
 Great they passed! All the functions we implemented in the precompile work as expected!
 
 ## Step 8 
+
+Now we can create our own genesis. Since we modified the genesis in the `run.sh` script, we can use that!
+In `tests/e2e/genesis/`, let's create our own genesis file,  `hello_world.json`. This should be pretty similar to the genesis we editted previously. 
+
+```
+{
+    "config": {
+        "chainId": 99999,
+        "homesteadBlock": 0,
+        "eip150Block": 0,
+        "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "muirGlacierBlock": 0,
+        "subnetEVMTimestamp": 0,
+        "feeConfig": {
+            "gasLimit": 20000000,
+            "minBaseFee": 1000000000,
+            "targetGas": 100000000,
+            "baseFeeChangeDenominator": 48,
+            "minBlockGasCost": 0,
+            "maxBlockGasCost": 10000000,
+            "targetBlockRate": 2,
+            "blockGasCostStep": 500000
+        },
+        "helloWorldConfig": {
+            "blockTimestamp": 0,
+            "adminAddresses": [
+                "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+            ]
+        }
+    },
+    "alloc": {
+        "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
+            "balance": "0x52B7D2DCC80CD2E4000000"
+        },
+        "0x0Fa8EA536Be85F32724D57A37758761B86416123": {
+            "balance": "0x52B7D2DCC80CD2E4000000"
+        }
+    },
+    "nonce": "0x0",
+    "timestamp": "0x0",
+    "extraData": "0x00",
+    "gasLimit": "0x1312D00",
+    "difficulty": "0x0",
+    "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "coinbase": "0x0000000000000000000000000000000000000000",
+    "number": "0x0",
+    "gasUsed": "0x0",
+    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+
+## Step 9 
+
 
 
 
