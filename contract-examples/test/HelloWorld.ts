@@ -8,33 +8,16 @@ import {
     ContractFactory,
 } from "ethers"
 
-
-const HELLO_WORLD_ADDRESS = "0x0200000000000000000000000000000000000004";
-const modifiedGreeting = "What is up!"
-
-describe.only("HelloWorld", function () {
+describe("HelloWorld", function () {
     let helloWorldContract: Contract;
-    let helloWorldPrecompile: Contract;
-    let account0;
-    let account1;
 
     before(async function () {
-        // Set up accounts 
-        let accounts = await ethers.getSigners();
-        account0 = accounts[0];
-        account1 = accounts[1];
-        console.log(`Account 0 Address: ${account0.address}`);
-        console.log(`Account 1 Address: ${account1.address}`);
-
         // Deploy Hello World Contract
         const ContractF: ContractFactory = await ethers.getContractFactory("HelloWorld");
         helloWorldContract = await ContractF.deploy();
         await helloWorldContract.deployed();
         const helloWorldContractAddress: string = helloWorldContract.address;
         console.log(`Contract deployed to: ${helloWorldContractAddress}`);
-
-        //Set up precompile
-        // helloWorldPrecompile = await ethers.getContractAt("IHelloWorld", HELLO_WORLD_ADDRESS, account0);
     });
 
     it("should sayHello properly", async function () {
