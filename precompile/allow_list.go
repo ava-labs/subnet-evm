@@ -74,7 +74,7 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 
 // Verify returns an error if there is an overlapping address between admin and enabled roles
 func (c *AllowListConfig) Verify() error {
-	// check if both lists are empty
+	// return early if either list is empty
 	if len(c.EnabledAddresses) == 0 || len(c.AllowListAdmins) == 0 {
 		return nil
 	}
