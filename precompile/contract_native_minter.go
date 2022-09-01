@@ -40,7 +40,7 @@ type ContractNativeMinterConfig struct {
 }
 
 // NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist with [initialMint] as initial mint operation.
+// ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
 func NewContractNativeMinterConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *ContractNativeMinterConfig {
 	return &ContractNativeMinterConfig{
 		AllowListConfig: AllowListConfig{
