@@ -62,7 +62,7 @@ var (
 	IHelloWorldPrecompile StatefulPrecompiledContract // will be initialized by init function
 
 	// THIS SHOULD BE MOVED TO precompile/params.go with a suitable hex address.
-	IHelloWorldAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
+	// IHelloWorldAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
 )
 
 // IHelloWorldConfig implements the StatefulPrecompileConfig
@@ -129,8 +129,8 @@ func (c *IHelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockConte
 	// 3) If BlockTimestamp is 1000, this will be called while processing the first block whose timestamp is >= 1000
 	//
 	// Set the initial value under [common.BytesToHash([]byte("recipient")] to "Hello World!"
-	res := common.LeftPadBytes([]byte("Hello World"), common.HashLength)
-	state.SetState(HelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
+	res := common.LeftPadBytes([]byte("Hello World!"), common.HashLength)
+	state.SetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for IHelloWorld.
@@ -158,10 +158,13 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 	// no input provided for this function
-
 	// CUSTOM CODE STARTS HERE
-	packedOutput, err := PackSayHelloOutput("Hello World!")
-	log.Info("hardcoded the packed output for sayHello", string(packedOutput))
+	// Get the current state
+	currentState := accessibleState.GetStateDB()
+	// Get the value set at recipient
+	value := currentState.GetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")))
+	// Do some processing and pack the output
+	packedOutput, err := PackSayHelloOutput(string(common.TrimLeftZeroes(value.Bytes())))
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -206,7 +209,7 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	// CUSTOM CODE STARTS HERE
 	// setGreeting is the execution function of "SetGreeting(name string)" and sets the recipient in the string returned by hello world
 	res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
-	accessibleState.GetStateDB().SetState(HelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
+	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
 
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
@@ -226,11 +229,15 @@ func createIHelloWorldPrecompile(precompileAddr common.Address) StatefulPrecompi
 	}
 	functions = append(functions, newStatefulPrecompileFunction(methodSayHello.ID, sayHello))
 
+	log.Info("methodSayHello.ID", "byte", methodSayHello.ID)
+
 	methodSetGreeting, ok := IHelloWorldABI.Methods["setGreeting"]
 	if !ok {
 		panic("given method does not exist in the ABI")
 	}
 	functions = append(functions, newStatefulPrecompileFunction(methodSetGreeting.ID, setGreeting))
+
+	log.Info("methodSetGreeting.ID", "byte", methodSetGreeting.ID)
 
 	// Construct the contract with no fallback function.
 	contract := newStatefulPrecompileWithFunctionSelectors(nil, functions)
