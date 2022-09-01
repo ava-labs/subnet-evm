@@ -19,7 +19,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
 	config.PrecompileUpgrade = PrecompileUpgrade{
-		TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(2), []common.Address{}),
+		TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(2), nil, nil),
 	}
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
@@ -28,7 +28,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 		},
 		{
 			// re-enable TxAllowList at timestamp 5
-			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(5), admins),
+			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(5), admins, nil),
 		},
 	}
 
@@ -52,7 +52,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	badConfig.PrecompileUpgrades = append(
 		badConfig.PrecompileUpgrades,
 		PrecompileUpgrade{
-			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(5), admins),
+			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(5), admins, nil),
 		},
 	)
 	err = badConfig.Verify()
@@ -70,7 +70,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "enable and disable tx allow list",
 			upgrades: []PrecompileUpgrade{
 				{
-					TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins),
+					TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins, nil),
 				},
 				{
 					TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(2)),
@@ -82,16 +82,13 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "invalid allow list config in tx allowlist",
 			upgrades: []PrecompileUpgrade{
 				{
-					TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins),
+					TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(1), admins, nil),
 				},
 				{
 					TxAllowListConfig: precompile.NewDisableTxAllowListConfig(big.NewInt(2)),
 				},
 				{
-					TxAllowListConfig: &precompile.TxAllowListConfig{
-						AllowListConfig:   precompile.AllowListConfig{AllowListAdmins: admins, EnabledAddresses: admins},
-						UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-					},
+					TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(3), admins, admins),
 				},
 			},
 			expectedError: "cannot set address",
@@ -100,13 +97,10 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "invalid initial fee manager config",
 			upgrades: []PrecompileUpgrade{
 				{
-					FeeManagerConfig: &precompile.FeeConfigManagerConfig{
-						AllowListConfig:   precompile.AllowListConfig{AllowListAdmins: admins},
-						UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-						InitialFeeConfig: &commontype.FeeConfig{
+					FeeManagerConfig: precompile.NewFeeManagerConfig(big.NewInt(3), admins, nil,
+						&commontype.FeeConfig{
 							GasLimit: big.NewInt(-1),
-						},
-					},
+						}),
 				},
 			},
 			expectedError: "gasLimit = -1 cannot be less than or equal to 0",
@@ -115,13 +109,10 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "invalid initial fee manager config gas limit 0",
 			upgrades: []PrecompileUpgrade{
 				{
-					FeeManagerConfig: &precompile.FeeConfigManagerConfig{
-						AllowListConfig:   precompile.AllowListConfig{AllowListAdmins: admins},
-						UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-						InitialFeeConfig: &commontype.FeeConfig{
+					FeeManagerConfig: precompile.NewFeeManagerConfig(big.NewInt(3), admins, nil,
+						&commontype.FeeConfig{
 							GasLimit: big.NewInt(0),
-						},
-					},
+						}),
 				},
 			},
 			expectedError: "gasLimit = 0 cannot be less than or equal to 0",
@@ -154,23 +145,17 @@ func TestVerifyPrecompiles(t *testing.T) {
 		{
 			name: "invalid allow list config in tx allowlist",
 			upgrade: PrecompileUpgrade{
-				TxAllowListConfig: &precompile.TxAllowListConfig{
-					AllowListConfig:   precompile.AllowListConfig{AllowListAdmins: admins, EnabledAddresses: admins},
-					UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-				},
+				TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(3), admins, admins),
 			},
 			expectedError: "cannot set address",
 		},
 		{
 			name: "invalid initial fee manager config",
 			upgrade: PrecompileUpgrade{
-				FeeManagerConfig: &precompile.FeeConfigManagerConfig{
-					AllowListConfig:   precompile.AllowListConfig{AllowListAdmins: admins},
-					UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-					InitialFeeConfig: &commontype.FeeConfig{
+				FeeManagerConfig: precompile.NewFeeManagerConfig(big.NewInt(3), admins, nil,
+					&commontype.FeeConfig{
 						GasLimit: big.NewInt(-1),
-					},
-				},
+					}),
 			},
 			expectedError: "gasLimit = -1 cannot be less than or equal to 0",
 		},
@@ -198,10 +183,10 @@ func TestVerifyRequiresSortedTimestamps(t *testing.T) {
 	config := &baseConfig
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
-			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(2), admins),
+			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(2), admins, nil),
 		},
 		{
-			ContractDeployerAllowListConfig: precompile.NewContractDeployerAllowListConfig(big.NewInt(1), admins),
+			ContractDeployerAllowListConfig: precompile.NewContractDeployerAllowListConfig(big.NewInt(1), admins, nil),
 		},
 	}
 
@@ -215,7 +200,7 @@ func TestGetPrecompileConfig(t *testing.T) {
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
 	config.PrecompileUpgrade = PrecompileUpgrade{
-		ContractDeployerAllowListConfig: precompile.NewContractDeployerAllowListConfig(big.NewInt(10), []common.Address{}),
+		ContractDeployerAllowListConfig: precompile.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
 	}
 
 	deployerConfig := config.GetContractDeployerAllowListConfig(big.NewInt(0))

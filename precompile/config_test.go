@@ -20,46 +20,31 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 		expectedError string
 	}{
 		{
-			name: "invalid allow list config in tx allowlist",
-			config: &TxAllowListConfig{
-				AllowListConfig:   AllowListConfig{AllowListAdmins: admins, EnabledAddresses: admins},
-				UpgradeableConfig: UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-			},
+			name:          "invalid allow list config in tx allowlist",
+			config:        NewTxAllowListConfig(big.NewInt(3), admins, admins),
 			expectedError: "cannot set address",
 		},
 		{
-			name: "invalid allow list config in deployer allowlist",
-			config: &ContractDeployerAllowListConfig{
-				AllowListConfig:   AllowListConfig{AllowListAdmins: admins, EnabledAddresses: admins},
-				UpgradeableConfig: UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-			},
+			name:          "invalid allow list config in deployer allowlist",
+			config:        NewTxAllowListConfig(big.NewInt(3), admins, admins),
 			expectedError: "cannot set address",
 		},
 		{
-			name: "invalid allow list config in native minter allowlist",
-			config: &ContractNativeMinterConfig{
-				AllowListConfig:   AllowListConfig{AllowListAdmins: admins, EnabledAddresses: admins},
-				UpgradeableConfig: UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-			},
+			name:          "invalid allow list config in native minter allowlist",
+			config:        NewTxAllowListConfig(big.NewInt(3), admins, admins),
 			expectedError: "cannot set address",
 		},
 		{
-			name: "invalid allow list config in fee manager allowlist",
-			config: &FeeConfigManagerConfig{
-				AllowListConfig:   AllowListConfig{AllowListAdmins: admins, EnabledAddresses: admins},
-				UpgradeableConfig: UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-			},
+			name:          "invalid allow list config in fee manager allowlist",
+			config:        NewTxAllowListConfig(big.NewInt(3), admins, admins),
 			expectedError: "cannot set address",
 		},
 		{
 			name: "invalid initial fee manager config",
-			config: &FeeConfigManagerConfig{
-				AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
-				UpgradeableConfig: UpgradeableConfig{BlockTimestamp: big.NewInt(3)},
-				InitialFeeConfig: &commontype.FeeConfig{
+			config: NewFeeManagerConfig(big.NewInt(3), admins, nil,
+				&commontype.FeeConfig{
 					GasLimit: big.NewInt(0),
-				},
-			},
+				}),
 			expectedError: "gasLimit = 0 cannot be less than or equal to 0",
 		},
 	}

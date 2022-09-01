@@ -60,11 +60,15 @@ type FeeConfigManagerConfig struct {
 }
 
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// FeeConfigManager with the given [admins] as members of the allowlist.
-func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address) *FeeConfigManagerConfig {
+// FeeConfigManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
+func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeConfigManagerConfig {
 	return &FeeConfigManagerConfig{
-		AllowListConfig:   AllowListConfig{AllowListAdmins: admins},
+		AllowListConfig: AllowListConfig{
+			AllowListAdmins:  admins,
+			EnabledAddresses: enableds,
+		},
 		UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
+		InitialFeeConfig:  initialConfig,
 	}
 }
 
