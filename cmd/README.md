@@ -240,9 +240,124 @@ contract HelloWorld {
 ```
 
 ## Step 7 
-We can now write our hardhat tes in `contract-examples/test`. 
+We can now write our hardhat test in `contract-examples/test`. I'm calling this file `TestHelloWorld.ts`
+
+```
+// (c) 2019-2022, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
+import { expect } from "chai";
+import { ethers } from "hardhat"
+import {
+    Contract,
+    ContractFactory,
+} from "ethers"
+
+describe("HelloWorld", function () {
+    let helloWorldContract: Contract;
+
+    before(async function () {
+        // Deploy Hello World Contract
+        const ContractF: ContractFactory = await ethers.getContractFactory("HelloWorld");
+        helloWorldContract = await ContractF.deploy();
+        await helloWorldContract.deployed();
+        const helloWorldContractAddress: string = helloWorldContract.address;
+        console.log(`Contract deployed to: ${helloWorldContractAddress}`);
+    });
+
+    it("should sayHello properly", async function () {
+        let result = await helloWorldContract.callStatic.sayHello();
+        expect(result).to.equal("Hello World!");
+    });
+
+    it("should setGreeting and sayHello", async function () {
+        const modifiedGreeting = "What's up";
+        let tx = await helloWorldContract.setGreeting(modifiedGreeting);
+        await tx.wait();
+
+        expect(await helloWorldContract.callStatic.sayHello()).to.be.equal(modifiedGreeting);
+    });
+});
+```
+
+Cool now let's see if it passes. We need to get a local subnet-evm up and running. If we go to the `./scripts/run.sh` file, we can see a script that installs avalanchego, sets up a local network, and spins up a subnet-evm using the genesis. 
+
+Here's the usage of the script: 
+```./scripts/run.sh [AVALANCHEGO VERSION] [GENESIS_ADDRESS] ```
+
+At the time of writing, the latest version of avalanchego is 1.7.18
+so 
+
+```./scripts/run.sh 1.7.18 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC```
 
 
+Note that this address `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is a prefunded address on the local network, see here for more info. The private key for this address is `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`
+
+If start up is successful then you should see something like this, 
+```
+MetaMask Quick Start:
+Funded Address: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+Network Name: Local EVM
+RPC URL: http://127.0.0.1:23518/ext/bc/2YtHHWeLCnwdqxExAQerayn2oMwZVdKbJUAQEom67eq36PWnax/rpc
+Chain ID: 99999
+Currency Symbol: LEVM
+network-runner RPC server is running on PID 64362...
+
+use the following command to terminate:
+
+pkill -P 64362 && kill -2 64362 && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+```
+
+Sweet! Now we have a rpc url that can be used to talk to the network!
+
+We now need to modify the hardhat config located in `./contract-examples/contracts/hardhat.config.ts`
+
+We need to modify the `local` network. 
+Let's change `chainId`, `gas`, and `gasPrice`.
+
+```
+networks: {
+    local: {
+      //"http://{ip}:{port}/ext/bc/{chainID}/rpc
+      // modify this in the local_rpc.json
+      url: localRPC,
+      chainId: 99999,
+      accounts: [
+        "0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027",
+        "0x7b4198529994b0dc604278c99d153cfd069d594753d471171a1d102a10438e07",
+        "0x15614556be13730e9e8d6eacc1603143e7b96987429df8726384c2ec4502ef6e",
+        "0x31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc",
+        "0x6934bef917e01692b789da754a0eae31a8536eb465e7bff752ea291dad88c675",
+        "0xe700bdbdbc279b808b1ec45f8c2370e4616d3a02c336e68d85d4668e08f53cff",
+        "0xbbc2865b76ba28016bc2255c7504d000e046ae01934b04c694592a6276988630",
+        "0xcdbfd34f687ced8c6968854f8a99ae47712c4f4183b78dcc4a903d1bfe8cbf60",
+        "0x86f78c5416151fe3546dece84fda4b4b1e36089f2dbc48496faf3a950f16157c",
+        "0x750839e9dbbd2a0910efe40f50b2f3b2f2f59f5580bb4b83bd8c1201cf9a010a"
+      ],
+      gasPrice: 25000000000,
+      gas: 10000000,
+    },
+```
+
+We also need to make sure `localRPC` points to the right value.
+
+Let's copy `local_rpc.example.json`. 
+
+``` cp local_rpc.example.json local_rpc.json ``` 
+
+Now in `local_rpc.json` we can modify the rpc url to the one we just created. It should look something like this. 
+
+```
+{
+  "rpc": "http://127.0.0.1:23518/ext/bc/2YtHHWeLCnwdqxExAQerayn2oMwZVdKbJUAQEom67eq36PWnax/rpc"
+}
+```
+
+Now if we go to `./contract-examples`, we can finally run our tests. 
+
+``` npx hardhat test --network local ```
+
+Great they passed! All the functions we implemented in the precompile work as expected!
 
 ## Step 8 
 
