@@ -84,7 +84,9 @@ Now that we have an abi for the precompile gen tool to interact with. We can run
 
 In the root of the repo run 
 ```
-go run ./cmd/precompilegen/main.go --abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi --type HelloWorld --pkg precompile --out ./precompile/hello_world.go```
+go run ./cmd/precompilegen/main.go --abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi --type HelloWorld --pkg precompile --out ./precompile/hello_world.go
+
+```
 
 Wow! We just got a precompile template that's mostly complete located at `./precompile/hello_world.go`. Let's fill out the rest!
 
