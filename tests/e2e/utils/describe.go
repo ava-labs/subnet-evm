@@ -12,7 +12,3 @@ import (
 func DescribeLocal(text string, body func()) bool {
 	return ginkgo.Describe("[Local] "+text, body)
 }
-
-func DescribePrecompile(body func()) bool {
-	return ginkgo.Describe("[Precompiles]", ginkgo.Ordered, body)
-}

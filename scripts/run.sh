@@ -7,13 +7,10 @@ set -e
 # ./scripts/run.sh
 #
 # run without e2e tests, and with simulator
-# RUN_SIMULATOR=true ./scripts/run.sh
+# SKIP_NETWORK_RUNNER_SHUTDOWN=true RUN_SIMULATOR=true ./scripts/run.sh
 #
 # run without e2e tests with DEBUG log level
 # AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh
-#
-# run with e2e tests
-# ENABLE_SOLIDITY_TESTS=true ./scripts/run.sh
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -27,20 +24,20 @@ SUBNET_EVM_PATH=$(
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
 VERSION=$avalanche_version
+
+# "ewoq" key, do not include "0x"
 DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
-SKIP_NETWORK_RUNNER_START=${SKIP_NETWORK_RUNNER_START:-false}
 SKIP_NETWORK_RUNNER_SHUTDOWN=${SKIP_NETWORK_RUNNER_SHUTDOWN:-false}
 RUN_SIMULATOR=${RUN_SIMULATOR:-false}
-ENABLE_SOLIDITY_TESTS=${ENABLE_SOLIDITY_TESTS:-false}
 AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
 ANR_VERSION=$network_runner_version
 GINKGO_VERSION=$ginkgo_version
 
-GINKGO_SKIP_FLAGS="\[Precompiles\]"
-if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
-  GINKGO_SKIP_FLAGS=""
+GINKGO_SKIP_FLAGS=""
+if [[ ${RUN_SIMULATOR} == true ]]; then
+  GINKGO_SKIP_FLAGS="\[Solidity Counter\]"
 fi
 
 echo "Running with:"
@@ -48,10 +45,8 @@ echo AVALANCE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
 echo GINKGO_VERSION: ${GINKGO_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
-echo SKIP_NETWORK_RUNNER_START: ${SKIP_NETWORK_RUNNER_START}
 echo SKIP_NETWORK_RUNNER_SHUTDOWN: ${SKIP_NETWORK_RUNNER_SHUTDOWN}
 echo RUN_SIMULATOR: ${RUN_SIMULATOR}
-echo ENABLE_SOLIDITY_TESTS: ${ENABLE_SOLIDITY_TESTS}
 echo GINKGO_SKIP_FLAGS: ${GINKGO_SKIP_FLAGS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
@@ -229,6 +224,8 @@ run_ginkgo() {
   echo "building e2e.test"
   # to install the ginkgo binary (required for test build and run)
   go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
+  ginkgo -h
+
   ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 
   # By default, it runs all e2e test cases!
@@ -243,7 +240,7 @@ run_ginkgo() {
     --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
     --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
-    --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} \
+    --contracts-foundry-dir=./contracts-foundry \
     --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} --ginkgo.skip "${GINKGO_SKIP_FLAGS}"
 }
 
@@ -264,21 +261,10 @@ run_simulator() {
   --priority-fee=1
 }
 
-if [[ ${SKIP_NETWORK_RUNNER_START} == false ]]; then
-  echo "running ginkgo"
-  run_ginkgo
-  # to fail the script if ginkgo failed
-  EXIT_CODE=$?
-else
-  echo "running scripts/parser/main.go"
-  go run scripts/parser/main.go \
-    $BASEDIR/avalanchego-${VERSION}/output.yaml \
-    $CHAIN_ID $GENESIS_ADDRESS \
-    $BASEDIR/avalanchego-${VERSION}/avalanchego \
-    ${AVALANCHEGO_PLUGIN_DIR} \
-    "0.0.0.0:12342" \
-    "$BASEDIR/genesis.json"
-fi
+echo "running ginkgo"
+run_ginkgo
+# to fail the script if ginkgo failed
+EXIT_CODE=$?
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then

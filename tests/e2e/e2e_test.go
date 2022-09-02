@@ -15,15 +15,13 @@ import (
 	"github.com/ava-labs/avalanche-network-runner/client"
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/tests/e2e/runner"
+	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
 	ginkgo "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/formatter"
 	"github.com/onsi/gomega"
-	"gopkg.in/yaml.v2"
 
 	_ "github.com/ava-labs/subnet-evm/tests/e2e/ping"
-	_ "github.com/ava-labs/subnet-evm/tests/e2e/solidity"
+	_ "github.com/ava-labs/subnet-evm/tests/e2e/solidity/counter"
 )
 
 func TestE2E(t *testing.T) {
@@ -36,16 +34,16 @@ var (
 	gRPCEp                string
 	gRPCGatewayEp         string
 
-	outputFile string
-	pluginDir  string
-
 	// sets the "avalanchego" exec path
-	execPath string
-
+	execPath      string
+	pluginDir     string
 	vmGenesisPath string
 
-	skipNetworkRunnerStart    bool
+	outputFile string
+
 	skipNetworkRunnerShutdown bool
+
+	contractsFoundryDir string
 )
 
 func init() {
@@ -92,17 +90,19 @@ func init() {
 		"",
 		"output YAML path to write local cluster information",
 	)
-	flag.BoolVar(
-		&skipNetworkRunnerStart,
-		"skip-network-runner-start",
-		false,
-		"'true' to skip network runner start",
-	)
+
 	flag.BoolVar(
 		&skipNetworkRunnerShutdown,
 		"skip-network-runner-shutdown",
 		false,
 		"'true' to skip network runner shutdown",
+	)
+
+	flag.StringVar(
+		&contractsFoundryDir,
+		"contracts-foundry-dir",
+		"",
+		"Directory for foundry project",
 	)
 }
 
@@ -124,26 +124,33 @@ func init() {
 var subnetEVMRPCEps []string
 
 var _ = ginkgo.BeforeSuite(func() {
+	// Create the logger
+	logLevel, err := logging.ToLevel(networkRunnerLogLevel)
+	gomega.Expect(err).Should(gomega.BeNil())
+
+	logFactory := logging.NewFactory(logging.Config{
+		DisplayLevel: logLevel,
+		LogLevel:     logging.Off, // Disable writing logs to files in favor of only writing logs to display
+	})
+	log, err := logFactory.Make("main")
+	gomega.Expect(err).Should(gomega.BeNil())
+
+	runnerCli, err := client.New(client.Config{
+		Endpoint:    gRPCEp,
+		DialTimeout: 10 * time.Second,
+	}, log)
+	gomega.Expect(err).Should(gomega.BeNil())
+
 	utils.SetOutputFile(outputFile)
-	utils.SetPluginDir(pluginDir)
 	utils.SetExecPath(execPath)
 	utils.SetPluginDir(pluginDir)
 	utils.SetVmGenesisPath(vmGenesisPath)
-	utils.SetSkipNetworkRunnerStart(skipNetworkRunnerStart)
 	utils.SetSkipNetworkRunnerShutdown(skipNetworkRunnerShutdown)
-
-	err := runner.InitializeRunner(execPath, gRPCEp, networkRunnerLogLevel)
-	gomega.Expect(err).Should(gomega.BeNil())
-
-	if utils.GetSkipNetworkRunnerStart() {
-		return
-	}
-
-	runnerCli := runner.GetClient()
-	gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
+	utils.SetClient(runnerCli)
+	utils.SetContractsFoundryDir(contractsFoundryDir)
 
 	ginkgo.By("calling start API via network runner", func() {
-		outf("{{green}}sending 'start' with binary path:{{/}} %q\n", utils.GetExecPath())
+		utils.Outf("{{green}}sending 'start' with binary path:{{/}} %q\n", utils.GetExecPath())
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		resp, err := runnerCli.Start(
 			ctx,
@@ -159,13 +166,13 @@ var _ = ginkgo.BeforeSuite(func() {
 			))
 		cancel()
 		gomega.Expect(err).Should(gomega.BeNil())
-		outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
+		utils.Outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
 	})
 
 	// TODO: network runner health should imply custom VM healthiness
 	// or provide a separate API for custom VM healthiness
 	// "start" is async, so wait some time for cluster health
-	outf("\n{{magenta}}sleeping before checking custom VM status...{{/}}\n")
+	utils.Outf("\n{{magenta}}sleeping before checking custom VM status...{{/}}\n")
 	time.Sleep(2 * time.Minute)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -177,7 +184,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	blockchainID, logsDir := "", ""
 
 	// wait up to 5-minute for custom VM installation
-	outf("\n{{magenta}}waiting for all custom VMs to report healthy...{{/}}\n")
+	utils.Outf("\n{{magenta}}waiting for all custom VMs to report healthy...{{/}}\n")
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Minute)
 done:
 	for ctx.Err() == nil {
@@ -187,7 +194,7 @@ done:
 		case <-time.After(5 * time.Second):
 		}
 
-		outf("{{magenta}}checking custom VM status{{/}}\n")
+		utils.Outf("{{magenta}}checking custom VM status{{/}}\n")
 		cctx, ccancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		resp, err := runnerCli.Status(cctx)
 		ccancel()
@@ -199,7 +206,7 @@ done:
 		for blkChainID, vmInfo := range resp.ClusterInfo.CustomChains {
 			if vmInfo.VmId == vmID.String() {
 				blockchainID = blkChainID
-				outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", vmInfo)
+				utils.Outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", vmInfo)
 				break done
 			}
 		}
@@ -214,27 +221,29 @@ done:
 	uris, err := runnerCli.URIs(cctx)
 	ccancel()
 	gomega.Expect(err).Should(gomega.BeNil())
-	outf("{{blue}}avalanche HTTP RPCs URIs:{{/}} %q\n", uris)
+	utils.Outf("{{blue}}avalanche HTTP RPCs URIs:{{/}} %q\n", uris)
 
 	for _, u := range uris {
 		rpcEP := fmt.Sprintf("%s/ext/bc/%s/rpc", u, blockchainID)
 		subnetEVMRPCEps = append(subnetEVMRPCEps, rpcEP)
-		outf("{{blue}}avalanche subnet-evm RPC:{{/}} %q\n", rpcEP)
+		utils.Outf("{{blue}}avalanche subnet-evm RPC:{{/}} %q\n", rpcEP)
 	}
 
 	pid := os.Getpid()
-	outf("{{blue}}{{bold}}writing output %q with PID %d{{/}}\n", utils.GetOutputPath(), pid)
-	ci := clusterInfo{
-		URIs:     uris,
-		Endpoint: fmt.Sprintf("/ext/bc/%s", blockchainID),
-		PID:      pid,
-		LogsDir:  logsDir,
+	utils.Outf("{{blue}}{{bold}}writing output %q with PID %d{{/}}\n", utils.GetOutputPath(), pid)
+	ci := utils.ClusterInfo{
+		URIs:                  uris,
+		Endpoint:              fmt.Sprintf("/ext/bc/%s", blockchainID),
+		PID:                   pid,
+		LogsDir:               logsDir,
+		SubnetEVMRPCEndpoints: subnetEVMRPCEps,
 	}
+	utils.SetClusterInfo(ci)
 	gomega.Expect(ci.Save(utils.GetOutputPath())).Should(gomega.BeNil())
 
 	b, err := os.ReadFile(utils.GetOutputPath())
 	gomega.Expect(err).Should(gomega.BeNil())
-	outf("\n{{blue}}$ cat %s:{{/}}\n%s\n", utils.GetOutputPath(), string(b))
+	utils.Outf("\n{{blue}}$ cat %s:{{/}}\n%s\n", utils.GetOutputPath(), string(b))
 })
 
 var _ = ginkgo.AfterSuite(func() {
@@ -243,43 +252,28 @@ var _ = ginkgo.AfterSuite(func() {
 	}
 
 	// if cluster is running, shut it down
-	running := runner.IsRunnerUp()
-	if running {
-		err := runner.StopNetwork()
-		gomega.Expect(err).Should(gomega.BeNil())
+	if isRunnerUp() {
+		gomega.Expect(stopNetwork()).Should(gomega.BeNil())
 	}
-	err := runner.ShutdownClient()
-	gomega.Expect(err).Should(gomega.BeNil())
+	gomega.Expect(closeClient()).Should(gomega.BeNil())
 })
 
-// Outputs to stdout.
-//
-// e.g.,
-//   Out("{{green}}{{bold}}hi there %q{{/}}", "aa")
-//   Out("{{magenta}}{{bold}}hi therea{{/}} {{cyan}}{{underline}}b{{/}}")
-//
-// ref.
-// https://github.com/onsi/ginkgo/blob/v2.0.0/formatter/formatter.go#L52-L73
-//
-func outf(format string, args ...interface{}) {
-	s := formatter.F(format, args...)
-	fmt.Fprint(formatter.ColorableStdOut, s)
+func isRunnerUp() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	_, err := utils.GetClient().Health(ctx)
+	cancel()
+	return err == nil
 }
 
-// clusterInfo represents the local cluster information.
-type clusterInfo struct {
-	URIs     []string `json:"uris"`
-	Endpoint string   `json:"endpoint"`
-	PID      int      `json:"pid"`
-	LogsDir  string   `json:"logsDir"`
+func stopNetwork() error {
+	utils.Outf("{{red}}shutting down network{{/}}\n")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	_, err := utils.GetClient().Stop(ctx)
+	cancel()
+	return err
 }
 
-const fsModeWrite = 0o600
-
-func (ci clusterInfo) Save(p string) error {
-	ob, err := yaml.Marshal(ci)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(p, ob, fsModeWrite)
+func closeClient() error {
+	utils.Outf("{{red}}shutting down client{{/}}\n")
+	return utils.GetClient().Close()
 }

@@ -198,12 +198,12 @@ func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *bi
 		})
 		signedTx, err := types.SignTx(tx, signer, w.k.PrivKey)
 		if err != nil {
-			log.Printf("failed to sign transaction: %s", err.Error())
+			log.Printf("failed to sign transaction: %s (key address %s)", err.Error(), w.k.Address)
 			time.Sleep(retryDelay)
 			continue
 		}
 		if err := w.c.SendTransaction(ctx, signedTx); err != nil {
-			log.Printf("failed to send transaction: %s", err.Error())
+			log.Printf("failed to send transaction: %s (key address %s)", err.Error(), w.k.Address)
 			time.Sleep(retryDelay)
 			continue
 		}
