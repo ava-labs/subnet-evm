@@ -260,9 +260,11 @@ Let's add our key.
 ![](2022-09-01-23-20-53.png)
 
 Let's add our precompile config to `PrecompileUpgrade`
+
 ![](2022-09-01-23-19-42.png)
 
 Finally, we can add a getter function. 
+
 ![](2022-09-01-23-23-20.png)
 
 Done! All we had to do was follow the comments.
