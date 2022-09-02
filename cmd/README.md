@@ -56,7 +56,8 @@ IHelloWorld.abi
 
 The precompile tool takes can take in 4 arguments. 
 
-It needs an abi so it can bind it to the precompile template. 
+It needs an abi so it can bind it to the precompile template.
+
 `--abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi`
 
 It takes in a type which it uses as a struct name for the precompile. This is optional 
@@ -85,7 +86,6 @@ Now that we have an abi for the precompile gen tool to interact with. We can run
 In the root of the repo run 
 ```
 go run ./cmd/precompilegen/main.go --abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi --type HelloWorld --pkg precompile --out ./precompile/hello_world.go
-
 ```
 
 Wow! We just got a precompile template that's mostly complete located at `./precompile/hello_world.go`. Let's fill out the rest!
@@ -139,7 +139,9 @@ We'll probably have to come back later and change these costs.
 Ok time to `CTRL F` throughout the file with `CUSTOM CODE STARTS HERE` to find the areas in the precompile that we need to modify. 
 
 ![](2022-09-01-22-48-26.png)
+
 If we use any of the following imports we can remove the reference imports.
+We can come back if needed to remove. 
 
 ![](2022-09-01-22-51-30.png)
 
