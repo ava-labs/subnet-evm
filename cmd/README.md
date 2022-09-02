@@ -272,14 +272,23 @@ Done! All we had to do was follow the comments.
 
 ## Step 5 
 
-Let's add our precompile upgrade in `params/config.go`. 
-![](2022-08-25-14-29-58.png)
-![](2022-08-25-14-28-01.png)
-![](2022-08-25-14-31-49.png)
+Let's add our precompile upgrade in `params/config.go`. We can `CTRL F` for `ADD YOUR PRECOMPILE HERE`. 
 
+Let's add the bool to check if our precompile is enabled.  
 
+![](2022-09-01-23-35-47.png)
 
-## Step 6 
+We can now add it to the Avalanche rules. 
+
+![](2022-09-01-23-36-56.png)
+
+Lastly, we can add `IsHelloWorld` which checks if we are equal or greater than the fork `blockTimestamp`. 
+We use this to see if we should enable the precompile. 
+
+![](2022-09-01-23-32-51.png)
+
+## Step 6
+
 Add your solidity interface and test contract to `contract-examples/contracts`
 
 We already have our interface in  `contract-examples/contracts`. 
@@ -306,7 +315,8 @@ contract HelloWorld {
 }
 ```
 
-## Step 7 
+## Step 7
+
 We can now write our hardhat test in `contract-examples/test`. I'm calling this file `TestHelloWorld.ts`
 
 ```
@@ -588,7 +598,6 @@ ginkgo.It("hello world", func() {
 		})
 	*/
 ```
-
 
 ## Step 10
 
