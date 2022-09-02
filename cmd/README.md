@@ -141,7 +141,7 @@ Ok time to `CTRL F` throughout the file with `CUSTOM CODE STARTS HERE` to find t
 ![](2022-09-01-22-48-26.png)
 
 If we use any of the following imports we can remove the reference imports.
-We can come back if needed to remove. 
+We can come back if needed to remove. Next we see this in `Equals()`.
 
 ![](2022-09-01-22-51-30.png)
 
@@ -169,7 +169,7 @@ type IHelloWorldConfig struct {
 }
 ```
 
-We would have modify the `Equal()` function as follows 
+We would have modify the `Equal()` function as follows: 
 
 ![](2022-09-01-22-54-22.png)
 
@@ -256,12 +256,14 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 Let's now modify `params/precompile_config.go`.
 
 Let's add our key. 
-![](2022-08-25-14-24-35.png)
 
+![](2022-09-01-23-20-53.png)
 
-![](2022-08-25-14-25-27.png)
+Let's add our precompile config to `PrecompileUpgrade`
+![](2022-09-01-23-19-42.png)
 
-![](2022-08-25-14-26-07.png)
+Finally, we can add a getter function. 
+![](2022-09-01-23-23-20.png)
 
 Done! All we had to do was follow the comments.
 
