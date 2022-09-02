@@ -68,11 +68,14 @@ const (
 	{{.Contract.Type}}RawABI = "{{.Contract.InputABI}}"
 )
 
-// Reference imports to suppress errors if they are not otherwise used.
+// CUSTOM CODE STARTS HERE
+// Reference imports to suppress errors. This code can be removed if 
+// you use any of the imports. 
 var (
 	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
+	_ = fmt.Printf
 )
 
 {{$contract := .Contract}}
@@ -96,6 +99,7 @@ var (
 
 	{{.Contract.Type}}Precompile StatefulPrecompiledContract // will be initialized by init function
 
+	// CUSTOM CODE STARTS HERE
 	// THIS SHOULD BE MOVED TO precompile/params.go with a suitable hex address.
 	{{.Contract.Type}}Address = common.HexToAddress("ASUITABLEHEXADDRESS")
 )
