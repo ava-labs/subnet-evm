@@ -9,16 +9,16 @@
 
 /* General guidelines for precompile development:
 1- Read the comment and set a suitable contract address in precompile/params.go. E.g:
-	IHelloWorldAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
+	HelloWorldAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
 2- Set gas costs here
 3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 Typically, custom codes are required in only those areas.
-4- Add your precompile upgrade in params/config.go
-5- Add your upgradable config in params/precompile_config.go
+4- Add your upgradable config in params/precompile_config.go
+5- Add your precompile upgrade in params/config.go
 6- Add your solidity interface and test contract to contract-examples/contracts
 7- Write solidity tests for your precompile in contract-examples/test
-8- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
-9- Create your genesis with your precompile enabled in tests/e2e/genesis/
+8- Create your genesis with your precompile enabled in tests/e2e/genesis/
+9- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
 10- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
 
 */
@@ -27,7 +27,7 @@ package precompile
 
 import (
 	"errors"
-
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -35,64 +35,64 @@ import (
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
 	SayHelloGasCost    uint64 = 30 // SET A GAS COST HERE
 	SetGreetingGasCost uint64 = 50 // SET A GAS COST HERE
 
-	// IHelloWorldRawABI contains the raw ABI of IHelloWorld contract.
-	IHelloWorldRawABI = "[{\"inputs\":[],\"name\":\"sayHello\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"}],\"name\":\"setGreeting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+	// HelloWorldRawABI contains the raw ABI of HelloWorld contract.
+	HelloWorldRawABI = "[{\"inputs\":[],\"name\":\"sayHello\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"}],\"name\":\"setGreeting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 )
 
-// Reference imports to suppress errors if they are not otherwise used.
+// CUSTOM CODE STARTS HERE
+// Reference imports to suppress errors. This code can be removed if
+// you use any of the imports.
 var (
 	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
+	_ = fmt.Printf
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
-	_ StatefulPrecompileConfig = &IHelloWorldConfig{}
+	_ StatefulPrecompileConfig = &HelloWorldConfig{}
 
-	IHelloWorldABI abi.ABI // will be initialized by init function
+	HelloWorldABI abi.ABI // will be initialized by init function
 
-	IHelloWorldPrecompile StatefulPrecompiledContract // will be initialized by init function
-
-	// THIS SHOULD BE MOVED TO precompile/params.go with a suitable hex address.
-	// IHelloWorldAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
+	HelloWorldPrecompile StatefulPrecompiledContract // will be initialized by init function
 )
 
-// IHelloWorldConfig implements the StatefulPrecompileConfig
-// interface while adding in the IHelloWorld specific precompile address.
-type IHelloWorldConfig struct {
+// HelloWorldConfig implements the StatefulPrecompileConfig
+// interface while adding in the HelloWorld specific precompile address.
+type HelloWorldConfig struct {
 	UpgradeableConfig
 }
 
 func init() {
-	parsed, err := abi.JSON(strings.NewReader(IHelloWorldRawABI))
+	parsed, err := abi.JSON(strings.NewReader(HelloWorldRawABI))
 	if err != nil {
 		panic(err)
 	}
-	IHelloWorldABI = parsed
+	HelloWorldABI = parsed
 
-	IHelloWorldPrecompile = createIHelloWorldPrecompile(IHelloWorldAddress)
+	HelloWorldPrecompile = createHelloWorldPrecompile(HelloWorldAddress)
 }
 
-// NewIHelloWorldConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// IHelloWorld .
-func NewIHelloWorldConfig(blockTimestamp *big.Int) *IHelloWorldConfig {
-	return &IHelloWorldConfig{
+// NewHelloWorldConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// HelloWorld .
+func NewHelloWorldConfig(blockTimestamp *big.Int) *HelloWorldConfig {
+	return &HelloWorldConfig{
+
 		UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
 	}
 }
 
-// NewDisableIHelloWorldConfig returns config for a network upgrade at [blockTimestamp]
-// that disables IHelloWorld.
-func NewDisableIHelloWorldConfig(blockTimestamp *big.Int) *IHelloWorldConfig {
-	return &IHelloWorldConfig{
+// NewDisableHelloWorldConfig returns config for a network upgrade at [blockTimestamp]
+// that disables HelloWorld.
+func NewDisableHelloWorldConfig(blockTimestamp *big.Int) *HelloWorldConfig {
+	return &HelloWorldConfig{
 		UpgradeableConfig: UpgradeableConfig{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
@@ -100,54 +100,56 @@ func NewDisableIHelloWorldConfig(blockTimestamp *big.Int) *IHelloWorldConfig {
 	}
 }
 
-// Equal returns true if [s] is a [*IHelloWorldConfig] and it has been configured identical to [c].
-func (c *IHelloWorldConfig) Equal(s StatefulPrecompileConfig) bool {
+// Equal returns true if [s] is a [*HelloWorldConfig] and it has been configured identical to [c].
+func (c *HelloWorldConfig) Equal(s StatefulPrecompileConfig) bool {
 	// typecast before comparison
-	other, ok := (s).(*IHelloWorldConfig)
+	other, ok := (s).(*HelloWorldConfig)
 	if !ok {
 		return false
 	}
 	// CUSTOM CODE STARTS HERE
-	// modify this boolean accordingly with your custom IHelloWorldConfig, to check if [other] and the current [c] are equal
-	// if IHelloWorldConfig contains only UpgradeableConfig  you can skip modifying it.
-	isUpgradeEqual := c.UpgradeableConfig.Equal(&other.UpgradeableConfig)
-	return isUpgradeEqual
+	// modify this boolean accordingly with your custom HelloWorldConfig,
+	// to check if [other] and the current [c] are equal
+	// if HelloWorldConfig contains only UpgradeableConfig  you can skip modifying it.
+	equalsUpgrade := c.UpgradeableConfig.Equal(&other.UpgradeableConfig)
+	return equalsUpgrade
 }
 
-// Address returns the address of the IHelloWorld. Addresses reside under the precompile/params.go
+// Address returns the address of the HelloWorld. Addresses reside under the precompile/params.go
 // Select a non-conflicting address and set it in the params.go.
-func (c *IHelloWorldConfig) Address() common.Address {
-	return IHelloWorldAddress
+func (c *HelloWorldConfig) Address() common.Address {
+	return HelloWorldAddress
 }
 
 // Configure configures [state] with the initial configuration.
-func (c *IHelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
+func (c *HelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
 	// CUSTOM CODE STARTS HERE
 	// This will be called in the first block where HelloWorld stateful precompile is enabled.
 	// 1) If BlockTimestamp is nil, this will not be called
 	// 2) If BlockTimestamp is 0, this will be called while setting up the genesis block
-	// 3) If BlockTimestamp is 1000, this will be called while processing the first block whose timestamp is >= 1000
+	// 3) If BlockTimestamp is 1000, this will be called while processing the first block
+	// whose timestamp is >= 1000
 	//
 	// Set the initial value under [common.BytesToHash([]byte("recipient")] to "Hello World!"
 	res := common.LeftPadBytes([]byte("Hello World!"), common.HashLength)
-	state.SetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
+	state.SetState(HelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
 }
 
-// Contract returns the singleton stateful precompiled contract to be used for IHelloWorld.
-func (c *IHelloWorldConfig) Contract() StatefulPrecompiledContract {
-	return IHelloWorldPrecompile
+// Contract returns the singleton stateful precompiled contract to be used for HelloWorld.
+func (c *HelloWorldConfig) Contract() StatefulPrecompiledContract {
+	return HelloWorldPrecompile
 }
 
 // PackSayHello packs the include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
 func PackSayHello() ([]byte, error) {
-	return IHelloWorldABI.Pack("sayHello")
+	return HelloWorldABI.Pack("sayHello")
 }
 
 // PackSayHelloOutput attempts to pack given  of type string
 // to conform the ABI outputs.
 func PackSayHelloOutput(arg string) ([]byte, error) {
-	return IHelloWorldABI.PackOutput("sayHello", arg)
+	return HelloWorldABI.PackOutput("sayHello", arg)
 }
 
 func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -158,11 +160,12 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 	// no input provided for this function
+
 	// CUSTOM CODE STARTS HERE
 	// Get the current state
 	currentState := accessibleState.GetStateDB()
 	// Get the value set at recipient
-	value := currentState.GetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")))
+	value := currentState.GetState(HelloWorldAddress, common.BytesToHash([]byte("recipient")))
 	// Do some processing and pack the output
 	packedOutput, err := PackSayHelloOutput(string(common.TrimLeftZeroes(value.Bytes())))
 	if err != nil {
@@ -176,7 +179,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 // UnpackSetGreetingInput attempts to unpack [input] into the string type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackSetGreetingInput(input []byte) (string, error) {
-	res, err := IHelloWorldABI.UnpackInput("setGreeting", input)
+	res, err := HelloWorldABI.UnpackInput("setGreeting", input)
 	if err != nil {
 		return "", err
 	}
@@ -188,7 +191,7 @@ func UnpackSetGreetingInput(input []byte) (string, error) {
 // the packed bytes include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
 func PackSetGreeting(recipient string) ([]byte, error) {
-	return IHelloWorldABI.Pack("setGreeting", recipient)
+	return HelloWorldABI.Pack("setGreeting", recipient)
 }
 
 func setGreeting(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -209,7 +212,7 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	// CUSTOM CODE STARTS HERE
 	// setGreeting is the execution function of "SetGreeting(name string)" and sets the recipient in the string returned by hello world
 	res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
-	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
+	accessibleState.GetStateDB().SetState(HelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
 
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
@@ -218,26 +221,22 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	return packedOutput, remainingGas, nil
 }
 
-// createIHelloWorldPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
+// createHelloWorldPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 
-func createIHelloWorldPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
+func createHelloWorldPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	var functions []*statefulPrecompileFunction
 
-	methodSayHello, ok := IHelloWorldABI.Methods["sayHello"]
+	methodSayHello, ok := HelloWorldABI.Methods["sayHello"]
 	if !ok {
 		panic("given method does not exist in the ABI")
 	}
 	functions = append(functions, newStatefulPrecompileFunction(methodSayHello.ID, sayHello))
 
-	log.Info("methodSayHello.ID", "byte", methodSayHello.ID)
-
-	methodSetGreeting, ok := IHelloWorldABI.Methods["setGreeting"]
+	methodSetGreeting, ok := HelloWorldABI.Methods["setGreeting"]
 	if !ok {
 		panic("given method does not exist in the ABI")
 	}
 	functions = append(functions, newStatefulPrecompileFunction(methodSetGreeting.ID, setGreeting))
-
-	log.Info("methodSetGreeting.ID", "byte", methodSetGreeting.ID)
 
 	// Construct the contract with no fallback function.
 	contract := newStatefulPrecompileWithFunctionSelectors(nil, functions)

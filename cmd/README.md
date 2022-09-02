@@ -427,7 +427,7 @@ type PrecompileUpgrade struct {
 	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
-	IHelloWorldConfig               *precompile.IHelloWorldConfig               `json:"helloWorldConfig,omitempty"`
+	HelloWorldConfig               *precompile.HelloWorldConfig               `json:"helloWorldConfig,omitempty"`
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
