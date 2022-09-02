@@ -15,7 +15,7 @@ import (
 )
 
 var _ = utils.DescribeLocal("[Ping]", func() {
-	ginkgo.It("can ping network-runner RPC server", func() {
+	ginkgo.It("can ping network-runner RPC server", ginkgo.Label("ping"), func() {
 		runnerCli := utils.GetClient()
 		gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
 

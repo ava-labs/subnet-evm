@@ -9,6 +9,9 @@ set -e
 # run without e2e tests, and with simulator
 # SKIP_NETWORK_RUNNER_SHUTDOWN=true RUN_SIMULATOR=true ./scripts/run.sh
 #
+# run upgrade e2e tests
+# RUN_UPGRADE=true ./scripts/run.sh
+#
 # run without e2e tests with DEBUG log level
 # AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh
 if ! [[ "$0" =~ scripts/run.sh ]]; then
@@ -31,13 +34,24 @@ GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
 SKIP_NETWORK_RUNNER_SHUTDOWN=${SKIP_NETWORK_RUNNER_SHUTDOWN:-false}
 RUN_SIMULATOR=${RUN_SIMULATOR:-false}
+RUN_UPGRADE=${RUN_UPGRADE:-false}
 AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
 ANR_VERSION=$network_runner_version
 GINKGO_VERSION=$ginkgo_version
 
-GINKGO_SKIP_FLAGS=""
+if [[ ${RUN_SIMULATOR} == true && ${RUN_UPGRADE} == true ]]; then
+  echo "FAIL: RUN_SIMULATOR and RUN_UPGRADE cannot be true at the same time"
+  exit 1
+fi
+
+# ref. https://onsi.github.io/ginkgo/#filtering-specs
+GINKGO_FLAGS=--ginkgo.label-filter="!upgrade"
 if [[ ${RUN_SIMULATOR} == true ]]; then
-  GINKGO_SKIP_FLAGS="\[Solidity Counter\]"
+  GINKGO_FLAGS=--ginkgo.label-filter="ping"
+fi
+if [[ ${RUN_UPGRADE} == true ]]; then
+  # run only "Upgrade" tests, no other test
+  GINKGO_FLAGS=--ginkgo.label-filter="upgrade"
 fi
 
 echo "Running with:"
@@ -47,7 +61,8 @@ echo GINKGO_VERSION: ${GINKGO_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
 echo SKIP_NETWORK_RUNNER_SHUTDOWN: ${SKIP_NETWORK_RUNNER_SHUTDOWN}
 echo RUN_SIMULATOR: ${RUN_SIMULATOR}
-echo GINKGO_SKIP_FLAGS: ${GINKGO_SKIP_FLAGS}
+echo RUN_UPGRADE: ${RUN_UPGRADE}
+echo GINKGO_FLAGS: ${GINKGO_FLAGS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
 ############################
@@ -233,7 +248,7 @@ run_ginkgo() {
   # Use "--ginkgo.focus" to select tests.
   echo "running e2e tests"
   ./tests/e2e/e2e.test \
-    --ginkgo.v \
+    --ginkgo.vv \
     --network-runner-log-level debug \
     --network-runner-grpc-endpoint="0.0.0.0:12342" \
     --avalanchego-path=${AVALANCHEGO_PATH} \
@@ -241,7 +256,7 @@ run_ginkgo() {
     --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
     --contracts-foundry-dir=./contracts-foundry \
-    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} --ginkgo.skip "${GINKGO_SKIP_FLAGS}"
+    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} ${GINKGO_FLAGS}
 }
 
 run_simulator() {

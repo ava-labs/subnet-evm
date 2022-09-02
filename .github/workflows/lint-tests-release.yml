@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v3
-      - run: ./scripts/lint_allowed_geth_imports.sh 
+      - run: ./scripts/lint_allowed_geth_imports.sh
         shell: bash
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
@@ -69,6 +69,31 @@ jobs:
         shell: bash
         run: scripts/run.sh
 
+  upgrade_test:
+    name: Test upgrades with simple solidity contract deployments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: onbjerg/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Install dependencies with forge
+        run: pushd ./contracts-foundry && forge install && popd
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Install dependencies with go module
+        shell: bash
+        run: go mod download
+      - name: Run e2e tests
+        shell: bash
+        run: RUN_UPGRADE=true scripts/run.sh
+
   simulator_test:
     name: Load testing with simulator
     runs-on: ubuntu-latest
@@ -86,7 +111,7 @@ jobs:
         run: SKIP_NETWORK_RUNNER_SHUTDOWN=true RUN_SIMULATOR=true scripts/run.sh
 
   release:
-    needs: [lint_test, e2e_test, simulator_test] # TODO: re-add after flaky tests are fixed (unit_test)
+    needs: [lint_test, e2e_test, upgrade_test, simulator_test] # TODO: re-add after flaky tests are fixed (unit_test)
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout

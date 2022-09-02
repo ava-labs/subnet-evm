@@ -22,6 +22,7 @@ import (
 
 	_ "github.com/ava-labs/subnet-evm/tests/e2e/ping"
 	_ "github.com/ava-labs/subnet-evm/tests/e2e/solidity/counter"
+	_ "github.com/ava-labs/subnet-evm/tests/e2e/upgrade"
 )
 
 func TestE2E(t *testing.T) {
