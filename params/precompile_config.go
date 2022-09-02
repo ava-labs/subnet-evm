@@ -38,7 +38,7 @@ type PrecompileUpgrade struct {
 	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
-	IHelloWorldConfig               *precompile.IHelloWorldConfig               `json:"helloWorldConfig,omitempty"`
+	HelloWorldConfig                *precompile.HelloWorldConfig                `json:"helloWorldConfig,omitempty"`
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
@@ -54,7 +54,7 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 	case feeManagerKey:
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
 	case helloWorldKey:
-		return p.IHelloWorldConfig, p.IHelloWorldConfig != nil
+		return p.HelloWorldConfig, p.HelloWorldConfig != nil
 		// ADD YOUR PRECOMPILE HERE
 	/*
 		case {yourPrecompile}Key:
@@ -205,9 +205,9 @@ func (c *ChainConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *precom
 	return nil
 }
 
-func (c *ChainConfig) GetIHelloWorldConfig(blockTimestamp *big.Int) *precompile.IHelloWorldConfig {
+func (c *ChainConfig) GetHelloWorldConfig(blockTimestamp *big.Int) *precompile.HelloWorldConfig {
 	if val := c.getActivePrecompileConfig(blockTimestamp, helloWorldKey, c.PrecompileUpgrades); val != nil {
-		return val.(*precompile.IHelloWorldConfig)
+		return val.(*precompile.HelloWorldConfig)
 	}
 	return nil
 }
