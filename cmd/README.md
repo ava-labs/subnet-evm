@@ -253,7 +253,7 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 
 ## Step 4 
 
-Let's now modify `params/precompile_config.go`.
+Let's now modify `params/precompile_config.go`. We can `CTRL F` for `ADD YOUR PRECOMPILE HERE`. 
 
 Let's add our key. 
 
