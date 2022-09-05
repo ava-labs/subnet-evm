@@ -84,7 +84,7 @@ jobs:
   #       run: SKIP_NETWORK_RUNNER_SHUTDOWN=true RUN_SIMULATOR=true scripts/run.sh
 
   release:
-    needs: [lint_test, simulator_test] # TODO: re-add after flaky tests are fixed (unit_test, e2e_test)
+    # needs: [lint_test, simulator_test] # TODO: re-add after flaky tests are fixed (unit_test, e2e_test)
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout
