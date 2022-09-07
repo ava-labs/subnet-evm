@@ -355,10 +355,10 @@ var bindTests = []struct {
 			}
 			sim.Commit(false)
 
-			if str, num, _, err := getter.Getter(nil); err != nil {
+			if getterStruct, err := getter.Getter(nil); err != nil {
 				t.Fatalf("Failed to call anonymous field retriever: %v", err)
-			} else if str != "Hi" || num.Cmp(big.NewInt(1)) != 0 {
-				t.Fatalf("Retrieved value mismatch: have %v/%v, want %v/%v", str, num, "Hi", 1)
+			} else if getterStruct.StringValue != "Hi" || getterStruct.IntValue.Cmp(big.NewInt(1)) != 0 {
+				t.Fatalf("Retrieved value mismatch: have %v/%v, want %v/%v", getterStruct.StringValue, getterStruct.IntValue, "Hi", 1)
 			}
 		`,
 		nil,
