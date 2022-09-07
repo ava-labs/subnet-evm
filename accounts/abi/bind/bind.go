@@ -140,9 +140,10 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			normalized.Outputs = make([]abi.Argument, len(original.Outputs))
 			copy(normalized.Outputs, original.Outputs)
 			for j, output := range normalized.Outputs {
-				if output.Name != "" {
-					normalized.Outputs[j].Name = capitalise(output.Name)
+				if output.Name == "" {
+					return "", fmt.Errorf("missing output name")
 				}
+				normalized.Outputs[j].Name = capitalise(output.Name)
 				if hasStruct(output.Type) {
 					bindStructType[lang](output.Type, structs)
 				}
