@@ -165,7 +165,7 @@ like so
 // interface while adding in the IHelloWorld specific precompile address.
 type IHelloWorldConfig struct {
 	UpgradeableConfig
-    AllowListConfig
+  AllowListConfig
 }
 ```
 
@@ -411,9 +411,9 @@ Before we run this script, we actually need to modify the genesis within `./scri
 
 Adding this to the config enables our precompile. 
 ```
-  "helloWorldConfig": {
-      "blockTimestamp":0
-    }
+"helloWorldConfig": {
+  "blockTimestamp": 0
+}
 ```
 
 As a reminder, we get the name `helloWorldConfig` by setting it in `./params/precompile_config.go`
@@ -427,7 +427,7 @@ type PrecompileUpgrade struct {
 	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
-	HelloWorldConfig               *precompile.HelloWorldConfig               `json:"helloWorldConfig,omitempty"`
+	HelloWorldConfig                *precompile.HelloWorldConfig                `json:"helloWorldConfig,omitempty"`
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
@@ -442,7 +442,7 @@ so
 ```./scripts/run.sh 1.7.18 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC```
 
 
-Note that this address `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is a prefunded address on the local network, see here for more info. The private key for this address is `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`
+Note that this address `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is a prefunded address on the local network. The private key for this address is `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`
 
 If start up is successful then you should see something like this, 
 ```
@@ -487,7 +487,8 @@ networks: {
       ],
       gasPrice: 25000000000,
       gas: 10000000,
-    },
+    }
+  }
 ```
 
 We also need to make sure `localRPC` points to the right value.
@@ -513,7 +514,7 @@ Great they passed! All the functions we implemented in the precompile work as ex
 ## Step 8 
 
 Now we can create our own genesis. Since we modified the genesis in the `run.sh` script, we can use that!
-In `tests/e2e/genesis/`, let's create our own genesis file,  `hello_world.json`. This should be pretty similar to the genesis we editted previously. 
+In `tests/e2e/genesis/`, let's create our own genesis file,  `hello_world.json`. This should be pretty similar to the genesis we edited previously. 
 
 ```
 {
