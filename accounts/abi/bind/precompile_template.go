@@ -232,7 +232,7 @@ func Pack{{.Normalized.Name}}(inputStruct {{capitalise .Normalized.Name}}Input) 
 func Unpack{{capitalise .Normalized.Name}}Input(input []byte)({{bindtype $input.Type $structs}}, error) {
 res, err := {{$contract.Type}}ABI.UnpackInput("{{$method.Original.Name}}", input)
 if err != nil {
-	return nil, err
+	return {{convertToNil $input.Type}}, err
 }
 unpacked := *abi.ConvertType(res[0], new({{bindtype $input.Type $structs}})).(*{{bindtype $input.Type $structs}})
 return unpacked, nil
