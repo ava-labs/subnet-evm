@@ -268,6 +268,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		"namedtype":     namedType[lang],
 		"capitalise":    capitalise,
 		"decapitalise":  decapitalise,
+		"convertToNil":  convertToNil,
 	}
 
 	// render the template
@@ -593,6 +594,20 @@ func decapitalise(input string) string {
 
 	goForm := abi.ToCamelCase(input)
 	return strings.ToLower(goForm[:1]) + goForm[1:]
+}
+
+// convertToNil converts any type to its proper nil form.
+func convertToNil(input abi.Type) string {
+	switch input.T {
+	case abi.IntTy, abi.UintTy:
+		return "0"
+	case abi.StringTy:
+		return "\"\""
+	case abi.BoolTy:
+		return "false"
+	default:
+		return "nil"
+	}
 }
 
 // structured checks whether a list of ABI data types has enough information to
