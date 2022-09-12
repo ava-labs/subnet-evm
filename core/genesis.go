@@ -240,10 +240,10 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash com
 
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
-	// headBlock := rawdb.ReadHeadBlock(db)
-	// if headBlock == nil {
-	// 	return newcfg, fmt.Errorf("missing head block")
-	// }
+	headBlock := rawdb.ReadHeadBlock(db)
+	if headBlock == nil {
+		return newcfg, fmt.Errorf("missing head block")
+	}
 
 	// we use last accepted block for cfg compatibility check to handle
 	// retroactive upgrades gracefully.

@@ -131,6 +131,11 @@ func TestSetupGenesis(t *testing.T) {
 				blocks, _, _ := GenerateChain(oldcustomg.Config, genesis, dummy.NewFullFaker(), db, 4, 25, nil)
 				bc.InsertChain(blocks)
 				bc.CurrentBlock()
+				for _, block := range blocks {
+					if err := bc.Accept(block); err != nil {
+						t.Fatal(err)
+					}
+				}
 				// This should return a compatibility error.
 				return setupGenesisBlock(db, &customg, bc.lastAccepted.Hash())
 			},
