@@ -235,9 +235,12 @@ func (c *ChainConfig) GetActivePrecompiles(blockTimestamp *big.Int) PrecompileUp
 // Returns a ConfigCompatError if upgrades already forked at [headTimestamp] are missing from
 // [precompileUpgrades]. Upgrades not already forked may be modified or absent from [precompileUpgrades].
 // Returns nil if [precompileUpgrades] is compatible with [c].
-func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, headTimestamp *big.Int) *ConfigCompatError {
+// Assumes given timestamp is the last accepted block timestamp.
+// Otherwise it might prevent an retroactive upgrade to be activated,
+// even though it can be actually activated at that time.
+func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
 	for _, key := range precompileKeys {
-		if err := c.checkPrecompileCompatible(key, precompileUpgrades, headTimestamp); err != nil {
+		if err := c.checkPrecompileCompatible(key, precompileUpgrades, lastTimestamp); err != nil {
 			return err
 		}
 	}
@@ -248,10 +251,10 @@ func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []Precompile
 // checkPrecompileCompatible verifies that the precompile specified by [key] is compatible between [c] and [precompileUpgrades] at [headTimestamp].
 // Returns an error if upgrades already forked at [headTimestamp] are missing from [precompileUpgrades].
 // Upgrades that have already gone into effect cannot be modified or absent from [precompileUpgrades].
-func (c *ChainConfig) checkPrecompileCompatible(key precompileKey, precompileUpgrades []PrecompileUpgrade, headTimestamp *big.Int) *ConfigCompatError {
+func (c *ChainConfig) checkPrecompileCompatible(key precompileKey, precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
 	// all active upgrades must match
-	activeUpgrades := c.getActivatingPrecompileConfigs(nil, headTimestamp, key, c.PrecompileUpgrades)
-	newUpgrades := c.getActivatingPrecompileConfigs(nil, headTimestamp, key, precompileUpgrades)
+	activeUpgrades := c.getActivatingPrecompileConfigs(nil, lastTimestamp, key, c.PrecompileUpgrades)
+	newUpgrades := c.getActivatingPrecompileConfigs(nil, lastTimestamp, key, precompileUpgrades)
 
 	// first, check existing upgrades are there
 	for i, upgrade := range activeUpgrades {

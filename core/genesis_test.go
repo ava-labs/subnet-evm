@@ -44,8 +44,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
-	conf, err := SetupGenesisBlock(db, genesis)
+func setupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash common.Hash) (*params.ChainConfig, common.Hash, error) {
+	conf, err := SetupGenesisBlock(db, genesis, lastAcceptedHash)
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	return conf, stored, err
 }
@@ -86,7 +86,7 @@ func TestSetupGenesis(t *testing.T) {
 		{
 			name: "genesis without ChainConfig",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				return setupGenesisBlock(db, new(Genesis))
+				return setupGenesisBlock(db, new(Genesis), common.Hash{})
 			},
 			wantErr:    errGenesisNoConfig,
 			wantConfig: nil,
@@ -94,7 +94,7 @@ func TestSetupGenesis(t *testing.T) {
 		{
 			name: "no block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				return setupGenesisBlock(db, nil)
+				return setupGenesisBlock(db, nil, common.Hash{})
 			},
 			wantErr:    ErrNoGenesis,
 			wantConfig: nil,
@@ -103,7 +103,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return setupGenesisBlock(db, nil)
+				return setupGenesisBlock(db, nil, common.Hash{})
 			},
 			wantErr:    ErrNoGenesis,
 			wantHash:   customghash,
@@ -113,7 +113,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "compatible config in DB",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				oldcustomg.MustCommit(db)
-				return setupGenesisBlock(db, &customg)
+				return setupGenesisBlock(db, &customg, customghash)
 			},
 			wantHash:   customghash,
 			wantConfig: customg.Config,
@@ -132,7 +132,7 @@ func TestSetupGenesis(t *testing.T) {
 				bc.InsertChain(blocks)
 				bc.CurrentBlock()
 				// This should return a compatibility error.
-				return setupGenesisBlock(db, &customg)
+				return setupGenesisBlock(db, &customg, bc.lastAccepted.Hash())
 			},
 			wantHash:   customghash,
 			wantConfig: customg.Config,
@@ -204,7 +204,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 			}
 
 			db := rawdb.NewMemoryDatabase()
-			_, err := SetupGenesisBlock(db, genesis)
+			_, err := SetupGenesisBlock(db, genesis, common.Hash{})
 			if err != nil {
 				t.Fatal(err)
 			}
