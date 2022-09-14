@@ -6,10 +6,15 @@ We can now generate a stateful precompile with the Precompile gen tool!
 Before starting this tutorial it would be helpful if you had some context on the EVM, precompiles, and stateful precompiles. 
 Here are some resources to get started put together. 
 
-- [EVM Handbook](https://noxx3xxon.notion.site/noxx3xxon/The-EVM-Handbook-bb38e175cc404111a391907c4975426d)
-
+- [The Ethereum Virtual Machine](https://github.com/ethereumbook/ethereumbook/blob/develop/13evm.asciidoc)
 - [Precompiles in Solidity](https://medium.com/@rbkhmrcr/precompiles-solidity-e5d29bd428c4)
-
+- [Deconstructing a Smart Contract](https://blog.openzeppelin.com/deconstructing-a-solidity-contract-part-i-introduction-832efd2d7737/)
+- [Layout of State Variables in Storage](https://docs.soliditylang.org/en/v0.8.10/internals/layout_in_storage.html)
+- [Layout in Memory](https://docs.soliditylang.org/en/v0.8.10/internals/layout_in_memory.html)
+- [Layout of Call Data](https://docs.soliditylang.org/en/v0.8.10/internals/layout_in_calldata.html)
+- [Contract ABI Specification](https://docs.soliditylang.org/en/v0.8.10/abi-spec.html)
+- [Customizing the EVM with Stateful Precompiles](https://medium.com/avalancheavax/customizing-the-evm-with-stateful-precompiles-f44a34f39efd)
+- [Precompiles in Solidity](https://medium.com/@rbkhmrcr/precompiles-solidity-e5d29bd428c4)
 - [Customizing the EVM with Stateful Precompiles](https://medium.com/avalancheavax/customizing-the-evm-with-stateful-precompiles-f44a34f39efd)
 
  
@@ -53,7 +58,7 @@ IHelloWorld.abi
 
 ## Precompile tool
 
-The precompile tool takes can take in 4 arguments. 
+The precompile tool can take in 4 arguments. 
 
 
 ### `--abi `
