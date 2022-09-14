@@ -28,7 +28,6 @@ pragma solidity >=0.8.0;
 interface IHelloWorld {
   function sayHello() external returns (string calldata);
 
-  // SetGreeting
   function setGreeting(string calldata recipient) external;
 }
 ```
@@ -52,11 +51,11 @@ IHelloWorld.abi
 ```
 
 
-## Some facts about the precompile tool
+## Precompile tool
 
 The precompile tool takes can take in 4 arguments. 
 
-It needs an abi so it can bind it to the precompile template.
+It needs an ABI input so it can bind it to the precompile template.
 
 `--abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi`
 
@@ -317,7 +316,7 @@ contract HelloWorld {
 
 ## Step 7
 
-We can now write our hardhat test in `contract-examples/test`. I'm calling this file `TestHelloWorld.ts`
+We can now write our hardhat test in `contract-examples/test`. This file is called `TestHelloWorld.ts`
 
 ```
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
@@ -509,7 +508,7 @@ Now if we go to `./contract-examples`, we can finally run our tests.
 
 ``` npx hardhat test --network local ```
 
-Great they passed! All the functions we implemented in the precompile work as expected!
+Great they passed! All the functions implemented in the precompile work as expected!
 
 ## Step 8 
 
@@ -607,12 +606,3 @@ Going back to the root let's run
 ```E2E=true ./scripts/run.sh```
 
 ![](2022-09-01-16-53-58.png)
-
-
-
-
-
-
-
-
-
