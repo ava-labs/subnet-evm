@@ -119,7 +119,7 @@ Typically, custom codes are required in only those areas.
 9- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
 10- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
 ```
-## Step 1 
+## Step 1: Set Contract Address
 
 In `./precompile/params.go` let's set a precompile address. We can cut the
 address from the var declaration block and remove it from the precompile. 
@@ -128,7 +128,7 @@ address from the var declaration block and remove it from the precompile.
 
 Now when subnet evm sees the `HelloWorldAddress` as input when executing [`Call`](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L222), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272)
 
-## Step 2
+## Step 2: Set Gas Costs
 
 Set up gas costs. In `precompile/params.go` we have `writeGasCostPerSlot` and `readGasCostPerSlot`. This is a good starting point for estimating gas costs. 
 
@@ -156,7 +156,7 @@ func (c *sha256hash) RequiredGas(input []byte) uint64 {
 
 We'll probably have to come back later and change these costs. 
 
-## Step 3
+## Step 3: Add Custom Code
 
 Ok time to `CTRL F` throughout the file with `CUSTOM CODE STARTS HERE` to find the areas in the precompile that we need to modify. 
 
@@ -273,7 +273,7 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 }
 ```
 
-## Step 4 
+## Step 4: Add Upgradable Config
 
 Let's now modify `params/precompile_config.go`. We can `CTRL F` for `ADD YOUR PRECOMPILE HERE`. 
 
@@ -292,7 +292,7 @@ Finally, we can add a getter function.
 Done! All we had to do was follow the comments.
 
 
-## Step 5 
+## Step 5: Add Precompile Upgrade
 
 Let's add our precompile upgrade in `params/config.go`. We can `CTRL F` for `ADD YOUR PRECOMPILE HERE`. 
 
@@ -309,11 +309,11 @@ We use this to see if we should enable the precompile.
 
 ![](2022-09-01-23-32-51.png)
 
-## Step 6
+## Step 6: Add Solidity Interface and Test Contract
 
 Add your solidity interface and test contract to `contract-examples/contracts`
 
-We already have our interface in  `contract-examples/contracts`. 
+We already have our interface in  `contract-examples/contracts` from Step 1. 
 Let's add our contract.
 
 ```
@@ -337,7 +337,7 @@ contract ExampleHelloWorld {
 }
 ```
 
-## Step 7
+## Step 7: Add Precompile Solidity Tests 
 
 We can now write our hardhat test in `contract-examples/test`. This file is called `TestHelloWorld.ts`
 
@@ -533,7 +533,7 @@ Now if we go to `./contract-examples`, we can finally run our tests.
 
 Great they passed! All the functions implemented in the precompile work as expected!
 
-## Step 8 
+## Step 8: Create Genesis
 
 Now we can create our own genesis. Since we modified the genesis in the `run.sh` script, we can use that!
 In `tests/e2e/genesis/`, let's create our own genesis file,  `hello_world.json`. This should be pretty similar to the genesis we edited previously. 
@@ -591,7 +591,8 @@ In `tests/e2e/genesis/`, let's create our own genesis file,  `hello_world.json`.
 }
 ```
 
-## Step 9
+## Step 9: Add E2E tests
+
 In `tests/e2e/solidity/suites.go` we can now write our first e2e test!
 It's another nice copy and paste situation. 
 
@@ -622,7 +623,7 @@ ginkgo.It("hello world", func() {
 	*/
 ```
 
-## Step 10
+## Step 10: Run E2E Test
 
 Now we can run it, this time with the E2E flag on. We should expect this to pass since we did such thorough testing in Step 7. 
 Going back to the root let's run
