@@ -33,7 +33,7 @@ pragma solidity >=0.8.0;
 interface IHelloWorld {
   function sayHello() external returns (string calldata);
 
-  function setGreeting(string calldata recipient) external;
+  function setGreeting(string calldata response) external;
 }
 ```
 
@@ -61,27 +61,27 @@ IHelloWorld.abi
 The precompile tool can take in 4 arguments. 
 
 
-### `--abi `
+### `--abi` (string):
 
 It needs an ABI input so it can bind it to the precompile template.
 
 `--abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi`
 
-### `--type `
+### `--type `(string):
 
 It takes in a type which it uses as a struct name for the precompile. This is optional 
 and will default to the abi name. 
 
 `--type HelloWorld`
 
-### `--pkg` 
+### `--pkg` (string):
 
 It also takes in a pkg, which is the package name to generate the precompile into. 
 This is optional and it defaults to "precompile".
 
 `--pkg precompile` 
 
-### `--out `
+### `--out `(string):
 
 Finally it can take in an out which is the path and name of the output file of the generated precompile. 
 
@@ -130,7 +130,17 @@ Now when subnet evm sees the `HelloWorldAddress` as input when executing [`Call`
 
 ## Step 2
 
-Set up gas costs. For now, I'll set some placeholder numbers since I'm not sure how much gas these functions will cost. 
+Set up gas costs. In `precompile/params.go` we have `writeGasCostPerSlot` and `readGasCostPerSlot`. This is a good starting point for estimating gas costs. 
+
+```// Gas costs for stateful precompiles
+
+const (
+	writeGasCostPerSlot = 20_000
+	readGasCostPerSlot  = 5_000
+)
+```
+
+For example, 
 
 ![](2022-08-24-16-31-24.png)
 
@@ -198,9 +208,9 @@ func (c *HelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContex
 	// 3) If BlockTimestamp is 1000, this will be called while processing the first block
 	// whose timestamp is >= 1000
 	//
-	// Set the initial value under [common.BytesToHash([]byte("recipient")] to "Hello World!"
+	// Set the initial value under [common.BytesToHash([]byte("storageKey")] to "Hello World!"
 	res := common.LeftPadBytes([]byte("Hello World!"), common.HashLength)
-	state.SetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
+	state.SetState(IHelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 }
 ```
 
@@ -220,7 +230,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 	// Get the current state
 	currentState := accessibleState.GetStateDB()
 	// Get the value set at recipient
-	value := currentState.GetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")))
+	value := currentState.GetState(IHelloWorldAddress, common.BytesToHash([]byte("storageKey")))
 	// Do some processing and pack the output
 	packedOutput, err := PackSayHelloOutput(string(common.TrimLeftZeroes(value.Bytes())))
 	if err != nil {
@@ -251,9 +261,9 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	}
 
 	// CUSTOM CODE STARTS HERE
-	// setGreeting is the execution function of "SetGreeting(name string)" and sets the recipient in the string returned by hello world
+	// setGreeting is the execution function of "SetGreeting(name string)" and sets the storageKey in the string returned by hello world
 	res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
-	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common.BytesToHash([]byte("recipient")), common.BytesToHash(res))
+	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
