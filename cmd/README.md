@@ -55,24 +55,32 @@ IHelloWorld.abi
 
 The precompile tool takes can take in 4 arguments. 
 
+
+### `--abi `
+
 It needs an ABI input so it can bind it to the precompile template.
 
 `--abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi`
+
+### `--type `
 
 It takes in a type which it uses as a struct name for the precompile. This is optional 
 and will default to the abi name. 
 
 `--type HelloWorld`
 
+### `--pkg` 
+
 It also takes in a pkg, which is the package name to generate the precompile into. 
 This is optional and it defaults to "precompile".
 
 `--pkg precompile` 
 
+### `--out `
+
 Finally it can take in an out which is the path and name of the output file of the generated precompile. 
 
 `--out ./precompile/hello_world.go`
-
 
 Currently it can only generate precompiles in Golang only.  
 
@@ -299,10 +307,10 @@ pragma solidity ^0.8.0;
 
 import "./IHelloWorld.sol";
 
-// HelloWorld shows how the HelloWorld precompile can be used in a smart conract
-contract HelloWorld {
+// ExampleHelloWorld shows how the HelloWorld precompile can be used in a smart conract
+contract ExampleHelloWorld {
   address constant HELLO_WORLD_ADDRESS = 0x0200000000000000000000000000000000000004;
-  HelloWorld helloWorld = HelloWorld(HELLO_WORLD_ADDRESS);
+  IHelloWorld helloWorld = IHelloWorld(HELLO_WORLD_ADDRESS);
 
   function sayHello() public returns (string memory) {
     return helloWorld.sayHello();
