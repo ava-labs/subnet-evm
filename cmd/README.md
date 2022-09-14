@@ -126,7 +126,7 @@ address from the var declaration block and remove it from the precompile.
 ![](2022-09-01-22-46-00.png)
 ![](2022-08-24-16-45-48.png)
 
-Now when subnet evm sees the `HelloWorldAddress` as input when executing [`Call`](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L222), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272)
+Now when subnet-evm sees the `HelloWorldAddress` as input when executing [`Call`](./evm.go#L222), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272)
 
 ## Step 2: Set Gas Costs
 
