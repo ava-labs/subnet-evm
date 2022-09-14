@@ -69,8 +69,7 @@ const (
 )
 
 // CUSTOM CODE STARTS HERE
-// Reference imports to suppress errors. This code can be removed if 
-// you use any of the imports. 
+// Reference imports to suppress errors from unused imports. This code and any unnecessary imports can be removed. 
 var (
 	_ = errors.New
 	_ = big.NewInt
