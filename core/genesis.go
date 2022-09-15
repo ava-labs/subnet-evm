@@ -240,8 +240,10 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash com
 
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
-	// we use last accepted block for cfg compatibility check to handle
-	// retroactive upgrades gracefully.
+
+	// we use last accepted block for cfg compatibility check. Note this allows
+	// the node to continue making progress if it had halted previously due to
+	// a missing upgrade configuration.
 	lastBlock := ReadBlockByHash(db, lastAcceptedHash)
 	if lastBlock == nil {
 		return newcfg, fmt.Errorf("missing last accepted block")
