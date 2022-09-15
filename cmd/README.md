@@ -42,10 +42,13 @@ interface IHelloWorld {
 Now we have an interface that our precompile can implement!
 Let's create an [abi](https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#:~:text=Contract%20ABI%20Specification-,Basic%20Design,as%20described%20in%20this%20specification.) of our solidity code.
 
-In the same `./contract-examples/contracts` directory, let's run
-
+In the same `./contract-examples/contracts` directory, let's download solc and run
 ```
-solcjs --abi IHelloWorld.sol
+brew update
+brew tap ethereum/ethereum
+brew install solidity
+
+solc --abi IHelloWorld.sol -o .
 ```
 
 This spits out the abi code. Let's move it into a brand new folder in 
