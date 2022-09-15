@@ -314,9 +314,12 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 		return nil, nil, err
 	}
 
-	var feeLastChangedAt *big.Int
+	var (
+		feeLastChangedAt *big.Int
+		feeConfig        commontype.FeeConfig
+	)
 	if oracle.backend.ChainConfig().IsFeeConfigManager(new(big.Int).SetUint64(head.Time)) {
-		_, feeLastChangedAt, err = oracle.backend.GetFeeConfigAt(head)
+		feeConfig, feeLastChangedAt, err = oracle.backend.GetFeeConfigAt(head)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -359,8 +362,16 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 	}
 
 	// if fee config has changed at a more recent block, it should be the lower limit
-	if feeLastChangedAt != nil && lowerBlockNumberLimit < feeLastChangedAt.Uint64() {
-		lowerBlockNumberLimit = feeLastChangedAt.Uint64()
+	if feeLastChangedAt != nil {
+		if lowerBlockNumberLimit < feeLastChangedAt.Uint64() {
+			lowerBlockNumberLimit = feeLastChangedAt.Uint64()
+		}
+
+		// If the fee config has been increased in the latest block, increase the lastBaseFee to the
+		// new minimum base fee.
+		if feeLastChangedAt.Uint64() == latestBlockNumber && lastBaseFee.Cmp(feeConfig.MinBaseFee) < 0 {
+			lastBaseFee = feeConfig.MinBaseFee
+		}
 	}
 
 	// Producer adds block requests from [latestBlockNumber] to [lowerBlockLimit] inclusive.
