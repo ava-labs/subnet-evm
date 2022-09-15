@@ -236,8 +236,7 @@ func (c *ChainConfig) GetActivePrecompiles(blockTimestamp *big.Int) PrecompileUp
 // [precompileUpgrades]. Upgrades not already forked may be modified or absent from [precompileUpgrades].
 // Returns nil if [precompileUpgrades] is compatible with [c].
 // Assumes given timestamp is the last accepted block timestamp.
-// Otherwise it might prevent an retroactive upgrade to be activated,
-// even though it can be actually activated at that time.
+// This ensures that as long as the node has not accepted a block with a different rule set it will allow a new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
 	for _, key := range precompileKeys {
 		if err := c.checkPrecompileCompatible(key, precompileUpgrades, lastTimestamp); err != nil {
