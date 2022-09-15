@@ -140,10 +140,14 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			normalized.Outputs = make([]abi.Argument, len(original.Outputs))
 			copy(normalized.Outputs, original.Outputs)
 			for j, output := range normalized.Outputs {
-				if output.Name == "" {
-					return "", fmt.Errorf("missing output name")
+				if isPrecompile {
+					if output.Name == "" {
+						return "", fmt.Errorf("ABI outputs for %s require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs", normalized.Name)
+					}
 				}
-				normalized.Outputs[j].Name = capitalise(output.Name)
+				if output.Name != "" {
+					normalized.Outputs[j].Name = capitalise(output.Name)
+				}
 				if hasStruct(output.Type) {
 					bindStructType[lang](output.Type, structs)
 				}
