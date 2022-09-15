@@ -31,8 +31,10 @@ Let's start by creating the Solidity interface that we want to implement. We can
 pragma solidity >=0.8.0;
 
 interface IHelloWorld {
+ // sayHello returns the string located at [key]
   function sayHello() external returns (string calldata);
 
+// setGreeting sets the string located at [key]
   function setGreeting(string calldata response) external;
 }
 ```
@@ -187,7 +189,7 @@ like so
 // interface while adding in the IHelloWorld specific precompile address.
 type IHelloWorldConfig struct {
 	UpgradeableConfig
-  AllowListConfig
+    AllowListConfig
 }
 ```
 
