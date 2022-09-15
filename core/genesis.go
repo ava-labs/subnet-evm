@@ -245,6 +245,9 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash com
 	// the node to continue making progress if it had halted previously due to
 	// a missing upgrade configuration.
 	lastBlock := ReadBlockByHash(db, lastAcceptedHash)
+	// this should never happen, but we check anyway
+	// when we start syncing from scratch, the last accepted block
+	// will be genesis block
 	if lastBlock == nil {
 		return newcfg, fmt.Errorf("missing last accepted block")
 	}
@@ -387,6 +390,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	return g.MustCommit(db)
 }
 
+// ReadBlockByHash reads the block with the given hash from the database.
 func ReadBlockByHash(db ethdb.Reader, hash common.Hash) *types.Block {
 	blockNumber := rawdb.ReadHeaderNumber(db, hash)
 	if blockNumber == nil {

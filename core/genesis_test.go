@@ -209,13 +209,14 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 			}
 
 			db := rawdb.NewMemoryDatabase()
-			_, err := SetupGenesisBlock(db, genesis, common.Hash{})
-			if err != nil {
-				t.Fatal(err)
-			}
 
 			genesisBlock := genesis.ToBlock(nil)
 			genesisRoot := genesisBlock.Root()
+
+			_, err := SetupGenesisBlock(db, genesis, genesisBlock.Hash())
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			statedb, err := state.New(genesisRoot, state.NewDatabase(db), nil)
 			if err != nil {
