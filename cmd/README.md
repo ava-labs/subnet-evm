@@ -327,7 +327,7 @@ contract ExampleHelloWorld {
   address constant HELLO_WORLD_ADDRESS = 0x0200000000000000000000000000000000000004;
   IHelloWorld helloWorld = IHelloWorld(HELLO_WORLD_ADDRESS);
 
-  function sayHello() public returns (string memory) {
+  function getHello() public returns (string memory) {
     return helloWorld.sayHello();
   }
 
@@ -336,6 +336,8 @@ contract ExampleHelloWorld {
   }
 }
 ```
+
+Note that the contract methods do not need to have the same function signatures as the precompile. This contract is simply a wrapper. 
 
 ## Step 7: Add Precompile Solidity Tests 
 
