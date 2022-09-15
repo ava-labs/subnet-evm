@@ -61,14 +61,15 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 	if other == nil {
 		return false
 	}
-	if !checkList(c.AllowListAdmins, other.AllowListAdmins) {
+	if !areEqualAddressLists(c.AllowListAdmins, other.AllowListAdmins) {
 		return false
 	}
 
-	return checkList(c.EnabledAddresses, other.EnabledAddresses)
+	return areEqualAddressLists(c.EnabledAddresses, other.EnabledAddresses)
 }
 
-func checkList(current []common.Address, other []common.Address) bool {
+// areEqualAddressLists returns true iff [a] and [b] have the same addresses in the same order.
+func areEqualAddressLists(current []common.Address, other []common.Address) bool {
 	if len(current) != len(other) {
 		return false
 	}
