@@ -522,7 +522,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
 	enabledAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
 	noRoleAddr := common.HexToAddress("0xF60C45c607D0f41687c94C314d300f483661E13a")
-	testAddr := common.BigToAddress(common.Big2)
+	testAddr := common.HexToAddress("0x123456789")
 
 	for name, test := range map[string]test{
 		"mint funds from no role fails": {

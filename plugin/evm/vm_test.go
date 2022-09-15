@@ -2484,7 +2484,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	}
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
 
-	vm.miner.SetEtherbase(common.BigToAddress(common.Big1)) // set non-blackhole address by force
+	vm.miner.SetEtherbase(common.HexToAddress("0x0123456789")) // set non-blackhole address by force
 	defer func() {
 		if err := vm.Shutdown(); err != nil {
 			t.Fatal(err)
@@ -2533,7 +2533,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	etherBase := common.BigToAddress(common.Big1)
+	etherBase := common.HexToAddress("0x0123456789")
 	c := Config{}
 	c.SetDefaults()
 	c.FeeRecipient = etherBase.String()
