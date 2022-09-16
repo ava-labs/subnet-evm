@@ -6,6 +6,8 @@ package precompile
 import (
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 	"gotest.tools/assert"
 )
 
@@ -63,4 +65,12 @@ func TestFunctionSignatureRegex(t *testing.T) {
 	} {
 		assert.Equal(t, test.pass, functionSignatureRegex.MatchString(test.str), "unexpected result for %q", test.str)
 	}
+}
+
+func TestHashBool(t *testing.T) {
+	require.Equal(t, hashTrue, boolToHash(true))
+	require.Equal(t, common.Hash{}, boolToHash(false))
+	require.Equal(t, true, hashToBool(hashTrue))
+	require.Equal(t, false, hashToBool(common.Hash{}))
+	require.Equal(t, false, hashToBool(common.HexToHash("0x012")))
 }
