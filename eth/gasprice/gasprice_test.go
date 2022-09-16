@@ -522,6 +522,8 @@ func TestSuggestTipCapMaxBlocksSecondsLookback(t *testing.T) {
 		},
 		expectedTip: big.NewInt(10_384_877_851),
 	}, timeCrunchOracleConfig())
+}
+
 // Regression test to ensure the last estimation of base fee is not used
 // for the block immediately following a fee configuration update.
 func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
