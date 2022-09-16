@@ -60,6 +60,11 @@ func TestVerify(t *testing.T) {
 			expectedError: "minBlockGasCost = -1 cannot be less than 0",
 		},
 		{
+			name:          "valid  FeeConfig",
+			config:        &validFeeConfig,
+			expectedError: "",
+		},
+		{
 			name: "MinBlockGasCost bigger than MaxBlockGasCost in FeeConfig",
 			config: func() *FeeConfig {
 				c := validFeeConfig
@@ -97,9 +102,20 @@ func TestEqual(t *testing.T) {
 		expected bool
 	}{
 		{
-			name:     "equal",
-			a:        &validFeeConfig,
-			b:        &validFeeConfig,
+			name: "equal",
+			a:    &validFeeConfig,
+			b: &FeeConfig{
+				GasLimit:        big.NewInt(8_000_000),
+				TargetBlockRate: 2, // in seconds
+
+				MinBaseFee:               big.NewInt(25_000_000_000),
+				TargetGas:                big.NewInt(15_000_000),
+				BaseFeeChangeDenominator: big.NewInt(36),
+
+				MinBlockGasCost:  big.NewInt(0),
+				MaxBlockGasCost:  big.NewInt(1_000_000),
+				BlockGasCostStep: big.NewInt(200_000),
+			},
 			expected: true,
 		},
 		{
