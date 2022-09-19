@@ -28,10 +28,8 @@ var (
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
 	ContractNativeMinterPrecompile StatefulPrecompiledContract = createNativeMinterPrecompile(ContractNativeMinterAddress)
 
-	mintSignature        = CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
-	ErrCannotMint        = errors.New("non-enabled cannot mint")
-	ErrAmountNil         = errors.New("initial mint amount cannot be nil")
-	ErrAmountNonPositive = errors.New("initial mint amount must be positive")
+	mintSignature = CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
+	ErrCannotMint = errors.New("non-enabled cannot mint")
 )
 
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -93,13 +91,13 @@ func (c *ContractNativeMinterConfig) Verify() error {
 		return err
 	}
 	// ensure that all of the initial mint values in the map are non-nil positive values
-	for _, amount := range c.InitialMint {
+	for addr, amount := range c.InitialMint {
 		if amount == nil {
-			return ErrAmountNil
+			return fmt.Errorf("initial mint cannot contain nil amount for address %s", addr)
 		}
 		bigIntAmount := (*big.Int)(amount)
 		if bigIntAmount.Sign() < 1 {
-			return ErrAmountNonPositive
+			return fmt.Errorf("initial mint cannot contain invalid amount %v for address %s", bigIntAmount, addr)
 		}
 	}
 	return nil

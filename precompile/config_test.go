@@ -84,7 +84,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): nil,
 				}),
-			expectedError: ErrAmountNil.Error(),
+			expectedError: "initial mint cannot contain nil",
 		},
 		{
 			name: "negative amount in native minter config",
@@ -93,7 +93,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(-1),
 				}),
-			expectedError: ErrAmountNonPositive.Error(),
+			expectedError: "initial mint cannot contain invalid amount",
 		},
 	}
 	for _, tt := range tests {
