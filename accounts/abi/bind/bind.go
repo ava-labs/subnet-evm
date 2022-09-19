@@ -609,6 +609,10 @@ func convertToNil(input abi.Type) string {
 		return "\"\""
 	case abi.BoolTy:
 		return "false"
+	case abi.AddressTy:
+		return "0x0000000000000000000000000000000000000000"
+	case abi.HashTy:
+		return "0x0000000000000000000000000000000000000000000000000000000000000000"
 	default:
 		return "nil"
 	}
