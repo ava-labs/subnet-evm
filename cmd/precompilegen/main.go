@@ -140,8 +140,6 @@ func precompilegen(c *cli.Context) error {
 	if err := os.WriteFile(c.String(outFlag.Name), []byte(code), 0o600); err != nil {
 		utils.Fatalf("Failed to write ABI precompile: %v", err)
 	}
-
-	fmt.Println("Precompile Generation was a success!")
 	return nil
 }
 
