@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -47,6 +48,7 @@ var (
 	ErrCannotSetRewardAddress        = errors.New("non-enabled cannot setRewardAddress")
 
 	ErrCannotEnableBothRewards = errors.New("cannot enable both fee recipients and reward address at the same time")
+	ErrCannotEmptyRewardAddr   = errors.New("cannot set empty reward address")
 	ErrEmptyRewardAddress      = errors.New("reward address cannot be empty")
 
 	RewardManagerABI        abi.ABI                     // will be initialized by init function
@@ -157,8 +159,12 @@ func (c *RewardManagerConfig) Configure(_ ChainConfig, state StateDB, _ BlockCon
 		// set the initial reward config
 		if c.InitialRewardConfig.AllowFeeRecipients {
 			StoreAllowFeeRecipients(state, true)
-		} else if c.InitialRewardConfig.RewardAddress != (common.Address{}) {
-			StoreRewardAddress(state, c.InitialRewardConfig.RewardAddress)
+		} else {
+			if c.InitialRewardConfig.RewardAddress == (common.Address{}) {
+				StoreRewardAddress(state, constants.BlackholeAddr)
+			} else {
+				StoreRewardAddress(state, c.InitialRewardConfig.RewardAddress)
+			}
 		}
 	}
 }
@@ -433,7 +439,7 @@ func disableRewards(accessibleState PrecompileAccessibleState, caller common.Add
 
 	// reset stored reward address only if it's already set to non empty address
 	if GetStoredRewardAddress(stateDB) != (common.Address{}) {
-		StoreRewardAddress(stateDB, common.Address{})
+		StoreRewardAddress(stateDB, constants.BlackholeAddr)
 	}
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
