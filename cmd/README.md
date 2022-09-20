@@ -200,11 +200,11 @@ like so
 // interface while adding in the IHelloWorld specific precompile address.
 type IHelloWorldConfig struct {
 	UpgradeableConfig
-    AllowListConfig
+  AllowListConfig
 }
 ```
 
-We would have modify the `Equal()` function as follows: 
+We would have to modify the `Equal()` function as follows: 
 
 ![](2022-09-01-22-54-22.png)
 
@@ -274,8 +274,13 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	}
 
 	// CUSTOM CODE STARTS HERE
+  // check if the input string is longer than 32 bytes
+  if inputStr > 32 {
+    return nil, 0, errors.New("input string is longer than 32 bytes")
+  }
+
 	// setGreeting is the execution function of "SetGreeting(name string)" and sets the storageKey in the string returned by hello world
-	res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
+  res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
 	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 
 	// this function does not return an output, leave this one as is
