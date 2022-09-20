@@ -41,7 +41,6 @@ import (
 	"unicode"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -611,9 +610,9 @@ func convertToNil(input abi.Type) string {
 	case abi.BoolTy:
 		return "false"
 	case abi.AddressTy:
-		return common.Address{}.String()
+		return "common.Address{}"
 	case abi.HashTy:
-		return common.Hash{}.String()
+		return "common.Hash{}"
 	default:
 		return "nil"
 	}
