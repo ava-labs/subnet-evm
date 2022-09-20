@@ -60,7 +60,7 @@ func TestVerify(t *testing.T) {
 			expectedError: "minBlockGasCost = -1 cannot be less than 0",
 		},
 		{
-			name:          "valid  FeeConfig",
+			name:          "valid FeeConfig",
 			config:        &validFeeConfig,
 			expectedError: "",
 		},
