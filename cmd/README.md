@@ -1,5 +1,18 @@
 # Precompile Generation Tutorial
 
+
+A stateful precompile allows us to add more functionality and customization to the EVM. A stateful precompile builds on a precompile in that it adds state access. This means our precompile can manage state as well as interacting with EVM state. 
+
+A stateful precompile follows this interface. 
+```
+// StatefulPrecompiledContract is the interface for executing a precompiled contract
+type StatefulPrecompiledContract interface {
+	// Run executes the precompiled contract.
+	Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
+}
+
+```
+
 We can now generate a stateful precompile with the Precompile gen tool!
 
 ### Assumption of Knowledge
@@ -13,7 +26,6 @@ Here are some resources to get started put together.
 - [Layout in Memory](https://docs.soliditylang.org/en/v0.8.10/internals/layout_in_memory.html)
 - [Layout of Call Data](https://docs.soliditylang.org/en/v0.8.10/internals/layout_in_calldata.html)
 - [Contract ABI Specification](https://docs.soliditylang.org/en/v0.8.10/abi-spec.html)
-- [Customizing the EVM with Stateful Precompiles](https://medium.com/avalancheavax/customizing-the-evm-with-stateful-precompiles-f44a34f39efd)
 - [Precompiles in Solidity](https://medium.com/@rbkhmrcr/precompiles-solidity-e5d29bd428c4)
 - [Customizing the EVM with Stateful Precompiles](https://medium.com/avalancheavax/customizing-the-evm-with-stateful-precompiles-f44a34f39efd)
 
