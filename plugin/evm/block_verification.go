@@ -112,6 +112,7 @@ func (v blockValidatorLegacy) SyntacticVerify(b *Block) error {
 
 type blockValidatorSubnetEVM struct {
 	feeConfigManagerEnabled bool
+	rewardManagerEnabled    bool
 }
 
 func (v blockValidatorSubnetEVM) SyntacticVerify(b *Block) error {
@@ -186,9 +187,12 @@ func (v blockValidatorSubnetEVM) SyntacticVerify(b *Block) error {
 	if uncleHash != ethHeader.UncleHash {
 		return errUncleHashMismatch
 	}
-	// Coinbase must be zero, if AllowFeeRecipients is not enabled
-	if !b.vm.chainConfig.AllowFeeRecipients && b.ethBlock.Coinbase() != constants.BlackholeAddr {
-		return errInvalidBlock
+	// reward manager is enabled, Coinbase depends on state. State is not available here, so skip checking the coinbase here.
+	if !v.rewardManagerEnabled {
+		// Coinbase must be zero, if AllowFeeRecipients is not enabled
+		if !b.vm.chainConfig.AllowFeeRecipients && b.ethBlock.Coinbase() != constants.BlackholeAddr {
+			return errInvalidBlock
+		}
 	}
 	// Block must not have any uncles
 	if len(b.ethBlock.Uncles()) > 0 {

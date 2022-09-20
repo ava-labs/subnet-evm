@@ -499,7 +499,7 @@ type Rules struct {
 	IsContractNativeMinterEnabled      bool
 	IsTxAllowListEnabled               bool
 	IsFeeConfigManagerEnabled          bool
-	IsRewardConfigManagerEnabled       bool
+	IsRewardManagerEnabled             bool
 	// ADD YOUR PRECOMPILE HERE
 	// Is{YourPrecompile}Enabled         bool
 
@@ -539,7 +539,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsContractNativeMinterEnabled = c.IsContractNativeMinter(blockTimestamp)
 	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
 	rules.IsFeeConfigManagerEnabled = c.IsFeeConfigManager(blockTimestamp)
-	rules.IsRewardConfigManagerEnabled = c.IsRewardConfigManager(blockTimestamp)
+	rules.IsRewardManagerEnabled = c.IsRewardManager(blockTimestamp)
 	// ADD YOUR PRECOMPILE HERE
 	// rules.Is{YourPrecompile}Enabled = c.{IsYourPrecompile}(blockTimestamp)
 

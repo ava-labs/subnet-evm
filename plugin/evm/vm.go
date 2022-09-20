@@ -799,7 +799,10 @@ func (vm *VM) currentRules() params.Rules {
 // follows the ruleset defined by [rules]
 func (vm *VM) getBlockValidator(rules params.Rules) BlockValidator {
 	if rules.IsSubnetEVM {
-		return blockValidatorSubnetEVM{feeConfigManagerEnabled: rules.IsFeeConfigManagerEnabled}
+		return blockValidatorSubnetEVM{
+			feeConfigManagerEnabled: rules.IsFeeConfigManagerEnabled,
+			rewardManagerEnabled:    rules.IsRewardManagerEnabled,
+		}
 	}
 
 	return legacyBlockValidator
