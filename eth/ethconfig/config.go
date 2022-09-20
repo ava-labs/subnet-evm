@@ -55,7 +55,7 @@ func NewDefaultConfig() Config {
 		LightPeers:            100,
 		UltraLightFraction:    75,
 		DatabaseCache:         512,
-		TrieCleanCache:        128,
+		TrieCleanCache:        256,
 		TrieDirtyCache:        256,
 		TrieDirtyCommitTarget: 20,
 		SnapshotCache:         128,

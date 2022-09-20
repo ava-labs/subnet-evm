@@ -54,18 +54,6 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		)
 	}
 
-	// if this is SubnetEVM and FeeConfigManager is enabled we cannot check this.
-	// FeeConfig depends on state. State is not available here, so skip checking the gas limit.
-	if !(rules.IsSubnetEVM && rules.IsFeeConfigManagerEnabled) {
-		expectedGas := b.vm.chainConfig.FeeConfig.GasLimit.Uint64()
-		if ethHeader.GasLimit != expectedGas {
-			return fmt.Errorf(
-				"expected gas limit to be %d in subnetEVM but got %d",
-				expectedGas, ethHeader.GasLimit,
-			)
-		}
-	}
-
 	if ethHeader.MixDigest != (common.Hash{}) {
 		return fmt.Errorf("invalid mix digest: %v", ethHeader.MixDigest)
 	}
