@@ -1,6 +1,4 @@
 # Precompile Generation Tutorial
-
-
 A stateful precompile allows us to add more functionality and customization to the EVM. A stateful precompile builds on a precompile in that it adds state access. This means our precompile can manage state as well as interacting with EVM state. 
 
 A stateful precompile follows this interface. 
@@ -13,10 +11,12 @@ type StatefulPrecompiledContract interface {
 
 ```
 
-We can now generate a stateful precompile with the Precompile gen tool!
+It looks like we have to create the actual precompile, contract that interacts with the precompile, tests for that contract, and small modifications throughout the EVM to enable the precompile. This seems like a lot of work. Luckily, we have the precompile generation tool! 
+
+This tool does a bulk of the precompile creation work in one command. In this tutorial, we will be walking through how to create a working precompile from scratch. 
 
 ### Assumption of Knowledge
-Before starting this tutorial it would be helpful if you had some context on the EVM, precompiles, and stateful precompiles. 
+Before building a stateful precompile, you will want to make sure that you have an understanding of the EVM, precompiles, and stateful precompiles. 
 Here are some resources to get started put together. 
 
 - [The Ethereum Virtual Machine](https://github.com/ethereumbook/ethereumbook/blob/develop/13evm.asciidoc)
