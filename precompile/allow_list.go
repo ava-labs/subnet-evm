@@ -47,7 +47,6 @@ type AllowListConfig struct {
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
 func (c *AllowListConfig) Configure(state StateDB, precompileAddr common.Address) {
-	// First set enabled roles so these can be upgraded to admin addresses below.
 	for _, enabledAddr := range c.EnabledAddresses {
 		setAllowListRole(state, precompileAddr, enabledAddr, AllowListEnabled)
 	}
