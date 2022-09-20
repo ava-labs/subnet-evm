@@ -201,7 +201,7 @@ like so
 
 type IHelloWorldConfig struct {
 	UpgradeableConfig
-  AllowListConfig
+    AllowListConfig
 }
 ```
 
@@ -269,23 +269,22 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	// attempts to unpack [input] into the arguments to the SetGreetingInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	
-  inputStr, err := UnpackSetGreetingInput(input)
+    inputStr, err := UnpackSetGreetingInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// CUSTOM CODE STARTS HERE
-  // check if the input string is longer than 32 bytes
-  
-  if inputStr > 32 {
-    return nil, 0, errors.New("input string is longer than 32 bytes")
-  }
+    // check if the input string is longer than 32 bytes
+    if inputStr > 32 {
+      return nil, 0, errors.New("input string is longer than 32 bytes")
+    }
 
-	// setGreeting is the execution function of "SetGreeting(name string)" and sets the storageKey in the string returned by hello world
+	// setGreeting is the execution function "SetGreeting(name string)"
+    // and sets the storageKey in the string returned by hello world
   
-  res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
-	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
+    res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
+	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common. BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
@@ -365,7 +364,7 @@ Note that the contract methods do not need to have the same function signatures 
 
 We can now write our hardhat test in `contract-examples/test`. This file is called `TestHelloWorld.ts`
 
-``` go
+``` js
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
