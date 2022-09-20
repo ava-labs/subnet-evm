@@ -198,6 +198,7 @@ like so
 ``` go
 // IHelloWorldConfig implements the StatefulPrecompileConfig
 // interface while adding in the IHelloWorld specific precompile address.
+
 type IHelloWorldConfig struct {
 	UpgradeableConfig
   AllowListConfig
