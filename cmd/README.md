@@ -11,7 +11,7 @@ type StatefulPrecompiledContract interface {
 
 ```
 
-It looks like we have to create the actual precompile, contract that interacts with the precompile, tests for that contract, and small modifications throughout the EVM to enable the precompile. This seems like a lot of work. Luckily, we have the precompile generation tool! 
+It looks like we have to create an actual precompile, an interface for the precompile, a contract that interacts with the precompile, tests for that contract, and small modifications throughout the EVM to enable the precompile. This seems like a lot of work. Luckily, we have the precompile generation tool! 
 
 This tool does a bulk of the precompile creation work in one command. In this tutorial, we will be walking through how to create a working precompile from scratch. 
 
@@ -32,7 +32,7 @@ Here are some resources to get started put together.
  
 ## Tutorial
 
-Let's start by creating the Solidity interface that we want to implement. We can put this  in `./contract-examples/contracts`
+Let's start by creating the Solidity interface that we want our precompile to implement. We will place this file in `./contract-examples/contracts`
 
 ```
 // (c) 2022-2023, Ava Labs, Inc. All rights reserved.
@@ -54,17 +54,13 @@ interface IHelloWorld {
 Now we have an interface that our precompile can implement!
 Let's create an [abi](https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#:~:text=Contract%20ABI%20Specification-,Basic%20Design,as%20described%20in%20this%20specification.) of our solidity code.
 
-In the same `./contract-examples/contracts` directory, let's download solc and run
+In the same `./contract-examples/contracts` directory, let's [download solc](https://docs.soliditylang.org/en/v0.8.9/installing-solidity.html) and run
 ```
-brew update
-brew tap ethereum/ethereum
-brew install solidity
-
 solc --abi IHelloWorld.sol -o .
 ```
 
-This spits out the abi code. Let's move it into a brand new folder in 
-`./contract-examples/contracts/contract-abis`. 
+This spits out the abi code. Let's move it to 
+`./contract-examples/contracts`. 
 
 IHelloWorld.abi
 
