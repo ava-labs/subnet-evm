@@ -28,6 +28,7 @@ package state
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -40,9 +41,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/holiman/uint256"
 )
 
-var emptyCodeHash = crypto.Keccak256(nil)
+var (
+	emptyCodeHash      = crypto.Keccak256(nil)
+	errBalanceOverflow = errors.New("balance uint256 overflow")
+)
 
 type Code []byte
 
@@ -412,16 +417,23 @@ func (s *stateObject) CommitTrie(db Database) (*trie.NodeSet, error) {
 
 // AddBalance adds amount to s's balance.
 // It is used to add funds to the destination account of a transfer.
-func (s *stateObject) AddBalance(amount *big.Int) {
+func (s *stateObject) AddBalance(amount *big.Int) error {
 	// EIP161: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
 	if amount.Sign() == 0 {
 		if s.empty() {
 			s.touch()
 		}
-		return
+		return nil
 	}
+	// check for the overflow against uint256
+	newBalance := new(big.Int).Add(s.Balance(), amount)
+	if _, overflow := uint256.FromBig(newBalance); overflow {
+		return errBalanceOverflow
+	}
+
 	s.SetBalance(new(big.Int).Add(s.Balance(), amount))
+	return nil
 }
 
 // SubBalance removes amount from s's balance.

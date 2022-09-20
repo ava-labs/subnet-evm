@@ -75,7 +75,9 @@ func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ B
 	for to, amount := range c.InitialMint {
 		if amount != nil {
 			bigIntAmount := (*big.Int)(amount)
-			state.AddBalance(to, bigIntAmount)
+			if err := state.AddBalance(to, bigIntAmount); err != nil {
+				panic(fmt.Errorf("failed to mint initial balance for %s: %w", to.String(), err))
+			}
 		}
 	}
 
@@ -204,7 +206,9 @@ func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Add
 		stateDB.CreateAccount(to)
 	}
 
-	stateDB.AddBalance(to, amount)
+	if err := stateDB.AddBalance(to, amount); err != nil {
+		return nil, remainingGas, err
+	}
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
 }

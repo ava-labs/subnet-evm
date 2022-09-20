@@ -50,7 +50,7 @@ type StateDB interface {
 	GetNonce(common.Address) uint64
 
 	GetBalance(common.Address) *big.Int
-	AddBalance(common.Address, *big.Int)
+	AddBalance(common.Address, *big.Int) error
 	SubBalance(common.Address, *big.Int)
 
 	CreateAccount(common.Address)

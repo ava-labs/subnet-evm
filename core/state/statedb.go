@@ -403,11 +403,12 @@ func (s *StateDB) HasSuicided(addr common.Address) bool {
  */
 
 // AddBalance adds amount to the account associated with addr.
-func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) {
+func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) error {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.AddBalance(amount)
+		return stateObject.AddBalance(amount)
 	}
+	return nil
 }
 
 // SubBalance subtracts amount from the account associated with addr.
