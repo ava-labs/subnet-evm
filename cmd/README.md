@@ -268,18 +268,21 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	// attempts to unpack [input] into the arguments to the SetGreetingInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	inputStr, err := UnpackSetGreetingInput(input)
+	
+  inputStr, err := UnpackSetGreetingInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// CUSTOM CODE STARTS HERE
   // check if the input string is longer than 32 bytes
+  
   if inputStr > 32 {
     return nil, 0, errors.New("input string is longer than 32 bytes")
   }
 
 	// setGreeting is the execution function of "SetGreeting(name string)" and sets the storageKey in the string returned by hello world
+  
   res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
 	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 
