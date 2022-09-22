@@ -86,16 +86,27 @@ func (c *AllowListConfig) Verify() error {
 	if len(c.EnabledAddresses) == 0 || len(c.AllowListAdmins) == 0 {
 		return nil
 	}
+
 	enabledMap := make(map[common.Address]struct{})
 	for _, enabledAddr := range c.EnabledAddresses {
-		if _, ok := enabledMap[enabledAddr]; !ok {
-			enabledMap[enabledAddr] = struct{}{}
+		// check for duplicates
+		if _, ok := enabledMap[enabledAddr]; ok {
+			return fmt.Errorf("duplicate address %s in enabled list", enabledAddr)
 		}
+		enabledMap[enabledAddr] = struct{}{}
 	}
+
+	adminMap := make(map[common.Address]struct{})
 	for _, adminAddr := range c.AllowListAdmins {
+		// check for overlap between enabled and admin lists
 		if _, ok := enabledMap[adminAddr]; ok {
 			return fmt.Errorf("cannot set address %s as both admin and enabled", adminAddr)
 		}
+		// check for duplicates
+		if _, ok := adminMap[adminAddr]; ok {
+			return fmt.Errorf("duplicate address %s in enabled list", adminMap)
+		}
+		adminMap[adminAddr] = struct{}{}
 	}
 
 	return nil
