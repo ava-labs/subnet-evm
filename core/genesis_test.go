@@ -42,6 +42,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash common.Hash) (*params.ChainConfig, common.Hash, error) {
@@ -227,5 +228,63 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 				test.assertState(t, statedb)
 			}
 		})
+	}
+}
+
+// regression test for precompile activation after header block
+func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
+	db := rawdb.NewMemoryDatabase()
+
+	customg := Genesis{
+		Config: params.SubnetEVMDefaultChainConfig,
+		Alloc: GenesisAlloc{
+			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
+		},
+		GasLimit: params.SubnetEVMDefaultChainConfig.FeeConfig.GasLimit.Uint64(),
+	}
+	genesis := customg.MustCommit(db)
+	bc, _ := NewBlockChain(db, DefaultCacheConfig, customg.Config, dummy.NewFullFaker(), vm.Config{}, common.Hash{})
+	defer bc.Stop()
+
+	// Advance header to block #4, past the ContractDeployerAllowListConfig.
+	blocks, _, _ := GenerateChain(customg.Config, genesis, dummy.NewFullFaker(), db, 4, 25, nil)
+
+	require := require.New(t)
+	_, err := bc.InsertChain(blocks)
+	require.NoError(err)
+
+	// accept up to block #2
+	for _, block := range blocks[:2] {
+		if err := bc.Accept(block); err != nil {
+			t.Fatal(err)
+		}
+	}
+	block := bc.CurrentBlock()
+
+	require.Equal(blocks[1].Hash(), bc.lastAccepted.Hash())
+	// header must be bigger than last accepted
+	require.Greater(block.Time(), bc.lastAccepted.Time())
+
+	activatedGenesis := customg
+	contractDeployerConfig := precompile.NewContractDeployerAllowListConfig(big.NewInt(51), nil)
+	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
+		{
+			// Enable ContractDeployerAllowList at timestamp 50
+			ContractDeployerAllowListConfig: contractDeployerConfig,
+		},
+	}
+
+	// assert block is after the activation block
+	require.Greater(block.Time(), contractDeployerConfig.Timestamp().Uint64())
+	// assert last accepted block is before the activation block
+	require.Less(bc.lastAccepted.Time(), contractDeployerConfig.Timestamp().Uint64())
+
+	// This should not return any error since the last accepted block is before the activation block.
+	config, _, err := setupGenesisBlock(db, &activatedGenesis, bc.lastAccepted.Hash())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(config, activatedGenesis.Config) {
+		t.Errorf("returned %v\nwant     %v", config, activatedGenesis.Config)
 	}
 }
