@@ -357,8 +357,12 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 
+	// refund gas first in case refunded address is the coinbase.
+	// otherwise refunding after adding balance to coinbase might result into
+	// an overflow
 	st.refundGas(rules.IsSubnetEVM)
 
+	// now we can check for the overflow
 	if err := st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)); err != nil {
 		return nil, err
 	}
@@ -383,7 +387,7 @@ func (st *StateTransition) refundGas(subnetEVM bool) {
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
 	// This is fine against overflow since we already subtracted the fee from the sender
-	st.state.AddBalance(st.msg.From(), remaining)
+	_ = st.state.AddBalance(st.msg.From(), remaining)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

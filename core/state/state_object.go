@@ -28,7 +28,6 @@ package state
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -38,16 +37,14 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/holiman/uint256"
 )
 
-var (
-	emptyCodeHash      = crypto.Keccak256(nil)
-	errBalanceOverflow = errors.New("balance uint256 overflow")
-)
+var emptyCodeHash = crypto.Keccak256(nil)
 
 type Code []byte
 
@@ -427,12 +424,12 @@ func (s *stateObject) AddBalance(amount *big.Int) error {
 		return nil
 	}
 	// check for the overflow against uint256
-	newBalance := new(big.Int).Add(s.Balance(), amount)
-	if _, overflow := uint256.FromBig(newBalance); overflow {
-		return errBalanceOverflow
+	newBalance, ok := utils.SafeSumUint256(s.Balance(), amount)
+	if !ok {
+		return vmerrs.ErrBalanceOverflow
 	}
 
-	s.SetBalance(new(big.Int).Add(s.Balance(), amount))
+	s.SetBalance(newBalance)
 	return nil
 }
 

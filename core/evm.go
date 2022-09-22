@@ -32,6 +32,8 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -128,7 +130,13 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
-func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
+func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) error {
+	// check overflow before subtracting balance from sender
+	if _, ok := utils.SafeSumUint256(db.GetBalance(recipient), amount); !ok {
+		return vmerrs.ErrBalanceOverflow
+	}
 	db.SubBalance(sender, amount)
-	db.AddBalance(recipient, amount)
+	// We already checked for overflow in the previous line
+	_ = db.AddBalance(recipient, amount)
+	return nil
 }
