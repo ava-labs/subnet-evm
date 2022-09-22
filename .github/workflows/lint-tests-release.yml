@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v3
-      - run: ./scripts/lint_allowed_geth_imports.sh 
+      - run: ./scripts/lint_allowed_geth_imports.sh
         shell: bash
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
@@ -44,28 +44,53 @@ jobs:
       - run: ./scripts/coverage.sh
         shell: bash
 
-  e2e_test:
-    name: e2e tests
+  solidity_example_contracts_test:
+    name: Tests example solidity contracts
     runs-on: ubuntu-latest
     steps:
-      - name: Git checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          submodules: recursive
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Install dependencies with forge
+        run: pushd ./contracts-foundry && forge install && popd
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
           go-version: 1.18
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "14.x"
-      - name: Yarn install
-        run: yarn
-        working-directory: ./contract-examples
+      - name: Install dependencies with go module
+        shell: bash
+        run: go mod download
       - name: Run e2e tests
         shell: bash
-        run: SKIP_NETWORK_RUNNER_START=true SKIP_NETWORK_RUNNER_SHUTDOWN=true ENABLE_SOLIDITY_TESTS=true scripts/run.sh
+        run: scripts/run.sh
+
+  precompile_upgrade_test:
+    name: Test precompile upgrades
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Install dependencies with forge
+        run: pushd ./contracts-foundry && forge install && popd
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Install dependencies with go module
+        shell: bash
+        run: go mod download
+      - name: Run e2e tests
+        shell: bash
+        run: RUN_PRECOMPILE_UPGRADE=true scripts/run.sh
 
   simulator_test:
     name: Load testing with simulator
@@ -79,12 +104,23 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.18
+      - name: Install dependencies with go module
+        shell: bash
+        run: go mod download
       - name: Run simulator tests
         shell: bash
+        # skip shutdown so external simulator binary can run against the existing cluster
         run: SKIP_NETWORK_RUNNER_SHUTDOWN=true RUN_SIMULATOR=true scripts/run.sh
 
   release:
-    # needs: [lint_test, simulator_test] # TODO: re-add after flaky tests are fixed (unit_test, e2e_test)
+    needs:
+      [
+        lint_test,
+        unit_test,
+        solidity_example_contracts_test,
+        precompile_upgrade_test,
+        simulator_test,
+      ]
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout
