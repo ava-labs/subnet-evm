@@ -244,7 +244,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash com
 	// we use last accepted block for cfg compatibility check. Note this allows
 	// the node to continue if it previously halted due to attempting to process blocks with
 	// an incorrect chain config.
-	lastBlock := ReadBlockByHash(db, lastAcceptedHash)
+	lastBlock := rawdb.ReadHeadBlock(db)
 	// this should never happen, but we check anyway
 	// when we start syncing from scratch, the last accepted block
 	// will be genesis block
