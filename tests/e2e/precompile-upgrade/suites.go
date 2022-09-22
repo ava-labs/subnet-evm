@@ -2,7 +2,7 @@
 // See the file LICENSE for licensing terms.
 
 // Implements precompile upgrade tests for Tx Allow List, requires network-runner cluster.
-package tx_allow_list
+package precompile_upgrade
 
 import (
 	"context"
@@ -213,6 +213,9 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 			cancel()
 			gomega.Expect(err.Error()).Should(gomega.ContainSubstring("non-allow listed address"))
 		})
+
+		// TODO: test other precompiles
+		// e.g., contract deployer
 
 		ginkgo.By("non-admin address should never be allowed to add it itself to the admin list", func() {
 			ci := utils.GetClusterInfo()

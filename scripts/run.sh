@@ -44,7 +44,7 @@ if [[ ${RUN_SIMULATOR} == true && ${RUN_PRECOMPILE_UPGRADE} == true ]]; then
   exit 1
 fi
 
-# ref. https://onsi.github.io/ginkgo/#filtering-specs
+# ref. https://onsi.github.io/ginkgo/#spec-labels
 GINKGO_LABEL_FILTER="!precompile-upgrade"
 if [[ ${RUN_SIMULATOR} == true ]]; then
   GINKGO_LABEL_FILTER="ping"
