@@ -140,6 +140,7 @@ func (sn *snLookup) SubnetID(chainID ids.ID) (ids.ID, error) {
 	return subnetID, nil
 }
 
+// If [genesisJSON] is empty, defaults to using [genesisJSONLatest]
 func setupGenesis(t *testing.T,
 	genesisJSON string,
 ) (*snow.Context,
@@ -179,7 +180,9 @@ func setupGenesis(t *testing.T,
 }
 
 // GenesisVM creates a VM instance with the genesis test bytes and returns
-// the channel use to send messages to the engine, the vm
+// the channel use to send messages to the engine, the VM, database manager,
+// and sender.
+// If [genesisJSON] is empty, defaults to using [genesisJSONLatest]
 func GenesisVM(t *testing.T,
 	finishBootstrapping bool,
 	genesisJSON string,

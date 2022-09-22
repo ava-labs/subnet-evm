@@ -48,7 +48,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: Verify gas amounts in this file are correct.
 const testHead = 32
 
 var (
