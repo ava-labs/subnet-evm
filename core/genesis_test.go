@@ -266,7 +266,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	require.Greater(block.Time(), bc.lastAccepted.Time())
 
 	activatedGenesis := customg
-	contractDeployerConfig := precompile.NewContractDeployerAllowListConfig(big.NewInt(51), nil)
+	contractDeployerConfig := precompile.NewContractDeployerAllowListConfig(big.NewInt(51), nil, nil)
 	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			// Enable ContractDeployerAllowList at timestamp 50
