@@ -255,9 +255,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 
 	// accept up to block #2
 	for _, block := range blocks[:2] {
-		if err := bc.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(bc.Accept(block))
 	}
 	block := bc.CurrentBlock()
 
@@ -281,9 +279,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 
 	// This should not return any error since the last accepted block is before the activation block.
 	config, _, err := setupGenesisBlock(db, &activatedGenesis, bc.lastAccepted.Hash())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	if !reflect.DeepEqual(config, activatedGenesis.Config) {
 		t.Errorf("returned %v\nwant     %v", config, activatedGenesis.Config)
 	}
