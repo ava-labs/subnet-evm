@@ -70,7 +70,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			expectedError: "duplicate address",
 		},
 		{
-			name:          "duplicate admins in config in native minter allowlist",
+			name:          "duplicate enableds in config in native minter allowlist",
 			config:        NewContractNativeMinterConfig(big.NewInt(3), admins, append(enableds, enableds[0]), nil),
 			expectedError: "duplicate address",
 		},
