@@ -54,8 +54,8 @@ var (
 	RewardManagerABI        abi.ABI                     // will be initialized by init function
 	RewardManagerPrecompile StatefulPrecompiledContract // will be initialized by init function
 
-	allowFeeRecipientsStorageKey = common.Hash{'a', 'f', 'r', 's', 'k'}
-	rewardAddressStorageKey      = common.Hash{'r', 'a', 's', 'k'}
+	rewardAddressStorageKey        = common.Hash{'r', 'a', 's', 'k'}
+	allowFeeRecipientsAddressValue = common.Address{'a', 'f', 'r', 'a', 'v'}
 )
 
 type InitialRewardConfig struct {
@@ -151,21 +151,30 @@ func (c *RewardManagerConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the initial configuration.
-func (c *RewardManagerConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
+func (c *RewardManagerConfig) Configure(chainConfig ChainConfig, state StateDB, _ BlockContext) {
 	c.AllowListConfig.Configure(state, RewardManagerAddress)
 	// CUSTOM CODE STARTS HERE
-	// configure the RewardManager with the initial configuration
+	// configure the RewardManager with the given initial configuration
 	if c.InitialRewardConfig != nil {
-		// set the initial reward config
+		// enable allow fee recipients
 		if c.InitialRewardConfig.AllowFeeRecipients {
-			StoreAllowFeeRecipients(state, true)
-		} else {
-			if c.InitialRewardConfig.RewardAddress == (common.Address{}) {
-				StoreRewardAddress(state, constants.BlackholeAddr)
-			} else {
-				StoreRewardAddress(state, c.InitialRewardConfig.RewardAddress)
-			}
+			EnableAllowFeeRecipients(state)
+			return
 		}
+		// set the initial reward address if specified
+		if c.InitialRewardConfig.RewardAddress != (common.Address{}) {
+			if err := StoreRewardAddress(state, c.InitialRewardConfig.RewardAddress); err != nil {
+				panic(err)
+			}
+			return
+		}
+		DisableFeeRewards(state)
+	} else { // configure the RewardManager according to chainConfig
+		if chainConfig.AllowedFeeRecipients() {
+			EnableAllowFeeRecipients(state)
+			return
+		}
+		DisableFeeRewards(state)
 	}
 }
 
@@ -201,15 +210,14 @@ func PackAllowFeeRecipients() ([]byte, error) {
 	return RewardManagerABI.Pack("allowFeeRecipients")
 }
 
-// GetStoredAllowFeeRecipients returns the current value of the stored allowFeeRecipients flag.
-func GetStoredAllowFeeRecipients(stateDB StateDB) bool {
-	val := stateDB.GetState(RewardManagerAddress, allowFeeRecipientsStorageKey)
-	return hashToBool(val)
+// EnableAllowFeeRecipients enables fee recipients.
+func EnableAllowFeeRecipients(stateDB StateDB) {
+	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, allowFeeRecipientsAddressValue.Hash())
 }
 
-// StoreAllowFeeRecipients stores the given [val] under allowFeeRecipientsStoragekey.
-func StoreAllowFeeRecipients(stateDB StateDB, val bool) {
-	stateDB.SetState(RewardManagerAddress, allowFeeRecipientsStorageKey, boolToHash(val))
+// DisableRewardAddress disables rewards and burns them by sending to Blackhole Address.
+func DisableFeeRewards(stateDB StateDB) {
+	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, constants.BlackholeAddr.Hash())
 }
 
 func allowFeeRecipients(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -234,11 +242,7 @@ func allowFeeRecipients(accessibleState PrecompileAccessibleState, caller common
 
 	// CUSTOM CODE STARTS HERE
 	// this function does not return an output, leave this one as is
-	if GetStoredRewardAddress(stateDB) != (common.Address{}) {
-		// reset stored reward address first
-		StoreRewardAddress(stateDB, common.Address{})
-	}
-	StoreAllowFeeRecipients(stateDB, true)
+	EnableAllowFeeRecipients(stateDB)
 	packedOutput := []byte{}
 
 	// Return the packed output and the remaining gas
@@ -279,7 +283,8 @@ func areFeeRecipientsAllowed(accessibleState PrecompileAccessibleState, caller c
 
 	// CUSTOM CODE STARTS HERE
 	var output bool // CUSTOM CODE FOR AN OUTPUT
-	output = GetStoredAllowFeeRecipients(stateDB)
+	_, output = GetStoredRewardAddress(stateDB)
+
 	packedOutput, err := PackAreFeeRecipientsAllowedOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
@@ -302,14 +307,23 @@ func PackCurrentRewardAddressOutput(rewardAddress common.Address) ([]byte, error
 }
 
 // GetStoredRewardAddress returns the current value of the address stored under rewardAddressStorageKey.
-func GetStoredRewardAddress(stateDB StateDB) common.Address {
+// Returns true if allow fee recipients is enabled, otherwise returns current reward address.
+func GetStoredRewardAddress(stateDB StateDB) (common.Address, bool) {
 	val := stateDB.GetState(RewardManagerAddress, rewardAddressStorageKey)
-	return common.BytesToAddress(val.Bytes())
+	if val == allowFeeRecipientsAddressValue.Hash() {
+		return common.Address{}, true
+	}
+	return common.BytesToAddress(val.Bytes()), false
 }
 
 // StoredRewardAddress stores the given [val] under rewardAddressStorageKey.
-func StoreRewardAddress(stateDB StateDB, val common.Address) {
+func StoreRewardAddress(stateDB StateDB, val common.Address) error {
+	// if input is empty, return an error
+	if val == (common.Address{}) {
+		return ErrEmptyRewardAddress
+	}
 	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, val.Hash())
+	return nil
 }
 
 // PackSetRewardAddress packs [addr] of type common.Address into the appropriate arguments for setRewardAddress.
@@ -357,16 +371,9 @@ func setRewardAddress(accessibleState PrecompileAccessibleState, caller common.A
 	// allow list code ends here.
 
 	// CUSTOM CODE STARTS HERE
-	// if input is empty, return an error
-	if inputStruct == (common.Address{}) {
-		return nil, remainingGas, ErrEmptyRewardAddress
+	if err := StoreRewardAddress(stateDB, inputStruct); err != nil {
+		return nil, remainingGas, err
 	}
-	// reset stored allow fee recipients flag only if it's already set to true
-	if GetStoredAllowFeeRecipients(stateDB) {
-		StoreAllowFeeRecipients(stateDB, false)
-	}
-
-	StoreRewardAddress(stateDB, inputStruct)
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
@@ -395,7 +402,7 @@ func currentRewardAddress(accessibleState PrecompileAccessibleState, caller comm
 	// allow list code ends here.
 
 	// CUSTOM CODE STARTS HERE
-	output := GetStoredRewardAddress(stateDB)
+	output, _ := GetStoredRewardAddress(stateDB)
 	packedOutput, err := PackCurrentRewardAddressOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
@@ -432,15 +439,7 @@ func disableRewards(accessibleState PrecompileAccessibleState, caller common.Add
 	// allow list code ends here.
 
 	// CUSTOM CODE STARTS HERE
-	// reset stored allow fee recipients flag only if it's already set to true
-	if GetStoredAllowFeeRecipients(stateDB) {
-		StoreAllowFeeRecipients(stateDB, false)
-	}
-
-	// reset stored reward address only if it's already set to non empty address
-	if GetStoredRewardAddress(stateDB) != (common.Address{}) {
-		StoreRewardAddress(stateDB, constants.BlackholeAddr)
-	}
+	DisableFeeRewards(stateDB)
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
