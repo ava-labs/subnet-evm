@@ -1,23 +1,92 @@
-# Precompile Generation Tutorial
-A stateful precompile allows us to add more functionality and customization to the EVM. A stateful precompile builds on a precompile in that it adds state access. This means our precompile can manage state as well as interacting with EVM state. 
+# Stateful Precompile Generation Tutorial
+In this tutorial,  we are going to walkthrough how we can generate a stateful precompile from scratch. Before we start, let's brush up on what a precompile is, what a stateful precompile is, and why this is extremely useful. 
+
+## Precompiled Contracts
+Precompiles were introduced to Ethereum  as a way to solve the problem of allowing complex cryptographic computations to be usable in the EVM without having to deal with EVM overhead. The following precompiles are currently included: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation.
+
+We can see these precompile mappings from address to function reside here in the ethereum vm. 
+
+``` go
+// PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
+// contracts used in the Berlin release.
+var PrecompiledContractsBerlin = map[common.Address]PrecompiledContract{
+	common.BytesToAddress([]byte{1}): &ecrecover{},
+	common.BytesToAddress([]byte{2}): &sha256hash{},
+	common.BytesToAddress([]byte{3}): &ripemd160hash{},
+	common.BytesToAddress([]byte{4}): &dataCopy{},
+	common.BytesToAddress([]byte{5}): &bigModExp{eip2565: true},
+	common.BytesToAddress([]byte{6}): &bn256AddIstanbul{},
+	common.BytesToAddress([]byte{7}): &bn256ScalarMulIstanbul{},
+	common.BytesToAddress([]byte{8}): &bn256PairingIstanbul{},
+	common.BytesToAddress([]byte{9}): &blake2F{},
+}
+```
+
+These precompile addresses start from `0x0000000000000000000000000000000000000001` and increment by 1. 
+
+A precompile follows this interface
+``` go 
+// PrecompiledContract is the basic interface for native Go contracts. The implementation
+// requires a deterministic gas count based on the input size of the Run method of the
+// contract.
+type PrecompiledContract interface {
+	RequiredGas(input []byte) uint64  // RequiredPrice calculates the contract gas use
+	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
+}
+```
+
+Here is an example of sha256 precompile.
+``` go 
+type sha256hash struct{}
+
+// RequiredGas returns the gas required to execute the pre-compiled contract.
+//
+// This method does not require any overflow checking as the input size gas costs
+// required for anything significant is so high it's impossible to pay for.
+func (c *sha256hash) RequiredGas(input []byte) uint64 {
+	return uint64(len(input)+31)/32*params.Sha256PerWordGas + params.Sha256BaseGas
+}
+
+func (c *sha256hash) Run(input []byte) ([]byte, error) {
+	h := sha256.Sum256(input)
+	return h[:], nil
+}
+```
+
+The CALL opcode (CALL, STATICCALL, DELEGATECALL, and CALLCODE) allows us to invoke this precompile. CALL takes in the precompile address and input, the former maps us to the appropriate function and latter is passed directly into the function. The evm then performs the function and subtracts the `RequiredGas`.
+
+
+The advantage of these precompiles is that the execution is faster and the gas cost is lower than running the same algorithm in the EVM. All these crytographic functions are commonly used in smart contracts so precompiles became a built in library for the evm.
+
+## Stateful Precompiled Contracts
+
+A stateful precompile allows us to add even more functionality and customization to the EVM. It builds on a precompile in that it adds state access. 
 
 A stateful precompile follows this interface. 
 ``` go
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
 type StatefulPrecompiledContract interface {
 	// Run executes the precompiled contract.
-	Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
-}
+	Run(accessibleState PrecompileAccessibleState, caller common.Address, addr  common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 
+}
 ```
 
-It looks like we have to create an actual precompile, an interface for the precompile, a contract that interacts with the precompile, tests for that contract, and small modifications throughout the EVM to enable the precompile. This seems like a lot of work. Luckily, we have the precompile generation tool! 
+Notice the most important difference from the precompile interface. We now inject state access to the `Run` function. Precompiles only took in a single byte slice as input. Stateful precompile execution functions will have complete access to the EVM state, and can be used to implement a much wider range of functionalities. 
 
-This tool does a bulk of the precompile creation work in one command. In this tutorial, we will be walking through how to create a working precompile from scratch. 
+## Why this is useful
 
-### Assumption of Knowledge
-Before building a stateful precompile, you will want to make sure that you have an understanding of the EVM, precompiles, and stateful precompiles. 
-Here are some resources to get started put together. 
+Stateful precompiles can help customize your own EVM even further. With state access, we can modify balances, read/write the storage of other contracts, and could even hook into external storage outside of the bounds of the EVM’s merkle trie (note: this would come with repercussions for fast sync since part of the state would be moved off of the merkle trie). 
+
+## The Process
+
+We will first create a Solidity interface that our precompile will implement.  Then we will use the stateful precompile generation tool to generate the autogenerated functions and fill out the rest. We will then have to update a few more places within the EVM. We will have assign a precompile address, add the precompile to the list of EVM precompiles, and finally enable the precompile. Now we can use the precompile in another contract so we will create a brand new Solidity contract that interacts with our precompile functions. Lastly we will write some tests to make sure everything works as promised. 
+
+
+## Assumption of Knowledge
+
+Before building a stateful precompile, you will want to make sure that you have a solid understanding of the EVM, precompiles, and stateful precompiles. 
+Here are some helpful resources on the EVM to get started: 
 
 - [The Ethereum Virtual Machine](https://github.com/ethereumbook/ethereumbook/blob/develop/13evm.asciidoc)
 - [Precompiles in Solidity](https://medium.com/@rbkhmrcr/precompiles-solidity-e5d29bd428c4)
@@ -29,10 +98,12 @@ Here are some resources to get started put together.
 - [Precompiles in Solidity](https://medium.com/@rbkhmrcr/precompiles-solidity-e5d29bd428c4)
 - [Customizing the EVM with Stateful Precompiles](https://medium.com/avalancheavax/customizing-the-evm-with-stateful-precompiles-f44a34f39efd)
 
- 
+
 ## Tutorial
 
-Let's start by creating the Solidity interface that we want our precompile to implement. We will place this file in `./contract-examples/contracts`
+We will first start off by creating the Solidity interface that we want our precompile to implement. This will be the Hello World Interface. It will have two simple functions, `sayHello` and `setGreeting`. These two functions will demonstrate the getting and setting respectively of a value using state access. 
+
+We will place the interface in `./contract-examples/contracts`
 
 ``` sol
 // (c) 2022-2023, Ava Labs, Inc. All rights reserved.
@@ -67,7 +138,6 @@ IHelloWorld.abi
 ``` json
 [{"inputs":[],"name":"sayHello","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"recipient","type":"string"}],"name":"setGreeting","outputs":[],"stateMutability":"nonpayable","type":"function"}]
 ```
-
 
 ## Precompile tool
 
