@@ -4,7 +4,7 @@ In this tutorial,  we are going to walkthrough how we can generate a stateful pr
 ## Precompiled Contracts
 Precompiles were introduced to Ethereum  as a way to solve the problem of allowing complex cryptographic computations to be usable in the EVM without having to deal with EVM overhead. The following precompiles are currently included: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation.
 
-We can see these precompile mappings from address to function xhere in the ethereum vm. 
+We can see these precompile mappings from address to function here in the ethereum vm. 
 
 ``` go
 // PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
