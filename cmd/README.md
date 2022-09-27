@@ -4,7 +4,7 @@ In this tutorial,  we are going to walkthrough how we can generate a stateful pr
 ## Precompiled Contracts
 Precompiles were introduced to Ethereum  as a way to solve the problem of allowing complex cryptographic computations to be usable in the EVM without having to deal with EVM overhead. The following precompiles are currently included: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation.
 
-We can see these precompile mappings from address to function reside here in the ethereum vm. 
+We can see these precompile mappings from address to function xhere in the ethereum vm. 
 
 ``` go
 // PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
@@ -55,8 +55,7 @@ func (c *sha256hash) Run(input []byte) ([]byte, error) {
 
 The CALL opcode (CALL, STATICCALL, DELEGATECALL, and CALLCODE) allows us to invoke this precompile. CALL takes in the precompile address and input, the former maps us to the appropriate function and latter is passed directly into the function. The evm then performs the function and subtracts the `RequiredGas`.
 
-
-The advantage of these precompiles is that the execution is faster and the gas cost is lower than running the same algorithm in the EVM. All these crytographic functions are commonly used in smart contracts so precompiles became a built in library for the evm.
+Precompiles provide complex library functions that are commonly used in smart contracts and do not use EVM opcodes which makes execution faster gas costs lower.
 
 ## Stateful Precompiled Contracts
 
