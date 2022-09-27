@@ -35,7 +35,7 @@ type PrecompiledContract interface {
 }
 ```
 
-Here is an example of sha256 precompile.
+Here is an example of the sha256 precompile function.
 ``` go 
 type sha256hash struct{}
 
@@ -53,9 +53,29 @@ func (c *sha256hash) Run(input []byte) ([]byte, error) {
 }
 ```
 
-The CALL opcode (CALL, STATICCALL, DELEGATECALL, and CALLCODE) allows us to invoke this precompile. CALL takes in the precompile address and input, the former maps us to the appropriate function and latter is passed directly into the function. The evm then performs the function and subtracts the `RequiredGas`.
+The CALL opcode (CALL, STATICCALL, DELEGATECALL, and CALLCODE) allows us to invoke this precompile. 
 
-Precompiles provide complex library functions that are commonly used in smart contracts and do not use EVM opcodes which makes execution faster gas costs lower.
+
+The function signature of CALL in the evm is as follows: 
+``` go
+ Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+```
+
+
+Smart contracts in solidity are compiled and converted into bytecode when they are first deployed. They are then stored on the blockchain and an address (usually known as the contract address) is assigned to it. When a user calls a function from a smart contract, it goes through the `CALL` function in the evm. It takes in the caller address, the contract address, the input (function’s signature (truncated to the first leading four bytes) followed by the packed arguments data), gas, and value (native token). The function selector from the input lets the evm where to start from in the bytecode of the smart contract. It then executes a series of instructions (EVM opcodes) and returns the result. 
+
+
+When a precompile function is called, it still goes through the `CALL` function in the EVM. However, it works a little differently. The EVM checks if the address is a precompile address from the mapping list and if so redirects to the precompile function. 
+
+
+``` go
+    if p := precompiles[addr]; p != nil {
+      return RunPrecompiledContract(p, input, contract)
+    }
+```
+The evm then performs the function and subtracts the `RequiredGas`.
+
+Precompiles provide complex library functions that are commonly used in smart contracts and do not use EVM opcodes which makes execution faster and gas costs lower.
 
 ## Stateful Precompiled Contracts
 
@@ -71,11 +91,11 @@ type StatefulPrecompiledContract interface {
 }
 ```
 
-Notice the most important difference from the precompile interface. We now inject state access to the `Run` function. Precompiles only took in a single byte slice as input. Stateful precompile execution functions will have complete access to the EVM state, and can be used to implement a much wider range of functionalities. 
+Notice the most important difference from the precompile interface. We now inject state access to the `Run` function. Precompiles only took in a single byte slice as input. However, stateful precompile functions have complete access to the EVM state, and can be used to implement a much wider range of functionalities.
 
-## Why this is useful
+## Why This is Useful
 
-Stateful precompiles can help customize your own EVM even further. With state access, we can modify balances, read/write the storage of other contracts, and could even hook into external storage outside of the bounds of the EVM’s merkle trie (note: this would come with repercussions for fast sync since part of the state would be moved off of the merkle trie). 
+ With state access, we can modify balances, read/write the storage of other contracts, and could even hook into external storage outside of the bounds of the EVM’s merkle trie (note: this would come with repercussions for fast sync since part of the state would be moved off of the merkle trie).  We can now write custom logic to make our own EVM. We can do more on Avalanche in Solidity than on Ethereum.
 
 ## The Process
 
@@ -84,8 +104,7 @@ We will first create a Solidity interface that our precompile will implement.  T
 
 ## Assumption of Knowledge
 
-Before building a stateful precompile, you will want to make sure that you have a solid understanding of the EVM, precompiles, and stateful precompiles. 
-Here are some helpful resources on the EVM to get started: 
+Here are some helpful resources on the EVM to solidify your knowledge.
 
 - [The Ethereum Virtual Machine](https://github.com/ethereumbook/ethereumbook/blob/develop/13evm.asciidoc)
 - [Precompiles in Solidity](https://medium.com/@rbkhmrcr/precompiles-solidity-e5d29bd428c4)
@@ -100,7 +119,7 @@ Here are some helpful resources on the EVM to get started:
 
 ## Tutorial
 
-We will first start off by creating the Solidity interface that we want our precompile to implement. This will be the Hello World Interface. It will have two simple functions, `sayHello` and `setGreeting`. These two functions will demonstrate the getting and setting respectively of a value using state access. 
+We will first start off by creating the Solidity interface that we want our precompile to implement. This will be the HelloWorld Interface. It will have two simple functions, `sayHello` and `setGreeting`. These two functions will demonstrate the getting and setting respectively of a value using state access. 
 
 We will place the interface in `./contract-examples/contracts`
 
