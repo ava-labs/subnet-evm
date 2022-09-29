@@ -36,6 +36,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
@@ -100,6 +101,8 @@ type SimulatedBackend struct {
 	events *filters.EventSystem // Event system for filtering log events live
 
 	config *params.ChainConfig
+
+	promReg *prometheus.Registry
 }
 
 // NewSimulatedBackendWithDatabase creates a new binding backend based on the given database
@@ -111,12 +114,15 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 	genesis := core.Genesis{Config: cpcfg, GasLimit: gasLimit, Alloc: alloc}
 	genesis.MustCommit(database)
 	cacheConfig := &core.CacheConfig{}
-	blockchain, _ := core.NewBlockChain(database, cacheConfig, genesis.Config, dummy.NewFaker(), vm.Config{}, common.Hash{})
+
+	promReg := prometheus.NewRegistry()
+	blockchain, _ := core.NewBlockChain(database, cacheConfig, genesis.Config, dummy.NewFaker(), vm.Config{}, common.Hash{}, promReg)
 
 	backend := &SimulatedBackend{
 		database:   database,
 		blockchain: blockchain,
 		config:     genesis.Config,
+		promReg:    promReg,
 	}
 	backend.events = filters.NewEventSystem(&filterBackend{database, blockchain, backend}, false)
 	backend.rollback(blockchain.CurrentBlock())

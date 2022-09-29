@@ -41,6 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
@@ -174,7 +175,7 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	chainman, _ := NewBlockChain(db, DefaultCacheConfig, gspec.Config, dummy.NewFaker(), vm.Config{}, common.Hash{})
+	chainman, _ := NewBlockChain(db, DefaultCacheConfig, gspec.Config, dummy.NewFaker(), vm.Config{}, common.Hash{}, prometheus.NewRegistry())
 	defer chainman.Stop()
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -281,6 +282,8 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 	makeChainForBench(db, full, count)
 	db.Close()
 
+	reg := prometheus.NewRegistry()
+
 	b.ReportAllocs()
 	b.ResetTimer()
 
@@ -289,7 +292,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 		if err != nil {
 			b.Fatalf("error opening database at %v: %v", dir, err)
 		}
-		chain, err := NewBlockChain(db, DefaultCacheConfig, params.TestChainConfig, dummy.NewFaker(), vm.Config{}, common.Hash{})
+		chain, err := NewBlockChain(db, DefaultCacheConfig, params.TestChainConfig, dummy.NewFaker(), vm.Config{}, common.Hash{}, reg)
 		if err != nil {
 			b.Fatalf("error creating chain: %v", err)
 		}

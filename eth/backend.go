@@ -58,6 +58,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Config contains the configuration options of the ETH protocol.
@@ -84,6 +85,7 @@ type Ethereum struct {
 	eventMux       *event.TypeMux
 	engine         consensus.Engine
 	accountManager *accounts.Manager
+	promReg        *prometheus.Registry
 
 	bloomRequests     chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
 	bloomIndexer      *core.ChainIndexer             // Bloom indexer operating during block imports
@@ -114,6 +116,7 @@ func roundUpCacheSize(input int, allocSize int) int {
 
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
+// TODO: pass metrics registry
 func New(
 	stack *node.Node,
 	config *Config,
@@ -121,6 +124,7 @@ func New(
 	settings Settings,
 	lastAcceptedHash common.Hash,
 	clock *mockable.Clock,
+	promReg *prometheus.Registry,
 ) (*Ethereum, error) {
 	if chainDb == nil {
 		return nil, errors.New("chainDb cannot be nil")
@@ -185,6 +189,7 @@ func New(
 		bloomIndexer:      core.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 		settings:          settings,
 		shutdownTracker:   shutdowncheck.NewShutdownTracker(chainDb),
+		promReg:           promReg,
 	}
 
 	bcVersion := rawdb.ReadDatabaseVersion(chainDb)
@@ -231,7 +236,7 @@ func New(
 	}
 
 	var err error
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, lastAcceptedHash)
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, lastAcceptedHash, promReg)
 	if err != nil {
 		return nil, err
 	}
@@ -458,7 +463,7 @@ func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, chainConf
 	}
 	// Note: Time Marker is written inside of [Prune] before compaction begins
 	// (considered an optional optimization)
-	s.blockchain, err = core.NewBlockChain(s.chainDb, cacheConfig, chainConfig, s.engine, vmConfig, lastAcceptedHash)
+	s.blockchain, err = core.NewBlockChain(s.chainDb, cacheConfig, chainConfig, s.engine, vmConfig, lastAcceptedHash, s.promReg)
 	if err != nil {
 		return fmt.Errorf("failed to re-initialize blockchain after offline pruning: %w", err)
 	}

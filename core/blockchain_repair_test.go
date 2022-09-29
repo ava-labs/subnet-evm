@@ -40,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // rewindTest is a test case for chain rollback upon user request.
@@ -530,7 +531,9 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	if snapshots {
 		config.SnapshotLimit = 256
 	}
-	chain, err := NewBlockChain(db, config, params.TestChainConfig, engine, vm.Config{}, common.Hash{})
+
+	reg := prometheus.NewRegistry()
+	chain, err := NewBlockChain(db, config, params.TestChainConfig, engine, vm.Config{}, common.Hash{}, reg)
 	if err != nil {
 		t.Fatalf("Failed to create chain: %v", err)
 	}
@@ -578,7 +581,8 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	}
 	defer db.Close()
 
-	newChain, err := NewBlockChain(db, config, params.TestChainConfig, engine, vm.Config{}, lastAcceptedHash)
+	reg = prometheus.NewRegistry()
+	newChain, err := NewBlockChain(db, config, params.TestChainConfig, engine, vm.Config{}, lastAcceptedHash, reg)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}

@@ -190,6 +190,8 @@ type VM struct {
 	shutdownChan chan struct{}
 	shutdownWg   sync.WaitGroup
 
+	promReg *prometheus.Registry
+
 	// Continuous Profiler
 	profiler profiler.ContinuousProfiler
 
@@ -361,6 +363,7 @@ func (vm *VM) Initialize(
 	}
 	log.Info("reading accepted block db", "lastAcceptedHash", lastAcceptedHash)
 
+	vm.promReg = prometheus.NewRegistry()
 	if err := vm.initializeMetrics(); err != nil {
 		return err
 	}
@@ -370,7 +373,7 @@ func (vm *VM) Initialize(
 	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, ctx.NodeID, vm.config.MaxOutboundActiveRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
-	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
+	if err := vm.initializeChain(lastAcceptedHash); err != nil {
 		return err
 	}
 
@@ -396,7 +399,7 @@ func (vm *VM) initializeMetrics() error {
 	return nil
 }
 
-func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
+func (vm *VM) initializeChain(lastAcceptedHash common.Hash) error {
 	nodecfg := &node.Config{
 		SubnetEVMVersion:      Version,
 		KeyStoreDir:           vm.config.KeystoreDirectory,
@@ -414,11 +417,12 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.config.EthBackendSettings(),
 		lastAcceptedHash,
 		&vm.clock,
+		vm.promReg,
 	)
 	if err != nil {
 		return err
 	}
-	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
+	vm.eth.SetEtherbase(vm.ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
@@ -506,14 +510,13 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	}
 
 	// Register chain state metrics
-	chainStateRegisterer := prometheus.NewRegistry()
-	state, err := chain.NewMeteredState(chainStateRegisterer, config)
+	state, err := chain.NewMeteredState(vm.promReg, config)
 	if err != nil {
 		return fmt.Errorf("could not create metered state: %w", err)
 	}
 	vm.State = state
 
-	return vm.multiGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer)
+	return vm.multiGatherer.Register(chainStateMetricsPrefix, vm.promReg)
 }
 
 func (vm *VM) SetState(state snow.State) error {

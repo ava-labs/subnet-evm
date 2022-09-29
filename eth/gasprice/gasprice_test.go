@@ -45,6 +45,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -118,7 +119,9 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 	// Construct testing chain
 	diskdb := rawdb.NewMemoryDatabase()
 	gspec.Commit(diskdb)
-	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec.Config, engine, vm.Config{}, common.Hash{})
+
+	reg := prometheus.NewRegistry()
+	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec.Config, engine, vm.Config{}, common.Hash{}, reg)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
@@ -146,7 +149,9 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 	// Construct testing chain
 	diskdb := rawdb.NewMemoryDatabase()
 	gspec.Commit(diskdb)
-	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec.Config, engine, vm.Config{}, common.Hash{})
+
+	reg := prometheus.NewRegistry()
+	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec.Config, engine, vm.Config{}, common.Hash{}, reg)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}

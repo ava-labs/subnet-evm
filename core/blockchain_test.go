@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -55,6 +56,7 @@ func createBlockChain(
 		dummy.NewFaker(),
 		vm.Config{},
 		lastAcceptedHash,
+		prometheus.NewRegistry(),
 	)
 	return blockchain, err
 }
@@ -587,7 +589,7 @@ func TestCanonicalHashMarker(t *testing.T) {
 		// Initialize test chain
 		diskdb := rawdb.NewMemoryDatabase()
 		gspec.MustCommit(diskdb)
-		chain, err := NewBlockChain(diskdb, DefaultCacheConfig, params.TestChainConfig, engine, vm.Config{}, common.Hash{})
+		chain, err := NewBlockChain(diskdb, DefaultCacheConfig, params.TestChainConfig, engine, vm.Config{}, common.Hash{}, prometheus.NewRegistry())
 		if err != nil {
 			t.Fatalf("failed to create tester chain: %v", err)
 		}

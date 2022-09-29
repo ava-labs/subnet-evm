@@ -40,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func verifyUnbrokenCanonchain(bc *BlockChain) error {
@@ -80,7 +81,7 @@ func TestHeaderInsertion(t *testing.T) {
 			Config:  params.TestChainConfig,
 		}).MustCommit(db)
 	)
-	chain, err := NewBlockChain(db, DefaultCacheConfig, params.TestChainConfig, dummy.NewFaker(), vm.Config{}, common.Hash{})
+	chain, err := NewBlockChain(db, DefaultCacheConfig, params.TestChainConfig, dummy.NewFaker(), vm.Config{}, common.Hash{}, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatal(err)
 	}

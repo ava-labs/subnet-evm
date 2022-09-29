@@ -53,6 +53,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -174,6 +175,7 @@ type BlockChain struct {
 	logsAcceptedFeed  event.Feed
 	blockProcFeed     event.Feed
 	txAcceptedFeed    event.Feed
+	txAcceptedCounter prometheus.Counter
 	scope             event.SubscriptionScope
 	genesisBlock      *types.Block
 
@@ -236,7 +238,7 @@ type BlockChain struct {
 // Processor.
 func NewBlockChain(
 	db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine,
-	vmConfig vm.Config, lastAcceptedHash common.Hash,
+	vmConfig vm.Config, lastAcceptedHash common.Hash, promReg *prometheus.Registry,
 ) (*BlockChain, error) {
 	if cacheConfig == nil {
 		return nil, errCacheConfigNotSpecified
@@ -248,6 +250,14 @@ func NewBlockChain(
 	feeConfigCache, _ := lru.New(feeConfigCacheLimit)
 	badBlocks, _ := lru.New(badBlockLimit)
 
+	txAcceptedCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "tx_accepted_count",
+		Help: "total number of accepted transactions",
+	})
+	if err := promReg.Register(txAcceptedCounter); err != nil {
+		return nil, err
+	}
+
 	bc := &BlockChain{
 		chainConfig: chainConfig,
 		cacheConfig: cacheConfig,
@@ -256,16 +266,17 @@ func NewBlockChain(
 			Cache:     cacheConfig.TrieCleanLimit,
 			Preimages: cacheConfig.Preimages,
 		}),
-		bodyCache:      bodyCache,
-		receiptsCache:  receiptsCache,
-		blockCache:     blockCache,
-		txLookupCache:  txLookupCache,
-		feeConfigCache: feeConfigCache,
-		engine:         engine,
-		vmConfig:       vmConfig,
-		badBlocks:      badBlocks,
-		senderCacher:   newTxSenderCacher(runtime.NumCPU()),
-		acceptorQueue:  make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
+		bodyCache:         bodyCache,
+		receiptsCache:     receiptsCache,
+		blockCache:        blockCache,
+		txLookupCache:     txLookupCache,
+		feeConfigCache:    feeConfigCache,
+		txAcceptedCounter: txAcceptedCounter,
+		engine:            engine,
+		vmConfig:          vmConfig,
+		badBlocks:         badBlocks,
+		senderCacher:      newTxSenderCacher(runtime.NumCPU()),
+		acceptorQueue:     make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
 	}
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
@@ -799,6 +810,10 @@ func (bc *BlockChain) LastAcceptedBlock() *types.Block {
 func (bc *BlockChain) Accept(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
+
+	accepted := block.Transactions().Len()
+	log.Info("[GYUHO DEBUG] block.Transactions().Len() %d", accepted)
+	bc.txAcceptedCounter.Add(float64(accepted))
 
 	// The parent of [block] must be the last accepted block.
 	if bc.lastAccepted.Hash() != block.ParentHash() {

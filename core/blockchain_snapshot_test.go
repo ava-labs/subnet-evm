@@ -45,6 +45,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // snapshotTestBasic wraps the common testing fields in the snapshot tests.
@@ -84,7 +85,9 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 		// will happen during the block insertion.
 		cacheConfig = DefaultCacheConfig
 	)
-	chain, err := NewBlockChain(db, cacheConfig, params.TestChainConfig, engine, vm.Config{}, common.Hash{})
+
+	reg := prometheus.NewRegistry()
+	chain, err := NewBlockChain(db, cacheConfig, params.TestChainConfig, engine, vm.Config{}, common.Hash{}, reg)
 	if err != nil {
 		t.Fatalf("Failed to create chain: %v", err)
 	}
@@ -221,7 +224,8 @@ func (snaptest *snapshotTest) test(t *testing.T) {
 
 	// Restart the chain normally
 	chain.Stop()
-	newchain, err := NewBlockChain(snaptest.db, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash)
+	reg := prometheus.NewRegistry()
+	newchain, err := NewBlockChain(snaptest.db, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, reg)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
@@ -257,13 +261,15 @@ func (snaptest *crashSnapshotTest) test(t *testing.T) {
 	// the crash, we do restart twice here: one after the crash and one
 	// after the normal stop. It's used to ensure the broken snapshot
 	// can be detected all the time.
-	newchain, err := NewBlockChain(newdb, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash)
+	reg := prometheus.NewRegistry()
+	newchain, err := NewBlockChain(newdb, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, reg)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
 	newchain.Stop()
 
-	newchain, err = NewBlockChain(newdb, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash)
+	reg = prometheus.NewRegistry()
+	newchain, err = NewBlockChain(newdb, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, reg)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
@@ -300,7 +306,8 @@ func (snaptest *gappedSnapshotTest) test(t *testing.T) {
 		Pruning:        true,
 		CommitInterval: 4096,
 	}
-	newchain, err := NewBlockChain(snaptest.db, cacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash)
+	reg := prometheus.NewRegistry()
+	newchain, err := NewBlockChain(snaptest.db, cacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, reg)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
@@ -308,7 +315,7 @@ func (snaptest *gappedSnapshotTest) test(t *testing.T) {
 	newchain.Stop()
 
 	// Restart the chain with enabling the snapshot
-	newchain, err = NewBlockChain(snaptest.db, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash)
+	newchain, err = NewBlockChain(snaptest.db, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
@@ -344,7 +351,7 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 		Pruning:        true,
 		CommitInterval: 4096,
 	}
-	newchain, err := NewBlockChain(snaptest.db, config, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash)
+	newchain, err := NewBlockChain(snaptest.db, config, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
@@ -360,13 +367,13 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 		Pruning:        true,
 		CommitInterval: 4096,
 	}
-	_, err = NewBlockChain(snaptest.db, config, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash)
+	_, err = NewBlockChain(snaptest.db, config, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
 	// Simulate the blockchain crash.
 
-	newchain, err = NewBlockChain(snaptest.db, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash)
+	newchain, err = NewBlockChain(snaptest.db, DefaultCacheConfig, params.TestChainConfig, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
