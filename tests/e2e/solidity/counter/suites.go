@@ -5,6 +5,7 @@
 package counter
 
 import (
+	"context"
 	"os"
 	"strings"
 	"time"
@@ -25,19 +26,23 @@ var _ = utils.DescribeLocal("[Solidity Counter]", func() {
 		utils.Outf("{{green}}testing contracts '%s' to:{{/}} %q\n", contractsFoundryDir, ci.SubnetEVMRPCEndpoints)
 		gomega.Expect(os.Chdir(contractsFoundryDir)).Should(gomega.BeNil())
 
-		s, err := utils.RunCommand(2*time.Minute, "forge", "test", "-vvv")
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		s, err := utils.RunCommand(ctx, "forge", "test", "-vvv")
+		cancel()
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(s.Complete && s.Exit == 0 && s.Error == nil).Should(gomega.BeTrue())
 
 		utils.Outf("{{green}}deploying counter contract using foundry to:{{/}} %q\n", ci.SubnetEVMRPCEndpoints)
+		ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
 		s, err = utils.RunCommand(
-			2*time.Minute,
+			ctx,
 			"forge",
 			"create",
 			"src/Counter.sol:Counter",
 			"--private-key=56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027", // ewoq key
 			"--rpc-url="+ci.SubnetEVMRPCEndpoints[0],
 		)
+		cancel()
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(s.Complete && s.Exit == 0 && s.Error == nil).Should(gomega.BeTrue())
 		utils.Outf("{{green}}command output:{{/}}\n\n%s\n\n", strings.Join(s.Stdout, "\n"))
@@ -54,8 +59,9 @@ var _ = utils.DescribeLocal("[Solidity Counter]", func() {
 		utils.Outf("{{green}}counter contract address:{{/}} %q\n", contractAddr)
 
 		utils.Outf("{{green}}set the current counter number{{/}}\n")
+		ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
 		s, err = utils.RunCommand(
-			2*time.Minute,
+			ctx,
 			"cast",
 			"send",
 			"--private-key=56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027", // ewoq key
@@ -64,18 +70,21 @@ var _ = utils.DescribeLocal("[Solidity Counter]", func() {
 			"setNumber(uint256)",
 			"100",
 		)
+		cancel()
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(s.Complete && s.Exit == 0 && s.Error == nil).Should(gomega.BeTrue())
 
 		utils.Outf("{{green}}fetching the current counter number{{/}}\n")
+		ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
 		s, err = utils.RunCommand(
-			2*time.Minute,
+			ctx,
 			"cast",
 			"call",
 			"--rpc-url="+ci.SubnetEVMRPCEndpoints[0],
 			contractAddr,
 			"number()",
 		)
+		cancel()
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(s.Complete && s.Exit == 0 && s.Error == nil).Should(gomega.BeTrue())
 

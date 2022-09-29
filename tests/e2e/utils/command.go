@@ -12,7 +12,7 @@ import (
 	"github.com/go-cmd/cmd"
 )
 
-func RunCommand(timeout time.Duration, bin string, args ...string) (cmd.Status, error) {
+func RunCommand(ctx context.Context, bin string, args ...string) (cmd.Status, error) {
 	Outf("{{green}}running '%s %s'{{/}}\n", bin, strings.Join(args, " "))
 
 	curCmd := cmd.NewCmd(bin, args...)
@@ -41,8 +41,8 @@ func RunCommand(timeout time.Duration, bin string, args ...string) (cmd.Status, 
 	select {
 	case s := <-statusChan:
 		return s, nil
-	case <-time.After(timeout):
+	case <-ctx.Done():
 		curCmd.Stop()
-		return cmd.Status{}, context.DeadlineExceeded
+		return cmd.Status{}, ctx.Err()
 	}
 }

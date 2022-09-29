@@ -25,28 +25,25 @@ import (
 	"github.com/onsi/gomega"
 )
 
-type chainConfig struct {
-	evm.Config
-}
-
 type chainUpgradeConfig struct {
 	// ref. https://docs.avax.network/subnets/subnet-upgrade#changing-subnet-configuration
 	PrecompileUpgrades []*params.PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
 }
+
+// "ewoq" key with "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+const ewoqPrivKey = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
 
 var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 	ginkgo.It("can upgrade for precompile", ginkgo.Label("precompile-upgrade"), func() {
 		runnerCli := utils.GetClient()
 		gomega.Expect(runnerCli).ShouldNot(gomega.BeNil())
 
-		defaultChainCfg := chainConfig{}
-		defaultChainCfg.Config.SetDefaults()
-		defaultChainCfg.Config.LogJSONFormat = true
+		defaultChainCfg := evm.Config{}
+		defaultChainCfg.SetDefaults()
+		defaultChainCfg.LogJSONFormat = true
 		defaultChainCfgBytes, err := json.Marshal(defaultChainCfg)
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		// "ewoq" key with "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-		ewoqPrivKey := "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
 		ewoqKey, err := ethcrypto.HexToECDSA(ewoqPrivKey)
 		gomega.Expect(err).Should(gomega.BeNil())
 		ewoqAddr := ethcrypto.PubkeyToAddress(ewoqKey.PublicKey)
@@ -83,9 +80,7 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 				cancel()
 				gomega.Expect(err).Should(gomega.BeNil())
 
-				time.Sleep(20 * time.Second)
-
-				ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
+				ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
 				_, err = runnerCli.Health(ctx)
 				cancel()
 				gomega.Expect(err).Should(gomega.BeNil())
@@ -99,21 +94,19 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 			gomega.Expect(len(ci.URIs) > 0).Should(gomega.BeTrue())
 			utils.Outf("{{magenta}}sending txs to subnet-evm endpoints:{{/}} %q\n", ci.SubnetEVMRPCEndpoints)
 
-			ep := ci.SubnetEVMRPCEndpoints[rand.Intn(100)%len(ci.SubnetEVMRPCEndpoints)]
+			ep := ci.SubnetEVMRPCEndpoints[rand.Intn(len(ci.SubnetEVMRPCEndpoints))]
 
 			var err error
 			evmCli, err = utils.NewEvmClient(ep, 25, 1)
 			gomega.Expect(err).Should(gomega.BeNil())
 
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			prevBal, err := evmCli.FetchBalance(ctx, ewoqAddr)
+			ewoqBal, err := evmCli.FetchBalance(ctx, ewoqAddr)
 			cancel()
 			gomega.Expect(err).Should(gomega.BeNil())
 
-			if prevBal.Cmp(new(big.Int).SetInt64(0)) == 0 {
-				ginkgo.Skip("no balance... skipping tests...")
-			}
-			transferAmount := new(big.Int).Div(prevBal, new(big.Int).SetInt64(10))
+			// assume ewoqBal>0 for ewoq address
+			transferAmount := new(big.Int).Div(ewoqBal, new(big.Int).SetInt64(10))
 
 			ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 			newBal, err := evmCli.TransferTx(ctx, ewoqAddr, ewoqKey, addr2, transferAmount)
@@ -125,21 +118,18 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 			cancel()
 			gomega.Expect(err).Should(gomega.BeNil())
 
-			utils.Outf("{{magenta}}successfully sent:{{/}} after balance %v (old balance %v)\n", newBal, prevBal)
+			utils.Outf("{{magenta}}successfully sent:{{/}} after balance %v (old balance %v)\n", newBal, ewoqBal)
 		})
 
 		// only allow txs from "ewoq"
 		upgradeCfgAllowsEwoq := chainUpgradeConfig{
 			PrecompileUpgrades: []*params.PrecompileUpgrade{
 				{
-					TxAllowListConfig: &precompile.TxAllowListConfig{
-						AllowListConfig: precompile.AllowListConfig{
-							AllowListAdmins: []common.Address{ewoqAddr},
-						},
-						UpgradeableConfig: precompile.UpgradeableConfig{
-							BlockTimestamp: new(big.Int).SetInt64(time.Now().Unix()),
-						},
-					},
+					TxAllowListConfig: precompile.NewTxAllowListConfig(
+						new(big.Int).SetInt64(time.Now().Unix()),
+						[]common.Address{ewoqAddr},
+						nil,
+					),
 				},
 			},
 		}
@@ -166,28 +156,26 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 				cancel()
 				gomega.Expect(err).Should(gomega.BeNil())
 
-				time.Sleep(20 * time.Second)
-
-				ctx, cancel = context.WithTimeout(context.Background(), 15*time.Second)
+				ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
 				_, err = runnerCli.Health(ctx)
 				cancel()
 				gomega.Expect(err).Should(gomega.BeNil())
 				utils.Outf("{{green}}successfully upgraded %q{{/}} (current info: %+v)\n", name, resp.ClusterInfo.NodeInfos)
 			}
+		})
 
+		ginkgo.By("advances block timestamps by funding addr2", func() {
 			// advance block timestamps by issuing new blocks
 			for i := 0; i < 5; i++ {
 				time.Sleep(5 * time.Second)
 
 				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-				prevBal, err := evmCli.FetchBalance(ctx, ewoqAddr)
+				ewoqBal, err := evmCli.FetchBalance(ctx, ewoqAddr)
 				cancel()
 				gomega.Expect(err).Should(gomega.BeNil())
 
-				if prevBal.Cmp(new(big.Int).SetInt64(0)) == 0 {
-					ginkgo.Skip("no balance... skipping tests...")
-				}
-				transferAmount := new(big.Int).Div(prevBal, new(big.Int).SetInt64(10))
+				// assume ewoqBal>0 for ewoq address
+				transferAmount := new(big.Int).Div(ewoqBal, new(big.Int).SetInt64(10))
 
 				ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 				_, err = evmCli.TransferTx(ctx, ewoqAddr, ewoqKey, addr2, transferAmount)
@@ -198,14 +186,12 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 
 		ginkgo.By("tx allow list indeed restricts tx issuance from non-allow listed addresses", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			prevBal, err := evmCli.FetchBalance(ctx, addr2)
+			addr2Bal, err := evmCli.FetchBalance(ctx, addr2)
 			cancel()
 			gomega.Expect(err).Should(gomega.BeNil())
 
-			if prevBal.Cmp(new(big.Int).SetInt64(0)) == 0 {
-				ginkgo.Skip("no balance... skipping tests...")
-			}
-			transferAmount := new(big.Int).Div(prevBal, new(big.Int).SetInt64(10))
+			// assume "addr2" is successfully funded from previous transactions above
+			transferAmount := new(big.Int).Div(addr2Bal, new(big.Int).SetInt64(10))
 
 			// "addr2" is not allow-listed yet, so should fail!
 			ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
@@ -222,8 +208,9 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 			gomega.Expect(len(ci.URIs) > 0).Should(gomega.BeTrue())
 
 			utils.Outf("{{green}}non-admin adding itself to admin list{{/}}\n")
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 			s, err := utils.RunCommand(
-				2*time.Minute,
+				ctx,
 				"cast",
 				"send",
 				"--private-key="+privKey2,
@@ -232,6 +219,7 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 				"setAdmin(address)",
 				addr2.String(),
 			)
+			cancel()
 			gomega.Expect(err).Should(gomega.BeNil())
 			gomega.Expect(s.Complete && s.Exit > 0).Should(gomega.BeTrue())
 
@@ -251,8 +239,9 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 			gomega.Expect(len(ci.URIs) > 0).Should(gomega.BeTrue())
 
 			utils.Outf("{{green}}non-admin adding itself to allow list{{/}}\n")
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 			s, err := utils.RunCommand(
-				2*time.Minute,
+				ctx,
 				"cast",
 				"send",
 				"--private-key="+privKey2,
@@ -261,6 +250,7 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 				"setEnabled(address)",
 				addr2.String(),
 			)
+			cancel()
 			gomega.Expect(err).Should(gomega.BeNil())
 			gomega.Expect(s.Complete && s.Exit > 0).Should(gomega.BeTrue())
 
@@ -281,8 +271,9 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 			gomega.Expect(len(ci.URIs) > 0).Should(gomega.BeTrue())
 
 			utils.Outf("{{green}}adding another address to allow list{{/}}\n")
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 			s, err := utils.RunCommand(
-				2*time.Minute,
+				ctx,
 				"cast",
 				"send",
 				"--private-key="+ewoqPrivKey, // ewoq key
@@ -291,12 +282,14 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 				"setEnabled(address)",
 				addr2.String(),
 			)
+			cancel()
 			gomega.Expect(err).Should(gomega.BeNil())
 			gomega.Expect(s.Complete && s.Exit == 0 && s.Error == nil).Should(gomega.BeTrue())
 
 			utils.Outf("{{green}}reading the current allow list{{/}}\n")
+			ctx, cancel = context.WithTimeout(context.Background(), 2*time.Minute)
 			s, err = utils.RunCommand(
-				2*time.Minute,
+				ctx,
 				"cast",
 				"call",
 				"--rpc-url="+ci.SubnetEVMRPCEndpoints[0],
@@ -304,6 +297,7 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 				"readAllowList(address)",
 				addr2.String(),
 			)
+			cancel()
 			gomega.Expect(err).Should(gomega.BeNil())
 			gomega.Expect(s.Complete && s.Exit == 0 && s.Error == nil).Should(gomega.BeTrue())
 			gomega.Expect(s.Stdout[0]).Should(gomega.Equal("0x0000000000000000000000000000000000000000000000000000000000000001"))
@@ -311,16 +305,14 @@ var _ = utils.DescribeLocal("[Precompile Upgrade]", func() {
 
 		ginkgo.By("newly added address can now issue txs", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			prevBal, err := evmCli.FetchBalance(ctx, addr2)
+			addr2Bal, err := evmCli.FetchBalance(ctx, addr2)
 			cancel()
 			gomega.Expect(err).Should(gomega.BeNil())
 
-			if prevBal.Cmp(new(big.Int).SetInt64(0)) == 0 {
-				ginkgo.Skip("no balance... skipping tests...")
-			}
-			transferAmount := new(big.Int).Div(prevBal, new(big.Int).SetInt64(10))
+			// assume "addr2" is successfully funded from previous transactions above
+			transferAmount := new(big.Int).Div(addr2Bal, new(big.Int).SetInt64(10))
 
-			// "addr2" is now allow-listed, so should not fail!
+			// "addr2" is now allow-listed, so should succeed this time!
 			ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 			_, err = evmCli.TransferTx(ctx, addr2, key2, ewoqAddr, transferAmount)
 			cancel()

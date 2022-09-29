@@ -51,10 +51,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+      # ref. https://github.com/foundry-rs/foundry-toolchain
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: 1.0.0
       - name: Install dependencies with forge
         run: pushd ./contracts-foundry && forge install && popd
       - name: Set up Go
@@ -75,10 +76,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+      # ref. https://github.com/foundry-rs/foundry-toolchain
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: 1.0.0
       - name: Install dependencies with forge
         run: pushd ./contracts-foundry && forge install && popd
       - name: Set up Go
