@@ -175,9 +175,12 @@ type BlockChain struct {
 	logsAcceptedFeed  event.Feed
 	blockProcFeed     event.Feed
 	txAcceptedFeed    event.Feed
+
 	txAcceptedCounter prometheus.Counter
-	scope             event.SubscriptionScope
-	genesisBlock      *types.Block
+	promReg           *prometheus.Registry
+
+	scope        event.SubscriptionScope
+	genesisBlock *types.Block
 
 	// This mutex synchronizes chain write operations.
 	// Readers don't need to take it, they can just read the database.
@@ -272,6 +275,7 @@ func NewBlockChain(
 		txLookupCache:     txLookupCache,
 		feeConfigCache:    feeConfigCache,
 		txAcceptedCounter: txAcceptedCounter,
+		promReg:           promReg,
 		engine:            engine,
 		vmConfig:          vmConfig,
 		badBlocks:         badBlocks,

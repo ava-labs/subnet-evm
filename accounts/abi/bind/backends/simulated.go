@@ -115,14 +115,13 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 	genesis.MustCommit(database)
 	cacheConfig := &core.CacheConfig{}
 
-	promReg := prometheus.NewRegistry()
-	blockchain, _ := core.NewBlockChain(database, cacheConfig, genesis.Config, dummy.NewFaker(), vm.Config{}, common.Hash{}, promReg)
+	blockchain, _ := core.NewBlockChain(database, cacheConfig, genesis.Config, dummy.NewFaker(), vm.Config{}, common.Hash{}, prometheus.NewRegistry())
 
 	backend := &SimulatedBackend{
 		database:   database,
 		blockchain: blockchain,
 		config:     genesis.Config,
-		promReg:    promReg,
+		promReg:    prometheus.NewRegistry(),
 	}
 	backend.events = filters.NewEventSystem(&filterBackend{database, blockchain, backend}, false)
 	backend.rollback(blockchain.CurrentBlock())

@@ -532,8 +532,7 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 		config.SnapshotLimit = 256
 	}
 
-	reg := prometheus.NewRegistry()
-	chain, err := NewBlockChain(db, config, params.TestChainConfig, engine, vm.Config{}, common.Hash{}, reg)
+	chain, err := NewBlockChain(db, config, params.TestChainConfig, engine, vm.Config{}, common.Hash{}, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatalf("Failed to create chain: %v", err)
 	}
@@ -581,8 +580,7 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	}
 	defer db.Close()
 
-	reg = prometheus.NewRegistry()
-	newChain, err := NewBlockChain(db, config, params.TestChainConfig, engine, vm.Config{}, lastAcceptedHash, reg)
+	newChain, err := NewBlockChain(db, config, params.TestChainConfig, engine, vm.Config{}, lastAcceptedHash, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}

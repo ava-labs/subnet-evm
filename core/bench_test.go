@@ -282,8 +282,6 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 	makeChainForBench(db, full, count)
 	db.Close()
 
-	reg := prometheus.NewRegistry()
-
 	b.ReportAllocs()
 	b.ResetTimer()
 
@@ -292,7 +290,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 		if err != nil {
 			b.Fatalf("error opening database at %v: %v", dir, err)
 		}
-		chain, err := NewBlockChain(db, DefaultCacheConfig, params.TestChainConfig, dummy.NewFaker(), vm.Config{}, common.Hash{}, reg)
+		chain, err := NewBlockChain(db, DefaultCacheConfig, params.TestChainConfig, dummy.NewFaker(), vm.Config{}, common.Hash{}, prometheus.NewRegistry())
 		if err != nil {
 			b.Fatalf("error creating chain: %v", err)
 		}

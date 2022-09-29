@@ -42,11 +42,12 @@ var (
 	}
 )
 
-func createBlockChain(
+func createTestBlockChain(
 	db ethdb.Database,
 	cacheConfig *CacheConfig,
 	chainConfig *params.ChainConfig,
 	lastAcceptedHash common.Hash,
+	reg *prometheus.Registry,
 ) (*BlockChain, error) {
 	// Import the chain. This runs all block validation rules.
 	blockchain, err := NewBlockChain(
@@ -56,14 +57,14 @@ func createBlockChain(
 		dummy.NewFaker(),
 		vm.Config{},
 		lastAcceptedHash,
-		prometheus.NewRegistry(),
+		reg,
 	)
 	return blockchain, err
 }
 
 func TestArchiveBlockChain(t *testing.T) {
 	createArchiveBlockChain := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
-		return createBlockChain(db, archiveConfig, chainConfig, lastAcceptedHash)
+		return createTestBlockChain(db, archiveConfig, chainConfig, lastAcceptedHash, prometheus.NewRegistry())
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
@@ -74,7 +75,7 @@ func TestArchiveBlockChain(t *testing.T) {
 
 func TestArchiveBlockChainSnapsDisabled(t *testing.T) {
 	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
-		return createBlockChain(
+		return createTestBlockChain(
 			db,
 			&CacheConfig{
 				TrieCleanLimit:        256,
@@ -86,6 +87,7 @@ func TestArchiveBlockChainSnapsDisabled(t *testing.T) {
 			},
 			chainConfig,
 			lastAcceptedHash,
+			prometheus.NewRegistry(),
 		)
 	}
 	for _, tt := range tests {
@@ -97,7 +99,7 @@ func TestArchiveBlockChainSnapsDisabled(t *testing.T) {
 
 func TestPruningBlockChain(t *testing.T) {
 	createPruningBlockChain := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
-		return createBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash)
+		return createTestBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash, prometheus.NewRegistry())
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
@@ -108,7 +110,7 @@ func TestPruningBlockChain(t *testing.T) {
 
 func TestPruningBlockChainSnapsDisabled(t *testing.T) {
 	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
-		return createBlockChain(
+		return createTestBlockChain(
 			db,
 			&CacheConfig{
 				TrieCleanLimit:        256,
@@ -121,6 +123,7 @@ func TestPruningBlockChainSnapsDisabled(t *testing.T) {
 			},
 			chainConfig,
 			lastAcceptedHash,
+			prometheus.NewRegistry(),
 		)
 	}
 	for _, tt := range tests {
@@ -138,7 +141,7 @@ func (w *wrappedStateManager) Shutdown() error { return nil }
 
 func TestPruningBlockChainUngracefulShutdown(t *testing.T) {
 	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
-		blockchain, err := createBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash)
+		blockchain, err := createTestBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash, prometheus.NewRegistry())
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +160,7 @@ func TestPruningBlockChainUngracefulShutdown(t *testing.T) {
 
 func TestPruningBlockChainUngracefulShutdownSnapsDisabled(t *testing.T) {
 	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
-		blockchain, err := createBlockChain(
+		blockchain, err := createTestBlockChain(
 			db,
 			&CacheConfig{
 				TrieCleanLimit:        256,
@@ -170,6 +173,7 @@ func TestPruningBlockChainUngracefulShutdownSnapsDisabled(t *testing.T) {
 			},
 			chainConfig,
 			lastAcceptedHash,
+			prometheus.NewRegistry(),
 		)
 		if err != nil {
 			return nil, err
@@ -192,7 +196,7 @@ func TestEnableSnapshots(t *testing.T) {
 	snapLimit := 0
 	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
 		// Import the chain. This runs all block validation rules.
-		blockchain, err := createBlockChain(
+		blockchain, err := createTestBlockChain(
 			db,
 			&CacheConfig{
 				TrieCleanLimit:        256,
@@ -205,6 +209,7 @@ func TestEnableSnapshots(t *testing.T) {
 			},
 			chainConfig,
 			lastAcceptedHash,
+			prometheus.NewRegistry(),
 		)
 		if err != nil {
 			return nil, err
@@ -227,7 +232,7 @@ func TestCorruptSnapshots(t *testing.T) {
 		rawdb.DeleteSnapshotBlockHash(db)
 		rawdb.DeleteSnapshotRoot(db)
 
-		return createBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash)
+		return createTestBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash, prometheus.NewRegistry())
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
@@ -239,7 +244,7 @@ func TestCorruptSnapshots(t *testing.T) {
 func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
 		// Import the chain. This runs all block validation rules.
-		blockchain, err := createBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash)
+		blockchain, err := createTestBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash, prometheus.NewRegistry())
 		if err != nil {
 			return nil, err
 		}
@@ -270,7 +275,7 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			return nil, fmt.Errorf("failed to prune blockchain with target root: %s due to: %w", targetRoot, err)
 		}
 		// Re-initialize the blockchain after pruning
-		return createBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash)
+		return createTestBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash, prometheus.NewRegistry())
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
@@ -302,7 +307,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	genesis := gspec.MustCommit(genDB)
 	_ = gspec.MustCommit(chainDB)
 
-	blockchain, err := createBlockChain(chainDB, pruningConfig, gspec.Config, lastAcceptedHash)
+	blockchain, err := createTestBlockChain(chainDB, pruningConfig, gspec.Config, lastAcceptedHash, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -333,7 +338,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	lastAcceptedHash = blockchain.LastConsensusAcceptedBlock().Hash()
 	blockchain.Stop()
 
-	blockchain, err = createBlockChain(chainDB, pruningConfig, gspec.Config, lastAcceptedHash)
+	blockchain, err = createTestBlockChain(chainDB, pruningConfig, gspec.Config, lastAcceptedHash, prometheus.NewRegistry())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -348,7 +353,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 
 	startHeight := uint64(1)
 	// Create a node in archival mode and re-populate the trie history.
-	blockchain, err = createBlockChain(
+	blockchain, err = createTestBlockChain(
 		chainDB,
 		&CacheConfig{
 			TrieCleanLimit:                  256,
@@ -362,6 +367,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 		},
 		gspec.Config,
 		lastAcceptedHash,
+		prometheus.NewRegistry(),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -384,7 +390,7 @@ func TestRepopulateMissingTries(t *testing.T) {
 func TestUngracefulAsyncShutdown(t *testing.T) {
 	var (
 		create = func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
-			blockchain, err := createBlockChain(db, &CacheConfig{
+			blockchain, err := createTestBlockChain(db, &CacheConfig{
 				TrieCleanLimit:        256,
 				TrieDirtyLimit:        256,
 				TrieDirtyCommitTarget: 20,
@@ -393,7 +399,7 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 				SnapshotLimit:         256,
 				SkipSnapshotRebuild:   true, // Ensure the test errors if snapshot initialization fails
 				AcceptorQueueLimit:    1000, // ensure channel doesn't block
-			}, chainConfig, lastAcceptedHash)
+			}, chainConfig, lastAcceptedHash, prometheus.NewRegistry())
 			if err != nil {
 				return nil, err
 			}
@@ -469,6 +475,11 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 		}
 	}
 
+	ms := gatherCounterGauge(t, blockchain.promReg)
+	if ms["tx_accepted_count"] != float64(len(chain)) {
+		t.Fatalf("expected %d tx_accepted_count, got %f", len(chain), ms["tx_accepted_count"])
+	}
+
 	// After inserting all blocks, we should confirm that txs added after the
 	// async worker shutdown cannot be found.
 	for _, tx := range foundTxs {
@@ -527,6 +538,30 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 			}
 		}
 	}
+}
+
+func gatherCounterGauge(t *testing.T, reg *prometheus.Registry) map[string]float64 {
+	ms, err := reg.Gather()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mss := make(map[string]float64)
+	for _, mf := range ms {
+		name := mf.GetName()
+		for _, m := range mf.GetMetric() {
+			cnt := m.GetCounter()
+			if cnt != nil {
+				mss[name] = cnt.GetValue()
+				break
+			}
+			gg := m.GetGauge()
+			if gg != nil {
+				mss[name] = gg.GetValue()
+				break
+			}
+		}
+	}
+	return mss
 }
 
 // TestCanonicalHashMarker tests all the canonical hash markers are updated/deleted
