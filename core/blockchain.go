@@ -816,7 +816,7 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	defer bc.chainmu.Unlock()
 
 	accepted := block.Transactions().Len()
-	log.Info("[GYUHO DEBUG] block.Transactions().Len() %d", accepted)
+	log.Debug("accepting transactions", "number", accepted)
 	bc.txAcceptedCounter.Add(float64(accepted))
 
 	// The parent of [block] must be the last accepted block.
