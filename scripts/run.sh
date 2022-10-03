@@ -26,6 +26,9 @@ SUBNET_EVM_PATH=$(
 )
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
+# Load the constants
+source "$AVALANCHE_PATH"/scripts/constants.sh
+
 VERSION=$avalanche_version
 DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
@@ -54,9 +57,6 @@ echo RUN_SIMULATOR: ${RUN_SIMULATOR}
 echo ENABLE_SOLIDITY_TESTS: ${ENABLE_SOLIDITY_TESTS}
 echo GINKGO_SKIP_FLAGS: ${GINKGO_SKIP_FLAGS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
-
-# avoid blst related invalid operation errors
-export CGO_CFLAGS="-O -D__BLST_PORTABLE__"
 
 ############################
 # download avalanchego

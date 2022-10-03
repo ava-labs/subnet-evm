@@ -14,7 +14,7 @@ builds:
       - arm64
     env:
       - CGO_ENABLED=1
-      - CGO_CFLAGS=-O -D__BLST_PORTABLE__
+      - CGO_CFLAGS=-O -D__BLST_PORTABLE__ # Set the CGO flags to use the portable version of BLST
     overrides:
       - goos: linux
         goarch: arm64
