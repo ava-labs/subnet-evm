@@ -15,21 +15,28 @@ import (
 	"time"
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 
-	subnetEVM "github.com/ava-labs/subnet-evm/chain"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
 	"github.com/ava-labs/subnet-evm/metrics"
 	subnetEVMPrometheus "github.com/ava-labs/subnet-evm/metrics/prometheus"
+	"github.com/ava-labs/subnet-evm/miner"
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/ava-labs/subnet-evm/rpc"
+	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
+	"github.com/ava-labs/subnet-evm/sync/client/stats"
+	"github.com/ava-labs/subnet-evm/sync/handlers"
+	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/ava-labs/subnet-evm/trie"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -95,6 +102,7 @@ var (
 	// Set last accepted key to be longer than the keys used to store accepted block IDs.
 	lastAcceptedKey = []byte("last_accepted_key")
 	acceptedPrefix  = []byte("snowman_accepted")
+	metadataPrefix  = []byte("metadata")
 	ethDBPrefix     = []byte("ethdb")
 )
 
@@ -104,23 +112,36 @@ var (
 	errInvalidBlock             = errors.New("invalid block")
 	errInvalidNonce             = errors.New("invalid nonce")
 	errUnclesUnsupported        = errors.New("uncles unsupported")
-	errTxHashMismatch           = errors.New("txs hash does not match header")
-	errUncleHashMismatch        = errors.New("uncle hash mismatch")
-	errInvalidDifficulty        = errors.New("invalid difficulty")
-	errInvalidMixDigest         = errors.New("invalid mix digest")
-	errHeaderExtraDataTooBig    = errors.New("header extra data too big")
 	errNilBaseFeeSubnetEVM      = errors.New("nil base fee is invalid after subnetEVM")
 	errNilBlockGasCostSubnetEVM = errors.New("nil blockGasCost is invalid after subnetEVM")
 )
 
 var originalStderr *os.File
 
+// legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
+// used in attachEthService for backward configuration compatibility.
+var legacyApiNames = map[string]string{
+	"internal-public-eth":              "internal-eth",
+	"internal-public-blockchain":       "internal-blockchain",
+	"internal-public-transaction-pool": "internal-transaction",
+	"internal-public-tx-pool":          "internal-tx-pool",
+	"internal-public-debug":            "internal-debug",
+	"internal-private-debug":           "internal-debug",
+	"internal-public-account":          "internal-account",
+	"internal-private-personal":        "internal-personal",
+
+	"public-eth":        "eth",
+	"public-eth-filter": "eth-filter",
+	"private-admin":     "admin",
+	"public-debug":      "debug",
+	"private-debug":     "debug",
+}
+
 func init() {
 	// Preserve [os.Stderr] prior to the call in plugin/main.go to plugin.Serve(...).
 	// Preserving the log level allows us to update the root handler while writing to the original
 	// [os.Stderr] that is being piped through to the logger via the rpcchainvm.
 	originalStderr = os.Stderr
-	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(originalStderr, log.TerminalFormat(false))))
 }
 
 // VM implements the snowman.ChainVM interface
@@ -134,18 +155,31 @@ type VM struct {
 
 	networkID   uint64
 	genesisHash common.Hash
-	chain       *subnetEVM.ETHChain
 	chainConfig *params.ChainConfig
+	ethConfig   ethconfig.Config
+
+	// pointers to eth constructs
+	eth        *eth.Ethereum
+	txPool     *core.TxPool
+	blockChain *core.BlockChain
+	miner      *miner.Miner
 
 	// [db] is the VM's current database managed by ChainState
 	db *versiondb.Database
+
+	// metadataDB is used to store one off keys.
+	metadataDB database.Database
+
 	// [chaindb] is the database supplied to the Ethereum backend
 	chaindb Database
+
 	// [acceptedBlockDB] is the database to store the last accepted
 	// block.
 	acceptedBlockDB database.Database
 
 	toEngine chan<- commonEng.Message
+
+	syntacticBlockValidator BlockValidator
 
 	builder *blockBuilder
 
@@ -160,47 +194,18 @@ type VM struct {
 	profiler profiler.ContinuousProfiler
 
 	peer.Network
-	client       peer.Client
+	client       peer.NetworkClient
 	networkCodec codec.Manager
 
 	// Metrics
 	multiGatherer avalanchegoMetrics.MultiGatherer
 
 	bootstrapped bool
-}
 
-// setLogLevel initializes logger and sets the log level with the original [os.StdErr] interface
-// along with the context logger.
-func (vm *VM) setLogLevel(logLevel log.Lvl) {
-	prefix, err := vm.ctx.BCLookup.PrimaryAlias(vm.ctx.ChainID)
-	if err != nil {
-		prefix = vm.ctx.ChainID.String()
-	}
-	prefix = fmt.Sprintf("<%s Chain>", prefix)
-	format := SubnetEVMFormat(prefix)
-	log.Root().SetHandler(log.LvlFilterHandler(logLevel, log.MultiHandler(
-		log.StreamHandler(originalStderr, format),
-		log.StreamHandler(vm.ctx.Log, format),
-	)))
-}
-
-func SubnetEVMFormat(prefix string) log.Format {
-	return log.FormatFunc(func(r *log.Record) []byte {
-		location := fmt.Sprintf("%+v", r.Call)
-		newMsg := fmt.Sprintf("%s %s: %s", prefix, location, r.Msg)
-		// need to deep copy since we're using a multihandler
-		// as a result it will alter R.msg twice.
-		newRecord := log.Record{
-			Time:     r.Time,
-			Lvl:      r.Lvl,
-			Msg:      newMsg,
-			Ctx:      r.Ctx,
-			Call:     r.Call,
-			KeyNames: r.KeyNames,
-		}
-		b := log.TerminalFormat(false).Format(&newRecord)
-		return b
-	})
+	logger SubnetEVMLogger
+	// State sync server and client
+	StateSyncServer
+	StateSyncClient
 }
 
 /*
@@ -235,20 +240,22 @@ func (vm *VM) Initialize(
 		return err
 	}
 
-	// Set log level
-	logLevel, err := log.LvlFromString(vm.config.LogLevel)
+	vm.ctx = ctx
+
+	// Create logger
+	alias, err := vm.ctx.BCLookup.PrimaryAlias(vm.ctx.ChainID)
+	if err != nil {
+		// fallback to ChainID string instead of erroring
+		alias = vm.ctx.ChainID.String()
+	}
+
+	subnetEVMLogger, err := InitLogger(alias, vm.config.LogLevel, vm.config.LogJSONFormat, originalStderr)
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger due to: %w ", err)
 	}
+	vm.logger = subnetEVMLogger
 
-	vm.ctx = ctx
-	vm.setLogLevel(logLevel)
-	if b, err := json.Marshal(vm.config); err == nil {
-		log.Info("Initializing Subnet EVM VM", "Version", Version, "Config", string(b))
-	} else {
-		// Log a warning message since we have already successfully unmarshalled into the struct
-		log.Warn("Problem initializing Subnet EVM VM", "Version", Version, "Config", string(b), "err", err)
-	}
+	log.Info("Initializing Subnet EVM VM", "Version", Version, "Config", vm.config)
 
 	if len(fxs) > 0 {
 		return errUnsupportedFXs
@@ -265,6 +272,7 @@ func (vm *VM) Initialize(
 	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, baseDB)}
 	vm.db = versiondb.New(baseDB)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
+	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	g := new(core.Genesis)
 	if err := json.Unmarshal(genesisBytes, g); err != nil {
 		return err
@@ -274,63 +282,64 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
+	vm.syntacticBlockValidator = NewBlockValidator()
+
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
 		log.Warn("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 
-	ethConfig := ethconfig.NewDefaultConfig()
-	ethConfig.Genesis = g
-	ethConfig.NetworkId = g.Config.ChainID.Uint64()
+	vm.ethConfig = ethconfig.NewDefaultConfig()
+	vm.ethConfig.Genesis = g
+	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
 
 	// Set minimum price for mining and default gas price oracle value to the min
 	// gas price to prevent so transactions and blocks all use the correct fees
-	ethConfig.RPCGasCap = vm.config.RPCGasCap
-	ethConfig.RPCEVMTimeout = vm.config.APIMaxDuration.Duration
-	ethConfig.RPCTxFeeCap = vm.config.RPCTxFeeCap
-	ethConfig.TxPool.NoLocals = !vm.config.LocalTxsEnabled
-	ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
-	ethConfig.AllowUnfinalizedQueries = vm.config.AllowUnfinalizedQueries
-	ethConfig.AllowUnprotectedTxs = vm.config.AllowUnprotectedTxs
-	ethConfig.Preimages = vm.config.Preimages
-	ethConfig.Pruning = vm.config.Pruning
-	ethConfig.AcceptorQueueLimit = vm.config.AcceptorQueueLimit
-	ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
-	ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
-	ethConfig.AllowMissingTries = vm.config.AllowMissingTries
-	ethConfig.SnapshotDelayInit = false // state sync enabled
-	ethConfig.SnapshotAsync = vm.config.SnapshotAsync
-	ethConfig.SnapshotVerify = vm.config.SnapshotVerify
-	ethConfig.OfflinePruning = vm.config.OfflinePruning
-	ethConfig.OfflinePruningBloomFilterSize = vm.config.OfflinePruningBloomFilterSize
-	ethConfig.OfflinePruningDataDirectory = vm.config.OfflinePruningDataDirectory
-	ethConfig.CommitInterval = vm.config.CommitInterval
+	vm.ethConfig.RPCGasCap = vm.config.RPCGasCap
+	vm.ethConfig.RPCEVMTimeout = vm.config.APIMaxDuration.Duration
+	vm.ethConfig.RPCTxFeeCap = vm.config.RPCTxFeeCap
+	vm.ethConfig.TxPool.NoLocals = !vm.config.LocalTxsEnabled
+	vm.ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
+	vm.ethConfig.AllowUnfinalizedQueries = vm.config.AllowUnfinalizedQueries
+	vm.ethConfig.AllowUnprotectedTxs = vm.config.AllowUnprotectedTxs
+	vm.ethConfig.Preimages = vm.config.Preimages
+	vm.ethConfig.Pruning = vm.config.Pruning
+	vm.ethConfig.AcceptorQueueLimit = vm.config.AcceptorQueueLimit
+	vm.ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
+	vm.ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
+	vm.ethConfig.AllowMissingTries = vm.config.AllowMissingTries
+	vm.ethConfig.SnapshotDelayInit = vm.config.StateSyncEnabled
+	vm.ethConfig.SnapshotAsync = vm.config.SnapshotAsync
+	vm.ethConfig.SnapshotVerify = vm.config.SnapshotVerify
+	vm.ethConfig.OfflinePruning = vm.config.OfflinePruning
+	vm.ethConfig.OfflinePruningBloomFilterSize = vm.config.OfflinePruningBloomFilterSize
+	vm.ethConfig.OfflinePruningDataDirectory = vm.config.OfflinePruningDataDirectory
+	vm.ethConfig.CommitInterval = vm.config.CommitInterval
 
 	// Create directory for offline pruning
-	if len(ethConfig.OfflinePruningDataDirectory) != 0 {
-		if err := os.MkdirAll(ethConfig.OfflinePruningDataDirectory, perms.ReadWriteExecute); err != nil {
+	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
+		if err := os.MkdirAll(vm.ethConfig.OfflinePruningDataDirectory, perms.ReadWriteExecute); err != nil {
 			log.Error("failed to create offline pruning data directory", "error", err)
 			return err
 		}
 	}
 
 	// Handle custom fee recipient
-	ethConfig.Miner.Etherbase = constants.BlackholeAddr
-	switch {
-	case common.IsHexAddress(vm.config.FeeRecipient):
+	vm.ethConfig.Miner.Etherbase = constants.BlackholeAddr
+	if common.IsHexAddress(vm.config.FeeRecipient) {
 		if g.Config.AllowFeeRecipients {
 			address := common.HexToAddress(vm.config.FeeRecipient)
 			log.Info("Setting fee recipient", "address", address)
-			ethConfig.Miner.Etherbase = address
-			break
+			vm.ethConfig.Miner.Etherbase = address
+		} else {
+			return errors.New("cannot specify a custom fee recipient on this blockchain")
 		}
-		return errors.New("cannot specify a custom fee recipient on this blockchain")
-	case g.Config.AllowFeeRecipients:
+	} else if g.Config.AllowFeeRecipients {
 		log.Warn("Chain enabled `AllowFeeRecipients`, but chain config has not specified any coinbase address. Defaulting to the blackhole address.")
 	}
 
 	vm.chainConfig = g.Config
-	vm.networkID = ethConfig.NetworkId
+	vm.networkID = vm.ethConfig.NetworkId
 
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
@@ -344,9 +353,9 @@ func (vm *VM) Initialize(
 
 	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
-	vm.genesisHash = ethConfig.Genesis.ToBlock(nil).Hash()
+	vm.genesisHash = vm.ethConfig.Genesis.ToBlock(nil).Hash()
 
-	lastAcceptedHash, err := vm.readLastAccepted()
+	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
 	if err != nil {
 		return err
 	}
@@ -356,22 +365,19 @@ func (vm *VM) Initialize(
 		return err
 	}
 
-	vm.networkCodec, err = message.BuildCodec()
-	if err != nil {
-		return err
-	}
-
 	// initialize peer network
+	vm.networkCodec = message.Codec
 	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, ctx.NodeID, vm.config.MaxOutboundActiveRequests)
-	vm.client = peer.NewClient(vm.Network)
+	vm.client = peer.NewNetworkClient(vm.Network)
 
-	if err := vm.initializeChain(lastAcceptedHash, ethConfig); err != nil {
+	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
 	}
 
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
 
-	return nil
+	vm.initializeStateSyncServer()
+	return vm.initializeStateSyncClient(lastAcceptedHeight)
 }
 
 func (vm *VM) initializeMetrics() error {
@@ -391,35 +397,103 @@ func (vm *VM) initializeMetrics() error {
 }
 
 func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.Config) error {
-	nodecfg := node.Config{
+	nodecfg := &node.Config{
 		SubnetEVMVersion:      Version,
 		KeyStoreDir:           vm.config.KeystoreDirectory,
 		ExternalSigner:        vm.config.KeystoreExternalSigner,
 		InsecureUnlockAllowed: vm.config.KeystoreInsecureUnlockAllowed,
 	}
-
-	ethChain, err := subnetEVM.NewETHChain(&ethConfig, &nodecfg, vm.chaindb, vm.config.EthBackendSettings(), lastAcceptedHash, &vm.clock)
+	node, err := node.New(nodecfg)
 	if err != nil {
 		return err
 	}
-	vm.chain = ethChain
+	vm.eth, err = eth.New(
+		node,
+		&vm.ethConfig,
+		vm.chaindb,
+		vm.config.EthBackendSettings(),
+		lastAcceptedHash,
+		&vm.clock,
+	)
+	if err != nil {
+		return err
+	}
+	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
+	vm.txPool = vm.eth.TxPool()
+	vm.blockChain = vm.eth.BlockChain()
+	vm.miner = vm.eth.Miner()
 
 	// start goroutines to update the tx pool gas minimum gas price when upgrades go into effect
 	vm.handleGasPriceUpdates()
 
-	// start goroutines to manage block building
-	//
-	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will
-	// not work.
-	vm.gossiper = vm.createGossipper()
-	vm.builder = vm.NewBlockBuilder(vm.toEngine)
-	vm.builder.awaitSubmittedTxs()
+	vm.eth.Start()
+	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
+}
 
-	vm.chain.Start()
-	return vm.initChainState(vm.chain.LastAcceptedBlock())
+// initializeStateSyncClient initializes the client for performing state sync.
+// If state sync is disabled, this function will wipe any ongoing summary from
+// disk to ensure that we do not continue syncing from an invalid snapshot.
+func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
+	// parse nodeIDs from state sync IDs in vm config
+	var stateSyncIDs []ids.NodeID
+	if vm.config.StateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
+		nodeIDs := strings.Split(vm.config.StateSyncIDs, ",")
+		stateSyncIDs = make([]ids.NodeID, len(nodeIDs))
+		for i, nodeIDString := range nodeIDs {
+			nodeID, err := ids.NodeIDFromString(nodeIDString)
+			if err != nil {
+				return fmt.Errorf("failed to parse %s as NodeID: %w", nodeIDString, err)
+			}
+			stateSyncIDs[i] = nodeID
+		}
+	}
+
+	vm.StateSyncClient = NewStateSyncClient(&stateSyncClientConfig{
+		chain: vm.eth,
+		state: vm.State,
+		client: statesyncclient.NewClient(
+			&statesyncclient.ClientConfig{
+				NetworkClient:    vm.client,
+				Codec:            vm.networkCodec,
+				Stats:            stats.NewClientSyncerStats(),
+				StateSyncNodeIDs: stateSyncIDs,
+				BlockParser:      vm,
+			},
+		),
+		enabled:            vm.config.StateSyncEnabled,
+		skipResume:         vm.config.StateSyncSkipResume,
+		stateSyncMinBlocks: vm.config.StateSyncMinBlocks,
+		lastAcceptedHeight: lastAcceptedHeight, // TODO clean up how this is passed around
+		chaindb:            vm.chaindb,
+		metadataDB:         vm.metadataDB,
+		acceptedBlockDB:    vm.acceptedBlockDB,
+		db:                 vm.db,
+		toEngine:           vm.toEngine,
+	})
+
+	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
+	// sync using a snapshot that has been modified by the node running normal operations.
+	if !vm.config.StateSyncEnabled {
+		return vm.StateSyncClient.StateSyncClearOngoingSummary()
+	}
+
+	return nil
+}
+
+// initializeStateSyncServer should be called after [vm.chain] is initialized.
+func (vm *VM) initializeStateSyncServer() {
+	vm.StateSyncServer = NewStateSyncServer(&stateSyncServerConfig{
+		Chain:            vm.blockChain,
+		SyncableInterval: vm.config.StateSyncCommitInterval,
+	})
+
+	vm.setAppRequestHandlers()
 }
 
 func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
+	block := vm.newBlock(lastAcceptedBlock)
+	block.status = choices.Accepted
+
 	config := &chain.Config{
 		DecidedCacheSize:    decidedCacheSize,
 		MissingCacheSize:    missingCacheSize,
@@ -428,12 +502,7 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 		GetBlock:            vm.getBlock,
 		UnmarshalBlock:      vm.parseBlock,
 		BuildBlock:          vm.buildBlock,
-		LastAcceptedBlock: &Block{
-			id:       ids.ID(lastAcceptedBlock.Hash()),
-			ethBlock: lastAcceptedBlock,
-			vm:       vm,
-			status:   choices.Accepted,
-		},
+		LastAcceptedBlock:   block,
 	}
 
 	// Register chain state metrics
@@ -447,19 +516,20 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	return vm.multiGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer)
 }
 
-func (vm *VM) initGossipHandling() {
-	if vm.chainConfig.SubnetEVMTimestamp != nil {
-		vm.Network.SetGossipHandler(NewGossipHandler(vm))
-	}
-}
-
 func (vm *VM) SetState(state snow.State) error {
 	switch state {
-	case snow.Bootstrapping:
+	case snow.StateSyncing:
 		vm.bootstrapped = false
 		return nil
+	case snow.Bootstrapping:
+		vm.bootstrapped = false
+		if err := vm.StateSyncClient.Error(); err != nil {
+			return err
+		}
+		return nil
 	case snow.NormalOp:
-		vm.initGossipHandling()
+		// Initialize gossip handling once we enter normal operation as there is no need to handle mempool gossip before this point.
+		vm.initBlockBuilding()
 		vm.bootstrapped = true
 		return nil
 	default:
@@ -467,32 +537,62 @@ func (vm *VM) SetState(state snow.State) error {
 	}
 }
 
+// initBlockBuilding starts goroutines to manage block building
+func (vm *VM) initBlockBuilding() {
+	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
+	gossipStats := NewGossipStats()
+	vm.gossiper = vm.createGossiper(gossipStats)
+	vm.builder = vm.NewBlockBuilder(vm.toEngine)
+	vm.builder.awaitSubmittedTxs()
+	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
+}
+
+// setAppRequestHandlers sets the request handlers for the VM to serve state sync
+// requests.
+func (vm *VM) setAppRequestHandlers() {
+	// Create separate EVM TrieDB (read only) for serving leafs requests.
+	// We create a separate TrieDB here, so that it has a separate cache from the one
+	// used by the node when processing blocks.
+	evmTrieDB := trie.NewDatabaseWithConfig(
+		vm.chaindb,
+		&trie.Config{
+			Cache: vm.config.StateSyncServerTrieCache,
+		},
+	)
+	syncRequestHandler := handlers.NewSyncHandler(
+		vm.blockChain,
+		evmTrieDB,
+		vm.networkCodec,
+		handlerstats.NewHandlerStats(metrics.Enabled),
+	)
+	vm.Network.SetRequestHandler(syncRequestHandler)
+}
+
 // Shutdown implements the snowman.ChainVM interface
 func (vm *VM) Shutdown() error {
 	if vm.ctx == nil {
 		return nil
 	}
-
+	vm.Network.Shutdown()
+	if err := vm.StateSyncClient.Shutdown(); err != nil {
+		log.Error("error stopping state syncer", "err", err)
+	}
 	close(vm.shutdownChan)
-	vm.chain.Stop()
+	vm.eth.Stop()
 	vm.shutdownWg.Wait()
 	return nil
 }
 
 // buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock() (snowman.Block, error) {
-	block, err := vm.chain.GenerateBlock()
+	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()
 	if err != nil {
 		return nil, err
 	}
 
 	// Note: the status of block is set by ChainState
-	blk := &Block{
-		id:       ids.ID(block.Hash()),
-		ethBlock: block,
-		vm:       vm,
-	}
+	blk := vm.newBlock(block)
 
 	// Verify is called on a non-wrapped block here, such that this
 	// does not add [blk] to the processing blocks map in ChainState.
@@ -524,11 +624,7 @@ func (vm *VM) parseBlock(b []byte) (snowman.Block, error) {
 	}
 
 	// Note: the status of block is set by ChainState
-	block := &Block{
-		id:       ids.ID(ethBlock.Hash()),
-		ethBlock: ethBlock,
-		vm:       vm,
-	}
+	block := vm.newBlock(ethBlock)
 	// Performing syntactic verification in ParseBlock allows for
 	// short-circuiting bad blocks before they are processed by the VM.
 	if err := block.syntacticVerify(); err != nil {
@@ -537,22 +633,26 @@ func (vm *VM) parseBlock(b []byte) (snowman.Block, error) {
 	return block, nil
 }
 
+func (vm *VM) ParseEthBlock(b []byte) (*types.Block, error) {
+	block, err := vm.parseBlock(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return block.(*Block).ethBlock, nil
+}
+
 // getBlock attempts to retrieve block [id] from the VM to be wrapped
 // by ChainState.
 func (vm *VM) getBlock(id ids.ID) (snowman.Block, error) {
-	ethBlock := vm.chain.GetBlockByHash(common.Hash(id))
+	ethBlock := vm.blockChain.GetBlockByHash(common.Hash(id))
 	// If [ethBlock] is nil, return [database.ErrNotFound] here
 	// so that the miss is considered cacheable.
 	if ethBlock == nil {
 		return nil, database.ErrNotFound
 	}
 	// Note: the status of block is set by ChainState
-	blk := &Block{
-		id:       ids.ID(ethBlock.Hash()),
-		ethBlock: ethBlock,
-		vm:       vm,
-	}
-	return blk, nil
+	return vm.newBlock(ethBlock), nil
 }
 
 // SetPreference sets what the current tail of the chain is
@@ -565,21 +665,24 @@ func (vm *VM) SetPreference(blkID ids.ID) error {
 		return fmt.Errorf("failed to set preference to %s: %w", blkID, err)
 	}
 
-	return vm.chain.SetPreference(block.(*Block).ethBlock)
+	return vm.blockChain.SetPreference(block.(*Block).ethBlock)
 }
 
+// VerifyHeightIndex always returns a nil error since the index is maintained by
+// vm.blockChain.
 func (vm *VM) VerifyHeightIndex() error {
-	// our index is vm.chain.GetBlockByNumber
 	return nil
 }
 
 // GetBlockIDAtHeight retrieves the blkID of the canonical block at [blkHeight]
 // if [blkHeight] is less than the height of the last accepted block, this will return
 // a canonical block. Otherwise, it may return a blkID that has not yet been accepted.
+// Note: Engine's interface requires this function returns database.ErrNotFound
+// if a block is not found.
 func (vm *VM) GetBlockIDAtHeight(blkHeight uint64) (ids.ID, error) {
-	ethBlock := vm.chain.GetBlockByNumber(blkHeight)
+	ethBlock := vm.blockChain.GetBlockByNumber(blkHeight)
 	if ethBlock == nil {
-		return ids.ID{}, fmt.Errorf("could not find block at height: %d", blkHeight)
+		return ids.ID{}, database.ErrNotFound
 	}
 
 	return ids.ID(ethBlock.Hash()), nil
@@ -613,9 +716,9 @@ func newHandler(name string, service interface{}, lockOption ...commonEng.LockOp
 
 // CreateHandlers makes new http handlers that can handle API calls
 func (vm *VM) CreateHandlers() (map[string]*commonEng.HTTPHandler, error) {
-	handler := vm.chain.NewRPCHandler(vm.config.APIMaxDuration.Duration)
+	handler := rpc.NewServer(vm.config.APIMaxDuration.Duration)
 	enabledAPIs := vm.config.EthAPIs()
-	if err := vm.chain.AttachEthService(handler, enabledAPIs); err != nil {
+	if err := attachEthService(handler, vm.eth.APIs(), enabledAPIs); err != nil {
 		return nil, err
 	}
 
@@ -684,7 +787,7 @@ func (vm *VM) CreateStaticHandlers() (map[string]*commonEng.HTTPHandler, error) 
 // preferred block
 func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 	// Note: current state uses the state of the preferred block.
-	state, err := vm.chain.CurrentState()
+	state, err := vm.blockChain.State()
 	if err != nil {
 		return 0, err
 	}
@@ -693,18 +796,8 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 
 // currentRules returns the chain rules for the current block.
 func (vm *VM) currentRules() params.Rules {
-	header := vm.chain.APIBackend().CurrentHeader()
+	header := vm.eth.APIBackend.CurrentHeader()
 	return vm.chainConfig.AvalancheRules(header.Number, big.NewInt(int64(header.Time)))
-}
-
-// getBlockValidator returns the block validator that should be used for a block that
-// follows the ruleset defined by [rules]
-func (vm *VM) getBlockValidator(rules params.Rules) BlockValidator {
-	if rules.IsSubnetEVM {
-		return blockValidatorSubnetEVM{feeConfigManagerEnabled: rules.IsFeeConfigManagerEnabled}
-	}
-
-	return legacyBlockValidator
 }
 
 func (vm *VM) startContinuousProfiler() {
@@ -737,20 +830,61 @@ func (vm *VM) startContinuousProfiler() {
 // last accepted block hash and height by reading directly from [vm.chaindb] instead of relying
 // on [chain].
 // Note: assumes chaindb, ethConfig, and genesisHash have been initialized.
-func (vm *VM) readLastAccepted() (common.Hash, error) {
+func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 	// Attempt to load last accepted block to determine if it is necessary to
 	// initialize state with the genesis block.
 	lastAcceptedBytes, lastAcceptedErr := vm.acceptedBlockDB.Get(lastAcceptedKey)
 	switch {
 	case lastAcceptedErr == database.ErrNotFound:
 		// If there is nothing in the database, return the genesis block hash and height
-		return vm.genesisHash, nil
+		return vm.genesisHash, 0, nil
 	case lastAcceptedErr != nil:
-		return common.Hash{}, fmt.Errorf("failed to get last accepted block ID due to: %w", lastAcceptedErr)
+		return common.Hash{}, 0, fmt.Errorf("failed to get last accepted block ID due to: %w", lastAcceptedErr)
 	case len(lastAcceptedBytes) != common.HashLength:
-		return common.Hash{}, fmt.Errorf("last accepted bytes should have been length %d, but found %d", common.HashLength, len(lastAcceptedBytes))
+		return common.Hash{}, 0, fmt.Errorf("last accepted bytes should have been length %d, but found %d", common.HashLength, len(lastAcceptedBytes))
 	default:
 		lastAcceptedHash := common.BytesToHash(lastAcceptedBytes)
-		return lastAcceptedHash, nil
+		height := rawdb.ReadHeaderNumber(vm.chaindb, lastAcceptedHash)
+		if height == nil {
+			return common.Hash{}, 0, fmt.Errorf("failed to retrieve header number of last accepted block: %s", lastAcceptedHash)
+		}
+		return lastAcceptedHash, *height, nil
 	}
+}
+
+// attachEthService registers the backend RPC services provided by Ethereum
+// to the provided handler under their assigned namespaces.
+func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error {
+	enabledServicesSet := make(map[string]struct{})
+	for _, ns := range names {
+		// handle pre geth v1.10.20 api names as aliases for their updated values
+		// to allow configurations to be backwards compatible.
+		if newName, isLegacy := legacyApiNames[ns]; isLegacy {
+			log.Info("deprecated api name referenced in configuration.", "deprecated", ns, "new", newName)
+			enabledServicesSet[newName] = struct{}{}
+			continue
+		}
+
+		enabledServicesSet[ns] = struct{}{}
+	}
+
+	apiSet := make(map[string]rpc.API)
+	for _, api := range apis {
+		if existingAPI, exists := apiSet[api.Name]; exists {
+			return fmt.Errorf("duplicated API name: %s, namespaces %s and %s", api.Name, api.Namespace, existingAPI.Namespace)
+		}
+		apiSet[api.Name] = api
+	}
+
+	for name := range enabledServicesSet {
+		api, exists := apiSet[name]
+		if !exists {
+			return fmt.Errorf("API service %s not found", name)
+		}
+		if err := handler.RegisterName(api.Namespace, api.Service); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

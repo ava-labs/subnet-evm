@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/subnet-evm/core"
@@ -26,7 +27,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
-				TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1]),
+				TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1], nil),
 			},
 		},
 	}
@@ -43,7 +44,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	assert.NoError(t, err)
 
-	errs := vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx0})
+	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
 	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
@@ -54,7 +55,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	errs = vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx1})
+	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
 	if err := errs[0]; !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
@@ -89,19 +90,23 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 			t.Fatal(err)
 		}
 	}()
+	// Set the VM's state to NormalOp to initialize the tx pool.
+	if err := vm.SetState(snow.NormalOp); err != nil {
+		t.Fatal(err)
+	}
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	vm.chain.GetTxPool().SubscribeNewReorgEvent(newTxPoolHeadChan)
+	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 	vm.clock.Set(disableAllowListTimestamp)
 
 	// Make a block, previous rules still apply (TxAllowList is active)
 	// Submit a successful transaction
-	errs = vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx0})
+	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
 	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
 
 	// Submit a rejected transaction, should throw an error
-	errs = vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx1})
+	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
 	if err := errs[0]; !errors.Is(err, precompile.ErrSenderAddressNotAllowListed) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
@@ -122,7 +127,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	<-newTxPoolHeadChan // wait for new head in tx pool
 
 	// retry the rejected Tx, which should now succeed
-	errs = vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx1})
+	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
 	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}
@@ -172,7 +177,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	assert.NoError(t, err)
-	errs := vm.chain.GetTxPool().AddRemotesSync([]*types.Transaction{signedTx0})
+	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
 	if err := errs[0]; err != nil {
 		t.Fatalf("Failed to add tx at index: %s", err)
 	}

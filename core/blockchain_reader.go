@@ -240,18 +240,6 @@ func (bc *BlockChain) ContractCode(hash common.Hash) ([]byte, error) {
 	return bc.stateCache.ContractCode(common.Hash{}, hash)
 }
 
-// ContractCodeWithPrefix retrieves a blob of data associated with a contract
-// hash either from ephemeral in-memory cache, or from persistent storage.
-//
-// If the code doesn't exist in the in-memory cache, check the storage with
-// new code scheme.
-func (bc *BlockChain) ContractCodeWithPrefix(hash common.Hash) ([]byte, error) {
-	type codeReader interface {
-		ContractCodeWithPrefix(addrHash, codeHash common.Hash) ([]byte, error)
-	}
-	return bc.stateCache.(codeReader).ContractCodeWithPrefix(common.Hash{}, hash)
-}
-
 // State returns a new mutable state based on the current HEAD block.
 func (bc *BlockChain) State() (*state.StateDB, error) {
 	return bc.StateAt(bc.CurrentBlock().Root())
@@ -375,6 +363,13 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	}
 
 	storedFeeConfig := precompile.GetStoredFeeConfig(stateDB)
+	// this should not return an invalid fee config since it's assumed that
+	// StoreFeeConfig returns an error when an invalid fee config is attempted to be stored.
+	// However an external stateDB call can modify the contract state.
+	// This check is added to add a defense in-depth.
+	if err := storedFeeConfig.Verify(); err != nil {
+		return commontype.EmptyFeeConfig, nil, err
+	}
 	lastChangedAt := precompile.GetFeeConfigLastChangedAt(stateDB)
 	cacheable := &cacheableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache

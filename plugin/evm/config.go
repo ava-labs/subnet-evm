@@ -17,10 +17,11 @@ const (
 	defaultAcceptorQueueLimit                     = 64 // Provides 2 minutes of buffer (2s block target) for a commit delay
 	defaultPruningEnabled                         = true
 	defaultCommitInterval                         = 4096
+	defaultSyncableCommitInterval                 = defaultCommitInterval * 4
 	defaultSnapshotAsync                          = true
 	defaultRpcGasCap                              = 50_000_000 // Default to 50M Gas Limit
 	defaultRpcTxFeeCap                            = 100        // 100 AVAX
-	defaultMetricsExpensiveEnabled                = false
+	defaultMetricsExpensiveEnabled                = true
 	defaultApiMaxDuration                         = 0 // Default to no maximum API call duration
 	defaultWsCpuRefillRate                        = 0 // Default to no maximum WS CPU usage
 	defaultWsCpuMaxStored                         = 0 // Default to no maximum WS CPU usage
@@ -35,18 +36,29 @@ const (
 	defaultPriorityRegossipTxsPerAddress          = 16
 	defaultOfflinePruningBloomFilterSize   uint64 = 512 // Default size (MB) for the offline pruner to use
 	defaultLogLevel                               = "info"
-	defaultMaxOutboundActiveRequests              = 8
+	defaultLogJSONFormat                          = false
+	defaultMaxOutboundActiveRequests              = 16
 	defaultPopulateMissingTriesParallelism        = 1024
+	defaultStateSyncServerTrieCache               = 64 // MB
+
+	// defaultStateSyncMinBlocks is the minimum number of blocks the blockchain
+	// should be ahead of local last accepted to perform state sync.
+	// This constant is chosen so normal bootstrapping is preferred when it would
+	// be faster than state sync.
+	// time assumptions:
+	// - normal bootstrap processing time: ~14 blocks / second
+	// - state sync time: ~6 hrs.
+	defaultStateSyncMinBlocks = 300_000
 )
 
 var defaultEnabledAPIs = []string{
-	"public-eth",
-	"public-eth-filter",
+	"eth",
+	"eth-filter",
 	"net",
 	"web3",
-	"internal-public-eth",
-	"internal-public-blockchain",
-	"internal-public-transaction-pool",
+	"internal-eth",
+	"internal-blockchain",
+	"internal-transaction",
 }
 
 type Duration struct {
@@ -113,8 +125,9 @@ type Config struct {
 	PriorityRegossipTxsPerAddress int              `json:"priority-regossip-txs-per-address"`
 	PriorityRegossipAddresses     []common.Address `json:"priority-regossip-addresses"`
 
-	// Log level
-	LogLevel string `json:"log-level"`
+	// Log
+	LogLevel      string `json:"log-level"`
+	LogJSONFormat bool   `json:"log-json-format"`
 
 	// Address for Tx Fees (must be empty if not supported by blockchain)
 	FeeRecipient string `json:"feeRecipient"`
@@ -126,6 +139,14 @@ type Config struct {
 
 	// VM2VM network
 	MaxOutboundActiveRequests int64 `json:"max-outbound-active-requests"`
+
+	// Sync settings
+	StateSyncEnabled         bool   `json:"state-sync-enabled"`
+	StateSyncSkipResume      bool   `json:"state-sync-skip-resume"` // Forces state sync to use the highest available summary block
+	StateSyncServerTrieCache int    `json:"state-sync-server-trie-cache"`
+	StateSyncIDs             string `json:"state-sync-ids"`
+	StateSyncCommitInterval  uint64 `json:"state-sync-commit-interval"`
+	StateSyncMinBlocks       uint64 `json:"state-sync-min-blocks"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -160,8 +181,12 @@ func (c *Config) SetDefaults() {
 	c.PriorityRegossipTxsPerAddress = defaultPriorityRegossipTxsPerAddress
 	c.OfflinePruningBloomFilterSize = defaultOfflinePruningBloomFilterSize
 	c.LogLevel = defaultLogLevel
+	c.LogJSONFormat = defaultLogJSONFormat
 	c.MaxOutboundActiveRequests = defaultMaxOutboundActiveRequests
 	c.PopulateMissingTriesParallelism = defaultPopulateMissingTriesParallelism
+	c.StateSyncServerTrieCache = defaultStateSyncServerTrieCache
+	c.StateSyncCommitInterval = defaultSyncableCommitInterval
+	c.StateSyncMinBlocks = defaultStateSyncMinBlocks
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {
@@ -171,6 +196,16 @@ func (d *Duration) UnmarshalJSON(data []byte) (err error) {
 	}
 	d.Duration, err = cast.ToDurationE(v)
 	return err
+}
+
+// String implements the stringer interface.
+func (d Duration) String() string {
+	return d.Duration.String()
+}
+
+// String implements the stringer interface.
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.Duration.String())
 }
 
 // Validate returns an error if this is an invalid config.

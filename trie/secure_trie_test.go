@@ -38,7 +38,7 @@ import (
 )
 
 func newEmptySecure() *SecureTrie {
-	trie, _ := NewSecure(common.Hash{}, NewDatabase(memorydb.New()))
+	trie, _ := NewSecure(common.Hash{}, common.Hash{}, NewDatabase(memorydb.New()))
 	return trie
 }
 
@@ -46,7 +46,7 @@ func newEmptySecure() *SecureTrie {
 func makeTestSecureTrie() (*Database, *SecureTrie, map[string][]byte) {
 	// Create an empty trie
 	triedb := NewDatabase(memorydb.New())
-	trie, _ := NewSecure(common.Hash{}, triedb)
+	trie, _ := NewSecure(common.Hash{}, common.Hash{}, triedb)
 
 	// Fill it with some arbitrary data
 	content := make(map[string][]byte)
@@ -67,7 +67,7 @@ func makeTestSecureTrie() (*Database, *SecureTrie, map[string][]byte) {
 			trie.Update(key, val)
 		}
 	}
-	trie.Commit(nil)
+	trie.Commit(nil, false)
 
 	// Return the generated trie
 	return triedb, trie, content
@@ -122,8 +122,7 @@ func TestSecureTrieConcurrency(t *testing.T) {
 	threads := runtime.NumCPU()
 	tries := make([]*SecureTrie, threads)
 	for i := 0; i < threads; i++ {
-		cpy := *trie
-		tries[i] = &cpy
+		tries[i] = trie.Copy()
 	}
 	// Start a batch of goroutines interactng with the trie
 	pend := new(sync.WaitGroup)
@@ -146,7 +145,7 @@ func TestSecureTrieConcurrency(t *testing.T) {
 					tries[index].Update(key, val)
 				}
 			}
-			tries[index].Commit(nil)
+			tries[index].Commit(nil, false)
 		}(i)
 	}
 	// Wait for all threads to finish

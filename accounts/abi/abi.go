@@ -91,6 +91,42 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 	return append(method.ID, arguments...), nil
 }
 
+// PackOutput packs the given [args] as the output of given method [name] to conform the ABI.
+// This does not include method ID.
+func (abi ABI) PackOutput(name string, args ...interface{}) ([]byte, error) {
+	// Fetch the ABI of the requested method
+	method, exist := abi.Methods[name]
+	if !exist {
+		return nil, fmt.Errorf("method '%s' not found", name)
+	}
+	arguments, err := method.Outputs.Pack(args...)
+	if err != nil {
+		return nil, err
+	}
+	return arguments, nil
+}
+
+// getInputs gets input arguments of the given [name] method.
+func (abi ABI) getInputs(name string, data []byte) (Arguments, error) {
+	// since there can't be naming collisions with contracts and events,
+	// we need to decide whether we're calling a method or an event
+	var args Arguments
+	if method, ok := abi.Methods[name]; ok {
+		if len(data)%32 != 0 {
+			return nil, fmt.Errorf("abi: improperly formatted input: %s - Bytes: [%+v]", string(data), data)
+		}
+		args = method.Inputs
+	}
+	if event, ok := abi.Events[name]; ok {
+		args = event.Inputs
+	}
+	if args == nil {
+		return nil, fmt.Errorf("abi: could not locate named method or event: %s", name)
+	}
+	return args, nil
+}
+
+// getArguments gets output arguments of the given [name] method.
 func (abi ABI) getArguments(name string, data []byte) (Arguments, error) {
 	// since there can't be naming collisions with contracts and events,
 	// we need to decide whether we're calling a method or an event
@@ -105,12 +141,21 @@ func (abi ABI) getArguments(name string, data []byte) (Arguments, error) {
 		args = event.Inputs
 	}
 	if args == nil {
-		return nil, errors.New("abi: could not locate named method or event")
+		return nil, fmt.Errorf("abi: could not locate named method or event: %s", name)
 	}
 	return args, nil
 }
 
-// Unpack unpacks the output according to the abi specification.
+// UnpackInput unpacks the input according to the ABI specification.
+func (abi ABI) UnpackInput(name string, data []byte) ([]interface{}, error) {
+	args, err := abi.getInputs(name, data)
+	if err != nil {
+		return nil, err
+	}
+	return args.Unpack(data)
+}
+
+// Unpack unpacks the output according to the ABI specification.
 func (abi ABI) Unpack(name string, data []byte) ([]interface{}, error) {
 	args, err := abi.getArguments(name, data)
 	if err != nil {
@@ -119,9 +164,24 @@ func (abi ABI) Unpack(name string, data []byte) ([]interface{}, error) {
 	return args.Unpack(data)
 }
 
-// UnpackIntoInterface unpacks the output in v according to the abi specification.
+// UnpackInputIntoInterface unpacks the input in v according to the ABI specification.
 // It performs an additional copy. Please only use, if you want to unpack into a
-// structure that does not strictly conform to the abi structure (e.g. has additional arguments)
+// structure that does not strictly conform to the ABI structure (e.g. has additional arguments)
+func (abi ABI) UnpackInputIntoInterface(v interface{}, name string, data []byte) error {
+	args, err := abi.getInputs(name, data)
+	if err != nil {
+		return err
+	}
+	unpacked, err := args.Unpack(data)
+	if err != nil {
+		return err
+	}
+	return args.Copy(v, unpacked)
+}
+
+// UnpackIntoInterface unpacks the output in v according to the ABI specification.
+// It performs an additional copy. Please only use, if you want to unpack into a
+// structure that does not strictly conform to the ABI structure (e.g. has additional arguments)
 func (abi ABI) UnpackIntoInterface(v interface{}, name string, data []byte) error {
 	args, err := abi.getArguments(name, data)
 	if err != nil {
@@ -174,7 +234,7 @@ func (abi *ABI) UnmarshalJSON(data []byte) error {
 		case "constructor":
 			abi.Constructor = NewMethod("", "", Constructor, field.StateMutability, field.Constant, field.Payable, field.Inputs, nil)
 		case "function":
-			name := overloadedName(field.Name, func(s string) bool { _, ok := abi.Methods[s]; return ok })
+			name := ResolveNameConflict(field.Name, func(s string) bool { _, ok := abi.Methods[s]; return ok })
 			abi.Methods[name] = NewMethod(name, field.Name, Function, field.StateMutability, field.Constant, field.Payable, field.Inputs, field.Outputs)
 		case "fallback":
 			// New introduced function type in v0.6.0, check more detail
@@ -194,9 +254,11 @@ func (abi *ABI) UnmarshalJSON(data []byte) error {
 			}
 			abi.Receive = NewMethod("", "", Receive, field.StateMutability, field.Constant, field.Payable, nil, nil)
 		case "event":
-			name := overloadedName(field.Name, func(s string) bool { _, ok := abi.Events[s]; return ok })
+			name := ResolveNameConflict(field.Name, func(s string) bool { _, ok := abi.Events[s]; return ok })
 			abi.Events[name] = NewEvent(name, field.Name, field.Anonymous, field.Inputs)
 		case "error":
+			// Errors cannot be overloaded or overridden but are inherited,
+			// no need to resolve the name conflict here.
 			abi.Errors[field.Name] = NewError(field.Name, field.Inputs)
 		default:
 			return fmt.Errorf("abi: could not recognize type %v of field %v", field.Type, field.Name)
@@ -260,21 +322,4 @@ func UnpackRevert(data []byte) (string, error) {
 		return "", err
 	}
 	return unpacked[0].(string), nil
-}
-
-// overloadedName returns the next available name for a given thing.
-// Needed since solidity allows for overloading.
-//
-// e.g. if the abi contains Methods send, send1
-// overloadedName would return send2 for input send.
-//
-// overloadedName works for methods, events and errors.
-func overloadedName(rawName string, isAvail func(string) bool) string {
-	name := rawName
-	ok := isAvail(name)
-	for idx := 0; ok; idx++ {
-		name = fmt.Sprintf("%s%d", rawName, idx)
-		ok = isAvail(name)
-	}
-	return name
 }

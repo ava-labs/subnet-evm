@@ -8,12 +8,11 @@ import (
 	"sync"
 	"time"
 
-	subnetEVM "github.com/ava-labs/subnet-evm/chain"
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
 
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ava-labs/avalanchego/utils/timer"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -51,7 +50,7 @@ type blockBuilder struct {
 	ctx         *snow.Context
 	chainConfig *params.ChainConfig
 
-	chain    *subnetEVM.ETHChain
+	txPool   *core.TxPool
 	gossiper Gossiper
 
 	shutdownChan <-chan struct{}
@@ -67,7 +66,7 @@ type blockBuilder struct {
 	// [buildBlockTimer] is a two stage timer handling block production.
 	// Stage1 build a block if the batch size has been reached.
 	// Stage2 build a block regardless of the size.
-	buildBlockTimer *timer.Timer
+	buildBlockTimer *Timer
 
 	// buildStatus signals the phase of block building the VM is currently in.
 	// [dontBuild] indicates there's no need to build a block.
@@ -86,7 +85,7 @@ func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *bl
 	b := &blockBuilder{
 		ctx:                  vm.ctx,
 		chainConfig:          vm.chainConfig,
-		chain:                vm.chain,
+		txPool:               vm.txPool,
 		gossiper:             vm.gossiper,
 		shutdownChan:         vm.shutdownChan,
 		shutdownWg:           &vm.shutdownWg,
@@ -99,7 +98,7 @@ func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *bl
 }
 
 func (b *blockBuilder) handleBlockBuilding() {
-	b.buildBlockTimer = timer.NewStagedTimer(b.buildBlockTwoStageTimer)
+	b.buildBlockTimer = NewStagedTimer(b.buildBlockTwoStageTimer)
 	go b.ctx.Log.RecoverAndPanic(b.buildBlockTimer.Dispatch)
 
 	if !b.chainConfig.IsSubnetEVM(big.NewInt(time.Now().Unix())) {
@@ -177,7 +176,7 @@ func (b *blockBuilder) handleGenerateBlock() {
 // needToBuild returns true if there are outstanding transactions to be issued
 // into a block.
 func (b *blockBuilder) needToBuild() bool {
-	size := b.chain.PendingSize()
+	size := b.txPool.PendingSize()
 	return size > 0
 }
 
@@ -186,7 +185,7 @@ func (b *blockBuilder) needToBuild() bool {
 //
 // NOTE: Only used prior to SubnetEVM.
 func (b *blockBuilder) buildEarly() bool {
-	size := b.chain.PendingSize()
+	size := b.txPool.PendingSize()
 	return size > batchSize
 }
 
@@ -262,13 +261,15 @@ func (b *blockBuilder) signalTxsReady() {
 // and notifies the VM when the tx pool has transactions to be
 // put into a new block.
 func (b *blockBuilder) awaitSubmittedTxs() {
+	// txSubmitChan is invoked when new transactions are issued as well as on re-orgs which
+	// may orphan transactions that were previously in a preferred block.
+	txSubmitChan := make(chan core.NewTxsEvent)
+	b.txPool.SubscribeNewTxsEvent(txSubmitChan)
+
 	b.shutdownWg.Add(1)
 	go b.ctx.Log.RecoverAndPanic(func() {
 		defer b.shutdownWg.Done()
 
-		// txSubmitChan is invoked when new transactions are issued as well as on re-orgs which
-		// may orphan transactions that were previously in a preferred block.
-		txSubmitChan := b.chain.GetTxSubmitCh()
 		for {
 			select {
 			case txsEvent := <-txSubmitChan:

@@ -63,11 +63,11 @@ type SecureTrie struct {
 // Loaded nodes are kept around until their 'cache generation' expires.
 // A new cache generation is created by each call to Commit.
 // cachelimit sets the number of past cache generations to keep.
-func NewSecure(root common.Hash, db *Database) (*SecureTrie, error) {
+func NewSecure(owner common.Hash, root common.Hash, db *Database) (*SecureTrie, error) {
 	if db == nil {
 		panic("trie.NewSecure called without a database")
 	}
-	trie, err := New(root, db)
+	trie, err := New(owner, root, db)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (t *SecureTrie) TryGetNode(path []byte) ([]byte, int, error) {
 	return t.trie.TryGetNode(path)
 }
 
-// TryUpdate account will abstract the write of an account to the
+// TryUpdateAccount account will abstract the write of an account to the
 // secure trie.
 func (t *SecureTrie) TryUpdateAccount(key []byte, acc *types.StateAccount) error {
 	hk := t.hashKey(key)
@@ -171,14 +171,14 @@ func (t *SecureTrie) GetKey(shaKey []byte) []byte {
 //
 // Committing flushes nodes from memory. Subsequent Get calls will load nodes
 // from the database.
-func (t *SecureTrie) Commit(onleaf LeafCallback) (common.Hash, int, error) {
+func (t *SecureTrie) Commit(onleaf LeafCallback, referenceRoot bool) (common.Hash, int, error) {
 	// Write all the pre-images to the actual disk database
 	if len(t.getSecKeyCache()) > 0 {
 		t.trie.db.InsertPreimages(t.secKeyCache) // if preimages are disabled, this returns immediately
 		t.secKeyCache = make(map[string][]byte)
 	}
 	// Commit the trie to its intermediate node database
-	return t.trie.Commit(onleaf)
+	return t.trie.Commit(onleaf, referenceRoot)
 }
 
 // Hash returns the root hash of SecureTrie. It does not write to the
@@ -189,8 +189,10 @@ func (t *SecureTrie) Hash() common.Hash {
 
 // Copy returns a copy of SecureTrie.
 func (t *SecureTrie) Copy() *SecureTrie {
-	cpy := *t
-	return &cpy
+	return &SecureTrie{
+		trie:        *t.trie.Copy(),
+		secKeyCache: t.secKeyCache,
+	}
 }
 
 // NodeIterator returns an iterator that returns nodes of the underlying trie. Iteration

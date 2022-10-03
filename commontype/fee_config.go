@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -63,14 +64,14 @@ func (f *FeeConfig) Verify() error {
 	switch {
 	case f.GasLimit.Cmp(common.Big0) != 1:
 		return fmt.Errorf("gasLimit = %d cannot be less than or equal to 0", f.GasLimit)
-	case f.TargetBlockRate < 1:
-		return fmt.Errorf("targetBlockRate = %d cannot be less than 1", f.TargetBlockRate)
+	case f.TargetBlockRate <= 0:
+		return fmt.Errorf("targetBlockRate = %d cannot be less than or equal to 0", f.TargetBlockRate)
 	case f.MinBaseFee.Cmp(common.Big0) == -1:
 		return fmt.Errorf("minBaseFee = %d cannot be less than 0", f.MinBaseFee)
 	case f.TargetGas.Cmp(common.Big0) != 1:
 		return fmt.Errorf("targetGas = %d cannot be less than or equal to 0", f.TargetGas)
-	case f.BaseFeeChangeDenominator.Cmp(common.Big0) == -1:
-		return fmt.Errorf("baseFeeChangeDenominator = %d cannot be less than 0", f.BaseFeeChangeDenominator)
+	case f.BaseFeeChangeDenominator.Cmp(common.Big0) != 1:
+		return fmt.Errorf("baseFeeChangeDenominator = %d cannot be less than or equal to 0", f.BaseFeeChangeDenominator)
 	case f.MinBlockGasCost.Cmp(common.Big0) == -1:
 		return fmt.Errorf("minBlockGasCost = %d cannot be less than 0", f.MinBlockGasCost)
 	case f.MinBlockGasCost.Cmp(f.MaxBlockGasCost) == 1:
@@ -79,6 +80,22 @@ func (f *FeeConfig) Verify() error {
 		return fmt.Errorf("blockGasCostStep = %d cannot be less than 0", f.BlockGasCostStep)
 	}
 	return f.checkByteLens()
+}
+
+// Equal checks if given [other] is same with this FeeConfig.
+func (f *FeeConfig) Equal(other *FeeConfig) bool {
+	if other == nil {
+		return false
+	}
+
+	return utils.BigNumEqual(f.GasLimit, other.GasLimit) &&
+		f.TargetBlockRate == other.TargetBlockRate &&
+		utils.BigNumEqual(f.MinBaseFee, other.MinBaseFee) &&
+		utils.BigNumEqual(f.TargetGas, other.TargetGas) &&
+		utils.BigNumEqual(f.BaseFeeChangeDenominator, other.BaseFeeChangeDenominator) &&
+		utils.BigNumEqual(f.MinBlockGasCost, other.MinBlockGasCost) &&
+		utils.BigNumEqual(f.MaxBlockGasCost, other.MaxBlockGasCost) &&
+		utils.BigNumEqual(f.BlockGasCostStep, other.BlockGasCostStep)
 }
 
 // checkByteLens checks byte lengths against common.HashLen (32 bytes) and returns error

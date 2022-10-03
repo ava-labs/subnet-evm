@@ -30,6 +30,7 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
@@ -37,11 +38,14 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/stretchr/testify/require"
 )
 
 const testHead = 32
@@ -53,6 +57,7 @@ var (
 )
 
 type testBackend struct {
+	db      ethdb.Database
 	chain   *core.BlockChain
 	pending bool // pending block available
 }
@@ -134,7 +139,7 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 	genesis := gspec.MustCommit(db)
 
 	// Generate testing blocks
-	blocks, _, err := core.GenerateChain(gspec.Config, genesis, engine, db, numBlocks, 0, genBlocks)
+	blocks, _, err := core.GenerateChain(gspec.Config, genesis, engine, db, numBlocks, 1, genBlocks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +153,7 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 	if _, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("Failed to insert chain, %v", err)
 	}
-	return &testBackend{chain: chain}
+	return &testBackend{chain: chain, db: db}
 }
 
 func (b *testBackend) MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error) {
@@ -174,12 +179,26 @@ type suggestTipCapTest struct {
 	expectedTip *big.Int
 }
 
-func applyGasPriceTest(t *testing.T, test suggestTipCapTest) {
-	config := Config{
-		Blocks:     20,
-		Percentile: 60,
+func defaultOracleConfig() Config {
+	return Config{
+		Blocks:             20,
+		Percentile:         60,
+		MaxLookbackSeconds: 80,
 	}
+}
 
+//  timeCrunchOracleConfig returns a config with [MaxLookbackSeconds] set to 5
+// to ensure that during gas price estimation, we will hit the time based look back limit
+func timeCrunchOracleConfig() Config {
+	return Config{
+		Blocks:             20,
+		Percentile:         60,
+		MaxLookbackSeconds: 5,
+	}
+}
+
+func applyGasPriceTest(t *testing.T, test suggestTipCapTest, config Config) {
+	t.Helper()
 	if test.genBlock == nil {
 		test.genBlock = func(i int, b *core.BlockGen) {}
 	}
@@ -188,6 +207,10 @@ func applyGasPriceTest(t *testing.T, test suggestTipCapTest) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// mock time to be consistent across different CI runs
+	// sets currentTime to be 20 seconds
+	oracle.clock.Set(time.Unix(20, 0))
 
 	got, err := oracle.SuggestTipCap(context.Background())
 	if err != nil {
@@ -208,7 +231,7 @@ func TestSuggestTipCapNetworkUpgrades(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			applyGasPriceTest(t, test)
+			applyGasPriceTest(t, test, defaultOracleConfig())
 		})
 	}
 }
@@ -241,40 +264,8 @@ func TestSuggestTipCap(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		expectedTip: big.NewInt(1_287_001_287),
-	})
-}
-
-func TestSuggestTipCapSimple(t *testing.T) {
-	txTip := big.NewInt(55 * params.GWei)
-	applyGasPriceTest(t, suggestTipCapTest{
-		chainConfig: params.TestChainConfig,
-		numBlocks:   3,
-		genBlock: func(i int, b *core.BlockGen) {
-			b.SetCoinbase(common.Address{1})
-
-			signer := types.LatestSigner(params.TestChainConfig)
-			baseFee := b.BaseFee()
-			feeCap := new(big.Int).Add(baseFee, txTip)
-			for j := 0; j < 370; j++ {
-				tx := types.NewTx(&types.DynamicFeeTx{
-					ChainID:   params.TestChainConfig.ChainID,
-					Nonce:     b.TxNonce(addr),
-					To:        &common.Address{},
-					Gas:       params.TxGas,
-					GasFeeCap: feeCap,
-					GasTipCap: txTip,
-					Data:      []byte{},
-				})
-				tx, err := types.SignTx(tx, signer, key)
-				if err != nil {
-					t.Fatalf("failed to create tx: %s", err)
-				}
-				b.AddTx(tx)
-			}
-		},
-		expectedTip: big.NewInt(1_287_001_287),
-	})
+		expectedTip: big.NewInt(643_500_643),
+	}, defaultOracleConfig())
 }
 
 func TestSuggestTipCapSimpleFloor(t *testing.T) {
@@ -306,7 +297,7 @@ func TestSuggestTipCapSimpleFloor(t *testing.T) {
 			}
 		},
 		expectedTip: common.Big0,
-	})
+	}, defaultOracleConfig())
 }
 
 func TestSuggestTipCapSmallTips(t *testing.T) {
@@ -351,9 +342,8 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 				b.AddTx(tx)
 			}
 		},
-		// NOTE: small tips do not bias estimate
-		expectedTip: big.NewInt(1_287_001_287),
-	})
+		expectedTip: big.NewInt(643_500_643),
+	}, defaultOracleConfig())
 }
 
 func TestSuggestTipCapMinGas(t *testing.T) {
@@ -385,7 +375,7 @@ func TestSuggestTipCapMinGas(t *testing.T) {
 			}
 		},
 		expectedTip: big.NewInt(0),
-	})
+	}, defaultOracleConfig())
 }
 
 // Regression test to ensure that SuggestPrice does not panic prior to activation of Subnet EVM
@@ -466,4 +456,129 @@ func TestSuggestGasPricePreAP3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestSuggestTipCapMaxBlocksLookback(t *testing.T) {
+	txTip := big.NewInt(550 * params.GWei)
+
+	applyGasPriceTest(t, suggestTipCapTest{
+		chainConfig: params.TestChainConfig,
+		numBlocks:   20,
+		genBlock: func(i int, b *core.BlockGen) {
+			b.SetCoinbase(common.Address{1})
+
+			signer := types.LatestSigner(params.TestChainConfig)
+			baseFee := b.BaseFee()
+			feeCap := new(big.Int).Add(baseFee, txTip)
+			for j := 0; j < 370; j++ {
+				tx := types.NewTx(&types.DynamicFeeTx{
+					ChainID:   params.TestChainConfig.ChainID,
+					Nonce:     b.TxNonce(addr),
+					To:        &common.Address{},
+					Gas:       params.TxGas,
+					GasFeeCap: feeCap,
+					GasTipCap: txTip,
+					Data:      []byte{},
+				})
+				tx, err := types.SignTx(tx, signer, key)
+				if err != nil {
+					t.Fatalf("failed to create tx: %s", err)
+				}
+				b.AddTx(tx)
+			}
+		},
+		expectedTip: big.NewInt(5_807_226_110),
+	}, defaultOracleConfig())
+}
+
+func TestSuggestTipCapMaxBlocksSecondsLookback(t *testing.T) {
+	txTip := big.NewInt(550 * params.GWei)
+	applyGasPriceTest(t, suggestTipCapTest{
+		chainConfig: params.TestChainConfig,
+		numBlocks:   20,
+		genBlock: func(i int, b *core.BlockGen) {
+			b.SetCoinbase(common.Address{1})
+
+			signer := types.LatestSigner(params.TestChainConfig)
+			baseFee := b.BaseFee()
+			feeCap := new(big.Int).Add(baseFee, txTip)
+			for j := 0; j < 370; j++ {
+				tx := types.NewTx(&types.DynamicFeeTx{
+					ChainID:   params.TestChainConfig.ChainID,
+					Nonce:     b.TxNonce(addr),
+					To:        &common.Address{},
+					Gas:       params.TxGas,
+					GasFeeCap: feeCap,
+					GasTipCap: txTip,
+					Data:      []byte{},
+				})
+				tx, err := types.SignTx(tx, signer, key)
+				if err != nil {
+					t.Fatalf("failed to create tx: %s", err)
+				}
+				b.AddTx(tx)
+			}
+		},
+		expectedTip: big.NewInt(10_384_877_851),
+	}, timeCrunchOracleConfig())
+}
+
+// Regression test to ensure the last estimation of base fee is not used
+// for the block immediately following a fee configuration update.
+func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
+	require := require.New(t)
+	config := Config{
+		Blocks:     20,
+		Percentile: 60,
+	}
+
+	// create a chain config with fee manager enabled at genesis with [addr] as the admin
+	chainConfig := *params.TestChainConfig
+	chainConfig.FeeManagerConfig = precompile.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr}, nil, nil)
+
+	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
+	signer := types.LatestSigner(params.TestChainConfig)
+	highFeeConfig := chainConfig.FeeConfig
+	highFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
+	data, err := precompile.PackSetFeeConfig(highFeeConfig)
+	require.NoError(err)
+
+	// before issuing the block changing the fee into the chain, the fee estimation should
+	// follow the fee config in genesis.
+	backend := newTestBackend(t, &chainConfig, 0, func(i int, b *core.BlockGen) {})
+	oracle, err := NewOracle(backend, config)
+	require.NoError(err)
+	got, err := oracle.SuggestPrice(context.Background())
+	require.NoError(err)
+	require.Equal(chainConfig.FeeConfig.MinBaseFee, got)
+
+	// issue the block with tx that changes the fee
+	genesis := backend.chain.Genesis()
+	engine := backend.chain.Engine()
+	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, backend.db, 1, 0, func(i int, b *core.BlockGen) {
+		b.SetCoinbase(common.Address{1})
+
+		// admin issues tx to change fee config to higher MinBaseFee
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   chainConfig.ChainID,
+			Nonce:     b.TxNonce(addr),
+			To:        &precompile.FeeConfigManagerAddress,
+			Gas:       chainConfig.FeeConfig.GasLimit.Uint64(),
+			Value:     common.Big0,
+			GasFeeCap: chainConfig.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
+			GasTipCap: common.Big0,
+			Data:      data,
+		})
+		tx, err = types.SignTx(tx, signer, key)
+		require.NoError(err, "failed to create tx")
+		b.AddTx(tx)
+	})
+	require.NoError(err)
+	_, err = backend.chain.InsertChain(blocks)
+	require.NoError(err)
+
+	// verify the suggested price follows the new fee config.
+	got, err = oracle.SuggestPrice(context.Background())
+	require.NoError(err)
+	require.Equal(highFeeConfig.MinBaseFee, got)
 }

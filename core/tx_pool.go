@@ -611,6 +611,16 @@ func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transacti
 	return pending
 }
 
+// PendingSize returns the number of pending txs in the tx pool.
+func (pool *TxPool) PendingSize() int {
+	pending := pool.Pending(true)
+	count := 0
+	for _, txs := range pending {
+		count += len(txs)
+	}
+	return count
+}
+
 // PendingFrom returns the same set of transactions that would be returned from Pending restricted to only
 // transactions from [addrs].
 func (pool *TxPool) PendingFrom(addrs []common.Address, enforceTips bool) map[common.Address]types.Transactions {
@@ -1620,7 +1630,7 @@ func (pool *TxPool) truncateQueue() {
 			addresses = append(addresses, addressByHeartbeat{addr, pool.beats[addr]})
 		}
 	}
-	sort.Sort(addresses)
+	sort.Sort(sort.Reverse(addresses))
 
 	// Drop transactions until the total is below the limit or only locals remain
 	for drop := queued - pool.config.GlobalQueue; drop > 0 && len(addresses) > 0; {
@@ -1808,10 +1818,6 @@ func newAccountSet(signer types.Signer, addrs ...common.Address) *accountSet {
 func (as *accountSet) contains(addr common.Address) bool {
 	_, exist := as.accounts[addr]
 	return exist
-}
-
-func (as *accountSet) empty() bool {
-	return len(as.accounts) == 0
 }
 
 // containsTx checks if the sender of a given tx is within the set. If the sender
