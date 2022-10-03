@@ -6,8 +6,14 @@ set -o pipefail
 
 export GOGC=25
 
+# Root directory
+SUBNET_EVM_PATH=$(
+    cd "$(dirname "${BASH_SOURCE[0]}")"
+    cd .. && pwd
+)
+
 # Load the constants
-source "$AVALANCHE_PATH"/scripts/constants.sh
+source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 # We pass in the arguments to this script directly to enable easily passing parameters such as enabling race detection,
 # parallelism, and test coverage.
