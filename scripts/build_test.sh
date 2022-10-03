@@ -9,4 +9,5 @@ export GOGC=25
 # We pass in the arguments to this script directly to enable easily passing parameters such as enabling race detection,
 # parallelism, and test coverage.
 # DO NOT RUN "tests/e2e" since it's run by ginkgo
+export CGO_FLAGS="-O -D__BLST_PORTABLE__"
 go test -coverprofile=coverage.out -covermode=atomic -timeout="30m" $@ $(go list ./... | grep -v tests/e2e)

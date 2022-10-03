@@ -55,6 +55,9 @@ echo ENABLE_SOLIDITY_TESTS: ${ENABLE_SOLIDITY_TESTS}
 echo GINKGO_SKIP_FLAGS: ${GINKGO_SKIP_FLAGS}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
+# avoid blst related invalid operation errors
+export CGO_FLAGS="-O -D__BLST_PORTABLE__"
+
 ############################
 # download avalanchego
 # https://github.com/ava-labs/avalanchego/releases
