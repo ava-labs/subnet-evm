@@ -1,0 +1,1 @@
+[{"inputs":[],"name":"sayHello","outputs":[{"internalType":"string","name":"output","type":"string"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"response","type":"string"}],"name":"setGreeting","outputs":[],"stateMutability":"nonpayable","type":"function"}]
