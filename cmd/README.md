@@ -274,14 +274,14 @@ type HelloWorldConfig struct {
 
 **Optional Note** 
 
-If our IHelloWorldConfig wrapped another config in its struct to implement the StatefulPrecompileConfig
+If our HelloWorldConfig wrapped another config in its struct to implement the StatefulPrecompileConfig
 like so 
 
 ``` go
-// IHelloWorldConfig implements the StatefulPrecompileConfig
+// HelloWorldConfig implements the StatefulPrecompileConfig
 // interface while adding in the IHelloWorld specific precompile address.
 
-type IHelloWorldConfig struct {
+type HelloWorldConfig struct {
 	UpgradeableConfig
     AllowListConfig
 }
