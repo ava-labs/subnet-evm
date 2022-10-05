@@ -15,7 +15,7 @@
 | RPC URL               | TBA                                                                                        |
 | Description           | Dexalot Exchange EVM subnet.                                                               |
 | Site                  | https://app.dexalot.com/trade                                                              |
-| Multicall2 contracts  |                                                  |
+| Multicall2 contracts  | 0x8B32CF176c409d7d40838295fb225c22d3937032                                                 |
 
 
 ## Subnet ERC-20 Tokens
