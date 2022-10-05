@@ -412,12 +412,9 @@ We use this to see if we should enable the precompile.
 
 ![](2022-09-01-23-32-51.png)
 
-## Step 6: Add Solidity Interface and Test Contract
+## Step 6: Add Test Contract
 
-Add your solidity interface and test contract to `contract-examples/contracts`
-
-We already have our interface in  `contract-examples/contracts` from Step 1. 
-Let's add our contract.
+Let's add our test contract to `contract-examples/contracts`. This smart contract lets us interact with our precompile! We cast the HelloWorld precompile address to the IHelloWorld interface. In doing so, `helloWorld` is now a contract of type `IHelloWorld` and when we call any functions on that contract, they will be sent to the HelloWorld precompile address. 
 
 ``` sol
 //SPDX-License-Identifier: MIT
@@ -425,7 +422,7 @@ pragma solidity ^0.8.0;
 
 import "./IHelloWorld.sol";
 
-// ExampleHelloWorld shows how the HelloWorld precompile can be used in a smart conract
+// ExampleHelloWorld shows how the HelloWorld precompile can be used in a smart contract.
 contract ExampleHelloWorld {
   address constant HELLO_WORLD_ADDRESS = 0x0200000000000000000000000000000000000004;
   IHelloWorld helloWorld = IHelloWorld(HELLO_WORLD_ADDRESS);
