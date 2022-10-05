@@ -481,10 +481,9 @@ describe("HelloWorld", function () {
 });
 ```
 
-Cool now let's see if it passes. We need to get a local subnet-evm up and running. If we go to the `./scripts/run.sh` file, we can see a script that installs avalanchego, sets up a local network, and spins up a subnet-evm using the genesis. 
+Let's see if it passes! We need to get a local network up and running. If we go to the `./scripts/run.sh` file, we can see a script that installs avalanchego, sets up the primary subnet, and spins up a subnet-evm using the genesis json file. 
 
 Before we run this script, we actually need to modify the genesis within `./scripts/run.sh` to enable our precompile. 
-
 
 ```json
 {
@@ -533,7 +532,7 @@ Before we run this script, we actually need to modify the genesis within `./scri
 }
 ```
 
-Adding this to the config enables our precompile. 
+Adding this to the genesis in `./scripts/runs.sh` enables our precompile. 
 ``` json
 "helloWorldConfig": {
   "blockTimestamp": 0
