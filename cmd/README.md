@@ -143,8 +143,7 @@ In the same `./contract-examples/contracts` directory, let's [download solc](htt
 solc --abi IHelloWorld.sol -o .
 ```
 
-This spits out the abi code. Let's move it to 
-`./contract-examples/contracts`. 
+This spits out the abi code!
 
 IHelloWorld.abi
 
@@ -193,7 +192,7 @@ Now that we have an abi for the precompile gen tool to interact with. We can run
 
 In the root of the repo run 
 ``` 
-go run ./cmd/precompilegen/main.go --abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi --type HelloWorld --pkg precompile --out ./precompile/hello_world.go
+go run ./cmd/precompilegen/main.go --abi ./contract-examples/contracts/IHelloWorld.abi --type HelloWorld --pkg precompile --out ./precompile/hello_world.go
 ```
 
 Wow! We just got a precompile template that's mostly complete located at `./precompile/hello_world.go`. Let's fill out the rest!
