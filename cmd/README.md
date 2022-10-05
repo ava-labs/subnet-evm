@@ -459,24 +459,24 @@ describe("ExampleHelloWorld", function () {
 
     before(async function () {
         // Deploy Hello World Contract
-        const ContractF: ContractFactory = await ethers.getContractFactory("HelloWorld");
+        const ContractF: ContractFactory = await ethers.getContractFactory("ExampleHelloWorld");
         helloWorldContract = await ContractF.deploy();
         await helloWorldContract.deployed();
         const helloWorldContractAddress: string = helloWorldContract.address;
         console.log(`Contract deployed to: ${helloWorldContractAddress}`);
     });
 
-    it("should sayHello properly", async function () {
-        let result = await helloWorldContract.callStatic.sayHello();
+    it("should getHello properly", async function () {
+        let result = await helloWorldContract.callStatic.getHello();
         expect(result).to.equal("Hello World!");
     });
 
-    it("should setGreeting and sayHello", async function () {
+    it("should setGreeting and getHello", async function () {
         const modifiedGreeting = "What's up";
         let tx = await helloWorldContract.setGreeting(modifiedGreeting);
         await tx.wait();
 
-        expect(await helloWorldContract.callStatic.sayHello()).to.be.equal(modifiedGreeting);
+        expect(await helloWorldContract.callStatic.getHello()).to.be.equal(modifiedGreeting);
     });
 });
 ```
@@ -536,10 +536,10 @@ Adding this to our genesis enables our HelloWorld precompile.
 ``` json
 "helloWorldConfig": {
   "blockTimestamp": 0
-}
+},
 ```
 
-As a reminder, we get the name `helloWorldConfig` by setting it in `./params/precompile_config.go`
+As a reminder, we defined `helloWorldConfig` in `./params/precompile_config.go`. By putting this in genesis, we enable our HelloWorld precompile at blockTimestamp 0. 
 
 ``` go
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig, representing
@@ -559,20 +559,17 @@ type PrecompileUpgrade struct {
 Now we can get the network up and running. 
 Open some terminal tabs and enter the following commands. 
 
-```
+``` go
 // Start the server 
-
 anr server \
 --log-level debug \
 --port=":8080" \
 --grpc-gateway-port=":8081"
 
 // In the root of the repo, run this to get the latest subnetevm binary 
-
 ./scripts/build.sh
  
 // Spin up some nodes that run the latest version of subnet evm 
-  
   anr control start \
   --log-level debug \
   --endpoint="0.0.0.0:8080" \
@@ -583,19 +580,16 @@ anr server \
 
 ```
 
-The VMID of subnetevm is `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`. When you build the subnetevm binary it will lie in the plugins directory,   `"$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"`
-
-
-If the network startup is successful then you should see something like this, 
+If the network startup is successful then you should see something like this.
 ```
-node-info: node-name node1, node-ID: NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg, URI: http://127.0.0.1:9650
-node-info: node-name node2, node-ID: NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ, URI: http://127.0.0.1:9652
-node-info: node-name node3, node-ID: NodeID-NFBbbJ4qCmNaCzeW7sxErhvWqvEQMnYcN, URI: http://127.0.0.1:9654
-node-info: node-name node4, node-ID: NodeID-GWPcbFJZFfZreETSoWjPimr846mXEKCtu, URI: http://127.0.0.1:9656
-node-info: node-name node5, node-ID: NodeID-P7oB2McjBGgW2NXXWVYjV8JEDFoW9xDE5, URI: http://127.0.0.1:9658
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9650/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9652/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9654/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9656/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
+[blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9658/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
 ```
 
-Sweet! Now we have a node uri that can be used to talk to the network!
+Sweet! Now we have blockchain rpcs that can be used to talk to the network!
 
 We now need to modify the hardhat config located in `./contract-examples/contracts/hardhat.config.ts`
 
@@ -637,8 +631,7 @@ Now in `local_rpc.json` we can modify the rpc url to the one we just created. It
 
 ```
 {
-  "rpc": "http://127.0.0.1:9658/ext/bc/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
-/rpc"
+  "rpc": "http://127.0.0.1:9656/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU/rpc"
 }
 ```
 
