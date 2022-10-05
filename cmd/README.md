@@ -441,7 +441,7 @@ Note that the contract methods do not need to have the same function signatures 
 
 ## Step 7: Add Precompile Solidity Tests 
 
-We can now write our hardhat test in `contract-examples/test`. This file is called `TestHelloWorld.ts`
+We can now write our hardhat test in `contract-examples/test`. This file is called `ExampleHelloWorld.ts`
 
 ``` js
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
