@@ -454,7 +454,7 @@ import {
     ContractFactory,
 } from "ethers"
 
-describe("HelloWorld", function () {
+describe("ExampleHelloWorld", function () {
     let helloWorldContract: Contract;
 
     before(async function () {
@@ -481,10 +481,9 @@ describe("HelloWorld", function () {
 });
 ```
 
-Let's see if it passes! We need to get a local network up and running. If we go to the `./scripts/run.sh` file, we can see a script that installs avalanchego, sets up the primary subnet, and spins up a subnet-evm using the genesis json file. 
+Let's see if it passes! We need to get a local network up and running. 
 
-Before we run this script, we actually need to modify the genesis within `./scripts/run.sh` to enable our precompile. 
-
+Before we do this, we actually need to create and modify the genesis to enable our HelloWorld precompile. Put this file in `/tmp/subnet-evm-genesis.json`
 ```json
 {
   "config": {
@@ -532,7 +531,8 @@ Before we run this script, we actually need to modify the genesis within `./scri
 }
 ```
 
-Adding this to the genesis in `./scripts/runs.sh` enables our precompile. 
+Adding this to our genesis enables our HelloWorld precompile.  
+
 ``` json
 "helloWorldConfig": {
   "blockTimestamp": 0
@@ -556,33 +556,46 @@ type PrecompileUpgrade struct {
 }
 ```
 
-Here's the usage of the script: 
-```./scripts/run.sh [AVALANCHEGO VERSION] [GENESIS_ADDRESS] ```
+Now we can get the network up and running. 
+Open some terminal tabs and enter the following commands. 
 
-At the time of writing, the latest version of avalanchego is 1.7.18
-so 
-
-```./scripts/run.sh 1.7.18 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC```
-
-
-Note that this address `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is a prefunded address on the local network. The private key for this address is `0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027`
-
-If start up is successful then you should see something like this, 
 ```
-MetaMask Quick Start:
-Funded Address: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
-Network Name: Local EVM
-RPC URL: http://127.0.0.1:23518/ext/bc/2YtHHWeLCnwdqxExAQerayn2oMwZVdKbJUAQEom67eq36PWnax/rpc
-Chain ID: 99999
-Currency Symbol: LEVM
-network-runner RPC server is running on PID 64362...
+// Start the server 
 
-use the following command to terminate:
+anr server \
+--log-level debug \
+--port=":8080" \
+--grpc-gateway-port=":8081"
 
-pkill -P 64362 && kill -2 64362 && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+// In the root of the repo, run this to get the latest subnetevm binary 
+
+./scripts/build.sh
+ 
+// Spin up some nodes that run the latest version of subnet evm 
+  
+  anr control start \
+  --log-level debug \
+  --endpoint="0.0.0.0:8080" \
+  --number-of-nodes=5 \
+  --avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
+  --plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
+  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm-genesis.json"}]'
+
 ```
 
-Sweet! Now we have a rpc url that can be used to talk to the network!
+The VMID of subnetevm is `srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy`. When you build the subnetevm binary it will lie in the plugins directory,   `"$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"`
+
+
+If the network startup is successful then you should see something like this, 
+```
+node-info: node-name node1, node-ID: NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg, URI: http://127.0.0.1:9650
+node-info: node-name node2, node-ID: NodeID-MFrZFVCXPv5iCn6M9K6XduxGTYp891xXZ, URI: http://127.0.0.1:9652
+node-info: node-name node3, node-ID: NodeID-NFBbbJ4qCmNaCzeW7sxErhvWqvEQMnYcN, URI: http://127.0.0.1:9654
+node-info: node-name node4, node-ID: NodeID-GWPcbFJZFfZreETSoWjPimr846mXEKCtu, URI: http://127.0.0.1:9656
+node-info: node-name node5, node-ID: NodeID-P7oB2McjBGgW2NXXWVYjV8JEDFoW9xDE5, URI: http://127.0.0.1:9658
+```
+
+Sweet! Now we have a node uri that can be used to talk to the network!
 
 We now need to modify the hardhat config located in `./contract-examples/contracts/hardhat.config.ts`
 
@@ -624,7 +637,8 @@ Now in `local_rpc.json` we can modify the rpc url to the one we just created. It
 
 ```
 {
-  "rpc": "http://127.0.0.1:23518/ext/bc/2YtHHWeLCnwdqxExAQerayn2oMwZVdKbJUAQEom67eq36PWnax/rpc"
+  "rpc": "http://127.0.0.1:9658/ext/bc/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+/rpc"
 }
 ```
 
