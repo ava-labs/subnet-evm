@@ -306,7 +306,7 @@ func (c *HelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContex
 	//
 	// Set the initial value under [common.BytesToHash([]byte("storageKey")] to "Hello World!"
 	res := common.LeftPadBytes([]byte("Hello World!"), common.HashLength)
-	state.SetState(IHelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
+	state.SetState(HelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 }
 ```
 
@@ -326,7 +326,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 	// Get the current state
 	currentState := accessibleState.GetStateDB()
 	// Get the value set at recipient
-	value := currentState.GetState(IHelloWorldAddress, common.BytesToHash([]byte("storageKey")))
+	value := currentState.GetState(HelloWorldAddress, common.BytesToHash([]byte("storageKey")))
 	// Do some processing and pack the output
 	packedOutput, err := PackSayHelloOutput(string(common.TrimLeftZeroes(value.Bytes())))
 	if err != nil {
@@ -358,7 +358,7 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 
 	// CUSTOM CODE STARTS HERE
     // check if the input string is longer than 32 bytes
-    if inputStr > 32 {
+    if len(inputStr) > 32 {
       return nil, 0, errors.New("input string is longer than 32 bytes")
     }
 
@@ -366,7 +366,7 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
     // and sets the storageKey in the string returned by hello world
   
     res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
-	accessibleState.GetStateDB().SetState(IHelloWorldAddress, common. BytesToHash([]byte("storageKey")), common.BytesToHash(res))
+	accessibleState.GetStateDB().SetState(HelloWorldAddress, common. BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
@@ -419,7 +419,7 @@ Add your solidity interface and test contract to `contract-examples/contracts`
 We already have our interface in  `contract-examples/contracts` from Step 1. 
 Let's add our contract.
 
-``` go
+``` sol
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
