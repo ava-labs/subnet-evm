@@ -61,10 +61,6 @@ var (
 	HelloWorldABI abi.ABI // will be initialized by init function
 
 	HelloWorldPrecompile StatefulPrecompiledContract // will be initialized by init function
-
-	// CUSTOM CODE STARTS HERE
-	// THIS SHOULD BE MOVED TO precompile/params.go with a suitable hex address.
-	HelloWorldAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
 )
 
 // HelloWorldConfig implements the StatefulPrecompileConfig
