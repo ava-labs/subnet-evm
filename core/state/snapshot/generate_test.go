@@ -69,7 +69,7 @@ func TestGeneration(t *testing.T) {
 
 	root, snap := helper.CommitAndGenerate() // two of which also has the same 3-slot storage trie attached.
 
-	if have, want := root, common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"); have != want {
+	if have, want := root, common.HexToHash("0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd"); have != want {
 		t.Fatalf("have %#x want %#x", have, want)
 	}
 	select {
@@ -309,7 +309,7 @@ func TestGenerateExistentStateWithWrongStorage(t *testing.T) {
 	}
 
 	root, snap := helper.CommitAndGenerate()
-	t.Logf("Root: %#x\n", root) // Root = 0xdd912272f1befd3e1ca84007817f532b6e8a08f7b273c88b0ea0d6701ad3ad03
+	t.Logf("Root: %#x\n", root) // Root = 0x8746cce9fd9c658b2cfd639878ed6584b7a2b3e73bb40f607fcfa156002429a0
 
 	select {
 	case <-snap.genPending:
@@ -366,7 +366,7 @@ func TestGenerateExistentStateWithWrongAccounts(t *testing.T) {
 	}
 
 	root, snap := helper.CommitAndGenerate()
-	t.Logf("Root: %#x\n", root) // Root = 0xe614035f519c878aea2b5e658a3dd61916ff090354222cfad624403e89d96440
+	t.Logf("Root: %#x\n", root) // Root = 0x825891472281463511e7ebcc7f109e4f9200c20fa384754e11fd605cd98464e8
 
 	select {
 	case <-snap.genPending:
@@ -391,15 +391,15 @@ func TestGenerateCorruptAccountTrie(t *testing.T) {
 	// without any storage slots to keep the test smaller.
 	helper := newHelper()
 
-	helper.addTrieAccount("acc-1", &Account{Balance: big.NewInt(1), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0x7dd654835190324640832972b7c4c6eaa0c50541e36766d054ed57721f1dc7eb
-	helper.addTrieAccount("acc-2", &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e
-	helper.addTrieAccount("acc-3", &Account{Balance: big.NewInt(3), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0x515d3de35e143cd976ad476398d910aa7bf8a02e8fd7eb9e3baacddbbcbfcb41
+	helper.addTrieAccount("acc-1", &Account{Balance: big.NewInt(1), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0xc7a30f39aff471c95d8a837497ad0e49b65be475cc0953540f80cfcdbdcd9074
+	helper.addTrieAccount("acc-2", &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7
+	helper.addTrieAccount("acc-3", &Account{Balance: big.NewInt(3), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0x19ead688e907b0fab07176120dceec244a72aff2f0aa51e8b827584e378772f4
 
-	root := helper.Commit() // Root: 0xfa04f652e8bd3938971bf7d71c3c688574af334ca8bc20e64b01ba610ae93cad
+	root := helper.Commit() // Root: 0xa04693ea110a31037fb5ee814308a6f1d76bdab0b11676bdf4541d2de55ba978
 
 	// Delete an account trie leaf and ensure the generator chokes
 	helper.triedb.Commit(root, false, nil)
-	helper.diskdb.Delete(common.HexToHash("0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e").Bytes())
+	helper.diskdb.Delete(common.HexToHash("0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7").Bytes())
 
 	snap := generateSnapshot(helper.diskdb, helper.triedb, 16, testBlockHash, root, nil)
 	select {
@@ -426,10 +426,10 @@ func TestGenerateMissingStorageTrie(t *testing.T) {
 	helper := newHelper()
 
 	stRoot := helper.makeStorageTrie(hashData([]byte("acc-1")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true) // 0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67
-	helper.addTrieAccount("acc-1", &Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: emptyCode.Bytes()})                                 // 0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb
-	helper.addTrieAccount("acc-2", &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()})                      // 0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e
+	helper.addTrieAccount("acc-1", &Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: emptyCode.Bytes()})                                 // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
+	helper.addTrieAccount("acc-2", &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()})                      // 0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7
 	stRoot = helper.makeStorageTrie(hashData([]byte("acc-3")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
-	helper.addTrieAccount("acc-3", &Account{Balance: big.NewInt(3), Root: stRoot, CodeHash: emptyCode.Bytes()}) // 0x70da4ebd7602dd313c936b39000ed9ab7f849986a90ea934f0c3ec4cc9840441
+	helper.addTrieAccount("acc-3", &Account{Balance: big.NewInt(3), Root: stRoot, CodeHash: emptyCode.Bytes()}) // 0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2
 	root := helper.Commit()
 
 	// Delete a storage trie root and ensure the generator chokes
@@ -459,10 +459,10 @@ func TestGenerateCorruptStorageTrie(t *testing.T) {
 	helper := newHelper()
 
 	stRoot := helper.makeStorageTrie(hashData([]byte("acc-1")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true) // 0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67
-	helper.addTrieAccount("acc-1", &Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: emptyCode.Bytes()})                                 // 0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb
-	helper.addTrieAccount("acc-2", &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()})                      // 0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e
-	stRoot = helper.makeStorageTrie(hashData([]byte("acc-3")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
-	helper.addTrieAccount("acc-3", &Account{Balance: big.NewInt(3), Root: stRoot, CodeHash: emptyCode.Bytes()}) // 0x70da4ebd7602dd313c936b39000ed9ab7f849986a90ea934f0c3ec4cc9840441
+	helper.addTrieAccount("acc-1", &Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: emptyCode.Bytes()})                                 // 0x1314700b81afc49f94db3623ef1df38f3ed18b73a1b7ea2f6c095118cf6118a0
+	helper.addTrieAccount("acc-2", &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()})                      // 0x18a0f4d79cff4459642dd7604f303886ad9d77c30cf3d7d7cedb3a693ab6d371
+	stRoot = helper.makeStorageTrie(hashData([]byte("acc-3")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)  // 0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67
+	helper.addTrieAccount("acc-3", &Account{Balance: big.NewInt(3), Root: stRoot, CodeHash: emptyCode.Bytes()})                                 // 0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2
 	root := helper.Commit()
 
 	// Delete a storage trie leaf and ensure the generator chokes
@@ -566,7 +566,7 @@ func TestGenerateWithManyExtraAccounts(t *testing.T) {
 		)
 		acc := &Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: emptyCode.Bytes()}
 		val, _ := rlp.EncodeToBytes(acc)
-		helper.accTrie.Update([]byte("acc-1"), val) // 0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb
+		helper.accTrie.Update([]byte("acc-1"), val) // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
 
 		// Identical in the snap
 		key := hashData([]byte("acc-1"))
@@ -691,7 +691,7 @@ func TestGenerateFromEmptySnap(t *testing.T) {
 			&Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: emptyCode.Bytes()})
 	}
 	root, snap := helper.CommitAndGenerate()
-	t.Logf("Root: %#x\n", root) // Root: 0x2609234ce43f5e471202c87e017ffb4dfecdb3163cfcbaa55de04baa59cad42d
+	t.Logf("Root: %#x\n", root) // Root: 0x6f7af6d2e1a1bf2b84a3beb3f8b64388465fbc1e274ca5d5d3fc787ca78f59e4
 
 	select {
 	case <-snap.genPending:
@@ -736,7 +736,7 @@ func TestGenerateWithIncompleteStorage(t *testing.T) {
 		helper.addSnapStorage(accKey, moddedKeys, moddedVals)
 	}
 	root, snap := helper.CommitAndGenerate()
-	t.Logf("Root: %#x\n", root) // Root: 0x90cb912ad55795de8c08a41bfadb79109d4067fb2004e7bc17c942a3e551904d
+	t.Logf("Root: %#x\n", root) // Root: 0xca73f6f05ba4ca3024ef340ef3dfca8fdabc1b677ff13f5a9571fd49c16e67ff
 
 	select {
 	case <-snap.genPending:
