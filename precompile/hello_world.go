@@ -27,7 +27,6 @@ package precompile
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -38,8 +37,8 @@ import (
 )
 
 const (
-	SayHelloGasCost    uint64 = 0 // SET A GAS COST HERE
-	SetGreetingGasCost uint64 = 0 // SET A GAS COST HERE
+	SayHelloGasCost    uint64 = 5000
+	SetGreetingGasCost uint64 = 20_000
 
 	// HelloWorldRawABI contains the raw ABI of HelloWorld contract.
 	HelloWorldRawABI = "[{\"inputs\":[],\"name\":\"sayHello\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"output\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"response\",\"type\":\"string\"}],\"name\":\"setGreeting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
@@ -51,7 +50,6 @@ var (
 	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
-	_ = fmt.Printf
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -121,8 +119,15 @@ func (c *HelloWorldConfig) Address() common.Address {
 
 // Configure configures [state] with the initial configuration.
 func (c *HelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
-
-	// CUSTOM CODE STARTS HERE
+	// This will be called in the first block where HelloWorld stateful precompile is enabled.
+	// 1) If BlockTimestamp is nil, this will not be called
+	// 2) If BlockTimestamp is 0, this will be called while setting up the genesis block
+	// 3) If BlockTimestamp is 1000, this will be called while processing the first block
+	// whose timestamp is >= 1000
+	//
+	// Set the initial value under [common.BytesToHash([]byte("storageKey")] to "Hello World!"
+	res := common.LeftPadBytes([]byte("Hello World!"), common.HashLength)
+	state.SetState(HelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for HelloWorld.
@@ -132,10 +137,6 @@ func (c *HelloWorldConfig) Contract() StatefulPrecompiledContract {
 
 // Verify tries to verify HelloWorldConfig and returns an error accordingly.
 func (c *HelloWorldConfig) Verify() error {
-
-	// CUSTOM CODE STARTS HERE
-	// Add your own custom verify code for HelloWorldConfig here
-	// and return an error accordingly
 	return nil
 }
 
@@ -162,8 +163,12 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 
 	// CUSTOM CODE STARTS HERE
 
-	var output string // CUSTOM CODE FOR AN OUTPUT
-	packedOutput, err := PackSayHelloOutput(output)
+	// Get the current state
+	currentState := accessibleState.GetStateDB()
+	// Get the value set at recipient
+	value := currentState.GetState(HelloWorldAddress, common.BytesToHash([]byte("storageKey")))
+	// Do some processing and pack the output
+	packedOutput, err := PackSayHelloOutput(string(common.TrimLeftZeroes(value.Bytes())))
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -200,13 +205,23 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	// attempts to unpack [input] into the arguments to the SetGreetingInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackSetGreetingInput(input)
+	inputStr, err := UnpackSetGreetingInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
+	// check if the input string is longer than 32 bytes
+	if len(inputStr) > 32 {
+		return nil, 0, errors.New("input string is longer than 32 bytes")
+	}
+
+	// setGreeting is the execution function "SetGreeting(name string)"
+	// and sets the storageKey in the string returned by hello world
+
+	res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
+	accessibleState.GetStateDB().SetState(HelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
+
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
