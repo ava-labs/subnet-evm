@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 )
 
 var (
@@ -187,11 +188,11 @@ func (v blockValidatorSubnetEVM) SyntacticVerify(b *Block) error {
 	if uncleHash != ethHeader.UncleHash {
 		return errUncleHashMismatch
 	}
-	// reward manager is enabled, Coinbase depends on state. State is not available here, so skip checking the coinbase here.
+	// if reward manager is enabled, Coinbase depends on state. State is not available here, so skip checking the coinbase here.
 	if !v.rewardManagerEnabled {
-		// Coinbase must be zero, if AllowFeeRecipients is not enabled
+		// If AllowFeeRecipients is not enabled, Coinbase must be BlackholeAddr.
 		if !b.vm.chainConfig.AllowFeeRecipients && b.ethBlock.Coinbase() != constants.BlackholeAddr {
-			return errInvalidBlock
+			return fmt.Errorf("%w: %v does not match required blackhole address %v", vmerrs.ErrInvalidCoinbase, ethHeader.Coinbase, constants.BlackholeAddr)
 		}
 	}
 	// Block must not have any uncles

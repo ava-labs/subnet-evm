@@ -307,7 +307,7 @@ func PackCurrentRewardAddressOutput(rewardAddress common.Address) ([]byte, error
 }
 
 // GetStoredRewardAddress returns the current value of the address stored under rewardAddressStorageKey.
-// Returns true if allow fee recipients is enabled, otherwise returns current reward address.
+// Returns an empty address and true if allow fee recipients is enabled, otherwise returns current reward address and false.
 func GetStoredRewardAddress(stateDB StateDB) (common.Address, bool) {
 	val := stateDB.GetState(RewardManagerAddress, rewardAddressStorageKey)
 	if val == allowFeeRecipientsAddressValue.Hash() {

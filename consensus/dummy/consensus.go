@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -67,6 +68,25 @@ func NewFullFaker() *DummyEngine {
 		clock:         &mockable.Clock{},
 		consensusMode: ModeSkipHeader,
 	}
+}
+
+// verifyCoinbase checks that the coinbase is valid for the given [parent].
+func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, parent *types.Header, chain consensus.ChainHeaderReader) error {
+	// get the coinbase configured at parent
+	address, isAllowFeeRecipients, err := chain.GetCoinbaseAt(parent)
+	if err != nil {
+		return err
+	}
+
+	if isAllowFeeRecipients {
+		// if fee recipients are allowed we don't need to check the coinbase
+		return nil
+	}
+
+	if address != parent.Coinbase {
+		return fmt.Errorf("%w: %v does not match configured coinbase address %v", vmerrs.ErrInvalidCoinbase, parent.Coinbase, address)
+	}
+	return nil
 }
 
 func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
@@ -169,6 +189,10 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 		expectedExtraDataSize := params.ExtraDataSize
 		if len(header.Extra) != expectedExtraDataSize {
 			return fmt.Errorf("expected extra-data field to be: %d, but found %d", expectedExtraDataSize, len(header.Extra))
+		}
+		// Ensure that coinbase is valid
+		if err := self.verifyCoinbase(config, parent, chain); err != nil {
+			return err
 		}
 	}
 	// Ensure gas-related header fields are correct
