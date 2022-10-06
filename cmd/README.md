@@ -685,8 +685,19 @@ ginkgo.It("hello world", func() {
 
 ## Step 10: Run E2E Test
 
-Now we can run it, this time with the E2E flag on. We should expect this to pass since we did such thorough testing in Step 7. 
-Going back to the root let's run
-```E2E=true ./scripts/run.sh```
+Now we can run it, this time with the `ENABLE_SOLIDITY_TESTS` flag on. We should expect this to pass since we did such thorough testing in Step 7.
+
+We also need to modify the genesis in `./scripts/run.sh` to enable our precompile. 
+Let's add this. 
+
+
+``` json
+"helloWorldConfig": {
+  "blockTimestamp": 0
+},
+```
+
+Finally we can go back to the root and run
+```ENABLE_SOLIDITY_TESTS=true ./scripts/run.sh```
 
 ![](2022-09-01-16-53-58.png)
