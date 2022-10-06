@@ -486,48 +486,51 @@ Let's see if it passes! We need to get a local network up and running.
 Before we do this, we actually need to create and modify the genesis to enable our HelloWorld precompile. Put this file in `/tmp/subnet-evm-genesis.json`
 ```json
 {
-  "config": {
-    "chainId": $CHAIN_ID,
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "muirGlacierBlock": 0,
-    "subnetEVMTimestamp": 0,
-    "feeConfig": {
-      "gasLimit": 20000000,
-      "minBaseFee": 1000000000,
-      "targetGas": 100000000,
-      "baseFeeChangeDenominator": 48,
-      "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
-      "targetBlockRate": 2,
-      "blockGasCostStep": 500000
+    "config": {
+        "chainId": 99999,
+        "homesteadBlock": 0,
+        "eip150Block": 0,
+        "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "muirGlacierBlock": 0,
+        "subnetEVMTimestamp": 0,
+        "feeConfig": {
+            "gasLimit": 20000000,
+            "minBaseFee": 1000000000,
+            "targetGas": 100000000,
+            "baseFeeChangeDenominator": 48,
+            "minBlockGasCost": 0,
+            "maxBlockGasCost": 10000000,
+            "targetBlockRate": 2,
+            "blockGasCostStep": 500000
+        },
+        "helloWorldConfig": {
+            "blockTimestamp": 0
+        }
     },
-    "helloWorldConfig": {
-      "blockTimestamp":0
-    }
-  },
-  "alloc": {
-    "${GENESIS_ADDRESS:2}": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
-    }
-  },
-  "nonce": "0x0",
-  "timestamp": "0x0",
-  "extraData": "0x00",
-  "gasLimit": "0x1312D00",
-  "difficulty": "0x0",
-  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "number": "0x0",
-  "gasUsed": "0x0",
-  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    "alloc": {
+        "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
+            "balance": "0x52B7D2DCC80CD2E4000000"
+        },
+        "0x0Fa8EA536Be85F32724D57A37758761B86416123": {
+            "balance": "0x52B7D2DCC80CD2E4000000"
+        }
+    },
+    "nonce": "0x0",
+    "timestamp": "0x0",
+    "extraData": "0x00",
+    "gasLimit": "0x1312D00",
+    "difficulty": "0x0",
+    "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "coinbase": "0x0000000000000000000000000000000000000000",
+    "number": "0x0",
+    "gasUsed": "0x0",
+    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
 ```
 
@@ -594,7 +597,7 @@ Sweet! Now we have blockchain rpcs that can be used to talk to the network!
 We now need to modify the hardhat config located in `./contract-examples/contracts/hardhat.config.ts`
 
 We need to modify the `local` network. 
-Let's change `chainId`, `gas`, and `gasPrice`.
+Let's change `chainId`, `gas`, and `gasPrice`. Make sure the `chainId` matches the one in the genesis file. 
 
 ``` 
 networks: {
