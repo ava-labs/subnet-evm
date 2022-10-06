@@ -86,6 +86,23 @@ func (c *ContractNativeMinterConfig) Contract() StatefulPrecompiledContract {
 	return ContractNativeMinterPrecompile
 }
 
+func (c *ContractNativeMinterConfig) Verify() error {
+	if err := c.AllowListConfig.Verify(); err != nil {
+		return err
+	}
+	// ensure that all of the initial mint values in the map are non-nil positive values
+	for addr, amount := range c.InitialMint {
+		if amount == nil {
+			return fmt.Errorf("initial mint cannot contain nil amount for address %s", addr)
+		}
+		bigIntAmount := (*big.Int)(amount)
+		if bigIntAmount.Sign() < 1 {
+			return fmt.Errorf("initial mint cannot contain invalid amount %v for address %s", bigIntAmount, addr)
+		}
+	}
+	return nil
+}
+
 // Equal returns true if [s] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
 func (c *ContractNativeMinterConfig) Equal(s StatefulPrecompileConfig) bool {
 	// typecast before comparison

@@ -60,6 +60,43 @@ const (
 	LangObjC
 )
 
+func isKeyWord(arg string) bool {
+	switch arg {
+	case "break":
+	case "case":
+	case "chan":
+	case "const":
+	case "continue":
+	case "default":
+	case "defer":
+	case "else":
+	case "fallthrough":
+	case "for":
+	case "func":
+	case "go":
+	case "goto":
+	case "if":
+	case "import":
+	case "interface":
+	case "iota":
+	case "map":
+	case "make":
+	case "new":
+	case "package":
+	case "range":
+	case "return":
+	case "select":
+	case "struct":
+	case "switch":
+	case "type":
+	case "var":
+	default:
+		return false
+	}
+
+	return true
+}
+
 // Bind generates a Go wrapper around a contract ABI. This wrapper isn't meant
 // to be used as is in client code, but rather as an intermediate struct which
 // enforces compile time type safety and naming convention opposed to having to
@@ -130,7 +167,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			normalized.Inputs = make([]abi.Argument, len(original.Inputs))
 			copy(normalized.Inputs, original.Inputs)
 			for j, input := range normalized.Inputs {
-				if input.Name == "" {
+				if input.Name == "" || isKeyWord(input.Name) {
 					normalized.Inputs[j].Name = fmt.Sprintf("arg%d", j)
 				}
 				if hasStruct(input.Type) {
@@ -140,6 +177,11 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			normalized.Outputs = make([]abi.Argument, len(original.Outputs))
 			copy(normalized.Outputs, original.Outputs)
 			for j, output := range normalized.Outputs {
+				if isPrecompile {
+					if output.Name == "" {
+						return "", fmt.Errorf("ABI outputs for %s require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs", normalized.Name)
+					}
+				}
 				if output.Name != "" {
 					normalized.Outputs[j].Name = capitalise(output.Name)
 				}
@@ -170,11 +212,21 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			eventIdentifiers[normalizedName] = true
 			normalized.Name = normalizedName
 
+			used := make(map[string]bool)
 			normalized.Inputs = make([]abi.Argument, len(original.Inputs))
 			copy(normalized.Inputs, original.Inputs)
 			for j, input := range normalized.Inputs {
-				if input.Name == "" {
+				if input.Name == "" || isKeyWord(input.Name) {
 					normalized.Inputs[j].Name = fmt.Sprintf("arg%d", j)
+				}
+				// Event is a bit special, we need to define event struct in binding,
+				// ensure there is no camel-case-style name conflict.
+				for index := 0; ; index++ {
+					if !used[capitalise(normalized.Inputs[j].Name)] {
+						used[capitalise(normalized.Inputs[j].Name)] = true
+						break
+					}
+					normalized.Inputs[j].Name = fmt.Sprintf("%s%d", normalized.Inputs[j].Name, index)
 				}
 				if hasStruct(input.Type) {
 					bindStructType[lang](input.Type, structs)
@@ -197,7 +249,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 
 		contracts[types[i]] = &tmplContract{
 			Type:        capitalise(types[i]),
-			InputABI:    strings.Replace(strippedABI, "\"", "\\\"", -1),
+			InputABI:    strings.ReplaceAll(strippedABI, "\"", "\\\""),
 			InputBin:    strings.TrimPrefix(strings.TrimSpace(bytecodes[i]), "0x"),
 			Constructor: evmABI.Constructor,
 			Calls:       calls,
@@ -267,6 +319,7 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		"namedtype":     namedType[lang],
 		"capitalise":    capitalise,
 		"decapitalise":  decapitalise,
+		"convertToNil":  convertToNil,
 	}
 
 	// render the template
@@ -472,15 +525,22 @@ func bindStructTypeGo(kind abi.Type, structs map[string]*tmplStruct) string {
 		if s, exist := structs[id]; exist {
 			return s.Name
 		}
-		var fields []*tmplField
+		var (
+			names  = make(map[string]bool)
+			fields []*tmplField
+		)
 		for i, elem := range kind.TupleElems {
-			field := bindStructTypeGo(*elem, structs)
-			fields = append(fields, &tmplField{Type: field, Name: capitalise(kind.TupleRawNames[i]), SolKind: *elem})
+			name := capitalise(kind.TupleRawNames[i])
+			name = abi.ResolveNameConflict(name, func(s string) bool { return names[s] })
+			names[name] = true
+			fields = append(fields, &tmplField{Type: bindStructTypeGo(*elem, structs), Name: name, SolKind: *elem})
 		}
 		name := kind.TupleRawName
 		if name == "" {
 			name = fmt.Sprintf("Struct%d", len(structs))
 		}
+		name = capitalise(name)
+
 		structs[id] = &tmplStruct{
 			Name:   name,
 			Fields: fields,
@@ -592,6 +652,24 @@ func decapitalise(input string) string {
 
 	goForm := abi.ToCamelCase(input)
 	return strings.ToLower(goForm[:1]) + goForm[1:]
+}
+
+// convertToNil converts any type to its proper nil form.
+func convertToNil(input abi.Type) string {
+	switch input.T {
+	case abi.IntTy, abi.UintTy:
+		return "0"
+	case abi.StringTy:
+		return "\"\""
+	case abi.BoolTy:
+		return "false"
+	case abi.AddressTy:
+		return "common.Address{}"
+	case abi.HashTy:
+		return "common.Hash{}"
+	default:
+		return "nil"
+	}
 }
 
 // structured checks whether a list of ABI data types has enough information to

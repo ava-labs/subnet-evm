@@ -56,8 +56,8 @@ import (
 //go:embed airdrops/011522.json
 var AirdropData []byte
 
-//go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
-//go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
+//go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
+//go:generate go run github.com/fjl/gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
@@ -171,8 +171,8 @@ func (e *GenesisMismatchError) Error() string {
 //
 //	                     genesis == nil       genesis != nil
 //	                  +------------------------------------------
-//	db has no genesis |  ErrNoGenesis      |  genesis
-//	db has genesis    |  ErrNoGenesis      |  genesis (if compatible both block hash and chain config), else error
+//	db has no genesis |  main-net default  |  genesis
+//	db has genesis    |  from DB           |  genesis (if compatible)
 
 // The argument [genesis] must be specified and must contain a valid chain config.
 // If the genesis block has already been set up, then we verify the hash matches the genesis passed in
@@ -181,7 +181,7 @@ func (e *GenesisMismatchError) Error() string {
 // The stored chain configuration will be updated if it is compatible (i.e. does not
 // specify a fork block below the local head block). In case of a conflict, the
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
-func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, error) {
+func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash common.Hash) (*params.ChainConfig, error) {
 	if genesis == nil {
 		return nil, ErrNoGenesis
 	}
@@ -240,12 +240,20 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
-	headBlock := rawdb.ReadHeadBlock(db)
-	if headBlock == nil {
-		return newcfg, fmt.Errorf("missing head block")
+
+	// we use last accepted block for cfg compatibility check. Note this allows
+	// the node to continue if it previously halted due to attempting to process blocks with
+	// an incorrect chain config.
+	lastBlock := ReadBlockByHash(db, lastAcceptedHash)
+	// this should never happen, but we check anyway
+	// when we start syncing from scratch, the last accepted block
+	// will be genesis block
+	if lastBlock == nil {
+		return newcfg, fmt.Errorf("missing last accepted block")
 	}
-	height := headBlock.NumberU64()
-	timestamp := headBlock.Time()
+
+	height := lastBlock.NumberU64()
+	timestamp := lastBlock.Time()
 	compatErr := storedcfg.CheckCompatible(newcfg, height, timestamp)
 	if compatErr != nil && height != 0 && compatErr.RewindTo != 0 {
 		return newcfg, compatErr
@@ -324,7 +332,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		if g.BaseFee != nil {
 			head.BaseFee = g.BaseFee
 		} else {
-			head.BaseFee = g.Config.FeeConfig.MinBaseFee
+			head.BaseFee = new(big.Int).Set(g.Config.FeeConfig.MinBaseFee)
 		}
 	}
 	statedb.Commit(false, false)
@@ -377,7 +385,16 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	g := Genesis{
 		Config:  params.TestChainConfig,
 		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: big.NewInt(params.TestMaxBaseFee.Int64()),
+		BaseFee: new(big.Int).Set(params.TestMaxBaseFee),
 	}
 	return g.MustCommit(db)
+}
+
+// ReadBlockByHash reads the block with the given hash from the database.
+func ReadBlockByHash(db ethdb.Reader, hash common.Hash) *types.Block {
+	blockNumber := rawdb.ReadHeaderNumber(db, hash)
+	if blockNumber == nil {
+		return nil
+	}
+	return rawdb.ReadBlock(db, hash, *blockNumber)
 }
