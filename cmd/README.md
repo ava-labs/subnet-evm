@@ -311,6 +311,18 @@ func (c *HelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContex
 	state.SetState(HelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 }
 ```
+We also see a `Verify()` function. I'm going to leave this as is for now.
+
+``` go
+// Verify tries to verify HelloWorldConfig and returns an error accordingly.
+func (c *HelloWorldConfig) Verify() error {
+
+	// CUSTOM CODE STARTS HERE
+	// Add your own custom verify code for HelloWorldConfig here
+	// and return an error accordingly
+	return nil
+}
+```
 
 Next place to modify is in our `sayHello()` function.
 
@@ -483,9 +495,9 @@ describe("ExampleHelloWorld", function () {
 });
 ```
 
-Let's see if it passes! We need to get a local network up and running. 
+Let's see if it passes! We need to get a local network up and running. A local network will start up multiple blockchains. Blockchains are nothing but instances of VMs. So when we get the local network up and running we will get the X, C, and P chains up (primary subnet) as well as another blockchain that follows the rules defined by the subnet-evm.
 
-Before we do this, we actually need to create and modify the genesis to enable our HelloWorld precompile. Put this file in `/tmp/subnet-evm-genesis.json`
+To spin up these blockchains, we actually need to create and modify the genesis to enable our HelloWorld precompile. This genesis defines some basic configs for the subnet-evm blockchain.  Put this file in `/tmp/subnet-evm-genesis.json`
 ```json
 {
     "config": {
@@ -689,7 +701,7 @@ ginkgo.It("hello world", func() {
 Now we can run it, this time with the `ENABLE_SOLIDITY_TESTS` flag on. We should expect this to pass since we did such thorough testing in Step 7.
 
 We also need to modify the genesis in `./scripts/run.sh` to enable our precompile. 
-Let's add this. 
+Let's add this to the genesis. 
 
 
 ``` json
