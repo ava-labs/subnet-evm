@@ -70,10 +70,10 @@ func NewFullFaker() *DummyEngine {
 	}
 }
 
-// verifyCoinbase checks that the coinbase is valid for the given [parent].
-func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, parent *types.Header, chain consensus.ChainHeaderReader) error {
+// verifyCoinbase checks that the coinbase is valid for the given [header] and [parent].
+func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
 	// get the coinbase configured at parent
-	address, isAllowFeeRecipients, err := chain.GetCoinbaseAt(parent)
+	configuredAddressAtParent, isAllowFeeRecipients, err := chain.GetCoinbaseAt(parent)
 	if err != nil {
 		return err
 	}
@@ -82,9 +82,10 @@ func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, parent *type
 		// if fee recipients are allowed we don't need to check the coinbase
 		return nil
 	}
-
-	if address != parent.Coinbase {
-		return fmt.Errorf("%w: %v does not match configured coinbase address %v", vmerrs.ErrInvalidCoinbase, parent.Coinbase, address)
+	// we fetch the configured coinbase at the parent's state
+	// but we check the header coinbase against this coinfigured coinbase
+	if configuredAddressAtParent != header.Coinbase {
+		return fmt.Errorf("%w: %v does not match configured coinbase address %v", vmerrs.ErrInvalidCoinbase, header.Coinbase, configuredAddressAtParent)
 	}
 	return nil
 }
@@ -191,7 +192,7 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 			return fmt.Errorf("expected extra-data field to be: %d, but found %d", expectedExtraDataSize, len(header.Extra))
 		}
 		// Ensure that coinbase is valid
-		if err := self.verifyCoinbase(config, parent, chain); err != nil {
+		if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
 			return err
 		}
 	}
