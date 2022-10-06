@@ -139,6 +139,9 @@ echo "creating genesis"
       "blockGasCostStep": 500000
     }
   },
+  "helloWorldConfig": {
+    "blockTimestamp": 0
+  }, 
   "alloc": {
     "${GENESIS_ADDRESS:2}": {
       "balance": "0x52B7D2DCC80CD2E4000000"
