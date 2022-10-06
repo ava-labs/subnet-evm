@@ -14,8 +14,6 @@ import (
 
 var functionSignatureRegex = regexp.MustCompile(`[\w]+\(((([\w]+)?)|((([\w]+),)+([\w]+)))\)`)
 
-var hashTrue = common.HexToHash("1")
-
 // CalculateFunctionSelector returns the 4 byte function selector that results from [functionSignature]
 // Ex. the function setBalance(addr address, balance uint256) should be passed in as the string:
 // "setBalance(address,uint256)"
@@ -68,15 +66,4 @@ func returnPackedHash(packed []byte, index int) []byte {
 	start := common.HashLength * index
 	end := start + common.HashLength
 	return packed[start:end]
-}
-
-func hashToBool(hash common.Hash) bool {
-	return hash == hashTrue
-}
-
-func boolToHash(bl bool) common.Hash {
-	if bl {
-		return hashTrue
-	}
-	return common.Hash{}
 }
