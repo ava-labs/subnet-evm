@@ -4,13 +4,13 @@ go 1.18
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
-	github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221003163451-7d3d1bfa924f
-	github.com/ava-labs/avalanchego v1.8.6
+	github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221006162609-e7eb33c1e830
+	github.com/ava-labs/avalanchego v1.9.0
 	github.com/cespare/cp v0.1.0
 	github.com/creack/pty v1.1.18
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
-	github.com/ethereum/go-ethereum v1.10.23
+	github.com/ethereum/go-ethereum v1.10.25
 	github.com/fatih/color v1.13.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
@@ -24,7 +24,7 @@ require (
 	github.com/mattn/go-colorable v0.1.12
 	github.com/mattn/go-isatty v0.0.14
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onsi/ginkgo/v2 v2.1.6
+	github.com/onsi/ginkgo/v2 v2.2.0
 	github.com/onsi/gomega v1.20.2
 	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/client_model v0.2.0
@@ -53,7 +53,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/aead/siphash v1.0.1 // indirect
-	github.com/ava-labs/coreth v0.10.0-rc.1 // indirect
+	github.com/ava-labs/coreth v0.11.0-rc.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.23.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
@@ -90,6 +90,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/yamux v0.0.0-20200609203250-aecfd211c9ce // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/influxdata/influxdb v1.8.3 // indirect
 	github.com/influxdata/influxdb-client-go/v2 v2.4.0 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
@@ -122,6 +123,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
+	github.com/spf13/cobra v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
