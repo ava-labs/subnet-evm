@@ -220,6 +220,7 @@ Typically, custom codes are required in only those areas.
 
 In `./precompile/params.go` let's set a precompile address. We can cut the
 address from the var declaration block and remove it from the precompile. 
+
 ![](2022-09-01-22-46-00.png)
 ![](2022-08-24-16-45-48.png)
 
