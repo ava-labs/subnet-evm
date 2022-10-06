@@ -224,23 +224,27 @@ address from the var declaration block and remove it from the precompile.
 ![](2022-09-01-22-46-00.png)
 ![](2022-08-24-16-45-48.png)
 
-Now when subnet-evm sees the `HelloWorldAddress` as input when executing [`CALL`](../core/vm/evm.go#L222), [STATICCALL](../core/vm/evm.go#L401), [DELEGATECALL](core/vm/evm.go#L362), [CALLCODE](core/vm/evm.go#L311), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272) if the precompile is enabled.
+Now when subnet-evm sees the `HelloWorldAddress` as input when executing [`CALL`](../core/vm/evm.go#L222), [`STATICCALL`](../core/vm/evm.go#L401), [`DELEGATECALL`](core/vm/evm.go#L362), [`CALLCODE`](core/vm/evm.go#L311), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272) if the precompile is enabled.
 
 ## Step 2: Set Gas Costs
 
 Set up gas costs. In `precompile/params.go` we have `writeGasCostPerSlot` and `readGasCostPerSlot`. This is a good starting point for estimating gas costs. 
 
-```// Gas costs for stateful precompiles
-
+``` go
+// Gas costs for stateful precompiles
 const (
 	writeGasCostPerSlot = 20_000
 	readGasCostPerSlot  = 5_000
 )
 ```
 
-For example, 
+For example, we will be setting and getting our greeting in one slot so we can define the gas costs as follows. 
 
-![](2022-08-24-16-31-24.png)
+``` go
+	SayHelloGasCost uint64    = 20_000 
+	SetGreetingGasGost uint64 = 5000
+```
+
 
 **Example:** 
 The sha256 precompile computes gas with the following equation
@@ -251,8 +255,6 @@ func (c *sha256hash) RequiredGas(input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.Sha256PerWordGas + params.Sha256BaseGas
 }
 ```
-
-We'll probably have to come back later and change these costs. 
 
 ## Step 3: Add Custom Code
 
@@ -278,7 +280,7 @@ type HelloWorldConfig struct {
 **Optional Note** 
 
 If our HelloWorldConfig wrapped another config in its struct to implement the StatefulPrecompileConfig
-like so 
+like so, 
 
 ``` go
 // HelloWorldConfig implements the StatefulPrecompileConfig
@@ -312,7 +314,7 @@ func (c *HelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContex
 	state.SetState(HelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 }
 ```
-We also see a `Verify()` function. I'm going to leave this as is for now.
+We also see a `Verify()` function. We can leave this as is for now. 
 
 ``` go
 // Verify tries to verify HelloWorldConfig and returns an error accordingly.
@@ -353,7 +355,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 }
 ```
 
-Finally we can modify our `setGreeting()` function 
+Finally we can modify our `setGreeting()` function. 
 
 ``` go
 func setGreeting(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -429,7 +431,7 @@ We use this to see if we should enable the precompile.
 
 ## Step 6: Add Test Contract
 
-Let's add our test contract to `contract-examples/contracts`. This smart contract lets us interact with our precompile! We cast the HelloWorld precompile address to the IHelloWorld interface. In doing so, `helloWorld` is now a contract of type `IHelloWorld` and when we call any functions on that contract, they will be sent to the HelloWorld precompile address. 
+Let's add our test contract to `contract-examples/contracts`. This smart contract lets us interact with our precompile! We cast the HelloWorld precompile address to the IHelloWorld interface. In doing so, `helloWorld` is now a contract of type `IHelloWorld` and when we call any functions on that contract, we will be redirected to the HelloWorld precompile address. 
 
 ``` sol
 //SPDX-License-Identifier: MIT
@@ -496,7 +498,7 @@ describe("ExampleHelloWorld", function () {
 });
 ```
 
-Let's see if it passes! We need to get a local network up and running. A local network will start up multiple blockchains. Blockchains are nothing but instances of VMs. So when we get the local network up and running we will get the X, C, and P chains up (primary subnet) as well as another blockchain that follows the rules defined by the subnet-evm.
+Let's see if it passes! We need to get a local network up and running. A local network will start up multiple blockchains. Blockchains are nothing but instances of VMs. So when we get the local network up and running, we will get the X, C, and P chains up (primary subnet) as well as another blockchain that follows the rules defined by the subnet-evm.
 
 To spin up these blockchains, we actually need to create and modify the genesis to enable our HelloWorld precompile. This genesis defines some basic configs for the subnet-evm blockchain.  Put this file in `/tmp/subnet-evm-genesis.json`
 ```json
