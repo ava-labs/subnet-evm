@@ -662,7 +662,7 @@ ginkgo.It("hello world", func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		running := runner.IsRunnerUp()
 		gomega.Expect(running).Should(gomega.BeTrue())
-		runHardhatTests("./test/HelloWorld.ts")
+		runHardhatTests("./test/ExampleHelloWorld.ts")
 		stopSubnet()
 		running = runner.IsRunnerUp()
 		gomega.Expect(running).Should(gomega.BeFalse())
