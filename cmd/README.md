@@ -214,6 +214,7 @@ Typically, custom codes are required in only those areas.
 9- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
 10- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
 ```
+
 ## Step 1: Set Contract Address
 
 In `./precompile/params.go` let's set a precompile address. We can cut the
@@ -646,61 +647,9 @@ Great they passed! All the functions implemented in the precompile work as expec
 
 ## Step 8: Create Genesis
 
-Now we can create our own genesis. Since we modified the genesis in the `run.sh` script, we can use that!
-In `tests/e2e/genesis/`, let's create our own genesis file,  `hello_world.json`. This should be pretty similar to the genesis we edited previously. 
+We can move our genesis file we created in the last step to  `tests/e2e/genesis/`.
 
-``` json
-{
-    "config": {
-        "chainId": 99999,
-        "homesteadBlock": 0,
-        "eip150Block": 0,
-        "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-        "eip155Block": 0,
-        "eip158Block": 0,
-        "byzantiumBlock": 0,
-        "constantinopleBlock": 0,
-        "petersburgBlock": 0,
-        "istanbulBlock": 0,
-        "muirGlacierBlock": 0,
-        "subnetEVMTimestamp": 0,
-        "feeConfig": {
-            "gasLimit": 20000000,
-            "minBaseFee": 1000000000,
-            "targetGas": 100000000,
-            "baseFeeChangeDenominator": 48,
-            "minBlockGasCost": 0,
-            "maxBlockGasCost": 10000000,
-            "targetBlockRate": 2,
-            "blockGasCostStep": 500000
-        },
-        "helloWorldConfig": {
-            "blockTimestamp": 0,
-            "adminAddresses": [
-                "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-            ]
-        }
-    },
-    "alloc": {
-        "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-            "balance": "0x52B7D2DCC80CD2E4000000"
-        },
-        "0x0Fa8EA536Be85F32724D57A37758761B86416123": {
-            "balance": "0x52B7D2DCC80CD2E4000000"
-        }
-    },
-    "nonce": "0x0",
-    "timestamp": "0x0",
-    "extraData": "0x00",
-    "gasLimit": "0x1312D00",
-    "difficulty": "0x0",
-    "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "coinbase": "0x0000000000000000000000000000000000000000",
-    "number": "0x0",
-    "gasUsed": "0x0",
-    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-}
-```
+```cp /tmp/subnet-evm-genesis.json  tests/e2e/genesis/hello_world.json``` 
 
 ## Step 9: Add E2E tests
 
