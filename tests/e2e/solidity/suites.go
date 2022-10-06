@@ -84,6 +84,17 @@ var _ = utils.DescribePrecompile(func() {
 		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 
+	ginkgo.It("hello world", func() {
+		err := startSubnet("./tests/e2e/genesis/hello_world.json")
+		gomega.Expect(err).Should(gomega.BeNil())
+		running := runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeTrue())
+		runHardhatTests("./test/ExampleHelloWorld.ts")
+		stopSubnet()
+		running = runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeFalse())
+	})
+
 	// ADD YOUR PRECOMPILE HERE
 	/*
 			ginkgo.It("your precompile", func() {
