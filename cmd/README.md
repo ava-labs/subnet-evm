@@ -151,6 +151,12 @@ IHelloWorld.abi
 [{"inputs":[],"name":"sayHello","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"recipient","type":"string"}],"name":"setGreeting","outputs":[],"stateMutability":"nonpayable","type":"function"}]
 ```
 
+ The precompile gen tool needs named outputs for the abi. Let's modify the abi and name our output `result`.
+
+``` json
+[{"inputs":[],"name":"sayHello","outputs":[{"internalType":"string","name":"result","type":"string"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"recipient","type":"string"}],"name":"setGreeting","outputs":[],"stateMutability":"nonpayable","type":"function"}]
+```
+
 ## Precompile tool
 
 The precompile tool can take in 4 arguments. 
@@ -397,7 +403,7 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 
 Let's now modify `params/precompile_config.go`. We can `CTRL F` for `ADD YOUR PRECOMPILE HERE`. 
 
-Let's add our key. 
+Let's add our key. Note that there are two places to in the image below. 
 
 ![](2022-09-01-23-20-53.png)
 
@@ -431,7 +437,7 @@ We use this to see if we should enable the precompile.
 
 ## Step 6: Add Test Contract
 
-Let's add our test contract to `contract-examples/contracts`. This smart contract lets us interact with our precompile! We cast the HelloWorld precompile address to the IHelloWorld interface. In doing so, `helloWorld` is now a contract of type `IHelloWorld` and when we call any functions on that contract, we will be redirected to the HelloWorld precompile address. 
+Let's add our test contract to `contract-examples/contracts`. This smart contract lets us interact with our precompile! We cast the HelloWorld precompile address to the IHelloWorld interface. In doing so, `helloWorld` is now a contract of type `IHelloWorld` and when we call any functions on that contract, we will be redirected to the HelloWorld precompile address. Let's name it `ExampleHelloWorld.sol`.
 
 ``` sol
 //SPDX-License-Identifier: MIT
@@ -458,7 +464,7 @@ Note that the contract methods do not need to have the same function signatures 
 
 ## Step 7: Add Precompile Solidity Tests 
 
-We can now write our hardhat test in `contract-examples/test`. This file is called `ExampleHelloWorld.ts`
+We can now write our hardhat test in `contract-examples/test`. This file is called `ExampleHelloWorld.ts`. 
 
 ``` js
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
@@ -498,9 +504,17 @@ describe("ExampleHelloWorld", function () {
 });
 ```
 
+Let's also make sure to install yarn in `./contract-examples`
+
+```
+npm install -g yarn 
+yarn 
+
+```
+
 Let's see if it passes! We need to get a local network up and running. A local network will start up multiple blockchains. Blockchains are nothing but instances of VMs. So when we get the local network up and running, we will get the X, C, and P chains up (primary subnet) as well as another blockchain that follows the rules defined by the subnet-evm.
 
-To spin up these blockchains, we actually need to create and modify the genesis to enable our HelloWorld precompile. This genesis defines some basic configs for the subnet-evm blockchain.  Put this file in `/tmp/subnet-evm-genesis.json`
+To spin up these blockchains, we actually need to create and modify the genesis to enable our HelloWorld precompile. This genesis defines some basic configs for the subnet-evm blockchain.  Put this file in `/tmp/subnet-evm-genesis.json`. Note this should not be in your repo, but rather in the `/tmp` directory. 
 ```json
 {
     "config": {
@@ -577,27 +591,32 @@ type PrecompileUpgrade struct {
 ```
 
 Now we can get the network up and running. 
-Open some terminal tabs and enter the following commands. 
+Open some terminal tabs and enter the following commands.
+
+Here's some more information on [avalanche-network-runner](https://docs.avax.network/subnets/network-runner) and how to download it. 
 
 ``` go
 // Start the server 
-anr server \
+avalanche-network-runner server \
 --log-level debug \
 --port=":8080" \
 --grpc-gateway-port=":8081"
 
 // In the root of the repo, run this to get the latest subnetevm binary 
 ./scripts/build.sh
+
+// Set paths
+export AVALANCHEGO_EXEC_PATH="${HOME}/go/src/avalanchego/build/avalanchego"
+export AVALANCHEGO_PLUGIN_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/plugins"
  
 // Spin up some nodes that run the latest version of subnet evm 
-  anr control start \
+  avalanche-network-runner control start \
   --log-level debug \
   --endpoint="0.0.0.0:8080" \
   --number-of-nodes=5 \
   --avalanchego-path ${AVALANCHEGO_EXEC_PATH} \
   --plugin-dir ${AVALANCHEGO_PLUGIN_PATH} \
   --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm-genesis.json"}]'
-
 ```
 
 If the network startup is successful then you should see something like this.
