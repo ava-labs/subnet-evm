@@ -91,6 +91,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          path: subnet-evm
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
@@ -104,6 +105,7 @@ jobs:
           path: osxcross
       - name: Build osxcross
         run: |
+          sudo apt-get -y install clang llvm-dev libxml2-dev uuid-dev libssl-dev bash patch make tar xz-utils bzip2 gzip sed cpio libbz2-dev
           cd osxcross
           wget https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX11.3.sdk.tar.xz -O tarballs/MacOSX11.3.sdk.tar.xz
           echo cd4f08a75577145b8f05245a2975f7c81401d75e9535dcffbb879ee1deefcbf4 tarballs/MacOSX11.3.sdk.tar.xz | sha256sum -c -
@@ -115,6 +117,7 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --rm-dist
+          workdir: ./subnet-evm/
         env:
           # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#about-the-github_token-secret
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
