@@ -4,7 +4,7 @@ In this tutorial, we are going to walkthrough how we can generate a stateful pre
 ## Background
 
 ### Precompiled Contracts
-Precompiles were introduced to Ethereum as a way to solve the problem of allowing complex cryptographic computations to be usable in the EVM without having to deal with EVM overhead. The following precompiles are currently included: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation.
+Ethereum uses precompiles to efficiently implement cryptographic primitives within the EVM instead of re-implementing the same primitives in Solidity. The following precompiles are currently included: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation.
 
 We can see these precompile mappings from address to function here in the Ethereum vm. 
 
@@ -89,10 +89,10 @@ type StatefulPrecompiledContract interface {
 }
 ```
 
-Notice the most important difference between the stateful precompile and precompile interface. We now inject state access to the `Run` function. Precompiles only took in a single byte slice as input. However, stateful precompile functions have complete access to the EVM state, and can be used to implement a much wider range of functionalities.
+Notice the most important difference between the stateful precompile and precompile interface. We now inject state access to the `Run` function. Precompiles only took in a single byte slice as input. However, stateful precompile functions have complete access to the Subnet-EVM state, and can be used to implement a much wider range of functionalities.
 
- With state access, we can modify balances, read/write the storage of other contracts, and could even hook into external storage outside of the bounds of the EVM’s merkle trie (note: this would come with repercussions for fast sync since part of the state would be moved off of the merkle trie). We can now write custom logic to make our own EVM. We can do more on Avalanche in Solidity than on Ethereum!
-
+ With state access, we can modify balances, read/write the storage of other contracts, and could even hook into external storage outside of the bounds of the EVM’s merkle trie (note: this would come with repercussions for 
+ state sync since part of the state would be moved off of the merkle trie). We can now write custom logic to make our own EVM. 
 
 ### Assumption of Knowledge
 
@@ -110,8 +110,7 @@ Here are some helpful resources on the EVM to solidify your knowledge.
 
 ### The Process
 
-We will first create a Solidity interface that our precompile will implement.  Then we will use the precompile tool to autogenerate functions and fill out the rest. We're not done yet! We will then have to update a few more places within the EVM. Some of this work involves assigning a precompile address, adding the precompile to the list of EVM precompiles, and finally enabling the precompile. Now we can see our functions in action as we write another solidity smart contract that interacts with our precompile. Lastly, we will write some tests to make sure everything works as promised. 
-
+We will first create a Solidity interface that our precompile will implement.  Then we will use the precompile tool to autogenerate functions and fill out the rest. We're not done yet! We will then have to update a few more places within the Subnet-EVM. Some of this work involves assigning a precompile address, adding the precompile to the list of Subnet-EVM precompiles, and finally enabling the precompile. Now we can see our functions in action as we write another solidity smart contract that interacts with our precompile. Lastly, we will write some tests to make sure everything works as promised. 
 
 ## Tutorial
 
@@ -129,7 +128,7 @@ pragma solidity >=0.8.0;
 
 interface IHelloWorld {
  // sayHello returns the string located at [key]
-  function sayHello() external returns (string calldata);
+  function sayHello() external returns (string calldata result);
 
 // setGreeting sets the string located at [key]
   function setGreeting(string calldata response) external;
@@ -149,48 +148,10 @@ This spits out the abi code!
 IHelloWorld.abi
 
 ``` json
-[{"inputs":[],"name":"sayHello","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"recipient","type":"string"}],"name":"setGreeting","outputs":[],"stateMutability":"nonpayable","type":"function"}]
-```
-
- The precompile gen tool needs named outputs for the abi. Let's modify the abi and name our output `result`.
-
-``` json
 [{"inputs":[],"name":"sayHello","outputs":[{"internalType":"string","name":"result","type":"string"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"recipient","type":"string"}],"name":"setGreeting","outputs":[],"stateMutability":"nonpayable","type":"function"}]
 ```
 
-## Precompile tool
-
-The precompile tool can take in 4 arguments. 
-
-
-### `--abi` (string):
-
-It needs an ABI input so it can bind it to the precompile template.
-
-`--abi ./contract-examples/contracts/contract-abis/IHelloWorld.abi`
-
-### `--type `(string):
-
-It takes in a type which it uses as a struct name for the precompile. This is optional 
-and will default to the abi name. 
-
-`--type HelloWorld`
-
-### `--pkg` (string):
-
-It also takes in a pkg, which is the package name to generate the precompile into. 
-This is optional and it defaults to "precompile".
-
-`--pkg precompile` 
-
-### `--out `(string):
-
-Finally it can take in an out which is the path and name of the output file of the generated precompile. 
-
-`--out ./precompile/hello_world.go`
-
-Currently it can only generate precompiles in Golang only.  
-
+Note: The abi must have named outputs in order to generate the precompile template. 
 
 ## Generating the precompile 
 
@@ -372,7 +333,7 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
-	// attempts to unpack [input] into the arguments to the SetGreetingInput.
+	// Attempts to unpack [input] into the arguments to the SetGreetingInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
     inputStr, err := UnpackSetGreetingInput(input)
@@ -386,9 +347,9 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
       return nil, 0, errors.New("input string is longer than 32 bytes")
     }
 
-	// setGreeting is the execution function "SetGreeting(name string)"
-    // and sets the storageKey in the string returned by hello world
-  
+	// setGreeting is the execution function 
+  // "SetGreeting(name string)" and sets the storageKey 
+  //  in the string returned by hello world
     res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
 	accessibleState.GetStateDB().SetState(HelloWorldAddress, common. BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 
@@ -596,7 +557,7 @@ Open some terminal tabs and enter the following commands.
 
 Here's some more information on [avalanche-network-runner](https://docs.avax.network/subnets/network-runner) and how to download it. 
 
-``` go
+``` bash
 // Start the server 
 avalanche-network-runner server \
 --log-level debug \
@@ -629,7 +590,7 @@ If the network startup is successful then you should see something like this.
 [blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9658/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
 ```
 
-Sweet! Now we have blockchain rpcs that can be used to talk to the network!
+Sweet! Now we have blockchain RPCs that can be used to talk to the network!
 
 We now need to modify the hardhat config located in `./contract-examples/contracts/hardhat.config.ts`
 
@@ -677,7 +638,9 @@ Now in `local_rpc.json` we can modify the rpc url to the one we just created. It
 
 Now if we go to `./contract-examples`, we can finally run our tests. 
 
-``` npx hardhat test --network local ```
+``` bash
+npx hardhat test --network local 
+```
 
 Great they passed! All the functions implemented in the precompile work as expected!
 
@@ -734,6 +697,8 @@ Let's add this to the genesis.
 ```
 
 Finally we can go back to the root and run
-```ENABLE_SOLIDITY_TESTS=true ./scripts/run.sh```
+``` bash
+ENABLE_SOLIDITY_TESTS=true ./scripts/run.sh
+```
 
 ![](2022-09-01-16-53-58.png)
