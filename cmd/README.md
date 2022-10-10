@@ -1,10 +1,12 @@
 # Stateful Precompile Generation Tutorial
-In this tutorial,  we are going to walkthrough how we can generate a stateful precompile from scratch. Before we start, let's brush up on what a precompile is, what a stateful precompile is, and why this is extremely useful. 
+In this tutorial, we are going to walkthrough how we can generate a stateful precompile from scratch. Before we start, let's brush up on what a precompile is, what a stateful precompile is, and why this is extremely useful. 
 
-## Precompiled Contracts
+## Background
+
+### Precompiled Contracts
 Precompiles were introduced to Ethereum as a way to solve the problem of allowing complex cryptographic computations to be usable in the EVM without having to deal with EVM overhead. The following precompiles are currently included: ecrecover, sha256, blake2f, ripemd-160, Bn256Add, Bn256Mul, Bn256Pairing, the identity function, and modular exponentiation.
 
-We can see these precompile mappings from address to function here in the ethereum vm. 
+We can see these precompile mappings from address to function here in the Ethereum vm. 
 
 ``` go
 // PrecompiledContractsBerlin contains the default set of pre-compiled Ethereum
@@ -55,7 +57,7 @@ func (c *sha256hash) Run(input []byte) ([]byte, error) {
 
 The CALL opcode (CALL, STATICCALL, DELEGATECALL, and CALLCODE) allows us to invoke this precompile. 
 
-The function signature of CALL in the evm is as follows: 
+The function signature of CALL in the EVM is as follows: 
 ``` go
  Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 ```
@@ -69,13 +71,13 @@ When a precompile function is called, it still goes through the `CALL` function 
     return RunPrecompiledContract(p, input, contract)
   }
 ```
-The evm then performs the function and subtracts the `RequiredGas`.
+The EVM then performs the function and subtracts the `RequiredGas`.
 
 Precompiles provide complex library functions that are commonly used in smart contracts and do not use EVM opcodes which makes execution faster and gas costs lower.
 
-## Stateful Precompiled Contracts
+### Stateful Precompiled Contracts
 
-A stateful precompile allows us to add even more functionality and customization to the EVM. It builds on a precompile in that it adds state access. 
+A stateful precompile allows us to add even more functionality and customization to the Subnet-EVM. It builds on a precompile in that it adds state access. Stateful precompiles are not available in the default EVM, and are specific to Avalanche EVMs such as [Coreth](https://github.com/ava-labs/coreth) and [Subnet-EVM](https://github.com/ava-labs/subnet-evm). 
 
 A stateful precompile follows this interface. 
 ``` go
@@ -89,15 +91,10 @@ type StatefulPrecompiledContract interface {
 
 Notice the most important difference between the stateful precompile and precompile interface. We now inject state access to the `Run` function. Precompiles only took in a single byte slice as input. However, stateful precompile functions have complete access to the EVM state, and can be used to implement a much wider range of functionalities.
 
-## Why This is Useful
-
  With state access, we can modify balances, read/write the storage of other contracts, and could even hook into external storage outside of the bounds of the EVM’s merkle trie (note: this would come with repercussions for fast sync since part of the state would be moved off of the merkle trie). We can now write custom logic to make our own EVM. We can do more on Avalanche in Solidity than on Ethereum!
 
-## The Process
 
-We will first create a Solidity interface that our precompile will implement.  Then we will use the precompile tool to autogenerate functions and fill out the rest. We're not done yet! We will then have to update a few more places within the EVM. Some of this work involves assigning a precompile address, adding the precompile to the list of EVM precompiles, and finally enabling the precompile. Now we can see our functions in action as we write another solidity smart contract that interacts with our precompile. Lastly, we will write some tests to make sure everything works as promised. 
-
-## Assumption of Knowledge
+### Assumption of Knowledge
 
 Here are some helpful resources on the EVM to solidify your knowledge.
 
@@ -110,6 +107,10 @@ Here are some helpful resources on the EVM to solidify your knowledge.
 - [Contract ABI Specification](https://docs.soliditylang.org/en/v0.8.10/abi-spec.html)
 - [Precompiles in Solidity](https://medium.com/@rbkhmrcr/precompiles-solidity-e5d29bd428c4)
 - [Customizing the EVM with Stateful Precompiles](https://medium.com/avalancheavax/customizing-the-evm-with-stateful-precompiles-f44a34f39efd)
+
+### The Process
+
+We will first create a Solidity interface that our precompile will implement.  Then we will use the precompile tool to autogenerate functions and fill out the rest. We're not done yet! We will then have to update a few more places within the EVM. Some of this work involves assigning a precompile address, adding the precompile to the list of EVM precompiles, and finally enabling the precompile. Now we can see our functions in action as we write another solidity smart contract that interacts with our precompile. Lastly, we will write some tests to make sure everything works as promised. 
 
 
 ## Tutorial
@@ -230,7 +231,7 @@ address from the var declaration block and remove it from the precompile.
 ![](2022-09-01-22-46-00.png)
 ![](2022-08-24-16-45-48.png)
 
-Now when subnet-evm sees the `HelloWorldAddress` as input when executing [`CALL`](../core/vm/evm.go#L222), [`STATICCALL`](../core/vm/evm.go#L401), [`DELEGATECALL`](core/vm/evm.go#L362), [`CALLCODE`](core/vm/evm.go#L311), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272) if the precompile is enabled.
+Now when Subnet-EVM sees the `HelloWorldAddress` as input when executing [`CALL`](../core/vm/evm.go#L222), [`STATICCALL`](../core/vm/evm.go#L401), [`DELEGATECALL`](core/vm/evm.go#L362), [`CALLCODE`](core/vm/evm.go#L311), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272) if the precompile is enabled.
 
 ## Step 2: Set Gas Costs
 
@@ -247,8 +248,8 @@ const (
 For example, we will be setting and getting our greeting in one slot so we can define the gas costs as follows. 
 
 ``` go
-	SayHelloGasCost uint64    = 20_000 
-	SetGreetingGasGost uint64 = 5000
+	SayHelloGasCost uint64    = 5000
+	SetGreetingGasGost uint64 = 20_000
 ```
 
 
@@ -512,9 +513,9 @@ yarn
 
 ```
 
-Let's see if it passes! We need to get a local network up and running. A local network will start up multiple blockchains. Blockchains are nothing but instances of VMs. So when we get the local network up and running, we will get the X, C, and P chains up (primary subnet) as well as another blockchain that follows the rules defined by the subnet-evm.
+Let's see if it passes! We need to get a local network up and running. A local network will start up multiple blockchains. Blockchains are nothing but instances of VMs. So when we get the local network up and running, we will get the X, C, and P chains up (primary subnet) as well as another blockchain that follows the rules defined by the Subnet-EVM.
 
-To spin up these blockchains, we actually need to create and modify the genesis to enable our HelloWorld precompile. This genesis defines some basic configs for the subnet-evm blockchain.  Put this file in `/tmp/subnet-evm-genesis.json`. Note this should not be in your repo, but rather in the `/tmp` directory. 
+To spin up these blockchains, we actually need to create and modify the genesis to enable our HelloWorld precompile. This genesis defines some basic configs for the Subnet-EVM blockchain.  Put this file in `/tmp/subnet-evm-genesis.json`. Note this should not be in your repo, but rather in the `/tmp` directory. 
 ```json
 {
     "config": {
@@ -609,7 +610,7 @@ avalanche-network-runner server \
 export AVALANCHEGO_EXEC_PATH="${HOME}/go/src/avalanchego/build/avalanchego"
 export AVALANCHEGO_PLUGIN_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/plugins"
  
-// Spin up some nodes that run the latest version of subnet evm 
+// Spin up some nodes that run the latest version of Subnet-EVM 
   avalanche-network-runner control start \
   --log-level debug \
   --endpoint="0.0.0.0:8080" \
