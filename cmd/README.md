@@ -229,8 +229,9 @@ Ok time to `CTRL F` throughout the file with `CUSTOM CODE STARTS HERE` to find t
 
 ![](2022-09-01-22-48-26.png)
 
-If we use any of the following imports we can remove the reference imports.
-We can come back if needed to remove. Next we see this in `Equals()`.
+We can remove all of these imports and the reference imports as we will not use them in this tutorial.
+
+Next we see this in `Equals()`.
 
 ![](2022-09-01-22-51-30.png)
 
@@ -261,9 +262,15 @@ type HelloWorldConfig struct {
 
 We would have to modify the `Equal()` function as follows: 
 
-![](2022-09-01-22-54-22.png)
 
-The next place we see the `CUSTOM CODE STARTS HERE` is in `Configure()`
+``` go 
+equalsUpgrade := c.UpgradeableConfig.Equal(&other.UpgradeableConfig)
+equalsAllow := c.AllowListConfig.Equal(&other.AllowListConfig)
+
+return equalsUpgrade && equalsAllow
+```
+
+The next place we see the `CUSTOM CODE STARTS HERE` is in `Configure()`.
 Let's set it up. Configure configures the `state` with the initial configuration at whatever blockTimestamp the precompile is enabled. In the HelloWorld example, we want to set up a key value mapping in the state where the key is `storageKey` and the value is `Hello World!`. This will be the default value to start off with.
 
 ``` go
@@ -665,20 +672,26 @@ Open some terminal tabs and enter the following commands.
 
 Here's some more information on [avalanche-network-runner](https://docs.avax.network/subnets/network-runner) and how to download it. 
 
+
+ Start the server in a terminal tab
+
 ``` bash
-// Start the server 
 avalanche-network-runner server \
 --log-level debug \
 --port=":8080" \
 --grpc-gateway-port=":8081"
+```
 
-// In the root of the repo, run this to get the latest subnetevm binary 
+In another terminal tab run this command to get the latest Subnet-EVM binary. 
+``` bash 
 ./scripts/build.sh
+```
 
-// Set paths
+Set the following paths. `AVALANCHEGO_EXEC_PATH` points to the latest Avalanchego binary. `AVALANCHEGO_PLUGIN_PATH` points to the plugins path which should have the Subnet-EVM binary we have just built.
+``` bash 
 export AVALANCHEGO_EXEC_PATH="${HOME}/go/src/avalanchego/build/avalanchego"
 export AVALANCHEGO_PLUGIN_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/plugins"
- 
+``` 
 // Spin up some nodes that run the latest version of Subnet-EVM 
   avalanche-network-runner control start \
   --log-level debug \
