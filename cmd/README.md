@@ -705,12 +705,8 @@ type PrecompileUpgrade struct {
 ```
 
 Now we can get the network up and running. 
-Open some terminal tabs and enter the following commands.
 
-Here's some more information on [avalanche-network-runner](https://docs.avax.network/subnets/network-runner) and how to download it. 
-
-
- Start the server in a terminal tab
+Start the server in a terminal in a new tab using avalanche-network-runner. Here's some more information on [avalanche-network-runner](https://docs.avax.network/subnets/network-runner), how to download it, and how to use it. 
 
 ``` bash
 avalanche-network-runner server \
@@ -805,6 +801,8 @@ npx hardhat test --network local
 ```
 
 Great they passed! All the functions implemented in the precompile work as expected!
+
+**Note:** If your tests failed, please retrace your steps. Most likely the error is that the precompile was not enabled and there was a step missing. Please also use the official tutorial to double check your work as well.  
 
 ## Step 8: Create Genesis
 
