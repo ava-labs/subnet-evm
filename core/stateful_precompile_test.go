@@ -16,7 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -60,11 +60,10 @@ func (m *mockAccessibleState) GetBlockContext() precompile.BlockContext { return
 // without creating any import cycles
 func TestContractDeployerAllowListRun(t *testing.T) {
 	type test struct {
-		caller         common.Address
-		precompileAddr common.Address
-		input          func() []byte
-		suppliedGas    uint64
-		readOnly       bool
+		caller      common.Address
+		input       func() []byte
+		suppliedGas uint64
+		readOnly    bool
 
 		expectedRes []byte
 		expectedErr string
@@ -77,8 +76,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 
 	for name, test := range map[string]test{
 		"set admin": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListAdmin)
 				if err != nil {
@@ -91,12 +89,11 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetContractDeployerAllowListStatus(state, noRoleAddr)
-				assert.Equal(t, precompile.AllowListAdmin, res)
+				require.Equal(t, precompile.AllowListAdmin, res)
 			},
 		},
 		"set deployer": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
 				if err != nil {
@@ -109,12 +106,11 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetContractDeployerAllowListStatus(state, noRoleAddr)
-				assert.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, precompile.AllowListEnabled, res)
 			},
 		},
 		"set no role": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
 				if err != nil {
@@ -127,12 +123,11 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetContractDeployerAllowListStatus(state, adminAddr)
-				assert.Equal(t, precompile.AllowListNoRole, res)
+				require.Equal(t, precompile.AllowListNoRole, res)
 			},
 		},
 		"set no role from non-admin": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
 				if err != nil {
@@ -145,8 +140,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set deployer from non-admin": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListEnabled)
 				if err != nil {
@@ -159,8 +153,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from non-admin": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListAdmin)
 				if err != nil {
@@ -173,8 +166,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
 				if err != nil {
@@ -187,8 +179,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"set no role insufficient gas": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
 				if err != nil {
@@ -201,8 +192,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"read allow list no role": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -212,8 +202,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			assertState: nil,
 		},
 		"read allow list admin role": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -223,8 +212,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			assertState: nil,
 		},
 		"read allow list with readOnly enabled": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -234,8 +222,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			assertState: nil,
 		},
 		"read allow list out of gas": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractDeployerAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -254,16 +241,16 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetContractDeployerAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
 			precompile.SetContractDeployerAllowListStatus(state, noRoleAddr, precompile.AllowListNoRole)
-			assert.Equal(t, precompile.AllowListAdmin, precompile.GetContractDeployerAllowListStatus(state, adminAddr))
-			assert.Equal(t, precompile.AllowListNoRole, precompile.GetContractDeployerAllowListStatus(state, noRoleAddr))
+			require.Equal(t, precompile.AllowListAdmin, precompile.GetContractDeployerAllowListStatus(state, adminAddr))
+			require.Equal(t, precompile.AllowListNoRole, precompile.GetContractDeployerAllowListStatus(state, noRoleAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
-			ret, remainingGas, err := precompile.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.ContractDeployerAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
-					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
+					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
 				} else {
-					assert.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
+					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
 				}
 				return
 			}
@@ -272,8 +259,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assert.Equal(t, uint64(0), remainingGas)
-			assert.Equal(t, test.expectedRes, ret)
+			require.Equal(t, uint64(0), remainingGas)
+			require.Equal(t, test.expectedRes, ret)
 
 			if test.assertState != nil {
 				test.assertState(t, state)
@@ -301,8 +288,7 @@ func TestTxAllowListRun(t *testing.T) {
 
 	for name, test := range map[string]test{
 		"set admin": {
-			caller:         adminAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListAdmin)
 				if err != nil {
@@ -315,12 +301,11 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetTxAllowListStatus(state, noRoleAddr)
-				assert.Equal(t, precompile.AllowListAdmin, res)
+				require.Equal(t, precompile.AllowListAdmin, res)
 			},
 		},
 		"set allowed": {
-			caller:         adminAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
 				if err != nil {
@@ -333,12 +318,11 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetTxAllowListStatus(state, noRoleAddr)
-				assert.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, precompile.AllowListEnabled, res)
 			},
 		},
 		"set no role": {
-			caller:         adminAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
 				if err != nil {
@@ -351,12 +335,11 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetTxAllowListStatus(state, adminAddr)
-				assert.Equal(t, precompile.AllowListNoRole, res)
+				require.Equal(t, precompile.AllowListNoRole, res)
 			},
 		},
 		"set no role from non-admin": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
 				if err != nil {
@@ -369,8 +352,7 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set allowed from non-admin": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListEnabled)
 				if err != nil {
@@ -383,8 +365,7 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from non-admin": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListAdmin)
 				if err != nil {
@@ -411,8 +392,7 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"set no role insufficient gas": {
-			caller:         adminAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
 				if err != nil {
@@ -425,8 +405,7 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"read allow list no role": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -436,8 +415,7 @@ func TestTxAllowListRun(t *testing.T) {
 			assertState: nil,
 		},
 		"read allow list admin role": {
-			caller:         adminAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -447,8 +425,7 @@ func TestTxAllowListRun(t *testing.T) {
 			assertState: nil,
 		},
 		"read allow list with readOnly enabled": {
-			caller:         adminAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -458,8 +435,7 @@ func TestTxAllowListRun(t *testing.T) {
 			assertState: nil,
 		},
 		"read allow list out of gas": {
-			caller:         adminAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -477,15 +453,15 @@ func TestTxAllowListRun(t *testing.T) {
 
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetTxAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
-			assert.Equal(t, precompile.AllowListAdmin, precompile.GetTxAllowListStatus(state, adminAddr))
+			require.Equal(t, precompile.AllowListAdmin, precompile.GetTxAllowListStatus(state, adminAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
-			ret, remainingGas, err := precompile.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.TxAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
-					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
+					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
 				} else {
-					assert.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
+					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
 				}
 				return
 			}
@@ -494,8 +470,8 @@ func TestTxAllowListRun(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assert.Equal(t, uint64(0), remainingGas)
-			assert.Equal(t, test.expectedRes, ret)
+			require.Equal(t, uint64(0), remainingGas)
+			require.Equal(t, test.expectedRes, ret)
 
 			if test.assertState != nil {
 				test.assertState(t, state)
@@ -506,12 +482,11 @@ func TestTxAllowListRun(t *testing.T) {
 
 func TestContractNativeMinterRun(t *testing.T) {
 	type test struct {
-		caller         common.Address
-		precompileAddr common.Address
-		input          func() []byte
-		suppliedGas    uint64
-		readOnly       bool
-		config         *precompile.ContractNativeMinterConfig
+		caller      common.Address
+		input       func() []byte
+		suppliedGas uint64
+		readOnly    bool
+		config      *precompile.ContractNativeMinterConfig
 
 		expectedRes []byte
 		expectedErr string
@@ -526,8 +501,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 
 	for name, test := range map[string]test{
 		"mint funds from no role fails": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(noRoleAddr, common.Big1)
 				if err != nil {
@@ -540,8 +514,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			expectedErr: precompile.ErrCannotMint.Error(),
 		},
 		"mint funds from enabled address": {
-			caller:         enabledAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
 				if err != nil {
@@ -553,12 +526,11 @@ func TestContractNativeMinterRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				assert.Equal(t, common.Big1, state.GetBalance(enabledAddr), "expected minted funds")
+				require.Equal(t, common.Big1, state.GetBalance(enabledAddr), "expected minted funds")
 			},
 		},
 		"enabled role by config": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(testAddr)
 			},
@@ -566,15 +538,14 @@ func TestContractNativeMinterRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: common.Hash(precompile.AllowListEnabled).Bytes(),
 			assertState: func(t *testing.T, state *state.StateDB) {
-				assert.Equal(t, precompile.AllowListEnabled, precompile.GetContractNativeMinterStatus(state, testAddr))
+				require.Equal(t, precompile.AllowListEnabled, precompile.GetContractNativeMinterStatus(state, testAddr))
 			},
 			config: &precompile.ContractNativeMinterConfig{
 				AllowListConfig: precompile.AllowListConfig{EnabledAddresses: []common.Address{testAddr}},
 			},
 		},
 		"initial mint funds": {
-			caller:         enabledAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: enabledAddr,
 			config: &precompile.ContractNativeMinterConfig{
 				InitialMint: map[common.Address]*math.HexOrDecimal256{
 					enabledAddr: math.NewHexOrDecimal256(2),
@@ -587,12 +558,11 @@ func TestContractNativeMinterRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
 			assertState: func(t *testing.T, state *state.StateDB) {
-				assert.Equal(t, common.Big2, state.GetBalance(enabledAddr), "expected minted funds")
+				require.Equal(t, common.Big2, state.GetBalance(enabledAddr), "expected minted funds")
 			},
 		},
 		"mint funds from admin address": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(adminAddr, common.Big1)
 				if err != nil {
@@ -604,12 +574,11 @@ func TestContractNativeMinterRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				assert.Equal(t, common.Big1, state.GetBalance(adminAddr), "expected minted funds")
+				require.Equal(t, common.Big1, state.GetBalance(adminAddr), "expected minted funds")
 			},
 		},
 		"mint max big funds": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(adminAddr, math.MaxBig256)
 				if err != nil {
@@ -621,12 +590,11 @@ func TestContractNativeMinterRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				assert.Equal(t, math.MaxBig256, state.GetBalance(adminAddr), "expected minted funds")
+				require.Equal(t, math.MaxBig256, state.GetBalance(adminAddr), "expected minted funds")
 			},
 		},
 		"readOnly mint with noRole fails": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(adminAddr, common.Big1)
 				if err != nil {
@@ -639,8 +607,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly mint with allow role fails": {
-			caller:         enabledAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
 				if err != nil {
@@ -653,8 +620,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly mint with admin role fails": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(adminAddr, common.Big1)
 				if err != nil {
@@ -667,8 +633,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"insufficient gas mint from admin": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
 				if err != nil {
@@ -681,8 +646,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"read from noRole address": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -692,8 +656,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			assertState: func(t *testing.T, state *state.StateDB) {},
 		},
 		"read from noRole address readOnly enabled": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -703,8 +666,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			assertState: func(t *testing.T, state *state.StateDB) {},
 		},
 		"read from noRole address with insufficient gas": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				return precompile.PackReadAllowList(noRoleAddr)
 			},
@@ -713,8 +675,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"set allow role from admin": {
-			caller:         adminAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
 				if err != nil {
@@ -727,12 +688,11 @@ func TestContractNativeMinterRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetContractNativeMinterStatus(state, noRoleAddr)
-				assert.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, precompile.AllowListEnabled, res)
 			},
 		},
 		"set allow role from non-admin fails": {
-			caller:         enabledAddr,
-			precompileAddr: precompile.ContractNativeMinterAddress,
+			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
 				if err != nil {
@@ -755,20 +715,20 @@ func TestContractNativeMinterRun(t *testing.T) {
 			precompile.SetContractNativeMinterStatus(state, adminAddr, precompile.AllowListAdmin)
 			precompile.SetContractNativeMinterStatus(state, enabledAddr, precompile.AllowListEnabled)
 			precompile.SetContractNativeMinterStatus(state, noRoleAddr, precompile.AllowListNoRole)
-			assert.Equal(t, precompile.AllowListAdmin, precompile.GetContractNativeMinterStatus(state, adminAddr))
-			assert.Equal(t, precompile.AllowListEnabled, precompile.GetContractNativeMinterStatus(state, enabledAddr))
-			assert.Equal(t, precompile.AllowListNoRole, precompile.GetContractNativeMinterStatus(state, noRoleAddr))
+			require.Equal(t, precompile.AllowListAdmin, precompile.GetContractNativeMinterStatus(state, adminAddr))
+			require.Equal(t, precompile.AllowListEnabled, precompile.GetContractNativeMinterStatus(state, enabledAddr))
+			require.Equal(t, precompile.AllowListNoRole, precompile.GetContractNativeMinterStatus(state, noRoleAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := precompile.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.ContractNativeMinterAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
-					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
+					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
 				} else {
-					assert.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
+					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
 				}
 				return
 			}
@@ -777,8 +737,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assert.Equal(t, uint64(0), remainingGas)
-			assert.Equal(t, test.expectedRes, ret)
+			require.Equal(t, uint64(0), remainingGas)
+			require.Equal(t, test.expectedRes, ret)
 
 			if test.assertState != nil {
 				test.assertState(t, state)
@@ -789,13 +749,12 @@ func TestContractNativeMinterRun(t *testing.T) {
 
 func TestFeeConfigManagerRun(t *testing.T) {
 	type test struct {
-		caller         common.Address
-		precompileAddr common.Address
-		preCondition   func(t *testing.T, state *state.StateDB)
-		input          func() []byte
-		suppliedGas    uint64
-		readOnly       bool
-		config         *precompile.FeeConfigManagerConfig
+		caller       common.Address
+		preCondition func(t *testing.T, state *state.StateDB)
+		input        func() []byte
+		suppliedGas  uint64
+		readOnly     bool
+		config       *precompile.FeeConfigManagerConfig
 
 		expectedRes []byte
 		expectedErr string
@@ -809,8 +768,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 
 	for name, test := range map[string]test{
 		"set config from no role fails": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
@@ -823,8 +781,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedErr: precompile.ErrCannotChangeFee.Error(),
 		},
 		"set config from enabled address": {
-			caller:         enabledAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
@@ -837,12 +794,11 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
-				assert.Equal(t, testFeeConfig, feeConfig)
+				require.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
 		"set invalid config from enabled address": {
-			caller:         enabledAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: enabledAddr,
 			input: func() []byte {
 				feeConfig := testFeeConfig
 				feeConfig.MinBlockGasCost = new(big.Int).Mul(feeConfig.MaxBlockGasCost, common.Big2)
@@ -858,12 +814,11 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedErr: "cannot be greater than maxBlockGasCost",
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
-				assert.Equal(t, testFeeConfig, feeConfig)
+				require.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
 		"set config from admin address": {
-			caller:         adminAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
@@ -876,14 +831,13 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
-				assert.Equal(t, testFeeConfig, feeConfig)
+				require.Equal(t, testFeeConfig, feeConfig)
 				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
-				assert.EqualValues(t, testBlockNumber, lastChangedAt)
+				require.EqualValues(t, testBlockNumber, lastChangedAt)
 			},
 		},
 		"get fee config from non-enabled address": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: noRoleAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
 				err := precompile.StoreFeeConfig(state, testFeeConfig, &mockBlockContext{blockNumber: big.NewInt(6)})
 				if err != nil {
@@ -897,19 +851,18 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			readOnly:    true,
 			expectedRes: func() []byte {
 				res, err := precompile.PackFeeConfig(testFeeConfig)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				return res
 			}(),
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
 				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
-				assert.Equal(t, testFeeConfig, feeConfig)
-				assert.EqualValues(t, big.NewInt(6), lastChangedAt)
+				require.Equal(t, testFeeConfig, feeConfig)
+				require.EqualValues(t, big.NewInt(6), lastChangedAt)
 			},
 		},
 		"get initial fee config": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				return precompile.PackGetFeeConfigInput()
 			},
@@ -920,19 +873,18 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			readOnly: true,
 			expectedRes: func() []byte {
 				res, err := precompile.PackFeeConfig(testFeeConfig)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				return res
 			}(),
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
 				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
-				assert.Equal(t, testFeeConfig, feeConfig)
-				assert.EqualValues(t, testBlockNumber, lastChangedAt)
+				require.Equal(t, testFeeConfig, feeConfig)
+				require.EqualValues(t, testBlockNumber, lastChangedAt)
 			},
 		},
 		"get last changed at from non-enabled address": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: noRoleAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
 				err := precompile.StoreFeeConfig(state, testFeeConfig, &mockBlockContext{blockNumber: testBlockNumber})
 				if err != nil {
@@ -948,13 +900,12 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := precompile.GetStoredFeeConfig(state)
 				lastChangedAt := precompile.GetFeeConfigLastChangedAt(state)
-				assert.Equal(t, testFeeConfig, feeConfig)
-				assert.Equal(t, testBlockNumber, lastChangedAt)
+				require.Equal(t, testFeeConfig, feeConfig)
+				require.Equal(t, testBlockNumber, lastChangedAt)
 			},
 		},
 		"readOnly setFeeConfig with noRole fails": {
-			caller:         noRoleAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
@@ -967,8 +918,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with allow role fails": {
-			caller:         enabledAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
@@ -981,8 +931,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with admin role fails": {
-			caller:         adminAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
@@ -995,8 +944,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"insufficient gas setFeeConfig from admin": {
-			caller:         adminAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
@@ -1009,8 +957,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"set allow role from admin": {
-			caller:         adminAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
 				if err != nil {
@@ -1023,12 +970,11 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := precompile.GetFeeConfigManagerStatus(state, noRoleAddr)
-				assert.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, precompile.AllowListEnabled, res)
 			},
 		},
 		"set allow role from non-admin fails": {
-			caller:         enabledAddr,
-			precompileAddr: precompile.FeeConfigManagerAddress,
+			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
 				if err != nil {
@@ -1060,12 +1006,12 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, test.precompileAddr, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.FeeConfigManagerAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				if err == nil {
-					assert.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
+					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
 				} else {
-					assert.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
+					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
 				}
 				return
 			}
@@ -1074,8 +1020,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assert.Equal(t, uint64(0), remainingGas)
-			assert.Equal(t, test.expectedRes, ret)
+			require.Equal(t, uint64(0), remainingGas)
+			require.Equal(t, test.expectedRes, ret)
 
 			if test.assertState != nil {
 				test.assertState(t, state)
