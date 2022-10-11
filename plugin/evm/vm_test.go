@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/avalanchego/api/keystore"
 	"github.com/ava-labs/avalanchego/database/manager"
@@ -2572,6 +2573,145 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	balance := blkState.GetBalance(etherBase)
+	assert.Equal(t, 1, balance.Cmp(common.Big0))
+}
+
+func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
+	genesis := &core.Genesis{}
+	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
+		t.Fatal(err)
+	}
+	genesis.Config.RewardManagerConfig = precompile.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
+	genesis.Config.AllowFeeRecipients = true // enable this in genesis to test if this is recognized by the reward manager
+	genesisJSON, err := genesis.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
+	c := Config{}
+	c.SetDefaults()
+	c.FeeRecipient = etherBase.String()
+	configJSON, err := json.Marshal(c)
+	require.NoError(t, err)
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), string(configJSON), "")
+
+	defer func() {
+		if err := vm.Shutdown(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+
+	testAddr := common.HexToAddress("0x9999991111")
+	data, err := precompile.PackSetRewardAddress(testAddr)
+	require.NoError(t, err)
+
+	tx := types.NewTransaction(uint64(0), precompile.RewardManagerAddress, big.NewInt(1), 21240+precompile.SetRewardAddressGasCost, big.NewInt(testMinGasPrice), data)
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	require.NoError(t, err)
+
+	txErrors := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+	for _, err := range txErrors {
+		require.NoError(t, err)
+	}
+
+	blk := issueAndAccept(t, issuer, vm)
+	newHead := <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
+	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	require.Equal(t, ethBlock.Coinbase(), etherBase) // reward address is activated at this block so this is fine
+
+	tx1 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice*3), nil)
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	require.NoError(t, err)
+
+	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
+	for _, err := range txErrors {
+		require.NoError(t, err)
+	}
+
+	blk = issueAndAccept(t, issuer, vm)
+	newHead = <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
+	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	require.Equal(t, ethBlock.Coinbase(), testAddr) // reward address was activated at previous block
+	// Verify that etherBase has received fees
+	blkState, err := vm.blockChain.StateAt(ethBlock.Root())
+	require.NoError(t, err)
+
+	balance := blkState.GetBalance(testAddr)
+	assert.Equal(t, 1, balance.Cmp(common.Big0))
+}
+
+func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
+	genesis := &core.Genesis{}
+	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
+		t.Fatal(err)
+	}
+	genesis.Config.RewardManagerConfig = precompile.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
+	genesis.Config.AllowFeeRecipients = false // disable this in genesis
+	genesisJSON, err := genesis.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
+	c := Config{}
+	c.SetDefaults()
+	c.FeeRecipient = etherBase.String()
+	configJSON, err := json.Marshal(c)
+	require.NoError(t, err)
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), string(configJSON), "")
+
+	defer func() {
+		if err := vm.Shutdown(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+
+	data, err := precompile.PackAllowFeeRecipients()
+	require.NoError(t, err)
+
+	tx := types.NewTransaction(uint64(0), precompile.RewardManagerAddress, big.NewInt(1), 21240+precompile.SetRewardAddressGasCost, big.NewInt(testMinGasPrice), data)
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	require.NoError(t, err)
+
+	txErrors := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+	for _, err := range txErrors {
+		require.NoError(t, err)
+	}
+
+	blk := issueAndAccept(t, issuer, vm)
+	newHead := <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
+	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	require.Equal(t, ethBlock.Coinbase(), constants.BlackholeAddr) // reward address is activated at this block so this is fine
+
+	tx1 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice*3), nil)
+	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	require.NoError(t, err)
+
+	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
+	for _, err := range txErrors {
+		require.NoError(t, err)
+	}
+
+	blk = issueAndAccept(t, issuer, vm)
+	newHead = <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
+	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	require.Equal(t, ethBlock.Coinbase(), etherBase) // reward address was activated at previous block
+	// Verify that etherBase has received fees
+	blkState, err := vm.blockChain.StateAt(ethBlock.Root())
+	require.NoError(t, err)
 
 	balance := blkState.GetBalance(etherBase)
 	assert.Equal(t, 1, balance.Cmp(common.Big0))

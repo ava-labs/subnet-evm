@@ -1029,3 +1029,332 @@ func TestFeeConfigManagerRun(t *testing.T) {
 		})
 	}
 }
+
+func TestRewardManagerRun(t *testing.T) {
+	type test struct {
+		caller       common.Address
+		preCondition func(t *testing.T, state *state.StateDB)
+		input        func() []byte
+		suppliedGas  uint64
+		readOnly     bool
+		config       *precompile.RewardManagerConfig
+
+		expectedRes []byte
+		expectedErr string
+
+		assertState func(t *testing.T, state *state.StateDB)
+	}
+
+	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
+	enabledAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
+	noRoleAddr := common.HexToAddress("0xF60C45c607D0f41687c94C314d300f483661E13a")
+	testAddr := common.HexToAddress("0x0123")
+
+	for name, test := range map[string]test{
+		"set allow fee recipients from no role fails": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackAllowFeeRecipients()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.AllowFeeRecipientsGasCost,
+			readOnly:    false,
+			expectedErr: precompile.ErrCannotAllowFeeRecipients.Error(),
+		},
+		"set reward address from no role fails": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackSetRewardAddress(testAddr)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.SetRewardAddressGasCost,
+			readOnly:    false,
+			expectedErr: precompile.ErrCannotSetRewardAddress.Error(),
+		},
+		"disable rewards from no role fails": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackDisableRewards()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.DisableRewardsGasCost,
+			readOnly:    false,
+			expectedErr: precompile.ErrCannotDisableRewards.Error(),
+		},
+		"set allow fee recipients from enabled succeeds": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackAllowFeeRecipients()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.AllowFeeRecipientsGasCost,
+			readOnly:    false,
+			expectedRes: []byte{},
+		},
+		"set reward address from enabled succeeds": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackSetRewardAddress(testAddr)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.SetRewardAddressGasCost,
+			readOnly:    false,
+			expectedRes: []byte{},
+		},
+		"disable rewards from enabled succeeds": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackDisableRewards()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.DisableRewardsGasCost,
+			readOnly:    false,
+			expectedRes: []byte{},
+		},
+		"get current reward address from no role succeeds": {
+			caller: noRoleAddr,
+			preCondition: func(t *testing.T, state *state.StateDB) {
+				precompile.StoreRewardAddress(state, testAddr)
+			},
+			input: func() []byte {
+				input, err := precompile.PackCurrentRewardAddress()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.CurrentRewardAddressGasCost,
+			readOnly:    false,
+			expectedRes: func() []byte {
+				res, err := precompile.PackCurrentRewardAddressOutput(testAddr)
+				require.NoError(t, err)
+				return res
+			}(),
+		},
+		"get are fee recipients allowed from no role succeeds": {
+			caller: noRoleAddr,
+			preCondition: func(t *testing.T, state *state.StateDB) {
+				precompile.EnableAllowFeeRecipients(state)
+			},
+			input: func() []byte {
+				input, err := precompile.PackAreFeeRecipientsAllowed()
+				require.NoError(t, err)
+				return input
+			},
+			suppliedGas: precompile.AreFeeRecipientsAllowedGasCost,
+			readOnly:    false,
+			expectedRes: func() []byte {
+				res, err := precompile.PackAreFeeRecipientsAllowedOutput(true)
+				require.NoError(t, err)
+				return res
+			}(),
+		},
+		"get initial config with address": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackCurrentRewardAddress()
+				require.NoError(t, err)
+				return input
+			},
+			suppliedGas: precompile.CurrentRewardAddressGasCost,
+			config: &precompile.RewardManagerConfig{
+				InitialRewardConfig: &precompile.InitialRewardConfig{
+					RewardAddress: testAddr,
+				},
+			},
+			readOnly: false,
+			expectedRes: func() []byte {
+				res, err := precompile.PackCurrentRewardAddressOutput(testAddr)
+				require.NoError(t, err)
+				return res
+			}(),
+		},
+		"get initial config with allow fee recipients enabled": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackAreFeeRecipientsAllowed()
+				require.NoError(t, err)
+				return input
+			},
+			suppliedGas: precompile.AreFeeRecipientsAllowedGasCost,
+			config: &precompile.RewardManagerConfig{
+				InitialRewardConfig: &precompile.InitialRewardConfig{
+					AllowFeeRecipients: true,
+				},
+			},
+			readOnly: false,
+			expectedRes: func() []byte {
+				res, err := precompile.PackAreFeeRecipientsAllowedOutput(true)
+				require.NoError(t, err)
+				return res
+			}(),
+		},
+		"readOnly allow fee recipients with allowed role fails": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackAllowFeeRecipients()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.AllowFeeRecipientsGasCost,
+			readOnly:    true,
+			expectedErr: vmerrs.ErrWriteProtection.Error(),
+		},
+		"readOnly set reward addresss with allowed role fails": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackSetRewardAddress(testAddr)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.SetRewardAddressGasCost,
+			readOnly:    true,
+			expectedErr: vmerrs.ErrWriteProtection.Error(),
+		},
+		"insufficient gas set reward address from allowed role": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackSetRewardAddress(testAddr)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.SetRewardAddressGasCost - 1,
+			readOnly:    false,
+			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"insufficient gas allow fee recipieints from allowed role": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackAllowFeeRecipients()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.AllowFeeRecipientsGasCost - 1,
+			readOnly:    false,
+			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"insufficient read current reward address from allowed role": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackCurrentRewardAddress()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.CurrentRewardAddressGasCost - 1,
+			readOnly:    false,
+			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"insufficient are fee recipients allowed from allowed role": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackAreFeeRecipientsAllowed()
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.AreFeeRecipientsAllowedGasCost - 1,
+			readOnly:    false,
+			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"set allow role from admin": {
+			caller: adminAddr,
+			input: func() []byte {
+				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.ModifyAllowListGasCost,
+			readOnly:    false,
+			expectedRes: []byte{},
+			assertState: func(t *testing.T, state *state.StateDB) {
+				res := precompile.GetRewardManagerAllowListStatus(state, noRoleAddr)
+				require.Equal(t, precompile.AllowListEnabled, res)
+			},
+		},
+		"set allow role from non-admin fails": {
+			caller: enabledAddr,
+			input: func() []byte {
+				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				if err != nil {
+					panic(err)
+				}
+				return input
+			},
+			suppliedGas: precompile.ModifyAllowListGasCost,
+			readOnly:    false,
+			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := rawdb.NewMemoryDatabase()
+			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Set up the state so that each address has the expected permissions at the start.
+			precompile.SetRewardManagerAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
+			precompile.SetRewardManagerAllowListStatus(state, enabledAddr, precompile.AllowListEnabled)
+			precompile.SetRewardManagerAllowListStatus(state, noRoleAddr, precompile.AllowListNoRole)
+
+			if test.preCondition != nil {
+				test.preCondition(t, state)
+			}
+
+			blockContext := &mockBlockContext{blockNumber: testBlockNumber}
+			if test.config != nil {
+				test.config.Configure(params.TestChainConfig, state, blockContext)
+			}
+			ret, remainingGas, err := precompile.RewardManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.RewardManagerAddress, test.input(), test.suppliedGas, test.readOnly)
+			if len(test.expectedErr) != 0 {
+				if err == nil {
+					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
+				} else {
+					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.Equal(t, uint64(0), remainingGas)
+			require.Equal(t, test.expectedRes, ret)
+
+			if test.assertState != nil {
+				test.assertState(t, state)
+			}
+		})
+	}
+}
