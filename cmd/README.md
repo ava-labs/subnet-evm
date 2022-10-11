@@ -186,10 +186,33 @@ Typically, custom codes are required in only those areas.
 
 ## Step 1: Set Contract Address
 
-In `./precompile/hello_world.go`, we can see our precompile address is set to some default value. We can cut the address from the var declaration block and remove it from the precompile and paste it in`./precompile/params.go`
+In `./precompile/hello_world.go`, we can see our precompile address is set to some default value. We can cut the address from the var declaration block and remove it from the precompile. 
 
 ![](2022-09-01-22-46-00.png)
-![](2022-08-24-16-45-48.png)
+
+
+We can paste it here in `./precompile/params.go`.
+``` go
+ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
+	ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
+	TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
+	FeeConfigManagerAddress          = common.HexToAddress("0x0200000000000000000000000000000000000003")
+	HelloWorldAddress                = common.HexToAddress("0x0200000000000000000000000000000000000004")
+	// ADD YOUR PRECOMPILE HERE
+	// {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
+```
+
+```go 
+UsedAddresses = []common.Address{
+		ContractDeployerAllowListAddress,
+		ContractNativeMinterAddress,
+		TxAllowListAddress,
+		FeeConfigManagerAddress,
+		HelloWorldAddress,
+		// ADD YOUR PRECOMPILE HERE
+		// YourPrecompileAddress
+	}
+```
 
 Now when Subnet-EVM sees the `HelloWorldAddress` as input when executing [`CALL`](../core/vm/evm.go#L222), [`STATICCALL`](../core/vm/evm.go#L401), [`DELEGATECALL`](core/vm/evm.go#L362), [`CALLCODE`](core/vm/evm.go#L311), it can [run the precompile](https://github.com/ava-labs/subnet-evm/blob/master/core/vm/evm.go#L271-L272) if the precompile is enabled.
 
@@ -233,7 +256,21 @@ We can remove all of these imports and the reference imports as we will not use 
 
 Next we see this in `Equals()`.
 
-![](2022-09-01-22-51-30.png)
+```go
+// Equal returns true if [s] is a [*HelloWorldConfig] and it has been configured identical to [c].
+func (c *HelloWorldConfig) Equal(s StatefulPrecompileConfig) bool {
+	// typecast before comparison
+	other, ok := (s).(*HelloWorldConfig)
+	if !ok {
+		return false
+	}
+	// CUSTOM CODE STARTS HERE
+	// modify this boolean accordingly with your custom HelloWorldConfig, to check if [other] and the current [c] are equal
+	// if HelloWorldConfig contains only UpgradeableConfig  you can skip modifying it.
+	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig)
+	return equals
+}
+```
 
 We can skip this step since our HelloWorldConfig struct looks like this.
 
@@ -255,8 +292,8 @@ like so,
 // interface while adding in the IHelloWorld specific precompile address.
 
 type HelloWorldConfig struct {
-	UpgradeableConfig
-    AllowListConfig
+  UpgradeableConfig
+  AllowListConfig
 }
 ```
 
@@ -297,7 +334,7 @@ func (c *HelloWorldConfig) Verify() error {
 }
 ```
 
-Next place to modify is in our `sayHello()` function. In a previous step we created the`IHelloWorld.sol` interface with two functions `sayHello()` and `setGreeting()`.  We finally get to implement them here. If any contract calls these functions from the interface, the below function gets executed. This function is a simple getter function. In `Configure()` we set up a mapping with the key as `storageKey` and the value as `Hello World!` In this function, we will be returning whatever value is at `storageKey`. 
+Next place to modify is in our `sayHello()` function. In a previous step we created the `IHelloWorld.sol` interface with two functions `sayHello()` and `setGreeting()`.  We finally get to implement them here. If any contract calls these functions from the interface, the below function gets executed. This function is a simple getter function. In `Configure()` we set up a mapping with the key as `storageKey` and the value as `Hello World!` In this function, we will be returning whatever value is at `storageKey`. 
 
 ``` go
 func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -706,7 +743,8 @@ Finally we can use avalanche-network-runner to spin up some nodes that run the l
 ```
 
 If the network startup is successful then you should see something like this.
-```
+
+``` bash
 [blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9650/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
 [blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9652/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
 [blockchain RPC for "srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"] "http://127.0.0.1:9654/ext/bc/2jDWMrF9yKK8gZfJaaaSfACKeMasiNgHmuZip5mWxUfhKaYoEU"
