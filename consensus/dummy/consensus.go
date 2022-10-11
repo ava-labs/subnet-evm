@@ -83,7 +83,7 @@ func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *type
 		return nil
 	}
 	// we fetch the configured coinbase at the parent's state
-	// but we check the header coinbase against this coinfigured coinbase
+	// to check against the coinbase in [header].
 	if configuredAddressAtParent != header.Coinbase {
 		return fmt.Errorf("%w: %v does not match required coinbase address %v", vmerrs.ErrInvalidCoinbase, header.Coinbase, configuredAddressAtParent)
 	}
