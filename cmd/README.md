@@ -264,7 +264,7 @@ We would have to modify the `Equal()` function as follows:
 ![](2022-09-01-22-54-22.png)
 
 The next place we see the `CUSTOM CODE STARTS HERE` is in `Configure()`
-Let's set it up. 
+Let's set it up. Configure configures the `state` with the initial configuration at whatever blockTimestamp the precompile is enabled. In the HelloWorld example, we want to set up a key value mapping in the state where the key is `storageKey` and the value is `Hello World!`. This will be the default value to start off with.
 
 ``` go
 // Configure configures [state] with the initial configuration.
@@ -281,20 +281,16 @@ func (c *HelloWorldConfig) Configure(_ ChainConfig, state StateDB, _ BlockContex
 	state.SetState(HelloWorldAddress, common.BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 }
 ```
-We also see a `Verify()` function. We can leave this as is for now. 
+We also see a `Verify()` function. `Verify()` is called on startup and an error is treated as fatal. We can leave this as is right now because there is no invalid configuration for the `HelloWorldConfig`.  You can copy and paste this cleaner version of the function in. 
 
 ``` go
 // Verify tries to verify HelloWorldConfig and returns an error accordingly.
 func (c *HelloWorldConfig) Verify() error {
-
-	// CUSTOM CODE STARTS HERE
-	// Add your own custom verify code for HelloWorldConfig here
-	// and return an error accordingly
 	return nil
 }
 ```
 
-Next place to modify is in our `sayHello()` function.
+Next place to modify is in our `sayHello()` function. In a previous step we created the`IHelloWorld.sol` interface with two functions `sayHello()` and `setGreeting()`.  We finally get to implement them here. If any contract calls these functions from the interface, the below function gets executed. This function is a simple getter function. In `Configure()` we set up a mapping with the key as `storageKey` and the value as `Hello World!` In this function, we will be returning whatever value is at `storageKey`. 
 
 ``` go
 func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -304,7 +300,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
-	// no input provided for this function
+	// No input provided for this function
 
 	// CUSTOM CODE STARTS HERE
 	// Get the current state
@@ -322,7 +318,7 @@ func sayHello(accessibleState PrecompileAccessibleState, caller common.Address, 
 }
 ```
 
-Finally we can modify our `setGreeting()` function. 
+ We can also modify our `setGreeting()` function. This is a simple setter function. It takes in `input` and we will set that as the value in the state mapping with the key as `storageKey`.  
 
 ``` go
 func setGreeting(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -340,19 +336,19 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 		return nil, remainingGas, err
 	}
 
-	// CUSTOM CODE STARTS HERE
-    // check if the input string is longer than 32 bytes
+  // CUSTOM CODE STARTS HERE
+  // Check if the input string is longer than 32 bytes
     if len(inputStr) > 32 {
       return nil, 0, errors.New("input string is longer than 32 bytes")
     }
 
-	// setGreeting is the execution function 
-    // "SetGreeting(name string)" and sets the storageKey 
-    //  in the string returned by hello world
-    res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
+  // setGreeting is the execution function 
+  // "SetGreeting(name string)" and sets the storageKey 
+  // in the string returned by hello world
+  res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
 	accessibleState.GetStateDB().SetState(HelloWorldAddress, common. BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 
-	// this function does not return an output, leave this one as is
+	// This function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
 	// Return the packed output and the remaining gas
@@ -377,7 +373,7 @@ const (
 	// {yourPrecompile}Key
 )
 ```
-We also should add our precompile key to our precompileKeys slice. We use this slice to iterate over the keys and activate the precompiles. 
+We should also add our precompile key to our `precompileKeys` slice. We use this slice to iterate over the keys and activate the precompiles. 
 
 ``` go
 // ADD YOUR PRECOMPILE HERE
