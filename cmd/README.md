@@ -110,7 +110,7 @@ Here are some helpful resources on the EVM to solidify your knowledge.
 
 ### The Process
 
-We will first create a Solidity interface that our precompile will implement.  Then we will use the precompile tool to autogenerate functions and fill out the rest. We're not done yet! We will then have to update a few more places within the Subnet-EVM. Some of this work involves assigning a precompile address, adding the precompile to the list of Subnet-EVM precompiles, and finally enabling the precompile. Now we can see our functions in action as we write another solidity smart contract that interacts with our precompile. Lastly, we will write some tests to make sure everything works as promised. 
+We will first create a Solidity interface that our precompile will implement.  Then we will use the precompile tool to autogenerate functions and fill out the rest. We're not done yet! We will then have to update a few more places within the Subnet-EVM. Some of this work involves assigning a precompile address, adding the precompile to the list of Subnet-EVM precompiles, and finally enabling the precompile. Now we can see our functions in action as we write another solidity smart contract that interacts with our precompile. Lastly, we will write some tests to make sure everything works as promised. We will also have an official tutorial with step by step commits you can follow to double check your work. 
 
 ## Tutorial
 
@@ -802,7 +802,7 @@ npx hardhat test --network local
 
 Great they passed! All the functions implemented in the precompile work as expected!
 
-**Note:** If your tests failed, please retrace your steps. Most likely the error is that the precompile was not enabled and there was a step missing. Please also use the official tutorial to double check your work as well.  
+**Note:** If your tests failed, please retrace your steps. Most likely the error is that the precompile was not enabled is some code missing. Please also use the official tutorial to double check your work as well.  
 
 ## Step 8: Create Genesis
 
