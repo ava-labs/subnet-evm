@@ -20,14 +20,14 @@ import (
 )
 
 const (
-	AllowFeeRecipientsGasCost      uint64 = (writeGasCostPerSlot * 2) + ReadAllowListGasCost // 2 slots + read allow list
+	AllowFeeRecipientsGasCost      uint64 = (writeGasCostPerSlot) + ReadAllowListGasCost // write 1 slot + read allow list
 	AreFeeRecipientsAllowedGasCost uint64 = readGasCostPerSlot
 	CurrentRewardAddressGasCost    uint64 = readGasCostPerSlot
-	DisableRewardsGasCost          uint64 = (writeGasCostPerSlot * 2) + ReadAllowListGasCost // 2 slots + read allow list
-	SetRewardAddressGasCost        uint64 = (writeGasCostPerSlot * 2) + ReadAllowListGasCost // 2 slots + read allow list
+	DisableRewardsGasCost          uint64 = (writeGasCostPerSlot) + ReadAllowListGasCost // write 1 slot + read allow list
+	SetRewardAddressGasCost        uint64 = (writeGasCostPerSlot) + ReadAllowListGasCost // write 1 slot + read allow list
 
 	// RewardManagerRawABI contains the raw ABI of RewardManager contract.
-	RewardManagerRawABI = "[{\"inputs\":[],\"name\":\"allowFeeRecipients\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"areFeeRecipientsAllowed\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isAllowed\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"currentRewardAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"rewardAddress\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"disableRewards\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"readAllowList\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setEnabled\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setNone\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setRewardAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+	RewardManagerRawABI = "[{\"inputs\":[],\"name\":\"allowFeeRecipients\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"areFeeRecipientsAllowed\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isAllowed\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"currentRewardAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"rewardAddress\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"disableRewards\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"readAllowList\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"role\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setEnabled\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setNone\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setRewardAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -168,12 +168,16 @@ func (c *RewardManagerConfig) Configure(chainConfig ChainConfig, state StateDB, 
 			}
 			return
 		}
+		// if we did not enable any reward until now, disable rewards
+		// since given initial config is not nil
 		DisableFeeRewards(state)
 	} else { // configure the RewardManager according to chainConfig
 		if chainConfig.AllowedFeeRecipients() {
 			EnableAllowFeeRecipients(state)
 			return
 		}
+		// chainConfig does not have any reward address
+		// if it does not enable fee recipients, disable rewards
 		DisableFeeRewards(state)
 	}
 }
@@ -270,18 +274,8 @@ func areFeeRecipientsAllowed(accessibleState PrecompileAccessibleState, caller c
 	}
 	// no input provided for this function
 
-	// Allow list is enabled and AreFeeRecipientsAllowed is a state-changer function.
-	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
-	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
-	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, RewardManagerAddress, caller)
-	if !callerStatus.IsEnabled() {
-		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotAreFeeRecipientsAllowed, caller)
-	}
-	// allow list code ends here.
-
 	// CUSTOM CODE STARTS HERE
+	stateDB := accessibleState.GetStateDB()
 	var output bool // CUSTOM CODE FOR AN OUTPUT
 	_, output = GetStoredRewardAddress(stateDB)
 
@@ -390,18 +384,8 @@ func currentRewardAddress(accessibleState PrecompileAccessibleState, caller comm
 	}
 	// no input provided for this function
 
-	// Allow list is enabled and CurrentRewardAddress is a state-changer function.
-	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
-	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
-	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, RewardManagerAddress, caller)
-	if !callerStatus.IsEnabled() {
-		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotCurrentRewardAddress, caller)
-	}
-	// allow list code ends here.
-
 	// CUSTOM CODE STARTS HERE
+	stateDB := accessibleState.GetStateDB()
 	output, _ := GetStoredRewardAddress(stateDB)
 	packedOutput, err := PackCurrentRewardAddressOutput(output)
 	if err != nil {

@@ -9,7 +9,7 @@ interface IRewardManager is IAllowList {
 
   function disableRewards() external;
 
-  function currentRewardAddress() external returns (address rewardAddress);
+  function currentRewardAddress() external view returns (address rewardAddress);
 
-  function areFeeRecipientsAllowed() external returns (bool isAllowed);
+  function areFeeRecipientsAllowed() external view returns (bool isAllowed);
 }

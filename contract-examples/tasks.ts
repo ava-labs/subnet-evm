@@ -7,6 +7,7 @@ const CONTRACT_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000000"
 const MINT_ADDRESS = "0x0200000000000000000000000000000000000001"
 const TX_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000002"
 const FEE_MANAGER_ADDRESS = "0x0200000000000000000000000000000000000003"
+const REWARD_MANAGER_ADDDRESS = "0x0200000000000000000000000000000000000004"
 
 
 const ROLES = {
@@ -42,8 +43,8 @@ task("balance", "a task to get the balance")
   .addParam("address", "the address you want to know balance of")
   .setAction(async (args, hre) => {
     const balance = await hre.ethers.provider.getBalance(args.address)
-    const balanceInEth = hre.ethers.utils.formatEther(balance)
-    console.log(`balance: ${balanceInEth} ETH`)
+    const balanceInCoin = hre.ethers.utils.formatEther(balance)
+    console.log(`balance: ${balanceInCoin} Coin`)
   })
 
 // npx hardhat allowList:readRole --network local --address [address]
@@ -160,12 +161,12 @@ task("minter:mint", "mint native token")
   .addParam("amount", "the amount you want to mint")
   .setAction(async (args, hre) => {
     const minter = await hre.ethers.getContractAt("INativeMinter", MINT_ADDRESS)
-    await minter.mintNativeToken(args.address, args.amount)
+    await minter.mintNativeCoin(args.address, args.amount)
   })
 
 // npx hardhat minter:burn --network local --address [address]
 task("minter:burn", "burn")
-  .addParam("amount", "the amount you want to burn (in ETH unit)")
+  .addParam("amount", "the amount you want to burn (in AVAX unit)")
   .setAction(async (args, hre) => {
     const [owner] = await hre.ethers.getSigners()
     const transactionHash = await owner.sendTransaction({
@@ -188,7 +189,7 @@ task("feeManager:set", "sets fee config")
 
   .setAction(async (args, hre) => {
     const feeManager = await hre.ethers.getContractAt("IFeeManager", FEE_MANAGER_ADDRESS)
-    const feeConfig = await feeManager.setFeeConfig(
+    await feeManager.setFeeConfig(
       args.gaslimit,
       args.targetblockrate,
       args.minbasefee,
@@ -215,7 +216,7 @@ task("feeManager:get", "gets fee config")
   })
 
 
-// npx hardhat minter:readRole --network local --address [address]
+// npx hardhat feeManager:readRole --network local --address [address]
 task("feeManager:readRole", "a task to get the network deployer minter list")
   .addParam("address", "the address you want to know the minter role for")
   .setAction(async (args, hre) => {
@@ -223,3 +224,47 @@ task("feeManager:readRole", "a task to get the network deployer minter list")
     await getRole(allowList, args.address)
   })
 
+
+// npx hardhat rewardManager:readRole --network local --address [address]
+task("rewardManager:currentRewardAddress", "a task to get the current configured rewarding address")
+  .setAction(async (_, hre) => {
+    const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
+    const result = await rewardManager.currentRewardAddress()
+    if (result == "0x0000000000000000000000000000000000000000") {
+      console.log("Custom Fee Recipients are allowed.")
+    } else {
+      console.log(`Current reward address is ${result}`)
+    }
+  })
+
+// npx hardhat rewardManager:areFeeRecipientsAllowed --network local --address [address]
+task("rewardManager:areFeeRecipientsAllowed", "a task to get wheter the fee recipients are allowed")
+  .setAction(async (_, hre) => {
+    const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
+    const result = await rewardManager.areFeeRecipientsAllowed()
+    console.log(result)
+  })
+
+// npx hardhat rewardManager:setRewardAddress --network local --address [address]
+task("rewardManager:setRewardAddress", "sets a new reward address")
+  .addParam("address", "the address that will receive rewards")
+  .setAction(async (args, hre) => {
+    const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
+    const result = await rewardManager.setRewardAddress(args.address)
+    console.log(result)
+  })
+
+// npx hardhat rewardManager:allowFeeRecipients --network local
+task("rewardManager:allowFeeRecipients", "allows custom fee recipients to receive rewards")
+  .setAction(async (_, hre) => {
+    const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
+    const result = await rewardManager.allowFeeRecipients()
+    console.log(result)
+  })
+
+task("rewardManager:disableRewards", "disables all rewards, and starts burning fees.")
+  .setAction(async (_, hre) => {
+    const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
+    const result = await rewardManager.disableRewards()
+    console.log(result)
+  })

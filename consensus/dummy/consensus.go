@@ -85,7 +85,7 @@ func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *type
 	// we fetch the configured coinbase at the parent's state
 	// but we check the header coinbase against this coinfigured coinbase
 	if configuredAddressAtParent != header.Coinbase {
-		return fmt.Errorf("%w: %v does not match configured coinbase address %v", vmerrs.ErrInvalidCoinbase, header.Coinbase, configuredAddressAtParent)
+		return fmt.Errorf("%w: %v does not match required coinbase address %v", vmerrs.ErrInvalidCoinbase, header.Coinbase, configuredAddressAtParent)
 	}
 	return nil
 }
@@ -191,14 +191,16 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 		if len(header.Extra) != expectedExtraDataSize {
 			return fmt.Errorf("expected extra-data field to be: %d, but found %d", expectedExtraDataSize, len(header.Extra))
 		}
-		// Ensure that coinbase is valid
-		if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
-			return err
-		}
 	}
 	// Ensure gas-related header fields are correct
 	if err := self.verifyHeaderGasFields(config, header, parent, chain); err != nil {
 		return err
+	}
+	// Ensure that coinbase is valid if reward manager is enabled
+	if config.IsRewardManager(timestamp) {
+		if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
+			return err
+		}
 	}
 	// Verify the header's timestamp
 	if header.Time > uint64(self.clock.Time().Add(allowedFutureBlockTime).Unix()) {
