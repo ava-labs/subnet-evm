@@ -8,7 +8,7 @@ interface IAllowList {
   // Set [addr] to be enabled on the precompile contract.
   function setEnabled(address addr) external;
 
-  // Set [addr] to have no role the precompile contract.
+  // Set [addr] to have no role for the precompile contract.
   function setNone(address addr) external;
 
   // Read the status of [addr].
