@@ -252,7 +252,7 @@ Ok time to `CTRL F` throughout the file with `CUSTOM CODE STARTS HERE` to find t
 
 ![](2022-09-01-22-48-26.png)
 
-We can remove all of these imports and the reference imports as we will not use them in this tutorial.
+We can remove the `fmt` import and the `fmt` reference import as we will not use them in this tutorial.
 
 Next we see this in `Equals()`.
 
