@@ -682,17 +682,20 @@ avalanche-network-runner server \
 --grpc-gateway-port=":8081"
 ```
 
-In another terminal tab run this command to get the latest Subnet-EVM binary. 
+In another terminal tab run this command to get the latest local Subnet-EVM binary. 
 ``` bash 
 ./scripts/build.sh
 ```
 
 Set the following paths. `AVALANCHEGO_EXEC_PATH` points to the latest Avalanchego binary. `AVALANCHEGO_PLUGIN_PATH` points to the plugins path which should have the Subnet-EVM binary we have just built.
+
 ``` bash 
-export AVALANCHEGO_EXEC_PATH="${HOME}/go/src/avalanchego/build/avalanchego"
+export AVALANCHEGO_EXEC_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/avalanchego"
 export AVALANCHEGO_PLUGIN_PATH="${HOME}/go/src/github.com/ava-labs/avalanchego/build/plugins"
 ``` 
-// Spin up some nodes that run the latest version of Subnet-EVM 
+Finally we can use avalanche-network-runner to spin up some nodes that run the latest version of Subnet-EVM.
+
+```bash 
   avalanche-network-runner control start \
   --log-level debug \
   --endpoint="0.0.0.0:8080" \
