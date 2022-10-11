@@ -186,8 +186,7 @@ Typically, custom codes are required in only those areas.
 
 ## Step 1: Set Contract Address
 
-In `./precompile/params.go` let's set a precompile address. We can cut the
-address from the var declaration block and remove it from the precompile. 
+In `./precompile/hello_world.go`, we can see our precompile address is set to some default value. We can cut the address from the var declaration block and remove it from the precompile and paste it in`./precompile/params.go`
 
 ![](2022-09-01-22-46-00.png)
 ![](2022-08-24-16-45-48.png)
@@ -206,7 +205,7 @@ const (
 )
 ```
 
-For example, we will be setting and getting our greeting in one slot so we can define the gas costs as follows. 
+For example, we will be getting and setting our greeting with `sayHello()` and `setGreeting()` in one slot respectively so we can define the gas costs as follows. 
 
 ``` go
 	SayHelloGasCost uint64    = 5000
@@ -348,8 +347,8 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
     }
 
 	// setGreeting is the execution function 
-  // "SetGreeting(name string)" and sets the storageKey 
-  //  in the string returned by hello world
+    // "SetGreeting(name string)" and sets the storageKey 
+    //  in the string returned by hello world
     res := common.LeftPadBytes([]byte(inputStr), common.HashLength)
 	accessibleState.GetStateDB().SetState(HelloWorldAddress, common. BytesToHash([]byte("storageKey")), common.BytesToHash(res))
 
@@ -365,37 +364,150 @@ func setGreeting(accessibleState PrecompileAccessibleState, caller common.Addres
 
 Let's now modify `params/precompile_config.go`. We can `CTRL F` for `ADD YOUR PRECOMPILE HERE`. 
 
-Let's add our key. Note that there are two places to in the image below. 
 
-![](2022-09-01-23-20-53.png)
+Let's create our precompile key and name it `helloWorldKey`. Precompile keys are used to reference each of the possible stateful precompile types that can be activated as a network upgrade.
+``` go
+const (
+	contractDeployerAllowListKey precompileKey = iota + 1
+	contractNativeMinterKey
+	txAllowListKey
+	feeManagerKey
+	helloWorldKey
+	// ADD YOUR PRECOMPILE HERE
+	// {yourPrecompile}Key
+)
+```
+We also should add our precompile key to our precompileKeys slice. We use this slice to iterate over the keys and activate the precompiles. 
 
-Let's add our precompile config to `PrecompileUpgrade`
+``` go
+// ADD YOUR PRECOMPILE HERE
+var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey, helloWorldKey /* {yourPrecompile}Key */}
+```
 
-![](2022-09-01-23-19-42.png)
+We should add our precompile to the `PrecompileUpgrade` struct. The `PrecompileUpgrade` is a helper struct embedded in `UpgradeConfig` and represents each of the possible stateful precompile types that can be activated or deactivated as a network upgrade. 
 
-Finally, we can add a getter function. 
+``` go 
+type PrecompileUpgrade struct {
+	ContractDeployerAllowListConfig *precompile.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
+	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
+	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
+	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+	HelloWorldConfig                *precompile.HelloWorldConfig                `json:"helloWorldConfig,omitempty"`                // Config for the hello world precompile
+	// ADD YOUR PRECOMPILE HERE
+	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
+}
 
-![](2022-09-01-23-23-20.png)
+```
+In the `getByKey` function given a `precompileKey`, it returns the correct mapping of type `precompile.StatefulPrecompileConfig`. Here, we must set the `helloWorldKey` to map to the `helloWorldConfig`. 
+
+``` go
+func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrecompileConfig, bool) {
+	switch key {
+	case contractDeployerAllowListKey:
+		return p.ContractDeployerAllowListConfig, p.ContractDeployerAllowListConfig != nil
+	case contractNativeMinterKey:
+		return p.ContractNativeMinterConfig, p.ContractNativeMinterConfig != nil
+	case txAllowListKey:
+		return p.TxAllowListConfig, p.TxAllowListConfig != nil
+	case feeManagerKey:
+		return p.FeeManagerConfig, p.FeeManagerConfig != nil
+	case helloWorldKey:
+		return p.HelloWorldConfig, p.HelloWorldConfig != nil
+		// ADD YOUR PRECOMPILE HERE
+	/*
+		case {yourPrecompile}Key:
+		return p.{YourPrecompile}Config , p.{YourPrecompile}Config  != nil
+	*/
+	default:
+		panic(fmt.Sprintf("unknown upgrade key: %v", key))
+	}
+}
+
+```
+We should also define `GetHelloWorldConfig`. Given a `blockTimestamp`, we will return the `*precompile.HelloWorldConfig` if it is enabled. We use this function to check whether precompiles are enabled in `params/config.go`. This function is also used to construct a `PrecompileUpgrade` struct in `GetActivePrecompiles()`.  
+
+``` go 
+// GetHelloWorldConfig returns the latest forked HelloWorldConfig
+// specified by [c] or nil if it was never enabled.
+func (c *ChainConfig) GetHelloWorldConfig(blockTimestamp *big.Int) *precompile.HelloWorldConfig {
+	if val := c.getActivePrecompileConfig(blockTimestamp, helloWorldKey, c.PrecompileUpgrades); val != nil {
+		return val.(*precompile.HelloWorldConfig)
+	}
+	return nil
+}
+```
+
+Finally, we can add our precompile in `GetActivePrecompiles()`,  which given a `blockTimestamp` returns a `PrecompileUpgrade` struct. This function is used in the Ethereum API and can give a user information about what precompiles are enabled at a certain block timestamp. For more information about our Ethereum API, check out this [link](https://docs.avax.network/apis/avalanchego/apis/subnet-evm). 
+
+``` go
+func (c *ChainConfig) GetActivePrecompiles(blockTimestamp *big.Int) PrecompileUpgrade {
+	pu := PrecompileUpgrade{}
+	if config := c.GetContractDeployerAllowListConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.ContractDeployerAllowListConfig = config
+	}
+	if config := c.GetContractNativeMinterConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.ContractNativeMinterConfig = config
+	}
+	if config := c.GetTxAllowListConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.TxAllowListConfig = config
+	}
+	if config := c.GetFeeConfigManagerConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.FeeManagerConfig = config
+	}
+  if config := c.GetHelloWorldConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.HelloWorldConfig = config
+	}
+	// ADD YOUR PRECOMPILE HERE
+	// if config := c.{YourPrecompile}Config(blockTimestamp); config != nil && !config.Disable {
+	// 	pu.{YourPrecompile}Config = config
+	// }
+
+	return pu
+}
+```
 
 Done! All we had to do was follow the comments.
 
-
 ## Step 5: Add Precompile Upgrade
 
-Let's add our precompile upgrade in `params/config.go`. We can `CTRL F` for `ADD YOUR PRECOMPILE HERE`. 
+Let's add our precompile upgrade in `params/config.go`. We can `CTRL F` for `ADD YOUR PRECOMPILE HERE`. This file is used to set up blockchain settings. 
 
-Let's add the bool to check if our precompile is enabled.  
+Let's add the bool to check if our precompile is enabled.  We are adding this to the `Rules` struct. `Rules` gives information about the blockchain, the version, and the precompile enablement status to functions that don't have this information. 
 
-![](2022-09-01-23-35-47.png)
+``` go
+  IsContractNativeMinterEnabled      bool
+  IsTxAllowListEnabled               bool
+  IsFeeConfigManagerEnabled          bool
+  IsHelloWorldEnabled                bool
+  // ADD YOUR PRECOMPILE HERE
+  // Is{YourPrecompile}Enabled       bool
+ ``` 
 
-We can now add it to the Avalanche rules. 
 
-![](2022-09-01-23-36-56.png)
+We can add `IsHelloWorld()` which checks if we are equal or greater than the fork `blockTimestamp`. We use this to check out whether the precompile is enabled. We defined `GetHelloWorldConfig()` in the last step.  
 
-Lastly, we can add `IsHelloWorld` which checks if we are equal or greater than the fork `blockTimestamp`. 
-We use this to see if we should enable the precompile. 
+``` go 
+// IsHelloWorld returns whether [blockTimestamp] is either equal to the HelloWorld 
+// fork block timestamp or greater.
 
-![](2022-09-01-23-32-51.png)
+func (c *ChainConfig) IsHelloWorld(blockTimestamp *big.Int) bool {
+	config := c.GetHelloWorldConfig(blockTimestamp)
+	return config != nil && !config.Disable
+}
+```
+
+We can now add it to the `AvalancheRules()` which creates and returns a new instance of `Rules`. 
+
+``` go 
+rules.IsContractNativeMinterEnabled = c.IsContractNativeMinter(blockTimestamp)
+rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
+rules.IsFeeConfigManagerEnabled = c.IsFeeConfigManager(blockTimestamp)
+rules.IsHelloWorldEnabled = c.IsHelloWorld(blockTimestamp)
+// ADD YOUR PRECOMPILE HERE
+// rules.Is{YourPrecompile}Enabled = c.{IsYourPrecompile}(blockTimestamp)
+```
+
+Done! All we had to do was follow the comments.
 
 ## Step 6: Add Test Contract
 
