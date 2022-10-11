@@ -156,7 +156,7 @@ done:
 	return blockchainID, logsDir, pid, nil
 }
 
-func GetClusterInfo(blockchainId string, logsDir string, pid int) (clusterInfo, error) {
+func SaveClusterInfo(blockchainId string, logsDir string, pid int) (clusterInfo, error) {
 	cctx, ccancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	uris, err := cli.URIs(cctx)
 	ccancel()
@@ -195,7 +195,7 @@ func StartNetwork(vmId ids.ID, vmName string, genesisPath string, pluginDir stri
 	}
 	fmt.Println("Got custom vm")
 
-	return GetClusterInfo(blockchainId, logsDir, pid)
+	return SaveClusterInfo(blockchainId, logsDir, pid)
 }
 
 func StopNetwork() error {

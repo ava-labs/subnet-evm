@@ -60,7 +60,7 @@ func startSubnet(outputFile string, avalanchegoPath string, pluginDir string, gr
 	if err != nil {
 		panic(err)
 	}
-	runner.GetClusterInfo(blockchainId, logsDir, pid)
+	runner.SaveClusterInfo(blockchainId, logsDir, pid)
 }
 
 func parseMetamask(outputFile string, chainId string, address string) {
