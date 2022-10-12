@@ -1272,7 +1272,7 @@ func TestRewardManagerRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
-		"insufficient are fee recipients allowed from allowed role": {
+		"insufficient gas are fee recipients allowed from allowed role": {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackAreFeeRecipientsAllowed()
