@@ -208,7 +208,7 @@ func SetRewardManagerAllowListStatus(stateDB StateDB, address common.Address, ro
 	setAllowListRole(stateDB, RewardManagerAddress, address, role)
 }
 
-// PackAllowFeeRecipients packs the include selector (first 4 func signature bytes).
+// PackAllowFeeRecipients packs the function selector (first 4 func signature bytes).
 // This function is mostly used for tests.
 func PackAllowFeeRecipients() ([]byte, error) {
 	return RewardManagerABI.Pack("allowFeeRecipients")
