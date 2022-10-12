@@ -82,7 +82,7 @@ func (c *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {
 }
 
 // RewardManagerConfig implements the StatefulPrecompileConfig
-// interface while adding in the RewardManager specific precompile address.
+// interface while adding in the RewardManager specific precompile config.
 type RewardManagerConfig struct {
 	AllowListConfig
 	UpgradeableConfig
