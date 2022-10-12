@@ -1259,7 +1259,7 @@ func TestRewardManagerRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
-		"insufficient read current reward address from allowed role": {
+		"insufficient gas read current reward address from allowed role": {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackCurrentRewardAddress()
