@@ -131,7 +131,7 @@ func (c *RewardManagerConfig) Equal(s StatefulPrecompileConfig) bool {
 	}
 	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom RewardManagerConfig, to check if [other] and the current [c] are equal
-	// if RewardManagerConfig contains only UpgradeableConfig  and AllowListConfig  you can skip modifying it.
+	// if RewardManagerConfig contains only UpgradeableConfig and AllowListConfig you can skip modifying it.
 	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
 	if !equals {
 		return false
