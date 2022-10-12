@@ -5,7 +5,6 @@ package core
 
 import (
 	"math/big"
-	"strings"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -79,9 +78,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListAdmin)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -96,9 +94,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -113,9 +110,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -130,9 +126,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -143,9 +138,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -156,9 +150,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListAdmin)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -169,9 +162,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -182,9 +174,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost - 1,
@@ -234,9 +225,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := rawdb.NewMemoryDatabase()
 			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetContractDeployerAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
@@ -247,16 +236,9 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
 			ret, remainingGas, err := precompile.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.ContractDeployerAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
-				if err == nil {
-					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
-				} else {
-					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
-				}
-				return
-			}
-
-			if err != nil {
-				t.Fatal(err)
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
 			}
 
 			require.Equal(t, uint64(0), remainingGas)
@@ -291,9 +273,8 @@ func TestTxAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListAdmin)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -308,9 +289,8 @@ func TestTxAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -325,9 +305,8 @@ func TestTxAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -342,9 +321,8 @@ func TestTxAllowListRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -355,9 +333,8 @@ func TestTxAllowListRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -368,9 +345,8 @@ func TestTxAllowListRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListAdmin)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -382,9 +358,8 @@ func TestTxAllowListRun(t *testing.T) {
 			precompileAddr: precompile.TxAllowListAddress,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -395,9 +370,8 @@ func TestTxAllowListRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost - 1,
@@ -447,9 +421,7 @@ func TestTxAllowListRun(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := rawdb.NewMemoryDatabase()
 			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetTxAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
@@ -458,16 +430,9 @@ func TestTxAllowListRun(t *testing.T) {
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
 			ret, remainingGas, err := precompile.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.TxAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
-				if err == nil {
-					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
-				} else {
-					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
-				}
-				return
-			}
-
-			if err != nil {
-				t.Fatal(err)
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
 			}
 
 			require.Equal(t, uint64(0), remainingGas)
@@ -504,9 +469,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(noRoleAddr, common.Big1)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.MintGasCost,
@@ -517,9 +481,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.MintGasCost,
@@ -565,9 +528,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(adminAddr, common.Big1)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.MintGasCost,
@@ -581,9 +543,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(adminAddr, math.MaxBig256)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.MintGasCost,
@@ -597,9 +558,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(adminAddr, common.Big1)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.MintGasCost,
@@ -610,9 +570,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.MintGasCost,
@@ -623,9 +582,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(adminAddr, common.Big1)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.MintGasCost,
@@ -636,9 +594,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackMintInput(enabledAddr, common.Big1)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.MintGasCost - 1,
@@ -678,9 +635,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -695,9 +651,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -708,9 +663,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := rawdb.NewMemoryDatabase()
 			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetContractNativeMinterStatus(state, adminAddr, precompile.AllowListAdmin)
 			precompile.SetContractNativeMinterStatus(state, enabledAddr, precompile.AllowListEnabled)
@@ -725,16 +679,9 @@ func TestContractNativeMinterRun(t *testing.T) {
 			}
 			ret, remainingGas, err := precompile.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.ContractNativeMinterAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
-				if err == nil {
-					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
-				} else {
-					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
-				}
-				return
-			}
-
-			if err != nil {
-				t.Fatal(err)
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
 			}
 
 			require.Equal(t, uint64(0), remainingGas)
@@ -771,9 +718,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
@@ -784,9 +730,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
@@ -803,9 +748,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				feeConfig := testFeeConfig
 				feeConfig.MinBlockGasCost = new(big.Int).Mul(feeConfig.MaxBlockGasCost, common.Big2)
 				input, err := precompile.PackSetFeeConfig(feeConfig)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
@@ -821,9 +765,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
@@ -840,9 +783,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: noRoleAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
 				err := precompile.StoreFeeConfig(state, testFeeConfig, &mockBlockContext{blockNumber: big.NewInt(6)})
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 			},
 			input: func() []byte {
 				return precompile.PackGetFeeConfigInput()
@@ -887,9 +828,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: noRoleAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
 				err := precompile.StoreFeeConfig(state, testFeeConfig, &mockBlockContext{blockNumber: testBlockNumber})
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
 			},
 			input: func() []byte {
 				return precompile.PackGetLastChangedAtInput()
@@ -908,9 +847,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
@@ -921,9 +859,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
@@ -934,9 +871,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost,
@@ -947,9 +883,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetFeeConfig(testFeeConfig)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetFeeConfigGasCost - 1,
@@ -960,9 +895,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -977,9 +911,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -990,9 +923,8 @@ func TestFeeConfigManagerRun(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := rawdb.NewMemoryDatabase()
 			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetFeeConfigManagerStatus(state, adminAddr, precompile.AllowListAdmin)
 			precompile.SetFeeConfigManagerStatus(state, enabledAddr, precompile.AllowListEnabled)
@@ -1008,16 +940,9 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			}
 			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.FeeConfigManagerAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
-				if err == nil {
-					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
-				} else {
-					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
-				}
-				return
-			}
-
-			if err != nil {
-				t.Fatal(err)
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
 			}
 
 			require.Equal(t, uint64(0), remainingGas)
@@ -1055,9 +980,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackAllowFeeRecipients()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.AllowFeeRecipientsGasCost,
@@ -1068,9 +992,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetRewardAddress(testAddr)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetRewardAddressGasCost,
@@ -1081,9 +1004,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := precompile.PackDisableRewards()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.DisableRewardsGasCost,
@@ -1094,9 +1016,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackAllowFeeRecipients()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.AllowFeeRecipientsGasCost,
@@ -1107,9 +1028,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetRewardAddress(testAddr)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetRewardAddressGasCost,
@@ -1120,9 +1040,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackDisableRewards()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.DisableRewardsGasCost,
@@ -1136,9 +1055,8 @@ func TestRewardManagerRun(t *testing.T) {
 			},
 			input: func() []byte {
 				input, err := precompile.PackCurrentRewardAddress()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.CurrentRewardAddressGasCost,
@@ -1211,9 +1129,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackAllowFeeRecipients()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.AllowFeeRecipientsGasCost,
@@ -1224,9 +1141,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetRewardAddress(testAddr)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetRewardAddressGasCost,
@@ -1237,9 +1153,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackSetRewardAddress(testAddr)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.SetRewardAddressGasCost - 1,
@@ -1250,9 +1165,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackAllowFeeRecipients()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.AllowFeeRecipientsGasCost - 1,
@@ -1263,9 +1177,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackCurrentRewardAddress()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.CurrentRewardAddressGasCost - 1,
@@ -1276,9 +1189,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackAreFeeRecipientsAllowed()
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.AreFeeRecipientsAllowedGasCost - 1,
@@ -1289,9 +1201,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -1306,9 +1217,8 @@ func TestRewardManagerRun(t *testing.T) {
 			caller: enabledAddr,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
-				if err != nil {
-					panic(err)
-				}
+				require.NoError(t, err)
+
 				return input
 			},
 			suppliedGas: precompile.ModifyAllowListGasCost,
@@ -1319,9 +1229,8 @@ func TestRewardManagerRun(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := rawdb.NewMemoryDatabase()
 			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			// Set up the state so that each address has the expected permissions at the start.
 			precompile.SetRewardManagerAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
 			precompile.SetRewardManagerAllowListStatus(state, enabledAddr, precompile.AllowListEnabled)
@@ -1337,16 +1246,9 @@ func TestRewardManagerRun(t *testing.T) {
 			}
 			ret, remainingGas, err := precompile.RewardManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.RewardManagerAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
-				if err == nil {
-					require.Failf(t, "run expectedly passed without error", "expected error %q", test.expectedErr)
-				} else {
-					require.True(t, strings.Contains(err.Error(), test.expectedErr), "expected error (%s) to contain substring (%s)", err, test.expectedErr)
-				}
-				return
-			}
-
-			if err != nil {
-				t.Fatal(err)
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
 			}
 
 			require.Equal(t, uint64(0), remainingGas)

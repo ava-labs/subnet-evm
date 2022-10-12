@@ -2507,15 +2507,11 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 
 	<-issuer
 
-	_, err = vm.BuildBlock()
-	assert.ErrorContains(t, err, "block failed verification")
+	blk, err := vm.BuildBlock()
+	require.NoError(t, err) // this won't return an error since miner will set the etherbase to blackhole address
 
-	vm.miner.SetEtherbase(constants.BlackholeAddr) // set blackhole address
-
-	_, err = vm.BuildBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
+	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	assert.Equal(t, ethBlock.Coinbase(), constants.BlackholeAddr)
 }
 
 func TestAllowFeeRecipientEnabled(t *testing.T) {
@@ -2586,9 +2582,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	genesis.Config.RewardManagerConfig = precompile.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
 	genesis.Config.AllowFeeRecipients = true // enable this in genesis to test if this is recognized by the reward manager
 	genesisJSON, err := genesis.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
 	c := Config{}
 	c.SetDefaults()
@@ -2598,9 +2592,8 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), string(configJSON), "")
 
 	defer func() {
-		if err := vm.Shutdown(); err != nil {
-			t.Fatal(err)
-		}
+		err := vm.Shutdown()
+		require.NoError(t, err)
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2656,9 +2649,7 @@ func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
 	genesis.Config.RewardManagerConfig = precompile.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
 	genesis.Config.AllowFeeRecipients = false // disable this in genesis
 	genesisJSON, err := genesis.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
 	c := Config{}
 	c.SetDefaults()

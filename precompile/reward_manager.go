@@ -48,7 +48,6 @@ var (
 	ErrCannotSetRewardAddress        = errors.New("non-enabled cannot setRewardAddress")
 
 	ErrCannotEnableBothRewards = errors.New("cannot enable both fee recipients and reward address at the same time")
-	ErrCannotEmptyRewardAddr   = errors.New("cannot set empty reward address")
 	ErrEmptyRewardAddress      = errors.New("reward address cannot be empty")
 
 	RewardManagerABI        abi.ABI                     // will be initialized by init function
