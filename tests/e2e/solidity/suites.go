@@ -84,6 +84,17 @@ var _ = utils.DescribePrecompile(func() {
 		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 
+	ginkgo.It("reward manager", func() {
+		err := startSubnet("./tests/e2e/genesis/reward_manager.json")
+		gomega.Expect(err).Should(gomega.BeNil())
+		running := runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeTrue())
+		runHardhatTests("./test/ExampleRewardManager.ts")
+		stopSubnet()
+		running = runner.IsRunnerUp()
+		gomega.Expect(running).Should(gomega.BeFalse())
+	})
+
 	// ADD YOUR PRECOMPILE HERE
 	/*
 			ginkgo.It("your precompile", func() {
@@ -91,7 +102,7 @@ var _ = utils.DescribePrecompile(func() {
 			gomega.Expect(err).Should(gomega.BeNil())
 			running := runner.IsRunnerUp()
 			gomega.Expect(running).Should(gomega.BeTrue())
-			runHardhatTests("./test/Example{YourPrecompile}Test.ts")
+			runHardhatTests("./test/{YourPrecompileTest}.ts")
 			stopSubnet()
 			running = runner.IsRunnerUp()
 			gomega.Expect(running).Should(gomega.BeFalse())
