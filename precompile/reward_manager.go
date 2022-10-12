@@ -81,7 +81,7 @@ func (c *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {
 }
 
 // RewardManagerConfig implements the StatefulPrecompileConfig
-// interface while adding in the RewardManager specific precompile address.
+// interface while adding in the RewardManager specific precompile config.
 type RewardManagerConfig struct {
 	AllowListConfig
 	UpgradeableConfig
@@ -130,7 +130,7 @@ func (c *RewardManagerConfig) Equal(s StatefulPrecompileConfig) bool {
 	}
 	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom RewardManagerConfig, to check if [other] and the current [c] are equal
-	// if RewardManagerConfig contains only UpgradeableConfig  and AllowListConfig  you can skip modifying it.
+	// if RewardManagerConfig contains only UpgradeableConfig and AllowListConfig you can skip modifying it.
 	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
 	if !equals {
 		return false
@@ -207,7 +207,7 @@ func SetRewardManagerAllowListStatus(stateDB StateDB, address common.Address, ro
 	setAllowListRole(stateDB, RewardManagerAddress, address, role)
 }
 
-// PackAllowFeeRecipients packs the include selector (first 4 func signature bytes).
+// PackAllowFeeRecipients packs the function selector (first 4 func signature bytes).
 // This function is mostly used for tests.
 func PackAllowFeeRecipients() ([]byte, error) {
 	return RewardManagerABI.Pack("allowFeeRecipients")
