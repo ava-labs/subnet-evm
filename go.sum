@@ -63,18 +63,10 @@ github.com/allegro/bigcache v1.2.1-0.20190218064605-e24eb225f156 h1:eMwmnE/GDgah
 github.com/allegro/bigcache v1.2.1-0.20190218064605-e24eb225f156/go.mod h1:Cb/ax3seSYIx7SuZdm2G2xzfwmv3TPSk2ucNfQESPXM=
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/apache/arrow/go/arrow v0.0.0-20191024131854-af6fa24be0db/go.mod h1:VTxUBvSJ3s3eHAg65PNgrsn5BtqCRPdmyXh6rAfdxN0=
-github.com/ava-labs/avalanche-network-runner v1.2.2 h1:2XfJ4lIHPowa0K7VAfQzFIuE6YrraY5kFbxP04UyQR8=
-github.com/ava-labs/avalanche-network-runner v1.2.2/go.mod h1:2v30qT4ODecok/cCCgTDJLqeRnvvo8Lu8OqVab5vEPA=
-github.com/ava-labs/avalanche-network-runner-sdk v0.2.0 h1:YNvM0oFlb7A825kGe0XwwZuvIXTKF1BsuvxJdRLhIaI=
-github.com/ava-labs/avalanche-network-runner-sdk v0.2.0/go.mod h1:bEBRVZnGeRiNdDJAFUj+gA/TPzNDbpY/WzgDAHHwJb8=
-github.com/ava-labs/avalanchego v1.8.5 h1:HhNJUsvwk+DxxncutN/4rlnUmnQvtF/73qNbpW3BFJc=
-github.com/ava-labs/avalanchego v1.8.5/go.mod h1:GAo3tDCj5Ulx9xIY78ad5SmGFqtdmFRjJGQ2gJk//Vk=
-github.com/ava-labs/avalanchego v1.9.0 h1:9H6LZMVH9aSUJXviyBxn9owX8Dgs4azN7ojRsqLQpq0=
-github.com/ava-labs/avalanchego v1.9.0/go.mod h1:F0VZ+ukCllfz8VT79wZQlcRsTh1sbCCi5iWIhbLG8BQ=
-github.com/ava-labs/coreth v0.9.0-rc.13 h1:ccbNzZGV767q8hp97qKtEE/4HTD+fbEHYdAQgEXuR/U=
-github.com/ava-labs/coreth v0.9.0-rc.13/go.mod h1:TCUPN8PjyzwOTtH9VsxAVcd8eMh8jcbFgz4a5DOx1Ug
 github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221006162609-e7eb33c1e830 h1:XAF8g3lqzf1S3uL1XIOU4XZfrkJFCN7e84Wy8upKjvc=
 github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221006162609-e7eb33c1e830/go.mod h1:kHXJimYTdBqP1pQ220xi7VAuyXJHULqou44XsZTYDJw=
+github.com/ava-labs/avalanche-network-runner-sdk v0.2.0 h1:YNvM0oFlb7A825kGe0XwwZuvIXTKF1BsuvxJdRLhIaI=
+github.com/ava-labs/avalanche-network-runner-sdk v0.2.0/go.mod h1:bEBRVZnGeRiNdDJAFUj+gA/TPzNDbpY/WzgDAHHwJb8=
 github.com/ava-labs/avalanchego v1.9.0 h1:9H6LZMVH9aSUJXviyBxn9owX8Dgs4azN7ojRsqLQpq0=
 github.com/ava-labs/avalanchego v1.9.0/go.mod h1:F0VZ+ukCllfz8VT79wZQlcRsTh1sbCCi5iWIhbLG8BQ=
 github.com/ava-labs/coreth v0.11.0-rc.4 h1:oYZMWZcXYa4dH2hQBIAH/DD0rL2cB3btPGdabpCH5Ug=
@@ -209,6 +201,7 @@ github.com/go-sql-driver/mysql v1.4.1/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG
 github.com/go-stack/stack v1.8.0 h1:5SgMzNM5HxrEjV0ww2lTmX6E2Izsfxas4+YHWRs3Lsk=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
+github.com/go-test/deep v1.0.7 h1:/VSMRlnY/JSyqxQUzQLKVMAskpY/NZKFA5j2P+0pP2M=
 github.com/gofrs/uuid v3.3.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
 github.com/gogo/protobuf v1.3.1/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
@@ -330,7 +323,6 @@ github.com/huin/goupnp v1.0.3/go.mod h1:ZxNlw5WqJj6wSsRK5+YfflQGXYfccj5VgQsMNixH
 github.com/huin/goutil v0.0.0-20170803182201-1ca381bf3150/go.mod h1:PpLOETDnJ0o3iZrZfqZzyLl6l7F3c6L1oWn7OICBi6o=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
-github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/influxdata/flux v0.65.1/go.mod h1:J754/zds0vvpfwuq7Gc2wRdVwEodfpCFM7mYlOw2LqY=
 github.com/influxdata/influxdb v1.8.3 h1:WEypI1BQFTT4teLM+1qkEcvUi0dAvopAI/ir0vAiBg8=
@@ -551,8 +543,6 @@ github.com/spf13/cast v1.3.0/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkU
 github.com/spf13/cast v1.5.0 h1:rj3WzYc11XZaIZMPKmwP96zkFEnnAmV8s6XbB2aY32w=
 github.com/spf13/cast v1.5.0/go.mod h1:SpXXQ5YoyJw6s3/6cMTQuxvgRl3PCJiyaX9p6b155UU=
 github.com/spf13/cobra v0.0.3/go.mod h1:1l0Ry5zgKvJasoi3XT1TypsSe7PqH0Sj9dhYf7v3XqQ=
-github.com/spf13/cobra v1.5.0 h1:X+jTBEBqF0bHN+9cSMgmfuvv2VHJ9ezmFNf9Y/XstYU=
-github.com/spf13/cobra v1.5.0/go.mod h1:dWXEIy2H428czQCjInthrTRUg7yKbok+2Qi/yBIJoUM=
 github.com/spf13/jwalterweatherman v1.1.0 h1:ue6voC5bR5F8YxI5S67j9i582FU4Qvo2bmqnqMYADFk=
 github.com/spf13/jwalterweatherman v1.1.0/go.mod h1:aNWZUN0dPAAO/Ljvb5BEdw96iTZ0EXowPYD95IqWIGo=
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=

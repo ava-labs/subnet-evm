@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221006162609-e7eb33c1e830
+	github.com/ava-labs/avalanche-network-runner-sdk v0.2.0
 	github.com/ava-labs/avalanchego v1.9.0
 	github.com/cespare/cp v0.1.0
 	github.com/creack/pty v1.1.18
@@ -14,6 +15,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
+	github.com/go-cmd/cmd v1.4.1
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2
@@ -53,7 +55,6 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/aead/siphash v1.0.1 // indirect
-	github.com/ava-labs/avalanche-network-runner-sdk v0.2.0 // indirect
 	github.com/ava-labs/coreth v0.11.0-rc.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.23.1 // indirect
@@ -73,7 +74,6 @@ require (
 	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/go-cmd/cmd v1.4.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
