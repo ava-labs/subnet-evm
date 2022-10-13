@@ -260,6 +260,21 @@ func (n *network) AppRequestFailed(nodeID ids.NodeID, requestID uint32) error {
 	return handler.OnFailure(nodeID, requestID)
 }
 
+// CrossChainAppRequest is not currently implemented.
+func (n *network) CrossChainAppRequest(chainID ids.ID, requestID uint32, deadline time.Time, request []byte) error {
+	return nil
+}
+
+// CrossChainAppRequestFailed is not currently implemented.
+func (n *network) CrossChainAppRequestFailed(chainID ids.ID, requestID uint32) error {
+	return nil
+}
+
+// CrossChainAppResponse is not currently implemented.
+func (n *network) CrossChainAppResponse(chainID ids.ID, requestID uint32, response []byte) error {
+	return nil
+}
+
 // getRequestHandler fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
 // This is called by either [AppResponse] or [AppRequestFailed].
 // assumes that the write lock is held.
