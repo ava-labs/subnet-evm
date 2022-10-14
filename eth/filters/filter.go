@@ -152,7 +152,6 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 		head = header.Number.Uint64()
 		end  = uint64(f.end)
 	)
-
 	if f.begin < 0 {
 		f.begin = int64(head)
 	}

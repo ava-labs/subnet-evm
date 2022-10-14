@@ -124,8 +124,8 @@ type CacheConfig struct {
 	AcceptorQueueLimit              int     // Blocks to queue before blocking during acceptance
 	PopulateMissingTries            *uint64 // If non-nil, sets the starting height for re-generating historical tries.
 	PopulateMissingTriesParallelism int     // Is the number of readers to use when trying to populate missing tries.
-	SnapshotDelayInit               bool    // Whether to initialize snapshots on startup or wait for external call
 	AllowMissingTries               bool    // Whether to allow an archive node to run with pruning enabled
+	SnapshotDelayInit               bool    // Whether to initialize snapshots on startup or wait for external call
 	SnapshotLimit                   int     // Memory allowance (MB) to use for caching snapshot entries in memory
 	SnapshotAsync                   bool    // Generate snapshot tree async
 	SnapshotVerify                  bool    // Verify generated snapshots
@@ -1280,6 +1280,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	if err := indexesBatch.Write(); err != nil {
 		log.Crit("Failed to delete useless indexes", "err", err)
 	}
+
 	// If any logs need to be fired, do it now. In theory we could avoid creating
 	// this goroutine if there are no events to fire, but realistcally that only
 	// ever happens if we're reorging empty blocks, which will only happen on idle
