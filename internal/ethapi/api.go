@@ -616,6 +616,20 @@ func (api *BlockChainAPI) ChainId() *hexutil.Big {
 	return (*hexutil.Big)(api.b.ChainConfig().ChainID)
 }
 
+type GetChainConfigResponse struct {
+	*params.ChainConfig
+	params.UpgradeConfig `json:"upgrades"`
+}
+
+func (s *BlockChainAPI) GetChainConfig(ctx context.Context) GetChainConfigResponse {
+	config := s.b.ChainConfig()
+	resp := GetChainConfigResponse{
+		ChainConfig:   config,
+		UpgradeConfig: config.UpgradeConfig,
+	}
+	return resp
+}
+
 func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) params.PrecompileUpgrade {
 	if blockTimestamp == nil {
 		blockTimestampInt := s.b.CurrentHeader().Time
