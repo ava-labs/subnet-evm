@@ -592,6 +592,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 			return err
 		}
 	}
+
 	// It is important that outside code doesn't see an inconsistent state
 	// (referenced data removed from memory cache during commit but not yet
 	// in persistent storage). This is ensured by only uncaching existing
@@ -675,6 +676,7 @@ func (db *Database) Commit(node common.Hash, report bool, callback func(common.H
 			return err
 		}
 	}
+
 	// It is important that outside code doesn't see an inconsistent state (referenced
 	// data removed from memory cache during commit but not yet in persistent storage).
 	// This is ensured by only uncaching existing data when the database write finalizes.

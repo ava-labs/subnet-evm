@@ -599,6 +599,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call interfaces.Call
 	for lo+1 < hi {
 		mid := (hi + lo) / 2
 		failed, _, err := executable(mid)
+
 		// If the error is not nil(consensus error), it means the provided message
 		// call or transaction will never be accepted no matter how much gas it is
 		// assigned. Return the error directly, don't struggle any more
