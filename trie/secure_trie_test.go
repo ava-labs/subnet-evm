@@ -122,7 +122,7 @@ func TestSecureGetKey(t *testing.T) {
 	}
 }
 
-func TestSetateTrieConcurrency(t *testing.T) {
+func TestStateTrieConcurrency(t *testing.T) {
 	// Create an initial trie and copy if for concurrent access
 	_, trie, _ := makeTestStateTrie()
 

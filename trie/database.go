@@ -426,7 +426,7 @@ func (db *Database) Nodes() []common.Hash {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
-	hashes := make([]common.Hash, 0, len(db.dirties))
+	var hashes = make([]common.Hash, 0, len(db.dirties))
 	for hash := range db.dirties {
 		if hash != (common.Hash{}) { // Special case for "root" references/nodes
 			hashes = append(hashes, hash)
@@ -723,7 +723,6 @@ func (db *Database) Commit(node common.Hash, report bool, callback func(common.H
 	// Reset the garbage collection statistics
 	db.gcnodes, db.gcsize, db.gctime = 0, 0, 0
 	db.flushnodes, db.flushsize, db.flushtime = 0, 0, 0
-
 	return nil
 }
 
@@ -873,8 +872,8 @@ func (db *Database) Size() (common.StorageSize, common.StorageSize) {
 	// counted.
 	db.lock.RLock()
 	defer db.lock.RUnlock()
-	metadataSize := common.StorageSize((len(db.dirties) - 1) * cachedNodeSize)
-	metarootRefs := common.StorageSize(len(db.dirties[common.Hash{}].children) * (common.HashLength + 2))
+	var metadataSize = common.StorageSize((len(db.dirties) - 1) * cachedNodeSize)
+	var metarootRefs = common.StorageSize(len(db.dirties[common.Hash{}].children) * (common.HashLength + 2))
 	var preimageSize common.StorageSize
 	if db.preimages != nil {
 		preimageSize = db.preimages.size()

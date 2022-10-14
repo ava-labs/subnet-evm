@@ -336,7 +336,7 @@ func TestLargeValue(t *testing.T) {
 
 // TestRandomCases tests som cases that were found via random fuzzing
 func TestRandomCases(t *testing.T) {
-	rt := []randTestStep{
+	var rt = []randTestStep{
 		{op: 6, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 0
 		{op: 6, key: common.Hex2Bytes(""), value: common.Hex2Bytes("")},                                                                                                 // step 1
 		{op: 0, key: common.Hex2Bytes("d51b182b95d677e5f1c82508c0228de96b73092d78ce78b2230cd948674f66fd1483bd"), value: common.Hex2Bytes("0000000000000002")},           // step 2
@@ -609,7 +609,7 @@ func BenchmarkHash(b *testing.B) {
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
-	// trie.hashRoot(nil, nil)
+	//trie.hashRoot(nil, nil)
 	trie.Hash()
 }
 
@@ -635,7 +635,6 @@ func BenchmarkCommitAfterHash(b *testing.B) {
 
 func benchmarkCommitAfterHash(b *testing.B, collectLeaf bool) {
 	// Make the random benchmark deterministic
-
 	addresses, accounts := makeAccounts(b.N)
 	trie := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase()))
 	for i := 0; i < len(addresses); i++ {
@@ -714,7 +713,7 @@ func makeAccounts(size int) (addresses [][20]byte, accounts [][]byte) {
 		)
 		// The big.Rand function is not deterministic with regards to 64 vs 32 bit systems,
 		// and will consume different amount of data from the rand source.
-		// balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
+		//balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
 		// Therefore, we instead just read via byte buffer
 		numBytes := random.Uint32() % 33 // [0, 32] bytes
 		balanceBytes := make([]byte, numBytes)
@@ -778,18 +777,12 @@ func TestCommitSequence(t *testing.T) {
 		expWriteSeqHash    []byte
 		expCallbackSeqHash []byte
 	}{
-		{
-			20, common.FromHex("873c78df73d60e59d4a2bcf3716e8bfe14554549fea2fc147cb54129382a8066"),
-			common.FromHex("ff00f91ac05df53b82d7f178d77ada54fd0dca64526f537034a5dbe41b17df2a"),
-		},
-		{
-			200, common.FromHex("ba03d891bb15408c940eea5ee3d54d419595102648d02774a0268d892add9c8e"),
-			common.FromHex("f3cd509064c8d319bbdd1c68f511850a902ad275e6ed5bea11547e23d492a926"),
-		},
-		{
-			2000, common.FromHex("f7a184f20df01c94f09537401d11e68d97ad0c00115233107f51b9c287ce60c7"),
-			common.FromHex("ff795ea898ba1e4cfed4a33b4cf5535a347a02cf931f88d88719faf810f9a1c9"),
-		},
+		{20, common.FromHex("873c78df73d60e59d4a2bcf3716e8bfe14554549fea2fc147cb54129382a8066"),
+			common.FromHex("ff00f91ac05df53b82d7f178d77ada54fd0dca64526f537034a5dbe41b17df2a")},
+		{200, common.FromHex("ba03d891bb15408c940eea5ee3d54d419595102648d02774a0268d892add9c8e"),
+			common.FromHex("f3cd509064c8d319bbdd1c68f511850a902ad275e6ed5bea11547e23d492a926")},
+		{2000, common.FromHex("f7a184f20df01c94f09537401d11e68d97ad0c00115233107f51b9c287ce60c7"),
+			common.FromHex("ff795ea898ba1e4cfed4a33b4cf5535a347a02cf931f88d88719faf810f9a1c9")},
 	} {
 		addresses, accounts := makeAccounts(tc.count)
 		// This spongeDb is used to check the sequence of disk-db-writes
@@ -827,18 +820,12 @@ func TestCommitSequenceRandomBlobs(t *testing.T) {
 		expWriteSeqHash    []byte
 		expCallbackSeqHash []byte
 	}{
-		{
-			20, common.FromHex("8e4a01548551d139fa9e833ebc4e66fc1ba40a4b9b7259d80db32cff7b64ebbc"),
-			common.FromHex("450238d73bc36dc6cc6f926987e5428535e64be403877c4560e238a52749ba24"),
-		},
-		{
-			200, common.FromHex("6869b4e7b95f3097a19ddb30ff735f922b915314047e041614df06958fc50554"),
-			common.FromHex("0ace0b03d6cb8c0b82f6289ef5b1a1838306b455a62dafc63cada8e2924f2550"),
-		},
-		{
-			2000, common.FromHex("444200e6f4e2df49f77752f629a96ccf7445d4698c164f962bbd85a0526ef424"),
-			common.FromHex("117d30dafaa62a1eed498c3dfd70982b377ba2b46dd3e725ed6120c80829e518"),
-		},
+		{20, common.FromHex("8e4a01548551d139fa9e833ebc4e66fc1ba40a4b9b7259d80db32cff7b64ebbc"),
+			common.FromHex("450238d73bc36dc6cc6f926987e5428535e64be403877c4560e238a52749ba24")},
+		{200, common.FromHex("6869b4e7b95f3097a19ddb30ff735f922b915314047e041614df06958fc50554"),
+			common.FromHex("0ace0b03d6cb8c0b82f6289ef5b1a1838306b455a62dafc63cada8e2924f2550")},
+		{2000, common.FromHex("444200e6f4e2df49f77752f629a96ccf7445d4698c164f962bbd85a0526ef424"),
+			common.FromHex("117d30dafaa62a1eed498c3dfd70982b377ba2b46dd3e725ed6120c80829e518")},
 	} {
 		prng := rand.New(rand.NewSource(int64(i)))
 		// This spongeDb is used to check the sequence of disk-db-writes

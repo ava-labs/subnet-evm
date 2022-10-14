@@ -8,7 +8,7 @@
 //
 // Much love to the original authors for their work.
 // **********
-// Copyright 2019 The go-ethereum Authors
+// Copyright 2016 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -107,7 +107,7 @@ func (h *hasher) hashShortNodeChildren(n *shortNode) (collapsed, cached *shortNo
 	collapsed, cached = n.copy(), n.copy()
 	// Previously, we did copy this one. We don't seem to need to actually
 	// do that, since we don't overwrite/reuse keys
-	// cached.Key = common.CopyBytes(n.Key)
+	//cached.Key = common.CopyBytes(n.Key)
 	collapsed.Key = hexToCompact(n.Key)
 	// Unless the child is a valuenode or hashnode, hash it
 	switch n.Val.(type) {

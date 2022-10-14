@@ -36,8 +36,10 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-// emptyRoot is the known root hash of an empty trie.
-var emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+var (
+	// emptyRoot is the known root hash of an empty trie.
+	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+)
 
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf
 // node.
@@ -107,7 +109,7 @@ func New(owner common.Hash, root common.Hash, db *Database) (*Trie, error) {
 	trie := &Trie{
 		owner: owner,
 		db:    db,
-		// tracer: newTracer(),
+		//tracer: newTracer(),
 	}
 	if root != (common.Hash{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
