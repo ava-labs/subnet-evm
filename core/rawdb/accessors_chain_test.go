@@ -341,7 +341,7 @@ func checkReceiptsRLP(have, want types.Receipts) error {
 }
 
 func TestCanonicalHashIteration(t *testing.T) {
-	cases := []struct {
+	var cases = []struct {
 		from, to uint64
 		limit    int
 		expect   []uint64

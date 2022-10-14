@@ -8,7 +8,7 @@
 //
 // Much love to the original authors for their work.
 // **********
-// Copyright 2019 The go-ethereum Authors
+// Copyright 2017 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -688,7 +688,7 @@ func TestReadStateDuringFlattening(t *testing.T) {
 	snap := snaps.Snapshot(diffRootC)
 
 	// Register the testing hook to access the state after flattening
-	result := make(chan *Account)
+	var result = make(chan *Account)
 	snaps.onFlatten = func() {
 		// Spin up a thread to read the account from the pre-created
 		// snapshot handler. It's expected to be blocked.

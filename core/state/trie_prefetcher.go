@@ -34,8 +34,10 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-// triePrefetchMetricsPrefix is the prefix under which to publish the metrics.
-var triePrefetchMetricsPrefix = "trie/prefetch/"
+var (
+	// triePrefetchMetricsPrefix is the prefix under which to publish the metrics.
+	triePrefetchMetricsPrefix = "trie/prefetch/"
+)
 
 // triePrefetcher is an active prefetcher, which receives accounts or storage
 // items and does trie-loading of them. The goal is to get as much useful content

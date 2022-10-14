@@ -769,7 +769,7 @@ func TestStateDBAccessList(t *testing.T) {
 		t.Helper()
 		// convert to common.Address form
 		var addresses []common.Address
-		addressMap := make(map[common.Address]struct{})
+		var addressMap = make(map[common.Address]struct{})
 		for _, astring := range astrings {
 			address := addr(astring)
 			addresses = append(addresses, address)
@@ -792,10 +792,10 @@ func TestStateDBAccessList(t *testing.T) {
 		if !state.AddressInAccessList(addr(addrString)) {
 			t.Fatalf("scope missing address/slots %v", addrString)
 		}
-		address := addr(addrString)
+		var address = addr(addrString)
 		// convert to common.Hash form
 		var slots []common.Hash
-		slotMap := make(map[common.Hash]struct{})
+		var slotMap = make(map[common.Hash]struct{})
 		for _, slotString := range slotStrings {
 			s := slot(slotString)
 			slots = append(slots, s)
