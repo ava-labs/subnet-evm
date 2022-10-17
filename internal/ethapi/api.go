@@ -138,9 +138,18 @@ func (s *EthereumAPI) Syncing() (interface{}, error) {
 	return false, nil
 }
 
-// GetChainConfig returns the chain config.
-func (s *EthereumAPI) GetChainConfig(ctx context.Context) *params.ChainConfig {
-	return s.b.ChainConfig()
+type GetChainConfigResponse struct {
+	*params.ChainConfig
+	params.UpgradeConfig `json:"upgrades"`
+}
+
+func (s *BlockChainAPI) GetChainConfig(ctx context.Context) GetChainConfigResponse {
+	config := s.b.ChainConfig()
+	resp := GetChainConfigResponse{
+		ChainConfig:   config,
+		UpgradeConfig: config.UpgradeConfig,
+	}
+	return resp
 }
 
 // TxPoolAPI offers and API for the transaction pool. It only operates on data that is non confidential.
@@ -614,20 +623,6 @@ func NewBlockChainAPI(b Backend) *BlockChainAPI {
 // in CL clients.
 func (api *BlockChainAPI) ChainId() *hexutil.Big {
 	return (*hexutil.Big)(api.b.ChainConfig().ChainID)
-}
-
-type GetChainConfigResponse struct {
-	*params.ChainConfig
-	params.UpgradeConfig `json:"upgrades"`
-}
-
-func (s *BlockChainAPI) GetChainConfig(ctx context.Context) GetChainConfigResponse {
-	config := s.b.ChainConfig()
-	resp := GetChainConfigResponse{
-		ChainConfig:   config,
-		UpgradeConfig: config.UpgradeConfig,
-	}
-	return resp
 }
 
 func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) params.PrecompileUpgrade {
