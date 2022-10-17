@@ -62,10 +62,6 @@ var (
 	CrazyWithPowerABI abi.ABI // will be initialized by init function
 
 	CrazyWithPowerPrecompile StatefulPrecompiledContract // will be initialized by init function
-
-	// CUSTOM CODE STARTS HERE
-	// THIS SHOULD BE MOVED TO precompile/params.go with a suitable hex address.
-	CrazyWithPowerAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
 )
 
 // CrazyWithPowerConfig implements the StatefulPrecompileConfig
