@@ -260,17 +260,17 @@ func (n *network) AppRequestFailed(nodeID ids.NodeID, requestID uint32) error {
 	return handler.OnFailure(nodeID, requestID)
 }
 
-// CrossChainAppRequest is not currently implemented.
+// CrossChainAppRequest is a no-op.
 func (n *network) CrossChainAppRequest(chainID ids.ID, requestID uint32, deadline time.Time, request []byte) error {
 	return nil
 }
 
-// CrossChainAppRequestFailed is not currently implemented.
+// CrossChainAppRequestFailed is a no-op.
 func (n *network) CrossChainAppRequestFailed(chainID ids.ID, requestID uint32) error {
 	return nil
 }
 
-// CrossChainAppResponse is not currently implemented.
+// CrossChainAppResponse is a no-op.
 func (n *network) CrossChainAppResponse(chainID ids.ID, requestID uint32, response []byte) error {
 	return nil
 }
