@@ -38,9 +38,9 @@ import (
 )
 
 const (
-	SetProtectionGasCost uint64 = 0 // SET A GAS COST HERE
-	StealGasCost         uint64 = 0 // SET A GAS COST HERE
-	UncertainFateGasCost uint64 = 0 // SET A GAS COST HERE
+	SetProtectionGasCost uint64 = 20_000
+	StealGasCost         uint64 = 40_000
+	UncertainFateGasCost uint64 = 20_000
 
 	// CrazyWithPowerRawABI contains the raw ABI of CrazyWithPower contract.
 	CrazyWithPowerRawABI = "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"protection\",\"type\":\"uint256\"}],\"name\":\"setProtection\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"enemy\",\"type\":\"address\"}],\"name\":\"steal\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"uncertainFate\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
