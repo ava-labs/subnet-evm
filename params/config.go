@@ -253,6 +253,12 @@ func (c *ChainConfig) IsFeeConfigManager(blockTimestamp *big.Int) bool {
 	return config != nil && !config.Disable
 }
 
+// IsCrazyWithPower returns whether [blockTimestamp] is either equal to the IsCrazyWithPower fork block timestamp or greater.
+func (c *ChainConfig) IsCrazyWithPower(blockTimestamp *big.Int) bool {
+	config := c.GetCrazyWithPowerConfig(blockTimestamp)
+	return config != nil && !config.Disable
+}
+
 // ADD YOUR PRECOMPILE HERE
 /*
 func (c *ChainConfig) Is{YourPrecompile}(blockTimestamp *big.Int) bool {
@@ -493,6 +499,7 @@ type Rules struct {
 	IsContractNativeMinterEnabled      bool
 	IsTxAllowListEnabled               bool
 	IsFeeConfigManagerEnabled          bool
+	IsCrazyWithPowerEnabled            bool
 	// ADD YOUR PRECOMPILE HERE
 	// Is{YourPrecompile}Enabled         bool
 
@@ -532,6 +539,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsContractNativeMinterEnabled = c.IsContractNativeMinter(blockTimestamp)
 	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
 	rules.IsFeeConfigManagerEnabled = c.IsFeeConfigManager(blockTimestamp)
+	rules.IsCrazyWithPowerEnabled = c.IsCrazyWithPower(blockTimestamp)
 	// ADD YOUR PRECOMPILE HERE
 	// rules.Is{YourPrecompile}Enabled = c.{IsYourPrecompile}(blockTimestamp)
 
