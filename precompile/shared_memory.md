@@ -14,25 +14,37 @@ We will calculate the `assetID` by taking the `sha256(blockchainID + contract Ad
 
 ### Solidity Interface for Exports
 
-We will provide the ability for contracts to export either a UTXO or a message to another chain within the same subnet. To do this, we will expose the following interface to export a UTXO or message into the shared memory of a recipient chain:
+We will provide the ability for contracts to export either a generic message, a UTXO, or AVAX to another chain within the same subnet. To do this, we will expose the following interface to perform an export to a specified destination chain:
 
 ```sol
-export(msg []byte)
+export(destinationChain bytes32, msg []byte)
 ```
 
 Export will be used to perform arbitrary message passing from one chain to another. The assetID of the message will be derived from the blockchainID and the contract address.
 
+We need to ensure that an arbitrary message cannot pretend ot be an actual UTXO.
+
+TODO:
+- How do we want to ensure that an arbitrary message cannot pretend to be an actual UTXO? Add an ID or use shared memory traits?
+- How should we expose the ability to add traits for a given generic message?
+
 ```sol
-exportUTXO(...) // fill in these parameters with the same ones as for an export transaction
+exportUTXO(amount uint64, locktime uint64, threshold uint64, addrs []address)
 ```
 
 ExportUTXO will allow a contract to export a UTXO with an assetID derived from the contract address. The UTXO will be placed into shared memory when the block is accepted.
 
+TODO:
+- decide what denomination to use here. If we use uint64 some contracts may need to perform the conversion.
+
 ```sol
-exportAVAX(...) // fill in these parameters
+exportAVAX(amount uint256, locktime uint64, threshold uint64, addrs []address)
 ```
 
 ExportAVAX will allow a contract to export a UTXO containing AVAX from the contract address. This will require a balance check internal to the EVM and will place a UTXO into shared memory containing AVAX on accept.
+
+TODO
+- Do we want to use an amount of type uint64 or uint256? Where do we want to perform the conversion between the two denominations? 
 
 ### Exports Under the Hood: Interacting with Shared Memory
 
@@ -53,22 +65,30 @@ Smart contracts should have the ability to import an Avalanche Native Token from
 To add this functionality, the precompile will expose the following functions:
 
 ```sol
-import(msg []byte)
+import(sourceChain bytes32, msg []byte) (msg []byte, present bool)
 ```
 
 Import will be used to acknowledge, process, and remove a generic message from shared memory. This means that the message will be consumed by a contract by its ID and the message will be removed from shared memory when the block gets accepted.
 
 ```sol
-importUTXO(...) // fill in these params
+importUTXO(utxoID bytes32) (amount uin64, locktime uint64, threshold uint64, addrs []address)
 ```
+
+TODO
+- there's only one caller, so there's a question of if we should only have a single address in the returned set of addresses and require a threshold of 1
+- Should the caller specify the amount? Probably not
 
 ImportUTXO will be used to acknowledge, process, and remove a UTXO from shared memory. The contract calling this precompile will be responsible for processing the details of the UTXO and crediting the owner of the UTXO with the funds held by the UTXO.
 
 ```sol
-importAVAX(...) // fill in these parameters
+importAVAX(utxoID bytes32)
 ```
 
-ImportAVAX will allow a contract to import a UTXO with AVAX as the assetID. The UTXO will be removed from shared memory when the block is accepted.
+ImportAVAX will allow a contract to import a UTXO with AVAX as the assetID. It will verify the caller address is the sole owner of the UTXO and then increment hte AVAX balance for either the caller or a requested address. The UTXO will be removed from shared memory when the block is accepted.
+
+TODO
+- should this perform evm.Call to send funds to a requested address or just add the balance
+- should the user be allowed to specify an address to send the funds to
 
 ## Special Case: Handling AVAX Import/Exports
 
