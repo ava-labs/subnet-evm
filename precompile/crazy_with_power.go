@@ -29,7 +29,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -122,7 +125,6 @@ func (c *CrazyWithPowerConfig) Address() common.Address {
 
 // Configure configures [state] with the initial configuration.
 func (c *CrazyWithPowerConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
-
 	// CUSTOM CODE STARTS HERE
 }
 
@@ -145,7 +147,7 @@ func (c *CrazyWithPowerConfig) Verify() error {
 func UnpackSetProtectionInput(input []byte) (*big.Int, error) {
 	res, err := CrazyWithPowerABI.UnpackInput("setProtection", input)
 	if err != nil {
-		return 0, err
+		return big.NewInt(0), err
 	}
 	unpacked := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
 	return unpacked, nil
@@ -168,16 +170,26 @@ func setProtection(accessibleState PrecompileAccessibleState, caller common.Addr
 	// attempts to unpack [input] into the arguments to the SetProtectionInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackSetProtectionInput(input)
+	protectionNumber, err := UnpackSetProtectionInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
+	// Set Protection Score to be either 1, 2, or 3
+	protectionScore := (protectionNumber.Uint64() % 3) + 1
 
+	// Create a Left Zero Padded 32 Byte of Protection Score
+	result := common.LeftPadBytes([]byte(strconv.FormatUint(protectionScore, 10)), common.HashLength)
+
+	// Get the State DB
+	stateDB := accessibleState.GetStateDB()
+
+	// Set key value mapping in state DB where key is "protection" and value is [protectionScore]
+	stateDB.SetState(caller, common.BytesToHash([]byte("protection")), common.BytesToHash(result))
+
+	// Return nothing
+	packedOutput := []byte{}
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
 }
@@ -210,15 +222,36 @@ func steal(accessibleState PrecompileAccessibleState, caller common.Address, add
 	// attempts to unpack [input] into the arguments to the StealInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackStealInput(input)
+	enemyAddress, err := UnpackStealInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
+
+	// Access State and Get Protection Number of Enemy
+	stateDB := accessibleState.GetStateDB()
+	protection := stateDB.GetState(enemyAddress, common.BytesToHash([]byte("protection")))
+	enemyProtectionNumber, _ := strconv.Atoi(string(common.TrimLeftZeroes(protection.Bytes())))
+
+	// Set Seed and choose a random number [0, 4)
+	rand.Seed(time.Now().UnixNano())
+	randomNumber := rand.Intn(4)
+
+	if randomNumber == enemyProtectionNumber {
+		// Enemy is protected
+		// Enemy gets to steal the callers funds
+		callerBalance := stateDB.GetBalance(caller)
+		stateDB.AddBalance(enemyAddress, callerBalance)
+		stateDB.SubBalance(caller, callerBalance)
+	} else {
+		// Steal the enemy's funds
+		enemyBalance := stateDB.GetBalance(enemyAddress)
+		stateDB.AddBalance(caller, enemyBalance)
+		stateDB.SubBalance(enemyAddress, enemyBalance)
+	}
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
@@ -242,9 +275,37 @@ func uncertainFate(accessibleState PrecompileAccessibleState, caller common.Addr
 	// CUSTOM CODE STARTS HERE
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
+	// Get state and balance of caller
+	stateDB := accessibleState.GetStateDB()
+
+	// Check if we have already used this function
+	fate := stateDB.GetState(caller, common.BytesToHash([]byte("seenOurFate")))
+	fateBoolean := string(common.TrimLeftZeroes(fate.Bytes()))
+
+	if fateBoolean == "True" {
+		return packedOutput, remainingGas, nil
+	}
+
+	balance := stateDB.GetBalance(caller)
+
+	// Set Seed and choose a random number [0, 2)
+	rand.Seed(time.Now().UnixNano())
+	decision := rand.Intn(2)
+
+	// If random number is 1 then double the balance of caller and if not drain the balance to 0
+	if decision == 1 {
+		stateDB.AddBalance(caller, balance)
+	} else {
+		stateDB.SubBalance(caller, balance)
+	}
+
+	// Once we have used this function up, we can set seenOurFate to True.
+	result := common.LeftPadBytes([]byte("True"), common.HashLength)
+	stateDB.SetState(caller, common.BytesToHash([]byte("seenOurFate")), common.BytesToHash(result))
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
+
 }
 
 // createCrazyWithPowerPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
