@@ -232,7 +232,6 @@ done:
 		utils.Outf("{{blue}}avalanche subnet-evm RPC:{{/}} %q\n", rpcEP)
 	}
 
-
 	utils.Outf("{{blue}}{{bold}}writing output %q with PID %d{{/}}\n", utils.GetOutputPath(), pid)
 	ci := utils.ClusterInfo{
 		URIs:                  uris,
