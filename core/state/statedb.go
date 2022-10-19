@@ -1034,7 +1034,7 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 // - Add precompiles to access list (2929)
 // - Add the contents of the optional tx access list (2930)
 //
-// This method should only be called if Berlin/ApricotPhase2/2929+2930 is applicable at the current number.
+// This method should only be called if Berlin/SubnetEVM/2929+2930 is applicable at the current number.
 func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
 	// Clear out any leftover from previous executions
 	s.accessList = newAccessList()

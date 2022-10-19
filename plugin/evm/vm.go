@@ -696,10 +696,10 @@ func (vm *VM) Version() (string, error) {
 }
 
 // NewHandler returns a new Handler for a service where:
-//   * The handler's functionality is defined by [service]
+//   - The handler's functionality is defined by [service]
 //     [service] should be a gorilla RPC service (see https://www.gorillatoolkit.org/pkg/rpc/v2)
-//   * The name of the service is [name]
-//   * The LockOption is the first element of [lockOption]
+//   - The name of the service is [name]
+//   - The LockOption is the first element of [lockOption]
 //     By default the LockOption is WriteLock
 //     [lockOption] should have either 0 or 1 elements. Elements beside the first are ignored.
 func newHandler(name string, service interface{}, lockOption ...commonEng.LockOption) (*commonEng.HTTPHandler, error) {
