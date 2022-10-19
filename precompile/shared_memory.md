@@ -22,11 +22,12 @@ export(destinationChain bytes32, msg []byte)
 
 Export will be used to perform arbitrary message passing from one chain to another. The assetID of the message will be derived from the blockchainID and the contract address.
 
-We need to ensure that an arbitrary message cannot pretend ot be an actual UTXO.
+We need to ensure that an arbitrary message cannot pretend to be an actual UTXO.
 
 TODO:
-- How do we want to ensure that an arbitrary message cannot pretend to be an actual UTXO? Add an ID or use shared memory traits?
+- How do we want to ensure that an arbitrary message cannot pretend to be an actual UTXO? Add an ID or use shared memory traits? This is handled by the codec
 - How should we expose the ability to add traits for a given generic message?
+- We should learn from the past and not implement this until someone asks for it explicitly in case it introduces a vulnerability
 
 ```sol
 exportUTXO(amount uint64, locktime uint64, threshold uint64, addrs []address)
