@@ -282,8 +282,9 @@ func expandNode(hash hashNode, n node) node {
 
 // Config defines all necessary options for database.
 type Config struct {
-	Cache     int  // Memory allowance (MB) to use for caching trie nodes in memory
-	Preimages bool // Flag whether the preimage of trie key is recorded
+	Cache     int    // Memory allowance (MB) to use for caching trie nodes in memory
+	Preimages bool   // Flag whether the preimage of trie key is recorded
+	Journal   string // File location to load trie clean cache from
 }
 
 // NewDatabase creates a new trie database to store ephemeral trie content before
@@ -299,7 +300,11 @@ func NewDatabase(diskdb ethdb.KeyValueStore) *Database {
 func NewDatabaseWithConfig(diskdb ethdb.KeyValueStore, config *Config) *Database {
 	var cleans *fastcache.Cache
 	if config != nil && config.Cache > 0 {
-		cleans = fastcache.New(config.Cache * 1024 * 1024)
+		if config.Journal == "" {
+			cleans = fastcache.New(config.Cache * 1024 * 1024)
+		} else {
+			cleans = fastcache.LoadFromFileOrNew(config.Journal, config.Cache*1024*1024)
+		}
 	}
 	db := &Database{
 		diskdb: diskdb,

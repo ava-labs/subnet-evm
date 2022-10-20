@@ -265,6 +265,7 @@ func NewBlockChain(
 		db:          db,
 		stateCache: state.NewDatabaseWithConfig(db, &trie.Config{
 			Cache:     cacheConfig.TrieCleanLimit,
+			Journal:   cacheConfig.TrieCleanJournal,
 			Preimages: cacheConfig.Preimages,
 		}),
 		bodyCache:      bodyCache,
@@ -1791,6 +1792,7 @@ func (bc *BlockChain) ResetState(block *types.Block) error {
 	lastAcceptedHash := block.Hash()
 	bc.stateCache = state.NewDatabaseWithConfig(bc.db, &trie.Config{
 		Cache:     bc.cacheConfig.TrieCleanLimit,
+		Journal:   bc.cacheConfig.TrieCleanJournal,
 		Preimages: bc.cacheConfig.Preimages,
 	})
 	if err := bc.loadLastState(lastAcceptedHash); err != nil {
