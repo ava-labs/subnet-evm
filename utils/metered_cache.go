@@ -5,6 +5,7 @@ package utils
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -12,21 +13,20 @@ import (
 	"github.com/ava-labs/subnet-evm/metrics"
 )
 
-var (
-	statsMap = map[string]func(s *fastcache.Stats) uint64{
-		"entries":    func(s *fastcache.Stats) uint64 { return s.EntriesCount },
-		"bytesSize":  func(s *fastcache.Stats) uint64 { return s.BytesSize },
-		"collisions": func(s *fastcache.Stats) uint64 { return s.Collisions },
-		"gets":       func(s *fastcache.Stats) uint64 { return s.GetCalls },
-		"sets":       func(s *fastcache.Stats) uint64 { return s.SetCalls },
-		"misses":     func(s *fastcache.Stats) uint64 { return s.Misses },
-	}
-)
-
 // MeteredCache wraps *fastcache.Cache and periodically pulls stats from it.
 type MeteredCache struct {
 	*fastcache.Cache
-	stats  map[string]metrics.Gauge
+	namespace string
+
+	// stats to be surfaced
+	entriesCount metrics.Gauge
+	bytesSize    metrics.Gauge
+	collisions   metrics.Gauge
+	gets         metrics.Gauge
+	sets         metrics.Gauge
+	misses       metrics.Gauge
+
+	// synchronization
 	quitCh chan struct{}
 	waitWg sync.WaitGroup
 }
@@ -40,18 +40,19 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 	} else {
 		cache = fastcache.LoadFromFileOrNew(journal, size)
 	}
-
-	stats := make(map[string]metrics.Gauge, len(statsMap))
-	if namespace != "" {
-		// avoid registering stats if a namespace was not provided.
-		for statName := range statsMap {
-			stats[statName] = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/%s", namespace, statName), nil)
-		}
-	}
 	mc := &MeteredCache{
-		Cache:  cache,
-		stats:  stats,
-		quitCh: make(chan struct{}),
+		Cache:     cache,
+		namespace: namespace,
+		quitCh:    make(chan struct{}),
+	}
+	if namespace != "" {
+		// only register stats if a namespace is provided.
+		mc.entriesCount = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/entriesCount", namespace), nil)
+		mc.bytesSize = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/bytesSize", namespace), nil)
+		mc.collisions = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/collisions", namespace), nil)
+		mc.gets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/gets", namespace), nil)
+		mc.sets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/sets", namespace), nil)
+		mc.misses = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/misses", namespace), nil)
 	}
 
 	if updateFrequency > 0 {
@@ -67,21 +68,30 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 				case <-ticker.C:
 					mc.updateStats()
 				case <-mc.quitCh:
-					break
+					return
 				}
 			}
 		}()
+		// Note: clean up the goroutine once the object is ready for gc.
+		runtime.SetFinalizer(mc, func(mc *MeteredCache) { mc.Shutdown() })
 	}
 	return mc
 }
 
 // updateStats updates metrics from fastcache
 func (mc *MeteredCache) updateStats() {
+	if mc.namespace == "" {
+		return
+	}
+
 	s := fastcache.Stats{}
 	mc.UpdateStats(&s)
-	for statName, stat := range mc.stats {
-		stat.Update(int64(statsMap[statName](&s)))
-	}
+	mc.entriesCount.Update(int64(s.EntriesCount))
+	mc.bytesSize.Update(int64(s.BytesSize))
+	mc.collisions.Update(int64(s.Collisions))
+	mc.gets.Update(int64(s.GetCalls))
+	mc.sets.Update(int64(s.SetCalls))
+	mc.misses.Update(int64(s.Misses))
 }
 
 func (mc *MeteredCache) Shutdown() {
