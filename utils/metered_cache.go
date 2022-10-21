@@ -42,8 +42,11 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 	}
 
 	stats := make(map[string]metrics.Gauge, len(statsMap))
-	for statName := range statsMap {
-		stats[statName] = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/%s", namespace, statName), nil)
+	if namespace != "" {
+		// avoid registering stats if a namespace was not provided.
+		for statName := range statsMap {
+			stats[statName] = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/%s", namespace, statName), nil)
+		}
 	}
 	mc := &MeteredCache{
 		Cache:  cache,

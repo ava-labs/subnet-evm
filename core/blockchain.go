@@ -1763,8 +1763,9 @@ func (bc *BlockChain) ResetState(block *types.Block) error {
 
 	lastAcceptedHash := block.Hash()
 	bc.stateCache = state.NewDatabaseWithConfig(bc.db, &trie.Config{
-		Cache:     bc.cacheConfig.TrieCleanLimit,
-		Preimages: bc.cacheConfig.Preimages,
+		Cache:          bc.cacheConfig.TrieCleanLimit,
+		Preimages:      bc.cacheConfig.Preimages,
+		StatsNamespace: trieCleanCacheStatsNamespace,
 	})
 	if err := bc.loadLastState(lastAcceptedHash); err != nil {
 		return err
