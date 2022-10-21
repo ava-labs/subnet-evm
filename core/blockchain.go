@@ -103,6 +103,10 @@ const (
 	// statsReportLimit is the time limit during import and export after which we
 	// always print out progress. This avoids the user wondering what's going on.
 	statsReportLimit = 8 * time.Second
+
+	// trieCleanCacheStatsNamespace is the namespace to surface stats from the trie
+	// clean cache's underlying fastcache.
+	trieCleanCacheStatsNamespace = "trie/memcache/clean/fastcache"
 )
 
 // cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
@@ -253,8 +257,9 @@ func NewBlockChain(
 		cacheConfig: cacheConfig,
 		db:          db,
 		stateCache: state.NewDatabaseWithConfig(db, &trie.Config{
-			Cache:     cacheConfig.TrieCleanLimit,
-			Preimages: cacheConfig.Preimages,
+			Cache:          cacheConfig.TrieCleanLimit,
+			Preimages:      cacheConfig.Preimages,
+			StatsNamespace: trieCleanCacheStatsNamespace,
 		}),
 		bodyCache:      bodyCache,
 		receiptsCache:  receiptsCache,

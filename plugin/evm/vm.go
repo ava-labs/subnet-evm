@@ -560,7 +560,8 @@ func (vm *VM) setAppRequestHandlers() {
 	evmTrieDB := trie.NewDatabaseWithConfig(
 		vm.chaindb,
 		&trie.Config{
-			Cache: vm.config.StateSyncServerTrieCache,
+			Cache:          vm.config.StateSyncServerTrieCache,
+			StatsNamespace: "sync/triecache",
 		},
 	)
 	syncRequestHandler := handlers.NewSyncHandler(

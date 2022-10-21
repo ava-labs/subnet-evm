@@ -34,17 +34,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 const (
-	defaultPreimagesLimit = 4 * 1024 * 1024 // 4 MB
+	defaultPreimagesLimit     = 4 * 1024 * 1024 // 4 MB
+	cacheStatsUpdateFrequency = 1 * time.Minute
 )
 
 var (
@@ -92,7 +93,7 @@ type Database struct {
 	preimages     map[common.Hash][]byte // Preimages of nodes from the secure trie
 
 	dirtiesLock sync.RWMutex                // Used to gate access to all trie node data structures and metrics (everything below)
-	cleans      *fastcache.Cache            // GC friendly memory cache of clean node RLPs
+	cleans      *utils.MeteredCache         // GC friendly memory cache of clean node RLPs
 	dirties     map[common.Hash]*cachedNode // Data and references relationships of dirty trie nodes
 	oldest      common.Hash                 // Oldest tracked node, flush-list head
 	newest      common.Hash                 // Newest tracked node, flush-list tail
@@ -281,8 +282,9 @@ func expandNode(hash hashNode, n node) node {
 
 // Config defines all necessary options for database.
 type Config struct {
-	Cache     int  // Memory allowance (MB) to use for caching trie nodes in memory
-	Preimages bool // Flag whether the preimage of trie key is recorded
+	Cache          int    // Memory allowance (MB) to use for caching trie nodes in memory
+	Preimages      bool   // Flag whether the preimage of trie key is recorded
+	StatsNamespace string // Namespace to use for stats
 }
 
 // NewDatabase creates a new trie database to store ephemeral trie content before
@@ -296,9 +298,9 @@ func NewDatabase(diskdb ethdb.KeyValueStore) *Database {
 // before its written out to disk or garbage collected. It also acts as a read cache
 // for nodes loaded from disk.
 func NewDatabaseWithConfig(diskdb ethdb.KeyValueStore, config *Config) *Database {
-	var cleans *fastcache.Cache
+	var cleans *utils.MeteredCache
 	if config != nil && config.Cache > 0 {
-		cleans = fastcache.New(config.Cache * 1024 * 1024)
+		cleans = utils.NewMeteredCache(config.Cache*1024*1024, "", config.StatsNamespace, cacheStatsUpdateFrequency)
 	}
 	db := &Database{
 		diskdb: diskdb,
