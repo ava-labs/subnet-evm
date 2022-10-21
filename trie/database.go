@@ -936,7 +936,7 @@ func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, st
 			db.saveCache(dir, 1)
 		case <-stopCh:
 			// Write the latest contents of the cache to disk after receiving a stop request.
-			// Note: this is a different behavior than used in geth, which simply returns and requires an explicit
+			// Note: this is different than geth, which requires an explicit
 			// call to save the cache on shutdown.
 			err := db.SaveCache(dir)
 			if err != nil {
