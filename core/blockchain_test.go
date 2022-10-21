@@ -660,7 +660,7 @@ func TestCleanCacheJournal(t *testing.T) {
 	blockchain, err := createBlockChain(
 		chainDB,
 		&CacheConfig{
-			TrieCleanLimit:        64, // Use a smaller size here for a faster test.
+			TrieCleanLimit:        64, // Smallest possible non-zero size (for a faster test).
 			TrieDirtyLimit:        256,
 			TrieDirtyCommitTarget: 20,
 			Pruning:               true, // Enable pruning
