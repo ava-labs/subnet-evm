@@ -942,6 +942,7 @@ func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, st
 			if err != nil {
 				log.Warn("Failed to save cache after stop requested", "err", err)
 			}
+			return
 		}
 	}
 }
