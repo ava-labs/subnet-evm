@@ -656,9 +656,6 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 			t.Cleanup(func() {
 				<-snapshot.WipeSnapshot(memdb, true)
 				mockHandlerStats.Reset()
-				if snapshotProvider.Snapshot != nil {
-					snapshotProvider.Snapshot.ShutdownMeteredCache() // cleanup goroutine
-				}
 				snapshotProvider.Snapshot = nil // reset the snapshot to nil
 			})
 

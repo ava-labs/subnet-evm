@@ -250,7 +250,6 @@ func prune(maindb ethdb.Database, stateBloom *stateBloom, bloomPath string, star
 // specified state version. If user doesn't specify the state version, use
 // the bottom-most snapshot diff layer as the target.
 func (p *Pruner) Prune(root common.Hash) error {
-	defer p.snaptree.ShutdownMeteredCache()
 	// If the state bloom filter is already committed previously,
 	// reuse it for pruning instead of generating a new one. It's
 	// mandatory because a part of state may already be deleted,

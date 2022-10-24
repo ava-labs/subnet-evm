@@ -725,12 +725,6 @@ func (bc *BlockChain) Stop() {
 	log.Info("Shutting down sender cacher")
 	bc.senderCacher.Shutdown()
 
-	// Stop cache metrics goroutines
-	if bc.snaps != nil {
-		bc.snaps.ShutdownMeteredCache()
-	}
-	bc.stateCache.TrieDB().ShutdownMeteredCache()
-
 	// Unsubscribe all subscriptions registered from blockchain.
 	log.Info("Closing scope")
 	bc.scope.Close()

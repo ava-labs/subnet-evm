@@ -284,7 +284,7 @@ func expandNode(hash hashNode, n node) node {
 type Config struct {
 	Cache          int    // Memory allowance (MB) to use for caching trie nodes in memory
 	Preimages      bool   // Flag whether the preimage of trie key is recorded
-	StatsNamespace string // Allows collecting metrics for multiple code paths.
+	StatsNamespace string // Namespace to use for stats
 }
 
 // NewDatabase creates a new trie database to store ephemeral trie content before
@@ -894,11 +894,4 @@ func (db *Database) Size() (common.StorageSize, common.StorageSize) {
 	metadataSize := common.StorageSize((len(db.dirties) - 1) * cachedNodeSize)
 	metarootRefs := common.StorageSize(len(db.dirties[common.Hash{}].children) * (common.HashLength + 2))
 	return db.dirtiesSize + db.childrenSize + metadataSize - metarootRefs, preimagesSize
-}
-
-// ShutdownMetered cache stops goroutines created for metrics.
-func (db *Database) ShutdownMeteredCache() {
-	if db.cleans != nil {
-		db.cleans.Shutdown()
-	}
 }
