@@ -24,7 +24,7 @@ type MeteredCache struct {
 	gets         metrics.Gauge
 	sets         metrics.Gauge
 	misses       metrics.Gauge
-	statsTime    metrics.Gauge
+	statsTime    metrics.ResettingTimer
 
 	// count all operations to decide when to update stats
 	ops             uint64
@@ -57,7 +57,7 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 		mc.gets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/gets", namespace), nil)
 		mc.sets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/sets", namespace), nil)
 		mc.misses = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/misses", namespace), nil)
-		mc.statsTime = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/statsTime", namespace), nil)
+		mc.statsTime = metrics.GetOrRegisterResettingTimer(fmt.Sprintf("%s/statsTime", namespace), nil)
 	}
 	return mc
 }
@@ -81,7 +81,7 @@ func (mc *MeteredCache) updateStatsIfNeeded() {
 	mc.gets.Update(int64(s.GetCalls))
 	mc.sets.Update(int64(s.SetCalls))
 	mc.misses.Update(int64(s.Misses))
-	mc.statsTime.Update(int64(time.Since(start)))
+	mc.statsTime.Update(time.Since(start))
 }
 
 func (mc *MeteredCache) Del(k []byte) {
