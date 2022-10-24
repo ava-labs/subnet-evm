@@ -60,11 +60,11 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 
 // updateStats updates metrics from fastcache
 func (mc *MeteredCache) updateStatsIfNeeded() {
-	mc.ops++
-	if mc.ops%mc.updateFrequency != 0 {
+	if mc.namespace == "" {
 		return
 	}
-	if mc.namespace == "" {
+	mc.ops++
+	if mc.ops%mc.updateFrequency != 0 {
 		return
 	}
 
