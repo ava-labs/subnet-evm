@@ -5,6 +5,8 @@ package utils
 
 import (
 	"fmt"
+	"sync/atomic"
+	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ava-labs/subnet-evm/metrics"
@@ -22,6 +24,7 @@ type MeteredCache struct {
 	gets         metrics.Gauge
 	sets         metrics.Gauge
 	misses       metrics.Gauge
+	statsTime    metrics.Gauge
 
 	// count all operations to decide when to update stats
 	ops             uint64
@@ -54,6 +57,7 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 		mc.gets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/gets", namespace), nil)
 		mc.sets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/sets", namespace), nil)
 		mc.misses = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/misses", namespace), nil)
+		mc.statsTime = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/statsTime", namespace), nil)
 	}
 	return mc
 }
@@ -63,11 +67,12 @@ func (mc *MeteredCache) updateStatsIfNeeded() {
 	if mc.namespace == "" {
 		return
 	}
-	mc.ops++
-	if mc.ops%mc.updateFrequency != 0 {
+	ops := atomic.AddUint64(&mc.ops, 1)
+	if ops%mc.updateFrequency != 0 {
 		return
 	}
 
+	start := time.Now()
 	s := fastcache.Stats{}
 	mc.UpdateStats(&s)
 	mc.entriesCount.Update(int64(s.EntriesCount))
@@ -76,6 +81,7 @@ func (mc *MeteredCache) updateStatsIfNeeded() {
 	mc.gets.Update(int64(s.GetCalls))
 	mc.sets.Update(int64(s.SetCalls))
 	mc.misses.Update(int64(s.Misses))
+	mc.statsTime.Update(int64(time.Since(start)))
 }
 
 func (mc *MeteredCache) Del(k []byte) {
