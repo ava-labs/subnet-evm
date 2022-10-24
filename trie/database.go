@@ -45,7 +45,7 @@ import (
 
 const (
 	defaultPreimagesLimit     = 4 * 1024 * 1024 // 4 MB
-	cacheStatsUpdateFrequency = 1 * time.Minute
+	cacheStatsUpdateFrequency = 1000            // update trie cache stats once per 1000 ops
 )
 
 var (

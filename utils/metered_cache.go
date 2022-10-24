@@ -5,9 +5,6 @@ package utils
 
 import (
 	"fmt"
-	"runtime"
-	"sync"
-	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ava-labs/subnet-evm/metrics"
@@ -26,24 +23,28 @@ type MeteredCache struct {
 	sets         metrics.Gauge
 	misses       metrics.Gauge
 
-	// synchronization
-	quitCh chan struct{}
-	waitWg sync.WaitGroup
+	// count all operations to decide when to update stats
+	ops             uint64
+	updateFrequency uint64
 }
 
 // NewMeteredCache returns a new MeteredCache that will update stats to the
-// provided namespace at the given updateFrequency.
-func NewMeteredCache(size int, journal string, namespace string, updateFrequency time.Duration) *MeteredCache {
+// provided namespace once per each [updateFrequency] operations.
+// Note: if [updateFrequency] is passed as 0, it will be treated as 1.
+func NewMeteredCache(size int, journal string, namespace string, updateFrequency uint64) *MeteredCache {
 	var cache *fastcache.Cache
 	if journal == "" {
 		cache = fastcache.New(size)
 	} else {
 		cache = fastcache.LoadFromFileOrNew(journal, size)
 	}
+	if updateFrequency == 0 {
+		updateFrequency = 1 // avoid division by zero
+	}
 	mc := &MeteredCache{
-		Cache:     cache,
-		namespace: namespace,
-		quitCh:    make(chan struct{}),
+		Cache:           cache,
+		namespace:       namespace,
+		updateFrequency: updateFrequency,
 	}
 	if namespace != "" {
 		// only register stats if a namespace is provided.
@@ -54,32 +55,15 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 		mc.sets = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/sets", namespace), nil)
 		mc.misses = metrics.GetOrRegisterGauge(fmt.Sprintf("%s/misses", namespace), nil)
 	}
-
-	if updateFrequency > 0 {
-		// spawn a goroutine to periodically update stats from the cache
-		mc.waitWg.Add(1)
-		go func() {
-			defer mc.waitWg.Done()
-			ticker := time.NewTicker(updateFrequency)
-			defer ticker.Stop()
-
-			for {
-				select {
-				case <-ticker.C:
-					mc.updateStats()
-				case <-mc.quitCh:
-					return
-				}
-			}
-		}()
-		// Note: clean up the goroutine once the object is ready for gc.
-		runtime.SetFinalizer(mc, func(mc *MeteredCache) { mc.Shutdown() })
-	}
 	return mc
 }
 
 // updateStats updates metrics from fastcache
-func (mc *MeteredCache) updateStats() {
+func (mc *MeteredCache) updateStatsIfNeeded() {
+	mc.ops++
+	if mc.ops%mc.updateFrequency != 0 {
+		return
+	}
 	if mc.namespace == "" {
 		return
 	}
@@ -94,7 +78,37 @@ func (mc *MeteredCache) updateStats() {
 	mc.misses.Update(int64(s.Misses))
 }
 
-func (mc *MeteredCache) Shutdown() {
-	close(mc.quitCh)
-	mc.waitWg.Wait()
+func (mc *MeteredCache) Del(k []byte) {
+	defer mc.updateStatsIfNeeded()
+	mc.Cache.Del(k)
+}
+
+func (mc *MeteredCache) Get(dst, k []byte) []byte {
+	defer mc.updateStatsIfNeeded()
+	return mc.Cache.Get(dst, k)
+}
+
+func (mc *MeteredCache) GetBig(dst, k []byte) []byte {
+	defer mc.updateStatsIfNeeded()
+	return mc.Cache.GetBig(dst, k)
+}
+
+func (mc *MeteredCache) Has(k []byte) bool {
+	defer mc.updateStatsIfNeeded()
+	return mc.Cache.Has(k)
+}
+
+func (mc *MeteredCache) HasGet(dst, k []byte) ([]byte, bool) {
+	defer mc.updateStatsIfNeeded()
+	return mc.Cache.HasGet(dst, k)
+}
+
+func (mc *MeteredCache) Set(k, v []byte) {
+	defer mc.updateStatsIfNeeded()
+	mc.Cache.Set(k, v)
+}
+
+func (mc *MeteredCache) SetBig(k, v []byte) {
+	defer mc.updateStatsIfNeeded()
+	mc.Cache.SetBig(k, v)
 }
