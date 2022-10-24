@@ -5,7 +5,6 @@ package utils
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 	"time"
 
@@ -72,8 +71,6 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 				}
 			}
 		}()
-		// Note: clean up the goroutine once the object is ready for gc.
-		runtime.SetFinalizer(mc, func(mc *MeteredCache) { mc.Shutdown() })
 	}
 	return mc
 }

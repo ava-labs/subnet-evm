@@ -957,3 +957,10 @@ func NewTestTree(diskdb ethdb.KeyValueStore, blockHash, root common.Hash) *Tree 
 		},
 	}
 }
+
+// ShutdownMetered cache stops goroutines created for metrics.
+func (t *Tree) ShutdownMeteredCache() {
+	if disk := t.disklayer(); disk != nil {
+		disk.cache.Shutdown()
+	}
+}
