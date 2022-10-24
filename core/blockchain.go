@@ -257,9 +257,9 @@ func NewBlockChain(
 		cacheConfig: cacheConfig,
 		db:          db,
 		stateCache: state.NewDatabaseWithConfig(db, &trie.Config{
-			Cache:          cacheConfig.TrieCleanLimit,
-			Preimages:      cacheConfig.Preimages,
-			StatsNamespace: trieCleanCacheStatsNamespace,
+			Cache:       cacheConfig.TrieCleanLimit,
+			Preimages:   cacheConfig.Preimages,
+			StatsPrefix: trieCleanCacheStatsNamespace,
 		}),
 		bodyCache:      bodyCache,
 		receiptsCache:  receiptsCache,
@@ -1763,9 +1763,9 @@ func (bc *BlockChain) ResetState(block *types.Block) error {
 
 	lastAcceptedHash := block.Hash()
 	bc.stateCache = state.NewDatabaseWithConfig(bc.db, &trie.Config{
-		Cache:          bc.cacheConfig.TrieCleanLimit,
-		Preimages:      bc.cacheConfig.Preimages,
-		StatsNamespace: trieCleanCacheStatsNamespace,
+		Cache:       bc.cacheConfig.TrieCleanLimit,
+		Preimages:   bc.cacheConfig.Preimages,
+		StatsPrefix: trieCleanCacheStatsNamespace,
 	})
 	if err := bc.loadLastState(lastAcceptedHash); err != nil {
 		return err
