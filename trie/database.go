@@ -918,7 +918,7 @@ func (db *Database) saveCache(dir string, threads int) error {
 	return nil
 }
 
-// SaveCache atomically saves fast cache data to the given dir using all
+// SaveCache atomically saves fast cache data to the given dir using half
 // available CPU cores.
 func (db *Database) SaveCache(dir string) error {
 	concurrency := runtime.GOMAXPROCS(0) / 2
