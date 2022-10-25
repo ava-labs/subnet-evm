@@ -85,36 +85,36 @@ func (mc *MeteredCache) updateStatsIfNeeded() {
 }
 
 func (mc *MeteredCache) Del(k []byte) {
-	defer mc.updateStatsIfNeeded()
+	mc.updateStatsIfNeeded()
 	mc.Cache.Del(k)
 }
 
 func (mc *MeteredCache) Get(dst, k []byte) []byte {
-	defer mc.updateStatsIfNeeded()
+	mc.updateStatsIfNeeded()
 	return mc.Cache.Get(dst, k)
 }
 
 func (mc *MeteredCache) GetBig(dst, k []byte) []byte {
-	defer mc.updateStatsIfNeeded()
+	mc.updateStatsIfNeeded()
 	return mc.Cache.GetBig(dst, k)
 }
 
 func (mc *MeteredCache) Has(k []byte) bool {
-	defer mc.updateStatsIfNeeded()
+	mc.updateStatsIfNeeded()
 	return mc.Cache.Has(k)
 }
 
 func (mc *MeteredCache) HasGet(dst, k []byte) ([]byte, bool) {
-	defer mc.updateStatsIfNeeded()
+	mc.updateStatsIfNeeded()
 	return mc.Cache.HasGet(dst, k)
 }
 
 func (mc *MeteredCache) Set(k, v []byte) {
-	defer mc.updateStatsIfNeeded()
+	mc.updateStatsIfNeeded()
 	mc.Cache.Set(k, v)
 }
 
 func (mc *MeteredCache) SetBig(k, v []byte) {
-	defer mc.updateStatsIfNeeded()
+	mc.updateStatsIfNeeded()
 	mc.Cache.SetBig(k, v)
 }
