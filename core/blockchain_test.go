@@ -20,6 +20,8 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/fsnotify/fsnotify"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -73,7 +75,12 @@ func TestArchiveBlockChain(t *testing.T) {
 }
 
 func TestTrieCleanJournal(t *testing.T) {
+	require := require.New(t)
+
 	trieCleanJournal := t.TempDir()
+	trieCleanJournalWatcher, err := fsnotify.NewWatcher()
+	require.NoError(err)
+	require.NoError(trieCleanJournalWatcher.Add(trieCleanJournal))
 
 	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
 		config := *archiveConfig
@@ -103,9 +110,7 @@ func TestTrieCleanJournal(t *testing.T) {
 	_ = gspec.MustCommit(chainDB)
 
 	blockchain, err := create(chainDB, gspec.Config, common.Hash{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	defer blockchain.Stop()
 
 	// This call generates a chain of 3 blocks.
@@ -116,31 +121,23 @@ func TestTrieCleanJournal(t *testing.T) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
 	// Insert and accept the generated chain
-	if _, err := blockchain.InsertChain(chain); err != nil {
-		t.Fatal(err)
-	}
+	_, err = blockchain.InsertChain(chain)
+	require.NoError(err)
+
 	for _, block := range chain {
-		if err := blockchain.Accept(block); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(blockchain.Accept(block))
 	}
 	blockchain.DrainAcceptorQueue()
 
 	time.Sleep(2 * time.Second) // Sleep for 2 seconds to ensure that there is time for a clean trie rejournal
 
 	dirEntries, err := os.ReadDir(trieCleanJournal)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
-	if len(dirEntries) == 0 {
-		t.Fatalf("Expected trie clean journal to generate non-zero number of entries in the trie clean journal directory")
-	}
+	require.NotEmpty(dirEntries, "trie clean journal should have had non-zero number of entries in the trie clean journal directory")
 }
 
 func TestArchiveBlockChainSnapsDisabled(t *testing.T) {
