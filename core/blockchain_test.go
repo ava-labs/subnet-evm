@@ -6,7 +6,9 @@ package core
 import (
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -67,6 +69,77 @@ func TestArchiveBlockChain(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			tt.testFunc(t, createArchiveBlockChain)
 		})
+	}
+}
+
+func TestTrieCleanJournal(t *testing.T) {
+	trieCleanJournal := t.TempDir()
+
+	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
+		config := *archiveConfig
+		config.TrieCleanJournal = trieCleanJournal
+		config.TrieCleanRejournal = 100 * time.Millisecond
+		return createBlockChain(db, &config, chainConfig, lastAcceptedHash)
+	}
+
+	var (
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
+		// We use two separate databases since GenerateChain commits the state roots to its underlying
+		// database.
+		genDB   = rawdb.NewMemoryDatabase()
+		chainDB = rawdb.NewMemoryDatabase()
+	)
+
+	// Ensure that key1 has some funds in the genesis block.
+	genesisBalance := big.NewInt(1000000)
+	gspec := &Genesis{
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
+	}
+	genesis := gspec.MustCommit(genDB)
+	_ = gspec.MustCommit(chainDB)
+
+	blockchain, err := create(chainDB, gspec.Config, common.Hash{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blockchain.Stop()
+
+	// This call generates a chain of 3 blocks.
+	signer := types.HomesteadSigner{}
+	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
+	// to the BlockChain's database while generating blocks.
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 10, func(i int, gen *BlockGen) {
+		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
+		gen.AddTx(tx)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Insert and accept the generated chain
+	if _, err := blockchain.InsertChain(chain); err != nil {
+		t.Fatal(err)
+	}
+	for _, block := range chain {
+		if err := blockchain.Accept(block); err != nil {
+			t.Fatal(err)
+		}
+	}
+	blockchain.DrainAcceptorQueue()
+
+	time.Sleep(2 * time.Second) // Sleep for 2 seconds to ensure that there is time for a clean trie rejournal
+
+	dirEntries, err := os.ReadDir(trieCleanJournal)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(dirEntries) == 0 {
+		t.Fatalf("Expected trie clean journal to generate non-zero number of entries in the trie clean journal directory")
 	}
 }
 
