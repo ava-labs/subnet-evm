@@ -355,6 +355,8 @@ func NewBlockChain(
 			defer bc.rejournalWg.Done()
 			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
 		}()
+	} else {
+		log.Info("Periodic trie clean cache backup is disabled", "journalDir", bc.cacheConfig.TrieCleanJournal, "freq", bc.cacheConfig.TrieCleanRejournal)
 	}
 
 	return bc, nil
