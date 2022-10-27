@@ -75,35 +75,6 @@ func TestArchiveBlockChain(t *testing.T) {
 	}
 }
 
-// awaitWatcherEventsSubside waits for at least one event on [watcher] and then waits
-// for at least [subsideTimeout] before returning
-func awaitWatcherEventsSubside(watcher *fsnotify.Watcher, subsideTimeout time.Duration) {
-	done := make(chan struct{})
-
-	go func() {
-		defer func() {
-			close(done)
-		}()
-
-		select {
-		case <-watcher.Events:
-		case <-watcher.Errors:
-			return
-		}
-
-		for {
-			select {
-			case <-watcher.Events:
-			case <-watcher.Errors:
-				return
-			case <-time.After(subsideTimeout):
-				return
-			}
-		}
-	}()
-	<-done
-}
-
 func TestTrieCleanJournal(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
@@ -147,6 +118,10 @@ func TestTrieCleanJournal(t *testing.T) {
 	require.NoError(err)
 	defer blockchain.Stop()
 
+	// test can block on this channel to wait for cache to write to disk.
+	waitCh := make(chan struct{})
+	blockchain.stateCache.TrieDB().SetOnCleansWrite(func() { close(waitCh) })
+
 	// This call generates a chain of 3 blocks.
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
@@ -164,9 +139,9 @@ func TestTrieCleanJournal(t *testing.T) {
 	for _, block := range chain {
 		require.NoError(blockchain.Accept(block))
 	}
-	blockchain.DrainAcceptorQueue()
 
-	awaitWatcherEventsSubside(trieCleanJournalWatcher, time.Second)
+	<-waitCh // wait for cache to write to disk.
+
 	// Assert that a new file is created in the trie clean journal
 	dirEntries, err := os.ReadDir(trieCleanJournal)
 	require.NoError(err)

@@ -88,10 +88,11 @@ var (
 type Database struct {
 	diskdb ethdb.KeyValueStore // Persistent storage for matured trie nodes
 
-	cleans  *utils.MeteredCache         // GC friendly memory cache of clean node RLPs
-	dirties map[common.Hash]*cachedNode // Data and references relationships of dirty trie nodes
-	oldest  common.Hash                 // Oldest tracked node, flush-list head
-	newest  common.Hash                 // Newest tracked node, flush-list tail
+	cleans        *utils.MeteredCache         // GC friendly memory cache of clean node RLPs
+	onCleansWrite func()                      // callback to notify when clean cache is journaled to disk. used for tests.
+	dirties       map[common.Hash]*cachedNode // Data and references relationships of dirty trie nodes
+	oldest        common.Hash                 // Oldest tracked node, flush-list head
+	newest        common.Hash                 // Newest tracked node, flush-list tail
 
 	gctime  time.Duration      // Time spent on garbage collection since last commit
 	gcnodes uint64             // Nodes garbage collected since last commit
@@ -930,8 +931,18 @@ func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, st
 		select {
 		case <-ticker.C:
 			db.saveCache(dir, 1)
+			if db.onCleansWrite != nil {
+				// call the testing hook if present.
+				db.onCleansWrite()
+			}
 		case <-stopCh:
 			return
 		}
 	}
+}
+
+// SetOnCleansWrite sets a callback that is called after the cache is saved periodically.
+// Used for tests.
+func (db *Database) SetOnCleansWrite(onCleansWrite func()) {
+	db.onCleansWrite = onCleansWrite
 }
