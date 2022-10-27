@@ -15,6 +15,13 @@ pragma solidity ^0.8.0;
 // and the details of the action that was performed.
 // When a block g
 interface ISharedMemory {
+    // TransferOutput is emitted by the contract when amount of assetID was exported from the chain
+    // to be owned by addrs/threshold/locktime.
+    event TransferOutput(bytes32 otherChain, bytes32 assetID, uint64 amount, uint64 locktime, uint64 threshold, address[] addrs);
+
+    // TransferInput is emitted by the contract when it spends utxoID.
+    event TransferInput(bytes32 otherChain, bytes32 assetID, bytes32 utxoID);
+
     // getNativeTokenAssetID returns the assetID that corresponds to the specified caller.
     // The returned assetID is sha256(caller, blockchainID) where the blockchainID is the Avalanche blockchainID as opposed to the EVM
     // ChainID.
