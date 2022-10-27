@@ -29,7 +29,7 @@ interface ISharedMemory {
 
     // exportUTXO generates a UTXO with a unique UTXOID with the specified amount, locktime, threshold, and set of addresses
     // and an assetID derived from msg.sender and the blockchainID
-    function exportUTXO(uint64 amount, uint64 locktime, uint64 threshold, address[] calldata addrs) external;
+    function exportUTXO(uint64 amount, bytes32 desinationChainID, uint64 locktime, uint64 threshold, address[] calldata addrs) external;
 
     // exportAVAX generates an AVAX UTXO with a unique UTXOID with the specified locktime, threshold, and set of addresses
     // and the AVAX assetID.
@@ -41,5 +41,23 @@ interface ISharedMemory {
 
     // importUTXO attempts to import the UTXO specified by UTXOID. If the UTXO is still present, then it returns the UTXO details to the caller
     // for the caller to credit any balance changes as a result of importing the UTXO.
-    function importUTXO(bytes32 utxoID) external returns (uint64 amount, uint64 locktime, uint64 threshold, address[] calldata addrs);
+    // how do we verify msg.sender
+    // when we look up the UTXO, we want to verify that the sender can actually use it
+    // The precompile will perform the following steps:
+    // 1. Verify that the UTXO is available within the TxContext (the TxContext will verify that the UTXOs as specfied in the transaction are available in shared memory)
+    // 2. Verify that 
+    // The precompile will look up the UTXO by sourceChain and UTXOID from shared memory.
+
+    // If the atomic input does not match
+    function importUTXO(bytes32 sourceChain, bytes32 utxoID) external returns (uint64 amount, uint64 locktime, uint64 threshold, address[] calldata addrs);
 }
+
+// SharedMemory requires additional steps for block verification in order to ensure that atomic UTXO conflicts are handled correctly across a chain of
+// processing blocks.
+// Currently, atomic UTXOs are only spent by import transactions processed at the end of the block, which specify the exact UTXOs that they spend. If any
+// of these transactions are invalid or include a double spend, the block is considered invalid.
+// 
+
+// TODO
+// write out block verification invariants
+// write out the steps the precompile will actually take for each of these functions
