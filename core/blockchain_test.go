@@ -120,7 +120,10 @@ func TestTrieCleanJournal(t *testing.T) {
 
 	// test can block on this channel to wait for cache to write to disk.
 	waitCh := make(chan struct{})
-	blockchain.stateCache.TrieDB().SetOnCleansWrite(func() { close(waitCh) })
+	blockchain.stateCache.TrieDB().SetOnCleansWrite(func() {
+		blockchain.stateCache.TrieDB().SetOnCleansWrite(nil) // ensure it is not called twice
+		close(waitCh)
+	})
 
 	// This call generates a chain of 3 blocks.
 	signer := types.HomesteadSigner{}
