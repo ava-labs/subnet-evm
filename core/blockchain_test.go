@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fsnotify/fsnotify"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,12 +75,45 @@ func TestArchiveBlockChain(t *testing.T) {
 	}
 }
 
+// awaitWatcherEventsSubside waits for at least one event on [watcher] and then waits
+// for at least [subsideTimeout] before returning
+func awaitWatcherEventsSubside(watcher *fsnotify.Watcher, subsideTimeout time.Duration) {
+	done := make(chan struct{})
+
+	go func() {
+		defer func() {
+			close(done)
+		}()
+
+		select {
+		case <-watcher.Events:
+		case <-watcher.Errors:
+			return
+		}
+
+		for {
+			select {
+			case <-watcher.Events:
+			case <-watcher.Errors:
+				return
+			case <-time.After(subsideTimeout):
+				return
+			}
+		}
+	}()
+	<-done
+}
+
 func TestTrieCleanJournal(t *testing.T) {
 	require := require.New(t)
+	assert := assert.New(t)
 
 	trieCleanJournal := t.TempDir()
 	trieCleanJournalWatcher, err := fsnotify.NewWatcher()
 	require.NoError(err)
+	defer func() {
+		assert.NoError(trieCleanJournalWatcher.Close())
+	}()
 	require.NoError(trieCleanJournalWatcher.Add(trieCleanJournal))
 
 	create := func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error) {
@@ -132,12 +166,11 @@ func TestTrieCleanJournal(t *testing.T) {
 	}
 	blockchain.DrainAcceptorQueue()
 
-	time.Sleep(2 * time.Second) // Sleep for 2 seconds to ensure that there is time for a clean trie rejournal
-
+	awaitWatcherEventsSubside(trieCleanJournalWatcher, time.Second)
+	// Assert that a new file is created in the trie clean journal
 	dirEntries, err := os.ReadDir(trieCleanJournal)
 	require.NoError(err)
-
-	require.NotEmpty(dirEntries, "trie clean journal should have had non-zero number of entries in the trie clean journal directory")
+	require.NotEmpty(dirEntries)
 }
 
 func TestArchiveBlockChainSnapsDisabled(t *testing.T) {
