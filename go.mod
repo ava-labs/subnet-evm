@@ -54,11 +54,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/aead/siphash v1.0.1 // indirect
-<<<<<<< HEAD
 	github.com/ava-labs/coreth v0.11.1-rc.1 // indirect
-=======
-	github.com/ava-labs/coreth v0.11.0-rc.4 // indirect
->>>>>>> master
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.23.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
