@@ -5,12 +5,12 @@ go 1.18
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanche-network-runner v1.2.2
-	github.com/ava-labs/avalanchego v1.8.5
+	github.com/ava-labs/avalanchego v1.9.1-rc.3
 	github.com/cespare/cp v0.1.0
 	github.com/creack/pty v1.1.18
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
-	github.com/ethereum/go-ethereum v1.10.23
+	github.com/ethereum/go-ethereum v1.10.25
 	github.com/fatih/color v1.13.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08
@@ -53,7 +53,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/aead/siphash v1.0.1 // indirect
-	github.com/ava-labs/coreth v0.9.0-rc.13 // indirect
+	github.com/ava-labs/coreth v0.11.1-rc.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.23.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
@@ -125,6 +125,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
+	github.com/supranational/blst v0.3.11-0.20220920110316-f72618070295 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
@@ -132,6 +133,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
+	golang.org/x/exp v0.0.0-20220426173459-3bcf042a4bf5 // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
