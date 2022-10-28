@@ -55,10 +55,11 @@ func NewDefaultConfig() Config {
 		LightPeers:            100,
 		UltraLightFraction:    75,
 		DatabaseCache:         512,
-		TrieCleanCache:        256,
+		TrieCleanCache:        512,
 		TrieDirtyCache:        256,
 		TrieDirtyCommitTarget: 20,
-		SnapshotCache:         128,
+		SnapshotCache:         256,
+		FilterLogCacheSize:    32,
 		Miner:                 miner.Config{},
 		TxPool:                core.DefaultTxPoolConfig,
 		RPCGasCap:             25000000,
@@ -113,10 +114,15 @@ type Config struct {
 	// DatabaseFreezer    string
 
 	TrieCleanCache        int
+	TrieCleanJournal      string
+	TrieCleanRejournal    time.Duration
 	TrieDirtyCache        int
 	TrieDirtyCommitTarget int
 	SnapshotCache         int
 	Preimages             bool
+
+	// This is the number of blocks for which logs will be cached in the filter system.
+	FilterLogCacheSize int
 
 	// Mining options
 	Miner miner.Config
@@ -140,7 +146,7 @@ type Config struct {
 	RPCEVMTimeout time.Duration
 
 	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
-	// send-transction variants. The unit is ether.
+	// send-transaction variants. The unit is ether.
 	RPCTxFeeCap float64 `toml:",omitempty"`
 
 	// AllowUnfinalizedQueries allow unfinalized queries
