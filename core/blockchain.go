@@ -71,7 +71,7 @@ var (
 
 	blockInsertTimer            = metrics.NewRegisteredTimer("chain/block/inserts", nil)
 	blockContentValidationTimer = metrics.NewRegisteredTimer("chain/block/validations/content", nil)
-	blockStateInitTimer         = metrics.NewRegisteredTimer("chain/block/state/inits", nil)
+	blockStateInitTimer         = metrics.NewRegisteredTimer("chain/block/inits/state", nil)
 	blockExecutionTimer         = metrics.NewRegisteredTimer("chain/block/executions", nil)
 	blockStateValidationTimer   = metrics.NewRegisteredTimer("chain/block/validations/state", nil)
 	blockWriteTimer             = metrics.NewRegisteredTimer("chain/block/writes", nil)
