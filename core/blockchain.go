@@ -74,10 +74,10 @@ var (
 	blockExecutionTimer  = metrics.NewRegisteredTimer("chain/execution", nil)
 	blockWriteTimer      = metrics.NewRegisteredTimer("chain/write", nil)
 
-	acceptorQueueGauge           = metrics.NewRegisteredGauge("blockchain/acceptor/queue/size", nil)
-	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("blockchain/blocks/gas/used/processed", nil)
-	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("blockchain/blocks/gas/used/accepted", nil)
-	badBlockCounter              = metrics.NewRegisteredCounter("blockchain/blocks/bad/count", nil)
+	acceptorQueueGauge           = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
+	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("chain/blocks/gas/used/processed", nil)
+	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/blocks/gas/used/accepted", nil)
+	badBlockCounter              = metrics.NewRegisteredCounter("chain/blocks/bad/count", nil)
 
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
