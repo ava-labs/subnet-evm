@@ -39,6 +39,7 @@ import (
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
@@ -238,6 +239,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		start := time.Now()
 		enc, err = s.getTrie(db).TryGet(key.Bytes())
 		if metrics.EnabledExpensive {
+			log.Warn("reading storage from trie", "snap exists", s.db.snap == nil, "err", err)
 			s.db.StorageReads += time.Since(start)
 		}
 		if err != nil {
