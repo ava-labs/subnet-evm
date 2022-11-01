@@ -44,6 +44,7 @@ import (
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
+var logged = 0
 
 type Code []byte
 
@@ -240,7 +241,10 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		snapErr := err
 		enc, err = s.getTrie(db).TryGet(key.Bytes())
 		if metrics.EnabledExpensive {
-			log.Warn("reading storage from trie", "snap missing", s.db.snap == nil, "err", snapErr)
+			if logged < 1000 {
+				log.Warn("reading storage from trie", "snap missing", s.db.snap == nil, "err", snapErr)
+				logged++
+			}
 			s.db.StorageReads += time.Since(start)
 		}
 		if err != nil {
