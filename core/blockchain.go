@@ -79,6 +79,8 @@ var (
 	blockWriteTimer             = metrics.NewRegisteredCounter("chain/block/writes", nil)
 
 	acceptorQueueGauge           = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
+	acceptorWorkTimer            = metrics.NewRegisteredCounter("chain/acceptor/work", nil)
+	acceptorWorkCount            = metrics.NewRegisteredCounter("chain/acceptor/work/count", nil)
 	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
 	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
 	badBlockCounter              = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
@@ -267,6 +269,10 @@ type BlockChain struct {
 	// processed blocks. This may be equal to [lastAccepted].
 	acceptorTip     *types.Block
 	acceptorTipLock sync.Mutex
+
+	// [flattenLock] prevents the [acceptor] from flattening snapshots while
+	// a block is being verified.
+	flattenLock sync.Mutex
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -414,6 +420,12 @@ func (bc *BlockChain) flattenSnapshot(postAbortWork func() error, hash common.Ha
 		return err
 	}
 
+	// Ensure we avoid flattening the snapshot while we are processing a block, or
+	// block execution will fallback to reading from the trie (which is much
+	// slower).
+	bc.flattenLock.Lock()
+	defer bc.flattenLock.Unlock()
+
 	// Flatten the entire snap Trie to disk
 	//
 	// Note: This resumes snapshot generation.
@@ -426,6 +438,7 @@ func (bc *BlockChain) startAcceptor() {
 	log.Info("Starting Acceptor", "queue length", bc.cacheConfig.AcceptorQueueLimit)
 
 	for next := range bc.acceptorQueue {
+		start := time.Now()
 		acceptorQueueGauge.Dec(1)
 
 		if err := bc.flattenSnapshot(func() error {
@@ -455,6 +468,9 @@ func (bc *BlockChain) startAcceptor() {
 		bc.acceptorTip = next
 		bc.acceptorTipLock.Unlock()
 		bc.acceptorWg.Done()
+
+		acceptorWorkTimer.Inc(time.Since(start).Milliseconds())
+		acceptorWorkCount.Inc(1)
 	}
 }
 
@@ -1142,9 +1158,16 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 		}
 	}()
 
-	// Retrieve the parent block and its state to execute on top
+	// Retrieve the parent block to determine which root to build state on
 	substart = time.Now()
 	parent := bc.GetHeader(block.ParentHash(), block.NumberU64()-1)
+
+	// Instantiate the statedb to use for processing transactions
+	//
+	// NOTE: Flattening a snapshot during block execution requires fetching state
+	// entries directly from the trie (much slower).
+	bc.flattenLock.Lock()
+	defer bc.flattenLock.Unlock()
 	statedb, err := state.New(parent.Root, bc.stateCache, bc.snaps)
 	if err != nil {
 		return err

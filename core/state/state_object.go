@@ -39,12 +39,10 @@ import (
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
-var logged = 0
 
 type Code []byte
 
@@ -238,13 +236,8 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 	// If the snapshot is unavailable or reading from it fails, load from the database.
 	if s.db.snap == nil || err != nil {
 		start := time.Now()
-		snapErr := err
 		enc, err = s.getTrie(db).TryGet(key.Bytes())
 		if metrics.EnabledExpensive {
-			if logged < 1000 {
-				log.Warn("reading storage from trie", "snap missing", s.db.snap == nil, "err", snapErr)
-				logged++
-			}
 			s.db.StorageReads += time.Since(start)
 		}
 		if err != nil {
