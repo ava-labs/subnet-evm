@@ -69,15 +69,17 @@ var (
 	snapshotCommitTimer      = metrics.NewRegisteredTimer("chain/snapshot/commits", nil)
 	triedbCommitTimer        = metrics.NewRegisteredTimer("chain/triedb/commits", nil)
 
-	blockInsertTimer     = metrics.NewRegisteredTimer("chain/inserts", nil)
-	blockValidationTimer = metrics.NewRegisteredTimer("chain/validation", nil)
-	blockExecutionTimer  = metrics.NewRegisteredTimer("chain/execution", nil)
-	blockWriteTimer      = metrics.NewRegisteredTimer("chain/write", nil)
+	blockInsertTimer            = metrics.NewRegisteredTimer("chain/block/inserts", nil)
+	blockContentValidationTimer = metrics.NewRegisteredTimer("chain/block/validations/content", nil)
+	blockStateInitTimer         = metrics.NewRegisteredTimer("chain/block/state/inits", nil)
+	blockExecutionTimer         = metrics.NewRegisteredTimer("chain/block/executions", nil)
+	blockStateValidationTimer   = metrics.NewRegisteredTimer("chain/block/validations/state", nil)
+	blockWriteTimer             = metrics.NewRegisteredTimer("chain/block/writes", nil)
 
 	acceptorQueueGauge           = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
-	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("chain/blocks/gas/used/processed", nil)
-	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/blocks/gas/used/accepted", nil)
-	badBlockCounter              = metrics.NewRegisteredCounter("chain/blocks/bad/count", nil)
+	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
+	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
+	badBlockCounter              = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
 
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
@@ -1090,13 +1092,14 @@ func (bc *BlockChain) gatherBlockLogs(hash common.Hash, number uint64, removed b
 }
 
 func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
+	start := time.Now()
 	bc.senderCacher.Recover(types.MakeSigner(bc.chainConfig, block.Number(), new(big.Int).SetUint64(block.Time())), block.Transactions())
 
+	substart := time.Now()
 	err := bc.engine.VerifyHeader(bc, block.Header())
 	if err == nil {
 		err = bc.validator.ValidateBody(block)
 	}
-
 	switch {
 	case errors.Is(err, ErrKnownBlock):
 		// even if the block is already known, we still need to generate the
@@ -1123,6 +1126,8 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 		bc.reportBlock(block, nil, err)
 		return err
 	}
+	blockContentValidationTimer.Update(time.Since(substart))
+
 	// No validation errors for the block
 	var activeState *state.StateDB
 	defer func() {
@@ -1136,12 +1141,13 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}()
 
 	// Retrieve the parent block and its state to execute on top
-	start := time.Now()
+	substart = time.Now()
 	parent := bc.GetHeader(block.ParentHash(), block.NumberU64()-1)
 	statedb, err := state.New(parent.Root, bc.stateCache, bc.snaps)
 	if err != nil {
 		return err
 	}
+	blockStateInitTimer.Update(time.Since(substart))
 
 	// Enable prefetching to pull in trie node paths while processing transactions
 	statedb.StartPrefetcher("chain")
@@ -1150,7 +1156,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// If we have a followup block, run that against the current state to pre-cache
 	// transactions and probabilistically some of the account/storage trie nodes.
 	// Process block using the parent state as reference point
-	substart := time.Now()
+	substart = time.Now()
 	receipts, logs, usedGas, err := bc.processor.Process(block, parent, statedb, bc.vmConfig)
 	if serr := statedb.Error(); serr != nil {
 		log.Error("statedb error encountered", "err", serr, "number", block.Number(), "hash", block.Hash())
@@ -1182,7 +1188,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// Update the metrics touched during block validation
 	accountHashTimer.Update(statedb.AccountHashes) // Account hashes are complete, we can mark them
 	storageHashTimer.Update(statedb.StorageHashes) // Storage hashes are complete, we can mark them
-	blockValidationTimer.Update(time.Since(substart) - (statedb.AccountHashes + statedb.StorageHashes - triehash))
+	blockStateValidationTimer.Update(time.Since(substart) - (statedb.AccountHashes + statedb.StorageHashes - triehash))
 
 	// If [writes] are disabled, skip [writeBlockWithState] so that we do not write the block
 	// or the state trie to disk.
