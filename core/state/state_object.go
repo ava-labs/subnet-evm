@@ -239,7 +239,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		start := time.Now()
 		enc, err = s.getTrie(db).TryGet(key.Bytes())
 		if metrics.EnabledExpensive {
-			log.Warn("reading storage from trie", "snap exists", s.db.snap == nil, "err", err)
+			log.Warn("reading storage from trie", "snap missing", s.db.snap == nil, "err", err)
 			s.db.StorageReads += time.Since(start)
 		}
 		if err != nil {
