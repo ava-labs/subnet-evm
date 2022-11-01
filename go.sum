@@ -70,6 +70,8 @@ github.com/ava-labs/avalanche-ledger-go v0.0.10 h1:qEiTJvjuEmTYhYczk/CYvXoQuLlgd
 github.com/ava-labs/avalanche-ledger-go v0.0.10/go.mod h1:60Ftil/0sHi8IwjvBFyrvRsPVAue8zAkIMGuvXXMwVM=
 github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221028215503-bb4b661ac88e h1:fdRNC9ykEFg/zemCxAX1YJJvRk+agCLXq+Xml/6cYCs=
 github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221028215503-bb4b661ac88e/go.mod h1:TbbYc8E0dZZOEF4AXW8Fa595qlhNjuEi4Y0llwzWsic=
+github.com/ava-labs/avalanche-network-runner-sdk v0.2.0 h1:YNvM0oFlb7A825kGe0XwwZuvIXTKF1BsuvxJdRLhIaI=
+github.com/ava-labs/avalanche-network-runner-sdk v0.2.0/go.mod h1:bEBRVZnGeRiNdDJAFUj+gA/TPzNDbpY/WzgDAHHwJb8=
 github.com/ava-labs/avalanchego v1.9.1 h1:TJLvoA5kHAwsaBG80x57hCMnwJYWFDnHOoI/fw+Off8=
 github.com/ava-labs/avalanchego v1.9.1/go.mod h1:EwV2l8rFtFObM9jKwAWX2uhDkUw9UEGkUlXo3ICG1yk=
 github.com/ava-labs/coreth v0.11.1-rc.7 h1:cENs+9K/aLyRbvB7fa6JDOvKert3DAdsBfCNQBU5U9Y=

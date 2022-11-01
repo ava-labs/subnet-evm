@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221028215503-bb4b661ac88e
+	github.com/ava-labs/avalanche-network-runner-sdk v0.2.0
 	github.com/ava-labs/avalanchego v1.9.1
 	github.com/cespare/cp v0.1.0
 	github.com/creack/pty v1.1.18
