@@ -73,6 +73,7 @@ var (
 	blockContentValidationTimer = metrics.NewRegisteredTimer("chain/block/validations/content", nil)
 	blockStateInitTimer         = metrics.NewRegisteredTimer("chain/block/inits/state", nil)
 	blockExecutionTimer         = metrics.NewRegisteredTimer("chain/block/executions", nil)
+	blockTrieOpsTimer           = metrics.NewRegisteredTimer("chain/block/trie", nil)
 	blockStateValidationTimer   = metrics.NewRegisteredTimer("chain/block/validations/state", nil)
 	blockWriteTimer             = metrics.NewRegisteredTimer("chain/block/writes", nil)
 
@@ -1177,6 +1178,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	trieproc := statedb.SnapshotAccountReads + statedb.AccountReads + statedb.AccountUpdates
 	trieproc += statedb.SnapshotStorageReads + statedb.StorageReads + statedb.StorageUpdates
 	blockExecutionTimer.Update(time.Since(substart) - trieproc - triehash)
+	blockTrieOpsTimer.Update(trieproc + triehash)
 
 	// Validate the state using the default validator
 	substart = time.Now()
