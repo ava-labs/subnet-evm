@@ -31,18 +31,21 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"runtime"
 	"sync"
 	"time"
 
-	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+)
+
+const (
+	cacheStatsUpdateFrequency = 1000 // update trie cache stats once per 1000 ops
 )
 
 var (
@@ -85,7 +88,7 @@ var (
 type Database struct {
 	diskdb ethdb.KeyValueStore // Persistent storage for matured trie nodes
 
-	cleans  *fastcache.Cache            // GC friendly memory cache of clean node RLPs
+	cleans  *utils.MeteredCache         // GC friendly memory cache of clean node RLPs
 	dirties map[common.Hash]*cachedNode // Data and references relationships of dirty trie nodes
 	oldest  common.Hash                 // Oldest tracked node, flush-list head
 	newest  common.Hash                 // Newest tracked node, flush-list tail
@@ -280,9 +283,10 @@ func expandNode(hash hashNode, n node) node {
 
 // Config defines all necessary options for database.
 type Config struct {
-	Cache     int    // Memory allowance (MB) to use for caching trie nodes in memory
-	Preimages bool   // Flag whether the preimage of trie key is recorded
-	Journal   string // File location to load trie clean cache from
+	Cache       int    // Memory allowance (MB) to use for caching trie nodes in memory
+	Preimages   bool   // Flag whether the preimage of trie key is recorded
+	Journal     string // File location to load trie clean cache from
+	StatsPrefix string // Prefix for cache stats (disabled if empty)
 }
 
 // NewDatabase creates a new trie database to store ephemeral trie content before
@@ -296,13 +300,9 @@ func NewDatabase(diskdb ethdb.KeyValueStore) *Database {
 // before its written out to disk or garbage collected. It also acts as a read cache
 // for nodes loaded from disk.
 func NewDatabaseWithConfig(diskdb ethdb.KeyValueStore, config *Config) *Database {
-	var cleans *fastcache.Cache
+	var cleans *utils.MeteredCache
 	if config != nil && config.Cache > 0 {
-		if config.Journal == "" {
-			cleans = fastcache.New(config.Cache * 1024 * 1024)
-		} else {
-			cleans = fastcache.LoadFromFileOrNew(config.Journal, config.Cache*1024*1024)
-		}
+		cleans = utils.NewMeteredCache(config.Cache*1024*1024, config.Journal, config.StatsPrefix, cacheStatsUpdateFrequency)
 	}
 	var preimage *preimageStore
 	if config != nil && config.Preimages {
@@ -920,16 +920,6 @@ func (db *Database) saveCache(dir string, threads int) error {
 	return nil
 }
 
-// SaveCache atomically saves fast cache data to the given dir using half
-// available CPU cores.
-func (db *Database) SaveCache(dir string) error {
-	concurrency := runtime.GOMAXPROCS(0) / 2
-	if concurrency == 0 {
-		concurrency = 1
-	}
-	return db.saveCache(dir, concurrency)
-}
-
 // SaveCachePeriodically atomically saves fast cache data to the given dir with
 // the specified interval. All dump operation will only use a single CPU core.
 func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, stopCh <-chan struct{}) {
@@ -941,13 +931,6 @@ func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, st
 		case <-ticker.C:
 			db.saveCache(dir, 1)
 		case <-stopCh:
-			// Write the latest contents of the cache to disk after receiving a stop request.
-			// Note: this is different than geth, which requires an explicit
-			// call to save the cache on shutdown.
-			err := db.SaveCache(dir)
-			if err != nil {
-				log.Warn("Failed to save cache after stop requested", "err", err)
-			}
 			return
 		}
 	}
