@@ -56,26 +56,27 @@ import (
 )
 
 var (
-	accountReadTimer         = metrics.NewRegisteredTimer("chain/account/reads", nil)
-	accountHashTimer         = metrics.NewRegisteredTimer("chain/account/hashes", nil)
-	accountUpdateTimer       = metrics.NewRegisteredTimer("chain/account/updates", nil)
-	accountCommitTimer       = metrics.NewRegisteredTimer("chain/account/commits", nil)
-	storageReadTimer         = metrics.NewRegisteredTimer("chain/storage/reads", nil)
-	storageHashTimer         = metrics.NewRegisteredTimer("chain/storage/hashes", nil)
-	storageUpdateTimer       = metrics.NewRegisteredTimer("chain/storage/updates", nil)
-	storageCommitTimer       = metrics.NewRegisteredTimer("chain/storage/commits", nil)
-	snapshotAccountReadTimer = metrics.NewRegisteredTimer("chain/snapshot/account/reads", nil)
-	snapshotStorageReadTimer = metrics.NewRegisteredTimer("chain/snapshot/storage/reads", nil)
-	snapshotCommitTimer      = metrics.NewRegisteredTimer("chain/snapshot/commits", nil)
-	triedbCommitTimer        = metrics.NewRegisteredTimer("chain/triedb/commits", nil)
+	accountReadTimer         = metrics.NewRegisteredCounter("chain/account/reads", nil)
+	accountHashTimer         = metrics.NewRegisteredCounter("chain/account/hashes", nil)
+	accountUpdateTimer       = metrics.NewRegisteredCounter("chain/account/updates", nil)
+	accountCommitTimer       = metrics.NewRegisteredCounter("chain/account/commits", nil)
+	storageReadTimer         = metrics.NewRegisteredCounter("chain/storage/reads", nil)
+	storageHashTimer         = metrics.NewRegisteredCounter("chain/storage/hashes", nil)
+	storageUpdateTimer       = metrics.NewRegisteredCounter("chain/storage/updates", nil)
+	storageCommitTimer       = metrics.NewRegisteredCounter("chain/storage/commits", nil)
+	snapshotAccountReadTimer = metrics.NewRegisteredCounter("chain/snapshot/account/reads", nil)
+	snapshotStorageReadTimer = metrics.NewRegisteredCounter("chain/snapshot/storage/reads", nil)
+	snapshotCommitTimer      = metrics.NewRegisteredCounter("chain/snapshot/commits", nil)
+	triedbCommitTimer        = metrics.NewRegisteredCounter("chain/triedb/commits", nil)
 
-	blockInsertTimer            = metrics.NewRegisteredTimer("chain/block/inserts", nil)
-	blockContentValidationTimer = metrics.NewRegisteredTimer("chain/block/validations/content", nil)
-	blockStateInitTimer         = metrics.NewRegisteredTimer("chain/block/inits/state", nil)
-	blockExecutionTimer         = metrics.NewRegisteredTimer("chain/block/executions", nil)
-	blockTrieOpsTimer           = metrics.NewRegisteredTimer("chain/block/trie", nil)
-	blockStateValidationTimer   = metrics.NewRegisteredTimer("chain/block/validations/state", nil)
-	blockWriteTimer             = metrics.NewRegisteredTimer("chain/block/writes", nil)
+	blockInsertTimer            = metrics.NewRegisteredCounter("chain/block/inserts", nil)
+	blockInsertCount            = metrics.NewRegisteredCounter("chain/block/inserts/count", nil)
+	blockContentValidationTimer = metrics.NewRegisteredCounter("chain/block/validations/content", nil)
+	blockStateInitTimer         = metrics.NewRegisteredCounter("chain/block/inits/state", nil)
+	blockExecutionTimer         = metrics.NewRegisteredCounter("chain/block/executions", nil)
+	blockTrieOpsTimer           = metrics.NewRegisteredCounter("chain/block/trie", nil)
+	blockStateValidationTimer   = metrics.NewRegisteredCounter("chain/block/validations/state", nil)
+	blockWriteTimer             = metrics.NewRegisteredCounter("chain/block/writes", nil)
 
 	acceptorQueueGauge           = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
 	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
@@ -1127,7 +1128,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 		bc.reportBlock(block, nil, err)
 		return err
 	}
-	blockContentValidationTimer.Update(time.Since(substart))
+	blockContentValidationTimer.Inc(time.Since(substart).Milliseconds())
 
 	// No validation errors for the block
 	var activeState *state.StateDB
@@ -1148,7 +1149,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	if err != nil {
 		return err
 	}
-	blockStateInitTimer.Update(time.Since(substart))
+	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
 
 	// Enable prefetching to pull in trie node paths while processing transactions
 	statedb.StartPrefetcher("chain")
@@ -1168,17 +1169,17 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 
 	// Update the metrics touched during block processing
-	accountReadTimer.Update(statedb.AccountReads)                 // Account reads are complete, we can mark them
-	storageReadTimer.Update(statedb.StorageReads)                 // Storage reads are complete, we can mark them
-	accountUpdateTimer.Update(statedb.AccountUpdates)             // Account updates are complete, we can mark them
-	storageUpdateTimer.Update(statedb.StorageUpdates)             // Storage updates are complete, we can mark them
-	snapshotAccountReadTimer.Update(statedb.SnapshotAccountReads) // Account reads are complete, we can mark them
-	snapshotStorageReadTimer.Update(statedb.SnapshotStorageReads) // Storage reads are complete, we can mark them
-	triehash := statedb.AccountHashes + statedb.StorageHashes     // Save to not double count in validation
+	accountReadTimer.Inc(statedb.AccountReads.Milliseconds())                 // Account reads are complete, we can mark them
+	storageReadTimer.Inc(statedb.StorageReads.Milliseconds())                 // Storage reads are complete, we can mark them
+	accountUpdateTimer.Inc(statedb.AccountUpdates.Milliseconds())             // Account updates are complete, we can mark them
+	storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds())             // Storage updates are complete, we can mark them
+	snapshotAccountReadTimer.Inc(statedb.SnapshotAccountReads.Milliseconds()) // Account reads are complete, we can mark them
+	snapshotStorageReadTimer.Inc(statedb.SnapshotStorageReads.Milliseconds()) // Storage reads are complete, we can mark them
+	triehash := statedb.AccountHashes + statedb.StorageHashes                 // Save to not double count in validation
 	trieproc := statedb.SnapshotAccountReads + statedb.AccountReads + statedb.AccountUpdates
 	trieproc += statedb.SnapshotStorageReads + statedb.StorageReads + statedb.StorageUpdates
-	blockExecutionTimer.Update(time.Since(substart) - trieproc - triehash)
-	blockTrieOpsTimer.Update(trieproc + triehash)
+	blockExecutionTimer.Inc((time.Since(substart) - trieproc - triehash).Milliseconds())
+	blockTrieOpsTimer.Inc((trieproc + triehash).Milliseconds())
 
 	// Validate the state using the default validator
 	substart = time.Now()
@@ -1188,9 +1189,9 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 
 	// Update the metrics touched during block validation
-	accountHashTimer.Update(statedb.AccountHashes) // Account hashes are complete, we can mark them
-	storageHashTimer.Update(statedb.StorageHashes) // Storage hashes are complete, we can mark them
-	blockStateValidationTimer.Update(time.Since(substart) - (statedb.AccountHashes + statedb.StorageHashes - triehash))
+	accountHashTimer.Inc(statedb.AccountHashes.Milliseconds()) // Account hashes are complete, we can mark them
+	storageHashTimer.Inc(statedb.StorageHashes.Milliseconds()) // Storage hashes are complete, we can mark them
+	blockStateValidationTimer.Inc((time.Since(substart) - (statedb.AccountHashes + statedb.StorageHashes - triehash)).Milliseconds())
 
 	// If [writes] are disabled, skip [writeBlockWithState] so that we do not write the block
 	// or the state trie to disk.
@@ -1209,12 +1210,12 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 
 	// Update the metrics touched during block commit
-	accountCommitTimer.Update(statedb.AccountCommits)   // Account commits are complete, we can mark them
-	storageCommitTimer.Update(statedb.StorageCommits)   // Storage commits are complete, we can mark them
-	snapshotCommitTimer.Update(statedb.SnapshotCommits) // Snapshot commits are complete, we can mark them
-	triedbCommitTimer.Update(statedb.TrieDBCommits)     // Triedb commits are complete, we can mark them
-	blockWriteTimer.Update(time.Since(substart) - statedb.AccountCommits - statedb.StorageCommits - statedb.SnapshotCommits - statedb.TrieDBCommits)
-	blockInsertTimer.UpdateSince(start)
+	accountCommitTimer.Inc(statedb.AccountCommits.Milliseconds())   // Account commits are complete, we can mark them
+	storageCommitTimer.Inc(statedb.StorageCommits.Milliseconds())   // Storage commits are complete, we can mark them
+	snapshotCommitTimer.Inc(statedb.SnapshotCommits.Milliseconds()) // Snapshot commits are complete, we can mark them
+	triedbCommitTimer.Inc(statedb.TrieDBCommits.Milliseconds())     // Triedb commits are complete, we can mark them
+	blockWriteTimer.Inc((time.Since(substart) - statedb.AccountCommits - statedb.StorageCommits - statedb.SnapshotCommits - statedb.TrieDBCommits).Milliseconds())
+	blockInsertTimer.Inc(time.Since(start).Milliseconds())
 
 	log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(),
 		"parentHash", block.ParentHash(),
@@ -1224,6 +1225,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	)
 
 	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
+	blockInsertCount.Inc(1)
 	return nil
 }
 
