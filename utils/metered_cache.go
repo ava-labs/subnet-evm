@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	avgObjSize = 256 // 256B
+	avgObjSize = 512 // 512B
 )
 
 // MeteredCache wraps *fastcache.Cache and periodically pulls stats from it.
