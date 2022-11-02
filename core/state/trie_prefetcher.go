@@ -306,8 +306,16 @@ func (sf *subfetcher) abort() {
 
 func (sf *subfetcher) wait() {
 	c := make(chan struct{})
-	sf.wake <- c // ensure all tasks are read and wait for this to happen
-	<-c
+	select {
+	case <-sf.term:
+		// If done, just return
+		return
+	case sf.wake <- c:
+		// Ensure all tasks are read and wait for this to happen
+		//
+		// If c is read by sf.wake, it will eventually be closed
+		<-c
+	}
 }
 
 func (sf *subfetcher) clearWakes(existing chan struct{}) {
