@@ -397,11 +397,11 @@ func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 		if enc, found := db.cleans.HasGet(nil, hash[:]); found {
 			memcacheCleanHitMeter.Mark(1)
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
+			if len(enc) == 0 {
+				panic("empty pulled from fastcache")
+			}
 			return enc, nil, nil
 		}
-	} else {
-		// TODO: remove later
-		log.Warn("trie database cleans is empty")
 	}
 	// Retrieve the node from the dirty cache if available
 	db.lock.RLock()
@@ -417,7 +417,7 @@ func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 
 	// Content unavailable in memory, attempt to retrieve from disk
 	enc := rawdb.ReadTrieNode(db.diskdb, hash)
-	if len(enc) != 0 {
+	if len(enc) > 0 {
 		if db.cleans != nil {
 			db.cleans.Set(hash[:], enc)
 			memcacheCleanMissMeter.Mark(1)
