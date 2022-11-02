@@ -399,6 +399,9 @@ func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
 			return enc, nil, nil
 		}
+	} else {
+		// TODO: remove later
+		log.Warn("trie database cleans is empty")
 	}
 	// Retrieve the node from the dirty cache if available
 	db.lock.RLock()
