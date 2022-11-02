@@ -28,6 +28,7 @@ package state
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ethereum/go-ethereum/common"
@@ -53,6 +54,7 @@ type triePrefetcher struct {
 	deliveryCopyMissMeter    metrics.Meter
 	deliveryRequestMissMeter metrics.Meter
 	deliveryWaitMissMeter    metrics.Meter
+	deliveryWaitTimer        metrics.Counter
 
 	accountLoadMeter  metrics.Meter
 	accountDupMeter   metrics.Meter
@@ -74,6 +76,7 @@ func newTriePrefetcher(db Database, root common.Hash, namespace string) *triePre
 		deliveryCopyMissMeter:    metrics.GetOrRegisterMeter(prefix+"/deliverymiss/copy", nil),
 		deliveryRequestMissMeter: metrics.GetOrRegisterMeter(prefix+"/deliverymiss/request", nil),
 		deliveryWaitMissMeter:    metrics.GetOrRegisterMeter(prefix+"/deliverymiss/wait", nil),
+		deliveryWaitTimer:        metrics.GetOrRegisterCounter(prefix+"/delivery/wait", nil),
 
 		accountLoadMeter:  metrics.GetOrRegisterMeter(prefix+"/account/load", nil),
 		accountDupMeter:   metrics.GetOrRegisterMeter(prefix+"/account/dup", nil),
@@ -132,6 +135,7 @@ func (p *triePrefetcher) copy() *triePrefetcher {
 		deliveryCopyMissMeter:    p.deliveryCopyMissMeter,
 		deliveryRequestMissMeter: p.deliveryRequestMissMeter,
 		deliveryWaitMissMeter:    p.deliveryWaitMissMeter,
+		deliveryWaitTimer:        p.deliveryWaitTimer,
 
 		accountLoadMeter:  p.accountLoadMeter,
 		accountDupMeter:   p.accountDupMeter,
@@ -191,11 +195,11 @@ func (p *triePrefetcher) trie(owner common.Hash, root common.Hash) Trie {
 		p.deliveryRequestMissMeter.Mark(1)
 		return nil
 	}
-	// Interrupt the prefetcher if it's by any chance still running and return
-	// a copy of any pre-loaded trie.
+	// Ensure all tasks are processed before peeking
+	start := time.Now()
+	fetcher.wait()
+	p.deliveryWaitTimer.Inc(time.Since(start).Milliseconds())
 	fetcher.abort() // safe to do multiple times
-	// TODO: wait instead of abort
-
 	trie := fetcher.peek()
 	if trie == nil {
 		p.deliveryWaitMissMeter.Mark(1)
@@ -230,10 +234,10 @@ type subfetcher struct {
 	tasks [][]byte   // Items queued up for retrieval
 	lock  sync.Mutex // Lock protecting the task queue
 
-	wake chan struct{}  // Wake channel if a new task is scheduled
-	stop chan struct{}  // Channel to interrupt processing
-	term chan struct{}  // Channel to signal interruption
-	copy chan chan Trie // Channel to request a copy of the current trie
+	wake chan chan struct{} // Wake channel if a new task is scheduled
+	stop chan struct{}      // Channel to interrupt processing
+	term chan struct{}      // Channel to signal interruption
+	copy chan chan Trie     // Channel to request a copy of the current trie
 
 	seen map[string]struct{} // Tracks the entries already loaded
 	dups int                 // Number of duplicate preload tasks
@@ -247,7 +251,7 @@ func newSubfetcher(db Database, owner common.Hash, root common.Hash) *subfetcher
 		db:    db,
 		owner: owner,
 		root:  root,
-		wake:  make(chan struct{}, 1),
+		wake:  make(chan chan struct{}, 1),
 		stop:  make(chan struct{}),
 		term:  make(chan struct{}),
 		copy:  make(chan chan Trie),
@@ -266,7 +270,7 @@ func (sf *subfetcher) schedule(keys [][]byte) {
 
 	// Notify the prefetcher, it's fine if it's already terminated
 	select {
-	case sf.wake <- struct{}{}:
+	case sf.wake <- nil:
 	default:
 	}
 }
@@ -300,6 +304,24 @@ func (sf *subfetcher) abort() {
 	<-sf.term
 }
 
+func (sf *subfetcher) wait() {
+	c := make(chan struct{})
+	sf.wake <- c // ensure all tasks are read and wait for this to happen
+	<-c
+}
+
+func (sf *subfetcher) clearWakes(existing chan struct{}) {
+	if existing != nil {
+		close(existing)
+	}
+	for c := range sf.wake {
+		if c == nil {
+			continue
+		}
+		close(c)
+	}
+}
+
 // loop waits for new tasks to be scheduled and keeps loading them until it runs
 // out of tasks or its underlying trie is retrieved for committing.
 func (sf *subfetcher) loop() {
@@ -326,7 +348,7 @@ func (sf *subfetcher) loop() {
 	// Trie opened successfully, keep prefetching items
 	for {
 		select {
-		case <-sf.wake:
+		case c := <-sf.wake:
 			// Subfetcher was woken up, retrieve any tasks to avoid spinning the lock
 			sf.lock.Lock()
 			tasks := sf.tasks
@@ -341,6 +363,9 @@ func (sf *subfetcher) loop() {
 					sf.lock.Lock()
 					sf.tasks = append(sf.tasks, tasks[i:]...)
 					sf.lock.Unlock()
+
+					// Clear and close remaining wakes in case anyone is waiting
+					sf.clearWakes(c)
 					return
 
 				case ch := <-sf.copy:
@@ -365,6 +390,9 @@ func (sf *subfetcher) loop() {
 					}
 				}
 			}
+			if c != nil {
+				close(c)
+			}
 
 		case ch := <-sf.copy:
 			// Somebody wants a copy of the current trie, grant them
@@ -372,6 +400,9 @@ func (sf *subfetcher) loop() {
 
 		case <-sf.stop:
 			// Termination is requested, abort and leave remaining tasks
+
+			// Clear and close remaining wakes in case anyone is waiting
+			sf.clearWakes(nil)
 			return
 		}
 	}
