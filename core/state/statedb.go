@@ -31,9 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"runtime"
 	"sort"
-	"sync"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -868,29 +866,11 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	// the account prefetcher. Instead, let's process all the storage updates
 	// first, giving the account prefetches just a few more milliseconds of time
 	// to pull useful data from disk.
-	var (
-		wg sync.WaitGroup
-		c  = make(chan *stateObject)
-	)
-	for i := 0; i < runtime.NumCPU(); i++ {
-		// Reuse goroutines to avoid blowup
-		go func() {
-			for obj := range c {
-				// Prefetching may finish in any order, so we attempt to call
-				// [updateRoot] on multiple objects at once
-				obj.updateRoot(s.db)
-				wg.Done()
-			}
-		}()
-	}
 	for addr := range s.stateObjectsPending {
 		if obj := s.stateObjects[addr]; !obj.deleted {
-			wg.Add(1)
-			c <- obj
+			obj.updateRoot(s.db)
 		}
 	}
-	close(c)
-	wg.Wait()
 	// Now we're about to start to write changes to the trie. The trie is so far
 	// _untouched_. We can check with the prefetcher, if it can give us a trie
 	// which has the same root, but also has some content loaded into it.
