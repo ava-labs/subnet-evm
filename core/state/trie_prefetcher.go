@@ -304,6 +304,7 @@ func (sf *subfetcher) abort() {
 	<-sf.term
 }
 
+// wait ensures the prefetcher processes all outstanding tasks
 func (sf *subfetcher) wait() {
 	c := make(chan struct{})
 	select {
@@ -322,11 +323,18 @@ func (sf *subfetcher) clearWakes(existing chan struct{}) {
 	if existing != nil {
 		close(existing)
 	}
-	for c := range sf.wake {
-		if c == nil {
-			continue
+	for {
+		select {
+		case c := <-sf.wake:
+			if c == nil {
+				continue
+			}
+			close(c)
+		default:
+			// Using default here avoids us needing to coordinate [sf.wake] channel
+			// shutdown
+			break
 		}
-		close(c)
 	}
 }
 
