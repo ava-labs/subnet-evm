@@ -123,7 +123,7 @@ func (dl *diskLayer) AccountRLP(hash common.Hash) ([]byte, error) {
 	snapshotDirtyAccountMissMeter.Mark(1)
 
 	// Try to retrieve the account from the memory cache
-	if blob, found := dl.cache.HasGet(nil, hash[:]); found {
+	if blob := dl.cache.Get(hash[:]); len(blob) > 0 {
 		snapshotCleanAccountHitMeter.Mark(1)
 		snapshotCleanAccountReadMeter.Mark(int64(len(blob)))
 		return blob, nil
@@ -163,7 +163,7 @@ func (dl *diskLayer) Storage(accountHash, storageHash common.Hash) ([]byte, erro
 	snapshotDirtyStorageMissMeter.Mark(1)
 
 	// Try to retrieve the storage slot from the memory cache
-	if blob, found := dl.cache.HasGet(nil, key); found {
+	if blob := dl.cache.Get(key); len(blob) > 0 {
 		snapshotCleanStorageHitMeter.Mark(1)
 		snapshotCleanStorageReadMeter.Mark(int64(len(blob)))
 		return blob, nil

@@ -302,7 +302,7 @@ func NewDatabase(diskdb ethdb.KeyValueStore) *Database {
 func NewDatabaseWithConfig(diskdb ethdb.KeyValueStore, config *Config) *Database {
 	var cleans *utils.MeteredCache
 	if config != nil && config.Cache > 0 {
-		cleans = utils.NewMeteredCache(config.Cache*1024*1024, config.Journal, config.StatsPrefix, cacheStatsUpdateFrequency)
+		cleans = utils.NewMeteredCache(config.Cache*1024*1024, config.StatsPrefix)
 	}
 	var preimage *preimageStore
 	if config != nil && config.Preimages {
@@ -394,7 +394,7 @@ func (db *Database) EncodedNode(h common.Hash) node {
 func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 	// Retrieve the node from the clean cache if available
 	if db.cleans != nil {
-		if enc := db.cleans.Get(nil, hash[:]); enc != nil {
+		if enc := db.cleans.Get(hash[:]); enc != nil {
 			memcacheCleanHitMeter.Mark(1)
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
 			return enc, nil, nil
@@ -905,36 +905,36 @@ func (db *Database) CommitPreimages() error {
 	return db.preimages.commit(true)
 }
 
-// saveCache saves clean state cache to given directory path
-// using specified CPU cores.
-func (db *Database) saveCache(dir string, threads int) error {
-	if db.cleans == nil {
-		return nil
-	}
-	log.Info("Writing clean trie cache to disk", "path", dir, "threads", threads)
-
-	start := time.Now()
-	err := db.cleans.SaveToFileConcurrent(dir, threads)
-	if err != nil {
-		log.Error("Failed to persist clean trie cache", "error", err)
-		return err
-	}
-	log.Info("Persisted the clean trie cache", "path", dir, "elapsed", common.PrettyDuration(time.Since(start)))
-	return nil
-}
-
-// SaveCachePeriodically atomically saves fast cache data to the given dir with
-// the specified interval. All dump operation will only use a single CPU core.
-func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, stopCh <-chan struct{}) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			db.saveCache(dir, 1)
-		case <-stopCh:
-			return
-		}
-	}
-}
+// // saveCache saves clean state cache to given directory path
+// // using specified CPU cores.
+// func (db *Database) saveCache(dir string, threads int) error {
+// 	if db.cleans == nil {
+// 		return nil
+// 	}
+// 	log.Info("Writing clean trie cache to disk", "path", dir, "threads", threads)
+//
+// 	start := time.Now()
+// 	err := db.cleans.SaveToFileConcurrent(dir, threads)
+// 	if err != nil {
+// 		log.Error("Failed to persist clean trie cache", "error", err)
+// 		return err
+// 	}
+// 	log.Info("Persisted the clean trie cache", "path", dir, "elapsed", common.PrettyDuration(time.Since(start)))
+// 	return nil
+// }
+//
+// // SaveCachePeriodically atomically saves fast cache data to the given dir with
+// // the specified interval. All dump operation will only use a single CPU core.
+// func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, stopCh <-chan struct{}) {
+// 	ticker := time.NewTicker(interval)
+// 	defer ticker.Stop()
+//
+// 	for {
+// 		select {
+// 		case <-ticker.C:
+// 			db.saveCache(dir, 1)
+// 		case <-stopCh:
+// 			return
+// 		}
+// 	}
+// }

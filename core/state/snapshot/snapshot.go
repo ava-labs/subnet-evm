@@ -379,11 +379,13 @@ func (t *Tree) verifyIntegrity(base *diskLayer, waitBuild bool) error {
 // Note: a blockHash is used instead of a state root so that the exact state
 // transition between the two states is well defined. This is intended to
 // prevent the following edge case
-//    A
-//   /  \
-//  B    C
-//       |
-//       D
+//
+//	  A
+//	 /  \
+//	B    C
+//	     |
+//	     D
+//
 // In this scenario, it's possible For (A, B) and (A, C, D) to be two
 // different paths to the resulting state. We use block hashes and parent
 // block hashes to ensure that the exact path through which we flatten
@@ -933,7 +935,7 @@ func NewDiskLayer(diskdb ethdb.KeyValueStore) Snapshot {
 
 		// state sync uses iterators to access data, so this cache is not used.
 		// initializing it out of caution.
-		cache: utils.NewMeteredCache(32*1024, "", "", 0),
+		cache: utils.NewMeteredCache(32*1024, ""),
 	}
 }
 
@@ -943,7 +945,7 @@ func NewTestTree(diskdb ethdb.KeyValueStore, blockHash, root common.Hash) *Tree 
 		diskdb:    diskdb,
 		root:      root,
 		blockHash: blockHash,
-		cache:     utils.NewMeteredCache(128*256, "", "", 0),
+		cache:     utils.NewMeteredCache(128*256, ""),
 		created:   time.Now(),
 	}
 	return &Tree{

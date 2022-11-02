@@ -373,17 +373,17 @@ func NewBlockChain(
 	// Start processing accepted blocks effects in the background
 	go bc.startAcceptor()
 
-	// If periodic cache journal is required, spin it up.
-	if bc.cacheConfig.TrieCleanRejournal > 0 && len(bc.cacheConfig.TrieCleanJournal) > 0 {
-		log.Info("Starting to save trie clean cache periodically", "journalDir", bc.cacheConfig.TrieCleanJournal, "freq", bc.cacheConfig.TrieCleanRejournal)
+	// // If periodic cache journal is required, spin it up.
+	// if bc.cacheConfig.TrieCleanRejournal > 0 && len(bc.cacheConfig.TrieCleanJournal) > 0 {
+	// 	log.Info("Starting to save trie clean cache periodically", "journalDir", bc.cacheConfig.TrieCleanJournal, "freq", bc.cacheConfig.TrieCleanRejournal)
 
-		triedb := bc.stateCache.TrieDB()
-		bc.rejournalWg.Add(1)
-		go func() {
-			defer bc.rejournalWg.Done()
-			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
-		}()
-	}
+	// 	triedb := bc.stateCache.TrieDB()
+	// 	bc.rejournalWg.Add(1)
+	// 	go func() {
+	// 		defer bc.rejournalWg.Done()
+	// 		triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
+	// 	}()
+	// }
 
 	return bc, nil
 }
