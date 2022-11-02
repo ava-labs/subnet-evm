@@ -282,6 +282,14 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
+	// load airdrop file if provided
+	if vm.config.AirdropFile != "" {
+		g.AirdropData, err = os.ReadFile(vm.config.AirdropFile)
+		if err != nil {
+			return fmt.Errorf("could not read airdrop file '%s': %w", vm.config.AirdropFile, err)
+		}
+	}
+
 	vm.syntacticBlockValidator = NewBlockValidator()
 
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
