@@ -397,9 +397,6 @@ func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 		if enc, found := db.cleans.HasGet(nil, hash[:]); found {
 			memcacheCleanHitMeter.Mark(1)
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
-			if len(enc) == 0 {
-				panic("empty pulled from fastcache")
-			}
 			return enc, nil, nil
 		}
 	}
@@ -626,7 +623,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	for pendingSize > limit && oldest != (common.Hash{}) {
 		// Fetch the oldest referenced node and push into the batch
 		node := db.dirties[oldest]
-		toFlush = append(toFlush, flushItem{oldest, node, nil})
+		toFlush = append(toFlush, flushItem{oldest, node, node.rlp()})
 
 		// Iterate to the next flush item, or abort if the size cap was achieved. Size
 		// is the total size, including the useful cached data (hash -> blob), the
@@ -760,7 +757,7 @@ func (db *Database) commit(hash common.Hash, toFlush []flushItem, callback func(
 	// By processing the children of each node before the node itself, we ensure
 	// that children are committed before their parents (an invariant of this
 	// package).
-	toFlush = append(toFlush, flushItem{hash, node, nil})
+	toFlush = append(toFlush, flushItem{hash, node, node.rlp()})
 	if callback != nil {
 		callback(hash)
 	}
