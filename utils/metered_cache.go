@@ -41,9 +41,9 @@ func NewMeteredCache(size int, namespace string) *MeteredCache {
 	}
 	if namespace != "" {
 		// only register stats if a namespace is provided.
-		mc.puts = metrics.GetOrRegisterCounter(fmt.Sprintf("%s/puts", namespace), nil)
-		mc.hits = metrics.GetOrRegisterCounter(fmt.Sprintf("%s/hits", namespace), nil)
-		mc.misses = metrics.GetOrRegisterCounter(fmt.Sprintf("%s/misses", namespace), nil)
+		mc.puts = metrics.NewRegisteredCounter(fmt.Sprintf("%s/puts", namespace), nil)
+		mc.hits = metrics.NewRegisteredCounter(fmt.Sprintf("%s/hits", namespace), nil)
+		mc.misses = metrics.NewRegisteredCounter(fmt.Sprintf("%s/misses", namespace), nil)
 	}
 	return mc
 }
@@ -52,17 +52,38 @@ func (mc *MeteredCache) Del(k []byte) {
 	mc.cache.Evict(string(k))
 }
 
+func (mc *MeteredCache) incMiss() {
+	if mc.misses == nil {
+		return
+	}
+	mc.misses.Inc(1)
+}
+
+func (mc *MeteredCache) incHit() {
+	if mc.hits == nil {
+		return
+	}
+	mc.hits.Inc(1)
+}
+
+func (mc *MeteredCache) incPuts() {
+	if mc.puts == nil {
+		return
+	}
+	mc.puts.Inc(1)
+}
+
 func (mc *MeteredCache) Get(k []byte) []byte {
 	v, ok := mc.cache.Get(string(k))
 	if !ok {
-		mc.misses.Inc(1)
+		mc.incMiss()
 		return nil
 	}
-	mc.hits.Inc(1)
+	mc.incHit()
 	return v.([]byte)
 }
 
 func (mc *MeteredCache) Set(k, v []byte) {
-	mc.puts.Inc(1)
+	mc.incPuts()
 	mc.cache.Put(string(k), v)
 }
