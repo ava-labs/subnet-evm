@@ -394,7 +394,7 @@ func (db *Database) EncodedNode(h common.Hash) node {
 func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 	// Retrieve the node from the clean cache if available
 	if db.cleans != nil {
-		if enc := db.cleans.Get(nil, hash[:]); enc != nil {
+		if enc, found := db.cleans.HasGet(nil, hash[:]); found {
 			memcacheCleanHitMeter.Mark(1)
 			memcacheCleanReadMeter.Mark(int64(len(enc)))
 			return enc, nil, nil
