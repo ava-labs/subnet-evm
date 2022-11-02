@@ -44,10 +44,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-const (
-	cacheStatsUpdateFrequency = 1000 // update trie cache stats once per 1000 ops
-)
-
 var (
 	memcacheCleanHitMeter   = metrics.NewRegisteredMeter("trie/memcache/clean/hit", nil)
 	memcacheCleanMissMeter  = metrics.NewRegisteredMeter("trie/memcache/clean/miss", nil)

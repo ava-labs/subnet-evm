@@ -45,8 +45,7 @@ import (
 )
 
 const (
-	snapshotCacheNamespace            = "state/snapshot/clean/fastcache" // prefix for detailed stats from the snapshot fastcache
-	snapshotCacheStatsUpdateFrequency = 1000                             // update stats from the snapshot fastcache once per 1000 ops
+	snapshotCacheNamespace = "state/snapshot/clean/fastcache" // prefix for detailed stats from the snapshot fastcache
 )
 
 var (
