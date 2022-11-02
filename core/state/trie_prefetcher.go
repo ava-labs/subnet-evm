@@ -333,7 +333,7 @@ func (sf *subfetcher) clearWakes(existing chan struct{}) {
 		default:
 			// Using default here avoids us needing to coordinate [sf.wake] channel
 			// shutdown
-			break
+			return
 		}
 	}
 }
