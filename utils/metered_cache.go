@@ -57,6 +57,7 @@ func NewMeteredCache(size int, journal string, namespace string, updateFrequency
 	if journal == "" {
 		cache = fastcache.New(size)
 	} else {
+		log.Info("removed journal directory", "path", journal, "err", os.RemoveAll(journal))
 		dirSize, err := dirSize(journal)
 		log.Info("attempting to load cache from disk", "path", journal, "dirSize", common.StorageSize(dirSize), "err", err)
 		cache = fastcache.LoadFromFileOrNew(journal, size)
