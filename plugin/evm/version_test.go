@@ -2,7 +2,6 @@ package evm
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 
@@ -13,11 +12,13 @@ type rpcChainCompatibility struct {
 	RPCChainVMProtocolVersion map[string]int `json:"rpcChainVMProtocolVersion"`
 }
 
+const compatibilityFile = "../../compatibility.json"
+
 func TestCompatibility(t *testing.T) {
 	subevmVersion := "v0.4.0"
 	expectedRPCVersion := 17
 
-	compat, err := os.ReadFile("../../compatibility.json")
+	compat, err := os.ReadFile(compatibilityFile)
 	assert.NoError(t, err)
 
 	var parsedCompat rpcChainCompatibility
@@ -27,14 +28,12 @@ func TestCompatibility(t *testing.T) {
 }
 
 func TestCompatibilityCurrentVersion(t *testing.T) {
-	compat, err := os.ReadFile("../../compatibility.json")
+	compat, err := os.ReadFile(compatibilityFile)
 	assert.NoError(t, err)
 
 	var parsedCompat rpcChainCompatibility
 	err = json.Unmarshal(compat, &parsedCompat)
 	assert.NoError(t, err)
-
-	fmt.Println("Version:", Version)
 
 	_, valueInJSON := parsedCompat.RPCChainVMProtocolVersion[Version]
 	assert.True(t, valueInJSON)
