@@ -7,12 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/client"
-	"github.com/ava-labs/avalanche-network-runner/rpcpb"
+	client "github.com/ava-labs/avalanche-network-runner-sdk"
+	"github.com/ava-labs/avalanche-network-runner-sdk/rpcpb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
-	"github.com/onsi/ginkgo/v2/formatter"
 
 	"sigs.k8s.io/yaml"
 )
@@ -47,31 +45,18 @@ func GetClient() client.Client {
 func InitializeRunner(execPath_ string, grpcEp string, networkRunnerLogLevel string) error {
 	execPath = execPath_
 
-	// Create the logger
-	logLevel, err := logging.ToLevel(networkRunnerLogLevel)
-	if err != nil {
-		return err
-	}
-
-	logFactory := logging.NewFactory(logging.Config{
-		DisplayLevel: logLevel,
-		LogLevel:     logging.Off, // Disable writing logs to files in favor of only writing logs to display
-	})
-	log, err := logFactory.Make("main")
-	if err != nil {
-		return err
-	}
-
+	var err error
 	cli, err = client.New(client.Config{
+		LogLevel:    networkRunnerLogLevel,
 		Endpoint:    grpcEp,
 		DialTimeout: 10 * time.Second,
-	}, log)
+	})
 	return err
 }
 
 func startRunner(vmName string, genesisPath string, pluginDir string) error {
 	fmt.Println("calling start API via network runner")
-	outf("{{green}}sending 'start' with binary path:{{/}} %q\n", execPath)
+	utils.Outf("{{green}}sending 'start' with binary path:{{/}} %q\n", execPath)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	resp, err := cli.Start(
 		ctx,
@@ -88,7 +73,7 @@ func startRunner(vmName string, genesisPath string, pluginDir string) error {
 	if err != nil {
 		return err
 	}
-	outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
+	utils.Outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
 	return nil
 }
 
@@ -106,7 +91,7 @@ done:
 		case <-time.After(5 * time.Second):
 		}
 
-		outf("{{magenta}}checking custom VM status{{/}}\n")
+		utils.Outf("{{magenta}}checking custom VM status{{/}}\n")
 		cctx, ccancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		resp, err := cli.Health(cctx)
 		ccancel()
@@ -132,7 +117,7 @@ done:
 		for chainID, chainInfo := range resp.ClusterInfo.CustomChains {
 			if chainInfo.VmId == vmId.String() {
 				blockchainID = chainID
-				outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", chainInfo)
+				utils.Outf("{{blue}}subnet-evm is ready:{{/}} %+v\n", chainInfo)
 				break done
 			}
 		}
@@ -163,13 +148,13 @@ func SaveClusterInfo(blockchainId string, logsDir string, pid int) (clusterInfo,
 	if err != nil {
 		return clusterInfo{}, err
 	}
-	outf("{{blue}}avalanche HTTP RPCs URIs:{{/}} %q\n", uris)
+	utils.Outf("{{blue}}avalanche HTTP RPCs URIs:{{/}} %q\n", uris)
 
 	subnetEVMRPCEps := make([]string, 0)
 	for _, u := range uris {
 		rpcEP := fmt.Sprintf("%s/ext/bc/%s/rpc", u, blockchainId)
 		subnetEVMRPCEps = append(subnetEVMRPCEps, rpcEP)
-		outf("{{blue}}avalanche subnet-evm RPC:{{/}} %q\n", rpcEP)
+		utils.Outf("{{blue}}avalanche subnet-evm RPC:{{/}} %q\n", rpcEP)
 	}
 
 	ci := clusterInfo{
@@ -199,7 +184,7 @@ func StartNetwork(vmId ids.ID, vmName string, genesisPath string, pluginDir stri
 }
 
 func StopNetwork() error {
-	outf("{{red}}shutting down network{{/}}\n")
+	utils.Outf("{{red}}shutting down network{{/}}\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	_, err := cli.Stop(ctx)
 	cancel()
@@ -207,13 +192,8 @@ func StopNetwork() error {
 }
 
 func ShutdownClient() error {
-	outf("{{red}}shutting down client{{/}}\n")
+	utils.Outf("{{red}}shutting down client{{/}}\n")
 	return cli.Close()
-}
-
-func outf(format string, args ...interface{}) {
-	s := formatter.F(format, args...)
-	fmt.Fprint(formatter.ColorableStdOut, s)
 }
 
 func IsRunnerUp() bool {

@@ -42,8 +42,6 @@ var (
 	outputFile string
 
 	skipNetworkRunnerShutdown bool
-
-	contractsFoundryDir string
 )
 
 func init() {

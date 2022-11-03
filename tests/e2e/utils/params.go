@@ -46,8 +46,6 @@ var (
 	skipNetworkRunnerShutdown bool
 
 	clusterInfo ClusterInfo
-
-	contractsFoundryDir string
 )
 
 func SetClient(c runner_sdk.Client) {
