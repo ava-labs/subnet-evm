@@ -402,8 +402,7 @@ func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 				memcacheCleanReadMeter.Mark(int64(len(enc)))
 				return enc, nil, nil
 			} else {
-				// Delete anything from cache that may have been added incorrectly and
-				// throw a DEBUG.
+				// Delete anything from cache that may have been added incorrectly
 				//
 				// This will prevent a panic as callers of this function assume the raw
 				// or cached node is populated.
