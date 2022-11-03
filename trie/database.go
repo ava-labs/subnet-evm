@@ -394,10 +394,22 @@ func (db *Database) EncodedNode(h common.Hash) node {
 func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 	// Retrieve the node from the clean cache if available
 	if db.cleans != nil {
-		if enc, found := db.cleans.HasGet(nil, hash[:]); found && len(enc) > 0 {
-			memcacheCleanHitMeter.Mark(1)
-			memcacheCleanReadMeter.Mark(int64(len(enc)))
-			return enc, nil, nil
+		k := hash[:]
+		enc, found := db.cleans.HasGet(nil, k)
+		if found {
+			if len(enc) > 0 {
+				memcacheCleanHitMeter.Mark(1)
+				memcacheCleanReadMeter.Mark(int64(len(enc)))
+				return enc, nil, nil
+			} else {
+				// Delete anything from cache that may have been added incorrectly and
+				// throw a WARN.
+				//
+				// This will prevent a panic as callers of this function assume the raw
+				// or cached node is populated.
+				log.Warn("removing empty value found in cleans cache", "k", k)
+				db.cleans.Del(k)
+			}
 		}
 	}
 	// Retrieve the node from the dirty cache if available
