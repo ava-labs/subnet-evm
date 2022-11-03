@@ -11,9 +11,6 @@ set -e
 #
 # run without e2e tests with DEBUG log level
 # AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh
-#
-# run with e2e tests
-# ENABLE_SOLIDITY_TESTS=true ./scripts/run.sh
 if ! [[ "$0" =~ scripts/run.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -30,20 +27,25 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 VERSION=$avalanche_version
+
+# "ewoq" key, do not include "0x"
 DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
-SKIP_NETWORK_RUNNER_START=${SKIP_NETWORK_RUNNER_START:-false}
-SKIP_NETWORK_RUNNER_SHUTDOWN=${SKIP_NETWORK_RUNNER_SHUTDOWN:-false}
+SKIP_NETWORK_RUNNER_SHUTDOWN=${SKIP_NETWORK_RUNNER_SHUTDOWN:-true}
 RUN_SIMULATOR=${RUN_SIMULATOR:-false}
-ENABLE_SOLIDITY_TESTS=${ENABLE_SOLIDITY_TESTS:-false}
-AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-INFO}
+AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-WARN}
 ANR_VERSION=$network_runner_version
 GINKGO_VERSION=$ginkgo_version
-GINKGO_FOCUS_FLAGS=${GINKGO_FOCUS_FLAGS}
-GINKGO_SKIP_FLAGS="\[Precompiles\]"
-if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
-  GINKGO_SKIP_FLAGS=""
+
+# by default, "run.sh" should not run any tests...
+# simulator tests are not implemented in ginkgo
+# it instead runs external binary "simulator"
+# so we exclude all e2e tests here
+# ref. https://onsi.github.io/ginkgo/#spec-labels
+GINKGO_LABEL_FILTER="!precompile-upgrade && !solidity-counter"
+if [[ ${RUN_SIMULATOR} == true ]]; then
+  GINKGO_LABEL_FILTER="ping"
 fi
 
 echo "Running with:"
@@ -51,12 +53,9 @@ echo AVALANCE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
 echo GINKGO_VERSION: ${GINKGO_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
-echo SKIP_NETWORK_RUNNER_START: ${SKIP_NETWORK_RUNNER_START}
 echo SKIP_NETWORK_RUNNER_SHUTDOWN: ${SKIP_NETWORK_RUNNER_SHUTDOWN}
 echo RUN_SIMULATOR: ${RUN_SIMULATOR}
-echo ENABLE_SOLIDITY_TESTS: ${ENABLE_SOLIDITY_TESTS}
-echo GINKGO_SKIP_FLAGS: ${GINKGO_SKIP_FLAGS}
-echo GINKGO_FOCUS_FLAGS: ${GINKGO_FOCUS_FLAGS}
+echo GINKGO_LABEL_FILTER: ${GINKGO_LABEL_FILTER}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
 ############################
@@ -233,6 +232,8 @@ run_ginkgo() {
   echo "building e2e.test"
   # to install the ginkgo binary (required for test build and run)
   go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
+  ginkgo -h
+
   ACK_GINKGO_RC=true ginkgo build ./tests/e2e
 
   # By default, it runs all e2e test cases!
@@ -240,17 +241,16 @@ run_ginkgo() {
   # Use "--ginkgo.focus" to select tests.
   echo "running e2e tests"
   ./tests/e2e/e2e.test \
-    --ginkgo.v \
+    --ginkgo.vv \
     --network-runner-log-level debug \
     --network-runner-grpc-endpoint="0.0.0.0:12342" \
     --avalanchego-path=${AVALANCHEGO_PATH} \
     --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
+    --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
     --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
-    --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} \
-    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} \
-    --ginkgo.skip "${GINKGO_SKIP_FLAGS}" \
-    --ginkgo.focus "${GINKGO_FOCUS_FLAGS}"
+    --contracts-foundry-dir=./contracts-foundry \
+    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} --ginkgo.label-filter="${GINKGO_LABEL_FILTER}"
 }
 
 run_simulator() {
@@ -270,21 +270,10 @@ run_simulator() {
   --priority-fee=1
 }
 
-if [[ ${SKIP_NETWORK_RUNNER_START} == false ]]; then
-  echo "running ginkgo"
-  run_ginkgo
-  # to fail the script if ginkgo failed
-  EXIT_CODE=$?
-else
-  echo "running scripts/parser/main.go"
-  go run scripts/parser/main.go \
-    $BASEDIR/avalanchego-${VERSION}/output.yaml \
-    $CHAIN_ID $GENESIS_ADDRESS \
-    $BASEDIR/avalanchego-${VERSION}/avalanchego \
-    ${AVALANCHEGO_PLUGIN_DIR} \
-    "0.0.0.0:12342" \
-    "$BASEDIR/genesis.json"
-fi
+echo "running ginkgo"
+run_ginkgo
+# to fail the script if ginkgo failed
+EXIT_CODE=$?
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then

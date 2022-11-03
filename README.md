@@ -103,8 +103,11 @@ and creates a `subnet-evm` genesis file. The usage of this script is
 cd ${HOME}/go/src/github.com/ava-labs/subnet-evm
 git pull
 
-# TODO: update the "avalanchego" version to latest
-SKIP_NETWORK_RUNNER_SHUTDOWN=true ./scripts/run.sh 1.7.17 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
+# to use the latest version "scripts/versions.sh"
+./scripts/run.sh
+
+# to specify the version and default account for genesis
+DEFAULT_ACCOUNT=0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC ./scripts/run.sh 1.9.1
 ```
 
 Note: make sure you check the version compatibility above between AvalancheGo and Subnet-evm and use the proper version of AvalancheGo.
