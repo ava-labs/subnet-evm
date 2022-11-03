@@ -403,11 +403,11 @@ func (db *Database) node(hash common.Hash) ([]byte, *cachedNode, error) {
 				return enc, nil, nil
 			} else {
 				// Delete anything from cache that may have been added incorrectly and
-				// throw a WARN.
+				// throw a DEBUG.
 				//
 				// This will prevent a panic as callers of this function assume the raw
 				// or cached node is populated.
-				log.Warn("removing empty value found in cleans cache", "k", k)
+				log.Debug("removing empty value found in cleans cache", "k", k)
 				db.cleans.Del(k)
 			}
 		}
