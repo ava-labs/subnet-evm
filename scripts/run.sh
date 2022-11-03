@@ -32,8 +32,10 @@ VERSION=$avalanche_version
 DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
+SKIP_NETWORK_RUNNER_START=${SKIP_NETWORK_RUNNER_START:-false}
 SKIP_NETWORK_RUNNER_SHUTDOWN=${SKIP_NETWORK_RUNNER_SHUTDOWN:-true}
 RUN_SIMULATOR=${RUN_SIMULATOR:-false}
+ENABLE_SOLIDITY_TESTS=${ENABLE_SOLIDITY_TESTS:-false}
 AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-WARN}
 ANR_VERSION=$network_runner_version
 GINKGO_VERSION=$ginkgo_version
@@ -43,9 +45,12 @@ GINKGO_VERSION=$ginkgo_version
 # it instead runs external binary "simulator"
 # so we exclude all e2e tests here
 # ref. https://onsi.github.io/ginkgo/#spec-labels
-GINKGO_LABEL_FILTER="!precompile-upgrade && !solidity-counter"
+GINKGO_LABEL_FILTER="!precompile-upgrade && !solidity-with-npx && !solidity-counter"
 if [[ ${RUN_SIMULATOR} == true ]]; then
   GINKGO_LABEL_FILTER="ping"
+fi
+if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
+  GINKGO_LABEL_FILTER="solidity-with-npx"
 fi
 
 echo "Running with:"
@@ -53,8 +58,10 @@ echo AVALANCE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
 echo GINKGO_VERSION: ${GINKGO_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
+echo SKIP_NETWORK_RUNNER_START: ${SKIP_NETWORK_RUNNER_START}
 echo SKIP_NETWORK_RUNNER_SHUTDOWN: ${SKIP_NETWORK_RUNNER_SHUTDOWN}
 echo RUN_SIMULATOR: ${RUN_SIMULATOR}
+echo ENABLE_SOLIDITY_TESTS: ${ENABLE_SOLIDITY_TESTS}
 echo GINKGO_LABEL_FILTER: ${GINKGO_LABEL_FILTER}
 echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
@@ -269,10 +276,21 @@ run_simulator() {
   --priority-fee=1
 }
 
-echo "running ginkgo"
-run_ginkgo
-# to fail the script if ginkgo failed
-EXIT_CODE=$?
+if [[ ${SKIP_NETWORK_RUNNER_START} == false ]]; then
+  echo "running ginkgo"
+  run_ginkgo
+  # to fail the script if ginkgo failed
+  EXIT_CODE=$?
+else
+  echo "running scripts/parser/main.go"
+  go run scripts/parser/main.go \
+    $BASEDIR/avalanchego-${VERSION}/output.yaml \
+    $CHAIN_ID $GENESIS_ADDRESS \
+    $BASEDIR/avalanchego-${VERSION}/avalanchego \
+    ${AVALANCHEGO_PLUGIN_DIR} \
+    "0.0.0.0:12342" \
+    "$BASEDIR/genesis.json"
+fi
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then
