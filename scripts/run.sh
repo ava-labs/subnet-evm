@@ -47,6 +47,8 @@ GINKGO_VERSION=$ginkgo_version
 # ref. https://onsi.github.io/ginkgo/#spec-labels
 GINKGO_LABEL_FILTER="!precompile-upgrade && !solidity-with-npx && !solidity-counter"
 if [[ ${RUN_SIMULATOR} == true ]]; then
+  # only run "ping" tests, no other test
+  # because simulator itself will generate loads and run tests
   GINKGO_LABEL_FILTER="ping"
 fi
 if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
