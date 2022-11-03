@@ -249,7 +249,6 @@ run_ginkgo() {
     --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
     --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
-    --contracts-foundry-dir=./contracts-foundry \
     --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} --ginkgo.label-filter="${GINKGO_LABEL_FILTER}"
 }
 
