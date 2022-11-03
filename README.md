@@ -104,10 +104,10 @@ cd ${HOME}/go/src/github.com/ava-labs/subnet-evm
 git pull
 
 # to use the latest version "scripts/versions.sh"
-SKIP_NETWORK_RUNNER_SHUTDOWN=true ./scripts/run.sh
+./scripts/run.sh
 
 # to specify the version and default account for genesis
-SKIP_NETWORK_RUNNER_SHUTDOWN=true DEFAULT_ACCOUNT=0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC ./scripts/run.sh 1.9.1
+DEFAULT_ACCOUNT=0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC ./scripts/run.sh 1.9.1
 ```
 
 Note: make sure you check the version compatibility above between AvalancheGo and Subnet-evm and use the proper version of AvalancheGo.
