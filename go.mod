@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
-	github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221028215503-bb4b661ac88e
+	github.com/ava-labs/avalanche-network-runner v1.3.1-0.20221104223238-35be10cd3867
 	github.com/ava-labs/avalanchego v1.9.2
 	github.com/cespare/cp v0.1.0
 	github.com/creack/pty v1.1.18
@@ -26,7 +26,7 @@ require (
 	github.com/mattn/go-isatty v0.0.14
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo/v2 v2.4.0
-	github.com/onsi/gomega v1.23.0
+	github.com/onsi/gomega v1.24.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/client_model v0.2.0
 	github.com/rjeczalik/notify v0.9.2

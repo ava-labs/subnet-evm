@@ -68,8 +68,8 @@ github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kd
 github.com/apache/arrow/go/arrow v0.0.0-20191024131854-af6fa24be0db/go.mod h1:VTxUBvSJ3s3eHAg65PNgrsn5BtqCRPdmyXh6rAfdxN0=
 github.com/ava-labs/avalanche-ledger-go v0.0.11 h1:AZ2cKEZ1noMZPCLvjyl/33LBu2u/ESgolr661epH0Ak=
 github.com/ava-labs/avalanche-ledger-go v0.0.11/go.mod h1:ZU0gQAFDbyKV2WiBxsvvuigJbKgxVjWn509ajTYozT0=
-github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221028215503-bb4b661ac88e h1:fdRNC9ykEFg/zemCxAX1YJJvRk+agCLXq+Xml/6cYCs=
-github.com/ava-labs/avalanche-network-runner v1.2.4-0.20221028215503-bb4b661ac88e/go.mod h1:TbbYc8E0dZZOEF4AXW8Fa595qlhNjuEi4Y0llwzWsic=
+github.com/ava-labs/avalanche-network-runner v1.3.1-0.20221104223238-35be10cd3867 h1:a2xT2Q4zYpeMaJGCuUw6D7h4WUiX1vTMRPUuPwvAQP0=
+github.com/ava-labs/avalanche-network-runner v1.3.1-0.20221104223238-35be10cd3867/go.mod h1:8vwD/JzteWwaoms1lipmM0q4jDSkury+Z4GXQvrcb/8=
 github.com/ava-labs/avalanchego v1.9.2 h1:cMjFqnnePfx+Hq94j89B3EcWr3r5eORt/EnmZbBoYdc=
 github.com/ava-labs/avalanchego v1.9.2/go.mod h1:ezcsL6vzAu1eL3Ws8QNobEAqadXFCheEogk1d2+bir4=
 github.com/ava-labs/coreth v0.11.2-rc.0 h1:aK6Hd9I9t3FTqgofgPK5ZYFp8wfHzrUT/Aj4HtBRbTA=
@@ -474,8 +474,8 @@ github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7J
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
 github.com/onsi/gomega v1.17.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
 github.com/onsi/gomega v1.19.0/go.mod h1:LY+I3pBVzYsTBU1AnDwOSxaYi9WoWiqgwooUqq9yPro=
-github.com/onsi/gomega v1.23.0 h1:/oxKu9c2HVap+F3PfKort2Hw5DEU+HGlW8n+tguWsys=
-github.com/onsi/gomega v1.23.0/go.mod h1:Z/NWtiqwBrwUt4/2loMmHL63EDLnYHmVbuBpDr2vQAg=
+github.com/onsi/gomega v1.24.0 h1:+0glovB9Jd6z3VR+ScSwQqXVTIfJcGA9UBM8yzQxhqg=
+github.com/onsi/gomega v1.24.0/go.mod h1:Z/NWtiqwBrwUt4/2loMmHL63EDLnYHmVbuBpDr2vQAg=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/opentracing/opentracing-go v1.0.3-0.20180606204148-bd9c31933947/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
