@@ -27,7 +27,7 @@ const (
 	// {yourPrecompile}Key
 )
 
-// TODO: Move this to the interface or PrepompileConfig struct
+// TODO: Move this to the interface or PrecompileConfig struct
 func (k precompileKey) String() string {
 	switch k {
 	case contractDeployerAllowListKey:
