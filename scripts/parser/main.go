@@ -50,19 +50,16 @@ func startSubnet(outputFile string, avalanchegoPath string, pluginDir string, gr
 	fmt.Println("avalanchegoPath:", avalanchegoPath)
 	utils.SetOutputFile(outputFile)
 	utils.SetPluginDir(pluginDir)
-	err = runner.InitializeRunner(grpc, "info")
+
+	_, err = runner.StartNetwork("0.0.0.0:12342", avalanchegoPath, vmId, vmName, genesisPath, pluginDir)
 	if err != nil {
 		panic(err)
 	}
-	_, err = runner.StartNetwork(avalanchegoPath, vmId, vmName, genesisPath, pluginDir)
+	blockchainId, logsDir, pid, err := runner.WaitForCustomVm("0.0.0.0:12342", vmId)
 	if err != nil {
 		panic(err)
 	}
-	blockchainId, logsDir, pid, err := runner.WaitForCustomVm(vmId)
-	if err != nil {
-		panic(err)
-	}
-	runner.SaveClusterInfo(blockchainId, logsDir, pid)
+	runner.SaveClusterInfo("0.0.0.0:12342", blockchainId, logsDir, pid)
 }
 
 func parseMetamask(outputFile string, chainId string, address string) {

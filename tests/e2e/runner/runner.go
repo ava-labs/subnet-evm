@@ -15,10 +15,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var (
-	cli client.Client
-)
-
 type clusterInfo struct {
 	URIs     []string `json:"uris"`
 	Endpoint string   `json:"endpoint"`
@@ -36,21 +32,16 @@ func (ci clusterInfo) Save(p string) error {
 	return os.WriteFile(p, ob, fsModeWrite)
 }
 
-func GetClient() client.Client {
-	return cli
-}
-
-func InitializeRunner(grpcEp string, networkRunnerLogLevel string) error {
-	var err error
-	cli, err = client.New(client.Config{
-		LogLevel:    networkRunnerLogLevel,
+func startRunner(grpcEp string, execPath string, vmName string, genesisPath string, pluginDir string) error {
+	cli, err := client.New(client.Config{
+		LogLevel:    "info",
 		Endpoint:    grpcEp,
 		DialTimeout: 10 * time.Second,
 	})
-	return err
-}
+	if err != nil {
+		return err
+	}
 
-func startRunner(execPath string, vmName string, genesisPath string, pluginDir string) error {
 	utils.Outf("{{green}}tests/e2e/runner sending 'start' with binary path:{{/}} %q\n", execPath)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	resp, err := cli.Start(
@@ -72,7 +63,16 @@ func startRunner(execPath string, vmName string, genesisPath string, pluginDir s
 	return nil
 }
 
-func WaitForCustomVm(vmId ids.ID) (string, string, int, error) {
+func WaitForCustomVm(grpcEp string, vmId ids.ID) (string, string, int, error) {
+	cli, err := client.New(client.Config{
+		LogLevel:    "info",
+		Endpoint:    grpcEp,
+		DialTimeout: 10 * time.Second,
+	})
+	if err != nil {
+		return "", "", 0, err
+	}
+
 	blockchainID, logsDir := "", ""
 	pid := 0
 
@@ -117,7 +117,7 @@ done:
 			}
 		}
 	}
-	err := ctx.Err()
+	err = ctx.Err()
 	if err != nil {
 		cancel()
 		return "", "", 0, err
@@ -136,7 +136,16 @@ done:
 	return blockchainID, logsDir, pid, nil
 }
 
-func SaveClusterInfo(blockchainId string, logsDir string, pid int) (clusterInfo, error) {
+func SaveClusterInfo(grpcEp string, blockchainId string, logsDir string, pid int) (clusterInfo, error) {
+	cli, err := client.New(client.Config{
+		LogLevel:    "info",
+		Endpoint:    grpcEp,
+		DialTimeout: 10 * time.Second,
+	})
+	if err != nil {
+		return clusterInfo{}, err
+	}
+
 	cctx, ccancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	uris, err := cli.URIs(cctx)
 	ccancel()
@@ -165,35 +174,53 @@ func SaveClusterInfo(blockchainId string, logsDir string, pid int) (clusterInfo,
 	return ci, nil
 }
 
-func StartNetwork(execPath string, vmId ids.ID, vmName string, genesisPath string, pluginDir string) (clusterInfo, error) {
+func StartNetwork(grpcEp string, execPath string, vmId ids.ID, vmName string, genesisPath string, pluginDir string) (clusterInfo, error) {
 	fmt.Println("Starting network")
-	startRunner(execPath, vmName, genesisPath, pluginDir)
+	startRunner(grpcEp, execPath, vmName, genesisPath, pluginDir)
 
-	blockchainId, logsDir, pid, err := WaitForCustomVm(vmId)
+	blockchainId, logsDir, pid, err := WaitForCustomVm(grpcEp, vmId)
 	if err != nil {
 		return clusterInfo{}, err
 	}
 	fmt.Println("Got custom vm")
 
-	return SaveClusterInfo(blockchainId, logsDir, pid)
+	return SaveClusterInfo(grpcEp, blockchainId, logsDir, pid)
 }
 
-func StopNetwork() error {
+func StopNetwork(grpcEp string) error {
+	cli, err := client.New(client.Config{
+		LogLevel:    "info",
+		Endpoint:    grpcEp,
+		DialTimeout: 10 * time.Second,
+	})
+	if err != nil {
+		return err
+	}
+
 	utils.Outf("{{red}}shutting down network{{/}}\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	_, err := cli.Stop(ctx)
+	_, err = cli.Stop(ctx)
 	cancel()
 	return err
 }
 
 func ShutdownClient() error {
 	utils.Outf("{{red}}shutting down client{{/}}\n")
-	return cli.Close()
+	return nil
 }
 
-func IsRunnerUp() bool {
+func IsRunnerUp(grpcEp string) bool {
+	cli, err := client.New(client.Config{
+		LogLevel:    "info",
+		Endpoint:    grpcEp,
+		DialTimeout: 10 * time.Second,
+	})
+	if err != nil {
+		return false
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	_, err := cli.Health(ctx)
+	_, err = cli.Health(ctx)
 	cancel()
 	return err == nil
 }
