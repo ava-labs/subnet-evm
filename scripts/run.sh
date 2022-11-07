@@ -285,7 +285,7 @@ if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
   go run scripts/parser/main.go \
     $BASEDIR/avalanchego-${VERSION}/output.yaml \
     $CHAIN_ID $GENESIS_ADDRESS \
-    $BASEDIR/avalanchego-${VERSION}/avalanchego \
+    ${AVALANCHEGO_PATH} \
     ${AVALANCHEGO_PLUGIN_DIR} \
     "0.0.0.0:12342" \
     "$BASEDIR/genesis.json"
