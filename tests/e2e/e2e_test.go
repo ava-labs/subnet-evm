@@ -143,7 +143,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	utils.SetClient(runnerCli)
 
 	ginkgo.By("calling start API via network runner", func() {
-		if skipNetworkRunnerStart {
+		if !skipNetworkRunnerStart {
 			utils.Outf("{{green}}sending 'start' with binary path:{{/}} %q\n", utils.GetExecPath())
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			resp, err := runnerCli.Start(

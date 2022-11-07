@@ -248,7 +248,7 @@ run_ginkgo() {
   # By default, it runs all e2e test cases!
   # Use "--ginkgo.skip" to skip tests.
   # Use "--ginkgo.focus" to select tests.
-  echo "running e2e tests"
+  echo "running e2e tests with SKIP_NETWORK_RUNNER_START ${SKIP_NETWORK_RUNNER_START}"
   ./tests/e2e/e2e.test \
     --ginkgo.vv \
     --network-runner-log-level debug \
@@ -258,7 +258,9 @@ run_ginkgo() {
     --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
     --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
-    --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} --ginkgo.label-filter="${GINKGO_LABEL_FILTER}"
+    --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} \
+    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} \
+    --ginkgo.label-filter="${GINKGO_LABEL_FILTER}"
 }
 
 run_simulator() {
