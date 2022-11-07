@@ -29,6 +29,7 @@ func runHardhatTests(test string) {
 
 // startSubnet starts a test network and launches a subnetEVM instance with the genesis file at [genesisPath]
 func startSubnet(genesisPath string) error {
+	fmt.Println("AVALANCHEGO_PATH:", os.Getenv("AVALANCHEGO_PATH"))
 	_, err := runner.StartNetwork(os.Getenv("AVALANCHEGO_PATH"), evm.ID, vmName, genesisPath, utils.GetPluginDir())
 	gomega.Expect(err).Should(gomega.BeNil())
 	return utils.UpdateHardhatConfig()

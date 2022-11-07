@@ -51,8 +51,7 @@ func InitializeRunner(grpcEp string, networkRunnerLogLevel string) error {
 }
 
 func startRunner(execPath string, vmName string, genesisPath string, pluginDir string) error {
-	fmt.Println("calling start API via network runner")
-	utils.Outf("{{green}}runner sending 'start' with binary path:{{/}} %q\n", execPath)
+	utils.Outf("{{green}}tests/e2e/runner sending 'start' with binary path:{{/}} %q\n", execPath)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	resp, err := cli.Start(
 		ctx,
