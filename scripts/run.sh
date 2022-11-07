@@ -56,7 +56,7 @@ if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
 fi
 
 echo "Running with:"
-echo AVALANCE_VERSION: ${VERSION}
+echo AVALANCHE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
 echo GINKGO_VERSION: ${GINKGO_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
@@ -138,25 +138,34 @@ echo "creating genesis"
     "muirGlacierBlock": 0,
     "subnetEVMTimestamp": 0,
     "feeConfig": {
-      "gasLimit": 20000000,
-      "minBaseFee": 1000000000,
-      "targetGas": 100000000,
-      "baseFeeChangeDenominator": 48,
+      "gasLimit": 8000000,
+      "minBaseFee": 25000000000,
+      "targetGas": 15000000,
+      "baseFeeChangeDenominator": 36,
       "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
+      "maxBlockGasCost": 1000000,
       "targetBlockRate": 2,
-      "blockGasCostStep": 500000
-    }
+      "blockGasCostStep": 200000
+    },
+    "contractDeployerAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    },
+    "contractNativeMinterConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    },
+    "allowFeeRecipients": false
   },
   "alloc": {
     "${GENESIS_ADDRESS:2}": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
+      "balance": "0x295BE96E64066972000000"
     }
   },
   "nonce": "0x0",
   "timestamp": "0x0",
   "extraData": "0x00",
-  "gasLimit": "0x1312D00",
+  "gasLimit": "0x7A1200",
   "difficulty": "0x0",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
