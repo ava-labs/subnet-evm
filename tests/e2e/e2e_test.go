@@ -41,6 +41,7 @@ var (
 
 	outputFile string
 
+	skipNetworkRunnerStart    bool
 	skipNetworkRunnerShutdown bool
 )
 
@@ -96,6 +97,12 @@ func init() {
 	)
 
 	flag.BoolVar(
+		&skipNetworkRunnerStart,
+		"skip-network-runner-start",
+		false,
+		"'true' to skip network runner start",
+	)
+	flag.BoolVar(
 		&skipNetworkRunnerShutdown,
 		"skip-network-runner-shutdown",
 		true,
@@ -136,25 +143,29 @@ var _ = ginkgo.BeforeSuite(func() {
 	utils.SetClient(runnerCli)
 
 	ginkgo.By("calling start API via network runner", func() {
-		utils.Outf("{{green}}sending 'start' with binary path:{{/}} %q\n", utils.GetExecPath())
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		resp, err := runnerCli.Start(
-			ctx,
-			utils.GetExecPath(),
-			runner_sdk.WithPluginDir(utils.GetPluginDir()),
-			runner_sdk.WithGlobalNodeConfig(fmt.Sprintf(`{"log-level":"%s"}`, avalanchegoLogLevel)),
-			runner_sdk.WithNumNodes(5),
-			runner_sdk.WithBlockchainSpecs(
-				[]*runner_sdk_rpcpb.BlockchainSpec{
-					{
-						VmName:  vmName,
-						Genesis: utils.GetVmGenesisPath(),
+		if skipNetworkRunnerStart {
+			utils.Outf("{{green}}sending 'start' with binary path:{{/}} %q\n", utils.GetExecPath())
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			resp, err := runnerCli.Start(
+				ctx,
+				utils.GetExecPath(),
+				runner_sdk.WithPluginDir(utils.GetPluginDir()),
+				runner_sdk.WithGlobalNodeConfig(fmt.Sprintf(`{"log-level":"%s"}`, avalanchegoLogLevel)),
+				runner_sdk.WithNumNodes(5),
+				runner_sdk.WithBlockchainSpecs(
+					[]*runner_sdk_rpcpb.BlockchainSpec{
+						{
+							VmName:  vmName,
+							Genesis: utils.GetVmGenesisPath(),
+						},
 					},
-				},
-			))
-		cancel()
-		gomega.Expect(err).Should(gomega.BeNil())
-		utils.Outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
+				))
+			cancel()
+			gomega.Expect(err).Should(gomega.BeNil())
+			utils.Outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
+		} else {
+			utils.Outf("{{green}}skipped 'start'{{/}}\n")
+		}
 	})
 
 	// TODO: network runner health should imply custom VM healthiness

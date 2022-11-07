@@ -258,7 +258,7 @@ run_ginkgo() {
     --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
     --vm-genesis-path=$BASEDIR/genesis.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
-    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} --ginkgo.label-filter="${GINKGO_LABEL_FILTER}"
+    --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} --ginkgo.label-filter="${GINKGO_LABEL_FILTER}"
 }
 
 run_simulator() {
@@ -278,12 +278,7 @@ run_simulator() {
   --priority-fee=1
 }
 
-if [[ ${SKIP_NETWORK_RUNNER_START} == false ]]; then
-  echo "running ginkgo"
-  run_ginkgo
-  # to fail the script if ginkgo failed
-  EXIT_CODE=$?
-else
+if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
   echo "running scripts/parser/main.go"
   go run scripts/parser/main.go \
     $BASEDIR/avalanchego-${VERSION}/output.yaml \
@@ -293,6 +288,13 @@ else
     "0.0.0.0:12342" \
     "$BASEDIR/genesis.json"
 fi
+
+# whether start network via parser/main.go or e2e.test ginkgo
+# run the tests with label filter
+echo "running ginkgo"
+run_ginkgo
+# to fail the script if ginkgo failed
+EXIT_CODE=$?
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then
