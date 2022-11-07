@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -46,13 +47,14 @@ func startSubnet(outputFile string, avalanchegoPath string, pluginDir string, gr
 		panic(err)
 	}
 
+	fmt.Println("avalanchegoPath:", avalanchegoPath)
 	utils.SetOutputFile(outputFile)
 	utils.SetPluginDir(pluginDir)
-	err = runner.InitializeRunner(avalanchegoPath, grpc, "info")
+	err = runner.InitializeRunner(grpc, "info")
 	if err != nil {
 		panic(err)
 	}
-	_, err = runner.StartNetwork(vmId, vmName, genesisPath, pluginDir)
+	_, err = runner.StartNetwork(avalanchegoPath, vmId, vmName, genesisPath, pluginDir)
 	if err != nil {
 		panic(err)
 	}

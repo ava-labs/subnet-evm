@@ -16,8 +16,6 @@ import (
 )
 
 var (
-	execPath string
-
 	cli client.Client
 )
 
@@ -42,9 +40,7 @@ func GetClient() client.Client {
 	return cli
 }
 
-func InitializeRunner(execPath_ string, grpcEp string, networkRunnerLogLevel string) error {
-	execPath = execPath_
-
+func InitializeRunner(grpcEp string, networkRunnerLogLevel string) error {
 	var err error
 	cli, err = client.New(client.Config{
 		LogLevel:    networkRunnerLogLevel,
@@ -54,7 +50,7 @@ func InitializeRunner(execPath_ string, grpcEp string, networkRunnerLogLevel str
 	return err
 }
 
-func startRunner(vmName string, genesisPath string, pluginDir string) error {
+func startRunner(execPath string, vmName string, genesisPath string, pluginDir string) error {
 	fmt.Println("calling start API via network runner")
 	utils.Outf("{{green}}runner sending 'start' with binary path:{{/}} %q\n", execPath)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -170,9 +166,9 @@ func SaveClusterInfo(blockchainId string, logsDir string, pid int) (clusterInfo,
 	return ci, nil
 }
 
-func StartNetwork(vmId ids.ID, vmName string, genesisPath string, pluginDir string) (clusterInfo, error) {
+func StartNetwork(execPath string, vmId ids.ID, vmName string, genesisPath string, pluginDir string) (clusterInfo, error) {
 	fmt.Println("Starting network")
-	startRunner(vmName, genesisPath, pluginDir)
+	startRunner(execPath, vmName, genesisPath, pluginDir)
 
 	blockchainId, logsDir, pid, err := WaitForCustomVm(vmId)
 	if err != nil {

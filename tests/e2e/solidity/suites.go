@@ -6,6 +6,7 @@ package solidity
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm"
@@ -28,7 +29,7 @@ func runHardhatTests(test string) {
 
 // startSubnet starts a test network and launches a subnetEVM instance with the genesis file at [genesisPath]
 func startSubnet(genesisPath string) error {
-	_, err := runner.StartNetwork(evm.ID, vmName, genesisPath, utils.GetPluginDir())
+	_, err := runner.StartNetwork(os.Getenv("AVALANCHEGO_PATH"), evm.ID, vmName, genesisPath, utils.GetPluginDir())
 	gomega.Expect(err).Should(gomega.BeNil())
 	return utils.UpdateHardhatConfig()
 }

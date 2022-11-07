@@ -282,7 +282,7 @@ run_simulator() {
 
 if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
   echo "running scripts/parser/main.go"
-  go run scripts/parser/main.go \
+  ${AVALANCHEGO_PATH} go run scripts/parser/main.go \
     $BASEDIR/avalanchego-${VERSION}/output.yaml \
     $CHAIN_ID $GENESIS_ADDRESS \
     ${AVALANCHEGO_PATH} \
