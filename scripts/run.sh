@@ -163,6 +163,8 @@ echo "creating genesis"
     },
     "allowFeeRecipients": false
   },
+  "airdropHash":"0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da",
+  "airdropAmount":"0x8AC7230489E80000",
   "alloc": {
     "${GENESIS_ADDRESS:2}": {
       "balance": "0x295BE96E64066972000000"
@@ -180,53 +182,6 @@ echo "creating genesis"
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
 }
 EOF
-
-# If you'd like to try the airdrop feature, use the commented genesis
-# cat <<EOF > ${BASEDIR}/genesis.json
-# {
-#   "config": {
-#     "chainId": $CHAIN_ID,
-#     "homesteadBlock": 0,
-#     "eip150Block": 0,
-#     "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-#     "eip155Block": 0,
-#     "eip158Block": 0,
-#     "byzantiumBlock": 0,
-#     "constantinopleBlock": 0,
-#     "petersburgBlock": 0,
-#     "istanbulBlock": 0,
-#     "muirGlacierBlock": 0,
-#     "subnetEVMTimestamp": 0,
-#     "feeConfig": {
-#       "gasLimit": 20000000,
-#       "minBaseFee": 1000000000,
-#       "targetGas": 100000000,
-#       "baseFeeChangeDenominator": 48,
-#       "minBlockGasCost": 0,
-#       "maxBlockGasCost": 10000000,
-#       "targetBlockRate": 2,
-#       "blockGasCostStep": 500000
-#     }
-#   },
-#   "airdropHash":"0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da",
-#   "airdropAmount":"0x8AC7230489E80000",
-#   "alloc": {
-#     "${GENESIS_ADDRESS:2}": {
-#       "balance": "0x52B7D2DCC80CD2E4000000"
-#     }
-#   },
-#   "nonce": "0x0",
-#   "timestamp": "0x0",
-#   "extraData": "0x00",
-#   "gasLimit": "0x1312D00",
-#   "difficulty": "0x0",
-#   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-#   "coinbase": "0x0000000000000000000000000000000000000000",
-#   "number": "0x0",
-#   "gasUsed": "0x0",
-#   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-# }
-# EOF
 
 #################################
 # download avalanche-network-runner
