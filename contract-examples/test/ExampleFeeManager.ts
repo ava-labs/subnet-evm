@@ -44,7 +44,7 @@ const WAGMI_FEES = {
 
 // TODO: These tests keep state to the next state. It means that some tests cases assumes some preconditions
 // set by previous test cases. We should make these tests stateless.
-describe.only("ExampleFeeManager", function () {
+describe("ExampleFeeManager", function () {
   this.timeout("30s")
 
   let owner: SignerWithAddress

@@ -19,7 +19,7 @@ const ROLES = {
   ADMIN: 2
 }
 
-describe("ExampleTxAllowList", function () {
+describe.only("ExampleTxAllowList", function () {
   let admin: SignerWithAddress
   let contract: Contract
   let allowed: SignerWithAddress
@@ -137,13 +137,15 @@ describe("ExampleTxAllowList", function () {
     expect(result).to.be.true
   })
 
-  it("should let allowed address deploy", async function () {
-    const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: allowed })
-    let token: Contract
-    token = await Token.deploy(11111)
-    await token.deployed()
-    expect(token.address).not.null
-  })
+  // FIX: Delete this test as we assign deploy permissions in ContractDeployAllowList and not TxAllowList
+  // Check line 499-500 in core/vm/evm.go
+  // it("should let allowed address deploy", async function () {    
+  //   const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: allowed })
+  //   let token: Contract
+  //   token = await Token.deploy(11111)
+  //   await token.deployed()
+  //   expect(token.address).not.null
+  // })
 
   it("should not let allowed add another allowed", async function () {
     try {
