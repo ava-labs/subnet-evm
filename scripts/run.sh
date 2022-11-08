@@ -138,7 +138,7 @@ echo "creating genesis"
     "muirGlacierBlock": 0,
     "subnetEVMTimestamp": 0,
     "feeConfig": {
-       "gasLimit": 20000000,
+      "gasLimit": 20000000,
       "minBaseFee": 1000000000,
       "targetGas": 100000000,
       "baseFeeChangeDenominator": 48,
