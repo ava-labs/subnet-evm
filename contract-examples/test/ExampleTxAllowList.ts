@@ -19,7 +19,7 @@ const ROLES = {
   ADMIN: 2
 }
 
-describe.only("ExampleTxAllowList", function () {
+describe("ExampleTxAllowList", function () {
   let admin: SignerWithAddress
   let contract: Contract
   let allowed: SignerWithAddress

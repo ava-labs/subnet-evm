@@ -171,7 +171,7 @@ echo "creating genesis"
   },
   "alloc": {
     "${GENESIS_ADDRESS:2}": {
-      "balance": "0x295BE96E64066972000000"
+      "balance": "0x52B7D2DCC80CD2E4000000"
     }
   },
   "nonce": "0x0",
