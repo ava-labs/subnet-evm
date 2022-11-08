@@ -138,14 +138,14 @@ echo "creating genesis"
     "muirGlacierBlock": 0,
     "subnetEVMTimestamp": 0,
     "feeConfig": {
-      "gasLimit": 8000000,
-      "minBaseFee": 25000000000,
-      "targetGas": 15000000,
-      "baseFeeChangeDenominator": 36,
+       "gasLimit": 20000000,
+      "minBaseFee": 1000000000,
+      "targetGas": 100000000,
+      "baseFeeChangeDenominator": 48,
       "minBlockGasCost": 0,
-      "maxBlockGasCost": 1000000,
+      "maxBlockGasCost": 10000000,
       "targetBlockRate": 2,
-      "blockGasCostStep": 200000
+      "blockGasCostStep": 500000
     },
     "txAllowListConfig": {
       "blockTimestamp": 0,
@@ -161,10 +161,14 @@ echo "creating genesis"
       "blockTimestamp": 0,
       "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
     },
+    "feeManagerConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": [
+        "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+      ]
+    },
     "allowFeeRecipients": false
   },
-  "airdropHash":"0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da",
-  "airdropAmount":"0x8AC7230489E80000",
   "alloc": {
     "${GENESIS_ADDRESS:2}": {
       "balance": "0x295BE96E64066972000000"
@@ -173,7 +177,7 @@ echo "creating genesis"
   "nonce": "0x0",
   "timestamp": "0x0",
   "extraData": "0x00",
-  "gasLimit": "0x7A1200",
+  "gasLimit": "0x1312D00",
   "difficulty": "0x0",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",

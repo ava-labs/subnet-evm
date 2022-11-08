@@ -85,7 +85,7 @@ describe("ExampleTxAllowList", function () {
       token = await Token.deploy(11111)
     }
     catch (err) {
-      expect(err.message).contains("cannot issue transaction from non-allow listed address")
+      expect(err.message).contains("is not authorized to deploy a contract")
       return
     }
     expect.fail("should have errored")
