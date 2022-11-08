@@ -147,6 +147,12 @@ echo "creating genesis"
       "targetBlockRate": 2,
       "blockGasCostStep": 200000
     },
+    "txAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": [
+        "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+      ]
+    },
     "contractDeployerAllowListConfig": {
       "blockTimestamp": 0,
       "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
