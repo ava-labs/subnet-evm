@@ -167,7 +167,7 @@ func TestEqualTxAllowListConfig(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "different version",
+			name:     "different timestamp",
 			config:   NewTxAllowListConfig(big.NewInt(3), admins, enableds),
 			other:    NewTxAllowListConfig(big.NewInt(4), admins, enableds),
 			expected: false,
@@ -222,7 +222,7 @@ func TestEqualContractDeployerAllowListConfig(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "different version",
+			name:     "different timestamp",
 			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
 			other:    NewContractDeployerAllowListConfig(big.NewInt(4), admins, enableds),
 			expected: false,
@@ -265,7 +265,7 @@ func TestEqualContractNativeMinterConfig(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "different version",
+			name:     "different timestamps",
 			config:   NewContractNativeMinterConfig(big.NewInt(3), admins, nil, nil),
 			other:    NewContractNativeMinterConfig(big.NewInt(4), admins, nil, nil),
 			expected: false,
@@ -345,7 +345,7 @@ func TestEqualFeeConfigManagerConfig(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "different version",
+			name:     "different timestamp",
 			config:   NewFeeManagerConfig(big.NewInt(3), admins, nil, nil),
 			other:    NewFeeManagerConfig(big.NewInt(4), admins, nil, nil),
 			expected: false,
@@ -411,7 +411,7 @@ func TestEqualRewardManagerConfig(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "different version",
+			name:     "different timestamp",
 			config:   NewRewardManagerConfig(big.NewInt(3), admins, nil, nil),
 			other:    NewRewardManagerConfig(big.NewInt(4), admins, nil, nil),
 			expected: false,

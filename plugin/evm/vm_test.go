@@ -224,8 +224,8 @@ func TestVMConfig(t *testing.T) {
 	enabledEthAPIs := []string{"debug"}
 	configJSON := fmt.Sprintf("{\"rpc-tx-fee-cap\": %g,\"eth-apis\": %s}", txFeeCap, fmt.Sprintf("[%q]", enabledEthAPIs[0]))
 	_, vm, _, _ := GenesisVM(t, false, "", configJSON, "")
-	assert.Equal(t, vm.config.RPCTxFeeCap, txFeeCap, "Tx Fee Cap should be set")
-	assert.Equal(t, vm.config.EthAPIs(), enabledEthAPIs, "EnabledEthAPIs should be set")
+	require.Equal(t, vm.config.RPCTxFeeCap, txFeeCap, "Tx Fee Cap should be set")
+	require.Equal(t, vm.config.EthAPIs(), enabledEthAPIs, "EnabledEthAPIs should be set")
 	assert.NoError(t, vm.Shutdown())
 }
 
@@ -239,7 +239,7 @@ func TestVMConfigDefaults(t *testing.T) {
 	vmConfig.SetDefaults()
 	vmConfig.RPCTxFeeCap = txFeeCap
 	vmConfig.EnabledEthAPIs = enabledEthAPIs
-	assert.Equal(t, vmConfig, vm.config, "VM Config should match default with overrides")
+	require.Equal(t, vmConfig, vm.config, "VM Config should match default with overrides")
 	assert.NoError(t, vm.Shutdown())
 }
 
@@ -249,7 +249,7 @@ func TestVMNilConfig(t *testing.T) {
 	// VM Config should match defaults if no config is passed in
 	var vmConfig Config
 	vmConfig.SetDefaults()
-	assert.Equal(t, vmConfig, vm.config, "VM Config should match default config")
+	require.Equal(t, vmConfig, vm.config, "VM Config should match default config")
 	assert.NoError(t, vm.Shutdown())
 }
 
@@ -258,8 +258,8 @@ func TestVMContinuousProfiler(t *testing.T) {
 	profilerFrequency := 500 * time.Millisecond
 	configJSON := fmt.Sprintf("{\"continuous-profiler-dir\": %q,\"continuous-profiler-frequency\": \"500ms\"}", profilerDir)
 	_, vm, _, _ := GenesisVM(t, false, "", configJSON, "")
-	assert.Equal(t, vm.config.ContinuousProfilerDir, profilerDir, "profiler dir should be set")
-	assert.Equal(t, vm.config.ContinuousProfilerFrequency.Duration, profilerFrequency, "profiler frequency should be set")
+	require.Equal(t, vm.config.ContinuousProfilerDir, profilerDir, "profiler dir should be set")
+	require.Equal(t, vm.config.ContinuousProfilerFrequency.Duration, profilerFrequency, "profiler frequency should be set")
 
 	// Sleep for twice the frequency of the profiler to give it time
 	// to generate the first profile.
@@ -2235,7 +2235,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
 	}
 
-	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
+	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 }
 
 // Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
@@ -2322,7 +2322,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	if txs.Len() != 1 {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
 	}
-	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
+	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
 	assert.True(t, block.Timestamp().Cmp(big.NewInt(disableAllowListTimestamp.Unix())) >= 0)
@@ -2344,7 +2344,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	if txs.Len() != 1 {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
 	}
-	assert.Equal(t, signedTx1.Hash(), txs[0].Hash())
+	require.Equal(t, signedTx1.Hash(), txs[0].Hash())
 }
 
 // Test that the fee manager changes fee configuration
@@ -2403,7 +2403,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(vm.blockChain.Genesis().Header())
 	assert.NoError(t, err)
-	assert.EqualValues(t, feeConfig, testLowFeeConfig)
+	require.EqualValues(t, feeConfig, testLowFeeConfig)
 	assert.Zero(t, vm.blockChain.CurrentBlock().Number().Cmp(lastChangedAt))
 
 	// set a different fee config now
@@ -2445,8 +2445,8 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	// Contract is initialized but no state is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err = vm.blockChain.GetFeeConfigAt(block.Header())
 	assert.NoError(t, err)
-	assert.EqualValues(t, testHighFeeConfig, feeConfig)
-	assert.EqualValues(t, vm.blockChain.CurrentBlock().Number(), lastChangedAt)
+	require.EqualValues(t, testHighFeeConfig, feeConfig)
+	require.EqualValues(t, vm.blockChain.CurrentBlock().Number(), lastChangedAt)
 
 	// should fail, with same params since fee is higher now
 	tx2 := types.NewTx(&types.DynamicFeeTx{
@@ -2511,7 +2511,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	require.NoError(t, err) // this won't return an error since miner will set the etherbase to blackhole address
 
 	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	assert.Equal(t, ethBlock.Coinbase(), constants.BlackholeAddr)
+	require.Equal(t, ethBlock.Coinbase(), constants.BlackholeAddr)
 }
 
 func TestAllowFeeRecipientEnabled(t *testing.T) {
@@ -2563,7 +2563,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 		t.Fatalf("Expected new block to match")
 	}
 	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	assert.Equal(t, ethBlock.Coinbase(), etherBase)
+	require.Equal(t, ethBlock.Coinbase(), etherBase)
 	// Verify that etherBase has received fees
 	blkState, err := vm.blockChain.StateAt(ethBlock.Root())
 	if err != nil {
@@ -2571,14 +2571,13 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	}
 
 	balance := blkState.GetBalance(etherBase)
-	assert.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.Big0))
 }
 
 func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
+
 	genesis.Config.RewardManagerConfig = precompile.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
 	genesis.Config.AllowFeeRecipients = true // enable this in genesis to test if this is recognized by the reward manager
 	genesisJSON, err := genesis.MarshalJSON()
@@ -2638,14 +2637,13 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	require.NoError(t, err)
 
 	balance := blkState.GetBalance(testAddr)
-	assert.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.Big0))
 }
 
 func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
+
 	genesis.Config.RewardManagerConfig = precompile.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
 	genesis.Config.AllowFeeRecipients = false // disable this in genesis
 	genesisJSON, err := genesis.MarshalJSON()
@@ -2659,9 +2657,7 @@ func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), string(configJSON), "")
 
 	defer func() {
-		if err := vm.Shutdown(); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, vm.Shutdown())
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -2705,5 +2701,5 @@ func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
 	require.NoError(t, err)
 
 	balance := blkState.GetBalance(etherBase)
-	assert.Equal(t, 1, balance.Cmp(common.Big0))
+	require.Equal(t, 1, balance.Cmp(common.Big0))
 }

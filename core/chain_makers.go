@@ -323,6 +323,6 @@ func (cr *fakeChainReader) GetFeeConfigAt(parent *types.Header) (commontype.FeeC
 	return cr.config.FeeConfig, nil, nil
 }
 
-func (cr *fakeChainReader) GetCoinbaseAt(header *types.Header) (common.Address, bool, error) {
+func (cr *fakeChainReader) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
 	return constants.BlackholeAddr, cr.config.AllowFeeRecipients, nil
 }

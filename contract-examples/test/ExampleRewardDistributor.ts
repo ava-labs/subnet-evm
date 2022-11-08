@@ -189,10 +189,13 @@ describe("ExampleRewardDistributor", function () {
     expect(isRewardAddress).to.be.equal(false)
   })
 
-  it("should be able to receive rewards after revoke", async function () {
+  it("should be able to claim after revoke", async function () {
     const nonRewardAddress = signer1
+    const isRewardAddress = await contract.isRewardAddress(nonRewardAddress.address)
+    expect(isRewardAddress).to.be.equal(false)
+
     try {
-      await contract.revoke(nonRewardAddress.address);
+      await contract.connect(nonRewardAddress).claim();
     }
     catch (err) {
       expect(err.message).to.contains('Not a reward address')
