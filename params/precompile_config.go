@@ -4,7 +4,6 @@
 package params
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -350,10 +349,7 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				// TODO: very janky solution, instead implement stringer in the interface
-				// currently skipping this so we don't break current precompiles
-				configJSON, _ := json.Marshal(config)
-				log.Info("Activating new precompile", "name", key, "config", string(configJSON))
+				log.Info("Activating new precompile", "name", key, "config", config)
 				precompile.Configure(c, blockContext, config, statedb)
 			}
 		}
