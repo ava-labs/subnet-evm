@@ -97,7 +97,7 @@ describe("ExampleRewardDistributor", function () {
     expect(balance.gt(previousBalance)).to.be.true
   })
 
-  it("should not let non-added addres to claim rewards", async function () {
+  it("should not let non-added address to claim rewards", async function () {
     const nonRewardAddress = signer1
     try {
       await contract.connect(nonRewardAddress).claim();
