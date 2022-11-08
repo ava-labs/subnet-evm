@@ -133,7 +133,7 @@ describe("ExampleRewardDistributor", function () {
     expect(isRewardAddress).to.be.equal(false)
   })
 
-  it("should able to add a reward address", async function () {
+  it("should be able to add a reward address", async function () {
     const rewardAddress = signer1
     let tx = await contract.addRewardAddress(rewardAddress.address);
     await tx.wait()
