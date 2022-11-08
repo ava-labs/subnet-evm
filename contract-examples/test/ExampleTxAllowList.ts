@@ -19,7 +19,7 @@ const ROLES = {
   ADMIN: 2
 }
 
-describe("ExampleTxAllowList", function () {
+describe.only("ExampleTxAllowList", function () {
   let admin: SignerWithAddress
   let contract: Contract
   let allowed: SignerWithAddress
@@ -35,17 +35,18 @@ describe("ExampleTxAllowList", function () {
       ;[, allowed, noRole] = await ethers.getSigners()
 
     // Fund allowed address
-    await admin.sendTransaction({
+    let allowedTx = await admin.sendTransaction({
       to: allowed.address,
       value: ethers.utils.parseEther("10")
     })
+    await allowedTx.wait()
 
     // Fund no role address
-    let tx = await admin.sendTransaction({
+    let noRoleTx = await admin.sendTransaction({
       to: noRole.address,
       value: ethers.utils.parseEther("10")
     })
-    await tx.wait()
+    await noRoleTx.wait()
   })
 
   it("should add contract deployer as admin", async function () {
