@@ -238,7 +238,7 @@ task("rewardManager:currentRewardAddress", "a task to get the current configured
   })
 
 // npx hardhat rewardManager:areFeeRecipientsAllowed --network local
-task("rewardManager:areFeeRecipientsAllowed", "a task to get wheter the fee recipients are allowed")
+task("rewardManager:areFeeRecipientsAllowed", "a task to get whether the fee recipients are allowed")
   .setAction(async (_, hre) => {
     const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
     const result = await rewardManager.areFeeRecipientsAllowed()
