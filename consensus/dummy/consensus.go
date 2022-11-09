@@ -75,7 +75,7 @@ func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *type
 	// get the coinbase configured at parent
 	configuredAddressAtParent, isAllowFeeRecipients, err := chain.GetCoinbaseAt(parent)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get coinbase at %v: %w", header.Hash(), err)
 	}
 
 	if isAllowFeeRecipients {
