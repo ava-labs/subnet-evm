@@ -125,18 +125,6 @@ func New(
 	if chainDb == nil {
 		return nil, errors.New("chainDb cannot be nil")
 	}
-	if !config.Pruning && config.TrieDirtyCache > 0 {
-		// If snapshots are enabled, allocate 2/5 of the TrieDirtyCache memory cap to the snapshot cache
-		if config.SnapshotCache > 0 {
-			config.TrieCleanCache += config.TrieDirtyCache * 3 / 5
-			config.SnapshotCache += config.TrieDirtyCache * 2 / 5
-		} else {
-			// If snapshots are disabled, the TrieDirtyCache will be written through to the clean cache
-			// so move the cache allocation from the dirty cache to the clean cache
-			config.TrieCleanCache += config.TrieDirtyCache
-			config.TrieDirtyCache = 0
-		}
-	}
 
 	// round TrieCleanCache and SnapshotCache up to nearest 64MB, since fastcache will mmap
 	// memory in 64MBs chunks.
@@ -145,8 +133,9 @@ func New(
 
 	log.Info(
 		"Allocated trie memory caches",
-		"clean", common.StorageSize(config.TrieCleanCache)*1024*1024,
-		"dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024,
+		"trie clean", common.StorageSize(config.TrieCleanCache)*1024*1024,
+		"trie dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024,
+		"snapshot clean", common.StorageSize(config.SnapshotCache)*1024*1024,
 	)
 
 	chainConfig, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis, lastAcceptedHash)
@@ -209,6 +198,8 @@ func New(
 		}
 		cacheConfig = &core.CacheConfig{
 			TrieCleanLimit:                  config.TrieCleanCache,
+			TrieCleanJournal:                config.TrieCleanJournal,
+			TrieCleanRejournal:              config.TrieCleanRejournal,
 			TrieDirtyLimit:                  config.TrieDirtyCache,
 			TrieDirtyCommitTarget:           config.TrieDirtyCommitTarget,
 			Pruning:                         config.Pruning,
@@ -284,6 +275,13 @@ func (s *Ethereum) APIs() []rpc.API {
 	// Add the APIs from the node
 	apis = append(apis, s.stackRPCs...)
 
+	// Create [filterSystem] with the log cache size set in the config.
+	ethcfg := s.APIBackend.eth.config
+	filterSystem := filters.NewFilterSystem(s.APIBackend, filters.Config{
+		LogCacheSize: ethcfg.FilterLogCacheSize,
+		Timeout:      5 * time.Minute,
+	})
+
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
@@ -292,7 +290,7 @@ func (s *Ethereum) APIs() []rpc.API {
 			Name:      "eth",
 		}, {
 			Namespace: "eth",
-			Service:   filters.NewFilterAPI(s.APIBackend, false, 5*time.Minute),
+			Service:   filters.NewFilterAPI(filterSystem, false /* isLightClient */),
 			Name:      "eth-filter",
 		}, {
 			Namespace: "admin",

@@ -178,6 +178,12 @@ func (c *{{.Contract.Type}}Config) Equal(s StatefulPrecompileConfig) bool {
 	return equals
 }
 
+// String returns a string representation of the {{.Contract.Type}}Config.
+func (c *{{.Contract.Type}}Config) String() string {
+	bytes, _ := json.Marshal(c)
+	return string(bytes)
+}
+
 // Address returns the address of the {{.Contract.Type}}. Addresses reside under the precompile/params.go
 // Select a non-conflicting address and set it in the params.go.
 func (c *{{.Contract.Type}}Config) Address() common.Address {
