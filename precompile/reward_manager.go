@@ -7,6 +7,7 @@
 package precompile
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -187,6 +188,12 @@ func (c *RewardManagerConfig) Verify() error {
 		return c.InitialRewardConfig.Verify()
 	}
 	return nil
+}
+
+// String returns a string representation of the RewardManagerConfig.
+func (c *RewardManagerConfig) String() string {
+	bytes, _ := json.Marshal(c)
+	return string(bytes)
 }
 
 // GetRewardManagerAllowListStatus returns the role of [address] for the RewardManager list.
