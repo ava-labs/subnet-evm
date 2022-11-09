@@ -61,6 +61,8 @@ describe("ExampleRewardDistributor", function () {
     let balance = await ethers.provider.getBalance(contract.address)
     expect(balance).to.be.equal(0)
 
+    let firstBHBalance = await ethers.provider.getBalance(BLACKHOLE_ADDRESS)
+
     // Send a transaction to mine a new block
     const tx = await owner.sendTransaction({
       to: signer1.address,
@@ -70,6 +72,9 @@ describe("ExampleRewardDistributor", function () {
 
     balance = await ethers.provider.getBalance(contract.address)
     expect(balance).to.be.equal(0)
+
+    let secondBHBalance = await ethers.provider.getBalance(BLACKHOLE_ADDRESS)
+    expect(secondBHBalance).to.be.greaterThan(firstBHBalance)
   })
 
   it("should be appointed as reward address", async function () {

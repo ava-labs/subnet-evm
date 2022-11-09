@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -2512,6 +2513,22 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 
 	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	require.Equal(t, ethBlock.Coinbase(), constants.BlackholeAddr)
+
+	// Create empty block from blk
+	internalBlk := blk.(*chain.BlockWrapper).Block.(*Block)
+	modifiedHeader := types.CopyHeader(internalBlk.ethBlock.Header())
+	modifiedHeader.Coinbase = common.HexToAddress("0x0123456789") // set non-blackhole address by force
+	modifiedBlock := types.NewBlock(
+		modifiedHeader,
+		internalBlk.ethBlock.Transactions(),
+		nil,
+		nil,
+		new(trie.Trie),
+	)
+
+	modifiedBlk := vm.newBlock(modifiedBlock)
+
+	require.ErrorIs(t, modifiedBlk.Verify(), vmerrs.ErrInvalidCoinbase)
 }
 
 func TestAllowFeeRecipientEnabled(t *testing.T) {
@@ -2582,12 +2599,14 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	genesis.Config.AllowFeeRecipients = true // enable this in genesis to test if this is recognized by the reward manager
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
+
 	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
 	c := Config{}
 	c.SetDefaults()
 	c.FeeRecipient = etherBase.String()
 	configJSON, err := json.Marshal(c)
 	require.NoError(t, err)
+
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), string(configJSON), "")
 
 	defer func() {

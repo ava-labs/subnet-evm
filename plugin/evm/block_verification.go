@@ -9,11 +9,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 )
 
 var legacyMinGasPrice = big.NewInt(params.MinGasPrice)
@@ -95,13 +93,6 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 	uncleHash := types.CalcUncleHash(b.ethBlock.Uncles())
 	if uncleHash != ethHeader.UncleHash {
 		return fmt.Errorf("invalid uncle hash %v does not match calculated uncle hash %v", ethHeader.UncleHash, uncleHash)
-	}
-	// if reward manager is enabled, Coinbase depends on state. State is not available here, so skip checking the coinbase here.
-	if !rules.IsRewardManagerEnabled {
-		// If Subnet EVM or AllowFeeRecipients is not enabled, Coinbase must be BlackholeAddr.
-		if (!rules.IsSubnetEVM || !b.vm.chainConfig.AllowFeeRecipients) && b.ethBlock.Coinbase() != constants.BlackholeAddr {
-			return fmt.Errorf("%w: %v does not match required blackhole address %v", vmerrs.ErrInvalidCoinbase, ethHeader.Coinbase, constants.BlackholeAddr)
-		}
 	}
 	// Block must not have any uncles
 	if len(b.ethBlock.Uncles()) > 0 {
