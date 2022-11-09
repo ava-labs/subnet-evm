@@ -6,6 +6,7 @@ package solidity
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm"
@@ -28,72 +29,73 @@ func runHardhatTests(test string) {
 
 // startSubnet starts a test network and launches a subnetEVM instance with the genesis file at [genesisPath]
 func startSubnet(genesisPath string) error {
-	_, err := runner.StartNetwork(evm.ID, vmName, genesisPath, utils.GetPluginDir())
+	fmt.Println("AVALANCHEGO_PATH:", os.Getenv("AVALANCHEGO_PATH"))
+	_, err := runner.StartNetwork("0.0.0.0:12342", os.Getenv("AVALANCHEGO_PATH"), evm.ID, vmName, genesisPath, utils.GetPluginDir())
 	gomega.Expect(err).Should(gomega.BeNil())
 	return utils.UpdateHardhatConfig()
 }
 
 // stopSubnet stops the test network.
 func stopSubnet() {
-	err := runner.StopNetwork()
+	err := runner.StopNetwork("0.0.0.0:12342")
 	gomega.Expect(err).Should(gomega.BeNil())
 }
 
 var _ = utils.DescribePrecompile(func() {
-	ginkgo.It("tx allow list", func() {
+	ginkgo.It("tx allow list", ginkgo.Label("solidity-with-npx"), func() {
 		err := startSubnet("./tests/e2e/genesis/tx_allow_list.json")
 		gomega.Expect(err).Should(gomega.BeNil())
-		running := runner.IsRunnerUp()
+		running := runner.IsRunnerUp("0.0.0.0:12342")
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ExampleTxAllowList.ts")
 		stopSubnet()
-		running = runner.IsRunnerUp()
+		running = runner.IsRunnerUp("0.0.0.0:12342")
 		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 
-	ginkgo.It("deployer allow list", func() {
+	ginkgo.It("deployer allow list", ginkgo.Label("solidity-with-npx"), func() {
 		err := startSubnet("./tests/e2e/genesis/deployer_allow_list.json")
 		gomega.Expect(err).Should(gomega.BeNil())
-		running := runner.IsRunnerUp()
+		running := runner.IsRunnerUp("0.0.0.0:12342")
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ExampleDeployerList.ts")
 		stopSubnet()
-		running = runner.IsRunnerUp()
+		running = runner.IsRunnerUp("0.0.0.0:12342")
 		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 
-	ginkgo.It("contract native minter", func() {
+	ginkgo.It("contract native minter", ginkgo.Label("solidity-with-npx"), func() {
 		err := startSubnet("./tests/e2e/genesis/contract_native_minter.json")
 		gomega.Expect(err).Should(gomega.BeNil())
-		running := runner.IsRunnerUp()
+		running := runner.IsRunnerUp("0.0.0.0:12342")
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ERC20NativeMinter.ts")
 		stopSubnet()
-		running = runner.IsRunnerUp()
+		running = runner.IsRunnerUp("0.0.0.0:12342")
 		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 
-	ginkgo.It("fee manager", func() {
+	ginkgo.It("fee manager", ginkgo.Label("solidity-with-npx"), func() {
 		err := startSubnet("./tests/e2e/genesis/fee_manager.json")
 		gomega.Expect(err).Should(gomega.BeNil())
-		running := runner.IsRunnerUp()
+		running := runner.IsRunnerUp("0.0.0.0:12342")
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ExampleFeeManager.ts")
 		stopSubnet()
-		running = runner.IsRunnerUp()
+		running = runner.IsRunnerUp("0.0.0.0:12342")
 		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 
 	// ADD YOUR PRECOMPILE HERE
 	/*
-			ginkgo.It("your precompile", func() {
+			ginkgo.It("your precompile", ginkgo.Label("solidity-with-npx"), func() {
 			err := startSubnet("./tests/e2e/genesis/{your_precompile}.json")
 			gomega.Expect(err).Should(gomega.BeNil())
-			running := runner.IsRunnerUp()
+			running := runner.IsRunnerUp("0.0.0.0:12342")
 			gomega.Expect(running).Should(gomega.BeTrue())
 			runHardhatTests("./test/Example{YourPrecompile}Test.ts")
 			stopSubnet()
-			running = runner.IsRunnerUp()
+			running = runner.IsRunnerUp("0.0.0.0:12342")
 			gomega.Expect(running).Should(gomega.BeFalse())
 		})
 	*/
