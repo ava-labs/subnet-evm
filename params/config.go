@@ -555,7 +555,8 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	return rules
 }
 
-// GetFeeConfig implements precompile.ChainConfig interface.
+// GetFeeConfig returns the original FeeConfig contained in the ChainConfig (will not be modified by FeeConfigManager.
+// Implements precompile.ChainConfig interface.
 func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
 	return c.FeeConfig
 }
