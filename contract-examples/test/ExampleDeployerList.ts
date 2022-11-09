@@ -123,7 +123,7 @@ describe("ExampleDeployerList", function () {
     let result = await contract.isAdmin(contract.address);
     expect(result).to.be.true
 
-    // Enable deployer address on TxAllowList to enable tx permissions
+    // Enable deployer address on TxAllowList to allow TXs
     const txAllowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, owner)
     tx = await txAllowList.setEnabled(deployer.address)
     await tx.wait()

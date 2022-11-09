@@ -23,7 +23,7 @@ const ROLES = {
   ADMIN: 2
 };
 
-describe("ERC20NativeMinter", function () {
+describe.only("ERC20NativeMinter", function () {
   let owner: SignerWithAddress
   let contract: Contract
   let minter: SignerWithAddress
@@ -85,7 +85,7 @@ describe("ERC20NativeMinter", function () {
     contractRole = await minterList.readAllowList(contract.address);
     expect(contractRole).to.be.equal(ROLES.MINTER)
 
-    // Enable minter address on TxAllowList to enable deposits
+    // Enable minter address on TxAllowList to allow deposits
     const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, owner)
     let mintEnableTx = await allowList.setEnabled(minter.address);
     await mintEnableTx.wait()
