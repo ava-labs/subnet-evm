@@ -23,7 +23,7 @@ const ROLES = {
   ADMIN: 2
 };
 
-describe.only("ERC20NativeMinter", function () {
+describe("ERC20NativeMinter", function () {
   let owner: SignerWithAddress
   let contract: Contract
   let minter: SignerWithAddress
