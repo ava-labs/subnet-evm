@@ -87,9 +87,6 @@ describe("ERC20NativeMinter", function () {
 
     // Enable minter address on TxAllowList to enable deposits
     const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, owner)
-    let ownerRole = await allowList.readAllowList(owner.address)
-    expect(ownerRole).to.be.equal(ROLES.ADMIN)
-
     let mintEnableTx = await allowList.setEnabled(minter.address);
     await mintEnableTx.wait()
     contractRole = await allowList.readAllowList(minter.address);

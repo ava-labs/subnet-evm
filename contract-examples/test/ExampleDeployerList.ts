@@ -12,6 +12,8 @@ import { ethers } from "hardhat"
 // make sure this is always an admin for minter precompile
 const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000";
+const TX_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000002"
+
 
 const ROLES = {
   NONE: 0,
@@ -19,7 +21,7 @@ const ROLES = {
   ADMIN: 2
 };
 
-describe("ExampleDeployerList", function () {
+describe.only("ExampleDeployerList", function () {
   let owner: SignerWithAddress
   let contract: Contract
   let deployer: SignerWithAddress
@@ -118,8 +120,16 @@ describe("ExampleDeployerList", function () {
     await tx.wait()
     role = await allowList.readAllowList(contract.address);
     expect(role).to.be.equal(ROLES.ADMIN)
-    const result = await contract.isAdmin(contract.address);
+    let result = await contract.isAdmin(contract.address);
     expect(result).to.be.true
+
+    
+    // Enable deployer address on TxAllowList to enable deposits
+    const txAllowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, owner)
+    tx = await txAllowList.setEnabled(deployer.address)
+    await tx.wait()
+    role = await txAllowList.readAllowList(deployer.address);
+    expect(role).to.be.equal(ROLES.DEPLOYER)
   });
 
   it("should allow admin to add deployer address as deployer through contract", async function () {
