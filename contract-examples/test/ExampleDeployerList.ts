@@ -21,7 +21,7 @@ const ROLES = {
   ADMIN: 2
 };
 
-describe.only("ExampleDeployerList", function () {
+describe("ExampleDeployerList", function () {
   let owner: SignerWithAddress
   let contract: Contract
   let deployer: SignerWithAddress
@@ -123,8 +123,7 @@ describe.only("ExampleDeployerList", function () {
     let result = await contract.isAdmin(contract.address);
     expect(result).to.be.true
 
-    
-    // Enable deployer address on TxAllowList to enable deposits
+    // Enable deployer address on TxAllowList to enable tx permissions
     const txAllowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, owner)
     tx = await txAllowList.setEnabled(deployer.address)
     await tx.wait()

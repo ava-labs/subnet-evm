@@ -172,7 +172,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	// or provide a separate API for custom VM healthiness
 	// "start" is async, so wait some time for cluster health
 	utils.Outf("\n{{magenta}}sleeping before checking custom VM status...{{/}}\n")
-	time.Sleep(2 * time.Minute)
+	time.Sleep(1 * time.Minute)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	_, err = runnerCli.Health(ctx)
