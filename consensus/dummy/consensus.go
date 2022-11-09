@@ -196,9 +196,12 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 	if err := self.verifyHeaderGasFields(config, header, parent, chain); err != nil {
 		return err
 	}
-	// Veriy the header's coinbase address
-	if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
-		return err
+	// Ensure that coinbase is valid if reward manager is enabled
+	// If reward manager is disabled, this will be handled in syntactic verification
+	if config.IsRewardManager(timestamp) {
+		if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
+			return err
+		}
 	}
 
 	// Verify the header's timestamp
