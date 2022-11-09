@@ -561,7 +561,8 @@ func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
 	return c.FeeConfig
 }
 
-// AllowedFeeRecipients implements precompile.ChainConfig interface.
+// AllowedFeeRecipients returns whether the original AllowedFeeRecipients parameter (will not be modified by the RewardManager.
+// Implements precompile.ChainConfig interface.
 func (c *ChainConfig) AllowedFeeRecipients() bool {
 	return c.AllowFeeRecipients
 }
