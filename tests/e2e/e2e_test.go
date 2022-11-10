@@ -143,6 +143,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	utils.SetOutputFile(outputFile)
 	utils.SetExecPath(avalanchegoExecPath)
+	os.Setenv("AVALANCHEGO_PATH", avalanchegoExecPath)
 	utils.SetPluginDir(avalanchegoPluginDir)
 	utils.SetVmGenesisPath(vmGenesisPath)
 	utils.SetSkipNetworkRunnerShutdown(skipNetworkRunnerShutdown)
@@ -173,6 +174,10 @@ var _ = ginkgo.BeforeSuite(func() {
 			utils.Outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
 		}
 	})
+
+	if skipNetworkRunnerStart {
+		return
+	}
 
 	// TODO: network runner health should imply custom VM healthiness
 	// or provide a separate API for custom VM healthiness

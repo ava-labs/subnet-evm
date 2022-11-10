@@ -86,7 +86,7 @@ describe("ExampleTxAllowList", function () {
       token = await Token.deploy(11111)
     }
     catch (err) {
-      expect(err.message).contains("is not authorized to deploy a contract")
+      expect(err.message).contains("cannot issue transaction from non-allow listed address")
       return
     }
     expect.fail("should have errored")
@@ -137,16 +137,6 @@ describe("ExampleTxAllowList", function () {
     result = await contract.isEnabled(allowed.address)
     expect(result).to.be.true
   })
-
-  // FIX: Delete this test as we assign deploy permissions in ContractDeployAllowList and not TxAllowList
-  // Check line 499-500 in core/vm/evm.go
-  // it("should let allowed address deploy", async function () {    
-  //   const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: allowed })
-  //   let token: Contract
-  //   token = await Token.deploy(11111)
-  //   await token.deployed()
-  //   expect(token.address).not.null
-  // })
 
   it("should not let allowed add another allowed", async function () {
     try {
