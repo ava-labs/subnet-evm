@@ -254,7 +254,7 @@ run_simulator() {
   --priority-fee=1
 }
 
-if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
+if [[ ${ENABLE_SOLIDITY_TESTS} == false ]]; then
   echo "running scripts/parser/main.go"
   AVALANCHEGO_PATH=${AVALANCHEGO_PATH} go run scripts/parser/main.go \
     $BASEDIR/avalanchego-${VERSION}/output.yaml \
