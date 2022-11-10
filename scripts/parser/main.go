@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/tests/e2e/runner"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
 	"github.com/fatih/color"
 	"gopkg.in/yaml.v2"
@@ -51,10 +50,10 @@ func startSubnet(outputFile string, avalanchegoPath string, pluginDir string, gr
 	utils.SetOutputFile(outputFile)
 	utils.SetPluginDir(pluginDir)
 
-	err = runner.InitializeRunner("0.0.0.0:12342")
-	if err != nil {
-		panic(err)
-	}
+	// err = runner.InitializeRunner("0.0.0.0:12342")
+	// if err != nil {
+	// 	panic(err)
+	// }
 	// _, err = runner.StartNetwork("0.0.0.0:12342", avalanchegoPath, vmId, vmName, genesisPath, pluginDir)
 	// if err != nil {
 	// 	panic(err)
