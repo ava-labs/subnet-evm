@@ -254,7 +254,9 @@ run_simulator() {
   --priority-fee=1
 }
 
-if [[ ${ENABLE_SOLIDITY_TESTS} != true ]]; then
+# Main script starts a server, so if skip network runner start is false,
+# we should start the server
+if [[ ${SKIP_NETWORK_RUNNER_START} != true ]]; then
   echo "running scripts/parser/main.go"
   AVALANCHEGO_PATH=${AVALANCHEGO_PATH} go run scripts/parser/main.go \
     $BASEDIR/avalanchego-${VERSION}/output.yaml \
@@ -265,12 +267,6 @@ if [[ ${ENABLE_SOLIDITY_TESTS} != true ]]; then
     "$BASEDIR/genesis.json"
 fi
 
-# whether start network via parser/main.go or e2e.test ginkgo
-# run the tests with label filter
-echo "running ginkgo"
-run_ginkgo
-# to fail the script if ginkgo failed
-EXIT_CODE=$?
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then
