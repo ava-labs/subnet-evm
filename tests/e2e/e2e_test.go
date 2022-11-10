@@ -15,6 +15,7 @@ import (
 	runner_sdk "github.com/ava-labs/avalanche-network-runner-sdk"
 	runner_sdk_rpcpb "github.com/ava-labs/avalanche-network-runner-sdk/rpcpb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/subnet-evm/tests/e2e/runner"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -135,6 +136,11 @@ var _ = ginkgo.BeforeSuite(func() {
 	})
 	gomega.Expect(err).Should(gomega.BeNil())
 
+	err = runner.InitializeRunner(gRPCEp)
+	if err != nil {
+		panic(err)
+	}
+
 	utils.SetOutputFile(outputFile)
 	utils.SetExecPath(avalanchegoExecPath)
 	utils.SetPluginDir(avalanchegoPluginDir)
@@ -172,7 +178,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	// or provide a separate API for custom VM healthiness
 	// "start" is async, so wait some time for cluster health
 	utils.Outf("\n{{magenta}}sleeping before checking custom VM status...{{/}}\n")
-	time.Sleep(1 * time.Minute)
+	time.Sleep(10 * time.Second)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	_, err = runnerCli.Health(ctx)
