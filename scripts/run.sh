@@ -233,8 +233,8 @@ run_simulator() {
   --priority-fee=1
 }
 
-# Main script starts a server, so if skip network runner start is false,
-# we should start the server
+# We should only run scripts/parser/main.go if SKIP_NETWORK_RUNNER_START is set to 
+# false as this script starts up the network. 
 if [[ ${SKIP_NETWORK_RUNNER_START} != true ]]; then
   echo "running scripts/parser/main.go"
   AVALANCHEGO_PATH=${AVALANCHEGO_PATH} go run scripts/parser/main.go \
