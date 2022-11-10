@@ -135,18 +135,14 @@ var _ = ginkgo.BeforeSuite(func() {
 	})
 	gomega.Expect(err).Should(gomega.BeNil())
 
-	// err = runner.InitializeRunner(gRPCEp)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	utils.SetOutputFile(outputFile)
 	utils.SetExecPath(avalanchegoExecPath)
-	os.Setenv("AVALANCHEGO_PATH", avalanchegoExecPath)
 	utils.SetPluginDir(avalanchegoPluginDir)
 	utils.SetVmGenesisPath(vmGenesisPath)
 	utils.SetSkipNetworkRunnerShutdown(skipNetworkRunnerShutdown)
 	utils.SetClient(runnerCli)
+
+	os.Setenv("AVALANCHEGO_PATH", avalanchegoExecPath)
 
 	ginkgo.By("calling start API via network runner with skipNetworkRunnerStart "+fmt.Sprint(skipNetworkRunnerStart), func() {
 		if skipNetworkRunnerStart {
