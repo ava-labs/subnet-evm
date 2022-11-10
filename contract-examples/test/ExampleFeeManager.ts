@@ -8,7 +8,6 @@ import {
   Contract,
   ContractFactory,
 } from "ethers"
-import { FormatTypes } from "ethers/lib/utils";
 import { ethers } from "hardhat"
 
 // make sure this is always an admin for the precompile
@@ -45,7 +44,7 @@ const WAGMI_FEES = {
 
 // TODO: These tests keep state to the next state. It means that some tests cases assumes some preconditions
 // set by previous test cases. We should make these tests stateless.
-describe.only("ExampleFeeManager", function () {
+describe("ExampleFeeManager", function () {
   this.timeout("30s")
 
   let owner: SignerWithAddress
@@ -196,7 +195,6 @@ describe.only("ExampleFeeManager", function () {
       await tx.wait()
     }
     catch (err) {
-      console.log(err.toString())
       expect(err.toString()).to.include("max fee per gas less than block base fee")
       return
     }
