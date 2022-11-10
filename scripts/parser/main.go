@@ -47,7 +47,7 @@ func startSubnet(outputFile string, avalanchegoPath string, pluginDir string, gr
 	}
 
 	fmt.Println("avalanchegoPath:", avalanchegoPath)
-	os.Setenv("AVALANCHEGO_PATH", avalanchegoPath)
+	// os.Setenv("AVALANCHEGO_PATH", avalanchegoPath)
 	utils.SetOutputFile(outputFile)
 	utils.SetPluginDir(pluginDir)
 
