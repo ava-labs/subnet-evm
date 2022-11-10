@@ -15,7 +15,6 @@ import (
 	runner_sdk "github.com/ava-labs/avalanche-network-runner-sdk"
 	runner_sdk_rpcpb "github.com/ava-labs/avalanche-network-runner-sdk/rpcpb"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/tests/e2e/runner"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -136,10 +135,10 @@ var _ = ginkgo.BeforeSuite(func() {
 	})
 	gomega.Expect(err).Should(gomega.BeNil())
 
-	err = runner.InitializeRunner(gRPCEp)
-	if err != nil {
-		panic(err)
-	}
+	// err = runner.InitializeRunner(gRPCEp)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	utils.SetOutputFile(outputFile)
 	utils.SetExecPath(avalanchegoExecPath)

@@ -147,7 +147,6 @@ echo "creating genesis"
       "targetBlockRate": 2,
       "blockGasCostStep": 500000
     },
-    "allowFeeRecipients": false
   },
   "alloc": {
     "${GENESIS_ADDRESS:2}": {
@@ -247,6 +246,12 @@ if [[ ${SKIP_NETWORK_RUNNER_START} != true ]]; then
     "$BASEDIR/genesis.json"
 fi
 
+
+if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
+  run_ginkgo
+  # to fail the script if simulator failed
+  EXIT_CODE=$?
+fi
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then
