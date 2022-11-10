@@ -51,6 +51,10 @@ func startSubnet(outputFile string, avalanchegoPath string, pluginDir string, gr
 	utils.SetOutputFile(outputFile)
 	utils.SetPluginDir(pluginDir)
 
+	err = runner.InitializeRunner("0.0.0.0:12342")
+	if err != nil {
+		panic(err)
+	}
 	_, err = runner.StartNetwork("0.0.0.0:12342", avalanchegoPath, vmId, vmName, genesisPath, pluginDir)
 	if err != nil {
 		panic(err)
