@@ -35,18 +35,17 @@ describe("ExampleTxAllowList", function () {
       ;[, allowed, noRole] = await ethers.getSigners()
 
     // Fund allowed address
-    let allowedTx = await admin.sendTransaction({
+    await admin.sendTransaction({
       to: allowed.address,
       value: ethers.utils.parseEther("10")
     })
-    await allowedTx.wait()
 
     // Fund no role address
-    let noRoleTx = await admin.sendTransaction({
+    let tx = await admin.sendTransaction({
       to: noRole.address,
       value: ethers.utils.parseEther("10")
     })
-    await noRoleTx.wait()
+    await tx.wait()
   })
 
   it("should add contract deployer as admin", async function () {
@@ -136,6 +135,14 @@ describe("ExampleTxAllowList", function () {
     await tx.wait()
     result = await contract.isEnabled(allowed.address)
     expect(result).to.be.true
+  })
+
+  it("should let allowed address deploy", async function () {
+    const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: allowed })
+    let token: Contract
+    token = await Token.deploy(11111)
+    await token.deployed()
+    expect(token.address).not.null
   })
 
   it("should not let allowed add another allowed", async function () {

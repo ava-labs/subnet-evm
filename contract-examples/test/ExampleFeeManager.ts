@@ -195,7 +195,7 @@ describe("ExampleFeeManager", function () {
       await tx.wait()
     }
     catch (err) {
-      expect(err.toString()).to.include("max fee per gas less than block base fee")
+      expect(err.toString()).to.include("transaction underpriced")
       return
     }
     expect.fail("should have errored")

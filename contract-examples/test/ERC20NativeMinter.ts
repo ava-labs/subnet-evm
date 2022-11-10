@@ -13,7 +13,6 @@ import { ethers } from "hardhat"
 // make sure this is always an admin for minter precompile
 const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const MINT_PRECOMPILE_ADDRESS = "0x0200000000000000000000000000000000000001";
-const TX_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000002";
 const mintValue = ethers.utils.parseEther("1")
 const initialValue = ethers.utils.parseEther("10")
 
@@ -50,7 +49,7 @@ describe("ERC20NativeMinter", function () {
     // Fund minter address
     await owner.sendTransaction({
       to: minter.address,
-      value: ethers.utils.parseEther("1000")
+      value: ethers.utils.parseEther("1")
     })
   });
 
@@ -83,13 +82,6 @@ describe("ERC20NativeMinter", function () {
     let mintTx = await minterList.setEnabled(contract.address);
     await mintTx.wait()
     contractRole = await minterList.readAllowList(contract.address);
-    expect(contractRole).to.be.equal(ROLES.MINTER)
-
-    // Enable minter address on TxAllowList to allow deposits
-    const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, owner)
-    let mintEnableTx = await allowList.setEnabled(minter.address);
-    await mintEnableTx.wait()
-    contractRole = await allowList.readAllowList(minter.address);
     expect(contractRole).to.be.equal(ROLES.MINTER)
   });
 

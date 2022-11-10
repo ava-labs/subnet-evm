@@ -146,7 +146,7 @@ echo "creating genesis"
       "maxBlockGasCost": 10000000,
       "targetBlockRate": 2,
       "blockGasCostStep": 500000
-    },
+    }
   },
   "alloc": {
     "${GENESIS_ADDRESS:2}": {
