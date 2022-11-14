@@ -56,7 +56,7 @@ if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
 fi
 
 echo "Running with:"
-echo AVALANCE_VERSION: ${VERSION}
+echo AVALANCHE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
 echo GINKGO_VERSION: ${GINKGO_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
@@ -166,53 +166,6 @@ echo "creating genesis"
 }
 EOF
 
-# If you'd like to try the airdrop feature, use the commented genesis
-# cat <<EOF > ${BASEDIR}/genesis.json
-# {
-#   "config": {
-#     "chainId": $CHAIN_ID,
-#     "homesteadBlock": 0,
-#     "eip150Block": 0,
-#     "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-#     "eip155Block": 0,
-#     "eip158Block": 0,
-#     "byzantiumBlock": 0,
-#     "constantinopleBlock": 0,
-#     "petersburgBlock": 0,
-#     "istanbulBlock": 0,
-#     "muirGlacierBlock": 0,
-#     "subnetEVMTimestamp": 0,
-#     "feeConfig": {
-#       "gasLimit": 20000000,
-#       "minBaseFee": 1000000000,
-#       "targetGas": 100000000,
-#       "baseFeeChangeDenominator": 48,
-#       "minBlockGasCost": 0,
-#       "maxBlockGasCost": 10000000,
-#       "targetBlockRate": 2,
-#       "blockGasCostStep": 500000
-#     }
-#   },
-#   "airdropHash":"0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da",
-#   "airdropAmount":"0x8AC7230489E80000",
-#   "alloc": {
-#     "${GENESIS_ADDRESS:2}": {
-#       "balance": "0x52B7D2DCC80CD2E4000000"
-#     }
-#   },
-#   "nonce": "0x0",
-#   "timestamp": "0x0",
-#   "extraData": "0x00",
-#   "gasLimit": "0x1312D00",
-#   "difficulty": "0x0",
-#   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-#   "coinbase": "0x0000000000000000000000000000000000000000",
-#   "number": "0x0",
-#   "gasUsed": "0x0",
-#   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-# }
-# EOF
-
 #################################
 # download avalanche-network-runner
 # https://github.com/ava-labs/avalanche-network-runner
@@ -280,16 +233,6 @@ run_simulator() {
   --priority-fee=1
 }
 
-if [[ ${SKIP_NETWORK_RUNNER_START} == true ]]; then
-  echo "running scripts/parser/main.go"
-  AVALANCHEGO_PATH=${AVALANCHEGO_PATH} go run scripts/parser/main.go \
-    $BASEDIR/avalanchego-${VERSION}/output.yaml \
-    $CHAIN_ID $GENESIS_ADDRESS \
-    ${AVALANCHEGO_PATH} \
-    ${AVALANCHEGO_PLUGIN_DIR} \
-    "0.0.0.0:12342" \
-    "$BASEDIR/genesis.json"
-fi
 
 # whether start network via parser/main.go or e2e.test ginkgo
 # run the tests with label filter
@@ -297,6 +240,7 @@ echo "running ginkgo"
 run_ginkgo
 # to fail the script if ginkgo failed
 EXIT_CODE=$?
+
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then

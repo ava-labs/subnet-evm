@@ -28,6 +28,10 @@ func TestE2E(t *testing.T) {
 	ginkgo.RunSpecs(t, "subnet-evm e2e test suites")
 }
 
+type networkClient struct {
+	client runner_sdk.Client
+}
+
 var (
 	networkRunnerLogLevel string
 	gRPCEp                string
@@ -128,6 +132,18 @@ func init() {
 var subnetEVMRPCEps []string
 
 var _ = ginkgo.BeforeSuite(func() {
+	networkClient := createNetworkClient()
+
+	if skipNetworkRunnerStart {
+		utils.Outf("{{green}}skipped 'start'{{/}}\n")
+		return
+	}
+
+	networkClient.startNetwork()
+	networkClient.checkHealth()
+})
+
+func createNetworkClient() *networkClient {
 	runnerCli, err := runner_sdk.New(runner_sdk.Config{
 		LogLevel:    networkRunnerLogLevel,
 		Endpoint:    gRPCEp,
@@ -142,32 +158,35 @@ var _ = ginkgo.BeforeSuite(func() {
 	utils.SetSkipNetworkRunnerShutdown(skipNetworkRunnerShutdown)
 	utils.SetClient(runnerCli)
 
-	ginkgo.By("calling start API via network runner with skipNetworkRunnerStart "+fmt.Sprint(skipNetworkRunnerStart), func() {
-		if skipNetworkRunnerStart {
-			utils.Outf("{{green}}skipped 'start'{{/}}\n")
-		} else {
-			utils.Outf("{{green}}sending 'start' with binary path:{{/}} %q\n", utils.GetExecPath())
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-			resp, err := runnerCli.Start(
-				ctx,
-				utils.GetExecPath(),
-				runner_sdk.WithPluginDir(utils.GetPluginDir()),
-				runner_sdk.WithGlobalNodeConfig(fmt.Sprintf(`{"log-level":"%s"}`, avalanchegoLogLevel)),
-				runner_sdk.WithNumNodes(5),
-				runner_sdk.WithBlockchainSpecs(
-					[]*runner_sdk_rpcpb.BlockchainSpec{
-						{
-							VmName:  vmName,
-							Genesis: utils.GetVmGenesisPath(),
-						},
-					},
-				))
-			cancel()
-			gomega.Expect(err).Should(gomega.BeNil())
-			utils.Outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
-		}
-	})
+	// Set AVALANCHEGO_PATH for the solidity suite
+	os.Setenv("AVALANCHEGO_PATH", avalanchegoExecPath)
 
+	return &networkClient{client: runnerCli}
+}
+
+func (n *networkClient) startNetwork() {
+	utils.Outf("{{green}}sending 'start' with binary path:{{/}} %q\n", utils.GetExecPath())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	resp, err := n.client.Start(
+		ctx,
+		utils.GetExecPath(),
+		runner_sdk.WithPluginDir(utils.GetPluginDir()),
+		runner_sdk.WithGlobalNodeConfig(fmt.Sprintf(`{"log-level":"%s"}`, avalanchegoLogLevel)),
+		runner_sdk.WithNumNodes(5),
+		runner_sdk.WithBlockchainSpecs(
+			[]*runner_sdk_rpcpb.BlockchainSpec{
+				{
+					VmName:  vmName,
+					Genesis: utils.GetVmGenesisPath(),
+				},
+			},
+		))
+	cancel()
+	gomega.Expect(err).Should(gomega.BeNil())
+	utils.Outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)
+}
+
+func (n *networkClient) checkHealth() {
 	// TODO: network runner health should imply custom VM healthiness
 	// or provide a separate API for custom VM healthiness
 	// "start" is async, so wait some time for cluster health
@@ -175,7 +194,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	time.Sleep(2 * time.Minute)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	_, err = runnerCli.Health(ctx)
+	_, err := n.client.Health(ctx)
 	cancel()
 	gomega.Expect(err).Should(gomega.BeNil())
 
@@ -196,7 +215,7 @@ done:
 
 		utils.Outf("{{magenta}}checking custom VM status{{/}}\n")
 		cctx, ccancel := context.WithTimeout(context.Background(), 2*time.Minute)
-		resp, err := runnerCli.Status(cctx)
+		resp, err := n.client.Status(cctx)
 		ccancel()
 		gomega.Expect(err).Should(gomega.BeNil())
 
@@ -221,7 +240,7 @@ done:
 	gomega.Expect(logsDir).Should(gomega.Not(gomega.BeEmpty()))
 
 	cctx, ccancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	uris, err := runnerCli.URIs(cctx)
+	uris, err := n.client.URIs(cctx)
 	ccancel()
 	gomega.Expect(err).Should(gomega.BeNil())
 	utils.Outf("{{blue}}avalanche HTTP RPCs URIs:{{/}} %q\n", uris)
@@ -246,7 +265,7 @@ done:
 	b, err := os.ReadFile(utils.GetOutputPath())
 	gomega.Expect(err).Should(gomega.BeNil())
 	utils.Outf("\n{{blue}}$ cat %s:{{/}}\n%s\n", utils.GetOutputPath(), string(b))
-})
+}
 
 var _ = ginkgo.AfterSuite(func() {
 	if utils.GetSkipNetworkRunnerShutdown() {
