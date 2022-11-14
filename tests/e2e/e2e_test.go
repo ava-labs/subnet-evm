@@ -265,7 +265,6 @@ done:
 	b, err := os.ReadFile(utils.GetOutputPath())
 	gomega.Expect(err).Should(gomega.BeNil())
 	utils.Outf("\n{{blue}}$ cat %s:{{/}}\n%s\n", utils.GetOutputPath(), string(b))
-
 }
 
 var _ = ginkgo.AfterSuite(func() {
