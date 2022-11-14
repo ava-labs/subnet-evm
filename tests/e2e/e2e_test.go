@@ -142,6 +142,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	utils.SetSkipNetworkRunnerShutdown(skipNetworkRunnerShutdown)
 	utils.SetClient(runnerCli)
 
+	// Set AVALANCHEGO_PATH for the solidity suite
 	os.Setenv("AVALANCHEGO_PATH", avalanchegoExecPath)
 
 	if skipNetworkRunnerStart {
