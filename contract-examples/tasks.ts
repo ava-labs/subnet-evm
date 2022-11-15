@@ -229,9 +229,10 @@ task("feeManager:readRole", "a task to get the network deployer minter list")
 task("rewardManager:currentRewardAddress", "a task to get the current configured rewarding address")
   .setAction(async (_, hre) => {
     const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
+    const areFeeRecipientsAllowed = await rewardManager.areFeeRecipientsAllowed()
     const result = await rewardManager.currentRewardAddress()
-    if (result == "0x0000000000000000000000000000000000000000") {
-      console.log("Custom Fee Recipients are allowed.")
+    if (areFeeRecipientsAllowed) {
+      console.log("Custom Fee Recipients are allowed. (%s)", result)
     } else {
       console.log(`Current reward address is ${result}`)
     }
