@@ -39,7 +39,7 @@ type rpcFile struct {
 
 const (
 	DYNAMIC_RPC_FILE = "contract-examples/dynamic_rpc.json"
-	LOCAL_RPC_FILE   = "contract-examples/dynamic_rpc.json"
+	LOCAL_RPC_FILE   = "contract-examples/local_rpc.json"
 )
 
 func writeRPC(rpcUrl string) error {
