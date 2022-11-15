@@ -109,7 +109,7 @@ func init() {
 	flag.BoolVar(
 		&skipNetworkRunnerShutdown,
 		"skip-network-runner-shutdown",
-		true,
+		false,
 		"'true' to skip network runner shutdown",
 	)
 }
