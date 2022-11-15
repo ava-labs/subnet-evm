@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/coreth/constants"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -1026,6 +1027,10 @@ func TestRewardManagerRun(t *testing.T) {
 			suppliedGas: precompile.AllowFeeRecipientsGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
+			assertState: func(t *testing.T, state *state.StateDB) {
+				_, isFeeRecipients := precompile.GetStoredRewardAddress(state)
+				require.True(t, isFeeRecipients)
+			},
 		},
 		"set reward address from enabled succeeds": {
 			caller: enabledAddr,
@@ -1038,6 +1043,11 @@ func TestRewardManagerRun(t *testing.T) {
 			suppliedGas: precompile.SetRewardAddressGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
+			assertState: func(t *testing.T, state *state.StateDB) {
+				address, isFeeRecipients := precompile.GetStoredRewardAddress(state)
+				require.Equal(t, testAddr, address)
+				require.False(t, isFeeRecipients)
+			},
 		},
 		"disable rewards from enabled succeeds": {
 			caller: enabledAddr,
@@ -1050,6 +1060,11 @@ func TestRewardManagerRun(t *testing.T) {
 			suppliedGas: precompile.DisableRewardsGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
+			assertState: func(t *testing.T, state *state.StateDB) {
+				address, isFeeRecipients := precompile.GetStoredRewardAddress(state)
+				require.False(t, isFeeRecipients)
+				require.Equal(t, constants.BlackholeAddr, address)
+			},
 		},
 		"get current reward address from no role succeeds": {
 			caller: noRoleAddr,

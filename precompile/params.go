@@ -20,12 +20,14 @@ const (
 // in core/vm/contracts.go.
 // The first stateful precompiles were added in coreth to support nativeAssetCall and nativeAssetBalance. New stateful precompiles
 // originating in coreth will continue at this prefix, so we reserve this range in subnet-evm so that they can be migrated into
-// subnet-evm without issue. These start at the address: 0x0100000000000000000000000000000000000000 and will increment by 1.
+// subnet-evm without issue.
+// These start at the address: 0x0100000000000000000000000000000000000000 and will increment by 1.
 // Optional precompiles implemented in subnet-evm start at 0x0200000000000000000000000000000000000000 and will increment by 1
 // from here to reduce the risk of conflicts.
 // For forks of subnet-evm, users should start at 0x0300000000000000000000000000000000000000 to ensure
 // that their own modifications do not conflict with stateful precompiles that may be added to subnet-evm
 // in the future.
+// Addresses starting at 0x0400000000000000000000000000000000000000 are reserved for special use cases in precompiles.
 var (
 	ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
 	ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
@@ -34,6 +36,8 @@ var (
 	RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
+
+	AllowFeeRecipientsAddressValue = common.HexToAddress("0x0400000000000000000000000000000000000000")
 
 	UsedAddresses = []common.Address{
 		ContractDeployerAllowListAddress,
@@ -56,6 +60,10 @@ var (
 		{
 			common.HexToAddress("0x0300000000000000000000000000000000000000"),
 			common.HexToAddress("0x03000000000000000000000000000000000000ff"),
+		},
+		{
+			common.HexToAddress("0x0400000000000000000000000000000000000000"),
+			common.HexToAddress("0x04000000000000000000000000000000000000ff"),
 		},
 	}
 )

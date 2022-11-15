@@ -2512,7 +2512,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	require.NoError(t, err) // this won't return an error since miner will set the etherbase to blackhole address
 
 	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	require.Equal(t, ethBlock.Coinbase(), constants.BlackholeAddr)
+	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase())
 
 	// Create empty block from blk
 	internalBlk := blk.(*chain.BlockWrapper).Block.(*Block)
@@ -2580,7 +2580,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 		t.Fatalf("Expected new block to match")
 	}
 	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	require.Equal(t, ethBlock.Coinbase(), etherBase)
+	require.Equal(t, etherBase, ethBlock.Coinbase())
 	// Verify that etherBase has received fees
 	blkState, err := vm.blockChain.StateAt(ethBlock.Root())
 	if err != nil {
@@ -2621,7 +2621,9 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	data, err := precompile.PackSetRewardAddress(testAddr)
 	require.NoError(t, err)
 
-	tx := types.NewTransaction(uint64(0), precompile.RewardManagerAddress, big.NewInt(1), 21240+precompile.SetRewardAddressGasCost, big.NewInt(testMinGasPrice), data)
+	gas := 21000 + 240 + precompile.SetRewardAddressGasCost // 21000 for tx, 240 for tx data
+
+	tx := types.NewTransaction(uint64(0), precompile.RewardManagerAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	require.NoError(t, err)
@@ -2635,7 +2637,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	newHead := <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	require.Equal(t, ethBlock.Coinbase(), etherBase) // reward address is activated at this block so this is fine
+	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address is activated at this block so this is fine
 
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice*3), nil)
 	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
@@ -2650,7 +2652,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	require.Equal(t, ethBlock.Coinbase(), testAddr) // reward address was activated at previous block
+	require.Equal(t, testAddr, ethBlock.Coinbase()) // reward address was activated at previous block
 	// Verify that etherBase has received fees
 	blkState, err := vm.blockChain.StateAt(ethBlock.Root())
 	require.NoError(t, err)
@@ -2659,7 +2661,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	require.Equal(t, 1, balance.Cmp(common.Big0))
 }
 
-func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
+func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 
@@ -2685,7 +2687,9 @@ func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
 	data, err := precompile.PackAllowFeeRecipients()
 	require.NoError(t, err)
 
-	tx := types.NewTransaction(uint64(0), precompile.RewardManagerAddress, big.NewInt(1), 21240+precompile.SetRewardAddressGasCost, big.NewInt(testMinGasPrice), data)
+	gas := 21000 + 240 + precompile.AllowFeeRecipientsGasCost // 21000 for tx, 240 for tx data
+
+	tx := types.NewTransaction(uint64(0), precompile.RewardManagerAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	require.NoError(t, err)
@@ -2699,7 +2703,7 @@ func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
 	newHead := <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	require.Equal(t, ethBlock.Coinbase(), constants.BlackholeAddr) // reward address is activated at this block so this is fine
+	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase()) // reward address is activated at this block so this is fine
 
 	tx1 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice*3), nil)
 	signedTx1, err := types.SignTx(tx1, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
@@ -2714,7 +2718,7 @@ func TestRewardManagerPrecompileAllowFeeRecipieints(t *testing.T) {
 	newHead = <-newTxPoolHeadChan
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	require.Equal(t, ethBlock.Coinbase(), etherBase) // reward address was activated at previous block
+	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address was activated at previous block
 	// Verify that etherBase has received fees
 	blkState, err := vm.blockChain.StateAt(ethBlock.Root())
 	require.NoError(t, err)

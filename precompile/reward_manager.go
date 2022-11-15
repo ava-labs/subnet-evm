@@ -35,11 +35,11 @@ const (
 var (
 	_ StatefulPrecompileConfig = &RewardManagerConfig{}
 
-	ErrCannotAllowFeeRecipients      = errors.New("non-enabled cannot allowFeeRecipients")
-	ErrCannotAreFeeRecipientsAllowed = errors.New("non-enabled cannot areFeeRecipientsAllowed")
-	ErrCannotCurrentRewardAddress    = errors.New("non-enabled cannot currentRewardAddress")
-	ErrCannotDisableRewards          = errors.New("non-enabled cannot disableRewards")
-	ErrCannotSetRewardAddress        = errors.New("non-enabled cannot setRewardAddress")
+	ErrCannotAllowFeeRecipients      = errors.New("non-enabled cannot call allowFeeRecipients")
+	ErrCannotAreFeeRecipientsAllowed = errors.New("non-enabled cannot call areFeeRecipientsAllowed")
+	ErrCannotCurrentRewardAddress    = errors.New("non-enabled cannot call currentRewardAddress")
+	ErrCannotDisableRewards          = errors.New("non-enabled cannot call disableRewards")
+	ErrCannotSetRewardAddress        = errors.New("non-enabled cannot call setRewardAddress")
 
 	ErrCannotEnableBothRewards = errors.New("cannot enable both fee recipients and reward address at the same time")
 	ErrEmptyRewardAddress      = errors.New("reward address cannot be empty")
@@ -47,8 +47,7 @@ var (
 	RewardManagerABI        abi.ABI                     // will be initialized by init function
 	RewardManagerPrecompile StatefulPrecompiledContract // will be initialized by init function
 
-	rewardAddressStorageKey        = common.Hash{'r', 'a', 's', 'k'}
-	allowFeeRecipientsAddressValue = common.Address{'a', 'f', 'r', 'a', 'v'}
+	rewardAddressStorageKey = common.Hash{'r', 'a', 's', 'k'}
 )
 
 type InitialRewardConfig struct {
@@ -122,7 +121,6 @@ func (c *RewardManagerConfig) Equal(s StatefulPrecompileConfig) bool {
 	if !ok {
 		return false
 	}
-	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom RewardManagerConfig, to check if [other] and the current [c] are equal
 	// if RewardManagerConfig contains only UpgradeableConfig and AllowListConfig you can skip modifying it.
 	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
@@ -146,7 +144,6 @@ func (c *RewardManagerConfig) Address() common.Address {
 // Configure configures [state] with the initial configuration.
 func (c *RewardManagerConfig) Configure(chainConfig ChainConfig, state StateDB, _ BlockContext) {
 	c.AllowListConfig.Configure(state, RewardManagerAddress)
-	// CUSTOM CODE STARTS HERE
 	// configure the RewardManager with the given initial configuration
 	if c.InitialRewardConfig != nil {
 		// enable allow fee recipients
@@ -215,7 +212,7 @@ func PackAllowFeeRecipients() ([]byte, error) {
 
 // EnableAllowFeeRecipients enables fee recipients.
 func EnableAllowFeeRecipients(stateDB StateDB) {
-	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, allowFeeRecipientsAddressValue.Hash())
+	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, AllowFeeRecipientsAddressValue.Hash())
 }
 
 // DisableRewardAddress disables rewards and burns them by sending to Blackhole Address.
@@ -243,7 +240,6 @@ func allowFeeRecipients(accessibleState PrecompileAccessibleState, caller common
 	}
 	// allow list code ends here.
 
-	// CUSTOM CODE STARTS HERE
 	// this function does not return an output, leave this one as is
 	EnableAllowFeeRecipients(stateDB)
 	packedOutput := []byte{}
@@ -268,14 +264,10 @@ func areFeeRecipientsAllowed(accessibleState PrecompileAccessibleState, caller c
 	if remainingGas, err = deductGas(suppliedGas, AreFeeRecipientsAllowedGasCost); err != nil {
 		return nil, 0, err
 	}
-	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
-	}
 	// no input provided for this function
 
-	// CUSTOM CODE STARTS HERE
 	stateDB := accessibleState.GetStateDB()
-	var output bool // CUSTOM CODE FOR AN OUTPUT
+	var output bool
 	_, output = GetStoredRewardAddress(stateDB)
 
 	packedOutput, err := PackAreFeeRecipientsAllowedOutput(output)
@@ -303,10 +295,7 @@ func PackCurrentRewardAddressOutput(rewardAddress common.Address) ([]byte, error
 // Returns an empty address and true if allow fee recipients is enabled, otherwise returns current reward address and false.
 func GetStoredRewardAddress(stateDB StateDB) (common.Address, bool) {
 	val := stateDB.GetState(RewardManagerAddress, rewardAddressStorageKey)
-	if val == allowFeeRecipientsAddressValue.Hash() {
-		return common.Address{}, true
-	}
-	return common.BytesToAddress(val.Bytes()), false
+	return common.BytesToAddress(val.Bytes()), val == AllowFeeRecipientsAddressValue.Hash()
 }
 
 // StoredRewardAddress stores the given [val] under rewardAddressStorageKey.
@@ -363,7 +352,6 @@ func setRewardAddress(accessibleState PrecompileAccessibleState, caller common.A
 	}
 	// allow list code ends here.
 
-	// CUSTOM CODE STARTS HERE
 	if err := StoreRewardAddress(stateDB, inputStruct); err != nil {
 		return nil, remainingGas, err
 	}
@@ -378,12 +366,8 @@ func currentRewardAddress(accessibleState PrecompileAccessibleState, caller comm
 	if remainingGas, err = deductGas(suppliedGas, CurrentRewardAddressGasCost); err != nil {
 		return nil, 0, err
 	}
-	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
-	}
-	// no input provided for this function
 
-	// CUSTOM CODE STARTS HERE
+	// no input provided for this function
 	stateDB := accessibleState.GetStateDB()
 	output, _ := GetStoredRewardAddress(stateDB)
 	packedOutput, err := PackCurrentRewardAddressOutput(output)
@@ -420,8 +404,6 @@ func disableRewards(accessibleState PrecompileAccessibleState, caller common.Add
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotDisableRewards, caller)
 	}
 	// allow list code ends here.
-
-	// CUSTOM CODE STARTS HERE
 	DisableFeeRewards(stateDB)
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
