@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/coreth/constants"
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/params"

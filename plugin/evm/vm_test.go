@@ -2659,13 +2659,52 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 
 	balance := blkState.GetBalance(testAddr)
 	require.Equal(t, 1, balance.Cmp(common.Big0))
+
+	// Test Case: Disable reward manager
+	// This should revert back to enabling fee recipients
+	previousBalance := blkState.GetBalance(etherBase)
+
+	// configure a network upgrade to remove the reward manager
+	disableTime := vm.clock.Time()
+	precompileConfigs := &vm.blockChain.Config().UpgradeConfig
+	precompileConfigs.PrecompileUpgrades = append(
+		precompileConfigs.PrecompileUpgrades,
+		params.PrecompileUpgrade{
+			RewardManagerConfig: precompile.NewDisableRewardManagerConfig(big.NewInt(disableTime.Unix())),
+		},
+	)
+
+	vm.clock.Set(vm.clock.Time().Add(2 * time.Hour)) // upgrade takes effect after a block is issued, so we can set vm's clock here.
+	tx2 := types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	require.NoError(t, err)
+
+	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
+	for _, err := range txErrors {
+		require.NoError(t, err)
+	}
+
+	blk = issueAndAccept(t, issuer, vm)
+	newHead = <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
+	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address was activated at previous block
+	assert.True(t, ethBlock.Timestamp().Cmp(big.NewInt(disableTime.Unix())) >= 0)
+
+	// Verify that Blackhole has received fees
+	blkState, err = vm.blockChain.StateAt(ethBlock.Root())
+	require.NoError(t, err)
+
+	balance = blkState.GetBalance(etherBase)
+	require.Equal(t, 1, balance.Cmp(previousBalance))
 }
 
 func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 
-	genesis.Config.RewardManagerConfig = precompile.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
+	enableRewardManagerTimestamp := time.Unix(0, 0) // enable at genesis
+	genesis.Config.RewardManagerConfig = precompile.NewRewardManagerConfig(big.NewInt(enableRewardManagerTimestamp.Unix()), testEthAddrs[0:1], nil, nil)
 	genesis.Config.AllowFeeRecipients = false // disable this in genesis
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
@@ -2725,4 +2764,42 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 
 	balance := blkState.GetBalance(etherBase)
 	require.Equal(t, 1, balance.Cmp(common.Big0))
+
+	// Test Case: Disable reward manager
+	// This should revert back to burning fees
+	previousBalance := blkState.GetBalance(constants.BlackholeAddr)
+
+	// configure a network upgrade to remove the reward manager
+	disableTime := vm.clock.Time()
+	precompileConfigs := &vm.blockChain.Config().UpgradeConfig
+	precompileConfigs.PrecompileUpgrades = append(
+		precompileConfigs.PrecompileUpgrades,
+		params.PrecompileUpgrade{
+			RewardManagerConfig: precompile.NewDisableRewardManagerConfig(big.NewInt(disableTime.Unix())),
+		},
+	)
+
+	vm.clock.Set(vm.clock.Time().Add(2 * time.Hour)) // upgrade takes effect after a block is issued, so we can set vm's clock here.
+	tx2 := types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[1])
+	require.NoError(t, err)
+
+	txErrors = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
+	for _, err := range txErrors {
+		require.NoError(t, err)
+	}
+
+	blk = issueAndAccept(t, issuer, vm)
+	newHead = <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
+	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase()) // reward address was activated at previous block
+	assert.True(t, ethBlock.Timestamp().Cmp(big.NewInt(disableTime.Unix())) >= 0)
+
+	// Verify that Blackhole has received fees
+	blkState, err = vm.blockChain.StateAt(ethBlock.Root())
+	require.NoError(t, err)
+
+	balance = blkState.GetBalance(constants.BlackholeAddr)
+	require.Equal(t, 1, balance.Cmp(previousBalance))
 }
