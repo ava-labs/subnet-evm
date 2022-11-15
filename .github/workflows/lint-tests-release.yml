@@ -88,7 +88,7 @@ jobs:
         run: SKIP_NETWORK_RUNNER_SHUTDOWN=true RUN_SIMULATOR=true scripts/run.sh
 
   release:
-    needs: [lint_test, unit_test, e2e_test, simulator_test]
+    # needs: [lint_test, unit_test, e2e_test, simulator_test]
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout
