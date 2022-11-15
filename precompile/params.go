@@ -27,7 +27,6 @@ const (
 // For forks of subnet-evm, users should start at 0x0300000000000000000000000000000000000000 to ensure
 // that their own modifications do not conflict with stateful precompiles that may be added to subnet-evm
 // in the future.
-// Addresses starting at 0x0400000000000000000000000000000000000000 are reserved for special use cases in precompiles.
 var (
 	ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
 	ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
@@ -36,8 +35,6 @@ var (
 	RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
-
-	AllowFeeRecipientsAddressValue = common.HexToAddress("0x0400000000000000000000000000000000000000")
 
 	UsedAddresses = []common.Address{
 		ContractDeployerAllowListAddress,
@@ -60,10 +57,6 @@ var (
 		{
 			common.HexToAddress("0x0300000000000000000000000000000000000000"),
 			common.HexToAddress("0x03000000000000000000000000000000000000ff"),
-		},
-		{
-			common.HexToAddress("0x0400000000000000000000000000000000000000"),
-			common.HexToAddress("0x04000000000000000000000000000000000000ff"),
 		},
 	}
 )

@@ -47,7 +47,8 @@ var (
 	RewardManagerABI        abi.ABI                     // will be initialized by init function
 	RewardManagerPrecompile StatefulPrecompiledContract // will be initialized by init function
 
-	rewardAddressStorageKey = common.Hash{'r', 'a', 's', 'k'}
+	rewardAddressStorageKey        = common.Hash{'r', 'a', 's', 'k'}
+	allowFeeRecipientsAddressValue = common.Hash{'a', 'f', 'r', 'a', 'v'}
 )
 
 type InitialRewardConfig struct {
@@ -212,7 +213,7 @@ func PackAllowFeeRecipients() ([]byte, error) {
 
 // EnableAllowFeeRecipients enables fee recipients.
 func EnableAllowFeeRecipients(stateDB StateDB) {
-	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, AllowFeeRecipientsAddressValue.Hash())
+	stateDB.SetState(RewardManagerAddress, rewardAddressStorageKey, allowFeeRecipientsAddressValue)
 }
 
 // DisableRewardAddress disables rewards and burns them by sending to Blackhole Address.
@@ -295,7 +296,7 @@ func PackCurrentRewardAddressOutput(rewardAddress common.Address) ([]byte, error
 // Returns an empty address and true if allow fee recipients is enabled, otherwise returns current reward address and false.
 func GetStoredRewardAddress(stateDB StateDB) (common.Address, bool) {
 	val := stateDB.GetState(RewardManagerAddress, rewardAddressStorageKey)
-	return common.BytesToAddress(val.Bytes()), val == AllowFeeRecipientsAddressValue.Hash()
+	return common.BytesToAddress(val.Bytes()), val == allowFeeRecipientsAddressValue
 }
 
 // StoredRewardAddress stores the given [val] under rewardAddressStorageKey.
