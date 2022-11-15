@@ -23,7 +23,10 @@ func runHardhatTests(test string) {
 	cmd := exec.Command("npx", "hardhat", "test", test, "--network", "e2e")
 	cmd.Dir = "./contract-examples"
 	out, err := cmd.Output()
-	fmt.Println(string(out))
+	if err != nil {
+		fmt.Println(string(out))
+		fmt.Println(err)
+	}
 	gomega.Expect(err).Should(gomega.BeNil())
 }
 
