@@ -71,6 +71,14 @@ func (c *ContractDeployerAllowListConfig) Equal(s StatefulPrecompileConfig) bool
 	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }
 
+func (c *ContractDeployerAllowListConfig) Predicate() func([]common.Hash) error {
+	return nil
+}
+
+func (c *ContractDeployerAllowListConfig) OnAccept() func(index uint, data []byte) error {
+	return nil
+}
+
 // String returns a string representation of the ContractDeployerAllowListConfig.
 func (c *ContractDeployerAllowListConfig) String() string {
 	bytes, _ := json.Marshal(c)
