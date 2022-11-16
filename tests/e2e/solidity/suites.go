@@ -92,14 +92,14 @@ var _ = utils.DescribePrecompile(func() {
 		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 
-	ginkgo.It("reward manager", func() {
+	ginkgo.It("reward manager", ginkgo.Label("solidity-with-npx"), func() {
 		err := startSubnet("./tests/e2e/genesis/reward_manager.json")
 		gomega.Expect(err).Should(gomega.BeNil())
-		running := runner.IsRunnerUp()
+		running := runner.IsRunnerUp(grpcEp)
 		gomega.Expect(running).Should(gomega.BeTrue())
 		runHardhatTests("./test/ExampleRewardManager.ts")
 		stopSubnet()
-		running = runner.IsRunnerUp()
+		running = runner.IsRunnerUp(grpcEp)
 		gomega.Expect(running).Should(gomega.BeFalse())
 	})
 

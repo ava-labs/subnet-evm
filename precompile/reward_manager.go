@@ -74,6 +74,22 @@ func (c *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {
 	return c.AllowFeeRecipients == other.AllowFeeRecipients && c.RewardAddress == other.RewardAddress
 }
 
+func (i *InitialRewardConfig) Configure(state StateDB) {
+	// enable allow fee recipients
+	if i.AllowFeeRecipients {
+		EnableAllowFeeRecipients(state)
+	} else if i.RewardAddress == (common.Address{}) {
+		// if reward address is empty and allow fee recipients is false
+		// then disable rewards
+		DisableFeeRewards(state)
+	} else {
+		// set reward address
+		if err := StoreRewardAddress(state, i.RewardAddress); err != nil {
+			panic(err)
+		}
+	}
+}
+
 // RewardManagerConfig implements the StatefulPrecompileConfig
 // interface while adding in the RewardManager specific precompile config.
 type RewardManagerConfig struct {
@@ -147,28 +163,14 @@ func (c *RewardManagerConfig) Configure(chainConfig ChainConfig, state StateDB, 
 	c.AllowListConfig.Configure(state, RewardManagerAddress)
 	// configure the RewardManager with the given initial configuration
 	if c.InitialRewardConfig != nil {
-		// enable allow fee recipients
-		if c.InitialRewardConfig.AllowFeeRecipients {
-			EnableAllowFeeRecipients(state)
-			return
-		}
-		// set the initial reward address if specified
-		if c.InitialRewardConfig.RewardAddress != (common.Address{}) {
-			if err := StoreRewardAddress(state, c.InitialRewardConfig.RewardAddress); err != nil {
-				panic(err)
-			}
-			return
-		}
-		// if we did not enable any reward until now, disable rewards
-		// since given initial config is not nil
-		DisableFeeRewards(state)
-	} else { // configure the RewardManager according to chainConfig
-		if chainConfig.AllowedFeeRecipients() {
-			EnableAllowFeeRecipients(state)
-			return
-		}
+		c.InitialRewardConfig.Configure(state)
+	} else if chainConfig.AllowedFeeRecipients() {
+		// configure the RewardManager according to chainConfig
+		EnableAllowFeeRecipients(state)
+	} else {
 		// chainConfig does not have any reward address
-		// if it does not enable fee recipients, disable rewards
+		// if chainConfig does not enable fee recipients
+		// default to disabling rewards
 		DisableFeeRewards(state)
 	}
 }
