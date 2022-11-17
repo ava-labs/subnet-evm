@@ -348,11 +348,18 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	// Prior to execution, we check the predicate of each precompile over the access list for the tx
 	for _, accessTuple := range msg.AccessList() {
-		_, ok := rules.Precompiles[accessTuple.Address]
+		precompileConfig, ok := rules.Precompiles[accessTuple.Address]
 		if !ok {
 			continue
 		}
-		// check the predicate for the accessTuple and return an error if necessary
+		predicate := precompileConfig.Predicate()
+		if predicate == nil {
+			continue
+		}
+
+		if err := predicate(accessTuple.StorageKeys); err != nil {
+			return nil, err
+		}
 	}
 	var (
 		ret   []byte
