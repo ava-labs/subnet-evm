@@ -914,9 +914,15 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
 
-	return nil
+	return bc.handlePrecompilePostAccept(block)
 }
 
+// handlePrecompilePostAccept handles executing the post-accept functions of any active precompiles
+// on the logs contained in the block.
+func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block) error {
+	// TODO
+	return nil
+}
 func (bc *BlockChain) Reject(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
