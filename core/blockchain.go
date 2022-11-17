@@ -920,7 +920,27 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 // handlePrecompilePostAccept handles executing the post-accept functions of any active precompiles
 // on the logs contained in the block.
 func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block) error {
-	// TODO
+	rules := bc.chainConfig.AvalancheRules(block.Number(), block.Timestamp())
+	receipts := rawdb.ReadReceipts(bc.db, block.Hash(), block.NumberU64(), bc.chainConfig)
+
+	for txIndex, receipt := range receipts {
+		for _, log := range receipt.Logs {
+			precompileConfig, ok := rules.Precompiles[log.Address]
+			if !ok {
+				continue
+			}
+
+			onAccept := precompileConfig.OnAccept()
+			if onAccept == nil {
+				continue
+			}
+
+			if err := onAccept(txIndex, log.Data); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 func (bc *BlockChain) Reject(block *types.Block) error {

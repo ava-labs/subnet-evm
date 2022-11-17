@@ -10,6 +10,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// PredicateFunc is the function type for validating that an access list tuple touching a precompile follows the predicate
+type PredicateFunc func(storageSlots []common.Hash) error
+
+// OnAcceptFunc is called on any log produced in a block where the address matches the precompile address
+type OnAcceptFunc func(txIndex int, logData []byte) error
+
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 type StatefulPrecompileConfig interface {
 	// Address returns the address where the stateful precompile is accessible.
@@ -46,13 +52,13 @@ type StatefulPrecompileConfig interface {
 	// for any access list tuple whose address matches the address of the precompile.
 	// This allows the precompile to enforce a predicate on the transaction itself for it to be considered valid
 	// to be included in a block.
-	Predicate() func([]common.Hash) error
+	Predicate() PredicateFunc
 
 	// OnAccept returns an optional function which is called when a block gets accepted on each log whose
 	// address matches the address of the precompile.
 	// This can be used to perform precompile specific logic on acceptance, so that the precompile can emit
 	// events and perform logic on those events only after the block has been accepted.
-	OnAccept() func(index uint, data []byte) error
+	OnAccept() OnAcceptFunc
 
 	// Verify is called on startup and an error is treated as fatal. Configure can assume the Config has passed verification.
 	Verify() error

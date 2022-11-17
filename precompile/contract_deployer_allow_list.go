@@ -71,11 +71,11 @@ func (c *ContractDeployerAllowListConfig) Equal(s StatefulPrecompileConfig) bool
 	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }
 
-func (c *ContractDeployerAllowListConfig) Predicate() func([]common.Hash) error {
+func (c *ContractDeployerAllowListConfig) Predicate() PredicateFunc {
 	return nil
 }
 
-func (c *ContractDeployerAllowListConfig) OnAccept() func(index uint, data []byte) error {
+func (c *ContractDeployerAllowListConfig) OnAccept() OnAcceptFunc {
 	return nil
 }
 

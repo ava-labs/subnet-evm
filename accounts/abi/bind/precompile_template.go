@@ -218,7 +218,7 @@ func (c *{{.Contract.Type}}Config) Verify() error {
 // Predicate optionally returns a function to enforce as a predicate for a transaction to be valid
 // if the access list of the transaction includes a tuple that references the precompile address.
 // Returns nil here to indicate that this precompile does not enforce a predicate.
-func (c *{{.Contract.Type}}Config) Predicate() func([]common.Hash) error {
+func (c *{{.Contract.Type}}Config) Predicate() PredicateFunc {
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom predicate code for {{.Contract.Type}}Config here
 	// and return an optional function if your precompile enforces a predicate.
@@ -227,7 +227,7 @@ func (c *{{.Contract.Type}}Config) Predicate() func([]common.Hash) error {
 
 // OnAccept optionally returns a function to perform on any log with the precompile address.
 // If enabled, this will be called after the block is accepted to perform post-accept computation.
-func (c *{{.Contract.Type}}Config) OnAccept() func(index uint, data []byte) error {
+func (c *{{.Contract.Type}}Config) OnAccept() OnAcceptFunc {
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom onAccept code for {{.Contract.Type}}Config here
 	// and return an optional function if your precompile requires post-accept computation.

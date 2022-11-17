@@ -135,11 +135,11 @@ func (c *ContractNativeMinterConfig) Equal(s StatefulPrecompileConfig) bool {
 	return true
 }
 
-func (c *ContractNativeMinterConfig) Predicate() func([]common.Hash) error {
+func (c *ContractNativeMinterConfig) Predicate() PredicateFunc {
 	return nil
 }
 
-func (c *ContractNativeMinterConfig) OnAccept() func(index uint, data []byte) error {
+func (c *ContractNativeMinterConfig) OnAccept() OnAcceptFunc {
 	return nil
 }
 

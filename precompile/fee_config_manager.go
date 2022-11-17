@@ -141,11 +141,11 @@ func (c *FeeConfigManagerConfig) Verify() error {
 	return c.InitialFeeConfig.Verify()
 }
 
-func (c *FeeConfigManagerConfig) Predicate() func([]common.Hash) error {
+func (c *FeeConfigManagerConfig) Predicate() PredicateFunc {
 	return nil
 }
 
-func (c *FeeConfigManagerConfig) OnAccept() func(index uint, data []byte) error {
+func (c *FeeConfigManagerConfig) OnAccept() OnAcceptFunc {
 	return nil
 }
 
