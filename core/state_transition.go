@@ -345,6 +345,15 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if rules.IsSubnetEVM {
 		st.state.PrepareAccessList(msg.From(), msg.To(), vm.ActivePrecompiles(rules), msg.AccessList())
 	}
+
+	// Prior to execution, we check the predicate of each precompile over the access list for the tx
+	for _, accessTuple := range msg.AccessList() {
+		_, ok := rules.Precompiles[accessTuple.Address]
+		if !ok {
+			continue
+		}
+		// check the predicate for the accessTuple and return an error if necessary
+	}
 	var (
 		ret   []byte
 		vmerr error // vm errors do not effect consensus and are therefore not assigned to err
