@@ -166,6 +166,7 @@ func NewWithSnapshot(root common.Hash, db Database, snap snapshot.Snapshot) (*St
 		logs:                make(map[common.Hash][]*types.Log),
 		preimages:           make(map[common.Hash][]byte),
 		journal:             newJournal(),
+		originalAccessList:  newAccessList(),
 		accessList:          newAccessList(),
 		hasher:              crypto.NewKeccakState(),
 	}
