@@ -1,27 +1,22 @@
-
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import exp = require("constants");
-import {
-  BigNumber,
-  Contract,
-  ContractFactory,
-} from "ethers"
 import { ethers } from "hardhat"
-import { EmitHint } from "typescript";
+import {
+    BigNumber,
+  } from "ethers"
+import exp = require("constants");
 
 // make sure this is always an admin for minter precompile
 const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 
 describe.only('Order Book', function() {
-    let orderBook, alice, order, domain, orderType, signature
+    let orderBook, alice, bob, order, domain, orderType, signature
 
     before(async function () {
         // const owner = await ethers.getSigner(adminAddress);
         const OrderBook = await ethers.getContractFactory('OrderBook')
         orderBook = await OrderBook.deploy('Hubble', '2.0')
         const signers = await ethers.getSigners()
-        alice = signers[1]
+        ;([, alice, bob] = signers)
     })
 
     it('verify signer', async function() {
@@ -69,5 +64,36 @@ describe.only('Order Book', function() {
         expect(contractOrder[1]).to.eq(order.baseAssetQuantity)
         expect(contractOrder[2]).to.eq(order.price)
         expect(contractOrder[3]).to.eq(order.salt)
+        let orderHash = await orderBook.getOrderHash(order)
+        expect(await orderBook.ordersStatus(orderHash)).to.eq(0) // Unfilled
+    })
+
+    it('execute matched orders', async function() {
+        const order2 = JSON.parse(JSON.stringify(order))
+        order2.baseAssetQuantity = BigNumber.from(order2.baseAssetQuantity).mul(-1)
+        order2.trader = bob.address
+        const signature2 = await bob._signTypedData(domain, orderType, order2)
+        await orderBook.placeOrder(order2, signature2)
+        await delay(1000)
+
+        await orderBook.executeMatchedOrders(0, 1, {gasLimit: 1e6})
+        await delay(1500)
+
+        let position = await orderBook.positions(alice.address)
+        expect(position.size).to.eq(order.baseAssetQuantity)
+        expect(position.openNotional).to.eq(order.price.mul(order.baseAssetQuantity).abs())
+
+        position = await orderBook.positions(bob.address)
+        expect(position.size).to.eq(order2.baseAssetQuantity)
+        expect(position.openNotional).to.eq(order2.baseAssetQuantity.mul(order2.price).abs())
+
+        let orderHash = await orderBook.getOrderHash(order)
+        expect(await orderBook.ordersStatus(orderHash)).to.eq(1) // Filled
+        orderHash = await orderBook.getOrderHash(order2)
+        expect(await orderBook.ordersStatus(orderHash)).to.eq(1) // Filled
     })
 })
+
+function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
