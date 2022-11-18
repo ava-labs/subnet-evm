@@ -11,7 +11,7 @@ import {
 import { ethers } from "hardhat"
 import ts = require("typescript");
 
-// make sure this is always an admin for minter precompile
+// make sure this is always an admin for reward manager precompile
 const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const REWARD_MANAGER_ADDRESS = "0x0200000000000000000000000000000000000004";
 const BLACKHOLE_ADDRESS = "0x0100000000000000000000000000000000000000";

@@ -60,7 +60,6 @@ func (i *InitialRewardConfig) Verify() error {
 	switch {
 	case i.AllowFeeRecipients && i.RewardAddress != (common.Address{}):
 		return ErrCannotEnableBothRewards
-		// shall we also check blackhole address here?
 	default:
 		return nil
 	}

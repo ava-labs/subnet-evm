@@ -555,13 +555,13 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	return rules
 }
 
-// GetFeeConfig returns the original FeeConfig contained in the ChainConfig (will not be modified by FeeConfigManager.
+// GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.
 // Implements precompile.ChainConfig interface.
 func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
 	return c.FeeConfig
 }
 
-// AllowedFeeRecipients returns whether the original AllowedFeeRecipients parameter (will not be modified by the RewardManager.
+// AllowedFeeRecipients returns the original AllowedFeeRecipients parameter contained in the genesis ChainConfig.
 // Implements precompile.ChainConfig interface.
 func (c *ChainConfig) AllowedFeeRecipients() bool {
 	return c.AllowFeeRecipients

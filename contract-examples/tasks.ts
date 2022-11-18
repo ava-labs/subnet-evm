@@ -39,7 +39,7 @@ task("balances", "Prints the list of account balances", async (args, hre): Promi
 })
 
 
-task("balance", "a task to get the balance")
+task("balance", "get the balance")
   .addParam("address", "the address you want to know balance of")
   .setAction(async (args, hre) => {
     const balance = await hre.ethers.provider.getBalance(args.address)
@@ -48,7 +48,7 @@ task("balance", "a task to get the balance")
   })
 
 // npx hardhat allowList:readRole --network local --address [address]
-task("deployerAllowList:readRole", "a task to get the network deployer allow list")
+task("deployerAllowList:readRole", "Gets the network deployer allow list")
   .addParam("address", "the address you want to know the allowlist role for")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IAllowList", CONTRACT_ALLOW_LIST_ADDRESS)
@@ -56,7 +56,7 @@ task("deployerAllowList:readRole", "a task to get the network deployer allow lis
   })
 
 // npx hardhat allowList:addDeployer --network local --address [address]
-task("deployerAllowList:addDeployer", "a task to add the deployer on the allow list")
+task("deployerAllowList:addDeployer", "Adds the deployer on the allow list")
   .addParam("address", "the address you want to add as a deployer")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IAllowList", CONTRACT_ALLOW_LIST_ADDRESS)
@@ -66,7 +66,7 @@ task("deployerAllowList:addDeployer", "a task to add the deployer on the allow l
   })
 
 // npx hardhat allowList:addAdmin --network local --address [address]
-task("deployerAllowList:addAdmin", "a task to add a admin on the allowlist")
+task("deployerAllowList:addAdmin", "Adds an admin on the allowlist")
   .addParam("address", "the address you want to add as a admin")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IAllowList", CONTRACT_ALLOW_LIST_ADDRESS)
@@ -75,7 +75,7 @@ task("deployerAllowList:addAdmin", "a task to add a admin on the allowlist")
   })
 
 // npx hardhat allowList:revoke --network local --address [address]
-task("deployerAllowList:revoke", "remove the address from the list")
+task("deployerAllowList:revoke", "Removes the address from the list")
   .addParam("address", "the address you want to revoke all permission")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IAllowList", CONTRACT_ALLOW_LIST_ADDRESS)
@@ -84,7 +84,7 @@ task("deployerAllowList:revoke", "remove the address from the list")
   })
 
 // npx hardhat allowList:readRole --network local --address [address]
-task("txAllowList:readRole", "a task to get the network transaction allow list")
+task("txAllowList:readRole", "Gets the network transaction allow list")
   .addParam("address", "the address you want to know the allowlist role for")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS)
@@ -92,7 +92,7 @@ task("txAllowList:readRole", "a task to get the network transaction allow list")
   })
 
 // npx hardhat allowList:addDeployer --network local --address [address]
-task("txAllowList:addDeployer", "a task to add an address to the transaction allow list")
+task("txAllowList:addDeployer", "Adds an address to the transaction allow list")
   .addParam("address", "the address you want to add as a deployer")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS)
@@ -102,7 +102,7 @@ task("txAllowList:addDeployer", "a task to add an address to the transaction all
   })
 
 // npx hardhat allowList:addAdmin --network local --address [address]
-task("txAllowList:addAdmin", "a task to add a admin on the transaction allow list")
+task("txAllowList:addAdmin", "Adds an admin on the transaction allow list")
   .addParam("address", "the address you want to add as a admin")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS)
@@ -111,7 +111,7 @@ task("txAllowList:addAdmin", "a task to add a admin on the transaction allow lis
   })
 
 // npx hardhat allowList:revoke --network local --address [address]
-task("txAllowList:revoke", "remove the address from the transaction allow list")
+task("txAllowList:revoke", "Removes the address from the transaction allow list")
   .addParam("address", "the address you want to revoke all permission")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS)
@@ -120,7 +120,7 @@ task("txAllowList:revoke", "remove the address from the transaction allow list")
   })
 
 // npx hardhat minter:readRole --network local --address [address]
-task("minter:readRole", "a task to get the network deployer minter list")
+task("minter:readRole", "Gets the network deployer minter list")
   .addParam("address", "the address you want to know the minter role for")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("INativeMinter", MINT_ADDRESS)
@@ -129,7 +129,7 @@ task("minter:readRole", "a task to get the network deployer minter list")
 
 
 // npx hardhat minter:addMinter --network local --address [address]
-task("minter:addMinter", "a task to add the address on the minter list")
+task("minter:addMinter", "Adds the address on the minter list")
   .addParam("address", "the address you want to add as a minter")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("INativeMinter", MINT_ADDRESS)
@@ -138,7 +138,7 @@ task("minter:addMinter", "a task to add the address on the minter list")
   })
 
 // npx hardhat minter:addAdmin --network local --address [address]
-task("minter:addAdmin", "a task to add a admin on the minter list")
+task("minter:addAdmin", "Adds an admin on the minter list")
   .addParam("address", "the address you want to add as a admin")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("INativeMinter", MINT_ADDRESS)
@@ -147,7 +147,7 @@ task("minter:addAdmin", "a task to add a admin on the minter list")
   })
 
 // npx hardhat minter:revoke --network local --address [address]
-task("minter:revoke", "remove the address from the list")
+task("minter:revoke", "Removes the address from the list")
   .addParam("address", "the address you want to revoke all permission")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("INativeMinter", MINT_ADDRESS)
@@ -156,7 +156,7 @@ task("minter:revoke", "remove the address from the list")
   })
 
 // npx hardhat minter:mint --network local --address [address]
-task("minter:mint", "mint native token")
+task("minter:mint", "Mints native tokens")
   .addParam("address", "the address you want to mint for")
   .addParam("amount", "the amount you want to mint")
   .setAction(async (args, hre) => {
@@ -165,7 +165,7 @@ task("minter:mint", "mint native token")
   })
 
 // npx hardhat minter:burn --network local --address [address]
-task("minter:burn", "burn")
+task("minter:burn", "Burns native tokens")
   .addParam("amount", "the amount you want to burn (in AVAX unit)")
   .setAction(async (args, hre) => {
     const [owner] = await hre.ethers.getSigners()
@@ -177,7 +177,7 @@ task("minter:burn", "burn")
   })
 
 // npx hardhat feeManager:set --network local --address [address]
-task("feeManager:set", "sets fee config")
+task("feeManager:set", "Sets the provided fee config")
   .addParam("gaslimit", "", undefined, undefined, false)
   .addParam("targetblockrate", "", undefined, undefined, false)
   .addParam("minbasefee", "", undefined, undefined, false)
@@ -200,7 +200,7 @@ task("feeManager:set", "sets fee config")
       args.blockgascoststep)
   })
 
-task("feeManager:get", "gets fee config")
+task("feeManager:get", "Gets the fee config")
   .setAction(async (_, hre) => {
     const feeManager = await hre.ethers.getContractAt("IFeeManager", FEE_MANAGER_ADDRESS)
     const result = await feeManager.getFeeConfig()
@@ -217,7 +217,7 @@ task("feeManager:get", "gets fee config")
 
 
 // npx hardhat feeManager:readRole --network local --address [address]
-task("feeManager:readRole", "a task to get the network deployer minter list")
+task("feeManager:readRole", "Gets the network deployer minter list")
   .addParam("address", "the address you want to know the minter role for")
   .setAction(async (args, hre) => {
     const allowList = await hre.ethers.getContractAt("IFeeManager", FEE_MANAGER_ADDRESS)
@@ -226,7 +226,7 @@ task("feeManager:readRole", "a task to get the network deployer minter list")
 
 
 // npx hardhat rewardManager:currentRewardAddress --network local
-task("rewardManager:currentRewardAddress", "a task to get the current configured rewarding address")
+task("rewardManager:currentRewardAddress", "Gets the current configured rewarding address")
   .setAction(async (_, hre) => {
     const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
     const areFeeRecipientsAllowed = await rewardManager.areFeeRecipientsAllowed()
@@ -239,7 +239,7 @@ task("rewardManager:currentRewardAddress", "a task to get the current configured
   })
 
 // npx hardhat rewardManager:areFeeRecipientsAllowed --network local
-task("rewardManager:areFeeRecipientsAllowed", "a task to get whether the fee recipients are allowed")
+task("rewardManager:areFeeRecipientsAllowed", "Gets whether the fee recipients are allowed")
   .setAction(async (_, hre) => {
     const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
     const result = await rewardManager.areFeeRecipientsAllowed()
@@ -247,7 +247,7 @@ task("rewardManager:areFeeRecipientsAllowed", "a task to get whether the fee rec
   })
 
 // npx hardhat rewardManager:setRewardAddress --network local --address [address]
-task("rewardManager:setRewardAddress", "sets a new reward address")
+task("rewardManager:setRewardAddress", "Sets a new reward address")
   .addParam("address", "the address that will receive rewards")
   .setAction(async (args, hre) => {
     const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
@@ -256,7 +256,7 @@ task("rewardManager:setRewardAddress", "sets a new reward address")
   })
 
 // npx hardhat rewardManager:allowFeeRecipients --network local
-task("rewardManager:allowFeeRecipients", "allows custom fee recipients to receive rewards")
+task("rewardManager:allowFeeRecipients", "Allows custom fee recipients to receive rewards")
   .setAction(async (_, hre) => {
     const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
     const result = await rewardManager.allowFeeRecipients()
@@ -264,7 +264,7 @@ task("rewardManager:allowFeeRecipients", "allows custom fee recipients to receiv
   })
 
 // npx hardhat rewardManager:disableRewards --network local
-task("rewardManager:disableRewards", "disables all rewards, and starts burning fees.")
+task("rewardManager:disableRewards", "Disables all rewards, and starts burning fees.")
   .setAction(async (_, hre) => {
     const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
     const result = await rewardManager.disableRewards()
