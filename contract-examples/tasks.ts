@@ -226,11 +226,7 @@ task("feeManager:readRole", "Gets the network deployer minter list")
 
 
 // npx hardhat rewardManager:currentRewardAddress --network local
-<<<<<<< HEAD
 task("rewardManager:currentRewardAddress", "Gets the current configured rewarding address")
-=======
-task("rewardManager:currentRewardAddress", "a task to get the current configured reward address")
->>>>>>> 71b978221d120a715b5d9be35d8fd1edd8a6ab2f
   .setAction(async (_, hre) => {
     const rewardManager = await hre.ethers.getContractAt("IRewardManager", REWARD_MANAGER_ADDDRESS)
     const areFeeRecipientsAllowed = await rewardManager.areFeeRecipientsAllowed()
