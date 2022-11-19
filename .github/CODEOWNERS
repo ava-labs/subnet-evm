@@ -10,7 +10,7 @@
 
 # These owners will be the owner of the contract-examples sub-directory.
 
-contract-examples/ @dasconnor
+contract-examples/ @dasconnor @anusha-ctrl
 
 # These owners will be the owner of the scripts sub-directory.
 
