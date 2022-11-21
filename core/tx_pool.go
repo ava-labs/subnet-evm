@@ -974,6 +974,7 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // AddLocal enqueues a single local transaction into the pool if it is valid. This is
 // a convenience wrapper aroundd AddLocals.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
+	log.Info("in AddLocal")
 	errs := pool.AddLocals([]*types.Transaction{tx})
 	return errs[0]
 }
@@ -1009,6 +1010,7 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 
 // addTxs attempts to queue a batch of transactions if they are valid.
 func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
+	log.Info("in addTxs")
 	// Filter out known ones without obtaining the pool lock or recovering signatures
 	var (
 		errs = make([]error, len(txs))
@@ -1041,6 +1043,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 	pool.mu.Lock()
 	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
 	pool.mu.Unlock()
+	log.Info("in addTxs; txs added")
 
 	nilSlot := 0
 	for _, err := range newErrs {
@@ -1055,6 +1058,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 	if sync {
 		<-done
 	}
+	log.Info("in addTxs", "errs", errs)
 	return errs
 }
 

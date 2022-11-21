@@ -48,6 +48,7 @@ import (
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var ErrUnfinalizedData = errors.New("cannot query unfinalized data")
@@ -301,6 +302,7 @@ func (b *EthAPIBackend) SubscribeAcceptedTransactionEvent(ch chan<- core.NewTxsE
 }
 
 func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction) error {
+	log.Info("in SendTx")
 	if err := ctx.Err(); err != nil {
 		return err
 	}
