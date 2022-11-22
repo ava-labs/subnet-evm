@@ -50,7 +50,7 @@ import (
 )
 
 const (
-	targetTxsSize = 232 * units.KiB
+	targetTxsSize = 1800 * units.KiB
 )
 
 // environment is the worker's current environment and holds all of the current state information.

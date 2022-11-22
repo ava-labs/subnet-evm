@@ -98,6 +98,8 @@ var (
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
 type ChainConfig struct {
+	AvalancheContext `json:"-"` // Avalanche specific context set during VM initialization. Not serialized.
+
 	ChainID            *big.Int             `json:"chainId"`                      // chainId identifies the current chain and is used for replay protection
 	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
@@ -133,6 +135,11 @@ type UpgradeConfig struct {
 
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
+}
+
+// AvalancheContext provides Avalanche specific context directly into the EVM.
+type AvalancheContext struct {
+	BlockchainID common.Hash
 }
 
 // String implements the fmt.Stringer interface.
