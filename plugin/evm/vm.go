@@ -183,6 +183,8 @@ type VM struct {
 
 	builder *blockBuilder
 
+	limitOrderProcesser LimitOrderProcesser
+
 	gossiper Gossiper
 
 	clock mockable.Clock
@@ -551,6 +553,9 @@ func (vm *VM) initBlockBuilding() {
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
+
+	vm.limitOrderProcesser = vm.NewLimitOrderProcesser()
+	vm.limitOrderProcesser.ListenAndProcessLimitOrderTransactions()
 }
 
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
@@ -896,4 +901,14 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	}
 
 	return nil
+}
+
+func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
+	return NewLimitOrderProcesser(
+		vm.ctx,
+		vm.chainConfig,
+		vm.txPool,
+		vm.shutdownChan,
+		&vm.shutdownWg,
+	)
 }
