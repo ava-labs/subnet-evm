@@ -910,5 +910,6 @@ func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
 		vm.txPool,
 		vm.shutdownChan,
 		&vm.shutdownWg,
+		vm.eth.APIBackend,
 	)
 }

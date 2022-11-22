@@ -1,14 +1,20 @@
 package evm
 
 import (
-	"strings"
+	"context"
+	"io/ioutil"
+	"math/big"
 	"sync"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/params"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -22,15 +28,17 @@ type limitOrderProcesser struct {
 	txPool       *core.TxPool
 	shutdownChan <-chan struct{}
 	shutdownWg   *sync.WaitGroup
+	backend      *eth.EthAPIBackend
 }
 
-func NewLimitOrderProcesser(ctx *snow.Context, chainConfig *params.ChainConfig, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup) LimitOrderProcesser {
+func NewLimitOrderProcesser(ctx *snow.Context, chainConfig *params.ChainConfig, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend) LimitOrderProcesser {
 	return &limitOrderProcesser{
 		ctx:          ctx,
 		chainConfig:  chainConfig,
 		txPool:       txPool,
 		shutdownChan: shutdownChan,
 		shutdownWg:   shutdownWg,
+		backend:      backend,
 	}
 }
 
@@ -45,16 +53,44 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 	go lop.ctx.Log.RecoverAndPanic(func() {
 		defer lop.shutdownWg.Done()
 
-		const definition = `[{"inputs":[{"internalType":"uint256","name":"initSupply","type":"uint256"}],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"dst","type":"address"},{"indexed":false,"internalType":"uint256","name":"wad","type":"uint256"}],"name":"Deposit","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"src","type":"address"},{"indexed":false,"internalType":"uint256","name":"wad","type":"uint256"}],"name":"Mintdrawal","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"burn","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"subtractedValue","type":"uint256"}],"name":"decreaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"deposit","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"addedValue","type":"uint256"}],"name":"increaseAllowance","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"addr","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"addr","type":"address"}],"name":"isEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"mint","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"wad","type":"uint256"}],"name":"mintdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"addr","type":"address"}],"name":"revoke","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"addr","type":"address"}],"name":"setAdmin","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"addr","type":"address"}],"name":"setEnabled","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
-		contractAbi, err := abi.JSON(strings.NewReader(definition))
+		jsonBytes, _ := ioutil.ReadFile("contract-examples/artifacts/contracts/ERC20NativeMinter.sol/ERC20NativeMinter.json")
+		Abi, err := abi.FromSolidityJson(string(jsonBytes))
 		if err != nil {
 			panic(err)
 		}
 
+
 		for {
 			select {
 			case txsEvent := <-txSubmitChan:
-				log.Trace("New transaction event detected")
+				log.Info("New transaction event detected")
+
+				nonce := lop.txPool.Nonce(common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"))
+				log.Info("###", "nonce", nonce)
+
+				data, err := Abi.Pack("deposit")
+				if err != nil {
+					log.Error("abi.Pack failed", "err", err)
+				}
+				log.Info("####", "data", data)
+				key, err := crypto.HexToECDSA("56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027")
+				if err != nil {
+					log.Error("HexToECDSA failed", "err", err)
+				}
+				tx := types.NewTransaction(nonce, common.HexToAddress("0x0200000000000000000000000000000000000001"), big.NewInt(0), 8000000, big.NewInt(250000000), data)
+				signer := types.NewLondonSigner(big.NewInt(99999))
+				signedTx, err := types.SignTx(tx, signer, key)
+				if err != nil {
+					log.Error("types.SignTx failed", "err", err)
+				}
+				
+				// UNCOMMENT TO SEND TX ON EVERY TX
+				log.Trace("##", "signedTx", signedTx)
+				// err = lop.backend.SendTx(context.Background(), signedTx)
+				if err != nil {
+					log.Error("SendTx failed", "err", err, "ctx", context.Background())
+				}
+
 				for i := 0; i < len(txsEvent.Txs); i++ {
 					tx := txsEvent.Txs[i]
 					if tx.To() != nil && tx.Data() != nil && len(tx.Data()) != 0 {
@@ -66,8 +102,8 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 							continue
 						}
 						method := input[:4]
-						m, _ := contractAbi.MethodById(method)
-						log.Info("transaction", "method name: %s\n", m.Name)
+						m, _ := Abi.MethodById(method)
+						log.Info("transaction", "method name", m.Name)
 						in := make(map[string]interface{})
 						_ = m.Inputs.UnpackIntoMap(in, input[4:])
 						log.Info("transaction", "amount in is: %+v\n", in["amount"])

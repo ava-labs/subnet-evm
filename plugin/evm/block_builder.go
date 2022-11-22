@@ -4,21 +4,15 @@
 package evm
 
 import (
-	"context"
 	"math/big"
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/params"
 
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -85,8 +79,6 @@ type blockBuilder struct {
 	// getting the current time and comparing it to the *params.chainConfig more
 	// than once.
 	isSE bool
-
-	backend *eth.EthAPIBackend
 }
 
 func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *blockBuilder {
@@ -99,7 +91,6 @@ func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *bl
 		shutdownWg:           &vm.shutdownWg,
 		notifyBuildBlockChan: notifyBuildBlockChan,
 		buildStatus:          dontBuild,
-		backend:              vm.eth.APIBackend,
 	}
 
 	b.handleBlockBuilding()
@@ -290,35 +281,6 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 				if b.isSE && b.gossiper != nil && len(txsEvent.Txs) > 0 {
 					// Give time for this node to build a block before attempting to
 					// gossip
-					nonce := b.txPool.Nonce(common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"))
-					log.Info("###", "nonce", nonce)
-
-					abiObj := abi.ABI{
-						Methods: map[string]abi.Method{
-							"deposit": abi.NewMethod("deposit", "deposit", abi.Function, "", false, true, nil, nil),
-						},
-					}
-
-					data, err := abiObj.Pack("deposit")
-					if err != nil {
-						log.Error("abi.Pack failed", "err", err)
-					}
-					log.Info("####", "data", data)
-					key, err := crypto.HexToECDSA("56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027")
-					if err != nil {
-						log.Error("HexToECDSA failed", "err", err)
-					}
-					tx := types.NewTransaction(nonce, common.HexToAddress("0x0200000000000000000000000000000000000001"), big.NewInt(0), 8000000, big.NewInt(250000000), data)
-					signer := types.NewLondonSigner(big.NewInt(99999))
-					signedTx, err := types.SignTx(tx, signer, key)
-					if err != nil {
-						log.Error("types.SignTx failed", "err", err)
-					}
-
-					err = b.backend.SendTx(context.Background(), signedTx)
-					if err != nil {
-						log.Error("SendTx failed", "err", err)
-					}
 					time.Sleep(waitBlockTime)
 					// [GossipTxs] will block unless [gossiper.txsToGossipChan] (an
 					// unbuffered channel) is listened on
