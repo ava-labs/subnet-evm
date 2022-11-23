@@ -321,7 +321,7 @@ func TestVMUpgrades(t *testing.T) {
 				t.Fatal("Expected last accepted block to match the genesis block hash")
 			}
 
-			genesisBlk, err := vm.GetBlock(lastAcceptedID)
+			genesisBlk, err := vm.GetBlock(context.Background(), lastAcceptedID)
 			if err != nil {
 				t.Fatalf("Failed to get genesis block due to %s", err)
 			}
@@ -1814,7 +1814,7 @@ func TestAcceptReorg(t *testing.T) {
 	if b := vm1.blockChain.CurrentBlock(); b.Hash() != blkCHash {
 		t.Fatalf("expected current block to have hash %s but got %s", blkCHash.Hex(), b.Hash().Hex())
 	}
-	if err := vm1BlkB.Reject(); err != nil {
+	if err := vm1BlkB.Reject(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -2807,11 +2807,15 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 }
 
 func TestSkipChainConfigCheckCompatible(t *testing.T) {
+	// The most recent network upgrade in Subnet-EVM is SubnetEVM itself, which cannot be disabled for this test since it results in
+	// disabling dynamic fees and causes a panic since some code assumes that this is enabled.
+	// TODO update this test when there is a future network upgrade that can be skipped in the config.
+	t.Skip("no skippable upgrades")
 	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
 	metrics.Enabled = false
 	defer func() { metrics.Enabled = true }()
 
-	issuer, vm, dbManager, _ := GenesisVM(t, true, genesisJSONPreSubnetEVM, "{\"pruning-enabled\":true}", "")
+	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, "{\"pruning-enabled\":true}", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2839,9 +2843,9 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 		}
 	}
 
-	blk1 := issueAndAccept(t, issuer, vm)
+	blk := issueAndAccept(t, issuer, vm)
 	newHead := <-newTxPoolHeadChan
-	if newHead.Head.Hash() != common.Hash(blk1.ID()) {
+	if newHead.Head.Hash() != common.Hash(blk.ID()) {
 		t.Fatalf("Expected new block to match")
 	}
 
