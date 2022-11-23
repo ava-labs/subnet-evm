@@ -199,7 +199,6 @@ func GenesisVM(t *testing.T,
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
 	if err := vm.Initialize(
-		context.Background(),
 		ctx,
 		dbManager,
 		genesisBytes,
@@ -472,8 +471,8 @@ func TestBuildEthTxBlock(t *testing.T) {
 	restartedVM := &VM{}
 	genesisBytes := buildGenesisTest(t, genesisJSONSubnetEVM)
 
-	if err := restarted
-	context.Background(),
+	if err := restartedVM.Initialize(
+		context.Background(),
 		NewContext(),
 		dbManager,
 		genesisBytes,
@@ -1974,8 +1973,7 @@ func TestConfigureLogLevel(t *testing.T) {
 			appSender := &engCommon.SenderTest{T: t}
 			appSender.CantSendAppGossip = true
 			appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
-			err := 
-			context.Background(),
+			err := vm.Initialize(
 				ctx,
 				dbManager,
 				genesisBytes,
@@ -2855,14 +2853,12 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	require.NoError(t, err)
 
 	// this will not be allowed
-	err = reinit
-	context.Background(),context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, []byte{}, issuer, []*engCommon.Fx{}, appSender)
+	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, []byte{}, issuer, []*engCommon.Fx{}, appSender)
 	require.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
 	// try again with skip-upgrade-check
 	config := []byte("{\"skip-upgrade-check\": true}")
-	err = reinit
-	context.Background(),context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, config, issuer, []*engCommon.Fx{}, appSender)
+	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, config, issuer, []*engCommon.Fx{}, appSender)
 	require.NoError(t, err)
 	require.NoError(t, reinitVM.Shutdown(context.Background()))
 }
