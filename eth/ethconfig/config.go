@@ -52,9 +52,6 @@ var DefaultConfig = NewDefaultConfig()
 func NewDefaultConfig() Config {
 	return Config{
 		NetworkId:             1,
-		LightPeers:            100,
-		UltraLightFraction:    75,
-		DatabaseCache:         512,
 		TrieCleanCache:        512,
 		TrieDirtyCache:        256,
 		TrieDirtyCommitTarget: 20,
