@@ -26,7 +26,7 @@
     "compile": "npx hardhat compile",
     "console": "npx hardhat console",
     "pretest": "yarn compile",
-    "test": "npx hardhat test",
+    "test": "npx hardhat test --network local",
     "erc20:deploy": "npx hardhat run scripts/deployERC20NativeMinter.ts",
     "erc20:run": "npx hardhat run scripts/erc20NativeMinter.ts",
     "prepublishOnly": "yarn test",
