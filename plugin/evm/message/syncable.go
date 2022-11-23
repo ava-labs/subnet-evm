@@ -4,6 +4,7 @@
 package message
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -81,7 +82,7 @@ func (s SyncSummary) String() string {
 	return fmt.Sprintf("SyncSummary(BlockHash=%s, BlockNumber=%d, BlockRoot=%s)", s.BlockHash, s.BlockNumber, s.BlockRoot)
 }
 
-func (s SyncSummary) Accept() (bool, error) {
+func (s SyncSummary) Accept(context.Context) (bool, error) {
 	if s.acceptImpl == nil {
 		return false, fmt.Errorf("accept implementation not specified for summary: %s", s)
 	}

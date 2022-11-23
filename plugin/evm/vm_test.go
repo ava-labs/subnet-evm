@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -81,8 +82,6 @@ func init() {
 	addr2 := crypto.PubkeyToAddress(key2.PublicKey)
 	testEthAddrs = append(testEthAddrs, addr1, addr2)
 
-	minBlockTime = time.Millisecond
-	maxBlockTime = time.Millisecond
 	firstTxAmount = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
 	genesisBalance = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*1000))
 }
@@ -2802,4 +2801,63 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 
 	balance = blkState.GetBalance(constants.BlackholeAddr)
 	require.Equal(t, 1, balance.Cmp(previousBalance))
+}
+
+func TestSkipChainConfigCheckCompatible(t *testing.T) {
+	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
+	metrics.Enabled = false
+	defer func() { metrics.Enabled = true }()
+
+	issuer, vm, dbManager, _ := GenesisVM(t, true, genesisJSONPreSubnetEVM, "{\"pruning-enabled\":true}", "")
+
+	defer func() {
+		if err := vm.Shutdown(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+
+	key, err := accountKeystore.NewKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tx := types.NewTransaction(uint64(0), key.Address, firstTxAmount, 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("Failed to add tx at index %d: %s", i, err)
+		}
+	}
+
+	blk1 := issueAndAccept(t, issuer, vm)
+	newHead := <-newTxPoolHeadChan
+	if newHead.Head.Hash() != common.Hash(blk1.ID()) {
+		t.Fatalf("Expected new block to match")
+	}
+
+	reinitVM := &VM{}
+	// use the block's timestamp instead of 0 since rewind to genesis
+	// is hardcoded to be allowed in core/genesis.go.
+	genesisWithUpgrade := &core.Genesis{}
+	require.NoError(t, json.Unmarshal([]byte(genesisJSONPreSubnetEVM), genesisWithUpgrade))
+	genesisWithUpgrade.Config.SubnetEVMTimestamp = big.NewInt(blk.Timestamp().Unix())
+	genesisWithUpgradeBytes, err := json.Marshal(genesisWithUpgrade)
+	require.NoError(t, err)
+
+	// this will not be allowed
+	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, []byte{}, issuer, []*engCommon.Fx{}, appSender)
+	require.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
+
+	// try again with skip-upgrade-check
+	config := []byte("{\"skip-upgrade-check\": true}")
+	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, config, issuer, []*engCommon.Fx{}, appSender)
+	require.NoError(t, err)
+	require.NoError(t, reinitVM.Shutdown(context.Background()))
 }

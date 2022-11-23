@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/avalanchego/database/manager"
 	"github.com/ava-labs/avalanchego/ids"
@@ -392,6 +393,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	err = syncerVM.StateSyncClient.Error()
 	if test.expectedErr != nil {
 		assert.ErrorIs(t, err, test.expectedErr)
+		assertSyncPerformedHeights(t, syncerVM.chaindb, map[uint64]struct{}{})
 		return
 	}
 	if err != nil {
@@ -406,6 +408,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	assert.Equal(t, serverVM.LastAcceptedBlock().Height(), syncerVM.LastAcceptedBlock().Height(), "block height mismatch between syncer and server")
 	assert.Equal(t, serverVM.LastAcceptedBlock().ID(), syncerVM.LastAcceptedBlock().ID(), "blockID mismatch between syncer and server")
 	assert.True(t, syncerVM.blockChain.HasState(syncerVM.blockChain.LastAcceptedBlock().Root()), "unavailable state for last accepted block")
+	assertSyncPerformedHeights(t, syncerVM.chaindb, map[uint64]struct{}{retrievedSummary.Height(): {}})
 
 	blocksToBuild := 10
 	txsPerBlock := 10
@@ -506,4 +509,18 @@ func generateAndAcceptBlocks(t *testing.T, vm *VM, numBlocks int, gen func(int, 
 		t.Fatal(err)
 	}
 	vm.blockChain.DrainAcceptorQueue()
+}
+
+// assertSyncPerformedHeights iterates over all heights the VM has synced to and
+// verifies it matches [expected].
+func assertSyncPerformedHeights(t *testing.T, db ethdb.Iteratee, expected map[uint64]struct{}) {
+	it := rawdb.NewSyncPerformedIterator(db)
+	defer it.Release()
+
+	found := make(map[uint64]struct{}, len(expected))
+	for it.Next() {
+		found[rawdb.UnpackSyncPerformedKey(it.Key())] = struct{}{}
+	}
+	require.NoError(t, it.Error())
+	require.Equal(t, expected, found)
 }

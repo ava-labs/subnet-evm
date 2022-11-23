@@ -170,6 +170,18 @@ func (n *network) request(nodeID ids.NodeID, request []byte, responseHandler mes
 	return nil
 }
 
+func (n *network) CrossChainAppRequest(_ context.Context, requestingChainID ids.ID, requestID uint32, deadline time.Time, request []byte) error {
+	return nil
+}
+
+func (n *network) CrossChainAppRequestFailed(_ context.Context, respondingChainID ids.ID, requestID uint32) error {
+	return nil
+}
+
+func (n *network) CrossChainAppResponse(_ context.Context, respondingChainID ids.ID, requestID uint32, response []byte) error {
+	return nil
+}
+
 // AppRequest is called by avalanchego -> VM when there is an incoming AppRequest from a peer
 // error returned by this function is expected to be treated as fatal by the engine
 // returns error if the requestHandler returns an error
@@ -310,7 +322,7 @@ func (n *network) AppGossip(_ context.Context, nodeID ids.NodeID, gossipBytes []
 }
 
 // Connected adds the given nodeID to the peer list so that it can receive messages
-func (n *network) Connected(nodeID ids.NodeID, nodeVersion *version.Application) error {
+func (n *network) Connected(_ context.Context, nodeID ids.NodeID, nodeVersion *version.Application) error {
 	log.Debug("adding new peer", "nodeID", nodeID)
 
 	n.lock.Lock()
@@ -326,7 +338,7 @@ func (n *network) Connected(nodeID ids.NodeID, nodeVersion *version.Application)
 }
 
 // Disconnected removes given [nodeID] from the peer list
-func (n *network) Disconnected(nodeID ids.NodeID) error {
+func (n *network) Disconnected(_ context.Context, nodeID ids.NodeID) error {
 	log.Debug("disconnecting peer", "nodeID", nodeID)
 	n.lock.Lock()
 	defer n.lock.Unlock()
