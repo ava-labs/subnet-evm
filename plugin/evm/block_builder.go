@@ -274,7 +274,6 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 			select {
 			case txsEvent := <-txSubmitChan:
 				log.Trace("New tx detected, trying to generate a block")
-				log.Info("New tx detected, trying to generate a block")
 				b.signalTxsReady()
 
 				// We only attempt to invoke [GossipTxs] once AP4 is activated

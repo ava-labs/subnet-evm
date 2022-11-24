@@ -34,11 +34,13 @@ contract OrderBook is EIP712 {
 
     constructor(string memory name, string memory version) EIP712(name, version) {}
 
-    function placeOrder(Order memory order, bytes memory signature) external {
-        (, bytes32 orderHash) = verifySigner(order, signature);
+    function placeOrder(Order memory order, bytes memory hashh) external {
+        // (, bytes32 orderHash) = verifySigner(order, signature);
 
         // OB_OMBU: Order Must Be Unfilled
-        require(ordersStatus[orderHash] == OrderStatus.Unfilled, "OB_OMBU");
+        // require(ordersStatus[orderHash] == OrderStatus.Unfilled, "OB_OMBU");
+        bytes32 orderHash = bytes32(hashh);
+        ordersStatus[orderHash] = OrderStatus.Unfilled;
 
         emit OrderPlaced(order.trader, order.baseAssetQuantity, order.price, msg.sender);
     }

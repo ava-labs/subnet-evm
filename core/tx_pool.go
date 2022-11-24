@@ -974,7 +974,6 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // AddLocal enqueues a single local transaction into the pool if it is valid. This is
 // a convenience wrapper aroundd AddLocals.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
-	log.Info("in AddLocal")
 	errs := pool.AddLocals([]*types.Transaction{tx})
 	return errs[0]
 }
@@ -1058,7 +1057,6 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 	if sync {
 		<-done
 	}
-	log.Info("in addTxs", "errs", errs)
 	return errs
 }
 

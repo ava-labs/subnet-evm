@@ -251,6 +251,7 @@ func (vm *VM) Initialize(
 		alias = vm.ctx.ChainID.String()
 	}
 
+	fmt.Println(alias)
 	subnetEVMLogger, err := InitLogger(alias, vm.config.LogLevel, vm.config.LogJSONFormat, originalStderr)
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger due to: %w ", err)

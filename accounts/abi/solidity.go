@@ -22,10 +22,11 @@ type Abi struct {
 }
 
 type Input struct {
-	InternalType string `json:"internalType"`
-	Name         string `json:"name"`
-	Type         string `json:"type"`
-	Indexed      bool   `json:"indexed"`
+	Components   []Input `json:"components"`
+	InternalType string  `json:"internalType"`
+	Name         string  `json:"name"`
+	Type         string  `json:"type"`
+	Indexed      bool    `json:"indexed"`
 }
 
 func getFunctionType(type_ string) FunctionType {
@@ -57,7 +58,18 @@ func FromSolidityJson(abiJsonInput string) (ABI, error) {
 	for _, method := range solidityJson.Abi {
 		inputs := []Argument{}
 		for _, input := range method.Inputs {
-			type_, _ := NewType(input.Type, input.InternalType, nil)
+			components :=  []ArgumentMarshaling{}
+			if input.Type == "tuple" {
+				for _, component := range input.Components {
+					components = append(components, ArgumentMarshaling{
+						Name: component.Name,
+						Type: component.Type,
+						InternalType: component.InternalType,
+					})					
+				}
+			}
+
+			type_, _ := NewType(input.Type, input.InternalType, components)
 			inputs = append(inputs, Argument{
 				Name:    input.Name,
 				Type:    type_,
@@ -79,7 +91,17 @@ func FromSolidityJson(abiJsonInput string) (ABI, error) {
 
 		outputs := []Argument{}
 		for _, output := range method.Outputs {
-			type_, _ := NewType(output.Type, output.InternalType, nil)
+			components :=  []ArgumentMarshaling{}
+			if output.Type == "tuple" {
+				for _, component := range output.Components {
+					components = append(components, ArgumentMarshaling{
+						Name: component.Name,
+						Type: component.Type,
+						InternalType: component.InternalType,
+					})					
+				}
+			}
+			type_, _ := NewType(output.Type, output.InternalType, components)
 			inputs = append(inputs, Argument{
 				Name:    output.Name,
 				Type:    type_,

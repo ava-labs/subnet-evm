@@ -114,6 +114,50 @@ go build \
 # "alloc")
 export CHAIN_ID=99999
 echo "creating genesis"
+#   cat <<EOF >$BASEDIR/genesis.json
+# {
+#   "config": {
+#     "chainId": $CHAIN_ID,
+#     "homesteadBlock": 0,
+#     "eip150Block": 0,
+#     "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
+#     "eip155Block": 0,
+#     "eip158Block": 0,
+#     "byzantiumBlock": 0,
+#     "constantinopleBlock": 0,
+#     "petersburgBlock": 0,
+#     "istanbulBlock": 0,
+#     "muirGlacierBlock": 0,
+#     "subnetEVMTimestamp": 0,
+#     "feeConfig": {
+#       "gasLimit": 20000000,
+#       "minBaseFee": 1000000000,
+#       "targetGas": 100000000,
+#       "baseFeeChangeDenominator": 48,
+#       "minBlockGasCost": 0,
+#       "maxBlockGasCost": 10000000,
+#       "targetBlockRate": 2,
+#       "blockGasCostStep": 500000
+#     }
+#   },
+#   "alloc": {
+#     "${GENESIS_ADDRESS:2}": {
+#       "balance": "0x52B7D2DCC80CD2E4000000"
+#     }
+#   },
+#   "nonce": "0x0",
+#   "timestamp": "0x0",
+#   "extraData": "0x00",
+#   "gasLimit": "0x1312D00",
+#   "difficulty": "0x0",
+#   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+#   "coinbase": "0x0000000000000000000000000000000000000000",
+#   "number": "0x0",
+#   "gasUsed": "0x0",
+#   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+# }
+# EOF
+
   cat <<EOF >$BASEDIR/genesis.json
 {
   "config": {
@@ -130,25 +174,41 @@ echo "creating genesis"
     "muirGlacierBlock": 0,
     "subnetEVMTimestamp": 0,
     "feeConfig": {
-      "gasLimit": 20000000,
-      "minBaseFee": 1000000000,
-      "targetGas": 100000000,
-      "baseFeeChangeDenominator": 48,
+      "gasLimit": 8000000,
+      "minBaseFee": 25000000,
+      "targetGas": 15000000,
+      "baseFeeChangeDenominator": 36,
       "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
+      "maxBlockGasCost": 1000000,
       "targetBlockRate": 2,
-      "blockGasCostStep": 500000
-    }
+      "blockGasCostStep": 20000
+    },
+    "contractDeployerAllowListConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    },
+    "orderBookConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    },
+    "contractNativeMinterConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+    },
+    "allowFeeRecipients": false
   },
   "alloc": {
-    "${GENESIS_ADDRESS:2}": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
+    "8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
+      "balance": "0xC9F2C9CD04674EDEA40000000"
+    },
+    "0Fa8EA536Be85F32724D57A37758761B86416123": {
+      "balance": "0xC9F2C9CD04674EDEA40000000"
     }
   },
   "nonce": "0x0",
   "timestamp": "0x0",
   "extraData": "0x00",
-  "gasLimit": "0x1312D00",
+  "gasLimit": "0x7A1200",
   "difficulty": "0x0",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
@@ -229,6 +289,9 @@ $BIN server \
   --grpc-gateway-port=":12343" &
 PID=${!}
 
+# --number-of-nodes=1 \
+# --log-dir=~/tmp/log/avalanche/runner /
+
 run_ginkgo() {
   echo "building e2e.test"
   # to install the ginkgo binary (required for test build and run)
@@ -307,6 +370,9 @@ else
   echo ""
   echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
   echo ""
+  echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy" > kill.sh
 fi
+
+cd contract-examples; npx hardhat run scripts/deployOrderBook.ts --network local; cd ..
 
 exit ${EXIT_CODE}

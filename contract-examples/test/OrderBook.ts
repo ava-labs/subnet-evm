@@ -8,7 +8,7 @@ import exp = require("constants");
 // make sure this is always an admin for minter precompile
 const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 
-describe.only('Order Book', function() {
+describe('Order Book', function() {
     let orderBook, alice, bob, order, domain, orderType, signature
 
     before(async function () {
