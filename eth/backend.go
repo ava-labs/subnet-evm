@@ -132,7 +132,7 @@ func New(
 	config.SnapshotCache = roundUpCacheSize(config.SnapshotCache, 64)
 
 	log.Info(
-		"Allocated trie memory caches",
+		"Allocated memory caches",
 		"trie clean", common.StorageSize(config.TrieCleanCache)*1024*1024,
 		"trie dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024,
 		"snapshot clean", common.StorageSize(config.SnapshotCache)*1024*1024,
@@ -248,7 +248,6 @@ func New(
 	}
 	gpoParams := config.GPO
 	eth.APIBackend.gpo, err = gasprice.NewOracle(eth.APIBackend, gpoParams)
-
 	if err != nil {
 		return nil, err
 	}

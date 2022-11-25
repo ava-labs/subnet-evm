@@ -81,7 +81,7 @@ type StateSyncClient interface {
 	// methods that implement the client side of [block.StateSyncableVM]
 	StateSyncEnabled(context.Context) (bool, error)
 	GetOngoingSyncStateSummary(context.Context) (block.StateSummary, error)
-	ParseStateSummary(_ context.Context, summaryBytes []byte) (block.StateSummary, error)
+	ParseStateSummary(ctx context.Context, summaryBytes []byte) (block.StateSummary, error)
 
 	// additional methods required by the evm package
 	StateSyncClearOngoingSummary() error
@@ -106,7 +106,7 @@ func (client *stateSyncerClient) StateSyncEnabled(context.Context) (bool, error)
 // GetOngoingSyncStateSummary returns a state summary that was previously started
 // and not finished, and sets [resumableSummary] if one was found.
 // Returns [database.ErrNotFound] if no ongoing summary is found or if [client.skipResume] is true.
-func (client *stateSyncerClient) GetOngoingSyncStateSummary(_ context.Context) (block.StateSummary, error) {
+func (client *stateSyncerClient) GetOngoingSyncStateSummary(context.Context) (block.StateSummary, error) {
 	if client.skipResume {
 		return nil, database.ErrNotFound
 	}

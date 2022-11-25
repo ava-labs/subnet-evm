@@ -214,9 +214,6 @@ func TestStateProcessorErrors(t *testing.T) {
 					PetersburgBlock:     big.NewInt(0),
 					IstanbulBlock:       big.NewInt(0),
 					MuirGlacierBlock:    big.NewInt(0),
-					NetworkUpgrades: params.NetworkUpgrades{
-						SubnetEVMTimestamp: big.NewInt(0),
-					},
 				},
 				Alloc: GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): GenesisAccount{
@@ -234,12 +231,12 @@ func TestStateProcessorErrors(t *testing.T) {
 			txs  []*types.Transaction
 			want string
 		}{
-			// { // ErrTxTypeNotSupported
-			// 	txs: []*types.Transaction{
-			// 		mkDynamicTx(0, common.Address{}, params.TxGas-1000, big.NewInt(0), big.NewInt(0)),
-			// 	},
-			// 	want: "could not apply tx 0 [0x88626ac0d53cb65308f2416103c62bb1f18b805573d4f96a3640bbbfff13c14f]: transaction type not supported",
-			// },
+			{ // ErrTxTypeNotSupported
+				txs: []*types.Transaction{
+					mkDynamicTx(0, common.Address{}, params.TxGas-1000, big.NewInt(0), big.NewInt(0)),
+				},
+				want: "could not apply tx 0 [0x88626ac0d53cb65308f2416103c62bb1f18b805573d4f96a3640bbbfff13c14f]: transaction type not supported",
+			},
 		} {
 			block := GenerateBadBlock(genesis, dummy.NewFaker(), tt.txs, gspec.Config)
 			_, err := blockchain.InsertChain(types.Blocks{block})

@@ -160,7 +160,6 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 	if w.coinbase == (common.Address{}) {
 		return nil, errors.New("cannot mine without etherbase")
 	}
-
 	header.Coinbase = w.coinbase
 
 	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAt(parent.Header())
