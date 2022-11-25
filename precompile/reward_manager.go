@@ -189,6 +189,14 @@ func (c *RewardManagerConfig) Verify() error {
 	return nil
 }
 
+func (c *RewardManagerConfig) Predicate() PredicateFunc {
+	return nil
+}
+
+func (c *RewardManagerConfig) OnAccept() OnAcceptFunc {
+	return nil
+}
+
 // String returns a string representation of the RewardManagerConfig.
 func (c *RewardManagerConfig) String() string {
 	bytes, _ := json.Marshal(c)
