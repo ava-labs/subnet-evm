@@ -90,8 +90,12 @@ func (evm *EVM) precompile(addr common.Address) (precompile.StatefulPrecompiledC
 	}
 
 	// Otherwise, check the chain rules for the additionally configured precompiles.
-	p, ok = evm.chainRules.Precompiles[addr]
-	return p, ok
+	precompileConfig, ok := evm.chainRules.Precompiles[addr]
+	if ok {
+		return precompileConfig.Contract(), true
+	}
+
+	return nil, false
 }
 
 // BlockContext provides the EVM with auxiliary information. Once provided

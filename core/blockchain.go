@@ -85,7 +85,8 @@ var (
 	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
 	badBlockCounter              = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
 
-	acceptedTxsCounter = metrics.NewRegisteredCounter("chain/txs/accepted/count", nil)
+	acceptedTxsCounter  = metrics.NewRegisteredCounter("chain/txs/accepted", nil)
+	processedTxsCounter = metrics.NewRegisteredCounter("chain/txs/processed", nil)
 
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
@@ -913,10 +914,35 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	bc.addAcceptorQueue(block)
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
+	return bc.handlePrecompilePostAccept(block)
+}
+
+// handlePrecompilePostAccept handles executing the post-accept functions of any active precompiles
+// on the logs contained in the block.
+func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block) error {
+	rules := bc.chainConfig.AvalancheRules(block.Number(), block.Timestamp())
+	receipts := rawdb.ReadReceipts(bc.db, block.Hash(), block.NumberU64(), bc.chainConfig)
+
+	for txIndex, receipt := range receipts {
+		for _, log := range receipt.Logs {
+			precompileConfig, ok := rules.Precompiles[log.Address]
+			if !ok {
+				continue
+			}
+
+			onAccept := precompileConfig.OnAccept()
+			if onAccept == nil {
+				continue
+			}
+
+			if err := onAccept(txIndex, log.Data); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
-
 func (bc *BlockChain) Reject(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
@@ -1252,6 +1278,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	)
 
 	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
+	processedTxsCounter.Inc(int64(block.Transactions().Len()))
 	blockInsertCount.Inc(1)
 	return nil
 }

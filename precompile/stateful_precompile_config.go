@@ -10,19 +10,29 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// PredicateFunc is the function type for validating that an access list tuple touching a precompile follows the predicate
+type PredicateFunc func(storageSlots []common.Hash) error
+
+// OnAcceptFunc is called on any log produced in a block where the address matches the precompile address
+type OnAcceptFunc func(txIndex int, logData []byte) error
+
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 type StatefulPrecompileConfig interface {
 	// Address returns the address where the stateful precompile is accessible.
 	Address() common.Address
+
 	// Timestamp returns the timestamp at which this stateful precompile should be enabled.
 	// 1) 0 indicates that the precompile should be enabled from genesis.
 	// 2) n indicates that the precompile should be enabled in the first block with timestamp >= [n].
 	// 3) nil indicates that the precompile is never enabled.
 	Timestamp() *big.Int
+
 	// IsDisabled returns true if this network upgrade should disable the precompile.
 	IsDisabled() bool
+
 	// Equal returns true if the provided argument configures the same precompile with the same parameters.
 	Equal(StatefulPrecompileConfig) bool
+
 	// Configure is called on the first block where the stateful precompile should be enabled.
 	// This allows the stateful precompile to configure its own state via [StateDB] and [BlockContext] as necessary.
 	// This function must be deterministic since it will impact the EVM state. If a change to the
@@ -33,9 +43,23 @@ type StatefulPrecompileConfig interface {
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
 	Configure(ChainConfig, StateDB, BlockContext)
+
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
 	Contract() StatefulPrecompiledContract
+
+	// Predicate returns an optional function which is called a predicate on every transaction's access list
+	// for any access list tuple whose address matches the address of the precompile.
+	// This allows the precompile to enforce a predicate on the transaction itself for it to be considered valid
+	// to be included in a block.
+	Predicate() PredicateFunc
+
+	// OnAccept returns an optional function which is called when a block gets accepted on each log whose
+	// address matches the address of the precompile.
+	// This can be used to perform precompile specific logic on acceptance, so that the precompile can emit
+	// events and perform logic on those events only after the block has been accepted.
+	OnAccept() OnAcceptFunc
+
 	// Verify is called on startup and an error is treated as fatal. Configure can assume the Config has passed verification.
 	Verify() error
 

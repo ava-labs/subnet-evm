@@ -109,7 +109,8 @@ type StateDB struct {
 	preimages map[common.Hash][]byte
 
 	// Per-transaction access list
-	accessList *accessList
+	originalAccessList *accessList // identical to accessList but un-modified throughout EVM execution and only set in PrepareAccessList
+	accessList         *accessList
 
 	// Journal of state modifications. This is the backbone of
 	// Snapshot and RevertToSnapshot.
@@ -165,6 +166,7 @@ func NewWithSnapshot(root common.Hash, db Database, snap snapshot.Snapshot) (*St
 		logs:                make(map[common.Hash][]*types.Log),
 		preimages:           make(map[common.Hash][]byte),
 		journal:             newJournal(),
+		originalAccessList:  newAccessList(),
 		accessList:          newAccessList(),
 		hasher:              crypto.NewKeccakState(),
 	}
@@ -730,6 +732,7 @@ func (s *StateDB) Copy() *StateDB {
 	// _between_ transactions/blocks, never in the middle of a transaction.
 	// However, it doesn't cost us much to copy an empty list, so we do it anyway
 	// to not blow up if we ever decide copy it in the middle of a transaction
+	state.originalAccessList = s.originalAccessList.Copy()
 	state.accessList = s.accessList.Copy()
 
 	// If there's a prefetcher running, make an inactive copy of it that can
@@ -1057,6 +1060,9 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 			s.AddSlotToAccessList(el.Address, key)
 		}
 	}
+
+	// Set originalAccessList once, not to be modified
+	s.originalAccessList = s.accessList.Copy()
 }
 
 // AddAddressToAccessList adds the given address to the access list

@@ -86,12 +86,12 @@ var (
 
 	{{- if not .Original.IsConstant | and $contract.AllowList}}
 
-	ErrCannot{{.Normalized.Name}} = errors.New("non-enabled cannot {{.Original.Name}}")
+	ErrCannot{{.Normalized.Name}} = errors.New("non-enabled cannot call {{.Original.Name}}")
 	{{- end}}
 	{{- end}}
 
 	{{- if .Contract.Fallback | and $contract.AllowList}}
-	Err{{.Contract.Type}}CannotFallback = errors.New("non-enabled cannot use fallback function")
+	Err{{.Contract.Type}}CannotFallback = errors.New("non-enabled cannot call fallback function")
 	{{- end}}
 
 	{{.Contract.Type}}ABI abi.ABI // will be initialized by init function
@@ -212,6 +212,25 @@ func (c *{{.Contract.Type}}Config) Verify() error {
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom verify code for {{.Contract.Type}}Config here
 	// and return an error accordingly
+	return nil
+}
+
+// Predicate optionally returns a function to enforce as a predicate for a transaction to be valid
+// if the access list of the transaction includes a tuple that references the precompile address.
+// Returns nil here to indicate that this precompile does not enforce a predicate.
+func (c *{{.Contract.Type}}Config) Predicate() PredicateFunc {
+	// CUSTOM CODE STARTS HERE
+	// Add your own custom predicate code for {{.Contract.Type}}Config here
+	// and return an optional function if your precompile enforces a predicate.
+	return nil
+}
+
+// OnAccept optionally returns a function to perform on any log with the precompile address.
+// If enabled, this will be called after the block is accepted to perform post-accept computation.
+func (c *{{.Contract.Type}}Config) OnAccept() OnAcceptFunc {
+	// CUSTOM CODE STARTS HERE
+	// Add your own custom onAccept code for {{.Contract.Type}}Config here
+	// and return an optional function if your precompile requires post-accept computation.
 	return nil
 }
 
