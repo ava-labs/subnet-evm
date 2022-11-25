@@ -206,13 +206,22 @@ func exportAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 		return nil, remainingGas, err
 	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
+	balance := accessibleState.GetStateDB().GetBalance(SharedMemoryAddress)
+	accessibleState.GetStateDB().SubBalance(SharedMemoryAddress, balance)
+	convertedBalance := balance.Div(balance, big.NewInt(1000000000))
 
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	// TODO emit the exportAVAX log for ingestion
+	SharedMemoryABI.Pack(
+		"ExportAVAX",
+		convertedBalance,
+		inputStruct.DestinationChainID,
+		inputStruct.Locktime,
+		inputStruct.Threshold,
+		inputStruct.Addrs,
+	)
+
+	// Return an empty output and the remaining gas
+	return []byte{}, remainingGas, nil
 }
 
 // UnpackExportUTXOInput attempts to unpack [input] into the arguments for the ExportUTXOInput{}
