@@ -785,6 +785,7 @@ func (bc *BlockChain) Stop() {
 	// Wait for accepted feed to process all remaining items
 	log.Info("Closing quit channel")
 	close(bc.quit)
+	// Wait for accepted feed to process all remaining items
 	log.Info("Stopping Acceptor")
 	start := time.Now()
 	bc.stopAcceptor()
@@ -1121,6 +1122,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	if err == nil {
 		err = bc.validator.ValidateBody(block)
 	}
+
 	switch {
 	case errors.Is(err, ErrKnownBlock):
 		// even if the block is already known, we still need to generate the
@@ -1235,7 +1237,6 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	if err := bc.writeBlockAndSetHead(block, receipts, logs, statedb); err != nil {
 		return err
 	}
-
 	// Update the metrics touched during block commit
 	accountCommitTimer.Inc(statedb.AccountCommits.Milliseconds())   // Account commits are complete, we can mark them
 	storageCommitTimer.Inc(statedb.StorageCommits.Milliseconds())   // Storage commits are complete, we can mark them

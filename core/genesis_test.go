@@ -137,6 +137,7 @@ func TestSetupGenesis(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
+
 				// This should return a compatibility error.
 				return setupGenesisBlock(db, &customg, bc.lastAccepted.Hash())
 			},

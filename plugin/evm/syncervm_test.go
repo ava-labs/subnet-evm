@@ -121,6 +121,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		go vmSetup.serverVM.AppRequest(ctx, nodeID, requestID, time.Now().Add(1*time.Second), request)
 		return nil
 	}
+	// Disable metrics to prevent duplicate registerer
 	if err := syncDisabledVM.Initialize(
 		context.Background(),
 		vmSetup.syncerVM.ctx,
@@ -210,7 +211,11 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	}
 
 	// connect peer to [syncerVM]
-	assert.NoError(t, syncReEnabledVM.Connected(context.Background(), vmSetup.serverVM.ctx.NodeID, statesyncclient.StateSyncVersion))
+	assert.NoError(t, syncReEnabledVM.Connected(
+		context.Background(),
+		vmSetup.serverVM.ctx.NodeID,
+		statesyncclient.StateSyncVersion,
+	))
 
 	enabled, err = syncReEnabledVM.StateSyncEnabled(context.Background())
 	assert.NoError(t, err)
@@ -303,7 +308,11 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
 	}
 
 	// connect peer to [syncerVM]
-	assert.NoError(t, syncerVM.Connected(context.Background(), serverVM.ctx.NodeID, statesyncclient.StateSyncVersion))
+	assert.NoError(t, syncerVM.Connected(
+		context.Background(),
+		serverVM.ctx.NodeID,
+		statesyncclient.StateSyncVersion,
+	))
 
 	// override [syncerVM]'s SendAppRequest function to trigger AppRequest on [serverVM]
 	syncerAppSender.SendAppRequestF = func(ctx context.Context, nodeSet ids.NodeIDSet, requestID uint32, request []byte) error {
