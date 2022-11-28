@@ -30,6 +30,9 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/vms/components/verify"
+	"github.com/ava-labs/gecko/ids"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
@@ -205,20 +208,36 @@ func exportAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 	if err != nil {
 		return nil, remainingGas, err
 	}
+	// TODO: validate the DestinationChainID
+	// Plumbing TODOs
+	// - pass in Avalanche backend with snow.Context
+	// - add ability to emit a log
+	ctx := snow.DefaultContextTest()
+	if err := verify.SameSubnet(ctx, ids.ID(inputStruct.DestinationChainID)); err != nil {
+		return nil, remainingGas, err
+	}
 
 	balance := accessibleState.GetStateDB().GetBalance(SharedMemoryAddress)
 	accessibleState.GetStateDB().SubBalance(SharedMemoryAddress, balance)
 	convertedBalance := balance.Div(balance, big.NewInt(1000000000))
 
 	// TODO emit the exportAVAX log for ingestion
-	SharedMemoryABI.Pack(
+	topics, data, err := SharedMemoryABI.PackEvent(
 		"ExportAVAX",
-		convertedBalance,
-		inputStruct.DestinationChainID,
-		inputStruct.Locktime,
-		inputStruct.Threshold,
-		inputStruct.Addrs,
+		[]interface{}{ // TODO: use expanded args style
+			convertedBalance,
+			inputStruct.DestinationChainID,
+			inputStruct.Locktime,
+			inputStruct.Threshold,
+			inputStruct.Addrs,
+		},
 	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	// TODO: create log
+	_ = topics
+	_ = data
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
