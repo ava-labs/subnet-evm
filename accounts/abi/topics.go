@@ -104,9 +104,9 @@ func packTopic(rule interface{}) (common.Hash, error) {
 	return topic, nil
 }
 
-// PackTopics attempts to pack the array of filters into an array of corresponding topics
+// PackTopics packs the array of filters into an array of corresponding topics
 // according to the Solidity documentation.
-// Note: PackTopics does not support array(both fixed size and dynamic-size) and struct types.
+// Note: PackTopics does not support array (fixed or dynamic-size) or struct types.
 func PackTopics(filter []interface{}) ([]common.Hash, error) {
 	topics := make([]common.Hash, len(filter))
 	for i, rule := range filter {
