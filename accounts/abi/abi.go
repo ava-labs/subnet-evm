@@ -101,7 +101,7 @@ func (abi ABI) PackEvent(name string, indexedArgs []interface{}, nonIndexedArgs 
 	if !exist {
 		return nil, nil, fmt.Errorf("event '%s' not found", name)
 	}
-	arguments, err := event.Inputs.Pack(nonIndexedArgs...)
+	arguments, err := event.Inputs.NonIndexed().Pack(nonIndexedArgs...)
 	if err != nil {
 		return nil, nil, err
 	}
