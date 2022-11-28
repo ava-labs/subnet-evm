@@ -91,6 +91,33 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 	return append(method.ID, arguments...), nil
 }
 
+// PackEvent packs the given event name to conform the ABI.
+// Returns the topics for the event including the event signature (if non-anonymous event) and
+// hashes derived from indexed arguments and the packed data of non-indexed args according to
+// the event ABI specification.
+// https://docs.soliditylang.org/en/v0.8.17/abi-spec.html#indexed-event-encoding.
+func (abi ABI) PackEvent(name string, indexedArgs []interface{}, nonIndexedArgs []interface{}) ([]common.Hash, []byte, error) {
+	event, exist := abi.Events[name]
+	if !exist {
+		return nil, nil, fmt.Errorf("event '%s' not found", name)
+	}
+	arguments, err := event.Inputs.Pack(nonIndexedArgs...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	topics := make([]common.Hash, 0, len(indexedArgs)+1)
+	if !event.Anonymous {
+		topics = append(topics, event.ID)
+	}
+	indexedTopics, err := PackTopics(indexedArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return append(topics, indexedTopics...), arguments, nil
+}
+
 // PackOutput packs the given [args] as the output of given method [name] to conform the ABI.
 // This does not include method ID.
 func (abi ABI) PackOutput(name string, args ...interface{}) ([]byte, error) {
