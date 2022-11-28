@@ -373,6 +373,6 @@ else
   echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy" > kill.sh
 fi
 
-cd contract-examples; npx hardhat run scripts/deployOrderBook.ts --network local; cd ..
+# cd contract-examples; npx hardhat run scripts/deployOrderBook.ts --network local; cd ..
 
 exit ${EXIT_CODE}

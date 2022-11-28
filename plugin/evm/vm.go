@@ -597,6 +597,21 @@ func (vm *VM) Shutdown() error {
 
 // buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock() (snowman.Block, error) {
+	txMap := vm.txPool.Pending(false)
+	allTxs := types.Transactions{}
+	for _, txs := range txMap {
+		for _, tx := range txs {
+			allTxs = append(allTxs, tx)
+		}
+	}
+	placeOrderTxs := CheckMatchingOrders(allTxs, vm.txPool)
+	if len(placeOrderTxs) > 0 {
+		log.Info("############### In buildblock; placeOrderTxs found", "placeOrderTxs", placeOrderTxs)
+		err := vm.txPool.AddLocals(placeOrderTxs)
+		if err != nil {
+			log.Error("############### In buildBlock; ERROR", "err", err)
+		}
+	}
 	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()
 	if err != nil {

@@ -1,7 +1,6 @@
 package evm
 
 import (
-	"context"
 	"io/ioutil"
 	"math/big"
 	"sync"
@@ -43,7 +42,7 @@ func NewLimitOrderProcesser(ctx *snow.Context, chainConfig *params.ChainConfig, 
 }
 
 func (lop *limitOrderProcesser) ListenAndProcessLimitOrderTransactions() {
-	lop.listenAndStoreLimitOrderTransactions()
+	// lop.listenAndStoreLimitOrderTransactions()
 }
 
 type Order struct {
@@ -60,80 +59,125 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 	go lop.ctx.Log.RecoverAndPanic(func() {
 		defer lop.shutdownWg.Done()
 
-		jsonBytes, _ := ioutil.ReadFile("contract-examples/artifacts/contracts/OrderBook.sol/OrderBook.json")
-		orderBookAbi, err := abi.FromSolidityJson(string(jsonBytes))
-		jsonBytes, _ = ioutil.ReadFile("contract-examples/artifacts/contracts/ERC20NativeMinter.sol/ERC20NativeMinter.json")
-		minterAbi, err := abi.FromSolidityJson(string(jsonBytes))
-		if err != nil {
-			panic(err)
-		}
-		// log.Info("####", "Abi.Methods", orderBookAbi.Methods)
+		// for {
+		// 	select {
+		// 	case txsEvent := <-txSubmitChan:
+		// 		log.Info("New transaction event detected")
 
-		for {
-			select {
-			case txsEvent := <-txSubmitChan:
-				log.Info("New transaction event detected")
+		// 		for i := 0; i < len(txsEvent.Txs); i++ {
+		// 			tx := txsEvent.Txs[i]
+		// 			if tx.To() != nil && tx.Data() != nil && len(tx.Data()) != 0 {
+		// 				log.Info("transaction", "to is", tx.To().String())
+		// 				input := tx.Data() // "input" field above
+		// 				log.Info("transaction", "data is", input)
+		// 				if len(input) < 4 {
+		// 					log.Info("transaction data has less than 3 fields")
+		// 					continue
+		// 				}
+		// 				method := input[:4]
+		// 				m, err := minterAbi.MethodById(method)
+		// 				if err == nil {
+		// 					log.Info("transaction was made by minter contract")
+		// 					log.Info("transaction", "method name", m.Name)
+		// 					in := make(map[string]interface{})
+		// 					_ = m.Inputs.UnpackIntoMap(in, input[4:])
+		// 					log.Info("transaction", "amount in is: %+v\n", in["amount"])
+		// 					log.Info("transaction", "to is: %+v\n", in["to"])
 
-				for i := 0; i < len(txsEvent.Txs); i++ {
-					tx := txsEvent.Txs[i]
-					if tx.To() != nil && tx.Data() != nil && len(tx.Data()) != 0 {
-						log.Info("transaction", "to is", tx.To().String())
-						input := tx.Data() // "input" field above
-						log.Info("transaction", "data is", input)
-						if len(input) < 4 {
-							log.Info("transaction data has less than 3 fields")
-							continue
-						}
-						method := input[:4]
-						m, err := minterAbi.MethodById(method)
-						if err == nil {
-							log.Info("transaction was made by minter contract")
-							log.Info("transaction", "method name", m.Name)
-							in := make(map[string]interface{})
-							_ = m.Inputs.UnpackIntoMap(in, input[4:])
-							log.Info("transaction", "amount in is: %+v\n", in["amount"])
-							log.Info("transaction", "to is: %+v\n", in["to"])
+		// 					nonce := lop.txPool.Nonce(common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"))
+		// 					log.Info("###", "nonce", nonce)
 
+		// 					data, err := orderBookAbi.Pack("placeOrder", &Order{
+		// 						Trader:            common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
+		// 						BaseAssetQuantity: big.NewInt(3),
+		// 						Price:             big.NewInt(3),
+		// 						Salt:              big.NewInt(12837918),
+		// 					}, []byte("hash1"))
+		// 					if err != nil {
+		// 						log.Error("abi.Pack failed", "err", err)
+		// 					}
+		// 					log.Info("####", "data", data)
+		// 					key, err := crypto.HexToECDSA("56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027")
+		// 					if err != nil {
+		// 						log.Error("HexToECDSA failed", "err", err)
+		// 					}
+		// 					tx := types.NewTransaction(nonce, common.HexToAddress("0x52C84043CD9c865236f11d9Fc9F56aa003c1f922"), big.NewInt(0), 8000000, big.NewInt(250000000), data)
+		// 					signer := types.NewLondonSigner(big.NewInt(99999))
+		// 					signedTx, err := types.SignTx(tx, signer, key)
+		// 					if err != nil {
+		// 						log.Error("types.SignTx failed", "err", err)
+		// 					}
 
-							nonce := lop.txPool.Nonce(common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"))
-							log.Info("###", "nonce", nonce)
-			
-							data, err := orderBookAbi.Pack("placeOrder", &Order{
-								Trader:            common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
-								BaseAssetQuantity: big.NewInt(3),
-								Price:             big.NewInt(3),
-								Salt:              big.NewInt(12837918),
-							}, []byte("hash1"))
-							if err != nil {
-								log.Error("abi.Pack failed", "err", err)
-							}
-							log.Info("####", "data", data)
-							key, err := crypto.HexToECDSA("56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027")
-							if err != nil {
-								log.Error("HexToECDSA failed", "err", err)
-							}
-							tx := types.NewTransaction(nonce, common.HexToAddress("0x52C84043CD9c865236f11d9Fc9F56aa003c1f922"), big.NewInt(0), 8000000, big.NewInt(250000000), data)
-							signer := types.NewLondonSigner(big.NewInt(99999))
-							signedTx, err := types.SignTx(tx, signer, key)
-							if err != nil {
-								log.Error("types.SignTx failed", "err", err)
-							}
-			
-							// UNCOMMENT TO SEND TX ON EVERY TX
-							log.Trace("##", "signedTx", signedTx)
-							err = lop.backend.SendTx(context.Background(), signedTx)
-							if err != nil {
-								log.Error("SendTx failed", "err", err, "ctx", context.Background())
-							}
-			
-						} else {
-							log.Info("### transaction - incorrect ABI -  received on another contract")
-						}
+		// 					// UNCOMMENT TO SEND TX ON EVERY TX
+		// 					log.Trace("##", "signedTx", signedTx)
+		// 					err = lop.backend.SendTx(context.Background(), signedTx)
+		// 					if err != nil {
+		// 						log.Error("SendTx failed", "err", err, "ctx", context.Background())
+		// 					}
+
+		// 				} else {
+		// 					log.Info("### transaction - incorrect ABI -  received on another contract")
+		// 				}
+		// 			}
+		// 		}
+		// 	case <-lop.shutdownChan:
+		// 		return
+		// 	}
+		// }
+	})
+}
+
+func CheckMatchingOrders(txs types.Transactions, txPool *core.TxPool) []*types.Transaction {
+	jsonBytes, _ := ioutil.ReadFile("contract-examples/artifacts/contracts/OrderBook.sol/OrderBook.json")
+	orderBookAbi, err := abi.FromSolidityJson(string(jsonBytes))
+	if err != nil {
+		panic(err)
+	}
+
+	matchingOrderTxs := []*types.Transaction{}
+
+	for i := 0; i < len(txs); i++ {
+		tx := txs[i]
+		if tx.To() != nil && tx.Data() != nil && len(tx.Data()) != 0 {
+			log.Info("transaction", "to is", tx.To().String())
+			input := tx.Data() // "input" field above
+			log.Info("transaction", "data is", input)
+			if len(input) < 4 {
+				log.Info("transaction data has less than 3 fields")
+				continue
+			}
+			method := input[:4]
+			m, err := orderBookAbi.MethodById(method)
+			if err == nil {
+				log.Info("transaction was made by OrderBook contract")
+				log.Info("transaction", "method name", m.Name)
+				// log.Info("transaction", "amount in is: %+v\n", in["amount"])
+				// log.Info("transaction", "to is: %+v\n", in["to"])
+				in := make(map[string]interface{})
+				_ = m.Inputs.UnpackIntoMap(in, input[4:])
+				if m.Name == "placeOrder" {
+					log.Info("transaction", "input", in)
+					nonce := txPool.Nonce(common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")) // admin address
+
+					data, err := orderBookAbi.Pack("executeTestOrder", in["order"], in["signature"])
+					if err != nil {
+						log.Error("abi.Pack failed", "err", err)
 					}
+					// log.Info("####", "data", data)
+					key, err := crypto.HexToECDSA("56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027") // admin private key
+					if err != nil {
+						log.Error("HexToECDSA failed", "err", err)
+					}
+					tx := types.NewTransaction(nonce, common.HexToAddress("0x52C84043CD9c865236f11d9Fc9F56aa003c1f922"), big.NewInt(0), 8000000, big.NewInt(250000000), data)
+					signer := types.NewLondonSigner(big.NewInt(99999))
+					signedTx, err := types.SignTx(tx, signer, key)
+					if err != nil {
+						log.Error("types.SignTx failed", "err", err)
+					}
+					matchingOrderTxs = append(matchingOrderTxs, signedTx)
 				}
-			case <-lop.shutdownChan:
-				return
 			}
 		}
-	})
+	}
+	return matchingOrderTxs
 }

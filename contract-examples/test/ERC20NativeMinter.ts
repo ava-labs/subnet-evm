@@ -23,7 +23,7 @@ const ROLES = {
   ADMIN: 2
 };
 
-describe.only("ERC20NativeMinter", function () {
+describe("ERC20NativeMinter", function () {
   let owner: SignerWithAddress
   let contract: Contract
   let minter: SignerWithAddress
@@ -100,10 +100,6 @@ describe.only("ERC20NativeMinter", function () {
     let gasPrice: BigNumber = txRec.effectiveGasPrice
     let txFee = gasUsed.mul(gasPrice)
     expect(nativeBalance).to.be.equal(initNativeBalance.add(mintValue).sub(txFee))
-  })
-// admin should mintdraw since it has ERC20 token initially.
-  it.only("test", async function () {
-    let tx = await contract.mintdraw(mintValue, {gasLimit})
   })
 
   // minter should not mintdraw since it has no ERC20 token.
