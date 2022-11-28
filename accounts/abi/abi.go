@@ -91,7 +91,7 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 	return append(method.ID, arguments...), nil
 }
 
-// PackEvent packs the given event name to conform the ABI.
+// PackEvent packs the given event name and arguments to conform the ABI.
 // Returns the topics for the event including the event signature (if non-anonymous event) and
 // hashes derived from indexed arguments and the packed data of non-indexed args according to
 // the event ABI specification.
