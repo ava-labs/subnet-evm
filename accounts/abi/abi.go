@@ -97,7 +97,7 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 // the event ABI specification.
 // https://docs.soliditylang.org/en/v0.8.17/abi-spec.html#indexed-event-encoding.
 // Note: PackEvent does not support array (fixed or dynamic-size) or struct types.
-func (abi ABI) PackEvent(name string, args []interface{}) ([]common.Hash, []byte, error) {
+func (abi ABI) PackEvent(name string, args ...interface{}) ([]common.Hash, []byte, error) {
 	event, exist := abi.Events[name]
 	if !exist {
 		return nil, nil, fmt.Errorf("event '%s' not found", name)

@@ -1255,7 +1255,7 @@ func TestABI_PackEvent(t *testing.T) {
 				t.Error(err)
 			}
 
-			topics, data, err := abi.PackEvent(test.name, test.args)
+			topics, data, err := abi.PackEvent(test.name, test.args...)
 			if err != nil {
 				t.Fatal(err)
 			}
