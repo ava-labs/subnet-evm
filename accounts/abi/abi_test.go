@@ -39,7 +39,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 const jsondata = `
