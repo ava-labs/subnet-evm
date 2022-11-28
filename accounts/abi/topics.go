@@ -129,7 +129,6 @@ func MakeTopics(query ...[]interface{}) ([][]common.Hash, error) {
 			if err != nil {
 				return nil, err
 			}
-
 			topics[i] = append(topics[i], topic)
 		}
 	}
