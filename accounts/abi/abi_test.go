@@ -1176,8 +1176,7 @@ func TestABI_PackEvent(t *testing.T) {
 		name           string
 		json           string
 		event          string
-		indexedArgs    []interface{}
-		nonIndexedArgs []interface{}
+		args           []interface{}
 		expectedTopics []common.Hash
 		expectedData   []byte
 	}{
@@ -1190,9 +1189,8 @@ func TestABI_PackEvent(t *testing.T) {
 				{"indexed":false,"name":"memo","type":"bytes"}
 				]
 			}]`,
-			event:       "received(address,uint256,bytes)",
-			indexedArgs: nil,
-			nonIndexedArgs: []interface{}{
+			event: "received(address,uint256,bytes)",
+			args: []interface{}{
 				common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2"),
 				big.NewInt(1),
 				[]byte{0x88},
@@ -1201,6 +1199,24 @@ func TestABI_PackEvent(t *testing.T) {
 				common.HexToHash("0x75fd880d39c1daf53b6547ab6cb59451fc6452d27caa90e5b6649dd8293b9eed"),
 			},
 			expectedData: common.Hex2Bytes("000000000000000000000000376c47978271565f56deb45495afa69e59c16ab20000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000018800000000000000000000000000000000000000000000000000000000000000"),
+		},
+		{
+			name: "received",
+			json: `[
+			{"type":"event","name":"received","anonymous":true,"inputs":[
+				{"indexed":false,"name":"sender","type":"address"},
+				{"indexed":false,"name":"amount","type":"uint256"},
+				{"indexed":false,"name":"memo","type":"bytes"}
+				]
+			}]`,
+			event: "received(address,uint256,bytes)",
+			args: []interface{}{
+				common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2"),
+				big.NewInt(1),
+				[]byte{0x88},
+			},
+			expectedTopics: []common.Hash{},
+			expectedData:   common.Hex2Bytes("000000000000000000000000376c47978271565f56deb45495afa69e59c16ab20000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000018800000000000000000000000000000000000000000000000000000000000000"),
 		}, {
 			name: "Transfer",
 			json: `[
@@ -1218,11 +1234,9 @@ func TestABI_PackEvent(t *testing.T) {
 				{ "anonymous": false, "inputs": [ { "indexed": true, "name": "from", "type": "address" }, { "indexed": true, "name": "to", "type": "address" }, { "indexed": false, "name": "value", "type": "uint256" } ], "name": "Transfer", "type": "event" }
 			]`,
 			event: "Transfer(address,address,uint256)",
-			indexedArgs: []interface{}{
+			args: []interface{}{
 				common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
 				common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2"),
-			},
-			nonIndexedArgs: []interface{}{
 				big.NewInt(100),
 			},
 			expectedTopics: []common.Hash{
@@ -1241,7 +1255,7 @@ func TestABI_PackEvent(t *testing.T) {
 				t.Error(err)
 			}
 
-			topics, data, err := abi.PackEvent(test.name, test.indexedArgs, test.nonIndexedArgs)
+			topics, data, err := abi.PackEvent(test.name, test.args)
 			if err != nil {
 				t.Fatal(err)
 			}
