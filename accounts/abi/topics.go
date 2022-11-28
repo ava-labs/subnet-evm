@@ -88,7 +88,7 @@ func packTopic(rule interface{}) (common.Hash, error) {
 		// parameters that are not value types i.e. arrays and structs are not
 		// stored directly but instead a keccak256-hash of an encoding is stored.
 		//
-		// We only convert stringS and bytes to hash, still need to deal with
+		// We only convert strings and bytes to hash, still need to deal with
 		// array(both fixed-size and dynamic-size) and struct.
 
 		// Attempt to generate the topic from funky types
@@ -106,6 +106,7 @@ func packTopic(rule interface{}) (common.Hash, error) {
 
 // PackTopics attempts to pack the array of filters into an array of corresponding topics
 // according to the Solidity documentation.
+// Note: PackTopics does not support array(both fixed size and dynamic-size) and struct types.
 func PackTopics(filter []interface{}) ([]common.Hash, error) {
 	topics := make([]common.Hash, len(filter))
 	for i, rule := range filter {
