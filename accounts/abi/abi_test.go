@@ -1260,8 +1260,8 @@ func TestABI_PackEvent(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assert.DeepEqual(t, test.expectedTopics, topics)
-			assert.DeepEqual(t, test.expectedData, data)
+			assert.EqualValues(t, test.expectedTopics, topics)
+			assert.EqualValues(t, test.expectedData, data)
 		})
 	}
 }
