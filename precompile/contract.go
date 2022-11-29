@@ -5,7 +5,6 @@ package precompile
 
 import (
 	"fmt"
-
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
