@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // precompileKey is a helper type used to reference each of the
@@ -21,12 +22,33 @@ const (
 	contractNativeMinterKey
 	txAllowListKey
 	feeManagerKey
+	rewardManagerKey
 	// ADD YOUR PRECOMPILE HERE
 	// {yourPrecompile}Key
 )
 
+// TODO: Move this to the interface or PrecompileConfig struct
+func (k precompileKey) String() string {
+	switch k {
+	case contractDeployerAllowListKey:
+		return "contractDeployerAllowList"
+	case contractNativeMinterKey:
+		return "contractNativeMinter"
+	case txAllowListKey:
+		return "txAllowList"
+	case feeManagerKey:
+		return "feeManager"
+		// ADD YOUR PRECOMPILE HERE
+		/*
+			case {yourPrecompile}Key:
+				return "{yourPrecompile}"
+		*/
+	}
+	return "unknown"
+}
+
 // ADD YOUR PRECOMPILE HERE
-var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey /* {yourPrecompile}Key */}
+var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey, rewardManagerKey /* {yourPrecompile}Key */}
 
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig, representing
 // each of the possible stateful precompile types that can be activated
@@ -36,6 +58,7 @@ type PrecompileUpgrade struct {
 	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+	RewardManagerConfig             *precompile.RewardManagerConfig             `json:"rewardManagerConfig,omitempty"`             // Config for the reward manager precompile
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
@@ -50,6 +73,8 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 		return p.TxAllowListConfig, p.TxAllowListConfig != nil
 	case feeManagerKey:
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
+	case rewardManagerKey:
+		return p.RewardManagerConfig, p.RewardManagerConfig != nil
 	// ADD YOUR PRECOMPILE HERE
 	/*
 		case {yourPrecompile}Key:
@@ -207,6 +232,15 @@ func (c *ChainConfig) GetFeeConfigManagerConfig(blockTimestamp *big.Int) *precom
 	return nil
 }
 
+// GetRewardManagerConfig returns the latest forked RewardManagerConfig
+// specified by [c] or nil if it was never enabled.
+func (c *ChainConfig) GetRewardManagerConfig(blockTimestamp *big.Int) *precompile.RewardManagerConfig {
+	if val := c.getActivePrecompileConfig(blockTimestamp, rewardManagerKey, c.PrecompileUpgrades); val != nil {
+		return val.(*precompile.RewardManagerConfig)
+	}
+	return nil
+}
+
 /* ADD YOUR PRECOMPILE HERE
 func (c *ChainConfig) Get{YourPrecompile}Config(blockTimestamp *big.Int) *precompile.{YourPrecompile}Config {
 	if val := c.getActivePrecompileConfig(blockTimestamp, {yourPrecompile}Key, c.PrecompileUpgrades); val != nil {
@@ -229,6 +263,9 @@ func (c *ChainConfig) GetActivePrecompiles(blockTimestamp *big.Int) PrecompileUp
 	}
 	if config := c.GetFeeConfigManagerConfig(blockTimestamp); config != nil && !config.Disable {
 		pu.FeeManagerConfig = config
+	}
+	if config := c.GetRewardManagerConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.RewardManagerConfig = config
 	}
 	// ADD YOUR PRECOMPILE HERE
 	// if config := c.{YourPrecompile}Config(blockTimestamp); config != nil && !config.Disable {
@@ -320,6 +357,7 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
 			if config.IsDisabled() {
+				log.Info("Disabling precompile", "name", key)
 				statedb.Suicide(config.Address())
 				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
 				// This enables re-configuration of the same contract state in the same block.
@@ -327,6 +365,7 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
+				log.Info("Activating new precompile", "name", key, "config", config)
 				precompile.Configure(c, blockContext, config, statedb)
 			}
 		}

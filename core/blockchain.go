@@ -85,6 +85,9 @@ var (
 	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
 	badBlockCounter              = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
 
+	acceptedTxsCounter  = metrics.NewRegisteredCounter("chain/txs/accepted", nil)
+	processedTxsCounter = metrics.NewRegisteredCounter("chain/txs/processed", nil)
+
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
 	errFutureBlockUnsupported  = errors.New("future block insertion not supported")
@@ -782,6 +785,7 @@ func (bc *BlockChain) Stop() {
 	// Wait for accepted feed to process all remaining items
 	log.Info("Closing quit channel")
 	close(bc.quit)
+	// Wait for accepted feed to process all remaining items
 	log.Info("Stopping Acceptor")
 	start := time.Now()
 	bc.stopAcceptor()
@@ -910,7 +914,7 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	bc.lastAccepted = block
 	bc.addAcceptorQueue(block)
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
-
+	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
 	return nil
 }
 
@@ -1118,6 +1122,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	if err == nil {
 		err = bc.validator.ValidateBody(block)
 	}
+
 	switch {
 	case errors.Is(err, ErrKnownBlock):
 		// even if the block is already known, we still need to generate the
@@ -1194,15 +1199,12 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// Update the metrics touched during block processing
 	accountReadTimer.Inc(statedb.AccountReads.Milliseconds())                 // Account reads are complete, we can mark them
 	storageReadTimer.Inc(statedb.StorageReads.Milliseconds())                 // Storage reads are complete, we can mark them
-	accountUpdateTimer.Inc(statedb.AccountUpdates.Milliseconds())             // Account updates are complete, we can mark them
-	storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds())             // Storage updates are complete, we can mark them
 	snapshotAccountReadTimer.Inc(statedb.SnapshotAccountReads.Milliseconds()) // Account reads are complete, we can mark them
 	snapshotStorageReadTimer.Inc(statedb.SnapshotStorageReads.Milliseconds()) // Storage reads are complete, we can mark them
-	triehash := statedb.AccountHashes + statedb.StorageHashes                 // Save to not double count in validation
-	trieproc := statedb.SnapshotAccountReads + statedb.AccountReads + statedb.AccountUpdates
+	trieproc := statedb.AccountHashes + statedb.StorageHashes                 // Save to not double count in validation
+	trieproc += statedb.SnapshotAccountReads + statedb.AccountReads + statedb.AccountUpdates
 	trieproc += statedb.SnapshotStorageReads + statedb.StorageReads + statedb.StorageUpdates
-	blockExecutionTimer.Inc((time.Since(substart) - trieproc - triehash).Milliseconds())
-	blockTrieOpsTimer.Inc((trieproc + triehash).Milliseconds())
+	blockExecutionTimer.Inc((time.Since(substart) - trieproc).Milliseconds())
 
 	// Validate the state using the default validator
 	substart = time.Now()
@@ -1212,9 +1214,13 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	}
 
 	// Update the metrics touched during block validation
-	accountHashTimer.Inc(statedb.AccountHashes.Milliseconds()) // Account hashes are complete, we can mark them
-	storageHashTimer.Inc(statedb.StorageHashes.Milliseconds()) // Storage hashes are complete, we can mark them
-	blockStateValidationTimer.Inc((time.Since(substart) - (statedb.AccountHashes + statedb.StorageHashes - triehash)).Milliseconds())
+	accountUpdateTimer.Inc(statedb.AccountUpdates.Milliseconds()) // Account updates are complete, we can mark them
+	storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds()) // Storage updates are complete, we can mark them
+	accountHashTimer.Inc(statedb.AccountHashes.Milliseconds())    // Account hashes are complete, we can mark them
+	storageHashTimer.Inc(statedb.StorageHashes.Milliseconds())    // Storage hashes are complete, we can mark them
+	additionalTrieProc := statedb.AccountHashes + statedb.StorageHashes + statedb.AccountUpdates + statedb.StorageUpdates - trieproc
+	blockStateValidationTimer.Inc((time.Since(substart) - additionalTrieProc).Milliseconds())
+	blockTrieOpsTimer.Inc((trieproc + additionalTrieProc).Milliseconds())
 
 	// If [writes] are disabled, skip [writeBlockWithState] so that we do not write the block
 	// or the state trie to disk.
@@ -1231,7 +1237,6 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	if err := bc.writeBlockAndSetHead(block, receipts, logs, statedb); err != nil {
 		return err
 	}
-
 	// Update the metrics touched during block commit
 	accountCommitTimer.Inc(statedb.AccountCommits.Milliseconds())   // Account commits are complete, we can mark them
 	storageCommitTimer.Inc(statedb.StorageCommits.Milliseconds())   // Storage commits are complete, we can mark them
@@ -1248,6 +1253,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	)
 
 	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
+	processedTxsCounter.Inc(int64(block.Transactions().Len()))
 	blockInsertCount.Inc(1)
 	return nil
 }
@@ -1892,11 +1898,11 @@ func (bc *BlockChain) gatherBlockRootsAboveLastAccepted() map[common.Hash]struct
 	return blockRoots
 }
 
-// ResetState reinitializes the state of the blockchain
+// ResetToStateSyncedBlock reinitializes the state of the blockchain
 // to the trie represented by [block.Root()] after updating
-// in-memory current block pointers to [block].
-// Only used in state sync.
-func (bc *BlockChain) ResetState(block *types.Block) error {
+// in-memory and on disk current block pointers to [block].
+// Only should be called after state sync has completed.
+func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
 
@@ -1907,6 +1913,10 @@ func (bc *BlockChain) ResetState(block *types.Block) error {
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
 	rawdb.WriteSnapshotBlockHash(batch, block.Hash())
 	rawdb.WriteSnapshotRoot(batch, block.Root())
+	if err := rawdb.WriteSyncPerformed(batch, block.NumberU64()); err != nil {
+		return err
+	}
+
 	if err := batch.Write(); err != nil {
 		return err
 	}

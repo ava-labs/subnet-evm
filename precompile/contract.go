@@ -37,6 +37,8 @@ type BlockContext interface {
 type ChainConfig interface {
 	// GetFeeConfig returns the original FeeConfig that was set in the genesis.
 	GetFeeConfig() commontype.FeeConfig
+	// AllowedFeeRecipients returns true if fee recipients are allowed in the genesis.
+	AllowedFeeRecipients() bool
 }
 
 // StateDB is the interface for accessing EVM state
@@ -55,6 +57,8 @@ type StateDB interface {
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
+
+	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
 
 	Suicide(common.Address) bool
 	Finalise(deleteEmptyObjects bool)

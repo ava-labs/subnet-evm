@@ -88,8 +88,8 @@ var (
 		},
 	}
 
-	TestChainConfig        = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{big.NewInt(0)}, PrecompileUpgrade{}, UpgradeConfig{}}
-	TestPreSubnetEVMConfig = &ChainConfig{big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{}, PrecompileUpgrade{}, UpgradeConfig{}}
+	TestChainConfig        = &ChainConfig{AvalancheContext{common.Hash{1}}, big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{big.NewInt(0)}, PrecompileUpgrade{}, UpgradeConfig{}}
+	TestPreSubnetEVMConfig = &ChainConfig{AvalancheContext{common.Hash{1}}, big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{}, PrecompileUpgrade{}, UpgradeConfig{}}
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -98,6 +98,8 @@ var (
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
 type ChainConfig struct {
+	AvalancheContext `json:"-"` // Avalanche specific context set during VM initialization. Not serialized.
+
 	ChainID            *big.Int             `json:"chainId"`                      // chainId identifies the current chain and is used for replay protection
 	FeeConfig          commontype.FeeConfig `json:"feeConfig"`                    // Set the configuration for the dynamic fee algorithm
 	AllowFeeRecipients bool                 `json:"allowFeeRecipients,omitempty"` // Allows fees to be collected by block builders.
@@ -133,6 +135,11 @@ type UpgradeConfig struct {
 
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
+}
+
+// AvalancheContext provides Avalanche specific context directly into the EVM.
+type AvalancheContext struct {
+	BlockchainID common.Hash
 }
 
 // String implements the fmt.Stringer interface.
@@ -250,6 +257,12 @@ func (c *ChainConfig) IsTxAllowList(blockTimestamp *big.Int) bool {
 // IsFeeConfigManager returns whether [blockTimestamp] is either equal to the FeeConfigManager fork block timestamp or greater.
 func (c *ChainConfig) IsFeeConfigManager(blockTimestamp *big.Int) bool {
 	config := c.GetFeeConfigManagerConfig(blockTimestamp)
+	return config != nil && !config.Disable
+}
+
+// IsRewardManager returns whether [blockTimestamp] is either equal to the RewardManager fork block timestamp or greater.
+func (c *ChainConfig) IsRewardManager(blockTimestamp *big.Int) bool {
+	config := c.GetRewardManagerConfig(blockTimestamp)
 	return config != nil && !config.Disable
 }
 
@@ -493,6 +506,7 @@ type Rules struct {
 	IsContractNativeMinterEnabled      bool
 	IsTxAllowListEnabled               bool
 	IsFeeConfigManagerEnabled          bool
+	IsRewardManagerEnabled             bool
 	// ADD YOUR PRECOMPILE HERE
 	// Is{YourPrecompile}Enabled         bool
 
@@ -532,6 +546,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsContractNativeMinterEnabled = c.IsContractNativeMinter(blockTimestamp)
 	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
 	rules.IsFeeConfigManagerEnabled = c.IsFeeConfigManager(blockTimestamp)
+	rules.IsRewardManagerEnabled = c.IsRewardManager(blockTimestamp)
 	// ADD YOUR PRECOMPILE HERE
 	// rules.Is{YourPrecompile}Enabled = c.{IsYourPrecompile}(blockTimestamp)
 
@@ -547,7 +562,14 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	return rules
 }
 
-// GetFeeConfig returns the FeeConfig
+// GetFeeConfig returns the original FeeConfig contained in the genesis ChainConfig.
+// Implements precompile.ChainConfig interface.
 func (c *ChainConfig) GetFeeConfig() commontype.FeeConfig {
 	return c.FeeConfig
+}
+
+// AllowedFeeRecipients returns the original AllowedFeeRecipients parameter contained in the genesis ChainConfig.
+// Implements precompile.ChainConfig interface.
+func (c *ChainConfig) AllowedFeeRecipients() bool {
+	return c.AllowFeeRecipients
 }
