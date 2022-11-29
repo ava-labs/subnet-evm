@@ -28,7 +28,6 @@ package vm
 
 import (
 	"fmt"
-
 	"math/big"
 	"sync/atomic"
 	"time"
