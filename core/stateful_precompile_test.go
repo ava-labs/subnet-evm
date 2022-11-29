@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/core/vm"
+
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -60,7 +62,7 @@ func (m *mockAccessibleState) GetBlockContext() precompile.BlockContext { return
 
 func (m *mockAccessibleState) GetSnowContext() *snow.Context { return m.snowContext }
 
-func (m *mockAccessibleState) Call(caller precompile.ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (m *mockAccessibleState) Call(caller vm.ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	return nil, 0, nil
 }
 

@@ -29,10 +29,14 @@ package vm
 import (
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
+
+// ContractRef is a reference to the contract's backing object
+type ContractRef interface {
+	Address() common.Address
+}
 
 // AccountRef implements ContractRef.
 //
@@ -53,8 +57,8 @@ type Contract struct {
 	// contract. However when the "call method" is delegated this value
 	// needs to be initialised to that of the caller's caller.
 	CallerAddress common.Address
-	caller        precompile.ContractRef
-	self          precompile.ContractRef
+	caller        ContractRef
+	self          ContractRef
 
 	jumpdests map[common.Hash]bitvec // Aggregated result of JUMPDEST analysis.
 	analysis  bitvec                 // Locally cached result of JUMPDEST analysis
@@ -69,7 +73,7 @@ type Contract struct {
 }
 
 // NewContract returns a new contract environment for the execution of EVM.
-func NewContract(caller precompile.ContractRef, object precompile.ContractRef, value *big.Int, gas uint64) *Contract {
+func NewContract(caller ContractRef, object ContractRef, value *big.Int, gas uint64) *Contract {
 	c := &Contract{CallerAddress: caller.Address(), caller: caller, self: object}
 
 	if parent, ok := caller.(*Contract); ok {
