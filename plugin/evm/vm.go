@@ -286,6 +286,7 @@ func (vm *VM) Initialize(
 	// Set the Avalanche Context on the ChainConfig
 	g.Config.AvalancheContext = params.AvalancheContext{
 		BlockchainID: common.Hash(chainCtx.ChainID),
+		SnowCtx:      chainCtx,
 	}
 	vm.syntacticBlockValidator = NewBlockValidator()
 
@@ -417,7 +418,6 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		return err
 	}
 	vm.eth, err = eth.New(
-		vm.ctx,
 		node,
 		&vm.ethConfig,
 		vm.chaindb,

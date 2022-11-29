@@ -35,7 +35,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/subnet-evm/accounts"
 	"github.com/ava-labs/subnet-evm/consensus"
@@ -117,7 +116,6 @@ func roundUpCacheSize(input int, allocSize int) int {
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
 func New(
-	ctx *snow.Context,
 	stack *node.Node,
 	config *Config,
 	chainDb ethdb.Database,
@@ -145,7 +143,6 @@ func New(
 	if genesisErr != nil {
 		return nil, genesisErr
 	}
-	chainConfig.SnowCtx = ctx
 
 	log.Info("")
 	log.Info(strings.Repeat("-", 153))

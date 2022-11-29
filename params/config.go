@@ -90,7 +90,7 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{common.Hash{1}},
+		AvalancheContext:    AvalancheContext{common.Hash{1}, snow.DefaultContextTest()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -107,11 +107,10 @@ var (
 		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
 		PrecompileUpgrade:   PrecompileUpgrade{},
 		UpgradeConfig:       UpgradeConfig{},
-		SnowCtx:             snow.DefaultContextTest(),
 	}
 
 	TestPreSubnetEVMConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{common.Hash{1}},
+		AvalancheContext:    AvalancheContext{common.Hash{1}, snow.DefaultContextTest()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -128,7 +127,6 @@ var (
 		NetworkUpgrades:     NetworkUpgrades{},
 		PrecompileUpgrade:   PrecompileUpgrade{},
 		UpgradeConfig:       UpgradeConfig{},
-		SnowCtx:             snow.DefaultContextTest(),
 	}
 )
 
@@ -162,8 +160,6 @@ type ChainConfig struct {
 	NetworkUpgrades              // Config for timestamps that enable avalanche network upgrades
 	PrecompileUpgrade            // Config for enabling precompiles from genesis
 	UpgradeConfig     `json:"-"` // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
-
-	SnowCtx *snow.Context
 }
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -182,6 +178,7 @@ type UpgradeConfig struct {
 // AvalancheContext provides Avalanche specific context directly into the EVM.
 type AvalancheContext struct {
 	BlockchainID common.Hash
+	SnowCtx      *snow.Context
 }
 
 // String implements the fmt.Stringer interface.
