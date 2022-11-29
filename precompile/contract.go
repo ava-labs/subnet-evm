@@ -19,14 +19,6 @@ const (
 	selectorLen = 4
 )
 
-type GetAddress struct {
-	address common.Address
-}
-
-func (ga GetAddress) Address() common.Address {
-	return ga.address
-}
-
 type RunStatefulPrecompileFunc func(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 
 // PrecompileAccessibleState defines the interface exposed to stateful precompile contracts
