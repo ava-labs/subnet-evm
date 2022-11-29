@@ -27,9 +27,9 @@
 package vm
 
 import (
-	"github.com/ava-labs/subnet-evm/precompile"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )

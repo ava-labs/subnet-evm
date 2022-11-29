@@ -4,10 +4,10 @@
 package core
 
 import (
-	"github.com/ava-labs/avalanchego/snow"
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"

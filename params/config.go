@@ -30,9 +30,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ava-labs/avalanchego/snow"
+
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/utils"

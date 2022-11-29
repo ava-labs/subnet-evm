@@ -5,9 +5,10 @@ package precompile
 
 import (
 	"fmt"
-	"github.com/ava-labs/avalanchego/snow"
+
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )

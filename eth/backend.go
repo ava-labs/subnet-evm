@@ -30,11 +30,12 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/ava-labs/avalanchego/snow"
+
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/subnet-evm/accounts"
 	"github.com/ava-labs/subnet-evm/consensus"

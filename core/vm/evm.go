@@ -28,11 +28,12 @@ package vm
 
 import (
 	"fmt"
-	"github.com/ava-labs/avalanchego/snow"
+
 	"math/big"
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
