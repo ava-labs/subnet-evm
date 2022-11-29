@@ -9,7 +9,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -24,7 +23,6 @@ type PrecompileAccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
 	GetSnowContext() *snow.Context
-	Call(caller vm.ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error)
 }
 
 // BlockContext defines an interface that provides information to a stateful precompile

@@ -12,7 +12,6 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -60,10 +59,6 @@ func (m *mockAccessibleState) GetStateDB() precompile.StateDB { return m.state }
 func (m *mockAccessibleState) GetBlockContext() precompile.BlockContext { return m.blockContext }
 
 func (m *mockAccessibleState) GetSnowContext() *snow.Context { return m.snowContext }
-
-func (m *mockAccessibleState) Call(caller vm.ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	return nil, 0, nil
-}
 
 // This test is added within the core package so that it can import all of the required code
 // without creating any import cycles
