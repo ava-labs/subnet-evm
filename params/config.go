@@ -90,7 +90,7 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{common.Hash{1}, snow.DefaultContextTest()},
+		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -110,7 +110,7 @@ var (
 	}
 
 	TestPreSubnetEVMConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{common.Hash{1}, snow.DefaultContextTest()},
+		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -177,8 +177,7 @@ type UpgradeConfig struct {
 
 // AvalancheContext provides Avalanche specific context directly into the EVM.
 type AvalancheContext struct {
-	BlockchainID common.Hash
-	SnowCtx      *snow.Context
+	SnowCtx *snow.Context
 }
 
 // String implements the fmt.Stringer interface.

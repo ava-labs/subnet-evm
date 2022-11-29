@@ -142,7 +142,6 @@ func New(
 	if genesisErr != nil {
 		return nil, genesisErr
 	}
-
 	log.Info("")
 	log.Info(strings.Repeat("-", 153))
 	for _, line := range strings.Split(chainConfig.String(), "\n") {
