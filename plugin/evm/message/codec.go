@@ -16,6 +16,7 @@ const (
 )
 
 var Codec codec.Manager
+var CrossChainCodec codec.Manager
 
 func init() {
 	Codec = codec.NewManager(maxMessageSize)
@@ -38,6 +39,24 @@ func init() {
 		c.RegisterType(CodeResponse{}),
 
 		Codec.RegisterCodec(Version, c),
+	)
+
+	if errs.Errored() {
+		panic(errs.Err)
+	}
+}
+
+func init() {
+	CrossChainCodec = codec.NewManager(maxMessageSize)
+	ccc := linearcodec.NewDefault()
+
+	errs := wrappers.Errs{}
+	errs.Add(
+		// CrossChainRequest Types
+		ccc.RegisterType(EthCallRequest{}),
+		ccc.RegisterType(EthCallResponse{}),
+
+		CrossChainCodec.RegisterCodec(Version, ccc),
 	)
 
 	if errs.Errored() {
