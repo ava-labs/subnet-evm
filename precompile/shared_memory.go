@@ -27,12 +27,16 @@ package precompile
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 
+	"github.com/ava-labs/avalanchego/chains/atomic"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/components/verify"
-	"github.com/ava-labs/gecko/ids"
+	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
@@ -175,9 +179,44 @@ func (c *SharedMemoryConfig) Predicate() PredicateFunc {
 
 // OnAccept optionally returns a function to perform on any log with the precompile address.
 // If enabled, this will be called after the block is accepted to perform post-accept computation.
-func (c *SharedMemoryConfig) OnAccept() OnAcceptFunc {
-	// TODO
-	return nil
+func (c *SharedMemoryConfig) OnAccept() OnAcceptFunc { // TODO update to return atomic operations, database batch to be applied atomically, and an error
+	return func(txIndex int, logData []byte) error {
+		event, err := SharedMemoryABI.EventByID(common.Hash{}) // TODO pass in topics from the log
+		if err != nil {
+			return fmt.Errorf("shared memory accept: %w", err)
+		}
+
+		// TODO: cleaner way to implement this
+		switch {
+		case event.Name == "ExportAVAX":
+			utxo := &avax.UTXO{
+				UTXOID: avax.UTXOID{
+					TxID:        ids.ID{}, // TODO derive a unique txID
+					OutputIndex: uint32(0),
+				},
+				Asset: avax.Asset{ID: ids.ID{}},      // TODO fill in AVAX
+				Out:   &secp256k1fx.TransferOutput{}, // TODO fill in details
+			}
+
+			// utxoBytes, err := Codec.Marshal(codecVersion, utxo)
+			// if err != nil {
+			// 	return ids.ID{}, nil, err
+			// }
+			utxoID := utxo.InputID()
+			elem := &atomic.Element{
+				Key:   utxoID[:],
+				Value: nil, // TODO marshal the UTXO
+			}
+			if out, ok := utxo.Out.(avax.Addressable); ok {
+				elem.Traits = out.Addresses()
+			}
+
+			// TODO: do something with the return value
+		default:
+			return fmt.Errorf("shared memory accept unexpected log: %q", event.Name)
+		}
+		return nil
+	}
 }
 
 // UnpackExportAVAXInput attempts to unpack [input] into the arguments for the ExportAVAXInput{}
