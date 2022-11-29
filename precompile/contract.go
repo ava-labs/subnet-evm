@@ -6,12 +6,11 @@ package precompile
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/core/vm"
-
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ethereum/go-ethereum/common"
 )
 

@@ -30,7 +30,6 @@ package eth
 import (
 	"errors"
 	"fmt"
-
 	"strings"
 	"sync"
 	"time"
