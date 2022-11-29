@@ -90,7 +90,7 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
-		AvalancheContext: AvalancheContext{common.Hash{1}},
+		AvalancheContext:    AvalancheContext{common.Hash{1}},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -111,6 +111,7 @@ var (
 	}
 
 	TestPreSubnetEVMConfig = &ChainConfig{
+		AvalancheContext:    AvalancheContext{common.Hash{1}},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
