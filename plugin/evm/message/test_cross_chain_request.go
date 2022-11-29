@@ -7,7 +7,7 @@ import (
 )
 
 
-func SendEthCallCrossChainRequest(networkClient peer.NetworkClient) error {
+func SendEthCallCrossChainRequest(networkClient peer.NetworkClient, chainID id.ID) error {
 	// TO BE FILLED
 	ethCallArgs := &ethapi.TransactionArgs{
 		To: 
@@ -20,10 +20,6 @@ func SendEthCallCrossChainRequest(networkClient peer.NetworkClient) error {
 	}
 
 	ethCallRequest := CrossChainCodec.Marshal(Version, EthCallRequest{RequestArgs: ethCallBytes})
-
-
-	// TO BE FILLED
-	chainID := 
 
 	response, err := networkClient.CrossChainRequest(chainID, ethCethCallRequest)
 	if err != nil {
