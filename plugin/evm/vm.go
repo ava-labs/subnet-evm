@@ -417,6 +417,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		return err
 	}
 	vm.eth, err = eth.New(
+		vm.ctx,
 		node,
 		&vm.ethConfig,
 		vm.chaindb,

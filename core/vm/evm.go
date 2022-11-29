@@ -28,6 +28,7 @@ package vm
 
 import (
 	"fmt"
+	"github.com/ava-labs/avalanchego/snow"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -198,6 +199,11 @@ func (evm *EVM) Cancel() {
 // Cancelled returns true if Cancel has been called
 func (evm *EVM) Cancelled() bool {
 	return atomic.LoadInt32(&evm.abort) == 1
+}
+
+// GetSnowContext returns the evm's snow.Context.
+func (evm *EVM) GetSnowContext() *snow.Context {
+	return evm.chainConfig.SnowCtx
 }
 
 // GetStateDB returns the evm's StateDB

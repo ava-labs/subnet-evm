@@ -4,6 +4,7 @@
 package core
 
 import (
+	"github.com/ava-labs/avalanchego/snow"
 	"math/big"
 	"testing"
 
@@ -55,6 +56,8 @@ type mockAccessibleState struct {
 func (m *mockAccessibleState) GetStateDB() precompile.StateDB { return m.state }
 
 func (m *mockAccessibleState) GetBlockContext() precompile.BlockContext { return m.blockContext }
+
+func (m *mockAccessibleState) GetSnowContext() *snow.Context { return snow.DefaultContextTest() }
 
 // This test is added within the core package so that it can import all of the required code
 // without creating any import cycles

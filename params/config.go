@@ -30,6 +30,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ava-labs/avalanchego/snow"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -88,8 +89,46 @@ var (
 		},
 	}
 
-	TestChainConfig        = &ChainConfig{AvalancheContext{common.Hash{1}}, big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{big.NewInt(0)}, PrecompileUpgrade{}, UpgradeConfig{}}
-	TestPreSubnetEVMConfig = &ChainConfig{AvalancheContext{common.Hash{1}}, big.NewInt(1), DefaultFeeConfig, false, big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), NetworkUpgrades{}, PrecompileUpgrade{}, UpgradeConfig{}}
+	TestChainConfig = &ChainConfig{
+		AvalancheContext: AvalancheContext{common.Hash{1}},
+		ChainID:             big.NewInt(1),
+		FeeConfig:           DefaultFeeConfig,
+		AllowFeeRecipients:  false,
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.Hash{},
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
+		PrecompileUpgrade:   PrecompileUpgrade{},
+		UpgradeConfig:       UpgradeConfig{},
+		SnowCtx:             snow.DefaultContextTest(),
+	}
+
+	TestPreSubnetEVMConfig = &ChainConfig{
+		ChainID:             big.NewInt(1),
+		FeeConfig:           DefaultFeeConfig,
+		AllowFeeRecipients:  false,
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.Hash{},
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		NetworkUpgrades:     NetworkUpgrades{},
+		PrecompileUpgrade:   PrecompileUpgrade{},
+		UpgradeConfig:       UpgradeConfig{},
+		SnowCtx:             snow.DefaultContextTest(),
+	}
 )
 
 // ChainConfig is the core config which determines the blockchain settings.
@@ -122,6 +161,8 @@ type ChainConfig struct {
 	NetworkUpgrades              // Config for timestamps that enable avalanche network upgrades
 	PrecompileUpgrade            // Config for enabling precompiles from genesis
 	UpgradeConfig     `json:"-"` // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+
+	SnowCtx *snow.Context
 }
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:

@@ -5,6 +5,7 @@ package precompile
 
 import (
 	"fmt"
+	"github.com/ava-labs/avalanchego/snow"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -21,6 +22,7 @@ type RunStatefulPrecompileFunc func(accessibleState PrecompileAccessibleState, c
 type PrecompileAccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
+	GetSnowContext() *snow.Context
 }
 
 // BlockContext defines an interface that provides information to a stateful precompile
