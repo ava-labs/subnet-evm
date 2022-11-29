@@ -73,6 +73,10 @@ func (t *mockNetwork) processMock(request []byte) ([]byte, error) {
 	return response, err
 }
 
+func (t *mockNetwork) CrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
+	panic("not implemented") // we don't care about this function for this test
+}
+
 func (t *mockNetwork) Gossip([]byte) error {
 	panic("not implemented") // we don't care about this function for this test
 }
