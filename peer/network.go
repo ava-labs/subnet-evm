@@ -50,6 +50,9 @@ type Network interface {
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
 
+	// CrossChainRequest sends a message to given chainID notifying handler when there's a response or timeout
+	CrossChainRequest(chainID ids.ID, message []byte, handler message.CrossChainResponseHandler) error
+
 	// Shutdown stops all peer channel listeners and marks the node to have stopped
 	// n.Start() can be called again but the peers will have to be reconnected
 	// by calling OnPeerConnected for each peer
@@ -60,6 +63,9 @@ type Network interface {
 
 	// SetRequestHandler sets the provided request handler as the request handler
 	SetRequestHandler(handler message.RequestHandler)
+
+	// SetCrossChainHandler sets the provided cross chain request handler as the cross chain request handler
+	SetCrossChainRequestHandler(handler message.CrossChainRequestHandler)
 
 	// Size returns the size of the network in number of connected peers
 	Size() uint32
@@ -72,30 +78,35 @@ type Network interface {
 // network is an implementation of Network that processes message requests for
 // each peer in linear fashion
 type network struct {
-	lock                       sync.RWMutex                       // lock for mutating state of this Network struct
-	self                       ids.NodeID                         // NodeID of this node
-	requestIDGen               uint32                             // requestID counter used to track outbound requests
-	outstandingRequestHandlers map[uint32]message.ResponseHandler // maps avalanchego requestID => message.ResponseHandler
-	activeRequests             *semaphore.Weighted                // controls maximum number of active outbound requests
-	appSender                  common.AppSender                   // avalanchego AppSender for sending messages
-	codec                      codec.Manager                      // Codec used for parsing messages
-	requestHandler             message.RequestHandler             // maps request type => handler
-	gossipHandler              message.GossipHandler              // maps gossip type => handler
-	peers                      *peerTracker                       // tracking of peers & bandwidth
-	stats                      stats.RequestHandlerStats          // Provide request handler metrics
+	lock                                 sync.RWMutex                                 // lock for mutating state of this Network struct
+	self                                 ids.NodeID                                   // NodeID of this node
+	requestIDGen                         uint32                                       // requestID counter used to track outbound requests
+	crossChainRequestIDGen               uint32                                       // crossChainRequestID counter used to track outbound Cross Chain Requests
+	outstandingRequestHandlers           map[uint32]message.ResponseHandler           // maps avalanchego requestID => message.ResponseHandler
+	outstandingCrossChainRequestHandlers map[uint32]message.CrossChainResponseHandler // maps avalanchego requestID => message.CrossChainResponseHandler
+	activeRequests                       *semaphore.Weighted                          // controls maximum number of active outbound requests
+	appSender                            common.AppSender                             // avalanchego AppSender for sending messages
+	codec                                codec.Manager                                // Codec used for parsing messages
+	requestHandler                       message.RequestHandler                       // maps request type => handler
+	crossChainRequestHandler             message.CrossChainRequestHandler             // maps cross chain request => handler
+	gossipHandler                        message.GossipHandler                        // maps gossip type => handler
+	peers                                *peerTracker                                 // tracking of peers & bandwidth
+	stats                                stats.RequestHandlerStats                    // Provide request handler metrics
 }
 
 func NewNetwork(appSender common.AppSender, codec codec.Manager, self ids.NodeID, maxActiveRequests int64) Network {
 	return &network{
-		appSender:                  appSender,
-		codec:                      codec,
-		self:                       self,
-		outstandingRequestHandlers: make(map[uint32]message.ResponseHandler),
-		activeRequests:             semaphore.NewWeighted(maxActiveRequests),
-		gossipHandler:              message.NoopMempoolGossipHandler{},
-		requestHandler:             message.NoopRequestHandler{},
-		peers:                      NewPeerTracker(),
-		stats:                      stats.NewRequestHandlerStats(),
+		appSender:                            appSender,
+		codec:                                codec,
+		self:                                 self,
+		outstandingRequestHandlers:           make(map[uint32]message.ResponseHandler),
+		outstandingCrossChainRequestHandlers: make(map[uint32]message.CrossChainResponseHandler),
+		activeRequests:                       semaphore.NewWeighted(maxActiveRequests),
+		gossipHandler:                        message.NoopMempoolGossipHandler{},
+		requestHandler:                       message.NoopRequestHandler{},
+		crossChainRequestHandler:             message.NoopCrossChainRequestHandler{},
+		peers:                                NewPeerTracker(),
+		stats:                                stats.NewRequestHandlerStats(),
 	}
 }
 
@@ -274,6 +285,42 @@ func (n *network) AppRequestFailed(_ context.Context, nodeID ids.NodeID, request
 	return handler.OnFailure(nodeID, requestID)
 }
 
+// CrossChainRequest sends request message bytes to specified chainID and adds [handler] to [outstandingCrossChainRequestHandlers]
+// so that it can be invoked when the network receives either a response or failure message.
+// Returns an error if [appSender] is unable to make the request.
+func (n *network) CrossChainRequest(chainID ids.ID, request []byte, handler message.CrossChainResponseHandler) error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	// generate crossChainRequestID
+	crossChainRequestID := n.crossChainRequestIDGen
+	n.crossChainRequestIDGen++
+
+	n.outstandingCrossChainRequestHandlers[crossChainRequestID] = handler
+
+	if err := n.appSender.SendCrossChainAppRequest(context.TODO(), chainID, crossChainRequestID, request); err != nil {
+		delete(n.outstandingCrossChainRequestHandlers, crossChainRequestID)
+		return err
+	}
+	log.Debug("sent request message to chain", "chainID", chainID, "crossChainRequestID", crossChainRequestID)
+	return nil
+}
+
+// CrossChainAppRequest is a no-op.
+func (n *network) CrossChainAppRequest(_ context.Context, chainID ids.ID, requestID uint32, deadline time.Time, request []byte) error {
+	return nil
+}
+
+// CrossChainAppRequestFailed is a no-op.
+func (n *network) CrossChainAppRequestFailed(_ context.Context, chainID ids.ID, requestID uint32) error {
+	return nil
+}
+
+// CrossChainAppResponse is a no-op.
+func (n *network) CrossChainAppResponse(_ context.Context, chainID ids.ID, requestID uint32, response []byte) error {
+	return nil
+}
+
 // getRequestHandler fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
 // This is called by either [AppResponse] or [AppRequestFailed].
 // assumes that the write lock is held.
@@ -354,6 +401,13 @@ func (n *network) SetRequestHandler(handler message.RequestHandler) {
 	defer n.lock.Unlock()
 
 	n.requestHandler = handler
+}
+
+func (n *network) SetCrossChainRequestHandler(handler message.CrossChainRequestHandler) {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	n.crossChainRequestHandler = handler
 }
 
 func (n *network) Size() uint32 {

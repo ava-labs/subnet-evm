@@ -29,6 +29,10 @@ type NetworkClient interface {
 	// Returns response bytes, and ErrRequestFailed if the request should be retried.
 	Request(nodeID ids.NodeID, request []byte) ([]byte, error)
 
+	// CrossChainRequest sends a request to a specific blockchain running on this node.
+	// Returns response bytes or ErrRequestFailed if the request failed.
+	CrossChainRequest(chainID ids.ID, request []byte) ([]byte, error)
+
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
 
@@ -77,6 +81,18 @@ func (c *client) Request(nodeID ids.NodeID, request []byte) ([]byte, error) {
 	}
 	response := <-waitingHandler.responseChan
 	if waitingHandler.failed {
+		return nil, ErrRequestFailed
+	}
+	return response, nil
+}
+
+func (c *client) CrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
+	waitingCrossChainHandler := newWaitingCrossChainResponseHandler()
+	if err := c.network.CrossChainRequest(chainID, request, waitingCrossChainHandler); err != nil {
+		return nil, err
+	}
+	response := <-waitingCrossChainHandler.responseChan
+	if waitingCrossChainHandler.failed {
 		return nil, ErrRequestFailed
 	}
 	return response, nil

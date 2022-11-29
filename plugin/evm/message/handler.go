@@ -61,3 +61,19 @@ func (NoopRequestHandler) HandleBlockRequest(ctx context.Context, nodeID ids.Nod
 func (NoopRequestHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error) {
 	return nil, nil
 }
+
+// CrossChainRequestHandler interface handles incoming requests from another chain
+type CrossChainRequestHandler interface {
+	//  To be implemented
+}
+
+// CrossChainResponseHandler handles responses for a sent request to a chain
+// Only one of OnResponse or OnFailure is called for a given requestID, not both
+type CrossChainResponseHandler interface {
+	// OnResponse is invoked when the chain responded to a request
+	OnResponse(respondingChainID ids.ID, requestID uint32, response []byte) error
+	// OnFailure is invoked when there was a failure in processing a request
+	OnFailure(respondingChainID ids.ID, requestID uint32) error
+}
+
+type NoopCrossChainRequestHandler struct{}
