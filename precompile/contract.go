@@ -16,6 +16,11 @@ const (
 	selectorLen = 4
 )
 
+// ContractRef is a reference to the contract's backing object
+type ContractRef interface {
+	Address() common.Address
+}
+
 type RunStatefulPrecompileFunc func(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 
 // PrecompileAccessibleState defines the interface exposed to stateful precompile contracts
@@ -23,6 +28,7 @@ type PrecompileAccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
 	GetSnowContext() *snow.Context
+	Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error)
 }
 
 // BlockContext defines an interface that provides information to a stateful precompile

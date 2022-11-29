@@ -59,6 +59,10 @@ func (m *mockAccessibleState) GetBlockContext() precompile.BlockContext { return
 
 func (m *mockAccessibleState) GetSnowContext() *snow.Context { return snow.DefaultContextTest() }
 
+func (m *mockAccessibleState) Call(caller precompile.ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	return nil, 0, nil
+}
+
 // This test is added within the core package so that it can import all of the required code
 // without creating any import cycles
 func TestContractDeployerAllowListRun(t *testing.T) {
