@@ -292,7 +292,7 @@ func bindHelper(types []string, abis []string, bytecodes []string, fsigs []map[s
 		templateSource string
 	)
 
-	// Generate the contract template data according to  hook
+	// Generate the contract template data according to hook
 	if bindHook != nil {
 		var err error
 		data, templateSource, err = bindHook(lang, types, contracts, structs)
