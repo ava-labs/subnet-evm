@@ -51,6 +51,8 @@ const (
 	readAllowListFuncKey = "readAllowList"
 )
 
+type BindHook func(lang Lang, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (data interface{}, templateSource string, err error)
+
 // Lang is a target programming language selector to generate bindings for.
 type Lang int
 
@@ -101,7 +103,11 @@ func isKeyWord(arg string) bool {
 // to be used as is in client code, but rather as an intermediate struct which
 // enforces compile time type safety and naming convention opposed to having to
 // manually maintain hard coded strings that break on runtime.
-func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, isPrecompile bool) (string, error) {
+func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string) (string, error) {
+	return BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, nil)
+}
+
+func BindHelper(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, bindHook BindHook) (string, error) {
 	var (
 		// contracts is the map of each individual contract requested binding
 		contracts = make(map[string]*tmplContract)
@@ -177,11 +183,6 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 			normalized.Outputs = make([]abi.Argument, len(original.Outputs))
 			copy(normalized.Outputs, original.Outputs)
 			for j, output := range normalized.Outputs {
-				if isPrecompile {
-					if output.Name == "" {
-						return "", fmt.Errorf("ABI outputs for %s require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs", normalized.Name)
-					}
-				}
 				if output.Name != "" {
 					normalized.Outputs[j].Name = capitalise(output.Name)
 				}
@@ -290,19 +291,14 @@ func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]
 		templateSource string
 	)
 
-	// Generate the contract template data according to contract type (precompile/non)
-	if isPrecompile {
-		if lang != LangGo {
-			return "", errors.New("only GoLang binding for precompiled contracts is supported yet")
+	// Generate the contract template data according to  hook
+	if bindHook != nil {
+		var err error
+		data, templateSource, err = bindHook(lang, types, contracts, structs)
+		if err != nil {
+			return "", err
 		}
-
-		if len(contracts) != 1 {
-			return "", errors.New("cannot generate more than 1 contract")
-		}
-		precompileType := types[0]
-		firstContract := contracts[precompileType]
-		data, templateSource = createPrecompileDataAndTemplate(firstContract, structs)
-	} else {
+	} else { // default to generate contract binding
 		templateSource = tmplSource[lang]
 		data = &tmplData{
 			Package:   pkg,
@@ -708,46 +704,4 @@ func hasStruct(t abi.Type) bool {
 	default:
 		return false
 	}
-}
-
-func createPrecompileDataAndTemplate(contract *tmplContract, structs map[string]*tmplStruct) (interface{}, string) {
-	funcs := make(map[string]*tmplMethod)
-
-	for k, v := range contract.Transacts {
-		funcs[k] = v
-	}
-
-	for k, v := range contract.Calls {
-		funcs[k] = v
-	}
-	isAllowList := allowListEnabled(funcs)
-	if isAllowList {
-		// remove these functions as we will directly inherit AllowList
-		delete(funcs, readAllowListFuncKey)
-		delete(funcs, setAdminFuncKey)
-		delete(funcs, setEnabledFuncKey)
-		delete(funcs, setNoneFuncKey)
-	}
-
-	precompileContract := &tmplPrecompileContract{
-		tmplContract: contract,
-		AllowList:    isAllowList,
-		Funcs:        funcs,
-	}
-
-	data := &tmplPrecompileData{
-		Contract: precompileContract,
-		Structs:  structs,
-	}
-	return data, tmplSourcePrecompileGo
-}
-
-func allowListEnabled(funcs map[string]*tmplMethod) bool {
-	keys := []string{readAllowListFuncKey, setAdminFuncKey, setEnabledFuncKey, setNoneFuncKey}
-	for _, key := range keys {
-		if _, ok := funcs[key]; !ok {
-			return false
-		}
-	}
-	return true
 }

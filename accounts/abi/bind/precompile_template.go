@@ -11,8 +11,9 @@ type tmplPrecompileData struct {
 // tmplPrecompileContract contains the data needed to generate an individual contract binding.
 type tmplPrecompileContract struct {
 	*tmplContract
-	AllowList bool                   // Indicator whether the contract uses AllowList precompile
-	Funcs     map[string]*tmplMethod // Contract functions that include both Calls + Transacts in tmplContract
+	AllowList   bool                   // Indicator whether the contract uses AllowList precompile
+	Funcs       map[string]*tmplMethod // Contract functions that include both Calls + Transacts in tmplContract
+	ABIFilename string                 // Path to the ABI file
 }
 
 // tmplSourcePrecompileGo is the Go precompiled source template.
@@ -53,6 +54,8 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
+	_ "embed"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -63,9 +66,6 @@ const (
 	{{- if .Contract.Fallback}}
 	{{.Contract.Type}}FallbackGasCost uint64 = 0 // SET A GAS COST LESS THAN 2300 HERE
   {{- end}}
-
-	// {{.Contract.Type}}RawABI contains the raw ABI of {{.Contract.Type}} contract.
-	{{.Contract.Type}}RawABI = "{{.Contract.InputABI}}"
 )
 
 // CUSTOM CODE STARTS HERE
@@ -94,6 +94,13 @@ var (
 	Err{{.Contract.Type}}CannotFallback = errors.New("non-enabled cannot call fallback function")
 	{{- end}}
 
+	// {{.Contract.Type}}RawABI contains the raw ABI of {{.Contract.Type}} contract.
+	{{- if .Contract.ABIFilename | eq ""}}
+	{{.Contract.Type}}RawABI = "{{.Contract.InputABI}}"
+	{{- else}}
+	//go:embed {{.Contract.ABIFilename}}
+	{{.Contract.Type}}RawABI string
+	{{- end}}
 	{{.Contract.Type}}ABI abi.ABI // will be initialized by init function
 
 	{{.Contract.Type}}Precompile StatefulPrecompiledContract // will be initialized by init function
