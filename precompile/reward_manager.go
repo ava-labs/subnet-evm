@@ -17,6 +17,8 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
+	_ "embed"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -26,9 +28,6 @@ const (
 	CurrentRewardAddressGasCost    uint64 = readGasCostPerSlot
 	DisableRewardsGasCost          uint64 = (writeGasCostPerSlot) + ReadAllowListGasCost // write 1 slot + read allow list
 	SetRewardAddressGasCost        uint64 = (writeGasCostPerSlot) + ReadAllowListGasCost // write 1 slot + read allow list
-
-	// RewardManagerRawABI contains the raw ABI of RewardManager contract.
-	RewardManagerRawABI = "[{\"inputs\":[],\"name\":\"allowFeeRecipients\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"areFeeRecipientsAllowed\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isAllowed\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"currentRewardAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"rewardAddress\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"disableRewards\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"readAllowList\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"role\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setEnabled\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setNone\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"setRewardAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -43,6 +42,10 @@ var (
 
 	ErrCannotEnableBothRewards = errors.New("cannot enable both fee recipients and reward address at the same time")
 	ErrEmptyRewardAddress      = errors.New("reward address cannot be empty")
+
+	// RewardManagerRawABI contains the raw ABI of RewardManager contract.
+	//go:embed reward_manager.abi
+	RewardManagerRawABI string
 
 	RewardManagerABI        abi.ABI                     // will be initialized by init function
 	RewardManagerPrecompile StatefulPrecompiledContract // will be initialized by init function

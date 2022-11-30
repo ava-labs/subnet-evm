@@ -124,21 +124,35 @@ func precompilegen(c *cli.Context) error {
 		kind = strings.TrimSpace(kind)
 	}
 	types = append(types, kind)
-
+	outFlagSet := c.IsSet(outFlag.Name)
+	outFlag := c.String(outFlag.Name)
+	abifilename := ""
+	abipath := ""
+	// we should not generate the abi file if output is set to stdout
+	if outFlagSet {
+		// get file name from the output path
+		pathNoExt := strings.TrimSuffix(outFlag, filepath.Ext(outFlag))
+		abipath = pathNoExt + ".abi"
+		abifilename = filepath.Base(abipath)
+	}
 	// Generate the contract precompile
-	code, err := bind.Bind(types, abis, bins, sigs, pkg, lang, libs, aliases, true)
+	code, err := bind.PrecompileBind(types, abis, bins, sigs, pkg, lang, libs, aliases, abifilename)
 	if err != nil {
 		utils.Fatalf("Failed to generate ABI precompile: %v", err)
 	}
 
 	// Either flush it out to a file or display on the standard output
-	if !c.IsSet(outFlag.Name) {
+	if !outFlagSet {
 		fmt.Printf("%s\n", code)
 		return nil
 	}
 
-	if err := os.WriteFile(c.String(outFlag.Name), []byte(code), 0o600); err != nil {
-		utils.Fatalf("Failed to write ABI precompile: %v", err)
+	if err := os.WriteFile(outFlag, []byte(code), 0o600); err != nil {
+		utils.Fatalf("Failed to write generated precompile: %v", err)
+	}
+
+	if err := os.WriteFile(abipath, []byte(abis[0]), 0o600); err != nil {
+		utils.Fatalf("Failed to write ABI: %v", err)
 	}
 
 	fmt.Println("Precompile Generation was a success!")
