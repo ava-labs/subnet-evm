@@ -64,7 +64,7 @@ var bindFailedTests = []struct {
 				{"type":"function","name":"anonOutputs","constant":true,"inputs":[],"outputs":[{"name":"","type":"string"},{"name":"","type":"string"}]}
 			]
 		`},
-		"ABI outputs for anonOutput require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
+		"ABI outputs for anonOutputs require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
 		nil,
 		nil,
 		nil,
