@@ -86,7 +86,7 @@ func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []m
 		return data, tmplSourcePrecompileGo, nil
 	}
 
-	return BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, createPrecompileFunc)
+	return bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, createPrecompileFunc)
 }
 
 func allowListEnabled(funcs map[string]*tmplMethod) bool {
