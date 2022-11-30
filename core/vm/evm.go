@@ -32,6 +32,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
@@ -200,6 +201,11 @@ func (evm *EVM) Cancelled() bool {
 	return atomic.LoadInt32(&evm.abort) == 1
 }
 
+// GetSnowContext returns the evm's snow.Context.
+func (evm *EVM) GetSnowContext() *snow.Context {
+	return evm.chainConfig.SnowCtx
+}
+
 // GetStateDB returns the evm's StateDB
 func (evm *EVM) GetStateDB() precompile.StateDB {
 	return evm.StateDB
@@ -323,7 +329,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, gas, vmerrs.ErrInsufficientBalance
 	}
-	snapshot := evm.StateDB.Snapshot()
+	var snapshot = evm.StateDB.Snapshot()
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
 	if evm.Config.Debug {
@@ -364,7 +370,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, vmerrs.ErrDepth
 	}
-	snapshot := evm.StateDB.Snapshot()
+	var snapshot = evm.StateDB.Snapshot()
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
 	if evm.Config.Debug {
@@ -408,7 +414,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	// after all empty accounts were deleted, so this is not required. However, if we omit this,
 	// then certain tests start failing; stRevertTest/RevertPrecompiledTouchExactOOG.json.
 	// We could change this, but for now it's left for legacy reasons
-	snapshot := evm.StateDB.Snapshot()
+	var snapshot = evm.StateDB.Snapshot()
 
 	// We do an AddBalance of zero here, just in order to trigger a touch.
 	// This doesn't matter on Mainnet, where all empties are gone at the time of Byzantium,
@@ -475,7 +481,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, vmerrs.ErrInsufficientBalance
 	}
-	// If there is any collision with the Blackhole address, return an error instead
+	// If there is any collision with a prohibited address, return an error instead
 	// of allowing the contract to be created.
 	if IsProhibited(address) {
 		return nil, common.Address{}, gas, vmerrs.ErrAddrProhibited

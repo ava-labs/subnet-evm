@@ -49,13 +49,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-// All addresses on the C-Chain with > 2 transactions as of 1/15/22
-// Hash: 0xccbf8e430b30d08b5b3342208781c40b373d1b5885c1903828f367230a2568da
-
-// TODO: move to a better location
-//go:embed airdrops/011522.json
-var AirdropData []byte
-
 //go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
 //go:generate go run github.com/fjl/gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
@@ -80,6 +73,7 @@ type Genesis struct {
 	Alloc         GenesisAlloc        `json:"alloc"      gencodec:"required"`
 	AirdropHash   common.Hash         `json:"airdropHash"`
 	AirdropAmount *big.Int            `json:"airdropAmount"`
+	AirdropData   []byte              `json:"-"` // provided in a separate file, not serialized in this struct.
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -181,7 +175,9 @@ func (e *GenesisMismatchError) Error() string {
 // The stored chain configuration will be updated if it is compatible (i.e. does not
 // specify a fork block below the local head block). In case of a conflict, the
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
-func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash common.Hash) (*params.ChainConfig, error) {
+func SetupGenesisBlock(
+	db ethdb.Database, genesis *Genesis, lastAcceptedHash common.Hash, skipChainConfigCheckCompatible bool,
+) (*params.ChainConfig, error) {
 	if genesis == nil {
 		return nil, ErrNoGenesis
 	}
@@ -254,9 +250,13 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis, lastAcceptedHash com
 
 	height := lastBlock.NumberU64()
 	timestamp := lastBlock.Time()
-	compatErr := storedcfg.CheckCompatible(newcfg, height, timestamp)
-	if compatErr != nil && height != 0 && compatErr.RewindTo != 0 {
-		return newcfg, compatErr
+	if skipChainConfigCheckCompatible {
+		log.Info("skipping verifying activated network upgrades on chain config")
+	} else {
+		compatErr := storedcfg.CheckCompatible(newcfg, height, timestamp)
+		if compatErr != nil && height != 0 && compatErr.RewindTo != 0 {
+			return newcfg, compatErr
+		}
 	}
 	rawdb.WriteChainConfig(db, stored, newcfg)
 	return newcfg, nil
@@ -274,12 +274,12 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 	if g.AirdropHash != (common.Hash{}) {
 		t := time.Now()
-		h := common.BytesToHash(crypto.Keccak256(AirdropData))
+		h := common.BytesToHash(crypto.Keccak256(g.AirdropData))
 		if g.AirdropHash != h {
 			panic(fmt.Sprintf("expected standard allocation %s but got %s", g.AirdropHash, h))
 		}
 		airdrop := []*Airdrop{}
-		if err := json.Unmarshal(AirdropData, &airdrop); err != nil {
+		if err := json.Unmarshal(g.AirdropData, &airdrop); err != nil {
 			panic(err)
 		}
 		for _, alloc := range airdrop {

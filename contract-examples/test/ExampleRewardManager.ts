@@ -140,6 +140,10 @@ describe("ExampleRewardManager", function () {
     expect(balance.gt(previousBalance)).to.be.true
   })
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
   it("should return false for allowFeeRecipients check", async function () {
     let res = await contract.areFeeRecipientsAllowed();
     expect(res).to.be.false
@@ -150,5 +154,16 @@ describe("ExampleRewardManager", function () {
     await tx.wait()
     let res = await contract.areFeeRecipientsAllowed();
     expect(res).to.be.true
+  })
+
+  it("should disable reward address", async function () {
+    let tx = await contract.disableRewards();
+    await tx.wait()
+
+    let rewardAddress = await contract.currentRewardAddress();
+    expect(rewardAddress).to.be.equal(BLACKHOLE_ADDRESS)
+
+    let res = await contract.areFeeRecipientsAllowed();
+    expect(res).to.be.false
   })
 });
