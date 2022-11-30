@@ -104,10 +104,10 @@ func isKeyWord(arg string) bool {
 // enforces compile time type safety and naming convention opposed to having to
 // manually maintain hard coded strings that break on runtime.
 func Bind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string) (string, error) {
-	return BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, nil)
+	return bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, nil)
 }
 
-func BindHelper(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, bindHook BindHook) (string, error) {
+func bindHelper(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, bindHook BindHook) (string, error) {
 	var (
 		// contracts is the map of each individual contract requested binding
 		contracts = make(map[string]*tmplContract)
@@ -161,7 +161,7 @@ func BindHelper(types []string, abis []string, bytecodes []string, fsigs []map[s
 			normalizedName := methodNormalizer[lang](alias(aliases, original.Name))
 
 			// Ensure there is no duplicated identifier
-			var identifiers = callIdentifiers
+			identifiers := callIdentifiers
 			if !original.IsConstant() {
 				identifiers = transactIdentifiers
 			}
