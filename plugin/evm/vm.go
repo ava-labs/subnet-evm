@@ -403,7 +403,7 @@ func (vm *VM) Initialize(
 	}
 
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
-	go message.SendEthCallCrossChainRequest(vm.client, vm.ctx.CChainID)
+	go peer.SendEthCallCrossChainRequest(vm.client, vm.ctx.CChainID)
 
 	vm.initializeStateSyncServer()
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
