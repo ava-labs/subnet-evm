@@ -128,7 +128,9 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 		if header == nil {
 			return nil, errors.New("unknown block")
 		}
-		return f.blockLogs(ctx, header, false)
+		size, sections := f.sys.backend.BloomStatus()
+		lastIndexed := size * sections
+		return f.blockLogs(ctx, header, false, lastIndexed > header.Number.Uint64())
 	}
 	// Short-cut if all we care about is pending logs
 	if f.begin == rpc.PendingBlockNumber.Int64() {
@@ -229,7 +231,7 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*types.Log, err
 			if header == nil || err != nil {
 				return logs, err
 			}
-			found, err := f.blockLogs(ctx, header, true)
+			found, err := f.blockLogs(ctx, header, true, true)
 			if err != nil {
 				return logs, err
 			}
@@ -251,7 +253,7 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*types.Log, e
 		if header == nil || err != nil {
 			return logs, err
 		}
-		found, err := f.blockLogs(ctx, header, false)
+		found, err := f.blockLogs(ctx, header, false, false)
 		if err != nil {
 			return logs, err
 		}
@@ -261,10 +263,10 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*types.Log, e
 }
 
 // blockLogs returns the logs matching the filter criteria within a single block.
-func (f *Filter) blockLogs(ctx context.Context, header *types.Header, skipBloom bool) ([]*types.Log, error) {
+func (f *Filter) blockLogs(ctx context.Context, header *types.Header, skipBloom bool, indexed bool) ([]*types.Log, error) {
 	// Fast track: no filtering criteria
 	if len(f.addresses) == 0 && len(f.topics) == 0 {
-		list, err := f.sys.cachedGetLogs(ctx, header.Hash(), header.Number.Uint64())
+		list, err := f.sys.cachedGetLogs(ctx, header.Hash(), header.Number.Uint64(), !skipBloom)
 		if err != nil {
 			return nil, err
 		}
@@ -278,7 +280,7 @@ func (f *Filter) blockLogs(ctx context.Context, header *types.Header, skipBloom 
 // checkMatches checks if the receipts belonging to the given header contain any log events that
 // match the filter criteria. This function is called when the bloom filter signals a potential match.
 func (f *Filter) checkMatches(ctx context.Context, header *types.Header) ([]*types.Log, error) {
-	logsList, err := f.sys.cachedGetLogs(ctx, header.Hash(), header.Number.Uint64())
+	logsList, err := f.sys.cachedGetLogs(ctx, header.Hash(), header.Number.Uint64(), true)
 	if err != nil {
 		return nil, err
 	}
