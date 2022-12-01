@@ -283,7 +283,7 @@ func (s *Ethereum) APIs() []rpc.API {
 	// Create [filterSystem] with the log cache size set in the config.
 	ethcfg := s.APIBackend.eth.config
 	filterSystem := filters.NewFilterSystem(s.APIBackend, filters.Config{
-		IndexedLogCacheSize:   ethcfg.FilterLogCacheSize,
+		IndexedLogCacheSize:   ethcfg.IndexedFilterLogCacheSize,
 		UnindexedLogCacheSize: ethcfg.UnindexedFilterLogCacheSize,
 		Timeout:               5 * time.Minute,
 	})
