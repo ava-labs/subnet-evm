@@ -176,14 +176,14 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 	}
 	// Gather all indexed logs, and finish with non indexed ones
 	var (
-		logs    []*types.Log
-		indexed = f.sys.backend.LastBloomIndex()
+		logs        []*types.Log
+		lastIndexed = f.sys.backend.LastBloomIndex()
 	)
-	if indexed > uint64(f.begin) {
-		if indexed > end {
+	if lastIndexed > uint64(f.begin) {
+		if lastIndexed > end {
 			logs, err = f.indexedLogs(ctx, end)
 		} else {
-			logs, err = f.indexedLogs(ctx, indexed-1)
+			logs, err = f.indexedLogs(ctx, lastIndexed-1)
 		}
 		if err != nil {
 			return logs, err
