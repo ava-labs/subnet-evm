@@ -87,6 +87,7 @@ type Backend interface {
 	SubscribeAcceptedTransactionEvent(ch chan<- core.NewTxsEvent) event.Subscription
 
 	BloomStatus() (uint64, uint64)
+	LastBloomIndex() uint64
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
 
 	// Added to the backend interface to support limiting of logs requests
@@ -640,10 +641,9 @@ func (es *EventSystem) lightFilterLogs(header *types.Header, addresses []common.
 		// Get the logs of the block
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
-		size, sections := es.sys.backend.BloomStatus()
-		lastIndexed := size * sections
+		indexed := es.sys.backend.LastBloomIndex()
 		headerNumber := header.Number.Uint64()
-		logsList, err := es.sys.cachedGetLogs(ctx, header.Hash(), headerNumber, lastIndexed > headerNumber)
+		logsList, err := es.sys.cachedGetLogs(ctx, header.Hash(), headerNumber, indexed > headerNumber)
 		if err != nil {
 			return nil
 		}

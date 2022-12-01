@@ -128,9 +128,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 		if header == nil {
 			return nil, errors.New("unknown block")
 		}
-		size, sections := f.sys.backend.BloomStatus()
-		lastIndexed := size * sections
-		return f.blockLogs(ctx, header, false, lastIndexed > header.Number.Uint64())
+		return f.blockLogs(ctx, header, false, f.sys.backend.LastBloomIndex() > header.Number.Uint64())
 	}
 	// Short-cut if all we care about is pending logs
 	if f.begin == rpc.PendingBlockNumber.Int64() {
@@ -178,10 +176,10 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 	}
 	// Gather all indexed logs, and finish with non indexed ones
 	var (
-		logs           []*types.Log
-		size, sections = f.sys.backend.BloomStatus()
+		logs    []*types.Log
+		indexed = f.sys.backend.LastBloomIndex()
 	)
-	if indexed := sections * size; indexed > uint64(f.begin) {
+	if indexed > uint64(f.begin) {
 		if indexed > end {
 			logs, err = f.indexedLogs(ctx, end)
 		} else {
