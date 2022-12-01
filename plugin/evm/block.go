@@ -39,7 +39,11 @@ func (vm *VM) newBlock(ethBlock *types.Block) *Block {
 func (b *Block) ID() ids.ID { return b.id }
 
 // Accept implements the snowman.Block interface
+<<<<<<< HEAD
 func (b *Block) Accept(context.Context) error {
+=======
+func (b *Block) Accept(_ context.Context) error {
+>>>>>>> f82c971 (works with latest local avalanchego)
 	vm := b.vm
 
 	// Although returning an error from Accept is considered fatal, it is good
@@ -59,7 +63,11 @@ func (b *Block) Accept(context.Context) error {
 }
 
 // Reject implements the snowman.Block interface
+<<<<<<< HEAD
 func (b *Block) Reject(context.Context) error {
+=======
+func (b *Block) Reject(_ context.Context) error {
+>>>>>>> f82c971 (works with latest local avalanchego)
 	b.status = choices.Rejected
 	log.Debug(fmt.Sprintf("Rejecting block %s (%s) at height %d", b.ID().Hex(), b.ID(), b.Height()))
 	return b.vm.blockChain.Reject(b.ethBlock)
