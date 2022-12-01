@@ -45,7 +45,7 @@ const (
 	defaultPopulateMissingTriesParallelism        = 1024
 	defaultStateSyncServerTrieCache               = 64 // MB
 	defaultIndexedFilterLogCacheSize              = 32
-	defaultUnindexedFilterLogCacheSize            = 32
+	defaultUnindexedFilterLogCacheSize            = 32 // There can be up to [params.BloomBitsBlocks = 4096] unindexed blocks
 
 	// defaultStateSyncMinBlocks is the minimum number of blocks the blockchain
 	// should be ahead of local last accepted to perform state sync.
