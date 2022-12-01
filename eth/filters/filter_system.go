@@ -640,7 +640,10 @@ func (es *EventSystem) lightFilterLogs(header *types.Header, addresses []common.
 		// Get the logs of the block
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
-		logsList, err := es.sys.cachedGetLogs(ctx, header.Hash(), header.Number.Uint64(), true)
+		size, sections := es.sys.backend.BloomStatus()
+		lastIndexed := size * sections
+		headerNumber := header.Number.Uint64()
+		logsList, err := es.sys.cachedGetLogs(ctx, header.Hash(), headerNumber, lastIndexed > headerNumber)
 		if err != nil {
 			return nil
 		}
