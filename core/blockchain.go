@@ -165,6 +165,7 @@ type CacheConfig struct {
 	SnapshotVerify                  bool          // Verify generated snapshots
 	SkipSnapshotRebuild             bool          // Whether to skip rebuilding the snapshot in favor of returning an error (only set to true for tests)
 	Preimages                       bool          // Whether to store preimage of trie key to the disk
+	AcceptedCacheSize               int           // Number of blocks of accepted headers/logs to cache at the accepted tip (for eth_getLogs)
 }
 
 var DefaultCacheConfig = &CacheConfig{
@@ -175,6 +176,7 @@ var DefaultCacheConfig = &CacheConfig{
 	CommitInterval:        4096,
 	AcceptorQueueLimit:    64, // Provides 2 minutes of buffer (2s block target) for a commit delay
 	SnapshotLimit:         256,
+	AcceptedCacheSize:     32,
 }
 
 // BlockChain represents the canonical chain given a database with a genesis
@@ -309,17 +311,19 @@ func NewBlockChain(
 			Preimages:   cacheConfig.Preimages,
 			StatsPrefix: trieCleanCacheStatsNamespace,
 		}),
-		bodyCache:      bodyCache,
-		receiptsCache:  receiptsCache,
-		blockCache:     blockCache,
-		txLookupCache:  txLookupCache,
-		feeConfigCache: feeConfigCache,
-		engine:         engine,
-		vmConfig:       vmConfig,
-		badBlocks:      badBlocks,
-		senderCacher:   newTxSenderCacher(runtime.NumCPU()),
-		acceptorQueue:  make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
-		quit:           make(chan struct{}),
+		bodyCache:            bodyCache,
+		receiptsCache:        receiptsCache,
+		blockCache:           blockCache,
+		txLookupCache:        txLookupCache,
+		feeConfigCache:       feeConfigCache,
+		engine:               engine,
+		vmConfig:             vmConfig,
+		badBlocks:            badBlocks,
+		senderCacher:         newTxSenderCacher(runtime.NumCPU()),
+		acceptorQueue:        make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
+		quit:                 make(chan struct{}),
+		acceptedHeadersCache: linkedhashmap.New[uint64, *types.Header](),
+		acceptedLogsCache:    linkedhashmap.New[common.Hash, [][]*types.Log](),
 	}
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
@@ -450,11 +454,11 @@ func (bc *BlockChain) warmAcceptedCaches() {
 		lastAccepted = bc.LastAcceptedBlock().NumberU64()
 		seen         = 0
 	)
-	for i := lastAccepted; i >= 1 && seen < 100; i-- {
+	for i := lastAccepted; i >= 1 /* don't load genesis */ && seen < bc.cacheConfig.AcceptedCacheSize; i-- {
 		header := bc.GetHeaderByNumber(i)
 		if header == nil {
 			// This could happen if a node state-synced
-			log.Info("Exiting accepted cache warming early", "height", i, "t", time.Since(startTime))
+			log.Info("Exiting accepted cache warming early because header is nil", "height", i, "t", time.Since(startTime))
 			break
 		}
 		bc.acceptedHeadersCache.Put(header.Number.Uint64(), header)
@@ -462,7 +466,7 @@ func (bc *BlockChain) warmAcceptedCaches() {
 		bc.acceptedLogsCache.Put(header.Hash(), logs)
 		seen++
 	}
-	log.Info("Warmed accepted caches", "t", time.Since(startTime))
+	log.Info("Warmed accepted caches", "items", seen, "t", time.Since(startTime))
 }
 
 // startAcceptor starts processing items on the [acceptorQueue]. If a [nil]
@@ -486,20 +490,19 @@ func (bc *BlockChain) startAcceptor() {
 		}
 
 		// Ensure [acceptedHeadersCache] and [acceptedLogsCache] have latest content
+		//
+		// We know we can always remove the oldest because the cache is already
+		// full after startup (we always prewarm it).
 		bc.acceptedHeadersCache.Put(next.NumberU64(), next.Header())
-		if bc.acceptedHeadersCache.Len() > 100 {
-			oldest, _, _ := bc.acceptedHeadersCache.Oldest()
-			bc.acceptedHeadersCache.Delete(oldest)
-		}
+		oldestNumber, _, _ := bc.acceptedHeadersCache.Oldest()
+		bc.acceptedHeadersCache.Delete(oldestNumber)
 		logs := rawdb.ReadLogs(bc.db, next.Hash(), next.NumberU64())
 		bc.acceptedLogsCache.Put(next.Hash(), logs)
-		if bc.acceptedLogsCache.Len() > 100 {
-			oldest, _, _ := bc.acceptedLogsCache.Oldest()
-			bc.acceptedLogsCache.Delete(oldest)
-		}
+		oldestHash, _, _ := bc.acceptedLogsCache.Oldest()
+		bc.acceptedLogsCache.Delete(oldestHash)
 
 		// Update accepted feeds
-		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flatten(logs)})
+		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: FlattenLogs(logs)})
 		if len(logs) > 0 {
 			bc.logsAcceptedFeed.Send(logs)
 		}
@@ -1991,8 +1994,8 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 	return nil
 }
 
-// TODO: import from filters
-func flatten(list [][]*types.Log) []*types.Log {
+// FlattenLogs converts a nested array of logs to a single array of logs.
+func FlattenLogs(list [][]*types.Log) []*types.Log {
 	var flat []*types.Log
 	for _, logs := range list {
 		flat = append(flat, logs...)

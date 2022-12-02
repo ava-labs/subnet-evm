@@ -76,6 +76,9 @@ func (bc *BlockChain) GetHeaderByHash(hash common.Hash) *types.Header {
 
 // GetHeaderByNumber retrieves a block header from the database by number,
 // caching it (associated with its hash) if found.
+//
+// We optimistically attempt to fetch the header from [acceptedHeadersCache] to
+// avoid a number to hash db lookup to access the inner cache.
 func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 	h, ok := bc.acceptedHeadersCache.Get(number)
 	if ok {
