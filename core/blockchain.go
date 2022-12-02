@@ -374,9 +374,6 @@ func NewBlockChain(
 		return nil, fmt.Errorf("could not populate missing tries: %v", err)
 	}
 
-	// Warm up [acceptedHeadersCache] and [acceptedLogsCache]
-	bc.warmAcceptedCaches()
-
 	// If snapshot initialization is delayed for fast sync, skip initializing it here.
 	// This assumes that no blocks will be processed until ResetState is called to initialize
 	// the state of fast sync.
@@ -385,6 +382,9 @@ func NewBlockChain(
 		// already initialized in recovery)
 		bc.initSnapshot(head)
 	}
+
+	// Warm up [acceptedHeadersCache] and [acceptedLogsCache]
+	bc.warmAcceptedCaches()
 
 	// Start processing accepted blocks effects in the background
 	go bc.startAcceptor()
