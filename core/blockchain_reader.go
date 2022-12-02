@@ -85,7 +85,7 @@ func (bc *BlockChain) GetHeaderByHash(hash common.Hash) *types.Header {
 // used with the unprocessed tip, whereas eth_getLogs is only used with
 // accepted blocks by default.
 func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
-	h, ok := bc.acceptedHeadersCache.Get(number)
+	h, ok := bc.acceptedHeadersCache.Get(number) // this cache is thread-safe
 	if ok {
 		return h
 	}
@@ -420,7 +420,7 @@ func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool,
 
 // GetLogs fetches all logs from a given block.
 func (bc *BlockChain) GetLogs(hash common.Hash, number uint64) [][]*types.Log {
-	logs, ok := bc.acceptedLogsCache.Get(hash)
+	logs, ok := bc.acceptedLogsCache.Get(hash) // this cache is thread-safe
 	if ok {
 		return logs
 	}
