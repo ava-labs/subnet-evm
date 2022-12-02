@@ -6,7 +6,7 @@ import { ethers } from "hardhat"
 
 const main = async (): Promise<any> => {
   const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter")
-  const token: Contract = await Token.deploy()
+  const token: Contract = await Token.deploy(1000000)
 
   await token.deployed()
   console.log(`Token deployed to: ${token.address}`)
