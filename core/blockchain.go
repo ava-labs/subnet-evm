@@ -165,7 +165,7 @@ type CacheConfig struct {
 	SnapshotVerify                  bool          // Verify generated snapshots
 	SkipSnapshotRebuild             bool          // Whether to skip rebuilding the snapshot in favor of returning an error (only set to true for tests)
 	Preimages                       bool          // Whether to store preimage of trie key to the disk
-	AcceptedCacheSize               int           // Number of blocks of accepted headers/logs to cache at the accepted tip (for eth_getLogs)
+	AcceptedCacheSize               int           // Depth of accepted headers and logs to cache at the accepted tip
 }
 
 var DefaultCacheConfig = &CacheConfig{

@@ -80,6 +80,10 @@ func (bc *BlockChain) GetHeaderByHash(hash common.Hash) *types.Header {
 // We optimistically attempt to fetch the header from [acceptedHeadersCache] to
 // avoid a number to hash db lookup to access the inner cache. This path is
 // commonly accessed when processing eth_getLogs requests.
+//
+// We explicitly choose to maintain both hashes because the inner cache can be
+// used with the unprocessed tip, whereas eth_getLogs is only used with
+// accepted blocks by default.
 func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 	h, ok := bc.acceptedHeadersCache.Get(number)
 	if ok {
