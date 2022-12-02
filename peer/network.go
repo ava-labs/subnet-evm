@@ -243,7 +243,7 @@ func (n *network) AppResponse(_ context.Context, nodeID ids.NodeID, requestID ui
 
 	log.Debug("received AppResponse from peer", "nodeID", nodeID, "requestID", requestID)
 
-	handler, exists := n.getRequestHandler(requestID)
+	handler, exists := n.markRequestFulfilled(requestID)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
 		log.Error("received response to unknown request", "nodeID", nodeID, "requestID", requestID, "responseLen", len(response))
@@ -264,7 +264,7 @@ func (n *network) AppRequestFailed(_ context.Context, nodeID ids.NodeID, request
 	defer n.lock.Unlock()
 	log.Debug("received AppRequestFailed from peer", "nodeID", nodeID, "requestID", requestID)
 
-	handler, exists := n.getRequestHandler(requestID)
+	handler, exists := n.markRequestFulfilled(requestID)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
 		log.Error("received request failed to unknown request", "nodeID", nodeID, "requestID", requestID)
@@ -300,20 +300,45 @@ func (n *network) CrossChainAppRequest(_ context.Context, chainID ids.ID, reques
 	return nil
 }
 
-// CrossChainAppRequestFailed is a no-op.
-func (n *network) CrossChainAppRequestFailed(_ context.Context, chainID ids.ID, requestID uint32) error {
-	return nil
+// CrossChainAppRequestFailed notifies the that a
+// CrossChainRequest message it sent to [respondingChainID] with request ID
+// [requestID] failed.
+func (n *network) CrossChainAppRequestFailed(ctx context.Context, respondingChainID ids.ID, requestID uint32) error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+	log.Debug("received CrossChainAppRequestFailed from chain", "respondingChainID", respondingChainID, "requestID", requestID)
+
+	handler, exists := n.markCrossChainRequestFulfilled(requestID)
+	if !exists {
+		// Should never happen since the engine should be managing outstanding requests
+		log.Error("received crosschain request failed to unknown request", "respondingChainID", respondingChainID, "requestID", requestID)
+		return nil
+	}
+
+	return handler.OnFailure(respondingChainID, requestID)
 }
 
 // CrossChainAppResponse is a no-op.
-func (n *network) CrossChainAppResponse(_ context.Context, chainID ids.ID, requestID uint32, response []byte) error {
-	return nil
+func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID ids.ID, requestID uint32, response []byte) error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	log.Debug("received CrossChainAppResponse from responding chain", "respondingChainID", respondingChainID, "requestID", requestID)
+
+	handler, exists := n.markCrossChainRequestFulfilled(requestID)
+	if !exists {
+		// Should never happen since the engine should be managing outstanding requests
+		log.Error("received cross chain response to unknown request", "respondingChainID", respondingChainID, "requestID", requestID, "responseLen", len(response))
+		return nil
+	}
+
+	return handler.OnResponse(respondingChainID, requestID, response)
 }
 
-// getRequestHandler fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
+// markRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
 // This is called by either [AppResponse] or [AppRequestFailed].
 // assumes that the write lock is held.
-func (n *network) getRequestHandler(requestID uint32) (message.ResponseHandler, bool) {
+func (n *network) markRequestFulfilled(requestID uint32) (message.ResponseHandler, bool) {
 	handler, exists := n.outstandingRequestHandlers[requestID]
 	if !exists {
 		return nil, false
@@ -321,6 +346,19 @@ func (n *network) getRequestHandler(requestID uint32) (message.ResponseHandler, 
 	// mark message as processed, release activeRequests slot
 	delete(n.outstandingRequestHandlers, requestID)
 	n.activeRequests.Release(1)
+	return handler, true
+}
+
+// markCrossChainRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
+// This is called by either [CrossChainAppResponse] or [CrossChainAppRequestFailed].
+// This assumes that the write lock is held.
+func (n *network) markCrossChainRequestFulfilled(requestID uint32) (message.CrossChainResponseHandler, bool) {
+	handler, exists := n.outstandingCrossChainRequestHandlers[requestID]
+	if !exists {
+		return nil, false
+	}
+
+	delete(n.outstandingCrossChainRequestHandlers, requestID)
 	return handler, true
 }
 
