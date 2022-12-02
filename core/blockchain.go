@@ -38,7 +38,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ava-labs/avalanchego/utils/linkedhashmap"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -282,8 +281,8 @@ type BlockChain struct {
 
 	// [acceptedHeadersCache] and [acceptedLogsCache] store recently accepted
 	// data to improve the performance of eth_getLogs.
-	acceptedHeadersCache linkedhashmap.LinkedHashmap[uint64, *types.Header]
-	acceptedLogsCache    linkedhashmap.LinkedHashmap[common.Hash, [][]*types.Log]
+	acceptedHeadersCache *FIFOCache[uint64, *types.Header]
+	acceptedLogsCache    *FIFOCache[common.Hash, [][]*types.Log]
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -324,8 +323,8 @@ func NewBlockChain(
 		senderCacher:         newTxSenderCacher(runtime.NumCPU()),
 		acceptorQueue:        make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
 		quit:                 make(chan struct{}),
-		acceptedHeadersCache: linkedhashmap.New[uint64, *types.Header](),
-		acceptedLogsCache:    linkedhashmap.New[common.Hash, [][]*types.Log](),
+		acceptedHeadersCache: NewFIFOCache[uint64, *types.Header](cacheConfig.AcceptedCacheSize),
+		acceptedLogsCache:    NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
 	}
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
@@ -452,11 +451,20 @@ func (bc *BlockChain) flattenSnapshot(postAbortWork func() error, hash common.Ha
 // pre-populate [acceptedHeadersCache] and [acceptedLogsCache].
 func (bc *BlockChain) warmAcceptedCaches() {
 	var (
-		startTime    = time.Now()
-		lastAccepted = bc.LastAcceptedBlock().NumberU64()
-		seen         = 0
+		startTime       = time.Now()
+		lastAccepted    = bc.LastAcceptedBlock().NumberU64()
+		startIndex      = uint64(1)
+		targetCacheSize = uint64(bc.cacheConfig.AcceptedCacheSize)
 	)
-	for i := lastAccepted; i >= 1 /* don't load genesis */ && seen < bc.cacheConfig.AcceptedCacheSize; i-- {
+	if lastAccepted < startIndex {
+		// This could occur if we haven't accepted any blocks yet
+		log.Info("Not warming accepted cache because there are no accepted blocks")
+		return
+	}
+	if targetCacheSize < lastAccepted { // ensure start index is at least 1
+		startIndex = lastAccepted - targetCacheSize
+	}
+	for i := startIndex; i <= lastAccepted; i++ {
 		header := bc.GetHeaderByNumber(i)
 		if header == nil {
 			// This could happen if a node state-synced
@@ -466,9 +474,8 @@ func (bc *BlockChain) warmAcceptedCaches() {
 		bc.acceptedHeadersCache.Put(header.Number.Uint64(), header)
 		logs := rawdb.ReadLogs(bc.db, header.Hash(), header.Number.Uint64())
 		bc.acceptedLogsCache.Put(header.Hash(), logs)
-		seen++
 	}
-	log.Info("Warmed accepted caches", "items", seen, "t", time.Since(startTime))
+	log.Info("Warmed accepted caches", "start", startIndex, "end", lastAccepted, "t", time.Since(startTime))
 }
 
 // startAcceptor starts processing items on the [acceptorQueue]. If a [nil]
@@ -495,12 +502,6 @@ func (bc *BlockChain) startAcceptor() {
 		bc.acceptedHeadersCache.Put(next.NumberU64(), next.Header())
 		logs := rawdb.ReadLogs(bc.db, next.Hash(), next.NumberU64())
 		bc.acceptedLogsCache.Put(next.Hash(), logs)
-		if bc.acceptedHeadersCache.Len() > bc.cacheConfig.AcceptedCacheSize { // both caches are always the same size
-			oldestNumber, _, _ := bc.acceptedHeadersCache.Oldest()
-			bc.acceptedHeadersCache.Delete(oldestNumber)
-			oldestHash, _, _ := bc.acceptedLogsCache.Oldest()
-			bc.acceptedLogsCache.Delete(oldestHash)
-		}
 
 		// Update accepted feeds
 		flattenedLogs := FlattenLogs(logs)
