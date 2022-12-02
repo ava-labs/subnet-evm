@@ -49,7 +49,7 @@ var bindFailedTests = []struct {
 				{"type":"function","name":"anonOutput","constant":true,"inputs":[],"outputs":[{"name":"","type":"string"}]}
 			]
 		`},
-		"ABI outputs for AnonOutput require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
+		"ABI outputs for anonOutput require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
 		nil,
 		nil,
 		nil,
@@ -64,7 +64,7 @@ var bindFailedTests = []struct {
 				{"type":"function","name":"anonOutputs","constant":true,"inputs":[],"outputs":[{"name":"","type":"string"},{"name":"","type":"string"}]}
 			]
 		`},
-		"ABI outputs for AnonOutputs require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
+		"ABI outputs for anonOutputs require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
 		nil,
 		nil,
 		nil,
@@ -79,7 +79,7 @@ var bindFailedTests = []struct {
 				{"type":"function","name":"mixedOutputs","constant":true,"inputs":[],"outputs":[{"name":"","type":"string"},{"name":"str","type":"string"}]}
 			]
 		`},
-		"ABI outputs for MixedOutputs require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
+		"ABI outputs for mixedOutputs require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
 		nil,
 		nil,
 		nil,
@@ -96,7 +96,7 @@ func golangBindingsFailure(t *testing.T) {
 	for i, tt := range bindFailedTests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Generate the binding
-			_, err := Bind([]string{tt.name}, tt.abi, tt.bytecode, tt.fsigs, "bindtest", LangGo, tt.libs, tt.aliases, true)
+			_, err := PrecompileBind([]string{tt.name}, tt.abi, tt.bytecode, tt.fsigs, "bindtest", LangGo, tt.libs, tt.aliases, "")
 			if err == nil {
 				t.Fatalf("test %d: no error occurred but was expected", i)
 			}
