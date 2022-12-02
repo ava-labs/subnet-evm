@@ -320,6 +320,7 @@ func (n *network) CrossChainAppRequestFailed(ctx context.Context, respondingChai
 
 // CrossChainAppResponse is a no-op.
 func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID ids.ID, requestID uint32, response []byte) error {
+	log.Debug("received CrossChainAppResponse from responding chain 0", "respondingChainID", respondingChainID, "requestID", requestID)
 	n.lock.Lock()
 	defer n.lock.Unlock()
 

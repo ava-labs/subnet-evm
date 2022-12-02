@@ -7,6 +7,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,7 +17,7 @@ import (
 
 func SendEthCallCrossChainRequest(networkClient NetworkClient, chainID ids.ID) error {
 	log.Info("_--------------------------------- SLEEP CCR  -------------------------------------")
-	time.Sleep(30 * time.Second)
+	time.Sleep(60 * time.Second)
 	log.Info("_--------------------------------- START CCR  -------------------------------------")
 
 	abi, err := getABI()
@@ -52,13 +53,22 @@ func SendEthCallCrossChainRequest(networkClient NetworkClient, chainID ids.ID) e
 		return err
 	}
 
-	response, err := networkClient.CrossChainRequest(chainID, crossChainRequest)
+	responseBytes, err := networkClient.CrossChainRequest(chainID, crossChainRequest)
 	if err != nil {
 		log.Error("error with CCR", "error", err)
 		return err
 	}
 
-	log.Info("Success ! Response from CCR", "response", response)
+	crossChainResponse := &message.EthCallResponse{}
+	_, err = crossChainCodec.Unmarshal(responseBytes, crossChainResponse)
+	if err != nil {
+		log.Error("error with CCR", "error", err)
+		return err
+	}
+
+	executionResult := &core.ExecutionResult{}
+	json.Unmarshal(crossChainResponse.ExecutionResult, executionResult)
+	log.Info("Success ! Response from CCR", "response", executionResult)
 	return nil
 
 }
