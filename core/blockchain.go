@@ -490,16 +490,15 @@ func (bc *BlockChain) startAcceptor() {
 		}
 
 		// Ensure [acceptedHeadersCache] and [acceptedLogsCache] have latest content
-		//
-		// We know we can always remove the oldest because the cache is already
-		// full after startup (we always prewarm it).
 		bc.acceptedHeadersCache.Put(next.NumberU64(), next.Header())
-		oldestNumber, _, _ := bc.acceptedHeadersCache.Oldest()
-		bc.acceptedHeadersCache.Delete(oldestNumber)
 		logs := rawdb.ReadLogs(bc.db, next.Hash(), next.NumberU64())
 		bc.acceptedLogsCache.Put(next.Hash(), logs)
-		oldestHash, _, _ := bc.acceptedLogsCache.Oldest()
-		bc.acceptedLogsCache.Delete(oldestHash)
+		if bc.acceptedHeadersCache.Len() > bc.cacheConfig.AcceptedCacheSize { // both caches are always the same size
+			oldestNumber, _, _ := bc.acceptedHeadersCache.Oldest()
+			bc.acceptedHeadersCache.Delete(oldestNumber)
+			oldestHash, _, _ := bc.acceptedLogsCache.Oldest()
+			bc.acceptedLogsCache.Delete(oldestHash)
+		}
 
 		// Update accepted feeds
 		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: FlattenLogs(logs)})
