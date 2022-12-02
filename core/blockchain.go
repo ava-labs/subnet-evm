@@ -503,9 +503,10 @@ func (bc *BlockChain) startAcceptor() {
 		}
 
 		// Update accepted feeds
-		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: FlattenLogs(logs)})
-		if len(logs) > 0 {
-			bc.logsAcceptedFeed.Send(logs)
+		flattenedLogs := FlattenLogs(logs)
+		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flattenedLogs})
+		if len(flattenedLogs) > 0 {
+			bc.logsAcceptedFeed.Send(flattenedLogs)
 		}
 		if len(next.Transactions()) != 0 {
 			bc.txAcceptedFeed.Send(NewTxsEvent{next.Transactions()})
