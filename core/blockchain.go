@@ -280,6 +280,8 @@ type BlockChain struct {
 	// a block is being verified.
 	flattenLock sync.Mutex
 
+	// [acceptedHeadersCache] and [acceptedLogsCache] store recently accepted
+	// data to improve the performance of eth_getLogs.
 	acceptedHeadersCache linkedhashmap.LinkedHashmap[uint64, *types.Header]
 	acceptedLogsCache    linkedhashmap.LinkedHashmap[common.Hash, [][]*types.Log]
 }
