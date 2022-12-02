@@ -368,6 +368,9 @@ func NewBlockChain(
 		return nil, fmt.Errorf("could not populate missing tries: %v", err)
 	}
 
+	// Warm up [acceptedHeadersCache] and [acceptedLogsCache]
+	bc.warmAcceptedCaches()
+
 	// If snapshot initialization is delayed for fast sync, skip initializing it here.
 	// This assumes that no blocks will be processed until ResetState is called to initialize
 	// the state of fast sync.
@@ -437,6 +440,29 @@ func (bc *BlockChain) flattenSnapshot(postAbortWork func() error, hash common.Ha
 	//
 	// Note: This resumes snapshot generation.
 	return bc.snaps.Flatten(hash)
+}
+
+// warmAcceptedCaches fetches previously accepted headers and logs from disk to
+// pre-populate [acceptedHeadersCache] and [acceptedLogsCache].
+func (bc *BlockChain) warmAcceptedCaches() {
+	var (
+		startTime    = time.Now()
+		lastAccepted = bc.LastAcceptedBlock().NumberU64()
+		seen         = 0
+	)
+	for i := lastAccepted; i >= 1 && seen < 100; i-- {
+		header := bc.GetHeaderByNumber(i)
+		if header == nil {
+			// This could happen if a node state-synced
+			log.Info("Exiting accepted cache warming early", "height", i, "t", time.Since(startTime))
+			break
+		}
+		bc.acceptedHeadersCache.Put(header.Number.Uint64(), header)
+		logs := rawdb.ReadLogs(bc.db, header.Hash(), header.Number.Uint64())
+		bc.acceptedLogsCache.Put(header.Hash(), logs)
+		seen++
+	}
+	log.Info("Warmed accepted caches", "t", time.Since(startTime))
 }
 
 // startAcceptor starts processing items on the [acceptorQueue]. If a [nil]

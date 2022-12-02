@@ -77,7 +77,7 @@ func (bc *BlockChain) GetHeaderByHash(hash common.Hash) *types.Header {
 // GetHeaderByNumber retrieves a block header from the database by number,
 // caching it (associated with its hash) if found.
 func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
-	h, ok := bc.headerCache.Get(number)
+	h, ok := bc.acceptedHeadersCache.Get(number)
 	if ok {
 		return h
 	}
@@ -412,7 +412,7 @@ func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool,
 
 // GetLogs fetches all logs from a given block.
 func (bc *BlockChain) GetLogs(hash common.Hash, number uint64) [][]*types.Log {
-	logs, ok := bc.logsCache.Get(hash)
+	logs, ok := bc.acceptedLogsCache.Get(hash)
 	if ok {
 		return logs
 	}
