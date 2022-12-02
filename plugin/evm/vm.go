@@ -346,8 +346,6 @@ func (vm *VM) Initialize(
 		}
 	}
 
-	// TODO: warm up header and logs cache up to last accepted
-
 	// Handle custom fee recipient
 	if common.IsHexAddress(vm.config.FeeRecipient) {
 		address := common.HexToAddress(vm.config.FeeRecipient)
