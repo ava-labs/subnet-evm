@@ -227,8 +227,7 @@ func (c *Config) SetDefaults() {
 	c.StateSyncCommitInterval = defaultSyncableCommitInterval
 	c.StateSyncMinBlocks = defaultStateSyncMinBlocks
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
-	c.IndexedLogCacheSize = defaultIndexedFilterLogCacheSize
-	c.UnindexedLogCacheSize = defaultUnindexedFilterLogCacheSize
+	c.AcceptedCacheSize = defaultAcceptedCacheSize
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {
