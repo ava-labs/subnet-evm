@@ -38,6 +38,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/avalanchego/utils/linkedhashmap"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -276,6 +277,9 @@ type BlockChain struct {
 	// [flattenLock] prevents the [acceptor] from flattening snapshots while
 	// a block is being verified.
 	flattenLock sync.Mutex
+
+	acceptedHeadersCache linkedhashmap.LinkedHashmap[uint64, *types.Header]
+	acceptedLogsCache    linkedhashmap.LinkedHashmap[common.Hash, [][]*types.Log]
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -455,11 +459,21 @@ func (bc *BlockChain) startAcceptor() {
 			log.Crit("failed to write accepted block effects", "err", err)
 		}
 
-		// Fetch block logs
-		logs := bc.gatherBlockLogs(next.Hash(), next.NumberU64(), false)
+		// Ensure [acceptedHeadersCache] and [acceptedLogsCache] have latest content
+		bc.acceptedHeadersCache.Put(next.NumberU64(), next.Header())
+		if bc.acceptedHeadersCache.Len() > 100 {
+			oldest, _, _ := bc.acceptedHeadersCache.Oldest()
+			bc.acceptedHeadersCache.Delete(oldest)
+		}
+		logs := rawdb.ReadLogs(bc.db, next.Hash(), next.NumberU64())
+		bc.acceptedLogsCache.Put(next.Hash(), logs)
+		if bc.acceptedLogsCache.Len() > 100 {
+			oldest, _, _ := bc.acceptedLogsCache.Oldest()
+			bc.acceptedLogsCache.Delete(oldest)
+		}
 
 		// Update accepted feeds
-		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: logs})
+		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flatten(logs)})
 		if len(logs) > 0 {
 			bc.logsAcceptedFeed.Send(logs)
 		}
@@ -911,6 +925,7 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 		}
 	}
 
+	// Enqueue block in the acceptor
 	bc.lastAccepted = block
 	bc.addAcceptorQueue(block)
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
@@ -1948,4 +1963,13 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 
 	bc.initSnapshot(head)
 	return nil
+}
+
+// TODO: import from filters
+func flatten(list [][]*types.Log) []*types.Log {
+	var flat []*types.Log
+	for _, logs := range list {
+		flat = append(flat, logs...)
+	}
+	return flat
 }
