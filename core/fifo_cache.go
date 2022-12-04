@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+const minCacheSize = 16
+
 // FIFOCache evicts the oldest element added to it after [limit] items are
 // added.
 type FIFOCache[K comparable, V any] struct {
@@ -18,10 +20,16 @@ type FIFOCache[K comparable, V any] struct {
 	m      map[K]V
 }
 
+// NewFIFOCache creates a new First-In-First-Out cache of size [limit].
+//
+// If [limit] is less than 16, [limit] will be overwritten with 16.
 func NewFIFOCache[K comparable, V any](limit int) *FIFOCache[K, V] {
+	if limit < minCacheSize {
+		limit = minCacheSize
+	}
 	c := &FIFOCache[K, V]{
 		limit: limit,
-		m:     map[K]V{},
+		m:     make(map[K]V, limit),
 	}
 	c.buffer = NewBoundedBuffer[K](limit, c.remove)
 	return c
