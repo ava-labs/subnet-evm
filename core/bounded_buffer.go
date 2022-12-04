@@ -4,7 +4,7 @@
 package core
 
 // BoundedBuffer keeps [size] entries of type [K] in a buffer and calls
-// [callback] on any item that is evicted. This is typically used for
+// [callback] on any item that is overwritten. This is typically used for
 // dereferencing old roots during block processing.
 //
 // BoundedBuffer is not thread-safe and requires the caller synchronize usage.
@@ -28,7 +28,7 @@ func NewBoundedBuffer[K any](size int, callback func(K)) *BoundedBuffer[K] {
 }
 
 // Insert adds a new value to the buffer. If the buffer is full, the
-// oldest value will be evicted and [callback] will be invoked.
+// oldest value will be overwritten and [callback] will be invoked.
 func (b *BoundedBuffer[K]) Insert(h K) {
 	nextPos := (b.lastPos + 1) % b.size // the first item added to the buffer will be at position 0
 	if nextPos == 0 && b.lastPos >= 0 {
