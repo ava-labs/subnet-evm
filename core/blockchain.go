@@ -281,8 +281,8 @@ type BlockChain struct {
 
 	// [acceptedHeadersCache] and [acceptedLogsCache] store recently accepted
 	// data to improve the performance of eth_getLogs.
-	acceptedHeadersCache *FIFOCache[uint64, *types.Header]
-	acceptedLogsCache    *FIFOCache[common.Hash, [][]*types.Log]
+	acceptedHeadersCache FIFOCache[uint64, *types.Header]
+	acceptedLogsCache    FIFOCache[common.Hash, [][]*types.Log]
 }
 
 // NewBlockChain returns a fully initialised block chain using information
