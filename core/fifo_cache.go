@@ -3,37 +3,48 @@
 
 package core
 
-import "github.com/ava-labs/avalanchego/utils/linkedhashmap"
+import (
+	"sync"
+)
 
 // FIFOCache evicts the oldest element added to it after [limit] items are
 // added.
-//
-// TODO: Move this to AvalancheGo
-type FIFOCache[K, V any] struct {
+type FIFOCache[K comparable, V any] struct {
 	limit int
 
-	m linkedhashmap.LinkedHashmap[K, V]
+	l sync.RWMutex
 
-	// [Linkedhashmap] is thread-safe, so no additional locking is required
+	buffer *BoundedBuffer[K]
+	m      map[K]V
 }
 
 func NewFIFOCache[K comparable, V any](limit int) *FIFOCache[K, V] {
-	return &FIFOCache[K, V]{
+	c := &FIFOCache[K, V]{
 		limit: limit,
-		m:     linkedhashmap.New[K, V](),
+		m:     map[K]V{},
 	}
+	c.buffer = NewBoundedBuffer[K](limit, c.remove)
+	return c
+}
+
+// remove is used as the callback in [BoundedBuffer]. It is assumed that the
+// [WriteLock] is held when this is accessed.
+func (f *FIFOCache[K, V]) remove(key K) {
+	delete(f.m, key)
 }
 
 func (f *FIFOCache[K, V]) Put(key K, val V) {
-	if f.m.Len() >= f.limit {
-		oldest, _, exists := f.m.Oldest()
-		if exists {
-			f.m.Delete(oldest)
-		}
-	}
-	f.m.Put(key, val)
+	f.l.Lock()
+	defer f.l.Unlock()
+
+	f.buffer.Insert(key) // Insert will remove the oldest [K] if we are at the [limit]
+	f.m[key] = val
 }
 
 func (f *FIFOCache[K, V]) Get(key K) (V, bool) {
-	return f.m.Get(key)
+	f.l.RLock()
+	defer f.l.RUnlock()
+
+	v, ok := f.m[key]
+	return v, ok
 }
