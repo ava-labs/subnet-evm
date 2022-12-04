@@ -46,7 +46,12 @@ func (b *BoundedBuffer[K]) Insert(h K) {
 }
 
 // Last retrieves the last item added to the buffer.
-// If no items have been added to the buffer, Last returns an empty hash.
-func (b *BoundedBuffer[K]) Last() K {
-	return b.buffer[b.lastPos]
+//
+// If no items have been added to the buffer, Last returns the default value of
+// [K] and [false].
+func (b *BoundedBuffer[K]) Last() (K, bool) {
+	if b.lastPos == -1 {
+		return *new(K), false
+	}
+	return b.buffer[b.lastPos], true
 }
