@@ -164,7 +164,7 @@ type CacheConfig struct {
 	SnapshotVerify                  bool          // Verify generated snapshots
 	SkipSnapshotRebuild             bool          // Whether to skip rebuilding the snapshot in favor of returning an error (only set to true for tests)
 	Preimages                       bool          // Whether to store preimage of trie key to the disk
-	AcceptedCacheSize               int           // Depth of accepted headers and logs to cache at the accepted tip
+	AcceptedCacheSize               int           // Depth of accepted headers cache and accepted logs cache at the accepted tip
 }
 
 var DefaultCacheConfig = &CacheConfig{
@@ -472,8 +472,7 @@ func (bc *BlockChain) warmAcceptedCaches() {
 			break
 		}
 		bc.acceptedHeadersCache.Put(header.Number.Uint64(), header)
-		logs := rawdb.ReadLogs(bc.db, header.Hash(), header.Number.Uint64())
-		bc.acceptedLogsCache.Put(header.Hash(), logs)
+		bc.acceptedLogsCache.Put(header.Hash(), rawdb.ReadLogs(bc.db, header.Hash(), header.Number.Uint64()))
 	}
 	log.Info("Warmed accepted caches", "start", startIndex, "end", lastAccepted, "t", time.Since(startTime))
 }

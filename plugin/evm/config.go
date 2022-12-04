@@ -176,8 +176,8 @@ type Config struct {
 	// identical state with the pre-upgrade ruleset.
 	SkipUpgradeCheck bool `json:"skip-upgrade-check"`
 
-	// AcceptedCacheSize is the depth of accepted headers and logs to
-	// cache at the accepted tip.
+	// AcceptedCacheSize is the depth to keep in the accepted headers cache and the
+	// accepted logs cache at the accepted tip.
 	//
 	// This is particularly useful for improving the performance of eth_getLogs
 	// on RPC nodes.
