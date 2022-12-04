@@ -101,8 +101,8 @@ type Config struct {
 	SnapshotCache         int
 	Preimages             bool
 
-	// AcceptedCacheSize is the depth of accepted headers and logs to
-	// cache at the accepted tip.
+	// AcceptedCacheSize is the depth of accepted headers cache and accepted
+	// logs cache at the accepted tip.
 	AcceptedCacheSize int
 
 	// Mining options
