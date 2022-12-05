@@ -24,21 +24,18 @@ type FIFOCache[K comparable, V any] interface {
 // If a [limit] of 0 is passed as an argument, a no-op cache is returned that
 // does nothing.
 func NewFIFOCache[K comparable, V any](limit int) FIFOCache[K, V] {
-	if limit == 0 {
+	if limit <= 0 {
 		return &NoOpFIFOCache[K, V]{}
 	}
 
 	c := &BufferFIFOCache[K, V]{
-		limit: limit,
-		m:     make(map[K]V, limit),
+		m: make(map[K]V, limit),
 	}
-	c.buffer = NewBoundedBuffer[K](limit, c.remove)
+	c.buffer = NewBoundedBuffer(limit, c.remove)
 	return c
 }
 
 type BufferFIFOCache[K comparable, V any] struct {
-	limit int
-
 	l sync.RWMutex
 
 	buffer *BoundedBuffer[K]
