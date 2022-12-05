@@ -279,10 +279,8 @@ type BlockChain struct {
 	// a block is being verified.
 	flattenLock sync.Mutex
 
-	// [acceptedHeadersCache] and [acceptedLogsCache] store recently accepted
-	// data to improve the performance of eth_getLogs.
-	acceptedHeadersCache FIFOCache[uint64, *types.Header]
-	acceptedLogsCache    FIFOCache[common.Hash, [][]*types.Log]
+	// [acceptedLogsCache] stores recently accepted logs to improve the performance of eth_getLogs.
+	acceptedLogsCache FIFOCache[common.Hash, [][]*types.Log]
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -312,26 +310,25 @@ func NewBlockChain(
 			Preimages:   cacheConfig.Preimages,
 			StatsPrefix: trieCleanCacheStatsNamespace,
 		}),
-		bodyCache:            bodyCache,
-		receiptsCache:        receiptsCache,
-		blockCache:           blockCache,
-		txLookupCache:        txLookupCache,
-		feeConfigCache:       feeConfigCache,
-		engine:               engine,
-		vmConfig:             vmConfig,
-		badBlocks:            badBlocks,
-		senderCacher:         newTxSenderCacher(runtime.NumCPU()),
-		acceptorQueue:        make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
-		quit:                 make(chan struct{}),
-		acceptedHeadersCache: NewFIFOCache[uint64, *types.Header](cacheConfig.AcceptedCacheSize),
-		acceptedLogsCache:    NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
+		bodyCache:         bodyCache,
+		receiptsCache:     receiptsCache,
+		blockCache:        blockCache,
+		txLookupCache:     txLookupCache,
+		feeConfigCache:    feeConfigCache,
+		engine:            engine,
+		vmConfig:          vmConfig,
+		badBlocks:         badBlocks,
+		senderCacher:      newTxSenderCacher(runtime.NumCPU()),
+		acceptorQueue:     make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
+		quit:              make(chan struct{}),
+		acceptedLogsCache: NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
 	}
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
 	bc.processor = NewStateProcessor(chainConfig, bc, engine)
 
 	var err error
-	bc.hc, err = NewHeaderChain(db, chainConfig, engine)
+	bc.hc, err = NewHeaderChain(db, chainConfig, cacheConfig, engine)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +379,7 @@ func NewBlockChain(
 		bc.initSnapshot(head)
 	}
 
-	// Warm up [acceptedHeadersCache] and [acceptedLogsCache]
+	// Warm up [hc.acceptedNumberCache] and [acceptedLogsCache]
 	bc.warmAcceptedCaches()
 
 	// Start processing accepted blocks effects in the background
@@ -448,7 +445,7 @@ func (bc *BlockChain) flattenSnapshot(postAbortWork func() error, hash common.Ha
 }
 
 // warmAcceptedCaches fetches previously accepted headers and logs from disk to
-// pre-populate [acceptedHeadersCache] and [acceptedLogsCache].
+// pre-populate [hc.acceptedNumberCache] and [acceptedLogsCache].
 func (bc *BlockChain) warmAcceptedCaches() {
 	var (
 		startTime       = time.Now()
@@ -476,7 +473,7 @@ func (bc *BlockChain) warmAcceptedCaches() {
 			log.Info("Exiting accepted cache warming early because header is nil", "height", i, "t", time.Since(startTime))
 			break
 		}
-		bc.acceptedHeadersCache.Put(header.Number.Uint64(), header)
+		bc.hc.acceptedNumberCache.Put(header.Number.Uint64(), header)
 		bc.acceptedLogsCache.Put(header.Hash(), rawdb.ReadLogs(bc.db, header.Hash(), header.Number.Uint64()))
 	}
 	log.Info("Warmed accepted caches", "start", startIndex, "end", lastAccepted, "t", time.Since(startTime))
@@ -502,8 +499,8 @@ func (bc *BlockChain) startAcceptor() {
 			log.Crit("failed to write accepted block effects", "err", err)
 		}
 
-		// Ensure [acceptedHeadersCache] and [acceptedLogsCache] have latest content
-		bc.acceptedHeadersCache.Put(next.NumberU64(), next.Header())
+		// Ensure [hc.acceptedNumberCache] and [acceptedLogsCache] have latest content
+		bc.hc.acceptedNumberCache.Put(next.NumberU64(), next.Header())
 		logs := rawdb.ReadLogs(bc.db, next.Hash(), next.NumberU64())
 		bc.acceptedLogsCache.Put(next.Hash(), logs)
 
