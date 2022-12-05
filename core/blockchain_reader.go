@@ -76,8 +76,6 @@ func (bc *BlockChain) GetHeaderByHash(hash common.Hash) *types.Header {
 
 // GetHeaderByNumber retrieves a block header from the database by number,
 // caching it (associated with its hash) if found.
-//
-// This path is commonly accessed when processing eth_getLogs requests.
 func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 	return bc.hc.GetHeaderByNumber(number)
 }
