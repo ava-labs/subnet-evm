@@ -456,13 +456,18 @@ func (bc *BlockChain) warmAcceptedCaches() {
 		startIndex      = uint64(1)
 		targetCacheSize = uint64(bc.cacheConfig.AcceptedCacheSize)
 	)
+	if targetCacheSize == 0 {
+		log.Info("Not warming accepted cache because disabled")
+		return
+	}
 	if lastAccepted < startIndex {
 		// This could occur if we haven't accepted any blocks yet
 		log.Info("Not warming accepted cache because there are no accepted blocks")
 		return
 	}
-	if targetCacheSize < lastAccepted { // ensure start index is at least 1
-		startIndex = lastAccepted - targetCacheSize
+	cacheDiff := targetCacheSize - 1 // last accepted lookback is inclusive, so we reduce size by 1
+	if cacheDiff < lastAccepted {
+		startIndex = lastAccepted - cacheDiff
 	}
 	for i := startIndex; i <= lastAccepted; i++ {
 		header := bc.GetHeaderByNumber(i)
