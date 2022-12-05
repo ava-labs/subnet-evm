@@ -432,11 +432,6 @@ func (b *EthAPIBackend) BloomStatus() (uint64, uint64) {
 	return params.BloomBitsBlocks, sections
 }
 
-func (b *EthAPIBackend) LastBloomIndex() uint64 {
-	size, sections := b.BloomStatus()
-	return size * sections
-}
-
 func (b *EthAPIBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
 	for i := 0; i < bloomFilterThreads; i++ {
 		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, b.eth.bloomRequests)

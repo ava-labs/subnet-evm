@@ -78,7 +78,6 @@ type Backend interface {
 	SubscribeAcceptedTransactionEvent(ch chan<- core.NewTxsEvent) event.Subscription
 
 	BloomStatus() (uint64, uint64)
-	LastBloomIndex() uint64
 	ServiceFilter(ctx context.Context, session *bloombits.MatcherSession)
 
 	// Added to the backend interface to support limiting of logs requests
