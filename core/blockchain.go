@@ -503,7 +503,7 @@ func (bc *BlockChain) startAcceptor() {
 		bc.acceptedLogsCache.Put(next.Hash(), logs)
 
 		// Update accepted feeds
-		flattenedLogs := FlattenLogs(logs)
+		flattenedLogs := types.FlattenLogs(logs)
 		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flattenedLogs})
 		if len(flattenedLogs) > 0 {
 			bc.logsAcceptedFeed.Send(flattenedLogs)
@@ -1994,13 +1994,4 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 
 	bc.initSnapshot(head)
 	return nil
-}
-
-// FlattenLogs converts a nested array of logs to a single array of logs.
-func FlattenLogs(list [][]*types.Log) []*types.Log {
-	var flat []*types.Log
-	for _, logs := range list {
-		flat = append(flat, logs...)
-	}
-	return flat
 }

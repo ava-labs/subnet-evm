@@ -32,7 +32,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/bloombits"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/rpc"
@@ -269,7 +268,7 @@ func (f *Filter) blockLogs(ctx context.Context, header *types.Header, skipBloom 
 		if err != nil {
 			return nil, err
 		}
-		return core.FlattenLogs(list), nil
+		return types.FlattenLogs(list), nil
 	} else if skipBloom || bloomFilter(header.Bloom, f.addresses, f.topics) {
 		return f.checkMatches(ctx, header)
 	}
@@ -284,7 +283,7 @@ func (f *Filter) checkMatches(ctx context.Context, header *types.Header) ([]*typ
 		return nil, err
 	}
 
-	unfiltered := core.FlattenLogs(logsList)
+	unfiltered := types.FlattenLogs(logsList)
 	logs := filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
 	if len(logs) > 0 {
 		// We have matching logs, check if we need to resolve full logs via the light client
