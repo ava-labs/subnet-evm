@@ -32,6 +32,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
@@ -200,6 +201,11 @@ func (evm *EVM) Cancelled() bool {
 	return atomic.LoadInt32(&evm.abort) == 1
 }
 
+// GetSnowContext returns the evm's snow.Context.
+func (evm *EVM) GetSnowContext() *snow.Context {
+	return evm.chainConfig.SnowCtx
+}
+
 // GetStateDB returns the evm's StateDB
 func (evm *EVM) GetStateDB() precompile.StateDB {
 	return evm.StateDB
@@ -299,6 +305,11 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		//	evm.StateDB.DiscardSnapshot(snapshot)
 	}
 	return ret, gas, err
+}
+
+// CallFromPrecompile invokes Call to execute the contract with the given input parameters.
+func (evm *EVM) CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	return evm.Call(AccountRef(caller), addr, input, gas, value)
 }
 
 // CallCode executes the contract associated with the addr with the given input

@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -50,11 +51,18 @@ func (mb *mockBlockContext) Timestamp() *big.Int { return new(big.Int).SetUint64
 type mockAccessibleState struct {
 	state        *state.StateDB
 	blockContext *mockBlockContext
+	snowContext  *snow.Context
 }
 
 func (m *mockAccessibleState) GetStateDB() precompile.StateDB { return m.state }
 
 func (m *mockAccessibleState) GetBlockContext() precompile.BlockContext { return m.blockContext }
+
+func (m *mockAccessibleState) GetSnowContext() *snow.Context { return m.snowContext }
+
+func (m *mockAccessibleState) CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	return nil, 0, nil
+}
 
 // This test is added within the core package so that it can import all of the required code
 // without creating any import cycles
@@ -235,7 +243,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			require.Equal(t, precompile.AllowListNoRole, precompile.GetContractDeployerAllowListStatus(state, noRoleAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
-			ret, remainingGas, err := precompile.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.ContractDeployerAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.ContractDeployerAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
@@ -429,7 +437,7 @@ func TestTxAllowListRun(t *testing.T) {
 			require.Equal(t, precompile.AllowListAdmin, precompile.GetTxAllowListStatus(state, adminAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
-			ret, remainingGas, err := precompile.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.TxAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.TxAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
@@ -678,7 +686,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := precompile.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.ContractNativeMinterAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.ContractNativeMinterAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
@@ -942,7 +950,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.FeeConfigManagerAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.FeeConfigManagerAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
@@ -1262,7 +1270,7 @@ func TestRewardManagerRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := precompile.RewardManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext}, test.caller, precompile.RewardManagerAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := precompile.RewardManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.RewardManagerAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

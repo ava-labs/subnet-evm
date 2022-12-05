@@ -150,7 +150,7 @@ func New(
 	log.Info(strings.Repeat("-", 153))
 	log.Info("")
 	// Free airdrop data to save memory usage
-	core.AirdropData = nil
+	config.Genesis.AirdropData = nil
 
 	// Note: RecoverPruning must be called to handle the case that we are midway through offline pruning.
 	// If the data directory is changed in between runs preventing RecoverPruning from performing its job correctly,
@@ -283,8 +283,9 @@ func (s *Ethereum) APIs() []rpc.API {
 	// Create [filterSystem] with the log cache size set in the config.
 	ethcfg := s.APIBackend.eth.config
 	filterSystem := filters.NewFilterSystem(s.APIBackend, filters.Config{
-		LogCacheSize: ethcfg.FilterLogCacheSize,
-		Timeout:      5 * time.Minute,
+		IndexedLogCacheSize:   ethcfg.IndexedFilterLogCacheSize,
+		UnindexedLogCacheSize: ethcfg.UnindexedFilterLogCacheSize,
+		Timeout:               5 * time.Minute,
 	})
 
 	// Append all the local APIs and return

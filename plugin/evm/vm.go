@@ -283,9 +283,17 @@ func (vm *VM) Initialize(
 	if g.Config == nil {
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
+
+	// Load airdrop file if provided
+	if vm.config.AirdropFile != "" {
+		g.AirdropData, err = os.ReadFile(vm.config.AirdropFile)
+		if err != nil {
+			return fmt.Errorf("could not read airdrop file '%s': %w", vm.config.AirdropFile, err)
+		}
+	}
 	// Set the Avalanche Context on the ChainConfig
 	g.Config.AvalancheContext = params.AvalancheContext{
-		BlockchainID: common.Hash(chainCtx.ChainID),
+		SnowCtx: chainCtx,
 	}
 	vm.syntacticBlockValidator = NewBlockValidator()
 
@@ -328,6 +336,8 @@ func (vm *VM) Initialize(
 	vm.ethConfig.OfflinePruningDataDirectory = vm.config.OfflinePruningDataDirectory
 	vm.ethConfig.CommitInterval = vm.config.CommitInterval
 	vm.ethConfig.SkipUpgradeCheck = vm.config.SkipUpgradeCheck
+	vm.ethConfig.IndexedFilterLogCacheSize = vm.config.IndexedLogCacheSize
+	vm.ethConfig.UnindexedFilterLogCacheSize = vm.config.UnindexedLogCacheSize
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
