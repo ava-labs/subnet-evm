@@ -30,10 +30,10 @@ func NewBoundedBuffer[K any](size int, callback func(K)) *BoundedBuffer[K] {
 // Insert adds a new value to the buffer. If the buffer is full, the
 // oldest value will be overwritten and [callback] will be invoked.
 func (b *BoundedBuffer[K]) Insert(h K) {
-	nextPos := (b.lastPos + 1) % b.size // the first item added to the buffer will be at position 0
-	if nextPos == 0 && b.lastPos >= 0 {
-		// Set [cycled] once we are back the 0th element. Because [lastPos]
-		// defaults to -1, any [lastPos] >= 0 ensures we have cycled at least once.
+	nextPos := b.lastPos + 1 // the first item added to the buffer will be at position 0
+	if nextPos == b.size {
+		nextPos = 0
+		// Set [cycled] since we are back to the 0th element
 		b.cycled = true
 	}
 	if b.cycled {
