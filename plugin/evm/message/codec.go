@@ -56,6 +56,9 @@ func init() {
 		ccc.RegisterType(EthCallRequest{}),
 		ccc.RegisterType(EthCallResponse{}),
 
+		ccc.RegisterType(PongRequest{}),
+		ccc.RegisterType(PongResponse{}),
+
 		CrossChainCodec.RegisterCodec(Version, ccc),
 	)
 
