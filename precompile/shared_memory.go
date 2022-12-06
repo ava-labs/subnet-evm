@@ -33,7 +33,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/components/verify"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
@@ -240,18 +239,11 @@ func exportAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
-	// attempts to unpack [input] into the arguments to the ExportAVAXInput.
-	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
 	inputStruct, err := UnpackExportAVAXInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	// TODO: validate the DestinationChainID
-	// Plumbing TODOs
-	// - pass in Avalanche backend with snow.Context
-	// - add ability to emit a log
-	ctx := snow.DefaultContextTest()
+	ctx := accessibleState.GetSnowContext()
 	if err := verify.SameSubnet(ctx, ids.ID(inputStruct.DestinationChainID)); err != nil {
 		return nil, remainingGas, err
 	}
@@ -260,23 +252,18 @@ func exportAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 	accessibleState.GetStateDB().SubBalance(SharedMemoryAddress, balance)
 	convertedBalance := balance.Div(balance, big.NewInt(1000000000))
 
-	// TODO emit the exportAVAX log for ingestion
 	topics, data, err := SharedMemoryABI.PackEvent(
 		"ExportAVAX",
-		[]interface{}{ // TODO: use expanded args style
-			convertedBalance,
-			inputStruct.DestinationChainID,
-			inputStruct.Locktime,
-			inputStruct.Threshold,
-			inputStruct.Addrs,
-		},
+		convertedBalance,
+		inputStruct.DestinationChainID,
+		inputStruct.Locktime,
+		inputStruct.Threshold,
+		inputStruct.Addrs,
 	)
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	// TODO: create log
-	_ = topics
-	_ = data
+	accessibleState.GetStateDB().AddLog(SharedMemoryAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil

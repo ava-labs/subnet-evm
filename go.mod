@@ -51,6 +51,9 @@ require (
 )
 
 require (
+	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
+	github.com/aead/siphash v1.0.1 // indirect
+	github.com/ava-labs/avalanche-ledger-go v0.0.13 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.23.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
