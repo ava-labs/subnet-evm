@@ -630,7 +630,7 @@ func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimesta
 		blockTimestampInt := s.b.CurrentHeader().Time
 		blockTimestamp = new(big.Int).SetUint64(blockTimestampInt)
 	}
-	return s.b.ChainConfig().GetActivePrecompiles(blockTimestamp)
+	return s.b.ChainConfig().GetActivePrecompileUpgrade(blockTimestamp)
 }
 
 type FeeConfigResult struct {

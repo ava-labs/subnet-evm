@@ -274,41 +274,42 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 
 // PRECOMPILE UPGRADES START HERE
 
+// TODO: generalize these functions with IsPrecompileEnabled(address, blockTimestamp)
 // IsContractDeployerAllowList returns whether [blockTimestamp] is either equal to the ContractDeployerAllowList fork block timestamp or greater.
 func (c *ChainConfig) IsContractDeployerAllowList(blockTimestamp *big.Int) bool {
-	config := c.GetContractDeployerAllowListConfig(blockTimestamp)
-	return config != nil && !config.Disable
+	config := c.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, blockTimestamp)
+	return config != nil && !config.IsDisabled()
 }
 
 // IsContractNativeMinter returns whether [blockTimestamp] is either equal to the NativeMinter fork block timestamp or greater.
 func (c *ChainConfig) IsContractNativeMinter(blockTimestamp *big.Int) bool {
-	config := c.GetContractNativeMinterConfig(blockTimestamp)
-	return config != nil && !config.Disable
+	config := c.GetPrecompileConfig(precompile.ContractNativeMinterAddress, blockTimestamp)
+	return config != nil && !config.IsDisabled()
 }
 
 // IsTxAllowList returns whether [blockTimestamp] is either equal to the TxAllowList fork block timestamp or greater.
 func (c *ChainConfig) IsTxAllowList(blockTimestamp *big.Int) bool {
-	config := c.GetTxAllowListConfig(blockTimestamp)
-	return config != nil && !config.Disable
+	config := c.GetPrecompileConfig(precompile.TxAllowListAddress, blockTimestamp)
+	return config != nil && !config.IsDisabled()
 }
 
 // IsFeeConfigManager returns whether [blockTimestamp] is either equal to the FeeConfigManager fork block timestamp or greater.
 func (c *ChainConfig) IsFeeConfigManager(blockTimestamp *big.Int) bool {
-	config := c.GetFeeConfigManagerConfig(blockTimestamp)
-	return config != nil && !config.Disable
+	config := c.GetPrecompileConfig(precompile.FeeConfigManagerAddress, blockTimestamp)
+	return config != nil && !config.IsDisabled()
 }
 
 // IsRewardManager returns whether [blockTimestamp] is either equal to the RewardManager fork block timestamp or greater.
 func (c *ChainConfig) IsRewardManager(blockTimestamp *big.Int) bool {
-	config := c.GetRewardManagerConfig(blockTimestamp)
-	return config != nil && !config.Disable
+	config := c.GetPrecompileConfig(precompile.RewardManagerAddress, blockTimestamp)
+	return config != nil && !config.IsDisabled()
 }
 
 // ADD YOUR PRECOMPILE HERE
 /*
 func (c *ChainConfig) Is{YourPrecompile}(blockTimestamp *big.Int) bool {
-	config := c.Get{YourPrecompile}Config(blockTimestamp)
-	return config != nil && !config.Disable
+	config := c.GetPrecompileConfig(precompile.{YourPrecompile}Address, blockTimestamp)
+	return config != nil && !config.IsDisabled()
 }
 */
 
