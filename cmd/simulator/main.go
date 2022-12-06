@@ -101,7 +101,7 @@ func runFunc(cmd *cobra.Command, args []string) {
 		cfg.Endpoints = eps
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithCancel(context.Background()) // , timeout)
 	errc := make(chan error)
 	go func() {
 		errc <- worker.Run(ctx, cfg, keysDir)

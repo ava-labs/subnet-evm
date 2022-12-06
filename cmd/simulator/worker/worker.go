@@ -28,6 +28,7 @@ var (
 
 	chainID     *big.Int
 	signer      types.Signer
+	baseFee     *big.Int
 	feeCap      *big.Int
 	priorityFee *big.Int
 
@@ -40,12 +41,13 @@ func setupVars(cID *big.Int, bFee uint64, pFee uint64) {
 	chainID = cID
 	signer = types.LatestSignerForChainID(chainID)
 	priorityFee = new(big.Int).SetUint64(pFee * params.GWei)
+	baseFee = new(big.Int).SetUint64(bFee * params.GWei)
 	feeCap = new(big.Int).Add(new(big.Int).SetUint64(bFee*params.GWei), priorityFee)
 
 	maxTransferCost = new(big.Int).Mul(new(big.Int).SetUint64(transferGasLimit), feeCap)
 	maxTransferCost = new(big.Int).Add(maxTransferCost, transferAmount)
 
-	requestAmount = new(big.Int).Mul(maxTransferCost, big.NewInt(100))
+	requestAmount = new(big.Int).Mul(maxTransferCost, big.NewInt(1000))
 	minFunderBalance = new(big.Int).Add(maxTransferCost, requestAmount)
 }
 
@@ -185,14 +187,18 @@ func (w *worker) waitForBalance(ctx context.Context, stdout bool, minBalance *bi
 }
 
 func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *big.Int) error {
+	nonceStart := w.pendingNonce
+	w.pendingNonce++
+	w.balance = new(big.Int).Sub(w.balance, new(big.Int).Mul(baseFee, new(big.Int).SetUint64(transferGasLimit)))
+	w.balance = new(big.Int).Sub(w.balance, transferAmount)
 	for ctx.Err() == nil {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainID,
-			Nonce:     w.pendingNonce,
+			Nonce:     nonceStart,
 			To:        &recipient,
 			Gas:       transferGasLimit,
-			GasFeeCap: feeCap,
-			GasTipCap: feeCap,
+			GasFeeCap: baseFee,
+			GasTipCap: common.Big0,
 			Value:     value,
 			Data:      []byte{},
 		})
@@ -207,15 +213,13 @@ func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *bi
 			time.Sleep(retryDelay)
 			continue
 		}
-		w.pendingNonce++
-		w.balance = new(big.Int).Sub(w.balance, feeCap.Mul(feeCap, new(big.Int).SetUint64(transferGasLimit)))
-		w.balance = new(big.Int).Sub(w.balance, transferAmount)
 		return nil
 	}
 	return ctx.Err()
 }
 
 func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundRequest chan common.Address) error {
+	txs := 0
 	for ctx.Err() == nil {
 		if w.balance.Cmp(maxTransferCost) < 0 {
 			log.Printf("%s requesting funds from master\n", w.k.Address.Hex())
@@ -231,9 +235,22 @@ func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundReque
 		if err := w.sendTx(ctx, recipient.k.Address, transferAmount); err != nil {
 			return err
 		}
-		time.Sleep(workDelay)
-
 		// TODO: get nonce
+		txs++
+		if txs > 10 {
+			for ctx.Err() == nil {
+				nonce, err := w.c.NonceAt(ctx, w.k.Address, nil)
+				if err != nil {
+					log.Printf("could not get nonce: %s\n", err.Error())
+					time.Sleep(retryDelay)
+					continue
+				}
+				if w.pendingNonce-nonce < 10 {
+					break
+				}
+				time.Sleep(workDelay)
+			}
+		}
 	}
 	return ctx.Err()
 }
