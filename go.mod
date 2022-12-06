@@ -133,3 +133,5 @@ require (
 )
 
 replace github.com/ava-labs/avalanchego => ../avalanchego-internal
+
+replace github.com/ava-labs/avalanche-go => ../avalanchego-internal

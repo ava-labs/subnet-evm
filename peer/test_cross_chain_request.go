@@ -7,6 +7,8 @@ import (
 )
 
 func SendPongCrossChainRequest(networkClient NetworkClient, chainID ids.ID) error {
+	log.Info("_--------------------------------- START PONG CCR  -------------------------------------")
+
 	var pongRequest message.CrossChainRequest = message.PongRequest{
 		RequestBytes: []byte("ping"),
 	}
