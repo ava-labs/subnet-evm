@@ -132,13 +132,13 @@ func New(
 	config.SnapshotCache = roundUpCacheSize(config.SnapshotCache, 64)
 
 	log.Info(
-		"Allocated trie memory caches",
+		"Allocated memory caches",
 		"trie clean", common.StorageSize(config.TrieCleanCache)*1024*1024,
 		"trie dirty", common.StorageSize(config.TrieDirtyCache)*1024*1024,
 		"snapshot clean", common.StorageSize(config.SnapshotCache)*1024*1024,
 	)
 
-	chainConfig, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis, lastAcceptedHash)
+	chainConfig, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis, lastAcceptedHash, config.SkipUpgradeCheck)
 	if genesisErr != nil {
 		return nil, genesisErr
 	}
@@ -150,7 +150,7 @@ func New(
 	log.Info(strings.Repeat("-", 153))
 	log.Info("")
 	// Free airdrop data to save memory usage
-	core.AirdropData = nil
+	config.Genesis.AirdropData = nil
 
 	// Note: RecoverPruning must be called to handle the case that we are midway through offline pruning.
 	// If the data directory is changed in between runs preventing RecoverPruning from performing its job correctly,
@@ -214,6 +214,7 @@ func New(
 			SnapshotVerify:                  config.SnapshotVerify,
 			SkipSnapshotRebuild:             config.SkipSnapshotRebuild,
 			Preimages:                       config.Preimages,
+			AcceptedCacheSize:               config.AcceptedCacheSize,
 		}
 	)
 
@@ -238,17 +239,22 @@ func New(
 
 	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, clock)
 
+	allowUnprotectedTxHashes := make(map[common.Hash]struct{})
+	for _, txHash := range config.AllowUnprotectedTxHashes {
+		allowUnprotectedTxHashes[txHash] = struct{}{}
+	}
+
 	eth.APIBackend = &EthAPIBackend{
-		extRPCEnabled:       stack.Config().ExtRPCEnabled(),
-		allowUnprotectedTxs: config.AllowUnprotectedTxs,
-		eth:                 eth,
+		extRPCEnabled:            stack.Config().ExtRPCEnabled(),
+		allowUnprotectedTxs:      config.AllowUnprotectedTxs,
+		allowUnprotectedTxHashes: allowUnprotectedTxHashes,
+		eth:                      eth,
 	}
 	if config.AllowUnprotectedTxs {
 		log.Info("Unprotected transactions allowed")
 	}
 	gpoParams := config.GPO
 	eth.APIBackend.gpo, err = gasprice.NewOracle(eth.APIBackend, gpoParams)
-
 	if err != nil {
 		return nil, err
 	}
@@ -276,10 +282,8 @@ func (s *Ethereum) APIs() []rpc.API {
 	apis = append(apis, s.stackRPCs...)
 
 	// Create [filterSystem] with the log cache size set in the config.
-	ethcfg := s.APIBackend.eth.config
 	filterSystem := filters.NewFilterSystem(s.APIBackend, filters.Config{
-		LogCacheSize: ethcfg.FilterLogCacheSize,
-		Timeout:      5 * time.Minute,
+		Timeout: 5 * time.Minute,
 	})
 
 	// Append all the local APIs and return

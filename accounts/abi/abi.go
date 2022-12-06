@@ -91,13 +91,13 @@ func (abi ABI) Pack(name string, args ...interface{}) ([]byte, error) {
 	return append(method.ID, arguments...), nil
 }
 
-// PackEvent packs the given event name to conform the ABI.
+// PackEvent packs the given event name and arguments to conform the ABI.
 // Returns the topics for the event including the event signature (if non-anonymous event) and
 // hashes derived from indexed arguments and the packed data of non-indexed args according to
 // the event ABI specification.
 // https://docs.soliditylang.org/en/v0.8.17/abi-spec.html#indexed-event-encoding.
-// Note: PackEvent does not support array(both fixed size and dynamic-size) and struct types.
-func (abi ABI) PackEvent(name string, args []interface{}) ([]common.Hash, []byte, error) { // TODO UnpackEvent
+// Note: PackEvent does not support array (fixed or dynamic-size) or struct types.
+func (abi ABI) PackEvent(name string, args ...interface{}) ([]common.Hash, []byte, error) {
 	event, exist := abi.Events[name]
 	if !exist {
 		return nil, nil, fmt.Errorf("event '%s' not found", name)
@@ -203,7 +203,7 @@ func (abi ABI) UnpackInput(name string, data []byte) ([]interface{}, error) {
 	return args.Unpack(data)
 }
 
-// Unpack unpacks the output according to the ABI specification.
+// Unpack unpacks the output according to the abi specification.
 func (abi ABI) Unpack(name string, data []byte) ([]interface{}, error) {
 	args, err := abi.getArguments(name, data)
 	if err != nil {
@@ -227,9 +227,9 @@ func (abi ABI) UnpackInputIntoInterface(v interface{}, name string, data []byte)
 	return args.Copy(v, unpacked)
 }
 
-// UnpackIntoInterface unpacks the output in v according to the ABI specification.
+// UnpackIntoInterface unpacks the output in v according to the abi specification.
 // It performs an additional copy. Please only use, if you want to unpack into a
-// structure that does not strictly conform to the ABI structure (e.g. has additional arguments)
+// structure that does not strictly conform to the abi structure (e.g. has additional arguments)
 func (abi ABI) UnpackIntoInterface(v interface{}, name string, data []byte) error {
 	args, err := abi.getArguments(name, data)
 	if err != nil {

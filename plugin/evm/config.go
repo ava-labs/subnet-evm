@@ -44,6 +44,7 @@ const (
 	defaultMaxOutboundActiveRequests              = 16
 	defaultPopulateMissingTriesParallelism        = 1024
 	defaultStateSyncServerTrieCache               = 64 // MB
+	defaultAcceptedCacheSize                      = 32 // blocks
 
 	// defaultStateSyncMinBlocks is the minimum number of blocks the blockchain
 	// should be ahead of local last accepted to perform state sync.
@@ -55,15 +56,20 @@ const (
 	defaultStateSyncMinBlocks = 300_000
 )
 
-var defaultEnabledAPIs = []string{
-	"eth",
-	"eth-filter",
-	"net",
-	"web3",
-	"internal-eth",
-	"internal-blockchain",
-	"internal-transaction",
-}
+var (
+	defaultEnabledAPIs = []string{
+		"eth",
+		"eth-filter",
+		"net",
+		"web3",
+		"internal-eth",
+		"internal-blockchain",
+		"internal-transaction",
+	}
+	defaultAllowUnprotectedTxHashes = []common.Hash{
+		common.HexToHash("0xfefb2da535e927b85fe68eb81cb2e4a5827c905f78381a01ef2322aa9b0aee8e"), // EIP-1820: https://eips.ethereum.org/EIPS/eip-1820
+	}
+)
 
 type Duration struct {
 	time.Duration
@@ -71,6 +77,9 @@ type Duration struct {
 
 // Config ...
 type Config struct {
+	// Airdrop
+	AirdropFile string `json:"airdrop"`
+
 	// Subnet EVM APIs
 	SnowmanAPIEnabled bool   `json:"snowman-api-enabled"`
 	AdminAPIEnabled   bool   `json:"admin-api-enabled"`
@@ -114,13 +123,14 @@ type Config struct {
 	MetricsExpensiveEnabled bool `json:"metrics-expensive-enabled"` // Debug-level metrics that might impact runtime performance
 
 	// API Settings
-	LocalTxsEnabled         bool     `json:"local-txs-enabled"`
-	APIMaxDuration          Duration `json:"api-max-duration"`
-	WSCPURefillRate         Duration `json:"ws-cpu-refill-rate"`
-	WSCPUMaxStored          Duration `json:"ws-cpu-max-stored"`
-	MaxBlocksPerRequest     int64    `json:"api-max-blocks-per-request"`
-	AllowUnfinalizedQueries bool     `json:"allow-unfinalized-queries"`
-	AllowUnprotectedTxs     bool     `json:"allow-unprotected-txs"`
+	LocalTxsEnabled          bool          `json:"local-txs-enabled"`
+	APIMaxDuration           Duration      `json:"api-max-duration"`
+	WSCPURefillRate          Duration      `json:"ws-cpu-refill-rate"`
+	WSCPUMaxStored           Duration      `json:"ws-cpu-max-stored"`
+	MaxBlocksPerRequest      int64         `json:"api-max-blocks-per-request"`
+	AllowUnfinalizedQueries  bool          `json:"allow-unfinalized-queries"`
+	AllowUnprotectedTxs      bool          `json:"allow-unprotected-txs"`
+	AllowUnprotectedTxHashes []common.Hash `json:"allow-unprotected-tx-hashes"`
 
 	// Keystore Settings
 	KeystoreDirectory             string `json:"keystore-directory"` // both absolute and relative supported
@@ -159,6 +169,19 @@ type Config struct {
 	StateSyncIDs             string `json:"state-sync-ids"`
 	StateSyncCommitInterval  uint64 `json:"state-sync-commit-interval"`
 	StateSyncMinBlocks       uint64 `json:"state-sync-min-blocks"`
+
+	// SkipUpgradeCheck disables checking that upgrades must take place before the last
+	// accepted block. Skipping this check is useful when a node operator does not update
+	// their node before the network upgrade and their node accepts blocks that have
+	// identical state with the pre-upgrade ruleset.
+	SkipUpgradeCheck bool `json:"skip-upgrade-check"`
+
+	// AcceptedCacheSize is the depth to keep in the accepted headers cache and the
+	// accepted logs cache at the accepted tip.
+	//
+	// This is particularly useful for improving the performance of eth_getLogs
+	// on RPC nodes.
+	AcceptedCacheSize int `json:"accepted-cache-size"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -203,6 +226,8 @@ func (c *Config) SetDefaults() {
 	c.StateSyncServerTrieCache = defaultStateSyncServerTrieCache
 	c.StateSyncCommitInterval = defaultSyncableCommitInterval
 	c.StateSyncMinBlocks = defaultStateSyncMinBlocks
+	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
+	c.AcceptedCacheSize = defaultAcceptedCacheSize
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

@@ -37,7 +37,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-// packTopic attempts to pack rule into the corresponding hash value for a log's topic
+// packTopic packs rule into the corresponding hash value for a log's topic
 // according to the Solidity documentation:
 // https://docs.soliditylang.org/en/v0.8.17/abi-spec.html#indexed-event-encoding.
 func packTopic(rule interface{}) (common.Hash, error) {
