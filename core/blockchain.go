@@ -38,6 +38,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	chainAtomic "github.com/ava-labs/avalanchego/chains/atomic"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -404,15 +406,26 @@ func NewBlockChain(
 // This includes the following:
 // - transaction lookup indices
 // - updating the acceptor tip index
-func (bc *BlockChain) writeBlockAcceptedIndices(b *types.Block) error {
+// - atomic operations created by precompile onAccept functions
+func (bc *BlockChain) writeBlockAcceptedIndices(block *types.Block, receipts []*types.Receipt) error {
+	atomicOps, err := bc.handlePrecompilePostAccept(block, receipts)
+	if err != nil {
+		return fmt.Errorf("precompile post accept failed: %w", err)
+	}
+
 	batch := bc.db.NewBatch()
-	rawdb.WriteTxLookupEntriesByBlock(batch, b)
-	if err := rawdb.WriteAcceptorTip(batch, b.Hash()); err != nil {
+	rawdb.WriteTxLookupEntriesByBlock(batch, block)
+	if err := rawdb.WriteAcceptorTip(batch, block.Hash()); err != nil {
 		return fmt.Errorf("%w: failed to write acceptor tip key", err)
 	}
-	if err := batch.Write(); err != nil {
-		return fmt.Errorf("%w: failed to write tx lookup entries batch", err)
+	// TODO: must apply atomic operations atomically with the accepted block indices update
+	if err := bc.chainConfig.SnowCtx.SharedMemory.Apply(atomicOps); err != nil {
+		return fmt.Errorf("failed to apply operations to shared memory: %w", err)
 	}
+	if err := batch.Write(); err != nil {
+		return fmt.Errorf("failed to write accepted block indices batch: %w", err)
+	}
+
 	return nil
 }
 
@@ -494,8 +507,8 @@ func (bc *BlockChain) startAcceptor() {
 			log.Crit("unable to flatten snapshot from acceptor", "blockHash", next.Hash(), "err", err)
 		}
 
-		// Update last processed and transaction lookup index
-		if err := bc.writeBlockAcceptedIndices(next); err != nil {
+		receipts := rawdb.ReadReceipts(bc.db, next.Hash(), next.NumberU64(), bc.chainConfig)
+		if err := bc.writeBlockAcceptedIndices(next, receipts); err != nil {
 			log.Crit("failed to write accepted block effects", "err", err)
 		}
 
@@ -963,17 +976,17 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	bc.addAcceptorQueue(block)
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
-	return bc.handlePrecompilePostAccept(block)
+	return nil
 }
 
 // handlePrecompilePostAccept handles executing the post-accept functions of any active precompiles
 // on the logs contained in the block.
-func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block) error {
+func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block, receipts []*types.Receipt) (map[ids.ID]*chainAtomic.Requests, error) {
 	rules := bc.chainConfig.AvalancheRules(block.Number(), block.Timestamp())
-	receipts := rawdb.ReadReceipts(bc.db, block.Hash(), block.NumberU64(), bc.chainConfig)
 
-	for txIndex, receipt := range receipts {
-		for _, log := range receipt.Logs {
+	atomicOps := make(map[ids.ID]*chainAtomic.Requests)
+	for _, receipt := range receipts {
+		for logIndex, log := range receipt.Logs {
 			precompileConfig, ok := rules.Precompiles[log.Address]
 			if !ok {
 				continue
@@ -984,14 +997,28 @@ func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block) error {
 				continue
 			}
 
-			if err := onAccept(txIndex, log.Data); err != nil {
-				return err
+			blockchainID, atomicRequests, err := onAccept(bc.chainConfig.SnowCtx, receipt.TxHash, logIndex, log.Topics, log.Data)
+			if err != nil {
+				return nil, err
 			}
+			mergeAtomicOpsToMap(atomicOps, blockchainID, atomicRequests)
 		}
 	}
 
-	return nil
+	return atomicOps, nil
 }
+
+// mergeAtomicOps merges atomic ops for [chainID] represented by [requests]
+// to the [output] map provided.
+func mergeAtomicOpsToMap(output map[ids.ID]*chainAtomic.Requests, chainID ids.ID, requests *chainAtomic.Requests) {
+	if request, exists := output[chainID]; exists {
+		request.PutRequests = append(request.PutRequests, requests.PutRequests...)
+		request.RemoveRequests = append(request.RemoveRequests, requests.RemoveRequests...)
+	} else {
+		output[chainID] = requests
+	}
+}
+
 func (bc *BlockChain) Reject(block *types.Block) error {
 	bc.chainmu.Lock()
 	defer bc.chainmu.Unlock()
@@ -1788,8 +1815,10 @@ func (bc *BlockChain) reprocessState(current *types.Block, reexec uint64) error 
 
 		// Write any unsaved indices to disk
 		if writeIndices {
-			if err := bc.writeBlockAcceptedIndices(current); err != nil {
-				return fmt.Errorf("%w: failed to process accepted block indices", err)
+			receipts := rawdb.ReadReceipts(bc.db, current.Hash(), current.NumberU64(), bc.chainConfig)
+			err := bc.writeBlockAcceptedIndices(current, receipts)
+			if err != nil {
+				log.Crit("failed to write accepted block effects", "err", err)
 			}
 		}
 	}
