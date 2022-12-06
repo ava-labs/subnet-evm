@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanche-network-runner-sdk v0.3.0
-	github.com/ava-labs/avalanchego v1.9.3
+	github.com/ava-labs/avalanchego v1.9.4-rc.9
 	github.com/cespare/cp v0.1.0
 	github.com/creack/pty v1.1.18
 	github.com/davecgh/go-spew v1.1.1
@@ -131,7 +131,3 @@ require (
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/ava-labs/avalanchego => ../avalanchego-internal
-
-replace github.com/ava-labs/avalanche-go => ../avalanchego-internal
