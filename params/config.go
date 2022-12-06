@@ -272,10 +272,7 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 	return utils.IsForked(c.getNetworkUpgrades().SubnetEVMTimestamp, blockTimestamp)
 }
 
-// PRECOMPILE UPGRADES START HERE
-
-// TODO: generalize these functions with IsPrecompileEnabled(address, blockTimestamp)
-// IsContractDeployerAllowList returns whether [blockTimestamp] is either equal to the ContractDeployerAllowList fork block timestamp or greater.
+// IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, blockTimestamp *big.Int) bool {
 	config := c.GetPrecompileConfig(address, blockTimestamp)
 	return config != nil && !config.IsDisabled()
