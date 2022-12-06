@@ -68,7 +68,7 @@ func createWorkers(ctx context.Context, keysDir string, endpoints []string, desi
 		if err := worker.fetchNonce(ctx); err != nil {
 			return nil, nil, fmt.Errorf("could not get nonce: %w", err)
 		}
-		log.Printf("loaded worker %s (balance=%s nonce=%d)\n", worker.k.Address.Hex(), worker.balance.String(), worker.nonce)
+		log.Printf("loaded worker %s (balance=%s nonce=%d)\n", worker.k.Address.Hex(), worker.balance.String(), worker.pendingNonce)
 
 		switch {
 		case master == nil:
@@ -107,8 +107,8 @@ type worker struct {
 	c ethclient.Client
 	k *key.Key
 
-	balance *big.Int
-	nonce   uint64
+	balance      *big.Int
+	pendingNonce uint64
 }
 
 func newWorker(k *key.Key, endpoint string, keysDir string) (*worker, error) {
@@ -129,10 +129,10 @@ func newWorker(k *key.Key, endpoint string, keysDir string) (*worker, error) {
 	}
 
 	return &worker{
-		c:       client,
-		k:       k,
-		balance: big.NewInt(0),
-		nonce:   0,
+		c:            client,
+		k:            k,
+		balance:      big.NewInt(0),
+		pendingNonce: 0,
 	}, nil
 }
 
@@ -158,7 +158,7 @@ func (w *worker) fetchNonce(ctx context.Context) error {
 			time.Sleep(retryDelay)
 			continue
 		}
-		w.nonce = nonce
+		w.pendingNonce = nonce
 		return nil
 	}
 	return ctx.Err()
@@ -188,11 +188,11 @@ func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *bi
 	for ctx.Err() == nil {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainID,
-			Nonce:     w.nonce,
+			Nonce:     w.pendingNonce,
 			To:        &recipient,
 			Gas:       transferGasLimit,
 			GasFeeCap: feeCap,
-			GasTipCap: priorityFee,
+			GasTipCap: feeCap,
 			Value:     value,
 			Data:      []byte{},
 		})
@@ -207,15 +207,8 @@ func (w *worker) sendTx(ctx context.Context, recipient common.Address, value *bi
 			time.Sleep(retryDelay)
 			continue
 		}
-		txHash := signedTx.Hash()
-		cost, err := w.confirmTransaction(ctx, txHash)
-		if err != nil {
-			log.Printf("failed to confirm %s: %s", txHash.Hex(), err.Error())
-			time.Sleep(retryDelay)
-			continue
-		}
-		w.nonce++
-		w.balance = new(big.Int).Sub(w.balance, cost)
+		w.pendingNonce++
+		w.balance = new(big.Int).Sub(w.balance, feeCap.Mul(feeCap, new(big.Int).SetUint64(transferGasLimit)))
 		w.balance = new(big.Int).Sub(w.balance, transferAmount)
 		return nil
 	}
@@ -239,6 +232,8 @@ func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundReque
 			return err
 		}
 		time.Sleep(workDelay)
+
+		// TODO: get nonce
 	}
 	return ctx.Err()
 }
