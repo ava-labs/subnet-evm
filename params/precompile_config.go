@@ -26,6 +26,7 @@ type PrecompileUpgrade struct {
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
 
+// getByAddress returns the precompile config for the given address.
 func (p *PrecompileUpgrade) getByAddress(address common.Address) (precompile.StatefulPrecompileConfig, bool) {
 	switch address {
 	case precompile.ContractDeployerAllowListAddress:
@@ -41,7 +42,7 @@ func (p *PrecompileUpgrade) getByAddress(address common.Address) (precompile.Sta
 	// ADD YOUR PRECOMPILE HERE
 	/*
 		case precompile.{YourPrecompile}Address:
-		return p.{YourPrecompile}Config , p.{YourPrecompile}Config  != nil
+		  return p.{YourPrecompile}Config , p.{YourPrecompile}Config != nil
 	*/
 	default:
 		panic(fmt.Sprintf("unknown precompile address: %v", address))
@@ -102,7 +103,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		// next range over upgrades to verify correct use of disabled and blockTimestamps.
 		for i, upgrade := range c.PrecompileUpgrades {
 			config, ok := upgrade.getByAddress(address)
-			// Skip the upgrade if it's not relevant to [key].
+			// Skip the upgrade if it's not relevant to [address].
 			if !ok {
 				continue
 			}
@@ -126,7 +127,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 	return nil
 }
 
-// getActivePrecompileConfig returns the most recent precompile config corresponding to [key].
+// getActivePrecompileConfig returns the most recent precompile config corresponding to [address].
 // If none have occurred, returns nil.
 func (c *ChainConfig) getActivePrecompileConfig(blockTimestamp *big.Int, address common.Address, upgrades []PrecompileUpgrade) precompile.StatefulPrecompileConfig {
 	configs := c.getActivatingPrecompileConfigs(nil, blockTimestamp, address, upgrades)
@@ -157,28 +158,6 @@ func (c *ChainConfig) getActivatingPrecompileConfigs(from *big.Int, to *big.Int,
 		}
 	}
 	return configs
-}
-
-func (c *ChainConfig) getActiveUpgrade(to *big.Int, address common.Address, upgrades []PrecompileUpgrade) (PrecompileUpgrade, bool) {
-	// First reverse search over all upgrades checking for the requested precompile config.
-	for index := len(upgrades) - 1; index >= 0; index-- {
-		upgrade := upgrades[index]
-		if config, ok := upgrade.getByAddress(address); ok {
-			// Check if the precompile activates in the specified range.
-			if utils.IsForkTransition(config.Timestamp(), nil, to) {
-				return upgrade, true
-			}
-		}
-	}
-
-	// Later check the embedded [upgrade] for precompiles configured
-	// in the genesis chain config.
-	if config, ok := c.PrecompileUpgrade.getByAddress(address); ok {
-		if utils.IsForkTransition(config.Timestamp(), nil, to) {
-			return c.PrecompileUpgrade, true
-		}
-	}
-	return PrecompileUpgrade{}, false
 }
 
 func (c *ChainConfig) GetPrecompileConfig(address common.Address, blockTimestamp *big.Int) precompile.StatefulPrecompileConfig {
@@ -231,7 +210,7 @@ func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []Precompile
 	return nil
 }
 
-// checkPrecompileCompatible verifies that the precompile specified by [key] is compatible between [c] and [precompileUpgrades] at [headTimestamp].
+// checkPrecompileCompatible verifies that the precompile specified by [address] is compatible between [c] and [precompileUpgrades] at [headTimestamp].
 // Returns an error if upgrades already forked at [headTimestamp] are missing from [precompileUpgrades].
 // Upgrades that have already gone into effect cannot be modified or absent from [precompileUpgrades].
 func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {

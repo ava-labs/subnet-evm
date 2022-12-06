@@ -625,6 +625,7 @@ func (api *BlockChainAPI) ChainId() *hexutil.Big {
 	return (*hexutil.Big)(api.b.ChainConfig().ChainID)
 }
 
+// GetActivePrecompilesAt returns the active precompile configs at the given block timestamp.
 func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) params.PrecompileUpgrade {
 	if blockTimestamp == nil {
 		blockTimestampInt := s.b.CurrentHeader().Time
