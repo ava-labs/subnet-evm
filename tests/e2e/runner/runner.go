@@ -7,9 +7,10 @@ import (
 	"os"
 	"time"
 
-	client "github.com/ava-labs/avalanche-network-runner-sdk"
-	"github.com/ava-labs/avalanche-network-runner-sdk/rpcpb"
+	"github.com/ava-labs/avalanche-network-runner/client"
+	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
 
 	"sigs.k8s.io/yaml"
@@ -33,11 +34,22 @@ func (ci clusterInfo) Save(p string) error {
 }
 
 func startRunner(grpcEp string, execPath string, vmName string, genesisPath string, pluginDir string) error {
+	logLevel, err := logging.ToLevel("info")
+	if err != nil {
+		return err
+	}
+	logFactory := logging.NewFactory(logging.Config{
+		DisplayLevel: logLevel,
+		LogLevel:     logLevel,
+	})
+	log, err := logFactory.Make("main")
+	if err != nil {
+		return err
+	}
 	cli, err := client.New(client.Config{
-		LogLevel:    "info",
 		Endpoint:    grpcEp,
 		DialTimeout: 10 * time.Second,
-	})
+	}, log)
 	if err != nil {
 		return err
 	}
@@ -64,11 +76,22 @@ func startRunner(grpcEp string, execPath string, vmName string, genesisPath stri
 }
 
 func WaitForCustomVm(grpcEp string, vmId ids.ID) (string, string, int, error) {
+	logLevel, err := logging.ToLevel("info")
+	if err != nil {
+		return "", "", 0, err
+	}
+	logFactory := logging.NewFactory(logging.Config{
+		DisplayLevel: logLevel,
+		LogLevel:     logLevel,
+	})
+	log, err := logFactory.Make("main")
+	if err != nil {
+		return "", "", 0, err
+	}
 	cli, err := client.New(client.Config{
-		LogLevel:    "info",
 		Endpoint:    grpcEp,
 		DialTimeout: 10 * time.Second,
-	})
+	}, log)
 	if err != nil {
 		return "", "", 0, err
 	}
@@ -137,11 +160,22 @@ done:
 }
 
 func SaveClusterInfo(grpcEp string, blockchainId string, logsDir string, pid int) (clusterInfo, error) {
+	logLevel, err := logging.ToLevel("info")
+	if err != nil {
+		return clusterInfo{}, err
+	}
+	logFactory := logging.NewFactory(logging.Config{
+		DisplayLevel: logLevel,
+		LogLevel:     logLevel,
+	})
+	log, err := logFactory.Make("main")
+	if err != nil {
+		return clusterInfo{}, err
+	}
 	cli, err := client.New(client.Config{
-		LogLevel:    "info",
 		Endpoint:    grpcEp,
 		DialTimeout: 10 * time.Second,
-	})
+	}, log)
 	if err != nil {
 		return clusterInfo{}, err
 	}
@@ -188,11 +222,22 @@ func StartNetwork(grpcEp string, execPath string, vmId ids.ID, vmName string, ge
 }
 
 func StopNetwork(grpcEp string) error {
+	logLevel, err := logging.ToLevel("info")
+	if err != nil {
+		return err
+	}
+	logFactory := logging.NewFactory(logging.Config{
+		DisplayLevel: logLevel,
+		LogLevel:     logLevel,
+	})
+	log, err := logFactory.Make("main")
+	if err != nil {
+		return err
+	}
 	cli, err := client.New(client.Config{
-		LogLevel:    "info",
 		Endpoint:    grpcEp,
 		DialTimeout: 10 * time.Second,
-	})
+	}, log)
 	if err != nil {
 		return err
 	}
@@ -210,11 +255,22 @@ func ShutdownClient() error {
 }
 
 func IsRunnerUp(grpcEp string) bool {
+	logLevel, err := logging.ToLevel("info")
+	if err != nil {
+		return false
+	}
+	logFactory := logging.NewFactory(logging.Config{
+		DisplayLevel: logLevel,
+		LogLevel:     logLevel,
+	})
+	log, err := logFactory.Make("main")
+	if err != nil {
+		return false
+	}
 	cli, err := client.New(client.Config{
-		LogLevel:    "info",
 		Endpoint:    grpcEp,
 		DialTimeout: 10 * time.Second,
-	})
+	}, log)
 	if err != nil {
 		return false
 	}

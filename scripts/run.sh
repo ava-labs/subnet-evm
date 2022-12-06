@@ -138,12 +138,12 @@ echo "creating genesis"
     "muirGlacierBlock": 0,
     "subnetEVMTimestamp": 0,
     "feeConfig": {
-      "gasLimit": 20000000,
+      "gasLimit": 30000000,
       "minBaseFee": 1000000000,
-      "targetGas": 100000000,
+      "targetGas": 100000000000000,
       "baseFeeChangeDenominator": 48,
       "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
+      "maxBlockGasCost": 0,
       "targetBlockRate": 2,
       "blockGasCostStep": 500000
     }
@@ -156,13 +156,22 @@ echo "creating genesis"
   "nonce": "0x0",
   "timestamp": "0x0",
   "extraData": "0x00",
-  "gasLimit": "0x1312D00",
+  "gasLimit": "0x1C9C380",
   "difficulty": "0x0",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
   "number": "0x0",
   "gasUsed": "0x0",
   "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
+}
+EOF
+
+############################
+echo "creating subnet config"
+rm -f $BASEDIR/subnet.json
+cat <<EOF > $BASEDIR/subnet.json
+{
+  "proposerMinBlockDelay":0
 }
 EOF
 
@@ -210,6 +219,7 @@ run_ginkgo() {
     --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
     --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
     --vm-genesis-path=$BASEDIR/genesis.json \
+    --subnet-config-path=$BASEDIR/subnet.json \
     --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
     --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} \
     --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} \
@@ -228,7 +238,7 @@ run_simulator() {
   --cluster-info-yaml=$BASEDIR/avalanchego-${VERSION}/output.yaml \
   --keys=./cmd/simulator/.simulator/keys \
   --timeout=30s \
-  --concurrency=10 \
+  --concurrency=100 \
   --base-fee=25 \
   --priority-fee=1
 }

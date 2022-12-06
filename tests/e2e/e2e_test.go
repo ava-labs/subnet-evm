@@ -12,9 +12,10 @@ import (
 	"testing"
 	"time"
 
-	runner_sdk "github.com/ava-labs/avalanche-network-runner-sdk"
-	runner_sdk_rpcpb "github.com/ava-labs/avalanche-network-runner-sdk/rpcpb"
+	runner_sdk "github.com/ava-labs/avalanche-network-runner/client"
+	runner_sdk_rpcpb "github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -42,6 +43,7 @@ var (
 	avalanchegoPluginDir string
 	avalanchegoLogLevel  string
 	vmGenesisPath        string
+	subnetConfigPath     string
 
 	outputFile string
 
@@ -112,6 +114,12 @@ func init() {
 		false,
 		"'true' to skip network runner shutdown",
 	)
+	flag.StringVar(
+		&subnetConfigPath,
+		"subnet-config-path",
+		"",
+		"Subnet configfile path",
+	)
 }
 
 const vmName = "subnetevm"
@@ -144,11 +152,19 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 func createNetworkClient() *networkClient {
+	logLevel, err := logging.ToLevel(networkRunnerLogLevel)
+	gomega.Expect(err).Should(gomega.BeNil())
+	logFactory := logging.NewFactory(logging.Config{
+		DisplayLevel: logLevel,
+		LogLevel:     logLevel,
+	})
+	log, err := logFactory.Make("main")
+	gomega.Expect(err).Should(gomega.BeNil())
+
 	runnerCli, err := runner_sdk.New(runner_sdk.Config{
-		LogLevel:    networkRunnerLogLevel,
 		Endpoint:    gRPCEp,
 		DialTimeout: 10 * time.Second,
-	})
+	}, log)
 	gomega.Expect(err).Should(gomega.BeNil())
 
 	utils.SetOutputFile(outputFile)
@@ -176,11 +192,25 @@ func (n *networkClient) startNetwork() {
 		runner_sdk.WithBlockchainSpecs(
 			[]*runner_sdk_rpcpb.BlockchainSpec{
 				{
-					VmName:  vmName,
-					Genesis: utils.GetVmGenesisPath(),
+					VmName:       vmName,
+					Genesis:      utils.GetVmGenesisPath(),
+					SubnetConfig: subnetConfigPath,
 				},
 			},
-		))
+		),
+		// Disable all rate limiting
+		runner_sdk.WithGlobalNodeConfig(`{
+				"log-level":"warn",
+				"proposervm-use-current-height":true,
+				"throttler-inbound-validator-alloc-size":"107374182",
+				"throttler-inbound-node-max-processing-msgs":"100000",
+				"throttler-inbound-bandwidth-refill-rate":"1073741824",
+				"throttler-inbound-bandwidth-max-burst-size":"1073741824",
+				"throttler-inbound-cpu-validator-alloc":"100000",
+				"throttler-inbound-disk-validator-alloc":"10737418240000",
+				"throttler-outbound-validator-alloc-size":"107374182"
+			}`),
+	)
 	cancel()
 	gomega.Expect(err).Should(gomega.BeNil())
 	utils.Outf("{{green}}successfully started:{{/}} %+v\n", resp.ClusterInfo.NodeNames)

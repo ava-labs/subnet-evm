@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	runner_sdk "github.com/ava-labs/avalanche-network-runner-sdk"
+	runner_sdk "github.com/ava-labs/avalanche-network-runner/client"
 
 	"gopkg.in/yaml.v2"
 )
