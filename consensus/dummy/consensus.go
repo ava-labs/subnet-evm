@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
@@ -198,7 +199,7 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 	}
 	// Ensure that coinbase is valid if reward manager is enabled
 	// If reward manager is disabled, this will be handled in syntactic verification
-	if config.IsRewardManager(timestamp) {
+	if config.IsPrecompileEnabled(precompile.RewardManagerAddress, timestamp) {
 		if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
 			return err
 		}

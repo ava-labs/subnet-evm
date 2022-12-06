@@ -693,7 +693,7 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 
 	// If the tx allow list is enabled, return an error if the from address is not allow listed.
 	headTimestamp := big.NewInt(int64(pool.currentHead.Time))
-	if pool.chainconfig.IsTxAllowList(headTimestamp) {
+	if pool.chainconfig.IsPrecompileEnabled(precompile.TxAllowListAddress, headTimestamp) {
 		txAllowListRole := precompile.GetTxAllowListStatus(pool.currentState, from)
 		if !txAllowListRole.IsEnabled() {
 			return fmt.Errorf("%w: %s", precompile.ErrSenderAddressNotAllowListed, from)
@@ -1441,7 +1441,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
 	// so that we can correctly drop txs with < minBaseFee from tx pool.
-	if pool.chainconfig.IsFeeConfigManager(new(big.Int).SetUint64(newHead.Time)) {
+	if pool.chainconfig.IsPrecompileEnabled(precompile.FeeConfigManagerAddress, new(big.Int).SetUint64(newHead.Time)) {
 		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
 			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)
