@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/chains/atomic"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -14,7 +17,7 @@ import (
 type PredicateFunc func(storageSlots []common.Hash) error
 
 // OnAcceptFunc is called on any log produced in a block where the address matches the precompile address
-type OnAcceptFunc func(txIndex int, logData []byte) error
+type OnAcceptFunc func(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error)
 
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 type StatefulPrecompileConfig interface {
