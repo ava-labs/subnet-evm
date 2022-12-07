@@ -184,21 +184,37 @@ type TxPoolConfig struct {
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
 }
 
+const (
+	DefaultTxPoolJournal   = "transactions.rlp"
+	DefaultTxPoolRejournal = time.Hour
+
+	DefaultTxPoolPriceLimit = 1
+	DefaultTxPoolPriceBump  = 10
+
+	DefaultTxPoolAccountSlots = 16
+	// urgent + floating queue capacity with 4:1 ratio
+	DefaultTxPoolGlobalSlots  = 4096 + 1024
+	DefaultTxPoolAccountQueue = 64
+	DefaultTxPoolGlobalQueue  = 1024
+
+	DefaultTxPoolLifetime = 3 * time.Hour
+)
+
 // DefaultTxPoolConfig contains the default configurations for the transaction
 // pool.
 var DefaultTxPoolConfig = TxPoolConfig{
-	Journal:   "transactions.rlp",
-	Rejournal: time.Hour,
+	Journal:   DefaultTxPoolJournal,
+	Rejournal: DefaultTxPoolRejournal,
 
-	PriceLimit: 1,
-	PriceBump:  10,
+	PriceLimit: DefaultTxPoolPriceLimit,
+	PriceBump:  DefaultTxPoolPriceBump,
 
-	AccountSlots: 16,
-	GlobalSlots:  4096 + 1024, // urgent + floating queue capacity with 4:1 ratio
-	AccountQueue: 64,
-	GlobalQueue:  1024,
+	AccountSlots: DefaultTxPoolAccountSlots,
+	GlobalSlots:  DefaultTxPoolGlobalSlots,
+	AccountQueue: DefaultTxPoolAccountQueue,
+	GlobalQueue:  DefaultTxPoolGlobalQueue,
 
-	Lifetime: 3 * time.Hour,
+	Lifetime: DefaultTxPoolLifetime,
 }
 
 // sanitize checks the provided user configurations and changes anything that's
