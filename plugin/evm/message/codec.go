@@ -45,21 +45,3 @@ func init() {
 		panic(errs.Err)
 	}
 }
-
-func init() {
-	CrossChainCodec = codec.NewManager(maxMessageSize)
-	ccc := linearcodec.NewDefault()
-
-	errs := wrappers.Errs{}
-	errs.Add(
-		// CrossChainRequest Types
-		ccc.RegisterType(EthCallRequest{}),
-		ccc.RegisterType(EthCallResponse{}),
-
-		CrossChainCodec.RegisterCodec(Version, ccc),
-	)
-
-	if errs.Errored() {
-		panic(errs.Err)
-	}
-}
