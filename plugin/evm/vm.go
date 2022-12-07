@@ -336,6 +336,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.OfflinePruningDataDirectory = vm.config.OfflinePruningDataDirectory
 	vm.ethConfig.CommitInterval = vm.config.CommitInterval
 	vm.ethConfig.SkipUpgradeCheck = vm.config.SkipUpgradeCheck
+	vm.ethConfig.AcceptedCacheSize = vm.config.AcceptedCacheSize
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
@@ -392,7 +393,6 @@ func (vm *VM) Initialize(
 	}
 
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
-	go peer.SendEthCallCrossChainRequest(vm.client, vm.ctx.CChainID)
 
 	vm.initializeStateSyncServer()
 	return vm.initializeStateSyncClient(lastAcceptedHeight)
