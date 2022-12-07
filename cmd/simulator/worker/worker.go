@@ -47,7 +47,7 @@ func setupVars(cID *big.Int, bFee uint64, pFee uint64) {
 	maxTransferCost = new(big.Int).Mul(new(big.Int).SetUint64(transferGasLimit), feeCap)
 	maxTransferCost = new(big.Int).Add(maxTransferCost, transferAmount)
 
-	requestAmount = new(big.Int).Mul(maxTransferCost, big.NewInt(1000))
+	requestAmount = new(big.Int).Mul(maxTransferCost, big.NewInt(10_000))
 	minFunderBalance = new(big.Int).Add(maxTransferCost, requestAmount)
 }
 
@@ -237,7 +237,7 @@ func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundReque
 		}
 		// TODO: get nonce
 		txs++
-		if txs > 10 {
+		if txs > 20 {
 			for ctx.Err() == nil {
 				nonce, err := w.c.NonceAt(ctx, w.k.Address, nil)
 				if err != nil {
@@ -245,7 +245,7 @@ func (w *worker) work(ctx context.Context, availableWorkers []*worker, fundReque
 					time.Sleep(retryDelay)
 					continue
 				}
-				if w.pendingNonce-nonce < 10 {
+				if w.pendingNonce-nonce < 16 {
 					break
 				}
 				time.Sleep(workDelay)

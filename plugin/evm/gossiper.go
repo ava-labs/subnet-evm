@@ -72,27 +72,27 @@ type pushGossiper struct {
 // createGossiper constructs and returns a pushGossiper or noopGossiper
 // based on whether vm.chainConfig.SubnetEVMTimestamp is set
 func (vm *VM) createGossiper(stats GossipStats) Gossiper {
-	if vm.chainConfig.SubnetEVMTimestamp == nil {
-		return &noopGossiper{}
-	}
-	net := &pushGossiper{
-		ctx:                  vm.ctx,
-		gossipActivationTime: time.Unix(vm.chainConfig.SubnetEVMTimestamp.Int64(), 0),
-		config:               vm.config,
-		client:               vm.client,
-		blockchain:           vm.blockChain,
-		txPool:               vm.txPool,
-		txsToGossipChan:      make(chan []*types.Transaction),
-		txsToGossip:          make(map[common.Hash]*types.Transaction),
-		shutdownChan:         vm.shutdownChan,
-		shutdownWg:           &vm.shutdownWg,
-		recentTxs:            &cache.LRU{Size: recentCacheSize},
-		codec:                vm.networkCodec,
-		signer:               types.LatestSigner(vm.blockChain.Config()),
-		stats:                stats,
-	}
-	net.awaitEthTxGossip()
-	return net
+	return &noopGossiper{}
+	// if vm.chainConfig.SubnetEVMTimestamp == nil {
+	// }
+	// net := &pushGossiper{
+	// 	ctx:                  vm.ctx,
+	// 	gossipActivationTime: time.Unix(vm.chainConfig.SubnetEVMTimestamp.Int64(), 0),
+	// 	config:               vm.config,
+	// 	client:               vm.client,
+	// 	blockchain:           vm.blockChain,
+	// 	txPool:               vm.txPool,
+	// 	txsToGossipChan:      make(chan []*types.Transaction),
+	// 	txsToGossip:          make(map[common.Hash]*types.Transaction),
+	// 	shutdownChan:         vm.shutdownChan,
+	// 	shutdownWg:           &vm.shutdownWg,
+	// 	recentTxs:            &cache.LRU{Size: recentCacheSize},
+	// 	codec:                vm.networkCodec,
+	// 	signer:               types.LatestSigner(vm.blockChain.Config()),
+	// 	stats:                stats,
+	// }
+	// net.awaitEthTxGossip()
+	// return net
 }
 
 // addrStatus used to track the metadata of addresses being queued for

@@ -138,12 +138,12 @@ echo "creating genesis"
     "muirGlacierBlock": 0,
     "subnetEVMTimestamp": 0,
     "feeConfig": {
-      "gasLimit": 60000000,
+      "gasLimit": 80000000,
       "minBaseFee": 1000000000,
       "targetGas": 100000000000000,
       "baseFeeChangeDenominator": 48,
       "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000000000000,
+      "maxBlockGasCost": 0,
       "targetBlockRate": 1,
       "blockGasCostStep": 500000
     }
@@ -156,7 +156,7 @@ echo "creating genesis"
   "nonce": "0x0",
   "timestamp": "0x0",
   "extraData": "0x00",
-  "gasLimit": "0x3938700",
+  "gasLimit": "0x4C4B400",
   "difficulty": "0x0",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
@@ -172,7 +172,7 @@ rm -f $BASEDIR/subnet.json
 # 200ms
 cat <<EOF > $BASEDIR/subnet.json
 {
-  "proposerMinBlockDelay": 200000000
+  "proposerMinBlockDelay": 250000000
 }
 EOF
 
@@ -239,7 +239,7 @@ run_simulator() {
   --cluster-info-yaml=$BASEDIR/avalanchego-${VERSION}/output.yaml \
   --keys=./cmd/simulator/.simulator/keys \
   --timeout=30s \
-  --concurrency=200 \
+  --concurrency=2000 \
   --base-fee=1 \
   --priority-fee=1
 }
