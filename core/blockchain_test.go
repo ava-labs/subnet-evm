@@ -77,6 +77,8 @@ func TestArchiveBlockChain(t *testing.T) {
 
 // awaitWatcherEventsSubside waits for at least one event on [watcher] and then waits
 // for at least [subsideTimeout] before returning
+//
+//nolint:unused
 func awaitWatcherEventsSubside(watcher *fsnotify.Watcher, subsideTimeout time.Duration) {
 	done := make(chan struct{})
 
@@ -152,7 +154,7 @@ func TestTrieCleanJournal(t *testing.T) {
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 10, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 10, func(_ int, gen *BlockGen) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
@@ -375,9 +377,10 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 		return createBlockChain(db, pruningConfig, chainConfig, lastAcceptedHash)
 	}
 	for _, tt := range tests {
+		tf := tt
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
-			tt.testFunc(t, create)
+			tf.testFunc(t, create)
 		})
 	}
 }
@@ -414,7 +417,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 10, 10, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 10, 10, func(_ int, gen *BlockGen) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
@@ -531,7 +534,7 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 10, 10, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 10, 10, func(_ int, gen *BlockGen) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})

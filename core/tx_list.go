@@ -617,7 +617,7 @@ func (l *txPricedList) Reheap() {
 	start := time.Now()
 	atomic.StoreInt64(&l.stales, 0)
 	l.urgent.list = make([]*types.Transaction, 0, l.all.RemoteCount())
-	l.all.Range(func(hash common.Hash, tx *types.Transaction, local bool) bool {
+	l.all.Range(func(_ common.Hash, tx *types.Transaction, local bool) bool {
 		l.urgent.list = append(l.urgent.list, tx)
 		return true
 	}, false, true) // Only iterate remotes

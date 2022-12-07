@@ -2034,7 +2034,7 @@ func (t *txLookup) RemoteToLocals(locals *accountSet) int {
 // RemotesBelowTip finds all remote transactions below the given tip threshold.
 func (t *txLookup) RemotesBelowTip(threshold *big.Int) types.Transactions {
 	found := make(types.Transactions, 0, 128)
-	t.Range(func(hash common.Hash, tx *types.Transaction, local bool) bool {
+	t.Range(func(_ common.Hash, tx *types.Transaction, local bool) bool {
 		if tx.GasTipCapIntCmp(threshold) < 0 {
 			found = append(found, tx)
 		}

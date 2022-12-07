@@ -216,7 +216,7 @@ func TestInsertChainAcceptSingleBlock(t *testing.T, create func(db ethdb.Databas
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 10, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 10, func(_ int, gen *BlockGen) {
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
 	})
@@ -293,7 +293,7 @@ func TestInsertLongForkedChain(t *testing.T, create func(db ethdb.Database, chai
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain1, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(i int, gen *BlockGen) {
+	chain1, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -303,7 +303,7 @@ func TestInsertLongForkedChain(t *testing.T, create func(db ethdb.Database, chai
 	}
 	// Generate the forked chain to be longer than the original chain to check for a regression where
 	// a longer chain can trigger a reorg.
-	chain2, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks+1, 10, func(i int, gen *BlockGen) {
+	chain2, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks+1, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction with a different amount to ensure [chain2] is different than [chain1].
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(5000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -463,7 +463,7 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, ch
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain1, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(i int, gen *BlockGen) {
+	chain1, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -471,7 +471,7 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, ch
 	if err != nil {
 		t.Fatal(err)
 	}
-	chain2, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(i int, gen *BlockGen) {
+	chain2, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction with a different amount to create a chain of blocks different from [chain1]
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(5000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -577,7 +577,7 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, chainC
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -933,7 +933,7 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, chainConfig 
 
 	signer := types.HomesteadSigner{}
 	numBlocks := 3
-	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, numBlocks, 10, func(_ int, gen *BlockGen) {
 		// Generate a transaction to create a unique block
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		gen.AddTx(tx)
@@ -1004,8 +1004,10 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, chainConfig 
 // Insert two different chains that result in the identical state root.
 // Once we accept one of the chains, we insert and accept A3 on top of the shared
 // state root
-//   G   (genesis)
-//  / \
+//
+//	 G   (genesis)
+//	/ \
+//
 // A1  B1
 // |   |
 // A2  B2 (A2 and B2 represent two different paths to the identical state trie)
@@ -1151,8 +1153,10 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 // Once we insert both of the chains, we restart, insert both the chains again,
 // and then we accept one of the chains and accept A3 on top of the shared state
 // root
-//   G   (genesis)
-//  / \
+//
+//	 G   (genesis)
+//	/ \
+//
 // A1  B1
 // |   |
 // A2  B2 (A2 and B2 represent two different paths to the identical state trie)
@@ -1348,7 +1352,7 @@ func TestGenerateChainInvalidBlockFee(t *testing.T, create func(db ethdb.Databas
 	signer := types.LatestSigner(params.TestChainConfig)
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	_, _, err = GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 0, func(i int, gen *BlockGen) {
+	_, _, err = GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 0, func(_ int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
@@ -1404,7 +1408,7 @@ func TestInsertChainInvalidBlockFee(t *testing.T, create func(db ethdb.Database,
 	signer := types.LatestSigner(params.TestChainConfig)
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain, _, err := GenerateChain(params.TestChainConfig, genesis, dummy.NewETHFaker(), genDB, 3, 0, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(params.TestChainConfig, genesis, dummy.NewETHFaker(), genDB, 3, 0, func(_ int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
@@ -1466,7 +1470,7 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, c
 	// to the BlockChain's database while generating blocks.
 	tip := big.NewInt(50000 * params.GWei)
 	transfer := big.NewInt(10000)
-	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 0, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 3, 0, func(_ int, gen *BlockGen) {
 		feeCap := new(big.Int).Add(gen.BaseFee(), tip)
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
@@ -1679,7 +1683,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
 	// to the BlockChain's database while generating blocks.
-	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 1, 0, func(i int, gen *BlockGen) {
+	chain, _, err := GenerateChain(gspec.Config, genesis, blockchain.engine, genDB, 1, 0, func(_ int, gen *BlockGen) {
 		for _, test := range tests {
 			test.addTx(gen)
 		}

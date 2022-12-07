@@ -1076,7 +1076,7 @@ func TestRewardManagerRun(t *testing.T) {
 		},
 		"get current reward address from no role succeeds": {
 			caller: noRoleAddr,
-			preCondition: func(t *testing.T, state *state.StateDB) {
+			preCondition: func(_ *testing.T, state *state.StateDB) {
 				precompile.StoreRewardAddress(state, testAddr)
 			},
 			input: func() []byte {
@@ -1095,7 +1095,7 @@ func TestRewardManagerRun(t *testing.T) {
 		},
 		"get are fee recipients allowed from no role succeeds": {
 			caller: noRoleAddr,
-			preCondition: func(t *testing.T, state *state.StateDB) {
+			preCondition: func(_ *testing.T, state *state.StateDB) {
 				precompile.EnableAllowFeeRecipients(state)
 			},
 			input: func() []byte {
