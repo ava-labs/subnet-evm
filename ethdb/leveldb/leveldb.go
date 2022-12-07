@@ -505,6 +505,11 @@ func (b *batch) Replay(w ethdb.KeyValueWriter) error {
 	return b.b.Replay(&replayer{writer: w})
 }
 
+// Inner returns itself
+func (b *batch) Inner() ethdb.Batch {
+	return b
+}
+
 // replayer is a small wrapper to implement the correct replay methods.
 type replayer struct {
 	writer  ethdb.KeyValueWriter
