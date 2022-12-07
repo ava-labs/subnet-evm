@@ -16,7 +16,6 @@ const (
 )
 
 var Codec codec.Manager
-var CrossChainCodec codec.Manager
 
 func init() {
 	Codec = codec.NewManager(maxMessageSize)
