@@ -14,6 +14,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/set"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 
@@ -43,6 +44,9 @@ var (
 	_ common.AppSender      = testAppSender{}
 	_ message.GossipMessage = HelloGossip{}
 	_ message.GossipHandler = &testGossipHandler{}
+
+	_ message.CrossChainRequest        = &ExampleCrossChainRequest{}
+	_ message.CrossChainRequestHandler = &testCrossChainHandler{}
 )
 
 func TestNetworkDoesNotConnectToItself(t *testing.T) {
@@ -360,6 +364,50 @@ func TestGossip(t *testing.T) {
 	assert.True(t, sentGossip)
 	assert.True(t, gossipHandler.received)
 }
+func TestCrossChainRequest(t *testing.T) {
+	var net Network
+	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+	testCrossChainHandler := &testCrossChainHandler{codec: crossChainCodecManager}
+
+	sender := testAppSender{
+		sendCrossChainAppRequestFn: func(requestingChainID ids.ID, requestID uint32, requestBytes []byte) error {
+			// Because CrossChainAppRequest is not implemented in Subnet-EVM, we cannot mimic it in the tests.
+			// We assume it works in the other chain we send the CCR and mock the response.
+			go func() {
+				responseBytes, err := crossChainCodecManager.Marshal(message.Version, ExampleCrossChainResponse{Response: "this is an example response"})
+				assert.NoError(t, err)
+
+				if err := net.CrossChainAppResponse(context.Background(), requestingChainID, requestID, responseBytes); err != nil {
+					panic(err)
+				}
+			}()
+			return nil
+		},
+	}
+
+	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+
+	net.SetCrossChainRequestHandler(testCrossChainHandler)
+	client := NewNetworkClient(net)
+
+	exampleCrossChainRequest := ExampleCrossChainRequest{
+		Message: "hello this is an example request",
+	}
+
+	crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
+	assert.NoError(t, err)
+
+	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
+	responseBytes, err := client.CrossChainRequest(chainID, crossChainRequest)
+	assert.NoError(t, err)
+
+	var response ExampleCrossChainResponse
+	if _, err = crossChainCodecManager.Unmarshal(responseBytes, &response); err != nil {
+		t.Fatal("unexpected error during unmarshal", err)
+	}
+	assert.Equal(t, "this is an example response", response.Response)
+}
 
 func TestHandleInvalidMessages(t *testing.T) {
 	codecManager := buildCodec(t, HelloGossip{}, TestMessage{})
@@ -450,6 +498,10 @@ func marshalStruct(codec codec.Manager, obj interface{}) ([]byte, error) {
 }
 
 func buildGossip(codec codec.Manager, msg message.GossipMessage) ([]byte, error) {
+	return codec.Marshal(message.Version, &msg)
+}
+
+func buildCrossChainRequest(codec codec.Manager, msg message.CrossChainRequest) ([]byte, error) {
 	return codec.Marshal(message.Version, &msg)
 }
 
@@ -599,4 +651,33 @@ func (r *testRequestHandler) handleTestRequest(ctx context.Context, _ ids.NodeID
 		return nil, ctx.Err()
 	}
 	return r.response, r.err
+}
+
+type ExampleCrossChainRequest struct {
+	Message string `serialize:"true"`
+}
+
+func (e ExampleCrossChainRequest) Handle(ctx context.Context, requestingChainID ids.ID, requestID uint32, handler message.CrossChainRequestHandler) ([]byte, error) {
+	return handler.(*testCrossChainHandler).HandleCrossChainRequest(ctx, requestingChainID, requestID, e)
+}
+
+func (e ExampleCrossChainRequest) String() string {
+	return fmt.Sprintf("TestMessage(%s)", e.Message)
+}
+
+type ExampleCrossChainResponse struct {
+	Response string `serialize:"true"`
+}
+
+type TestCrossChainRequestHandler interface {
+	HandleCrossChainRequest(ctx context.Context, requestingchainID ids.ID, requestID uint32, exampleRequest message.CrossChainRequest) ([]byte, error)
+}
+
+type testCrossChainHandler struct {
+	message.CrossChainRequestHandler
+	codec codec.Manager
+}
+
+func (t *testCrossChainHandler) HandleCrossChainRequest(ctx context.Context, requestingChainID ids.ID, requestID uint32, exampleRequest message.CrossChainRequest) ([]byte, error) {
+	return t.codec.Marshal(message.Version, ExampleCrossChainResponse{Response: "this is an example response"})
 }
