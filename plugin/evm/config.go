@@ -212,14 +212,14 @@ func (c *Config) SetDefaults() {
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
 
-	c.TxPoolJournal = core.DefaultTxPoolJournal
-	c.TxPoolRejournal = Duration{Duration: core.DefaultTxPoolRejournal}
-	c.TxPoolPriceLimit = core.DefaultTxPoolPriceLimit
-	c.TxPoolPriceBump = core.DefaultTxPoolPriceBump
-	c.TxPoolAccountSlots = core.DefaultTxPoolAccountSlots
-	c.TxPoolGlobalSlots = core.DefaultTxPoolGlobalSlots
-	c.TxPoolAccountQueue = core.DefaultTxPoolAccountQueue
-	c.TxPoolGlobalQueue = core.DefaultTxPoolGlobalQueue
+	c.TxPoolJournal = core.DefaultTxPoolConfig.Journal
+	c.TxPoolRejournal = Duration{Duration: core.DefaultTxPoolConfig.Rejournal}
+	c.TxPoolPriceLimit = core.DefaultTxPoolConfig.PriceLimit
+	c.TxPoolPriceBump = core.DefaultTxPoolConfig.PriceBump
+	c.TxPoolAccountSlots = core.DefaultTxPoolConfig.AccountSlots
+	c.TxPoolGlobalSlots = core.DefaultTxPoolConfig.GlobalSlots
+	c.TxPoolAccountQueue = core.DefaultTxPoolConfig.AccountQueue
+	c.TxPoolGlobalQueue = core.DefaultTxPoolConfig.GlobalQueue
 
 	c.APIMaxDuration.Duration = defaultApiMaxDuration
 	c.WSCPURefillRate.Duration = defaultWsCpuRefillRate
