@@ -108,7 +108,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, _, err := client.RequestAny(defaultPeerVersion, requestBytes)
+			responseBytes, _, err := client.SendRequestAny(defaultPeerVersion, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -192,7 +192,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, err := client.Request(nodeID, requestBytes)
+			responseBytes, err := client.SendRequest(nodeID, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -214,7 +214,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	// ensure empty nodeID is not allowed
-	_, err := client.Request(ids.EmptyNodeID, []byte("hello there"))
+	_, err := client.SendRequest(ids.EmptyNodeID, []byte("hello there"))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot send request to empty nodeID")
 }
@@ -264,7 +264,7 @@ func TestRequestMinVersion(t *testing.T) {
 	)
 
 	// ensure version does not match
-	responseBytes, _, err := client.RequestAny(
+	responseBytes, _, err := client.SendRequestAny(
 		&version.Application{
 			Major: 2,
 			Minor: 0,
@@ -276,7 +276,7 @@ func TestRequestMinVersion(t *testing.T) {
 	assert.Nil(t, responseBytes)
 
 	// ensure version matches and the request goes through
-	responseBytes, _, err = client.RequestAny(defaultPeerVersion, requestBytes)
+	responseBytes, _, err = client.SendRequestAny(defaultPeerVersion, requestBytes)
 	assert.NoError(t, err)
 
 	var response TestMessage
@@ -398,7 +398,7 @@ func TestCrossChainRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
-	responseBytes, err := client.CrossChainRequest(chainID, crossChainRequest)
+	responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
 	assert.NoError(t, err)
 
 	var response ExampleCrossChainResponse

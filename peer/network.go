@@ -43,16 +43,16 @@ type Network interface {
 	// node version greater than or equal to minVersion.
 	// Returns the ID of the chosen peer, and an error if the request could not
 	// be sent to a peer with the desired [minVersion].
-	RequestAny(minVersion *version.Application, message []byte, handler message.ResponseHandler) (ids.NodeID, error)
+	SendRequestAny(minVersion *version.Application, message []byte, handler message.ResponseHandler) (ids.NodeID, error)
 
 	// Request sends message to given nodeID, notifying handler when there's a response or timeout
-	Request(nodeID ids.NodeID, message []byte, handler message.ResponseHandler) error
+	SendRequest(nodeID ids.NodeID, message []byte, handler message.ResponseHandler) error
 
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
 
 	// CrossChainRequest sends a message to given chainID notifying handler when there's a response or timeout
-	CrossChainRequest(chainID ids.ID, message []byte, handler message.CrossChainResponseHandler) error
+	SendCrossChainRequest(chainID ids.ID, message []byte, handler message.CrossChainResponseHandler) error
 
 	// Shutdown stops all peer channel listeners and marks the node to have stopped
 	// n.Start() can be called again but the peers will have to be reconnected
@@ -116,7 +116,7 @@ func NewNetwork(appSender common.AppSender, codec codec.Manager, self ids.NodeID
 // the request will be sent to any peer regardless of their version.
 // Returns the ID of the chosen peer, and an error if the request could not
 // be sent to a peer with the desired [minVersion].
-func (n *network) RequestAny(minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
+func (n *network) SendRequestAny(minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
 	// Take a slot from total [activeRequests] and block until a slot becomes available.
 	if err := n.activeRequests.Acquire(context.Background(), 1); err != nil {
 		return ids.EmptyNodeID, errAcquiringSemaphore
@@ -125,7 +125,7 @@ func (n *network) RequestAny(minVersion *version.Application, request []byte, ha
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	if nodeID, ok := n.peers.GetAnyPeer(minVersion); ok {
-		return nodeID, n.request(nodeID, request, handler)
+		return nodeID, n.sendRequest(nodeID, request, handler)
 	}
 
 	n.activeRequests.Release(1)
@@ -133,7 +133,7 @@ func (n *network) RequestAny(minVersion *version.Application, request []byte, ha
 }
 
 // Request sends request message bytes to specified nodeID, notifying the responseHandler on response or failure
-func (n *network) Request(nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
+func (n *network) SendRequest(nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
 	if nodeID == ids.EmptyNodeID {
 		return fmt.Errorf("cannot send request to empty nodeID, nodeID=%s, requestLen=%d", nodeID, len(request))
 	}
@@ -146,7 +146,7 @@ func (n *network) Request(nodeID ids.NodeID, request []byte, responseHandler mes
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	return n.request(nodeID, request, responseHandler)
+	return n.sendRequest(nodeID, request, responseHandler)
 }
 
 // request sends request message bytes to specified nodeID and adds [responseHandler] to [outstandingRequestHandlers]
@@ -155,7 +155,7 @@ func (n *network) Request(nodeID ids.NodeID, request []byte, responseHandler mes
 // Releases active requests semaphore if there was an error in sending the request
 // Returns an error if [appSender] is unable to make the request.
 // Assumes write lock is held
-func (n *network) request(nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
+func (n *network) sendRequest(nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
 	log.Debug("sending request to peer", "nodeID", nodeID, "requestLen", len(request))
 	n.peers.TrackPeer(nodeID)
 
@@ -277,7 +277,7 @@ func (n *network) AppRequestFailed(_ context.Context, nodeID ids.NodeID, request
 // CrossChainRequest sends request message bytes to specified chainID and adds [handler] to [outstandingCrossChainRequestHandlers]
 // so that it can be invoked when the network receives either a response or failure message.
 // Returns an error if [appSender] is unable to make the request.
-func (n *network) CrossChainRequest(chainID ids.ID, request []byte, handler message.CrossChainResponseHandler) error {
+func (n *network) SendCrossChainRequest(chainID ids.ID, request []byte, handler message.CrossChainResponseHandler) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
