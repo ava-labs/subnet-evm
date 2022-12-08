@@ -46,8 +46,7 @@ var (
 	_ message.GossipMessage = HelloGossip{}
 	_ message.GossipHandler = &testGossipHandler{}
 
-	_ message.CrossChainRequest        = &ExampleCrossChainRequest{}
-	_ message.CrossChainRequestHandler = &testCrossChainHandler{}
+	_ message.CrossChainRequest = &ExampleCrossChainRequest{}
 )
 
 func TestNetworkDoesNotConnectToItself(t *testing.T) {
@@ -369,7 +368,6 @@ func TestCrossChainRequest(t *testing.T) {
 	var net Network
 	codecManager := buildCodec(t, TestMessage{})
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
-	testCrossChainHandler := &testCrossChainHandler{codec: crossChainCodecManager}
 
 	sender := testAppSender{
 		sendCrossChainAppRequestFn: func(requestingChainID ids.ID, requestID uint32, requestBytes []byte) error {
@@ -389,7 +387,7 @@ func TestCrossChainRequest(t *testing.T) {
 
 	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
 
-	net.SetCrossChainRequestHandler(testCrossChainHandler)
+	net.SetCrossChainRequestHandler(nil)
 	client := NewNetworkClient(net)
 
 	exampleCrossChainRequest := ExampleCrossChainRequest{
