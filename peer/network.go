@@ -243,7 +243,7 @@ func (n *network) AppResponse(_ context.Context, nodeID ids.NodeID, requestID ui
 
 	log.Debug("received AppResponse from peer", "nodeID", nodeID, "requestID", requestID)
 
-	handler, exists := n.markRequestFulfilled(requestID)
+	handler, exists := n.markAppRequestFulfilled(requestID)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
 		log.Error("received response to unknown request", "nodeID", nodeID, "requestID", requestID, "responseLen", len(response))
@@ -264,7 +264,7 @@ func (n *network) AppRequestFailed(_ context.Context, nodeID ids.NodeID, request
 	defer n.lock.Unlock()
 	log.Debug("received AppRequestFailed from peer", "nodeID", nodeID, "requestID", requestID)
 
-	handler, exists := n.markRequestFulfilled(requestID)
+	handler, exists := n.markAppRequestFulfilled(requestID)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
 		log.Error("received request failed to unknown request", "nodeID", nodeID, "requestID", requestID)
@@ -325,7 +325,6 @@ func (n *network) CrossChainAppRequestFailed(ctx context.Context, respondingChai
 // If [requestID] is not known, this function will emit a log and return a nil error.
 // If the response handler returns an error it is propagated as a fatal error.
 func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID ids.ID, requestID uint32, response []byte) error {
-	log.Debug("received CrossChainAppResponse from responding chain 0", "respondingChainID", respondingChainID, "requestID", requestID)
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
@@ -341,10 +340,10 @@ func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID i
 	return handler.OnResponse(respondingChainID, requestID, response)
 }
 
-// markRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
+// markAppRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
 // This is called by either [AppResponse] or [AppRequestFailed].
 // assumes that the write lock is held.
-func (n *network) markRequestFulfilled(requestID uint32) (message.ResponseHandler, bool) {
+func (n *network) markAppRequestFulfilled(requestID uint32) (message.ResponseHandler, bool) {
 	handler, exists := n.outstandingRequestHandlers[requestID]
 	if !exists {
 		return nil, false

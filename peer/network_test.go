@@ -14,6 +14,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/set"
+
 	ethcommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
@@ -658,7 +659,7 @@ type ExampleCrossChainRequest struct {
 }
 
 func (e ExampleCrossChainRequest) Handle(ctx context.Context, requestingChainID ids.ID, requestID uint32, handler message.CrossChainRequestHandler) ([]byte, error) {
-	return handler.(*testCrossChainHandler).HandleCrossChainRequest(ctx, requestingChainID, requestID, e)
+	return nil, nil
 }
 
 func (e ExampleCrossChainRequest) String() string {
@@ -667,17 +668,4 @@ func (e ExampleCrossChainRequest) String() string {
 
 type ExampleCrossChainResponse struct {
 	Response string `serialize:"true"`
-}
-
-type TestCrossChainRequestHandler interface {
-	HandleCrossChainRequest(ctx context.Context, requestingchainID ids.ID, requestID uint32, exampleRequest message.CrossChainRequest) ([]byte, error)
-}
-
-type testCrossChainHandler struct {
-	message.CrossChainRequestHandler
-	codec codec.Manager
-}
-
-func (t *testCrossChainHandler) HandleCrossChainRequest(ctx context.Context, requestingChainID ids.ID, requestID uint32, exampleRequest message.CrossChainRequest) ([]byte, error) {
-	return t.codec.Marshal(message.Version, ExampleCrossChainResponse{Response: "this is an example response"})
 }
