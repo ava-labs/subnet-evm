@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ava-labs/avalanchego/version"
 )
@@ -90,12 +89,10 @@ func (c *client) Request(nodeID ids.NodeID, request []byte) ([]byte, error) {
 func (c *client) CrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
 	waitingCrossChainHandler := newWaitingCrossChainResponseHandler()
 	if err := c.network.CrossChainRequest(chainID, request, waitingCrossChainHandler); err != nil {
-		log.Debug("Error with CCR netowrk client")
 		return nil, err
 	}
 	response := <-waitingCrossChainHandler.responseChan
 	if waitingCrossChainHandler.failed {
-		log.Debug("Failed with CCR network client")
 		return nil, ErrRequestFailed
 	}
 	return response, nil
