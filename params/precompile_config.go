@@ -41,8 +41,8 @@ func (p *PrecompileUpgrade) getByAddress(address common.Address) (precompile.Sta
 		return p.RewardManagerConfig, p.RewardManagerConfig != nil
 	// ADD YOUR PRECOMPILE HERE
 	/*
-		case precompile.{YourPrecompile}Address:
-		  return p.{YourPrecompile}Config , p.{YourPrecompile}Config != nil
+	case precompile.{YourPrecompile}Address:
+		return p.{YourPrecompile}Config, p.{YourPrecompile}Config != nil
 	*/
 	default:
 		panic(fmt.Sprintf("unknown precompile address: %v", address))
