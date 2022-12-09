@@ -2,10 +2,14 @@
 
 pragma solidity 0.8.9;
 
-import { ECDSA } from "../node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { EIP712 } from "../node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
-contract OrderBook is EIP712 {
+contract OrderBook is EIP712Upgradeable {
+
+    // keccak256("Order(address trader,int256 baseAssetQuantity,uint256 price,uint256 salt)");
+    bytes32 public constant ORDER_TYPEHASH = 0x4cab2d4fcf58d07df65ee3d9d1e6e3c407eae39d76ee15b247a025ab52e2c45d;
+
     struct Order {
         address trader;
         int256 baseAssetQuantity;
@@ -29,10 +33,12 @@ contract OrderBook is EIP712 {
     mapping(bytes32 => OrderStatus) public ordersStatus;
     mapping(address => Position) public positions;
 
-    // keccak256("Order(address trader,int256 baseAssetQuantity,uint256 price,uint256 salt)");
-    bytes32 public constant ORDER_TYPEHASH = 0x4cab2d4fcf58d07df65ee3d9d1e6e3c407eae39d76ee15b247a025ab52e2c45d;
+    bool public isInitialized;
 
-    constructor(string memory name, string memory version) EIP712(name, version) {}
+    function initialize(string memory name, string memory version) initializer public {
+        __EIP712_init(name, version);
+        isInitialized = true;
+    }
 
     function placeOrder(Order memory order, bytes memory signature) external {
         (, bytes32 orderHash) = verifySigner(order, signature);
