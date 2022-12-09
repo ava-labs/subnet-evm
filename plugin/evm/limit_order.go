@@ -79,8 +79,8 @@ func (lop *limitOrderProcesser) AddMatchingOrdersToTxPool() {
 		if err != nil {
 			log.Error("HexToECDSA failed", "err", err)
 		}
-		executeOrderTx := types.NewTransaction(nonce, common.HexToAddress("0x0300000000000000000000000000000000000069"), big.NewInt(0), 8000000, big.NewInt(250000000), data)
-		signer := types.NewLondonSigner(big.NewInt(99999))
+		executeOrderTx := types.NewTransaction(nonce, common.HexToAddress("0x0300000000000000000000000000000000000069"), big.NewInt(0), 5000000, big.NewInt(80000000000), data)
+		signer := types.NewLondonSigner(big.NewInt(321123))
 		signedTx, err := types.SignTx(executeOrderTx, signer, key)
 		if err != nil {
 			log.Error("types.SignTx failed", "err", err)
