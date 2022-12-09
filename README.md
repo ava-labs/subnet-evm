@@ -1,3 +1,10 @@
+# Hubble v2
+
+To run local network - run `./scripts/run_local.sh`
+To kill the network - run `./kill.sh`
+
+
+
 # Subnet EVM
 
 [![Build + Test + Release](https://github.com/ava-labs/subnet-evm/actions/workflows/lint-tests-release.yml/badge.svg)](https://github.com/ava-labs/subnet-evm/actions/workflows/lint-tests-release.yml)

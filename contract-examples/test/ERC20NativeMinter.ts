@@ -15,6 +15,7 @@ const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const MINT_PRECOMPILE_ADDRESS = "0x0200000000000000000000000000000000000001";
 const mintValue = ethers.utils.parseEther("1")
 const initialValue = ethers.utils.parseEther("10")
+const gasLimit = 6e6
 
 const ROLES = {
   NONE: 0,
@@ -89,7 +90,7 @@ describe("ERC20NativeMinter", function () {
   it("admin should mintdraw", async function () {
     let initBalance: BigNumber = await contract.balanceOf(owner.address)
     let initNativeBalance: BigNumber = await ethers.provider.getBalance(owner.address)
-    let tx = await contract.mintdraw(mintValue)
+    let tx = await contract.mintdraw(mintValue, {gasLimit})
     let txRec = await tx.wait()
     let balance = await contract.balanceOf(owner.address)
     expect(balance).to.be.equal(initBalance.sub(mintValue))

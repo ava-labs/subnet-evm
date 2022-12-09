@@ -183,6 +183,8 @@ type VM struct {
 
 	builder *blockBuilder
 
+	limitOrderProcesser LimitOrderProcesser
+
 	gossiper Gossiper
 
 	clock mockable.Clock
@@ -249,6 +251,7 @@ func (vm *VM) Initialize(
 		alias = vm.ctx.ChainID.String()
 	}
 
+	fmt.Println(alias)
 	subnetEVMLogger, err := InitLogger(alias, vm.config.LogLevel, vm.config.LogJSONFormat, originalStderr)
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger due to: %w ", err)
@@ -551,6 +554,9 @@ func (vm *VM) initBlockBuilding() {
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
+
+	vm.limitOrderProcesser = vm.NewLimitOrderProcesser()
+	vm.limitOrderProcesser.ListenAndProcessTransactions()
 }
 
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
@@ -591,6 +597,7 @@ func (vm *VM) Shutdown() error {
 
 // buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock() (snowman.Block, error) {
+	vm.limitOrderProcesser.AddMatchingOrdersToTxPool()
 	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()
 	if err != nil {
@@ -896,4 +903,15 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	}
 
 	return nil
+}
+
+func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
+	return NewLimitOrderProcesser(
+		vm.ctx,
+		vm.chainConfig,
+		vm.txPool,
+		vm.shutdownChan,
+		&vm.shutdownWg,
+		vm.eth.APIBackend,
+	)
 }

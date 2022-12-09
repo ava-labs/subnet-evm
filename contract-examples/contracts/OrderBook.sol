@@ -37,8 +37,12 @@ contract OrderBook is EIP712 {
     function placeOrder(Order memory order, bytes memory signature) external {
         (, bytes32 orderHash) = verifySigner(order, signature);
 
-        // OB_OMBU: Order Must Be Unfilled
-        require(ordersStatus[orderHash] == OrderStatus.Unfilled, "OB_OMBU");
+        // OB_OMBU: Order Must Not Be Unfilled already
+        // ideally, order should not exist in the orderStatus map already
+        // require(ordersStatus[orderHash] == OrderStatus.Unfilled, "OB_OMBU");
+        // bytes32 orderHash = bytes32(hashh);
+        ordersStatus[orderHash] = OrderStatus.Unfilled;
+        // addressStatus[order.trader] = OrderStatus.Cancelled;
 
         emit OrderPlaced(order.trader, order.baseAssetQuantity, order.price, msg.sender);
     }
@@ -77,6 +81,24 @@ contract OrderBook is EIP712 {
         positions[order2.trader].size += order2.baseAssetQuantity;
         positions[order2.trader].openNotional += abs(order2.baseAssetQuantity) * order2.price;
 
+        // assert margin requirements
+    }
+
+    /**
+    * @dev only for testing with evm
+    */
+    function executeTestOrder(Order memory order, bytes memory signature) external {
+        // validate that orders are matching
+
+        // verify signature and change order status
+        (, bytes32 orderHash) = verifySigner(order, signature);
+        // OB_OMBU: Order Must Be Unfilled
+        require(ordersStatus[orderHash] == OrderStatus.Unfilled, "OB_OMBU");
+        ordersStatus[orderHash] = OrderStatus.Filled;
+
+        // open position for order
+        positions[order.trader].size += order.baseAssetQuantity;
+        positions[order.trader].openNotional += abs(order.baseAssetQuantity) * order.price;
         // assert margin requirements
     }
 
