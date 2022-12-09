@@ -210,7 +210,7 @@ func GenesisVM(t *testing.T,
 		t.Fatal(err)
 	}
 
-	SetOrderBookContractFileLocation("../../contract-examples/artifacts/contracts/OrderBook.sol/OrderBook.json")
+	SetOrderBookContractFileLocation("../../contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json")
 
 	if finishBootstrapping {
 		assert.NoError(t, vm.SetState(snow.Bootstrapping))
