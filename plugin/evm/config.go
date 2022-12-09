@@ -211,7 +211,7 @@ func (c *Config) SetDefaults() {
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
 
 	c.TxPoolJournal = core.DefaultTxPoolConfig.Journal
-	c.TxPoolRejournal = Duration{Duration: core.DefaultTxPoolConfig.Rejournal}
+	c.TxPoolRejournal = Duration{core.DefaultTxPoolConfig.Rejournal}
 	c.TxPoolPriceLimit = core.DefaultTxPoolConfig.PriceLimit
 	c.TxPoolPriceBump = core.DefaultTxPoolConfig.PriceBump
 	c.TxPoolAccountSlots = core.DefaultTxPoolConfig.AccountSlots
