@@ -21,7 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var orderBookContractFileLocation = "contract-examples/artifacts/contracts/OrderBook.sol/OrderBook.json"
+var orderBookContractFileLocation = "contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json"
 
 type LimitOrderProcesser interface {
 	ListenAndProcessTransactions()
@@ -79,7 +79,7 @@ func (lop *limitOrderProcesser) AddMatchingOrdersToTxPool() {
 		if err != nil {
 			log.Error("HexToECDSA failed", "err", err)
 		}
-		executeOrderTx := types.NewTransaction(nonce, common.HexToAddress("0x52C84043CD9c865236f11d9Fc9F56aa003c1f922"), big.NewInt(0), 8000000, big.NewInt(250000000), data)
+		executeOrderTx := types.NewTransaction(nonce, common.HexToAddress("0x0300000000000000000000000000000000000069"), big.NewInt(0), 8000000, big.NewInt(250000000), data)
 		signer := types.NewLondonSigner(big.NewInt(99999))
 		signedTx, err := types.SignTx(executeOrderTx, signer, key)
 		if err != nil {
