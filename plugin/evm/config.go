@@ -126,16 +126,14 @@ type Config struct {
 	// API Settings
 	LocalTxsEnabled bool `json:"local-txs-enabled"`
 
-	TxPoolJournal   string   `json:"tx-pool-journal"`
-	TxPoolRejournal Duration `json:"tx-pool-rejournal"`
-
-	TxPoolPriceLimit uint64 `json:"tx-pool-price-limit"`
-	TxPoolPriceBump  uint64 `json:"tx-pool-price-bump"`
-
-	TxPoolAccountSlots uint64 `json:"tx-pool-account-slots"`
-	TxPoolGlobalSlots  uint64 `json:"tx-pool-global-slots"`
-	TxPoolAccountQueue uint64 `json:"tx-pool-account-queue"`
-	TxPoolGlobalQueue  uint64 `json:"tx-pool-global-queue"`
+	TxPoolJournal      string   `json:"tx-pool-journal"`
+	TxPoolRejournal    Duration `json:"tx-pool-rejournal"`
+	TxPoolPriceLimit   uint64   `json:"tx-pool-price-limit"`
+	TxPoolPriceBump    uint64   `json:"tx-pool-price-bump"`
+	TxPoolAccountSlots uint64   `json:"tx-pool-account-slots"`
+	TxPoolGlobalSlots  uint64   `json:"tx-pool-global-slots"`
+	TxPoolAccountQueue uint64   `json:"tx-pool-account-queue"`
+	TxPoolGlobalQueue  uint64   `json:"tx-pool-global-queue"`
 
 	APIMaxDuration           Duration      `json:"api-max-duration"`
 	WSCPURefillRate          Duration      `json:"ws-cpu-refill-rate"`
