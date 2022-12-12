@@ -65,9 +65,6 @@ type Network interface {
 	// SetRequestHandler sets the provided request handler as the request handler
 	SetRequestHandler(handler message.RequestHandler)
 
-	// SetCrossChainHandler sets the provided cross chain request handler as the cross chain request handler
-	SetCrossChainRequestHandler(handler message.CrossChainRequestHandler)
-
 	// Size returns the size of the network in number of connected peers
 	Size() uint32
 

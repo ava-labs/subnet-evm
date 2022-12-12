@@ -387,8 +387,6 @@ func TestCrossChainRequest(t *testing.T) {
 	}
 
 	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
-
-	net.SetCrossChainRequestHandler(nil)
 	client := NewNetworkClient(net)
 
 	exampleCrossChainRequest := ExampleCrossChainRequest{
