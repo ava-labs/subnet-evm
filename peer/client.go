@@ -19,7 +19,7 @@ var (
 
 // NetworkClient defines ability to send request / response through the Network
 type NetworkClient interface {
-	// SendRequestAny synchronously sends request to a randomly chosen peer with a
+	// SendRequestAny synchronously sends request to an arbitrary peer with a
 	// node version greater than or equal to minVersion.
 	// Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
 	// the request should be retried.
@@ -55,7 +55,7 @@ func NewNetworkClient(network Network) NetworkClient {
 	}
 }
 
-// SendRequestAny synchronously sends request to a randomly chosen peer with a
+// SendRequestAny synchronously sends request to an arbitrary peer with a
 // node version greater than or equal to minVersion.
 // Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
 // the request should be retried.

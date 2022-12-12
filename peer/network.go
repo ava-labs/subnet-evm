@@ -39,19 +39,19 @@ type Network interface {
 	validators.Connector
 	common.AppHandler
 
-	// RequestAny synchronously sends request to a randomly chosen peer with a
+	// SendRequestAny synchronously sends request to an arbitrary peer with a
 	// node version greater than or equal to minVersion.
 	// Returns the ID of the chosen peer, and an error if the request could not
 	// be sent to a peer with the desired [minVersion].
 	SendRequestAny(minVersion *version.Application, message []byte, handler message.ResponseHandler) (ids.NodeID, error)
 
-	// Request sends message to given nodeID, notifying handler when there's a response or timeout
+	// SendRequest sends message to given nodeID, notifying handler when there's a response or timeout
 	SendRequest(nodeID ids.NodeID, message []byte, handler message.ResponseHandler) error
 
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
 
-	// CrossChainRequest sends a message to given chainID notifying handler when there's a response or timeout
+	// SendCrossChainRequest sends a message to given chainID notifying handler when there's a response or timeout
 	SendCrossChainRequest(chainID ids.ID, message []byte, handler message.ResponseHandler) error
 
 	// Shutdown stops all peer channel listeners and marks the node to have stopped
@@ -82,7 +82,6 @@ type network struct {
 	lock                       sync.RWMutex                       // lock for mutating state of this Network struct
 	self                       ids.NodeID                         // NodeID of this node
 	requestIDGen               uint32                             // requestID counter used to track outbound requests
-	crossChainRequestIDGen     uint32                             // crossChainRequestID counter used to track outbound Cross Chain Requests
 	outstandingRequestHandlers map[uint32]message.ResponseHandler // maps avalanchego requestID => message.ResponseHandler
 	activeRequests             *semaphore.Weighted                // controls maximum number of active outbound requests
 	appSender                  common.AppSender                   // avalanchego AppSender for sending messages
@@ -243,7 +242,7 @@ func (n *network) AppResponse(_ context.Context, nodeID ids.NodeID, requestID ui
 	handler, exists := n.markRequestFulfilled(requestID, false)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
-		log.Error("received response to unknown request", "nodeID", nodeID, "requestID", requestID, "responseLen", len(response))
+		log.Error("received AppResponse to unknown request", "nodeID", nodeID, "requestID", requestID, "responseLen", len(response))
 		return nil
 	}
 
@@ -264,14 +263,14 @@ func (n *network) AppRequestFailed(_ context.Context, nodeID ids.NodeID, request
 	handler, exists := n.markRequestFulfilled(requestID, false)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
-		log.Error("received request failed to unknown request", "nodeID", nodeID, "requestID", requestID)
+		log.Error("received AppRequestFailed failed to unknown request", "nodeID", nodeID, "requestID", requestID)
 		return nil
 	}
 
 	return handler.OnFailure(requestID)
 }
 
-// CrossChainRequest sends request message bytes to specified chainID and adds [handler] to [outstandingRequestHandlers]
+// SendCrossChainRequest sends request message bytes to specified chainID and adds [handler] to [outstandingRequestHandlers]
 // so that it can be invoked when the network receives either a response or failure message.
 // Returns an error if [appSender] is unable to make the request.
 func (n *network) SendCrossChainRequest(chainID ids.ID, request []byte, handler message.ResponseHandler) error {
@@ -311,15 +310,15 @@ func (n *network) CrossChainAppRequestFailed(ctx context.Context, respondingChai
 	handler, exists := n.markRequestFulfilled(requestID, true)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
-		log.Error("received crosschain request failed to unknown request", "respondingChainID", respondingChainID, "requestID", requestID)
+		log.Error("received CrossChainAppRequestFailed failed to unknown request", "respondingChainID", respondingChainID, "requestID", requestID)
 		return nil
 	}
 
 	return handler.OnFailure(requestID)
 }
 
-// CrossChainAppResponse is invoked when there is a
-// response received from [respondingChainID] regarding a request the VM sent out
+// CrossChainAppResponse is invoked when there is a response
+// received from [respondingChainID] regarding a request the VM sent out
 // If [requestID] is not known, this function will emit a log and return a nil error.
 // If the response handler returns an error it is propagated as a fatal error.
 func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID ids.ID, requestID uint32, response []byte) error {
@@ -331,7 +330,7 @@ func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID i
 	handler, exists := n.markRequestFulfilled(requestID, true)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
-		log.Error("received cross chain response to unknown request", "respondingChainID", respondingChainID, "requestID", requestID, "responseLen", len(response))
+		log.Error("received CrossChainAppResponse to unknown request", "respondingChainID", respondingChainID, "requestID", requestID, "responseLen", len(response))
 		return nil
 	}
 
