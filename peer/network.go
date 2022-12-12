@@ -427,13 +427,6 @@ func (n *network) SetRequestHandler(handler message.RequestHandler) {
 	n.requestHandler = handler
 }
 
-func (n *network) SetCrossChainRequestHandler(handler message.CrossChainRequestHandler) {
-	n.lock.Lock()
-	defer n.lock.Unlock()
-
-	n.crossChainRequestHandler = handler
-}
-
 func (n *network) Size() uint32 {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
