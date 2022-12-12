@@ -339,6 +339,7 @@ func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID i
 }
 
 // markAppRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
+// if [isCrossChainRequest] then we do not release the semaphore for [n.activeRequests] as CrossChainRequests have no maximum upperbound.
 // This is called by either [AppResponse] or [AppRequestFailed].
 // assumes that the write lock is held.
 func (n *network) markRequestFulfilled(requestID uint32, isCrossChainRequest bool) (message.ResponseHandler, bool) {
