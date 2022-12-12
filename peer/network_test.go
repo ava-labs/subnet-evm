@@ -24,6 +24,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -404,7 +405,7 @@ func TestCrossChainRequest(t *testing.T) {
 	if _, err = crossChainCodecManager.Unmarshal(responseBytes, &response); err != nil {
 		t.Fatal("unexpected error during unmarshal", err)
 	}
-	assert.Equal(t, "this is an example response", response.Response)
+	require.Equal(t, "this is an example response", response.Response)
 }
 
 func TestHandleInvalidMessages(t *testing.T) {

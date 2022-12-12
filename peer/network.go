@@ -84,7 +84,6 @@ type network struct {
 	appSender                  common.AppSender                   // avalanchego AppSender for sending messages
 	codec                      codec.Manager                      // Codec used for parsing messages
 	requestHandler             message.RequestHandler             // maps request type => handler
-	crossChainRequestHandler   message.CrossChainRequestHandler   // maps cross chain request => handler
 	gossipHandler              message.GossipHandler              // maps gossip type => handler
 	peers                      *peerTracker                       // tracking of peers & bandwidth
 	stats                      stats.RequestHandlerStats          // Provide request handler metrics
