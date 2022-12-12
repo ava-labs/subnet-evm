@@ -39,18 +39,19 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/verify"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/utils/codec"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// TODO
+// XXX
 const (
-	ExportAVAXGasCost            uint64 = 0 // SET A GAS COST HERE
-	ExportUTXOGasCost            uint64 = 0 // SET A GAS COST HERE
-	GetNativeTokenAssetIDGasCost uint64 = 0 // SET A GAS COST HERE
-	ImportAVAXGasCost            uint64 = 0 // SET A GAS COST HERE
-	ImportUTXOGasCost            uint64 = 0 // SET A GAS COST HERE
+	ExportAVAXGasCost            uint64 = writeGasCostPerSlot + readGasCostPerSlot
+	ExportUTXOGasCost            uint64 = writeGasCostPerSlot + readGasCostPerSlot
+	ImportAVAXGasCost            uint64 = writeGasCostPerSlot + readGasCostPerSlot
+	ImportUTXOGasCost            uint64 = writeGasCostPerSlot + readGasCostPerSlot
+	GetNativeTokenAssetIDGasCost uint64 = 100 // Based off of sha256
 
 	// SharedMemoryRawABI contains the raw ABI of SharedMemory contract.
 	SharedMemoryRawABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"amount\",\"type\":\"uint64\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"locktime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"threshold\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"addrs\",\"type\":\"address[]\"}],\"name\":\"ExportAVAX\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"amount\",\"type\":\"uint64\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"assetID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"locktime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"threshold\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"addrs\",\"type\":\"address[]\"}],\"name\":\"ExportUTXO\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"amount\",\"type\":\"uint64\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"sourceChainID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"locktime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"threshold\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"addrs\",\"type\":\"address[]\"}],\"name\":\"ImportAVAX\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"amount\",\"type\":\"uint64\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"sourceChainID\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"assetID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"locktime\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"threshold\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"addrs\",\"type\":\"address[]\"}],\"name\":\"ImportUTXO\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"uint64\",\"name\":\"locktime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"threshold\",\"type\":\"uint64\"},{\"internalType\":\"address[]\",\"name\":\"addrs\",\"type\":\"address[]\"}],\"name\":\"exportAVAX\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"amount\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"desinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"uint64\",\"name\":\"locktime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"threshold\",\"type\":\"uint64\"},{\"internalType\":\"address[]\",\"name\":\"addrs\",\"type\":\"address[]\"}],\"name\":\"exportUTXO\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"caller\",\"type\":\"address\"}],\"name\":\"getNativeTokenAssetID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"assetID\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"sourceChain\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"utxoID\",\"type\":\"bytes32\"}],\"name\":\"importAVAX\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"sourceChain\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"utxoID\",\"type\":\"bytes32\"}],\"name\":\"importUTXO\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"amount\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"locktime\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"threshold\",\"type\":\"uint64\"},{\"internalType\":\"address[]\",\"name\":\"addrs\",\"type\":\"address[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
@@ -226,14 +227,14 @@ func (c *SharedMemoryConfig) OnAccept() OnAcceptFunc { // TODO update to return 
 				},
 			}
 
-			// utxoBytes, err := Codec.Marshal(codecVersion, utxo)
-			// if err != nil {
-			// 	return ids.ID{}, nil, err
-			// }
+			utxoBytes, err := codec.Codec.Marshal(0, utxo) // XXX
+			if err != nil {
+				return ids.ID{}, nil, err
+			}
 			utxoID := utxo.InputID()
 			elem := &atomic.Element{
 				Key:   utxoID[:],
-				Value: nil, // TODO marshal the UTXO
+				Value: utxoBytes,
 			}
 			if out, ok := utxo.Out.(avax.Addressable); ok {
 				elem.Traits = out.Addresses()
