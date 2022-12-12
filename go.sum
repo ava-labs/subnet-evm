@@ -72,10 +72,8 @@ github.com/ava-labs/avalanche-network-runner v1.3.2 h1:6uWaFZsxrpBHowylpLU7A1voD
 github.com/ava-labs/avalanche-network-runner v1.3.2/go.mod h1:tvFV5zZNqLN5w8e4oSIZuZGm7bzZ8PukbhXJ2Oihd4w=
 github.com/ava-labs/avalanche-network-runner-sdk v0.3.0 h1:TVi9JEdKNU/RevYZ9PyW4pULbEdS+KQDA9Ki2DUvuAs=
 github.com/ava-labs/avalanche-network-runner-sdk v0.3.0/go.mod h1:SgKJvtqvgo/Bl/c8fxEHCLaSxEbzimYfBopcfrajxQk=
-github.com/ava-labs/avalanchego v1.9.3 h1:vEIa5R7p9P+q1Tf4DHFQppI0ELgKdv0tLVx4sMDNXZc=
-github.com/ava-labs/avalanchego v1.9.3/go.mod h1:UR0FdZiS5+0fEqGk3S8zLIiQ2xdzIfTcCnndBRJQ5NA=
-github.com/ava-labs/coreth v0.11.3-rc.1 h1:zHu3YUgsroWyWx95O3zFbiB+J+tZrR7Svs17nKIfndQ=
-github.com/ava-labs/coreth v0.11.3-rc.1/go.mod h1:FEEvs3gUlRieoUXqoZDya9z12ppbOcEokrwcKKUkL5w=
+github.com/ava-labs/avalanchego v1.9.4 h1:z5tE/vUGzUQflqv3mn6X5E1VTCZHYhuD36idOyPNRrc=
+github.com/ava-labs/avalanchego v1.9.4/go.mod h1:H4pMTYzgudfPs9WX+KXI0nCiUGNkdgPWOwm1nqzGibQ=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
