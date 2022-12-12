@@ -89,12 +89,12 @@ func (c *client) SendRequest(nodeID ids.NodeID, request []byte) ([]byte, error) 
 // SendCrossChainRequest synchronously sends request to the specified chainID
 // Returns response bytes and ErrRequestFailed if the request should be retried.
 func (c *client) SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
-	waitingCrossChainHandler := newWaitingCrossChainResponseHandler()
-	if err := c.network.SendCrossChainRequest(chainID, request, waitingCrossChainHandler); err != nil {
+	waitingHandler := newWaitingResponseHandler()
+	if err := c.network.SendCrossChainRequest(chainID, request, waitingHandler); err != nil {
 		return nil, err
 	}
-	response := <-waitingCrossChainHandler.responseChan
-	if waitingCrossChainHandler.failed {
+	response := <-waitingHandler.responseChan
+	if waitingHandler.failed {
 		return nil, ErrRequestFailed
 	}
 	return response, nil
