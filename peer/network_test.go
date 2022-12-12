@@ -364,6 +364,7 @@ func TestGossip(t *testing.T) {
 	assert.True(t, sentGossip)
 	assert.True(t, gossipHandler.received)
 }
+
 func TestCrossChainRequest(t *testing.T) {
 	var net Network
 	codecManager := buildCodec(t, TestMessage{})

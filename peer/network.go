@@ -321,7 +321,7 @@ func (n *network) CrossChainAppRequestFailed(ctx context.Context, respondingChai
 }
 
 // CrossChainAppResponse is invoked when there is a
-// response received from [respondingChainID] regarding a request coreeth VM sent out
+// response received from [respondingChainID] regarding a request the VM sent out
 // If [requestID] is not known, this function will emit a log and return a nil error.
 // If the response handler returns an error it is propagated as a fatal error.
 func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID ids.ID, requestID uint32, response []byte) error {

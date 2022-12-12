@@ -19,17 +19,17 @@ var (
 
 // NetworkClient defines ability to send request / response through the Network
 type NetworkClient interface {
-	// RequestAny synchronously sends request to a randomly chosen peer with a
+	// SendRequestAny synchronously sends request to a randomly chosen peer with a
 	// node version greater than or equal to minVersion.
 	// Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
 	// the request should be retried.
 	SendRequestAny(minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error)
 
-	// Request synchronously sends request to the selected nodeID
+	// SendRequest synchronously sends request to the selected nodeID
 	// Returns response bytes, and ErrRequestFailed if the request should be retried.
 	SendRequest(nodeID ids.NodeID, request []byte) ([]byte, error)
 
-	// CrossChainRequest sends a request to a specific blockchain running on this node.
+	// SendCrossChainRequest sends a request to a specific blockchain running on this node.
 	// Returns response bytes or ErrRequestFailed if the request failed.
 	SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error)
 
@@ -55,7 +55,7 @@ func NewNetworkClient(network Network) NetworkClient {
 	}
 }
 
-// RequestAny synchronously sends request to a randomly chosen peer with a
+// SendRequestAny synchronously sends request to a randomly chosen peer with a
 // node version greater than or equal to minVersion.
 // Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
 // the request should be retried.
@@ -72,7 +72,7 @@ func (c *client) SendRequestAny(minVersion *version.Application, request []byte)
 	return response, nodeID, nil
 }
 
-// Request synchronously sends request to the specified nodeID
+// SendRequest synchronously sends request to the specified nodeID
 // Returns response bytes and ErrRequestFailed if the request should be retried.
 func (c *client) SendRequest(nodeID ids.NodeID, request []byte) ([]byte, error) {
 	waitingHandler := newWaitingResponseHandler()
@@ -86,6 +86,8 @@ func (c *client) SendRequest(nodeID ids.NodeID, request []byte) ([]byte, error) 
 	return response, nil
 }
 
+// SendCrossChainRequest synchronously sends request to the specified chainID
+// Returns response bytes and ErrRequestFailed if the request should be retried.
 func (c *client) SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
 	waitingCrossChainHandler := newWaitingCrossChainResponseHandler()
 	if err := c.network.SendCrossChainRequest(chainID, request, waitingCrossChainHandler); err != nil {
