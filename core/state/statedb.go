@@ -455,6 +455,16 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	}
 }
 
+// SetStateVariableLength is similar to SetState, except that is allows
+// for a variable length key and value to be stored in the storage trie
+// instead of the fixed length of common.Hash.
+func (s *StateDB) SetStateVariableLength(addr common.Address, key Key, value Val) {
+	stateObject := s.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetState(s.db, key, value)
+	}
+}
+
 // SetStorage replaces the entire storage for the specified account with given
 // storage. This function should only be used for debugging.
 func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
