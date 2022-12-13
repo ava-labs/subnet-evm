@@ -40,7 +40,7 @@ type CrossChainRequest interface {
 	// CrossChainRequests should implement String() for logging.
 	fmt.Stringer
 
-	// Handle allows `CrossChainRequest` to call respective methods on handler to handle
+	// Handle allows [CrossChainRequest] to call respective methods on handler to handle
 	// this particular request type
 	Handle(ctx context.Context, requestingChainID ids.ID, requestID uint32, handler CrossChainRequestHandler) ([]byte, error)
 }
