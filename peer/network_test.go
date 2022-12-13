@@ -380,7 +380,6 @@ func TestCrossChainRequest(t *testing.T) {
 
 				err = net.CrossChainAppResponse(context.Background(), requestingChainID, requestID, responseBytes)
 				require.NoError(t, err)
-
 			}()
 			return nil
 		},
