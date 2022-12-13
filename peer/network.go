@@ -103,7 +103,7 @@ func NewNetwork(appSender common.AppSender, codec codec.Manager, self ids.NodeID
 	}
 }
 
-// SendRequestAny synchronously sends request to a randomly chosen peer with a
+// SendRequestAny synchronously sends request to an arbitrary peer with a
 // node version greater than or equal to minVersion. If minVersion is nil,
 // the request will be sent to any peer regardless of their version.
 // Returns the ID of the chosen peer, and an error if the request could not
