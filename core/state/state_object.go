@@ -50,7 +50,37 @@ func (c Code) String() string {
 	return string(c) //strings.Join(Disassemble(c), " ")
 }
 
-type Storage map[common.Hash]common.Hash
+type Key string
+
+func (k Key) Bytes() []byte {
+	return []byte(k)
+}
+
+func (k Key) AsHash() common.Hash {
+	return common.BytesToHash(k.Bytes())
+}
+
+func HashToKey(hash common.Hash) Key {
+	return Key(hash[:])
+}
+
+type Val string
+
+func (v Val) Bytes() []byte {
+	return []byte(v)
+}
+
+func (v Val) AsHash() common.Hash {
+	return common.BytesToHash(v.Bytes())
+}
+
+func HashToVal(hash common.Hash) Val {
+	return Val(hash[:])
+}
+
+var EmptyVal = Val("")
+
+type Storage map[Key]Val
 
 func (s Storage) String() (str string) {
 	for key, value := range s {
@@ -185,7 +215,7 @@ func (s *stateObject) getTrie(db Database) Trie {
 }
 
 // GetState retrieves a value from the account storage trie.
-func (s *stateObject) GetState(db Database, key common.Hash) common.Hash {
+func (s *stateObject) GetState(db Database, key Key) Val {
 	// If the fake storage is set, only lookup the state here(in the debugging mode)
 	if s.fakeStorage != nil {
 		return s.fakeStorage[key]
@@ -200,7 +230,7 @@ func (s *stateObject) GetState(db Database, key common.Hash) common.Hash {
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
-func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
+func (s *stateObject) GetCommittedState(db Database, key Key) Val {
 	// If the fake storage is set, only lookup the state here(in the debugging mode)
 	if s.fakeStorage != nil {
 		return s.fakeStorage[key]
@@ -225,7 +255,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		//      have been handles via pendingStorage above.
 		//   2) we don't have new values, and can deliver empty response back
 		if _, destructed := s.db.snapDestructs[s.addrHash]; destructed {
-			return common.Hash{}
+			return EmptyVal
 		}
 		start := time.Now()
 		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key.Bytes()))
@@ -242,23 +272,23 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		}
 		if err != nil {
 			s.setError(err)
-			return common.Hash{}
+			return EmptyVal
 		}
 	}
-	var value common.Hash
+	var value Val
 	if len(enc) > 0 {
 		_, content, _, err := rlp.Split(enc)
 		if err != nil {
 			s.setError(err)
 		}
-		value.SetBytes(content)
+		value = Val(content)
 	}
 	s.originStorage[key] = value
 	return value
 }
 
 // SetState updates a value in account storage.
-func (s *stateObject) SetState(db Database, key, value common.Hash) {
+func (s *stateObject) SetState(db Database, key Key, value Val) {
 	// If the fake storage is set, put the temporary state update here.
 	if s.fakeStorage != nil {
 		s.fakeStorage[key] = value
@@ -284,7 +314,7 @@ func (s *stateObject) SetState(db Database, key, value common.Hash) {
 // lookup only happens in the fake state storage.
 //
 // Note this function should only be used for debugging purpose.
-func (s *stateObject) SetStorage(storage map[common.Hash]common.Hash) {
+func (s *stateObject) SetStorage(storage map[Key]Val) {
 	// Allocate fake storage if it's nil.
 	if s.fakeStorage == nil {
 		s.fakeStorage = make(Storage)
@@ -296,7 +326,7 @@ func (s *stateObject) SetStorage(storage map[common.Hash]common.Hash) {
 	// debugging and the `fake` storage won't be committed to database.
 }
 
-func (s *stateObject) setState(key, value common.Hash) {
+func (s *stateObject) setState(key Key, value Val) {
 	s.dirtyStorage[key] = value
 }
 
@@ -307,7 +337,7 @@ func (s *stateObject) finalise(prefetch bool) {
 	for key, value := range s.dirtyStorage {
 		s.pendingStorage[key] = value
 		if value != s.originStorage[key] {
-			slotsToPrefetch = append(slotsToPrefetch, common.CopyBytes(key[:])) // Copy needed for closure
+			slotsToPrefetch = append(slotsToPrefetch, common.CopyBytes(key.Bytes())) // Copy needed for closure
 		}
 	}
 	if s.db.prefetcher != nil && prefetch && len(slotsToPrefetch) > 0 && s.data.Root != emptyRoot {
@@ -345,13 +375,14 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		s.originStorage[key] = value
 
 		var v []byte
-		if (value == common.Hash{}) {
-			s.setError(tr.TryDelete(key[:]))
+		trimmedVal := common.TrimLeftZeroes(value.Bytes())
+		if len(trimmedVal) == 0 {
+			s.setError(tr.TryDelete(key.Bytes()))
 			s.db.StorageDeleted += 1
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
-			v, _ = rlp.EncodeToBytes(common.TrimLeftZeroes(value[:]))
-			s.setError(tr.TryUpdate(key[:], v))
+			v, _ = rlp.EncodeToBytes(trimmedVal)
+			s.setError(tr.TryUpdate(key.Bytes(), v))
 			s.db.StorageUpdated += 1
 		}
 		// If state snapshotting is active, cache the data til commit
@@ -363,9 +394,9 @@ func (s *stateObject) updateTrie(db Database) Trie {
 					s.db.snapStorage[s.addrHash] = storage
 				}
 			}
-			storage[crypto.HashData(hasher, key[:])] = v // v will be nil if it's deleted
+			storage[crypto.HashData(hasher, key.Bytes())] = v // v will be nil if it's deleted
 		}
-		usedStorage = append(usedStorage, common.CopyBytes(key[:])) // Copy needed for closure
+		usedStorage = append(usedStorage, common.CopyBytes(key.Bytes())) // Copy needed for closure
 	}
 	if s.db.prefetcher != nil {
 		s.db.prefetcher.used(s.addrHash, s.data.Root, usedStorage)

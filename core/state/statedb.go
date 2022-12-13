@@ -345,7 +345,7 @@ func (s *StateDB) GetCodeHash(addr common.Address) common.Hash {
 func (s *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetState(s.db, hash)
+		return stateObject.GetState(s.db, HashToKey(hash)).AsHash()
 	}
 	return common.Hash{}
 }
@@ -377,7 +377,7 @@ func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, 
 func (s *StateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetCommittedState(s.db, hash)
+		return stateObject.GetCommittedState(s.db, HashToKey(hash)).AsHash()
 	}
 	return common.Hash{}
 }
@@ -451,7 +451,7 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SetState(s.db, key, value)
+		stateObject.SetState(s.db, HashToKey(key), HashToVal(value))
 	}
 }
 
@@ -460,7 +460,14 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SetStorage(storage)
+		// convert the provided storage to variable key length format
+		// Note: We could push the conversion to the caller and require
+		// [Key] as storage's key type. However, this seems simpler for now.
+		storageMap := make(Storage)
+		for hash, value := range storage {
+			storageMap[HashToKey(hash)] = HashToVal(value)
+		}
+		stateObject.SetStorage(storageMap)
 	}
 }
 
@@ -645,7 +652,7 @@ func (s *StateDB) CreateAccount(addr common.Address) {
 	}
 }
 
-func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) error {
+func (db *StateDB) ForEachStorage(addr common.Address, cb func(key Key, value Val) bool) error {
 	so := db.getStateObject(addr)
 	if so == nil {
 		return nil
@@ -653,7 +660,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
 
 	for it.Next() {
-		key := common.BytesToHash(db.trie.GetKey(it.Key))
+		key := Key(db.trie.GetKey(it.Key))
 		if value, dirty := so.dirtyStorage[key]; dirty {
 			if !cb(key, value) {
 				return nil
@@ -666,7 +673,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 			if err != nil {
 				return err
 			}
-			if !cb(key, common.BytesToHash(content)) {
+			if !cb(key, Val(content)) {
 				return nil
 			}
 		}
