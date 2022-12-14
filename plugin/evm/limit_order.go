@@ -35,6 +35,7 @@ type limitOrderProcesser struct {
 	shutdownChan <-chan struct{}
 	shutdownWg   *sync.WaitGroup
 	backend      *eth.EthAPIBackend
+	blockChain   *core.BlockChain
 	memoryDb     limitorders.InMemoryDatabase
 	orderBookABI abi.ABI
 }
@@ -43,7 +44,8 @@ func SetOrderBookContractFileLocation(location string) {
 	orderBookContractFileLocation = location
 }
 
-func NewLimitOrderProcesser(ctx *snow.Context, chainConfig *params.ChainConfig, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend) LimitOrderProcesser {
+func NewLimitOrderProcesser(ctx *snow.Context, chainConfig *params.ChainConfig, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain) LimitOrderProcesser {
+	log.Info("**** NewLimitOrderProcesser")
 	jsonBytes, _ := ioutil.ReadFile(orderBookContractFileLocation)
 	orderBookAbi, err := abi.FromSolidityJson(string(jsonBytes))
 	if err != nil {
@@ -59,10 +61,30 @@ func NewLimitOrderProcesser(ctx *snow.Context, chainConfig *params.ChainConfig, 
 		backend:      backend,
 		memoryDb:     limitorders.NewInMemoryDatabase(),
 		orderBookABI: orderBookAbi,
+		blockChain: blockChain,
 	}
 }
 
 func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
+	lastAccepted := lop.blockChain.LastAcceptedBlock().NumberU64()
+	if lastAccepted > 0 {
+		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAccepted)
+		
+		allTxs := types.Transactions{}
+		for i := uint64(0); i <= lastAccepted; i++ {
+			block := lop.blockChain.GetBlockByNumber(i)
+			if block != nil {
+				allTxs = append(allTxs, block.Transactions()...)
+			}
+		}
+	
+		for _, tx := range allTxs {
+			parseTx(lop.orderBookABI, lop.memoryDb, *lop.backend, tx)
+		}
+
+		log.Info("ListenAndProcessTransactions - sync complete", "till block number", lastAccepted, "total transactions", len(allTxs))
+	}
+
 	lop.listenAndStoreLimitOrderTransactions()
 }
 
