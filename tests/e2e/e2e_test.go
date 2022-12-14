@@ -89,6 +89,7 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	// TODO add a new node to bootstrap off of the existing node and make sure we can bootstrap all of the data created in the test.
 	gomega.Expect(startCmd).ShouldNot(gomega.BeNil())
 	gomega.Expect(startCmd.Stop()).Should(gomega.BeNil())
 })

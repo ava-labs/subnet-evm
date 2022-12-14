@@ -26,6 +26,8 @@ import (
 
 var localURI = "http://127.0.0.1:9650"
 
+// TODO add general and configurable load test that can be run as a binary on an arbitrary N nodes and given blockchainID
+
 var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 	ginkgo.It("ping the network", ginkgo.Label("setup"), func() {
 		client := health.NewClient(localURI)
@@ -45,6 +47,7 @@ func runHardhatTests(test string, rpcURI string) {
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(bal).Should(gomega.Equal(common.Big0))
 
+	// TODO fix this to run hardhat tests on a network
 	// err := os.Setenv("RPC_URI", rpcURI)
 	// gomega.Expect(err).Should(gomega.BeNil())
 
@@ -119,6 +122,8 @@ var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 		executeHardHatTestOnNewBlockchain(ctx, "contract_native_minter")
 	})
 
+	// TODO: uncomment the rest of the precompile e2e tests
+	// TODO: can we move where we register the precompile e2e tests, so that they stay within their package
 	// ginkgo.It("tx allow list", ginkgo.Label("solidity-with-npx"), func() {
 	// 	err := startSubnet("./tests/e2e/genesis/tx_allow_list.json")
 	// 	gomega.Expect(err).Should(gomega.BeNil())
