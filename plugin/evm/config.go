@@ -43,7 +43,7 @@ const (
 	defaultLogLevel                                   = "info"
 	defaultLogJSONFormat                              = false
 	defaultMaxOutboundActiveRequests                  = 16
-	defaultMaxOutboundActiveCrossChainRequests        = 16
+	defaultMaxOutboundActiveCrossChainRequests        = 64
 	defaultPopulateMissingTriesParallelism            = 1024
 	defaultStateSyncServerTrieCache                   = 64 // MB
 	defaultAcceptedCacheSize                          = 32 // blocks
