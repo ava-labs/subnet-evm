@@ -235,11 +235,14 @@ func (n *network) AppResponse(_ context.Context, nodeID ids.NodeID, requestID ui
 
 	log.Debug("received AppResponse from peer", "nodeID", nodeID, "requestID", requestID)
 
-	handler, exists := n.markRequestFulfilled(requestID, false)
+	handler, exists := n.markRequestFulfilled(requestID)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
 		log.Error("received AppResponse to unknown request", "nodeID", nodeID, "requestID", requestID, "responseLen", len(response))
 		return nil
+	} else {
+		// We must release the slot
+		n.activeAppRequests.Release(1)
 	}
 
 	return handler.OnResponse(response)
@@ -256,11 +259,14 @@ func (n *network) AppRequestFailed(_ context.Context, nodeID ids.NodeID, request
 	defer n.lock.Unlock()
 	log.Debug("received AppRequestFailed from peer", "nodeID", nodeID, "requestID", requestID)
 
-	handler, exists := n.markRequestFulfilled(requestID, false)
+	handler, exists := n.markRequestFulfilled(requestID)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
 		log.Error("received AppRequestFailed failed to unknown request", "nodeID", nodeID, "requestID", requestID)
 		return nil
+	} else {
+		// We must release the slot
+		n.activeAppRequests.Release(1)
 	}
 
 	return handler.OnFailure()
@@ -311,11 +317,14 @@ func (n *network) CrossChainAppRequestFailed(ctx context.Context, respondingChai
 	defer n.lock.Unlock()
 	log.Debug("received CrossChainAppRequestFailed from chain", "respondingChainID", respondingChainID, "requestID", requestID)
 
-	handler, exists := n.markRequestFulfilled(requestID, true)
+	handler, exists := n.markRequestFulfilled(requestID)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
 		log.Error("received CrossChainAppRequestFailed failed to unknown request", "respondingChainID", respondingChainID, "requestID", requestID)
 		return nil
+	} else {
+		// We must release the slot
+		n.activeCrossChainRequests.Release(1)
 	}
 
 	return handler.OnFailure()
@@ -331,34 +340,29 @@ func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID i
 
 	log.Debug("received CrossChainAppResponse from responding chain", "respondingChainID", respondingChainID, "requestID", requestID)
 
-	handler, exists := n.markRequestFulfilled(requestID, true)
+	handler, exists := n.markRequestFulfilled(requestID)
 	if !exists {
 		// Should never happen since the engine should be managing outstanding requests
 		log.Error("received CrossChainAppResponse to unknown request", "respondingChainID", respondingChainID, "requestID", requestID, "responseLen", len(response))
 		return nil
+	} else {
+		// We must release the slot
+		n.activeCrossChainRequests.Release(1)
 	}
 
 	return handler.OnResponse(response)
 }
 
 // markAppRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
-// Also releases the slot for the respective request type
 // This is called by either [AppResponse] or [AppRequestFailed].
 // assumes that the write lock is held.
-func (n *network) markRequestFulfilled(requestID uint32, isCrossChainRequest bool) (message.ResponseHandler, bool) {
+func (n *network) markRequestFulfilled(requestID uint32) (message.ResponseHandler, bool) {
 	handler, exists := n.outstandingRequestHandlers[requestID]
 	if !exists {
 		return nil, false
 	}
 	// mark message as processed
 	delete(n.outstandingRequestHandlers, requestID)
-
-	// We must release the slot for the respective request type
-	if isCrossChainRequest {
-		n.activeCrossChainRequests.Release(1)
-	} else {
-		n.activeAppRequests.Release(1)
-	}
 
 	return handler, true
 }
