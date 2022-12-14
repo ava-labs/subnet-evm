@@ -80,7 +80,8 @@ type network struct {
 	self                       ids.NodeID                         // NodeID of this node
 	requestIDGen               uint32                             // requestID counter used to track outbound requests
 	outstandingRequestHandlers map[uint32]message.ResponseHandler // maps avalanchego requestID => message.ResponseHandler
-	activeRequests             *semaphore.Weighted                // controls maximum number of active outbound requests
+	activeAppRequests          *semaphore.Weighted                // controls maximum number of active outbound requests
+	activeCrossChainRequests   *semaphore.Weighted                // controls maximum number of active outbound cross chain requests
 	appSender                  common.AppSender                   // avalanchego AppSender for sending messages
 	codec                      codec.Manager                      // Codec used for parsing messages
 	requestHandler             message.RequestHandler             // maps request type => handler
@@ -89,13 +90,14 @@ type network struct {
 	stats                      stats.RequestHandlerStats          // Provide request handler metrics
 }
 
-func NewNetwork(appSender common.AppSender, codec codec.Manager, self ids.NodeID, maxActiveRequests int64) Network {
+func NewNetwork(appSender common.AppSender, codec codec.Manager, self ids.NodeID, maxActiveRequests int64, maxActiveCrossChainRequests int64) Network {
 	return &network{
 		appSender:                  appSender,
 		codec:                      codec,
 		self:                       self,
 		outstandingRequestHandlers: make(map[uint32]message.ResponseHandler),
-		activeRequests:             semaphore.NewWeighted(maxActiveRequests),
+		activeAppRequests:          semaphore.NewWeighted(maxActiveRequests),
+		activeCrossChainRequests:   semaphore.NewWeighted(maxActiveCrossChainRequests),
 		gossipHandler:              message.NoopMempoolGossipHandler{},
 		requestHandler:             message.NoopRequestHandler{},
 		peers:                      NewPeerTracker(),
@@ -109,8 +111,8 @@ func NewNetwork(appSender common.AppSender, codec codec.Manager, self ids.NodeID
 // Returns the ID of the chosen peer, and an error if the request could not
 // be sent to a peer with the desired [minVersion].
 func (n *network) SendAppRequestAny(minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
-	// Take a slot from total [activeRequests] and block until a slot becomes available.
-	if err := n.activeRequests.Acquire(context.Background(), 1); err != nil {
+	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
+	if err := n.activeAppRequests.Acquire(context.Background(), 1); err != nil {
 		return ids.EmptyNodeID, errAcquiringSemaphore
 	}
 
@@ -120,7 +122,7 @@ func (n *network) SendAppRequestAny(minVersion *version.Application, request []b
 		return nodeID, n.sendAppRequest(nodeID, request, handler)
 	}
 
-	n.activeRequests.Release(1)
+	n.activeAppRequests.Release(1)
 	return ids.EmptyNodeID, fmt.Errorf("no peers found matching version %s out of %d peers", minVersion, n.peers.Size())
 }
 
@@ -130,8 +132,8 @@ func (n *network) SendAppRequest(nodeID ids.NodeID, request []byte, responseHand
 		return fmt.Errorf("cannot send request to empty nodeID, nodeID=%s, requestLen=%d", nodeID, len(request))
 	}
 
-	// Take a slot from total [activeRequests] and block until a slot becomes available.
-	if err := n.activeRequests.Acquire(context.Background(), 1); err != nil {
+	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
+	if err := n.activeAppRequests.Acquire(context.Background(), 1); err != nil {
 		return errAcquiringSemaphore
 	}
 
@@ -160,12 +162,10 @@ func (n *network) sendAppRequest(nodeID ids.NodeID, request []byte, responseHand
 	nodeIDs := set.NewSet[ids.NodeID](1)
 	nodeIDs.Add(nodeID)
 
-	// send app request to the peer
-	// on failure: release the activeRequests slot, mark message as processed and return fatal error
 	// Send app request to [nodeID].
-	// On failure, release the slot from active requests and [outstandingRequestHandlers].
+	// On failure, release the slot from [activeAppRequests] and delete request from [outstandingRequestHandlers]
 	if err := n.appSender.SendAppRequest(context.TODO(), nodeIDs, requestID, request); err != nil {
-		n.activeRequests.Release(1)
+		n.activeAppRequests.Release(1)
 		delete(n.outstandingRequestHandlers, requestID)
 		return err
 	}
@@ -270,6 +270,11 @@ func (n *network) AppRequestFailed(_ context.Context, nodeID ids.NodeID, request
 // so that it can be invoked when the network receives either a response or failure message.
 // Returns an error if [appSender] is unable to make the request.
 func (n *network) SendCrossChainRequest(chainID ids.ID, request []byte, handler message.ResponseHandler) error {
+	// Take a slot from total [activeCrossChainRequests] and block until a slot becomes available.
+	if err := n.activeCrossChainRequests.Acquire(context.Background(), 1); err != nil {
+		return errAcquiringSemaphore
+	}
+
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
@@ -279,7 +284,10 @@ func (n *network) SendCrossChainRequest(chainID ids.ID, request []byte, handler 
 
 	n.outstandingRequestHandlers[requestID] = handler
 
+	// Send cross chain request to [chainID].
+	// On failure, release the slot from [activeCrossChainRequests] and delete request from [outstandingRequestHandlers].
 	if err := n.appSender.SendCrossChainAppRequest(context.TODO(), chainID, requestID, request); err != nil {
+		n.activeCrossChainRequests.Release(1)
 		delete(n.outstandingRequestHandlers, requestID)
 		return err
 	}
@@ -334,7 +342,7 @@ func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID i
 }
 
 // markAppRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.
-// if [isCrossChainRequest] then we do not release the semaphore for [n.activeRequests] as CrossChainRequests have no maximum upperbound.
+// Also releases the slot for the respective request type
 // This is called by either [AppResponse] or [AppRequestFailed].
 // assumes that the write lock is held.
 func (n *network) markRequestFulfilled(requestID uint32, isCrossChainRequest bool) (message.ResponseHandler, bool) {
@@ -342,14 +350,14 @@ func (n *network) markRequestFulfilled(requestID uint32, isCrossChainRequest boo
 	if !exists {
 		return nil, false
 	}
-	// mark message as processed, release activeRequests slot
+	// mark message as processed
 	delete(n.outstandingRequestHandlers, requestID)
 
-	// [n.activeRequests] controls the maximum number of active outbound requests for all requests that are not CrossChainRequest
-	// If we see a request that is not of type CrossChainRequest, we must release the semaphore
-	// CrossChainRequests have no maximum.
-	if !isCrossChainRequest {
-		n.activeRequests.Release(1)
+	// We must release the slot for the respective request type
+	if isCrossChainRequest {
+		n.activeCrossChainRequests.Release(1)
+	} else {
+		n.activeAppRequests.Release(1)
 	}
 
 	return handler, true

@@ -51,7 +51,7 @@ var (
 
 func TestNetworkDoesNotConnectToItself(t *testing.T) {
 	selfNodeID := ids.GenerateTestNodeID()
-	n := NewNetwork(nil, nil, selfNodeID, 1)
+	n := NewNetwork(nil, nil, selfNodeID, 1, 1)
 	require.NoError(t, n.Connected(context.Background(), selfNodeID, defaultPeerVersion))
 	require.EqualValues(t, 0, n.Size())
 }
@@ -86,7 +86,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 16)
+	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 16, 16)
 	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
 	client := NewNetworkClient(net)
 	nodeID := ids.GenerateTestNodeID()
@@ -160,7 +160,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 16)
+	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 16, 16)
 	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
 	client := NewNetworkClient(net)
 
@@ -246,7 +246,7 @@ func TestRequestMinVersion(t *testing.T) {
 	}
 
 	// passing nil as codec works because the net.AppRequest is never called
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1, 1)
 	client := NewNetworkClient(net)
 	requestMessage := TestMessage{Message: "this is a request"}
 	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
@@ -307,7 +307,7 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	requestHandler := &testRequestHandler{
 		processingDuration: 500 * time.Millisecond,
 	}
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1, 1)
 	net.SetRequestHandler(requestHandler)
 	nodeID := ids.GenerateTestNodeID()
 
@@ -346,7 +346,7 @@ func TestGossip(t *testing.T) {
 	}
 
 	gossipHandler := &testGossipHandler{}
-	clientNetwork = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	clientNetwork = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(gossipHandler)
 
 	require.NoError(t, clientNetwork.Connected(context.Background(), nodeID, defaultPeerVersion))
@@ -385,7 +385,7 @@ func TestCrossChainRequest(t *testing.T) {
 		},
 	}
 
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1, 1)
 	client := NewNetworkClient(net)
 
 	exampleCrossChainRequest := ExampleCrossChainRequest{
@@ -412,7 +412,7 @@ func TestHandleInvalidMessages(t *testing.T) {
 	requestID := uint32(1)
 	sender := testAppSender{}
 
-	clientNetwork := NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	clientNetwork := NewNetwork(sender, codecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(message.NoopMempoolGossipHandler{})
 	clientNetwork.SetRequestHandler(&testRequestHandler{})
 
@@ -461,7 +461,7 @@ func TestNetworkPropagatesRequestHandlerError(t *testing.T) {
 	requestID := uint32(1)
 	sender := testAppSender{}
 
-	clientNetwork := NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	clientNetwork := NewNetwork(sender, codecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(message.NoopMempoolGossipHandler{})
 	clientNetwork.SetRequestHandler(&testRequestHandler{err: errors.New("fail")}) // Return an error from the request handler
 
