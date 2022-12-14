@@ -43,9 +43,9 @@ type RequestHandler interface {
 // Only one of OnResponse or OnFailure is called for a given requestID, not both
 type ResponseHandler interface {
 	// OnResponse is invoked when the receiver responded to a request
-	OnResponse(requestID uint32, response []byte) error
+	OnResponse(response []byte) error
 	// OnFailure is invoked when there was a failure in processing a request
-	OnFailure(requestID uint32) error
+	OnFailure() error
 }
 
 type NoopRequestHandler struct{}

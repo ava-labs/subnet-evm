@@ -242,7 +242,7 @@ func (n *network) AppResponse(_ context.Context, nodeID ids.NodeID, requestID ui
 		return nil
 	}
 
-	return handler.OnResponse(requestID, response)
+	return handler.OnResponse(response)
 }
 
 // AppRequestFailed can be called by the avalanchego -> VM in following cases:
@@ -263,7 +263,7 @@ func (n *network) AppRequestFailed(_ context.Context, nodeID ids.NodeID, request
 		return nil
 	}
 
-	return handler.OnFailure(requestID)
+	return handler.OnFailure()
 }
 
 // SendCrossChainRequest sends request message bytes to specified chainID and adds [handler] to [outstandingRequestHandlers]
@@ -318,7 +318,7 @@ func (n *network) CrossChainAppRequestFailed(ctx context.Context, respondingChai
 		return nil
 	}
 
-	return handler.OnFailure(requestID)
+	return handler.OnFailure()
 }
 
 // CrossChainAppResponse is invoked when there is a response
@@ -338,7 +338,7 @@ func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID i
 		return nil
 	}
 
-	return handler.OnResponse(requestID, response)
+	return handler.OnResponse(response)
 }
 
 // markAppRequestFulfilled fetches the handler for [requestID] and marks the request with [requestID] as having been fulfilled.

@@ -19,14 +19,14 @@ type waitingResponseHandler struct {
 }
 
 // OnResponse passes the response bytes to the responseChan and closes the channel
-func (w *waitingResponseHandler) OnResponse(_ uint32, response []byte) error {
+func (w *waitingResponseHandler) OnResponse(response []byte) error {
 	w.responseChan <- response
 	close(w.responseChan)
 	return nil
 }
 
 // OnFailure sets the failed flag to true and closes the channel
-func (w *waitingResponseHandler) OnFailure(uint32) error {
+func (w *waitingResponseHandler) OnFailure() error {
 	w.failed = true
 	close(w.responseChan)
 	return nil
