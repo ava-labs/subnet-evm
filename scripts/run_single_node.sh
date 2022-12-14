@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -e
+
+# This script starts a single node running the local network with staking disabled and expects the caller to take care of cleaning up the created AvalancheGo process.
+# This script uses the data directory to use node configuration and populate data into a predictable location.
+if ! [[ "$0" =~ scripts/run_single_node.sh ]]; then
+  echo "must be run from repository root, but got $0"
+  exit 255
+fi
+
+# Load the versions
+SUBNET_EVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+source "$SUBNET_EVM_PATH"/scripts/versions.sh
+
+# Load the constants
+source "$SUBNET_EVM_PATH"/scripts/constants.sh
+
+# Set up avalanche binary path and assume build directory is set
+AVALANCHE_BINARY_PATH=${AVALANCHE_BINARY_PATH:-"$GOPATH/src/github.com/ava-labs/avalanchego/build/avalanchego"}
+PLUGIN_DIR=${PLUGIN_DIR:-"$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins"}
+DATA_DIR=${DATA_DIR:-/tmp/subnet-evm-start-node/$(date "+%Y-%m-%d%:%H:%M:%S")}
+
+# Create node config in DATA_DIR
+echo "creating node config"
+mkdir -p $DATA_DIR
+  cat <<EOF >$DATA_DIR/config.json
+{
+  "network-id": "local",
+  "staking-enabled": false,
+  "network-health-min-conn-peers": 0,
+  "network-health-max-time-since-msg-received": 4611686018427387904,
+  "network-health-max-time-since-msg-sent": 4611686018427387904,
+  "health-check-frequency": "5s"
+}
+EOF
+
+# Run the node
+$AVALANCHE_BINARY_PATH --data-dir=$DATA_DIR --config-file=$DATA_DIR/config.json
