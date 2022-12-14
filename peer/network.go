@@ -308,7 +308,7 @@ func (n *network) CrossChainAppRequest(_ context.Context, chainID ids.ID, reques
 }
 
 // CrossChainAppRequestFailed can be called by the avalanchego -> VM in following cases:
-// - failed to send message to [respondingChainID] due to a network issue
+// - failed to send message to [respondingChainID] due to issues with chain
 // - fail to clear request from timeout handler
 // If [requestID] is not known, this function will emit a log and return a nil error.
 // If the response handler returns an error it is propagated as a fatal error.
