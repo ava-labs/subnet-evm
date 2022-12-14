@@ -913,5 +913,6 @@ func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
 		vm.shutdownChan,
 		&vm.shutdownWg,
 		vm.eth.APIBackend,
+		vm.blockChain,
 	)
 }
