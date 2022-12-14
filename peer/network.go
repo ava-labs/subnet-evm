@@ -39,14 +39,14 @@ type Network interface {
 	validators.Connector
 	common.AppHandler
 
-	// SendRequestAny synchronously sends request to an arbitrary peer with a
+	// SendAppRequestAny synchronously sends request to an arbitrary peer with a
 	// node version greater than or equal to minVersion.
 	// Returns the ID of the chosen peer, and an error if the request could not
 	// be sent to a peer with the desired [minVersion].
-	SendRequestAny(minVersion *version.Application, message []byte, handler message.ResponseHandler) (ids.NodeID, error)
+	SendAppRequestAny(minVersion *version.Application, message []byte, handler message.ResponseHandler) (ids.NodeID, error)
 
-	// SendRequest sends message to given nodeID, notifying handler when there's a response or timeout
-	SendRequest(nodeID ids.NodeID, message []byte, handler message.ResponseHandler) error
+	// SendAppRequest sends message to given nodeID, notifying handler when there's a response or timeout
+	SendAppRequest(nodeID ids.NodeID, message []byte, handler message.ResponseHandler) error
 
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
@@ -103,12 +103,12 @@ func NewNetwork(appSender common.AppSender, codec codec.Manager, self ids.NodeID
 	}
 }
 
-// SendRequestAny synchronously sends request to an arbitrary peer with a
+// SendAppRequestAny synchronously sends request to an arbitrary peer with a
 // node version greater than or equal to minVersion. If minVersion is nil,
 // the request will be sent to any peer regardless of their version.
 // Returns the ID of the chosen peer, and an error if the request could not
 // be sent to a peer with the desired [minVersion].
-func (n *network) SendRequestAny(minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
+func (n *network) SendAppRequestAny(minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
 	// Take a slot from total [activeRequests] and block until a slot becomes available.
 	if err := n.activeRequests.Acquire(context.Background(), 1); err != nil {
 		return ids.EmptyNodeID, errAcquiringSemaphore
@@ -117,15 +117,15 @@ func (n *network) SendRequestAny(minVersion *version.Application, request []byte
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	if nodeID, ok := n.peers.GetAnyPeer(minVersion); ok {
-		return nodeID, n.sendRequest(nodeID, request, handler)
+		return nodeID, n.sendAppRequest(nodeID, request, handler)
 	}
 
 	n.activeRequests.Release(1)
 	return ids.EmptyNodeID, fmt.Errorf("no peers found matching version %s out of %d peers", minVersion, n.peers.Size())
 }
 
-// SendRequest sends request message bytes to specified nodeID, notifying the responseHandler on response or failure
-func (n *network) SendRequest(nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
+// SendAppRequest sends request message bytes to specified nodeID, notifying the responseHandler on response or failure
+func (n *network) SendAppRequest(nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
 	if nodeID == ids.EmptyNodeID {
 		return fmt.Errorf("cannot send request to empty nodeID, nodeID=%s, requestLen=%d", nodeID, len(request))
 	}
@@ -138,16 +138,16 @@ func (n *network) SendRequest(nodeID ids.NodeID, request []byte, responseHandler
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	return n.sendRequest(nodeID, request, responseHandler)
+	return n.sendAppRequest(nodeID, request, responseHandler)
 }
 
-// sendRequest sends request message bytes to specified nodeID and adds [responseHandler] to [outstandingRequestHandlers]
+// sendAppRequest sends request message bytes to specified nodeID and adds [responseHandler] to [outstandingRequestHandlers]
 // so that it can be invoked when the network receives either a response or failure message.
 // Assumes [nodeID] is never [self] since we guarantee [self] will not be added to the [peers] map.
 // Releases active requests semaphore if there was an error in sending the request
 // Returns an error if [appSender] is unable to make the request.
 // Assumes write lock is held
-func (n *network) sendRequest(nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
+func (n *network) sendAppRequest(nodeID ids.NodeID, request []byte, responseHandler message.ResponseHandler) error {
 	log.Debug("sending request to peer", "nodeID", nodeID, "requestLen", len(request))
 	n.peers.TrackPeer(nodeID)
 

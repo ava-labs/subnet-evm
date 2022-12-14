@@ -108,7 +108,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			require.NoError(t, err)
-			responseBytes, _, err := client.SendRequestAny(defaultPeerVersion, requestBytes)
+			responseBytes, _, err := client.SendAppRequestAny(defaultPeerVersion, requestBytes)
 			require.NoError(t, err)
 			require.NotNil(t, responseBytes)
 
@@ -192,7 +192,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			require.NoError(t, err)
-			responseBytes, err := client.SendRequest(nodeID, requestBytes)
+			responseBytes, err := client.SendAppRequest(nodeID, requestBytes)
 			require.NoError(t, err)
 			require.NotNil(t, responseBytes)
 
@@ -214,7 +214,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	// ensure empty nodeID is not allowed
-	_, err := client.SendRequest(ids.EmptyNodeID, []byte("hello there"))
+	_, err := client.SendAppRequest(ids.EmptyNodeID, []byte("hello there"))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "cannot send request to empty nodeID")
 }
@@ -264,7 +264,7 @@ func TestRequestMinVersion(t *testing.T) {
 	)
 
 	// ensure version does not match
-	responseBytes, _, err := client.SendRequestAny(
+	responseBytes, _, err := client.SendAppRequestAny(
 		&version.Application{
 			Major: 2,
 			Minor: 0,
@@ -276,7 +276,7 @@ func TestRequestMinVersion(t *testing.T) {
 	require.Nil(t, responseBytes)
 
 	// ensure version matches and the request goes through
-	responseBytes, _, err = client.SendRequestAny(defaultPeerVersion, requestBytes)
+	responseBytes, _, err = client.SendAppRequestAny(defaultPeerVersion, requestBytes)
 	require.NoError(t, err)
 
 	var response TestMessage
