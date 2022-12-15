@@ -82,7 +82,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	startCmd, err = utils.RunCommand("./scripts/run_single_node.sh")
 	gomega.Expect(err).Should(gomega.BeNil())
 	healthClient := health.NewClient(utils.DefaultLocalNodeURI)
-	healthy, err := healthClient.AwaitReady(ctx, 5*time.Second)
+	healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(healthy).Should(gomega.BeTrue())
 	log.Info("AvalancheGo node is healthy")

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/api/health"
+	"github.com/ava-labs/avalanchego/api/info"
 	"github.com/ava-labs/avalanchego/genesis"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
@@ -93,7 +94,7 @@ func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 	gomega.Expect(err).Should(gomega.BeNil())
 
 	log.Info("Creating new blockchain", "genesis", genesisBytes)
-	createChainTx, err := pWallet.IssueCreateChainTx(
+	createChainTxID, err := pWallet.IssueCreateChainTx(
 		createSubnetTxID,
 		genesisBytes,
 		evm.ID,
@@ -103,13 +104,13 @@ func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 	gomega.Expect(err).Should(gomega.BeNil())
 
 	// Confirm the new blockchain is ready by waiting for the readiness endpoint
-	healthClient := health.NewClient(utils.DefaultLocalNodeURI)
-	healthy, err := healthClient.AwaitReady(ctx, 5*time.Second)
+	infoClient := info.NewClient(utils.DefaultLocalNodeURI)
+	bootstrapped, err := info.AwaitBootstrapped(ctx, infoClient, createChainTxID.String(), 5*time.Second)
 	gomega.Expect(err).Should(gomega.BeNil())
-	gomega.Expect(healthy).Should(gomega.BeTrue())
+	gomega.Expect(bootstrapped).Should(gomega.BeTrue())
 
 	// Confirm the new blockchain is up
-	chainURI := fmt.Sprintf("%s/ext/bc/%s/rpc", utils.DefaultLocalNodeURI, createChainTx.String())
+	chainURI := fmt.Sprintf("%s/ext/bc/%s/rpc", utils.DefaultLocalNodeURI, createChainTxID.String())
 
 	runHardhatTests(test, chainURI)
 }
