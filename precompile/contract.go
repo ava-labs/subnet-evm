@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -21,6 +22,8 @@ type RunStatefulPrecompileFunc func(accessibleState PrecompileAccessibleState, c
 type PrecompileAccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
+	GetSnowContext() *snow.Context
+	CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error)
 }
 
 // BlockContext defines an interface that provides information to a stateful precompile
@@ -37,6 +40,8 @@ type BlockContext interface {
 type ChainConfig interface {
 	// GetFeeConfig returns the original FeeConfig that was set in the genesis.
 	GetFeeConfig() commontype.FeeConfig
+	// AllowedFeeRecipients returns true if fee recipients are allowed in the genesis.
+	AllowedFeeRecipients() bool
 }
 
 // StateDB is the interface for accessing EVM state
@@ -55,6 +60,8 @@ type StateDB interface {
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
+
+	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
 
 	Suicide(common.Address) bool
 	Finalise(deleteEmptyObjects bool)
