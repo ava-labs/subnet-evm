@@ -99,7 +99,7 @@ func TestEIP2200(t *testing.T) {
 		statedb.Finalise(true) // Push the state into the "original" slot
 
 		vmctx := BlockContext{
-			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
+			CanTransfer: func(StateDB, common.Address, common.Address, *big.Int) error { return nil },
 			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) error { return nil },
 		}
 		vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})

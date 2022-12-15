@@ -64,7 +64,7 @@ var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 type (
 	// CanTransferFunc is the signature of a transfer guard function
-	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
+	CanTransferFunc func(StateDB, common.Address, common.Address, *big.Int) error
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int) error
 	// GetHashFunc returns the n'th block hash in the blockchain
@@ -235,13 +235,13 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Note: it is not possible for a negative value to be passed in here due to the fact
 	// that [value] will be popped from the stack and decoded to a *big.Int, which will
 	// always yield a positive result.
-	if value.Sign() != 0 && !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, gas, vmerrs.ErrInsufficientBalance
+	if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), addr, value); err != nil {
+		return nil, gas, err
 	}
 	// Fail if [addr] balance overflows uint256 with the amount of [value] being transferred
 	addrBalance := evm.StateDB.GetBalance(addr)
 	if _, ok := utils.SafeSumUint256(addrBalance, value); !ok {
-		return nil, gas, vmerrs.ErrBalanceOverflow
+		return nil, gas, err
 	}
 
 	snapshot := evm.StateDB.Snapshot()
@@ -339,8 +339,8 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	// Note: it is not possible for a negative value to be passed in here due to the fact
 	// that [value] will be popped from the stack and decoded to a *big.Int, which will
 	// always yield a positive result.
-	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, gas, vmerrs.ErrInsufficientBalance
+	if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), addr, value); err != nil {
+		return nil, gas, err
 	}
 	var snapshot = evm.StateDB.Snapshot()
 
@@ -492,8 +492,8 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// Note: it is not possible for a negative value to be passed in here due to the fact
 	// that [value] will be popped from the stack and decoded to a *big.Int, which will
 	// always yield a positive result.
-	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, common.Address{}, gas, vmerrs.ErrInsufficientBalance
+	if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), address, value); err != nil {
+		return nil, common.Address{}, gas, err
 	}
 
 	// Fail if [addr] balance overflows uint256 with the amount of [value] being transferred

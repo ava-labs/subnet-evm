@@ -456,11 +456,12 @@ func TestTxAllowListRun(t *testing.T) {
 
 func TestContractNativeMinterRun(t *testing.T) {
 	type test struct {
-		caller      common.Address
-		input       func() []byte
-		suppliedGas uint64
-		readOnly    bool
-		config      *precompile.ContractNativeMinterConfig
+		caller       common.Address
+		preCondition func(t *testing.T, state *state.StateDB)
+		input        func() []byte
+		suppliedGas  uint64
+		readOnly     bool
+		config       *precompile.ContractNativeMinterConfig
 
 		expectedRes []byte
 		expectedErr string
@@ -562,6 +563,24 @@ func TestContractNativeMinterRun(t *testing.T) {
 			assertState: func(t *testing.T, state *state.StateDB) {
 				require.Equal(t, math.MaxBig256, state.GetBalance(adminAddr), "expected minted funds")
 			},
+		},
+		"mint overflows": {
+			caller: adminAddr,
+			preCondition: func(t *testing.T, state *state.StateDB) {
+				state.SetBalance(adminAddr, math.MaxBig256)
+			},
+			input: func() []byte {
+				input, err := precompile.PackMintInput(adminAddr, common.Big1)
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.MintGasCost,
+			readOnly:    false,
+			assertState: func(t *testing.T, state *state.StateDB) {
+				require.Equal(t, math.MaxBig256, state.GetBalance(adminAddr))
+			},
+			expectedErr: vmerrs.ErrBalanceOverflow.Error(),
 		},
 		"readOnly mint with noRole fails": {
 			caller: noRoleAddr,
@@ -681,6 +700,10 @@ func TestContractNativeMinterRun(t *testing.T) {
 			require.Equal(t, precompile.AllowListAdmin, precompile.GetContractNativeMinterStatus(state, adminAddr))
 			require.Equal(t, precompile.AllowListEnabled, precompile.GetContractNativeMinterStatus(state, enabledAddr))
 			require.Equal(t, precompile.AllowListNoRole, precompile.GetContractNativeMinterStatus(state, noRoleAddr))
+
+			if test.preCondition != nil {
+				test.preCondition(t, state)
+			}
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
 			if test.config != nil {

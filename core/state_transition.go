@@ -326,7 +326,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		contractCreation = msg.To() == nil
 	)
 
-	// Check clauses 4-5, subtract intrinsic gas if everything is correct
+	// Check clauses 4-6, subtract intrinsic gas if everything is correct
 	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, rules.IsHomestead, rules.IsIstanbul)
 	if err != nil {
 		return nil, err
@@ -336,8 +336,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 	st.gas -= gas
 
-	// Check clause 6
-	if msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
+	// Check clause 7
+	if msg.Value().Sign() > 0 && st.state.GetBalance(msg.From()).Cmp(msg.Value()) < 0 {
 		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
 
@@ -362,7 +362,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// an overflow
 	st.refundGas(rules.IsSubnetEVM)
 
-	// now we can check for the overflow
+	// check overflow and add gas fee to coinbase
 	if err := st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)); err != nil {
 		return nil, err
 	}

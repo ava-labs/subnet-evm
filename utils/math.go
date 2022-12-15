@@ -6,16 +6,12 @@ package utils
 import (
 	"math/big"
 
-	"github.com/holiman/uint256"
+	"github.com/ethereum/go-ethereum/common/math"
 )
 
-// SafeSumUint256 returns the sum of a and b and a boolean indicating if the sum
-// operation was successful. If the sum operation overflows, the boolean will be
-// false and the sum will be 0.
+// SafeSumUint256 adds two big.Ints and returns the result and whether the result
+// is less than or equal to 2^256-1 (MaxBig256).
 func SafeSumUint256(a, b *big.Int) (*big.Int, bool) {
 	sum := new(big.Int).Add(a, b)
-	if _, overflow := uint256.FromBig(sum); overflow {
-		return big.NewInt(0), false
-	}
-	return sum, true
+	return sum, sum.Cmp(math.MaxBig256) <= 0
 }

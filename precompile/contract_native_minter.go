@@ -204,7 +204,7 @@ func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Add
 	// check for the overflow against uint256 before creating the account
 	newBalance, ok := utils.SafeSumUint256(stateDB.GetBalance(to), amount)
 	if !ok {
-		return nil, remainingGas, vmerrs.ErrGasUintOverflow
+		return nil, remainingGas, vmerrs.ErrBalanceOverflow
 	}
 
 	// if there is no address in the state, create one.

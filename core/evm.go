@@ -123,20 +123,29 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 	}
 }
 
-// CanTransfer checks whether there are enough funds in the address' account to make a transfer.
+// CanTransfer checks whether there are enough funds in the address' account to make a transfer,
+// and if operation ends up with an overflow.
 // This does not take the necessary gas in to account to make the transfer valid.
-func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
-	return db.GetBalance(addr).Cmp(amount) >= 0
+func CanTransfer(db vm.StateDB, from common.Address, to common.Address, amount *big.Int) error {
+	// if amount is 0, then we can transfer
+	if amount.Sign() == 0 {
+		return nil
+	}
+	if db.GetBalance(from).Cmp(amount) < 0 {
+		return vmerrs.ErrInsufficientBalance
+	}
+	// check for overflow. if this is a transfer to self, then we don't need to check for overflow
+	if _, ok := utils.SafeSumUint256(db.GetBalance(to), amount); from != to && !ok {
+		return vmerrs.ErrBalanceOverflow
+	}
+	return nil
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
+// should be called after CanTransfer
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) error {
-	// check overflow before subtracting balance from sender
-	if _, ok := utils.SafeSumUint256(db.GetBalance(recipient), amount); !ok {
-		return vmerrs.ErrBalanceOverflow
-	}
 	db.SubBalance(sender, amount)
-	// We already checked for overflow in the previous line
+	// we don't need to check for overflow here, because we already did that in CanTransfer
 	_ = db.AddBalance(recipient, amount)
 	return nil
 }
