@@ -40,7 +40,9 @@ import (
 	"testing/quick"
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 // Tests that updating a state trie does not leak any database writes prior to
@@ -962,4 +964,24 @@ func TestFlushOrderDataLoss(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestAddBalanceOverflow(t *testing.T) {
+	var (
+		memdb    = rawdb.NewMemoryDatabase()
+		statedb  = NewDatabase(memdb)
+		state, _ = New(common.Hash{}, statedb, nil)
+	)
+
+	addr := common.BytesToAddress([]byte("test"))
+	big := big.NewInt(1)
+	big.Lsh(big, 255)
+
+	err := state.AddBalance(addr, big)
+	require.NoError(t, err)
+	// add it again and expect overflow
+	err = state.AddBalance(addr, big)
+	require.ErrorIs(t, err, vmerrs.ErrBalanceOverflow)
+
+	require.Equal(t, big, state.GetBalance(addr))
 }
