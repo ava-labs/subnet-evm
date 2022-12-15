@@ -127,10 +127,6 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 // and if operation ends up with an overflow.
 // This does not take the necessary gas in to account to make the transfer valid.
 func CanTransfer(db vm.StateDB, from common.Address, to common.Address, amount *big.Int) error {
-	// if amount is 0, then we can transfer
-	if amount.Sign() == 0 {
-		return nil
-	}
 	if db.GetBalance(from).Cmp(amount) < 0 {
 		return vmerrs.ErrInsufficientBalance
 	}
@@ -143,9 +139,8 @@ func CanTransfer(db vm.StateDB, from common.Address, to common.Address, amount *
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
 // should be called after CanTransfer
-func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) error {
+func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(sender, amount)
 	// we don't need to check for overflow here, because we already did that in CanTransfer
-	_ = db.AddBalance(recipient, amount)
-	return nil
+	db.AddBalance(recipient, amount)
 }

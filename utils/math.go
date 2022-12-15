@@ -13,5 +13,8 @@ import (
 // is less than or equal to 2^256-1 (MaxBig256).
 func SafeSumUint256(a, b *big.Int) (*big.Int, bool) {
 	sum := new(big.Int).Add(a, b)
-	return sum, sum.Cmp(math.MaxBig256) <= 0
+	if sum.Cmp(math.MaxBig256) > 0 {
+		return nil, false
+	}
+	return sum, true
 }

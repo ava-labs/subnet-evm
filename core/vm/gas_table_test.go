@@ -100,7 +100,7 @@ func TestEIP2200(t *testing.T) {
 
 		vmctx := BlockContext{
 			CanTransfer: func(StateDB, common.Address, common.Address, *big.Int) error { return nil },
-			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) error { return nil },
+			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 		}
 		vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
 

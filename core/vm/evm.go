@@ -36,7 +36,6 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -66,7 +65,7 @@ type (
 	// CanTransferFunc is the signature of a transfer guard function
 	CanTransferFunc func(StateDB, common.Address, common.Address, *big.Int) error
 	// TransferFunc is the signature of a transfer function
-	TransferFunc func(StateDB, common.Address, common.Address, *big.Int) error
+	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	// GetHashFunc returns the n'th block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
@@ -235,15 +234,11 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Note: it is not possible for a negative value to be passed in here due to the fact
 	// that [value] will be popped from the stack and decoded to a *big.Int, which will
 	// always yield a positive result.
-	if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), addr, value); err != nil {
-		return nil, gas, err
+	if value.Sign() != 0 {
+		if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), addr, value); err != nil {
+			return nil, gas, err
+		}
 	}
-	// Fail if [addr] balance overflows uint256 with the amount of [value] being transferred
-	addrBalance := evm.StateDB.GetBalance(addr)
-	if _, ok := utils.SafeSumUint256(addrBalance, value); !ok {
-		return nil, gas, err
-	}
-
 	snapshot := evm.StateDB.Snapshot()
 	p, isPrecompile := evm.precompile(addr)
 
@@ -264,7 +259,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		evm.StateDB.CreateAccount(addr)
 	}
 	// we have already checked overflow before capturing snapshot, so it's safe to ignore the error here
-	_ = evm.Context.Transfer(evm.StateDB, caller.Address(), addr, value)
+	evm.Context.Transfer(evm.StateDB, caller.Address(), addr, value)
 
 	// Capture the tracer start/end events in debug mode
 	if evm.Config.Debug {
@@ -495,13 +490,6 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), address, value); err != nil {
 		return nil, common.Address{}, gas, err
 	}
-
-	// Fail if [addr] balance overflows uint256 with the amount of [value] being transferred
-	addrBalance := evm.StateDB.GetBalance(address)
-	if _, ok := utils.SafeSumUint256(addrBalance, value); !ok {
-		return nil, common.Address{}, gas, vmerrs.ErrBalanceOverflow
-	}
-
 	// If there is any collision with a prohibited address, return an error instead
 	// of allowing the contract to be created.
 	if IsProhibited(address) {
@@ -537,8 +525,8 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		evm.StateDB.SetNonce(address, 1)
 	}
 
-	// We have already checked overflow before capturing, so it's safe to ignore the error here
-	_ = evm.Context.Transfer(evm.StateDB, caller.Address(), address, value)
+	// We have already checked overflow with transfer so it's safe to ignore the error here
+	evm.Context.Transfer(evm.StateDB, caller.Address(), address, value)
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
