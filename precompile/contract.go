@@ -57,6 +57,7 @@ type StateDB interface {
 	GetBalance(common.Address) *big.Int
 	AddBalance(common.Address, *big.Int) error
 	SubBalance(common.Address, *big.Int)
+	SetBalance(common.Address, *big.Int)
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool

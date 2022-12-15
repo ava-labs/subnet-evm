@@ -212,11 +212,9 @@ func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Add
 		stateDB.CreateAccount(to)
 	}
 
-	// an overflow should never happen here since we checked it above,
-	// but just in case check and return the error.
-	if err := stateDB.AddBalance(to, newBalance); err != nil {
-		return nil, remainingGas, err
-	}
+	// an overflow should never happen here since we checked it above
+	stateDB.SetBalance(to, newBalance)
+
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
 }
