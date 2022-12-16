@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cast"
@@ -44,8 +45,7 @@ const (
 	defaultMaxOutboundActiveRequests              = 16
 	defaultPopulateMissingTriesParallelism        = 1024
 	defaultStateSyncServerTrieCache               = 64 // MB
-	defaultIndexedFilterLogCacheSize              = 32
-	defaultUnindexedFilterLogCacheSize            = 32 // There can be up to [params.BloomBitsBlocks = 4096] unindexed blocks
+	defaultAcceptedCacheSize                      = 32 // blocks
 
 	// defaultStateSyncMinBlocks is the minimum number of blocks the blockchain
 	// should be ahead of local last accepted to perform state sync.
@@ -124,7 +124,17 @@ type Config struct {
 	MetricsExpensiveEnabled bool `json:"metrics-expensive-enabled"` // Debug-level metrics that might impact runtime performance
 
 	// API Settings
-	LocalTxsEnabled          bool          `json:"local-txs-enabled"`
+	LocalTxsEnabled bool `json:"local-txs-enabled"`
+
+	TxPoolJournal      string   `json:"tx-pool-journal"`
+	TxPoolRejournal    Duration `json:"tx-pool-rejournal"`
+	TxPoolPriceLimit   uint64   `json:"tx-pool-price-limit"`
+	TxPoolPriceBump    uint64   `json:"tx-pool-price-bump"`
+	TxPoolAccountSlots uint64   `json:"tx-pool-account-slots"`
+	TxPoolGlobalSlots  uint64   `json:"tx-pool-global-slots"`
+	TxPoolAccountQueue uint64   `json:"tx-pool-account-queue"`
+	TxPoolGlobalQueue  uint64   `json:"tx-pool-global-queue"`
+
 	APIMaxDuration           Duration      `json:"api-max-duration"`
 	WSCPURefillRate          Duration      `json:"ws-cpu-refill-rate"`
 	WSCPUMaxStored           Duration      `json:"ws-cpu-max-stored"`
@@ -177,10 +187,12 @@ type Config struct {
 	// identical state with the pre-upgrade ruleset.
 	SkipUpgradeCheck bool `json:"skip-upgrade-check"`
 
-	// IndexedLogCacheSize is the number of indexed blocks for which logs will be cached in the filter system.
-	IndexedLogCacheSize int `json:"indexed-log-cache-size"`
-	// UnindexedLogCacheSize is the number of unindexed blocks for which logs will be cached in the filter system.
-	UnindexedLogCacheSize int `json:"unindexed-log-cache-size"`
+	// AcceptedCacheSize is the depth to keep in the accepted headers cache and the
+	// accepted logs cache at the accepted tip.
+	//
+	// This is particularly useful for improving the performance of eth_getLogs
+	// on RPC nodes.
+	AcceptedCacheSize int `json:"accepted-cache-size"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -197,6 +209,16 @@ func (c *Config) SetDefaults() {
 	c.RPCGasCap = defaultRpcGasCap
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
+
+	c.TxPoolJournal = core.DefaultTxPoolConfig.Journal
+	c.TxPoolRejournal = Duration{core.DefaultTxPoolConfig.Rejournal}
+	c.TxPoolPriceLimit = core.DefaultTxPoolConfig.PriceLimit
+	c.TxPoolPriceBump = core.DefaultTxPoolConfig.PriceBump
+	c.TxPoolAccountSlots = core.DefaultTxPoolConfig.AccountSlots
+	c.TxPoolGlobalSlots = core.DefaultTxPoolConfig.GlobalSlots
+	c.TxPoolAccountQueue = core.DefaultTxPoolConfig.AccountQueue
+	c.TxPoolGlobalQueue = core.DefaultTxPoolConfig.GlobalQueue
+
 	c.APIMaxDuration.Duration = defaultApiMaxDuration
 	c.WSCPURefillRate.Duration = defaultWsCpuRefillRate
 	c.WSCPUMaxStored.Duration = defaultWsCpuMaxStored
@@ -226,8 +248,7 @@ func (c *Config) SetDefaults() {
 	c.StateSyncCommitInterval = defaultSyncableCommitInterval
 	c.StateSyncMinBlocks = defaultStateSyncMinBlocks
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
-	c.IndexedLogCacheSize = defaultIndexedFilterLogCacheSize
-	c.UnindexedLogCacheSize = defaultUnindexedFilterLogCacheSize
+	c.AcceptedCacheSize = defaultAcceptedCacheSize
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {
