@@ -276,7 +276,7 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
 			if config.IsDisabled() {
-				log.Info("Disabling precompile", "address", address) // TODO: use proper names for precompiles
+				log.Info("Disabling precompile", "precompileAddress", address) // TODO: use proper names for precompiles
 				statedb.Suicide(config.Address())
 				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
 				// This enables re-configuration of the same contract state in the same block.
@@ -284,7 +284,7 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				log.Info("Activating new precompile", "address", address, "config", config)
+				log.Info("Activating new precompile", "precompileAddress", address, "config", config)
 				precompile.Configure(c, blockContext, config, statedb)
 			}
 		}
