@@ -1501,11 +1501,11 @@ func (b *BadBlockReason) String() string {
 	reason := fmt.Sprintf(`
 	########## BAD BLOCK #########
 	Chain config: %v
-
+	
 	Number: %v
 	Hash: %#x
 	%v
-
+	
 	Error: %v
 	##############################
 	`, b.ChainConfig, b.Number, b.Hash, receiptString, b.Error)
