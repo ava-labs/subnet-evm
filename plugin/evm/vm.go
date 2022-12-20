@@ -379,10 +379,9 @@ func (vm *VM) Initialize(
 		vm.chainConfig.UpgradeConfig = upgradeConfig
 	}
 
-	genesisBlock := vm.ethConfig.Genesis.ToBlock(nil)
-
-	// create genesisHash after applying upgradeBytes in case
+	// create genesisBlock after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
+	genesisBlock := vm.ethConfig.Genesis.ToBlock(nil)
 	vm.genesisHash = genesisBlock.Hash()
 
 	if !vm.chainConfig.IsSubnetEVM(genesisBlock.Number()) {
