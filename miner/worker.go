@@ -128,13 +128,8 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 
 	bigTimestamp := new(big.Int).SetUint64(timestamp)
 	var gasLimit uint64
-	// We need to get the fee config from the parent block because the fee config is
-	// not yet set in the current block.
-	// This is because the fee config might be set with the state in the FeeManager precompile.
-	// Which could change the fee configs in the current block.
-	// But we don't we don't know what the state will be for the current block.
-	// meaning that the tx that changes the precompile state itself could be also invalidated by the
-	// fee config that it sets.
+	// The fee config manager relies on the state of the parent block to set the fee config
+	// because the fee config may be changed by the current block.
 	feeConfig, _, err := w.chain.GetFeeConfigAt(parent.Header())
 	if err != nil {
 		return nil, err
