@@ -30,12 +30,11 @@ var (
 	errBaseFeeNil           = errors.New("base fee is nil")
 )
 
-type Mode uint
-
-const (
-	ModeSkipHeader   Mode = 1 // Skip over header verification
-	ModeSkipBlockFee Mode = 2 // Skip block fee verification
-)
+type Mode struct {
+	ModeSkipHeader   bool
+	ModeSkipBlockFee bool
+	ModeSkipCoinbase bool
+}
 
 type (
 	DummyEngine struct {
@@ -47,7 +46,7 @@ type (
 func NewETHFaker() *DummyEngine {
 	return &DummyEngine{
 		clock:         &mockable.Clock{},
-		consensusMode: ModeSkipBlockFee,
+		consensusMode: Mode{ModeSkipBlockFee: true},
 	}
 }
 
@@ -63,15 +62,32 @@ func NewFakerWithClock(clock *mockable.Clock) *DummyEngine {
 	}
 }
 
+func NewFakerWithMode(mode Mode) *DummyEngine {
+	return &DummyEngine{
+		clock:         &mockable.Clock{},
+		consensusMode: mode,
+	}
+}
+
+func NewCoinbaseFaker() *DummyEngine {
+	return &DummyEngine{
+		clock:         &mockable.Clock{},
+		consensusMode: Mode{ModeSkipCoinbase: true},
+	}
+}
+
 func NewFullFaker() *DummyEngine {
 	return &DummyEngine{
 		clock:         &mockable.Clock{},
-		consensusMode: ModeSkipHeader,
+		consensusMode: Mode{ModeSkipHeader: true},
 	}
 }
 
 // verifyCoinbase checks that the coinbase is valid for the given [header] and [parent].
 func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
+	if self.consensusMode.ModeSkipCoinbase {
+		return nil
+	}
 	// get the coinbase configured at parent
 	configuredAddressAtParent, isAllowFeeRecipients, err := chain.GetCoinbaseAt(parent)
 	if err != nil {
@@ -196,12 +212,9 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 	if err := self.verifyHeaderGasFields(config, header, parent, chain); err != nil {
 		return err
 	}
-	// Ensure that coinbase is valid if reward manager is enabled
-	// If reward manager is disabled, this will be handled in syntactic verification
-	if config.IsRewardManager(timestamp) {
-		if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
-			return err
-		}
+	// Ensure that coinbase is valid
+	if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
+		return err
 	}
 
 	// Verify the header's timestamp
@@ -226,7 +239,7 @@ func (self *DummyEngine) Author(header *types.Header) (common.Address, error) {
 
 func (self *DummyEngine) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header) error {
 	// If we're running a full engine faking, accept any input as valid
-	if self.consensusMode == ModeSkipHeader {
+	if self.consensusMode.ModeSkipHeader {
 		return nil
 	}
 	// Short circuit if the header is known, or it's parent not
@@ -260,7 +273,7 @@ func (self *DummyEngine) verifyBlockFee(
 	txs []*types.Transaction,
 	receipts []*types.Receipt,
 ) error {
-	if self.consensusMode == ModeSkipBlockFee {
+	if self.consensusMode.ModeSkipBlockFee {
 		return nil
 	}
 	if baseFee == nil || baseFee.Sign() <= 0 {
