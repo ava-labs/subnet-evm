@@ -46,6 +46,7 @@ Typically, custom codes are required in only those areas.
 package precompile
 
 import (
+	"encoding/json"
 	"math/big"
 	"errors"
 	"fmt"
@@ -75,6 +76,7 @@ var (
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = fmt.Printf
+	_ = json.Unmarshal
 )
 
 {{$contract := .Contract}}
@@ -148,7 +150,10 @@ func init() {
 	}
 	{{.Contract.Type}}ABI = parsed
 
-	{{.Contract.Type}}Precompile = create{{.Contract.Type}}Precompile({{.Contract.Type}}Address)
+	{{.Contract.Type}}Precompile, err = create{{.Contract.Type}}Precompile({{.Contract.Type}}Address)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // New{{.Contract.Type}}Config returns a config for a network upgrade at [blockTimestamp] that enables
@@ -198,9 +203,10 @@ func (c *{{.Contract.Type}}Config) Address() common.Address {
 }
 
 // Configure configures [state] with the initial configuration.
-func (c *{{.Contract.Type}}Config) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
+func (c *{{.Contract.Type}}Config) Configure(_ ChainConfig, state StateDB, _ BlockContext) error {
 	{{if .Contract.AllowList}}c.AllowListConfig.Configure(state, {{.Contract.Type}}Address){{end}}
 	// CUSTOM CODE STARTS HERE
+	return nil
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for {{.Contract.Type}}.
@@ -404,27 +410,32 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState PrecompileAccessib
 
 // create{{.Contract.Type}}Precompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 {{if .Contract.AllowList}} // Access to the getters/setters is controlled by an allow list for [precompileAddr].{{end}}
-func create{{.Contract.Type}}Precompile(precompileAddr common.Address) StatefulPrecompiledContract {
+func create{{.Contract.Type}}Precompile(precompileAddr common.Address) (StatefulPrecompiledContract, error) {
 	var functions []*statefulPrecompileFunction
 	{{- if .Contract.AllowList}}
 	functions = append(functions, createAllowListFunctions(precompileAddr)...)
 	{{- end}}
 
-	{{range .Contract.Funcs}}
-	method{{.Normalized.Name}}, ok := {{$contract.Type}}ABI.Methods["{{.Original.Name}}"]
-	if !ok{
-		panic("given method does not exist in the ABI")
+	abiFunctionMap := map[string]RunStatefulPrecompileFunc{
+		{{- range .Contract.Funcs}}
+		"{{.Original.Name}}": {{decapitalise .Normalized.Name}},
+		{{- end}}
 	}
-	functions = append(functions, newStatefulPrecompileFunction(method{{.Normalized.Name}}.ID, {{decapitalise .Normalized.Name}}))
-	{{end}}
+
+	for name, function := range abiFunctionMap {
+		method, ok := {{$contract.Type}}ABI.Methods[name]
+		if !ok {
+			return nil, fmt.Errorf("given method (%s) does not exist in the ABI", name)
+		}
+		functions = append(functions, newStatefulPrecompileFunction(method.ID, function))
+	}
 
 	{{- if .Contract.Fallback}}
 	// Construct the contract with the fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors({{decapitalise $contract.Type}}Fallback, functions)
+	return NewStatefulPrecompileContract({{decapitalise $contract.Type}}Fallback, functions)
 	{{- else}}
 	// Construct the contract with no fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, functions)
+	return NewStatefulPrecompileContract(nil, functions)
 	{{- end}}
-	return contract
 }
 `

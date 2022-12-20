@@ -78,7 +78,11 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	)
 
 	// Configure any stateful precompiles that should go into effect during this block.
-	p.config.CheckConfigurePrecompiles(new(big.Int).SetUint64(parent.Time), block, statedb)
+	err := p.config.ConfigurePrecompiles(new(big.Int).SetUint64(parent.Time), block, statedb)
+	// ASK: Should we panic instead?
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("could not configure precompiles: %w", err)
+	}
 
 	blockContext := NewEVMBlockContext(header, p.bc, nil)
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)

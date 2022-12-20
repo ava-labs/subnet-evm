@@ -76,7 +76,7 @@ func (c *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {
 	return c.AllowFeeRecipients == other.AllowFeeRecipients && c.RewardAddress == other.RewardAddress
 }
 
-func (i *InitialRewardConfig) Configure(state StateDB) {
+func (i *InitialRewardConfig) Configure(state StateDB) error {
 	// enable allow fee recipients
 	if i.AllowFeeRecipients {
 		EnableAllowFeeRecipients(state)
@@ -86,10 +86,9 @@ func (i *InitialRewardConfig) Configure(state StateDB) {
 		DisableFeeRewards(state)
 	} else {
 		// set reward address
-		if err := StoreRewardAddress(state, i.RewardAddress); err != nil {
-			panic(err)
-		}
+		return StoreRewardAddress(state, i.RewardAddress)
 	}
+	return nil
 }
 
 // RewardManagerConfig implements the StatefulPrecompileConfig
@@ -106,7 +105,10 @@ func init() {
 		panic(err)
 	}
 	RewardManagerABI = parsed
-	RewardManagerPrecompile = createRewardManagerPrecompile(RewardManagerAddress)
+	RewardManagerPrecompile, err = createRewardManagerPrecompile(RewardManagerAddress)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // NewRewardManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -161,11 +163,11 @@ func (c *RewardManagerConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the initial configuration.
-func (c *RewardManagerConfig) Configure(chainConfig ChainConfig, state StateDB, _ BlockContext) {
+func (c *RewardManagerConfig) Configure(chainConfig ChainConfig, state StateDB, _ BlockContext) error {
 	c.AllowListConfig.Configure(state, RewardManagerAddress)
 	// configure the RewardManager with the given initial configuration
 	if c.InitialRewardConfig != nil {
-		c.InitialRewardConfig.Configure(state)
+		return c.InitialRewardConfig.Configure(state)
 	} else if chainConfig.AllowedFeeRecipients() {
 		// configure the RewardManager according to chainConfig
 		EnableAllowFeeRecipients(state)
@@ -175,6 +177,7 @@ func (c *RewardManagerConfig) Configure(chainConfig ChainConfig, state StateDB, 
 		// default to disabling rewards
 		DisableFeeRewards(state)
 	}
+	return nil
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for RewardManager.
@@ -419,41 +422,25 @@ func disableRewards(accessibleState PrecompileAccessibleState, caller common.Add
 
 // createRewardManagerPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 // Access to the getters/setters is controlled by an allow list for [precompileAddr].
-func createRewardManagerPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
+func createRewardManagerPrecompile(precompileAddr common.Address) (StatefulPrecompiledContract, error) {
 	var functions []*statefulPrecompileFunction
 	functions = append(functions, createAllowListFunctions(precompileAddr)...)
-
-	methodAllowFeeRecipients, ok := RewardManagerABI.Methods["allowFeeRecipients"]
-	if !ok {
-		panic("given method does not exist in the ABI")
+	abiFunctionMap := map[string]RunStatefulPrecompileFunc{
+		"allowFeeRecipients":      allowFeeRecipients,
+		"areFeeRecipientsAllowed": areFeeRecipientsAllowed,
+		"currentRewardAddress":    currentRewardAddress,
+		"disableRewards":          disableRewards,
+		"setRewardAddress":        setRewardAddress,
 	}
-	functions = append(functions, newStatefulPrecompileFunction(methodAllowFeeRecipients.ID, allowFeeRecipients))
 
-	methodAreFeeRecipientsAllowed, ok := RewardManagerABI.Methods["areFeeRecipientsAllowed"]
-	if !ok {
-		panic("given method does not exist in the ABI")
+	for name, function := range abiFunctionMap {
+		method, ok := RewardManagerABI.Methods[name]
+		if !ok {
+			return nil, fmt.Errorf("given method (%s) does not exist in the ABI", name)
+		}
+		functions = append(functions, newStatefulPrecompileFunction(method.ID, function))
 	}
-	functions = append(functions, newStatefulPrecompileFunction(methodAreFeeRecipientsAllowed.ID, areFeeRecipientsAllowed))
-
-	methodCurrentRewardAddress, ok := RewardManagerABI.Methods["currentRewardAddress"]
-	if !ok {
-		panic("given method does not exist in the ABI")
-	}
-	functions = append(functions, newStatefulPrecompileFunction(methodCurrentRewardAddress.ID, currentRewardAddress))
-
-	methodDisableRewards, ok := RewardManagerABI.Methods["disableRewards"]
-	if !ok {
-		panic("given method does not exist in the ABI")
-	}
-	functions = append(functions, newStatefulPrecompileFunction(methodDisableRewards.ID, disableRewards))
-
-	methodSetRewardAddress, ok := RewardManagerABI.Methods["setRewardAddress"]
-	if !ok {
-		panic("given method does not exist in the ABI")
-	}
-	functions = append(functions, newStatefulPrecompileFunction(methodSetRewardAddress.ID, setRewardAddress))
 
 	// Construct the contract with no fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, functions)
-	return contract
+	return NewStatefulPrecompileContract(nil, functions)
 }

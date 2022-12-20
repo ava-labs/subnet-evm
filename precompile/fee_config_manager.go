@@ -109,20 +109,20 @@ func (c *FeeConfigManagerConfig) Equal(s StatefulPrecompileConfig) bool {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateDB, blockContext BlockContext) {
+func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateDB, blockContext BlockContext) error {
 	// Store the initial fee config into the state when the fee config manager activates.
 	if c.InitialFeeConfig != nil {
 		if err := StoreFeeConfig(state, *c.InitialFeeConfig, blockContext); err != nil {
 			// This should not happen since we already checked this config with Verify()
-			panic(fmt.Sprintf("invalid feeConfig provided: %s", err))
+			return fmt.Errorf("invalid feeConfig provided: %w", err)
 		}
 	} else {
 		if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
 			// This should not happen since we already checked the chain config in the genesis creation.
-			panic(fmt.Sprintf("fee config should have been verified in genesis: %s", err))
+			return fmt.Errorf("invalid feeConfig provided in chainConfig: %w", err)
 		}
 	}
-	c.AllowListConfig.Configure(state, FeeConfigManagerAddress)
+	return c.AllowListConfig.Configure(state, FeeConfigManagerAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the fee manager.
@@ -171,16 +171,16 @@ func PackGetLastChangedAtInput() []byte {
 // PackFeeConfig packs [feeConfig] without the selector into the appropriate arguments for fee config operations.
 func PackFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
 	//  input(feeConfig)
-	return packFeeConfigHelper(feeConfig, false), nil
+	return packFeeConfigHelper(feeConfig, false)
 }
 
 // PackSetFeeConfig packs [feeConfig] with the selector into the appropriate arguments for setting fee config operations.
 func PackSetFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
 	// function selector (4 bytes) + input(feeConfig)
-	return packFeeConfigHelper(feeConfig, true), nil
+	return packFeeConfigHelper(feeConfig, true)
 }
 
-func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) []byte {
+func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]byte, error) {
 	hashes := []common.Hash{
 		common.BigToHash(feeConfig.GasLimit),
 		common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate)),
@@ -194,13 +194,13 @@ func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) []byt
 
 	if useSelector {
 		res := make([]byte, len(setFeeConfigSignature)+feeConfigInputLen)
-		packOrderedHashesWithSelector(res, setFeeConfigSignature, hashes)
-		return res
+		err := packOrderedHashesWithSelector(res, setFeeConfigSignature, hashes)
+		return res, err
 	}
 
 	res := make([]byte, len(hashes)*common.HashLength)
-	packOrderedHashes(res, hashes)
-	return res
+	err := packOrderedHashes(res, hashes)
+	return res, err
 }
 
 // UnpackFeeConfigInput attempts to unpack [input] into the arguments to the fee config precompile
@@ -231,6 +231,7 @@ func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 		case blockGasCostStepKey:
 			feeConfig.BlockGasCostStep = new(big.Int).SetBytes(packedElement)
 		default:
+			// this should not ever happen. keep this as panic.
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
 	}
@@ -260,6 +261,7 @@ func GetStoredFeeConfig(stateDB StateDB) commontype.FeeConfig {
 		case blockGasCostStepKey:
 			feeConfig.BlockGasCostStep = new(big.Int).Set(val.Big())
 		default:
+			// this should not ever happen. keep this as panic.
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
 	}
@@ -298,6 +300,7 @@ func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig, blockContex
 		case blockGasCostStepKey:
 			input = common.BigToHash(feeConfig.BlockGasCostStep)
 		default:
+			// this should not ever happen. keep this as panic.
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
 		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, input)
@@ -386,6 +389,11 @@ func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPre
 
 	feeConfigManagerFunctions = append(feeConfigManagerFunctions, setFeeConfigFunc, getFeeConfigFunc, getFeeConfigLastChangedAtFunc)
 	// Construct the contract with no fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, feeConfigManagerFunctions)
+	contract, err := NewStatefulPrecompileContract(nil, feeConfigManagerFunctions)
+	// Change this to be returned as an error after refactoring this precompile
+	// to use the new precompile template.
+	if err != nil {
+		panic(err)
+	}
 	return contract
 }

@@ -71,7 +71,7 @@ func (c *ContractNativeMinterConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
+func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) error {
 	for to, amount := range c.InitialMint {
 		if amount != nil {
 			bigIntAmount := (*big.Int)(amount)
@@ -79,7 +79,7 @@ func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ B
 		}
 	}
 
-	c.AllowListConfig.Configure(state, ContractNativeMinterAddress)
+	return c.AllowListConfig.Configure(state, ContractNativeMinterAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the native minter.
@@ -157,12 +157,12 @@ func SetContractNativeMinterStatus(stateDB StateDB, address common.Address, role
 func PackMintInput(address common.Address, amount *big.Int) ([]byte, error) {
 	// function selector (4 bytes) + input(hash for address + hash for amount)
 	res := make([]byte, selectorLen+mintInputLen)
-	packOrderedHashesWithSelector(res, mintSignature, []common.Hash{
+	err := packOrderedHashesWithSelector(res, mintSignature, []common.Hash{
 		address.Hash(),
 		common.BigToHash(amount),
 	})
 
-	return res, nil
+	return res, err
 }
 
 // UnpackMintInput attempts to unpack [input] into the arguments to the mint precompile
@@ -217,6 +217,11 @@ func createNativeMinterPrecompile(precompileAddr common.Address) StatefulPrecomp
 
 	enabledFuncs = append(enabledFuncs, mintFunc)
 	// Construct the contract with no fallback function.
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, enabledFuncs)
+	contract, err := NewStatefulPrecompileContract(nil, enabledFuncs)
+	// Change this to be returned as an error after refactoring this precompile
+	// to use the new precompile template.
+	if err != nil {
+		panic(err)
+	}
 	return contract
 }
