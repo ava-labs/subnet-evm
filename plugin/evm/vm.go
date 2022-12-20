@@ -384,6 +384,7 @@ func (vm *VM) Initialize(
 	genesisBlock := vm.ethConfig.Genesis.ToBlock(nil)
 	vm.genesisHash = genesisBlock.Hash()
 
+	// check that subnetEVM fork is enabled from genesis
 	if !vm.chainConfig.IsSubnetEVM(genesisBlock.Number()) {
 		return fmt.Errorf("SubnetEVM upgrade is not enabled")
 	}
