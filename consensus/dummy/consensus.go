@@ -117,6 +117,11 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 	if header.GasUsed > header.GasLimit {
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
+	// We verify the current block by checking the parent fee config
+	// this is because the current block cannot set the fee config for itself
+	// Fee config might depend on the state when precompile is activated
+	// but we don't know the final state while forming the block.
+	// See worker package for more details.
 	feeConfig, _, err := chain.GetFeeConfigAt(parent)
 	if err != nil {
 		return err
@@ -328,6 +333,8 @@ func (self *DummyEngine) verifyBlockFee(
 
 func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
 	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(block.Time())) {
+		// we use the parent to determine the fee config
+		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)
 		if err != nil {
 			return err
@@ -365,6 +372,8 @@ func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, 
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
 	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(header.Time)) {
+		// we use the parent to determine the fee config
+		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)
 		if err != nil {
 			return nil, err
