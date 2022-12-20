@@ -385,7 +385,7 @@ func (vm *VM) Initialize(
 	vm.genesisHash = genesisBlock.Hash()
 
 	// check that subnetEVM upgrade is enabled from genesis
-	if !vm.chainConfig.IsSubnetEVM(genesisBlock.Number()) {
+	if !vm.chainConfig.IsSubnetEVM(genesisBlock.Timestamp()) {
 		return fmt.Errorf("SubnetEVM upgrade is not enabled in genesis")
 	}
 
