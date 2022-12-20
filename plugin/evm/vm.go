@@ -386,7 +386,7 @@ func (vm *VM) Initialize(
 	vm.genesisHash = genesisBlock.Hash()
 
 	if !vm.chainConfig.IsSubnetEVM(genesisBlock.Number()) {
-		return fmt.Errorf("subnetEVM upgrade is not enabled. Should be enabled from genesis: %w", err)
+		return fmt.Errorf("SubnetEVM upgrade is not enabled: %w", err)
 	}
 
 	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()

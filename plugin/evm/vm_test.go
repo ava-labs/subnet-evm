@@ -370,6 +370,25 @@ func issueAndAccept(t *testing.T, issuer <-chan engCommon.Message, vm *VM) snowm
 	return blk
 }
 
+func TestPreSubnetEVMUpgradeNotEnabledAtGenesis(t *testing.T) {
+	ctx, dbManager, genesisBytes, issuer := setupGenesis(t, genesisJSONPreSubnetEVM)
+	vm := &VM{}
+	err := vm.Initialize(
+		context.Background(),
+		ctx,
+		dbManager,
+		genesisBytes,
+		[]byte(""),
+		[]byte(""),
+		issuer,
+		[]*engCommon.Fx{},
+		nil,
+	)
+
+	// we expect an error when subnet evm upgrade is nil and not enabled at genesis
+	require.Error(t, err)
+}
+
 func TestSubnetEVMUpgradeNotEnabledAtGenesis(t *testing.T) {
 	ctx, dbManager, genesisBytes, issuer := setupGenesis(t, genesisJSONSubnetEVMLateEnablement)
 	vm := &VM{}
