@@ -154,10 +154,10 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 
 	// Get a json specifying a Network upgrade at genesis
 	// to apply as upgradeBytes.
-	subnetEVMTimestamp := time.Unix(10, 0)
+	subnetEVMTimestamp := big.NewInt(0)
 	upgradeConfig := &params.UpgradeConfig{
 		NetworkUpgrades: &params.NetworkUpgrades{
-			SubnetEVMTimestamp: big.NewInt(subnetEVMTimestamp.Unix()),
+			SubnetEVMTimestamp: subnetEVMTimestamp,
 		},
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
@@ -167,10 +167,9 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 
 	// initialize the VM with these upgrade bytes
 	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, "", string(upgradeBytesJSON))
-	vm.clock.Set(subnetEVMTimestamp)
 
 	// verify upgrade is applied
-	if !vm.chainConfig.IsSubnetEVM(big.NewInt(subnetEVMTimestamp.Unix())) {
+	if !vm.chainConfig.IsSubnetEVM(subnetEVMTimestamp) {
 		t.Fatal("expected subnet-evm network upgrade to have been enabled")
 	}
 
@@ -189,27 +188,19 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// VM should not start again without proper upgrade bytes.
+	// VM should not start again if SubnetEVM upgrade is not enabled in genesisBytes or upgradeBytes
 	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), []byte{}, []byte{}, issuer, []*common.Fx{}, appSender)
-	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
+	assert.ErrorContains(t, err, "SubnetEVM upgrade is not enabled in genesis")
 
-	// VM should not start if fork is moved back
+	// VM should not start if fork is not enabled on genesis
 	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(2)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
 	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*common.Fx{}, appSender)
-	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
+	assert.ErrorContains(t, err, "SubnetEVM upgrade is not enabled in genesis")
 
-	// VM should not start if fork is moved forward
-	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(30)
-	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
-	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*common.Fx{}, appSender)
-	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 }
 
 func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
