@@ -231,7 +231,7 @@ func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 		case blockGasCostStepKey:
 			feeConfig.BlockGasCostStep = new(big.Int).SetBytes(packedElement)
 		default:
-			// this should not ever happen. keep this as panic.
+			// This should never encounter an unknown fee config key
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
 	}
