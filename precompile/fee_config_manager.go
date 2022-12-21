@@ -390,7 +390,7 @@ func createFeeConfigManagerPrecompile(precompileAddr common.Address) StatefulPre
 	feeConfigManagerFunctions = append(feeConfigManagerFunctions, setFeeConfigFunc, getFeeConfigFunc, getFeeConfigLastChangedAtFunc)
 	// Construct the contract with no fallback function.
 	contract, err := NewStatefulPrecompileContract(nil, feeConfigManagerFunctions)
-	// Change this to be returned as an error after refactoring this precompile
+	// TODO Change this to be returned as an error after refactoring this precompile
 	// to use the new precompile template.
 	if err != nil {
 		panic(err)
