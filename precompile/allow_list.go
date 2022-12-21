@@ -221,7 +221,7 @@ func createAllowListPrecompile(precompileAddr common.Address) StatefulPrecompile
 	// Construct the contract with no fallback function.
 	allowListFuncs := createAllowListFunctions(precompileAddr)
 	contract, err := NewStatefulPrecompileContract(nil, allowListFuncs)
-	// Change this to be returned as an error after refactoring this precompile
+	// TODO Change this to be returned as an error after refactoring this precompile
 	// to use the new precompile template.
 	if err != nil {
 		panic(err)
