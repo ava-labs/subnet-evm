@@ -1286,3 +1286,80 @@ func TestRewardManagerRun(t *testing.T) {
 		})
 	}
 }
+
+func TestSharedMemoryRun(t *testing.T) {
+	type test struct {
+		caller       common.Address
+		preCondition func(t *testing.T, state *state.StateDB)
+		input        func() []byte
+		suppliedGas  uint64
+		readOnly     bool
+		config       *precompile.RewardManagerConfig
+
+		expectedRes []byte
+		expectedErr string
+
+		assertState func(t *testing.T, state *state.StateDB)
+	}
+
+	caller := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
+	receiver := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
+
+	destinationChainID := common.Hash{1, 2, 3}
+
+	for name, test := range map[string]test{
+		"exportAVAX": {
+			caller: caller,
+			preCondition: func(t *testing.T, state *state.StateDB) {
+				state.SetBalance(caller, big.NewInt(params.Ether))
+			},
+			input: func() []byte {
+				input, err := precompile.PackExportAVAX(precompile.ExportAVAXInput{
+					DestinationChainID: destinationChainID,
+					Locktime:           0,
+					Threshold:          1,
+					Addrs:              []common.Address{receiver},
+				})
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.ExportAVAXGasCost,
+			readOnly:    false,
+			expectedRes: []byte{},
+			assertState: func(t *testing.T, state *state.StateDB) {
+
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := rawdb.NewMemoryDatabase()
+			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+			require.NoError(t, err)
+
+			if test.preCondition != nil {
+				test.preCondition(t, state)
+			}
+
+			snowCtx := snow.DefaultContextTest()
+			blockContext := &mockBlockContext{blockNumber: testBlockNumber}
+			accessibleState := &mockAccessibleState{state: state, blockContext: blockContext, snowContext: snowCtx}
+			if test.config != nil {
+				test.config.Configure(params.TestChainConfig, state, blockContext)
+			}
+			ret, remainingGas, err := precompile.SharedMemoryPrecompile.Run(accessibleState, test.caller, precompile.SharedMemoryAddress, test.input(), test.suppliedGas, test.readOnly)
+			if len(test.expectedErr) != 0 {
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, uint64(0), remainingGas)
+			require.Equal(t, test.expectedRes, ret)
+
+			if test.assertState != nil {
+				test.assertState(t, state)
+			}
+		})
+	}
+}
