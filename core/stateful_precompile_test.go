@@ -1341,12 +1341,12 @@ func TestSharedMemoryRun(t *testing.T) {
 				state.SetBalance(precompile.SharedMemoryAddress, big.NewInt(params.Ether)) // Simulate having sent 1ETH to the precompile
 			},
 			input: func() []byte {
-				input, err := precompile.PackExportAVAX(precompile.ExportAVAXInput{ // TODO send some value
-					DestinationChainID: destinationChainID,
-					Locktime:           0,
-					Threshold:          1,
-					Addrs:              []common.Address{receiver},
-				})
+				input, err := precompile.PackExportAVAX(
+					destinationChainID,
+					0,
+					1,
+					[]common.Address{receiver},
+				)
 				require.NoError(t, err)
 
 				return input

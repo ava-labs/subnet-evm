@@ -262,8 +262,8 @@ func UnpackExportAVAXInput(input []byte) (ExportAVAXInput, error) {
 }
 
 // PackExportAVAX packs [inputStruct] of type ExportAVAXInput into the appropriate arguments for exportAVAX.
-func PackExportAVAX(inputStruct ExportAVAXInput) ([]byte, error) {
-	return SharedMemoryABI.Pack("exportAVAX", inputStruct.DestinationChainID, inputStruct.Locktime, inputStruct.Threshold, inputStruct.Addrs)
+func PackExportAVAX(destinationChainID ids.ID, locktime uint64, threshold uint64, addrs []common.Address) ([]byte, error) {
+	return SharedMemoryABI.Pack("exportAVAX", destinationChainID, locktime, threshold, addrs)
 }
 
 func exportAVAX(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
