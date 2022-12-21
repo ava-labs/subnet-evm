@@ -419,7 +419,7 @@ func (bc *BlockChain) writeBlockAcceptedIndices(block *types.Block, receipts []*
 		return fmt.Errorf("%w: failed to write acceptor tip key", err)
 	}
 
-	if bc.chainConfig.SnowCtx != nil {
+	if bc.chainConfig.SnowCtx.SharedMemory != nil {
 		// TODO: must apply atomic operations atomically with the accepted block indices update
 		if err := bc.chainConfig.SnowCtx.SharedMemory.Apply(atomicOps); err != nil {
 			return fmt.Errorf("failed to apply operations to shared memory: %w", err)
