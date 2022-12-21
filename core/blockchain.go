@@ -418,9 +418,14 @@ func (bc *BlockChain) writeBlockAcceptedIndices(block *types.Block, receipts []*
 	if err := rawdb.WriteAcceptorTip(batch, block.Hash()); err != nil {
 		return fmt.Errorf("%w: failed to write acceptor tip key", err)
 	}
-	// TODO: must apply atomic operations atomically with the accepted block indices update
-	if err := bc.chainConfig.SnowCtx.SharedMemory.Apply(atomicOps); err != nil {
-		return fmt.Errorf("failed to apply operations to shared memory: %w", err)
+
+	if bc.chainConfig.SnowCtx != nil {
+		// TODO: must apply atomic operations atomically with the accepted block indices update
+		if err := bc.chainConfig.SnowCtx.SharedMemory.Apply(atomicOps); err != nil {
+			return fmt.Errorf("failed to apply operations to shared memory: %w", err)
+		}
+	} else if len(atomicOps) != 0 {
+		log.Warn("writing accepted block without SnowCtx set", "atomicOps", len(atomicOps))
 	}
 	if err := batch.Write(); err != nil {
 		return fmt.Errorf("failed to write accepted block indices batch: %w", err)
