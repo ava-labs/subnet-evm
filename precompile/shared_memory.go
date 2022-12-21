@@ -26,6 +26,7 @@ Typically, custom codes are required in only those areas.
 package precompile
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -274,8 +275,8 @@ func exportAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	ctx := accessibleState.GetSnowContext()
-	if err := verify.SameSubnet(ctx, ids.ID(inputStruct.DestinationChainID)); err != nil {
+	chainCtx := accessibleState.GetSnowContext()
+	if err := verify.SameSubnet(context.TODO(), chainCtx, ids.ID(inputStruct.DestinationChainID)); err != nil {
 		return nil, remainingGas, err
 	}
 
