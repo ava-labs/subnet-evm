@@ -200,7 +200,6 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	}
 	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*common.Fx{}, appSender)
 	assert.ErrorContains(t, err, "SubnetEVM upgrade is not enabled in genesis")
-
 }
 
 func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
