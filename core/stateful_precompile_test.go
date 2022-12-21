@@ -4,10 +4,14 @@
 package core
 
 import (
+	"context"
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -1292,6 +1296,7 @@ func TestSharedMemoryRun(t *testing.T) {
 		caller       common.Address
 		preCondition func(t *testing.T, state *state.StateDB)
 		input        func() []byte
+		value        *big.Int
 		suppliedGas  uint64
 		readOnly     bool
 		config       *precompile.RewardManagerConfig
@@ -1305,16 +1310,31 @@ func TestSharedMemoryRun(t *testing.T) {
 	caller := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
 	receiver := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
 
-	destinationChainID := common.Hash{1, 2, 3}
+	snowCtx := snow.DefaultContextTest()
+	snowCtx.SubnetID = ids.GenerateTestID()
+	snowCtx.ChainID = ids.GenerateTestID()
+	destinationChainID := ids.GenerateTestID()
+	snowCtx.ValidatorState = &validators.TestState{
+		GetSubnetIDF: func(_ context.Context, chainID ids.ID) (ids.ID, error) {
+			subnetID, ok := map[ids.ID]ids.ID{
+				snowCtx.ChainID:    snowCtx.SubnetID,
+				destinationChainID: snowCtx.SubnetID,
+			}[chainID]
+			if !ok {
+				return ids.Empty, errors.New("unknown chain")
+			}
+			return subnetID, nil
+		},
+	}
 
 	for name, test := range map[string]test{
 		"exportAVAX": {
 			caller: caller,
 			preCondition: func(t *testing.T, state *state.StateDB) {
-				state.SetBalance(caller, big.NewInt(params.Ether))
+				state.SetBalance(precompile.SharedMemoryAddress, big.NewInt(params.Ether)) // Simulate having sent 1ETH to the precompile
 			},
 			input: func() []byte {
-				input, err := precompile.PackExportAVAX(precompile.ExportAVAXInput{
+				input, err := precompile.PackExportAVAX(precompile.ExportAVAXInput{ // TODO send some value
 					DestinationChainID: destinationChainID,
 					Locktime:           0,
 					Threshold:          1,
@@ -1328,7 +1348,26 @@ func TestSharedMemoryRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
+				logs := state.Logs()
+				require.Len(t, logs, 1, "expected 1 generated log from exportAVAX")
+				exportAVAXLog := logs[0]
 
+				// Validate topics
+				require.Len(t, exportAVAXLog.Topics, 2)
+				event, err := precompile.SharedMemoryABI.EventByID(exportAVAXLog.Topics[0])
+				require.NoError(t, err)
+				require.Equal(t, event.Name, "ExportAVAX")
+				require.Equal(t, exportAVAXLog.Topics[1], common.Hash(destinationChainID))
+
+				// Validate data
+				ev := &precompile.ExportAVAXEvent{}
+				err = precompile.SharedMemoryABI.UnpackInputIntoInterface(ev, "ExportAVAX", exportAVAXLog.Data)
+				require.NoError(t, err)
+				require.Equal(t, uint64(params.GWei), ev.Amount)
+				require.Equal(t, uint64(0), ev.Locktime)
+				require.Equal(t, uint64(1), ev.Threshold)
+				require.Len(t, ev.Addrs, 1, "expected 1 address in exportAVAX log")
+				require.Equal(t, receiver, ev.Addrs[0])
 			},
 		},
 	} {
@@ -1341,7 +1380,6 @@ func TestSharedMemoryRun(t *testing.T) {
 				test.preCondition(t, state)
 			}
 
-			snowCtx := snow.DefaultContextTest()
 			blockContext := &mockBlockContext{blockNumber: testBlockNumber}
 			accessibleState := &mockAccessibleState{state: state, blockContext: blockContext, snowContext: snowCtx}
 			if test.config != nil {

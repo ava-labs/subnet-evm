@@ -286,7 +286,7 @@ func exportAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 
 	topics, data, err := SharedMemoryABI.PackEvent(
 		"ExportAVAX",
-		convertedBalance,
+		convertedBalance.Uint64(), // XXX validate this value
 		inputStruct.DestinationChainID,
 		inputStruct.Locktime,
 		inputStruct.Threshold,
