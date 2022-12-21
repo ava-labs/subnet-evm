@@ -419,13 +419,16 @@ func (bc *BlockChain) writeBlockAcceptedIndices(block *types.Block, receipts []*
 		return fmt.Errorf("%w: failed to write acceptor tip key", err)
 	}
 
-	if bc.chainConfig.SnowCtx.SharedMemory != nil {
+	// This skips an unnecessary call to shared memory and also avoids a panic due to SnowCtx/SharedMemory
+	// not being populated in geth tests and tests that rely on snow.DefaultContextTest() (which does not populate
+	// shared memory).
+	// If either is not populated for a test that returns a non-zero
+	// number of atomicOps, this will panic.
+	if len(atomicOps) != 0 {
 		// TODO: must apply atomic operations atomically with the accepted block indices update
 		if err := bc.chainConfig.SnowCtx.SharedMemory.Apply(atomicOps); err != nil {
 			return fmt.Errorf("failed to apply operations to shared memory: %w", err)
 		}
-	} else if len(atomicOps) != 0 {
-		log.Warn("writing accepted block without SnowCtx set", "atomicOps", len(atomicOps))
 	}
 	if err := batch.Write(); err != nil {
 		return fmt.Errorf("failed to write accepted block indices batch: %w", err)
