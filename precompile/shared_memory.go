@@ -188,65 +188,67 @@ type ExportAVAXEvent struct {
 }
 
 // OnAccept optionally returns a function to perform on any log with the precompile address.
-// If enabled, this will be called after the block is accepted to perform post-accept computation.
-func (c *SharedMemoryConfig) OnAccept() OnAcceptFunc { // TODO update to return atomic operations, database batch to be applied atomically, and an error
-	return func(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error) {
-		if len(topics) == 0 {
-			return ids.ID{}, nil, errors.New("SharedMemory does not handle logs with 0 topics")
-		}
-		event, err := SharedMemoryABI.EventByID(topics[0]) // First topic is the event ID
+func (c *SharedMemoryConfig) OnAccept() OnAcceptFunc {
+	return ApplySharedMemoryLogs
+}
+
+// ApplySharedMemoryLogs processes the log data and returns a corresponding map atomic memory operation
+func ApplySharedMemoryLogs(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error) { // TODO update to return atomic operations, database batch to be applied atomically, and an error
+	if len(topics) == 0 {
+		return ids.ID{}, nil, errors.New("SharedMemory does not handle logs with 0 topics")
+	}
+	event, err := SharedMemoryABI.EventByID(topics[0]) // First topic is the event ID
+	if err != nil {
+		return ids.ID{}, nil, fmt.Errorf("shared memory accept: %w", err)
+	}
+
+	// TODO: separate this out better
+	switch {
+	case event.Name == "ExportAVAX":
+		ev := &ExportAVAXEvent{}
+		err = SharedMemoryABI.UnpackInputIntoInterface(ev, "ExportAVAX", logData)
 		if err != nil {
-			return ids.ID{}, nil, fmt.Errorf("shared memory accept: %w", err)
+			return ids.ID{}, nil, fmt.Errorf("failed to unpack exportAVAX event data: %w", err)
+		}
+		addrs := make([]ids.ShortID, 0, len(ev.Addrs))
+		for _, addr := range ev.Addrs {
+			addrs = append(addrs, ids.ShortID(addr))
+		}
+		utxo := &avax.UTXO{
+			// Derive unique UTXOID from txHash and log index
+			UTXOID: avax.UTXOID{
+				TxID:        ids.ID(txHash),
+				OutputIndex: uint32(logIndex),
+			},
+			Asset: avax.Asset{ID: snowCtx.AVAXAssetID},
+			Out: &secp256k1fx.TransferOutput{
+				Amt: ev.Amount,
+				OutputOwners: secp256k1fx.OutputOwners{
+					Locktime:  ev.Locktime,
+					Threshold: uint32(ev.Threshold), // TODO make the actual type uint32 to correspond to this
+					Addrs:     addrs,
+				},
+			},
 		}
 
-		// TODO: separate this out better
-		switch {
-		case event.Name == "ExportAVAX":
-			ev := &ExportAVAXEvent{}
-			err = SharedMemoryABI.UnpackInputIntoInterface(ev, "ExportAVAX", logData)
-			if err != nil {
-				return ids.ID{}, nil, fmt.Errorf("failed to unpack exportAVAX event data: %w", err)
-			}
-			addrs := make([]ids.ShortID, 0, len(ev.Addrs))
-			for _, addr := range ev.Addrs {
-				addrs = append(addrs, ids.ShortID(addr))
-			}
-			utxo := &avax.UTXO{
-				// Derive unique UTXOID from txHash and log index
-				UTXOID: avax.UTXOID{
-					TxID:        ids.ID(txHash),
-					OutputIndex: uint32(logIndex),
-				},
-				Asset: avax.Asset{ID: snowCtx.AVAXAssetID},
-				Out: &secp256k1fx.TransferOutput{
-					Amt: ev.Amount,
-					OutputOwners: secp256k1fx.OutputOwners{
-						Locktime:  ev.Locktime,
-						Threshold: uint32(ev.Threshold), // TODO make the actual type uint32 to correspond to this
-						Addrs:     addrs,
-					},
-				},
-			}
-
-			utxoBytes, err := codec.Codec.Marshal(0, utxo) // XXX
-			if err != nil {
-				return ids.ID{}, nil, err
-			}
-			utxoID := utxo.InputID()
-			elem := &atomic.Element{
-				Key:   utxoID[:],
-				Value: utxoBytes,
-			}
-			if out, ok := utxo.Out.(avax.Addressable); ok {
-				elem.Traits = out.Addresses()
-			}
-
-			return ids.ID(topics[1]), &atomic.Requests{ // TODO unpack the topics instead of manually extracting desintationChainID here
-				PutRequests: []*atomic.Element{elem},
-			}, nil
-		default:
-			return ids.ID{}, nil, fmt.Errorf("shared memory accept unexpected log: %q", event.Name)
+		utxoBytes, err := codec.Codec.Marshal(0, utxo) // XXX
+		if err != nil {
+			return ids.ID{}, nil, err
 		}
+		utxoID := utxo.InputID()
+		elem := &atomic.Element{
+			Key:   utxoID[:],
+			Value: utxoBytes,
+		}
+		if out, ok := utxo.Out.(avax.Addressable); ok {
+			elem.Traits = out.Addresses()
+		}
+
+		return ids.ID(topics[1]), &atomic.Requests{ // TODO unpack the topics instead of manually extracting desintationChainID here
+			PutRequests: []*atomic.Element{elem},
+		}, nil
+	default:
+		return ids.ID{}, nil, fmt.Errorf("shared memory accept unexpected log: %q", event.Name)
 	}
 }
 

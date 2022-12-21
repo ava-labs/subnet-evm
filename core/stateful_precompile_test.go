@@ -4,6 +4,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"math/big"
@@ -12,12 +13,16 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/validators"
+	"github.com/ava-labs/avalanchego/vms/components/avax"
+	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/utils/codec"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -1304,13 +1309,15 @@ func TestSharedMemoryRun(t *testing.T) {
 		expectedRes []byte
 		expectedErr string
 
-		assertState func(t *testing.T, state *state.StateDB)
+		assertState           func(t *testing.T, state *state.StateDB)
+		validatePrecompileLog func(t *testing.T, log *types.Log)
 	}
 
 	caller := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
 	receiver := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
 
 	snowCtx := snow.DefaultContextTest()
+	snowCtx.AVAXAssetID = ids.GenerateTestID()
 	snowCtx.SubnetID = ids.GenerateTestID()
 	snowCtx.ChainID = ids.GenerateTestID()
 	destinationChainID := ids.GenerateTestID()
@@ -1348,10 +1355,8 @@ func TestSharedMemoryRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				logs := state.Logs()
-				require.Len(t, logs, 1, "expected 1 generated log from exportAVAX")
-				exportAVAXLog := logs[0]
-
+			},
+			validatePrecompileLog: func(t *testing.T, exportAVAXLog *types.Log) {
 				// Validate topics
 				require.Len(t, exportAVAXLog.Topics, 2)
 				event, err := precompile.SharedMemoryABI.EventByID(exportAVAXLog.Topics[0])
@@ -1397,6 +1402,44 @@ func TestSharedMemoryRun(t *testing.T) {
 
 			if test.assertState != nil {
 				test.assertState(t, state)
+			}
+			if test.validatePrecompileLog == nil {
+				require.Len(t, state.Logs(), 0)
+			} else {
+				logs := state.Logs()
+				require.Len(t, logs, 1)
+				log := logs[0]
+				test.validatePrecompileLog(t, log)
+
+				// TODO: clean this up and move it into helper function
+				txHash := common.Hash{1, 2, 3}
+				logIndex := 0 // TODO: should we change this type to uint32 in the function signature as well?
+				chainID, reqs, err := precompile.ApplySharedMemoryLogs(snowCtx, txHash, logIndex, log.Topics, log.Data)
+				require.NoError(t, err)
+				require.Equal(t, chainID, destinationChainID)
+				require.Len(t, reqs.PutRequests, 1)
+				require.Len(t, reqs.RemoveRequests, 0)
+
+				elem := reqs.PutRequests[0]
+				require.Len(t, elem.Traits, 1)
+				require.True(t, bytes.Equal(elem.Traits[0], receiver[:]))
+				// Skip verification of the key
+				utxo := &avax.UTXO{}
+				v, err := codec.Codec.Unmarshal(elem.Value, utxo)
+				require.NoError(t, err)
+				require.Equal(t, uint16(0), v)
+
+				// Verify the generated UTXO
+				require.Equal(t, ids.ID(txHash), utxo.UTXOID.TxID)
+				require.Equal(t, uint32(logIndex), utxo.UTXOID.OutputIndex)
+				require.Equal(t, snowCtx.AVAXAssetID, utxo.AssetID())
+
+				utxoOutput := utxo.Out.(*secp256k1fx.TransferOutput)
+				require.Equal(t, uint64(params.GWei), utxoOutput.Amt)
+				require.Equal(t, uint64(0), utxoOutput.OutputOwners.Locktime)
+				require.Equal(t, uint32(1), utxoOutput.OutputOwners.Threshold)
+				require.Len(t, utxoOutput.OutputOwners.Addrs, 1)
+				require.Equal(t, ids.ShortID(receiver), utxoOutput.OutputOwners.Addrs[0])
 			}
 		})
 	}
