@@ -16,7 +16,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/stretchr/testify/assert"
@@ -146,12 +145,6 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 }
 
 func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
-	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
-	metrics.Enabled = false
-	defer func() {
-		metrics.Enabled = true
-	}()
-
 	// Get a json specifying a Network upgrade at genesis
 	// to apply as upgradeBytes.
 	subnetEVMTimestamp := big.NewInt(0)
@@ -188,11 +181,11 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// VM should not start again if SubnetEVM upgrade is not enabled in genesisBytes or upgradeBytes
+	// vm should not start again if SubnetEVM upgrade is not enabled in genesisBytes or upgradeBytes
 	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), []byte{}, []byte{}, issuer, []*common.Fx{}, appSender)
 	assert.ErrorContains(t, err, "SubnetEVM upgrade is not enabled in genesis")
 
-	// VM should not start if fork is not enabled on genesis
+	// vm should not start if fork is not enabled on genesis
 	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(2)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
@@ -236,6 +229,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// create upgrade with nil NetworkUpgrades
 	upgradeConfig.NetworkUpgrades = nil
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
