@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -147,7 +148,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	// Get a json specifying a Network upgrade at genesis
 	// to apply as upgradeBytes.
-	subnetEVMTimestamp := big.NewInt(0)
+	subnetEVMTimestamp := ethcommon.Big0
 	upgradeConfig := &params.UpgradeConfig{
 		NetworkUpgrades: &params.NetworkUpgrades{
 			SubnetEVMTimestamp: subnetEVMTimestamp,
@@ -201,7 +202,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	if err := json.Unmarshal([]byte(genesisJSONPreSubnetEVM), &genesis); err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
 	}
-	genesisSubnetEVMTimestamp := big.NewInt(0)
+	genesisSubnetEVMTimestamp := ethcommon.Big0
 	genesis.Config.SubnetEVMTimestamp = genesisSubnetEVMTimestamp
 	genesisBytes, err := json.Marshal(&genesis)
 	if err != nil {
@@ -210,7 +211,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 
 	// Get a json specifying a Network upgrade at genesis
 	// to apply as upgradeBytes.
-	subnetEVMTimestamp := big.NewInt(0)
+	subnetEVMTimestamp := ethcommon.Big0
 	upgradeConfig := &params.UpgradeConfig{
 		NetworkUpgrades: &params.NetworkUpgrades{
 			SubnetEVMTimestamp: subnetEVMTimestamp,
