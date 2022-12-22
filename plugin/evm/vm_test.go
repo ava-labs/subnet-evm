@@ -399,7 +399,7 @@ func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
 			nil,
 		)
 
-		require.ErrorContains(t, err, "SubnetEVM upgrade is not enabled in genesis")
+		require.ErrorIs(t, err, errSubnetEVMUpgradeNotEnabled)
 	}
 }
 

@@ -108,13 +108,14 @@ var (
 )
 
 var (
-	errEmptyBlock               = errors.New("empty block")
-	errUnsupportedFXs           = errors.New("unsupported feature extensions")
-	errInvalidBlock             = errors.New("invalid block")
-	errInvalidNonce             = errors.New("invalid nonce")
-	errUnclesUnsupported        = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM      = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errEmptyBlock                 = errors.New("empty block")
+	errUnsupportedFXs             = errors.New("unsupported feature extensions")
+	errInvalidBlock               = errors.New("invalid block")
+	errInvalidNonce               = errors.New("invalid nonce")
+	errUnclesUnsupported          = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM        = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM   = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errSubnetEVMUpgradeNotEnabled = errors.New("SubnetEVM upgrade is not enabled in genesis")
 )
 
 var originalStderr *os.File
@@ -386,7 +387,7 @@ func (vm *VM) Initialize(
 
 	// check that subnetEVM upgrade is enabled from genesis
 	if !vm.chainConfig.IsSubnetEVM(genesisBlock.Timestamp()) {
-		return errors.New("SubnetEVM upgrade is not enabled in genesis")
+		return errSubnetEVMUpgradeNotEnabled
 	}
 
 	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
