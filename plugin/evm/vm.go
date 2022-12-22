@@ -370,6 +370,11 @@ func (vm *VM) Initialize(
 	vm.chainConfig = g.Config
 	vm.networkID = vm.ethConfig.NetworkId
 
+	// check that subnetEVM upgrade is enabled from genesis before upgradeBytes
+	if !vm.chainConfig.IsSubnetEVM(common.Big0) {
+		return errSubnetEVMUpgradeNotEnabled
+	}
+
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
 	if len(upgradeBytes) > 0 {
@@ -380,15 +385,9 @@ func (vm *VM) Initialize(
 		vm.chainConfig.UpgradeConfig = upgradeConfig
 	}
 
-	// create genesisBlock after applying upgradeBytes in case
+	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
-	genesisBlock := vm.ethConfig.Genesis.ToBlock(nil)
-	vm.genesisHash = genesisBlock.Hash()
-
-	// check that subnetEVM upgrade is enabled from genesis
-	if !vm.chainConfig.IsSubnetEVM(genesisBlock.Timestamp()) {
-		return errSubnetEVMUpgradeNotEnabled
-	}
+	vm.genesisHash = vm.ethConfig.Genesis.ToBlock(nil).Hash()
 
 	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
 	if err != nil {
