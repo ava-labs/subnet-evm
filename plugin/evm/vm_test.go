@@ -370,42 +370,37 @@ func issueAndAccept(t *testing.T, issuer <-chan engCommon.Message, vm *VM) snowm
 	return blk
 }
 
-func TestPreSubnetEVMUpgrade(t *testing.T) {
-	ctx, dbManager, genesisBytes, issuer := setupGenesis(t, genesisJSONPreSubnetEVM)
-	vm := &VM{}
-	err := vm.Initialize(
-		context.Background(),
-		ctx,
-		dbManager,
-		genesisBytes,
-		[]byte(""),
-		[]byte(""),
-		issuer,
-		[]*engCommon.Fx{},
-		nil,
-	)
+func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
+	genesisTests := []struct {
+		genesisJSON string
+	}{
+		{
+			// we expect an error when subnet evm upgrade is nil in chain config
+			genesisJSON: genesisJSONPreSubnetEVM,
+		},
+		{
+			// we expect an error when subnet evm upgrade is not enabled at genesis and at a later block instead
+			genesisJSON: genesisJSONSubnetEVMLateEnablement,
+		},
+	}
 
-	// we expect an error when subnet evm upgrade is nil in chain config
-	require.Error(t, err)
-}
+	for _, test := range genesisTests {
+		ctx, dbManager, genesisBytes, issuer := setupGenesis(t, test.genesisJSON)
+		vm := &VM{}
+		err := vm.Initialize(
+			context.Background(),
+			ctx,
+			dbManager,
+			genesisBytes,
+			[]byte(""),
+			[]byte(""),
+			issuer,
+			[]*engCommon.Fx{},
+			nil,
+		)
 
-func TestSubnetEVMUpgradeNotEnabledAtGenesis(t *testing.T) {
-	ctx, dbManager, genesisBytes, issuer := setupGenesis(t, genesisJSONSubnetEVMLateEnablement)
-	vm := &VM{}
-	err := vm.Initialize(
-		context.Background(),
-		ctx,
-		dbManager,
-		genesisBytes,
-		[]byte(""),
-		[]byte(""),
-		issuer,
-		[]*engCommon.Fx{},
-		nil,
-	)
-
-	// we expect an error when subnet evm upgrade is not enabled at genesis and at a later block instead
-	require.Error(t, err)
+		require.ErrorContains(t, err, "SubnetEVM upgrade is not enabled in genesis")
+	}
 }
 
 func TestBuildEthTxBlock(t *testing.T) {
