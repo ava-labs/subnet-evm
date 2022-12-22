@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 )
@@ -98,7 +99,7 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 	}
 
 	switch {
-	case rules.IsRewardManagerEnabled:
+	case rules.IsPrecompileEnabled(precompile.RewardManagerAddress):
 		// if reward manager is enabled, Coinbase depends on state.
 		// State is not available here, so skip checking the coinbase here.
 	case rules.IsSubnetEVM && b.vm.chainConfig.AllowFeeRecipients:

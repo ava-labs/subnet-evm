@@ -272,45 +272,11 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 	return utils.IsForked(c.getNetworkUpgrades().SubnetEVMTimestamp, blockTimestamp)
 }
 
-// PRECOMPILE UPGRADES START HERE
-
-// IsContractDeployerAllowList returns whether [blockTimestamp] is either equal to the ContractDeployerAllowList fork block timestamp or greater.
-func (c *ChainConfig) IsContractDeployerAllowList(blockTimestamp *big.Int) bool {
-	config := c.GetContractDeployerAllowListConfig(blockTimestamp)
-	return config != nil && !config.Disable
+// IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
+func (c *ChainConfig) IsPrecompileEnabled(address common.Address, blockTimestamp *big.Int) bool {
+	config := c.GetPrecompileConfig(address, blockTimestamp)
+	return config != nil && !config.IsDisabled()
 }
-
-// IsContractNativeMinter returns whether [blockTimestamp] is either equal to the NativeMinter fork block timestamp or greater.
-func (c *ChainConfig) IsContractNativeMinter(blockTimestamp *big.Int) bool {
-	config := c.GetContractNativeMinterConfig(blockTimestamp)
-	return config != nil && !config.Disable
-}
-
-// IsTxAllowList returns whether [blockTimestamp] is either equal to the TxAllowList fork block timestamp or greater.
-func (c *ChainConfig) IsTxAllowList(blockTimestamp *big.Int) bool {
-	config := c.GetTxAllowListConfig(blockTimestamp)
-	return config != nil && !config.Disable
-}
-
-// IsFeeConfigManager returns whether [blockTimestamp] is either equal to the FeeConfigManager fork block timestamp or greater.
-func (c *ChainConfig) IsFeeConfigManager(blockTimestamp *big.Int) bool {
-	config := c.GetFeeConfigManagerConfig(blockTimestamp)
-	return config != nil && !config.Disable
-}
-
-// IsRewardManager returns whether [blockTimestamp] is either equal to the RewardManager fork block timestamp or greater.
-func (c *ChainConfig) IsRewardManager(blockTimestamp *big.Int) bool {
-	config := c.GetRewardManagerConfig(blockTimestamp)
-	return config != nil && !config.Disable
-}
-
-// ADD YOUR PRECOMPILE HERE
-/*
-func (c *ChainConfig) Is{YourPrecompile}(blockTimestamp *big.Int) bool {
-	config := c.Get{YourPrecompile}Config(blockTimestamp)
-	return config != nil && !config.Disable
-}
-*/
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
 // with a mismatching chain configuration.
@@ -539,20 +505,16 @@ type Rules struct {
 	// Rules for Avalanche releases
 	IsSubnetEVM bool
 
-	// Optional stateful precompile rules
-	IsContractDeployerAllowListEnabled bool
-	IsContractNativeMinterEnabled      bool
-	IsTxAllowListEnabled               bool
-	IsFeeConfigManagerEnabled          bool
-	IsRewardManagerEnabled             bool
-	// ADD YOUR PRECOMPILE HERE
-	// Is{YourPrecompile}Enabled         bool
-
 	// Precompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
 	Precompiles map[common.Address]precompile.StatefulPrecompiledContract
+}
+
+func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
+	_, ok := r.Precompiles[addr]
+	return ok
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -580,13 +542,6 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules := c.rules(blockNum)
 
 	rules.IsSubnetEVM = c.IsSubnetEVM(blockTimestamp)
-	rules.IsContractDeployerAllowListEnabled = c.IsContractDeployerAllowList(blockTimestamp)
-	rules.IsContractNativeMinterEnabled = c.IsContractNativeMinter(blockTimestamp)
-	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
-	rules.IsFeeConfigManagerEnabled = c.IsFeeConfigManager(blockTimestamp)
-	rules.IsRewardManagerEnabled = c.IsRewardManager(blockTimestamp)
-	// ADD YOUR PRECOMPILE HERE
-	// rules.Is{YourPrecompile}Enabled = c.{IsYourPrecompile}(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)

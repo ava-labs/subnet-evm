@@ -203,15 +203,15 @@ func TestGetPrecompileConfig(t *testing.T) {
 		ContractDeployerAllowListConfig: precompile.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
 	}
 
-	deployerConfig := config.GetContractDeployerAllowListConfig(big.NewInt(0))
+	deployerConfig := config.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, big.NewInt(0))
 	assert.Nil(deployerConfig)
 
-	deployerConfig = config.GetContractDeployerAllowListConfig(big.NewInt(10))
+	deployerConfig = config.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, big.NewInt(10))
 	assert.NotNil(deployerConfig)
 
-	deployerConfig = config.GetContractDeployerAllowListConfig(big.NewInt(11))
+	deployerConfig = config.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, big.NewInt(11))
 	assert.NotNil(deployerConfig)
 
-	txAllowListConfig := config.GetTxAllowListConfig(big.NewInt(0))
+	txAllowListConfig := config.GetPrecompileConfig(precompile.TxAllowListAddress, big.NewInt(0))
 	assert.Nil(txAllowListConfig)
 }
