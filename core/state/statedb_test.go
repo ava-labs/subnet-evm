@@ -978,7 +978,7 @@ func TestAddBalanceOverflow(t *testing.T) {
 
 	err := state.AddBalance(addr, ethmath.MaxBig256)
 	require.NoError(t, err)
-	// add it again and expect overflow
+	// add 1 to trigger overflow and assert we get the correct error
 	err = state.AddBalance(addr, big.NewInt(1))
 	require.ErrorIs(t, err, vmerrs.ErrBalanceOverflow)
 
