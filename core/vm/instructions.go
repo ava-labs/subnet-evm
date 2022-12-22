@@ -32,6 +32,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
@@ -832,9 +833,11 @@ func opSelfdestruct(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 	}
 	beneficiary := scope.Stack.pop()
 	balance := interpreter.evm.StateDB.GetBalance(scope.Contract.Address())
-	if err := interpreter.evm.StateDB.AddBalance(beneficiary.Bytes20(), balance); err != nil {
-		return nil, err
+	if overflow := interpreter.evm.StateDB.AddBalance(beneficiary.Bytes20(), balance); overflow {
+		// ASK: would it be OK to log here?
+		log.Warn("Selfdestruct balance overflow", "addr", beneficiary.Bytes20(), "amount", balance)
 	}
+
 	interpreter.evm.StateDB.Suicide(scope.Contract.Address())
 	if interpreter.cfg.Debug {
 		interpreter.cfg.Tracer.CaptureEnter(SELFDESTRUCT, scope.Contract.Address(), beneficiary.Bytes20(), []byte{}, 0, balance)

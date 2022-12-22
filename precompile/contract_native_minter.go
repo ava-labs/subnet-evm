@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -75,8 +76,8 @@ func (c *ContractNativeMinterConfig) Configure(_ ChainConfig, state StateDB, _ B
 	for to, amount := range c.InitialMint {
 		if amount != nil {
 			bigIntAmount := (*big.Int)(amount)
-			if err := state.AddBalance(to, bigIntAmount); err != nil {
-				panic(fmt.Errorf("failed to mint initial balance for %s: %w", to.String(), err))
+			if overflow := state.AddBalance(to, bigIntAmount); overflow {
+				log.Error("initial mint overflowed, setting to max uint256", "address", to, "amount", bigIntAmount)
 			}
 		}
 	}
@@ -201,19 +202,15 @@ func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Add
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
 
-	// check for the overflow against uint256 before creating the account
-	newBalance, ok := utils.SafeSumUint256(stateDB.GetBalance(to), amount)
-	if !ok {
-		return nil, remainingGas, vmerrs.ErrBalanceOverflow
-	}
-
 	// if there is no address in the state, create one.
 	if !stateDB.Exist(to) {
 		stateDB.CreateAccount(to)
 	}
 
-	// an overflow should never happen here since we checked it above
-	stateDB.SetBalance(to, newBalance)
+	if overflow := stateDB.AddBalance(to, amount); overflow {
+		// ASK: would it be ok to log this?
+		log.Warn("Balance overflowed, setting to max uint256", "address", to, "amount", amount)
+	}
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil

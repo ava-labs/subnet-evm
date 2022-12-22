@@ -40,7 +40,6 @@ import (
 	"testing/quick"
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	ethmath "github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
@@ -976,11 +975,14 @@ func TestAddBalanceOverflow(t *testing.T) {
 
 	addr := common.BytesToAddress([]byte("test"))
 
-	err := state.AddBalance(addr, ethmath.MaxBig256)
-	require.NoError(t, err)
-	// add it again and expect overflow
-	err = state.AddBalance(addr, big.NewInt(1))
-	require.ErrorIs(t, err, vmerrs.ErrBalanceOverflow)
+	// add max - 1 and expect no overflow
+	overflow := state.AddBalance(addr, new(big.Int).Sub(ethmath.MaxBig256, common.Big1))
+	require.False(t, overflow)
 
+	// add 2 and expect overflow (max + 1)
+	overflow = state.AddBalance(addr, common.Big2)
+	require.True(t, overflow)
+
+	// should be max
 	require.Equal(t, ethmath.MaxBig256, state.GetBalance(addr))
 }

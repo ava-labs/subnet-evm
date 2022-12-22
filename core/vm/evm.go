@@ -39,6 +39,7 @@ import (
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
 
@@ -63,9 +64,9 @@ var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 type (
 	// CanTransferFunc is the signature of a transfer guard function
-	CanTransferFunc func(StateDB, common.Address, common.Address, *big.Int) error
+	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
 	// TransferFunc is the signature of a transfer function
-	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
+	TransferFunc func(StateDB, common.Address, common.Address, *big.Int) bool
 	// GetHashFunc returns the n'th block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
@@ -234,10 +235,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Note: it is not possible for a negative value to be passed in here due to the fact
 	// that [value] will be popped from the stack and decoded to a *big.Int, which will
 	// always yield a positive result.
-	if value.Sign() != 0 {
-		if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), addr, value); err != nil {
-			return nil, gas, err
-		}
+	if value.Sign() != 0 && !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+		return nil, gas, vmerrs.ErrInsufficientBalance
 	}
 	snapshot := evm.StateDB.Snapshot()
 	p, isPrecompile := evm.precompile(addr)
@@ -258,8 +257,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
-	// we have already checked overflow before capturing snapshot, so it's safe to ignore the error here
-	evm.Context.Transfer(evm.StateDB, caller.Address(), addr, value)
+	if overflow := evm.Context.Transfer(evm.StateDB, caller.Address(), addr, value); overflow {
+		// ASK: Should we log here?
+		log.Warn("Transfer overflowed", "from", caller.Address(), "to", addr, "amount", value)
+	}
 
 	// Capture the tracer start/end events in debug mode
 	if evm.Config.Debug {
@@ -334,8 +335,8 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	// Note: it is not possible for a negative value to be passed in here due to the fact
 	// that [value] will be popped from the stack and decoded to a *big.Int, which will
 	// always yield a positive result.
-	if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), addr, value); err != nil {
-		return nil, gas, err
+	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+		return nil, gas, vmerrs.ErrInsufficientBalance
 	}
 	var snapshot = evm.StateDB.Snapshot()
 
@@ -487,8 +488,8 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	// Note: it is not possible for a negative value to be passed in here due to the fact
 	// that [value] will be popped from the stack and decoded to a *big.Int, which will
 	// always yield a positive result.
-	if err := evm.Context.CanTransfer(evm.StateDB, caller.Address(), address, value); err != nil {
-		return nil, common.Address{}, gas, err
+	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+		return nil, common.Address{}, gas, vmerrs.ErrInsufficientBalance
 	}
 	// If there is any collision with a prohibited address, return an error instead
 	// of allowing the contract to be created.
@@ -524,9 +525,10 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if evm.chainRules.IsEIP158 {
 		evm.StateDB.SetNonce(address, 1)
 	}
-
-	// We have already checked overflow with transfer so it's safe to ignore the error here
-	evm.Context.Transfer(evm.StateDB, caller.Address(), address, value)
+	if overflow := evm.Context.Transfer(evm.StateDB, caller.Address(), address, value); overflow {
+		// ASK: Should we log here?
+		log.Warn("Transfer overflowed", "from", caller.Address(), "to", address, "amount", value)
+	}
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.

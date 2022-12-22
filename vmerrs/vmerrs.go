@@ -47,5 +47,4 @@ var (
 	ErrNonceUintOverflow        = errors.New("nonce uint64 overflow")
 	ErrAddrProhibited           = errors.New("prohibited address cannot be sender or created contract address")
 	ErrInvalidCoinbase          = errors.New("invalid coinbase")
-	ErrBalanceOverflow          = errors.New("balance uint256 overflow")
 )

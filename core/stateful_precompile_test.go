@@ -567,20 +567,20 @@ func TestContractNativeMinterRun(t *testing.T) {
 		"mint overflows": {
 			caller: adminAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
-				state.SetBalance(adminAddr, math.MaxBig256)
+				state.SetBalance(adminAddr, new(big.Int).Sub(math.MaxBig256, common.Big1))
 			},
 			input: func() []byte {
-				input, err := precompile.PackMintInput(adminAddr, common.Big1)
+				input, err := precompile.PackMintInput(adminAddr, common.Big2)
 				require.NoError(t, err)
 
 				return input
 			},
+			expectedRes: []byte{},
 			suppliedGas: precompile.MintGasCost,
 			readOnly:    false,
 			assertState: func(t *testing.T, state *state.StateDB) {
 				require.Equal(t, math.MaxBig256, state.GetBalance(adminAddr))
 			},
-			expectedErr: vmerrs.ErrBalanceOverflow.Error(),
 		},
 		"readOnly mint with noRole fails": {
 			caller: noRoleAddr,

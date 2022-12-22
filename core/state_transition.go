@@ -32,6 +32,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
@@ -326,7 +327,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		contractCreation = msg.To() == nil
 	)
 
-	// Check clauses 4-6, subtract intrinsic gas if everything is correct
+	// Check clauses 4-5, subtract intrinsic gas if everything is correct
 	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, rules.IsHomestead, rules.IsIstanbul)
 	if err != nil {
 		return nil, err
@@ -336,8 +337,8 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 	st.gas -= gas
 
-	// Check clause 7
-	if msg.Value().Sign() > 0 && st.state.GetBalance(msg.From()).Cmp(msg.Value()) < 0 {
+	// Check clause 6
+	if msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
 		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
 
@@ -356,15 +357,13 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
 		ret, st.gas, vmerr = st.evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
-
-	// refund gas first in case refunded address is the coinbase.
-	// otherwise refunding after adding balance to coinbase might result into
-	// an overflow
 	st.refundGas(rules.IsSubnetEVM)
 
 	// check overflow and add gas fee to coinbase
-	if err := st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)); err != nil {
-		return nil, err
+	amount := new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)
+	if overflow := st.state.AddBalance(st.evm.Context.Coinbase, amount); overflow {
+		// ASK: would it be ok to log this?
+		log.Warn("Balance overflowed during gas fee reward, setting to max uint256", "coinbase", st.evm.Context.Coinbase, "amount", amount)
 	}
 
 	return &ExecutionResult{
@@ -385,9 +384,12 @@ func (st *StateTransition) refundGas(subnetEVM bool) {
 		st.gas += refund
 	}
 	// Return ETH for remaining gas, exchanged at the original rate.
+	from := st.msg.From()
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	// This is fine against overflow since we already subtracted the fee from the sender
-	_ = st.state.AddBalance(st.msg.From(), remaining)
+	if overflow := st.state.AddBalance(from, remaining); overflow {
+		// ASK: would it be ok to log this?
+		log.Warn("Balance overflowed during gas refund, setting to max uint256", "address", from, "amount", remaining)
+	}
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

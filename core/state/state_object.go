@@ -38,7 +38,6 @@ import (
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -414,23 +413,22 @@ func (s *stateObject) CommitTrie(db Database) (*trie.NodeSet, error) {
 
 // AddBalance adds amount to s's balance.
 // It is used to add funds to the destination account of a transfer.
-func (s *stateObject) AddBalance(amount *big.Int) error {
+// Returns a boolean indicating whether an overflow is occurred.
+// If overflow occurs, the balance is set to max uint256.
+func (s *stateObject) AddBalance(amount *big.Int) bool {
 	// EIP161: We must check emptiness for the objects such that the account
 	// clearing (0,0,0 objects) can take effect.
 	if amount.Sign() == 0 {
 		if s.empty() {
 			s.touch()
 		}
-		return nil
+		return false
 	}
 	// check for the overflow against uint256
-	newBalance, ok := utils.SafeSumUint256(s.Balance(), amount)
-	if !ok {
-		return vmerrs.ErrBalanceOverflow
-	}
+	newBalance, overflow := utils.SafeSumUint256(s.Balance(), amount)
 
 	s.SetBalance(newBalance)
-	return nil
+	return overflow
 }
 
 // SubBalance removes amount from s's balance.

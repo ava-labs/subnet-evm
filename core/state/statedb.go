@@ -412,12 +412,14 @@ func (s *StateDB) HasSuicided(addr common.Address) bool {
  */
 
 // AddBalance adds amount to the account associated with addr.
-func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) error {
+// Returns a boolean indicating whether an overflow is occurred.
+// If overflow occurs, the balance is set to max uint256.
+func (s *StateDB) AddBalance(addr common.Address, amount *big.Int) bool {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		return stateObject.AddBalance(amount)
 	}
-	return nil
+	return false
 }
 
 // SubBalance subtracts amount from the account associated with addr.
