@@ -111,9 +111,6 @@ func NewStatefulPrecompileContract(fallback RunStatefulPrecompileFunc, functions
 		if exists {
 			return nil, fmt.Errorf("cannot create stateful precompile with duplicated function selector: %q", function.selector)
 		}
-		if function == nil {
-			return nil, fmt.Errorf("cannot create stateful precompile with nil function, selector: %q", function.selector)
-		}
 		contract.functions[string(function.selector)] = function
 	}
 

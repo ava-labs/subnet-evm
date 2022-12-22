@@ -261,7 +261,7 @@ func GetStoredFeeConfig(stateDB StateDB) commontype.FeeConfig {
 		case blockGasCostStepKey:
 			feeConfig.BlockGasCostStep = new(big.Int).Set(val.Big())
 		default:
-			// this should not ever happen. keep this as panic.
+			// This should never encounter an unknown fee config key
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
 	}
@@ -300,7 +300,7 @@ func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig, blockContex
 		case blockGasCostStepKey:
 			input = common.BigToHash(feeConfig.BlockGasCostStep)
 		default:
-			// this should not ever happen. keep this as panic.
+			// this should not ever happen.
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
 		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, input)

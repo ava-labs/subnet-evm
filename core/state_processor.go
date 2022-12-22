@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -79,9 +80,10 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 
 	// Configure any stateful precompiles that should go into effect during this block.
 	err := p.config.ConfigurePrecompiles(new(big.Int).SetUint64(parent.Time), block, statedb)
-	// ASK: Should we panic instead?
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("could not configure precompiles: %w", err)
+		werr := fmt.Errorf("could not configure precompiles: %w", err)
+		log.Error("failed to process the state changes", "err", werr)
+		return nil, nil, 0, err
 	}
 
 	blockContext := NewEVMBlockContext(header, p.bc, nil)
