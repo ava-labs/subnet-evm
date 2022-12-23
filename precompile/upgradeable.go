@@ -12,6 +12,7 @@ import (
 // UpgradeableConfig contains the timestamp for the upgrade along with
 // a boolean [Disable]. If [Disable] is set, the upgrade deactivates
 // the precompile and resets its storage.
+// TODO: convert to interface
 type UpgradeableConfig struct {
 	BlockTimestamp *big.Int `json:"blockTimestamp"`
 	Disable        bool     `json:"disable,omitempty"`
