@@ -43,7 +43,7 @@ var (
 	ErrEmptyRewardAddress      = errors.New("reward address cannot be empty")
 
 	// RewardManagerRawABI contains the raw ABI of RewardManager contract.
-	//go:embed reward_manager.abi
+	//go:embed contract.abi
 	RewardManagerRawABI string
 
 	RewardManagerABI        abi.ABI                                // will be initialized by init function
