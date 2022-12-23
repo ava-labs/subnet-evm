@@ -26,8 +26,8 @@ func CalculateFunctionSelector(functionSignature string) []byte {
 	return hash[:4]
 }
 
-// deductGas checks if [suppliedGas] is sufficient against [requiredGas] and deducts [requiredGas] from [suppliedGas].
-func deductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
+// DeductGas checks if [suppliedGas] is sufficient against [requiredGas] and deducts [requiredGas] from [suppliedGas].
+func DeductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
 	if suppliedGas < requiredGas {
 		return 0, vmerrs.ErrOutOfGas
 	}

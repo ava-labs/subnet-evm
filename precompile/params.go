@@ -11,8 +11,8 @@ import (
 
 // Gas costs for stateful precompiles
 const (
-	writeGasCostPerSlot = 20_000
-	readGasCostPerSlot  = 5_000
+	WriteGasCostPerSlot = 20_000
+	ReadGasCostPerSlot  = 5_000
 )
 
 // Designated addresses of stateful precompiles

@@ -231,7 +231,7 @@ func (c *{{.Contract.Type}}Config) Verify() error {
 {{if .Contract.AllowList}}
 // Get{{.Contract.Type}}AllowListStatus returns the role of [address] for the {{.Contract.Type}} list.
 func Get{{.Contract.Type}}AllowListStatus(stateDB StateDB, address common.Address) AllowListRole {
-	return getAllowListStatus(stateDB, {{.Contract.Type}}Address, address)
+	return GetAllowListStatus(stateDB, {{.Contract.Type}}Address, address)
 }
 
 // Set{{.Contract.Type}}AllowListStatus sets the permissions of [address] to [role] for the
@@ -241,7 +241,7 @@ func Get{{.Contract.Type}}AllowListStatus(stateDB StateDB, address common.Addres
 // conflicts with the same slot [role] is stored.
 // Precompile implementations must use a different key than [address] for their storage.
 func Set{{.Contract.Type}}AllowListStatus(stateDB StateDB, address common.Address, role AllowListRole) {
-	setAllowListRole(stateDB, {{.Contract.Type}}Address, address, role)
+	SetAllowListRole(stateDB, {{.Contract.Type}}Address, address, role)
 }
 {{end}}
 
@@ -310,7 +310,7 @@ func Pack{{$method.Normalized.Name}}Output ({{decapitalise $output.Name}} {{bind
 {{end}}
 
 func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = deductGas(suppliedGas, {{.Normalized.Name}}GasCost); err != nil {
+	if remainingGas, err = DeductGas(suppliedGas, {{.Normalized.Name}}GasCost); err != nil {
 		return nil, 0, err
 	}
 
@@ -338,7 +338,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, {{$contract.Type}}Address, caller)
+	callerStatus := GetAllowListStatus(stateDB, {{$contract.Type}}Address, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannot{{.Normalized.Name}}, caller)
 	}
@@ -375,7 +375,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState PrecompileAccessibleState
 // {{decapitalise $contract.Type}}Fallback executed if a function identifier does not match any of the available functions in a smart contract.
 // This function cannot take an input or return an output.
 func {{decapitalise $contract.Type}}Fallback (accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = deductGas(suppliedGas, {{$contract.Type}}FallbackGasCost); err != nil {
+	if remainingGas, err = DeductGas(suppliedGas, {{$contract.Type}}FallbackGasCost); err != nil {
 		return nil, 0, err
 	}
 
@@ -389,7 +389,7 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState PrecompileAccessib
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, {{$contract.Type}}Address, caller)
+	callerStatus := GetAllowListStatus(stateDB, {{$contract.Type}}Address, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", Err{{$contract.Type}}CannotFallback, caller)
 	}
@@ -411,9 +411,9 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState PrecompileAccessib
 // create{{.Contract.Type}}Precompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 {{if .Contract.AllowList}} // Access to the getters/setters is controlled by an allow list for [precompileAddr].{{end}}
 func create{{.Contract.Type}}Precompile(precompileAddr common.Address) (StatefulPrecompiledContract, error) {
-	var functions []*statefulPrecompileFunction
+	var functions []*StatefulPrecompileFunction
 	{{- if .Contract.AllowList}}
-	functions = append(functions, createAllowListFunctions(precompileAddr)...)
+	functions = append(functions, CreateAllowListFunctions(precompileAddr)...)
 	{{- end}}
 
 	abiFunctionMap := map[string]RunStatefulPrecompileFunc{
@@ -427,7 +427,7 @@ func create{{.Contract.Type}}Precompile(precompileAddr common.Address) (Stateful
 		if !ok {
 			return nil, fmt.Errorf("given method (%s) does not exist in the ABI", name)
 		}
-		functions = append(functions, newStatefulPrecompileFunction(method.ID, function))
+		functions = append(functions, NewStatefulPrecompileFunction(method.ID, function))
 	}
 
 	{{- if .Contract.Fallback}}

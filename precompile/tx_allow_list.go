@@ -83,12 +83,12 @@ func (c *TxAllowListConfig) String() string {
 // GetTxAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
 func GetTxAllowListStatus(stateDB StateDB, address common.Address) AllowListRole {
-	return getAllowListStatus(stateDB, TxAllowListAddress, address)
+	return GetAllowListStatus(stateDB, TxAllowListAddress, address)
 }
 
 // SetTxAllowListStatus sets the permissions of [address] to [role] for the
 // tx allow list.
 // assumes [role] has already been verified as valid.
 func SetTxAllowListStatus(stateDB StateDB, address common.Address, role AllowListRole) {
-	setAllowListRole(stateDB, TxAllowListAddress, address, role)
+	SetAllowListRole(stateDB, TxAllowListAddress, address, role)
 }

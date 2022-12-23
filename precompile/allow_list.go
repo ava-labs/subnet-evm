@@ -18,8 +18,8 @@ const (
 	SetNoneFuncKey       = "setNone"
 	ReadAllowListFuncKey = "readAllowList"
 
-	ModifyAllowListGasCost = writeGasCostPerSlot
-	ReadAllowListGasCost   = readGasCostPerSlot
+	ModifyAllowListGasCost = WriteGasCostPerSlot
+	ReadAllowListGasCost   = ReadGasCostPerSlot
 )
 
 var (
@@ -48,10 +48,10 @@ type AllowListConfig struct {
 // the addresses in [AllowListAdmins].
 func (c *AllowListConfig) Configure(state StateDB, precompileAddr common.Address) error {
 	for _, enabledAddr := range c.EnabledAddresses {
-		setAllowListRole(state, precompileAddr, enabledAddr, AllowListEnabled)
+		SetAllowListRole(state, precompileAddr, enabledAddr, AllowListEnabled)
 	}
 	for _, adminAddr := range c.AllowListAdmins {
-		setAllowListRole(state, precompileAddr, adminAddr, AllowListAdmin)
+		SetAllowListRole(state, precompileAddr, adminAddr, AllowListAdmin)
 	}
 	return nil
 }
@@ -112,18 +112,18 @@ func (c *AllowListConfig) Verify() error {
 	return nil
 }
 
-// getAllowListStatus returns the allow list role of [address] for the precompile
+// GetAllowListStatus returns the allow list role of [address] for the precompile
 // at [precompileAddr]
-func getAllowListStatus(state StateDB, precompileAddr common.Address, address common.Address) AllowListRole {
+func GetAllowListStatus(state StateDB, precompileAddr common.Address, address common.Address) AllowListRole {
 	// Generate the state key for [address]
 	addressKey := address.Hash()
 	return AllowListRole(state.GetState(precompileAddr, addressKey))
 }
 
-// setAllowListRole sets the permissions of [address] to [role] for the precompile
+// SetAllowListRole sets the permissions of [address] to [role] for the precompile
 // at [precompileAddr].
 // assumes [role] has already been verified as valid.
-func setAllowListRole(stateDB StateDB, precompileAddr, address common.Address, role AllowListRole) {
+func SetAllowListRole(stateDB StateDB, precompileAddr, address common.Address, role AllowListRole) {
 	// Generate the state key for [address]
 	addressKey := address.Hash()
 	// Assign [role] to the address
@@ -168,7 +168,7 @@ func PackReadAllowList(address common.Address) []byte {
 // This execution function is speciifc to [precompileAddr].
 func createAllowListRoleSetter(precompileAddr common.Address, role AllowListRole) RunStatefulPrecompileFunc {
 	return func(evm PrecompileAccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-		if remainingGas, err = deductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
+		if remainingGas, err = DeductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
 			return nil, 0, err
 		}
 
@@ -185,12 +185,12 @@ func createAllowListRoleSetter(precompileAddr common.Address, role AllowListRole
 		stateDB := evm.GetStateDB()
 
 		// Verify that the caller is in the allow list and therefore has the right to modify it
-		callerStatus := getAllowListStatus(stateDB, precompileAddr, callerAddr)
+		callerStatus := GetAllowListStatus(stateDB, precompileAddr, callerAddr)
 		if !callerStatus.IsAdmin() {
 			return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotModifyAllowList, callerAddr)
 		}
 
-		setAllowListRole(stateDB, precompileAddr, modifyAddress, role)
+		SetAllowListRole(stateDB, precompileAddr, modifyAddress, role)
 		// Return an empty output and the remaining gas
 		return []byte{}, remainingGas, nil
 	}
@@ -201,7 +201,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role AllowListRole
 // designated role of that address
 func createReadAllowList(precompileAddr common.Address) RunStatefulPrecompileFunc {
 	return func(evm PrecompileAccessibleState, callerAddr common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-		if remainingGas, err = deductGas(suppliedGas, ReadAllowListGasCost); err != nil {
+		if remainingGas, err = DeductGas(suppliedGas, ReadAllowListGasCost); err != nil {
 			return nil, 0, err
 		}
 
@@ -210,7 +210,7 @@ func createReadAllowList(precompileAddr common.Address) RunStatefulPrecompileFun
 		}
 
 		readAddress := common.BytesToAddress(input)
-		role := getAllowListStatus(evm.GetStateDB(), precompileAddr, readAddress)
+		role := GetAllowListStatus(evm.GetStateDB(), precompileAddr, readAddress)
 		roleBytes := common.Hash(role).Bytes()
 		return roleBytes, remainingGas, nil
 	}
@@ -219,7 +219,7 @@ func createReadAllowList(precompileAddr common.Address) RunStatefulPrecompileFun
 // createAllowListPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr]
 func createAllowListPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	// Construct the contract with no fallback function.
-	allowListFuncs := createAllowListFunctions(precompileAddr)
+	allowListFuncs := CreateAllowListFunctions(precompileAddr)
 	contract, err := NewStatefulPrecompileContract(nil, allowListFuncs)
 	// TODO Change this to be returned as an error after refactoring this precompile
 	// to use the new precompile template.
@@ -229,11 +229,11 @@ func createAllowListPrecompile(precompileAddr common.Address) StatefulPrecompile
 	return contract
 }
 
-func createAllowListFunctions(precompileAddr common.Address) []*statefulPrecompileFunction {
-	setAdmin := newStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AllowListAdmin))
-	setEnabled := newStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, AllowListEnabled))
-	setNone := newStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, AllowListNoRole))
-	read := newStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
+func CreateAllowListFunctions(precompileAddr common.Address) []*StatefulPrecompileFunction {
+	setAdmin := NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AllowListAdmin))
+	setEnabled := NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, AllowListEnabled))
+	setNone := NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, AllowListNoRole))
+	read := NewStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
 
-	return []*statefulPrecompileFunction{setAdmin, setEnabled, setNone, read}
+	return []*StatefulPrecompileFunction{setAdmin, setEnabled, setNone, read}
 }

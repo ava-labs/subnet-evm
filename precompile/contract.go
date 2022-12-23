@@ -73,8 +73,8 @@ type StatefulPrecompiledContract interface {
 	Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
 
-// statefulPrecompileFunction defines a function implemented by a stateful precompile
-type statefulPrecompileFunction struct {
+// StatefulPrecompileFunction defines a function implemented by a stateful precompile
+type StatefulPrecompileFunction struct {
 	// selector is the 4 byte function selector for this function
 	// This should be calculated from the function signature using CalculateFunctionSelector
 	selector []byte
@@ -82,9 +82,9 @@ type statefulPrecompileFunction struct {
 	execute RunStatefulPrecompileFunc
 }
 
-// newStatefulPrecompileFunction creates a stateful precompile function with the given arguments
-func newStatefulPrecompileFunction(selector []byte, execute RunStatefulPrecompileFunc) *statefulPrecompileFunction {
-	return &statefulPrecompileFunction{
+// NewStatefulPrecompileFunction creates a stateful precompile function with the given arguments
+func NewStatefulPrecompileFunction(selector []byte, execute RunStatefulPrecompileFunc) *StatefulPrecompileFunction {
+	return &StatefulPrecompileFunction{
 		selector: selector,
 		execute:  execute,
 	}
@@ -95,16 +95,16 @@ func newStatefulPrecompileFunction(selector []byte, execute RunStatefulPrecompil
 // Note: because we only ever read from [functions] there no lock is required to make it thread-safe.
 type statefulPrecompileWithFunctionSelectors struct {
 	fallback  RunStatefulPrecompileFunc
-	functions map[string]*statefulPrecompileFunction
+	functions map[string]*StatefulPrecompileFunction
 }
 
 // NewStatefulPrecompileContract generates new StatefulPrecompile using [functions] as the available functions and [fallback]
 // as an optional fallback if there is no input data. Note: the selector of [fallback] will be ignored, so it is required to be left empty.
-func NewStatefulPrecompileContract(fallback RunStatefulPrecompileFunc, functions []*statefulPrecompileFunction) (StatefulPrecompiledContract, error) {
+func NewStatefulPrecompileContract(fallback RunStatefulPrecompileFunc, functions []*StatefulPrecompileFunction) (StatefulPrecompiledContract, error) {
 	// Construct the contract and populate [functions].
 	contract := &statefulPrecompileWithFunctionSelectors{
 		fallback:  fallback,
-		functions: make(map[string]*statefulPrecompileFunction),
+		functions: make(map[string]*StatefulPrecompileFunction),
 	}
 	for _, function := range functions {
 		_, exists := contract.functions[string(function.selector)]

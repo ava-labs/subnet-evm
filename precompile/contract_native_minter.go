@@ -143,13 +143,13 @@ func (c *ContractNativeMinterConfig) String() string {
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
 func GetContractNativeMinterStatus(stateDB StateDB, address common.Address) AllowListRole {
-	return getAllowListStatus(stateDB, ContractNativeMinterAddress, address)
+	return GetAllowListStatus(stateDB, ContractNativeMinterAddress, address)
 }
 
 // SetContractNativeMinterStatus sets the permissions of [address] to [role] for the
 // minter list. assumes [role] has already been verified as valid.
 func SetContractNativeMinterStatus(stateDB StateDB, address common.Address, role AllowListRole) {
-	setAllowListRole(stateDB, ContractNativeMinterAddress, address, role)
+	SetAllowListRole(stateDB, ContractNativeMinterAddress, address, role)
 }
 
 // PackMintInput packs [address] and [amount] into the appropriate arguments for minting operation.
@@ -179,7 +179,7 @@ func UnpackMintInput(input []byte) (common.Address, *big.Int, error) {
 // mintNativeCoin checks if the caller is permissioned for minting operation.
 // The execution function parses the [input] into native coin amount and receiver address.
 func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = deductGas(suppliedGas, MintGasCost); err != nil {
+	if remainingGas, err = DeductGas(suppliedGas, MintGasCost); err != nil {
 		return nil, 0, err
 	}
 
@@ -194,7 +194,7 @@ func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Add
 
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := getAllowListStatus(stateDB, ContractNativeMinterAddress, caller)
+	callerStatus := GetAllowListStatus(stateDB, ContractNativeMinterAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
@@ -211,9 +211,9 @@ func mintNativeCoin(accessibleState PrecompileAccessibleState, caller common.Add
 
 // createNativeMinterPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr] and a native coin minter.
 func createNativeMinterPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
-	enabledFuncs := createAllowListFunctions(precompileAddr)
+	enabledFuncs := CreateAllowListFunctions(precompileAddr)
 
-	mintFunc := newStatefulPrecompileFunction(mintSignature, mintNativeCoin)
+	mintFunc := NewStatefulPrecompileFunction(mintSignature, mintNativeCoin)
 
 	enabledFuncs = append(enabledFuncs, mintFunc)
 	// Construct the contract with no fallback function.

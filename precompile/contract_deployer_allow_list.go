@@ -80,12 +80,12 @@ func (c *ContractDeployerAllowListConfig) String() string {
 // GetContractDeployerAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
 func GetContractDeployerAllowListStatus(stateDB StateDB, address common.Address) AllowListRole {
-	return getAllowListStatus(stateDB, ContractDeployerAllowListAddress, address)
+	return GetAllowListStatus(stateDB, ContractDeployerAllowListAddress, address)
 }
 
 // SetContractDeployerAllowListStatus sets the permissions of [address] to [role] for the
 // contract deployer allow list.
 // assumes [role] has already been verified as valid.
 func SetContractDeployerAllowListStatus(stateDB StateDB, address common.Address, role AllowListRole) {
-	setAllowListRole(stateDB, ContractDeployerAllowListAddress, address, role)
+	SetAllowListRole(stateDB, ContractDeployerAllowListAddress, address, role)
 }
