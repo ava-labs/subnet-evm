@@ -114,12 +114,12 @@ func (c *FeeConfigManagerConfig) Configure(chainConfig ChainConfig, state StateD
 	if c.InitialFeeConfig != nil {
 		if err := StoreFeeConfig(state, *c.InitialFeeConfig, blockContext); err != nil {
 			// This should not happen since we already checked this config with Verify()
-			return fmt.Errorf("invalid feeConfig provided: %w", err)
+			return fmt.Errorf("cannot configure given initial fee config: %w", err)
 		}
 	} else {
 		if err := StoreFeeConfig(state, chainConfig.GetFeeConfig(), blockContext); err != nil {
 			// This should not happen since we already checked the chain config in the genesis creation.
-			return fmt.Errorf("invalid feeConfig provided in chainConfig: %w", err)
+			return fmt.Errorf("cannot configure fee config in chain config: %w", err)
 		}
 	}
 	return c.AllowListConfig.Configure(state, FeeConfigManagerAddress)
@@ -277,7 +277,7 @@ func GetFeeConfigLastChangedAt(stateDB StateDB) *big.Int {
 // A validation on [feeConfig] is done before storing.
 func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig, blockContext BlockContext) error {
 	if err := feeConfig.Verify(); err != nil {
-		return err
+		return fmt.Errorf("cannot verify fee config: %w", err)
 	}
 
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
