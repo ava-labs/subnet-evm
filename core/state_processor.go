@@ -81,8 +81,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	// Configure any stateful precompiles that should go into effect during this block.
 	err := p.config.ConfigurePrecompiles(new(big.Int).SetUint64(parent.Time), block, statedb)
 	if err != nil {
-		werr := fmt.Errorf("could not configure precompiles: %w", err)
-		log.Error("failed to process the state changes", "err", werr)
+		log.Error("failed to process the state changes", "err", err)
 		return nil, nil, 0, err
 	}
 

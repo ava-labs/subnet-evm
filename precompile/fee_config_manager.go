@@ -300,7 +300,7 @@ func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig, blockContex
 		case blockGasCostStepKey:
 			input = common.BigToHash(feeConfig.BlockGasCostStep)
 		default:
-			// this should not ever happen.
+			// This should never encounter an unknown fee config key
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
 		stateDB.SetState(FeeConfigManagerAddress, common.Hash{byte(i)}, input)

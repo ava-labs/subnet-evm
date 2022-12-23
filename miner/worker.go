@@ -186,9 +186,8 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 	// Configure any stateful precompiles that should go into effect during this block.
 	err = w.chainConfig.ConfigurePrecompiles(new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
 	if err != nil {
-		werr := fmt.Errorf("failed to configure precompiles: %w", err)
-		log.Error("failed to commit new work", "err", werr)
-		return nil, werr
+		log.Error("failed to commit new work", "err", err)
+		return nil, err
 	}
 
 	// Fill the block with all available pending transactions.

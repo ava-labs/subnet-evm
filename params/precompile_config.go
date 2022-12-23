@@ -286,7 +286,7 @@ func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContex
 			} else {
 				log.Info("Activating new precompile", "precompileAddress", address, "config", config)
 				if err := precompile.Configure(c, blockContext, config, statedb); err != nil {
-					return err
+					return fmt.Errorf("could not configure precompile, precompileAddress: %s, reason: %w", address, err)
 				}
 			}
 		}
