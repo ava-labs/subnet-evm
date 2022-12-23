@@ -31,8 +31,6 @@ const (
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
-	_ precompile.StatefulPrecompileConfig = &RewardManagerConfig{}
-
 	ErrCannotAllowFeeRecipients      = errors.New("non-enabled cannot call allowFeeRecipients")
 	ErrCannotAreFeeRecipientsAllowed = errors.New("non-enabled cannot call areFeeRecipientsAllowed")
 	ErrCannotCurrentRewardAddress    = errors.New("non-enabled cannot call currentRewardAddress")

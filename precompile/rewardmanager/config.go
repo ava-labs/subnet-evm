@@ -14,6 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var _ precompile.StatefulPrecompileConfig = &RewardManagerConfig{}
+
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
 	RewardAddress      common.Address `json:"rewardAddress,omitempty"`
