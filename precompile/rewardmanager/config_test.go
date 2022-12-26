@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestVerifyPrecompileUpgrades(t *testing.T) {
+func TestVerifyRewardManagerConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	enableds := []common.Address{{2}}
 	tests := []struct {
@@ -66,7 +66,7 @@ func TestEqualRewardManagerConfig(t *testing.T) {
 		{
 			name:     "different type",
 			config:   NewRewardManagerConfig(big.NewInt(3), admins, enableds, nil),
-			other:    precompile.NewTxAllowListConfig(big.NewInt(3), []common.Address{{1}}, []common.Address{{2}}),
+			other:    precompile.NewNoopStatefulPrecompileConfig(),
 			expected: false,
 		},
 		{

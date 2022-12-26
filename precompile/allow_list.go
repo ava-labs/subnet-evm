@@ -139,7 +139,7 @@ func SetAllowListRole(stateDB StateDB, precompileAddr, address common.Address, r
 // selector that should be encoded in the input.
 func PackModifyAllowList(address common.Address, role AllowListRole) ([]byte, error) {
 	// function selector (4 bytes) + hash for address
-	input := make([]byte, 0, selectorLen+common.HashLength)
+	input := make([]byte, 0, SelectorLen+common.HashLength)
 
 	switch role {
 	case AllowListAdmin:
@@ -158,7 +158,7 @@ func PackModifyAllowList(address common.Address, role AllowListRole) ([]byte, er
 
 // PackReadAllowList packs [address] into the input data to the read allow list function
 func PackReadAllowList(address common.Address) []byte {
-	input := make([]byte, 0, selectorLen+common.HashLength)
+	input := make([]byte, 0, SelectorLen+common.HashLength)
 	input = append(input, readAllowListSignature...)
 	input = append(input, address.Hash().Bytes()...)
 	return input
@@ -217,7 +217,7 @@ func createReadAllowList(precompileAddr common.Address) RunStatefulPrecompileFun
 }
 
 // createAllowListPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr]
-func createAllowListPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
+func CreateAllowListPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	// Construct the contract with no fallback function.
 	allowListFuncs := CreateAllowListFunctions(precompileAddr)
 	contract, err := NewStatefulPrecompileContract(nil, allowListFuncs)

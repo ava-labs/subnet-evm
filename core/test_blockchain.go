@@ -17,6 +17,8 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/feemanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
@@ -1546,8 +1548,8 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	config := *params.TestChainConfig
 	// Set all of the required config parameters
-	config.ContractDeployerAllowListConfig = precompile.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil)
-	config.FeeManagerConfig = precompile.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil)
+	config.ContractDeployerAllowListConfig = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil)
+	config.FeeManagerConfig = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil)
 	gspec := &Genesis{
 		Config: &config,
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
@@ -1609,22 +1611,22 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				gen.AddTx(signedTx)
 			},
 			verifyState: func(sdb *state.StateDB) error {
-				res := precompile.GetContractDeployerAllowListStatus(sdb, addr1)
+				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
 				if precompile.AllowListAdmin != res {
 					return fmt.Errorf("unexpected allow list status for addr1 %s, expected %s", res, precompile.AllowListAdmin)
 				}
-				res = precompile.GetContractDeployerAllowListStatus(sdb, addr2)
+				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
 				if precompile.AllowListAdmin != res {
 					return fmt.Errorf("unexpected allow list status for addr2 %s, expected %s", res, precompile.AllowListAdmin)
 				}
 				return nil
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
-				res := precompile.GetContractDeployerAllowListStatus(sdb, addr1)
+				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
 				if precompile.AllowListAdmin != res {
 					t.Fatalf("unexpected allow list status for addr1 %s, expected %s", res, precompile.AllowListAdmin)
 				}
-				res = precompile.GetContractDeployerAllowListStatus(sdb, addr2)
+				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
 				if precompile.AllowListNoRole != res {
 					t.Fatalf("unexpected allow list status for addr2 %s, expected %s", res, precompile.AllowListNoRole)
 				}
@@ -1633,7 +1635,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 		"fee manager set config": {
 			addTx: func(gen *BlockGen) {
 				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
-				input, err := precompile.PackSetFeeConfig(testFeeConfig)
+				input, err := feemanager.PackSetFeeConfig(testFeeConfig)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1655,10 +1657,10 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				gen.AddTx(signedTx)
 			},
 			verifyState: func(sdb *state.StateDB) error {
-				res := precompile.GetFeeConfigManagerStatus(sdb, addr1)
+				res := feemanager.GetFeeConfigManagerStatus(sdb, addr1)
 				assert.Equal(precompile.AllowListAdmin, res)
 
-				storedConfig := precompile.GetStoredFeeConfig(sdb)
+				storedConfig := feemanager.GetStoredFeeConfig(sdb)
 				assert.EqualValues(testFeeConfig, storedConfig)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.CurrentHeader())
@@ -1667,7 +1669,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				return nil
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
-				res := precompile.GetFeeConfigManagerStatus(sdb, addr1)
+				res := feemanager.GetFeeConfigManagerStatus(sdb, addr1)
 				assert.Equal(precompile.AllowListAdmin, res)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())

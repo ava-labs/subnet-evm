@@ -8,6 +8,11 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
+	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -17,11 +22,11 @@ import (
 // each of the possible stateful precompile types that can be activated
 // as a network upgrade.
 type PrecompileUpgrade struct {
-	ContractDeployerAllowListConfig *precompile.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
-	ContractNativeMinterConfig      *precompile.ContractNativeMinterConfig      `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
-	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
-	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
-	RewardManagerConfig             *precompile.RewardManagerConfig             `json:"rewardManagerConfig,omitempty"`             // Config for the reward manager precompile
+	ContractDeployerAllowListConfig *deployerallowlist.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
+	ContractNativeMinterConfig      *nativeminter.ContractNativeMinterConfig           `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
+	TxAllowListConfig               *txallowlist.TxAllowListConfig                     `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
+	FeeManagerConfig                *feemanager.FeeConfigManagerConfig                 `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+	RewardManagerConfig             *rewardmanager.RewardManagerConfig                 `json:"rewardManagerConfig,omitempty"`             // Config for the reward manager precompile
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
@@ -171,19 +176,19 @@ func (c *ChainConfig) GetPrecompileConfig(address common.Address, blockTimestamp
 func (c *ChainConfig) GetActivePrecompileUpgrade(blockTimestamp *big.Int) PrecompileUpgrade {
 	pu := PrecompileUpgrade{}
 	if config := c.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.ContractDeployerAllowListConfig = config.(*precompile.ContractDeployerAllowListConfig)
+		pu.ContractDeployerAllowListConfig = config.(*deployerallowlist.ContractDeployerAllowListConfig)
 	}
 	if config := c.GetPrecompileConfig(precompile.ContractNativeMinterAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.ContractNativeMinterConfig = config.(*precompile.ContractNativeMinterConfig)
+		pu.ContractNativeMinterConfig = config.(*nativeminter.ContractNativeMinterConfig)
 	}
 	if config := c.GetPrecompileConfig(precompile.TxAllowListAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.TxAllowListConfig = config.(*precompile.TxAllowListConfig)
+		pu.TxAllowListConfig = config.(*txallowlist.TxAllowListConfig)
 	}
 	if config := c.GetPrecompileConfig(precompile.FeeConfigManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.FeeManagerConfig = config.(*precompile.FeeConfigManagerConfig)
+		pu.FeeManagerConfig = config.(*feemanager.FeeConfigManagerConfig)
 	}
 	if config := c.GetPrecompileConfig(precompile.RewardManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.RewardManagerConfig = config.(*precompile.RewardManagerConfig)
+		pu.RewardManagerConfig = config.(*rewardmanager.RewardManagerConfig)
 	}
 
 	// ADD YOUR PRECOMPILE HERE
