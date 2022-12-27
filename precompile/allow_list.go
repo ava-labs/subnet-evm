@@ -46,13 +46,14 @@ type AllowListConfig struct {
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
-func (c *AllowListConfig) Configure(state StateDB, precompileAddr common.Address) {
+func (c *AllowListConfig) Configure(state StateDB, precompileAddr common.Address) error {
 	for _, enabledAddr := range c.EnabledAddresses {
 		setAllowListRole(state, precompileAddr, enabledAddr, AllowListEnabled)
 	}
 	for _, adminAddr := range c.AllowListAdmins {
 		setAllowListRole(state, precompileAddr, adminAddr, AllowListAdmin)
 	}
+	return nil
 }
 
 // Equal returns true iff [other] has the same admins in the same order in its allow list.
@@ -219,7 +220,12 @@ func createReadAllowList(precompileAddr common.Address) RunStatefulPrecompileFun
 func createAllowListPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	// Construct the contract with no fallback function.
 	allowListFuncs := createAllowListFunctions(precompileAddr)
-	contract := newStatefulPrecompileWithFunctionSelectors(nil, allowListFuncs)
+	contract, err := NewStatefulPrecompileContract(nil, allowListFuncs)
+	// TODO Change this to be returned as an error after refactoring this precompile
+	// to use the new precompile template.
+	if err != nil {
+		panic(err)
+	}
 	return contract
 }
 

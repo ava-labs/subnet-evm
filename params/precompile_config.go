@@ -263,13 +263,13 @@ func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []prec
 	return statefulPrecompileConfigs
 }
 
-// CheckConfigurePrecompiles checks if any of the precompiles specified by the chain config are enabled or disabled by the block
+// ConfigurePrecompiles checks if any of the precompiles specified by the chain config are enabled or disabled by the block
 // transition from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure]
 // or [Deconfigure] to apply the necessary state transitions for the upgrade.
 // This function is called:
 // - within genesis setup to configure the starting state for precompiles enabled at genesis,
 // - during block processing to update the state before processing the given block.
-func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) {
+func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 	for _, address := range precompile.UsedAddresses { // Note: configure precompiles in a deterministic order.
 		for _, config := range c.getActivatingPrecompileConfigs(parentTimestamp, blockTimestamp, address, c.PrecompileUpgrades) {
@@ -285,8 +285,11 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 				statedb.Finalise(true)
 			} else {
 				log.Info("Activating new precompile", "precompileAddress", address, "config", config)
-				precompile.Configure(c, blockContext, config, statedb)
+				if err := precompile.Configure(c, blockContext, config, statedb); err != nil {
+					return fmt.Errorf("could not configure precompile, precompileAddress: %s, reason: %w", address, err)
+				}
 			}
 		}
 	}
+	return nil
 }

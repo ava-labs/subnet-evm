@@ -36,16 +36,16 @@ func deductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
 // packOrderedHashesWithSelector packs the function selector and ordered list of hashes into [dst]
 // byte slice.
 // assumes that [dst] has sufficient room for [functionSelector] and [hashes].
-func packOrderedHashesWithSelector(dst []byte, functionSelector []byte, hashes []common.Hash) {
+func packOrderedHashesWithSelector(dst []byte, functionSelector []byte, hashes []common.Hash) error {
 	copy(dst[:len(functionSelector)], functionSelector)
-	packOrderedHashes(dst[len(functionSelector):], hashes)
+	return packOrderedHashes(dst[len(functionSelector):], hashes)
 }
 
 // packOrderedHashes packs the ordered list of [hashes] into the [dst] byte buffer.
 // assumes that [dst] has sufficient space to pack [hashes] or else this function will panic.
-func packOrderedHashes(dst []byte, hashes []common.Hash) {
+func packOrderedHashes(dst []byte, hashes []common.Hash) error {
 	if len(dst) != len(hashes)*common.HashLength {
-		panic(fmt.Sprintf("destination byte buffer has insufficient length (%d) for %d hashes", len(dst), len(hashes)))
+		return fmt.Errorf("destination byte buffer has insufficient length (%d) for %d hashes", len(dst), len(hashes))
 	}
 
 	var (
@@ -57,6 +57,7 @@ func packOrderedHashes(dst []byte, hashes []common.Hash) {
 		start += common.HashLength
 		end += common.HashLength
 	}
+	return nil
 }
 
 // returnPackedHash returns packed the byte slice with common.HashLength from [packed]

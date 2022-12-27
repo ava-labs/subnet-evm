@@ -98,9 +98,9 @@ type statefulPrecompileWithFunctionSelectors struct {
 	functions map[string]*statefulPrecompileFunction
 }
 
-// newStatefulPrecompileWithFunctionSelectors generates new StatefulPrecompile using [functions] as the available functions and [fallback]
+// NewStatefulPrecompileContract generates new StatefulPrecompile using [functions] as the available functions and [fallback]
 // as an optional fallback if there is no input data. Note: the selector of [fallback] will be ignored, so it is required to be left empty.
-func newStatefulPrecompileWithFunctionSelectors(fallback RunStatefulPrecompileFunc, functions []*statefulPrecompileFunction) StatefulPrecompiledContract {
+func NewStatefulPrecompileContract(fallback RunStatefulPrecompileFunc, functions []*statefulPrecompileFunction) (StatefulPrecompiledContract, error) {
 	// Construct the contract and populate [functions].
 	contract := &statefulPrecompileWithFunctionSelectors{
 		fallback:  fallback,
@@ -109,12 +109,12 @@ func newStatefulPrecompileWithFunctionSelectors(fallback RunStatefulPrecompileFu
 	for _, function := range functions {
 		_, exists := contract.functions[string(function.selector)]
 		if exists {
-			panic(fmt.Errorf("cannot create stateful precompile with duplicated function selector: %q", function.selector))
+			return nil, fmt.Errorf("cannot create stateful precompile with duplicated function selector: %q", function.selector)
 		}
 		contract.functions[string(function.selector)] = function
 	}
 
-	return contract
+	return contract, nil
 }
 
 // Run selects the function using the 4 byte function selector at the start of the input and executes the underlying function on the

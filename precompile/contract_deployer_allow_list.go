@@ -52,8 +52,8 @@ func (c *ContractDeployerAllowListConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *ContractDeployerAllowListConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
-	c.AllowListConfig.Configure(state, ContractDeployerAllowListAddress)
+func (c *ContractDeployerAllowListConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) error {
+	return c.AllowListConfig.Configure(state, ContractDeployerAllowListAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the allow list.

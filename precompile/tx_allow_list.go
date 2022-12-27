@@ -55,8 +55,8 @@ func (c *TxAllowListConfig) Address() common.Address {
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *TxAllowListConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
-	c.AllowListConfig.Configure(state, TxAllowListAddress)
+func (c *TxAllowListConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) error {
+	return c.AllowListConfig.Configure(state, TxAllowListAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the allow list.

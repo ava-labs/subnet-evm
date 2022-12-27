@@ -32,7 +32,7 @@ type StatefulPrecompileConfig interface {
 	// Configure is called on the first block where the stateful precompile should be enabled. This
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
-	Configure(ChainConfig, StateDB, BlockContext)
+	Configure(ChainConfig, StateDB, BlockContext) error
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
 	Contract() StatefulPrecompiledContract
@@ -45,7 +45,7 @@ type StatefulPrecompileConfig interface {
 // Configure sets the nonce and code to non-empty values then calls Configure on [precompileConfig] to make the necessary
 // state update to enable the StatefulPrecompile.
 // Assumes that [precompileConfig] is non-nil.
-func Configure(chainConfig ChainConfig, blockContext BlockContext, precompileConfig StatefulPrecompileConfig, state StateDB) {
+func Configure(chainConfig ChainConfig, blockContext BlockContext, precompileConfig StatefulPrecompileConfig, state StateDB) error {
 	// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
 	// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
 	state.SetNonce(precompileConfig.Address(), 1)
@@ -53,5 +53,5 @@ func Configure(chainConfig ChainConfig, blockContext BlockContext, precompileCon
 	// can be called from within Solidity contracts. Solidity adds a check before invoking a contract to ensure
 	// that it does not attempt to invoke a non-existent contract.
 	state.SetCode(precompileConfig.Address(), []byte{0x1})
-	precompileConfig.Configure(chainConfig, state, blockContext)
+	return precompileConfig.Configure(chainConfig, state, blockContext)
 }
