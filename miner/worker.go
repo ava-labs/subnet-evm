@@ -186,7 +186,7 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 	// Configure any stateful precompiles that should go into effect during this block.
 	err = w.chainConfig.ConfigurePrecompiles(new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
 	if err != nil {
-		log.Error("failed to commit new work", "err", err)
+		log.Error("failed to configure precompiles mining new block", "parent", parent.Hash(), "number", header.Number, "timestamp", header.Time, "err", err)
 		return nil, err
 	}
 
