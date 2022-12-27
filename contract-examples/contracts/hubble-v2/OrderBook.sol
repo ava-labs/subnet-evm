@@ -29,6 +29,7 @@ contract OrderBook is EIP712Upgradeable {
     }
 
     event OrderPlaced(address indexed trader, int256 baseAssetQuantity, uint256 price, address relayer);
+    event OrderMatched();
 
     mapping(bytes32 => OrderStatus) public ordersStatus;
     mapping(address => Position) public positions;
@@ -88,6 +89,7 @@ contract OrderBook is EIP712Upgradeable {
         positions[order2.trader].openNotional += abs(order2.baseAssetQuantity) * order2.price;
 
         // assert margin requirements
+        emit OrderMatched();
     }
 
     /**

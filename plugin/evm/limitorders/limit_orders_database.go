@@ -69,7 +69,7 @@ func (lod *limitOrderDatabase) GetLimitOrderByPositionTypeAndPrice(positionType 
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var id int64
+		var id uint64
 		var userAddress string
 		var baseAssetQuantity int
 		var price float64

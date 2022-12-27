@@ -7,7 +7,7 @@ const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const GENESIS_ORDERBOOK_ADDRESS = '0x0300000000000000000000000000000000000069'
 
 describe.only('Order Book', function () {
-    let orderBook, alice, bob, order, domain, orderType, signature
+    let orderBook, alice, bob, longOrder, shortOrder, domain, orderType, signature
 
     before(async function () {
         const signers = await ethers.getSigners()
@@ -34,6 +34,7 @@ describe.only('Order Book', function () {
         const OrderBook = await ethers.getContractFactory('OrderBook')
         const orderBookImpl = await OrderBook.deploy()
 
+        await delay(2000)
         orderBook = await ethers.getContractAt('OrderBook', GENESIS_ORDERBOOK_ADDRESS)
         let _impl = await ethers.provider.getStorageAt(GENESIS_ORDERBOOK_ADDRESS, '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc')
 
@@ -58,13 +59,7 @@ describe.only('Order Book', function () {
         expect(ethers.utils.getAddress('0x' + _impl.slice(26))).to.eq(orderBookImpl.address)
     })
 
-    it.only('verify signer', async function() {
-        order = {
-            trader: alice.address,
-            baseAssetQuantity: ethers.utils.parseEther('-5'),
-            price: ethers.utils.parseUnits('15', 6),
-            salt: Date.now()
-        }
+    it('verify signer', async function() {
 
         domain = {
             name: 'Hubble',
@@ -82,56 +77,73 @@ describe.only('Order Book', function () {
                 { name: "salt", type: "uint256" },
             ]
         }
+        shortOrder = {
+              trader: alice.address,
+              baseAssetQuantity: ethers.utils.parseEther('-5'),
+              price: ethers.utils.parseUnits('15', 6),
+              salt: Date.now()
+        }
 
-        signature = await alice._signTypedData(domain, orderType, order)
-        const signer = (await orderBook.verifySigner(order, signature))[0]
+        signature = await alice._signTypedData(domain, orderType, shortOrder)
+        const signer = (await orderBook.verifySigner(shortOrder, signature))[0]
         expect(signer).to.eq(alice.address)
     })
 
     it('place an order', async function() {
-        const tx = await orderBook.placeOrder(order, signature)
+        const tx = await orderBook.placeOrder(shortOrder, signature)
         await expect(tx).to.emit(orderBook, "OrderPlaced").withArgs(
-            alice.address,
-            order.baseAssetQuantity,
-            order.price,
+            shortOrder.trader,
+            shortOrder.baseAssetQuantity,
+            shortOrder.price,
             adminAddress
         )
-
-        let orderHash = await orderBook.getOrderHash(order)
-        let status
-        status = await orderBook.ordersStatus(orderHash)
-        console.log({ status });
-
-        expect(await orderBook.ordersStatus(orderHash)).to.eq(1) // Filled; because evm is fulfilling all orders right now
     })
 
-    it('execute matched orders', async function() {
-        const order2 = {
+    it('matches orders with same price and opposite base asset quantity', async function() {
+      // long order with same price and baseAssetQuantity
+        longOrder = {
             trader: bob.address,
-            baseAssetQuantity: BigNumber.from(order.baseAssetQuantity).mul(-1),
+            baseAssetQuantity: ethers.utils.parseEther('5'),
             price: ethers.utils.parseUnits('15', 6),
             salt: Date.now()
         }
+        let signature = await bob._signTypedData(domain, orderType, longOrder)
+        const tx = await orderBook.placeOrder(longOrder, signature)
 
-        const signature2 = await bob._signTypedData(domain, orderType, order2)
-        await orderBook.placeOrder(order2, signature2)
-        await delay(1000)
+        await delay(6000)
 
-        await orderBook.executeMatchedOrders(order, signature, order2, signature2, {gasLimit: 1e6})
-        await delay(1500)
+        const filter = orderBook.filters
+        let events = await orderBook.queryFilter(filter)
+        let matchedOrderEvent = events[events.length -1]
+        expect(matchedOrderEvent.event).to.eq('OrderMatched')
+    })
 
-        let position = await orderBook.positions(alice.address)
-        expect(position.size).to.eq(order.baseAssetQuantity)
-        expect(position.openNotional).to.eq(order.price.mul(order.baseAssetQuantity).abs())
+    it('matches multiple long orders with same price and opposite base asset quantity with short orders', async function() {
+        longOrder.salt = Date.now()
+        signature = await bob._signTypedData(domain, orderType, longOrder)
+        const longOrderTx1 = await orderBook.placeOrder(longOrder, signature)
 
-        position = await orderBook.positions(bob.address)
-        expect(position.size).to.eq(order2.baseAssetQuantity)
-        expect(position.openNotional).to.eq(order2.baseAssetQuantity.mul(order2.price).abs())
+        longOrder.salt = Date.now()
+        signature = await bob._signTypedData(domain, orderType, longOrder)
+        const longOrderTx2 = await orderBook.placeOrder(longOrder, signature)
 
-        let orderHash = await orderBook.getOrderHash(order)
-        expect(await orderBook.ordersStatus(orderHash)).to.eq(1) // Filled
-        orderHash = await orderBook.getOrderHash(order2)
-        expect(await orderBook.ordersStatus(orderHash)).to.eq(1) // Filled
+        shortOrder.salt = Date.now()
+        signature = await alice._signTypedData(domain, orderType, shortOrder)
+        let shortOrderTx1 = await orderBook.placeOrder(shortOrder, signature)
+
+        shortOrder.salt = Date.now()
+        signature = await alice._signTypedData(domain, orderType, shortOrder)
+        let shortOrderTx2 = await orderBook.placeOrder(shortOrder, signature)
+
+        // waiting for next buildblock call
+        await delay(6000)
+        const filter = orderBook.filters
+        let events = await orderBook.queryFilter(filter)
+
+        expect(events[events.length - 1].event).to.eq('OrderMatched')
+        expect(events[events.length - 2].event).to.eq('OrderMatched')
+        expect(events[events.length - 3].event).to.eq('OrderPlaced')
+        expect(events[events.length - 4].event).to.eq('OrderPlaced')
     })
 })
 

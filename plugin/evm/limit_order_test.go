@@ -25,6 +25,7 @@ func TestNewLimitOrderProcesser(t *testing.T) {
 		vm.shutdownChan,
 		&vm.shutdownWg,
 		vm.eth.APIBackend,
+		vm.eth.BlockChain(),
 	)
 	assert.NotNil(t, lop)
 }
