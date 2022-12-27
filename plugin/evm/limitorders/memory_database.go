@@ -1,7 +1,11 @@
 package limitorders
 
+import (
+	"sort"
+)
+
 type LimitOrder struct {
-	id                int64
+	id                uint64
 	PositionType      string
 	UserAddress       string
 	BaseAssetQuantity int
@@ -11,24 +15,19 @@ type LimitOrder struct {
 	Signature         []byte
 	RawOrder          interface{}
 	RawSignature      interface{}
+	BlockNumber       uint64
 }
 
-type InMemoryDatabase interface {
-	GetAllOrders() []*LimitOrder
-	Add(order LimitOrder)
-	Delete(signature []byte)
-}
-
-type inMemoryDatabase struct {
+type InMemoryDatabase struct {
 	orderMap map[string]*LimitOrder
 }
 
-func NewInMemoryDatabase() *inMemoryDatabase {
+func NewInMemoryDatabase() *InMemoryDatabase {
 	orderMap := map[string]*LimitOrder{}
-	return &inMemoryDatabase{orderMap}
+	return &InMemoryDatabase{orderMap}
 }
 
-func (db *inMemoryDatabase) GetAllOrders() []*LimitOrder {
+func (db *InMemoryDatabase) GetAllOrders() []*LimitOrder {
 	allOrders := []*LimitOrder{}
 	for _, order := range db.orderMap {
 		allOrders = append(allOrders, order)
@@ -36,11 +35,63 @@ func (db *inMemoryDatabase) GetAllOrders() []*LimitOrder {
 	return allOrders
 }
 
-func (db *inMemoryDatabase) Add(order LimitOrder) {
-	db.orderMap[string(order.Signature)] = &order
+func (db *InMemoryDatabase) Add(order *LimitOrder) {
+	db.orderMap[string(order.Signature)] = order
 }
 
 // Deletes silently
-func (db *inMemoryDatabase) Delete(signature []byte) {
+func (db *InMemoryDatabase) Delete(signature []byte) {
 	delete(db.orderMap, string(signature))
+}
+
+func (db *InMemoryDatabase) GetLongOrders() []*LimitOrder {
+	var longOrders []*LimitOrder
+	for _, order := range db.orderMap {
+		if order.PositionType == "long" {
+			longOrders = append(longOrders, order)
+		}
+	}
+	sortLongOrders(longOrders)
+	return longOrders
+}
+
+func (db *InMemoryDatabase) GetShortOrders() []*LimitOrder {
+	var shortOrders []*LimitOrder
+	for _, order := range db.orderMap {
+		if order.PositionType == "short" {
+			shortOrders = append(shortOrders, order)
+		}
+	}
+	sortShortOrders(shortOrders)
+	return shortOrders
+}
+
+func sortLongOrders(orders []*LimitOrder) []*LimitOrder {
+	sort.SliceStable(orders, func(i, j int) bool {
+		if orders[i].Price > orders[j].Price {
+			return true
+		}
+		if orders[i].Price == orders[j].Price {
+			if orders[i].BlockNumber < orders[j].BlockNumber {
+				return true
+			}
+		}
+		return false
+	})
+	return orders
+}
+
+func sortShortOrders(orders []*LimitOrder) []*LimitOrder {
+	sort.SliceStable(orders, func(i, j int) bool {
+		if orders[i].Price < orders[j].Price {
+			return true
+		}
+		if orders[i].Price == orders[j].Price {
+			if orders[i].BlockNumber < orders[j].BlockNumber {
+				return true
+			}
+		}
+		return false
+	})
+	return orders
 }

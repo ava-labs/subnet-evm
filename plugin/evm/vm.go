@@ -619,7 +619,7 @@ func (vm *VM) Shutdown(context.Context) error {
 
 // buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
-	vm.limitOrderProcesser.AddMatchingOrdersToTxPool()
+	vm.limitOrderProcesser.RunMatchingEngine()
 	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()
 	if err != nil {
