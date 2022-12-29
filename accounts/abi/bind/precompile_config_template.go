@@ -16,16 +16,17 @@ const tmplSourcePrecompileConfigGo = `
 /* General guidelines for precompile development:
 1- Read the comment and set a suitable contract address in precompile/params.go. E.g:
 	{{.Contract.Type}}Address = common.HexToAddress("ASUITABLEHEXADDRESS")
-2- Set gas costs here
+2- Set gas costs in contract.go
 3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 Typically, custom codes are required in only those areas.
 4- Add your upgradable config in params/precompile_config.go
 5- Add your precompile upgrade in params/config.go
-6- Add your solidity interface and test contract to contract-examples/contracts
-7- Write solidity tests for your precompile in contract-examples/test
-8- Create your genesis with your precompile enabled in tests/e2e/genesis/
-9- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
-10- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
+6- Add your config unit test in {generatedpkg}/config_test.go
+7- Add your solidity interface and test contract to contract-examples/contracts
+8- Write solidity tests for your precompile in contract-examples/test
+9- Create your genesis with your precompile enabled in tests/e2e/genesis/
+10- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
+11- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
 
 */
 
