@@ -121,11 +121,12 @@ func (lop *limitOrderProcesser) RunMatchingEngine() {
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 	newChainChan := make(chan core.ChainEvent)
-	lop.backend.SubscribeChainAcceptedEvent(newChainChan)
+	chainAcceptedEventSubscription := lop.backend.SubscribeChainAcceptedEvent(newChainChan)
 
 	lop.shutdownWg.Add(1)
 	go lop.ctx.Log.RecoverAndPanic(func() {
 		defer lop.shutdownWg.Done()
+		defer chainAcceptedEventSubscription.Unsubscribe()
 
 		for {
 			select {
