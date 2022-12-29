@@ -56,15 +56,15 @@ var (
 	}
 	typeFlag = &cli.StringFlag{
 		Name:  "type",
-		Usage: "Struct name for the precompile (default = ABI name)",
+		Usage: "Struct name for the precompile (default = {ABI name})",
 	}
 	pkgFlag = &cli.StringFlag{
 		Name:  "pkg",
-		Usage: "Package name to generate the precompile into (default = precompile)",
+		Usage: "Package name to generate the precompile into (default = {type})",
 	}
 	outFlag = &cli.StringFlag{
 		Name:  "out",
-		Usage: "Output file for the generated precompile (default = STDOUT)",
+		Usage: "Output folder for the generated precompile files, - for STDOUT (default = ./{pkg})",
 	}
 )
 
@@ -81,12 +81,11 @@ func init() {
 }
 
 func precompilegen(c *cli.Context) error {
-	if !c.IsSet(outFlag.Name) && !c.IsSet(typeFlag.Name) {
+	outFlagStr := c.String(outFlag.Name)
+	isOutStdout := outFlagStr == "-"
+
+	if isOutStdout && !c.IsSet(typeFlag.Name) {
 		utils.Fatalf("type (--type) should be set explicitly for STDOUT ")
-	}
-	pkg := pkgFlag.Name
-	if pkg == "" {
-		pkg = "precompile"
 	}
 	lang := bind.LangGo
 	// If the entire solidity code was specified, build and bind based on that
@@ -106,6 +105,7 @@ func precompilegen(c *cli.Context) error {
 		abi []byte
 		err error
 	)
+
 	input := c.String(abiFlag.Name)
 	if input == "-" {
 		abi, err = io.ReadAll(os.Stdin)
@@ -116,7 +116,9 @@ func precompilegen(c *cli.Context) error {
 		utils.Fatalf("Failed to read input ABI: %v", err)
 	}
 	abis = append(abis, string(abi))
+
 	bins = append(bins, "")
+
 	kind := c.String(typeFlag.Name)
 	if kind == "" {
 		fn := filepath.Base(input)
@@ -124,30 +126,51 @@ func precompilegen(c *cli.Context) error {
 		kind = strings.TrimSpace(kind)
 	}
 	types = append(types, kind)
-	outFlagSet := c.IsSet(outFlag.Name)
-	outFlag := c.String(outFlag.Name)
+
+	pkg := c.String(pkgFlag.Name)
+	if pkg == "" {
+		pkg = strings.ToLower(kind)
+	}
+
+	if outFlagStr == "" {
+		outFlagStr = filepath.Join("./", pkg)
+	}
+
 	abifilename := ""
 	abipath := ""
 	// we should not generate the abi file if output is set to stdout
-	if outFlagSet {
+	if !isOutStdout {
 		// get file name from the output path
-		pathNoExt := strings.TrimSuffix(outFlag, filepath.Ext(outFlag))
-		abipath = pathNoExt + ".abi"
-		abifilename = filepath.Base(abipath)
+		abifilename = "contract.abi"
+		abipath = filepath.Join(outFlagStr, abifilename)
 	}
 	// Generate the contract precompile
-	code, err := bind.PrecompileBind(types, abis, bins, sigs, pkg, lang, libs, aliases, abifilename)
+	configCode, contractCode, err := bind.PrecompileBind(types, abis, bins, sigs, pkg, lang, libs, aliases, abifilename)
 	if err != nil {
 		utils.Fatalf("Failed to generate ABI precompile: %v", err)
 	}
 
 	// Either flush it out to a file or display on the standard output
-	if !outFlagSet {
-		fmt.Printf("%s\n", code)
+	if isOutStdout {
+		fmt.Print("-----Config Code-----\n")
+		fmt.Printf("%s\n", configCode)
+		fmt.Print("-----Contract Code-----\n")
+		fmt.Printf("%s\n", contractCode)
 		return nil
 	}
 
-	if err := os.WriteFile(outFlag, []byte(code), 0o600); err != nil {
+	if _, err := os.Stat(outFlagStr); os.IsNotExist(err) {
+		os.MkdirAll(outFlagStr, 0700) // Create your file
+	}
+	configCodeOut := filepath.Join(outFlagStr, "config.go")
+
+	if err := os.WriteFile(configCodeOut, []byte(configCode), 0o600); err != nil {
+		utils.Fatalf("Failed to write generated precompile: %v", err)
+	}
+
+	contractCodeOut := filepath.Join(outFlagStr, "contract.go")
+
+	if err := os.WriteFile(contractCodeOut, []byte(contractCode), 0o600); err != nil {
 		utils.Fatalf("Failed to write generated precompile: %v", err)
 	}
 
@@ -155,7 +178,7 @@ func precompilegen(c *cli.Context) error {
 		utils.Fatalf("Failed to write ABI: %v", err)
 	}
 
-	fmt.Println("Precompile Generation was a success!")
+	fmt.Println("Precompile files generated successfully at: ", outFlagStr)
 	return nil
 }
 
