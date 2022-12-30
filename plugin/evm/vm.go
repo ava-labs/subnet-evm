@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -30,6 +32,7 @@ import (
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
+	"github.com/ava-labs/subnet-evm/plugin/evm/limitorders"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
@@ -905,14 +908,30 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	return nil
 }
 
+var orderBookContractFileLocation = "contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json"
+var orderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000069")
+
+func SetOrderBookContractFileLocation(location string) {
+	orderBookContractFileLocation = location
+}
+
 func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
+	memoryDb := limitorders.NewInMemoryDatabase()
+	jsonBytes, _ := ioutil.ReadFile(orderBookContractFileLocation)
+	orderBookAbi, err := abi.FromSolidityJson(string(jsonBytes))
+	if err != nil {
+		panic(err)
+	}
+	lotp := limitorders.NewLimitOrderTxProcessor(vm.txPool, orderBookAbi, memoryDb, orderBookContractAddress)
+
 	return NewLimitOrderProcesser(
 		vm.ctx,
-		vm.chainConfig,
 		vm.txPool,
 		vm.shutdownChan,
 		&vm.shutdownWg,
 		vm.eth.APIBackend,
 		vm.blockChain,
+		memoryDb,
+		lotp,
 	)
 }
