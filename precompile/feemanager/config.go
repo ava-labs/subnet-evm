@@ -13,9 +13,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
+// FeeManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the FeeConfigManager specific precompile address.
-type FeeConfigManagerConfig struct {
+type FeeManagerConfig struct {
 	precompile.AllowListConfig // Config for the fee config manager allow list
 	precompile.UpgradeableConfig
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
@@ -23,8 +23,8 @@ type FeeConfigManagerConfig struct {
 
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // FeeConfigManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
-func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeConfigManagerConfig {
-	return &FeeConfigManagerConfig{
+func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeManagerConfig {
+	return &FeeManagerConfig{
 		AllowListConfig: precompile.AllowListConfig{
 			AllowListAdmins:  admins,
 			EnabledAddresses: enableds,
@@ -36,8 +36,8 @@ func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enabl
 
 // NewDisableFeeManagerConfig returns config for a network upgrade at [blockTimestamp]
 // that disables FeeConfigManager.
-func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeConfigManagerConfig {
-	return &FeeConfigManagerConfig{
+func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
+	return &FeeManagerConfig{
 		UpgradeableConfig: precompile.UpgradeableConfig{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
@@ -46,14 +46,14 @@ func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeConfigManagerConfig
 }
 
 // Address returns the address of the fee config manager contract.
-func (c *FeeConfigManagerConfig) Address() common.Address {
+func (c *FeeManagerConfig) Address() common.Address {
 	return precompile.FeeConfigManagerAddress
 }
 
-// Equal returns true if [s] is a [*FeeConfigManagerConfig] and it has been configured identical to [c].
-func (c *FeeConfigManagerConfig) Equal(s precompile.StatefulPrecompileConfig) bool {
+// Equal returns true if [s] is a [*FeeManagerConfig] and it has been configured identical to [c].
+func (c *FeeManagerConfig) Equal(s precompile.StatefulPrecompileConfig) bool {
 	// typecast before comparison
-	other, ok := (s).(*FeeConfigManagerConfig)
+	other, ok := (s).(*FeeManagerConfig)
 	if !ok {
 		return false
 	}
@@ -70,7 +70,7 @@ func (c *FeeConfigManagerConfig) Equal(s precompile.StatefulPrecompileConfig) bo
 }
 
 // Configure configures [state] with the desired admins based on [c].
-func (c *FeeConfigManagerConfig) Configure(chainConfig precompile.ChainConfig, state precompile.StateDB, blockContext precompile.BlockContext) error {
+func (c *FeeManagerConfig) Configure(chainConfig precompile.ChainConfig, state precompile.StateDB, blockContext precompile.BlockContext) error {
 	// Store the initial fee config into the state when the fee config manager activates.
 	if c.InitialFeeConfig != nil {
 		if err := StoreFeeConfig(state, *c.InitialFeeConfig, blockContext); err != nil {
@@ -87,11 +87,11 @@ func (c *FeeConfigManagerConfig) Configure(chainConfig precompile.ChainConfig, s
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the fee manager.
-func (c *FeeConfigManagerConfig) Contract() precompile.StatefulPrecompiledContract {
+func (c *FeeManagerConfig) Contract() precompile.StatefulPrecompiledContract {
 	return FeeConfigManagerPrecompile
 }
 
-func (c *FeeConfigManagerConfig) Verify() error {
+func (c *FeeManagerConfig) Verify() error {
 	if err := c.AllowListConfig.Verify(); err != nil {
 		return err
 	}
@@ -102,8 +102,8 @@ func (c *FeeConfigManagerConfig) Verify() error {
 	return c.InitialFeeConfig.Verify()
 }
 
-// String returns a string representation of the FeeConfigManagerConfig.
-func (c *FeeConfigManagerConfig) String() string {
+// String returns a string representation of the FeeManagerConfig.
+func (c *FeeManagerConfig) String() string {
 	bytes, _ := json.Marshal(c)
 	return string(bytes)
 }

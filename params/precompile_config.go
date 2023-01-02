@@ -25,7 +25,7 @@ type PrecompileUpgrade struct {
 	ContractDeployerAllowListConfig *deployerallowlist.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      *nativeminter.ContractNativeMinterConfig           `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *txallowlist.TxAllowListConfig                     `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
-	FeeManagerConfig                *feemanager.FeeConfigManagerConfig                 `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+	FeeManagerConfig                *feemanager.FeeManagerConfig                       `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
 	RewardManagerConfig             *rewardmanager.RewardManagerConfig                 `json:"rewardManagerConfig,omitempty"`             // Config for the reward manager precompile
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
@@ -185,7 +185,7 @@ func (c *ChainConfig) GetActivePrecompileUpgrade(blockTimestamp *big.Int) Precom
 		pu.TxAllowListConfig = config.(*txallowlist.TxAllowListConfig)
 	}
 	if config := c.GetPrecompileConfig(precompile.FeeConfigManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.FeeManagerConfig = config.(*feemanager.FeeConfigManagerConfig)
+		pu.FeeManagerConfig = config.(*feemanager.FeeManagerConfig)
 	}
 	if config := c.GetPrecompileConfig(precompile.RewardManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
 		pu.RewardManagerConfig = config.(*rewardmanager.RewardManagerConfig)

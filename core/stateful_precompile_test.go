@@ -717,7 +717,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 		input        func() []byte
 		suppliedGas  uint64
 		readOnly     bool
-		config       *feemanager.FeeConfigManagerConfig
+		config       *feemanager.FeeManagerConfig
 
 		expectedRes []byte
 		expectedErr string
@@ -771,7 +771,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			suppliedGas: feemanager.SetFeeConfigGasCost,
 			readOnly:    false,
 			expectedRes: nil,
-			config: &feemanager.FeeConfigManagerConfig{
+			config: &feemanager.FeeManagerConfig{
 				InitialFeeConfig: &testFeeConfig,
 			},
 			expectedErr: "cannot be greater than maxBlockGasCost",
@@ -827,7 +827,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				return feemanager.PackGetFeeConfigInput()
 			},
 			suppliedGas: feemanager.GetFeeConfigGasCost,
-			config: &feemanager.FeeConfigManagerConfig{
+			config: &feemanager.FeeManagerConfig{
 				InitialFeeConfig: &testFeeConfig,
 			},
 			readOnly: true,
