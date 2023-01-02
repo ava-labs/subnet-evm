@@ -39,7 +39,7 @@ const (
 )
 
 var (
-	_ precompile.StatefulPrecompileConfig = &FeeConfigManagerConfig{}
+	_ precompile.StatefulPrecompileConfig = &FeeManagerConfig{}
 
 	// Singleton StatefulPrecompiledContract for setting fee configs by permissioned callers.
 	FeeConfigManagerPrecompile precompile.StatefulPrecompiledContract = createFeeConfigManagerPrecompile(precompile.FeeConfigManagerAddress)
