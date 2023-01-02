@@ -113,3 +113,7 @@ func (n *noopStatefulPrecompileConfig) Contract() StatefulPrecompiledContract {
 func (n *noopStatefulPrecompileConfig) String() string {
 	return ""
 }
+
+func (n *noopStatefulPrecompileConfig) Name() string {
+	return ""
+}

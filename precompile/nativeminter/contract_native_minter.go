@@ -24,7 +24,7 @@ const (
 
 var (
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
-	ContractNativeMinterPrecompile precompile.StatefulPrecompiledContract = createNativeMinterPrecompile(precompile.ContractNativeMinterAddress)
+	ContractNativeMinterPrecompile precompile.StatefulPrecompiledContract = createNativeMinterPrecompile(Address)
 
 	mintSignature = precompile.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
 	ErrCannotMint = errors.New("non-enabled cannot mint")
@@ -32,13 +32,13 @@ var (
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
 func GetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address) precompile.AllowListRole {
-	return precompile.GetAllowListStatus(stateDB, precompile.ContractNativeMinterAddress, address)
+	return precompile.GetAllowListStatus(stateDB, Address, address)
 }
 
 // SetContractNativeMinterStatus sets the permissions of [address] to [role] for the
 // minter list. assumes [role] has already been verified as valid.
 func SetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address, role precompile.AllowListRole) {
-	precompile.SetAllowListRole(stateDB, precompile.ContractNativeMinterAddress, address, role)
+	precompile.SetAllowListRole(stateDB, Address, address, role)
 }
 
 // PackMintInput packs [address] and [amount] into the appropriate arguments for minting operation.
@@ -83,7 +83,7 @@ func mintNativeCoin(accessibleState precompile.PrecompileAccessibleState, caller
 
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := precompile.GetAllowListStatus(stateDB, precompile.ContractNativeMinterAddress, caller)
+	callerStatus := precompile.GetAllowListStatus(stateDB, Address, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}

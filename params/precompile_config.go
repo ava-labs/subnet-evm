@@ -34,15 +34,15 @@ type PrecompileUpgrade struct {
 // getByAddress returns the precompile config for the given address.
 func (p *PrecompileUpgrade) getByAddress(address common.Address) (precompile.StatefulPrecompileConfig, bool) {
 	switch address {
-	case precompile.ContractDeployerAllowListAddress:
+	case deployerallowlist.Address:
 		return p.ContractDeployerAllowListConfig, p.ContractDeployerAllowListConfig != nil
-	case precompile.ContractNativeMinterAddress:
+	case nativeminter.Address:
 		return p.ContractNativeMinterConfig, p.ContractNativeMinterConfig != nil
-	case precompile.TxAllowListAddress:
+	case txallowlist.Address:
 		return p.TxAllowListConfig, p.TxAllowListConfig != nil
-	case precompile.FeeConfigManagerAddress:
+	case feemanager.Address:
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
-	case precompile.RewardManagerAddress:
+	case rewardmanager.Address:
 		return p.RewardManagerConfig, p.RewardManagerConfig != nil
 	// ADD YOUR PRECOMPILE HERE
 	/*
@@ -65,7 +65,8 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 	for i, upgrade := range c.PrecompileUpgrades {
 		hasKey := false // used to verify if there is only one key per Upgrade
 
-		for _, address := range precompile.UsedAddresses {
+		for _, module := range precompile.RegisteredModules {
+			address := module.Address()
 			config, ok := upgrade.getByAddress(address)
 			if !ok {
 				continue
@@ -90,11 +91,12 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		}
 	}
 
-	for _, address := range precompile.UsedAddresses {
+	for _, module := range precompile.RegisteredModules {
 		var (
 			lastUpgraded *big.Int
 			disabled     bool
 		)
+		address := module.Address()
 		// check the genesis chain config for any enabled upgrade
 		if config, ok := c.PrecompileUpgrade.getByAddress(address); ok {
 			if err := config.Verify(); err != nil {
@@ -172,33 +174,6 @@ func (c *ChainConfig) GetPrecompileConfig(address common.Address, blockTimestamp
 	return nil
 }
 
-// TODO: remove this
-func (c *ChainConfig) GetActivePrecompileUpgrade(blockTimestamp *big.Int) PrecompileUpgrade {
-	pu := PrecompileUpgrade{}
-	if config := c.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.ContractDeployerAllowListConfig = config.(*deployerallowlist.ContractDeployerAllowListConfig)
-	}
-	if config := c.GetPrecompileConfig(precompile.ContractNativeMinterAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.ContractNativeMinterConfig = config.(*nativeminter.ContractNativeMinterConfig)
-	}
-	if config := c.GetPrecompileConfig(precompile.TxAllowListAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.TxAllowListConfig = config.(*txallowlist.TxAllowListConfig)
-	}
-	if config := c.GetPrecompileConfig(precompile.FeeConfigManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.FeeManagerConfig = config.(*feemanager.FeeConfigManagerConfig)
-	}
-	if config := c.GetPrecompileConfig(precompile.RewardManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.RewardManagerConfig = config.(*rewardmanager.RewardManagerConfig)
-	}
-
-	// ADD YOUR PRECOMPILE HERE
-	// if config := c.GetPrecompileConfig(precompile.{YourPrecompile}Address, blockTimestamp); config != nil && !config.IsDisabled() {
-	// 	pu.{YourPrecompile}Config = config.(*precompile.{YourPrecompile}Config)
-	// }
-
-	return pu
-}
-
 // CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
 // Returns a ConfigCompatError if upgrades already forked at [headTimestamp] are missing from
 // [precompileUpgrades]. Upgrades not already forked may be modified or absent from [precompileUpgrades].
@@ -206,7 +181,8 @@ func (c *ChainConfig) GetActivePrecompileUpgrade(blockTimestamp *big.Int) Precom
 // Assumes given timestamp is the last accepted block timestamp.
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
-	for _, address := range precompile.UsedAddresses {
+	for _, module := range precompile.RegisteredModules {
+		address := module.Address()
 		if err := c.checkPrecompileCompatible(address, precompileUpgrades, lastTimestamp); err != nil {
 			return err
 		}
@@ -259,7 +235,8 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 // have been activated through an upgrade.
 func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []precompile.StatefulPrecompileConfig {
 	statefulPrecompileConfigs := make([]precompile.StatefulPrecompileConfig, 0)
-	for _, address := range precompile.UsedAddresses {
+	for _, module := range precompile.RegisteredModules {
+		address := module.Address()
 		if config := c.getActivePrecompileConfig(blockTimestamp, address, c.PrecompileUpgrades); config != nil {
 			statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
 		}
@@ -276,7 +253,8 @@ func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []prec
 // - during block processing to update the state before processing the given block.
 func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
-	for _, address := range precompile.UsedAddresses { // Note: configure precompiles in a deterministic order.
+	for _, module := range precompile.RegisteredModules { // Note: configure precompiles in a deterministic order.
+		address := module.Address()
 		for _, config := range c.getActivatingPrecompileConfigs(parentTimestamp, blockTimestamp, address, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)

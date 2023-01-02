@@ -1596,7 +1596,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &precompile.ContractDeployerAllowListAddress,
+					To:        &deployerallowlist.Address,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,
@@ -1642,7 +1642,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &precompile.FeeConfigManagerAddress,
+					To:        &feemanager.Address,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,

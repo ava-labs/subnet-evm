@@ -10,18 +10,18 @@ import (
 
 var (
 	// Singleton StatefulPrecompiledContract for W/R access to the contract deployer allow list.
-	ContractDeployerAllowListPrecompile precompile.StatefulPrecompiledContract = precompile.CreateAllowListPrecompile(precompile.ContractDeployerAllowListAddress)
+	ContractDeployerAllowListPrecompile precompile.StatefulPrecompiledContract = precompile.CreateAllowListPrecompile(Address)
 )
 
 // GetContractDeployerAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
 func GetContractDeployerAllowListStatus(stateDB precompile.StateDB, address common.Address) precompile.AllowListRole {
-	return precompile.GetAllowListStatus(stateDB, precompile.ContractDeployerAllowListAddress, address)
+	return precompile.GetAllowListStatus(stateDB, Address, address)
 }
 
 // SetContractDeployerAllowListStatus sets the permissions of [address] to [role] for the
 // contract deployer allow list.
 // assumes [role] has already been verified as valid.
 func SetContractDeployerAllowListStatus(stateDB precompile.StateDB, address common.Address, role precompile.AllowListRole) {
-	precompile.SetAllowListRole(stateDB, precompile.ContractDeployerAllowListAddress, address, role)
+	precompile.SetAllowListRole(stateDB, Address, address, role)
 }

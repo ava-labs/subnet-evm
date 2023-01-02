@@ -41,7 +41,7 @@ var (
 	_ precompile.StatefulPrecompileConfig = &FeeConfigManagerConfig{}
 
 	// Singleton StatefulPrecompiledContract for setting fee configs by permissioned callers.
-	FeeConfigManagerPrecompile precompile.StatefulPrecompiledContract = createFeeConfigManagerPrecompile(precompile.FeeConfigManagerAddress)
+	FeeConfigManagerPrecompile precompile.StatefulPrecompiledContract = createFeeConfigManagerPrecompile(Address)
 
 	setFeeConfigSignature              = precompile.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
 	getFeeConfigSignature              = precompile.CalculateFunctionSelector("getFeeConfig()")
@@ -54,13 +54,13 @@ var (
 
 // GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.
 func GetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address) precompile.AllowListRole {
-	return precompile.GetAllowListStatus(stateDB, precompile.FeeConfigManagerAddress, address)
+	return precompile.GetAllowListStatus(stateDB, Address, address)
 }
 
 // SetFeeConfigManagerStatus sets the permissions of [address] to [role] for the
 // fee config manager list. assumes [role] has already been verified as valid.
 func SetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address, role precompile.AllowListRole) {
-	precompile.SetAllowListRole(stateDB, precompile.FeeConfigManagerAddress, address, role)
+	precompile.SetAllowListRole(stateDB, Address, address, role)
 }
 
 // PackGetFeeConfigInput packs the getFeeConfig signature
@@ -147,7 +147,7 @@ func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 func GetStoredFeeConfig(stateDB precompile.StateDB) commontype.FeeConfig {
 	feeConfig := commontype.FeeConfig{}
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
-		val := stateDB.GetState(precompile.FeeConfigManagerAddress, common.Hash{byte(i)})
+		val := stateDB.GetState(Address, common.Hash{byte(i)})
 		switch i {
 		case gasLimitKey:
 			feeConfig.GasLimit = new(big.Int).Set(val.Big())
@@ -174,7 +174,7 @@ func GetStoredFeeConfig(stateDB precompile.StateDB) commontype.FeeConfig {
 }
 
 func GetFeeConfigLastChangedAt(stateDB precompile.StateDB) *big.Int {
-	val := stateDB.GetState(precompile.FeeConfigManagerAddress, feeConfigLastChangedAtKey)
+	val := stateDB.GetState(Address, feeConfigLastChangedAtKey)
 	return val.Big()
 }
 
@@ -208,14 +208,14 @@ func StoreFeeConfig(stateDB precompile.StateDB, feeConfig commontype.FeeConfig, 
 			// This should never encounter an unknown fee config key
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
-		stateDB.SetState(precompile.FeeConfigManagerAddress, common.Hash{byte(i)}, input)
+		stateDB.SetState(Address, common.Hash{byte(i)}, input)
 	}
 
 	blockNumber := blockContext.Number()
 	if blockNumber == nil {
 		return fmt.Errorf("blockNumber cannot be nil")
 	}
-	stateDB.SetState(precompile.FeeConfigManagerAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
+	stateDB.SetState(Address, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
 
 	return nil
 }
@@ -238,7 +238,7 @@ func setFeeConfig(accessibleState precompile.PrecompileAccessibleState, caller c
 
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := precompile.GetAllowListStatus(stateDB, precompile.FeeConfigManagerAddress, caller)
+	callerStatus := precompile.GetAllowListStatus(stateDB, Address, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}

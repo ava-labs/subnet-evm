@@ -250,7 +250,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			require.Equal(t, precompile.AllowListNoRole, deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
-			ret, remainingGas, err := deployerallowlist.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.ContractDeployerAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := deployerallowlist.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, deployerallowlist.Address, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
@@ -371,7 +371,7 @@ func TestTxAllowListRun(t *testing.T) {
 		},
 		"set no role with readOnly enabled": {
 			caller:         adminAddr,
-			precompileAddr: precompile.TxAllowListAddress,
+			precompileAddr: txallowlist.Address,
 			input: func() []byte {
 				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
 				require.NoError(t, err)
@@ -444,7 +444,7 @@ func TestTxAllowListRun(t *testing.T) {
 			require.Equal(t, precompile.AllowListAdmin, txallowlist.GetTxAllowListStatus(state, adminAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
-			ret, remainingGas, err := txallowlist.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.TxAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := txallowlist.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, txallowlist.Address, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
@@ -693,7 +693,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := nativeminter.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.ContractNativeMinterAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := nativeminter.ContractNativeMinterPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, nativeminter.Address, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
@@ -957,7 +957,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := feemanager.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.FeeConfigManagerAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := feemanager.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, feemanager.Address, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
@@ -1277,7 +1277,7 @@ func TestRewardManagerRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := rewardmanager.RewardManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.RewardManagerAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := rewardmanager.RewardManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, rewardmanager.Address, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

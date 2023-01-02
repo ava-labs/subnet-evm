@@ -14,7 +14,11 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
-var _ precompile.StatefulPrecompileConfig = &ContractNativeMinterConfig{}
+var (
+	_ precompile.StatefulPrecompileConfig = &ContractNativeMinterConfig{}
+
+	Address = common.HexToAddress("0x0200000000000000000000000000000000000001")
+)
 
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the ContractNativeMinter specific precompile address.
@@ -22,6 +26,10 @@ type ContractNativeMinterConfig struct {
 	precompile.AllowListConfig
 	precompile.UpgradeableConfig
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
+}
+
+func init() {
+	precompile.RegisterPrecompile(ContractNativeMinterConfig{})
 }
 
 // NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -49,8 +57,8 @@ func NewDisableContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNati
 }
 
 // Address returns the address of the native minter contract.
-func (c *ContractNativeMinterConfig) Address() common.Address {
-	return precompile.ContractNativeMinterAddress
+func (c ContractNativeMinterConfig) Address() common.Address {
+	return Address
 }
 
 // Configure configures [state] with the desired admins based on [c].
@@ -62,11 +70,11 @@ func (c *ContractNativeMinterConfig) Configure(_ precompile.ChainConfig, state p
 		}
 	}
 
-	return c.AllowListConfig.Configure(state, precompile.ContractNativeMinterAddress)
+	return c.AllowListConfig.Configure(state, Address)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the native minter.
-func (c *ContractNativeMinterConfig) Contract() precompile.StatefulPrecompiledContract {
+func (c ContractNativeMinterConfig) Contract() precompile.StatefulPrecompiledContract {
 	return ContractNativeMinterPrecompile
 }
 
@@ -122,4 +130,8 @@ func (c *ContractNativeMinterConfig) Equal(s precompile.StatefulPrecompileConfig
 func (c *ContractNativeMinterConfig) String() string {
 	bytes, _ := json.Marshal(c)
 	return string(bytes)
+}
+
+func (c ContractNativeMinterConfig) Name() string {
+	return "contractNativeMinterConfig"
 }

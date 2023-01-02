@@ -196,7 +196,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 			},
 			assertState: func(t *testing.T, sdb *state.StateDB) {
 				assert.Equal(t, precompile.AllowListAdmin, deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr), "unexpected allow list status for modified address")
-				assert.Equal(t, uint64(1), sdb.GetNonce(precompile.ContractDeployerAllowListAddress))
+				assert.Equal(t, uint64(1), sdb.GetNonce(deployerallowlist.Address))
 			},
 		},
 	} {

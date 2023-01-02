@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
@@ -206,15 +205,15 @@ func TestGetPrecompileConfig(t *testing.T) {
 		ContractDeployerAllowListConfig: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
 	}
 
-	deployerConfig := config.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, big.NewInt(0))
+	deployerConfig := config.GetPrecompileConfig(deployerallowlist.Address, big.NewInt(0))
 	assert.Nil(deployerConfig)
 
-	deployerConfig = config.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, big.NewInt(10))
+	deployerConfig = config.GetPrecompileConfig(deployerallowlist.Address, big.NewInt(10))
 	assert.NotNil(deployerConfig)
 
-	deployerConfig = config.GetPrecompileConfig(precompile.ContractDeployerAllowListAddress, big.NewInt(11))
+	deployerConfig = config.GetPrecompileConfig(deployerallowlist.Address, big.NewInt(11))
 	assert.NotNil(deployerConfig)
 
-	txAllowListConfig := config.GetPrecompileConfig(precompile.TxAllowListAddress, big.NewInt(0))
+	txAllowListConfig := config.GetPrecompileConfig(txallowlist.Address, big.NewInt(0))
 	assert.Nil(txAllowListConfig)
 }

@@ -28,24 +28,17 @@ const (
 // that their own modifications do not conflict with stateful precompiles that may be added to subnet-evm
 // in the future.
 var (
-	ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
-	ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
-	TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
-	FeeConfigManagerAddress          = common.HexToAddress("0x0200000000000000000000000000000000000003")
-	RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
+	// This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
+	// ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
+	// ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
+	// TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
+	// FeeManagerAddress         				= common.HexToAddress("0x0200000000000000000000000000000000000003")
+	// RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
 
-	UsedAddresses = []common.Address{
-		ContractDeployerAllowListAddress,
-		ContractNativeMinterAddress,
-		TxAllowListAddress,
-		FeeConfigManagerAddress,
-		RewardManagerAddress,
-		// ADD YOUR PRECOMPILE HERE
-		// YourPrecompileAddress
-	}
-	reservedRanges = []AddressRange{
+	RegisteredModules = make([]StatefulPrecompileModule, 0)
+	reservedRanges    = []AddressRange{
 		{
 			common.HexToAddress("0x0100000000000000000000000000000000000000"),
 			common.HexToAddress("0x01000000000000000000000000000000000000ff"),
@@ -72,11 +65,21 @@ func ReservedAddress(addr common.Address) bool {
 	return false
 }
 
-func init() {
-	// Ensure that every address used by a precompile is in a reserved range.
-	for _, addr := range UsedAddresses {
-		if !ReservedAddress(addr) {
-			panic(fmt.Errorf("address %s used for stateful precompile but not specified in any reserved range", addr))
+func RegisterPrecompile(stm StatefulPrecompileModule) error {
+	address := stm.Address()
+	name := stm.Name()
+	if !ReservedAddress(address) {
+		return fmt.Errorf("address %s not in a reserved range", address)
+	}
+	for _, precompile := range RegisteredModules {
+		if precompile.Address() == address {
+			return fmt.Errorf("address %s already used by a stateful precompile", address)
+		}
+		if precompile.Name() == name {
+			return fmt.Errorf("name %s already used by a stateful precompile", name)
 		}
 	}
+	RegisteredModules = append(RegisteredModules, stm)
+
+	return nil
 }

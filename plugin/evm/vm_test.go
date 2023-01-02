@@ -2413,11 +2413,11 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	// Check that address 0 is whitelisted and address 1 is not
 	role := feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[0])
 	if role != precompile.AllowListAdmin {
-		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
+		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", feemanager.Address, role)
 	}
 	role = feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[1])
 	if role != precompile.AllowListNoRole {
-		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
+		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", feemanager.Address, role)
 	}
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(vm.blockChain.Genesis().Header())
@@ -2435,7 +2435,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	tx := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(0),
-		To:        &precompile.FeeConfigManagerAddress,
+		To:        &feemanager.Address,
 		Gas:       testLowFeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
 		GasFeeCap: testLowFeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
@@ -2471,7 +2471,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	tx2 := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(1),
-		To:        &precompile.FeeConfigManagerAddress,
+		To:        &feemanager.Address,
 		Gas:       genesis.Config.FeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
 		GasFeeCap: testLowFeeConfig.MinBaseFee, // this is too low for applied config, should fail
@@ -2659,7 +2659,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 
 	gas := 21000 + 240 + rewardmanager.SetRewardAddressGasCost // 21000 for tx, 240 for tx data
 
-	tx := types.NewTransaction(uint64(0), precompile.RewardManagerAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
+	tx := types.NewTransaction(uint64(0), rewardmanager.Address, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	require.NoError(t, err)
@@ -2795,7 +2795,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 
 	gas := 21000 + 240 + rewardmanager.AllowFeeRecipientsGasCost // 21000 for tx, 240 for tx data
 
-	tx := types.NewTransaction(uint64(0), precompile.RewardManagerAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
+	tx := types.NewTransaction(uint64(0), rewardmanager.Address, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	require.NoError(t, err)

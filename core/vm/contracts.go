@@ -158,12 +158,13 @@ func init() {
 
 	// Ensure that this package will panic during init if there is a conflict present with the declared
 	// precompile addresses.
-	for _, k := range precompile.UsedAddresses {
-		if _, ok := PrecompileAllNativeAddresses[k]; ok {
-			panic(fmt.Errorf("precompile address collides with existing native address: %s", k))
+	for _, module := range precompile.RegisteredModules {
+		address := module.Address()
+		if _, ok := PrecompileAllNativeAddresses[address]; ok {
+			panic(fmt.Errorf("precompile address collides with existing native address: %s", address))
 		}
-		if k == constants.BlackholeAddr {
-			panic(fmt.Errorf("cannot use address %s for stateful precompile - overlaps with blackhole address", k))
+		if address == constants.BlackholeAddr {
+			panic(fmt.Errorf("cannot use address %s for stateful precompile - overlaps with blackhole address", address))
 		}
 	}
 }
