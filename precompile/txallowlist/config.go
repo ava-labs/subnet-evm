@@ -8,17 +8,16 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var (
-	_ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
-)
+var _ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
 
 // TxAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the TxAllowList specific precompile address.
 type TxAllowListConfig struct {
-	precompile.AllowListConfig
+	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
 }
 
@@ -26,7 +25,7 @@ type TxAllowListConfig struct {
 // TxAllowList with the given [admins] and [enableds] as members of the allowlist.
 func NewTxAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *TxAllowListConfig {
 	return &TxAllowListConfig{
-		AllowListConfig: precompile.AllowListConfig{
+		AllowListConfig: allowlist.AllowListConfig{
 			AllowListAdmins:  admins,
 			EnabledAddresses: enableds,
 		},

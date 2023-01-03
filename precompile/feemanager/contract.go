@@ -10,6 +10,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -53,14 +54,14 @@ var (
 )
 
 // GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.
-func GetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address) precompile.AllowListRole {
-	return precompile.GetAllowListStatus(stateDB, precompile.FeeConfigManagerAddress, address)
+func GetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+	return allowlist.GetAllowListStatus(stateDB, precompile.FeeConfigManagerAddress, address)
 }
 
 // SetFeeConfigManagerStatus sets the permissions of [address] to [role] for the
 // fee config manager list. assumes [role] has already been verified as valid.
-func SetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address, role precompile.AllowListRole) {
-	precompile.SetAllowListRole(stateDB, precompile.FeeConfigManagerAddress, address, role)
+func SetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+	allowlist.SetAllowListRole(stateDB, precompile.FeeConfigManagerAddress, address, role)
 }
 
 // PackGetFeeConfigInput packs the getFeeConfig signature
@@ -238,7 +239,7 @@ func setFeeConfig(accessibleState precompile.PrecompileAccessibleState, caller c
 
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := precompile.GetAllowListStatus(stateDB, precompile.FeeConfigManagerAddress, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, precompile.FeeConfigManagerAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
@@ -286,7 +287,7 @@ func getFeeConfigLastChangedAt(accessibleState precompile.PrecompileAccessibleSt
 // with getters and setters for the chain's fee config. Access to the getters/setters
 // is controlled by an allow list for [precompileAddr].
 func createFeeConfigManagerPrecompile(precompileAddr common.Address) precompile.StatefulPrecompiledContract {
-	feeConfigManagerFunctions := precompile.CreateAllowListFunctions(precompileAddr)
+	feeConfigManagerFunctions := allowlist.CreateAllowListFunctions(precompileAddr)
 
 	setFeeConfigFunc := precompile.NewStatefulPrecompileFunction(setFeeConfigSignature, setFeeConfig)
 	getFeeConfigFunc := precompile.NewStatefulPrecompileFunction(getFeeConfigSignature, getFeeConfig)

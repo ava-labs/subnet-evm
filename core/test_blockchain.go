@@ -17,6 +17,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/feemanager"
 	"github.com/ethereum/go-ethereum/common"
@@ -1589,7 +1590,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 		"allow list": {
 			addTx: func(gen *BlockGen) {
 				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
-				input, err := precompile.PackModifyAllowList(addr2, precompile.AllowListAdmin)
+				input, err := allowlist.PackModifyAllowList(addr2, allowlist.AllowListAdmin)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1612,23 +1613,23 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 			},
 			verifyState: func(sdb *state.StateDB) error {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
-				if precompile.AllowListAdmin != res {
-					return fmt.Errorf("unexpected allow list status for addr1 %s, expected %s", res, precompile.AllowListAdmin)
+				if allowlist.AllowListAdmin != res {
+					return fmt.Errorf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AllowListAdmin)
 				}
 				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
-				if precompile.AllowListAdmin != res {
-					return fmt.Errorf("unexpected allow list status for addr2 %s, expected %s", res, precompile.AllowListAdmin)
+				if allowlist.AllowListAdmin != res {
+					return fmt.Errorf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.AllowListAdmin)
 				}
 				return nil
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
-				if precompile.AllowListAdmin != res {
-					t.Fatalf("unexpected allow list status for addr1 %s, expected %s", res, precompile.AllowListAdmin)
+				if allowlist.AllowListAdmin != res {
+					t.Fatalf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AllowListAdmin)
 				}
 				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
-				if precompile.AllowListNoRole != res {
-					t.Fatalf("unexpected allow list status for addr2 %s, expected %s", res, precompile.AllowListNoRole)
+				if allowlist.AllowListNoRole != res {
+					t.Fatalf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.AllowListNoRole)
 				}
 			},
 		},
@@ -1658,7 +1659,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 			},
 			verifyState: func(sdb *state.StateDB) error {
 				res := feemanager.GetFeeConfigManagerStatus(sdb, addr1)
-				assert.Equal(precompile.AllowListAdmin, res)
+				assert.Equal(allowlist.AllowListAdmin, res)
 
 				storedConfig := feemanager.GetStoredFeeConfig(sdb)
 				assert.EqualValues(testFeeConfig, storedConfig)
@@ -1670,7 +1671,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
 				res := feemanager.GetFeeConfigManagerStatus(sdb, addr1)
-				assert.Equal(precompile.AllowListAdmin, res)
+				assert.Equal(allowlist.AllowListAdmin, res)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())
 				assert.NoError(err)

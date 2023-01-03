@@ -39,6 +39,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
@@ -195,7 +196,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 				return &config
 			},
 			assertState: func(t *testing.T, sdb *state.StateDB) {
-				assert.Equal(t, precompile.AllowListAdmin, deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr), "unexpected allow list status for modified address")
+				assert.Equal(t, allowlist.AllowListAdmin, deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr), "unexpected allow list status for modified address")
 				assert.Equal(t, uint64(1), sdb.GetNonce(precompile.ContractDeployerAllowListAddress))
 			},
 		},

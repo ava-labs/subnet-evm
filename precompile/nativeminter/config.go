@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -19,7 +20,7 @@ var _ precompile.StatefulPrecompileConfig = &ContractNativeMinterConfig{}
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the ContractNativeMinter specific precompile address.
 type ContractNativeMinterConfig struct {
-	precompile.AllowListConfig
+	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
 }
@@ -28,7 +29,7 @@ type ContractNativeMinterConfig struct {
 // ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
 func NewContractNativeMinterConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *ContractNativeMinterConfig {
 	return &ContractNativeMinterConfig{
-		AllowListConfig: precompile.AllowListConfig{
+		AllowListConfig: allowlist.AllowListConfig{
 			AllowListAdmins:  admins,
 			EnabledAddresses: enableds,
 		},

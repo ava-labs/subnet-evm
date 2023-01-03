@@ -41,13 +41,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// CUSTOM CODE STARTS HERE
-// Reference imports to suppress errors from unused imports. This code and any unnecessary imports can be removed.
-var (
-	_ = big.NewInt
-	_ = json.Unmarshal
-)
-
 {{$contract := .Contract}}
 var (
 	_ precompile.StatefulPrecompileConfig = &{{.Contract.Type}}Config{}

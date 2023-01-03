@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
@@ -93,147 +94,147 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 		"set admin": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListAdmin)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListAdmin)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr)
-				require.Equal(t, precompile.AllowListAdmin, res)
+				require.Equal(t, allowlist.AllowListAdmin, res)
 			},
 		},
 		"set deployer": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr)
-				require.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, allowlist.AllowListEnabled, res)
 			},
 		},
 		"set no role": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(state, adminAddr)
-				require.Equal(t, precompile.AllowListNoRole, res)
+				require.Equal(t, allowlist.AllowListNoRole, res)
 			},
 		},
 		"set no role from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set deployer from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListAdmin)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListAdmin)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"set no role insufficient gas": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost - 1,
+			suppliedGas: allowlist.ModifyAllowListGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"read allow list no role": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list admin role": {
 			caller: adminAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list with readOnly enabled": {
 			caller: adminAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    true,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list out of gas": {
 			caller: adminAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost - 1,
+			suppliedGas: allowlist.ReadAllowListGasCost - 1,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
@@ -244,10 +245,10 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			deployerallowlist.SetContractDeployerAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
-			deployerallowlist.SetContractDeployerAllowListStatus(state, noRoleAddr, precompile.AllowListNoRole)
-			require.Equal(t, precompile.AllowListAdmin, deployerallowlist.GetContractDeployerAllowListStatus(state, adminAddr))
-			require.Equal(t, precompile.AllowListNoRole, deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr))
+			deployerallowlist.SetContractDeployerAllowListStatus(state, adminAddr, allowlist.AllowListAdmin)
+			deployerallowlist.SetContractDeployerAllowListStatus(state, noRoleAddr, allowlist.AllowListNoRole)
+			require.Equal(t, allowlist.AllowListAdmin, deployerallowlist.GetContractDeployerAllowListStatus(state, adminAddr))
+			require.Equal(t, allowlist.AllowListNoRole, deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
 			ret, remainingGas, err := deployerallowlist.ContractDeployerAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.ContractDeployerAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
@@ -288,148 +289,148 @@ func TestTxAllowListRun(t *testing.T) {
 		"set admin": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListAdmin)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListAdmin)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := txallowlist.GetTxAllowListStatus(state, noRoleAddr)
-				require.Equal(t, precompile.AllowListAdmin, res)
+				require.Equal(t, allowlist.AllowListAdmin, res)
 			},
 		},
 		"set allowed": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := txallowlist.GetTxAllowListStatus(state, noRoleAddr)
-				require.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, allowlist.AllowListEnabled, res)
 			},
 		},
 		"set no role": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := txallowlist.GetTxAllowListStatus(state, adminAddr)
-				require.Equal(t, precompile.AllowListNoRole, res)
+				require.Equal(t, allowlist.AllowListNoRole, res)
 			},
 		},
 		"set no role from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set allowed from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListAdmin)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListAdmin)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
 			caller:         adminAddr,
 			precompileAddr: precompile.TxAllowListAddress,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"set no role insufficient gas": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(adminAddr, precompile.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost - 1,
+			suppliedGas: allowlist.ModifyAllowListGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"read allow list no role": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list admin role": {
 			caller: adminAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list with readOnly enabled": {
 			caller: adminAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    true,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list out of gas": {
 			caller: adminAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost - 1,
+			suppliedGas: allowlist.ReadAllowListGasCost - 1,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
@@ -440,8 +441,8 @@ func TestTxAllowListRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			txallowlist.SetTxAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
-			require.Equal(t, precompile.AllowListAdmin, txallowlist.GetTxAllowListStatus(state, adminAddr))
+			txallowlist.SetTxAllowListStatus(state, adminAddr, allowlist.AllowListAdmin)
+			require.Equal(t, allowlist.AllowListAdmin, txallowlist.GetTxAllowListStatus(state, adminAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
 			ret, remainingGas, err := txallowlist.TxAllowListPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.TxAllowListAddress, test.input(), test.suppliedGas, test.readOnly)
@@ -511,16 +512,16 @@ func TestContractNativeMinterRun(t *testing.T) {
 		"enabled role by config": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(testAddr)
+				return allowlist.PackReadAllowList(testAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(precompile.AllowListEnabled).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListEnabled).Bytes(),
 			assertState: func(t *testing.T, state *state.StateDB) {
-				require.Equal(t, precompile.AllowListEnabled, nativeminter.GetContractNativeMinterStatus(state, testAddr))
+				require.Equal(t, allowlist.AllowListEnabled, nativeminter.GetContractNativeMinterStatus(state, testAddr))
 			},
 			config: &nativeminter.ContractNativeMinterConfig{
-				AllowListConfig: precompile.AllowListConfig{EnabledAddresses: []common.Address{testAddr}},
+				AllowListConfig: allowlist.AllowListConfig{EnabledAddresses: []common.Address{testAddr}},
 			},
 		},
 		"initial mint funds": {
@@ -531,11 +532,11 @@ func TestContractNativeMinterRun(t *testing.T) {
 				},
 			},
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: func(t *testing.T, state *state.StateDB) {
 				require.Equal(t, common.Big2, state.GetBalance(enabledAddr), "expected minted funds")
 			},
@@ -621,59 +622,59 @@ func TestContractNativeMinterRun(t *testing.T) {
 		"read from noRole address": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: func(t *testing.T, state *state.StateDB) {},
 		},
 		"read from noRole address readOnly enabled": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost,
+			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    true,
-			expectedRes: common.Hash(precompile.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
 			assertState: func(t *testing.T, state *state.StateDB) {},
 		},
 		"read from noRole address with insufficient gas": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				return precompile.PackReadAllowList(noRoleAddr)
+				return allowlist.PackReadAllowList(noRoleAddr)
 			},
-			suppliedGas: precompile.ReadAllowListGasCost - 1,
+			suppliedGas: allowlist.ReadAllowListGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"set allow role from admin": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := nativeminter.GetContractNativeMinterStatus(state, noRoleAddr)
-				require.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, allowlist.AllowListEnabled, res)
 			},
 		},
 		"set allow role from non-admin fails": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -682,12 +683,12 @@ func TestContractNativeMinterRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			nativeminter.SetContractNativeMinterStatus(state, adminAddr, precompile.AllowListAdmin)
-			nativeminter.SetContractNativeMinterStatus(state, enabledAddr, precompile.AllowListEnabled)
-			nativeminter.SetContractNativeMinterStatus(state, noRoleAddr, precompile.AllowListNoRole)
-			require.Equal(t, precompile.AllowListAdmin, nativeminter.GetContractNativeMinterStatus(state, adminAddr))
-			require.Equal(t, precompile.AllowListEnabled, nativeminter.GetContractNativeMinterStatus(state, enabledAddr))
-			require.Equal(t, precompile.AllowListNoRole, nativeminter.GetContractNativeMinterStatus(state, noRoleAddr))
+			nativeminter.SetContractNativeMinterStatus(state, adminAddr, allowlist.AllowListAdmin)
+			nativeminter.SetContractNativeMinterStatus(state, enabledAddr, allowlist.AllowListEnabled)
+			nativeminter.SetContractNativeMinterStatus(state, noRoleAddr, allowlist.AllowListNoRole)
+			require.Equal(t, allowlist.AllowListAdmin, nativeminter.GetContractNativeMinterStatus(state, adminAddr))
+			require.Equal(t, allowlist.AllowListEnabled, nativeminter.GetContractNativeMinterStatus(state, enabledAddr))
+			require.Equal(t, allowlist.AllowListNoRole, nativeminter.GetContractNativeMinterStatus(state, noRoleAddr))
 
 			blockContext := &mockBlockContext{blockNumber: common.Big0}
 			if test.config != nil {
@@ -913,30 +914,30 @@ func TestFeeConfigManagerRun(t *testing.T) {
 		"set allow role from admin": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := feemanager.GetFeeConfigManagerStatus(state, noRoleAddr)
-				require.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, allowlist.AllowListEnabled, res)
 			},
 		},
 		"set allow role from non-admin fails": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -945,9 +946,9 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			feemanager.SetFeeConfigManagerStatus(state, adminAddr, precompile.AllowListAdmin)
-			feemanager.SetFeeConfigManagerStatus(state, enabledAddr, precompile.AllowListEnabled)
-			feemanager.SetFeeConfigManagerStatus(state, noRoleAddr, precompile.AllowListNoRole)
+			feemanager.SetFeeConfigManagerStatus(state, adminAddr, allowlist.AllowListAdmin)
+			feemanager.SetFeeConfigManagerStatus(state, enabledAddr, allowlist.AllowListEnabled)
+			feemanager.SetFeeConfigManagerStatus(state, noRoleAddr, allowlist.AllowListNoRole)
 
 			if test.preCondition != nil {
 				test.preCondition(t, state)
@@ -1233,30 +1234,30 @@ func TestRewardManagerRun(t *testing.T) {
 		"set allow role from admin": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := rewardmanager.GetRewardManagerAllowListStatus(state, noRoleAddr)
-				require.Equal(t, precompile.AllowListEnabled, res)
+				require.Equal(t, allowlist.AllowListEnabled, res)
 			},
 		},
 		"set allow role from non-admin fails": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := precompile.PackModifyAllowList(noRoleAddr, precompile.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: precompile.ModifyAllowListGasCost,
+			suppliedGas: allowlist.ModifyAllowListGasCost,
 			readOnly:    false,
-			expectedErr: precompile.ErrCannotModifyAllowList.Error(),
+			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -1265,9 +1266,9 @@ func TestRewardManagerRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			rewardmanager.SetRewardManagerAllowListStatus(state, adminAddr, precompile.AllowListAdmin)
-			rewardmanager.SetRewardManagerAllowListStatus(state, enabledAddr, precompile.AllowListEnabled)
-			rewardmanager.SetRewardManagerAllowListStatus(state, noRoleAddr, precompile.AllowListNoRole)
+			rewardmanager.SetRewardManagerAllowListStatus(state, adminAddr, allowlist.AllowListAdmin)
+			rewardmanager.SetRewardManagerAllowListStatus(state, enabledAddr, allowlist.AllowListEnabled)
+			rewardmanager.SetRewardManagerAllowListStatus(state, noRoleAddr, allowlist.AllowListNoRole)
 
 			if test.preCondition != nil {
 				test.preCondition(t, state)

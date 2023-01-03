@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	_ "embed"
@@ -22,11 +23,11 @@ import (
 )
 
 const (
-	AllowFeeRecipientsGasCost      uint64 = (precompile.WriteGasCostPerSlot) + precompile.ReadAllowListGasCost // write 1 slot + read allow list
-	AreFeeRecipientsAllowedGasCost uint64 = precompile.ReadAllowListGasCost
-	CurrentRewardAddressGasCost    uint64 = precompile.ReadAllowListGasCost
-	DisableRewardsGasCost          uint64 = (precompile.WriteGasCostPerSlot) + precompile.ReadAllowListGasCost // write 1 slot + read allow list
-	SetRewardAddressGasCost        uint64 = (precompile.WriteGasCostPerSlot) + precompile.ReadAllowListGasCost // write 1 slot + read allow list
+	AllowFeeRecipientsGasCost      uint64 = (precompile.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
+	AreFeeRecipientsAllowedGasCost uint64 = allowlist.ReadAllowListGasCost
+	CurrentRewardAddressGasCost    uint64 = allowlist.ReadAllowListGasCost
+	DisableRewardsGasCost          uint64 = (precompile.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
+	SetRewardAddressGasCost        uint64 = (precompile.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -64,14 +65,14 @@ func init() {
 }
 
 // GetRewardManagerAllowListStatus returns the role of [address] for the RewardManager list.
-func GetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address) precompile.AllowListRole {
-	return precompile.GetAllowListStatus(stateDB, precompile.RewardManagerAddress, address)
+func GetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+	return allowlist.GetAllowListStatus(stateDB, precompile.RewardManagerAddress, address)
 }
 
 // SetRewardManagerAllowListStatus sets the permissions of [address] to [role] for the
 // RewardManager list. Assumes [role] has already been verified as valid.
-func SetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address, role precompile.AllowListRole) {
-	precompile.SetAllowListRole(stateDB, precompile.RewardManagerAddress, address, role)
+func SetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+	allowlist.SetAllowListRole(stateDB, precompile.RewardManagerAddress, address, role)
 }
 
 // PackAllowFeeRecipients packs the function selector (first 4 func signature bytes).
@@ -104,7 +105,7 @@ func allowFeeRecipients(accessibleState precompile.PrecompileAccessibleState, ca
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := precompile.GetAllowListStatus(stateDB, precompile.RewardManagerAddress, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, precompile.RewardManagerAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotAllowFeeRecipients, caller)
 	}
@@ -216,7 +217,7 @@ func setRewardAddress(accessibleState precompile.PrecompileAccessibleState, call
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := precompile.GetAllowListStatus(stateDB, precompile.RewardManagerAddress, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, precompile.RewardManagerAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotSetRewardAddress, caller)
 	}
@@ -269,7 +270,7 @@ func disableRewards(accessibleState precompile.PrecompileAccessibleState, caller
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := precompile.GetAllowListStatus(stateDB, precompile.RewardManagerAddress, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, precompile.RewardManagerAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotDisableRewards, caller)
 	}
@@ -286,7 +287,7 @@ func disableRewards(accessibleState precompile.PrecompileAccessibleState, caller
 // Access to the getters/setters is controlled by an allow list for [precompileAddr].
 func createRewardManagerPrecompile(precompileAddr common.Address) (precompile.StatefulPrecompiledContract, error) {
 	var functions []*precompile.StatefulPrecompileFunction
-	functions = append(functions, precompile.CreateAllowListFunctions(precompileAddr)...)
+	functions = append(functions, allowlist.CreateAllowListFunctions(precompileAddr)...)
 	abiFunctionMap := map[string]precompile.RunStatefulPrecompileFunc{
 		"allowFeeRecipients":      allowFeeRecipients,
 		"areFeeRecipientsAllowed": areFeeRecipientsAllowed,

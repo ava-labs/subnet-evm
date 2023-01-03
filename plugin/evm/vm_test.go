@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
@@ -2143,8 +2144,8 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 	role := deployerallowlist.GetContractDeployerAllowListStatus(genesisState, testEthAddrs[0])
-	if role != precompile.AllowListNoRole {
-		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", precompile.AllowListNoRole, role)
+	if role != allowlist.AllowListNoRole {
+		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.AllowListNoRole, role)
 	}
 
 	// Send basic transaction to construct a simple block and confirm that the precompile state configuration in the worker behaves correctly.
@@ -2173,8 +2174,8 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 	role = deployerallowlist.GetContractDeployerAllowListStatus(blkState, testEthAddrs[0])
-	if role != precompile.AllowListAdmin {
-		t.Fatalf("Expected allow list status to be set to Admin: %s, but found: %s", precompile.AllowListAdmin, role)
+	if role != allowlist.AllowListAdmin {
+		t.Fatalf("Expected allow list status to be set to Admin: %s, but found: %s", allowlist.AllowListAdmin, role)
 	}
 }
 
@@ -2208,12 +2209,12 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	// Check that address 0 is whitelisted and address 1 is not
 	role := txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[0])
-	if role != precompile.AllowListAdmin {
-		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", precompile.AllowListAdmin, role)
+	if role != allowlist.AllowListAdmin {
+		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AllowListAdmin, role)
 	}
 	role = txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[1])
-	if role != precompile.AllowListNoRole {
-		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", precompile.AllowListNoRole, role)
+	if role != allowlist.AllowListNoRole {
+		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.AllowListNoRole, role)
 	}
 
 	// Submit a successful transaction
@@ -2303,12 +2304,12 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 
 	// Check that address 0 is whitelisted and address 1 is not
 	role := txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[0])
-	if role != precompile.AllowListAdmin {
-		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", precompile.AllowListAdmin, role)
+	if role != allowlist.AllowListAdmin {
+		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AllowListAdmin, role)
 	}
 	role = txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[1])
-	if role != precompile.AllowListNoRole {
-		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", precompile.AllowListNoRole, role)
+	if role != allowlist.AllowListNoRole {
+		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.AllowListNoRole, role)
 	}
 
 	// Submit a successful transaction
@@ -2412,11 +2413,11 @@ func TestFeeManagerChangeFee(t *testing.T) {
 
 	// Check that address 0 is whitelisted and address 1 is not
 	role := feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[0])
-	if role != precompile.AllowListAdmin {
+	if role != allowlist.AllowListAdmin {
 		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
 	}
 	role = feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[1])
-	if role != precompile.AllowListNoRole {
+	if role != allowlist.AllowListNoRole {
 		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
 	}
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config

@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -16,7 +17,7 @@ var _ precompile.StatefulPrecompileConfig = &ContractDeployerAllowListConfig{}
 // ContractDeployerAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the contract deployer specific precompile address.
 type ContractDeployerAllowListConfig struct {
-	precompile.AllowListConfig
+	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
 }
 
@@ -24,7 +25,7 @@ type ContractDeployerAllowListConfig struct {
 // ContractDeployerAllowList with [admins] and [enableds] as members of the allowlist.
 func NewContractDeployerAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *ContractDeployerAllowListConfig {
 	return &ContractDeployerAllowListConfig{
-		AllowListConfig: precompile.AllowListConfig{
+		AllowListConfig: allowlist.AllowListConfig{
 			AllowListAdmins:  admins,
 			EnabledAddresses: enableds,
 		},

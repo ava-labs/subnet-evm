@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -31,14 +32,14 @@ var (
 )
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
-func GetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address) precompile.AllowListRole {
-	return precompile.GetAllowListStatus(stateDB, precompile.ContractNativeMinterAddress, address)
+func GetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+	return allowlist.GetAllowListStatus(stateDB, precompile.ContractNativeMinterAddress, address)
 }
 
 // SetContractNativeMinterStatus sets the permissions of [address] to [role] for the
 // minter list. assumes [role] has already been verified as valid.
-func SetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address, role precompile.AllowListRole) {
-	precompile.SetAllowListRole(stateDB, precompile.ContractNativeMinterAddress, address, role)
+func SetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+	allowlist.SetAllowListRole(stateDB, precompile.ContractNativeMinterAddress, address, role)
 }
 
 // PackMintInput packs [address] and [amount] into the appropriate arguments for minting operation.
@@ -83,7 +84,7 @@ func mintNativeCoin(accessibleState precompile.PrecompileAccessibleState, caller
 
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := precompile.GetAllowListStatus(stateDB, precompile.ContractNativeMinterAddress, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, precompile.ContractNativeMinterAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
@@ -100,7 +101,7 @@ func mintNativeCoin(accessibleState precompile.PrecompileAccessibleState, caller
 
 // createNativeMinterPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr] and a native coin minter.
 func createNativeMinterPrecompile(precompileAddr common.Address) precompile.StatefulPrecompiledContract {
-	enabledFuncs := precompile.CreateAllowListFunctions(precompileAddr)
+	enabledFuncs := allowlist.CreateAllowListFunctions(precompileAddr)
 
 	mintFunc := precompile.NewStatefulPrecompileFunction(mintSignature, mintNativeCoin)
 

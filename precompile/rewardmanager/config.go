@@ -11,6 +11,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -56,7 +57,7 @@ func (i *InitialRewardConfig) Configure(state precompile.StateDB) error {
 // RewardManagerConfig implements the StatefulPrecompileConfig
 // interface while adding in the RewardManager specific precompile config.
 type RewardManagerConfig struct {
-	precompile.AllowListConfig
+	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
@@ -65,7 +66,7 @@ type RewardManagerConfig struct {
 // RewardManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial rewards config if specified.
 func NewRewardManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *RewardManagerConfig {
 	return &RewardManagerConfig{
-		AllowListConfig: precompile.AllowListConfig{
+		AllowListConfig: allowlist.AllowListConfig{
 			AllowListAdmins:  admins,
 			EnabledAddresses: enableds,
 		},

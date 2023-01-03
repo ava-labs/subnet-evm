@@ -10,13 +10,14 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the FeeConfigManager specific precompile address.
 type FeeConfigManagerConfig struct {
-	precompile.AllowListConfig // Config for the fee config manager allow list
+	allowlist.AllowListConfig // Config for the fee config manager allow list
 	precompile.UpgradeableConfig
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
@@ -25,7 +26,7 @@ type FeeConfigManagerConfig struct {
 // FeeConfigManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
 func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeConfigManagerConfig {
 	return &FeeConfigManagerConfig{
-		AllowListConfig: precompile.AllowListConfig{
+		AllowListConfig: allowlist.AllowListConfig{
 			AllowListAdmins:  admins,
 			EnabledAddresses: enableds,
 		},
