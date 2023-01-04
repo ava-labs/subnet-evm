@@ -42,7 +42,7 @@ func PackOrderedHashesWithSelector(dst []byte, functionSelector []byte, hashes [
 	return PackOrderedHashes(dst[len(functionSelector):], hashes)
 }
 
-// packOrderedHashes packs the ordered list of [hashes] into the [dst] byte buffer.
+// PackOrderedHashes packs the ordered list of [hashes] into the [dst] byte buffer.
 // assumes that [dst] has sufficient space to pack [hashes] or else this function will panic.
 func PackOrderedHashes(dst []byte, hashes []common.Hash) error {
 	if len(dst) != len(hashes)*common.HashLength {
