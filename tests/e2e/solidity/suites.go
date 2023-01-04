@@ -110,82 +110,54 @@ func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 	runHardhatTests(test, chainURI)
 }
 
+// TODO: can we move where we register the precompile e2e tests, so that they stay within their package
 var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
-	ginkgo.It("create blockchain", ginkgo.Label("test"), func() {
+	// Each ginkgo It node specifies the name of the genesis file (in ./tests/e2e/genesis/)
+	//to use to launch the subnet and the name of the TS test file to run on the subnet (in ./contract-examples/tests/)
+	ginkgo.It("contract native minter", ginkgo.Label("solidity-with-npx"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
 		executeHardHatTestOnNewBlockchain(ctx, "contract_native_minter")
 	})
 
-	// TODO: uncomment the rest of the precompile e2e tests
-	// TODO: can we move where we register the precompile e2e tests, so that they stay within their package
-	// ginkgo.It("tx allow list", ginkgo.Label("solidity-with-npx"), func() {
-	// 	err := startSubnet("./tests/e2e/genesis/tx_allow_list.json")
-	// 	gomega.Expect(err).Should(gomega.BeNil())
-	// 	running := runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeTrue())
-	// 	runHardhatTests("./test/ExampleTxAllowList.ts")
-	// 	stopSubnet()
-	// 	running = runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeFalse())
-	// })
+	ginkgo.It("tx allow list", ginkgo.Label("solidity-with-npx"), func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
 
-	// ginkgo.It("deployer allow list", ginkgo.Label("solidity-with-npx"), func() {
-	// 	err := startSubnet("./tests/e2e/genesis/deployer_allow_list.json")
-	// 	gomega.Expect(err).Should(gomega.BeNil())
-	// 	running := runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeTrue())
-	// 	runHardhatTests("./test/ExampleDeployerList.ts")
-	// 	stopSubnet()
-	// 	running = runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeFalse())
-	// })
+		executeHardHatTestOnNewBlockchain(ctx, "tx_allow_list")
+	})
 
-	// ginkgo.It("contract native minter", ginkgo.Label("solidity-with-npx"), func() {
-	// 	err := startSubnet("./tests/e2e/genesis/contract_native_minter.json")
-	// 	gomega.Expect(err).Should(gomega.BeNil())
-	// 	running := runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeTrue())
-	// 	runHardhatTests("./test/ERC20NativeMinter.ts")
-	// 	stopSubnet()
-	// 	running = runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeFalse())
-	// })
+	ginkgo.It("contract deployer allow list", ginkgo.Label("solidity-with-npx"), func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
 
-	// ginkgo.It("fee manager", ginkgo.Label("solidity-with-npx"), func() {
-	// 	err := startSubnet("./tests/e2e/genesis/fee_manager.json")
-	// 	gomega.Expect(err).Should(gomega.BeNil())
-	// 	running := runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeTrue())
-	// 	runHardhatTests("./test/ExampleFeeManager.ts")
-	// 	stopSubnet()
-	// 	running = runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeFalse())
-	// })
+		executeHardHatTestOnNewBlockchain(ctx, "contract_deployer_allow_list")
+	})
 
-	// ginkgo.It("reward manager", ginkgo.Label("solidity-with-npx"), func() {
-	// 	err := startSubnet("./tests/e2e/genesis/reward_manager.json")
-	// 	gomega.Expect(err).Should(gomega.BeNil())
-	// 	running := runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeTrue())
-	// 	runHardhatTests("./test/ExampleRewardManager.ts")
-	// 	stopSubnet()
-	// 	running = runner.IsRunnerUp(grpcEp)
-	// 	gomega.Expect(running).Should(gomega.BeFalse())
-	// })
+	ginkgo.It("fee manager", ginkgo.Label("solidity-with-npx"), func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
+		executeHardHatTestOnNewBlockchain(ctx, "fee_manager")
+	})
+
+	ginkgo.It("reward manager", ginkgo.Label("solidity-with-npx"), func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
+		executeHardHatTestOnNewBlockchain(ctx, "reward_manager")
+	})
 
 	// ADD YOUR PRECOMPILE HERE
 	/*
-			ginkgo.It("your precompile", ginkgo.Label("solidity-with-npx"), func() {
-			err := startSubnet("./tests/e2e/genesis/{your_precompile}.json")
-			gomega.Expect(err).Should(gomega.BeNil())
-			running := runner.IsRunnerUp(grpcEp)
-			gomega.Expect(running).Should(gomega.BeTrue())
-			runHardhatTests("./test/{YourPrecompileTest}.ts")
-			stopSubnet()
-			running = runner.IsRunnerUp(grpcEp)
-			gomega.Expect(running).Should(gomega.BeFalse())
+		ginkgo.It("your precompile", ginkgo.Label("solidity-with-npx"), func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+
+			// Specify the name shared by the genesis file in ./tests/e2e/genesis/{your_precompile}.json
+			// and the test file in ./contract-examples/tests/{your_precompile}.ts
+			executeHardHatTestOnNewBlockchain(ctx, "your_precompile")
 		})
 	*/
 })
