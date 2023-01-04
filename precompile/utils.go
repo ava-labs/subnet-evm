@@ -34,7 +34,7 @@ func DeductGas(suppliedGas uint64, requiredGas uint64) (uint64, error) {
 	return suppliedGas - requiredGas, nil
 }
 
-// packOrderedHashesWithSelector packs the function selector and ordered list of hashes into [dst]
+// PackOrderedHashesWithSelector packs the function selector and ordered list of hashes into [dst]
 // byte slice.
 // assumes that [dst] has sufficient room for [functionSelector] and [hashes].
 func PackOrderedHashesWithSelector(dst []byte, functionSelector []byte, hashes []common.Hash) error {
@@ -42,7 +42,7 @@ func PackOrderedHashesWithSelector(dst []byte, functionSelector []byte, hashes [
 	return PackOrderedHashes(dst[len(functionSelector):], hashes)
 }
 
-// packOrderedHashes packs the ordered list of [hashes] into the [dst] byte buffer.
+// PackOrderedHashes packs the ordered list of [hashes] into the [dst] byte buffer.
 // assumes that [dst] has sufficient space to pack [hashes] or else this function will panic.
 func PackOrderedHashes(dst []byte, hashes []common.Hash) error {
 	if len(dst) != len(hashes)*common.HashLength {

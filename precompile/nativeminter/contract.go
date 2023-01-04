@@ -83,7 +83,7 @@ func mintNativeCoin(accessibleState precompile.PrecompileAccessibleState, caller
 	}
 
 	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
+	// Verify that the caller is in the allow list
 	callerStatus := allowlist.GetAllowListStatus(stateDB, precompile.ContractNativeMinterAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
@@ -99,7 +99,8 @@ func mintNativeCoin(accessibleState precompile.PrecompileAccessibleState, caller
 	return []byte{}, remainingGas, nil
 }
 
-// createNativeMinterPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr] and a native coin minter.
+// createNativeMinterPrecompile returns a StatefulPrecompiledContract for native coin minting. The precompile
+// is accessed controlled by an allow list at [precompileAddr].
 func createNativeMinterPrecompile(precompileAddr common.Address) precompile.StatefulPrecompiledContract {
 	enabledFuncs := allowlist.CreateAllowListFunctions(precompileAddr)
 
@@ -108,7 +109,7 @@ func createNativeMinterPrecompile(precompileAddr common.Address) precompile.Stat
 	enabledFuncs = append(enabledFuncs, mintFunc)
 	// Construct the contract with no fallback function.
 	contract, err := precompile.NewStatefulPrecompileContract(nil, enabledFuncs)
-	// Change this to be returned as an error after refactoring this precompile
+	// TODO: Change this to be returned as an error after refactoring this precompile
 	// to use the new precompile template.
 	if err != nil {
 		panic(err)
