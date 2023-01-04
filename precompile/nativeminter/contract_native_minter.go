@@ -109,7 +109,7 @@ func createNativeMinterPrecompile(precompileAddr common.Address) precompile.Stat
 	enabledFuncs = append(enabledFuncs, mintFunc)
 	// Construct the contract with no fallback function.
 	contract, err := precompile.NewStatefulPrecompileContract(nil, enabledFuncs)
-	// Change this to be returned as an error after refactoring this precompile
+	// TODO: Change this to be returned as an error after refactoring this precompile
 	// to use the new precompile template.
 	if err != nil {
 		panic(err)
