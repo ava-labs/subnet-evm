@@ -126,7 +126,6 @@ func TestEqualContractNativeMinterConfig(t *testing.T) {
 				}),
 			expected: false,
 		},
-
 		{
 			name: "same config",
 			config: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,

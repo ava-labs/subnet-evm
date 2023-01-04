@@ -31,7 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/avalanchego/api/keystore"
@@ -2431,7 +2430,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	testHighFeeConfig.MinBaseFee = big.NewInt(28_000_000_000)
 
 	data, err := feemanager.PackSetFeeConfig(testHighFeeConfig)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	tx := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   genesis.Config.ChainID,

@@ -13,14 +13,14 @@ import (
 
 var (
 	_ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
-	// Singleton StatefulPrecompiledContract for W/R access to the contract deployer allow list.
+
+	// Singleton StatefulPrecompiledContract for W/R access to the tx allow list.
 	TxAllowListPrecompile precompile.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(precompile.TxAllowListAddress)
 
 	ErrSenderAddressNotAllowListed = errors.New("cannot issue transaction from non-allow listed address")
 )
 
-// GetTxAllowListStatus returns the role of [address] for the contract deployer
-// allow list.
+// GetTxAllowListStatus returns the role of [address] for the allow list.
 func GetTxAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
 	return allowlist.GetAllowListStatus(stateDB, precompile.TxAllowListAddress, address)
 }
