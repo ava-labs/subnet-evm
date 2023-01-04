@@ -2,7 +2,7 @@ import "@nomiclabs/hardhat-waffle"
 import "./tasks.ts"
 
 // HardHat users must populate these environment variables in order to connect to their subnet-evm instance
-// Since the blockchainID is not necessarily known, there's no good default to use here.
+// Since the blockchainID is not known in advance, there's no good default to use and we use the C-Chain here.
 var local_rpc_uri = process.env.RPC_URI || "http://127.0.0.1:9650/ext/bc/C/rpc"
 var local_chain_id = process.env.CHAIN_ID || 99999
 
@@ -44,7 +44,7 @@ export default {
         "0x86f78c5416151fe3546dece84fda4b4b1e36089f2dbc48496faf3a950f16157c",
         "0x750839e9dbbd2a0910efe40f50b2f3b2f2f59f5580bb4b83bd8c1201cf9a010a"
       ],
-      pollingInterval: "2s"
+      pollingInterval: "1s"
     },
   }
 }
