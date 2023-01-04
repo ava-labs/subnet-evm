@@ -3,7 +3,7 @@ import "./tasks.ts"
 
 // HardHat users must populate these environment variables in order to connect to their subnet-evm instance
 // Since the blockchainID is not necessarily known, there's no good default to use here.
-var local_rpc_uri = process.env.RPC_URI || "http://127.0.0.1:9650/ext/bc/subnet-evm-chain/rpc"
+var local_rpc_uri = process.env.RPC_URI || "http://127.0.0.1:9650/ext/bc/C/rpc"
 var local_chain_id = process.env.CHAIN_ID || 99999
 
 export default {

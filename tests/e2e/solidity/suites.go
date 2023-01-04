@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -40,28 +41,24 @@ var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 
 func runHardhatTests(test string, rpcURI string) {
 	log.Info("Sleeping to wait for test ping", "rpcURI", rpcURI)
-	time.Sleep(time.Minute)
 	client, err := utils.NewEvmClient(rpcURI, 225, 2) // TODO this is failing because the Avalanche engine does not start bootstrapping of subnets when staking is disabled
 	gomega.Expect(err).Should(gomega.BeNil())
 
 	bal, err := client.FetchBalance(context.Background(), common.HexToAddress(""))
 	gomega.Expect(err).Should(gomega.BeNil())
-	gomega.Expect(bal).Should(gomega.Equal(common.Big0))
+	gomega.Expect(bal.Cmp(common.Big0)).Should(gomega.Equal(0))
 
 	// TODO fix this to run hardhat tests on a network
-	// err := os.Setenv("RPC_URI", rpcURI)
-	// gomega.Expect(err).Should(gomega.BeNil())
 
-	// utils.RunCommand(fmt.Sprintf("npx hardhat test %s", "--network=local"))
-	// cmd := exec.Command("npx", "hardhat", "test", test, "--network", "local")
-	// cmd.Env = append(cmd.Env, fmt.Sprintf("RPC_URI=%s", rpcURI))
-	// cmd.Dir = "./contract-examples"
-	// out, err := cmd.Output()
-	// if err != nil {
-	// 	fmt.Println(string(out))
-	// 	fmt.Println(err)
-	// }
-	// gomega.Expect(err).Should(gomega.BeNil())
+	cmd := exec.Command("npx", "hardhat", "test", fmt.Sprintf("./test/%s.ts", test), "--network", "local")
+	cmd.Env = append(cmd.Env, fmt.Sprintf("RPC_URI=%s", rpcURI))
+	cmd.Dir = "./contract-examples"
+	log.Info("Running hardhat command", "cmd", cmd.String())
+
+	time.Sleep(10 * time.Minute)
+	out, err := cmd.CombinedOutput()
+	fmt.Printf("\nCombined output:\n\n%s\n", string(out))
+	gomega.Expect(err).Should(gomega.BeNil())
 }
 
 func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
