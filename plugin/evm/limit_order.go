@@ -101,7 +101,9 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 				blockNumber := newChainAcceptedEvent.Block.Number().Uint64()
 				for _, tx := range newChainAcceptedEvent.Block.Transactions() {
 					tsHashes = append(tsHashes, tx.Hash().String())
-					lop.limitOrderTxProcessor.HandleOrderBookTx(tx, blockNumber, *lop.backend) // parse update in memory db
+					if lop.limitOrderTxProcessor.CheckIfOrderBookContractCall(tx) {
+						lop.limitOrderTxProcessor.HandleOrderBookTx(tx, blockNumber, *lop.backend)
+					}
 				}
 				log.Info("$$$$$ New head event", "number", newChainAcceptedEvent.Block.Header().Number, "tx hashes", tsHashes,
 					"miner", newChainAcceptedEvent.Block.Coinbase().String(),
