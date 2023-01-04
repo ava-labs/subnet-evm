@@ -99,7 +99,8 @@ func mintNativeCoin(accessibleState precompile.PrecompileAccessibleState, caller
 	return []byte{}, remainingGas, nil
 }
 
-// createNativeMinterPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr] and a native coin minter.
+// createNativeMinterPrecompile returns a StatefulPrecompiledContract for native coin minting. The precompile
+// is accessed controlled by an allow list at [precompileAddr].
 func createNativeMinterPrecompile(precompileAddr common.Address) precompile.StatefulPrecompiledContract {
 	enabledFuncs := allowlist.CreateAllowListFunctions(precompileAddr)
 
