@@ -18,6 +18,7 @@ var (
 	_ precompile.StatefulPrecompileConfig = &ContractNativeMinterConfig{}
 
 	Address = common.HexToAddress("0x0200000000000000000000000000000000000001")
+	Key     = "contractNativeMinterConfig"
 )
 
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -29,7 +30,10 @@ type ContractNativeMinterConfig struct {
 }
 
 func init() {
-	precompile.RegisterPrecompile(ContractNativeMinterConfig{})
+	err := precompile.RegisterModule(ContractNativeMinterConfig{})
+	if err != nil {
+		panic(err)
+	}
 }
 
 // NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -132,6 +136,19 @@ func (c *ContractNativeMinterConfig) String() string {
 	return string(bytes)
 }
 
-func (c ContractNativeMinterConfig) Name() string {
-	return "contractNativeMinterConfig"
+func (c ContractNativeMinterConfig) Key() string {
+	return Key
+}
+
+func (ContractNativeMinterConfig) New() precompile.StatefulPrecompileConfig {
+	return new(ContractNativeMinterConfig)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (c *ContractNativeMinterConfig) UnmarshalJSON(b []byte) error {
+	type Alias ContractNativeMinterConfig
+	if err := json.Unmarshal(b, (*Alias)(c)); err != nil {
+		return err
+	}
+	return nil
 }

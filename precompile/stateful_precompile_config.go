@@ -4,6 +4,7 @@
 package precompile
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -16,8 +17,10 @@ type StatefulPrecompileModule interface {
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
 	Contract() StatefulPrecompiledContract
-	// Name returns the name of the stateful precompile.
-	Name() string
+	// Key returns the unique key for the stateful precompile.
+	Key() string
+	// New returns a new instance of the stateful precompile config.
+	New() StatefulPrecompileConfig
 }
 
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
@@ -45,6 +48,7 @@ type StatefulPrecompileConfig interface {
 	// its own address space.
 	Configure(ChainConfig, StateDB, BlockContext) error
 
+	json.Unmarshaler // TODO: this might not be necessary
 	fmt.Stringer
 }
 

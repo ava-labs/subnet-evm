@@ -694,7 +694,7 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 
 	// If the tx allow list is enabled, return an error if the from address is not allow listed.
 	headTimestamp := big.NewInt(int64(pool.currentHead.Time))
-	if pool.chainconfig.IsPrecompileEnabled(txallowlist.Address, headTimestamp) {
+	if pool.chainconfig.IsPrecompileEnabled(txallowlist.Key, headTimestamp) {
 		txAllowListRole := txallowlist.GetTxAllowListStatus(pool.currentState, from)
 		if !txAllowListRole.IsEnabled() {
 			return fmt.Errorf("%w: %s", txallowlist.ErrSenderAddressNotAllowListed, from)
@@ -1446,7 +1446,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	// without requiring FeeConfigManager is enabled.
 	// This is already being set by SetMinFee when gas price updater starts.
 	// However tests are currently failing if we change this check to IsSubnetEVM.
-	if pool.chainconfig.IsPrecompileEnabled(feemanager.Address, new(big.Int).SetUint64(newHead.Time)) {
+	if pool.chainconfig.IsPrecompileEnabled(feemanager.Key, new(big.Int).SetUint64(newHead.Time)) {
 		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
 			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)

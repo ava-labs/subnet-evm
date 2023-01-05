@@ -2121,7 +2121,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.ContractDeployerAllowListConfig = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(time.Now().Unix()), testEthAddrs, nil)
+	genesis.Config.Precompiles[deployerallowlist.Key] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(time.Now().Unix()), testEthAddrs, nil)
 
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
@@ -2185,7 +2185,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.TxAllowListConfig = txallowlist.NewTxAllowListConfig(big.NewInt(0), testEthAddrs[0:1], nil)
+	genesis.Config.Precompiles[txallowlist.Key] = txallowlist.NewTxAllowListConfig(big.NewInt(0), testEthAddrs[0:1], nil)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2261,7 +2261,9 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 		t.Fatal(err)
 	}
 	enableAllowListTimestamp := time.Unix(0, 0) // enable at genesis
-	genesis.Config.TxAllowListConfig = txallowlist.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1], nil)
+	genesis.Config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
+		txallowlist.Key: txallowlist.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1], nil),
+	}
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2373,7 +2375,9 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.FeeManagerConfig = feemanager.NewFeeManagerConfig(big.NewInt(0), testEthAddrs[0:1], nil, nil)
+	genesis.Config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
+		feemanager.Key: feemanager.NewFeeManagerConfig(big.NewInt(0), testEthAddrs[0:1], nil, nil),
+	}
 
 	// set a lower fee config now
 	testLowFeeConfig := commontype.FeeConfig{
@@ -2613,7 +2617,9 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 
-	genesis.Config.RewardManagerConfig = rewardmanager.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
+	genesis.Config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
+		rewardmanager.Key: rewardmanager.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil),
+	}
 	genesis.Config.AllowFeeRecipients = true // enable this in genesis to test if this is recognized by the reward manager
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
@@ -2753,7 +2759,9 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 
-	genesis.Config.RewardManagerConfig = rewardmanager.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil)
+	genesis.Config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
+		rewardmanager.Key: rewardmanager.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil),
+	}
 	genesis.Config.AllowFeeRecipients = false // disable this in genesis
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
