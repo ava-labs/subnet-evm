@@ -63,9 +63,15 @@ jobs:
       - name: Yarn install
         run: yarn
         working-directory: ./contract-examples
-      - name: Run e2e tests
+      - name: Install AvalancheGo Release
         shell: bash
-        run: SKIP_NETWORK_RUNNER_START=true SKIP_NETWORK_RUNNER_SHUTDOWN=true ENABLE_SOLIDITY_TESTS=true scripts/run.sh
+        run: BASEDIR=/tmp/e2e-test AVAGO_FILEPATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
+      - name: Build Subnet-EVM Plugin Binary
+        shell: bash
+        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+      - uses: Run E2E Tests
+        shell: bash
+        run: AVALANCHE_BINARY_PATH=/tmp/e2e-test/avalanchego/avalanchego ./scripts/run_ginkgo.sh
 
   simulator_test:
     name: Load testing with simulator

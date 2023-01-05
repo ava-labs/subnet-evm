@@ -20,13 +20,14 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 # Set up avalanche binary path and assume build directory is set
 AVALANCHE_BINARY_PATH=${AVALANCHE_BINARY_PATH:-"$GOPATH/src/github.com/ava-labs/avalanchego/build/avalanchego"}
-PLUGIN_DIR=${PLUGIN_DIR:-"$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins"}
 DATA_DIR=${DATA_DIR:-/tmp/subnet-evm-start-node/$(date "+%Y-%m-%d%:%H:%M:%S")}
 
 # Create node config in DATA_DIR
 echo "creating node config"
 mkdir -p $DATA_DIR
-  cat <<EOF >$DATA_DIR/config.json
+CONFIG_FILE_PATH=$DATA_DIR/config.json
+
+  cat <<EOF >$CONFIG_FILE_PATH
 {
   "network-id": "local",
   "staking-enabled": false,
@@ -37,5 +38,10 @@ mkdir -p $DATA_DIR
 }
 EOF
 
+echo "Starting AvalancheGo node"
+echo "AvalancheGo Binary Path: ${AVALANCHE_BINARY_PATH}"
+echo "Data directory: ${DATA_DIR}"
+echo "Config file: ${CONFIG_FILE_PATH}"
+
 # Run the node
-$AVALANCHE_BINARY_PATH --data-dir=$DATA_DIR --config-file=$DATA_DIR/config.json
+$AVALANCHE_BINARY_PATH --data-dir=$DATA_DIR --config-file=$CONFIG_FILE_PATH
