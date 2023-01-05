@@ -87,7 +87,6 @@ func RegisterModule(stm StatefulPrecompileModule) error {
 	registeredModules[key] = stm
 	// keep the list sorted
 	insertSortedModules(stm)
-	fmt.Println(sortedModules)
 	return nil
 }
 
