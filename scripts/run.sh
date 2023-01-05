@@ -3,10 +3,10 @@ set -e
 
 # e.g.,
 #
-# run without e2e tests
+# run a 5 node network with the avalanche-network-runner
 # ./scripts/run.sh
 #
-# run without e2e tests, and with simulator
+# run a 5 node network with the load simulator
 # RUN_SIMULATOR=true ./scripts/run.sh
 #
 # run without e2e tests with DEBUG log level
@@ -35,37 +35,15 @@ GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 SKIP_NETWORK_RUNNER_START=${SKIP_NETWORK_RUNNER_START:-false}
 SKIP_NETWORK_RUNNER_SHUTDOWN=${SKIP_NETWORK_RUNNER_SHUTDOWN:-true}
 RUN_SIMULATOR=${RUN_SIMULATOR:-false}
-ENABLE_SOLIDITY_TESTS=${ENABLE_SOLIDITY_TESTS:-false}
-AVALANCHE_LOG_LEVEL=${AVALANCHE_LOG_LEVEL:-WARN}
 ANR_VERSION=$network_runner_version
-GINKGO_VERSION=$ginkgo_version
-
-# by default, "run.sh" should not run any tests...
-# simulator tests are not implemented in ginkgo
-# it instead runs external binary "simulator"
-# so we exclude all e2e tests here
-# ref. https://onsi.github.io/ginkgo/#spec-labels
-GINKGO_LABEL_FILTER="!precompile-upgrade && !solidity-with-npx && !solidity-counter"
-if [[ ${RUN_SIMULATOR} == true ]]; then
-  # only run "ping" tests, no other test
-  # because simulator itself will generate loads and run tests
-  GINKGO_LABEL_FILTER="ping"
-fi
-if [[ ${ENABLE_SOLIDITY_TESTS} == true ]]; then
-  GINKGO_LABEL_FILTER="solidity-with-npx"
-fi
 
 echo "Running with:"
 echo AVALANCHE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
-echo GINKGO_VERSION: ${GINKGO_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
 echo SKIP_NETWORK_RUNNER_START: ${SKIP_NETWORK_RUNNER_START}
 echo SKIP_NETWORK_RUNNER_SHUTDOWN: ${SKIP_NETWORK_RUNNER_SHUTDOWN}
 echo RUN_SIMULATOR: ${RUN_SIMULATOR}
-echo ENABLE_SOLIDITY_TESTS: ${ENABLE_SOLIDITY_TESTS}
-echo GINKGO_LABEL_FILTER: ${GINKGO_LABEL_FILTER}
-echo AVALANCHE_LOG_LEVEL: ${AVALANCHE_LOG_LEVEL}
 
 ############################
 # download avalanchego
@@ -91,6 +69,7 @@ if [[ ! -d ${AVAGO_FILEPATH} ]]; then
   if [[ ${GOOS} == "linux" ]]; then
     mkdir -p ${AVAGO_FILEPATH} && tar xzvf ${AVAGO_DOWNLOAD_PATH} --directory ${AVAGO_FILEPATH} --strip-components 1
   elif [[ ${GOOS} == "darwin" ]]; then
+    echo 'unzip '${AVAGO_DOWNLOAD_PATH}' -d '${AVAGO_FILEPATH}''
     unzip ${AVAGO_DOWNLOAD_PATH} -d ${AVAGO_FILEPATH}
     mv ${AVAGO_FILEPATH}/build/* ${AVAGO_FILEPATH}
     rm -rf ${AVAGO_FILEPATH}/build/
@@ -121,8 +100,10 @@ go build \
 # Create genesis file to use in network (make sure to add your address to
 # "alloc")
 export CHAIN_ID=99999
+GENESIS_FILE_PATH=$BASEDIR/genesis.json
+
 echo "creating genesis"
-  cat <<EOF >$BASEDIR/genesis.json
+  cat <<EOF >$GENESIS_FILE_PATH
 {
   "config": {
     "chainId": $CHAIN_ID,
@@ -184,38 +165,15 @@ else
   BIN=${GOBIN}/avalanche-network-runner
 fi
 echo "launch avalanche-network-runner in the background"
+
+# Start network runner server
 $BIN server \
   --log-level debug \
   --port=":12342" \
   --grpc-gateway-port=":12343" &
 PID=${!}
 
-run_ginkgo() {
-  echo "building e2e.test"
-  # to install the ginkgo binary (required for test build and run)
-  go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
-  ginkgo -h
-
-  ACK_GINKGO_RC=true ginkgo build ./tests/e2e
-
-  # By default, it runs all e2e test cases!
-  # Use "--ginkgo.skip" to skip tests.
-  # Use "--ginkgo.focus" to select tests.
-  echo "running e2e tests with SKIP_NETWORK_RUNNER_START ${SKIP_NETWORK_RUNNER_START}"
-  ./tests/e2e/e2e.test \
-    --ginkgo.vv \
-    --network-runner-log-level debug \
-    --network-runner-grpc-endpoint="0.0.0.0:12342" \
-    --avalanchego-path=${AVALANCHEGO_PATH} \
-    --avalanchego-plugin-dir=${AVALANCHEGO_PLUGIN_DIR} \
-    --avalanchego-log-level=${AVALANCHE_LOG_LEVEL} \
-    --vm-genesis-path=$BASEDIR/genesis.json \
-    --output-path=$BASEDIR/avalanchego-${VERSION}/output.yaml \
-    --skip-network-runner-start=${SKIP_NETWORK_RUNNER_START} \
-    --skip-network-runner-shutdown=${SKIP_NETWORK_RUNNER_SHUTDOWN} \
-    --ginkgo.label-filter="${GINKGO_LABEL_FILTER}"
-}
-
+# Define command to run the simulator
 run_simulator() {
   #################################
   echo "building simulator"
@@ -233,14 +191,14 @@ run_simulator() {
   --priority-fee=1
 }
 
-
-# whether start network via parser/main.go or e2e.test ginkgo
-# run the tests with label filter
-echo "running ginkgo"
-run_ginkgo
-# to fail the script if ginkgo failed
-EXIT_CODE=$?
-
+# Start the network with the defined blockchain specs
+$BIN control start \
+  --log-level debug \
+  --endpoint="0.0.0.0:12342" \
+  --number-of-nodes=5 \
+  --avalanchego-path ${AVALANCHEGO_PATH} \
+  --plugin-dir ${AVALANCHEGO_PLUGIN_DIR} \
+  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "'$GENESIS_FILE_PATH'"]'
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then
@@ -251,6 +209,14 @@ fi
 
 #################################
 if [[ ${SKIP_NETWORK_RUNNER_SHUTDOWN} == false ]]; then
+  $BIN control stop \
+    --log-level debug \
+    --endpoint="0.0.0.0:12342"
+
+  $BIN server stop \
+    --log-level debug \
+    --endpoint="0.0.0.0:12342"
+
   # just in case tests are aborted, manually terminate them again
   echo "network-runner RPC server was running on PID ${PID} as test mode; terminating the process..."
   pkill -P ${PID} || true
@@ -259,7 +225,12 @@ if [[ ${SKIP_NETWORK_RUNNER_SHUTDOWN} == false ]]; then
 else
   echo "network-runner RPC server is running on PID ${PID}..."
   echo ""
-  echo "use the following command to terminate:"
+  echo "use the following command to terminate via avalanche-network-runner:"
+  echo ""
+  echo ''$BIN' control stop --log-level debug --endpoint="0.0.0.0:12342"'
+  echo ''$BIN' server stop --log-level debug --endpoint="0.0.0.0:12342"'
+  echo ""
+  echo "use the following command to terminate forcefully:"
   echo ""
   echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
   echo ""
