@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/ava-labs/avalanchego/api/health"
@@ -57,8 +56,7 @@ func runHardhatTests(test string, rpcURI string) {
 	gomega.Expect(err).Should(gomega.BeNil())
 }
 
-func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
-	log.Info("Executing HardHat tests on a new blockchain", "test", test)
+func createNewSubnet(ctx context.Context, genesisFilePath string) string {
 	kc := secp256k1fx.NewKeychain(genesis.EWOQKey)
 
 	// NewWalletFromURI fetches the available UTXOs owned by [kc] on the network
@@ -77,7 +75,6 @@ func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 
 	wd, err := os.Getwd()
 	gomega.Expect(err).Should(gomega.BeNil())
-	genesisFilePath := fmt.Sprintf("./tests/e2e/genesis/%s.json", test)
 	log.Info("Reading genesis file", "filePath", genesisFilePath, "pwd", wd)
 	genesisBytes, err := os.ReadFile(genesisFilePath)
 	gomega.Expect(err).Should(gomega.BeNil())
@@ -96,7 +93,7 @@ func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 		genesisBytes,
 		evm.ID,
 		nil,
-		strings.ReplaceAll(test, "_", ""),
+		"testChain",
 	)
 	gomega.Expect(err).Should(gomega.BeNil())
 
@@ -106,9 +103,17 @@ func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(bootstrapped).Should(gomega.BeTrue())
 
-	// Confirm the new blockchain is up
-	chainURI := fmt.Sprintf("%s/ext/bc/%s/rpc", utils.DefaultLocalNodeURI, createChainTxID.String())
+	// Return the RPC Endpoint for the new blockchain
+	return fmt.Sprintf("%s/ext/bc/%s/rpc", utils.DefaultLocalNodeURI, createChainTxID.String())
+}
 
+func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
+	log.Info("Executing HardHat tests on a new blockchain", "test", test)
+
+	genesisFilePath := fmt.Sprintf("./tests/e2e/genesis/%s.json", test)
+	chainURI := createNewSubnet(ctx, genesisFilePath)
+
+	log.Info("Created subnet successfully", "ChainURI", chainURI)
 	runHardhatTests(test, chainURI)
 }
 

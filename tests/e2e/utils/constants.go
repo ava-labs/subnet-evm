@@ -3,6 +3,4 @@
 
 package utils
 
-var (
-	DefaultLocalNodeURI = "http://127.0.0.1:9650"
-)
+var DefaultLocalNodeURI = "http://127.0.0.1:9650"
