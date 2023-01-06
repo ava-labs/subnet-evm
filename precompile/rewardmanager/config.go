@@ -15,7 +15,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ precompile.StatefulPrecompileConfig = &RewardManagerConfig{}
+var (
+	_ precompile.StatefulPrecompileConfig = &RewardManagerConfig{}
+
+	Address = common.HexToAddress("0x0200000000000000000000000000000000000004")
+)
+
+func init() {
+	precompile.RegisterPrecompile(RewardManagerConfig{})
+}
 
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
@@ -109,13 +117,13 @@ func (c *RewardManagerConfig) Equal(s precompile.StatefulPrecompileConfig) bool 
 
 // Address returns the address of the RewardManager. Addresses reside under the precompile/params.go
 // Select a non-conflicting address and set it in the params.go.
-func (c *RewardManagerConfig) Address() common.Address {
-	return precompile.RewardManagerAddress
+func (c RewardManagerConfig) Address() common.Address {
+	return Address
 }
 
 // Configure configures [state] with the initial configuration.
 func (c *RewardManagerConfig) Configure(chainConfig precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	c.AllowListConfig.Configure(state, precompile.RewardManagerAddress)
+	c.AllowListConfig.Configure(state, Address)
 	// configure the RewardManager with the given initial configuration
 	if c.InitialRewardConfig != nil {
 		return c.InitialRewardConfig.Configure(state)
@@ -132,7 +140,7 @@ func (c *RewardManagerConfig) Configure(chainConfig precompile.ChainConfig, stat
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for RewardManager.
-func (c *RewardManagerConfig) Contract() precompile.StatefulPrecompiledContract {
+func (c RewardManagerConfig) Contract() precompile.StatefulPrecompiledContract {
 	return RewardManagerPrecompile
 }
 
@@ -150,4 +158,8 @@ func (c *RewardManagerConfig) Verify() error {
 func (c *RewardManagerConfig) String() string {
 	bytes, _ := json.Marshal(c)
 	return string(bytes)
+}
+
+func (c RewardManagerConfig) Name() string {
+	return "rewardManagerConfig"
 }

@@ -14,12 +14,22 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var (
+	_ precompile.StatefulPrecompileConfig = &FeeConfigManagerConfig{}
+
+	Address = common.HexToAddress("0x0200000000000000000000000000000000000003")
+)
+
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the FeeConfigManager specific precompile address.
 type FeeConfigManagerConfig struct {
 	allowlist.AllowListConfig // Config for the fee config manager allow list
 	precompile.UpgradeableConfig
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
+}
+
+func init() {
+	precompile.RegisterPrecompile(FeeConfigManagerConfig{})
 }
 
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -47,8 +57,8 @@ func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeConfigManagerConfig
 }
 
 // Address returns the address of the fee config manager contract.
-func (c *FeeConfigManagerConfig) Address() common.Address {
-	return precompile.FeeConfigManagerAddress
+func (c FeeConfigManagerConfig) Address() common.Address {
+	return Address
 }
 
 // Equal returns true if [s] is a [*FeeConfigManagerConfig] and it has been configured identical to [c].
@@ -84,11 +94,11 @@ func (c *FeeConfigManagerConfig) Configure(chainConfig precompile.ChainConfig, s
 			return fmt.Errorf("cannot configure fee config in chain config: %w", err)
 		}
 	}
-	return c.AllowListConfig.Configure(state, precompile.FeeConfigManagerAddress)
+	return c.AllowListConfig.Configure(state, Address)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the fee manager.
-func (c *FeeConfigManagerConfig) Contract() precompile.StatefulPrecompiledContract {
+func (c FeeConfigManagerConfig) Contract() precompile.StatefulPrecompiledContract {
 	return FeeConfigManagerPrecompile
 }
 
@@ -107,4 +117,8 @@ func (c *FeeConfigManagerConfig) Verify() error {
 func (c *FeeConfigManagerConfig) String() string {
 	bytes, _ := json.Marshal(c)
 	return string(bytes)
+}
+
+func (c FeeConfigManagerConfig) Name() string {
+	return "feeManagerConfig"
 }

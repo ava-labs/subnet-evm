@@ -12,13 +12,21 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
+var (
+	_ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
+
+	Address = common.HexToAddress("0x0200000000000000000000000000000000000002")
+)
 
 // TxAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the TxAllowList specific precompile address.
 type TxAllowListConfig struct {
 	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
+}
+
+func init() {
+	precompile.RegisterPrecompile(TxAllowListConfig{})
 }
 
 // NewTxAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -45,17 +53,17 @@ func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
 }
 
 // Address returns the address of the contract deployer allow list.
-func (c *TxAllowListConfig) Address() common.Address {
-	return precompile.TxAllowListAddress
+func (c TxAllowListConfig) Address() common.Address {
+	return Address
 }
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *TxAllowListConfig) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	return c.AllowListConfig.Configure(state, precompile.TxAllowListAddress)
+	return c.AllowListConfig.Configure(state, Address)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the allow list.
-func (c *TxAllowListConfig) Contract() precompile.StatefulPrecompiledContract {
+func (c TxAllowListConfig) Contract() precompile.StatefulPrecompiledContract {
 	return TxAllowListPrecompile
 }
 
@@ -73,4 +81,8 @@ func (c *TxAllowListConfig) Equal(s precompile.StatefulPrecompileConfig) bool {
 func (c *TxAllowListConfig) String() string {
 	bytes, _ := json.Marshal(c)
 	return string(bytes)
+}
+
+func (c TxAllowListConfig) Name() string {
+	return "txAllowList"
 }

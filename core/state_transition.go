@@ -36,7 +36,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
@@ -250,7 +249,7 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		// Check that the sender is on the tx allow list if enabled
-		if st.evm.ChainConfig().IsPrecompileEnabled(precompile.TxAllowListAddress, st.evm.Context.Time) {
+		if st.evm.ChainConfig().IsPrecompileEnabled(txallowlist.Address, st.evm.Context.Time) {
 			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, st.msg.From())
 			if !txAllowListRole.IsEnabled() {
 				return fmt.Errorf("%w: %s", txallowlist.ErrSenderAddressNotAllowListed, st.msg.From())

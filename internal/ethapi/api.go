@@ -44,6 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/davecgh/go-spew/spew"
@@ -626,12 +627,20 @@ func (api *BlockChainAPI) ChainId() *hexutil.Big {
 }
 
 // GetActivePrecompilesAt returns the active precompile configs at the given block timestamp.
-func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) params.PrecompileUpgrade {
+func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) map[string]precompile.StatefulPrecompileConfig {
 	if blockTimestamp == nil {
 		blockTimestampInt := s.b.CurrentHeader().Time
 		blockTimestamp = new(big.Int).SetUint64(blockTimestampInt)
 	}
-	return s.b.ChainConfig().GetActivePrecompileUpgrade(blockTimestamp)
+	res := make(map[string]precompile.StatefulPrecompileConfig)
+	for _, module := range precompile.RegisteredModules {
+		address := module.Address()
+		if config := s.b.ChainConfig().GetPrecompileConfig(address, blockTimestamp); config != nil && !config.IsDisabled() {
+			res[config.Name()] = config
+		}
+	}
+
+	return res
 }
 
 type FeeConfigResult struct {

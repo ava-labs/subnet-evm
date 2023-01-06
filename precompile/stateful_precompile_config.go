@@ -10,10 +10,19 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// StatefulPrecompileConfig defines the interface for a stateful precompile to
-type StatefulPrecompileConfig interface {
+type StatefulPrecompileModule interface {
 	// Address returns the address where the stateful precompile is accessible.
 	Address() common.Address
+	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
+	// this config is enabled.
+	Contract() StatefulPrecompiledContract
+	// Name returns the name of the stateful precompile.
+	Name() string
+}
+
+// StatefulPrecompileConfig defines the interface for a stateful precompile to
+type StatefulPrecompileConfig interface {
+	StatefulPrecompileModule
 	// Timestamp returns the timestamp at which this stateful precompile should be enabled.
 	// 1) 0 indicates that the precompile should be enabled from genesis.
 	// 2) n indicates that the precompile should be enabled in the first block with timestamp >= [n].
@@ -35,9 +44,6 @@ type StatefulPrecompileConfig interface {
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
 	Configure(ChainConfig, StateDB, BlockContext) error
-	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
-	// this config is enabled.
-	Contract() StatefulPrecompiledContract
 
 	fmt.Stringer
 }

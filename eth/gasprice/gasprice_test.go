@@ -40,7 +40,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -463,7 +462,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainConfig.ChainID,
 			Nonce:     b.TxNonce(addr),
-			To:        &precompile.FeeConfigManagerAddress,
+			To:        &feemanager.Address,
 			Gas:       chainConfig.FeeConfig.GasLimit.Uint64(),
 			Value:     common.Big0,
 			GasFeeCap: chainConfig.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees

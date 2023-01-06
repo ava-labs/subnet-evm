@@ -16,7 +16,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/feemanager"
@@ -1597,7 +1596,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &precompile.ContractDeployerAllowListAddress,
+					To:        &deployerallowlist.Address,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,
@@ -1643,7 +1642,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &precompile.FeeConfigManagerAddress,
+					To:        &feemanager.Address,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,

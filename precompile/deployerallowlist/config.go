@@ -12,7 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ precompile.StatefulPrecompileConfig = &ContractDeployerAllowListConfig{}
+var (
+	_ precompile.StatefulPrecompileConfig = &ContractDeployerAllowListConfig{}
+
+	Address = common.HexToAddress("0x0200000000000000000000000000000000000000")
+)
 
 // ContractDeployerAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the contract deployer specific precompile address.
@@ -46,12 +50,12 @@ func NewDisableContractDeployerAllowListConfig(blockTimestamp *big.Int) *Contrac
 
 // Address returns the address of the contract deployer allow list.
 func (c *ContractDeployerAllowListConfig) Address() common.Address {
-	return precompile.ContractDeployerAllowListAddress
+	return Address
 }
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *ContractDeployerAllowListConfig) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	return c.AllowListConfig.Configure(state, precompile.ContractDeployerAllowListAddress)
+	return c.AllowListConfig.Configure(state, Address)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the allow list.
@@ -73,4 +77,8 @@ func (c *ContractDeployerAllowListConfig) Equal(s precompile.StatefulPrecompileC
 func (c *ContractDeployerAllowListConfig) String() string {
 	bytes, _ := json.Marshal(c)
 	return string(bytes)
+}
+
+func (c ContractDeployerAllowListConfig) Name() string {
+	return "contractDeployerAllowListConfig"
 }
