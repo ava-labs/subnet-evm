@@ -53,21 +53,6 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 //   specified in the chainConfig by genesis.
 // - check a precompile is disabled before it is re-enabled
 func (c *ChainConfig) verifyPrecompileUpgrades() error {
-	var lastBlockTimestamp *big.Int
-	for i, upgrade := range c.PrecompileUpgrades {
-		config := upgrade.Config
-		configTimestamp := config.Timestamp()
-		if configTimestamp == nil {
-			return fmt.Errorf("PrecompileUpgrades[%d] cannot have a nil timestamp", i)
-		}
-		// Verify specified timestamps are monotonically increasing across all precompile keys.
-		// Note: It is OK for multiple configs of different keys to specify the same timestamp.
-		if lastBlockTimestamp != nil && configTimestamp.Cmp(lastBlockTimestamp) < 0 {
-			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) < previous timestamp (%v)", i, configTimestamp, lastBlockTimestamp)
-		}
-		lastBlockTimestamp = configTimestamp
-	}
-
 	// Store this struct to keep track of the last upgrade for each precompile key.
 	// Required for timestamp and disabled checks.
 	type lastUpgradeData struct {
@@ -90,6 +75,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 	}
 
 	// next range over upgrades to verify correct use of disabled and blockTimestamps.
+	var lastBlockTimestamp *big.Int
 	for i, upgrade := range c.PrecompileUpgrades {
 		config := upgrade.Config
 		key := upgrade.Config.Key()
@@ -100,17 +86,27 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 			lastUpgraded *big.Int
 		)
 		if !ok {
-			disabled = false
+			disabled = true
 			lastUpgraded = nil
 		} else {
 			disabled = lastUpgrade.disabled
 			lastUpgraded = lastUpgrade.lastUpgraded
 		}
+		configTimestamp := config.Timestamp()
+
+		if configTimestamp == nil {
+			return fmt.Errorf("PrecompileUpgrades[%d] cannot have a nil timestamp", i)
+		}
+		// Verify specified timestamps are monotonically increasing across all precompile keys.
+		// Note: It is OK for multiple configs of different keys to specify the same timestamp.
+		if lastBlockTimestamp != nil && configTimestamp.Cmp(lastBlockTimestamp) < 0 {
+			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) < previous timestamp (%v)", i, configTimestamp, lastBlockTimestamp)
+		}
 
 		if disabled == config.IsDisabled() {
 			return fmt.Errorf("PrecompileUpgrades[%d] disable should be [%v]", i, !disabled)
 		}
-		if lastUpgraded != nil && (config.Timestamp().Cmp(lastUpgraded) <= 0) {
+		if lastUpgraded != nil && (configTimestamp.Cmp(lastUpgraded) <= 0) {
 			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) <= previous timestamp (%v)", i, config.Timestamp(), lastUpgraded)
 		}
 
@@ -120,8 +116,10 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 
 		lastUpgradeMap[key] = lastUpgradeData{
 			disabled:     config.IsDisabled(),
-			lastUpgraded: config.Timestamp(),
+			lastUpgraded: configTimestamp,
 		}
+
+		lastBlockTimestamp = configTimestamp
 	}
 
 	return nil
