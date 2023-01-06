@@ -635,7 +635,7 @@ func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimesta
 	res := make(map[string]precompile.StatefulPrecompileConfig)
 	for _, module := range precompile.RegisteredModules() {
 		key := module.Key()
-		if config := s.b.ChainConfig().GetPrecompileConfig(key, blockTimestamp); config != nil && !config.IsDisabled() {
+		if config := s.b.ChainConfig().GetActivePrecompileConfig(key, blockTimestamp); config != nil && !config.IsDisabled() {
 			res[key] = config
 		}
 	}

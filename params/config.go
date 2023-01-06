@@ -305,7 +305,7 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
 func (c *ChainConfig) IsPrecompileEnabled(name string, blockTimestamp *big.Int) bool {
-	config := c.GetPrecompileConfig(name, blockTimestamp)
+	config := c.GetActivePrecompileConfig(name, blockTimestamp)
 	return config != nil && !config.IsDisabled()
 }
 
