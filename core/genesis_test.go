@@ -39,6 +39,8 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -190,11 +192,11 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
-				config.ContractDeployerAllowListConfig = precompile.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil)
+				config.ContractDeployerAllowListConfig = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil)
 				return &config
 			},
 			assertState: func(t *testing.T, sdb *state.StateDB) {
-				assert.Equal(t, precompile.AllowListAdmin, precompile.GetContractDeployerAllowListStatus(sdb, addr), "unexpected allow list status for modified address")
+				assert.Equal(t, allowlist.AllowListAdmin, deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr), "unexpected allow list status for modified address")
 				assert.Equal(t, uint64(1), sdb.GetNonce(precompile.ContractDeployerAllowListAddress))
 			},
 		},
@@ -265,7 +267,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	require.Greater(block.Time(), bc.lastAccepted.Time())
 
 	activatedGenesis := customg
-	contractDeployerConfig := precompile.NewContractDeployerAllowListConfig(big.NewInt(51), nil, nil)
+	contractDeployerConfig := deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(51), nil, nil)
 	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			// Enable ContractDeployerAllowList at timestamp 50

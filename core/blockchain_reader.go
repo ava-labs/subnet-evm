@@ -40,6 +40,8 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
@@ -366,7 +368,7 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 		return commontype.EmptyFeeConfig, nil, err
 	}
 
-	storedFeeConfig := precompile.GetStoredFeeConfig(stateDB)
+	storedFeeConfig := feemanager.GetStoredFeeConfig(stateDB)
 	// this should not return an invalid fee config since it's assumed that
 	// StoreFeeConfig returns an error when an invalid fee config is attempted to be stored.
 	// However an external stateDB call can modify the contract state.
@@ -374,7 +376,7 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	if err := storedFeeConfig.Verify(); err != nil {
 		return commontype.EmptyFeeConfig, nil, err
 	}
-	lastChangedAt := precompile.GetFeeConfigLastChangedAt(stateDB)
+	lastChangedAt := feemanager.GetFeeConfigLastChangedAt(stateDB)
 	cacheable := &cacheableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
 	// add it to the cache
 	bc.feeConfigCache.Add(parent.Root, cacheable)
@@ -413,7 +415,7 @@ func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool,
 	if err != nil {
 		return common.Address{}, false, err
 	}
-	rewardAddress, feeRecipients := precompile.GetStoredRewardAddress(stateDB)
+	rewardAddress, feeRecipients := rewardmanager.GetStoredRewardAddress(stateDB)
 
 	cacheable := &cacheableCoinbaseConfig{coinbaseAddress: rewardAddress, allowFeeRecipients: feeRecipients}
 	bc.coinbaseConfigCache.Add(parent.Root, cacheable)

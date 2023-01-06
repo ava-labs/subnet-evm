@@ -23,6 +23,8 @@ type StatefulPrecompileConfig interface {
 	IsDisabled() bool
 	// Equal returns true if the provided argument configures the same precompile with the same parameters.
 	Equal(StatefulPrecompileConfig) bool
+	// Verify is called on startup and an error is treated as fatal. Configure can assume the Config has passed verification.
+	Verify() error
 	// Configure is called on the first block where the stateful precompile should be enabled.
 	// This allows the stateful precompile to configure its own state via [StateDB] and [BlockContext] as necessary.
 	// This function must be deterministic since it will impact the EVM state. If a change to the
@@ -36,8 +38,6 @@ type StatefulPrecompileConfig interface {
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
 	Contract() StatefulPrecompiledContract
-	// Verify is called on startup and an error is treated as fatal. Configure can assume the Config has passed verification.
-	Verify() error
 
 	fmt.Stringer
 }

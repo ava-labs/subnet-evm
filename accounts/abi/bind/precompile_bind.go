@@ -35,9 +35,23 @@ import (
 	"fmt"
 )
 
-func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, abifilename string) (string, error) {
-	// create hook
-	var createPrecompileFunc BindHook = func(lang Lang, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (interface{}, string, error) {
+// PrecompileBind generates a Go binding for a precompiled contract. It returns config binding and contract binding.
+func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, abifilename string) (string, string, error) {
+	// create hooks
+	configHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigGo)
+	contractHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractGo)
+
+	configBind, err := bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, configHook)
+	if err != nil {
+		return "", "", err
+	}
+	contractBind, err := bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, contractHook)
+
+	return configBind, contractBind, err
+}
+
+func createPrecompileHook(abifilename string, template string) BindHook {
+	var bindHook BindHook = func(lang Lang, pkg string, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (interface{}, string, error) {
 		// verify first
 		if lang != LangGo {
 			return nil, "", errors.New("only GoLang binding for precompiled contracts is supported yet")
@@ -82,11 +96,11 @@ func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []m
 		data := &tmplPrecompileData{
 			Contract: precompileContract,
 			Structs:  structs,
+			Package:  pkg,
 		}
-		return data, tmplSourcePrecompileGo, nil
+		return data, template, nil
 	}
-
-	return bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, createPrecompileFunc)
+	return bindHook
 }
 
 func allowListEnabled(funcs map[string]*tmplMethod) bool {

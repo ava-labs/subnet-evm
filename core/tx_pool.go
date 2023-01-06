@@ -43,6 +43,7 @@ import (
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/event"
@@ -694,9 +695,9 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 	// If the tx allow list is enabled, return an error if the from address is not allow listed.
 	headTimestamp := big.NewInt(int64(pool.currentHead.Time))
 	if pool.chainconfig.IsPrecompileEnabled(precompile.TxAllowListAddress, headTimestamp) {
-		txAllowListRole := precompile.GetTxAllowListStatus(pool.currentState, from)
+		txAllowListRole := txallowlist.GetTxAllowListStatus(pool.currentState, from)
 		if !txAllowListRole.IsEnabled() {
-			return fmt.Errorf("%w: %s", precompile.ErrSenderAddressNotAllowListed, from)
+			return fmt.Errorf("%w: %s", txallowlist.ErrSenderAddressNotAllowListed, from)
 		}
 	}
 	return nil

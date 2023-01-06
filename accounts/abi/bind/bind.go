@@ -51,7 +51,7 @@ const (
 	readAllowListFuncKey = "readAllowList"
 )
 
-type BindHook func(lang Lang, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (data interface{}, templateSource string, err error)
+type BindHook func(lang Lang, pkg string, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (data interface{}, templateSource string, err error)
 
 // Lang is a target programming language selector to generate bindings for.
 type Lang int
@@ -295,7 +295,7 @@ func bindHelper(types []string, abis []string, bytecodes []string, fsigs []map[s
 	// Generate the contract template data according to hook
 	if bindHook != nil {
 		var err error
-		data, templateSource, err = bindHook(lang, types, contracts, structs)
+		data, templateSource, err = bindHook(lang, pkg, types, contracts, structs)
 		if err != nil {
 			return "", err
 		}
