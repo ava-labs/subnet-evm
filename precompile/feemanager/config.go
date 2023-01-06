@@ -18,6 +18,7 @@ var (
 	_ precompile.StatefulPrecompileConfig = &FeeConfigManagerConfig{}
 
 	Address = common.HexToAddress("0x0200000000000000000000000000000000000003")
+	Key     = "feeManagerConfig"
 )
 
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -29,7 +30,10 @@ type FeeConfigManagerConfig struct {
 }
 
 func init() {
-	precompile.RegisterPrecompile(FeeConfigManagerConfig{})
+	err := precompile.RegisterModule(FeeConfigManagerConfig{})
+	if err != nil {
+		panic(err)
+	}
 }
 
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -119,6 +123,19 @@ func (c *FeeConfigManagerConfig) String() string {
 	return string(bytes)
 }
 
-func (c FeeConfigManagerConfig) Name() string {
-	return "feeManagerConfig"
+func (c FeeConfigManagerConfig) Key() string {
+	return Key
+}
+
+func (FeeConfigManagerConfig) New() precompile.StatefulPrecompileConfig {
+	return new(FeeConfigManagerConfig)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (c *FeeConfigManagerConfig) UnmarshalJSON(b []byte) error {
+	type Alias FeeConfigManagerConfig
+	if err := json.Unmarshal(b, (*Alias)(c)); err != nil {
+		return err
+	}
+	return nil
 }

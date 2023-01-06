@@ -37,8 +37,11 @@ var (
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
 
-	RegisteredModules = make([]StatefulPrecompileModule, 0)
-	reservedRanges    = []AddressRange{
+	registeredModules = make(map[string]StatefulPrecompileModule, 0)
+	// Sorted with the addresses in ascending order
+	sortedModules = make([]StatefulPrecompileModule, 0)
+
+	reservedRanges = []AddressRange{
 		{
 			common.HexToAddress("0x0100000000000000000000000000000000000000"),
 			common.HexToAddress("0x01000000000000000000000000000000000000ff"),
@@ -65,21 +68,47 @@ func ReservedAddress(addr common.Address) bool {
 	return false
 }
 
-func RegisterPrecompile(stm StatefulPrecompileModule) error {
+func RegisterModule(stm StatefulPrecompileModule) error {
 	address := stm.Address()
-	name := stm.Name()
+	key := stm.Key()
 	if !ReservedAddress(address) {
 		return fmt.Errorf("address %s not in a reserved range", address)
 	}
-	for _, precompile := range RegisteredModules {
+	_, ok := registeredModules[key]
+	if ok {
+		return fmt.Errorf("name %s already used by a stateful precompile", key)
+	}
+
+	for _, precompile := range registeredModules {
 		if precompile.Address() == address {
 			return fmt.Errorf("address %s already used by a stateful precompile", address)
 		}
-		if precompile.Name() == name {
-			return fmt.Errorf("name %s already used by a stateful precompile", name)
+	}
+	registeredModules[key] = stm
+	// keep the list sorted
+	insertSortedModules(stm)
+	fmt.Println(sortedModules)
+	return nil
+}
+
+// TODO: if not used remove this function
+func GetPrecompileModule(name string) (StatefulPrecompileModule, bool) {
+	stm, ok := registeredModules[name]
+	return stm, ok
+}
+
+// insertSortedModules inserts the module into the sorted list of modules
+func insertSortedModules(stm StatefulPrecompileModule) {
+	for i := 0; i < len(sortedModules); i++ {
+		if stm.Address().Hash().Big().Cmp(sortedModules[i].Address().Hash().Big()) < 0 {
+			sortedModules = append(sortedModules[:i], append([]StatefulPrecompileModule{stm}, sortedModules[i:]...)...)
+			return
 		}
 	}
-	RegisteredModules = append(RegisteredModules, stm)
+	// if we get here, the module should be appended to the end of the list
+	sortedModules = append(sortedModules, stm)
+}
 
-	return nil
+func RegisteredModules() []StatefulPrecompileModule {
+	return sortedModules
 }

@@ -114,6 +114,15 @@ func (n *noopStatefulPrecompileConfig) String() string {
 	return ""
 }
 
-func (n *noopStatefulPrecompileConfig) Name() string {
+func (n *noopStatefulPrecompileConfig) Key() string {
 	return ""
+}
+
+func (noopStatefulPrecompileConfig) New() StatefulPrecompileConfig {
+	return new(noopStatefulPrecompileConfig)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (c *noopStatefulPrecompileConfig) UnmarshalJSON(b []byte) error {
+	return nil
 }

@@ -16,6 +16,7 @@ var (
 	_ precompile.StatefulPrecompileConfig = &ContractDeployerAllowListConfig{}
 
 	Address = common.HexToAddress("0x0200000000000000000000000000000000000000")
+	Key     = "contractDeployerAllowListConfig"
 )
 
 // ContractDeployerAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -23,6 +24,13 @@ var (
 type ContractDeployerAllowListConfig struct {
 	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
+}
+
+func init() {
+	err := precompile.RegisterModule(ContractDeployerAllowListConfig{})
+	if err != nil {
+		panic(err)
+	}
 }
 
 // NewContractDeployerAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -49,7 +57,7 @@ func NewDisableContractDeployerAllowListConfig(blockTimestamp *big.Int) *Contrac
 }
 
 // Address returns the address of the contract deployer allow list.
-func (c *ContractDeployerAllowListConfig) Address() common.Address {
+func (ContractDeployerAllowListConfig) Address() common.Address {
 	return Address
 }
 
@@ -59,7 +67,7 @@ func (c *ContractDeployerAllowListConfig) Configure(_ precompile.ChainConfig, st
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the allow list.
-func (c *ContractDeployerAllowListConfig) Contract() precompile.StatefulPrecompiledContract {
+func (ContractDeployerAllowListConfig) Contract() precompile.StatefulPrecompiledContract {
 	return ContractDeployerAllowListPrecompile
 }
 
@@ -79,6 +87,19 @@ func (c *ContractDeployerAllowListConfig) String() string {
 	return string(bytes)
 }
 
-func (c ContractDeployerAllowListConfig) Name() string {
-	return "contractDeployerAllowListConfig"
+func (c ContractDeployerAllowListConfig) Key() string {
+	return Key
+}
+
+func (ContractDeployerAllowListConfig) New() precompile.StatefulPrecompileConfig {
+	return new(ContractDeployerAllowListConfig)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (c *ContractDeployerAllowListConfig) UnmarshalJSON(b []byte) error {
+	type Alias ContractDeployerAllowListConfig
+	if err := json.Unmarshal(b, (*Alias)(c)); err != nil {
+		return err
+	}
+	return nil
 }

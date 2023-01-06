@@ -19,10 +19,14 @@ var (
 	_ precompile.StatefulPrecompileConfig = &RewardManagerConfig{}
 
 	Address = common.HexToAddress("0x0200000000000000000000000000000000000004")
+	Key     = "rewardManagerConfig"
 )
 
 func init() {
-	precompile.RegisterPrecompile(RewardManagerConfig{})
+	err := precompile.RegisterModule(RewardManagerConfig{})
+	if err != nil {
+		panic(err)
+	}
 }
 
 type InitialRewardConfig struct {
@@ -160,6 +164,19 @@ func (c *RewardManagerConfig) String() string {
 	return string(bytes)
 }
 
-func (c RewardManagerConfig) Name() string {
-	return "rewardManagerConfig"
+func (c RewardManagerConfig) Key() string {
+	return Key
+}
+
+func (RewardManagerConfig) New() precompile.StatefulPrecompileConfig {
+	return new(RewardManagerConfig)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (c *RewardManagerConfig) UnmarshalJSON(b []byte) error {
+	type Alias RewardManagerConfig
+	if err := json.Unmarshal(b, (*Alias)(c)); err != nil {
+		return err
+	}
+	return nil
 }

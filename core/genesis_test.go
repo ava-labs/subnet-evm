@@ -191,7 +191,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
-				config.ContractDeployerAllowListConfig = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil)
+				config.Precompiles[deployerallowlist.Key] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil)
 				return &config
 			},
 			assertState: func(t *testing.T, sdb *state.StateDB) {
@@ -269,8 +269,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	contractDeployerConfig := deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(51), nil, nil)
 	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
-			// Enable ContractDeployerAllowList at timestamp 50
-			ContractDeployerAllowListConfig: contractDeployerConfig,
+			Config: contractDeployerConfig,
 		},
 	}
 

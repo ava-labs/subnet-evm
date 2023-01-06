@@ -83,7 +83,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-
+		Precompiles:         map[string]precompile.StatefulPrecompileConfig{},
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: big.NewInt(0),
 		},
@@ -105,7 +105,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
-		PrecompileUpgrade:   PrecompileUpgrade{},
+		Precompiles:         map[string]precompile.StatefulPrecompileConfig{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 
@@ -125,7 +125,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{},
-		PrecompileUpgrade:   PrecompileUpgrade{},
+		Precompiles:         map[string]precompile.StatefulPrecompileConfig{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 )
@@ -157,9 +157,40 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 
-	NetworkUpgrades              // Config for timestamps that enable avalanche network upgrades
-	PrecompileUpgrade            // Config for enabling precompiles from genesis
-	UpgradeConfig     `json:"-"` // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+	NetworkUpgrades                                                // Config for timestamps that enable avalanche network upgrades
+	Precompiles     map[string]precompile.StatefulPrecompileConfig // Config for enabling precompiles from genesis
+	UpgradeConfig   `json:"-"`                                     // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+}
+
+func (c *ChainConfig) UnmarshalJSON(data []byte) error {
+	// Alias ChainConfig to avoid recursion
+	type _ChainConfig ChainConfig
+	dec := _ChainConfig{}
+	err := json.Unmarshal(data, &dec)
+	if err != nil {
+		return err
+	}
+
+	// At this point we have populated all fields except PrecompileUpgrade
+	*c = ChainConfig(dec)
+	// Unmarshal PrecompileUpgrade
+	raw := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	c.Precompiles = make(map[string]precompile.StatefulPrecompileConfig)
+	for _, module := range precompile.RegisteredModules() {
+		key := module.Key()
+		if value, ok := raw[key]; ok {
+			conf := module.New()
+			err := conf.UnmarshalJSON(value)
+			if err != nil {
+				return err
+			}
+			c.Precompiles[key] = conf
+		}
+	}
+	return nil
 }
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -191,7 +222,7 @@ func (c *ChainConfig) String() string {
 	if err != nil {
 		networkUpgradesBytes = []byte("cannot marshal NetworkUpgrades")
 	}
-	precompileUpgradeBytes, err := json.Marshal(c.PrecompileUpgrade)
+	precompileUpgradeBytes, err := json.Marshal(c.Precompiles)
 	if err != nil {
 		precompileUpgradeBytes = []byte("cannot marshal PrecompileUpgrade")
 	}
@@ -273,8 +304,8 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 }
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
-func (c *ChainConfig) IsPrecompileEnabled(address common.Address, blockTimestamp *big.Int) bool {
-	config := c.GetPrecompileConfig(address, blockTimestamp)
+func (c *ChainConfig) IsPrecompileEnabled(name string, blockTimestamp *big.Int) bool {
+	config := c.GetPrecompileConfig(name, blockTimestamp)
 	return config != nil && !config.IsDisabled()
 }
 

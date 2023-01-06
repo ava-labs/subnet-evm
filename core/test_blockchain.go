@@ -1548,8 +1548,8 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	config := *params.TestChainConfig
 	// Set all of the required config parameters
-	config.ContractDeployerAllowListConfig = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil)
-	config.FeeManagerConfig = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil)
+	config.Precompiles[deployerallowlist.Key] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil)
+	config.Precompiles[feemanager.Key] = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil)
 	gspec := &Genesis{
 		Config: &config,
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},

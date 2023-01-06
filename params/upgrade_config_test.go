@@ -16,7 +16,7 @@ import (
 func TestVerifyUpgradeConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := *TestChainConfig
-	chainConfig.TxAllowListConfig = txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil)
+	chainConfig.Precompiles[txallowlist.Key] = txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil)
 
 	type test struct {
 		upgrades            []PrecompileUpgrade
@@ -28,7 +28,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 			expectedErrorString: "disable should be [true]",
 			upgrades: []PrecompileUpgrade{
 				{
-					TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(2), admins, nil),
+					txallowlist.NewTxAllowListConfig(big.NewInt(2), admins, nil),
 				},
 			},
 		},
@@ -36,7 +36,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 			expectedErrorString: "config timestamp (0) <= previous timestamp (1)",
 			upgrades: []PrecompileUpgrade{
 				{
-					TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(0)),
+					txallowlist.NewDisableTxAllowListConfig(big.NewInt(0)),
 				},
 			},
 		},
@@ -44,7 +44,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 			expectedErrorString: "config timestamp (1) <= previous timestamp (1)",
 			upgrades: []PrecompileUpgrade{
 				{
-					TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(1)),
+					txallowlist.NewDisableTxAllowListConfig(big.NewInt(1)),
 				},
 			},
 		},
@@ -71,8 +71,8 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := *TestChainConfig
-	chainConfig.TxAllowListConfig = txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil)
-	chainConfig.ContractDeployerAllowListConfig = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), admins, nil)
+	chainConfig.Precompiles[txallowlist.Key] = txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil)
+	chainConfig.Precompiles[deployerallowlist.Key] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), admins, nil)
 
 	type test struct {
 		configs             []*UpgradeConfig
@@ -87,10 +87,10 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
 						},
 					},
 				},
@@ -102,20 +102,20 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(8), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(8), admins, nil),
 						},
 					},
 				},
@@ -128,20 +128,20 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(8), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(8), admins, nil),
 						},
 					},
 				},
@@ -153,17 +153,17 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 					},
 				},
@@ -176,17 +176,17 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 					},
 				},
@@ -199,21 +199,21 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
 							// uses a different (empty) admin list, not allowed
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), []common.Address{}, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), []common.Address{}, nil),
 						},
 					},
 				},
@@ -225,20 +225,20 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
 						},
 					},
 				},
 				{
 					PrecompileUpgrades: []PrecompileUpgrade{
 						{
-							TxAllowListConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
+							txallowlist.NewDisableTxAllowListConfig(big.NewInt(6)),
 						},
 						{
-							TxAllowListConfig: txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
+							txallowlist.NewTxAllowListConfig(big.NewInt(7), admins, nil),
 						},
 					},
 				},
