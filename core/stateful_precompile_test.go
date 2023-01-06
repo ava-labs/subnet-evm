@@ -711,7 +711,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 	}
 }
 
-func TestFeeConfigManagerRun(t *testing.T) {
+func TestFeeManagerRun(t *testing.T) {
 	type test struct {
 		caller       common.Address
 		preCondition func(t *testing.T, state *state.StateDB)
@@ -923,7 +923,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				res := feemanager.GetFeeConfigManagerStatus(state, noRoleAddr)
+				res := feemanager.GetFeeManagerStatus(state, noRoleAddr)
 				require.Equal(t, allowlist.AllowListEnabled, res)
 			},
 		},
@@ -946,9 +946,9 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			feemanager.SetFeeConfigManagerStatus(state, adminAddr, allowlist.AllowListAdmin)
-			feemanager.SetFeeConfigManagerStatus(state, enabledAddr, allowlist.AllowListEnabled)
-			feemanager.SetFeeConfigManagerStatus(state, noRoleAddr, allowlist.AllowListNoRole)
+			feemanager.SetFeeManagerStatus(state, adminAddr, allowlist.AllowListAdmin)
+			feemanager.SetFeeManagerStatus(state, enabledAddr, allowlist.AllowListEnabled)
+			feemanager.SetFeeManagerStatus(state, noRoleAddr, allowlist.AllowListNoRole)
 
 			if test.preCondition != nil {
 				test.preCondition(t, state)
@@ -958,7 +958,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := feemanager.FeeConfigManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.FeeConfigManagerAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := feemanager.FeeManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.FeeManagerAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

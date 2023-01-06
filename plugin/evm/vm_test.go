@@ -2411,13 +2411,13 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	}
 
 	// Check that address 0 is whitelisted and address 1 is not
-	role := feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[0])
+	role := feemanager.GetFeeManagerStatus(genesisState, testEthAddrs[0])
 	if role != allowlist.AllowListAdmin {
-		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
+		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", precompile.FeeManagerAddress, role)
 	}
-	role = feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[1])
+	role = feemanager.GetFeeManagerStatus(genesisState, testEthAddrs[1])
 	if role != allowlist.AllowListNoRole {
-		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", precompile.FeeConfigManagerAddress, role)
+		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", precompile.FeeManagerAddress, role)
 	}
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(vm.blockChain.Genesis().Header())
@@ -2435,7 +2435,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	tx := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(0),
-		To:        &precompile.FeeConfigManagerAddress,
+		To:        &precompile.FeeManagerAddress,
 		Gas:       testLowFeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
 		GasFeeCap: testLowFeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
@@ -2471,7 +2471,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	tx2 := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(1),
-		To:        &precompile.FeeConfigManagerAddress,
+		To:        &precompile.FeeManagerAddress,
 		Gas:       genesis.Config.FeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
 		GasFeeCap: testLowFeeConfig.MinBaseFee, // this is too low for applied config, should fail

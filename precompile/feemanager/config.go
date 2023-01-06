@@ -15,7 +15,7 @@ import (
 )
 
 // FeeManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
-// interface while adding in the FeeConfigManager specific precompile address.
+// interface while adding in the FeeManager specific precompile address.
 type FeeManagerConfig struct {
 	allowlist.AllowListConfig // Config for the fee config manager allow list
 	precompile.UpgradeableConfig
@@ -23,7 +23,7 @@ type FeeManagerConfig struct {
 }
 
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// FeeConfigManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
+// FeeManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
 func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeManagerConfig {
 	return &FeeManagerConfig{
 		AllowListConfig: allowlist.AllowListConfig{
@@ -36,7 +36,7 @@ func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enabl
 }
 
 // NewDisableFeeManagerConfig returns config for a network upgrade at [blockTimestamp]
-// that disables FeeConfigManager.
+// that disables FeeManager.
 func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
 	return &FeeManagerConfig{
 		UpgradeableConfig: precompile.UpgradeableConfig{
@@ -48,7 +48,7 @@ func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
 
 // Address returns the address of the fee config manager contract.
 func (c *FeeManagerConfig) Address() common.Address {
-	return precompile.FeeConfigManagerAddress
+	return precompile.FeeManagerAddress
 }
 
 // Equal returns true if [s] is a [*FeeManagerConfig] and it has been configured identical to [c].
@@ -84,12 +84,12 @@ func (c *FeeManagerConfig) Configure(chainConfig precompile.ChainConfig, state p
 			return fmt.Errorf("cannot configure fee config in chain config: %w", err)
 		}
 	}
-	return c.AllowListConfig.Configure(state, precompile.FeeConfigManagerAddress)
+	return c.AllowListConfig.Configure(state, precompile.FeeManagerAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the fee manager.
 func (c *FeeManagerConfig) Contract() precompile.StatefulPrecompiledContract {
-	return FeeConfigManagerPrecompile
+	return FeeManagerPrecompile
 }
 
 func (c *FeeManagerConfig) Verify() error {

@@ -40,7 +40,7 @@ func (p *PrecompileUpgrade) getByAddress(address common.Address) (precompile.Sta
 		return p.ContractNativeMinterConfig, p.ContractNativeMinterConfig != nil
 	case precompile.TxAllowListAddress:
 		return p.TxAllowListConfig, p.TxAllowListConfig != nil
-	case precompile.FeeConfigManagerAddress:
+	case precompile.FeeManagerAddress:
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
 	case precompile.RewardManagerAddress:
 		return p.RewardManagerConfig, p.RewardManagerConfig != nil
@@ -184,7 +184,7 @@ func (c *ChainConfig) GetActivePrecompileUpgrade(blockTimestamp *big.Int) Precom
 	if config := c.GetPrecompileConfig(precompile.TxAllowListAddress, blockTimestamp); config != nil && !config.IsDisabled() {
 		pu.TxAllowListConfig = config.(*txallowlist.TxAllowListConfig)
 	}
-	if config := c.GetPrecompileConfig(precompile.FeeConfigManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
+	if config := c.GetPrecompileConfig(precompile.FeeManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
 		pu.FeeManagerConfig = config.(*feemanager.FeeManagerConfig)
 	}
 	if config := c.GetPrecompileConfig(precompile.RewardManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
