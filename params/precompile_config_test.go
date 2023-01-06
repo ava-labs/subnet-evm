@@ -4,6 +4,7 @@
 package params
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -207,15 +210,65 @@ func TestGetPrecompileConfig(t *testing.T) {
 		deployerallowlist.Key: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
 	}
 
-	deployerConfig := config.GetPrecompileConfig(deployerallowlist.Key, big.NewInt(0))
+	deployerConfig := config.GetActivePrecompileConfig(deployerallowlist.Key, big.NewInt(0))
 	assert.Nil(deployerConfig)
 
-	deployerConfig = config.GetPrecompileConfig(deployerallowlist.Key, big.NewInt(10))
+	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.Key, big.NewInt(10))
 	assert.NotNil(deployerConfig)
 
-	deployerConfig = config.GetPrecompileConfig(deployerallowlist.Key, big.NewInt(11))
+	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.Key, big.NewInt(11))
 	assert.NotNil(deployerConfig)
 
-	txAllowListConfig := config.GetPrecompileConfig(txallowlist.Key, big.NewInt(0))
+	txAllowListConfig := config.GetActivePrecompileConfig(txallowlist.Key, big.NewInt(0))
 	assert.Nil(txAllowListConfig)
+}
+
+func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
+	require := require.New(t)
+
+	upgradeBytes := []byte(`
+			{
+				"precompileUpgrades": [
+					{
+						"rewardManagerConfig": {
+							"blockTimestamp": 1671542573,
+							"adminAddresses": [
+								"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+							],
+							"initialRewardConfig": {
+								"allowFeeRecipients": true
+							}
+						}
+					},
+					{
+						"contractNativeMinterConfig": {
+							"blockTimestamp": 1671543172,
+							"disable": false
+						}
+					}
+				]
+			}
+	`)
+
+	var upgradeConfig UpgradeConfig
+	err := json.Unmarshal(upgradeBytes, &upgradeConfig)
+	require.NoError(err)
+
+	require.Len(upgradeConfig.PrecompileUpgrades, 2)
+
+	rewardManagerConf := upgradeConfig.PrecompileUpgrades[0].Config
+	require.Equal(rewardManagerConf.Key(), rewardmanager.Key)
+	testRewardManagerConfig := rewardmanager.NewRewardManagerConfig(
+		big.NewInt(1671542573),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		&rewardmanager.InitialRewardConfig{
+			AllowFeeRecipients: true,
+		})
+	require.True(rewardManagerConf.Equal(testRewardManagerConfig))
+
+	contractNativeMinterConf := upgradeConfig.PrecompileUpgrades[1].Config
+	require.Equal(contractNativeMinterConf.Key(), nativeminter.Key)
+	testContractNativeMinterConfig := nativeminter.NewContractNativeMinterConfig(big.NewInt(1671543172), nil, nil, nil)
+	require.True(contractNativeMinterConf.Equal(testContractNativeMinterConfig))
 }

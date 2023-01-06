@@ -27,9 +27,15 @@
 package params
 
 import (
+	"encoding/json"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckCompatible(t *testing.T) {
@@ -135,4 +141,55 @@ func TestCheckCompatible(t *testing.T) {
 			t.Errorf("error mismatch:\nstored: %v\nnew: %v\nblockHeight: %v\nerr: %v\nwant: %v", test.stored, test.new, test.blockHeight, err, test.wantErr)
 		}
 	}
+}
+
+func TestConfigUnmarshalJSON(t *testing.T) {
+	require := require.New(t)
+
+	config := []byte(`{
+    "chainId": 43214,
+    "allowFeeRecipients": true,
+    "rewardManagerConfig": {
+      "blockTimestamp": 1671542573,
+      "adminAddresses": [
+        "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+      ],
+      "initialRewardConfig": {
+        "allowFeeRecipients": true
+      }
+    },
+    "contractNativeMinterConfig": {
+      "blockTimestamp": 0,
+      "adminAddresses": [
+        "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+      ]
+    }
+  }`)
+	c := ChainConfig{}
+	err := json.Unmarshal(config, &c)
+	require.NoError(err)
+
+	require.Equal(c.ChainID, big.NewInt(43214))
+	require.Equal(c.AllowFeeRecipients, true)
+
+	rewardManagerConf, ok := c.Precompiles[rewardmanager.Key]
+	require.True(ok)
+	require.Equal(rewardManagerConf.Key(), rewardmanager.Key)
+	testRewardManagerConfig := rewardmanager.NewRewardManagerConfig(
+		big.NewInt(1671542573),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		&rewardmanager.InitialRewardConfig{
+			AllowFeeRecipients: true,
+		})
+	require.True(rewardManagerConf.Equal(testRewardManagerConfig))
+
+	contractNativeMinterConf := c.Precompiles[nativeminter.Key]
+	require.Equal(contractNativeMinterConf.Key(), nativeminter.Key)
+	testContractNativeMinterConfig := nativeminter.NewContractNativeMinterConfig(big.NewInt(0),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		nil,
+	)
+	require.True(contractNativeMinterConf.Equal(testContractNativeMinterConfig))
 }
