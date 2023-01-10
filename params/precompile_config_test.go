@@ -25,7 +25,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
 	config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
-		txallowlist.Key: txallowlist.NewTxAllowListConfig(big.NewInt(2), nil, nil),
+		txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(2), nil, nil),
 	}
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
@@ -152,14 +152,14 @@ func TestVerifyPrecompiles(t *testing.T) {
 			name: "invalid allow list config in tx allowlist",
 			upgrade: map[string]precompile.StatefulPrecompileConfig{
 
-				txallowlist.Key: txallowlist.NewTxAllowListConfig(big.NewInt(3), admins, admins),
+				txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(3), admins, admins),
 			},
 			expectedError: "cannot set address",
 		},
 		{
 			name: "invalid initial fee manager config",
 			upgrade: map[string]precompile.StatefulPrecompileConfig{
-				feemanager.Key: feemanager.NewFeeManagerConfig(big.NewInt(3), admins, nil,
+				feemanager.ConfigKey: feemanager.NewFeeManagerConfig(big.NewInt(3), admins, nil,
 					&commontype.FeeConfig{
 						GasLimit: big.NewInt(-1),
 					}),
@@ -207,19 +207,19 @@ func TestGetPrecompileConfig(t *testing.T) {
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
 	config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
-		deployerallowlist.Key: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
+		deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
 	}
 
-	deployerConfig := config.GetActivePrecompileConfig(deployerallowlist.Key, big.NewInt(0))
+	deployerConfig := config.GetActivePrecompileConfig(deployerallowlist.ConfigKey, big.NewInt(0))
 	assert.Nil(deployerConfig)
 
-	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.Key, big.NewInt(10))
+	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.ConfigKey, big.NewInt(10))
 	assert.NotNil(deployerConfig)
 
-	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.Key, big.NewInt(11))
+	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.ConfigKey, big.NewInt(11))
 	assert.NotNil(deployerConfig)
 
-	txAllowListConfig := config.GetActivePrecompileConfig(txallowlist.Key, big.NewInt(0))
+	txAllowListConfig := config.GetActivePrecompileConfig(txallowlist.ConfigKey, big.NewInt(0))
 	assert.Nil(txAllowListConfig)
 }
 
@@ -256,8 +256,8 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 
 	require.Len(upgradeConfig.PrecompileUpgrades, 2)
 
-	rewardManagerConf := upgradeConfig.PrecompileUpgrades[0].Config
-	require.Equal(rewardManagerConf.Key(), rewardmanager.Key)
+	rewardManagerConf := upgradeConfig.PrecompileUpgrades[0]
+	require.Equal(rewardManagerConf.Key(), rewardmanager.ConfigKey)
 	testRewardManagerConfig := rewardmanager.NewRewardManagerConfig(
 		big.NewInt(1671542573),
 		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
@@ -267,8 +267,8 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 		})
 	require.True(rewardManagerConf.Equal(testRewardManagerConfig))
 
-	contractNativeMinterConf := upgradeConfig.PrecompileUpgrades[1].Config
-	require.Equal(contractNativeMinterConf.Key(), nativeminter.Key)
+	contractNativeMinterConf := upgradeConfig.PrecompileUpgrades[1]
+	require.Equal(contractNativeMinterConf.Key(), nativeminter.ConfigKey)
 	testContractNativeMinterConfig := nativeminter.NewContractNativeMinterConfig(big.NewInt(1671543172), nil, nil, nil)
 	require.True(contractNativeMinterConf.Equal(testContractNativeMinterConfig))
 }

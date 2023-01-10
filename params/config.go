@@ -183,7 +183,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 		key := module.Key()
 		if value, ok := raw[key]; ok {
 			conf := module.New()
-			err := conf.UnmarshalJSON(value)
+			err := json.Unmarshal(value, conf)
 			if err != nil {
 				return err
 			}

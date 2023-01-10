@@ -434,7 +434,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 
 	// create a chain config with fee manager enabled at genesis with [addr] as the admin
 	chainConfig := *params.TestChainConfig
-	chainConfig.Precompiles[feemanager.Key] = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr}, nil, nil)
+	chainConfig.Precompiles[feemanager.ConfigKey] = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr}, nil, nil)
 
 	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
 	signer := types.LatestSigner(params.TestChainConfig)
@@ -462,7 +462,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainConfig.ChainID,
 			Nonce:     b.TxNonce(addr),
-			To:        &feemanager.Address,
+			To:        &feemanager.ContractAddress,
 			Gas:       chainConfig.FeeConfig.GasLimit.Uint64(),
 			Value:     common.Big0,
 			GasFeeCap: chainConfig.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees

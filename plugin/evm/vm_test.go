@@ -2121,7 +2121,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.Precompiles[deployerallowlist.Key] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(time.Now().Unix()), testEthAddrs, nil)
+	genesis.Config.Precompiles[deployerallowlist.ConfigKey] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(time.Now().Unix()), testEthAddrs, nil)
 
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
@@ -2185,7 +2185,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
-	genesis.Config.Precompiles[txallowlist.Key] = txallowlist.NewTxAllowListConfig(big.NewInt(0), testEthAddrs[0:1], nil)
+	genesis.Config.Precompiles[txallowlist.ConfigKey] = txallowlist.NewTxAllowListConfig(big.NewInt(0), testEthAddrs[0:1], nil)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2262,7 +2262,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	}
 	enableAllowListTimestamp := time.Unix(0, 0) // enable at genesis
 	genesis.Config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
-		txallowlist.Key: txallowlist.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1], nil),
+		txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1], nil),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
@@ -2376,7 +2376,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatal(err)
 	}
 	genesis.Config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
-		feemanager.Key: feemanager.NewFeeManagerConfig(big.NewInt(0), testEthAddrs[0:1], nil, nil),
+		feemanager.ConfigKey: feemanager.NewFeeManagerConfig(big.NewInt(0), testEthAddrs[0:1], nil, nil),
 	}
 
 	// set a lower fee config now
@@ -2417,11 +2417,11 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	// Check that address 0 is whitelisted and address 1 is not
 	role := feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[0])
 	if role != allowlist.AllowListAdmin {
-		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", feemanager.Address, role)
+		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", feemanager.ContractAddress, role)
 	}
 	role = feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[1])
 	if role != allowlist.AllowListNoRole {
-		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", feemanager.Address, role)
+		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", feemanager.ContractAddress, role)
 	}
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(vm.blockChain.Genesis().Header())
@@ -2439,7 +2439,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	tx := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(0),
-		To:        &feemanager.Address,
+		To:        &feemanager.ContractAddress,
 		Gas:       testLowFeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
 		GasFeeCap: testLowFeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees
@@ -2475,7 +2475,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	tx2 := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   genesis.Config.ChainID,
 		Nonce:     uint64(1),
-		To:        &feemanager.Address,
+		To:        &feemanager.ContractAddress,
 		Gas:       genesis.Config.FeeConfig.GasLimit.Uint64(),
 		Value:     common.Big0,
 		GasFeeCap: testLowFeeConfig.MinBaseFee, // this is too low for applied config, should fail
@@ -2618,7 +2618,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 
 	genesis.Config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
-		rewardmanager.Key: rewardmanager.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil),
+		rewardmanager.ConfigKey: rewardmanager.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil),
 	}
 	genesis.Config.AllowFeeRecipients = true // enable this in genesis to test if this is recognized by the reward manager
 	genesisJSON, err := genesis.MarshalJSON()
@@ -2665,7 +2665,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 
 	gas := 21000 + 240 + rewardmanager.SetRewardAddressGasCost // 21000 for tx, 240 for tx data
 
-	tx := types.NewTransaction(uint64(0), rewardmanager.Address, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
+	tx := types.NewTransaction(uint64(0), rewardmanager.ContractAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	require.NoError(t, err)
@@ -2760,7 +2760,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 
 	genesis.Config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
-		rewardmanager.Key: rewardmanager.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil),
+		rewardmanager.ConfigKey: rewardmanager.NewRewardManagerConfig(common.Big0, testEthAddrs[0:1], nil, nil),
 	}
 	genesis.Config.AllowFeeRecipients = false // disable this in genesis
 	genesisJSON, err := genesis.MarshalJSON()
@@ -2803,7 +2803,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 
 	gas := 21000 + 240 + rewardmanager.AllowFeeRecipientsGasCost // 21000 for tx, 240 for tx data
 
-	tx := types.NewTransaction(uint64(0), rewardmanager.Address, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
+	tx := types.NewTransaction(uint64(0), rewardmanager.ContractAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	require.NoError(t, err)

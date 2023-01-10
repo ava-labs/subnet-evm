@@ -4,26 +4,12 @@
 package precompile
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
 )
 
-type StatefulPrecompileModule interface {
-	// Address returns the address where the stateful precompile is accessible.
-	Address() common.Address
-	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
-	// this config is enabled.
-	Contract() StatefulPrecompiledContract
-	// Key returns the unique key for the stateful precompile.
-	Key() string
-	// New returns a new instance of the stateful precompile config.
-	New() StatefulPrecompileConfig
-}
-
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
+// be enabled via a network upgrade.
 type StatefulPrecompileConfig interface {
 	StatefulPrecompileModule
 	// Timestamp returns the timestamp at which this stateful precompile should be enabled.
@@ -48,7 +34,6 @@ type StatefulPrecompileConfig interface {
 	// its own address space.
 	Configure(ChainConfig, StateDB, BlockContext) error
 
-	json.Unmarshaler // TODO: this might not be necessary
 	fmt.Stringer
 }
 

@@ -9,37 +9,25 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// Gas costs for stateful precompiles
-const (
-	WriteGasCostPerSlot = 20_000
-	ReadGasCostPerSlot  = 5_000
-)
+type StatefulPrecompileModule interface {
+	// Address returns the address where the stateful precompile is accessible.
+	Address() common.Address
+	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
+	// this config is enabled.
+	Contract() StatefulPrecompiledContract
+	// Key returns the unique key for the stateful precompile.
+	Key() string
+	// New returns a new instance of the stateful precompile config.
+	New() StatefulPrecompileConfig
+}
 
-// Designated addresses of stateful precompiles
-// Note: it is important that none of these addresses conflict with each other or any other precompiles
-// in core/vm/contracts.go.
-// The first stateful precompiles were added in coreth to support nativeAssetCall and nativeAssetBalance. New stateful precompiles
-// originating in coreth will continue at this prefix, so we reserve this range in subnet-evm so that they can be migrated into
-// subnet-evm without issue.
-// These start at the address: 0x0100000000000000000000000000000000000000 and will increment by 1.
-// Optional precompiles implemented in subnet-evm start at 0x0200000000000000000000000000000000000000 and will increment by 1
-// from here to reduce the risk of conflicts.
-// For forks of subnet-evm, users should start at 0x0300000000000000000000000000000000000000 to ensure
-// that their own modifications do not conflict with stateful precompiles that may be added to subnet-evm
-// in the future.
 var (
-	// This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
-	// ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
-	// ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
-	// TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
-	// FeeManagerAddress         				= common.HexToAddress("0x0200000000000000000000000000000000000003")
-	// RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
-	// ADD YOUR PRECOMPILE HERE
-	// {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
-
-	registeredModules = make(map[string]StatefulPrecompileModule, 0)
-	// Sorted with the addresses in ascending order
-	sortedModules = make([]StatefulPrecompileModule, 0)
+	// registeredModulesIndex is a map of key to StatefulPrecompileModule
+	// used to quickly look up a module by key
+	registeredModulesIndex = make(map[string]StatefulPrecompileModule, 0)
+	// registeredModules is a list of StatefulPrecompileModule to preserve order
+	// for deterministic iteration
+	registeredModules = make([]StatefulPrecompileModule, 0)
 
 	reservedRanges = []AddressRange{
 		{
@@ -74,7 +62,7 @@ func RegisterModule(stm StatefulPrecompileModule) error {
 	if !ReservedAddress(address) {
 		return fmt.Errorf("address %s not in a reserved range", address)
 	}
-	_, ok := registeredModules[key]
+	_, ok := registeredModulesIndex[key]
 	if ok {
 		return fmt.Errorf("name %s already used by a stateful precompile", key)
 	}
@@ -84,30 +72,18 @@ func RegisterModule(stm StatefulPrecompileModule) error {
 			return fmt.Errorf("address %s already used by a stateful precompile", address)
 		}
 	}
-	registeredModules[key] = stm
-	// keep the list sorted
-	insertSortedModules(stm)
+
+	registeredModulesIndex[key] = stm
+	registeredModules = append(registeredModules, stm)
+
 	return nil
 }
 
-// TODO: if not used remove this function
 func GetPrecompileModule(name string) (StatefulPrecompileModule, bool) {
-	stm, ok := registeredModules[name]
+	stm, ok := registeredModulesIndex[name]
 	return stm, ok
 }
 
-// insertSortedModules inserts the module into the sorted list of modules
-func insertSortedModules(stm StatefulPrecompileModule) {
-	for i := 0; i < len(sortedModules); i++ {
-		if stm.Address().Hash().Big().Cmp(sortedModules[i].Address().Hash().Big()) < 0 {
-			sortedModules = append(sortedModules[:i], append([]StatefulPrecompileModule{stm}, sortedModules[i:]...)...)
-			return
-		}
-	}
-	// if we get here, the module should be appended to the end of the list
-	sortedModules = append(sortedModules, stm)
-}
-
 func RegisteredModules() []StatefulPrecompileModule {
-	return sortedModules
+	return registeredModules
 }

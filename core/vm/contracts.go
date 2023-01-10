@@ -156,6 +156,9 @@ func init() {
 		PrecompileAllNativeAddresses[k] = struct{}{}
 	}
 
+	// Register all stateful precompiles first before iterating over the list of modules.
+	registerStatefulPrecompiles()
+
 	// Ensure that this package will panic during init if there is a conflict present with the declared
 	// precompile addresses.
 	for _, module := range precompile.RegisteredModules() {

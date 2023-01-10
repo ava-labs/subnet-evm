@@ -15,8 +15,7 @@ import (
 var (
 	_ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
 
-	Address = common.HexToAddress("0x0200000000000000000000000000000000000002")
-	Key     = "txAllowListConfig"
+	ConfigKey = "txAllowListConfig"
 )
 
 // TxAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -24,13 +23,6 @@ var (
 type TxAllowListConfig struct {
 	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
-}
-
-func init() {
-	err := precompile.RegisterModule(TxAllowListConfig{})
-	if err != nil {
-		panic(err)
-	}
 }
 
 // NewTxAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -58,12 +50,12 @@ func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
 
 // Address returns the address of the contract deployer allow list.
 func (c TxAllowListConfig) Address() common.Address {
-	return Address
+	return ContractAddress
 }
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *TxAllowListConfig) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	return c.AllowListConfig.Configure(state, Address)
+	return c.AllowListConfig.Configure(state, c.Address())
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the allow list.
@@ -88,18 +80,9 @@ func (c *TxAllowListConfig) String() string {
 }
 
 func (c TxAllowListConfig) Key() string {
-	return Key
+	return ConfigKey
 }
 
 func (TxAllowListConfig) New() precompile.StatefulPrecompileConfig {
 	return new(TxAllowListConfig)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-func (c *TxAllowListConfig) UnmarshalJSON(b []byte) error {
-	type Alias TxAllowListConfig
-	if err := json.Unmarshal(b, (*Alias)(c)); err != nil {
-		return err
-	}
-	return nil
 }

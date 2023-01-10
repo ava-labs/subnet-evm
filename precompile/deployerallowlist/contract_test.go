@@ -194,7 +194,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 
 			blockContext := precompile.NewMockBlockContext(common.Big0, 0)
 			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
-			ret, remainingGas, err := ContractDeployerAllowListPrecompile.Run(accesibleState, test.caller, Address, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := ContractDeployerAllowListPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

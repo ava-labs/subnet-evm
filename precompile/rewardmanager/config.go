@@ -18,16 +18,8 @@ import (
 var (
 	_ precompile.StatefulPrecompileConfig = &RewardManagerConfig{}
 
-	Address = common.HexToAddress("0x0200000000000000000000000000000000000004")
-	Key     = "rewardManagerConfig"
+	ConfigKey = "rewardManagerConfig"
 )
-
-func init() {
-	err := precompile.RegisterModule(RewardManagerConfig{})
-	if err != nil {
-		panic(err)
-	}
-}
 
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
@@ -72,6 +64,10 @@ type RewardManagerConfig struct {
 	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
+}
+
+func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
+	return &RewardManagerConfig{}
 }
 
 // NewRewardManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -122,12 +118,12 @@ func (c *RewardManagerConfig) Equal(s precompile.StatefulPrecompileConfig) bool 
 // Address returns the address of the RewardManager. Addresses reside under the precompile/params.go
 // Select a non-conflicting address and set it in the params.go.
 func (c RewardManagerConfig) Address() common.Address {
-	return Address
+	return ContractAddress
 }
 
 // Configure configures [state] with the initial configuration.
 func (c *RewardManagerConfig) Configure(chainConfig precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	c.AllowListConfig.Configure(state, Address)
+	c.AllowListConfig.Configure(state, ContractAddress)
 	// configure the RewardManager with the given initial configuration
 	if c.InitialRewardConfig != nil {
 		return c.InitialRewardConfig.Configure(state)
@@ -165,18 +161,9 @@ func (c *RewardManagerConfig) String() string {
 }
 
 func (c RewardManagerConfig) Key() string {
-	return Key
+	return ConfigKey
 }
 
 func (RewardManagerConfig) New() precompile.StatefulPrecompileConfig {
 	return new(RewardManagerConfig)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-func (c *RewardManagerConfig) UnmarshalJSON(b []byte) error {
-	type Alias RewardManagerConfig
-	if err := json.Unmarshal(b, (*Alias)(c)); err != nil {
-		return err
-	}
-	return nil
 }

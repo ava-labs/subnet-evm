@@ -17,8 +17,7 @@ import (
 var (
 	_ precompile.StatefulPrecompileConfig = &FeeConfigManagerConfig{}
 
-	Address = common.HexToAddress("0x0200000000000000000000000000000000000003")
-	Key     = "feeManagerConfig"
+	ConfigKey = "feeManagerConfig"
 )
 
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -29,11 +28,8 @@ type FeeConfigManagerConfig struct {
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
 
-func init() {
-	err := precompile.RegisterModule(FeeConfigManagerConfig{})
-	if err != nil {
-		panic(err)
-	}
+func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
+	return &FeeConfigManagerConfig{}
 }
 
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -62,7 +58,7 @@ func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeConfigManagerConfig
 
 // Address returns the address of the fee config manager contract.
 func (c FeeConfigManagerConfig) Address() common.Address {
-	return Address
+	return ContractAddress
 }
 
 // Equal returns true if [s] is a [*FeeConfigManagerConfig] and it has been configured identical to [c].
@@ -98,7 +94,7 @@ func (c *FeeConfigManagerConfig) Configure(chainConfig precompile.ChainConfig, s
 			return fmt.Errorf("cannot configure fee config in chain config: %w", err)
 		}
 	}
-	return c.AllowListConfig.Configure(state, Address)
+	return c.AllowListConfig.Configure(state, ContractAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the fee manager.
@@ -124,18 +120,9 @@ func (c *FeeConfigManagerConfig) String() string {
 }
 
 func (c FeeConfigManagerConfig) Key() string {
-	return Key
+	return ConfigKey
 }
 
 func (FeeConfigManagerConfig) New() precompile.StatefulPrecompileConfig {
 	return new(FeeConfigManagerConfig)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-func (c *FeeConfigManagerConfig) UnmarshalJSON(b []byte) error {
-	type Alias FeeConfigManagerConfig
-	if err := json.Unmarshal(b, (*Alias)(c)); err != nil {
-		return err
-	}
-	return nil
 }

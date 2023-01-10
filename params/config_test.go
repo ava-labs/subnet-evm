@@ -172,9 +172,9 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require.Equal(c.ChainID, big.NewInt(43214))
 	require.Equal(c.AllowFeeRecipients, true)
 
-	rewardManagerConf, ok := c.Precompiles[rewardmanager.Key]
+	rewardManagerConf, ok := c.Precompiles[rewardmanager.ConfigKey]
 	require.True(ok)
-	require.Equal(rewardManagerConf.Key(), rewardmanager.Key)
+	require.Equal(rewardManagerConf.Key(), rewardmanager.ConfigKey)
 	testRewardManagerConfig := rewardmanager.NewRewardManagerConfig(
 		big.NewInt(1671542573),
 		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
@@ -184,8 +184,8 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 		})
 	require.True(rewardManagerConf.Equal(testRewardManagerConfig))
 
-	contractNativeMinterConf := c.Precompiles[nativeminter.Key]
-	require.Equal(contractNativeMinterConf.Key(), nativeminter.Key)
+	contractNativeMinterConf := c.Precompiles[nativeminter.ConfigKey]
+	require.Equal(contractNativeMinterConf.Key(), nativeminter.ConfigKey)
 	testContractNativeMinterConfig := nativeminter.NewContractNativeMinterConfig(big.NewInt(0),
 		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
 		nil,

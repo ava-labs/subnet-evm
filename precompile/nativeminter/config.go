@@ -18,8 +18,7 @@ import (
 var (
 	_ precompile.StatefulPrecompileConfig = &ContractNativeMinterConfig{}
 
-	Address = common.HexToAddress("0x0200000000000000000000000000000000000001")
-	Key     = "contractNativeMinterConfig"
+	ConfigKey = "contractNativeMinterConfig"
 )
 
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
@@ -30,11 +29,8 @@ type ContractNativeMinterConfig struct {
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
 }
 
-func init() {
-	err := precompile.RegisterModule(ContractNativeMinterConfig{})
-	if err != nil {
-		panic(err)
-	}
+func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
+	return &ContractNativeMinterConfig{}
 }
 
 // NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -63,7 +59,7 @@ func NewDisableContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNati
 
 // Address returns the address of the native minter contract.
 func (c ContractNativeMinterConfig) Address() common.Address {
-	return Address
+	return ContractAddress
 }
 
 // Configure configures [state] with the desired admins based on [c].
@@ -75,7 +71,7 @@ func (c *ContractNativeMinterConfig) Configure(_ precompile.ChainConfig, state p
 		}
 	}
 
-	return c.AllowListConfig.Configure(state, Address)
+	return c.AllowListConfig.Configure(state, ContractAddress)
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the native minter.
@@ -138,18 +134,9 @@ func (c *ContractNativeMinterConfig) String() string {
 }
 
 func (c ContractNativeMinterConfig) Key() string {
-	return Key
+	return ConfigKey
 }
 
 func (ContractNativeMinterConfig) New() precompile.StatefulPrecompileConfig {
 	return new(ContractNativeMinterConfig)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-func (c *ContractNativeMinterConfig) UnmarshalJSON(b []byte) error {
-	type Alias ContractNativeMinterConfig
-	if err := json.Unmarshal(b, (*Alias)(c)); err != nil {
-		return err
-	}
-	return nil
 }

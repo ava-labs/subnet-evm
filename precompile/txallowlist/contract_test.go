@@ -69,7 +69,7 @@ func TestTxAllowListRun(t *testing.T) {
 		"set no role": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
@@ -79,13 +79,13 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := GetTxAllowListStatus(state, adminAddr)
-				require.Equal(t, allowlist.AllowListEnabled, res)
+				require.Equal(t, allowlist.AllowListNoRole, res)
 			},
 		},
 		"set no role from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
 				require.NoError(t, err)
 
 				return input
@@ -120,7 +120,7 @@ func TestTxAllowListRun(t *testing.T) {
 		},
 		"set no role with readOnly enabled": {
 			caller:         adminAddr,
-			precompileAddr: Address,
+			precompileAddr: ContractAddress,
 			input: func() []byte {
 				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListEnabled)
 				require.NoError(t, err)
@@ -194,7 +194,7 @@ func TestTxAllowListRun(t *testing.T) {
 
 			blockContext := precompile.NewMockBlockContext(common.Big0, 0)
 			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
-			ret, remainingGas, err := TxAllowListPrecompile.Run(accesibleState, test.caller, Address, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := TxAllowListPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

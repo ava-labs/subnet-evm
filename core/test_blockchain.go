@@ -1548,8 +1548,8 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	config := *params.TestChainConfig
 	// Set all of the required config parameters
-	config.Precompiles[deployerallowlist.Key] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil)
-	config.Precompiles[feemanager.Key] = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil)
+	config.Precompiles[deployerallowlist.ConfigKey] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil)
+	config.Precompiles[feemanager.ConfigKey] = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil)
 	gspec := &Genesis{
 		Config: &config,
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
@@ -1596,7 +1596,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &deployerallowlist.Address,
+					To:        &deployerallowlist.ContractAddress,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,
@@ -1642,7 +1642,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &feemanager.Address,
+					To:        &feemanager.ContractAddress,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,

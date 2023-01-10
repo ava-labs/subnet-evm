@@ -20,7 +20,7 @@ var errMultipleKeys = errors.New("PrecompileUpgrade must have exactly one key")
 // each of the possible stateful precompile types that can be activated
 // as a network upgrade.
 type PrecompileUpgrade struct {
-	Config precompile.StatefulPrecompileConfig
+	precompile.StatefulPrecompileConfig
 }
 
 func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
@@ -37,11 +37,11 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("unknown precompile module: %s", key)
 		}
 		conf := module.New()
-		err := conf.UnmarshalJSON(value)
+		err := json.Unmarshal(value, conf)
 		if err != nil {
 			return err
 		}
-		u.Config = conf
+		u.StatefulPrecompileConfig = conf
 	}
 	return nil
 }
@@ -77,8 +77,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 	// next range over upgrades to verify correct use of disabled and blockTimestamps.
 	var lastBlockTimestamp *big.Int
 	for i, upgrade := range c.PrecompileUpgrades {
-		config := upgrade.Config
-		key := upgrade.Config.Key()
+		key := upgrade.Key()
 
 		lastUpgrade, ok := lastUpgradeMap[key]
 		var (
@@ -92,34 +91,34 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 			disabled = lastUpgrade.disabled
 			lastUpgraded = lastUpgrade.lastUpgraded
 		}
-		configTimestamp := config.Timestamp()
+		upgradeTimestamp := upgrade.Timestamp()
 
-		if configTimestamp == nil {
+		if upgradeTimestamp == nil {
 			return fmt.Errorf("PrecompileUpgrades[%d] cannot have a nil timestamp", i)
 		}
 		// Verify specified timestamps are monotonically increasing across all precompile keys.
 		// Note: It is OK for multiple configs of different keys to specify the same timestamp.
-		if lastBlockTimestamp != nil && configTimestamp.Cmp(lastBlockTimestamp) < 0 {
-			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) < previous timestamp (%v)", i, configTimestamp, lastBlockTimestamp)
+		if lastBlockTimestamp != nil && upgradeTimestamp.Cmp(lastBlockTimestamp) < 0 {
+			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) < previous timestamp (%v)", i, upgradeTimestamp, lastBlockTimestamp)
 		}
 
-		if disabled == config.IsDisabled() {
+		if disabled == upgrade.IsDisabled() {
 			return fmt.Errorf("PrecompileUpgrades[%d] disable should be [%v]", i, !disabled)
 		}
-		if lastUpgraded != nil && (configTimestamp.Cmp(lastUpgraded) <= 0) {
-			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) <= previous timestamp (%v)", i, config.Timestamp(), lastUpgraded)
+		if lastUpgraded != nil && (upgradeTimestamp.Cmp(lastUpgraded) <= 0) {
+			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) <= previous timestamp (%v)", i, upgradeTimestamp, lastUpgraded)
 		}
 
-		if err := config.Verify(); err != nil {
+		if err := upgrade.Verify(); err != nil {
 			return err
 		}
 
 		lastUpgradeMap[key] = lastUpgradeData{
-			disabled:     config.IsDisabled(),
-			lastUpgraded: configTimestamp,
+			disabled:     upgrade.IsDisabled(),
+			lastUpgraded: upgradeTimestamp,
 		}
 
-		lastBlockTimestamp = configTimestamp
+		lastBlockTimestamp = upgradeTimestamp
 	}
 
 	return nil
@@ -148,11 +147,10 @@ func (c *ChainConfig) getActivatingPrecompileConfigs(key string, from *big.Int, 
 	}
 	// Loop over all upgrades checking for the requested precompile config.
 	for _, upgrade := range upgrades {
-		if upgrade.Config.Key() == key {
-			config := upgrade.Config
+		if upgrade.Key() == key {
 			// Check if the precompile activates in the specified range.
-			if utils.IsForkTransition(config.Timestamp(), from, to) {
-				configs = append(configs, config)
+			if utils.IsForkTransition(upgrade.Timestamp(), from, to) {
+				configs = append(configs, upgrade.StatefulPrecompileConfig)
 			}
 		}
 	}
@@ -243,7 +241,7 @@ func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContex
 			// (or deconfigure it if it is being disabled.)
 			if config.IsDisabled() {
 				log.Info("Disabling precompile", "name", key)
-				statedb.Suicide(config.Address())
+				statedb.Suicide(module.Address())
 				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
 				// This enables re-configuration of the same contract state in the same block.
 				// Without an immediate Finalise call after the Suicide, a reconfigured precompiled state can be wiped out

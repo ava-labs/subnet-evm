@@ -28,10 +28,13 @@ const (
 	CurrentRewardAddressGasCost    uint64 = allowlist.ReadAllowListGasCost
 	DisableRewardsGasCost          uint64 = (precompile.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
 	SetRewardAddressGasCost        uint64 = (precompile.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
+
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
+	ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
+
 	ErrCannotAllowFeeRecipients      = errors.New("non-enabled cannot call allowFeeRecipients")
 	ErrCannotAreFeeRecipientsAllowed = errors.New("non-enabled cannot call areFeeRecipientsAllowed")
 	ErrCannotCurrentRewardAddress    = errors.New("non-enabled cannot call currentRewardAddress")
@@ -58,7 +61,7 @@ func init() {
 		panic(err)
 	}
 	RewardManagerABI = parsed
-	RewardManagerPrecompile, err = createRewardManagerPrecompile(Address)
+	RewardManagerPrecompile, err = createRewardManagerPrecompile(ContractAddress)
 	if err != nil {
 		panic(err)
 	}
@@ -66,13 +69,13 @@ func init() {
 
 // GetRewardManagerAllowListStatus returns the role of [address] for the RewardManager list.
 func GetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
-	return allowlist.GetAllowListStatus(stateDB, Address, address)
+	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetRewardManagerAllowListStatus sets the permissions of [address] to [role] for the
 // RewardManager list. Assumes [role] has already been verified as valid.
 func SetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
-	allowlist.SetAllowListRole(stateDB, Address, address, role)
+	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 
 // PackAllowFeeRecipients packs the function selector (first 4 func signature bytes).
@@ -83,12 +86,12 @@ func PackAllowFeeRecipients() ([]byte, error) {
 
 // EnableAllowFeeRecipients enables fee recipients.
 func EnableAllowFeeRecipients(stateDB precompile.StateDB) {
-	stateDB.SetState(Address, rewardAddressStorageKey, allowFeeRecipientsAddressValue)
+	stateDB.SetState(ContractAddress, rewardAddressStorageKey, allowFeeRecipientsAddressValue)
 }
 
 // DisableRewardAddress disables rewards and burns them by sending to Blackhole Address.
 func DisableFeeRewards(stateDB precompile.StateDB) {
-	stateDB.SetState(Address, rewardAddressStorageKey, constants.BlackholeAddr.Hash())
+	stateDB.SetState(ContractAddress, rewardAddressStorageKey, constants.BlackholeAddr.Hash())
 }
 
 func allowFeeRecipients(accessibleState precompile.PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -105,7 +108,7 @@ func allowFeeRecipients(accessibleState precompile.PrecompileAccessibleState, ca
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := allowlist.GetAllowListStatus(stateDB, Address, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotAllowFeeRecipients, caller)
 	}
@@ -165,7 +168,7 @@ func PackCurrentRewardAddressOutput(rewardAddress common.Address) ([]byte, error
 // GetStoredRewardAddress returns the current value of the address stored under rewardAddressStorageKey.
 // Returns an empty address and true if allow fee recipients is enabled, otherwise returns current reward address and false.
 func GetStoredRewardAddress(stateDB precompile.StateDB) (common.Address, bool) {
-	val := stateDB.GetState(Address, rewardAddressStorageKey)
+	val := stateDB.GetState(ContractAddress, rewardAddressStorageKey)
 	return common.BytesToAddress(val.Bytes()), val == allowFeeRecipientsAddressValue
 }
 
@@ -175,7 +178,7 @@ func StoreRewardAddress(stateDB precompile.StateDB, val common.Address) error {
 	if val == (common.Address{}) {
 		return ErrEmptyRewardAddress
 	}
-	stateDB.SetState(Address, rewardAddressStorageKey, val.Hash())
+	stateDB.SetState(ContractAddress, rewardAddressStorageKey, val.Hash())
 	return nil
 }
 
@@ -217,7 +220,7 @@ func setRewardAddress(accessibleState precompile.PrecompileAccessibleState, call
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := allowlist.GetAllowListStatus(stateDB, Address, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotSetRewardAddress, caller)
 	}
@@ -270,7 +273,7 @@ func disableRewards(accessibleState precompile.PrecompileAccessibleState, caller
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := allowlist.GetAllowListStatus(stateDB, Address, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotDisableRewards, caller)
 	}

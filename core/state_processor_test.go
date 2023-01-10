@@ -317,7 +317,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 				SubnetEVMTimestamp: big.NewInt(0),
 			},
 			Precompiles: map[string]precompile.StatefulPrecompileConfig{
-				txallowlist.Key: txallowlist.NewTxAllowListConfig(big.NewInt(0), nil, nil),
+				txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(0), nil, nil),
 			},
 		}
 		signer     = types.LatestSigner(config)

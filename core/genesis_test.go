@@ -191,12 +191,12 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
-				config.Precompiles[deployerallowlist.Key] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil)
+				config.Precompiles[deployerallowlist.ConfigKey] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil)
 				return &config
 			},
 			assertState: func(t *testing.T, sdb *state.StateDB) {
 				assert.Equal(t, allowlist.AllowListAdmin, deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr), "unexpected allow list status for modified address")
-				assert.Equal(t, uint64(1), sdb.GetNonce(deployerallowlist.Address))
+				assert.Equal(t, uint64(1), sdb.GetNonce(deployerallowlist.ContractAddress))
 			},
 		},
 	} {
@@ -269,7 +269,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	contractDeployerConfig := deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(51), nil, nil)
 	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
-			Config: contractDeployerConfig,
+			contractDeployerConfig,
 		},
 	}
 

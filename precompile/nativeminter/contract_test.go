@@ -251,7 +251,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
-			ret, remainingGas, err := ContractNativeMinterPrecompile.Run(accesibleState, test.caller, Address, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := ContractNativeMinterPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

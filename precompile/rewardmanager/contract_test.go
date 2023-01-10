@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -324,9 +323,9 @@ func TestRewardManagerRun(t *testing.T) {
 			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 
 			if test.config != nil {
-				test.config.Configure(params.TestChainConfig, state, blockContext)
+				test.config.Configure(nil, state, blockContext)
 			}
-			ret, remainingGas, err := RewardManagerPrecompile.Run(accesibleState, test.caller, Address, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := RewardManagerPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {
