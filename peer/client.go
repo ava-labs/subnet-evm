@@ -30,7 +30,7 @@ type NetworkClient interface {
 	SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, error)
 
 	// SendCrossChainRequest sends a request to a specific blockchain running on this node.
-	// Returns response bytes or ErrRequestFailed if the request failed.
+	// Returns response bytes, and ErrRequestFailed if the request failed.
 	SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error)
 
 	// Gossip sends given gossip message to peers
