@@ -370,9 +370,11 @@ func (vm *VM) Initialize(
 	vm.chainConfig = g.Config
 	vm.networkID = vm.ethConfig.NetworkId
 
-	// check that subnetEVM upgrade is enabled from genesis before upgradeBytes
-	if !vm.chainConfig.IsSubnetEVM(common.Big0) {
-		return errSubnetEVMUpgradeNotEnabled
+	if !vm.config.SkipSubnetEVMUpgradeCheck {
+		// check that subnetEVM upgrade is enabled from genesis before upgradeBytes
+		if !vm.chainConfig.IsSubnetEVM(common.Big0) {
+			return errSubnetEVMUpgradeNotEnabled
+		}
 	}
 
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
