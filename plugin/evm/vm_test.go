@@ -442,7 +442,6 @@ func TestOverrideSkipSubnetEVMUpgrade(t *testing.T) {
 
 		require.NoError(t, err)
 	}
-
 }
 
 func TestBuildEthTxBlock(t *testing.T) {
