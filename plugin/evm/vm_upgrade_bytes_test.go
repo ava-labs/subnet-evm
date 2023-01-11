@@ -146,9 +146,6 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 }
 
 func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
-	// Skipping the NetworkUpgrade Tests until we get a new NetworkUpgrade.
-	// The existing and only NetworkUpgrade that exists is SubnetEVM Upgrade which is now required at genesis.
-	t.Skip("no non-required network upgrades to test network upgrade abort")
 	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
 	metrics.Enabled = false
 	defer func() {
@@ -167,9 +164,10 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
+	configJSON := "{\"skip-subnet-evm-upgrade-check\": true}"
 
 	// initialize the VM with these upgrade bytes
-	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, "", string(upgradeBytesJSON))
+	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, string(configJSON), string(upgradeBytesJSON))
 	vm.clock.Set(subnetEVMTimestamp)
 
 	// verify upgrade is applied
@@ -216,9 +214,6 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 }
 
 func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
-	// Skipping the NetworkUpgrade Tests until we get a new NetworkUpgrade.
-	// The existing and only NetworkUpgrade that exists is SubnetEVM Upgrade which is now required at genesis.
-	t.Skip("no non-required network upgrades to test network upgrade abort")
 	// make genesis w/ fork at block 5
 	var genesis core.Genesis
 	if err := json.Unmarshal([]byte(genesisJSONPreSubnetEVM), &genesis); err != nil {
@@ -243,9 +238,10 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
 	}
+	configJSON := "{\"skip-subnet-evm-upgrade-check\": true}"
 
 	// initialize the VM with these upgrade bytes
-	_, vm, _, _ := GenesisVM(t, true, string(genesisBytes), "", string(upgradeBytesJSON))
+	_, vm, _, _ := GenesisVM(t, true, string(genesisBytes), string(configJSON), string(upgradeBytesJSON))
 
 	// verify upgrade is rescheduled
 	assert.False(t, vm.chainConfig.IsSubnetEVM(genesisSubnetEVMTimestamp))
@@ -263,7 +259,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	}
 
 	// initialize the VM with these upgrade bytes
-	_, vm, _, _ = GenesisVM(t, true, string(genesisBytes), "", string(upgradeBytesJSON))
+	_, vm, _, _ = GenesisVM(t, true, string(genesisBytes), string(configJSON), string(upgradeBytesJSON))
 
 	// verify upgrade is aborted
 	assert.False(t, vm.chainConfig.IsSubnetEVM(genesisSubnetEVMTimestamp))
