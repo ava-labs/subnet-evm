@@ -410,6 +410,41 @@ func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
 	}
 }
 
+func TestOverrideSkipSubnetEVMUpgrade(t *testing.T) {
+	genesisTests := []struct {
+		genesisJSON string
+	}{
+		{
+			// we expect an error when subnet evm upgrade is nil in chain config
+			genesisJSON: genesisJSONPreSubnetEVM,
+		},
+		{
+			// we expect an error when subnet evm upgrade is not enabled at genesis and at a later block instead
+			genesisJSON: genesisJSONSubnetEVMLateEnablement,
+		},
+	}
+
+	for _, test := range genesisTests {
+		ctx, dbManager, genesisBytes, issuer := setupGenesis(t, test.genesisJSON)
+		vm := &VM{}
+		configJSON := "{\"skip-subnet-evm-upgrade-check\": true}"
+		err := vm.Initialize(
+			context.Background(),
+			ctx,
+			dbManager,
+			genesisBytes,
+			[]byte(""),
+			[]byte(configJSON),
+			issuer,
+			[]*engCommon.Fx{},
+			nil,
+		)
+
+		require.NoError(t, err)
+	}
+
+}
+
 func TestBuildEthTxBlock(t *testing.T) {
 	// reduce block gas cost
 	issuer, vm, dbManager, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
