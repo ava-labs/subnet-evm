@@ -16,7 +16,7 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 # Build ginkgo
 echo "building precompile.test"
 # to install the ginkgo binary (required for test build and run)
-go install -v github.com/onsi/ginkgo/v2/ginkgo@${ginkgo_version}
+go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 
 ACK_GINKGO_RC=true ginkgo build ./tests/precompile ./tests/load
 

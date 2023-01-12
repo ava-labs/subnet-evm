@@ -19,7 +19,8 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 # Set up avalanche binary path and assume build directory is set
-AVALANCHE_BINARY_PATH=${AVALANCHE_BINARY_PATH:-"$GOPATH/src/github.com/ava-labs/avalanchego/build/avalanchego"}
+AVALANCHEGO_PATH=${AVALANCHEGO_PATH:-"$GOPATH/src/github.com/ava-labs/avalanchego/build/avalanchego"}
+AVALANCHEGO_PLUGIN_DIR=${AVALANCHEGO_PATH:-"$AVALANCHEGO_PATH/plugins"}
 DATA_DIR=${DATA_DIR:-/tmp/subnet-evm-start-node/$(date "+%Y-%m-%d%:%H:%M:%S")}
 
 # Create node config in DATA_DIR
@@ -35,14 +36,14 @@ CONFIG_FILE_PATH=$DATA_DIR/config.json
   "network-health-max-time-since-msg-received": 4611686018427387904,
   "network-health-max-time-since-msg-sent": 4611686018427387904,
   "health-check-frequency": "5s",
-  "plugin-dir": "$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins"
+  "plugin-dir": "$AVALANCHEGO_PLUGIN_DIR"
 }
 EOF
 
 echo "Starting AvalancheGo node"
-echo "AvalancheGo Binary Path: ${AVALANCHE_BINARY_PATH}"
+echo "AvalancheGo Binary Path: ${AVALANCHEGO_PATH}"
 echo "Data directory: ${DATA_DIR}"
 echo "Config file: ${CONFIG_FILE_PATH}"
 
 # Run the node
-$AVALANCHE_BINARY_PATH --data-dir=$DATA_DIR --config-file=$CONFIG_FILE_PATH
+$AVALANCHEGO_PATH --data-dir=$DATA_DIR --config-file=$CONFIG_FILE_PATH

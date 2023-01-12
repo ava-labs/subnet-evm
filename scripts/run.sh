@@ -23,13 +23,9 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 # Load the constants
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
-VERSION=$avalanche_version
+VERSION=$AVALANCHEGO_VERSION
 
-# "ewoq" key
-DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
-
-ANR_VERSION=$network_runner_version
+ANR_VERSION=$NETWORK_RUNNER_VERSION
 
 echo "Running with:"
 echo AVALANCHE_VERSION: ${VERSION}
@@ -37,51 +33,28 @@ echo ANR_VERSION: ${ANR_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
 
 ############################
-# download avalanchego
-# https://github.com/ava-labs/avalanchego/releases
-GOARCH=$(go env GOARCH)
-GOOS=$(go env GOOS)
-BASEDIR=/tmp/subnet-evm-runner
-mkdir -p ${BASEDIR}
-AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/${VERSION}/avalanchego-linux-${GOARCH}-${VERSION}.tar.gz
-AVAGO_DOWNLOAD_PATH=${BASEDIR}/avalanchego-linux-${GOARCH}-${VERSION}.tar.gz
-if [[ ${GOOS} == "darwin" ]]; then
-  AVAGO_DOWNLOAD_URL=https://github.com/ava-labs/avalanchego/releases/download/${VERSION}/avalanchego-macos-${VERSION}.zip
-  AVAGO_DOWNLOAD_PATH=${BASEDIR}/avalanchego-macos-${VERSION}.zip
-fi
+# Download AvalancheGo release and populate environment variables
+source "$SUBNET_EVM_PATH/scripts/install_avalanchego_release.sh"
+echo "Installed AvalancheGo release ${VERSION}"
+echo "AvalancheGo Path: ${AVALANCHEGO_PATH}"
+echo "Plugin Dir: ${AVALANCHEGO_PLUGIN_DIR}"
 
-AVAGO_FILEPATH=${BASEDIR}/avalanchego-${VERSION}
-if [[ ! -d ${AVAGO_FILEPATH} ]]; then
-  if [[ ! -f ${AVAGO_DOWNLOAD_PATH} ]]; then
-    echo "downloading avalanchego ${VERSION} at ${AVAGO_DOWNLOAD_URL} to ${AVAGO_DOWNLOAD_PATH}"
-    curl -L ${AVAGO_DOWNLOAD_URL} -o ${AVAGO_DOWNLOAD_PATH}
-  fi
-  echo "extracting downloaded avalanchego to ${AVAGO_FILEPATH}"
-  if [[ ${GOOS} == "linux" ]]; then
-    mkdir -p ${AVAGO_FILEPATH} && tar xzvf ${AVAGO_DOWNLOAD_PATH} --directory ${AVAGO_FILEPATH} --strip-components 1
-  elif [[ ${GOOS} == "darwin" ]]; then
-    echo 'unzip '${AVAGO_DOWNLOAD_PATH}' -d '${AVAGO_FILEPATH}''
-    unzip ${AVAGO_DOWNLOAD_PATH} -d ${AVAGO_FILEPATH}
-    mv ${AVAGO_FILEPATH}/build/* ${AVAGO_FILEPATH}
-    rm -rf ${AVAGO_FILEPATH}/build/
-  fi
-  find ${BASEDIR}/avalanchego-${VERSION}
-fi
+# "ewoq" key
+DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
-AVALANCHEGO_PATH=${AVAGO_FILEPATH}/avalanchego
-AVALANCHEGO_PLUGIN_DIR=${AVAGO_FILEPATH}/plugins
 
 #################################
 # compile subnet-evm
 # Check if SUBNET_EVM_COMMIT is set, if not retrieve the last commit from the repo.
 # This is used in the Dockerfile to allow a commit hash to be passed in without
 # including the .git/ directory within the Docker image.
-subnet_evm_commit=${SUBNET_EVM_COMMIT:-$(git rev-list -1 HEAD)}
+SUBNET_EVM_COMMIT=${SUBNET_EVM_COMMIT:-$(git rev-list -1 HEAD)}
 
 # Build Subnet EVM, which is run as a subprocess
-echo "Building Subnet EVM Version: $subnet_evm_version; GitCommit: $subnet_evm_commit"
+echo "Building Subnet EVM Version: $SUBNET_EVM_VERSION; GitCommit: $SUBNET_EVM_COMMIT"
 go build \
-  -ldflags "-X github.com/ava-labs/subnet_evm/plugin/evm.GitCommit=$subnet_evm_commit -X github.com/ava-labs/subnet_evm/plugin/evm.Version=$subnet_evm_version" \
+  -ldflags "-X github.com/ava-labs/subnet_evm/plugin/evm.GitCommit=$SUBNET_EVM_COMMIT -X github.com/ava-labs/subnet_evm/plugin/evm.Version=$SUBNET_EVM_VERSION" \
   -o $AVALANCHEGO_PLUGIN_DIR/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
   "plugin/"*.go
 
