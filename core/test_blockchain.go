@@ -1659,7 +1659,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				gen.AddTx(signedTx)
 			},
 			verifyState: func(sdb *state.StateDB) error {
-				res := feemanager.GetFeeConfigManagerStatus(sdb, addr1)
+				res := feemanager.GetFeeManagerStatus(sdb, addr1)
 				assert.Equal(allowlist.AllowListAdmin, res)
 
 				storedConfig := feemanager.GetStoredFeeConfig(sdb)
@@ -1671,7 +1671,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				return nil
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
-				res := feemanager.GetFeeConfigManagerStatus(sdb, addr1)
+				res := feemanager.GetFeeManagerStatus(sdb, addr1)
 				assert.Equal(allowlist.AllowListAdmin, res)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())

@@ -42,7 +42,7 @@ var (
 	ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000003")
 
 	// Singleton StatefulPrecompiledContract for setting fee configs by permissioned callers.
-	FeeConfigManagerPrecompile precompile.StatefulPrecompiledContract = createFeeConfigManagerPrecompile()
+	FeeManagerPrecompile precompile.StatefulPrecompiledContract = createFeeManagerPrecompile()
 
 	setFeeConfigSignature              = precompile.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
 	getFeeConfigSignature              = precompile.CalculateFunctionSelector("getFeeConfig()")
@@ -53,14 +53,14 @@ var (
 	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
 )
 
-// GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.
-func GetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+// GetFeeManagerStatus returns the role of [address] for the fee config manager list.
+func GetFeeManagerStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
-// SetFeeConfigManagerStatus sets the permissions of [address] to [role] for the
+// SetFeeManagerStatus sets the permissions of [address] to [role] for the
 // fee config manager list. assumes [role] has already been verified as valid.
-func SetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+func SetFeeManagerStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 
@@ -239,7 +239,7 @@ func setFeeConfig(accessibleState precompile.PrecompileAccessibleState, caller c
 
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := GetFeeConfigManagerStatus(stateDB, caller)
+	callerStatus := GetFeeManagerStatus(stateDB, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
@@ -283,19 +283,19 @@ func getFeeConfigLastChangedAt(accessibleState precompile.PrecompileAccessibleSt
 	return common.BigToHash(lastChangedAt).Bytes(), remainingGas, err
 }
 
-// createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract
+// createFeeManagerPrecompile returns a StatefulPrecompiledContract
 // with getters and setters for the chain's fee config. Access to the getters/setters
 // is controlled by an allow list for ContractAddress.
-func createFeeConfigManagerPrecompile() precompile.StatefulPrecompiledContract {
-	feeConfigManagerFunctions := allowlist.CreateAllowListFunctions(ContractAddress)
+func createFeeManagerPrecompile() precompile.StatefulPrecompiledContract {
+	feeManagerFunctions := allowlist.CreateAllowListFunctions(ContractAddress)
 
 	setFeeConfigFunc := precompile.NewStatefulPrecompileFunction(setFeeConfigSignature, setFeeConfig)
 	getFeeConfigFunc := precompile.NewStatefulPrecompileFunction(getFeeConfigSignature, getFeeConfig)
 	getFeeConfigLastChangedAtFunc := precompile.NewStatefulPrecompileFunction(getFeeConfigLastChangedAtSignature, getFeeConfigLastChangedAt)
 
-	feeConfigManagerFunctions = append(feeConfigManagerFunctions, setFeeConfigFunc, getFeeConfigFunc, getFeeConfigLastChangedAtFunc)
+	feeManagerFunctions = append(feeManagerFunctions, setFeeConfigFunc, getFeeConfigFunc, getFeeConfigLastChangedAtFunc)
 	// Construct the contract with no fallback function.
-	contract, err := precompile.NewStatefulPrecompileContract(nil, feeConfigManagerFunctions)
+	contract, err := precompile.NewStatefulPrecompileContract(nil, feeManagerFunctions)
 	// TODO Change this to be returned as an error after refactoring this precompile
 	// to use the new precompile template.
 	if err != nil {

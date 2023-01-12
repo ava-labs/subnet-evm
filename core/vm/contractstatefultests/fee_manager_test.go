@@ -34,7 +34,7 @@ var (
 	}
 )
 
-func TestFeeConfigManagerRun(t *testing.T) {
+func TestFeeManagerRun(t *testing.T) {
 	testBlockNumber = big.NewInt(7)
 
 	type test struct {
@@ -43,7 +43,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 		input        func() []byte
 		suppliedGas  uint64
 		readOnly     bool
-		config       *feemanager.FeeConfigManagerConfig
+		config       *feemanager.FeeManagerConfig
 
 		expectedRes []byte
 		expectedErr string
@@ -97,7 +97,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			suppliedGas: feemanager.SetFeeConfigGasCost,
 			readOnly:    false,
 			expectedRes: nil,
-			config: &feemanager.FeeConfigManagerConfig{
+			config: &feemanager.FeeManagerConfig{
 				InitialFeeConfig: &testFeeConfig,
 			},
 			expectedErr: "cannot be greater than maxBlockGasCost",
@@ -153,7 +153,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 				return feemanager.PackGetFeeConfigInput()
 			},
 			suppliedGas: feemanager.GetFeeConfigGasCost,
-			config: &feemanager.FeeConfigManagerConfig{
+			config: &feemanager.FeeManagerConfig{
 				InitialFeeConfig: &testFeeConfig,
 			},
 			readOnly: true,
@@ -243,10 +243,10 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			feemanager.SetFeeConfigManagerStatus(state, adminAddr, allowlist.AllowListAdmin)
-			feemanager.SetFeeConfigManagerStatus(state, enabledAddr, allowlist.AllowListEnabled)
-			require.Equal(t, allowlist.AllowListAdmin, feemanager.GetFeeConfigManagerStatus(state, adminAddr))
-			require.Equal(t, allowlist.AllowListEnabled, feemanager.GetFeeConfigManagerStatus(state, enabledAddr))
+			feemanager.SetFeeManagerStatus(state, adminAddr, allowlist.AllowListAdmin)
+			feemanager.SetFeeManagerStatus(state, enabledAddr, allowlist.AllowListEnabled)
+			require.Equal(t, allowlist.AllowListAdmin, feemanager.GetFeeManagerStatus(state, adminAddr))
+			require.Equal(t, allowlist.AllowListEnabled, feemanager.GetFeeManagerStatus(state, enabledAddr))
 
 			if test.preCondition != nil {
 				test.preCondition(t, state)
@@ -256,7 +256,7 @@ func TestFeeConfigManagerRun(t *testing.T) {
 			if test.config != nil {
 				test.config.Configure(nil, state, blockContext)
 			}
-			ret, remainingGas, err := feemanager.FeeConfigManagerPrecompile.Run(accesibleState, test.caller, feemanager.ContractAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := feemanager.FeeManagerPrecompile.Run(accesibleState, test.caller, feemanager.ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

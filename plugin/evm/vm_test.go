@@ -2418,11 +2418,11 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	}
 
 	// Check that address 0 is whitelisted and address 1 is not
-	role := feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[0])
+	role := feemanager.GetFeeManagerStatus(genesisState, testEthAddrs[0])
 	if role != allowlist.AllowListAdmin {
 		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", feemanager.ContractAddress, role)
 	}
-	role = feemanager.GetFeeConfigManagerStatus(genesisState, testEthAddrs[1])
+	role = feemanager.GetFeeManagerStatus(genesisState, testEthAddrs[1])
 	if role != allowlist.AllowListNoRole {
 		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", feemanager.ContractAddress, role)
 	}

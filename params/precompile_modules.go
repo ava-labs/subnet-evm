@@ -36,7 +36,7 @@ func init() {
 	precompile.RegisterModule(deployerallowlist.ContractDeployerAllowListConfig{})
 	precompile.RegisterModule(nativeminter.ContractNativeMinterConfig{})
 	precompile.RegisterModule(txallowlist.TxAllowListConfig{})
-	precompile.RegisterModule(feemanager.FeeConfigManagerConfig{})
+	precompile.RegisterModule(feemanager.FeeManagerConfig{})
 	precompile.RegisterModule(rewardmanager.RewardManagerConfig{})
 	// ADD YOUR PRECOMPILE HERE
 	// precompile.RegisterModule({yourPrecompilePackage}.{YourPrecompile}Config{})
