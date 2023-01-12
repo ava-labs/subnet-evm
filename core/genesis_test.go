@@ -191,7 +191,9 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
-				config.Precompiles[deployerallowlist.ConfigKey] = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil)
+				config.Precompiles = params.ChainConfigPrecompiles{
+					deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil),
+				}
 				return &config
 			},
 			assertState: func(t *testing.T, sdb *state.StateDB) {
