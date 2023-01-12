@@ -53,13 +53,13 @@ var (
 	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
 )
 
-// GetFeeManagerStatus returns the role of [address] for the fee config manager list.
+// GetFeeManagerStatus returns the role of [address] for the FeeManager allowlist.
 func GetFeeManagerStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
 	return allowlist.GetAllowListStatus(stateDB, precompile.FeeManagerAddress, address)
 }
 
 // SetFeeManagerStatus sets the permissions of [address] to [role] for the
-// fee config manager list. assumes [role] has already been verified as valid.
+// FeeManager allowlist.
 func SetFeeManagerStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
 	allowlist.SetAllowListRole(stateDB, precompile.FeeManagerAddress, address, role)
 }

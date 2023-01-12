@@ -17,7 +17,7 @@ import (
 // FeeManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the FeeManager specific precompile address.
 type FeeManagerConfig struct {
-	allowlist.AllowListConfig // Config for the fee config manager allow list
+	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
@@ -46,7 +46,7 @@ func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
 	}
 }
 
-// Address returns the address of the fee config manager contract.
+// Address returns the address of the FeeManager contract.
 func (c *FeeManagerConfig) Address() common.Address {
 	return precompile.FeeManagerAddress
 }
@@ -72,7 +72,7 @@ func (c *FeeManagerConfig) Equal(s precompile.StatefulPrecompileConfig) bool {
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *FeeManagerConfig) Configure(chainConfig precompile.ChainConfig, state precompile.StateDB, blockContext precompile.BlockContext) error {
-	// Store the initial fee config into the state when the fee config manager activates.
+	// Store the initial fee config into the state when the fee manager activates.
 	if c.InitialFeeConfig != nil {
 		if err := StoreFeeConfig(state, *c.InitialFeeConfig, blockContext); err != nil {
 			// This should not happen since we already checked this config with Verify()
