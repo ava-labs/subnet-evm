@@ -380,14 +380,32 @@ func issueAndAccept(t *testing.T, issuer <-chan engCommon.Message, vm *VM) snowm
 func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
 	genesisTests := []struct {
 		genesisJSON string
+		configJSON  string
+		expectedErr error
 	}{
 		{
 			// we expect an error when subnet evm upgrade is nil in chain config
 			genesisJSON: genesisJSONPreSubnetEVM,
+			configJSON:  "",
+			expectedErr: errSubnetEVMUpgradeNotEnabled,
 		},
 		{
 			// we expect an error when subnet evm upgrade is not enabled at genesis and at a later block instead
 			genesisJSON: genesisJSONSubnetEVMLateEnablement,
+			configJSON:  "",
+			expectedErr: errSubnetEVMUpgradeNotEnabled,
+		},
+		{
+			// we do not expect when skip-subnet-evm-upgrade-check is set to true
+			genesisJSON: genesisJSONPreSubnetEVM,
+			configJSON:  "{\"skip-subnet-evm-upgrade-check\": true}",
+			expectedErr: nil,
+		},
+		{
+			// we do not expect when skip-subnet-evm-upgrade-check is set to true
+			genesisJSON: genesisJSONSubnetEVMLateEnablement,
+			configJSON:  "{\"skip-subnet-evm-upgrade-check\": true}",
+			expectedErr: nil,
 		},
 	}
 
@@ -400,47 +418,13 @@ func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
 			dbManager,
 			genesisBytes,
 			[]byte(""),
-			[]byte(""),
+			[]byte(test.configJSON),
 			issuer,
 			[]*engCommon.Fx{},
 			nil,
 		)
 
-		require.ErrorIs(t, err, errSubnetEVMUpgradeNotEnabled)
-	}
-}
-
-func TestOverrideSkipSubnetEVMUpgrade(t *testing.T) {
-	genesisTests := []struct {
-		genesisJSON string
-	}{
-		{
-			// we expect an error when subnet evm upgrade is nil in chain config
-			genesisJSON: genesisJSONPreSubnetEVM,
-		},
-		{
-			// we expect an error when subnet evm upgrade is not enabled at genesis and at a later block instead
-			genesisJSON: genesisJSONSubnetEVMLateEnablement,
-		},
-	}
-
-	for _, test := range genesisTests {
-		ctx, dbManager, genesisBytes, issuer := setupGenesis(t, test.genesisJSON)
-		vm := &VM{}
-		configJSON := "{\"skip-subnet-evm-upgrade-check\": true}"
-		err := vm.Initialize(
-			context.Background(),
-			ctx,
-			dbManager,
-			genesisBytes,
-			[]byte(""),
-			[]byte(configJSON),
-			issuer,
-			[]*engCommon.Fx{},
-			nil,
-		)
-
-		require.NoError(t, err)
+		require.ErrorIs(t, err, test.expectedErr)
 	}
 }
 
