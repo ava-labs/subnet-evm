@@ -271,7 +271,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	contractDeployerConfig := deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(51), nil, nil)
 	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
-			contractDeployerConfig,
+			StatefulPrecompileConfig: contractDeployerConfig,
 		},
 	}
 
