@@ -690,7 +690,7 @@ type HelloGossip struct {
 }
 
 func (h HelloGossip) Handle(handler message.GossipHandler, nodeID ids.NodeID) error {
-	return handler.HandleEthTxs(nodeID, message.EthTxsGossip{})
+	return handler.HandleTxs(nodeID, message.TxsGossip{})
 }
 
 func (h HelloGossip) String() string {
@@ -710,6 +710,12 @@ type testGossipHandler struct {
 	received bool
 	nodeID   ids.NodeID
 	msg      []byte
+}
+
+func (t *testGossipHandler) HandleTxs(nodeID ids.NodeID, msg message.TxsGossip) error {
+	t.received = true
+	t.nodeID = nodeID
+	return nil
 }
 
 type testRequestHandler struct {
