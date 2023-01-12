@@ -198,7 +198,7 @@ $BIN control start \
   --number-of-nodes=5 \
   --avalanchego-path ${AVALANCHEGO_PATH} \
   --plugin-dir ${AVALANCHEGO_PLUGIN_DIR} \
-  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "'$GENESIS_FILE_PATH'"]'
+  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "'$GENESIS_FILE_PATH'"}]'
 
 # e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
 if [[ ${RUN_SIMULATOR} == true ]]; then
