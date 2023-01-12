@@ -26,10 +26,6 @@ func init() {
 
 	errs := wrappers.Errs{}
 	errs.Add(
-		// Gossip types
-		c.RegisterType(AtomicTxGossip{}),
-		c.RegisterType(EthTxsGossip{}),
-
 		// Types for state sync frontier consensus
 		c.RegisterType(SyncSummary{}),
 
