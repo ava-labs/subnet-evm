@@ -103,7 +103,6 @@ func golangBindingsFailure(t *testing.T) {
 				t.Fatalf("test %d: no error occurred but was expected", i)
 			}
 			require.ErrorContains(t, err, tt.errorMsg)
-
 		})
 	}
 }
