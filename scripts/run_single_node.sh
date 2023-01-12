@@ -34,7 +34,8 @@ CONFIG_FILE_PATH=$DATA_DIR/config.json
   "network-health-min-conn-peers": 0,
   "network-health-max-time-since-msg-received": 4611686018427387904,
   "network-health-max-time-since-msg-sent": 4611686018427387904,
-  "health-check-frequency": "5s"
+  "health-check-frequency": "5s",
+  "plugin-dir": "$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins"
 }
 EOF
 

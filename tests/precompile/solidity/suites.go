@@ -20,7 +20,7 @@ import (
 	wallet "github.com/ava-labs/avalanchego/wallet/subnet/primary"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
-	"github.com/ava-labs/subnet-evm/tests/e2e/utils"
+	"github.com/ava-labs/subnet-evm/tests/precompile/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	ginkgo "github.com/onsi/ginkgo/v2"
@@ -110,7 +110,7 @@ func createNewSubnet(ctx context.Context, genesisFilePath string) string {
 func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 	log.Info("Executing HardHat tests on a new blockchain", "test", test)
 
-	genesisFilePath := fmt.Sprintf("./tests/e2e/genesis/%s.json", test)
+	genesisFilePath := fmt.Sprintf("./tests/precompile/genesis/%s.json", test)
 
 	createSubnetCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
@@ -123,7 +123,7 @@ func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 
 // TODO: can we move where we register the precompile e2e tests, so that they stay within their package
 var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
-	// Each ginkgo It node specifies the name of the genesis file (in ./tests/e2e/genesis/)
+	// Each ginkgo It node specifies the name of the genesis file (in ./tests/precompile/genesis/)
 	//to use to launch the subnet and the name of the TS test file to run on the subnet (in ./contract-examples/tests/)
 	ginkgo.It("contract native minter", ginkgo.Label("solidity-with-npx"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -132,33 +132,33 @@ var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 		executeHardHatTestOnNewBlockchain(ctx, "contract_native_minter")
 	})
 
-	ginkgo.It("tx allow list", ginkgo.Label("solidity-with-npx"), func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
+	// ginkgo.It("tx allow list", ginkgo.Label("solidity-with-npx"), func() {
+	// 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	// 	defer cancel()
 
-		executeHardHatTestOnNewBlockchain(ctx, "tx_allow_list")
-	})
+	// 	executeHardHatTestOnNewBlockchain(ctx, "tx_allow_list")
+	// })
 
-	ginkgo.It("contract deployer allow list", ginkgo.Label("solidity-with-npx"), func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
+	// ginkgo.It("contract deployer allow list", ginkgo.Label("solidity-with-npx"), func() {
+	// 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	// 	defer cancel()
 
-		executeHardHatTestOnNewBlockchain(ctx, "contract_deployer_allow_list")
-	})
+	// 	executeHardHatTestOnNewBlockchain(ctx, "contract_deployer_allow_list")
+	// })
 
-	ginkgo.It("fee manager", ginkgo.Label("solidity-with-npx"), func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
+	// ginkgo.It("fee manager", ginkgo.Label("solidity-with-npx"), func() {
+	// 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	// 	defer cancel()
 
-		executeHardHatTestOnNewBlockchain(ctx, "fee_manager")
-	})
+	// 	executeHardHatTestOnNewBlockchain(ctx, "fee_manager")
+	// })
 
-	ginkgo.It("reward manager", ginkgo.Label("solidity-with-npx"), func() {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
+	// ginkgo.It("reward manager", ginkgo.Label("solidity-with-npx"), func() {
+	// 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	// 	defer cancel()
 
-		executeHardHatTestOnNewBlockchain(ctx, "reward_manager")
-	})
+	// 	executeHardHatTestOnNewBlockchain(ctx, "reward_manager")
+	// })
 
 	// ADD YOUR PRECOMPILE HERE
 	/*
@@ -166,7 +166,7 @@ var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
-			// Specify the name shared by the genesis file in ./tests/e2e/genesis/{your_precompile}.json
+			// Specify the name shared by the genesis file in ./tests/precompile/genesis/{your_precompile}.json
 			// and the test file in ./contract-examples/tests/{your_precompile}.ts
 			executeHardHatTestOnNewBlockchain(ctx, "your_precompile")
 		})

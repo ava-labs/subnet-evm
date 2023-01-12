@@ -6,9 +6,6 @@ set -e
 # run a 5 node network with the avalanche-network-runner
 # ./scripts/run.sh
 #
-# run a 5 node network with the load simulator
-# RUN_SIMULATOR=true ./scripts/run.sh
-#
 # run without e2e tests with DEBUG log level
 # AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh
 if ! [[ "$0" =~ scripts/run.sh ]]; then
@@ -32,18 +29,12 @@ VERSION=$avalanche_version
 DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
 
-SKIP_NETWORK_RUNNER_START=${SKIP_NETWORK_RUNNER_START:-false}
-SKIP_NETWORK_RUNNER_SHUTDOWN=${SKIP_NETWORK_RUNNER_SHUTDOWN:-true}
-RUN_SIMULATOR=${RUN_SIMULATOR:-false}
 ANR_VERSION=$network_runner_version
 
 echo "Running with:"
 echo AVALANCHE_VERSION: ${VERSION}
 echo ANR_VERSION: ${ANR_VERSION}
 echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
-echo SKIP_NETWORK_RUNNER_START: ${SKIP_NETWORK_RUNNER_START}
-echo SKIP_NETWORK_RUNNER_SHUTDOWN: ${SKIP_NETWORK_RUNNER_SHUTDOWN}
-echo RUN_SIMULATOR: ${RUN_SIMULATOR}
 
 ############################
 # download avalanchego
@@ -159,81 +150,25 @@ go install -v ${ANR_REPO_PATH}@${ANR_VERSION}
 GOPATH=$(go env GOPATH)
 if [[ -z ${GOBIN+x} ]]; then
   # no gobin set
-  BIN=${GOPATH}/bin/avalanche-network-runner
+  ANR_BIN=${GOPATH}/bin/avalanche-network-runner
 else
   # gobin set
-  BIN=${GOBIN}/avalanche-network-runner
+  ANR_BIN=${GOBIN}/avalanche-network-runner
 fi
 echo "launch avalanche-network-runner in the background"
 
 # Start network runner server
-$BIN server \
+$ANR_BIN server \
   --log-level debug \
   --port=":12342" \
   --grpc-gateway-port=":12343" &
 PID=${!}
 
-# Define command to run the simulator
-run_simulator() {
-  #################################
-  echo "building simulator"
-  pushd ./cmd/simulator
-  go install -v .
-  popd
-
-  echo "running simulator"
-  simulator \
-  --cluster-info-yaml=$BASEDIR/avalanchego-${VERSION}/output.yaml \
-  --keys=./cmd/simulator/.simulator/keys \
-  --timeout=30s \
-  --concurrency=10 \
-  --base-fee=25 \
-  --priority-fee=1
-}
-
 # Start the network with the defined blockchain specs
-$BIN control start \
+$ANR_BIN control start \
   --log-level debug \
   --endpoint="0.0.0.0:12342" \
   --number-of-nodes=5 \
   --avalanchego-path ${AVALANCHEGO_PATH} \
   --plugin-dir ${AVALANCHEGO_PLUGIN_DIR} \
   --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "'$GENESIS_FILE_PATH'"}]' &
-
-# e.g., "RUN_SIMULATOR=true scripts/run.sh" to launch network runner + simulator
-if [[ ${RUN_SIMULATOR} == true ]]; then
-  run_simulator
-  # to fail the script if simulator failed
-  EXIT_CODE=$?
-fi
-
-#################################
-if [[ ${SKIP_NETWORK_RUNNER_SHUTDOWN} == false ]]; then
-  $BIN control stop \
-    --log-level debug \
-    --endpoint="0.0.0.0:12342"
-
-  $BIN server stop \
-    --log-level debug \
-    --endpoint="0.0.0.0:12342"
-
-  # just in case tests are aborted, manually terminate them again
-  echo "network-runner RPC server was running on PID ${PID} as test mode; terminating the process..."
-  pkill -P ${PID} || true
-  kill -2 ${PID}
-  pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy || true # in case pkill didn't work
-else
-  echo "network-runner RPC server is running on PID ${PID}..."
-  echo ""
-  echo "use the following command to terminate via avalanche-network-runner:"
-  echo ""
-  echo ''$BIN' control stop --log-level debug --endpoint="0.0.0.0:12342"'
-  echo ''$BIN' server stop --log-level debug --endpoint="0.0.0.0:12342"'
-  echo ""
-  echo "use the following command to terminate forcefully:"
-  echo ""
-  echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
-  echo ""
-fi
-
-exit ${EXIT_CODE}
