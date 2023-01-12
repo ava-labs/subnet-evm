@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -16,7 +15,6 @@ import (
 var (
 	_ BlockContext              = &mockBlockContext{}
 	_ PrecompileAccessibleState = &mockAccessibleState{}
-	_ ChainConfig               = &mockChainConfig{}
 	_ StatefulPrecompileConfig  = &noopStatefulPrecompileConfig{}
 )
 
@@ -59,22 +57,6 @@ func (m *mockAccessibleState) CallFromPrecompile(caller common.Address, addr com
 	return nil, 0, nil
 }
 
-type mockChainConfig struct {
-	feeConfig            commontype.FeeConfig
-	allowedFeeRecipients bool
-}
-
-func NewMockChainConfig(feeConfig commontype.FeeConfig, allowedFeeRecipients bool) *mockChainConfig {
-	return &mockChainConfig{
-		feeConfig:            feeConfig,
-		allowedFeeRecipients: allowedFeeRecipients,
-	}
-}
-
-func (m *mockChainConfig) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
-
-func (m *mockChainConfig) AllowedFeeRecipients() bool { return m.allowedFeeRecipients }
-
 type noopStatefulPrecompileConfig struct {
 }
 
@@ -110,19 +92,10 @@ func (n *noopStatefulPrecompileConfig) Contract() StatefulPrecompiledContract {
 	return nil
 }
 
-func (n *noopStatefulPrecompileConfig) String() string {
-	return ""
-}
-
 func (n *noopStatefulPrecompileConfig) Key() string {
 	return ""
 }
 
 func (noopStatefulPrecompileConfig) New() StatefulPrecompileConfig {
 	return new(noopStatefulPrecompileConfig)
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-func (c *noopStatefulPrecompileConfig) UnmarshalJSON(b []byte) error {
-	return nil
 }
