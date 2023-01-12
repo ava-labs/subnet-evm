@@ -4,7 +4,6 @@
 package nativeminter
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -15,11 +14,11 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
-var (
-	_ precompile.StatefulPrecompileConfig = &ContractNativeMinterConfig{}
+var _ precompile.StatefulPrecompileConfig = &ContractNativeMinterConfig{}
 
-	ConfigKey = "contractNativeMinterConfig"
-)
+// ConfigKey is the key used in json config files to specify this precompile config.
+// must be unique across all precompiles.
+const ConfigKey = "contractNativeMinterConfig"
 
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the ContractNativeMinter specific precompile address.
@@ -27,10 +26,6 @@ type ContractNativeMinterConfig struct {
 	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
-}
-
-func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
-	return &ContractNativeMinterConfig{}
 }
 
 // NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -75,7 +70,7 @@ func (c *ContractNativeMinterConfig) Configure(_ precompile.ChainConfig, state p
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the native minter.
-func (c ContractNativeMinterConfig) Contract() precompile.StatefulPrecompiledContract {
+func (ContractNativeMinterConfig) Contract() precompile.StatefulPrecompiledContract {
 	return ContractNativeMinterPrecompile
 }
 
@@ -127,13 +122,7 @@ func (c *ContractNativeMinterConfig) Equal(s precompile.StatefulPrecompileConfig
 	return true
 }
 
-// String returns a string representation of the ContractNativeMinterConfig.
-func (c *ContractNativeMinterConfig) String() string {
-	bytes, _ := json.Marshal(c)
-	return string(bytes)
-}
-
-func (c ContractNativeMinterConfig) Key() string {
+func (ContractNativeMinterConfig) Key() string {
 	return ConfigKey
 }
 

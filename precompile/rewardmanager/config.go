@@ -7,7 +7,6 @@
 package rewardmanager
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
@@ -15,11 +14,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var (
-	_ precompile.StatefulPrecompileConfig = &RewardManagerConfig{}
+var _ precompile.StatefulPrecompileConfig = &RewardManagerConfig{}
 
-	ConfigKey = "rewardManagerConfig"
-)
+// ConfigKey is the key used in json config files to specify this precompile config.
+// must be unique across all precompiles.
+const ConfigKey = "rewardManagerConfig"
 
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
@@ -64,10 +63,6 @@ type RewardManagerConfig struct {
 	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
-}
-
-func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
-	return &RewardManagerConfig{}
 }
 
 // NewRewardManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -152,12 +147,6 @@ func (c *RewardManagerConfig) Verify() error {
 		return c.InitialRewardConfig.Verify()
 	}
 	return nil
-}
-
-// String returns a string representation of the RewardManagerConfig.
-func (c *RewardManagerConfig) String() string {
-	bytes, _ := json.Marshal(c)
-	return string(bytes)
 }
 
 func (c RewardManagerConfig) Key() string {

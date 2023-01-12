@@ -4,7 +4,6 @@
 package feemanager
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -14,11 +13,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var (
-	_ precompile.StatefulPrecompileConfig = &FeeConfigManagerConfig{}
+var _ precompile.StatefulPrecompileConfig = &FeeConfigManagerConfig{}
 
-	ConfigKey = "feeManagerConfig"
-)
+// ConfigKey is the key used in json config files to specify this precompile config.
+// must be unique across all precompiles.
+const ConfigKey = "feeManagerConfig"
 
 // FeeConfigManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the FeeConfigManager specific precompile address.
@@ -26,10 +25,6 @@ type FeeConfigManagerConfig struct {
 	allowlist.AllowListConfig // Config for the fee config manager allow list
 	precompile.UpgradeableConfig
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
-}
-
-func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
-	return &FeeConfigManagerConfig{}
 }
 
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -111,12 +106,6 @@ func (c *FeeConfigManagerConfig) Verify() error {
 	}
 
 	return c.InitialFeeConfig.Verify()
-}
-
-// String returns a string representation of the FeeConfigManagerConfig.
-func (c *FeeConfigManagerConfig) String() string {
-	bytes, _ := json.Marshal(c)
-	return string(bytes)
 }
 
 func (c FeeConfigManagerConfig) Key() string {

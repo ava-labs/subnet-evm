@@ -27,7 +27,7 @@ var (
 	ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000001")
 
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
-	ContractNativeMinterPrecompile precompile.StatefulPrecompiledContract = createNativeMinterPrecompile(ContractAddress)
+	ContractNativeMinterPrecompile precompile.StatefulPrecompiledContract = createNativeMinterPrecompile()
 
 	mintSignature = precompile.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
 	ErrCannotMint = errors.New("non-enabled cannot mint")
@@ -103,8 +103,8 @@ func mintNativeCoin(accessibleState precompile.PrecompileAccessibleState, caller
 
 // createNativeMinterPrecompile returns a StatefulPrecompiledContract for native coin minting. The precompile
 // is accessed controlled by an allow list at [precompileAddr].
-func createNativeMinterPrecompile(precompileAddr common.Address) precompile.StatefulPrecompiledContract {
-	enabledFuncs := allowlist.CreateAllowListFunctions(precompileAddr)
+func createNativeMinterPrecompile() precompile.StatefulPrecompiledContract {
+	enabledFuncs := allowlist.CreateAllowListFunctions(ContractAddress)
 
 	mintFunc := precompile.NewStatefulPrecompileFunction(mintSignature, mintNativeCoin)
 

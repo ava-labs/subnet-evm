@@ -4,7 +4,6 @@
 package txallowlist
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
@@ -12,11 +11,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var (
-	_ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
+var _ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
 
-	ConfigKey = "txAllowListConfig"
-)
+// ConfigKey is the key used in json config files to specify this precompile config.
+// must be unique across all precompiles.
+const ConfigKey = "txAllowListConfig"
 
 // TxAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the TxAllowList specific precompile address.
@@ -71,12 +70,6 @@ func (c *TxAllowListConfig) Equal(s precompile.StatefulPrecompileConfig) bool {
 		return false
 	}
 	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
-}
-
-// String returns a string representation of the TxAllowListConfig.
-func (c *TxAllowListConfig) String() string {
-	bytes, _ := json.Marshal(c)
-	return string(bytes)
 }
 
 func (c TxAllowListConfig) Key() string {

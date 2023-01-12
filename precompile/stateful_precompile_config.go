@@ -4,7 +4,6 @@
 package precompile
 
 import (
-	"fmt"
 	"math/big"
 )
 
@@ -33,8 +32,6 @@ type StatefulPrecompileConfig interface {
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
 	Configure(ChainConfig, StateDB, BlockContext) error
-
-	fmt.Stringer
 }
 
 // Configure sets the nonce and code to non-empty values then calls Configure on [precompileConfig] to make the necessary

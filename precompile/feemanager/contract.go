@@ -42,7 +42,7 @@ var (
 	ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000003")
 
 	// Singleton StatefulPrecompiledContract for setting fee configs by permissioned callers.
-	FeeConfigManagerPrecompile precompile.StatefulPrecompiledContract = createFeeConfigManagerPrecompile(ContractAddress)
+	FeeConfigManagerPrecompile precompile.StatefulPrecompiledContract = createFeeConfigManagerPrecompile()
 
 	setFeeConfigSignature              = precompile.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
 	getFeeConfigSignature              = precompile.CalculateFunctionSelector("getFeeConfig()")
@@ -285,9 +285,9 @@ func getFeeConfigLastChangedAt(accessibleState precompile.PrecompileAccessibleSt
 
 // createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract
 // with getters and setters for the chain's fee config. Access to the getters/setters
-// is controlled by an allow list for [precompileAddr].
-func createFeeConfigManagerPrecompile(precompileAddr common.Address) precompile.StatefulPrecompiledContract {
-	feeConfigManagerFunctions := allowlist.CreateAllowListFunctions(precompileAddr)
+// is controlled by an allow list for ContractAddress.
+func createFeeConfigManagerPrecompile() precompile.StatefulPrecompiledContract {
+	feeConfigManagerFunctions := allowlist.CreateAllowListFunctions(ContractAddress)
 
 	setFeeConfigFunc := precompile.NewStatefulPrecompileFunction(setFeeConfigSignature, setFeeConfig)
 	getFeeConfigFunc := precompile.NewStatefulPrecompileFunction(getFeeConfigSignature, getFeeConfig)

@@ -4,7 +4,6 @@
 package deployerallowlist
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
@@ -12,21 +11,17 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var (
-	_ precompile.StatefulPrecompileConfig = &ContractDeployerAllowListConfig{}
+var _ precompile.StatefulPrecompileConfig = &ContractDeployerAllowListConfig{}
 
-	ConfigKey = "contractDeployerAllowListConfig"
-)
+// ConfigKey is the key used in json config files to specify this precompile config.
+// must be unique across all precompiles.
+const ConfigKey = "contractDeployerAllowListConfig"
 
 // ContractDeployerAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the contract deployer specific precompile address.
 type ContractDeployerAllowListConfig struct {
 	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
-}
-
-func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
-	return &ContractDeployerAllowListConfig{}
 }
 
 // NewContractDeployerAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -75,12 +70,6 @@ func (c *ContractDeployerAllowListConfig) Equal(s precompile.StatefulPrecompileC
 		return false
 	}
 	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
-}
-
-// String returns a string representation of the ContractDeployerAllowListConfig.
-func (c *ContractDeployerAllowListConfig) String() string {
-	bytes, _ := json.Marshal(c)
-	return string(bytes)
 }
 
 func (c ContractDeployerAllowListConfig) Key() string {

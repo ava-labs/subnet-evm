@@ -28,7 +28,6 @@ const (
 	CurrentRewardAddressGasCost    uint64 = allowlist.ReadAllowListGasCost
 	DisableRewardsGasCost          uint64 = (precompile.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
 	SetRewardAddressGasCost        uint64 = (precompile.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
-
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -61,7 +60,7 @@ func init() {
 		panic(err)
 	}
 	RewardManagerABI = parsed
-	RewardManagerPrecompile, err = createRewardManagerPrecompile(ContractAddress)
+	RewardManagerPrecompile, err = createRewardManagerPrecompile()
 	if err != nil {
 		panic(err)
 	}
@@ -288,9 +287,9 @@ func disableRewards(accessibleState precompile.PrecompileAccessibleState, caller
 
 // createRewardManagerPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 // Access to the getters/setters is controlled by an allow list for [precompileAddr].
-func createRewardManagerPrecompile(precompileAddr common.Address) (precompile.StatefulPrecompiledContract, error) {
+func createRewardManagerPrecompile() (precompile.StatefulPrecompiledContract, error) {
 	var functions []*precompile.StatefulPrecompileFunction
-	functions = append(functions, allowlist.CreateAllowListFunctions(precompileAddr)...)
+	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
 	abiFunctionMap := map[string]precompile.RunStatefulPrecompileFunc{
 		"allowFeeRecipients":      allowFeeRecipients,
 		"areFeeRecipientsAllowed": areFeeRecipientsAllowed,
