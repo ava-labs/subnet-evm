@@ -61,7 +61,7 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 	}
 }
 
-func TestEqualFeeConfigManagerConfig(t *testing.T) {
+func TestEqualFeeManagerConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	enableds := []common.Address{{2}}
 	tests := []struct {

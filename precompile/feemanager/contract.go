@@ -39,10 +39,10 @@ const (
 )
 
 var (
-	_ precompile.StatefulPrecompileConfig = &FeeConfigManagerConfig{}
+	_ precompile.StatefulPrecompileConfig = &FeeManagerConfig{}
 
 	// Singleton StatefulPrecompiledContract for setting fee configs by permissioned callers.
-	FeeConfigManagerPrecompile precompile.StatefulPrecompiledContract = createFeeConfigManagerPrecompile(precompile.FeeConfigManagerAddress)
+	FeeManagerPrecompile precompile.StatefulPrecompiledContract = createFeeManagerPrecompile(precompile.FeeManagerAddress)
 
 	setFeeConfigSignature              = precompile.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
 	getFeeConfigSignature              = precompile.CalculateFunctionSelector("getFeeConfig()")
@@ -53,15 +53,15 @@ var (
 	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
 )
 
-// GetFeeConfigManagerStatus returns the role of [address] for the fee config manager list.
-func GetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
-	return allowlist.GetAllowListStatus(stateDB, precompile.FeeConfigManagerAddress, address)
+// GetFeeManagerStatus returns the role of [address] for the FeeManager allowlist.
+func GetFeeManagerStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+	return allowlist.GetAllowListStatus(stateDB, precompile.FeeManagerAddress, address)
 }
 
-// SetFeeConfigManagerStatus sets the permissions of [address] to [role] for the
-// fee config manager list. assumes [role] has already been verified as valid.
-func SetFeeConfigManagerStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
-	allowlist.SetAllowListRole(stateDB, precompile.FeeConfigManagerAddress, address, role)
+// SetFeeManagerStatus sets the permissions of [address] to [role] for the
+// FeeManager allowlist.
+func SetFeeManagerStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+	allowlist.SetAllowListRole(stateDB, precompile.FeeManagerAddress, address, role)
 }
 
 // PackGetFeeConfigInput packs the getFeeConfig signature
@@ -148,7 +148,7 @@ func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 func GetStoredFeeConfig(stateDB precompile.StateDB) commontype.FeeConfig {
 	feeConfig := commontype.FeeConfig{}
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
-		val := stateDB.GetState(precompile.FeeConfigManagerAddress, common.Hash{byte(i)})
+		val := stateDB.GetState(precompile.FeeManagerAddress, common.Hash{byte(i)})
 		switch i {
 		case gasLimitKey:
 			feeConfig.GasLimit = new(big.Int).Set(val.Big())
@@ -175,7 +175,7 @@ func GetStoredFeeConfig(stateDB precompile.StateDB) commontype.FeeConfig {
 }
 
 func GetFeeConfigLastChangedAt(stateDB precompile.StateDB) *big.Int {
-	val := stateDB.GetState(precompile.FeeConfigManagerAddress, feeConfigLastChangedAtKey)
+	val := stateDB.GetState(precompile.FeeManagerAddress, feeConfigLastChangedAtKey)
 	return val.Big()
 }
 
@@ -209,14 +209,14 @@ func StoreFeeConfig(stateDB precompile.StateDB, feeConfig commontype.FeeConfig, 
 			// This should never encounter an unknown fee config key
 			panic(fmt.Sprintf("unknown fee config key: %d", i))
 		}
-		stateDB.SetState(precompile.FeeConfigManagerAddress, common.Hash{byte(i)}, input)
+		stateDB.SetState(precompile.FeeManagerAddress, common.Hash{byte(i)}, input)
 	}
 
 	blockNumber := blockContext.Number()
 	if blockNumber == nil {
 		return fmt.Errorf("blockNumber cannot be nil")
 	}
-	stateDB.SetState(precompile.FeeConfigManagerAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
+	stateDB.SetState(precompile.FeeManagerAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
 
 	return nil
 }
@@ -239,7 +239,7 @@ func setFeeConfig(accessibleState precompile.PrecompileAccessibleState, caller c
 
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to modify it
-	callerStatus := allowlist.GetAllowListStatus(stateDB, precompile.FeeConfigManagerAddress, caller)
+	callerStatus := allowlist.GetAllowListStatus(stateDB, precompile.FeeManagerAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
@@ -283,19 +283,19 @@ func getFeeConfigLastChangedAt(accessibleState precompile.PrecompileAccessibleSt
 	return common.BigToHash(lastChangedAt).Bytes(), remainingGas, err
 }
 
-// createFeeConfigManagerPrecompile returns a StatefulPrecompiledContract
+// createFeeManagerPrecompile returns a StatefulPrecompiledContract
 // with getters and setters for the chain's fee config. Access to the getters/setters
 // is controlled by an allow list for [precompileAddr].
-func createFeeConfigManagerPrecompile(precompileAddr common.Address) precompile.StatefulPrecompiledContract {
-	feeConfigManagerFunctions := allowlist.CreateAllowListFunctions(precompileAddr)
+func createFeeManagerPrecompile(precompileAddr common.Address) precompile.StatefulPrecompiledContract {
+	FeeManagerFunctions := allowlist.CreateAllowListFunctions(precompileAddr)
 
 	setFeeConfigFunc := precompile.NewStatefulPrecompileFunction(setFeeConfigSignature, setFeeConfig)
 	getFeeConfigFunc := precompile.NewStatefulPrecompileFunction(getFeeConfigSignature, getFeeConfig)
 	getFeeConfigLastChangedAtFunc := precompile.NewStatefulPrecompileFunction(getFeeConfigLastChangedAtSignature, getFeeConfigLastChangedAt)
 
-	feeConfigManagerFunctions = append(feeConfigManagerFunctions, setFeeConfigFunc, getFeeConfigFunc, getFeeConfigLastChangedAtFunc)
+	FeeManagerFunctions = append(FeeManagerFunctions, setFeeConfigFunc, getFeeConfigFunc, getFeeConfigLastChangedAtFunc)
 	// Construct the contract with no fallback function.
-	contract, err := precompile.NewStatefulPrecompileContract(nil, feeConfigManagerFunctions)
+	contract, err := precompile.NewStatefulPrecompileContract(nil, FeeManagerFunctions)
 	// TODO Change this to be returned as an error after refactoring this precompile
 	// to use the new precompile template.
 	if err != nil {

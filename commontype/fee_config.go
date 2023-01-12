@@ -16,7 +16,7 @@ import (
 //
 // The dynamic fee algorithm simply increases fees when the network is operating at a utilization level above the target and decreases fees
 // when the network is operating at a utilization level below the target.
-// This struct is used by params.Config and precompile.FeeConfigManager
+// This struct is used by params.Config and precompile.FeeManager
 // any modification of this struct has direct affect on the precompiled contract
 // and changes should be carefully handled in the precompiled contract code.
 type FeeConfig struct {

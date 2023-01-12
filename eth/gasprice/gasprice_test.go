@@ -463,7 +463,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainConfig.ChainID,
 			Nonce:     b.TxNonce(addr),
-			To:        &precompile.FeeConfigManagerAddress,
+			To:        &precompile.FeeManagerAddress,
 			Gas:       chainConfig.FeeConfig.GasLimit.Uint64(),
 			Value:     common.Big0,
 			GasFeeCap: chainConfig.FeeConfig.MinBaseFee, // give low fee, it should work since we still haven't applied high fees

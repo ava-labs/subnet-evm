@@ -25,7 +25,7 @@ type PrecompileUpgrade struct {
 	ContractDeployerAllowListConfig *deployerallowlist.ContractDeployerAllowListConfig `json:"contractDeployerAllowListConfig,omitempty"` // Config for the contract deployer allow list precompile
 	ContractNativeMinterConfig      *nativeminter.ContractNativeMinterConfig           `json:"contractNativeMinterConfig,omitempty"`      // Config for the native minter precompile
 	TxAllowListConfig               *txallowlist.TxAllowListConfig                     `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
-	FeeManagerConfig                *feemanager.FeeConfigManagerConfig                 `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
+	FeeManagerConfig                *feemanager.FeeManagerConfig                       `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
 	RewardManagerConfig             *rewardmanager.RewardManagerConfig                 `json:"rewardManagerConfig,omitempty"`             // Config for the reward manager precompile
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
@@ -40,7 +40,7 @@ func (p *PrecompileUpgrade) getByAddress(address common.Address) (precompile.Sta
 		return p.ContractNativeMinterConfig, p.ContractNativeMinterConfig != nil
 	case precompile.TxAllowListAddress:
 		return p.TxAllowListConfig, p.TxAllowListConfig != nil
-	case precompile.FeeConfigManagerAddress:
+	case precompile.FeeManagerAddress:
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
 	case precompile.RewardManagerAddress:
 		return p.RewardManagerConfig, p.RewardManagerConfig != nil
@@ -184,8 +184,8 @@ func (c *ChainConfig) GetActivePrecompileUpgrade(blockTimestamp *big.Int) Precom
 	if config := c.GetPrecompileConfig(precompile.TxAllowListAddress, blockTimestamp); config != nil && !config.IsDisabled() {
 		pu.TxAllowListConfig = config.(*txallowlist.TxAllowListConfig)
 	}
-	if config := c.GetPrecompileConfig(precompile.FeeConfigManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
-		pu.FeeManagerConfig = config.(*feemanager.FeeConfigManagerConfig)
+	if config := c.GetPrecompileConfig(precompile.FeeManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
+		pu.FeeManagerConfig = config.(*feemanager.FeeManagerConfig)
 	}
 	if config := c.GetPrecompileConfig(precompile.RewardManagerAddress, blockTimestamp); config != nil && !config.IsDisabled() {
 		pu.RewardManagerConfig = config.(*rewardmanager.RewardManagerConfig)

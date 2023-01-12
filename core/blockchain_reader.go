@@ -344,13 +344,13 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 }
 
 // GetFeeConfigAt returns the fee configuration and the last changed block number at [parent].
-// If FeeConfigManager is activated at [parent], returns the fee config in the precompile contract state.
+// If FeeManager is activated at [parent], returns the fee config in the precompile contract state.
 // Otherwise returns the fee config in the chain config.
 // Assumes that a valid configuration is stored when the precompile is activated.
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	config := bc.Config()
 	bigTime := new(big.Int).SetUint64(parent.Time)
-	if !config.IsPrecompileEnabled(precompile.FeeConfigManagerAddress, bigTime) {
+	if !config.IsPrecompileEnabled(precompile.FeeManagerAddress, bigTime) {
 		return config.FeeConfig, common.Big0, nil
 	}
 

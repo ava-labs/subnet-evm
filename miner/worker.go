@@ -128,7 +128,7 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 
 	bigTimestamp := new(big.Int).SetUint64(timestamp)
 	var gasLimit uint64
-	// The fee config manager relies on the state of the parent block to set the fee config
+	// The fee manager relies on the state of the parent block to set the fee config
 	// because the fee config may be changed by the current block.
 	feeConfig, _, err := w.chain.GetFeeConfigAt(parent.Header())
 	if err != nil {

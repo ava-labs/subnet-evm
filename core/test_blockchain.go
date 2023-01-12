@@ -1643,7 +1643,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &precompile.FeeConfigManagerAddress,
+					To:        &precompile.FeeManagerAddress,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,
@@ -1658,7 +1658,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				gen.AddTx(signedTx)
 			},
 			verifyState: func(sdb *state.StateDB) error {
-				res := feemanager.GetFeeConfigManagerStatus(sdb, addr1)
+				res := feemanager.GetFeeManagerStatus(sdb, addr1)
 				assert.Equal(allowlist.AllowListAdmin, res)
 
 				storedConfig := feemanager.GetStoredFeeConfig(sdb)
@@ -1670,7 +1670,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				return nil
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
-				res := feemanager.GetFeeConfigManagerStatus(sdb, addr1)
+				res := feemanager.GetFeeManagerStatus(sdb, addr1)
 				assert.Equal(allowlist.AllowListAdmin, res)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())
