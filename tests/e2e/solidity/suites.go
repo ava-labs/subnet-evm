@@ -111,7 +111,11 @@ func executeHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 	log.Info("Executing HardHat tests on a new blockchain", "test", test)
 
 	genesisFilePath := fmt.Sprintf("./tests/e2e/genesis/%s.json", test)
-	chainURI := createNewSubnet(ctx, genesisFilePath)
+
+	createSubnetCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	chainURI := createNewSubnet(createSubnetCtx, genesisFilePath)
 
 	log.Info("Created subnet successfully", "ChainURI", chainURI)
 	runHardhatTests(test, chainURI)
