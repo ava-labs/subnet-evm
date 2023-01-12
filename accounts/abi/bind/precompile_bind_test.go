@@ -28,6 +28,8 @@ package bind
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var bindFailedTests = []struct {
@@ -100,10 +102,8 @@ func golangBindingsFailure(t *testing.T) {
 			if err == nil {
 				t.Fatalf("test %d: no error occurred but was expected", i)
 			}
+			require.ErrorContains(t, err, tt.errorMsg)
 
-			if tt.errorMsg != err.Error() {
-				t.Fatalf("test %d: expected Err %s but got actual Err: %s", i, tt.errorMsg, err.Error())
-			}
 		})
 	}
 }
