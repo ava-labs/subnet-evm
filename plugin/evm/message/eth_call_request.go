@@ -1,3 +1,6 @@
+// (c) 2021-2022, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package message
 
 import (
@@ -26,5 +29,5 @@ func (e EthCallRequest) String() string {
 
 // Handle returns the encoded EthCallResponse by executing EVM call with the given EthCallRequest
 func (e EthCallRequest) Handle(ctx context.Context, requestingChainID ids.ID, requestID uint32, handler CrossChainRequestHandler) ([]byte, error) {
-	return nil, nil
+	return handler.HandleEthCallRequest(ctx, requestingChainID, requestID, e)
 }
