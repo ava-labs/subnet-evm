@@ -23,6 +23,10 @@ type PrecompileUpgrade struct {
 	precompile.StatefulPrecompileConfig
 }
 
+// UnmarshalJSON unmarshal the json into the correct precompile config type
+// based on the key. Keys are defined in each precompile module, and registered in
+// params/precompile_modules.go.
+// Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
 func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 	raw := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -44,6 +48,14 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		u.StatefulPrecompileConfig = conf
 	}
 	return nil
+}
+
+// MarshalJSON marshal the precompile config into json based on the precompile key.
+// Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
+func (u *PrecompileUpgrade) MarshalJSON() ([]byte, error) {
+	res := make(ChainConfigPrecompiles)
+	res[u.Key()] = u.StatefulPrecompileConfig
+	return json.Marshal(res)
 }
 
 // verifyPrecompileUpgrades checks [c.PrecompileUpgrades] is well formed:

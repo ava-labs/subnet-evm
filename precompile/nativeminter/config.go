@@ -38,7 +38,7 @@ func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
 func NewContractNativeMinterConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *ContractNativeMinterConfig {
 	return &ContractNativeMinterConfig{
 		AllowListConfig: allowlist.AllowListConfig{
-			AllowListAdmins:  admins,
+			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
 		UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: blockTimestamp},

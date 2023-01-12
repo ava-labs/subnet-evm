@@ -37,7 +37,7 @@ func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
 func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeConfigManagerConfig {
 	return &FeeConfigManagerConfig{
 		AllowListConfig: allowlist.AllowListConfig{
-			AllowListAdmins:  admins,
+			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
 		UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: blockTimestamp},

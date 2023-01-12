@@ -434,7 +434,9 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 
 	// create a chain config with fee manager enabled at genesis with [addr] as the admin
 	chainConfig := *params.TestChainConfig
-	chainConfig.Precompiles[feemanager.ConfigKey] = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr}, nil, nil)
+	chainConfig.Precompiles = params.ChainConfigPrecompiles{
+		feemanager.ConfigKey: feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr}, nil, nil),
+	}
 
 	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx
 	signer := types.LatestSigner(params.TestChainConfig)

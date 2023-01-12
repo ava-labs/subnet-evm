@@ -30,7 +30,7 @@ type TxAllowListConfig struct {
 func NewTxAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *TxAllowListConfig {
 	return &TxAllowListConfig{
 		AllowListConfig: allowlist.AllowListConfig{
-			AllowListAdmins:  admins,
+			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
 		UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: blockTimestamp},

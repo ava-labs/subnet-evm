@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package deployerallowlist
+package contractstatefultests
 
 import (
 	"testing"
@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -45,7 +46,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				res := GetContractDeployerAllowListStatus(state, noRoleAddr)
+				res := deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr)
 				require.Equal(t, allowlist.AllowListAdmin, res)
 			},
 		},
@@ -61,7 +62,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				res := GetContractDeployerAllowListStatus(state, noRoleAddr)
+				res := deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr)
 				require.Equal(t, allowlist.AllowListEnabled, res)
 			},
 		},
@@ -77,7 +78,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				res := GetContractDeployerAllowListStatus(state, adminAddr)
+				res := deployerallowlist.GetContractDeployerAllowListStatus(state, adminAddr)
 				require.Equal(t, allowlist.AllowListEnabled, res)
 			},
 		},
@@ -187,14 +188,14 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			SetContractDeployerAllowListStatus(state, adminAddr, allowlist.AllowListAdmin)
-			SetContractDeployerAllowListStatus(state, noRoleAddr, allowlist.AllowListEnabled)
-			require.Equal(t, allowlist.AllowListAdmin, GetContractDeployerAllowListStatus(state, adminAddr))
-			require.Equal(t, allowlist.AllowListEnabled, GetContractDeployerAllowListStatus(state, noRoleAddr))
+			deployerallowlist.SetContractDeployerAllowListStatus(state, adminAddr, allowlist.AllowListAdmin)
+			deployerallowlist.SetContractDeployerAllowListStatus(state, noRoleAddr, allowlist.AllowListEnabled)
+			require.Equal(t, allowlist.AllowListAdmin, deployerallowlist.GetContractDeployerAllowListStatus(state, adminAddr))
+			require.Equal(t, allowlist.AllowListEnabled, deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr))
 
 			blockContext := precompile.NewMockBlockContext(common.Big0, 0)
 			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
-			ret, remainingGas, err := ContractDeployerAllowListPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := deployerallowlist.ContractDeployerAllowListPrecompile.Run(accesibleState, test.caller, deployerallowlist.ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

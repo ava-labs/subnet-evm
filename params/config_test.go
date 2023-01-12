@@ -192,4 +192,12 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 		nil,
 	)
 	require.True(contractNativeMinterConf.Equal(testContractNativeMinterConfig))
+
+	// Marshal and unmarshal again and check that the result is the same
+	marshaled, err := json.Marshal(c)
+	require.NoError(err)
+	c2 := ChainConfig{}
+	err = json.Unmarshal(marshaled, &c2)
+	require.NoError(err)
+	require.Equal(c, c2)
 }

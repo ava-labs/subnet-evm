@@ -83,7 +83,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		Precompiles:         map[string]precompile.StatefulPrecompileConfig{},
+		Precompiles:         ChainConfigPrecompiles{},
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: big.NewInt(0),
 		},
@@ -105,7 +105,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
-		Precompiles:         map[string]precompile.StatefulPrecompileConfig{},
+		Precompiles:         ChainConfigPrecompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 
@@ -125,7 +125,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{},
-		Precompiles:         map[string]precompile.StatefulPrecompileConfig{},
+		Precompiles:         ChainConfigPrecompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 )
@@ -157,28 +157,22 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 
-	NetworkUpgrades                                                // Config for timestamps that enable avalanche network upgrades
-	Precompiles     map[string]precompile.StatefulPrecompileConfig // Config for enabling precompiles from genesis
-	UpgradeConfig   `json:"-"`                                     // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+	NetworkUpgrades                        // Config for timestamps that enable avalanche network upgrades
+	Precompiles     ChainConfigPrecompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	UpgradeConfig   `json:"-"`             // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
-func (c *ChainConfig) UnmarshalJSON(data []byte) error {
-	// Alias ChainConfig to avoid recursion
-	type _ChainConfig ChainConfig
-	dec := _ChainConfig{}
-	err := json.Unmarshal(data, &dec)
-	if err != nil {
-		return err
-	}
+type ChainConfigPrecompiles map[string]precompile.StatefulPrecompileConfig
 
-	// At this point we have populated all fields except PrecompileUpgrade
-	*c = ChainConfig(dec)
-	// Unmarshal PrecompileUpgrade
+// The Precompiles field is a map of precompile module keys to their
+// configuration.
+func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
 	raw := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	c.Precompiles = make(map[string]precompile.StatefulPrecompileConfig)
+
+	*ccp = make(ChainConfigPrecompiles)
 	for _, module := range precompile.RegisteredModules() {
 		key := module.Key()
 		if value, ok := raw[key]; ok {
@@ -187,10 +181,59 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 			if err != nil {
 				return err
 			}
-			c.Precompiles[key] = conf
+			(*ccp)[key] = conf
 		}
 	}
 	return nil
+}
+
+// UnmarshalJSON parses the JSON-encoded data and stores the result in the
+// object pointed to by c.
+// This is a custom unmarshaler to handle the Precompiles field.
+// Precompiles was presented as an inline object in the JSON.
+// This custom unmarshaler ensures backwards compatibility with the old format.
+func (c *ChainConfig) UnmarshalJSON(data []byte) error {
+	// Alias ChainConfig to avoid recursion
+	type _ChainConfig ChainConfig
+	tmp := _ChainConfig{}
+	err := json.Unmarshal(data, &tmp)
+	if err != nil {
+		return err
+	}
+
+	// At this point we have populated all fields except PrecompileUpgrade
+	*c = ChainConfig(tmp)
+
+	// Unmarshal inlined PrecompileUpgrade
+	return json.Unmarshal(data, &c.Precompiles)
+}
+
+// MarshalJSON returns the JSON encoding of c.
+// This is a custom marshaler to handle the Precompiles field.
+func (c ChainConfig) MarshalJSON() ([]byte, error) {
+	// Alias ChainConfig to avoid recursion
+	type _ChainConfig ChainConfig
+	tmp, err := json.Marshal(_ChainConfig(c))
+	if err != nil {
+		return nil, err
+	}
+
+	// Marshal PrecompileUpgrade
+	raw := make(map[string]json.RawMessage)
+	err = json.Unmarshal(tmp, &raw)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range c.Precompiles {
+		conf, err := json.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		raw[key] = conf
+	}
+
+	return json.Marshal(raw)
 }
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:

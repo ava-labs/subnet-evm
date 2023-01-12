@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
@@ -24,7 +23,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
-	config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
+	config.Precompiles = ChainConfigPrecompiles{
 		txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(2), nil, nil),
 	}
 	config.PrecompileUpgrades = []PrecompileUpgrade{
@@ -145,12 +144,12 @@ func TestVerifyPrecompiles(t *testing.T) {
 	admins := []common.Address{{1}}
 	tests := []struct {
 		name          string
-		upgrade       map[string]precompile.StatefulPrecompileConfig
+		upgrade       ChainConfigPrecompiles
 		expectedError string
 	}{
 		{
 			name: "invalid allow list config in tx allowlist",
-			upgrade: map[string]precompile.StatefulPrecompileConfig{
+			upgrade: ChainConfigPrecompiles{
 
 				txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(3), admins, admins),
 			},
@@ -158,7 +157,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 		},
 		{
 			name: "invalid initial fee manager config",
-			upgrade: map[string]precompile.StatefulPrecompileConfig{
+			upgrade: ChainConfigPrecompiles{
 				feemanager.ConfigKey: feemanager.NewFeeManagerConfig(big.NewInt(3), admins, nil,
 					&commontype.FeeConfig{
 						GasLimit: big.NewInt(-1),
@@ -206,7 +205,7 @@ func TestGetPrecompileConfig(t *testing.T) {
 	assert := assert.New(t)
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
-	config.Precompiles = map[string]precompile.StatefulPrecompileConfig{
+	config.Precompiles = ChainConfigPrecompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
 	}
 
@@ -271,4 +270,12 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 	require.Equal(contractNativeMinterConf.Key(), nativeminter.ConfigKey)
 	testContractNativeMinterConfig := nativeminter.NewContractNativeMinterConfig(big.NewInt(1671543172), nil, nil, nil)
 	require.True(contractNativeMinterConf.Equal(testContractNativeMinterConfig))
+
+	// Marshal and unmarshal again and check that the result is the same
+	upgradeBytes2, err := json.Marshal(upgradeConfig)
+	require.NoError(err)
+	var upgradeConfig2 UpgradeConfig
+	err = json.Unmarshal(upgradeBytes2, &upgradeConfig2)
+	require.NoError(err)
+	require.Equal(upgradeConfig, upgradeConfig2)
 }

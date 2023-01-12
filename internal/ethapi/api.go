@@ -627,12 +627,12 @@ func (api *BlockChainAPI) ChainId() *hexutil.Big {
 }
 
 // GetActivePrecompilesAt returns the active precompile configs at the given block timestamp.
-func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) map[string]precompile.StatefulPrecompileConfig {
+func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *big.Int) params.ChainConfigPrecompiles {
 	if blockTimestamp == nil {
 		blockTimestampInt := s.b.CurrentHeader().Time
 		blockTimestamp = new(big.Int).SetUint64(blockTimestampInt)
 	}
-	res := make(map[string]precompile.StatefulPrecompileConfig)
+	res := make(params.ChainConfigPrecompiles)
 	for _, module := range precompile.RegisteredModules() {
 		key := module.Key()
 		if config := s.b.ChainConfig().GetActivePrecompileConfig(key, blockTimestamp); config != nil && !config.IsDisabled() {

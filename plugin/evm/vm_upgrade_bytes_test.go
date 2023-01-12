@@ -143,7 +143,6 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
 	}
 	assert.Equal(t, signedTx1.Hash(), txs[0].Hash())
-	panic(1)
 }
 
 func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {

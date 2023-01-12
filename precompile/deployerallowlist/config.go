@@ -34,7 +34,7 @@ func NewStatefulPrecompileConfig() precompile.StatefulPrecompileConfig {
 func NewContractDeployerAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *ContractDeployerAllowListConfig {
 	return &ContractDeployerAllowListConfig{
 		AllowListConfig: allowlist.AllowListConfig{
-			AllowListAdmins:  admins,
+			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
 		UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: blockTimestamp},
