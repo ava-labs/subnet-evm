@@ -225,6 +225,7 @@ func (c ChainConfig) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
+	// Marshal Precompiles and inline them into the JSON
 	for key, value := range c.Precompiles {
 		conf, err := json.Marshal(value)
 		if err != nil {
