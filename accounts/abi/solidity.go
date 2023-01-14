@@ -58,14 +58,14 @@ func FromSolidityJson(abiJsonInput string) (ABI, error) {
 	for _, method := range solidityJson.Abi {
 		inputs := []Argument{}
 		for _, input := range method.Inputs {
-			components :=  []ArgumentMarshaling{}
-			if input.Type == "tuple" {
+			components := []ArgumentMarshaling{}
+			if input.Type == "tuple" || input.Type == "tuple[2]" {
 				for _, component := range input.Components {
 					components = append(components, ArgumentMarshaling{
-						Name: component.Name,
-						Type: component.Type,
+						Name:         component.Name,
+						Type:         component.Type,
 						InternalType: component.InternalType,
-					})					
+					})
 				}
 			}
 
@@ -91,14 +91,14 @@ func FromSolidityJson(abiJsonInput string) (ABI, error) {
 
 		outputs := []Argument{}
 		for _, output := range method.Outputs {
-			components :=  []ArgumentMarshaling{}
-			if output.Type == "tuple" {
+			components := []ArgumentMarshaling{}
+			if output.Type == "tuple" || output.Type == "tuple[2]" {
 				for _, component := range output.Components {
 					components = append(components, ArgumentMarshaling{
-						Name: component.Name,
-						Type: component.Type,
+						Name:         component.Name,
+						Type:         component.Type,
 						InternalType: component.InternalType,
-					})					
+					})
 				}
 			}
 			type_, _ := NewType(output.Type, output.InternalType, components)
