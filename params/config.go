@@ -304,6 +304,12 @@ func (c *ChainConfig) IsRewardManager(blockTimestamp *big.Int) bool {
 	return config != nil && !config.Disable
 }
 
+// IsCodeUpgrader returns whether [blockTimestamp] is either equal to the CodeUpgrader fork block timestamp or greater.
+func (c *ChainConfig) IsCodeUpgrader(blockTimestamp *big.Int) bool {
+	config := c.GetCodeUpgraderConfig(blockTimestamp)
+	return config != nil && !config.Disable
+}
+
 // ADD YOUR PRECOMPILE HERE
 /*
 func (c *ChainConfig) Is{YourPrecompile}(blockTimestamp *big.Int) bool {
@@ -545,6 +551,7 @@ type Rules struct {
 	IsTxAllowListEnabled               bool
 	IsFeeConfigManagerEnabled          bool
 	IsRewardManagerEnabled             bool
+	IsCodeUpgraderEnabled              bool
 	// ADD YOUR PRECOMPILE HERE
 	// Is{YourPrecompile}Enabled         bool
 
@@ -585,6 +592,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsTxAllowListEnabled = c.IsTxAllowList(blockTimestamp)
 	rules.IsFeeConfigManagerEnabled = c.IsFeeConfigManager(blockTimestamp)
 	rules.IsRewardManagerEnabled = c.IsRewardManager(blockTimestamp)
+	rules.IsCodeUpgraderEnabled = c.IsCodeUpgrader(blockTimestamp)
 	// ADD YOUR PRECOMPILE HERE
 	// rules.Is{YourPrecompile}Enabled = c.{IsYourPrecompile}(blockTimestamp)
 

@@ -23,6 +23,7 @@ const (
 	txAllowListKey
 	feeManagerKey
 	rewardManagerKey
+	codeUpgraderKey
 	// ADD YOUR PRECOMPILE HERE
 	// {yourPrecompile}Key
 )
@@ -40,6 +41,8 @@ func (k precompileKey) String() string {
 		return "feeManager"
 	case rewardManagerKey:
 		return "rewardManager"
+	case codeUpgraderKey:
+		return "codeUpgrader"
 		// ADD YOUR PRECOMPILE HERE
 		/*
 			case {yourPrecompile}Key:
@@ -50,7 +53,7 @@ func (k precompileKey) String() string {
 }
 
 // ADD YOUR PRECOMPILE HERE
-var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey, rewardManagerKey /* {yourPrecompile}Key */}
+var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey, rewardManagerKey, codeUpgraderKey /* {yourPrecompile}Key */}
 
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig, representing
 // each of the possible stateful precompile types that can be activated
@@ -61,6 +64,7 @@ type PrecompileUpgrade struct {
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
 	RewardManagerConfig             *precompile.RewardManagerConfig             `json:"rewardManagerConfig,omitempty"`             // Config for the reward manager precompile
+	CodeUpgraderConfig              *precompile.CodeUpgraderConfig              `json:"codeUpgraderConfig,omitempty"`              // Config for the code upgrader precompile
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
@@ -77,6 +81,8 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
 	case rewardManagerKey:
 		return p.RewardManagerConfig, p.RewardManagerConfig != nil
+	case codeUpgraderKey:
+		return p.CodeUpgraderConfig, p.CodeUpgraderConfig != nil
 	// ADD YOUR PRECOMPILE HERE
 	/*
 		case {yourPrecompile}Key:
@@ -243,6 +249,15 @@ func (c *ChainConfig) GetRewardManagerConfig(blockTimestamp *big.Int) *precompil
 	return nil
 }
 
+// GetCodeUpgraderConfig returns the latest forked CodeUpgraderConfig
+// specified by [c] or nil if it was never enabled.
+func (c *ChainConfig) GetCodeUpgraderConfig(blockTimestamp *big.Int) *precompile.CodeUpgraderConfig {
+	if val := c.getActivePrecompileConfig(blockTimestamp, codeUpgraderKey, c.PrecompileUpgrades); val != nil {
+		return val.(*precompile.CodeUpgraderConfig)
+	}
+	return nil
+}
+
 /* ADD YOUR PRECOMPILE HERE
 func (c *ChainConfig) Get{YourPrecompile}Config(blockTimestamp *big.Int) *precompile.{YourPrecompile}Config {
 	if val := c.getActivePrecompileConfig(blockTimestamp, {yourPrecompile}Key, c.PrecompileUpgrades); val != nil {
@@ -268,6 +283,9 @@ func (c *ChainConfig) GetActivePrecompiles(blockTimestamp *big.Int) PrecompileUp
 	}
 	if config := c.GetRewardManagerConfig(blockTimestamp); config != nil && !config.Disable {
 		pu.RewardManagerConfig = config
+	}
+	if config := c.GetCodeUpgraderConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.CodeUpgraderConfig = config
 	}
 	// ADD YOUR PRECOMPILE HERE
 	// if config := c.{YourPrecompile}Config(blockTimestamp); config != nil && !config.Disable {
