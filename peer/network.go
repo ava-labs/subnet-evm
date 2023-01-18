@@ -51,6 +51,9 @@ type Network interface {
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
 
+	// Gossip sends given gossip message to peers specified by [nodeIDs]
+	GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error
+
 	// Shutdown stops all peer channel listeners and marks the node to have stopped
 	// n.Start() can be called again but the peers will have to be reconnected
 	// by calling OnPeerConnected for each peer
@@ -292,6 +295,11 @@ func (n *network) getRequestHandler(requestID uint32) (message.ResponseHandler, 
 // Gossip sends given gossip message to peers
 func (n *network) Gossip(gossip []byte) error {
 	return n.appSender.SendAppGossip(context.TODO(), gossip)
+}
+
+// Gossip sends given gossip message to peers specified by [nodeIDs]
+func (n *network) GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error {
+	return n.appSender.SendAppGossipSpecific(nodeIDs, gossip)
 }
 
 // AppGossip is called by avalanchego -> VM when there is an incoming AppGossip from a peer
