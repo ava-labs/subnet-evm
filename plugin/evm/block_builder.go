@@ -4,6 +4,7 @@
 package evm
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -171,7 +172,7 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 					time.Sleep(waitBlockTime)
 
 					// Retrieve nodes to gossip to
-					proposers, err := b.ctx.ProposerRetriever.Proposers()
+					proposers, err := b.ctx.ProposerRetriever.GetCurrentProposers(context.TODO()) // UNSURE OF WHAT CONTEXT TO USE HERE
 					if err != nil {
 						log.Warn("failed to retrieve list of proposers", "err", err)
 					}
