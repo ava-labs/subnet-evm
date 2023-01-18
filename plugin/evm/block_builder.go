@@ -169,11 +169,17 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 					// Give time for this node to build a block before attempting to
 					// gossip
 					time.Sleep(waitBlockTime)
-					// [GossipTxs] will block unless [gossiper.txsToGossipChan] (an
-					// unbuffered channel) is listened on
-					if err := b.gossiper.GossipTxs(ethTxsEvent.Txs); err != nil {
+
+					// Retrieve nodes to gossip to
+					proposers, err := b.ctx.ProposerRetriever.Proposers()
+					if err != nil {
+						log.Warn("failed to retrieve list of proposers", "err", err)
+					}
+
+					// [GossipTxsToNodes] will gossip txs directly to proposer nodes.
+					if err := b.gossiper.GossipTxsToNodes(ethTxsEvent.Txs, proposers); err != nil {
 						log.Warn(
-							"failed to gossip new eth transactions",
+							"failed to gossip new eth transactions to proposers",
 							"err", err,
 						)
 					}

@@ -41,6 +41,8 @@ const (
 type Gossiper interface {
 	// GossipTxs sends AppGossip message containing the given [txs]
 	GossipTxs(txs []*types.Transaction) error
+
+	GossipTxsToNodes(txs []*types.Transaction, nodeIDs set.Set[ids.NodeID]) error
 }
 
 // pushGossiper is used to gossip transactions to the network
@@ -491,5 +493,9 @@ func (h *GossipHandler) HandleTxs(nodeID ids.NodeID, msg message.TxsGossip) erro
 type noopGossiper struct{}
 
 func (n *noopGossiper) GossipTxs([]*types.Transaction) error {
+	return nil
+}
+
+func (n *noopGossiper) GossipTxsToNodes([]*types.Transaction, set.Set[ids.NodeID]) error {
 	return nil
 }
