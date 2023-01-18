@@ -162,7 +162,7 @@ func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
 
 //nolint:unused
 func clearBloomBits(db ethdb.Database) {
-	bloomBitsPrefix := []byte("bloomBits-")
+	var bloomBitsPrefix = []byte("bloomBits-")
 	fmt.Println("Clearing bloombits data...")
 	it := db.NewIterator(bloomBitsPrefix, nil)
 	for it.Next() {
