@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/set"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -397,6 +398,34 @@ func (n *pushGossiper) GossipTxs(txs []*types.Transaction) error {
 	case <-n.shutdownChan:
 	}
 	return nil
+}
+
+// GossipTxs immediately gossips the provided [txs] to [nodeIDs]. 
+func (n *pushGossiper) GossipTxsToNodes(txs []*types.Transaction, nodeIDs set.Set[ids.NodeID]) error {
+	if len(txs) == 0 {
+		return nil
+	}
+
+	txBytes, err := rlp.EncodeToBytes(txs)
+	if err != nil {
+		return err
+	}
+	msg := message.TxsGossip{
+		Txs: txBytes,
+	}
+	msgBytes, err := message.BuildGossipMessage(n.codec, msg)
+	if err != nil {
+		return err
+	}
+
+	log.Trace(
+		"gossiping eth txs",
+		"len(txs)", len(txs),
+		"size(txs)", len(msg.Txs),
+		"node(ids)", nodeIDs,
+	)
+	n.stats.IncEthTxsGossipSent()
+	return n.client.GossipSpecific(msgBytes, nodeIDs)
 }
 
 // GossipHandler handles incoming gossip messages
