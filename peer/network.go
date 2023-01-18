@@ -299,7 +299,7 @@ func (n *network) Gossip(gossip []byte) error {
 
 // Gossip sends given gossip message to peers specified by [nodeIDs]
 func (n *network) GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error {
-	return n.appSender.SendAppGossipSpecific(nodeIDs, gossip)
+	return n.appSender.SendAppGossipSpecific(context.TODO(), nodeIDs, gossip)
 }
 
 // AppGossip is called by avalanchego -> VM when there is an incoming AppGossip from a peer

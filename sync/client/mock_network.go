@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/peer"
 
 	"github.com/ava-labs/avalanchego/version"
@@ -74,6 +75,10 @@ func (t *mockNetwork) processMock(request []byte) ([]byte, error) {
 }
 
 func (t *mockNetwork) Gossip([]byte) error {
+	panic("not implemented") // we don't care about this function for this test
+}
+
+func (t *mockNetwork) GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error {
 	panic("not implemented") // we don't care about this function for this test
 }
 
