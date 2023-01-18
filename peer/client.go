@@ -32,6 +32,8 @@ type NetworkClient interface {
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
 
+	GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error
+
 	// TrackBandwidth should be called for each valid request with the bandwidth
 	// (length of response divided by request time), and with 0 if the response is invalid.
 	TrackBandwidth(nodeID ids.NodeID, bandwidth float64)
@@ -84,6 +86,10 @@ func (c *client) Request(nodeID ids.NodeID, request []byte) ([]byte, error) {
 
 func (c *client) Gossip(gossip []byte) error {
 	return c.network.Gossip(gossip)
+}
+
+func (c *client) GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error {
+	return c.network.GossipSpecific(gossip, nodeIDs)
 }
 
 func (c *client) TrackBandwidth(nodeID ids.NodeID, bandwidth float64) {
