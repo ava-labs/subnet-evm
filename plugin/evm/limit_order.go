@@ -81,16 +81,29 @@ func (lop *limitOrderProcesser) RunMatchingEngine() {
 			if getUnFilledBaseAssetQuantity(shortOrders[j]) == 0 {
 				continue
 			}
-			if longOrders[i].Price == shortOrders[j].Price {
-				fillAmount := math.Abs(math.Min(float64(getUnFilledBaseAssetQuantity(longOrders[i])), float64(-(getUnFilledBaseAssetQuantity(shortOrders[j])))))
-				err := lop.limitOrderTxProcessor.ExecuteMatchedOrdersTx(longOrders[i], shortOrders[j], uint(fillAmount))
-				if err == nil {
-					longOrders[i].FilledBaseAssetQuantity = longOrders[i].FilledBaseAssetQuantity + int(fillAmount)
-					shortOrders[j].FilledBaseAssetQuantity = shortOrders[j].FilledBaseAssetQuantity - int(fillAmount)
-				}
+			var ordersMatched bool
+			longOrders[i], shortOrders[j], ordersMatched = matchLongAndShortOrder(lop.limitOrderTxProcessor, longOrders[i], shortOrders[j])
+			if !ordersMatched {
+				i = len(longOrders)
+				break
 			}
 		}
 	}
+}
+
+func matchLongAndShortOrder(lotp limitorders.LimitOrderTxProcessor, longOrder limitorders.LimitOrder, shortOrder limitorders.LimitOrder) (limitorders.LimitOrder, limitorders.LimitOrder, bool) {
+	if longOrder.Price >= shortOrder.Price {
+		fillAmount := math.Abs(math.Min(float64(getUnFilledBaseAssetQuantity(longOrder)), float64(-(getUnFilledBaseAssetQuantity(shortOrder)))))
+		if fillAmount != 0 {
+			err := lotp.ExecuteMatchedOrdersTx(longOrder, shortOrder, uint(fillAmount))
+			if err == nil {
+				longOrder.FilledBaseAssetQuantity += int(fillAmount)
+				shortOrder.FilledBaseAssetQuantity -= int(fillAmount)
+				return longOrder, shortOrder, true
+			}
+		}
+	}
+	return longOrder, shortOrder, false
 }
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
