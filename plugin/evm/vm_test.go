@@ -27,7 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/stretchr/testify/require"
@@ -3033,7 +3032,6 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 		result := core.ExecutionResult{}
 		err = json.Unmarshal(response.ExecutionResult, &result)
 		require.NoError(err)
-		fmt.Println(result)
 		require.NotNil(result.ReturnData)
 
 		finalResult, err := parsed.Unpack("receive", result.ReturnData)
@@ -3097,7 +3095,7 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 		require.NoError(err)
 	}
 	testAddr := testEthAddrs[0]
-	contractAddress := ethcrypto.CreateAddress(testAddr, 1)
+	contractAddress := crypto.CreateAddress(testAddr, 1)
 
 	<-issuer
 
