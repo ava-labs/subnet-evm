@@ -7,21 +7,23 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ava-labs/avalanchego/snow"
-
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
-
-	"github.com/ava-labs/avalanchego/database"
-
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
 	_ WarpBackend = &WarpMessagesDB{}
 
 	dbPrefix = []byte("warp_messages")
+)
+
+const (
+	signatureCacheSize = 500
 )
 
 type WarpBackend interface {
@@ -31,14 +33,23 @@ type WarpBackend interface {
 
 type WarpMessagesDB struct {
 	database.Database
-	snowCtx *snow.Context
+	snowCtx        *snow.Context
+	signatureCache *lru.Cache
 }
 
-func NewWarpMessagesDB(snowCtx *snow.Context, vmDB *versiondb.Database) *WarpMessagesDB {
-	return &WarpMessagesDB{
-		Database: prefixdb.New(dbPrefix, vmDB),
-		snowCtx:  snowCtx,
+func NewWarpMessagesDB(snowCtx *snow.Context, vmDB *versiondb.Database) (*WarpMessagesDB, error) {
+	signatureCache, err := lru.New(signatureCacheSize)
+	if err != nil {
+		return nil, err
 	}
+
+	db := &WarpMessagesDB{
+		Database:       prefixdb.New(dbPrefix, vmDB),
+		snowCtx:        snowCtx,
+		signatureCache: signatureCache,
+	}
+
+	return db, nil
 }
 
 func (w *WarpMessagesDB) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
@@ -52,15 +63,25 @@ func (w *WarpMessagesDB) AddMessage(ctx context.Context, unsignedMessage *telepo
 }
 
 func (w *WarpMessagesDB) GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error) {
-	messageBytes, err := w.Get(messageHash[:])
-	if err != nil {
-		return nil, err
-	}
+	if sig, ok := w.signatureCache.Get(messageHash[:]); ok {
+		return sig.([]byte), nil
+	} else {
+		messageBytes, err := w.Get(messageHash[:])
+		if err != nil {
+			return nil, err
+		}
 
-	unsignedMessage, err := teleporter.ParseUnsignedMessage(messageBytes)
-	if err != nil {
-		return nil, err
-	}
+		unsignedMessage, err := teleporter.ParseUnsignedMessage(messageBytes)
+		if err != nil {
+			return nil, err
+		}
 
-	return w.snowCtx.TeleporterSigner.Sign(unsignedMessage)
+		signature, err := w.snowCtx.TeleporterSigner.Sign(unsignedMessage)
+		if err != nil {
+			return nil, err
+		}
+
+		w.signatureCache.Add(messageHash[:], signature)
+		return signature, nil
+	}
 }
