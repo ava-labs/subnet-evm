@@ -1,5 +1,5 @@
 ---
-name: Release Checlist
+name: Release Checklist
 about: Create a ticket to track a release
 title: ''
 labels: release
