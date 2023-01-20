@@ -16,6 +16,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 )
 
 // Block implements the snowman.Block interface
@@ -101,13 +102,51 @@ func (b *Block) syntacticVerify() error {
 }
 
 // Verify implements the snowman.Block interface
+// Since VerifyWithContext is implemented, we never expect this to be called.
 func (b *Block) Verify(context.Context) error {
-	return b.verify(true)
+	return b.verify(nil, true)
 }
 
-func (b *Block) verify(writes bool) error {
+// ShouldVerifyWithContext implements the block.WithVerifyContext interface
+// TODO: Cache the result such that if called multiple times for the same block,
+// we do not need to recompute the value.
+func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
+	precompileConfigs := b.vm.currentRules().Precompiles
+	for _, tx := range b.ethBlock.Transactions() {
+		for _, accessTuple := range tx.AccessList() {
+			if _, ok := precompileConfigs[accessTuple.Address]; ok {
+				log.Debug("Block should be verified with proposer VM context.")
+				return true, nil
+			}
+		}
+	}
+	log.Debug("Block does not require proposer VM context for verification.")
+
+	return false, nil
+}
+
+// VerifyWithContext implements the block.WithVerifyContext interface
+func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
+	if proposerVMBlockCtx != nil {
+		log.Debug("Verifying block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
+	} else {
+		log.Debug("VerifyWithContext called with nil context")
+	}
+	return b.verify(proposerVMBlockCtx, true)
+}
+
+func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
+	}
+
+	// If the chain is not yet bootstrapped, we do not need to verify the transaction predicates
+	// because the block is already included in the chain, so we know that predicates must have
+	// been valid at the time the block was accepted.
+	if b.vm.bootstrapped {
+		if _, err := b.vm.checkTransactionPredicates(b.ethBlock.Transactions(), proposerVMBlockCtx); err != nil {
+			return fmt.Errorf("predicate transaction verification failed: %w", err)
+		}
 	}
 
 	return b.vm.blockChain.InsertBlockManual(b.ethBlock, writes)

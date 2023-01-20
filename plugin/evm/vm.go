@@ -32,6 +32,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -531,14 +532,15 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	block.status = choices.Accepted
 
 	config := &chain.Config{
-		DecidedCacheSize:    decidedCacheSize,
-		MissingCacheSize:    missingCacheSize,
-		UnverifiedCacheSize: unverifiedCacheSize,
-		GetBlockIDAtHeight:  vm.GetBlockIDAtHeight,
-		GetBlock:            vm.getBlock,
-		UnmarshalBlock:      vm.parseBlock,
-		BuildBlock:          vm.buildBlock,
-		LastAcceptedBlock:   block,
+		DecidedCacheSize:      decidedCacheSize,
+		MissingCacheSize:      missingCacheSize,
+		UnverifiedCacheSize:   unverifiedCacheSize,
+		GetBlockIDAtHeight:    vm.GetBlockIDAtHeight,
+		GetBlock:              vm.getBlock,
+		UnmarshalBlock:        vm.parseBlock,
+		BuildBlock:            vm.buildBlock,
+		BuildBlockWithContext: vm.buildBlockWithContext,
+		LastAcceptedBlock:     block,
 	}
 
 	// Register chain state metrics
@@ -620,7 +622,33 @@ func (vm *VM) Shutdown(context.Context) error {
 }
 
 // buildBlock builds a block to be wrapped by ChainState
-func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
+func (vm *VM) buildBlock(ctx context.Context) (snowman.Block, error) {
+	log.Debug("Trying to build block without context.")
+	return vm.buildBlockWithContext(ctx, nil)
+}
+
+func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) (snowman.Block, error) {
+	if proposerVMBlockCtx != nil {
+		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
+	} else {
+		log.Debug("Attempting to build block with nil context")
+	}
+
+	// Get the pending transactions from the pool.
+	pending := vm.txPool.Pending(true)
+
+	// Verify any transaction predicates with the given block context.
+	// Remove any transactions from the pool from addresses that submitted transactions with invalid predicates.
+	for sender, txs := range pending {
+		if invalidIndex, err := vm.checkTransactionPredicates(txs, proposerVMBlockCtx); err != nil {
+			log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", sender.Hex())
+			delete(pending, sender)
+			for i := invalidIndex; i < len(txs); i++ {
+				vm.txPool.RemoveTx(txs[i].Hash())
+			}
+		}
+	}
+
 	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()
 	if err != nil {
@@ -642,7 +670,7 @@ func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
 	// We call verify without writes here to avoid generating a reference
 	// to the blk state root in the triedb when we are going to call verify
 	// again from the consensus engine with writes enabled.
-	if err := blk.verify(false /*=writes*/); err != nil {
+	if err := blk.verify(proposerVMBlockCtx, false /*=writes*/); err != nil {
 		return nil, fmt.Errorf("block failed verification due to: %w", err)
 	}
 
@@ -650,6 +678,37 @@ func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
 	// Marks the current transactions from the mempool as being successfully issued
 	// into a block.
 	return blk, nil
+}
+
+// checkTransactionPredicates checks the stateful precompile predicates of any of the given
+// transactions that reference a stateful precompile address in their access list.
+// Returns [len(txs), nil] if and only if all referenced predicates are met.
+// Otherwise, returns the index of the first transaction that was invalid and the predicate error.
+func (vm *VM) checkTransactionPredicates(txs types.Transactions, proposerVMBlockCtx *block.Context) (int, error) {
+	precompileConfigs := vm.currentRules().Precompiles
+	for i, tx := range txs {
+		for _, accessTuple := range tx.AccessList() {
+			var (
+				precompileConfig   precompile.StatefulPrecompileConfig
+				isPrecompileAccess bool
+			)
+			if precompileConfig, isPrecompileAccess = precompileConfigs[accessTuple.Address]; !isPrecompileAccess {
+				continue
+			}
+
+			predicate := precompileConfig.Predicate()
+			if predicate == nil {
+				continue
+			}
+
+			if err := predicate(vm.ctx, proposerVMBlockCtx, accessTuple.StorageKeys); err != nil {
+				log.Warn("Transaction predicate verification failed.", "txId", tx.Hash(), "precompileAddress", accessTuple.Address.Hex())
+				return i, err
+			}
+		}
+	}
+
+	return len(txs), nil
 }
 
 // parseBlock parses [b] into a block to be wrapped by ChainState.
