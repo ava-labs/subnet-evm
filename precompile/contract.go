@@ -65,6 +65,8 @@ type StateDB interface {
 
 	Suicide(common.Address) bool
 	Finalise(deleteEmptyObjects bool)
+
+	GetPredicateStorageSlots(address common.Address) (bool, []common.Hash)
 }
 
 // StatefulPrecompiledContract is the interface for executing a precompiled contract

@@ -111,6 +111,10 @@ type StateDB struct {
 	// Per-transaction access list
 	accessList *accessList
 
+	// Ordered storage slots to be used in predicate verification as set in the tx access list.
+	// Only set in PrepareAccessList, and un-modified through execution.
+	predicateStorageSlots map[common.Address][]common.Hash
+
 	// Journal of state modifications. This is the backbone of
 	// Snapshot and RevertToSnapshot.
 	journal        *journal
@@ -156,17 +160,18 @@ func NewWithSnapshot(root common.Hash, db Database, snap snapshot.Snapshot) (*St
 		return nil, err
 	}
 	sdb := &StateDB{
-		db:                  db,
-		trie:                tr,
-		originalRoot:        root,
-		stateObjects:        make(map[common.Address]*stateObject),
-		stateObjectsPending: make(map[common.Address]struct{}),
-		stateObjectsDirty:   make(map[common.Address]struct{}),
-		logs:                make(map[common.Hash][]*types.Log),
-		preimages:           make(map[common.Hash][]byte),
-		journal:             newJournal(),
-		accessList:          newAccessList(),
-		hasher:              crypto.NewKeccakState(),
+		db:                    db,
+		trie:                  tr,
+		originalRoot:          root,
+		stateObjects:          make(map[common.Address]*stateObject),
+		stateObjectsPending:   make(map[common.Address]struct{}),
+		stateObjectsDirty:     make(map[common.Address]struct{}),
+		logs:                  make(map[common.Hash][]*types.Log),
+		preimages:             make(map[common.Hash][]byte),
+		journal:               newJournal(),
+		predicateStorageSlots: make(map[common.Address][]common.Hash),
+		accessList:            newAccessList(),
+		hasher:                crypto.NewKeccakState(),
 	}
 	if snap != nil {
 		if snap.Root() != root {
@@ -674,6 +679,15 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 	return nil
 }
 
+// copyPredicateStorageSlots creates a deep copy of the provided predicateStorageSlots map.
+func copyPredicateStorageSlots(predicateStorageSlots map[common.Address][]common.Hash) map[common.Address][]common.Hash {
+	res := make(map[common.Address][]common.Hash)
+	for address, slots := range predicateStorageSlots {
+		res[address] = slots
+	}
+	return res
+}
+
 // Copy creates a deep, independent copy of the state.
 // Snapshots of the copied state cannot be applied to the copy.
 func (s *StateDB) Copy() *StateDB {
@@ -739,6 +753,7 @@ func (s *StateDB) Copy() *StateDB {
 	// _between_ transactions/blocks, never in the middle of a transaction.
 	// However, it doesn't cost us much to copy an empty list, so we do it anyway
 	// to not blow up if we ever decide copy it in the middle of a transaction
+	state.predicateStorageSlots = copyPredicateStorageSlots(s.predicateStorageSlots)
 	state.accessList = s.accessList.Copy()
 
 	// If there's a prefetcher running, make an inactive copy of it that can
@@ -1060,12 +1075,20 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 	for _, addr := range precompiles {
 		s.AddAddressToAccessList(addr)
 	}
+
+	// Note: If an address is specified multiple times the access list, only the
+	// last storage slots provided for it are used in predicates.
+	predicateStorageSlots := make(map[common.Address][]common.Hash)
 	for _, el := range list {
 		s.AddAddressToAccessList(el.Address)
+		predicateStorageSlots[el.Address] = el.StorageKeys
 		for _, key := range el.StorageKeys {
 			s.AddSlotToAccessList(el.Address, key)
 		}
 	}
+
+	// Set predicateStorageSlots once, not to be modified
+	s.predicateStorageSlots = predicateStorageSlots
 }
 
 // AddAddressToAccessList adds the given address to the access list
@@ -1101,4 +1124,14 @@ func (s *StateDB) AddressInAccessList(addr common.Address) bool {
 // SlotInAccessList returns true if the given (address, slot)-tuple is in the access list.
 func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
 	return s.accessList.Contains(addr, slot)
+}
+
+// GetPredicateStorageSlots returns whether or not the given address was included in the optional
+// access list of the transaction, and the storage slots that were associated with that address
+// if it was included. The storage slots are returned in the same order as they appeared in the transaction.
+// These are the same storage slots that are used to verify any transaction
+// predicates for transactions with access list addresses that match a precompile address.
+func (s *StateDB) GetPredicateStorageSlots(address common.Address) (bool, []common.Hash) {
+	storageSlots, exists := s.predicateStorageSlots[address]
+	return exists, storageSlots
 }
