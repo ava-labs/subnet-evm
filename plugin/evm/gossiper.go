@@ -405,7 +405,7 @@ func (n *pushGossiper) GossipTxs(txs []*types.Transaction) error {
 
 // GossipTxs immediately gossips the provided [txs] to [nodeIDs]. 
 func (n *pushGossiper) GossipTxsToNodes(nodeIDs set.Set[ids.NodeID], txs []*types.Transaction, ) error {
-	if len(txs) == 0 || set.Len(nodeIDs) == 0 {
+	if len(txs) == 0 || nodeIDs.Len() == 0 {
 		return nil
 	}
 

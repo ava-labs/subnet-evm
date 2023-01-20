@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/params"
 
@@ -183,6 +184,7 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 						log.Warn(
 							"failed to gossip new eth transactions to proposers",
 							"err", err,
+							"numProposers", proposers.Len(),
 						)
 					}
 				}
