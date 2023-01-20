@@ -38,12 +38,7 @@ describe.only('Order Book', function () {
         orderBook = await ethers.getContractAt('OrderBook', GENESIS_ORDERBOOK_ADDRESS)
         let _impl = await ethers.provider.getStorageAt(GENESIS_ORDERBOOK_ADDRESS, '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc')
 
-        let isInitialized = false
         if (_impl != '0x' + '0'.repeat(64)) {
-            isInitialized = await orderBook.isInitialized()
-        }
-
-        if (isInitialized) {
             await proxyAdmin.upgrade(GENESIS_ORDERBOOK_ADDRESS, orderBookImpl.address)
         } else {
             await proxyAdmin.upgradeAndCall(
