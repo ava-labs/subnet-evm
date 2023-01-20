@@ -26,17 +26,24 @@ const (
 	signatureCacheSize = 500
 )
 
+// WarpBackend keeps track of messages that are accepted by the warp precompiles and add them into a database.
+// The backend is also used to query for warp message signatures by the signature request handler.
 type WarpBackend interface {
+	// AddMessage is called in the precompile OnAccept, to add warp messages into the database.
 	AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error
+
+	// GetSignature returns the signature of the requested message hash.
 	GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error)
 }
 
+// WarpMessagesDB implements WarpBackend, keeping track of warp messages, and generating message signatures.
 type WarpMessagesDB struct {
 	database.Database
 	snowCtx        *snow.Context
 	signatureCache *lru.Cache
 }
 
+// NewWarpMessagesDB creates a new WarpMessagesDB, and initializes the signature cache and message tracking database.
 func NewWarpMessagesDB(snowCtx *snow.Context, vmDB *versiondb.Database) (*WarpMessagesDB, error) {
 	signatureCache, err := lru.New(signatureCacheSize)
 	if err != nil {
