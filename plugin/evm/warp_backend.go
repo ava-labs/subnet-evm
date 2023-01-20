@@ -65,30 +65,29 @@ func (w *WarpMessagesDB) AddMessage(ctx context.Context, unsignedMessage *telepo
 		return fmt.Errorf("failed to add message with key %s to warp database: %w", messageHash.String(), err)
 	}
 
-	w.Put(messageHash[:], unsignedMessage.Bytes())
-	return nil
+	return w.Put(messageHash[:], unsignedMessage.Bytes())
 }
 
 func (w *WarpMessagesDB) GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error) {
 	if sig, ok := w.signatureCache.Get(messageHash[:]); ok {
 		return sig.([]byte), nil
-	} else {
-		messageBytes, err := w.Get(messageHash[:])
-		if err != nil {
-			return nil, fmt.Errorf("failed to get warp message %s from db: %w", messageHash.String(), err)
-		}
-
-		unsignedMessage, err := teleporter.ParseUnsignedMessage(messageBytes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse warp message %s: %w", messageHash.String(), err)
-		}
-
-		signature, err := w.snowCtx.TeleporterSigner.Sign(unsignedMessage)
-		if err != nil {
-			return nil, fmt.Errorf("failed to sign warp message %s: %w", messageHash.String(), err)
-		}
-
-		w.signatureCache.Add(messageHash[:], signature)
-		return signature, nil
 	}
+
+	messageBytes, err := w.Get(messageHash[:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to get warp message %s from db: %w", messageHash.String(), err)
+	}
+
+	unsignedMessage, err := teleporter.ParseUnsignedMessage(messageBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse warp message %s: %w", messageHash.String(), err)
+	}
+
+	signature, err := w.snowCtx.TeleporterSigner.Sign(unsignedMessage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign warp message %s: %w", messageHash.String(), err)
+	}
+
+	w.signatureCache.Add(messageHash[:], signature)
+	return signature, nil
 }
