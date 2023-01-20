@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ava-labs/avalanchego/utils/hashing"
+
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
@@ -60,7 +62,8 @@ func NewWarpMessagesDB(snowCtx *snow.Context, vmDB *versiondb.Database) (*WarpMe
 }
 
 func (w *WarpMessagesDB) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
-	messageHash, err := ids.ToID(unsignedMessage.Bytes())
+	messageHashBytes := hashing.ComputeHash256(unsignedMessage.Bytes())
+	messageHash, err := ids.ToID(messageHashBytes)
 	if err != nil {
 		return fmt.Errorf("failed to add message with key %s to warp database: %w", messageHash.String(), err)
 	}
