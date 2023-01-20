@@ -44,6 +44,11 @@ type blockBuilder struct {
 
 	txPool   *core.TxPool
 	gossiper Gossiper
+
+	// Used to retrieve information for targeted proposer gossip
+	// [blockChain] retrieves chain height
+	// [proposerRetriever] retrieves proposer list based on chain height and P-Chain height
+	blockChain *core.BlockChain
 	proposerRetriever proposer.Windower
 
 	shutdownChan <-chan struct{}
@@ -77,6 +82,7 @@ func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *bl
 		ctx:                  vm.ctx,
 		config: 			  vm.config,
 		chainConfig:          vm.chainConfig,
+		blockChain: 		  vm.blockChain,
 		txPool:               vm.txPool,
 		gossiper:             vm.gossiper,
 		proposerRetriever: 	  proposerRetriever,
@@ -189,15 +195,15 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 						if err != nil {
 							log.Warn("failed to retrieve current height of the P-Chain", "err", err)
 						}
-						var nextHeight uint64 = 0 // Can set this either from SetPreference or some of the other calls... VM specific
-						proposers, err := b.proposerRetriever.Proposers(context.TODO(), nextHeight, pChainHeight)
+						// Retrieve last accepted block to get chain height
+						lastAcceptedBlock := b.blockChain.LastAcceptedBlock()
+						chainHeight := lastAcceptedBlock.NumberU64()
+						proposers, err := b.proposerRetriever.Proposers(context.TODO(), chainHeight, pChainHeight)
 						if err != nil {
 							log.Warn("failed to retrieve list of proposers", "err", err)
 						}
 						proposerSet := set.NewSet[ids.NodeID](len(proposers))
-						for _, proposer := range proposers {
-							proposerSet.Add(proposer)
-						}
+						proposerSet.Add(proposers...)
 
 						// [GossipTxsToNodes] will gossip txs directly to proposer nodes
 						if err := b.gossiper.GossipTxsToNodes(proposerSet, ethTxsEvent.Txs); err != nil {
