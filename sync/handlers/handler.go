@@ -35,6 +35,7 @@ type syncHandler struct {
 	stateTrieLeafsRequestHandler *LeafsRequestHandler
 	blockRequestHandler          *BlockRequestHandler
 	codeRequestHandler           *CodeRequestHandler
+	signatureRequestHandler      *SignatureRequestHandler
 }
 
 // NewSyncHandler constructs the handler for serving state sync.
@@ -48,6 +49,9 @@ func NewSyncHandler(
 		stateTrieLeafsRequestHandler: NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, stats),
 		blockRequestHandler:          NewBlockRequestHandler(provider, networkCodec, stats),
 		codeRequestHandler:           NewCodeRequestHandler(evmTrieDB.DiskDB(), networkCodec, stats),
+
+		// TODO: need to pass in the warp backend from the subnet-evm.
+		signatureRequestHandler: NewSignatureRequestHandler(nil),
 	}
 }
 
@@ -64,5 +68,5 @@ func (s *syncHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, 
 }
 
 func (s *syncHandler) HandleSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error) {
-	return nil, nil
+	return s.signatureRequestHandler.OnSignatureRequest(ctx, nodeID, requestID, signatureRequest)
 }
