@@ -39,6 +39,7 @@ const (
 	defaultPriorityRegossipFrequency              = 1 * time.Second
 	defaultPriorityRegossipMaxTxs                 = 32
 	defaultPriorityRegossipTxsPerAddress          = 16
+	defaultTargetedProposerGossipEnabled          = true
 	defaultOfflinePruningBloomFilterSize   uint64 = 512 // Default size (MB) for the offline pruner to use
 	defaultLogLevel                               = "info"
 	defaultLogJSONFormat                          = false
@@ -157,6 +158,7 @@ type Config struct {
 	PriorityRegossipMaxTxs        int              `json:"priority-regossip-max-txs"`
 	PriorityRegossipTxsPerAddress int              `json:"priority-regossip-txs-per-address"`
 	PriorityRegossipAddresses     []common.Address `json:"priority-regossip-addresses"`
+	TargetedProposerGossipEnabled bool			   `json:"targeted-proposer-gossip-enabled"`
 
 	// Log
 	LogLevel      string `json:"log-level"`
@@ -242,6 +244,7 @@ func (c *Config) SetDefaults() {
 	c.PriorityRegossipFrequency.Duration = defaultPriorityRegossipFrequency
 	c.PriorityRegossipMaxTxs = defaultPriorityRegossipMaxTxs
 	c.PriorityRegossipTxsPerAddress = defaultPriorityRegossipTxsPerAddress
+	c.TargetedProposerGossipEnabled = defaultTargetedProposerGossipEnabled
 	c.OfflinePruningBloomFilterSize = defaultOfflinePruningBloomFilterSize
 	c.LogLevel = defaultLogLevel
 	c.LogJSONFormat = defaultLogJSONFormat

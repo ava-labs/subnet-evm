@@ -39,6 +39,8 @@ type blockBuilder struct {
 	ctx         *snow.Context
 	chainConfig *params.ChainConfig
 
+	config Config
+
 	txPool   *core.TxPool
 	gossiper Gossiper
 
@@ -66,6 +68,7 @@ type blockBuilder struct {
 func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *blockBuilder {
 	b := &blockBuilder{
 		ctx:                  vm.ctx,
+		config: 			  vm.config,
 		chainConfig:          vm.chainConfig,
 		txPool:               vm.txPool,
 		gossiper:             vm.gossiper,
@@ -172,20 +175,31 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 					// Give time for this node to build a block before attempting to
 					// gossip
 					time.Sleep(waitBlockTime)
+					
+					if b.config.TargetedProposerGossipEnabled {
+						// Retrieve proposers to gossip to
+						proposers, err := b.ctx.ProposerRetriever.GetCurrentProposers(context.TODO()) // UNSURE OF WHAT CONTEXT TO USE HERE
+						if err != nil {
+							log.Warn("failed to retrieve list of proposers", "err", err)
+						}
 
-					// Retrieve nodes to gossip to
-					proposers, err := b.ctx.ProposerRetriever.GetCurrentProposers(context.TODO()) // UNSURE OF WHAT CONTEXT TO USE HERE
-					if err != nil {
-						log.Warn("failed to retrieve list of proposers", "err", err)
-					}
-
-					// [GossipTxsToNodes] will gossip txs directly to proposer nodes.
-					if err := b.gossiper.GossipTxsToNodes(proposers, ethTxsEvent.Txs); err != nil {
-						log.Warn(
-							"failed to gossip new eth transactions to proposers",
-							"err", err,
-							"numProposers", proposers.Len(),
-						)
+						// [GossipTxsToNodes] will gossip txs directly to proposer nodes.
+						if err := b.gossiper.GossipTxsToNodes(proposers, ethTxsEvent.Txs); err != nil {
+							log.Warn(
+								"failed to gossip new eth transactions to proposers",
+								"err", err,
+								"numProposers", proposers.Len(),
+							)
+						}
+					} else {
+						// [GossipTxs] will block unless [gossiper.txsToGossipChan] (an
+						// unbuffered channel) is listened on
+						if err := b.gossiper.GossipTxs(ethTxsEvent.Txs); err != nil {
+							log.Warn(
+								"failed to gossip new eth transactions",
+								"err", err,
+							)
+						}
 					}
 				}
 			case <-b.shutdownChan:
