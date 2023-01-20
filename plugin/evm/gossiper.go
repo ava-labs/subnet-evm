@@ -42,7 +42,8 @@ type Gossiper interface {
 	// GossipTxs sends AppGossip message containing the given [txs]
 	GossipTxs(txs []*types.Transaction) error
 
-	GossipTxsToNodes(txs []*types.Transaction, nodeIDs set.Set[ids.NodeID]) error
+	// GossipTxsToNodes sends AppGossip message containing the given [txs] to nodes specified by [nodeIDs]
+	GossipTxsToNodes(nodeIDs set.Set[ids.NodeID], txs []*types.Transaction) error
 }
 
 // pushGossiper is used to gossip transactions to the network
@@ -403,7 +404,7 @@ func (n *pushGossiper) GossipTxs(txs []*types.Transaction) error {
 }
 
 // GossipTxs immediately gossips the provided [txs] to [nodeIDs]. 
-func (n *pushGossiper) GossipTxsToNodes(txs []*types.Transaction, nodeIDs set.Set[ids.NodeID]) error {
+func (n *pushGossiper) GossipTxsToNodes(nodeIDs set.Set[ids.NodeID], txs []*types.Transaction, ) error {
 	if len(txs) == 0 {
 		return nil
 	}
@@ -427,7 +428,7 @@ func (n *pushGossiper) GossipTxsToNodes(txs []*types.Transaction, nodeIDs set.Se
 		"node(ids)", nodeIDs,
 	)
 	n.stats.IncEthTxsGossipSent()
-	return n.client.GossipSpecific(msgBytes, nodeIDs)
+	return n.client.GossipSpecific(nodeIDs, msgBytes)
 }
 
 // GossipHandler handles incoming gossip messages
@@ -496,6 +497,6 @@ func (n *noopGossiper) GossipTxs([]*types.Transaction) error {
 	return nil
 }
 
-func (n *noopGossiper) GossipTxsToNodes([]*types.Transaction, set.Set[ids.NodeID]) error {
+func (n *noopGossiper) GossipTxsToNodes(set.Set[ids.NodeID], []*types.Transaction, ) error {
 	return nil
 }

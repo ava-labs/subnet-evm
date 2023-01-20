@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/vms/proposervm/proposer"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -178,7 +179,7 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 					}
 
 					// [GossipTxsToNodes] will gossip txs directly to proposer nodes.
-					if err := b.gossiper.GossipTxsToNodes(ethTxsEvent.Txs, proposers); err != nil {
+					if err := b.gossiper.GossipTxsToNodes(proposers, ethTxsEvent.Txs); err != nil {
 						log.Warn(
 							"failed to gossip new eth transactions to proposers",
 							"err", err,

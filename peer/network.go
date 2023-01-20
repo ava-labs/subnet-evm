@@ -51,8 +51,8 @@ type Network interface {
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
 
-	// Gossip sends given gossip message to peers specified by [nodeIDs]
-	GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error
+	// GossipSpecific sends given gossip message to peers specified by [nodeIDs]
+	GossipSpecific(nodeIDs set.Set[ids.NodeID], gossip []byte) error
 
 	// Shutdown stops all peer channel listeners and marks the node to have stopped
 	// n.Start() can be called again but the peers will have to be reconnected
@@ -297,8 +297,8 @@ func (n *network) Gossip(gossip []byte) error {
 	return n.appSender.SendAppGossip(context.TODO(), gossip)
 }
 
-// Gossip sends given gossip message to peers specified by [nodeIDs]
-func (n *network) GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error {
+// GossipSpecific sends given gossip message to peers specified by [nodeIDs]
+func (n *network) GossipSpecific(nodeIDs set.Set[ids.NodeID], gossip []byte) error {
 	return n.appSender.SendAppGossipSpecific(context.TODO(), nodeIDs, gossip)
 }
 

@@ -78,7 +78,7 @@ func (t *mockNetwork) Gossip([]byte) error {
 	panic("not implemented") // we don't care about this function for this test
 }
 
-func (t *mockNetwork) GossipSpecific(gossip []byte, nodeIDs set.Set[ids.NodeID]) error {
+func (t *mockNetwork) GossipSpecific(nodeIDs set.Set[ids.NodeID], gossip []byte) error {
 	panic("not implemented") // we don't care about this function for this test
 }
 
