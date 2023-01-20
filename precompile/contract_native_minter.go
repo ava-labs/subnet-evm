@@ -135,6 +135,14 @@ func (c *ContractNativeMinterConfig) Equal(s StatefulPrecompileConfig) bool {
 	return true
 }
 
+func (c *ContractNativeMinterConfig) Predicate() PredicateFunc {
+	return nil
+}
+
+func (c *ContractNativeMinterConfig) OnAccept() OnAcceptFunc {
+	return nil
+}
+
 // String returns a string representation of the ContractNativeMinterConfig.
 func (c *ContractNativeMinterConfig) String() string {
 	bytes, _ := json.Marshal(c)
