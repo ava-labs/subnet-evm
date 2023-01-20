@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/timer"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/core"
@@ -43,6 +44,7 @@ type blockBuilder struct {
 
 	txPool   *core.TxPool
 	gossiper Gossiper
+	proposerRetriever proposer.Windower
 
 	shutdownChan <-chan struct{}
 	shutdownWg   *sync.WaitGroup
@@ -66,12 +68,18 @@ type blockBuilder struct {
 }
 
 func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *blockBuilder {
+	proposerRetriever := proposer.New(
+		vm.ctx.ValidatorState,
+		vm.ctx.SubnetID,
+		vm.ctx.ChainID,
+	)
 	b := &blockBuilder{
 		ctx:                  vm.ctx,
 		config: 			  vm.config,
 		chainConfig:          vm.chainConfig,
 		txPool:               vm.txPool,
 		gossiper:             vm.gossiper,
+		proposerRetriever: 	  proposerRetriever,
 		shutdownChan:         vm.shutdownChan,
 		shutdownWg:           &vm.shutdownWg,
 		notifyBuildBlockChan: notifyBuildBlockChan,
@@ -172,23 +180,31 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 				b.signalTxsReady()
 
 				if b.gossiper != nil && len(ethTxsEvent.Txs) > 0 {
-					// Give time for this node to build a block before attempting to
-					// gossip
+					// Give time for this node to build a block before attempting to// gossip
 					time.Sleep(waitBlockTime)
 					
 					if b.config.TargetedProposerGossipEnabled {
 						// Retrieve proposers to gossip to
-						proposers, err := b.ctx.ProposerRetriever.GetCurrentProposers(context.TODO()) // UNSURE OF WHAT CONTEXT TO USE HERE
+						pChainHeight, err := b.ctx.ValidatorState.GetCurrentHeight(context.TODO())
+						if err != nil {
+							log.Warn("failed to retrieve current height of the P-Chain", "err", err)
+						}
+						var nextHeight uint64 = 0 // Can set this either from SetPreference or some of the other calls... VM specific
+						proposers, err := b.proposerRetriever.Proposers(context.TODO(), nextHeight, pChainHeight)
 						if err != nil {
 							log.Warn("failed to retrieve list of proposers", "err", err)
 						}
+						proposerSet := set.NewSet[ids.NodeID](len(proposers))
+						for _, proposer := range proposers {
+							proposerSet.Add(proposer)
+						}
 
-						// [GossipTxsToNodes] will gossip txs directly to proposer nodes.
-						if err := b.gossiper.GossipTxsToNodes(proposers, ethTxsEvent.Txs); err != nil {
+						// [GossipTxsToNodes] will gossip txs directly to proposer nodes
+						if err := b.gossiper.GossipTxsToNodes(proposerSet, ethTxsEvent.Txs); err != nil {
 							log.Warn(
 								"failed to gossip new eth transactions to proposers",
 								"err", err,
-								"numProposers", proposers.Len(),
+								"numProposers", proposerSet.Len(),
 							)
 						}
 					} else {
