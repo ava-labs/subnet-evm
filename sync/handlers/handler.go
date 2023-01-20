@@ -62,3 +62,7 @@ func (s *syncHandler) HandleBlockRequest(ctx context.Context, nodeID ids.NodeID,
 func (s *syncHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest message.CodeRequest) ([]byte, error) {
 	return s.codeRequestHandler.OnCodeRequest(ctx, nodeID, requestID, codeRequest)
 }
+
+func (s *syncHandler) HandleSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error) {
+	return nil, nil
+}

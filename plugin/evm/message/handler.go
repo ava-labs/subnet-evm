@@ -37,6 +37,7 @@ type RequestHandler interface {
 	HandleTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error)
 	HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request BlockRequest) ([]byte, error)
 	HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error)
+	HandleSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest SignatureRequest) ([]byte, error)
 }
 
 // ResponseHandler handles response for a sent request
@@ -59,5 +60,9 @@ func (NoopRequestHandler) HandleBlockRequest(ctx context.Context, nodeID ids.Nod
 }
 
 func (NoopRequestHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error) {
+	return nil, nil
+}
+
+func (NoopRequestHandler) HandleSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest SignatureRequest) ([]byte, error) {
 	return nil, nil
 }

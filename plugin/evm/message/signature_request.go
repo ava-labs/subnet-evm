@@ -5,6 +5,7 @@ package message
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 
@@ -13,19 +14,17 @@ import (
 
 var _ Request = SignatureRequest{}
 
-// SignatureRequest is a request for the BLS signature for the Teleporter message identified by the MessageID/DestinationChainID pair
+// SignatureRequest is used to request a warp message's signature.
 type SignatureRequest struct {
-	UnsignedMessageID ids.ID `serialize:"true"`
+	MessageID ids.ID `serialize:"true"`
 }
 
 func (s SignatureRequest) String() string {
-	//TODO implement me
-	panic("implement me")
+	return fmt.Sprintf("SignatureRequest(MessageID=%s)", s.MessageID.String())
 }
 
 func (s SignatureRequest) Handle(ctx context.Context, nodeID ids.NodeID, requestID uint32, handler RequestHandler) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	return handler.HandleSignatureRequest(ctx, nodeID, requestID, s)
 }
 
 type SignatureResponse struct {
