@@ -22,7 +22,6 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
@@ -633,19 +632,8 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		log.Debug("Building block without context")
 	}
 
-	// Get the pending transactions from the pool.
-	pending := vm.txPool.Pending(true)
-
 	// Verify any transaction predicates with the given block context.
-	// Remove any transactions from the pool from addresses that submitted transactions with invalid predicates.
-	for sender, txs := range pending {
-		if invalidIndex, err := state.CheckTransactionPredicates(vm.currentRules(), vm.ctx, txs, proposerVMBlockCtx); err != nil {
-			log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", sender.Hex())
-			for i := invalidIndex; i < len(txs); i++ {
-				vm.txPool.RemoveTx(txs[i].Hash())
-			}
-		}
-	}
+	vm.txPool.PendingWithPredicates(true, vm.currentRules(), vm.ctx, proposerVMBlockCtx)
 
 	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()

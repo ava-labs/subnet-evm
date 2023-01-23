@@ -36,6 +36,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -600,6 +602,36 @@ func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transacti
 				if tx.EffectiveGasTipIntCmp(pool.gasPrice, pool.priced.urgent.baseFee) < 0 {
 					txs = txs[:i]
 					break
+				}
+			}
+		}
+		if len(txs) > 0 {
+			pending[addr] = txs
+		}
+	}
+	return pending
+}
+
+// Pending retrieves all currently processable transactions, grouped by origin
+// account and sorted by nonce. The returned transaction set is a copy and can be
+// freely modified by calling code.
+//
+// The enforcePredicates parameter can be used to enforce precompile predicates on any pending
+// transactions that reference a precompile in its access list and remove any transactions
+// from the pool that fail to meet the predicate
+func (pool *TxPool) PendingWithPredicates(enforcePredicates bool, rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context) map[common.Address]types.Transactions {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	pending := make(map[common.Address]types.Transactions)
+	for addr, list := range pool.pending {
+		txs := list.Flatten()
+
+		// If the miner requests tip enforcement, cap the lists now
+		if enforcePredicates && !pool.locals.contains(addr) {
+			if invalidIndex, err := state.CheckTransactionPredicates(rules, snowCtx, txs, proposerVMBlockCtx); err != nil {
+				log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", addr.Hex())
+				for i := invalidIndex; i < len(txs); i++ {
+					pool.RemoveTx(txs[i].Hash())
 				}
 			}
 		}
