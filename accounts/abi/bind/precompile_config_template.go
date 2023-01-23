@@ -16,9 +16,9 @@ const tmplSourcePrecompileConfigGo = `
 /* General guidelines for precompile development:
 1- Read the comment and set a suitable contract address in generated contract.go. E.g:
 	ContractAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
-2- Set gas costs in generated contract.go
-3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
+2- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 Typically, custom codes are required in only those areas.
+3- Set gas costs in generated contract.go
 4- Register your precompile module in params/precompile_modules.go
 5- Add your config unit tests under generated package config_test.go
 6- Add your contract unit tests under core/vm/contractstatefultests/{precompilename}_test.go
