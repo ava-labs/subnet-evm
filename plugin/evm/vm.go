@@ -22,6 +22,7 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
@@ -38,7 +39,6 @@ import (
 	"github.com/ava-labs/subnet-evm/sync/handlers"
 	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/utils"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -639,7 +639,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	// Verify any transaction predicates with the given block context.
 	// Remove any transactions from the pool from addresses that submitted transactions with invalid predicates.
 	for sender, txs := range pending {
-		if invalidIndex, err := vm.checkTransactionPredicates(txs, proposerVMBlockCtx); err != nil {
+		if invalidIndex, err := state.CheckTransactionPredicates(vm.currentRules(), vm.ctx, txs, proposerVMBlockCtx); err != nil {
 			log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", sender.Hex())
 			for i := invalidIndex; i < len(txs); i++ {
 				vm.txPool.RemoveTx(txs[i].Hash())
@@ -676,34 +676,6 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	// Marks the current transactions from the mempool as being successfully issued
 	// into a block.
 	return blk, nil
-}
-
-// checkTransactionPredicates checks the stateful precompile predicates of any of the given
-// transactions that reference a stateful precompile address in their access list.
-// Returns [len(txs), nil] if and only if all referenced predicates are met.
-// Otherwise, returns the index of the first transaction that was invalid and the predicate error.
-func (vm *VM) checkTransactionPredicates(txs types.Transactions, proposerVMBlockCtx *block.Context) (int, error) {
-	precompileConfigs := vm.currentRules().Precompiles
-	for i, tx := range txs {
-		for _, accessTuple := range tx.AccessList() {
-			precompileConfig, isPrecompileAccess := precompileConfigs[accessTuple.Address]
-			if !isPrecompileAccess {
-				continue
-			}
-
-			predicate := precompileConfig.Predicate()
-			if predicate == nil {
-				continue
-			}
-
-			if err := predicate(vm.ctx, proposerVMBlockCtx, utils.HashSliceToBytes(accessTuple.StorageKeys)); err != nil {
-				log.Debug("Transaction predicate verification failed.", "txId", tx.Hash(), "precompileAddress", accessTuple.Address.Hex())
-				return i, err
-			}
-		}
-	}
-
-	return len(txs), nil
 }
 
 // parseBlock parses [b] into a block to be wrapped by ChainState.
