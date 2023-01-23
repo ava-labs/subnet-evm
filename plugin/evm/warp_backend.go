@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	_ WarpBackend = &warpMessagesDB{}
+	_ WarpBackend = &warpBackend{}
 
 	dbPrefix = []byte("warp_messages")
 )
@@ -33,29 +33,31 @@ type WarpBackend interface {
 	GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error)
 }
 
-// warpMessagesDB implements WarpBackend, keeping track of warp messages, and generating message signatures.
-type warpMessagesDB struct {
+// warpBackend implements WarpBackend, keeping track of warp messages, and generating message signatures.
+type warpBackend struct {
 	database.Database
 	snowCtx        *snow.Context
 	signatureCache *cache.LRU
 }
 
-// NewWarpMessagesDB creates a new warpMessagesDB, and initializes the signature cache and message tracking database.
-func NewWarpMessagesDB(snowCtx *snow.Context, vmDB *versiondb.Database, signatureCacheSize int) WarpBackend {
-	return &warpMessagesDB{
+// NewWarpBackend creates a new warpBackend, and initializes the signature cache and message tracking database.
+func NewWarpBackend(snowCtx *snow.Context, vmDB *versiondb.Database, signatureCacheSize int) WarpBackend {
+	return &warpBackend{
 		Database:       prefixdb.New(dbPrefix, vmDB),
 		snowCtx:        snowCtx,
 		signatureCache: &cache.LRU{Size: signatureCacheSize},
 	}
 }
 
-func (w *warpMessagesDB) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
+func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
 	messageHashBytes := hashing.ComputeHash256(unsignedMessage.Bytes())
 	messageHash, err := ids.ToID(messageHashBytes)
 	if err != nil {
 		return fmt.Errorf("failed to generate message hash for warp message db: %w", err)
 	}
 
+	// We generate the signature here and only save the signature in the db.
+	// It is left to smart contracts built on top of Warp to save messages if required.
 	signature, err := w.snowCtx.TeleporterSigner.Sign(unsignedMessage)
 	if err != nil {
 		return fmt.Errorf("failed to sign warp message %s: %w", messageHash.String(), err)
@@ -64,7 +66,8 @@ func (w *warpMessagesDB) AddMessage(ctx context.Context, unsignedMessage *telepo
 	return w.Put(messageHash[:], signature)
 }
 
-func (w *warpMessagesDB) GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error) {
+func (w *warpBackend) GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error) {
+	// Attempt to get the signature from cache before calling the db.
 	if sig, ok := w.signatureCache.Get(messageHash[:]); ok {
 		return sig.([]byte), nil
 	}
