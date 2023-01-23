@@ -26,7 +26,7 @@ var (
 // WarpBackend keeps track of messages that are accepted by the warp precompiles and add them into a database.
 // The backend is also used to query for warp message signatures by the signature request handler.
 type WarpBackend interface {
-	// AddMessage is called in the precompile OnAccept, to add warp messages into the database.
+	// AddMessage signs [unsignedMessage] and adds it to the warp backend database
 	AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error
 
 	// GetSignature returns the signature of the requested message hash.
