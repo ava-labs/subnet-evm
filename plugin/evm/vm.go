@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/sync/handlers"
 	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/utils"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -695,7 +696,7 @@ func (vm *VM) checkTransactionPredicates(txs types.Transactions, proposerVMBlock
 				continue
 			}
 
-			if err := predicate(vm.ctx, proposerVMBlockCtx, accessTuple.StorageKeys); err != nil {
+			if err := predicate(vm.ctx, proposerVMBlockCtx, utils.HashSliceToBytes(accessTuple.StorageKeys)); err != nil {
 				log.Debug("Transaction predicate verification failed.", "txId", tx.Hash(), "precompileAddress", accessTuple.Address.Hex())
 				return i, err
 			}

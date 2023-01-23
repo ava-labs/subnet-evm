@@ -13,7 +13,7 @@ import (
 )
 
 // PredicateFunc is the function type for validating that an access list tuple touching a precompile follows the predicate
-type PredicateFunc func(chainContext *snow.Context, blockContext *block.Context, storageSlots []common.Hash) error
+type PredicateFunc func(chainContext *snow.Context, blockContext *block.Context, storageSlots []byte) error
 
 // OnAcceptFunc is called on any log produced in a block where the address matches the precompile address
 type OnAcceptFunc func(txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error

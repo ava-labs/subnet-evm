@@ -39,6 +39,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -113,7 +114,7 @@ type StateDB struct {
 
 	// Ordered storage slots to be used in predicate verification as set in the tx access list.
 	// Only set in PrepareAccessList, and un-modified through execution.
-	predicateStorageSlots map[common.Address][]common.Hash
+	predicateStorageSlots map[common.Address][]byte
 
 	// Journal of state modifications. This is the backbone of
 	// Snapshot and RevertToSnapshot.
@@ -169,7 +170,7 @@ func NewWithSnapshot(root common.Hash, db Database, snap snapshot.Snapshot) (*St
 		logs:                  make(map[common.Hash][]*types.Log),
 		preimages:             make(map[common.Hash][]byte),
 		journal:               newJournal(),
-		predicateStorageSlots: make(map[common.Address][]common.Hash),
+		predicateStorageSlots: make(map[common.Address][]byte),
 		accessList:            newAccessList(),
 		hasher:                crypto.NewKeccakState(),
 	}
@@ -680,10 +681,10 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 }
 
 // copyPredicateStorageSlots creates a deep copy of the provided predicateStorageSlots map.
-func copyPredicateStorageSlots(predicateStorageSlots map[common.Address][]common.Hash) map[common.Address][]common.Hash {
-	res := make(map[common.Address][]common.Hash)
+func copyPredicateStorageSlots(predicateStorageSlots map[common.Address][]byte) map[common.Address][]byte {
+	res := make(map[common.Address][]byte)
 	for address, slots := range predicateStorageSlots {
-		s := make([]common.Hash, len(slots))
+		s := make([]byte, len(slots))
 		copy(s, slots)
 		res[address] = s
 	}
@@ -1080,13 +1081,14 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 
 	// Note: If an address is specified multiple times in the access list, only the
 	// last storage slots provided for it are used in predicates.
-	predicateStorageSlots := make(map[common.Address][]common.Hash)
+	predicateStorageSlots := make(map[common.Address][]byte)
 	for _, el := range list {
 		s.AddAddressToAccessList(el.Address)
-		predicateStorageSlots[el.Address] = el.StorageKeys
+		storageKeysBytes := utils.HashSliceToBytes(el.StorageKeys)
 		for _, key := range el.StorageKeys {
 			s.AddSlotToAccessList(el.Address, key)
 		}
+		predicateStorageSlots[el.Address] = storageKeysBytes
 	}
 
 	// Set predicateStorageSlots once, not to be modified
@@ -1133,7 +1135,7 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 // if it was included. The storage slots are returned in the same order as they appeared in the transaction.
 // These are the same storage slots that are used to verify any transaction
 // predicates for transactions with access list addresses that match a precompile address.
-func (s *StateDB) GetPredicateStorageSlots(address common.Address) ([]common.Hash, bool) {
+func (s *StateDB) GetPredicateStorageSlots(address common.Address) ([]byte, bool) {
 	storageSlots, exists := s.predicateStorageSlots[address]
 	return storageSlots, exists
 }

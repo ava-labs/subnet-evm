@@ -77,7 +77,7 @@ type StateDB interface {
 	// AddSlotToAccessList adds the given (address,slot) to the access list. This operation is safe to perform
 	// even if the feature/fork is not active yet
 	AddSlotToAccessList(addr common.Address, slot common.Hash)
-	GetPredicateStorageSlots(address common.Address) ([]common.Hash, bool)
+	GetPredicateStorageSlots(address common.Address) ([]byte, bool)
 
 	RevertToSnapshot(int)
 	Snapshot() int
