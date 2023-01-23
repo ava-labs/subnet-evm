@@ -20,7 +20,7 @@ import (
 var (
 	_ WarpBackend = &warpBackend{}
 
-	dbPrefix = []byte("warp_messages")
+	dbPrefix = []byte("warp")
 )
 
 // WarpBackend keeps track of messages that are accepted by the warp precompiles and add them into a database.
@@ -33,7 +33,7 @@ type WarpBackend interface {
 	GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error)
 }
 
-// warpBackend implements WarpBackend, keeping track of warp messages, and generating message signatures.
+// warpBackend implements WarpBackend, keeps track of warp messages, and generates message signatures.
 type warpBackend struct {
 	database.Database
 	snowCtx        *snow.Context
