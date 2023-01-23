@@ -115,12 +115,12 @@ func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 	for _, tx := range b.ethBlock.Transactions() {
 		for _, accessTuple := range tx.AccessList() {
 			if _, ok := precompileConfigs[accessTuple.Address]; ok {
-				log.Debug("Block should be verified with proposer VM context.")
+				log.Debug(fmt.Sprintf("Block %s (%s) at height %d should be verified with proposer VM context.", b.ID().Hex(), b.ID(), b.Height()))
 				return true, nil
 			}
 		}
 	}
-	log.Debug("Block does not require proposer VM context for verification.")
+	log.Debug(fmt.Sprintf("Block %s (%s) at height %d does not require proposer VM context for verification.", b.ID().Hex(), b.ID(), b.Height()))
 
 	return false, nil
 }
@@ -128,9 +128,9 @@ func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 // VerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
 	if proposerVMBlockCtx != nil {
-		log.Debug("Verifying block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
+		log.Debug(fmt.Sprintf("Verifying block with context block %s (%s) at height %d", b.ID().Hex(), b.ID(), b.Height()))
 	} else {
-		log.Debug("VerifyWithContext called with nil context")
+		log.Debug(fmt.Sprintf("Verifying block without context block %s (%s) at height %d", b.ID().Hex(), b.ID(), b.Height()))
 	}
 	return b.verify(proposerVMBlockCtx, true)
 }

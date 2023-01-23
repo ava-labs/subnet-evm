@@ -683,7 +683,9 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 func copyPredicateStorageSlots(predicateStorageSlots map[common.Address][]common.Hash) map[common.Address][]common.Hash {
 	res := make(map[common.Address][]common.Hash)
 	for address, slots := range predicateStorageSlots {
-		res[address] = slots
+		s := make([]common.Hash, len(slots))
+		copy(s, slots)
+		res[address] = s
 	}
 	return res
 }
@@ -1076,7 +1078,7 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 		s.AddAddressToAccessList(addr)
 	}
 
-	// Note: If an address is specified multiple times the access list, only the
+	// Note: If an address is specified multiple times in the access list, only the
 	// last storage slots provided for it are used in predicates.
 	predicateStorageSlots := make(map[common.Address][]common.Hash)
 	for _, el := range list {
@@ -1131,7 +1133,7 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 // if it was included. The storage slots are returned in the same order as they appeared in the transaction.
 // These are the same storage slots that are used to verify any transaction
 // predicates for transactions with access list addresses that match a precompile address.
-func (s *StateDB) GetPredicateStorageSlots(address common.Address) (bool, []common.Hash) {
+func (s *StateDB) GetPredicateStorageSlots(address common.Address) ([]common.Hash, bool) {
 	storageSlots, exists := s.predicateStorageSlots[address]
-	return exists, storageSlots
+	return storageSlots, exists
 }

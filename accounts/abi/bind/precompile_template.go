@@ -224,6 +224,7 @@ func (c *{{.Contract.Type}}Config) Predicate() PredicateFunc {
 	// and return an optional function if your precompile enforces a predicate.
 	return nil
 }
+
 // OnAccept optionally returns a function to perform on any log with the precompile address.
 // If enabled, this will be called after the block is accepted to perform post-accept computation.
 func (c *{{.Contract.Type}}Config) OnAccept() OnAcceptFunc {

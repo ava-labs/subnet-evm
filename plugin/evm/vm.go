@@ -32,7 +32,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -623,7 +622,6 @@ func (vm *VM) Shutdown(context.Context) error {
 
 // buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock(ctx context.Context) (snowman.Block, error) {
-	log.Debug("Trying to build block without context.")
 	return vm.buildBlockWithContext(ctx, nil)
 }
 
@@ -631,7 +629,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	if proposerVMBlockCtx != nil {
 		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
-		log.Debug("Attempting to build block with nil context")
+		log.Debug("Building block without context")
 	}
 
 	// Get the pending transactions from the pool.
@@ -642,7 +640,6 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	for sender, txs := range pending {
 		if invalidIndex, err := vm.checkTransactionPredicates(txs, proposerVMBlockCtx); err != nil {
 			log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", sender.Hex())
-			delete(pending, sender)
 			for i := invalidIndex; i < len(txs); i++ {
 				vm.txPool.RemoveTx(txs[i].Hash())
 			}
@@ -688,11 +685,8 @@ func (vm *VM) checkTransactionPredicates(txs types.Transactions, proposerVMBlock
 	precompileConfigs := vm.currentRules().Precompiles
 	for i, tx := range txs {
 		for _, accessTuple := range tx.AccessList() {
-			var (
-				precompileConfig   precompile.StatefulPrecompileConfig
-				isPrecompileAccess bool
-			)
-			if precompileConfig, isPrecompileAccess = precompileConfigs[accessTuple.Address]; !isPrecompileAccess {
+			precompileConfig, isPrecompileAccess := precompileConfigs[accessTuple.Address]
+			if !isPrecompileAccess {
 				continue
 			}
 
@@ -702,7 +696,7 @@ func (vm *VM) checkTransactionPredicates(txs types.Transactions, proposerVMBlock
 			}
 
 			if err := predicate(vm.ctx, proposerVMBlockCtx, accessTuple.StorageKeys); err != nil {
-				log.Warn("Transaction predicate verification failed.", "txId", tx.Hash(), "precompileAddress", accessTuple.Address.Hex())
+				log.Debug("Transaction predicate verification failed.", "txId", tx.Hash(), "precompileAddress", accessTuple.Address.Hex())
 				return i, err
 			}
 		}
