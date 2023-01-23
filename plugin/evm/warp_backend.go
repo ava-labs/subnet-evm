@@ -7,15 +7,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ava-labs/avalanchego/utils/hashing"
-
+	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -38,23 +37,16 @@ type WarpBackend interface {
 type warpMessagesDB struct {
 	database.Database
 	snowCtx        *snow.Context
-	signatureCache *lru.Cache
+	signatureCache *cache.LRU
 }
 
 // NewWarpMessagesDB creates a new warpMessagesDB, and initializes the signature cache and message tracking database.
-func NewWarpMessagesDB(snowCtx *snow.Context, vmDB *versiondb.Database, signatureCacheSize int) (WarpBackend, error) {
-	signatureCache, err := lru.New(signatureCacheSize)
-	if err != nil {
-		return nil, err
-	}
-
-	db := &warpMessagesDB{
+func NewWarpMessagesDB(snowCtx *snow.Context, vmDB *versiondb.Database, signatureCacheSize int) WarpBackend {
+	return &warpMessagesDB{
 		Database:       prefixdb.New(dbPrefix, vmDB),
 		snowCtx:        snowCtx,
-		signatureCache: signatureCache,
+		signatureCache: &cache.LRU{Size: signatureCacheSize},
 	}
-
-	return db, nil
 }
 
 func (w *warpMessagesDB) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
@@ -82,6 +74,6 @@ func (w *warpMessagesDB) GetSignature(ctx context.Context, messageHash ids.ID) (
 		return nil, fmt.Errorf("failed to get warp signature for message %s from db: %w", messageHash.String(), err)
 	}
 
-	w.signatureCache.Add(messageHash[:], signature)
+	w.signatureCache.Put(messageHash[:], signature)
 	return signature, nil
 }
