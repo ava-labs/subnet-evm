@@ -612,34 +612,29 @@ func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transacti
 	return pending
 }
 
-// Pending retrieves all currently processable transactions, grouped by origin
-// account and sorted by nonce. The returned transaction set is a copy and can be
-// freely modified by calling code.
+// CheckPredicates checks all currently processable transactions, grouped by origin
+// account and sorted by nonce. For each origin account, all transactions after and including
+// the first failed predicate are removed from the pool.
 //
 // The enforcePredicates parameter can be used to enforce precompile predicates on any pending
 // transactions that reference a precompile in its access list and remove any transactions
 // from the pool that fail to meet the predicate
-func (pool *TxPool) PendingWithPredicates(enforcePredicates bool, rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context) map[common.Address]types.Transactions {
+func (pool *TxPool) CheckPredicates(enforcePredicates bool, rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	pending := make(map[common.Address]types.Transactions)
 	for addr, list := range pool.pending {
 		txs := list.Flatten()
 
-		// If the miner requests tip enforcement, cap the lists now
+		// If the miner requests predicate enforcement, we remove all transactions after and including the index of the first failed predicate
 		if enforcePredicates && !pool.locals.contains(addr) {
-			if invalidIndex, err := state.CheckTransactionPredicates(rules, snowCtx, txs, proposerVMBlockCtx); err != nil {
+			if invalidIndex, err := CheckPredicatesForSenderTxs(rules, snowCtx, txs, proposerVMBlockCtx); err != nil {
 				log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", addr.Hex())
 				for i := invalidIndex; i < len(txs); i++ {
 					pool.RemoveTx(txs[i].Hash())
 				}
 			}
 		}
-		if len(txs) > 0 {
-			pending[addr] = txs
-		}
 	}
-	return pending
 }
 
 // PendingSize returns the number of pending txs in the tx pool.

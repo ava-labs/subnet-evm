@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -145,7 +145,8 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	// because the block is already included in the chain, so we know that predicates must have
 	// been valid at the time the block was accepted.
 	if b.vm.bootstrapped {
-		if _, err := state.CheckTransactionPredicates(b.vm.currentRules(), b.vm.ctx, b.ethBlock.Transactions(), proposerVMBlockCtx); err != nil {
+		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+		if _, err := core.CheckPredicatesForSenderTxs(rules, b.vm.ctx, b.ethBlock.Transactions(), proposerVMBlockCtx); err != nil {
 			return fmt.Errorf("predicate transaction verification failed: %w", err)
 		}
 	}
