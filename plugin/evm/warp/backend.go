@@ -57,12 +57,12 @@ func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *teleporte
 		return fmt.Errorf("failed to put warp signature in db: %w", err)
 	}
 
-	w.signatureCache.Put(messageID[:], signature)
+	w.signatureCache.Put(ids.ID(messageID), signature)
 	return nil
 }
 
 func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([]byte, error) {
-	if sig, ok := w.signatureCache.Get(messageID[:]); ok {
+	if sig, ok := w.signatureCache.Get(messageID); ok {
 		return sig.([]byte), nil
 	}
 
