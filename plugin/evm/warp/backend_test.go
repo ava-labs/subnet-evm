@@ -10,16 +10,13 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/cache"
-
-	"github.com/ava-labs/avalanchego/utils/hashing"
-
-	"github.com/ava-labs/avalanchego/utils/crypto/bls"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ava-labs/avalanchego/database/mockdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/crypto/bls"
+	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
+	"github.com/stretchr/testify/require"
 )
 
 var (
