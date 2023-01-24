@@ -2,182 +2,71 @@
 // See the file LICENSE for licensing terms.
 
 // e2e implements the e2e tests.
-package load
+package precompile
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/client"
-	"github.com/ava-labs/avalanche-network-runner/rpcpb"
-	"github.com/ava-labs/avalanche-network-runner/utils/constants"
-	"github.com/ava-labs/avalanche-network-runner/ux"
-	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/ava-labs/avalanchego/api/health"
+	"github.com/ava-labs/subnet-evm/tests/precompile/utils"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/go-cmd/cmd"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+
+	_ "github.com/ava-labs/subnet-evm/tests/precompile/solidity"
 )
+
+var startCmd *cmd.Cmd
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "load test")
+	ginkgo.RunSpecs(t, "subnet-evm load test suite")
 }
 
-// What do I need to be present here?
-// AvalancheGo
-// Plugin directory with plugin binary
-
-
-var (
-	logLevel      string
-	logDir        string
-	gRPCEp        string
-	gRPCGatewayEp string
-	execPath1     string
-	execPath2     string
-	subnetEvmPath string
-
-	newNodeName       = "test-add-node"
-	customNodeConfigs = map[string]string{
-		"node1": `{"api-admin-enabled":true}`,
-		"node2": `{"api-admin-enabled":true}`,
-		"node3": `{"api-admin-enabled":true}`,
-		"node4": `{"api-admin-enabled":false}`,
-		"node5": `{"api-admin-enabled":false}`,
-		"node6": `{"api-admin-enabled":false}`,
-		"node7": `{"api-admin-enabled":false}`,
-	}
-	numNodes = uint32(5)
-)
-
-func init() {
-	flag.StringVar(
-		&logLevel,
-		"log-level",
-		logging.Info.String(),
-		"log level",
-	)
-	flag.StringVar(
-		&logDir,
-		"log-dir",
-		"",
-		"log directory",
-	)
-	flag.StringVar(
-		&gRPCEp,
-		"grpc-endpoint",
-		"0.0.0.0:8080",
-		"gRPC server endpoint",
-	)
-	flag.StringVar(
-		&gRPCGatewayEp,
-		"grpc-gateway-endpoint",
-		"0.0.0.0:8081",
-		"gRPC gateway endpoint",
-	)
-	flag.StringVar(
-		&execPath1,
-		"avalanchego-path-1",
-		"",
-		"avalanchego executable path (to upgrade from)",
-	)
-	flag.StringVar(
-		&execPath2,
-		"avalanchego-path-2",
-		"",
-		"avalanchego executable path (to upgrade to)",
-	)
-	flag.StringVar(
-		&subnetEvmPath,
-		"subnet-evm-path",
-		"",
-		"path to subnet-evm binary",
-	)
-}
-
-var (
-	cli client.Client
-	log logging.Logger
-)
-
+// BeforeSuite starts an AvalancheGo process to use for the e2e tests
 var _ = ginkgo.BeforeSuite(func() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
 	var err error
-	logDir, err = os.MkdirTemp("", fmt.Sprintf("subnet-evm-load-test-%d", time.Now().Unix()))
-	gomega.Ω(err).Should(gomega.BeNil())
-	lvl, err := logging.ToLevel(logLevel)
-	gomega.Ω(err).Should(gomega.BeNil())
-	lcfg := logging.Config{
-		DisplayLevel: lvl,
-	}
-	logFactory := logging.NewFactory(lcfg)
-	log, err = logFactory.Make(constants.LogNameTest)
-	gomega.Ω(err).Should(gomega.BeNil())
+	wd, err := os.Getwd()
+	gomega.Expect(err).Should(gomega.BeNil())
+	log.Info("Starting AvalancheGo node", "wd", wd)
+	startCmd, err = utils.RunCommand("./scripts/run.sh")
+	gomega.Expect(err).Should(gomega.BeNil())
 
-	cli, err = client.New(client.Config{
-		Endpoint:    gRPCEp,
-		DialTimeout: 10 * time.Second,
-	}, log)
-	gomega.Ω(err).Should(gomega.BeNil())
+	// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
+	healthClient := health.NewClient(utils.DefaultLocalNodeURI)
+	healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second)
+	gomega.Expect(err).Should(gomega.BeNil())
+	gomega.Expect(healthy).Should(gomega.BeTrue())
+	log.Info("AvalancheGo node is healthy")
 })
 
-var _ = ginkgo.AfterSuite(func() {
-	ux.Print(log, logging.Red.Wrap("shutting down cluster"))
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	_, err := cli.Stop(ctx)
-	cancel()
-	gomega.Ω(err).Should(gomega.BeNil())
+var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
+	ginkgo.It("basic load test", ginkgo.Label("load"), func() {
+		// client := health.NewClient(utils.DefaultLocalNodeURI)
 
-	ux.Print(log, logging.Red.Wrap("shutting down client"))
-	err = cli.Close()
-	gomega.Ω(err).Should(gomega.BeNil())
-})
+		// err = os.Setenv("RPC_URI", rpcURI)
+		// gomega.Expect(err).Should(gomega.BeNil())
+		cmd := exec.Command("./scripts/run_simulator.sh")
+		log.Info("Running load simulator script", "cmd", cmd.String())
 
-var _ = ginkgo.Describe("[Start/Remove/Restart/Add/Stop]", func() {
-	ginkgo.It("test", func() {
-		ginkgo.By("start with blockchain specs", func() {
-			ux.Print(log, logging.Green.Wrap("sending 'start' with the valid binary path: %s"), execPath1)
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-			resp, err := cli.Start(ctx, execPath1,
-				client.WithBlockchainSpecs([]*rpcpb.BlockchainSpec{
-					{
-						VmName:  "subnetevm",
-						Genesis: "tests/e2e/subnet-evm-genesis.json",
-					},
-				}),
-			)
-			cancel()
-			gomega.Ω(err).Should(gomega.BeNil())
-			ux.Print(log, logging.Green.Wrap("successfully started, node-names: %s"), resp.ClusterInfo.NodeNames)
-		})
+		out, err := cmd.CombinedOutput()
+		fmt.Printf("\nCombined output:\n\n%s\n", string(out))
+		gomega.Expect(err).Should(gomega.BeNil())
 	})
 })
 
-func waitForCustomChainsHealthy() string {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	var created bool
-	continueLoop := true
-	for continueLoop {
-		select {
-		case <-ctx.Done():
-			continueLoop = false
-		case <-time.After(5 * time.Second):
-			cctx, ccancel := context.WithTimeout(context.Background(), 15*time.Second)
-			status, err := cli.Status(cctx)
-			ccancel()
-			gomega.Ω(err).Should(gomega.BeNil())
-			created = status.ClusterInfo.CustomChainsHealthy
-			if created {
-				existingSubnetID := status.ClusterInfo.GetSubnets()[0]
-				gomega.Ω(existingSubnetID).Should(gomega.Not(gomega.BeNil()))
-				cancel()
-				return existingSubnetID
-			}
-		}
-	}
-	cancel()
-	gomega.Ω(created).Should(gomega.Equal(true))
-	return ""
-}
+var _ = ginkgo.AfterSuite(func() {
+	gomega.Expect(startCmd).ShouldNot(gomega.BeNil())
+	gomega.Expect(startCmd.Stop()).Should(gomega.BeNil())
+	// TODO add a new node to bootstrap off of the existing node and ensure it can bootstrap all subnets
+	// created during the test
+})

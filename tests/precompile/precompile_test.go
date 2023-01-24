@@ -36,7 +36,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	wd, err := os.Getwd()
 	gomega.Expect(err).Should(gomega.BeNil())
 	log.Info("Starting AvalancheGo node", "wd", wd)
-	startCmd, err = utils.RunCommand("./scripts/run_single_node.sh")
+	startCmd, err = utils.RunCommand("./scripts/run.sh")
 	gomega.Expect(err).Should(gomega.BeNil())
 
 	// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
