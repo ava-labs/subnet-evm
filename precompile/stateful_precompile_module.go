@@ -79,6 +79,16 @@ func RegisterModule(stm StatefulPrecompileModule) error {
 	return nil
 }
 
+func GetPrecompileModuleByAddress(address common.Address) (StatefulPrecompileModule, bool) {
+	for _, stm := range registeredModules {
+		if stm.Address() == address {
+			return stm, true
+		}
+	}
+
+	return nil, false
+}
+
 func GetPrecompileModule(name string) (StatefulPrecompileModule, bool) {
 	stm, ok := registeredModulesIndex[name]
 	return stm, ok

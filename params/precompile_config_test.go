@@ -150,7 +150,6 @@ func TestVerifyPrecompiles(t *testing.T) {
 		{
 			name: "invalid allow list config in tx allowlist",
 			upgrade: ChainConfigPrecompiles{
-
 				txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(3), admins, admins),
 			},
 			expectedError: "cannot set address",
@@ -209,16 +208,16 @@ func TestGetPrecompileConfig(t *testing.T) {
 		deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
 	}
 
-	deployerConfig := config.GetActivePrecompileConfig(deployerallowlist.ConfigKey, big.NewInt(0))
+	deployerConfig := config.GetActivePrecompileConfig(deployerallowlist.ContractAddress, big.NewInt(0))
 	assert.Nil(deployerConfig)
 
-	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.ConfigKey, big.NewInt(10))
+	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.ContractAddress, big.NewInt(10))
 	assert.NotNil(deployerConfig)
 
-	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.ConfigKey, big.NewInt(11))
+	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.ContractAddress, big.NewInt(11))
 	assert.NotNil(deployerConfig)
 
-	txAllowListConfig := config.GetActivePrecompileConfig(txallowlist.ConfigKey, big.NewInt(0))
+	txAllowListConfig := config.GetActivePrecompileConfig(txallowlist.ContractAddress, big.NewInt(0))
 	assert.Nil(txAllowListConfig)
 }
 

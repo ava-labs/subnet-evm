@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package contractstatefultests
+package statefulprecompiles
 
 import (
 	"math/big"
@@ -22,26 +22,12 @@ import (
 var testBlockNumber = big.NewInt(7)
 
 func TestRewardManagerRun(t *testing.T) {
-	type test struct {
-		caller       common.Address
-		preCondition func(t *testing.T, state *state.StateDB)
-		input        func() []byte
-		suppliedGas  uint64
-		readOnly     bool
-		config       *rewardmanager.RewardManagerConfig
-
-		expectedRes []byte
-		expectedErr string
-
-		assertState func(t *testing.T, state *state.StateDB)
-	}
-
 	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
 	enabledAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
 	noRoleAddr := common.HexToAddress("0xF60C45c607D0f41687c94C314d300f483661E13a")
 	testAddr := common.HexToAddress("0x0123")
 
-	for name, test := range map[string]test{
+	for name, test := range map[string]precompileTest{
 		"set allow fee recipients from no role fails": {
 			caller: noRoleAddr,
 			input: func() []byte {
