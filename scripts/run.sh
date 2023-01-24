@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
-# e.g.,
-#
-# run a 5 node network with the avalanche-network-runner
-# ./scripts/run.sh
-#
-# run without e2e tests with DEBUG log level
-# AVALANCHE_LOG_LEVEL=DEBUG ./scripts/run.sh
-if ! [[ "$0" =~ scripts/run.sh ]]; then
-  echo "must be run from repository root"
+# This script starts a single node running the local network with staking disabled and expects the caller to take care of cleaning up the created AvalancheGo process.
+# This script uses the data directory to use node configuration and populate data into a predictable location.
+if ! [[ "$0" =~ scripts/run_single_node.sh ]]; then
+  echo "must be run from repository root, but got $0"
   exit 255
 fi
 
@@ -23,127 +18,58 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 # Load the constants
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
-VERSION=$AVALANCHEGO_VERSION
+# Set up avalanche binary path and assume build directory is set
+AVALANCHEGO_BUILD_PATH=${AVALANCHEGO_BUILD_PATH:-"$GOPATH/src/github.com/ava-labs/avalanchego/build"}
+AVALANCHEGO_PATH=${AVALANCHEGO_PATH:-"$AVALANCHEGO_BUILD_PATH/avalanchego"}
+AVALANCHEGO_PLUGIN_DIR=${AVALANCHEGO_PLUGIN_DIR:-"$AVALANCHEGO_BUILD_PATH/plugins"}
+DATA_DIR=${DATA_DIR:-/tmp/subnet-evm-start-node/$(date "+%Y-%m-%d%:%H:%M:%S")}
 
-ANR_VERSION=$NETWORK_RUNNER_VERSION
-
-echo "Running with:"
-echo AVALANCHE_VERSION: ${VERSION}
-echo ANR_VERSION: ${ANR_VERSION}
-echo GENESIS_ADDRESS: ${GENESIS_ADDRESS}
-
-############################
-# Download AvalancheGo release and populate environment variables
-source "$SUBNET_EVM_PATH/scripts/install_avalanchego_release.sh"
-echo "Installed AvalancheGo release ${VERSION}"
-echo "AvalancheGo Path: ${AVALANCHEGO_PATH}"
-echo "Plugin Dir: ${AVALANCHEGO_PLUGIN_DIR}"
-
-# "ewoq" key
-DEFAULT_ACCOUNT="0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-GENESIS_ADDRESS=${GENESIS_ADDRESS-$DEFAULT_ACCOUNT}
-
-
-#################################
-# compile subnet-evm
-# Check if SUBNET_EVM_COMMIT is set, if not retrieve the last commit from the repo.
-# This is used in the Dockerfile to allow a commit hash to be passed in without
-# including the .git/ directory within the Docker image.
-SUBNET_EVM_COMMIT=${SUBNET_EVM_COMMIT:-$(git rev-list -1 HEAD)}
-
-# Build Subnet EVM, which is run as a subprocess
-echo "Building Subnet EVM Version: $SUBNET_EVM_VERSION; GitCommit: $SUBNET_EVM_COMMIT"
-go build \
-  -ldflags "-X github.com/ava-labs/subnet_evm/plugin/evm.GitCommit=$SUBNET_EVM_COMMIT -X github.com/ava-labs/subnet_evm/plugin/evm.Version=$SUBNET_EVM_VERSION" \
-  -o $AVALANCHEGO_PLUGIN_DIR/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy \
-  "plugin/"*.go
-
-#################################
-# write subnet-evm genesis
-
-# Create genesis file to use in network (make sure to add your address to
-# "alloc")
-export CHAIN_ID=99999
-GENESIS_FILE_PATH=$BASEDIR/genesis.json
-
-echo "creating genesis"
-  cat <<EOF >$GENESIS_FILE_PATH
-{
-  "config": {
-    "chainId": $CHAIN_ID,
-    "homesteadBlock": 0,
-    "eip150Block": 0,
-    "eip150Hash": "0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0",
-    "eip155Block": 0,
-    "eip158Block": 0,
-    "byzantiumBlock": 0,
-    "constantinopleBlock": 0,
-    "petersburgBlock": 0,
-    "istanbulBlock": 0,
-    "muirGlacierBlock": 0,
-    "subnetEVMTimestamp": 0,
-    "feeConfig": {
-      "gasLimit": 20000000,
-      "minBaseFee": 1000000000,
-      "targetGas": 100000000,
-      "baseFeeChangeDenominator": 48,
-      "minBlockGasCost": 0,
-      "maxBlockGasCost": 10000000,
-      "targetBlockRate": 2,
-      "blockGasCostStep": 500000
-    }
-  },
-  "alloc": {
-    "${GENESIS_ADDRESS:2}": {
-      "balance": "0x52B7D2DCC80CD2E4000000"
-    }
-  },
-  "nonce": "0x0",
-  "timestamp": "0x0",
-  "extraData": "0x00",
-  "gasLimit": "0x1312D00",
-  "difficulty": "0x0",
-  "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "number": "0x0",
-  "gasUsed": "0x0",
-  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000"
-}
+# Set the config file contents for the path passed in as the first argument
+function _set_config(){
+  cat <<EOF >$1
+  {
+    "network-id": "local",
+    "staking-enabled": false,
+    "health-check-frequency": "5s",
+    "plugin-dir": "$AVALANCHEGO_PLUGIN_DIR"
+  }
 EOF
+}
 
-#################################
-# download avalanche-network-runner
-# https://github.com/ava-labs/avalanche-network-runner
-ANR_REPO_PATH=github.com/ava-labs/avalanche-network-runner
-# version set
-go install -v ${ANR_REPO_PATH}@${ANR_VERSION}
+DATA_DIRS=("$DATA_DIR/node1" "$DATA_DIR/node2" "$DATA_DIR/node3" "$DATA_DIR/node4" "$DATA_DIR/node5")
+CMDS=()
+for (( i=0; i <5; i++ ))
+do
+  echo "Creating data directory: ${DATA_DIRS[i]}"
+  mkdir -p ${DATA_DIRS[i]}
+  NODE_DATA_DIR=${DATA_DIRS[i]}
+  NODE_CONFIG_FILE_PATH="$NODE_DATA_DIR/config.json"
+  _set_config $NODE_CONFIG_FILE_PATH
+  
+  CMD="$AVALANCHEGO_PATH --data-dir=$NODE_DATA_DIR"
+  if [ $i -gt 0 ]; then
+    echo "Adding CLI options for node$(($i+1))"
+    CMD="$CMD --staking-port=$((9651+2*$i)) --http-port=$((9650+2*$i)) --bootstrap-ips=127.0.0.1:9651 --bootstrap-ids=NodeID-5Q84knz4UyG4AkUdo7r2KiUiK6FHKxA8Z"
+  fi
+  
+  echo "Created command $CMD"
+  CMDS+=("$CMD")
+done
 
-#################################
-# run "avalanche-network-runner" server
-GOPATH=$(go env GOPATH)
-if [[ -z ${GOBIN+x} ]]; then
-  # no gobin set
-  ANR_BIN=${GOPATH}/bin/avalanche-network-runner
-else
-  # gobin set
-  ANR_BIN=${GOBIN}/avalanche-network-runner
-fi
-echo "launch avalanche-network-runner in the background"
 
-# Start network runner server
-$ANR_BIN server \
-  --log-level debug \
-  --port=":12342" \
-  --grpc-gateway-port=":12343" &
-PID=${!}
-
-# Start the network with the defined blockchain specs
-$ANR_BIN control start \
-  --log-level debug \
-  --endpoint="0.0.0.0:12342" \
-  --number-of-nodes=5 \
-  --avalanchego-path ${AVALANCHEGO_PATH} \
-  --plugin-dir ${AVALANCHEGO_PLUGIN_DIR} \
-  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "'$GENESIS_FILE_PATH'"}]'
-
+echo "Starting AvalancheGo network with the commands:"
 echo ""
+for (( i=0; i<5; i++ ))
+do
+  echo "CMD $i : ${CMDS[i]}"
+  echo ""
+done
+
+# cleanup sends SIGINT to each tracked process
+function cleanup_process_group(){
+  echo "Terminating AvalancheGo network process group"
+  kill 0
+}
+
+
+(trap 'cleanup_process_group' SIGINT; ${CMDS[0]} & ${CMDS[1]} & ${CMDS[2]} & ${CMDS[3]} & ${CMDS[4]} & wait)

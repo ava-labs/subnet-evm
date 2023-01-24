@@ -3,9 +3,7 @@
 # Set up the versions to be used - populate ENV variables only if they are not already populated
 SUBNET_EVM_VERSION=${SUBNET_EVM_VERSION:-'v0.4.8'}
 # Don't export them as they're used in the context of other calls
-AVALANCHEGO_VERSION=${AVALANCHE_VERSION:-'v1.9.6'}
-NETWORK_RUNNER_VERSION=${NETWORK_RUNNER_VERSION:-'v1.3.5'}
-AVALANCHE_CLI_VERSION=${AVALANCHE_CLI_VERSION:-'v1.0.5'}
+AVALANCHEGO_VERSION=${AVALANCHE_VERSION:-'v1.9.7'}
 GINKGO_VERSION=${GINKGO_VERSION:-'v2.2.0'}
 
 # This won't be used, but it's here to make code syncs easier
