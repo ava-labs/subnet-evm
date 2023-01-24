@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/cache"
+
 	"github.com/ava-labs/avalanchego/utils/hashing"
 
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
@@ -85,6 +87,27 @@ func TestWarpBackend_InvalidMessage(t *testing.T) {
 	_, err = be.GetSignature(context.Background(), messageID)
 	require.Error(t, err)
 	require.True(t, *called)
+}
+
+func TestCacheTypes(t *testing.T) {
+	var (
+		key = []byte("key")
+		val = []byte("value")
+	)
+
+	hash := hashing.ComputeHash256Array(key)
+	cache := &cache.LRU{Size: 100}
+
+	// First put into cache with key type Hash256, resulting in cache miss.
+	cache.Put(hash, val)
+	_, ok := cache.Get(ids.ID(hash))
+	require.False(t, ok)
+
+	// Put into cache with key type ids.ID, cache hit.
+	cache.Put(ids.ID(hash), val)
+	res, ok := cache.Get(ids.ID(hash))
+	require.True(t, ok)
+	require.Equal(t, val, res)
 }
 
 func getTestSigner(t *testing.T, sourceID ids.ID) teleporter.Signer {
