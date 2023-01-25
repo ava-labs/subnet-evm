@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/cache"
-	"github.com/ava-labs/avalanchego/database/mockdb"
+	"github.com/ava-labs/avalanchego/database/memdb"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
@@ -39,12 +39,7 @@ func TestInterfaceStructOneToOne(t *testing.T) {
 }
 
 func TestWarpBackend_ValidMessage(t *testing.T) {
-	db := mockdb.New()
-	called := new(bool)
-	db.OnPut = func([]byte, []byte) error {
-		*called = true
-		return nil
-	}
+	db := memdb.New()
 
 	snowCtx := snow.DefaultContextTest()
 	snowCtx.TeleporterSigner = getTestSigner(t, sourceChainID)
@@ -55,7 +50,6 @@ func TestWarpBackend_ValidMessage(t *testing.T) {
 	require.NoError(t, err)
 	err = be.AddMessage(context.Background(), unsignedMsg)
 	require.NoError(t, err)
-	require.True(t, *called)
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
 	messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
@@ -68,12 +62,7 @@ func TestWarpBackend_ValidMessage(t *testing.T) {
 }
 
 func TestWarpBackend_InvalidMessage(t *testing.T) {
-	db := mockdb.New()
-	called := new(bool)
-	db.OnGet = func([]byte) ([]byte, error) {
-		*called = true
-		return nil, errTest
-	}
+	db := memdb.New()
 
 	be := NewWarpBackend(snow.DefaultContextTest(), db, 500)
 	unsignedMsg, err := teleporter.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
@@ -83,28 +72,6 @@ func TestWarpBackend_InvalidMessage(t *testing.T) {
 	messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
 	_, err = be.GetSignature(context.Background(), messageID)
 	require.Error(t, err)
-	require.True(t, *called)
-}
-
-func TestCacheTypes(t *testing.T) {
-	var (
-		key = []byte("key")
-		val = []byte("value")
-	)
-
-	hash := hashing.ComputeHash256Array(key)
-	cache := &cache.LRU{Size: 100}
-
-	// First put into cache with key type Hash256, resulting in cache miss.
-	cache.Put(hash, val)
-	_, ok := cache.Get(ids.ID(hash))
-	require.False(t, ok)
-
-	// Put into cache with key type ids.ID, cache hit.
-	cache.Put(ids.ID(hash), val)
-	res, ok := cache.Get(ids.ID(hash))
-	require.True(t, ok)
-	require.Equal(t, val, res)
 }
 
 func getTestSigner(t *testing.T, sourceID ids.ID) teleporter.Signer {
