@@ -26,11 +26,11 @@ func (liq LiquidablePosition) GetUnfilledSize() *big.Int {
 
 func (db *InMemoryDatabase) GetLiquidableTraders(market Market, oraclePrice *big.Int) []LiquidablePosition {
 	liquidablePositions := []LiquidablePosition{}
-	markPrice := db.lastPrice[market]
+	markPrice := db.LastPrice[market]
 
 	overSpreadLimit := isOverSpreadLimit(markPrice, oraclePrice)
 
-	for addr, trader := range db.traderMap {
+	for addr, trader := range db.TraderMap {
 		position := trader.Positions[market]
 		if position != nil {
 			margin := getMarginForTrader(trader, market)

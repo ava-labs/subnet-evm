@@ -29,7 +29,7 @@ func TestAdd(t *testing.T) {
 	limitOrder := createLimitOrder(id, positionType, userAddress, baseAssetQuantity, price, status, signature, blockNumber)
 	inMemoryDatabase.Add(&limitOrder)
 	returnedOrder := inMemoryDatabase.GetAllOrders()[0]
-	assert.Equal(t, id, returnedOrder.id)
+	assert.Equal(t, id, returnedOrder.Id)
 	assert.Equal(t, limitOrder.PositionType, returnedOrder.PositionType)
 	assert.Equal(t, limitOrder.UserAddress, returnedOrder.UserAddress)
 	assert.Equal(t, limitOrder.BaseAssetQuantity, returnedOrder.BaseAssetQuantity)
@@ -104,13 +104,13 @@ func TestGetShortOrders(t *testing.T) {
 	}
 
 	//Test returnedShortOrders are sorted by price lowest to highest first and then block number from lowest to highest
-	assert.Equal(t, id2, returnedShortOrders[0].id)
+	assert.Equal(t, id2, returnedShortOrders[0].Id)
 	assert.Equal(t, price2, returnedShortOrders[0].Price)
 	assert.Equal(t, blockNumber2, returnedShortOrders[0].BlockNumber)
-	assert.Equal(t, id3, returnedShortOrders[1].id)
+	assert.Equal(t, id3, returnedShortOrders[1].Id)
 	assert.Equal(t, price3, returnedShortOrders[1].Price)
 	assert.Equal(t, blockNumber3, returnedShortOrders[1].BlockNumber)
-	assert.Equal(t, id1, returnedShortOrders[2].id)
+	assert.Equal(t, id1, returnedShortOrders[2].Id)
 	assert.Equal(t, price1, returnedShortOrders[2].Price)
 	assert.Equal(t, blockNumber1, returnedShortOrders[2].BlockNumber)
 
@@ -153,13 +153,13 @@ func TestGetLongOrders(t *testing.T) {
 	assert.Equal(t, 3, len(returnedLongOrders))
 
 	//Test returnedLongOrders are sorted by price highest to lowest first and then block number from lowest to highest
-	assert.Equal(t, id3, returnedLongOrders[0].id)
+	assert.Equal(t, id3, returnedLongOrders[0].Id)
 	assert.Equal(t, price3, returnedLongOrders[0].Price)
 	assert.Equal(t, blockNumber3, returnedLongOrders[0].BlockNumber)
-	assert.Equal(t, id1, returnedLongOrders[1].id)
+	assert.Equal(t, id1, returnedLongOrders[1].Id)
 	assert.Equal(t, price1, returnedLongOrders[1].Price)
 	assert.Equal(t, blockNumber1, returnedLongOrders[1].BlockNumber)
-	assert.Equal(t, id2, returnedLongOrders[2].id)
+	assert.Equal(t, id2, returnedLongOrders[2].Id)
 	assert.Equal(t, price2, returnedLongOrders[2].Price)
 	assert.Equal(t, blockNumber2, returnedLongOrders[2].BlockNumber)
 
@@ -182,7 +182,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 
 			filledQuantity := big.NewInt(2)
 			inMemoryDatabase.UpdateFilledBaseAssetQuantity(filledQuantity, signature)
-			updatedLimitOrder := inMemoryDatabase.orderMap[string(signature)]
+			updatedLimitOrder := inMemoryDatabase.OrderMap[string(signature)]
 
 			assert.Equal(t, updatedLimitOrder.FilledBaseAssetQuantity, big.NewInt(0).Neg(filledQuantity))
 			assert.Equal(t, updatedLimitOrder.FilledBaseAssetQuantity, filledQuantity.Mul(filledQuantity, big.NewInt(-1)))
@@ -198,7 +198,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 
 			filledQuantity := big.NewInt(2)
 			inMemoryDatabase.UpdateFilledBaseAssetQuantity(filledQuantity, signature)
-			updatedLimitOrder := inMemoryDatabase.orderMap[string(signature)]
+			updatedLimitOrder := inMemoryDatabase.OrderMap[string(signature)]
 
 			assert.Equal(t, updatedLimitOrder.FilledBaseAssetQuantity, filledQuantity)
 		})
@@ -243,7 +243,7 @@ func TestUpdatePosition(t *testing.T) {
 		size := big.NewInt(20.00)
 		openNotional := big.NewInt(200.00)
 		inMemoryDatabase.UpdatePosition(address, market, size, openNotional, false)
-		position := inMemoryDatabase.traderMap[address].Positions[market]
+		position := inMemoryDatabase.TraderMap[address].Positions[market]
 		assert.Equal(t, size, position.Size)
 		assert.Equal(t, openNotional, position.OpenNotional)
 	})
@@ -258,7 +258,7 @@ func TestUpdatePosition(t *testing.T) {
 		newSize := big.NewInt(25.00)
 		newOpenNotional := big.NewInt(250.00)
 		inMemoryDatabase.UpdatePosition(address, market, newSize, newOpenNotional, false)
-		position := inMemoryDatabase.traderMap[address].Positions[market]
+		position := inMemoryDatabase.TraderMap[address].Positions[market]
 		assert.Equal(t, newSize, position.Size)
 		assert.Equal(t, newOpenNotional, position.OpenNotional)
 	})
@@ -271,7 +271,7 @@ func TestUpdateMargin(t *testing.T) {
 		var collateral Collateral = 1
 		amount := big.NewInt(20.00)
 		inMemoryDatabase.UpdateMargin(address, collateral, amount)
-		margin := inMemoryDatabase.traderMap[address].Margins[collateral]
+		margin := inMemoryDatabase.TraderMap[address].Margins[collateral]
 		assert.Equal(t, amount, margin)
 	})
 	t.Run("When more margin is added, it updates margin in tradermap", func(t *testing.T) {
@@ -283,7 +283,7 @@ func TestUpdateMargin(t *testing.T) {
 
 		removedMargin := big.NewInt(15.00)
 		inMemoryDatabase.UpdateMargin(address, collateral, removedMargin)
-		margin := inMemoryDatabase.traderMap[address].Margins[collateral]
+		margin := inMemoryDatabase.TraderMap[address].Margins[collateral]
 		assert.Equal(t, big.NewInt(0).Add(amount, removedMargin), margin)
 	})
 	t.Run("When margin is removed, it updates margin in tradermap", func(t *testing.T) {
@@ -295,7 +295,7 @@ func TestUpdateMargin(t *testing.T) {
 
 		removedMargin := big.NewInt(-15.00)
 		inMemoryDatabase.UpdateMargin(address, collateral, removedMargin)
-		margin := inMemoryDatabase.traderMap[address].Margins[collateral]
+		margin := inMemoryDatabase.TraderMap[address].Margins[collateral]
 		assert.Equal(t, big.NewInt(0).Add(amount, removedMargin), margin)
 	})
 }
@@ -306,9 +306,9 @@ func TestUpdateUnrealizedFunding(t *testing.T) {
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var market Market = 1
 		cumulativePremiumFraction := big.NewInt(2)
-		trader := inMemoryDatabase.traderMap[address]
+		trader := inMemoryDatabase.TraderMap[address]
 		inMemoryDatabase.UpdateUnrealisedFunding(market, cumulativePremiumFraction)
-		updatedTrader := inMemoryDatabase.traderMap[address]
+		updatedTrader := inMemoryDatabase.TraderMap[address]
 		assert.Equal(t, trader, updatedTrader)
 	})
 	t.Run("When trader has positions", func(t *testing.T) {
@@ -327,8 +327,8 @@ func TestUpdateUnrealizedFunding(t *testing.T) {
 			newCumulativePremiumFraction := big.NewInt(5)
 			inMemoryDatabase.UpdateUnrealisedFunding(market, newCumulativePremiumFraction)
 			for _, address := range addresses {
-				unrealizedFunding := inMemoryDatabase.traderMap[address].Positions[market].UnrealisedFunding
-				size := inMemoryDatabase.traderMap[address].Positions[market].Size
+				unrealizedFunding := inMemoryDatabase.TraderMap[address].Positions[market].UnrealisedFunding
+				size := inMemoryDatabase.TraderMap[address].Positions[market].Size
 				expectedUnrealizedFunding := big.NewInt(0).Div(big.NewInt(0).Mul(big.NewInt(0).Sub(newCumulativePremiumFraction, cumulativePremiumFraction), size), SIZE_BASE_PRECISION)
 				assert.Equal(t, expectedUnrealizedFunding, unrealizedFunding)
 			}
@@ -345,7 +345,7 @@ func TestUpdateUnrealizedFunding(t *testing.T) {
 
 			newCumulativePremiumFraction := big.NewInt(-1)
 			inMemoryDatabase.UpdateUnrealisedFunding(market, newCumulativePremiumFraction)
-			newUnrealizedFunding := inMemoryDatabase.traderMap[address].Positions[market].UnrealisedFunding
+			newUnrealizedFunding := inMemoryDatabase.TraderMap[address].Positions[market].UnrealisedFunding
 			expectedUnrealizedFunding := big.NewInt(0).Div(big.NewInt(0).Mul(big.NewInt(0).Sub(newCumulativePremiumFraction, cumulativePremiumFraction), size), SIZE_BASE_PRECISION)
 			assert.Equal(t, expectedUnrealizedFunding, newUnrealizedFunding)
 		})
@@ -357,10 +357,10 @@ func TestResetUnrealisedFunding(t *testing.T) {
 		inMemoryDatabase := NewInMemoryDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var market Market = 1
-		trader := inMemoryDatabase.traderMap[address]
+		trader := inMemoryDatabase.TraderMap[address]
 		cumulativePremiumFraction := big.NewInt(5)
 		inMemoryDatabase.ResetUnrealisedFunding(market, address, cumulativePremiumFraction)
-		updatedTrader := inMemoryDatabase.traderMap[address]
+		updatedTrader := inMemoryDatabase.TraderMap[address]
 		assert.Equal(t, trader, updatedTrader)
 	})
 	t.Run("When trader has positions, it resets unrealized funding to zero", func(t *testing.T) {
@@ -372,7 +372,7 @@ func TestResetUnrealisedFunding(t *testing.T) {
 		inMemoryDatabase.UpdatePosition(address, market, size, openNotional, false)
 		cumulativePremiumFraction := big.NewInt(1)
 		inMemoryDatabase.ResetUnrealisedFunding(market, address, cumulativePremiumFraction)
-		unrealizedFundingFee := inMemoryDatabase.traderMap[address].Positions[market].UnrealisedFunding
+		unrealizedFundingFee := inMemoryDatabase.TraderMap[address].Positions[market].UnrealisedFunding
 		assert.Equal(t, big.NewInt(0), unrealizedFundingFee)
 	})
 }
@@ -381,7 +381,7 @@ func TestUpdateNextFundingTime(t *testing.T) {
 	inMemoryDatabase := NewInMemoryDatabase()
 	nextFundingTime := uint64(time.Now().Unix())
 	inMemoryDatabase.UpdateNextFundingTime(nextFundingTime)
-	assert.Equal(t, nextFundingTime, inMemoryDatabase.nextFundingTime)
+	assert.Equal(t, nextFundingTime, inMemoryDatabase.NextFundingTime)
 }
 
 func TestGetNextFundingTime(t *testing.T) {
@@ -398,7 +398,7 @@ func TestUpdateLastPrice(t *testing.T) {
 	var market Market = 1
 	lastPrice := big.NewInt(20)
 	inMemoryDatabase.UpdateLastPrice(market, lastPrice)
-	assert.Equal(t, lastPrice, inMemoryDatabase.lastPrice[market])
+	assert.Equal(t, lastPrice, inMemoryDatabase.LastPrice[market])
 }
 func TestGetLastPrice(t *testing.T) {
 	inMemoryDatabase := NewInMemoryDatabase()
@@ -410,7 +410,7 @@ func TestGetLastPrice(t *testing.T) {
 
 func createLimitOrder(id uint64, positionType string, userAddress string, baseAssetQuantity *big.Int, price *big.Int, status Status, signature []byte, blockNumber *big.Int) LimitOrder {
 	return LimitOrder{
-		id:                      id,
+		Id:                      id,
 		PositionType:            positionType,
 		UserAddress:             userAddress,
 		FilledBaseAssetQuantity: big.NewInt(0),

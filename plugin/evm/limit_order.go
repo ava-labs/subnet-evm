@@ -23,6 +23,7 @@ type LimitOrderProcesser interface {
 	RunLiquidationsAndMatching()
 	IsFundingPaymentTime(lastBlockTime uint64) bool
 	ExecuteFundingPayment() error
+	GetOrderBookData() limitorders.InMemoryDatabase
 }
 
 type limitOrderProcesser struct {
@@ -228,4 +229,8 @@ func processEvents(logs []*types.Log, lop *limitOrderProcesser) {
 			lop.limitOrderTxProcessor.HandleClearingHouseEvent(event)
 		}
 	}
+}
+
+func (lop *limitOrderProcesser) GetOrderBookData() limitorders.InMemoryDatabase {
+	return lop.memoryDb.GetOrderBookData()
 }
