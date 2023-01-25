@@ -27,24 +27,24 @@ if [[ ${GOOS} == "darwin" ]]; then
   AVAGO_DOWNLOAD_PATH=${BASEDIR}/avalanchego-macos-${VERSION}.zip
 fi
 
-AVAGO_FILEPATH=${AVAGO_FILEPATH:-${BASEDIR}/avalanchego-${VERSION}}
-mkdir -p $AVAGO_FILEPATH
+AVALANCHEGO_BUILD_PATH=${AVALANCHEGO_BUILD_PATH:-${BASEDIR}/avalanchego-${VERSION}}
+mkdir -p $AVALANCHEGO_BUILD_PATH
 
 if [[ ! -f ${AVAGO_DOWNLOAD_PATH} ]]; then
   echo "downloading avalanchego ${VERSION} at ${AVAGO_DOWNLOAD_URL} to ${AVAGO_DOWNLOAD_PATH}"
   curl -L ${AVAGO_DOWNLOAD_URL} -o ${AVAGO_DOWNLOAD_PATH}
 fi
-echo "extracting downloaded avalanchego to ${AVAGO_FILEPATH}"
+echo "extracting downloaded avalanchego to ${AVALANCHEGO_BUILD_PATH}"
 if [[ ${GOOS} == "linux" ]]; then
-  mkdir -p ${AVAGO_FILEPATH} && tar xzvf ${AVAGO_DOWNLOAD_PATH} --directory ${AVAGO_FILEPATH} --strip-components 1
+  mkdir -p ${AVALANCHEGO_BUILD_PATH} && tar xzvf ${AVAGO_DOWNLOAD_PATH} --directory ${AVALANCHEGO_BUILD_PATH} --strip-components 1
 elif [[ ${GOOS} == "darwin" ]]; then
-  unzip ${AVAGO_DOWNLOAD_PATH} -d ${AVAGO_FILEPATH}
-  mv ${AVAGO_FILEPATH}/build/* ${AVAGO_FILEPATH}
-  rm -rf ${AVAGO_FILEPATH}/build/
+  unzip ${AVAGO_DOWNLOAD_PATH} -d ${AVALANCHEGO_BUILD_PATH}
+  mv ${AVALANCHEGO_BUILD_PATH}/build/* ${AVALANCHEGO_BUILD_PATH}
+  rm -rf ${AVALANCHEGO_BUILD_PATH}/build/
 fi
 
-AVALANCHEGO_PATH=${AVAGO_FILEPATH}/avalanchego
-AVALANCHEGO_PLUGIN_DIR=${AVAGO_FILEPATH}/plugins
+AVALANCHEGO_PATH=${AVALANCHEGO_BUILD_PATH}/avalanchego
+AVALANCHEGO_PLUGIN_DIR=${AVALANCHEGO_BUILD_PATH}/plugins
 
 echo "Installed AvalancheGo release ${VERSION}"
 echo "AvalancheGo Path: ${AVALANCHEGO_PATH}"
