@@ -7,7 +7,6 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm/limitorders"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -43,12 +42,4 @@ func (api *SnowmanAPI) IssueBlock(ctx context.Context) error {
 
 	api.vm.builder.signalTxsReady()
 	return nil
-}
-
-type OrderBookAPI struct {
-	lop LimitOrderProcesser
-}
-
-func (api *OrderBookAPI) GetOrderBookData(ctx context.Context) limitorders.InMemoryDatabase {
-	return api.lop.GetOrderBookData()
 }

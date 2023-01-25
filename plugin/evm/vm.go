@@ -772,7 +772,7 @@ func (vm *VM) CreateHandlers() (map[string]*commonEng.HTTPHandler, error) {
 		}
 		enabledAPIs = append(enabledAPIs, "snowman")
 	}
-	if err := handler.RegisterName("orderbook", &OrderBookAPI{vm.limitOrderProcesser}); err != nil {
+	if err := handler.RegisterName("orderbook", vm.limitOrderProcesser.GetOrderBookAPI()); err != nil {
 		return nil, err
 	}
 

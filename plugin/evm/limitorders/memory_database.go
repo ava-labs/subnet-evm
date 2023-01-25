@@ -49,7 +49,7 @@ type LimitOrder struct {
 	Status                  Status   `json:"status"`
 	Signature               []byte   `json:"signature"`
 	RawOrder                interface{}
-	BlockNumber             *big.Int // block number order was placed on
+	BlockNumber             *big.Int `json:"block_number"` // block number order was placed on
 }
 
 func (order LimitOrder) GetUnFilledBaseAssetQuantity() *big.Int {
