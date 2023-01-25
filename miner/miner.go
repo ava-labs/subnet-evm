@@ -66,6 +66,11 @@ func (miner *Miner) GenerateBlock() (*types.Block, error) {
 	return miner.worker.commitNewWork()
 }
 
+func (miner *Miner) GetLastBlockTime() uint64 {
+	// the timestamp for the new block will be >= this value
+	return miner.worker.chain.CurrentBlock().Time()
+}
+
 // SubscribePendingLogs starts delivering logs from pending transactions
 // to the given channel.
 func (miner *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription {

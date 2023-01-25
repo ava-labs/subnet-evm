@@ -4,9 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"math/big"
-	"math/rand"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core"
@@ -25,111 +24,116 @@ var privateKey1 = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8
 var userAddress2 = "0x4Cf2eD3665F6bFA95cE6A11CFDb7A2EF5FC1C7E4"
 var privateKey2 = "31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc"
 
+var orderBookContractFileLocation = "contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json"
+var marginAccountContractFileLocation = "contract-examples/artifacts/contracts/hubble-v2/MarginAccount.sol/MarginAccount.json"
+var clearingHouseContractFileLocation = "contract-examples/artifacts/contracts/hubble-v2/ClearingHouse.sol/ClearingHouse.json"
+var OrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000069")
+var MarginAccountContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000070")
+var ClearingHouseContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000071")
+
+func SetOrderBookContractFileLocation(location string) {
+	orderBookContractFileLocation = location
+}
+
 type LimitOrderTxProcessor interface {
-	HandleOrderBookTx(tx *types.Transaction, blockNumber uint64, backend eth.EthAPIBackend)
-	ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount uint) error
+	ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount *big.Int) error
 	PurgeLocalTx()
 	CheckIfOrderBookContractCall(tx *types.Transaction) bool
+	ExecuteFundingPaymentTx() error
+	ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error
+	HandleOrderBookEvent(event *types.Log)
+	HandleMarginAccountEvent(event *types.Log)
+	HandleClearingHouseEvent(event *types.Log)
 }
 
 type limitOrderTxProcessor struct {
-	txPool                   *core.TxPool
-	orderBookABI             abi.ABI
-	memoryDb                 LimitOrderDatabase
-	orderBookContractAddress common.Address
+	txPool                       *core.TxPool
+	memoryDb                     LimitOrderDatabase
+	orderBookABI                 abi.ABI
+	marginAccountABI             abi.ABI
+	clearingHouseABI             abi.ABI
+	marginAccountContractAddress common.Address
+	clearingHouseContractAddress common.Address
+	orderBookContractAddress     common.Address
+	backend                      *eth.EthAPIBackend
 }
 
 // Order type is copy of Order struct defined in Orderbook contract
 type Order struct {
 	Trader            common.Address `json:"trader"`
+	AmmIndex          *big.Int       `json:"ammIndex"`
 	BaseAssetQuantity *big.Int       `json:"baseAssetQuantity"`
 	Price             *big.Int       `json:"price"`
 	Salt              *big.Int       `json:"salt"`
 }
 
-func NewLimitOrderTxProcessor(txPool *core.TxPool, orderBookABI abi.ABI, memoryDb LimitOrderDatabase, orderBookContractAddress common.Address) LimitOrderTxProcessor {
+func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, backend *eth.EthAPIBackend) LimitOrderTxProcessor {
+	jsonBytes, _ := ioutil.ReadFile(orderBookContractFileLocation)
+	orderBookABI, err := abi.FromSolidityJson(string(jsonBytes))
+	if err != nil {
+		panic(err)
+	}
+
+	jsonBytes, _ = ioutil.ReadFile(marginAccountContractFileLocation)
+	marginAccountABI, err := abi.FromSolidityJson(string(jsonBytes))
+	if err != nil {
+		panic(err)
+	}
+
+	jsonBytes, _ = ioutil.ReadFile(clearingHouseContractFileLocation)
+	clearingHouseABI, err := abi.FromSolidityJson(string(jsonBytes))
+	if err != nil {
+		panic(err)
+	}
+
 	return &limitOrderTxProcessor{
-		txPool:                   txPool,
-		orderBookABI:             orderBookABI,
-		memoryDb:                 memoryDb,
-		orderBookContractAddress: orderBookContractAddress,
+		txPool:                       txPool,
+		orderBookABI:                 orderBookABI,
+		marginAccountABI:             marginAccountABI,
+		clearingHouseABI:             clearingHouseABI,
+		memoryDb:                     memoryDb,
+		orderBookContractAddress:     OrderBookContractAddress,
+		marginAccountContractAddress: MarginAccountContractAddress,
+		clearingHouseContractAddress: ClearingHouseContractAddress,
+		backend:                      backend,
 	}
 }
 
-func (lotp *limitOrderTxProcessor) HandleOrderBookTx(tx *types.Transaction, blockNumber uint64, backend eth.EthAPIBackend) {
-	m, err := getOrderBookContractCallMethod(tx, lotp.orderBookABI, lotp.orderBookContractAddress)
-	if err == nil {
-		input := tx.Data()
-		in := make(map[string]interface{})
-		_ = m.Inputs.UnpackIntoMap(in, input[4:])
-		if m.Name == "placeOrder" {
-			log.Info("##### in ParseTx", "placeOrder tx hash", tx.Hash().String())
-			order := getOrderFromRawOrder(in["order"])
-			signature := in["signature"].([]byte)
-			baseAssetQuantity := int(order.BaseAssetQuantity.Int64())
-			if baseAssetQuantity == 0 {
-				log.Error("order not saved because baseAssetQuantity is zero")
-				return
-			}
-			positionType := getPositionTypeBasedOnBaseAssetQuantity(baseAssetQuantity)
-			price, _ := new(big.Float).SetInt(order.Price).Float64()
-			limitOrder := &LimitOrder{
-				PositionType:            positionType,
-				UserAddress:             order.Trader.Hash().String(),
-				BaseAssetQuantity:       baseAssetQuantity,
-				FilledBaseAssetQuantity: 0,
-				Price:                   price,
-				Salt:                    order.Salt.Int64(),
-				Status:                  "unfulfilled",
-				Signature:               signature,
-				BlockNumber:             blockNumber,
-				RawOrder:                in["order"],
-				RawSignature:            in["signature"],
-			}
-			lotp.memoryDb.Add(limitOrder)
-		}
-		if m.Name == "executeMatchedOrders" && checkTxStatusSucess(backend, tx.Hash()) {
-			signatures := in["signatures"].([2][]byte)
-			fillAmount := uint(in["fillAmount"].(*big.Int).Int64())
-			lotp.memoryDb.UpdateFilledBaseAssetQuantity(fillAmount, signatures[0])
-			lotp.memoryDb.UpdateFilledBaseAssetQuantity(fillAmount, signatures[1])
-		}
-	}
+func (lotp *limitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error {
+	return lotp.executeOrderBookLocalTx("liquidateAndExecuteOrder", trader.String(), matchedOrder.RawOrder, matchedOrder.Signature, fillAmount)
 }
 
-func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount uint) error {
-	//randomly selecting private key to get different validator profile on different nodes
-	rand.Seed(time.Now().UnixNano())
-	var privateKey, userAddress string
-	if rand.Intn(10000)%2 == 0 {
-		privateKey = privateKey1
-		userAddress = userAddress1
-	} else {
-		privateKey = privateKey2
-		userAddress = userAddress2
-	}
+func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
+	return lotp.executeOrderBookLocalTx("settleFunding")
+}
 
-	nonce := lotp.txPool.Nonce(common.HexToAddress(userAddress)) // admin address
-	ammID := big.NewInt(1)
+func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount *big.Int) error {
 	orders := make([]Order, 2)
 	orders[0], orders[1] = getOrderFromRawOrder(incomingOrder.RawOrder), getOrderFromRawOrder(matchedOrder.RawOrder)
+
 	signatures := make([][]byte, 2)
 	signatures[0] = incomingOrder.Signature
 	signatures[1] = matchedOrder.Signature
 
-	data, err := lotp.orderBookABI.Pack("executeMatchedOrders", ammID, orders, signatures, big.NewInt(int64(fillAmount)))
+	return lotp.executeOrderBookLocalTx("executeMatchedOrders", orders, signatures, fillAmount)
+}
+
+func (lotp *limitOrderTxProcessor) executeOrderBookLocalTx(method string, args ...interface{}) error {
+	nonce := lotp.txPool.Nonce(common.HexToAddress(userAddress1)) // admin address
+
+	data, err := lotp.orderBookABI.Pack(method, args...)
 	if err != nil {
 		log.Error("abi.Pack failed", "err", err)
 		return err
 	}
-	key, err := crypto.HexToECDSA(privateKey) // admin private key
+	key, err := crypto.HexToECDSA(privateKey1) // admin private key
 	if err != nil {
 		log.Error("HexToECDSA failed", "err", err)
 		return err
 	}
-	executeMatchedOrdersTx := types.NewTransaction(nonce, lotp.orderBookContractAddress, big.NewInt(0), 5000000, big.NewInt(80000000000), data)
-	signer := types.NewLondonSigner(big.NewInt(321123))
-	signedTx, err := types.SignTx(executeMatchedOrdersTx, signer, key)
+	tx := types.NewTransaction(nonce, lotp.orderBookContractAddress, big.NewInt(0), 5000000, big.NewInt(0), data)
+	signer := types.NewLondonSigner(lotp.backend.ChainConfig().ChainID)
+	signedTx, err := types.SignTx(tx, signer, key)
 	if err != nil {
 		log.Error("types.SignTx failed", "err", err)
 	}
@@ -148,20 +152,21 @@ func (lotp *limitOrderTxProcessor) PurgeLocalTx() {
 	for _, account := range localAccounts {
 		if txs := pending[account]; len(txs) > 0 {
 			for _, tx := range txs {
-				m, err := getOrderBookContractCallMethod(tx, lotp.orderBookABI, lotp.orderBookContractAddress)
-				if err == nil && m.Name == "executeMatchedOrders" {
+				_, err := getOrderBookContractCallMethod(tx, lotp.orderBookABI, lotp.orderBookContractAddress)
+				if err == nil {
 					lotp.txPool.RemoveTx(tx.Hash())
 				}
 			}
 		}
 	}
 }
+
 func (lotp *limitOrderTxProcessor) CheckIfOrderBookContractCall(tx *types.Transaction) bool {
 	return checkIfOrderBookContractCall(tx, lotp.orderBookABI, lotp.orderBookContractAddress)
 }
 
-func getPositionTypeBasedOnBaseAssetQuantity(baseAssetQuantity int) string {
-	if baseAssetQuantity > 0 {
+func getPositionTypeBasedOnBaseAssetQuantity(baseAssetQuantity *big.Int) string {
+	if baseAssetQuantity.Sign() == 1 {
 		return "long"
 	}
 	return "short"
@@ -213,4 +218,9 @@ func getOrderFromRawOrder(rawOrder interface{}) Order {
 	marshalledOrder, _ := json.Marshal(rawOrder)
 	_ = json.Unmarshal(marshalledOrder, &order)
 	return order
+}
+
+func getAddressFromTopicHash(topicHash common.Hash) common.Address {
+	address32 := topicHash.String() // address in 32 bytes with 0 padding
+	return common.HexToAddress(address32[:2] + address32[26:])
 }

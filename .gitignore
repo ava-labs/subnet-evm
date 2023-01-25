@@ -55,3 +55,5 @@ contract-examples/dynamic_rpc.json
 
 #sqlite
 plugins/evm/hubble.db
+
+*.bin

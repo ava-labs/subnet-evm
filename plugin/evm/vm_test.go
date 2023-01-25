@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/plugin/evm/limitorders"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
@@ -210,7 +211,7 @@ func GenesisVM(t *testing.T,
 		t.Fatal(err)
 	}
 
-	SetOrderBookContractFileLocation("../../contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json")
+	limitorders.SetOrderBookContractFileLocation("../../contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json")
 
 	if finishBootstrapping {
 		assert.NoError(t, vm.SetState(snow.Bootstrapping))
