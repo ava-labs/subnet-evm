@@ -3,7 +3,7 @@ set -e
 
 echo "Beginning simualtor script"
 
-if ! [[ "$0" =~ scripts/run.sh ]]; then
+if ! [[ "$0" =~ scripts/run_simulator.sh ]]; then
   echo "must be run from repository root, but got $0"
   exit 255
 fi
