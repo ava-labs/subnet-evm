@@ -102,7 +102,7 @@ func FromSolidityJson(abiJsonInput string) (ABI, error) {
 				}
 			}
 			type_, _ := NewType(output.Type, output.InternalType, components)
-			inputs = append(inputs, Argument{
+			outputs = append(outputs, Argument{
 				Name:    output.Name,
 				Type:    type_,
 				Indexed: output.Indexed,

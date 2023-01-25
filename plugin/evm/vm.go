@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -19,7 +18,6 @@ import (
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -622,7 +620,20 @@ func (vm *VM) Shutdown(context.Context) error {
 
 // buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
-	vm.limitOrderProcesser.RunMatchingEngine()
+	// Hourly Funding Payments
+	if vm.limitOrderProcesser.IsFundingPaymentTime(vm.miner.GetLastBlockTime()) {
+		// just execute the funding payment and skip running the matching engine
+		err := vm.limitOrderProcesser.ExecuteFundingPayment()
+		if err != nil {
+			log.Error("Funding payment job failed", "err", err)
+		}
+	} else {
+		// Place reduce position orders for accounts to be liquidated
+		// Run Matching Engine
+		vm.limitOrderProcesser.RunLiquidationsAndMatching()
+	}
+
+	// Resume block building (untouched subnet-EVM code)
 	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()
 	if err != nil {
@@ -930,21 +941,9 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	return nil
 }
 
-var orderBookContractFileLocation = "contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json"
-var orderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000069")
-
-func SetOrderBookContractFileLocation(location string) {
-	orderBookContractFileLocation = location
-}
-
 func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
 	memoryDb := limitorders.NewInMemoryDatabase()
-	jsonBytes, _ := ioutil.ReadFile(orderBookContractFileLocation)
-	orderBookAbi, err := abi.FromSolidityJson(string(jsonBytes))
-	if err != nil {
-		panic(err)
-	}
-	lotp := limitorders.NewLimitOrderTxProcessor(vm.txPool, orderBookAbi, memoryDb, orderBookContractAddress)
+	lotp := limitorders.NewLimitOrderTxProcessor(vm.txPool, memoryDb, vm.eth.APIBackend)
 
 	return NewLimitOrderProcesser(
 		vm.ctx,
