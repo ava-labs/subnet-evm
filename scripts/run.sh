@@ -86,6 +86,12 @@ function execute_cmd() {
   $@
 }
 
-# TODO change from executing each CMD by index to iterate and execute each command within the subshell
-# Trap SIGINT and cleanup the processes within this subshell after receiving SIGINT (ctrl-c)
-(trap 'cleanup_process_group' SIGINT; execute_cmd ${CMDS[0]} & execute_cmd ${CMDS[1]} & execute_cmd ${CMDS[2]} & execute_cmd ${CMDS[3]} & execute_cmd ${CMDS[4]} & wait)
+execute_cmd ${CMDS[0]}
+
+# if [ $SINLGE_NODE != "true" ]; then
+#   execute_cmd ${CMDS[0]}
+# else
+#   # TODO change from executing each CMD by index to iterate and execute each command within the subshell
+#   # Trap SIGINT and cleanup the processes within this subshell after receiving SIGINT (ctrl-c)
+#   (trap 'cleanup_process_group' SIGINT; execute_cmd ${CMDS[0]} & execute_cmd ${CMDS[1]} & execute_cmd ${CMDS[2]} & execute_cmd ${CMDS[3]} & execute_cmd ${CMDS[4]} & wait)
+# fi

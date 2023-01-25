@@ -9,17 +9,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ava-labs/avalanchego/api/health"
-	"github.com/ava-labs/subnet-evm/tests/precompile/utils"
+	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/go-cmd/cmd"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-
-	_ "github.com/ava-labs/subnet-evm/tests/precompile/solidity"
 )
 
 var startCmd *cmd.Cmd
@@ -49,12 +48,22 @@ var _ = ginkgo.BeforeSuite(func() {
 	log.Info("AvalancheGo node is healthy")
 })
 
-var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
-	ginkgo.It("basic load test", ginkgo.Label("load"), func() {
-		// client := health.NewClient(utils.DefaultLocalNodeURI)
+var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
+	ginkgo.It("basic subnet load test", ginkgo.Label("load"), func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
 
-		// err = os.Setenv("RPC_URI", rpcURI)
-		// gomega.Expect(err).Should(gomega.BeNil())
+		blockchainID := utils.CreateNewSubnet(ctx, "./tests/load/genesis/genesis.json")
+
+		rpcEndpoints := make([]string, 0, len(utils.NodeURIs))
+		for _, uri := range []string{utils.DefaultLocalNodeURI} { // TODO: use NodeURIs instead, hack until fixing multi node in a network behavior
+			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
+		}
+		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
+		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		log.Info("Sleeping with network running", "rpcEndpoints", commaSeparatedRPCEndpoints)
 		cmd := exec.Command("./scripts/run_simulator.sh")
 		log.Info("Running load simulator script", "cmd", cmd.String())
 

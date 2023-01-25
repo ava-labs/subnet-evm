@@ -1,17 +1,24 @@
 #!/usr/bin/env bash
 set -e
 
-#################################
-echo "building simulator"
-pushd ./cmd/simulator
-go install -v .
+echo "Beginning simualtor script"
 
-popd
-echo "running simulator"
-simulator \
---cluster-info-yaml=$SIMULATOR_CLUSTER_YAML_FILE_PATH \
---keys=./cmd/simulator/.simulator/keys \
---timeout=30s \
---concurrency=10 \
---base-fee=25 \
---priority-fee=1
+run_simulator() {
+    #################################
+    echo "building simulator"
+    pushd ./cmd/simulator
+    go install -v .
+    echo 
+
+    popd
+    echo "running simulator from $PWD"
+    simulator \
+        --rpc-endpoints=$RPC_ENDPOINTS \
+        --keys=./cmd/simulator/.simulator/keys \
+        --timeout=30s \
+        --concurrency=10 \
+        --base-fee=300 \
+        --priority-fee=100
+}
+
+run_simulator

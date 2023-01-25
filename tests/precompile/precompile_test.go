@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/api/health"
-	"github.com/ava-labs/subnet-evm/tests/precompile/utils"
+	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/go-cmd/cmd"
 	ginkgo "github.com/onsi/ginkgo/v2"
