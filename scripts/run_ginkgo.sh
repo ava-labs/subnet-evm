@@ -11,6 +11,8 @@ SUBNET_EVM_PATH=$(
   cd .. && pwd
 )
 
+source "$SUBNET_EVM_PATH"/scripts/constants.sh
+
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
 # Build ginkgo
