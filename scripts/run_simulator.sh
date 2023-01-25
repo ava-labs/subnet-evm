@@ -3,6 +3,21 @@ set -e
 
 echo "Beginning simualtor script"
 
+if ! [[ "$0" =~ scripts/run.sh ]]; then
+  echo "must be run from repository root, but got $0"
+  exit 255
+fi
+
+# Load the versions
+SUBNET_EVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+source "$SUBNET_EVM_PATH"/scripts/versions.sh
+
+# Load the constants
+source "$SUBNET_EVM_PATH"/scripts/constants.sh
+
 run_simulator() {
     #################################
     echo "building simulator"
