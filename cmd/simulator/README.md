@@ -1,6 +1,6 @@
 # Load Simulator
 
-When building developing your own blockchain using `subnet-evm`, you may want to analyze how your fee parameterization behaves and/or how many resources your VM uses under different load patterns. For this reason, we developed `cmd/simulator`. `cmd/simulator` lets your drive arbitrary load across any number of [endpoints] with a user-specified `keys` directory (insecure) `timeout`, `concurrency`, `base-fee`, and `priority-fee`.
+When building developing your own blockchain using `subnet-evm`, you may want to analyze how your fee parameterization behaves and/or how many resources your VM uses under different load patterns. For this reason, we developed `cmd/simulator`. `cmd/simulator` lets you drive arbitrary load across any number of [endpoints] with a user-specified `keys` directory (insecure) `timeout`, `concurrency`, `base-fee`, and `priority-fee`.
 
 ## Building the Load Simulator
 
