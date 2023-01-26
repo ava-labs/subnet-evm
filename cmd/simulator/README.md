@@ -67,7 +67,7 @@ RPC_ENDPOINTS=http://127.0.0.1:9650/ext/bc/C/rpc
 If the test needs to generate more keys, it will save them in this directory to ensure that the private keys holding funds at the end of the test are preserved.
 
 :::warning
-The `keys` directory is not a secure form of storage for private keys. This should only be used in local network and short lived network testing where losing or compromising the keys is not an issue
+The `keys` directory is not a secure form of storage for private keys. This should only be used in local network and short lived network testing where losing or compromising the keys is not an issue.
 :::
 
 ### `timeout` (duration)
