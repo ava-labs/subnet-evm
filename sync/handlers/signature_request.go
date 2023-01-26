@@ -7,16 +7,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
-
-	"github.com/ava-labs/avalanchego/utils/crypto/bls"
-
-	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
+	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // SignatureRequestHandler is a peer.RequestHandler for message.SignatureRequest
