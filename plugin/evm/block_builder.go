@@ -36,11 +36,15 @@ const (
 	minBlockBuildingRetryDelay = 500 * time.Millisecond
 )
 
+type blockBuilderConfig struct {
+	TargetedProposerGossipEnabled bool
+}
+
 type blockBuilder struct {
 	ctx         *snow.Context
 	chainConfig *params.ChainConfig
 
-	config Config
+	config 		*blockBuilderConfig
 
 	txPool   *core.TxPool
 	gossiper Gossiper
@@ -80,7 +84,9 @@ func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *bl
 	)
 	b := &blockBuilder{
 		ctx:                  vm.ctx,
-		config: 			  vm.config,
+		config:  			  &blockBuilderConfig{
+			TargetedProposerGossipEnabled: vm.config.TargetedProposerGossipEnabled,
+		},
 		chainConfig:          vm.chainConfig,
 		blockChain: 		  vm.blockChain,
 		txPool:               vm.txPool,
