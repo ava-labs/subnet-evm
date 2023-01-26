@@ -13,6 +13,8 @@ import (
 )
 
 // RunCommand starts the command [bin] with the given [args] and returns the command to the caller
+// TODO cmd package mentions we can do this more efficiently with cmd.NewCmdOptions rather than looping
+// and calling Status().
 func RunCommand(bin string, args ...string) (*cmd.Cmd, error) {
 	log.Info("Executing", "cmd", fmt.Sprintf("%s %s", bin, strings.Join(args, " ")))
 
