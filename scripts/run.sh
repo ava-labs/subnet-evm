@@ -86,6 +86,8 @@ function execute_cmd() {
 
 execute_cmd ${CMDS[0]}
 
+# TODO fix staking disabled bug (subnet does not start consensus with staking disabled when connected to other nodes)
+# and add option to run either 1 node, 5 nodes, or N node network within a process group.
 # if [ $SINLGE_NODE != "true" ]; then
 #   execute_cmd ${CMDS[0]}
 # else
