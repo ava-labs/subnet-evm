@@ -42,13 +42,11 @@ function _set_config(){
 EOF
 }
 
-DATA_DIRS=()
 CMDS=()
 for (( i=0; i <5; i++ ))
 do
   NODE_NAME=node$(($i+1))
   NODE_DATA_DIR="$DATA_DIR/$NODE_NAME"
-  DATA_DIRS+=("$NODE_DATA_DIR")
   echo "Creating data directory: $NODE_DATA_DIR"
   mkdir -p $NODE_DATA_DIR
   NODE_CONFIG_FILE_PATH="$NODE_DATA_DIR/config.json"
