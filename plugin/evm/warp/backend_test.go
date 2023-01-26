@@ -5,7 +5,6 @@ package warp
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"testing"
 
@@ -23,8 +22,6 @@ var (
 	sourceChainID      = ids.GenerateTestID()
 	destinationChainID = ids.GenerateTestID()
 	payload            = []byte("test")
-
-	errTest = errors.New("non-nil error")
 )
 
 func TestInterfaceStructOneToOne(t *testing.T) {
