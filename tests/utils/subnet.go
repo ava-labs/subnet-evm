@@ -62,7 +62,7 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 
 	wd, err := os.Getwd()
 	gomega.Expect(err).Should(gomega.BeNil())
-	log.Info("Reading genesis file", "filePath", genesisFilePath, "pwd", wd)
+	log.Info("Reading genesis file", "filePath", genesisFilePath, "wd", wd)
 	genesisBytes, err := os.ReadFile(genesisFilePath)
 	gomega.Expect(err).Should(gomega.BeNil())
 

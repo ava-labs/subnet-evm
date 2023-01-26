@@ -1,7 +1,6 @@
-// Copyright (C) 2019-2022, Ava Labs, Inc. All rights reserved.
+// Copyright (C) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-// e2e implements the e2e tests.
 package precompile
 
 import (
@@ -17,6 +16,7 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
+	// Import the solidity package, so that ginkgo maps out the tests declared within the package
 	_ "github.com/ava-labs/subnet-evm/tests/precompile/solidity"
 )
 
@@ -24,7 +24,7 @@ var startCmd *cmd.Cmd
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "subnet-evm e2e test suites")
+	ginkgo.RunSpecs(t, "subnet-evm precompile ginkgo test suite")
 }
 
 // BeforeSuite starts an AvalancheGo process to use for the e2e tests
@@ -32,7 +32,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	var err error
 	wd, err := os.Getwd()
 	gomega.Expect(err).Should(gomega.BeNil())
 	log.Info("Starting AvalancheGo node", "wd", wd)

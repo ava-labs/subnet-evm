@@ -39,7 +39,13 @@ var (
 	baseFee     uint64
 	priorityFee uint64
 
-	defaultLocalNetworkCChainEndpoints = []string{"http://127.0.0.1:9650/ext/bc/C/rpc", "http://127.0.0.1:9652/ext/bc/C/rpc", "http://127.0.0.1:9654/ext/bc/C/rpc/ext/bc/C/rpc", "http://127.0.0.1:9656/ext/bc/C/rpc", "http://127.0.0.1:9658/ext/bc/C/rpc"}
+	defaultLocalNetworkCChainEndpoints = []string{
+		"http://127.0.0.1:9650/ext/bc/C/rpc",
+		"http://127.0.0.1:9652/ext/bc/C/rpc",
+		"http://127.0.0.1:9654/ext/bc/C/rpc",
+		"http://127.0.0.1:9656/ext/bc/C/rpc",
+		"http://127.0.0.1:9658/ext/bc/C/rpc",
+	}
 )
 
 func newCommand() *cobra.Command {
@@ -62,8 +68,8 @@ func newCommand() *cobra.Command {
 
 func runFunc(cmd *cobra.Command, args []string) {
 	// TODO: use geth logger
-	log.Printf("launching simulator with rpc endpoints %q timeout %v, concurrentcy %d, base fee %d, priority fee %d",
-		rpcEndpoints, concurrency, baseFee, priorityFee)
+	log.Printf("launching simulator with rpc endpoints %q timeout %v, concurrency %d, base fee %d, priority fee %d",
+		rpcEndpoints, timeout, concurrency, baseFee, priorityFee)
 
 	cfg := &worker.Config{
 		Endpoints:   rpcEndpoints,
