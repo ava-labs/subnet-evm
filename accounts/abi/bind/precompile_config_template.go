@@ -129,17 +129,26 @@ func (c *{{.Contract.Type}}Config) Equal(s precompile.StatefulPrecompileConfig) 
 	return equals
 }
 
-// Address returns the address of the {{.Contract.Type}}. Addresses reside under the precompile/params.go
-// Select a non-conflicting address and set it in the params.go.
-func (c {{.Contract.Type}}Config) Address() common.Address {
-	return ContractAddress
-}
-
 // Configure configures [state] with the initial configuration.
 func (c *{{.Contract.Type}}Config) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
 	{{if .Contract.AllowList}}c.AllowListConfig.Configure(state, ContractAddress){{end}}
 	// CUSTOM CODE STARTS HERE
 	return nil
+}
+
+
+// Required module functions for {{.Contract.Type}}Config
+// These functions mostly do not require any custom code.
+
+// NewModule returns a new module for {{.Contract.Type}}.
+func NewModule() precompile.StatefulPrecompileModule {
+	return &{{.Contract.Type}}Config{}
+}
+
+// Address returns the address of the {{.Contract.Type}}.
+// Select a non-conflicting address and set it in generated contract.go
+func (c {{.Contract.Type}}Config) Address() common.Address {
+	return ContractAddress
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for {{.Contract.Type}}.
@@ -154,7 +163,7 @@ func ({{.Contract.Type}}Config) Key() string {
 
 // New returns a new {{.Contract.Type}}Config.
 // This is used by the json parser to create a new instance of the {{.Contract.Type}}Config.
-func ({{.Contract.Type}}Config) New() precompile.StatefulPrecompileConfig {
+func ({{.Contract.Type}}Config) NewConfig() precompile.StatefulPrecompileConfig {
 	return new({{.Contract.Type}}Config)
 }
 `

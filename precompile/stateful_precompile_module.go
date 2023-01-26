@@ -17,8 +17,8 @@ type StatefulPrecompileModule interface {
 	Contract() StatefulPrecompiledContract
 	// Key returns the unique key for the stateful precompile.
 	Key() string
-	// New returns a new instance of the stateful precompile config.
-	New() StatefulPrecompileConfig
+	// NewConfig returns a new instance of the stateful precompile config.
+	NewConfig() StatefulPrecompileConfig
 }
 
 var (

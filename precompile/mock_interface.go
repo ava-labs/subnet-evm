@@ -57,8 +57,7 @@ func (m *mockAccessibleState) CallFromPrecompile(caller common.Address, addr com
 	return nil, 0, nil
 }
 
-type noopStatefulPrecompileConfig struct {
-}
+type noopStatefulPrecompileConfig struct{}
 
 func NewNoopStatefulPrecompileConfig() *noopStatefulPrecompileConfig {
 	return &noopStatefulPrecompileConfig{}
@@ -96,6 +95,6 @@ func (n *noopStatefulPrecompileConfig) Key() string {
 	return ""
 }
 
-func (noopStatefulPrecompileConfig) New() StatefulPrecompileConfig {
+func (noopStatefulPrecompileConfig) NewConfig() StatefulPrecompileConfig {
 	return new(noopStatefulPrecompileConfig)
 }

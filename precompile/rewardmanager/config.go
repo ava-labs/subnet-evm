@@ -65,6 +65,11 @@ type RewardManagerConfig struct {
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
 
+// NewModule returns a new module for RewardManager.
+func NewModule() precompile.StatefulPrecompileModule {
+	return &RewardManagerConfig{}
+}
+
 // NewRewardManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // RewardManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial rewards config if specified.
 func NewRewardManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *RewardManagerConfig {
@@ -89,6 +94,27 @@ func NewDisableRewardManagerConfig(blockTimestamp *big.Int) *RewardManagerConfig
 	}
 }
 
+// Address returns the address of the RewardManager. Addresses reside under the precompile/params.go
+// Select a non-conflicting address and set it in the params.go.
+func (*RewardManagerConfig) Address() common.Address {
+	return ContractAddress
+}
+
+// Contract returns the singleton stateful precompiled contract to be used for RewardManager.
+func (*RewardManagerConfig) Contract() precompile.StatefulPrecompiledContract {
+	return RewardManagerPrecompile
+}
+
+// Key returns the key used in json config files to specify this precompile config.
+func (*RewardManagerConfig) Key() string {
+	return ConfigKey
+}
+
+// NewConfig returns a new instance of RewardManagerConfig.
+func (*RewardManagerConfig) NewConfig() precompile.StatefulPrecompileConfig {
+	return new(RewardManagerConfig)
+}
+
 // Equal returns true if [s] is a [*RewardManagerConfig] and it has been configured identical to [c].
 func (c *RewardManagerConfig) Equal(s precompile.StatefulPrecompileConfig) bool {
 	// typecast before comparison
@@ -110,12 +136,6 @@ func (c *RewardManagerConfig) Equal(s precompile.StatefulPrecompileConfig) bool 
 	return c.InitialRewardConfig.Equal(other.InitialRewardConfig)
 }
 
-// Address returns the address of the RewardManager. Addresses reside under the precompile/params.go
-// Select a non-conflicting address and set it in the params.go.
-func (c RewardManagerConfig) Address() common.Address {
-	return ContractAddress
-}
-
 // Configure configures [state] with the initial configuration.
 func (c *RewardManagerConfig) Configure(chainConfig precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
 	c.AllowListConfig.Configure(state, ContractAddress)
@@ -134,11 +154,6 @@ func (c *RewardManagerConfig) Configure(chainConfig precompile.ChainConfig, stat
 	return nil
 }
 
-// Contract returns the singleton stateful precompiled contract to be used for RewardManager.
-func (c RewardManagerConfig) Contract() precompile.StatefulPrecompiledContract {
-	return RewardManagerPrecompile
-}
-
 func (c *RewardManagerConfig) Verify() error {
 	if err := c.AllowListConfig.Verify(); err != nil {
 		return err
@@ -147,12 +162,4 @@ func (c *RewardManagerConfig) Verify() error {
 		return c.InitialRewardConfig.Verify()
 	}
 	return nil
-}
-
-func (c RewardManagerConfig) Key() string {
-	return ConfigKey
-}
-
-func (RewardManagerConfig) New() precompile.StatefulPrecompileConfig {
-	return new(RewardManagerConfig)
 }

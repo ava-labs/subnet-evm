@@ -28,6 +28,11 @@ type ContractNativeMinterConfig struct {
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
 }
 
+// NewModule returns a new module for ContractNativeMinter.
+func NewModule() precompile.StatefulPrecompileModule {
+	return &ContractNativeMinterConfig{}
+}
+
 // NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
 func NewContractNativeMinterConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *ContractNativeMinterConfig {
@@ -57,6 +62,21 @@ func (c ContractNativeMinterConfig) Address() common.Address {
 	return ContractAddress
 }
 
+// Contract returns the singleton stateful precompiled contract to be used for the native minter.
+func (ContractNativeMinterConfig) Contract() precompile.StatefulPrecompiledContract {
+	return ContractNativeMinterPrecompile
+}
+
+// Key returns the key used in json config files to specify this precompile config.
+func (ContractNativeMinterConfig) Key() string {
+	return ConfigKey
+}
+
+// NewConfig returns a new instance of this config.
+func (ContractNativeMinterConfig) NewConfig() precompile.StatefulPrecompileConfig {
+	return new(ContractNativeMinterConfig)
+}
+
 // Configure configures [state] with the desired admins based on [c].
 func (c *ContractNativeMinterConfig) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
 	for to, amount := range c.InitialMint {
@@ -67,11 +87,6 @@ func (c *ContractNativeMinterConfig) Configure(_ precompile.ChainConfig, state p
 	}
 
 	return c.AllowListConfig.Configure(state, ContractAddress)
-}
-
-// Contract returns the singleton stateful precompiled contract to be used for the native minter.
-func (ContractNativeMinterConfig) Contract() precompile.StatefulPrecompiledContract {
-	return ContractNativeMinterPrecompile
 }
 
 func (c *ContractNativeMinterConfig) Verify() error {
@@ -120,12 +135,4 @@ func (c *ContractNativeMinterConfig) Equal(s precompile.StatefulPrecompileConfig
 	}
 
 	return true
-}
-
-func (ContractNativeMinterConfig) Key() string {
-	return ConfigKey
-}
-
-func (ContractNativeMinterConfig) New() precompile.StatefulPrecompileConfig {
-	return new(ContractNativeMinterConfig)
 }

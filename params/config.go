@@ -177,7 +177,7 @@ func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
 	for _, module := range precompile.RegisteredModules() {
 		key := module.Key()
 		if value, ok := raw[key]; ok {
-			conf := module.New()
+			conf := module.NewConfig()
 			err := json.Unmarshal(value, conf)
 			if err != nil {
 				return err

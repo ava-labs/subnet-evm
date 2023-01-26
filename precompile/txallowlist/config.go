@@ -24,6 +24,11 @@ type TxAllowListConfig struct {
 	precompile.UpgradeableConfig
 }
 
+// NewModule returns a new module for TxAllowList.
+func NewModule() precompile.StatefulPrecompileModule {
+	return &TxAllowListConfig{}
+}
+
 // NewTxAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // TxAllowList with the given [admins] and [enableds] as members of the allowlist.
 func NewTxAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *TxAllowListConfig {
@@ -48,18 +53,28 @@ func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
 }
 
 // Address returns the address of the contract deployer allow list.
-func (c TxAllowListConfig) Address() common.Address {
+func (_ *TxAllowListConfig) Address() common.Address {
 	return ContractAddress
+}
+
+// Contract returns the singleton stateful precompiled contract to be used for the allow list.
+func (_ *TxAllowListConfig) Contract() precompile.StatefulPrecompiledContract {
+	return TxAllowListPrecompile
+}
+
+// Key returns the key used in json config files to specify this precompile config.
+func (c *TxAllowListConfig) Key() string {
+	return ConfigKey
+}
+
+// NewConfig returns a new instance of TxAllowListConfig.
+func (_ *TxAllowListConfig) NewConfig() precompile.StatefulPrecompileConfig {
+	return new(TxAllowListConfig)
 }
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *TxAllowListConfig) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
 	return c.AllowListConfig.Configure(state, c.Address())
-}
-
-// Contract returns the singleton stateful precompiled contract to be used for the allow list.
-func (c TxAllowListConfig) Contract() precompile.StatefulPrecompiledContract {
-	return TxAllowListPrecompile
 }
 
 // Equal returns true if [s] is a [*TxAllowListConfig] and it has been configured identical to [c].
@@ -70,12 +85,4 @@ func (c *TxAllowListConfig) Equal(s precompile.StatefulPrecompileConfig) bool {
 		return false
 	}
 	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
-}
-
-func (c TxAllowListConfig) Key() string {
-	return ConfigKey
-}
-
-func (TxAllowListConfig) New() precompile.StatefulPrecompileConfig {
-	return new(TxAllowListConfig)
 }

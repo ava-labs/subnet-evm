@@ -27,6 +27,11 @@ type FeeManagerConfig struct {
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
 
+// NewModule returns a new module for FeeManager.
+func NewModule() precompile.StatefulPrecompileModule {
+	return &FeeManagerConfig{}
+}
+
 // NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // FeeManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
 func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeManagerConfig {
@@ -54,6 +59,21 @@ func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
 // Address returns the address of the fee manager contract.
 func (c FeeManagerConfig) Address() common.Address {
 	return ContractAddress
+}
+
+// Contract returns the singleton stateful precompiled contract to be used for the fee manager.
+func (c FeeManagerConfig) Contract() precompile.StatefulPrecompiledContract {
+	return FeeManagerPrecompile
+}
+
+// Key returns the key used in json config files to specify this precompile config.
+func (c FeeManagerConfig) Key() string {
+	return ConfigKey
+}
+
+// NewConfig returns a new instance of this config.
+func (FeeManagerConfig) NewConfig() precompile.StatefulPrecompileConfig {
+	return new(FeeManagerConfig)
 }
 
 // Equal returns true if [s] is a [*FeeManagerConfig] and it has been configured identical to [c].
@@ -92,11 +112,6 @@ func (c *FeeManagerConfig) Configure(chainConfig precompile.ChainConfig, state p
 	return c.AllowListConfig.Configure(state, ContractAddress)
 }
 
-// Contract returns the singleton stateful precompiled contract to be used for the fee manager.
-func (c FeeManagerConfig) Contract() precompile.StatefulPrecompiledContract {
-	return FeeManagerPrecompile
-}
-
 func (c *FeeManagerConfig) Verify() error {
 	if err := c.AllowListConfig.Verify(); err != nil {
 		return err
@@ -106,12 +121,4 @@ func (c *FeeManagerConfig) Verify() error {
 	}
 
 	return c.InitialFeeConfig.Verify()
-}
-
-func (c FeeManagerConfig) Key() string {
-	return ConfigKey
-}
-
-func (FeeManagerConfig) New() precompile.StatefulPrecompileConfig {
-	return new(FeeManagerConfig)
 }

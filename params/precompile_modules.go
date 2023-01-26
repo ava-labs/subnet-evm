@@ -33,11 +33,11 @@ import (
 // {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
 func init() {
 	// Order matters here.
-	precompile.RegisterModule(deployerallowlist.ContractDeployerAllowListConfig{})
-	precompile.RegisterModule(nativeminter.ContractNativeMinterConfig{})
-	precompile.RegisterModule(txallowlist.TxAllowListConfig{})
-	precompile.RegisterModule(feemanager.FeeManagerConfig{})
-	precompile.RegisterModule(rewardmanager.RewardManagerConfig{})
+	precompile.RegisterModule(deployerallowlist.NewModule())
+	precompile.RegisterModule(nativeminter.NewModule())
+	precompile.RegisterModule(txallowlist.NewModule())
+	precompile.RegisterModule(feemanager.NewModule())
+	precompile.RegisterModule(rewardmanager.NewModule())
 	// ADD YOUR PRECOMPILE HERE
 	// precompile.RegisterModule({yourPrecompilePackage}.{YourPrecompile}Config{})
 }
