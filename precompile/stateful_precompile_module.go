@@ -45,7 +45,7 @@ var (
 	}
 )
 
-// UsedAddress returns true if [addr] is in a reserved range for custom precompiles
+// ReservedAddress returns true if [addr] is in a reserved range for custom precompiles
 func ReservedAddress(addr common.Address) bool {
 	for _, reservedRange := range reservedRanges {
 		if reservedRange.Contains(addr) {
