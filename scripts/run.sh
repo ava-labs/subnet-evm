@@ -43,7 +43,7 @@ function execute_cmd() {
   $@
 }
 
-NODE_NAME=node"node1"
+NODE_NAME="node1"
 NODE_DATA_DIR="$DATA_DIR/$NODE_NAME"
 echo "Creating data directory: $NODE_DATA_DIR"
 mkdir -p $NODE_DATA_DIR

@@ -26,35 +26,35 @@ var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 	// Each ginkgo It node specifies the name of the genesis file (in ./tests/precompile/genesis/)
 	// to use to launch the subnet and the name of the TS test file to run on the subnet (in ./contract-examples/tests/)
-	ginkgo.It("contract native minter", ginkgo.Label("solidity-with-npx"), func() {
+	ginkgo.It("contract native minter", ginkgo.Label("precompile"), ginkgo.Label("solidity-with-npx"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
 		utils.ExecuteHardHatTestOnNewBlockchain(ctx, "contract_native_minter")
 	})
 
-	ginkgo.It("tx allow list", ginkgo.Label("solidity-with-npx"), func() {
+	ginkgo.It("tx allow list", ginkgo.Label("precompile"), ginkgo.Label("solidity-with-npx"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
 		utils.ExecuteHardHatTestOnNewBlockchain(ctx, "tx_allow_list")
 	})
 
-	ginkgo.It("contract deployer allow list", ginkgo.Label("solidity-with-npx"), func() {
+	ginkgo.It("contract deployer allow list", ginkgo.Label("precompile"), ginkgo.Label("solidity-with-npx"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
 		utils.ExecuteHardHatTestOnNewBlockchain(ctx, "contract_deployer_allow_list")
 	})
 
-	ginkgo.It("fee manager", ginkgo.Label("solidity-with-npx"), func() {
+	ginkgo.It("fee manager", ginkgo.Label("precompile"), ginkgo.Label("solidity-with-npx"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
 		utils.ExecuteHardHatTestOnNewBlockchain(ctx, "fee_manager")
 	})
 
-	ginkgo.It("reward manager", ginkgo.Label("solidity-with-npx"), func() {
+	ginkgo.It("reward manager", ginkgo.Label("precompile"), ginkgo.Label("reward-manager"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 
@@ -65,13 +65,13 @@ var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 	// and then runs the hardhat tests for each one without forcing precompile developers to modify this file.
 	// ADD YOUR PRECOMPILE HERE
 	/*
-		ginkgo.It("your precompile", ginkgo.Label("solidity-with-npx"), func() {
+		ginkgo.It("your precompile", ginkgo.Label("precompile"), ginkgo.Label("your-precompile"), func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
 			// Specify the name shared by the genesis file in ./tests/precompile/genesis/{your_precompile}.json
 			// and the test file in ./contract-examples/tests/{your_precompile}.ts
-			ExecuteHardHatTestOnNewBlockchain(ctx, "your_precompile")
+			utils.ExecuteHardHatTestOnNewBlockchain(ctx, "your_precompile")
 		})
 	*/
 })

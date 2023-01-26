@@ -64,11 +64,13 @@ RPC_ENDPOINTS=http://127.0.0.1:9650/ext/bc/C/rpc
 
 `keys` specifies the directory to find the private keys to use throughout the test. The directory should contain files with the hex address as the name and the corresponding private key as the only content.
 
-If the test needs to generate more keys, it will save them in this directory to ensure that the private keys holding funds at the end of the test are preserved.
+If the test needs to generate more keys (to meet the number of workers specified by `concurrency`), it will save them in this directory to ensure that the private keys holding funds at the end of the test are preserved.
 
 :::warning
 The `keys` directory is not a secure form of storage for private keys. This should only be used in local network and short lived network testing where losing or compromising the keys is not an issue.
 :::
+
+Note: if none of the keys in this directory have any funds, then the simulator will log an address that it expects to receive funds in order to fund the load test and wait for those funds to arrive.
 
 ### `timeout` (duration)
 
@@ -76,7 +78,7 @@ The `keys` directory is not a secure form of storage for private keys. This shou
 
 ### `concurrency` (int)
 
-`concurrency` specifies the number of concurrent workers that should send transactions to the network throughout the test. Each worker in the load test is a pair of a private key sending transactions to one of the specified RPC Endpoints.
+`concurrency` specifies the number of concurrent workers that should send transactions to the network throughout the test. Each worker in the load test is a pairing of a private key and an RPC Endpoint. The private key is used to generate a stream of transactions, which are issued to the RPC Endpoint.
 
 ### `base-fee` (int)
 
