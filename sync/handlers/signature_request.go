@@ -41,7 +41,7 @@ func (s *SignatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	startTime := time.Now()
 	s.stats.IncSignatureRequest()
 
-	// always report signature request time
+	// Always report signature request time
 	defer func() {
 		s.stats.UpdateSignatureRequestTime(time.Since(startTime))
 	}()
