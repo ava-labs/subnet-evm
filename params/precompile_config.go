@@ -24,7 +24,7 @@ type PrecompileUpgrade struct {
 	precompile.StatefulPrecompileConfig
 }
 
-// UnmarshalJSON unmarshal the json into the correct precompile config type
+// UnmarshalJSON unmarshals the json into the correct precompile config type
 // based on the key. Keys are defined in each precompile module, and registered in
 // params/precompile_modules.go.
 // Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
