@@ -23,6 +23,7 @@ const (
 	txAllowListKey
 	feeManagerKey
 	rewardManagerKey
+	helloWorldKey
 	// ADD YOUR PRECOMPILE HERE
 	// {yourPrecompile}Key
 )
@@ -50,7 +51,7 @@ func (k precompileKey) String() string {
 }
 
 // ADD YOUR PRECOMPILE HERE
-var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey, rewardManagerKey /* {yourPrecompile}Key */}
+var precompileKeys = []precompileKey{contractDeployerAllowListKey, contractNativeMinterKey, txAllowListKey, feeManagerKey, rewardManagerKey, helloWorldKey /* {yourPrecompile}Key */}
 
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig, representing
 // each of the possible stateful precompile types that can be activated
@@ -61,6 +62,7 @@ type PrecompileUpgrade struct {
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
 	RewardManagerConfig             *precompile.RewardManagerConfig             `json:"rewardManagerConfig,omitempty"`             // Config for the reward manager precompile
+	HelloWorldConfig                *precompile.HelloWorldConfig                `json:"helloWorldConfig,omitempty"`
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
@@ -77,6 +79,8 @@ func (p *PrecompileUpgrade) getByKey(key precompileKey) (precompile.StatefulPrec
 		return p.FeeManagerConfig, p.FeeManagerConfig != nil
 	case rewardManagerKey:
 		return p.RewardManagerConfig, p.RewardManagerConfig != nil
+	case helloWorldKey:
+		return p.HelloWorldConfig, p.HelloWorldConfig != nil
 	// ADD YOUR PRECOMPILE HERE
 	/*
 		case {yourPrecompile}Key:
@@ -243,6 +247,15 @@ func (c *ChainConfig) GetRewardManagerConfig(blockTimestamp *big.Int) *precompil
 	return nil
 }
 
+// GetHelloWorldConfig returns the latest forked HelloWorldConfig
+// specified by [c] or nil if it was never enabled.
+func (c *ChainConfig) GetHelloWorldConfig(blockTimestamp *big.Int) *precompile.HelloWorldConfig {
+	if val := c.getActivePrecompileConfig(blockTimestamp, helloWorldKey, c.PrecompileUpgrades); val != nil {
+		return val.(*precompile.HelloWorldConfig)
+	}
+	return nil
+}
+
 /* ADD YOUR PRECOMPILE HERE
 func (c *ChainConfig) Get{YourPrecompile}Config(blockTimestamp *big.Int) *precompile.{YourPrecompile}Config {
 	if val := c.getActivePrecompileConfig(blockTimestamp, {yourPrecompile}Key, c.PrecompileUpgrades); val != nil {
@@ -268,6 +281,9 @@ func (c *ChainConfig) GetActivePrecompiles(blockTimestamp *big.Int) PrecompileUp
 	}
 	if config := c.GetRewardManagerConfig(blockTimestamp); config != nil && !config.Disable {
 		pu.RewardManagerConfig = config
+	}
+	if config := c.GetHelloWorldConfig(blockTimestamp); config != nil && !config.Disable {
+		pu.HelloWorldConfig = config
 	}
 	// ADD YOUR PRECOMPILE HERE
 	// if config := c.{YourPrecompile}Config(blockTimestamp); config != nil && !config.Disable {
