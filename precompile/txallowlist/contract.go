@@ -14,14 +14,13 @@ import (
 var (
 	ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000002")
 
-	// Singleton StatefulPrecompiledContract for W/R access to the contract deployer allow list.
+	// Singleton StatefulPrecompiledContract for W/R access to the tx allow list.
 	TxAllowListPrecompile precompile.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(ContractAddress)
 
 	ErrSenderAddressNotAllowListed = errors.New("cannot issue transaction from non-allow listed address")
 )
 
-// GetTxAllowListStatus returns the role of [address] for the contract deployer
-// allow list.
+// GetTxAllowListStatus returns the role of [address] for the tx allow list.
 func GetTxAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }

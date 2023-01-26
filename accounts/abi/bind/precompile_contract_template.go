@@ -26,7 +26,7 @@ const tmplSourcePrecompileContractGo = `
 // There are some must-be-done changes waiting in the file. Each area requiring you to add your code is marked with CUSTOM CODE to make them easy to find and modify.
 // Additionally there are other files you need to edit to activate your precompile.
 // These areas are highlighted with comments "ADD YOUR PRECOMPILE HERE".
-// For testing take a look at other precompile tests in core/stateful_precompile_test.go and config_test.go in other precompile folders.
+// For testing take a look at other precompile tests in tests/statefulprecompiles/ and config_test.go in other precompile folders.
 
 /* General guidelines for precompile development:
 1- Read the comment and set a suitable contract address in generated contract.go. E.g:
@@ -257,7 +257,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState precompile.PrecompileAcce
 	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
+	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannot{{.Normalized.Name}}, caller)
@@ -308,7 +308,7 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState precompile.Precomp
 	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
+	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", Err{{$contract.Type}}CannotFallback, caller)

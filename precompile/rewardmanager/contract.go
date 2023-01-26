@@ -106,7 +106,7 @@ func allowFeeRecipients(accessibleState precompile.PrecompileAccessibleState, ca
 	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
+	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotAllowFeeRecipients, caller)
@@ -218,7 +218,7 @@ func setRewardAddress(accessibleState precompile.PrecompileAccessibleState, call
 	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
+	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotSetRewardAddress, caller)
@@ -271,7 +271,7 @@ func disableRewards(accessibleState precompile.PrecompileAccessibleState, caller
 	// This part of the code restricts the function to be called only by enabled/admin addresses in the allow list.
 	// You can modify/delete this code if you don't want this function to be restricted by the allow list.
 	stateDB := accessibleState.GetStateDB()
-	// Verify that the caller is in the allow list and therefore has the right to modify it
+	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
 	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotDisableRewards, caller)

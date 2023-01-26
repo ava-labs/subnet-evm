@@ -164,7 +164,8 @@ type ChainConfig struct {
 
 type ChainConfigPrecompiles map[string]precompile.StatefulPrecompileConfig
 
-// The Precompiles field is a map of precompile module keys to their
+// UnmarshalJSON parses the JSON-encoded data into the ChainConfigPrecompiles.
+// ChainConfigPrecompiles is a map of precompile module keys to their
 // configuration.
 func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
 	raw := make(map[string]json.RawMessage)
