@@ -255,7 +255,7 @@ func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []prec
 // - during block processing to update the state before processing the given block.
 func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
-	for _, module := range precompile.RegisteredModules() { // Note: configure precompiles in a deterministic order.
+	for _, module := range precompile.RegisteredModules() { // Note: precompiles are configured in a deterministic order.
 		key := module.Key()
 		for _, config := range c.getActivatingPrecompileConfigs(module.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
