@@ -40,6 +40,9 @@ func RunHardhatTests(test string, rpcURI string) {
 
 	out, err := cmd.CombinedOutput()
 	fmt.Printf("\nCombined output:\n\n%s\n", string(out))
+	if err != nil {
+		fmt.Printf("\nErr: %s\n", err.Error())
+	}
 	gomega.Expect(err).Should(gomega.BeNil())
 }
 

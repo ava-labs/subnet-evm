@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "Beginning simualtor script"
+echo "Beginning simulator script"
 
 if ! [[ "$0" =~ scripts/run_simulator.sh ]]; then
   echo "must be run from repository root, but got $0"
