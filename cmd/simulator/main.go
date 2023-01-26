@@ -30,8 +30,10 @@ func main() {
 }
 
 var (
-	timeout time.Duration
-	keysDir string
+	version     = "v0.0.1"
+	versionFlag bool
+	timeout     time.Duration
+	keysDir     string
 
 	rpcEndpoints []string
 
@@ -56,6 +58,7 @@ func newCommand() *cobra.Command {
 		Run:        runFunc,
 	}
 
+	cmd.PersistentFlags().BoolVarP(&versionFlag, "version", "v", false, "Print the version of the simulator and exit.")
 	cmd.PersistentFlags().DurationVarP(&timeout, "timeout", "t", time.Minute, "Duration to run simulator")
 	cmd.PersistentFlags().StringVarP(&keysDir, "keys", "k", ".simulator/keys", "Directory to find key files")
 	cmd.PersistentFlags().StringSliceVarP(&rpcEndpoints, "rpc-endpoints", "e", defaultLocalNetworkCChainEndpoints, `Specifies a comma separated list of RPC Endpoints to use for the load test. Ex. "http://127.0.0.1:9650/ext/bc/C/rpc,http://127.0.0.1:9652/ext/bc/C/rpc". Defaults to the default RPC Endpoints for the C-Chain on a 5 Node local network.`)
@@ -67,6 +70,10 @@ func newCommand() *cobra.Command {
 }
 
 func runFunc(cmd *cobra.Command, args []string) {
+	if versionFlag {
+		fmt.Printf("%s\n", version)
+		return
+	}
 	// TODO: use geth logger
 	log.Printf("launching simulator with rpc endpoints %q timeout %v, concurrency %d, base fee %d, priority fee %d",
 		rpcEndpoints, timeout, concurrency, baseFee, priorityFee)
