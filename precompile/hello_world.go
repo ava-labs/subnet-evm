@@ -37,8 +37,8 @@ import (
 )
 
 const (
-	SayHelloGasCost    uint64 = 0 // SET A GAS COST HERE
-	SetGreetingGasCost uint64 = 0 // SET A GAS COST HERE
+	SayHelloGasCost    uint64 = readGasCostPerSlot
+	SetGreetingGasCost uint64 = writeGasCostPerSlot
 
 	// HelloWorldRawABI contains the raw ABI of HelloWorld contract.
 	HelloWorldRawABI = "[{\"inputs\":[],\"name\":\"sayHello\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"result\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"response\",\"type\":\"string\"}],\"name\":\"setGreeting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
