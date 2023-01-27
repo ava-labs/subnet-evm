@@ -67,6 +67,7 @@ func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
 		// this does NOT enable the precompile, so it should be upgradeable.
 		TxAllowListConfig: precompile.NewTxAllowListConfig(nil, nil, nil),
 	}
+	require.False(t, config.IsTxAllowList(common.Big0)) // check the precompile is not enabled.
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
 			// enable TxAllowList at timestamp 5
