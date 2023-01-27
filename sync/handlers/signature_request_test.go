@@ -87,9 +87,8 @@ func TestSignatureHandler(t *testing.T) {
 				return
 			}
 			var response message.SignatureResponse
-			if _, err = message.Codec.Unmarshal(responseBytes, &response); err != nil {
-				t.Fatal("error unmarshalling SignatureResponse", err)
-			}
+			_, err = message.Codec.Unmarshal(responseBytes, &response)
+			require.NoError(t, err, "error unmarshalling SignatureResponse")
 
 			assert.Equal(t, expectedResponse, response.Signature[:])
 			test.verifyStats(t, mockHandlerStats)

@@ -41,9 +41,7 @@ func TestMarshalSignatureRequest(t *testing.T) {
 func TestMarshalSignatureResponse(t *testing.T) {
 	var signature [bls.SignatureLen]byte
 	sig, err := hex.DecodeString("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
-	if err != nil {
-		t.Error("failed to decode string to hex")
-	}
+	require.NoError(t, err, "failed to decode string to hex")
 
 	copy(signature[:], sig)
 	signatureResponse := SignatureResponse{
