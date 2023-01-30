@@ -39,17 +39,17 @@ const (
 )
 
 type LimitOrder struct {
-	id                      uint64
-	Market                  Market
-	PositionType            string
-	UserAddress             string
-	BaseAssetQuantity       *big.Int
-	FilledBaseAssetQuantity *big.Int
-	Price                   *big.Int
-	Status                  Status
-	Signature               []byte
+	Id                      uint64   `json:"id"`
+	Market                  Market   `json:"market"`
+	PositionType            string   `json:"position_type"`
+	UserAddress             string   `json:"user_address"`
+	BaseAssetQuantity       *big.Int `json:"base_asset_quantity"`
+	FilledBaseAssetQuantity *big.Int `json:"filled_base_asset_quantity"`
+	Price                   *big.Int `json:"price"`
+	Status                  Status   `json:"status"`
+	Signature               []byte   `json:"signature"`
 	RawOrder                interface{}
-	BlockNumber             *big.Int // block number order was placed on
+	BlockNumber             *big.Int `json:"block_number"` // block number order was placed on
 }
 
 func (order LimitOrder) GetUnFilledBaseAssetQuantity() *big.Int {
@@ -57,17 +57,17 @@ func (order LimitOrder) GetUnFilledBaseAssetQuantity() *big.Int {
 }
 
 type Position struct {
-	OpenNotional         *big.Int
-	Size                 *big.Int
-	UnrealisedFunding    *big.Int
-	LastPremiumFraction  *big.Int
-	LiquidationThreshold *big.Int
+	OpenNotional         *big.Int `json:"open_notional"`
+	Size                 *big.Int `json:"size"`
+	UnrealisedFunding    *big.Int `json:"unrealised_funding"`
+	LastPremiumFraction  *big.Int `json:"last_premium_fraction"`
+	LiquidationThreshold *big.Int `json:"liquidation_threshold"`
 }
 
 type Trader struct {
-	Positions   map[Market]*Position    // position for every market
-	Margins     map[Collateral]*big.Int // available margin/balance for every market
-	BlockNumber *big.Int
+	Positions   map[Market]*Position    `json:"positions"` // position for every market
+	Margins     map[Collateral]*big.Int `json:"margins"`   // available margin/balance for every market
+	BlockNumber *big.Int                `json:"block_number"`
 }
 
 type LimitOrderDatabase interface {
@@ -86,13 +86,14 @@ type LimitOrderDatabase interface {
 	GetLiquidableTraders(market Market, oraclePrice *big.Int) []LiquidablePosition
 	UpdateLastPrice(market Market, lastPrice *big.Int)
 	GetLastPrice(market Market) *big.Int
+	GetOrderBookData() InMemoryDatabase
 }
 
 type InMemoryDatabase struct {
-	orderMap        map[string]*LimitOrder     // signature => order
-	traderMap       map[common.Address]*Trader // address => trader info
-	nextFundingTime uint64
-	lastPrice       map[Market]*big.Int
+	OrderMap        map[string]*LimitOrder     `json:"order_map"`  // signature => order
+	TraderMap       map[common.Address]*Trader `json:"trader_map"` // address => trader info
+	NextFundingTime uint64                     `json:"next_funding_time"`
+	LastPrice       map[Market]*big.Int        `json:"last_price"`
 }
 
 func NewInMemoryDatabase() *InMemoryDatabase {
@@ -101,23 +102,23 @@ func NewInMemoryDatabase() *InMemoryDatabase {
 	traderMap := map[common.Address]*Trader{}
 
 	return &InMemoryDatabase{
-		orderMap:        orderMap,
-		traderMap:       traderMap,
-		nextFundingTime: 0,
-		lastPrice:       lastPrice,
+		OrderMap:        orderMap,
+		TraderMap:       traderMap,
+		NextFundingTime: 0,
+		LastPrice:       lastPrice,
 	}
 }
 
 func (db *InMemoryDatabase) GetAllOrders() []LimitOrder {
 	allOrders := []LimitOrder{}
-	for _, order := range db.orderMap {
+	for _, order := range db.OrderMap {
 		allOrders = append(allOrders, *order)
 	}
 	return allOrders
 }
 
 func (db *InMemoryDatabase) Add(order *LimitOrder) {
-	db.orderMap[string(order.Signature)] = order
+	db.OrderMap[string(order.Signature)] = order
 }
 
 func (db *InMemoryDatabase) Delete(signature []byte) {
@@ -125,7 +126,7 @@ func (db *InMemoryDatabase) Delete(signature []byte) {
 }
 
 func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, signature []byte) {
-	limitOrder := db.orderMap[string(signature)]
+	limitOrder := db.OrderMap[string(signature)]
 	if limitOrder.PositionType == "long" {
 		limitOrder.FilledBaseAssetQuantity.Add(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
 	}
@@ -139,16 +140,16 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, sig
 }
 
 func (db *InMemoryDatabase) GetNextFundingTime() uint64 {
-	return db.nextFundingTime
+	return db.NextFundingTime
 }
 
 func (db *InMemoryDatabase) UpdateNextFundingTime(nextFundingTime uint64) {
-	db.nextFundingTime = nextFundingTime
+	db.NextFundingTime = nextFundingTime
 }
 
 func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
 	var longOrders []LimitOrder
-	for _, order := range db.orderMap {
+	for _, order := range db.OrderMap {
 		if order.PositionType == "long" && order.Market == market {
 			longOrders = append(longOrders, *order)
 		}
@@ -159,7 +160,7 @@ func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
 
 func (db *InMemoryDatabase) GetShortOrders(market Market) []LimitOrder {
 	var shortOrders []LimitOrder
-	for _, order := range db.orderMap {
+	for _, order := range db.OrderMap {
 		if order.PositionType == "short" && order.Market == market {
 			shortOrders = append(shortOrders, *order)
 		}
@@ -169,42 +170,42 @@ func (db *InMemoryDatabase) GetShortOrders(market Market) []LimitOrder {
 }
 
 func (db *InMemoryDatabase) UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int) {
-	if _, ok := db.traderMap[trader]; !ok {
-		db.traderMap[trader] = &Trader{
+	if _, ok := db.TraderMap[trader]; !ok {
+		db.TraderMap[trader] = &Trader{
 			Positions: map[Market]*Position{},
 			Margins:   map[Collateral]*big.Int{},
 		}
 	}
 
-	if _, ok := db.traderMap[trader].Margins[collateral]; !ok {
-		db.traderMap[trader].Margins[collateral] = big.NewInt(0)
+	if _, ok := db.TraderMap[trader].Margins[collateral]; !ok {
+		db.TraderMap[trader].Margins[collateral] = big.NewInt(0)
 	}
 
-	db.traderMap[trader].Margins[collateral].Add(db.traderMap[trader].Margins[collateral], addAmount)
+	db.TraderMap[trader].Margins[collateral].Add(db.TraderMap[trader].Margins[collateral], addAmount)
 }
 
 func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
-	if _, ok := db.traderMap[trader]; !ok {
-		db.traderMap[trader] = &Trader{
+	if _, ok := db.TraderMap[trader]; !ok {
+		db.TraderMap[trader] = &Trader{
 			Positions: map[Market]*Position{},
 			Margins:   map[Collateral]*big.Int{},
 		}
 	}
 
-	if _, ok := db.traderMap[trader].Positions[market]; !ok {
-		db.traderMap[trader].Positions[market] = &Position{}
+	if _, ok := db.TraderMap[trader].Positions[market]; !ok {
+		db.TraderMap[trader].Positions[market] = &Position{}
 	}
 
-	db.traderMap[trader].Positions[market].Size = size
-	db.traderMap[trader].Positions[market].OpenNotional = openNotional
+	db.TraderMap[trader].Positions[market].Size = size
+	db.TraderMap[trader].Positions[market].OpenNotional = openNotional
 
 	if !isLiquidation {
-		db.traderMap[trader].Positions[market].LiquidationThreshold = getLiquidationThreshold(size)
+		db.TraderMap[trader].Positions[market].LiquidationThreshold = getLiquidationThreshold(size)
 	}
 }
 
 func (db *InMemoryDatabase) UpdateUnrealisedFunding(market Market, cumulativePremiumFraction *big.Int) {
-	for _, trader := range db.traderMap {
+	for _, trader := range db.TraderMap {
 		position := trader.Positions[market]
 		if position != nil {
 			position.UnrealisedFunding = dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, position.LastPremiumFraction), position.Size))
@@ -213,20 +214,20 @@ func (db *InMemoryDatabase) UpdateUnrealisedFunding(market Market, cumulativePre
 }
 
 func (db *InMemoryDatabase) ResetUnrealisedFunding(market Market, trader common.Address, cumulativePremiumFraction *big.Int) {
-	if db.traderMap[trader] != nil {
-		if _, ok := db.traderMap[trader].Positions[market]; ok {
-			db.traderMap[trader].Positions[market].UnrealisedFunding = big.NewInt(0)
-			db.traderMap[trader].Positions[market].LastPremiumFraction = cumulativePremiumFraction
+	if db.TraderMap[trader] != nil {
+		if _, ok := db.TraderMap[trader].Positions[market]; ok {
+			db.TraderMap[trader].Positions[market].UnrealisedFunding = big.NewInt(0)
+			db.TraderMap[trader].Positions[market].LastPremiumFraction = cumulativePremiumFraction
 		}
 	}
 }
 
 func (db *InMemoryDatabase) UpdateLastPrice(market Market, lastPrice *big.Int) {
-	db.lastPrice[market] = lastPrice
+	db.LastPrice[market] = lastPrice
 }
 
 func (db *InMemoryDatabase) GetLastPrice(market Market) *big.Int {
-	return db.lastPrice[market]
+	return db.LastPrice[market]
 }
 
 func sortLongOrders(orders []LimitOrder) []LimitOrder {
@@ -269,7 +270,11 @@ func getNextHour() time.Time {
 }
 
 func deleteOrder(db *InMemoryDatabase, signature []byte) {
-	delete(db.orderMap, string(signature))
+	delete(db.OrderMap, string(signature))
+}
+
+func (db *InMemoryDatabase) GetOrderBookData() InMemoryDatabase {
+	return *db
 }
 
 func getLiquidationThreshold(size *big.Int) *big.Int {
