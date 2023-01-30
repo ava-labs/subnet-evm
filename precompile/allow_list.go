@@ -25,9 +25,9 @@ const (
 var (
 	// No role assigned - this is equivalent to common.Hash{} and deletes the key from the DB when set
 	AllowListNoRole AllowListRole = AllowListRole(common.BigToHash(big.NewInt(0)))
-	// Enabled - allowed to use state-changing precompile functions precompiles without modifying status of other admins or enableds
+	// Enabled - allowed to use state-changing precompile functions without modifying status of other admins or enableds
 	AllowListEnabled AllowListRole = AllowListRole(common.BigToHash(big.NewInt(1)))
-	// Admin - allowed to modify both the admin and enabled list as well as use state-changing precompile functions
+	// Admin - allowed to modify both the admin and enabled list, as well as to use state-changing precompile functions
 	AllowListAdmin AllowListRole = AllowListRole(common.BigToHash(big.NewInt(2)))
 
 	// AllowList function signatures
