@@ -46,15 +46,14 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, signatureCacheS
 func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
 	messageID := hashing.ComputeHash256Array(unsignedMessage.Bytes())
 
-	// We generate the signature here and only save the signature in the db and cache.
-	// It is left to smart contracts built on top of Warp to save messages if required.
+	// We save the message instead of signature for db, in case for bls key changes.
+	if err := w.db.Put(messageID[:], unsignedMessage.Bytes()); err != nil {
+		return fmt.Errorf("failed to put warp signature in db: %w", err)
+	}
+
 	signature, err := w.snowCtx.TeleporterSigner.Sign(unsignedMessage)
 	if err != nil {
 		return fmt.Errorf("failed to sign warp message: %w", err)
-	}
-
-	if err := w.db.Put(messageID[:], signature); err != nil {
-		return fmt.Errorf("failed to put warp signature in db: %w", err)
 	}
 
 	w.signatureCache.Put(ids.ID(messageID), signature)
@@ -66,9 +65,19 @@ func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([]byt
 		return sig.([]byte), nil
 	}
 
-	signature, err := w.db.Get(messageID[:])
+	unsignedMessageBytes, err := w.db.Get(messageID[:])
 	if err != nil {
-		return nil, fmt.Errorf("failed to get warp signature for message %s from db: %w", messageID.String(), err)
+		return nil, fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
+	}
+
+	unsignedMessage, err := teleporter.ParseUnsignedMessage(unsignedMessageBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse unsigned message %s: %w", messageID.String(), err)
+	}
+
+	signature, err := w.snowCtx.TeleporterSigner.Sign(unsignedMessage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign warp message: %w", err)
 	}
 
 	w.signatureCache.Put(messageID[:], signature)
