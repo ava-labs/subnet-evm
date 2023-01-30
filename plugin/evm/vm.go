@@ -633,9 +633,9 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	}
 
 	// Verify any transaction predicates with the given block context.
-	vm.txPool.CheckPredicates(true, vm.currentRules(), vm.ctx, proposerVMBlockCtx)
+	pendingTxs := vm.txPool.PendingWithPredicates(true, vm.currentRules(), vm.ctx, proposerVMBlockCtx)
 
-	block, err := vm.miner.GenerateBlock()
+	block, err := vm.miner.GenerateBlock(pendingTxs)
 	vm.builder.handleGenerateBlock()
 	if err != nil {
 		return nil, err

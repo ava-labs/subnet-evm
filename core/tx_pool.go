@@ -612,16 +612,19 @@ func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transacti
 	return pending
 }
 
-// CheckPredicates checks all currently processable transactions, grouped by origin
+// PendingWithPredicates checks all currently processable transactions, grouped by origin
 // account and sorted by nonce. For each origin account, all transactions after and including
-// the first failed predicate are removed from the pool.
+// the first failed predicate are removed from the pool. The returned transaction set is a
+// copy and can be freely modified by calling code.
 //
 // The enforcePredicates parameter can be used to enforce precompile predicates on any pending
 // transactions that reference a precompile in its access list and remove any transactions
 // from the pool that fail to meet the predicate
-func (pool *TxPool) CheckPredicates(enforcePredicates bool, rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context) {
+func (pool *TxPool) PendingWithPredicates(enforcePredicates bool, rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context) map[common.Address]types.Transactions {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+
+	pending := make(map[common.Address]types.Transactions)
 	for addr, list := range pool.pending {
 		txs := list.Flatten()
 
@@ -634,7 +637,11 @@ func (pool *TxPool) CheckPredicates(enforcePredicates bool, rules params.Rules, 
 				}
 			}
 		}
+		if len(txs) > 0 {
+			pending[addr] = txs
+		}
 	}
+	return pending
 }
 
 // PendingSize returns the number of pending txs in the tx pool.
