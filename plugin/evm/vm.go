@@ -458,6 +458,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	// start goroutines to update the tx pool gas minimum gas price when upgrades go into effect
 	vm.handleGasPriceUpdates()
 
+	vm.limitOrderProcesser = vm.NewLimitOrderProcesser()
 	vm.eth.Start()
 	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
 }
@@ -578,7 +579,6 @@ func (vm *VM) initBlockBuilding() {
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
 
-	vm.limitOrderProcesser = vm.NewLimitOrderProcesser()
 	vm.limitOrderProcesser.ListenAndProcessTransactions()
 }
 
@@ -793,6 +793,9 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "snowman")
+	}
+	if err := handler.RegisterName("orderbook", vm.limitOrderProcesser.GetOrderBookAPI()); err != nil {
+		return nil, err
 	}
 
 	log.Info(fmt.Sprintf("Enabled APIs: %s", strings.Join(enabledAPIs, ", ")))
