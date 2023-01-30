@@ -1,3 +1,6 @@
+// (c) 2023, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package core
 
 import (
@@ -16,7 +19,7 @@ import (
 // Otherwise, returns the index of the first transaction that was invalid and the predicate error.
 // In the failure case, all transactions after and including the index that failed the predicate should be considered invalid,
 // since the input [txs] are nonce-ordered and from the same sender.
-func CheckPredicatesForSenderTxs(rules params.Rules, snowCtx *snow.Context, txs types.Transactions, proposerVMBlockCtx *block.Context) (int, error) {
+func CheckPredicatesForSenderTxs(rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context, txs types.Transactions) (int, error) {
 	precompileConfigs := rules.Precompiles
 	for i, tx := range txs {
 		for _, accessTuple := range tx.AccessList() {

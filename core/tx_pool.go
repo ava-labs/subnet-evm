@@ -627,7 +627,7 @@ func (pool *TxPool) CheckPredicates(enforcePredicates bool, rules params.Rules, 
 
 		// If the miner requests predicate enforcement, we remove all transactions after and including the index of the first failed predicate
 		if enforcePredicates && !pool.locals.contains(addr) {
-			if invalidIndex, err := CheckPredicatesForSenderTxs(rules, snowCtx, txs, proposerVMBlockCtx); err != nil {
+			if invalidIndex, err := CheckPredicatesForSenderTxs(rules, snowCtx, proposerVMBlockCtx, txs); err != nil {
 				log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", addr.Hex(), "failedTx", txs[invalidIndex].Hash())
 				for i := invalidIndex; i < len(txs); i++ {
 					pool.RemoveTx(txs[i].Hash())

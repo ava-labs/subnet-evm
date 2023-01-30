@@ -146,7 +146,7 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	// been valid at the time the block was accepted.
 	if b.vm.bootstrapped {
 		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-		if _, err := core.CheckPredicatesForSenderTxs(rules, b.vm.ctx, b.ethBlock.Transactions(), proposerVMBlockCtx); err != nil {
+		if _, err := core.CheckPredicatesForSenderTxs(rules, b.vm.ctx, proposerVMBlockCtx, b.ethBlock.Transactions()); err != nil {
 			return fmt.Errorf("predicate transaction verification failed: %w", err)
 		}
 	}

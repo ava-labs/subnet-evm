@@ -684,9 +684,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 func copyPredicateStorageSlots(predicateStorageSlots map[common.Address][]byte) map[common.Address][]byte {
 	res := make(map[common.Address][]byte)
 	for address, slots := range predicateStorageSlots {
-		s := make([]byte, len(slots))
-		copy(s, slots)
-		res[address] = s
+		res[address] = common.CopyBytes(slots)
 	}
 	return res
 }
