@@ -4,7 +4,6 @@
 package utils
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -31,8 +30,7 @@ func TestIncrOne(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			output := make([]byte, len(test.input))
-			copy(output, test.input)
+			output := common.CopyBytes(test.input)
 			IncrOne(output)
 			assert.Equal(t, output, test.expected)
 		})
@@ -61,9 +59,6 @@ func TestHashSliceToBytes(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			output := HashSliceToBytes(test.input)
-			fmt.Println(test.input)
-			fmt.Println(output)
-			fmt.Println(test.expected)
 			assert.Equal(t, output, test.expected)
 		})
 	}
