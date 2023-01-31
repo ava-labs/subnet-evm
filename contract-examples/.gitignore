@@ -144,3 +144,5 @@ dist
 .pnp.*
 
 local_rpc.json
+
+artifacts
