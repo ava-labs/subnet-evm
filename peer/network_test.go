@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/utils/set"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 
@@ -21,6 +22,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/stretchr/testify/assert"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 var (
@@ -42,12 +45,15 @@ var (
 	_ common.AppSender      = testAppSender{}
 	_ message.GossipMessage = HelloGossip{}
 	_ message.GossipHandler = &testGossipHandler{}
+
+	_ message.CrossChainRequest        = &ExampleCrossChainRequest{}
+	_ message.CrossChainRequestHandler = &testCrossChainHandler{}
 )
 
 func TestNetworkDoesNotConnectToItself(t *testing.T) {
 	selfNodeID := ids.GenerateTestNodeID()
-	n := NewNetwork(nil, nil, selfNodeID, 1)
-	assert.NoError(t, n.Connected(selfNodeID, defaultPeerVersion))
+	n := NewNetwork(nil, nil, nil, selfNodeID, 1, 1)
+	assert.NoError(t, n.Connected(context.Background(), selfNodeID, defaultPeerVersion))
 	assert.EqualValues(t, 0, n.Size())
 }
 
@@ -56,7 +62,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 	senderWg := &sync.WaitGroup{}
 	var net Network
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes ids.NodeIDSet, requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			nodeID, _ := nodes.Pop()
 			senderWg.Add(1)
 			go func() {
@@ -81,16 +87,17 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 16)
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 16, 16)
 	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
 	client := NewNetworkClient(net)
 	nodeID := ids.GenerateTestNodeID()
-	assert.NoError(t, net.Connected(nodeID, defaultPeerVersion))
+	assert.NoError(t, net.Connected(context.Background(), nodeID, defaultPeerVersion))
 
 	requestMessage := HelloRequest{Message: "this is a request"}
 
 	defer net.Shutdown()
-	assert.NoError(t, net.Connected(nodeID, defaultPeerVersion))
+	assert.NoError(t, net.Connected(context.Background(), nodeID, defaultPeerVersion))
 
 	totalRequests := 5000
 	numCallsPerRequest := 1 // on sending response
@@ -103,7 +110,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, _, err := client.RequestAny(defaultPeerVersion, requestBytes)
+			responseBytes, _, err := client.SendAppRequestAny(defaultPeerVersion, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -127,7 +134,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	var lock sync.Mutex
 	contactedNodes := make(map[ids.NodeID]struct{})
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes ids.NodeIDSet, requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			nodeID, _ := nodes.Pop()
 			lock.Lock()
 			contactedNodes[nodeID] = struct{}{}
@@ -155,7 +162,8 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 16)
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 16, 16)
 	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
 	client := NewNetworkClient(net)
 
@@ -167,7 +175,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 		ids.GenerateTestNodeID(),
 	}
 	for _, nodeID := range nodes {
-		assert.NoError(t, net.Connected(nodeID, defaultPeerVersion))
+		assert.NoError(t, net.Connected(context.Background(), nodeID, defaultPeerVersion))
 	}
 
 	requestMessage := HelloRequest{Message: "this is a request"}
@@ -187,7 +195,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, err := client.Request(nodeID, requestBytes)
+			responseBytes, err := client.SendAppRequest(nodeID, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -209,7 +217,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	// ensure empty nodeID is not allowed
-	_, err := client.Request(ids.EmptyNodeID, []byte("hello there"))
+	_, err := client.SendAppRequest(ids.EmptyNodeID, []byte("hello there"))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot send request to empty nodeID")
 }
@@ -221,7 +229,7 @@ func TestRequestMinVersion(t *testing.T) {
 
 	var net Network
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes ids.NodeIDSet, reqID uint32, messageBytes []byte) error {
+		sendAppRequestFn: func(nodes set.Set[ids.NodeID], reqID uint32, messageBytes []byte) error {
 			atomic.AddUint32(&callNum, 1)
 			assert.True(t, nodes.Contains(nodeID), "request nodes should contain expected nodeID")
 			assert.Len(t, nodes, 1, "request nodes should contain exactly one node")
@@ -241,13 +249,15 @@ func TestRequestMinVersion(t *testing.T) {
 	}
 
 	// passing nil as codec works because the net.AppRequest is never called
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 16)
 	client := NewNetworkClient(net)
 	requestMessage := TestMessage{Message: "this is a request"}
 	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 	assert.NoError(t, err)
 	assert.NoError(t,
 		net.Connected(
+			context.Background(),
 			nodeID,
 			&version.Application{
 				Major: 1,
@@ -258,7 +268,7 @@ func TestRequestMinVersion(t *testing.T) {
 	)
 
 	// ensure version does not match
-	responseBytes, _, err := client.RequestAny(
+	responseBytes, _, err := client.SendAppRequestAny(
 		&version.Application{
 			Major: 2,
 			Minor: 0,
@@ -270,7 +280,7 @@ func TestRequestMinVersion(t *testing.T) {
 	assert.Nil(t, responseBytes)
 
 	// ensure version matches and the request goes through
-	responseBytes, _, err = client.RequestAny(defaultPeerVersion, requestBytes)
+	responseBytes, _, err = client.SendAppRequestAny(defaultPeerVersion, requestBytes)
 	assert.NoError(t, err)
 
 	var response TestMessage
@@ -284,7 +294,7 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	var net Network
 	responded := false
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes ids.NodeIDSet, reqID uint32, message []byte) error {
+		sendAppRequestFn: func(nodes set.Set[ids.NodeID], reqID uint32, message []byte) error {
 			return nil
 		},
 		sendAppResponseFn: func(nodeID ids.NodeID, reqID uint32, message []byte) error {
@@ -294,6 +304,7 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	}
 
 	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
 
 	requestBytes, err := marshalStruct(codecManager, TestMessage{Message: "hello there"})
 	assert.NoError(t, err)
@@ -301,7 +312,8 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	requestHandler := &testRequestHandler{
 		processingDuration: 500 * time.Millisecond,
 	}
-	net = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+
+	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	net.SetRequestHandler(requestHandler)
 	nodeID := ids.GenerateTestNodeID()
 
@@ -321,6 +333,7 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 
 func TestGossip(t *testing.T) {
 	codecManager := buildCodec(t, HelloGossip{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
 
 	nodeID := ids.GenerateTestNodeID()
 	var clientNetwork Network
@@ -340,10 +353,10 @@ func TestGossip(t *testing.T) {
 	}
 
 	gossipHandler := &testGossipHandler{}
-	clientNetwork = NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	clientNetwork = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(gossipHandler)
 
-	assert.NoError(t, clientNetwork.Connected(nodeID, defaultPeerVersion))
+	assert.NoError(t, clientNetwork.Connected(context.Background(), nodeID, defaultPeerVersion))
 
 	client := NewNetworkClient(clientNetwork)
 	defer clientNetwork.Shutdown()
@@ -361,16 +374,17 @@ func TestGossip(t *testing.T) {
 
 func TestHandleInvalidMessages(t *testing.T) {
 	codecManager := buildCodec(t, HelloGossip{}, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
 
 	nodeID := ids.GenerateTestNodeID()
 	requestID := uint32(1)
 	sender := testAppSender{}
 
-	clientNetwork := NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	clientNetwork := NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(message.NoopMempoolGossipHandler{})
 	clientNetwork.SetRequestHandler(&testRequestHandler{})
 
-	assert.NoError(t, clientNetwork.Connected(nodeID, defaultPeerVersion))
+	assert.NoError(t, clientNetwork.Connected(context.Background(), nodeID, defaultPeerVersion))
 
 	defer clientNetwork.Shutdown()
 
@@ -410,16 +424,17 @@ func TestHandleInvalidMessages(t *testing.T) {
 
 func TestNetworkPropagatesRequestHandlerError(t *testing.T) {
 	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
 
 	nodeID := ids.GenerateTestNodeID()
 	requestID := uint32(1)
 	sender := testAppSender{}
 
-	clientNetwork := NewNetwork(sender, codecManager, ids.EmptyNodeID, 1)
+	clientNetwork := NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(message.NoopMempoolGossipHandler{})
 	clientNetwork.SetRequestHandler(&testRequestHandler{err: errors.New("fail")}) // Return an error from the request handler
 
-	assert.NoError(t, clientNetwork.Connected(nodeID, defaultPeerVersion))
+	assert.NoError(t, clientNetwork.Connected(context.Background(), nodeID, defaultPeerVersion))
 
 	defer clientNetwork.Shutdown()
 
@@ -429,6 +444,125 @@ func TestNetworkPropagatesRequestHandlerError(t *testing.T) {
 
 	// Check that if the request handler returns an error, it is propagated as a fatal error.
 	assert.Error(t, clientNetwork.AppRequest(context.Background(), nodeID, requestID, time.Now().Add(time.Second), requestMessage))
+}
+
+func TestCrossChainAppRequest(t *testing.T) {
+	var net Network
+	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	sender := testAppSender{
+		sendCrossChainAppRequestFn: func(requestingChainID ids.ID, requestID uint32, requestBytes []byte) error {
+			go func() {
+				if err := net.CrossChainAppRequest(context.Background(), requestingChainID, requestID, time.Now().Add(5*time.Second), requestBytes); err != nil {
+					panic(err)
+				}
+			}()
+			return nil
+		},
+		sendCrossChainAppResponseFn: func(respondingChainID ids.ID, requestID uint32, responseBytes []byte) error {
+			go func() {
+				if err := net.CrossChainAppResponse(context.Background(), respondingChainID, requestID, responseBytes); err != nil {
+					panic(err)
+				}
+			}()
+			return nil
+		},
+	}
+
+	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetCrossChainRequestHandler(&testCrossChainHandler{codec: crossChainCodecManager})
+	client := NewNetworkClient(net)
+
+	exampleCrossChainRequest := ExampleCrossChainRequest{
+		Message: "hello this is an example request",
+	}
+
+	crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
+	assert.NoError(t, err)
+
+	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
+	responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+	assert.NoError(t, err)
+
+	var response ExampleCrossChainResponse
+	if _, err = crossChainCodecManager.Unmarshal(responseBytes, &response); err != nil {
+		t.Fatal("unexpected error during unmarshal", err)
+	}
+	assert.Equal(t, "this is an example response", response.Response)
+}
+
+func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
+	var (
+		callNum  uint32
+		senderWg sync.WaitGroup
+		net      Network
+	)
+
+	sender := testAppSender{
+		sendCrossChainAppRequestFn: func(requestingChainID ids.ID, requestID uint32, requestBytes []byte) error {
+			senderWg.Add(1)
+			go func() {
+				defer senderWg.Done()
+				if err := net.CrossChainAppRequest(context.Background(), requestingChainID, requestID, time.Now().Add(5*time.Second), requestBytes); err != nil {
+					panic(err)
+				}
+			}()
+			return nil
+		},
+		sendCrossChainAppResponseFn: func(respondingChainID ids.ID, requestID uint32, responseBytes []byte) error {
+			senderWg.Add(1)
+			go func() {
+				defer senderWg.Done()
+				if err := net.CrossChainAppResponse(context.Background(), respondingChainID, requestID, responseBytes); err != nil {
+					panic(err)
+				}
+				atomic.AddUint32(&callNum, 1)
+			}()
+			return nil
+		},
+	}
+
+	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetCrossChainRequestHandler(&testCrossChainHandler{codec: crossChainCodecManager})
+	client := NewNetworkClient(net)
+
+	exampleCrossChainRequest := ExampleCrossChainRequest{
+		Message: "hello this is an example request",
+	}
+
+	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
+	defer net.Shutdown()
+
+	totalRequests := 500
+	numCallsPerRequest := 1 // on sending response
+	totalCalls := totalRequests * numCallsPerRequest
+
+	var requestWg sync.WaitGroup
+	requestWg.Add(totalCalls)
+
+	for i := 0; i < totalCalls; i++ {
+		go func() {
+			defer requestWg.Done()
+			crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
+			assert.NoError(t, err)
+			responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+			assert.NoError(t, err)
+			assert.NotNil(t, responseBytes)
+
+			var response ExampleCrossChainResponse
+			if _, err = crossChainCodecManager.Unmarshal(responseBytes, &response); err != nil {
+				panic(fmt.Errorf("unexpected error during unmarshal: %w", err))
+			}
+			assert.Equal(t, "this is an example response", response.Response)
+		}()
+	}
+
+	requestWg.Wait()
+	senderWg.Wait()
+	assert.Equal(t, totalCalls, int(atomic.LoadUint32(&callNum)))
 }
 
 func buildCodec(t *testing.T, types ...interface{}) codec.Manager {
@@ -451,10 +585,14 @@ func buildGossip(codec codec.Manager, msg message.GossipMessage) ([]byte, error)
 	return codec.Marshal(message.Version, &msg)
 }
 
+func buildCrossChainRequest(codec codec.Manager, msg message.CrossChainRequest) ([]byte, error) {
+	return codec.Marshal(message.Version, &msg)
+}
+
 type testAppSender struct {
 	sendCrossChainAppRequestFn  func(ids.ID, uint32, []byte) error
 	sendCrossChainAppResponseFn func(ids.ID, uint32, []byte) error
-	sendAppRequestFn            func(ids.NodeIDSet, uint32, []byte) error
+	sendAppRequestFn            func(set.Set[ids.NodeID], uint32, []byte) error
 	sendAppResponseFn           func(ids.NodeID, uint32, []byte) error
 	sendAppGossipFn             func([]byte) error
 }
@@ -467,11 +605,11 @@ func (t testAppSender) SendCrossChainAppResponse(_ context.Context, chainID ids.
 	return t.sendCrossChainAppResponseFn(chainID, requestID, appResponseBytes)
 }
 
-func (t testAppSender) SendAppGossipSpecific(context.Context, ids.NodeIDSet, []byte) error {
+func (t testAppSender) SendAppGossipSpecific(context.Context, set.Set[ids.NodeID], []byte) error {
 	panic("not implemented")
 }
 
-func (t testAppSender) SendAppRequest(_ context.Context, nodeIDs ids.NodeIDSet, requestID uint32, message []byte) error {
+func (t testAppSender) SendAppRequest(_ context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, message []byte) error {
 	return t.sendAppRequestFn(nodeIDs, requestID, message)
 }
 
@@ -597,4 +735,33 @@ func (r *testRequestHandler) handleTestRequest(ctx context.Context, _ ids.NodeID
 		return nil, ctx.Err()
 	}
 	return r.response, r.err
+}
+
+type ExampleCrossChainRequest struct {
+	Message string `serialize:"true"`
+}
+
+func (e ExampleCrossChainRequest) Handle(ctx context.Context, requestingChainID ids.ID, requestID uint32, handler message.CrossChainRequestHandler) ([]byte, error) {
+	return handler.(*testCrossChainHandler).HandleCrossChainRequest(ctx, requestingChainID, requestID, e)
+}
+
+func (e ExampleCrossChainRequest) String() string {
+	return fmt.Sprintf("TestMessage(%s)", e.Message)
+}
+
+type ExampleCrossChainResponse struct {
+	Response string `serialize:"true"`
+}
+
+type TestCrossChainRequestHandler interface {
+	HandleCrossChainRequest(ctx context.Context, requestingchainID ids.ID, requestID uint32, exampleRequest message.CrossChainRequest) ([]byte, error)
+}
+
+type testCrossChainHandler struct {
+	message.CrossChainRequestHandler
+	codec codec.Manager
+}
+
+func (t *testCrossChainHandler) HandleCrossChainRequest(ctx context.Context, requestingChainID ids.ID, requestID uint32, exampleRequest message.CrossChainRequest) ([]byte, error) {
+	return t.codec.Marshal(message.Version, ExampleCrossChainResponse{Response: "this is an example response"})
 }

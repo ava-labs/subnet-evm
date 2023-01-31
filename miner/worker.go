@@ -50,7 +50,7 @@ import (
 )
 
 const (
-	targetTxsSize = 232 * units.KiB
+	targetTxsSize = 1800 * units.KiB
 )
 
 // environment is the worker's current environment and holds all of the current state information.
@@ -117,22 +117,25 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 	defer w.mu.RUnlock()
 
 	tstart := w.clock.Time()
-	timestamp := tstart.Unix()
+	timestamp := uint64(tstart.Unix())
 	parent := w.chain.CurrentBlock()
 	// Note: in order to support asynchronous block production, blocks are allowed to have
 	// the same timestamp as their parent. This allows more than one block to be produced
 	// per second.
-	if parent.Time() >= uint64(timestamp) {
-		timestamp = int64(parent.Time())
+	if parent.Time() >= timestamp {
+		timestamp = parent.Time()
 	}
 
+	bigTimestamp := new(big.Int).SetUint64(timestamp)
 	var gasLimit uint64
+	// The fee config manager relies on the state of the parent block to set the fee config
+	// because the fee config may be changed by the current block.
 	feeConfig, _, err := w.chain.GetFeeConfigAt(parent.Header())
 	if err != nil {
 		return nil, err
 	}
 	configuredGasLimit := feeConfig.GasLimit.Uint64()
-	if w.chainConfig.IsSubnetEVM(big.NewInt(timestamp)) {
+	if w.chainConfig.IsSubnetEVM(bigTimestamp) {
 		gasLimit = configuredGasLimit
 	} else {
 		// The gas limit is set in SubnetEVMGasLimit because the ceiling and floor were set to the same value
@@ -145,13 +148,12 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   gasLimit,
 		Extra:      nil,
-		Time:       uint64(timestamp),
+		Time:       timestamp,
 	}
 
-	bigTimestamp := big.NewInt(timestamp)
 	if w.chainConfig.IsSubnetEVM(bigTimestamp) {
 		var err error
-		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, feeConfig, parent.Header(), uint64(timestamp))
+		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, feeConfig, parent.Header(), timestamp)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 		}
@@ -161,6 +163,20 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 		return nil, errors.New("cannot mine without etherbase")
 	}
 	header.Coinbase = w.coinbase
+
+	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAt(parent.Header())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configured coinbase: %w", err)
+	}
+
+	// if fee recipients are not allowed, then the coinbase is the configured coinbase
+	// don't set w.coinbase directly to the configured coinbase because that would override the
+	// coinbase set by the user
+	if !isAllowFeeRecipient && w.coinbase != configuredCoinbase {
+		log.Info("fee recipients are not allowed, using required coinbase for the mining", "currentminer", w.coinbase, "required", configuredCoinbase)
+		header.Coinbase = configuredCoinbase
+	}
+
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		return nil, fmt.Errorf("failed to prepare header for mining: %w", err)
 	}
@@ -186,11 +202,11 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 	}
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(env.signer, localTxs, header.BaseFee)
-		w.commitTransactions(env, txs, w.coinbase)
+		w.commitTransactions(env, txs, header.Coinbase)
 	}
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(env.signer, remoteTxs, header.BaseFee)
-		w.commitTransactions(env, txs, w.coinbase)
+		w.commitTransactions(env, txs, header.Coinbase)
 	}
 
 	return w.commit(env)

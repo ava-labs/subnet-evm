@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -29,12 +30,11 @@ var (
 	errBaseFeeNil           = errors.New("base fee is nil")
 )
 
-type Mode uint
-
-const (
-	ModeSkipHeader   Mode = 1 // Skip over header verification
-	ModeSkipBlockFee Mode = 2 // Skip block fee verification
-)
+type Mode struct {
+	ModeSkipHeader   bool
+	ModeSkipBlockFee bool
+	ModeSkipCoinbase bool
+}
 
 type (
 	DummyEngine struct {
@@ -46,7 +46,7 @@ type (
 func NewETHFaker() *DummyEngine {
 	return &DummyEngine{
 		clock:         &mockable.Clock{},
-		consensusMode: ModeSkipBlockFee,
+		consensusMode: Mode{ModeSkipBlockFee: true},
 	}
 }
 
@@ -62,11 +62,48 @@ func NewFakerWithClock(clock *mockable.Clock) *DummyEngine {
 	}
 }
 
+func NewFakerWithMode(mode Mode) *DummyEngine {
+	return &DummyEngine{
+		clock:         &mockable.Clock{},
+		consensusMode: mode,
+	}
+}
+
+func NewCoinbaseFaker() *DummyEngine {
+	return &DummyEngine{
+		clock:         &mockable.Clock{},
+		consensusMode: Mode{ModeSkipCoinbase: true},
+	}
+}
+
 func NewFullFaker() *DummyEngine {
 	return &DummyEngine{
 		clock:         &mockable.Clock{},
-		consensusMode: ModeSkipHeader,
+		consensusMode: Mode{ModeSkipHeader: true},
 	}
+}
+
+// verifyCoinbase checks that the coinbase is valid for the given [header] and [parent].
+func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
+	if self.consensusMode.ModeSkipCoinbase {
+		return nil
+	}
+	// get the coinbase configured at parent
+	configuredAddressAtParent, isAllowFeeRecipients, err := chain.GetCoinbaseAt(parent)
+	if err != nil {
+		return fmt.Errorf("failed to get coinbase at %v: %w", header.Hash(), err)
+	}
+
+	if isAllowFeeRecipients {
+		// if fee recipients are allowed we don't need to check the coinbase
+		return nil
+	}
+	// we fetch the configured coinbase at the parent's state
+	// to check against the coinbase in [header].
+	if configuredAddressAtParent != header.Coinbase {
+		return fmt.Errorf("%w: %v does not match required coinbase address %v", vmerrs.ErrInvalidCoinbase, header.Coinbase, configuredAddressAtParent)
+	}
+	return nil
 }
 
 func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
@@ -80,6 +117,11 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 	if header.GasUsed > header.GasLimit {
 		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
+	// We verify the current block by checking the parent fee config
+	// this is because the current block cannot set the fee config for itself
+	// Fee config might depend on the state when precompile is activated
+	// but we don't know the final state while forming the block.
+	// See worker package for more details.
 	feeConfig, _, err := chain.GetFeeConfigAt(parent)
 	if err != nil {
 		return err
@@ -175,6 +217,11 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 	if err := self.verifyHeaderGasFields(config, header, parent, chain); err != nil {
 		return err
 	}
+	// Ensure that coinbase is valid
+	if err := self.verifyCoinbase(config, header, parent, chain); err != nil {
+		return err
+	}
+
 	// Verify the header's timestamp
 	if header.Time > uint64(self.clock.Time().Add(allowedFutureBlockTime).Unix()) {
 		return consensus.ErrFutureBlock
@@ -197,7 +244,7 @@ func (self *DummyEngine) Author(header *types.Header) (common.Address, error) {
 
 func (self *DummyEngine) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header) error {
 	// If we're running a full engine faking, accept any input as valid
-	if self.consensusMode == ModeSkipHeader {
+	if self.consensusMode.ModeSkipHeader {
 		return nil
 	}
 	// Short circuit if the header is known, or it's parent not
@@ -231,7 +278,7 @@ func (self *DummyEngine) verifyBlockFee(
 	txs []*types.Transaction,
 	receipts []*types.Receipt,
 ) error {
-	if self.consensusMode == ModeSkipBlockFee {
+	if self.consensusMode.ModeSkipBlockFee {
 		return nil
 	}
 	if baseFee == nil || baseFee.Sign() <= 0 {
@@ -286,6 +333,8 @@ func (self *DummyEngine) verifyBlockFee(
 
 func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
 	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(block.Time())) {
+		// we use the parent to determine the fee config
+		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)
 		if err != nil {
 			return err
@@ -323,6 +372,8 @@ func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, 
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
 	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(header.Time)) {
+		// we use the parent to determine the fee config
+		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)
 		if err != nil {
 			return nil, err

@@ -32,6 +32,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
@@ -378,4 +379,52 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	// add it to the cache
 	bc.feeConfigCache.Add(parent.Root, cacheable)
 	return storedFeeConfig, lastChangedAt, nil
+}
+
+// GetCoinbaseAt returns the configured coinbase address at [parent].
+// If RewardManager is activated at [parent], returns the reward manager config in the precompile contract state.
+// If fee recipients are allowed, returns true in the second return value.
+func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
+	config := bc.Config()
+	bigTime := new(big.Int).SetUint64(parent.Time)
+
+	if !config.IsSubnetEVM(bigTime) {
+		return constants.BlackholeAddr, false, nil
+	}
+
+	if !config.IsRewardManager(bigTime) {
+		if bc.chainConfig.AllowFeeRecipients {
+			return common.Address{}, true, nil
+		} else {
+			return constants.BlackholeAddr, false, nil
+		}
+	}
+
+	// try to return it from the cache
+	if cached, hit := bc.coinbaseConfigCache.Get(parent.Root); hit {
+		cachedCoinbaseConfig, ok := cached.(*cacheableCoinbaseConfig)
+		if !ok {
+			return common.Address{}, false, fmt.Errorf("expected type cachedCoinbaseConfig, got %T", cached)
+		}
+		return cachedCoinbaseConfig.coinbaseAddress, cachedCoinbaseConfig.allowFeeRecipients, nil
+	}
+
+	stateDB, err := bc.StateAt(parent.Root)
+	if err != nil {
+		return common.Address{}, false, err
+	}
+	rewardAddress, feeRecipients := precompile.GetStoredRewardAddress(stateDB)
+
+	cacheable := &cacheableCoinbaseConfig{coinbaseAddress: rewardAddress, allowFeeRecipients: feeRecipients}
+	bc.coinbaseConfigCache.Add(parent.Root, cacheable)
+	return rewardAddress, feeRecipients, nil
+}
+
+// GetLogs fetches all logs from a given block.
+func (bc *BlockChain) GetLogs(hash common.Hash, number uint64) [][]*types.Log {
+	logs, ok := bc.acceptedLogsCache.Get(hash) // this cache is thread-safe
+	if ok {
+		return logs
+	}
+	return rawdb.ReadLogs(bc.db, hash, number)
 }

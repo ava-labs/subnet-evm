@@ -38,7 +38,7 @@ Typically, custom codes are required in only those areas.
 7- Write solidity tests for your precompile in contract-examples/test
 8- Create your genesis with your precompile enabled in tests/e2e/genesis/
 9- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
-10- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
+10- Run your e2e precompile Solidity tests with './scripts/run_ginkgo.sh'
 
 */
 
@@ -86,12 +86,12 @@ var (
 
 	{{- if not .Original.IsConstant | and $contract.AllowList}}
 
-	ErrCannot{{.Normalized.Name}} = errors.New("non-enabled cannot {{.Original.Name}}")
+	ErrCannot{{.Normalized.Name}} = errors.New("non-enabled cannot call {{.Original.Name}}")
 	{{- end}}
 	{{- end}}
 
 	{{- if .Contract.Fallback | and $contract.AllowList}}
-	Err{{.Contract.Type}}CannotFallback = errors.New("non-enabled cannot use fallback function")
+	Err{{.Contract.Type}}CannotFallback = errors.New("non-enabled cannot call fallback function")
 	{{- end}}
 
 	{{.Contract.Type}}ABI abi.ABI // will be initialized by init function

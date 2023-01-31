@@ -65,7 +65,7 @@ const (
 	// to validate whether they fit into the pool or not.
 	//
 	// Note: the max contract size is 24KB
-	txMaxSize = 32 * 1024 // 32 KB
+	txMaxSize = 4 * txSlotSize // 128KB
 )
 
 var (
@@ -755,6 +755,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if err := pool.checkTxState(from, tx); err != nil {
 		return err
 	}
+	// Transactor should have enough funds to cover the costs
 
 	// Ensure the transaction has more gas than the basic tx fee.
 	intrGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, true, pool.istanbul)
@@ -1440,6 +1441,10 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
 	// so that we can correctly drop txs with < minBaseFee from tx pool.
+	// TODO: this should be checking IsSubnetEVM since we also support minimumFee for SubnetEVM
+	// without requiring FeeConfigManager is enabled.
+	// This is already being set by SetMinFee when gas price updater starts.
+	// However tests are currently failing if we change this check to IsSubnetEVM.
 	if pool.chainconfig.IsFeeConfigManager(new(big.Int).SetUint64(newHead.Time)) {
 		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
