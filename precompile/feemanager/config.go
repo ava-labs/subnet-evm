@@ -57,17 +57,17 @@ func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
 }
 
 // Address returns the address of the fee manager contract.
-func (c FeeManagerConfig) Address() common.Address {
+func (FeeManagerConfig) Address() common.Address {
 	return ContractAddress
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for the fee manager.
-func (c FeeManagerConfig) Contract() precompile.StatefulPrecompiledContract {
+func (FeeManagerConfig) Contract() precompile.StatefulPrecompiledContract {
 	return FeeManagerPrecompile
 }
 
 // Key returns the key used in json config files to specify this precompile config.
-func (c FeeManagerConfig) Key() string {
+func (FeeManagerConfig) Key() string {
 	return ConfigKey
 }
 
