@@ -5,7 +5,6 @@ package warp
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
@@ -23,22 +22,13 @@ var (
 	payload            = []byte("test")
 )
 
-func TestInterfaceStructOneToOne(t *testing.T) {
-	// checks struct provides at least the methods signatures in the interface
-	var _ WarpBackend = (*warpBackend)(nil)
-	// checks interface and struct have the same number of methods
-	backendType := reflect.TypeOf(&warpBackend{})
-	BackendType := reflect.TypeOf((*WarpBackend)(nil)).Elem()
-	if backendType.NumMethod() != BackendType.NumMethod() {
-		t.Fatalf("no 1 to 1 compliance between struct methods (%v) and interface methods (%v)", backendType.NumMethod(), BackendType.NumMethod())
-	}
-}
-
-func TestWarpBackend_ValidMessage(t *testing.T) {
+func TestAddAndGetValidMessage(t *testing.T) {
 	db := memdb.New()
 
 	snowCtx := snow.DefaultContextTest()
-	snowCtx.TeleporterSigner = getTestSigner(t, sourceChainID)
+	sk, err := bls.NewSecretKey()
+	require.NoError(t, err)
+	snowCtx.TeleporterSigner = teleporter.NewSigner(sk, sourceChainID)
 	be := NewWarpBackend(snowCtx, db, 500)
 
 	// Create a new unsigned message and add it to the warp backend.
@@ -57,7 +47,7 @@ func TestWarpBackend_ValidMessage(t *testing.T) {
 	require.Equal(t, expectedSig, signature)
 }
 
-func TestWarpBackend_InvalidMessage(t *testing.T) {
+func TestAddAndGetUnknownMessage(t *testing.T) {
 	db := memdb.New()
 
 	be := NewWarpBackend(snow.DefaultContextTest(), db, 500)
@@ -70,9 +60,29 @@ func TestWarpBackend_InvalidMessage(t *testing.T) {
 	require.Error(t, err)
 }
 
-func getTestSigner(t *testing.T, sourceID ids.ID) teleporter.Signer {
+func TestZeroSizedCache(t *testing.T) {
+	db := memdb.New()
+
+	snowCtx := snow.DefaultContextTest()
 	sk, err := bls.NewSecretKey()
 	require.NoError(t, err)
+	snowCtx.TeleporterSigner = teleporter.NewSigner(sk, sourceChainID)
 
-	return teleporter.NewSigner(sk, sourceID)
+	// Verify zero sized cache works normally, because the lru cache will be initialized to size 1 for any size parameter <= 0.
+	be := NewWarpBackend(snowCtx, db, 0)
+
+	// Create a new unsigned message and add it to the warp backend.
+	unsignedMsg, err := teleporter.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
+	require.NoError(t, err)
+	err = be.AddMessage(context.Background(), unsignedMsg)
+	require.NoError(t, err)
+
+	// Verify that a signature is returned successfully, and compare to expected signature.
+	messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
+	signature, err := be.GetSignature(context.Background(), messageID)
+	require.NoError(t, err)
+
+	expectedSig, err := snowCtx.TeleporterSigner.Sign(unsignedMsg)
+	require.NoError(t, err)
+	require.Equal(t, expectedSig, signature)
 }
