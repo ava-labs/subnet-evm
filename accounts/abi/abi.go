@@ -369,5 +369,10 @@ func UnpackRevert(data []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return unpacked[0].(string), nil
+
+	if len(unpacked) > 0 {
+		return unpacked[0].(string), nil
+	}
+
+	return "", nil
 }
