@@ -6,6 +6,8 @@ package handlers
 import (
 	"context"
 
+	"github.com/ava-labs/subnet-evm/handlers"
+
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
@@ -35,7 +37,7 @@ type syncHandler struct {
 	stateTrieLeafsRequestHandler *LeafsRequestHandler
 	blockRequestHandler          *BlockRequestHandler
 	codeRequestHandler           *CodeRequestHandler
-	signatureRequestHandler      *SignatureRequestHandler
+	signatureRequestHandler      handlers.SignatureRequestHandler
 }
 
 // NewSyncHandler constructs the handler for serving state sync.
@@ -50,8 +52,8 @@ func NewSyncHandler(
 		blockRequestHandler:          NewBlockRequestHandler(provider, networkCodec, stats),
 		codeRequestHandler:           NewCodeRequestHandler(evmTrieDB.DiskDB(), networkCodec, stats),
 
-		// TODO: need to pass in the warp backend from the subnet-evm.
-		signatureRequestHandler: NewSignatureRequestHandler(nil, networkCodec, stats),
+		// TODO: need to pass in the warp backend from the subnet-evm to create signature request handler.
+		signatureRequestHandler: &handlers.NoopSignatureRequestHandler{},
 	}
 }
 

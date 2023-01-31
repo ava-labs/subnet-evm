@@ -18,14 +18,19 @@ import (
 
 // SignatureRequestHandler is a peer.RequestHandler for message.SignatureRequest
 // serving requested BLS signature data
-type SignatureRequestHandler struct {
+type SignatureRequestHandler interface {
+	OnSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error)
+}
+
+// signatureRequestHandler implements the SignatureRequestHandler interface
+type signatureRequestHandler struct {
 	backend warp.WarpBackend
 	codec   codec.Manager
 	stats   stats.SignatureRequestHandlerStats
 }
 
-func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) *SignatureRequestHandler {
-	return &SignatureRequestHandler{
+func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) SignatureRequestHandler {
+	return &signatureRequestHandler{
 		backend: backend,
 		codec:   codec,
 		stats:   stats,
@@ -37,7 +42,7 @@ func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, s
 // Expects returned errors to be treated as FATAL
 // Returns empty response if signature is not found
 // Assumes ctx is active
-func (s *SignatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error) {
+func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error) {
 	startTime := time.Now()
 	s.stats.IncSignatureRequest()
 
@@ -64,4 +69,10 @@ func (s *SignatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	}
 
 	return responseBytes, nil
+}
+
+type NoopSignatureRequestHandler struct{}
+
+func (s *NoopSignatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error) {
+	return nil, nil
 }
