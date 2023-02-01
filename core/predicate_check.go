@@ -17,8 +17,6 @@ import (
 // The parameter [txs] represents a flattened, nonce-ordered list of transactions originating from the same sender
 // Returns [len(txs), nil] if and only if all referenced predicates are met.
 // Otherwise, returns the index of the first transaction that was invalid and the predicate error.
-// In the failure case, all transactions after and including the index that failed the predicate should be considered invalid,
-// since the input [txs] are nonce-ordered and from the same sender.
 func CheckPredicatesForSenderTxs(rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context, txs types.Transactions) (int, error) {
 	precompileConfigs := rules.Precompiles
 	for i, tx := range txs {
@@ -34,7 +32,7 @@ func CheckPredicatesForSenderTxs(rules params.Rules, snowCtx *snow.Context, prop
 			}
 
 			if err := predicate(snowCtx, proposerVMBlockCtx, utils.HashSliceToBytes(accessTuple.StorageKeys)); err != nil {
-				log.Debug("Transaction predicate verification failed.", "txId", tx.Hash(), "precompileAddress", accessTuple.Address.Hex())
+				log.Debug("Transaction predicate verification failed.", "txHash", tx.Hash(), "precompileAddress", accessTuple.Address.Hex())
 				return i, err
 			}
 		}
