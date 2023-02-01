@@ -6,8 +6,8 @@ if ! [[ "$0" =~ scripts/run_local.sh ]]; then
   exit 255
 fi
 
-VERSION='v1.9.2'
-ANR_VERSION='35be10cd3867a94fbe960a1c14a455f179de60d9'
+VERSION='v1.9.7'
+ANR_VERSION='8438e423db523743c48bd178bc20642f9c3ba049'
 
 # Load the versions
 SUBNET_EVM_PATH=$(
@@ -98,6 +98,19 @@ $BIN server \
   --grpc-gateway-port=":12343" &
 PID=${!}
 
+CHAIN_CONFIG_PATH=${BASEDIR}/chain_config.json
+
+cat <<EOF >$CHAIN_CONFIG_PATH
+{
+  "local-txs-enabled": true,
+  "priority-regossip-frequency": "1s",
+  "tx-regossip-max-size": 32,
+  "priority-regossip-max-txs": 500,
+  "priority-regossip-txs-per-address": 200,
+  "priority-regossip-addresses": ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"]
+}
+EOF
+
 $BIN control start \
   --log-level debug \
   --endpoint="0.0.0.0:12342" \
@@ -105,7 +118,9 @@ $BIN control start \
   --dial-timeout 30s \
   --avalanchego-path ${AVALANCHEGO_PATH} \
   --plugin-dir ${AVALANCHEGO_PLUGIN_DIR} \
-  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm-runner/genesis.json"}]'
+  --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm-runner/genesis.json", "chain_config": "'$CHAIN_CONFIG_PATH'"}]'
+  # --blockchain-specs '[{"vm_name": "subnetevm", "genesis": "/tmp/subnet-evm.genesis.json", "chain_config": "'$CHAIN_CONFIG_PATH'", "network_upgrade": "'$NETWORK_UPGRADE_PATH'", "subnet_config": "'$SUBNET_CONFIG_PATH'"}]'
+
 
 
 echo "pkill -P ${PID} && kill -2 ${PID} && pkill -9 -f srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy" > kill.sh
