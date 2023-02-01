@@ -32,6 +32,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -208,6 +209,9 @@ type VM struct {
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
+
+	// AWM backend
+	backend warp.WarpBackend
 }
 
 /*
