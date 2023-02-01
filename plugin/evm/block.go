@@ -12,10 +12,12 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 )
 
 // Block implements the snowman.Block interface
@@ -101,13 +103,55 @@ func (b *Block) syntacticVerify() error {
 }
 
 // Verify implements the snowman.Block interface
+// Since VerifyWithContext is implemented, we never expect this to be called.
 func (b *Block) Verify(context.Context) error {
-	return b.verify(true)
+	return b.verify(nil, true)
 }
 
-func (b *Block) verify(writes bool) error {
+// ShouldVerifyWithContext implements the block.WithVerifyContext interface
+// TODO: Cache the result such that if called multiple times for the same block,
+// we do not need to recompute the value.
+func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
+	precompileConfigs := b.vm.currentRules().Precompiles
+	for _, tx := range b.ethBlock.Transactions() {
+		for _, accessTuple := range tx.AccessList() {
+			if _, ok := precompileConfigs[accessTuple.Address]; ok {
+				log.Debug("Should verify block with proposer VM context", "block", b.ID(), "height", b.Height())
+				return true, nil
+			}
+		}
+	}
+	log.Debug("Block does not require proposer VM context for verification.", "block", b.ID(), "height", b.Height())
+
+	return false, nil
+}
+
+// VerifyWithContext implements the block.WithVerifyContext interface
+func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
+	if proposerVMBlockCtx != nil {
+		log.Debug("Verifying block with context", "block", b.ID(), "height", b.Height())
+	} else {
+		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
+	}
+	return b.verify(proposerVMBlockCtx, true)
+}
+
+// Verify the block, including checking precompile predicates
+// Note that if this block activates a precompile with a predicate, that predicate is not checked
+// in this block. The VM doesn't activate the precompile until the block is accepted.
+func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
+	}
+
+	// If the chain is not yet bootstrapped, we do not need to verify the transaction predicates
+	// because the block is already included in the chain, so we know that predicates must have
+	// been valid at the time the block was accepted.
+	if b.vm.bootstrapped {
+		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+		if _, err := core.CheckPredicatesForSenderTxs(rules, b.vm.ctx, proposerVMBlockCtx, b.ethBlock.Transactions()); err != nil {
+			return fmt.Errorf("predicate transaction verification failed: %w", err)
+		}
 	}
 
 	return b.vm.blockChain.InsertBlockManual(b.ethBlock, writes)

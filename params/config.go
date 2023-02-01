@@ -559,7 +559,7 @@ type Rules struct {
 	// for this rule set.
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
-	Precompiles map[common.Address]precompile.StatefulPrecompiledContract
+	Precompiles map[common.Address]precompile.StatefulPrecompileConfig
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -597,12 +597,12 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	// rules.Is{YourPrecompile}Enabled = c.{IsYourPrecompile}(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)
+	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompileConfig)
 	for _, config := range c.EnabledStatefulPrecompiles(blockTimestamp) {
 		if config.IsDisabled() {
 			continue
 		}
-		rules.Precompiles[config.Address()] = config.Contract()
+		rules.Precompiles[config.Address()] = config
 	}
 
 	return rules

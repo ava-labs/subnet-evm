@@ -112,7 +112,7 @@ func (w *worker) setEtherbase(addr common.Address) {
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWork() (*types.Block, error) {
+func (w *worker) commitNewWork(pendingTxs map[common.Address]types.Transactions) (*types.Block, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
@@ -188,12 +188,9 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 	// Configure any stateful precompiles that should go into effect during this block.
 	w.chainConfig.CheckConfigurePrecompiles(new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
 
-	// Fill the block with all available pending transactions.
-	pending := w.eth.TxPool().Pending(true)
-
 	// Split the pending transactions into locals and remotes
 	localTxs := make(map[common.Address]types.Transactions)
-	remoteTxs := pending
+	remoteTxs := pendingTxs
 	for _, account := range w.eth.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
 			delete(remoteTxs, account)

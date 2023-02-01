@@ -74,6 +74,14 @@ func (c *TxAllowListConfig) Equal(s StatefulPrecompileConfig) bool {
 	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }
 
+func (c *TxAllowListConfig) Predicate() PredicateFunc {
+	return nil
+}
+
+func (c *TxAllowListConfig) OnAccept() OnAcceptFunc {
+	return nil
+}
+
 // String returns a string representation of the TxAllowListConfig.
 func (c *TxAllowListConfig) String() string {
 	bytes, _ := json.Marshal(c)

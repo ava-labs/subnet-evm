@@ -141,6 +141,14 @@ func (c *FeeConfigManagerConfig) Verify() error {
 	return c.InitialFeeConfig.Verify()
 }
 
+func (c *FeeConfigManagerConfig) Predicate() PredicateFunc {
+	return nil
+}
+
+func (c *FeeConfigManagerConfig) OnAccept() OnAcceptFunc {
+	return nil
+}
+
 // String returns a string representation of the FeeConfigManagerConfig.
 func (c *FeeConfigManagerConfig) String() string {
 	bytes, _ := json.Marshal(c)
