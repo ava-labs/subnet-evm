@@ -32,7 +32,10 @@ import (
 // ADD YOUR PRECOMPILE HERE
 // {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
 func init() {
-	// Order matters here.
+	// Order is important here.
+	// RegisterModule registers a precompile in the order it is registered.
+	// The order of registration is important because it determines the configuration order
+	// in the state.
 	precompile.RegisterModule(deployerallowlist.NewModule())
 	precompile.RegisterModule(nativeminter.NewModule())
 	precompile.RegisterModule(txallowlist.NewModule())

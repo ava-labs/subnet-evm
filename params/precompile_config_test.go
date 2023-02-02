@@ -23,7 +23,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
-	config.Precompiles = ChainConfigPrecompiles{
+	config.GenesisPrecompiles = ChainConfigPrecompiles{
 		txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(2), nil, nil),
 	}
 	config.PrecompileUpgrades = []PrecompileUpgrade{
@@ -122,6 +122,42 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			},
 			expectedError: "gasLimit = 0 cannot be less than or equal to 0",
 		},
+		{
+			name: "different upgrades are allowed to configure same timestamp for different precompiles",
+			upgrades: []PrecompileUpgrade{
+				{
+					txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil),
+				},
+				{
+					feemanager.NewFeeManagerConfig(big.NewInt(1), admins, nil, nil),
+				},
+			},
+			expectedError: "",
+		},
+		{
+			name: "different upgrades must be monotonically increasing",
+			upgrades: []PrecompileUpgrade{
+				{
+					txallowlist.NewTxAllowListConfig(big.NewInt(2), admins, nil),
+				},
+				{
+					feemanager.NewFeeManagerConfig(big.NewInt(1), admins, nil, nil),
+				},
+			},
+			expectedError: "config timestamp (1) < previous timestamp (2)",
+		},
+		{
+			name: "upgrades with same keys are not allowed to configure same timestamp for same precompiles",
+			upgrades: []PrecompileUpgrade{
+				{
+					txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil),
+				},
+				{
+					txallowlist.NewDisableTxAllowListConfig(big.NewInt(1)),
+				},
+			},
+			expectedError: "config timestamp (1) <= previous timestamp (1)",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -170,7 +206,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 			require := require.New(t)
 			baseConfig := *SubnetEVMDefaultChainConfig
 			config := &baseConfig
-			config.Precompiles = tt.upgrade
+			config.GenesisPrecompiles = tt.upgrade
 
 			err := config.Verify()
 			if tt.expectedError == "" {
@@ -204,7 +240,7 @@ func TestGetPrecompileConfig(t *testing.T) {
 	assert := assert.New(t)
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
-	config.Precompiles = ChainConfigPrecompiles{
+	config.GenesisPrecompiles = ChainConfigPrecompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), nil, nil),
 	}
 

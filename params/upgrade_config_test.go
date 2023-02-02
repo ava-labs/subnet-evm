@@ -16,7 +16,7 @@ import (
 func TestVerifyUpgradeConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := *TestChainConfig
-	chainConfig.Precompiles = ChainConfigPrecompiles{
+	chainConfig.GenesisPrecompiles = ChainConfigPrecompiles{
 		txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil),
 	}
 
@@ -73,7 +73,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := *TestChainConfig
-	chainConfig.Precompiles = ChainConfigPrecompiles{
+	chainConfig.GenesisPrecompiles = ChainConfigPrecompiles{
 		txallowlist.ConfigKey:       txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil),
 		deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), admins, nil),
 	}

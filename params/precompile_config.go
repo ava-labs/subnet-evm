@@ -16,10 +16,12 @@ import (
 )
 
 var errMultipleKeys = errors.New("PrecompileUpgrade must have exactly one key")
+var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 
-// PrecompileUpgrade is a helper struct embedded in UpgradeConfig, representing
-// each of the possible stateful precompile types that can be activated
-// as a network upgrade.
+// PrecompileUpgrade is a helper struct embedded in UpgradeConfig.
+// It is used to unmarshal the json into the correct precompile config type
+// based on the key. Keys are defined in each precompile module, and registered in
+// params/precompile_modules.go.
 type PrecompileUpgrade struct {
 	precompile.StatefulPrecompileConfig
 }
@@ -33,7 +35,10 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	if len(raw) != 1 {
+	if len(raw) == 0 {
+		return errNoKey
+	}
+	if len(raw) > 1 {
 		return errMultipleKeys
 	}
 	for key, value := range raw {
@@ -69,69 +74,73 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 	// Store this struct to keep track of the last upgrade for each precompile key.
 	// Required for timestamp and disabled checks.
 	type lastUpgradeData struct {
-		lastUpgraded *big.Int
-		disabled     bool
+		blockTimestamp *big.Int
+		disabled       bool
 	}
 
-	lastUpgradeMap := make(map[string]lastUpgradeData)
+	lastPrecompileUpgrades := make(map[string]lastUpgradeData)
 
 	// verify genesis precompiles
-	for key, config := range c.Precompiles {
+	for key, config := range c.GenesisPrecompiles {
 		if err := config.Verify(); err != nil {
 			return err
 		}
 		// check the genesis chain config for any enabled upgrade
-		lastUpgradeMap[key] = lastUpgradeData{
-			disabled:     false,
-			lastUpgraded: config.Timestamp(),
+		lastPrecompileUpgrades[key] = lastUpgradeData{
+			disabled:       false,
+			blockTimestamp: config.Timestamp(),
 		}
 	}
 
 	// next range over upgrades to verify correct use of disabled and blockTimestamps.
-	var lastBlockTimestamp *big.Int
+	// previousUpgradeTimestamp is used to verify monotonically increasing timestamps.
+	var previousUpgradeTimestamp *big.Int
 	for i, upgrade := range c.PrecompileUpgrades {
 		key := upgrade.Key()
 
-		lastUpgrade, ok := lastUpgradeMap[key]
+		// lastUpgradeByKey is the previous processed upgrade for this precompile key.
+		lastUpgradeByKey, ok := lastPrecompileUpgrades[key]
 		var (
-			disabled     bool
-			lastUpgraded *big.Int
+			disabled      bool
+			lastTimestamp *big.Int
 		)
 		if !ok {
 			disabled = true
-			lastUpgraded = nil
+			lastTimestamp = nil
 		} else {
-			disabled = lastUpgrade.disabled
-			lastUpgraded = lastUpgrade.lastUpgraded
+			disabled = lastUpgradeByKey.disabled
+			lastTimestamp = lastUpgradeByKey.blockTimestamp
 		}
 		upgradeTimestamp := upgrade.Timestamp()
 
 		if upgradeTimestamp == nil {
-			return fmt.Errorf("PrecompileUpgrades[%d] cannot have a nil timestamp", i)
+			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: block timestamp cannot be nil ", key, i)
 		}
 		// Verify specified timestamps are monotonically increasing across all precompile keys.
-		// Note: It is OK for multiple configs of different keys to specify the same timestamp.
-		if lastBlockTimestamp != nil && upgradeTimestamp.Cmp(lastBlockTimestamp) < 0 {
-			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) < previous timestamp (%v)", i, upgradeTimestamp, lastBlockTimestamp)
+		// Note: It is OK for multiple configs of DIFFERENT keys to specify the same timestamp.
+		if previousUpgradeTimestamp != nil && upgradeTimestamp.Cmp(previousUpgradeTimestamp) < 0 {
+			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: config block timestamp (%v) < previous timestamp (%v)", key, i, upgradeTimestamp, previousUpgradeTimestamp)
 		}
 
 		if disabled == upgrade.IsDisabled() {
-			return fmt.Errorf("PrecompileUpgrades[%d] disable should be [%v]", i, !disabled)
+			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: disable should be [%v]", key, i, !disabled)
 		}
-		if lastUpgraded != nil && (upgradeTimestamp.Cmp(lastUpgraded) <= 0) {
-			return fmt.Errorf("PrecompileUpgrades[%d] config timestamp (%v) <= previous timestamp (%v)", i, upgradeTimestamp, lastUpgraded)
+		// Verify specified timestamps are monotonically increasing across same precompile keys.
+		// Note: It is NOT OK for multiple configs of the SAME key to specify the same timestamp.
+		if lastTimestamp != nil && (upgradeTimestamp.Cmp(lastTimestamp) <= 0) {
+			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: config block timestamp (%v) <= previous timestamp of same key (%v)", key, i, upgradeTimestamp, lastTimestamp)
 		}
 
 		if err := upgrade.Verify(); err != nil {
 			return err
 		}
 
-		lastUpgradeMap[key] = lastUpgradeData{
-			disabled:     upgrade.IsDisabled(),
-			lastUpgraded: upgradeTimestamp,
+		lastPrecompileUpgrades[key] = lastUpgradeData{
+			disabled:       upgrade.IsDisabled(),
+			blockTimestamp: upgradeTimestamp,
 		}
 
-		lastBlockTimestamp = upgradeTimestamp
+		previousUpgradeTimestamp = upgradeTimestamp
 	}
 
 	return nil
@@ -161,7 +170,7 @@ func (c *ChainConfig) getActivatingPrecompileConfigs(address common.Address, fro
 
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
-	if config, ok := c.Precompiles[key]; ok {
+	if config, ok := c.GenesisPrecompiles[key]; ok {
 		if utils.IsForkTransition(config.Timestamp(), from, to) {
 			configs = append(configs, config)
 		}
@@ -255,7 +264,10 @@ func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []prec
 // - during block processing to update the state before processing the given block.
 func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
-	for _, module := range precompile.RegisteredModules() { // Note: precompiles are configured in a deterministic order.
+	// Note: RegisteredModules returns precompiles in order they are registered.
+	// This is important because we want to configure precompiles in the same order
+	// so that the state is deterministic.
+	for _, module := range precompile.RegisteredModules() {
 		key := module.Key()
 		for _, config := range c.getActivatingPrecompileConfigs(module.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.

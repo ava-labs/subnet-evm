@@ -18,13 +18,13 @@ var (
 
 // GetContractDeployerAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
-func GetContractDeployerAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+func GetContractDeployerAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetContractDeployerAllowListStatus sets the permissions of [address] to [role] for the
 // contract deployer allow list.
 // assumes [role] has already been verified as valid.
-func SetContractDeployerAllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+func SetContractDeployerAllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }

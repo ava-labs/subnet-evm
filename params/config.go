@@ -83,7 +83,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		Precompiles:         ChainConfigPrecompiles{},
+		GenesisPrecompiles:  ChainConfigPrecompiles{},
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: big.NewInt(0),
 		},
@@ -105,7 +105,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
-		Precompiles:         ChainConfigPrecompiles{},
+		GenesisPrecompiles:  ChainConfigPrecompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 
@@ -125,7 +125,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{},
-		Precompiles:         ChainConfigPrecompiles{},
+		GenesisPrecompiles:  ChainConfigPrecompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 )
@@ -157,35 +157,9 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 
-	NetworkUpgrades                        // Config for timestamps that enable avalanche network upgrades
-	Precompiles     ChainConfigPrecompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
-	UpgradeConfig   `json:"-"`             // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
-}
-
-type ChainConfigPrecompiles map[string]precompile.StatefulPrecompileConfig
-
-// UnmarshalJSON parses the JSON-encoded data into the ChainConfigPrecompiles.
-// ChainConfigPrecompiles is a map of precompile module keys to their
-// configuration.
-func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
-	raw := make(map[string]json.RawMessage)
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-
-	*ccp = make(ChainConfigPrecompiles)
-	for _, module := range precompile.RegisteredModules() {
-		key := module.Key()
-		if value, ok := raw[key]; ok {
-			conf := module.NewConfig()
-			err := json.Unmarshal(value, conf)
-			if err != nil {
-				return err
-			}
-			(*ccp)[key] = conf
-		}
-	}
-	return nil
+	NetworkUpgrades                           // Config for timestamps that enable avalanche network upgrades
+	GenesisPrecompiles ChainConfigPrecompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	UpgradeConfig      `json:"-"`             // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
 // UnmarshalJSON parses the JSON-encoded data and stores the result in the
@@ -206,7 +180,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 	*c = ChainConfig(tmp)
 
 	// Unmarshal inlined PrecompileUpgrade
-	return json.Unmarshal(data, &c.Precompiles)
+	return json.Unmarshal(data, &c.GenesisPrecompiles)
 }
 
 // MarshalJSON returns the JSON encoding of c.
@@ -227,7 +201,7 @@ func (c ChainConfig) MarshalJSON() ([]byte, error) {
 	}
 
 	// Marshal Precompiles and inline them into the JSON
-	for key, value := range c.Precompiles {
+	for key, value := range c.GenesisPrecompiles {
 		conf, err := json.Marshal(value)
 		if err != nil {
 			return nil, err
@@ -267,7 +241,7 @@ func (c *ChainConfig) String() string {
 	if err != nil {
 		networkUpgradesBytes = []byte("cannot marshal NetworkUpgrades")
 	}
-	precompileUpgradeBytes, err := json.Marshal(c.Precompiles)
+	precompileUpgradeBytes, err := json.Marshal(c.GenesisPrecompiles)
 	if err != nil {
 		precompileUpgradeBytes = []byte("cannot marshal PrecompileUpgrade")
 	}
@@ -381,7 +355,7 @@ func (c *ChainConfig) Verify() error {
 
 	// Verify the precompile upgrades are internally consistent given the existing chainConfig.
 	if err := c.verifyPrecompileUpgrades(); err != nil {
-		return err
+		return fmt.Errorf("invalid precompile upgrades: %w", err)
 	}
 
 	return nil

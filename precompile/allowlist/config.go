@@ -20,10 +20,10 @@ type AllowListConfig struct {
 // the addresses in [AllowListAdmins].
 func (c *AllowListConfig) Configure(state precompile.StateDB, precompileAddr common.Address) error {
 	for _, enabledAddr := range c.EnabledAddresses {
-		SetAllowListRole(state, precompileAddr, enabledAddr, AllowListEnabled)
+		SetAllowListRole(state, precompileAddr, enabledAddr, EnabledRole)
 	}
 	for _, adminAddr := range c.AdminAddresses {
-		SetAllowListRole(state, precompileAddr, adminAddr, AllowListAdmin)
+		SetAllowListRole(state, precompileAddr, adminAddr, AdminRole)
 	}
 	return nil
 }

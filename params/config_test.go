@@ -146,6 +146,20 @@ func TestCheckCompatible(t *testing.T) {
 func TestConfigUnmarshalJSON(t *testing.T) {
 	require := require.New(t)
 
+	testRewardManagerConfig := rewardmanager.NewRewardManagerConfig(
+		big.NewInt(1671542573),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		&rewardmanager.InitialRewardConfig{
+			AllowFeeRecipients: true,
+		})
+
+	testContractNativeMinterConfig := nativeminter.NewContractNativeMinterConfig(big.NewInt(0),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		nil,
+	)
+
 	config := []byte(`{
     "chainId": 43214,
     "allowFeeRecipients": true,
@@ -172,26 +186,14 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require.Equal(c.ChainID, big.NewInt(43214))
 	require.Equal(c.AllowFeeRecipients, true)
 
-	rewardManagerConf, ok := c.Precompiles[rewardmanager.ConfigKey]
+	rewardManagerConfig, ok := c.GenesisPrecompiles[rewardmanager.ConfigKey]
 	require.True(ok)
-	require.Equal(rewardManagerConf.Key(), rewardmanager.ConfigKey)
-	testRewardManagerConfig := rewardmanager.NewRewardManagerConfig(
-		big.NewInt(1671542573),
-		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
-		nil,
-		&rewardmanager.InitialRewardConfig{
-			AllowFeeRecipients: true,
-		})
-	require.True(rewardManagerConf.Equal(testRewardManagerConfig))
+	require.Equal(rewardManagerConfig.Key(), rewardmanager.ConfigKey)
+	require.True(rewardManagerConfig.Equal(testRewardManagerConfig))
 
-	contractNativeMinterConf := c.Precompiles[nativeminter.ConfigKey]
-	require.Equal(contractNativeMinterConf.Key(), nativeminter.ConfigKey)
-	testContractNativeMinterConfig := nativeminter.NewContractNativeMinterConfig(big.NewInt(0),
-		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
-		nil,
-		nil,
-	)
-	require.True(contractNativeMinterConf.Equal(testContractNativeMinterConfig))
+	contractNativeMinterConfig := c.GenesisPrecompiles[nativeminter.ConfigKey]
+	require.Equal(contractNativeMinterConfig.Key(), nativeminter.ConfigKey)
+	require.True(contractNativeMinterConfig.Equal(testContractNativeMinterConfig))
 
 	// Marshal and unmarshal again and check that the result is the same
 	marshaled, err := json.Marshal(c)

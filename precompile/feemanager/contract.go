@@ -54,13 +54,13 @@ var (
 )
 
 // GetFeeManagerStatus returns the role of [address] for the fee config manager list.
-func GetFeeManagerStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+func GetFeeManagerStatus(stateDB precompile.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetFeeManagerStatus sets the permissions of [address] to [role] for the
 // fee config manager list. assumes [role] has already been verified as valid.
-func SetFeeManagerStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+func SetFeeManagerStatus(stateDB precompile.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 

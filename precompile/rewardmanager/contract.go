@@ -67,13 +67,13 @@ func init() {
 }
 
 // GetRewardManagerAllowListStatus returns the role of [address] for the RewardManager list.
-func GetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+func GetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetRewardManagerAllowListStatus sets the permissions of [address] to [role] for the
 // RewardManager list. Assumes [role] has already been verified as valid.
-func SetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+func SetRewardManagerAllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 

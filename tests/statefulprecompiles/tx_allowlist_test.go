@@ -25,7 +25,7 @@ func TestTxAllowListRun(t *testing.T) {
 		"set admin": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListAdmin)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AdminRole)
 				require.NoError(t, err)
 
 				return input
@@ -35,13 +35,13 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := txallowlist.GetTxAllowListStatus(state, noRoleAddr)
-				require.Equal(t, allowlist.AllowListAdmin, res)
+				require.Equal(t, allowlist.AdminRole, res)
 			},
 		},
 		"set allowed": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
 
 				return input
@@ -51,13 +51,13 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := txallowlist.GetTxAllowListStatus(state, noRoleAddr)
-				require.Equal(t, allowlist.AllowListEnabled, res)
+				require.Equal(t, allowlist.EnabledRole, res)
 			},
 		},
 		"set no role": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.NoRole)
 				require.NoError(t, err)
 
 				return input
@@ -67,13 +67,13 @@ func TestTxAllowListRun(t *testing.T) {
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := txallowlist.GetTxAllowListStatus(state, adminAddr)
-				require.Equal(t, allowlist.AllowListNoRole, res)
+				require.Equal(t, allowlist.NoRole, res)
 			},
 		},
 		"set no role from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListNoRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.NoRole)
 				require.NoError(t, err)
 
 				return input
@@ -85,7 +85,7 @@ func TestTxAllowListRun(t *testing.T) {
 		"set allowed from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
 
 				return input
@@ -97,7 +97,7 @@ func TestTxAllowListRun(t *testing.T) {
 		"set admin from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListAdmin)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AdminRole)
 				require.NoError(t, err)
 
 				return input
@@ -109,7 +109,7 @@ func TestTxAllowListRun(t *testing.T) {
 		"set no role with readOnly enabled": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
 
 				return input
@@ -121,7 +121,7 @@ func TestTxAllowListRun(t *testing.T) {
 		"set no role insufficient gas": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.AllowListEnabled)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.EnabledRole)
 				require.NoError(t, err)
 
 				return input
@@ -137,7 +137,7 @@ func TestTxAllowListRun(t *testing.T) {
 			},
 			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.NoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list with admin role": {
@@ -147,7 +147,7 @@ func TestTxAllowListRun(t *testing.T) {
 			},
 			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.NoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list with readOnly enabled": {
@@ -157,7 +157,7 @@ func TestTxAllowListRun(t *testing.T) {
 			},
 			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    true,
-			expectedRes: common.Hash(allowlist.AllowListNoRole).Bytes(),
+			expectedRes: common.Hash(allowlist.NoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list out of gas": {
@@ -176,8 +176,8 @@ func TestTxAllowListRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			txallowlist.SetTxAllowListStatus(state, adminAddr, allowlist.AllowListAdmin)
-			require.Equal(t, allowlist.AllowListAdmin, txallowlist.GetTxAllowListStatus(state, adminAddr))
+			txallowlist.SetTxAllowListStatus(state, adminAddr, allowlist.AdminRole)
+			require.Equal(t, allowlist.AdminRole, txallowlist.GetTxAllowListStatus(state, adminAddr))
 
 			blockContext := precompile.NewMockBlockContext(common.Big0, 0)
 			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())

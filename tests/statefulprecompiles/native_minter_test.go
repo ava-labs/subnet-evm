@@ -148,10 +148,10 @@ func TestContractNativeMinterRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			nativeminter.SetContractNativeMinterStatus(state, adminAddr, allowlist.AllowListAdmin)
-			nativeminter.SetContractNativeMinterStatus(state, enabledAddr, allowlist.AllowListEnabled)
-			require.Equal(t, allowlist.AllowListAdmin, nativeminter.GetContractNativeMinterStatus(state, adminAddr))
-			require.Equal(t, allowlist.AllowListEnabled, nativeminter.GetContractNativeMinterStatus(state, enabledAddr))
+			nativeminter.SetContractNativeMinterStatus(state, adminAddr, allowlist.AdminRole)
+			nativeminter.SetContractNativeMinterStatus(state, enabledAddr, allowlist.EnabledRole)
+			require.Equal(t, allowlist.AdminRole, nativeminter.GetContractNativeMinterStatus(state, adminAddr))
+			require.Equal(t, allowlist.EnabledRole, nativeminter.GetContractNativeMinterStatus(state, enabledAddr))
 
 			blockContext := precompile.NewMockBlockContext(common.Big0, 0)
 			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())

@@ -315,7 +315,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			NetworkUpgrades: params.NetworkUpgrades{
 				SubnetEVMTimestamp: big.NewInt(0),
 			},
-			Precompiles: params.ChainConfigPrecompiles{
+			GenesisPrecompiles: params.ChainConfigPrecompiles{
 				txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(0), nil, nil),
 			},
 		}

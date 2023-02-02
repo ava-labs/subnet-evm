@@ -89,8 +89,8 @@ func GetPrecompileModuleByAddress(address common.Address) (StatefulPrecompileMod
 	return nil, false
 }
 
-func GetPrecompileModule(name string) (StatefulPrecompileModule, bool) {
-	stm, ok := registeredModulesIndex[name]
+func GetPrecompileModule(key string) (StatefulPrecompileModule, bool) {
+	stm, ok := registeredModulesIndex[key]
 	return stm, ok
 }
 

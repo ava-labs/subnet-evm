@@ -270,10 +270,10 @@ func TestRewardManagerRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			rewardmanager.SetRewardManagerAllowListStatus(state, adminAddr, allowlist.AllowListAdmin)
-			rewardmanager.SetRewardManagerAllowListStatus(state, enabledAddr, allowlist.AllowListEnabled)
-			require.Equal(t, allowlist.AllowListAdmin, rewardmanager.GetRewardManagerAllowListStatus(state, adminAddr))
-			require.Equal(t, allowlist.AllowListEnabled, rewardmanager.GetRewardManagerAllowListStatus(state, enabledAddr))
+			rewardmanager.SetRewardManagerAllowListStatus(state, adminAddr, allowlist.AdminRole)
+			rewardmanager.SetRewardManagerAllowListStatus(state, enabledAddr, allowlist.EnabledRole)
+			require.Equal(t, allowlist.AdminRole, rewardmanager.GetRewardManagerAllowListStatus(state, adminAddr))
+			require.Equal(t, allowlist.EnabledRole, rewardmanager.GetRewardManagerAllowListStatus(state, enabledAddr))
 
 			if test.preCondition != nil {
 				test.preCondition(t, state)

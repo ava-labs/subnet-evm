@@ -227,10 +227,10 @@ func TestFeeManagerRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			feemanager.SetFeeManagerStatus(state, adminAddr, allowlist.AllowListAdmin)
-			feemanager.SetFeeManagerStatus(state, enabledAddr, allowlist.AllowListEnabled)
-			require.Equal(t, allowlist.AllowListAdmin, feemanager.GetFeeManagerStatus(state, adminAddr))
-			require.Equal(t, allowlist.AllowListEnabled, feemanager.GetFeeManagerStatus(state, enabledAddr))
+			feemanager.SetFeeManagerStatus(state, adminAddr, allowlist.AdminRole)
+			feemanager.SetFeeManagerStatus(state, enabledAddr, allowlist.EnabledRole)
+			require.Equal(t, allowlist.AdminRole, feemanager.GetFeeManagerStatus(state, adminAddr))
+			require.Equal(t, allowlist.EnabledRole, feemanager.GetFeeManagerStatus(state, enabledAddr))
 
 			if test.preCondition != nil {
 				test.preCondition(t, state)

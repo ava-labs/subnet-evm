@@ -34,13 +34,13 @@ var (
 )
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
-func GetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+func GetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetContractNativeMinterStatus sets the permissions of [address] to [role] for the
 // minter list. assumes [role] has already been verified as valid.
-func SetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+func SetContractNativeMinterStatus(stateDB precompile.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 

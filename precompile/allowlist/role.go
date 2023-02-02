@@ -5,13 +5,13 @@ package allowlist
 
 import "github.com/ethereum/go-ethereum/common"
 
-// Enum constants for valid AllowListRole
-type AllowListRole common.Hash
+// Enum constants for valid Role
+type Role common.Hash
 
 // Valid returns true iff [s] represents a valid role.
-func (s AllowListRole) Valid() bool {
+func (s Role) Valid() bool {
 	switch s {
-	case AllowListNoRole, AllowListEnabled, AllowListAdmin:
+	case NoRole, EnabledRole, AdminRole:
 		return true
 	default:
 		return false
@@ -19,9 +19,9 @@ func (s AllowListRole) Valid() bool {
 }
 
 // IsNoRole returns true if [s] indicates no specific role.
-func (s AllowListRole) IsNoRole() bool {
+func (s Role) IsNoRole() bool {
 	switch s {
-	case AllowListNoRole:
+	case NoRole:
 		return true
 	default:
 		return false
@@ -29,9 +29,9 @@ func (s AllowListRole) IsNoRole() bool {
 }
 
 // IsAdmin returns true if [s] indicates the permission to modify the allow list.
-func (s AllowListRole) IsAdmin() bool {
+func (s Role) IsAdmin() bool {
 	switch s {
-	case AllowListAdmin:
+	case AdminRole:
 		return true
 	default:
 		return false
@@ -39,9 +39,9 @@ func (s AllowListRole) IsAdmin() bool {
 }
 
 // IsEnabled returns true if [s] indicates that it has permission to access the resource.
-func (s AllowListRole) IsEnabled() bool {
+func (s Role) IsEnabled() bool {
 	switch s {
-	case AllowListAdmin, AllowListEnabled:
+	case AdminRole, EnabledRole:
 		return true
 	default:
 		return false

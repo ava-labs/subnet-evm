@@ -36,7 +36,7 @@ const tmplSourcePrecompileContractGo = `
 Typically, custom codes are required in only those areas.
 4- Register your precompile module in params/precompile_modules.go
 5- Add your config unit tests under generated package config_test.go
-6- Add your contract unit tests under core/vm/contractstatefultests/{precompilename}_test.go
+6- Add your contract unit tests under tests/statefulprecompiles/{precompilename}_test.go
 7- Add your solidity interface and test contract to contract-examples/contracts
 8- Write solidity tests for your precompile in contract-examples/test
 9- Create your genesis with your precompile enabled in tests/e2e/genesis/

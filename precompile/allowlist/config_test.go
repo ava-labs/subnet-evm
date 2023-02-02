@@ -19,22 +19,22 @@ func TestVerifyAllowlistConfig(t *testing.T) {
 		expectedError string
 	}{
 		{
-			name:          "invalid allow list config in tx allowlist",
+			name:          "invalid allow list config in allowlist",
 			config:        AllowListConfig{admins, admins},
 			expectedError: "cannot set address",
 		},
 		{
-			name:          "nil member allow list config in tx allowlist",
+			name:          "nil member allow list config in allowlist",
 			config:        AllowListConfig{nil, nil},
 			expectedError: "",
 		},
 		{
-			name:          "empty member allow list config in tx allowlist",
+			name:          "empty member allow list config in allowlist",
 			config:        AllowListConfig{[]common.Address{}, []common.Address{}},
 			expectedError: "",
 		},
 		{
-			name:          "valid allow list config in tx allowlist",
+			name:          "valid allow list config in allowlist",
 			config:        AllowListConfig{admins, enableds},
 			expectedError: "",
 		},

@@ -21,13 +21,13 @@ var (
 )
 
 // GetTxAllowListStatus returns the role of [address] for the tx allow list.
-func GetTxAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+func GetTxAllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetTxAllowListStatus sets the permissions of [address] to [role] for the
 // tx allow list.
 // assumes [role] has already been verified as valid.
-func SetTxAllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+func SetTxAllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
