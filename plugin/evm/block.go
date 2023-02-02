@@ -20,6 +20,8 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 )
 
+var _ block.WithVerifyContext = &Block{}
+
 // Block implements the snowman.Block interface
 type Block struct {
 	id       ids.ID
