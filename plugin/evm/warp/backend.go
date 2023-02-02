@@ -1,4 +1,4 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package warp
@@ -46,7 +46,9 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, signatureCacheS
 func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
 	messageID := hashing.ComputeHash256Array(unsignedMessage.Bytes())
 
-	// We save the message instead of signature for db, in case for bls key changes.
+	// In the case when a node restarts, and possibly changes its bls key, the cache gets emptied but the database does not.
+	// So to avoid having incorrect signatures saved in the database after a bls key change, we save the full message in the database.
+	// Whereas for the cache, after the node restart, the cache would be emptied so we can directly save the signatures.
 	if err := w.db.Put(messageID[:], unsignedMessage.Bytes()); err != nil {
 		return fmt.Errorf("failed to put warp signature in db: %w", err)
 	}
