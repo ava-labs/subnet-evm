@@ -620,7 +620,11 @@ func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transacti
 // The enforcePredicates parameter can be used to enforce precompile predicates on any pending
 // transactions that reference a precompile in its access list and remove any transactions
 // from the pool that fail to meet the predicate
-func (pool *TxPool) PendingWithPredicates(enforcePredicates bool, rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context) map[common.Address]types.Transactions {
+//
+// The enforceTips parameter can be used to do an extra filtering on the pending
+// transactions and only return those whose **effective** tip is large enough in
+// the next pending execution environment.
+func (pool *TxPool) PendingWithPredicates(enforcePredicates bool, enforceTips bool, rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context) map[common.Address]types.Transactions {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -628,8 +632,18 @@ func (pool *TxPool) PendingWithPredicates(enforcePredicates bool, rules params.R
 	for addr, list := range pool.pending {
 		txs := list.Flatten()
 
+		// If the miner requests tip enforcement, cap the lists now
+		if enforceTips {
+			for i, tx := range txs {
+				if tx.EffectiveGasTipIntCmp(pool.gasPrice, pool.priced.urgent.baseFee) < 0 {
+					txs = txs[:i]
+					break
+				}
+			}
+		}
+
 		// If the miner requests predicate enforcement, we remove all transactions after and including the index of the first failed predicate
-		if enforcePredicates && !pool.locals.contains(addr) {
+		if enforcePredicates {
 			if invalidIndex, err := CheckPredicatesForSenderTxs(rules, snowCtx, proposerVMBlockCtx, txs); err != nil {
 				log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", addr.Hex(), "failedTx", txs[invalidIndex].Hash())
 				for i := invalidIndex; i < len(txs); i++ {
