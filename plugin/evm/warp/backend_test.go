@@ -42,9 +42,11 @@ func TestAddAndGetValidMessage(t *testing.T) {
 	signature, err := backend.GetSignature(context.Background(), messageID)
 	require.NoError(t, err)
 
+	var expectedSignature [bls.SignatureLen]byte
 	expectedSig, err := snowCtx.TeleporterSigner.Sign(unsignedMsg)
 	require.NoError(t, err)
-	require.Equal(t, expectedSig, signature)
+	copy(expectedSignature[:], expectedSig)
+	require.Equal(t, expectedSignature, signature)
 }
 
 func TestAddAndGetUnknownMessage(t *testing.T) {
@@ -82,7 +84,9 @@ func TestZeroSizedCache(t *testing.T) {
 	signature, err := backend.GetSignature(context.Background(), messageID)
 	require.NoError(t, err)
 
+	var expectedSignature [bls.SignatureLen]byte
 	expectedSig, err := snowCtx.TeleporterSigner.Sign(unsignedMsg)
 	require.NoError(t, err)
-	require.Equal(t, expectedSig, signature)
+	copy(expectedSignature[:], expectedSig)
+	require.Equal(t, expectedSignature, signature)
 }
