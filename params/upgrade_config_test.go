@@ -35,7 +35,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 			},
 		},
 		"upgrade bytes conflicts with genesis (disable before enable)": {
-			expectedErrorString: "config timestamp (0) <= previous timestamp (1)",
+			expectedErrorString: "config block timestamp (0) <= previous timestamp of same key (1)",
 			upgrades: []PrecompileUpgrade{
 				{
 					StatefulPrecompileConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(0)),
@@ -43,7 +43,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 			},
 		},
 		"upgrade bytes conflicts with genesis (disable same time as enable)": {
-			expectedErrorString: "config timestamp (1) <= previous timestamp (1)",
+			expectedErrorString: "config block timestamp (1) <= previous timestamp of same key (1)",
 			upgrades: []PrecompileUpgrade{
 				{
 					StatefulPrecompileConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(1)),

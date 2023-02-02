@@ -144,7 +144,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					StatefulPrecompileConfig: feemanager.NewFeeManagerConfig(big.NewInt(1), admins, nil, nil),
 				},
 			},
-			expectedError: "config timestamp (1) < previous timestamp (2)",
+			expectedError: "config block timestamp (1) < previous timestamp (2)",
 		},
 		{
 			name: "upgrades with same keys are not allowed to configure same timestamp for same precompiles",
@@ -156,7 +156,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					StatefulPrecompileConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(1)),
 				},
 			},
-			expectedError: " config block timestamp (1) <= previous timestamp of same key (1)",
+			expectedError: "config block timestamp (1) <= previous timestamp of same key (1)",
 		},
 	}
 	for _, tt := range tests {
