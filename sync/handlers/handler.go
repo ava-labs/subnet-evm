@@ -52,7 +52,7 @@ func NewSyncHandler(
 		blockRequestHandler:          NewBlockRequestHandler(provider, networkCodec, stats),
 		codeRequestHandler:           NewCodeRequestHandler(evmTrieDB.DiskDB(), networkCodec, stats),
 
-		// TODO: need to pass in the warp backend from the subnet-evm to create signature request handler.
+		// TODO: initialize actual signature request handler when warp is ready
 		signatureRequestHandler: &handlers.NoopSignatureRequestHandler{},
 	}
 }
