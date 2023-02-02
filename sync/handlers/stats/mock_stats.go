@@ -42,11 +42,6 @@ type MockHandlerStats struct {
 	SnapshotReadTime,
 	GenerateRangeProofTime,
 	LeafRequestProcessingTimeSum time.Duration
-
-	SignatureRequestCount,
-	SignatureRequestHit,
-	SignatureRequestMiss uint32
-	SignatureRequestDuration time.Duration
 }
 
 func (m *MockHandlerStats) Reset() {
@@ -78,10 +73,6 @@ func (m *MockHandlerStats) Reset() {
 	m.SnapshotReadTime = 0
 	m.GenerateRangeProofTime = 0
 	m.LeafRequestProcessingTimeSum = 0
-	m.SignatureRequestCount = 0
-	m.SignatureRequestHit = 0
-	m.SignatureRequestMiss = 0
-	m.SignatureRequestDuration = 0
 }
 
 func (m *MockHandlerStats) IncBlockRequest() {
@@ -238,28 +229,4 @@ func (m *MockHandlerStats) IncSnapshotSegmentInvalid() {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.SnapshotSegmentInvalidCount++
-}
-
-func (m *MockHandlerStats) IncSignatureRequest() {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	m.SignatureRequestCount++
-}
-
-func (m *MockHandlerStats) IncSignatureHit() {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	m.SignatureRequestHit++
-}
-
-func (m *MockHandlerStats) IncSignatureMiss() {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	m.SignatureRequestMiss++
-}
-
-func (m *MockHandlerStats) UpdateSignatureRequestTime(duration time.Duration) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	m.SignatureRequestDuration += duration
 }
