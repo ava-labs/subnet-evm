@@ -28,6 +28,8 @@
 package miner
 
 import (
+	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core"
@@ -62,8 +64,8 @@ func (miner *Miner) SetEtherbase(addr common.Address) {
 	miner.worker.setEtherbase(addr)
 }
 
-func (miner *Miner) GenerateBlock(pendingTxs map[common.Address]types.Transactions) (*types.Block, error) {
-	return miner.worker.commitNewWork(pendingTxs)
+func (miner *Miner) GenerateBlock(snowCtx *snow.Context, proposerVMBlockCtx *block.Context) (*types.Block, error) {
+	return miner.worker.commitNewWork(snowCtx, proposerVMBlockCtx)
 }
 
 // SubscribePendingLogs starts delivering logs from pending transactions

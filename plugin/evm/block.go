@@ -137,8 +137,6 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 }
 
 // Verify the block, including checking precompile predicates
-// Note that if this block activates a precompile with a predicate, that predicate is not checked
-// in this block. The VM doesn't activate the precompile until the block is accepted.
 func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)

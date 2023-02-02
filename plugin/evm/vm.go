@@ -632,10 +632,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		log.Debug("Building block without context")
 	}
 
-	// Verify any transaction predicates with the given block context.
-	pendingTxs := vm.txPool.PendingWithPredicates(true, vm.currentRules(), vm.ctx, proposerVMBlockCtx)
-
-	block, err := vm.miner.GenerateBlock(pendingTxs)
+	block, err := vm.miner.GenerateBlock(vm.ctx, proposerVMBlockCtx)
 	vm.builder.handleGenerateBlock()
 	if err != nil {
 		return nil, err
