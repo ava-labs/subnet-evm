@@ -29,6 +29,7 @@ type SignatureRequestHandlerStats interface {
 }
 
 type handlerStats struct {
+	// State sync metrics
 	syncHandlerStats syncStats.HandlerStats
 
 	// SignatureRequestHandler metrics
@@ -154,6 +155,7 @@ func NewHandlerStats(enabled bool) HandlerStats {
 		return NewNoopHandlerStats()
 	}
 	return &handlerStats{
+		// initialize state sync handler stats
 		syncHandlerStats: syncStats.NewHandlerStats(enabled),
 
 		// initialize signature request stats

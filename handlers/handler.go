@@ -7,24 +7,25 @@ import (
 	"context"
 
 	"github.com/ava-labs/avalanchego/codec"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/handlers/stats"
 	"github.com/ava-labs/subnet-evm/metrics"
-
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/sync/handlers"
+	syncHandlers "github.com/ava-labs/subnet-evm/sync/handlers"
 	"github.com/ava-labs/subnet-evm/trie"
 )
 
 var _ message.RequestHandler = &networkHandler{}
 
 type networkHandler struct {
-	stateTrieLeafsRequestHandler *handlers.LeafsRequestHandler
-	blockRequestHandler          *handlers.BlockRequestHandler
-	codeRequestHandler           *handlers.CodeRequestHandler
+	stateTrieLeafsRequestHandler *syncHandlers.LeafsRequestHandler
+	blockRequestHandler          *syncHandlers.BlockRequestHandler
+	codeRequestHandler           *syncHandlers.CodeRequestHandler
 	signatureRequestHandler      SignatureRequestHandler
 }
 
+// NewNetworkHandler constructs the handler for serving network requests.
 func NewNetworkHandler(
 	provider handlers.SyncDataProvider,
 	evmTrieDB *trie.Database,
@@ -32,9 +33,10 @@ func NewNetworkHandler(
 ) message.RequestHandler {
 	handlerStats := stats.NewHandlerStats(metrics.Enabled)
 	return &networkHandler{
-		stateTrieLeafsRequestHandler: handlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, handlerStats),
-		blockRequestHandler:          handlers.NewBlockRequestHandler(provider, networkCodec, handlerStats),
-		codeRequestHandler:           handlers.NewCodeRequestHandler(evmTrieDB.DiskDB(), networkCodec, handlerStats),
+		// State sync handlers
+		stateTrieLeafsRequestHandler: syncHandlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, handlerStats),
+		blockRequestHandler:          syncHandlers.NewBlockRequestHandler(provider, networkCodec, handlerStats),
+		codeRequestHandler:           syncHandlers.NewCodeRequestHandler(evmTrieDB.DiskDB(), networkCodec, handlerStats),
 
 		// TODO: initialize actual signature request handler when warp is ready
 		signatureRequestHandler: &NoopSignatureRequestHandler{},
