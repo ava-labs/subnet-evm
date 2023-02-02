@@ -120,7 +120,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) precomp
 
 		stateDB := evm.GetStateDB()
 
-		// Verify that the caller is in the allow list and therefore has the right to call this function.
+		// Verify that the caller is an admin with permission to modify the allow list
 		callerStatus := GetAllowListStatus(stateDB, precompileAddr, callerAddr)
 		if !callerStatus.IsAdmin() {
 			return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotModifyAllowList, callerAddr)
