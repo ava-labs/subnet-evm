@@ -133,6 +133,15 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 	} else {
 		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
 	}
+	// VerifyWithContext may be called multiple times on the same block with multiple contexts, but the engine will only call Accept or Reject once.
+	// As such, we need to ensure that we only verify the block once, so if the block is currently processing, we only check the predicates and return.
+	if b.status == choices.Processing {
+		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+		if _, err := core.CheckPredicatesForSenderTxs(rules, b.vm.ctx, proposerVMBlockCtx, b.ethBlock.Transactions()); err != nil {
+			return fmt.Errorf("predicate transaction verification failed: %w", err)
+		}
+		return nil
+	}
 	return b.verify(proposerVMBlockCtx, true)
 }
 
