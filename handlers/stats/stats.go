@@ -149,12 +149,12 @@ func (h *handlerStats) UpdateSignatureRequestTime(duration time.Duration) {
 	h.signatureProcessingTime.Update(duration)
 }
 
-func NewHandlerStats(enabled bool, syncHandlerStats syncStats.HandlerStats) HandlerStats {
+func NewHandlerStats(enabled bool) HandlerStats {
 	if !enabled {
 		return NewNoopHandlerStats()
 	}
 	return &handlerStats{
-		syncHandlerStats: syncHandlerStats,
+		syncHandlerStats: syncStats.NewHandlerStats(enabled),
 
 		// initialize signature request stats
 		signatureRequest:        metrics.GetOrRegisterCounter("signature_request_count", nil),

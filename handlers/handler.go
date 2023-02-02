@@ -13,7 +13,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/sync/handlers"
-	syncStats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/trie"
 )
 
@@ -31,8 +30,7 @@ func NewNetworkHandler(
 	evmTrieDB *trie.Database,
 	networkCodec codec.Manager,
 ) message.RequestHandler {
-	syncStats := syncStats.NewHandlerStats(metrics.Enabled)
-	handlerStats := stats.NewHandlerStats(metrics.Enabled, syncStats)
+	handlerStats := stats.NewHandlerStats(metrics.Enabled)
 	return &networkHandler{
 		stateTrieLeafsRequestHandler: handlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, handlerStats),
 		blockRequestHandler:          handlers.NewBlockRequestHandler(provider, networkCodec, handlerStats),
