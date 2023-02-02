@@ -26,10 +26,22 @@ Typically, custom codes are required in only those areas.
 package precompile
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/ava-labs/avalanchego/utils/set"
+
+	"github.com/ethereum/go-ethereum/rlp"
+
+	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+
+	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -38,13 +50,19 @@ import (
 )
 
 const (
-	GetBlockchainIdGasCost              uint64 = 5_000   // SET A GAS COST HERE
-	GetVerifiedCrossChainMessageGasCost uint64 = 100_000 // SET A GAS COST HERE
-	SendCrossChainMessageGasCost        uint64 = 100_000 // SET A GAS COST HERE
+	GetBlockchainIdGasCost                              uint64 = 5_000   // SET A GAS COST HERE
+	GetVerifiedCrossChainMessageGasCost                 uint64 = 100_000 // SET A GAS COST HERE
+	GetVerifiedCrossChainMessageGasCostPerAggregatedKey uint64 = 1_000
+	SendCrossChainMessageGasCost                        uint64 = 100_000 // SET A GAS COST HERE
 
 	// WarpMessengerRawABI contains the raw ABI of WarpMessenger contract.
 	WarpMessengerRawABI  = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"sender\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"}],\"name\":\"SendCrossChainMessage\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getBlockchainId\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"chainID\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"messageIndex\",\"type\":\"uint256\"}],\"name\":\"getVerifiedCrossChainMessage\",\"outputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"sourceChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"senderAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"internalType\":\"structCrossChainMessage\",\"name\":\"message\",\"type\":\"tuple\"},{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"name\":\"sendCrossChainMessage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 	SubmitMessageEventID = "da2b1cd3e6664863b4ad90f53a4e14fca9fc00f3f0e01e5c7b236a4355b6591a" // Keccack256("SubmitMessage(bytes32,uint256)")
+
+	// Default stake threshold for aggregate signature verification. (67%)
+	// TODO: This should be made configuration on the VM level.
+	WarpQuorumNumerator   = 67
+	WarpQuorumDenominator = 100
 )
 
 // CUSTOM CODE STARTS HERE
@@ -68,6 +86,64 @@ var (
 // interface while adding in the WarpMessenger specific precompile address.
 type WarpMessengerConfig struct {
 	UpgradeableConfig
+}
+
+func (c *WarpMessengerConfig) verifyPredicate(snowCtx *snow.Context, proposerVMBlockCtx *block.Context, storageSlots []byte) error {
+	// The proposer VM block context is required to verify aggregate signatures.
+	if proposerVMBlockCtx == nil {
+		return errors.New("missing proposer VM block context")
+	}
+
+	// If there are no storage slots, we consider the predicate to be valid because
+	// there are no messages to be received. If receiveCrossChainMessage is later
+	// called in this transaction, the execution will revert, but the transaction
+	// will still be included in the chain.
+	if len(storageSlots) == 0 {
+		return nil
+	}
+
+	// RLP decode the list of signed messages.
+	var messagesBytes [][]byte
+	err := rlp.DecodeBytes(storageSlots, &messagesBytes)
+	if err != nil {
+		return err
+	}
+
+	// Check that each message was intended for this chain, and verify the aggregate signature of each message.
+	for _, messageBytes := range messagesBytes {
+		message, err := teleporter.ParseMessage(messageBytes)
+		if err != nil {
+			return err
+		}
+
+		// TODO: Should we add a special chain ID that is allowed as the "anycast" chain ID? Just need to think through if there are any security implications.
+		if message.DestinationChainID != snowCtx.ChainID {
+			return errors.New("wrong chain id")
+		}
+
+		err = message.Signature.Verify(
+			context.Background(),
+			&message.UnsignedMessage,
+			snowCtx.ValidatorState,
+			proposerVMBlockCtx.PChainHeight,
+			WarpQuorumNumerator,
+			WarpQuorumDenominator)
+		if err != nil {
+			return err
+		}
+		log.Info("Teleporter message verification passed.")
+	}
+
+	log.Info("Receive cross subnet message predicate passed.")
+	return nil
+}
+
+func (c *WarpMessengerConfig) Predicate() PredicateFunc {
+	return c.verifyPredicate
+}
+
+func (c *WarpMessengerConfig) OnAccept() OnAcceptFunc {
+	return nil
 }
 
 // CrossChainMessage is an auto generated low-level Go binding around an user-defined struct.
@@ -232,15 +308,61 @@ func getVerifiedCrossChainMessage(accessibleState PrecompileAccessibleState, cal
 	}
 	// attempts to unpack [input] into the arguments to the GetVerifiedCrossChainMessageInput.
 	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackGetVerifiedCrossChainMessageInput(input)
+	// You can use unpacked [messageIndex] variable in your code
+	inputIndex, err := UnpackGetVerifiedCrossChainMessageInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct                               // CUSTOM CODE OPERATES ON INPUT
-	var output GetVerifiedCrossChainMessageOutput // CUSTOM CODE FOR AN OUTPUT
+	storageSlots, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(WarpMessengerAddress)
+	if !exists || storageSlots == nil {
+		return nil, remainingGas, errors.New("missing access list storage slots from precompile during execution")
+	}
+
+	var signedMessages [][]byte
+	err = rlp.DecodeBytes(storageSlots, &signedMessages)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// Check that the message index exists.
+	if !inputIndex.IsInt64() {
+		return nil, remainingGas, errors.New("invalid message index")
+	}
+	messageIndex := inputIndex.Int64()
+	if len(signedMessages) <= int(messageIndex) {
+		return nil, remainingGas, errors.New("invalid message index")
+	}
+
+	// Parse the raw message to be processed.
+	signedMessage := signedMessages[messageIndex]
+	message, err := teleporter.ParseMessage(signedMessage)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// Charge gas per validator included in the aggregate signature
+	bitSetSignature, ok := message.Signature.(*teleporter.BitSetSignature)
+	if !ok {
+		return nil, remainingGas, errors.New("invalid aggregate signature")
+	}
+
+	numSigners := set.BitsFromBytes(bitSetSignature.Signers).HammingWeight()
+	if remainingGas, err = deductGas(remainingGas, GetVerifiedCrossChainMessageGasCostPerAggregatedKey*uint64(numSigners)); err != nil {
+		return nil, 0, err
+	}
+
+	var warpMessage CrossChainMessage
+	_, err = Codec.Unmarshal(message.Payload, &warpMessage)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	output := GetVerifiedCrossChainMessageOutput{
+		Message: warpMessage,
+		Success: true,
+	}
+
 	packedOutput, err := PackGetVerifiedCrossChainMessageOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
@@ -280,14 +402,27 @@ func sendCrossChainMessage(accessibleState PrecompileAccessibleState, caller com
 		return nil, remainingGas, err
 	}
 
+	message := &CrossChainMessage{
+		SourceChainID:      accessibleState.GetSnowContext().ChainID,
+		SenderAddress:      caller.Hash(),
+		DestinationChainID: inputStruct.DestinationChainID,
+		DestinationAddress: inputStruct.DestinationAddress,
+		Payload:            inputStruct.Payload,
+	}
+
+	data, err := Codec.Marshal(Version, message)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
 	accessibleState.GetStateDB().AddLog(
 		WarpMessengerAddress,
 		[]common.Hash{
 			common.HexToHash(SubmitMessageEventID),
-			inputStruct.DestinationChainID,
-			inputStruct.DestinationAddress,
+			message.SourceChainID,
+			message.DestinationChainID,
 		},
-		inputStruct.Payload,
+		data,
 		accessibleState.GetBlockContext().Number().Uint64())
 
 	return []byte{}, remainingGas, nil
