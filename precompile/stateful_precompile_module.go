@@ -24,7 +24,7 @@ type StatefulPrecompileModule interface {
 var (
 	// registeredModulesIndex is a map of key to StatefulPrecompileModule
 	// used to quickly look up a module by key
-	registeredModulesIndex = make(map[string]StatefulPrecompileModule, 0)
+	registeredModulesIndex = make(map[common.Address]int, 0)
 	// registeredModules is a list of StatefulPrecompileModule to preserve order
 	// for deterministic iteration
 	registeredModules = make([]StatefulPrecompileModule, 0)
@@ -62,36 +62,39 @@ func RegisterModule(stm StatefulPrecompileModule) error {
 	if !ReservedAddress(address) {
 		return fmt.Errorf("address %s not in a reserved range", address)
 	}
-	_, ok := registeredModulesIndex[key]
-	if ok {
-		return fmt.Errorf("name %s already used by a stateful precompile", key)
-	}
 
 	for _, precompile := range registeredModules {
+		if precompile.Key() == key {
+			return fmt.Errorf("name %s already used by a stateful precompile", key)
+		}
 		if precompile.Address() == address {
 			return fmt.Errorf("address %s already used by a stateful precompile", address)
 		}
 	}
 
-	registeredModulesIndex[key] = stm
+	registeredModulesIndex[address] = len(registeredModules)
 	registeredModules = append(registeredModules, stm)
 
 	return nil
 }
 
 func GetPrecompileModuleByAddress(address common.Address) (StatefulPrecompileModule, bool) {
+	index, ok := registeredModulesIndex[address]
+	if !ok {
+		return nil, false
+	}
+
+	return registeredModules[index], true
+}
+
+func GetPrecompileModule(key string) (StatefulPrecompileModule, bool) {
 	for _, stm := range registeredModules {
-		if stm.Address() == address {
+		if stm.Key() == key {
 			return stm, true
 		}
 	}
 
 	return nil, false
-}
-
-func GetPrecompileModule(key string) (StatefulPrecompileModule, bool) {
-	stm, ok := registeredModulesIndex[key]
-	return stm, ok
 }
 
 func RegisteredModules() []StatefulPrecompileModule {
