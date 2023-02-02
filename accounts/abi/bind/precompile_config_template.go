@@ -146,7 +146,7 @@ func NewModule() precompile.StatefulPrecompileModule {
 
 // Address returns the address of the {{.Contract.Type}}.
 // Select a non-conflicting address and set it in generated contract.go
-func (c {{.Contract.Type}}Config) Address() common.Address {
+func ({{.Contract.Type}}Config) Address() common.Address {
 	return ContractAddress
 }
 

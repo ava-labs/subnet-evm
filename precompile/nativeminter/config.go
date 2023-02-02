@@ -58,7 +58,7 @@ func NewDisableContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNati
 }
 
 // Address returns the address of the native minter contract.
-func (c ContractNativeMinterConfig) Address() common.Address {
+func (ContractNativeMinterConfig) Address() common.Address {
 	return ContractAddress
 }
 

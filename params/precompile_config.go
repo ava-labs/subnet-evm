@@ -85,6 +85,10 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		if err := config.Verify(); err != nil {
 			return err
 		}
+		// if the precompile is disabled at genesis, skip it.
+		if config.Timestamp() == nil {
+			continue
+		}
 		// check the genesis chain config for any enabled upgrade
 		lastPrecompileUpgrades[key] = lastUpgradeData{
 			disabled:       false,
