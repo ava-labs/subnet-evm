@@ -50,7 +50,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 		},
 	)
 	err = badConfig.Verify()
-	assert.ErrorContains(t, err, "config timestamp (5) <= previous timestamp (5)")
+	assert.ErrorContains(t, err, "config block timestamp (5) <= previous timestamp of same key (5)")
 
 	// cannot enable a precompile without disabling it first.
 	badConfig = *config
@@ -156,7 +156,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					StatefulPrecompileConfig: txallowlist.NewDisableTxAllowListConfig(big.NewInt(1)),
 				},
 			},
-			expectedError: "config timestamp (1) <= previous timestamp (1)",
+			expectedError: " config block timestamp (1) <= previous timestamp of same key (1)",
 		},
 	}
 	for _, tt := range tests {
@@ -233,7 +233,7 @@ func TestVerifyRequiresSortedTimestamps(t *testing.T) {
 
 	// block timestamps must be monotonically increasing, so this config is invalid
 	err := config.Verify()
-	assert.ErrorContains(t, err, "config timestamp (1) < previous timestamp (2)")
+	assert.ErrorContains(t, err, "config block timestamp (1) < previous timestamp (2)")
 }
 
 func TestGetPrecompileConfig(t *testing.T) {
