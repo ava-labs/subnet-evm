@@ -114,7 +114,7 @@ func (b *Block) Verify(context.Context) error {
 // TODO: Cache the result such that if called multiple times for the same block,
 // we do not need to recompute the value.
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	precompileConfigs := b.vm.currentRules().Precompiles
+	precompileConfigs := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Precompiles
 	for _, tx := range b.ethBlock.Transactions() {
 		for _, accessTuple := range tx.AccessList() {
 			if _, ok := precompileConfigs[accessTuple.Address]; ok {
