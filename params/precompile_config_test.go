@@ -59,6 +59,26 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	assert.ErrorContains(t, err, "disable should be [true]")
 }
 
+func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
+	admins := []common.Address{{1}}
+	baseConfig := *SubnetEVMDefaultChainConfig
+	config := &baseConfig
+	config.PrecompileUpgrade = PrecompileUpgrade{
+		// this does NOT enable the precompile, so it should be upgradeable.
+		TxAllowListConfig: precompile.NewTxAllowListConfig(nil, nil, nil),
+	}
+	require.False(t, config.IsTxAllowList(common.Big0)) // check the precompile is not enabled.
+	config.PrecompileUpgrades = []PrecompileUpgrade{
+		{
+			// enable TxAllowList at timestamp 5
+			TxAllowListConfig: precompile.NewTxAllowListConfig(big.NewInt(5), admins, nil),
+		},
+	}
+
+	// check this config is valid
+	require.NoError(t, config.Verify())
+}
+
 func TestVerifyPrecompileUpgrades(t *testing.T) {
 	admins := []common.Address{{1}}
 	tests := []struct {
@@ -98,9 +118,11 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			upgrades: []PrecompileUpgrade{
 				{
 					FeeManagerConfig: precompile.NewFeeManagerConfig(big.NewInt(3), admins, nil,
-						&commontype.FeeConfig{
-							GasLimit: big.NewInt(-1),
-						}),
+						func() *commontype.FeeConfig {
+							feeConfig := DefaultFeeConfig
+							feeConfig.GasLimit = big.NewInt(-1)
+							return &feeConfig
+						}()),
 				},
 			},
 			expectedError: "gasLimit = -1 cannot be less than or equal to 0",
@@ -110,9 +132,11 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			upgrades: []PrecompileUpgrade{
 				{
 					FeeManagerConfig: precompile.NewFeeManagerConfig(big.NewInt(3), admins, nil,
-						&commontype.FeeConfig{
-							GasLimit: big.NewInt(0),
-						}),
+						func() *commontype.FeeConfig {
+							feeConfig := DefaultFeeConfig
+							feeConfig.GasLimit = common.Big0
+							return &feeConfig
+						}()),
 				},
 			},
 			expectedError: "gasLimit = 0 cannot be less than or equal to 0",
@@ -153,9 +177,11 @@ func TestVerifyPrecompiles(t *testing.T) {
 			name: "invalid initial fee manager config",
 			upgrade: PrecompileUpgrade{
 				FeeManagerConfig: precompile.NewFeeManagerConfig(big.NewInt(3), admins, nil,
-					&commontype.FeeConfig{
-						GasLimit: big.NewInt(-1),
-					}),
+					func() *commontype.FeeConfig {
+						feeConfig := DefaultFeeConfig
+						feeConfig.GasLimit = big.NewInt(-1)
+						return &feeConfig
+					}()),
 			},
 			expectedError: "gasLimit = -1 cannot be less than or equal to 0",
 		},

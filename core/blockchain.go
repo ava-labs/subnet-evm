@@ -87,8 +87,12 @@ var (
 	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
 	badBlockCounter              = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
 
+	txUnindexTimer      = metrics.NewRegisteredCounter("chain/txs/unindex", nil)
 	acceptedTxsCounter  = metrics.NewRegisteredCounter("chain/txs/accepted", nil)
 	processedTxsCounter = metrics.NewRegisteredCounter("chain/txs/processed", nil)
+
+	acceptedLogsCounter  = metrics.NewRegisteredCounter("chain/logs/accepted", nil)
+	processedLogsCounter = metrics.NewRegisteredCounter("chain/logs/processed", nil)
 
 	ErrRefuseToCorruptArchiver = errors.New("node has operated with pruning disabled, shutting down to prevent missing tries")
 
@@ -97,13 +101,13 @@ var (
 )
 
 const (
-	bodyCacheLimit      = 256
-	blockCacheLimit     = 256
-	receiptsCacheLimit  = 32
-	txLookupCacheLimit  = 1024
-	feeConfigCacheLimit = 256
-	badBlockLimit       = 10
-	TriesInMemory       = 128
+	bodyCacheLimit           = 256
+	blockCacheLimit          = 256
+	receiptsCacheLimit       = 32
+	txLookupCacheLimit       = 1024
+	feeConfigCacheLimit      = 256
+	coinbaseConfigCacheLimit = 256
+	badBlockLimit            = 10
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	//
@@ -146,6 +150,13 @@ type cacheableFeeConfig struct {
 	lastChangedAt *big.Int
 }
 
+// cacheableCoinbaseConfig encapsulates coinbase address itself and allowFeeRecipient flag,
+// in order to cache them together.
+type cacheableCoinbaseConfig struct {
+	coinbaseAddress    common.Address
+	allowFeeRecipients bool
+}
+
 // CacheConfig contains the configuration values for the trie caching/pruning
 // that's resident in a blockchain.
 type CacheConfig struct {
@@ -167,6 +178,7 @@ type CacheConfig struct {
 	SkipSnapshotRebuild             bool          // Whether to skip rebuilding the snapshot in favor of returning an error (only set to true for tests)
 	Preimages                       bool          // Whether to store preimage of trie key to the disk
 	AcceptedCacheSize               int           // Depth of accepted headers cache and accepted logs cache at the accepted tip
+	TxLookupLimit                   uint64        // Number of recent blocks for which to maintain transaction lookup indices
 }
 
 var DefaultCacheConfig = &CacheConfig{
@@ -221,13 +233,14 @@ type BlockChain struct {
 
 	currentBlock atomic.Value // Current head of the block chain
 
-	stateCache     state.Database // State database to reuse between imports (contains state cache)
-	stateManager   TrieWriter
-	bodyCache      *lru.Cache // Cache for the most recent block bodies
-	receiptsCache  *lru.Cache // Cache for the most recent receipts per block
-	blockCache     *lru.Cache // Cache for the most recent entire blocks
-	txLookupCache  *lru.Cache // Cache for the most recent transaction lookup data.
-	feeConfigCache *lru.Cache // Cache for the most recent feeConfig lookup data.
+	stateCache          state.Database // State database to reuse between imports (contains state cache)
+	stateManager        TrieWriter
+	bodyCache           *lru.Cache // Cache for the most recent block bodies
+	receiptsCache       *lru.Cache // Cache for the most recent receipts per block
+	blockCache          *lru.Cache // Cache for the most recent entire blocks
+	txLookupCache       *lru.Cache // Cache for the most recent transaction lookup data.
+	feeConfigCache      *lru.Cache // Cache for the most recent feeConfig lookup data.
+	coinbaseConfigCache *lru.Cache // Cache for the most recent coinbaseConfig lookup data.
 
 	running int32 // 0 if chain is running, 1 when stopped
 
@@ -262,9 +275,8 @@ type BlockChain struct {
 	// during shutdown and in tests.
 	acceptorWg sync.WaitGroup
 
-	// [rejournalWg] is used to wait for the trie clean rejournaling to complete.
-	// This is used during shutdown.
-	rejournalWg sync.WaitGroup
+	// [wg] is used to wait for the async blockchain processes to finish on shutdown.
+	wg sync.WaitGroup
 
 	// quit channel is used to listen for when the blockchain is shut down to close
 	// async processes.
@@ -300,6 +312,7 @@ func NewBlockChain(
 	blockCache, _ := lru.New(blockCacheLimit)
 	txLookupCache, _ := lru.New(txLookupCacheLimit)
 	feeConfigCache, _ := lru.New(feeConfigCacheLimit)
+	coinbaseConfigCache, _ := lru.New(coinbaseConfigCacheLimit)
 	badBlocks, _ := lru.New(badBlockLimit)
 
 	bc := &BlockChain{
@@ -312,18 +325,19 @@ func NewBlockChain(
 			Preimages:   cacheConfig.Preimages,
 			StatsPrefix: trieCleanCacheStatsNamespace,
 		}),
-		bodyCache:         bodyCache,
-		receiptsCache:     receiptsCache,
-		blockCache:        blockCache,
-		txLookupCache:     txLookupCache,
-		feeConfigCache:    feeConfigCache,
-		engine:            engine,
-		vmConfig:          vmConfig,
-		badBlocks:         badBlocks,
-		senderCacher:      newTxSenderCacher(runtime.NumCPU()),
-		acceptorQueue:     make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
-		quit:              make(chan struct{}),
-		acceptedLogsCache: NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
+		bodyCache:           bodyCache,
+		receiptsCache:       receiptsCache,
+		blockCache:          blockCache,
+		txLookupCache:       txLookupCache,
+		feeConfigCache:      feeConfigCache,
+		coinbaseConfigCache: coinbaseConfigCache,
+		engine:              engine,
+		vmConfig:            vmConfig,
+		badBlocks:           badBlocks,
+		senderCacher:        newTxSenderCacher(runtime.NumCPU()),
+		acceptorQueue:       make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
+		quit:                make(chan struct{}),
+		acceptedLogsCache:   NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
 	}
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
@@ -344,6 +358,13 @@ func NewBlockChain(
 
 	// Create the state manager
 	bc.stateManager = NewTrieWriter(bc.stateCache.TrieDB(), cacheConfig)
+
+	// loadLastState writes indices, so we should start the tx indexer after that.
+	// Start tx indexer/unindexer here.
+	if bc.cacheConfig.TxLookupLimit != 0 {
+		bc.wg.Add(1)
+		go bc.dispatchTxUnindexer()
+	}
 
 	// Re-generate current block state if it is missing
 	if err := bc.loadLastState(lastAcceptedHash); err != nil {
@@ -392,14 +413,80 @@ func NewBlockChain(
 		log.Info("Starting to save trie clean cache periodically", "journalDir", bc.cacheConfig.TrieCleanJournal, "freq", bc.cacheConfig.TrieCleanRejournal)
 
 		triedb := bc.stateCache.TrieDB()
-		bc.rejournalWg.Add(1)
+		bc.wg.Add(1)
 		go func() {
-			defer bc.rejournalWg.Done()
+			defer bc.wg.Done()
 			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
 		}()
 	}
 
 	return bc, nil
+}
+
+// dispatchTxUnindexer is responsible for the deletion of the
+// transaction index.
+// Invariant: If TxLookupLimit is 0, it means all tx indices will be preserved.
+// Meaning that this function should never be called.
+func (bc *BlockChain) dispatchTxUnindexer() {
+	defer bc.wg.Done()
+	txLookupLimit := bc.cacheConfig.TxLookupLimit
+
+	// If the user just upgraded to a new version which supports transaction
+	// index pruning, write the new tail and remove anything older.
+	if rawdb.ReadTxIndexTail(bc.db) == nil {
+		rawdb.WriteTxIndexTail(bc.db, 0)
+	}
+
+	// unindexes transactions depending on user configuration
+	unindexBlocks := func(tail uint64, head uint64, done chan struct{}) {
+		start := time.Now()
+		defer func() {
+			txUnindexTimer.Inc(time.Since(start).Milliseconds())
+			done <- struct{}{}
+		}()
+
+		// Update the transaction index to the new chain state
+		if head-txLookupLimit+1 >= tail {
+			// Unindex a part of stale indices and forward index tail to HEAD-limit
+			rawdb.UnindexTransactions(bc.db, tail, head-txLookupLimit+1, bc.quit)
+		}
+	}
+	// Any reindexing done, start listening to chain events and moving the index window
+	var (
+		done   chan struct{}              // Non-nil if background unindexing or reindexing routine is active.
+		headCh = make(chan ChainEvent, 1) // Buffered to avoid locking up the event feed
+	)
+	sub := bc.SubscribeChainAcceptedEvent(headCh)
+	if sub == nil {
+		log.Warn("could not create chain accepted subscription to unindex txs")
+		return
+	}
+	defer sub.Unsubscribe()
+
+	for {
+		select {
+		case head := <-headCh:
+			headNum := head.Block.NumberU64()
+			if headNum < txLookupLimit {
+				break
+			}
+
+			if done == nil {
+				done = make(chan struct{})
+				// Note: tail will not be nil since it is initialized in this function.
+				tail := rawdb.ReadTxIndexTail(bc.db)
+				go unindexBlocks(*tail, headNum, done)
+			}
+		case <-done:
+			done = nil
+		case <-bc.quit:
+			if done != nil {
+				log.Info("Waiting background transaction indexer to exit")
+				<-done
+			}
+			return
+		}
+	}
 }
 
 // writeBlockAcceptedIndices writes any indices that must be persisted for accepted block.
@@ -542,6 +629,9 @@ func (bc *BlockChain) startAcceptor() {
 
 		acceptorWorkTimer.Inc(time.Since(start).Milliseconds())
 		acceptorWorkCount.Inc(1)
+		// Note: in contrast to most accepted metrics, we increment the accepted log metrics in the acceptor queue because
+		// the logs are already processed in the acceptor queue.
+		acceptedLogsCounter.Inc(int64(len(logs)))
 	}
 }
 
@@ -565,8 +655,8 @@ func (bc *BlockChain) addAcceptorQueue(b *types.Block) {
 // DrainAcceptorQueue blocks until all items in [acceptorQueue] have been
 // processed.
 func (bc *BlockChain) DrainAcceptorQueue() {
-	bc.acceptorClosingLock.Lock()
-	defer bc.acceptorClosingLock.Unlock()
+	bc.acceptorClosingLock.RLock()
+	defer bc.acceptorClosingLock.RUnlock()
 
 	if bc.acceptorClosed {
 		return
@@ -792,7 +882,8 @@ func (bc *BlockChain) ValidateCanonicalChain() error {
 		// Transactions are only indexed beneath the last accepted block, so we only check
 		// that the transactions have been indexed, if we are checking below the last accepted
 		// block.
-		if current.NumberU64() <= bc.lastAccepted.NumberU64() {
+		shouldIndexTxs := bc.cacheConfig.TxLookupLimit == 0 || bc.lastAccepted.NumberU64() < current.NumberU64()+bc.cacheConfig.TxLookupLimit
+		if current.NumberU64() <= bc.lastAccepted.NumberU64() && shouldIndexTxs {
 			// Ensure that all of the transactions have been stored correctly in the canonical
 			// chain
 			for txIndex, tx := range txs {
@@ -850,7 +941,6 @@ func (bc *BlockChain) Stop() {
 		return
 	}
 
-	// Wait for accepted feed to process all remaining items
 	log.Info("Closing quit channel")
 	close(bc.quit)
 	// Wait for accepted feed to process all remaining items
@@ -878,9 +968,9 @@ func (bc *BlockChain) Stop() {
 	log.Info("Closing scope")
 	bc.scope.Close()
 
-	// Waiting for clean trie re-journal to complete
-	log.Info("Waiting for trie re-journal to complete")
-	bc.rejournalWg.Wait()
+	// Waiting for background processes to complete
+	log.Info("Waiting for background processes to complete")
+	bc.wg.Wait()
 
 	log.Info("Blockchain stopped")
 }
@@ -1363,6 +1453,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 
 	processedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	processedTxsCounter.Inc(int64(block.Transactions().Len()))
+	processedLogsCounter.Inc(int64(len(logs)))
 	blockInsertCount.Inc(1)
 	return nil
 }
