@@ -1,5 +1,5 @@
-// // (c) 2022, Ava Labs, Inc. All rights reserved.
-// // See the file LICENSE for licensing terms.
+// (c) 2023, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
 
 package params
 
@@ -27,10 +27,10 @@ import (
 // ContractDeployerAllowListAddress = common.HexToAddress("0x0200000000000000000000000000000000000000")
 // ContractNativeMinterAddress      = common.HexToAddress("0x0200000000000000000000000000000000000001")
 // TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
-// FeeManagerAddress         				= common.HexToAddress("0x0200000000000000000000000000000000000003")
+// FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
 // RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
 // ADD YOUR PRECOMPILE HERE
-// {YourPrecompile}Address       = common.HexToAddress("0x03000000000000000000000000000000000000??")
+// {YourPrecompile}Address          = common.HexToAddress("0x03000000000000000000000000000000000000??")
 func init() {
 	// Order matters here.
 	precompile.RegisterModule(deployerallowlist.NewModule())

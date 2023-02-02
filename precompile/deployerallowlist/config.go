@@ -63,7 +63,7 @@ func (ContractDeployerAllowListConfig) Contract() precompile.StatefulPrecompiled
 }
 
 // Key returns the key used in json config files to specify this precompile config.
-func (c ContractDeployerAllowListConfig) Key() string {
+func (ContractDeployerAllowListConfig) Key() string {
 	return ConfigKey
 }
 

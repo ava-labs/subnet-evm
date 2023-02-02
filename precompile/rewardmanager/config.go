@@ -96,22 +96,22 @@ func NewDisableRewardManagerConfig(blockTimestamp *big.Int) *RewardManagerConfig
 
 // Address returns the address of the RewardManager. Addresses reside under the precompile/params.go
 // Select a non-conflicting address and set it in the params.go.
-func (*RewardManagerConfig) Address() common.Address {
+func (RewardManagerConfig) Address() common.Address {
 	return ContractAddress
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for RewardManager.
-func (*RewardManagerConfig) Contract() precompile.StatefulPrecompiledContract {
+func (RewardManagerConfig) Contract() precompile.StatefulPrecompiledContract {
 	return RewardManagerPrecompile
 }
 
 // Key returns the key used in json config files to specify this precompile config.
-func (*RewardManagerConfig) Key() string {
+func (RewardManagerConfig) Key() string {
 	return ConfigKey
 }
 
 // NewConfig returns a new instance of RewardManagerConfig.
-func (*RewardManagerConfig) NewConfig() precompile.StatefulPrecompileConfig {
+func (RewardManagerConfig) NewConfig() precompile.StatefulPrecompileConfig {
 	return new(RewardManagerConfig)
 }
 
