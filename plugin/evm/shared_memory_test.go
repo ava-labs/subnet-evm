@@ -8,11 +8,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	engCommon "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
+	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/utils/codec"
 	"github.com/ethereum/go-ethereum/common"
@@ -56,10 +59,12 @@ func TestSharedMemory(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	data, err := precompile.PackExportAVAX(testXChainID, uint64(0), uint64(1), []common.Address{testEthAddrs[0]})
+	// Note: the addresses specified here must correspond to the account that should control the exported funds on the recipient chain
+	// If this were to be imported to the X-Chain, we would need to use an address derived from an X-Chain private key
+	data, err := precompile.PackExportAVAX(testXChainID, uint64(0), uint64(1), []common.Address{testEthAddrs[1]})
 	require.NoError(t, err)
 
-	tx := types.NewTransaction(uint64(0), precompile.SharedMemoryAddress, big.NewInt(1), 200_000, big.NewInt(testMinGasPrice), data)
+	tx := types.NewTransaction(uint64(0), precompile.SharedMemoryAddress, big.NewInt(params.Ether), 200_000, big.NewInt(testMinGasPrice), data)
 
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
 	require.NoError(t, err)
@@ -77,11 +82,32 @@ func TestSharedMemory(t *testing.T) {
 	vm.blockChain.DrainAcceptorQueue()
 
 	xChainSharedMemory := m.NewSharedMemory(testXChainID)
-	values, _, _, err := xChainSharedMemory.Indexed(ctx.ChainID, [][]byte{testEthAddrs[0][:]}, nil, nil, 100)
+	values, _, _, err := xChainSharedMemory.Indexed(ctx.ChainID, [][]byte{testEthAddrs[1][:]}, nil, nil, 100)
 	require.NoError(t, err)
 	require.Len(t, values, 1)
 	utxo := &avax.UTXO{}
 	v, err := codec.Codec.Unmarshal(values[0], utxo)
 	require.NoError(t, err)
 	require.Equal(t, uint16(0), v)
+
+	expectedUTXO := &avax.UTXO{
+		// Derive unique UTXOID from txHash and log index
+		UTXOID: avax.UTXOID{
+			TxID:        ids.ID(signedTx.Hash()),
+			OutputIndex: uint32(0),
+		},
+		Asset: avax.Asset{ID: ctx.AVAXAssetID},
+		Out: &secp256k1fx.TransferOutput{
+			Amt: 1_000_000_000,
+			OutputOwners: secp256k1fx.OutputOwners{
+				Locktime:  0,
+				Threshold: uint32(1),
+				Addrs:     []ids.ShortID{ids.ShortID(testEthAddrs[1])},
+			},
+		},
+	}
+
+	expectedUTXOBytes, err := codec.Codec.Marshal(uint16(0), expectedUTXO)
+	require.NoError(t, err)
+	require.Equal(t, expectedUTXOBytes, values[0])
 }

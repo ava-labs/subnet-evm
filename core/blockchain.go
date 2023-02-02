@@ -1080,12 +1080,13 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 // handlePrecompilePostAccept handles executing the post-accept functions of any active precompiles
 // on the logs contained in the block.
 func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block, receipts []*types.Receipt) (map[ids.ID]*chainAtomic.Requests, error) {
+	log.Info("calling handlePrecompilePostAccept", "block", block.Hash())
 	rules := bc.chainConfig.AvalancheRules(block.Number(), block.Timestamp())
 
 	atomicOps := make(map[ids.ID]*chainAtomic.Requests)
 	for _, receipt := range receipts {
-		for logIndex, log := range receipt.Logs {
-			precompileConfig, ok := rules.Precompiles[log.Address]
+		for logIndex, receiptLog := range receipt.Logs {
+			precompileConfig, ok := rules.Precompiles[receiptLog.Address]
 			if !ok {
 				continue
 			}
@@ -1095,7 +1096,8 @@ func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block, receipts []
 				continue
 			}
 
-			blockchainID, atomicRequests, err := onAccept(bc.chainConfig.SnowCtx, receipt.TxHash, logIndex, log.Topics, log.Data)
+			log.Info("Calling onAccept", "block", block.Hash())
+			blockchainID, atomicRequests, err := onAccept(bc.chainConfig.SnowCtx, receipt.TxHash, logIndex, receiptLog.Topics, receiptLog.Data)
 			if err != nil {
 				return nil, err
 			}

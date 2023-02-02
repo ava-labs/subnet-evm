@@ -419,7 +419,7 @@ func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
 	}
 
 	for _, test := range genesisTests {
-		ctx, dbManager, genesisBytes, issuer := setupGenesis(t, test.genesisJSON)
+		ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
 		vm := &VM{}
 		err := vm.Initialize(
 			context.Background(),

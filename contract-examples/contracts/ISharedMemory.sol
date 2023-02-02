@@ -67,7 +67,7 @@ interface ISharedMemory {
     // use for the export as msg.value
     // XXX we do not include an amount paremter to avoid specifying it twice. We may consider specifying the parameter and verifying
     // that the amount matches msg.value
-    function exportAVAX(bytes32 destinationChainID, uint64 locktime, uint64 threshold, address[] calldata addrs) external;
+    function exportAVAX(bytes32 destinationChainID, uint64 locktime, uint64 threshold, address[] calldata addrs) external payable;
 
     // ImportUTXO is emitted by importUTXO to indicate that the import operation has taken place.
     // When the block is accepted, the VM will parse the generated log (if it was not reverted) and perform the import

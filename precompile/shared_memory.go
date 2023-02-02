@@ -299,8 +299,7 @@ func exportAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 	}
 	accessibleState.GetStateDB().AddLog(SharedMemoryAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
-	// TODO
-	// add atomic trie handling if we are going to keep it inside of the storage trie
+	// TODO: add atomic trie handling if we are going to keep it inside of the storage trie
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
