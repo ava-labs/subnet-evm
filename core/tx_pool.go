@@ -647,6 +647,7 @@ func (pool *TxPool) PendingWithPredicates(rules params.Rules, predicateContext *
 				for i := invalidIndex; i < len(txs); i++ {
 					pool.removeTx(txs[i].Hash(), true)
 				}
+				txs = txs[:invalidIndex]
 			}
 		}
 		if len(txs) > 0 {
