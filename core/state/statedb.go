@@ -1128,9 +1128,9 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 	return s.accessList.Contains(addr, slot)
 }
 
-// GetPredicateStorageSlots returns whether or not the given address was included in the optional
-// access list of the transaction, and the storage slots that were associated with that address
-// if it was included. The storage slots are returned in the same order as they appeared in the transaction.
+// GetPredicateStorageSlots returns the storage slots associated with a given address, and whether or not
+// that address was included in the optional access list of the transaction.
+// The storage slots are returned in the same order as they appeared in the transaction.
 // These are the same storage slots that are used to verify any transaction
 // predicates for transactions with access list addresses that match a precompile address.
 func (s *StateDB) GetPredicateStorageSlots(address common.Address) ([]byte, bool) {

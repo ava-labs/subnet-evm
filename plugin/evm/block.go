@@ -14,11 +14,14 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/precompile"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 )
+
+var _ block.WithVerifyContext = &Block{}
 
 // Block implements the snowman.Block interface
 type Block struct {
@@ -112,7 +115,7 @@ func (b *Block) Verify(context.Context) error {
 // TODO: Cache the result such that if called multiple times for the same block,
 // we do not need to recompute the value.
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	precompileConfigs := b.vm.currentRules().Precompiles
+	precompileConfigs := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Precompiles
 	for _, tx := range b.ethBlock.Transactions() {
 		for _, accessTuple := range tx.AccessList() {
 			if _, ok := precompileConfigs[accessTuple.Address]; ok {
@@ -133,12 +136,23 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 	} else {
 		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
 	}
+	// VerifyWithContext may be called multiple times on the same block with multiple contexts, but the engine will only call Accept or Reject once.
+	// As such, we need to ensure that we only verify the block once, so if the block is currently processing, we only check the predicates and return.
+	if b.status == choices.Processing {
+		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+		predicateCtx := precompile.PredicateContext{
+			SnowCtx:            b.vm.ctx,
+			ProposerVMBlockCtx: proposerVMBlockCtx,
+		}
+		if _, err := core.CheckPredicatesForSenderTxs(rules, &predicateCtx, b.ethBlock.Transactions()); err != nil {
+			return fmt.Errorf("predicate transaction verification failed: %w", err)
+		}
+		return nil
+	}
 	return b.verify(proposerVMBlockCtx, true)
 }
 
 // Verify the block, including checking precompile predicates
-// Note that if this block activates a precompile with a predicate, that predicate is not checked
-// in this block. The VM doesn't activate the precompile until the block is accepted.
 func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
@@ -149,7 +163,11 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	// been valid at the time the block was accepted.
 	if b.vm.bootstrapped {
 		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-		if _, err := core.CheckPredicatesForSenderTxs(rules, b.vm.ctx, proposerVMBlockCtx, b.ethBlock.Transactions()); err != nil {
+		predicateCtx := precompile.PredicateContext{
+			SnowCtx:            b.vm.ctx,
+			ProposerVMBlockCtx: proposerVMBlockCtx,
+		}
+		if _, err := core.CheckPredicatesForSenderTxs(rules, &predicateCtx, b.ethBlock.Transactions()); err != nil {
 			return fmt.Errorf("predicate transaction verification failed: %w", err)
 		}
 	}

@@ -12,8 +12,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// PredicateContext provides context to stateful precompile predicates
+type PredicateContext struct {
+	SnowCtx            *snow.Context
+	ProposerVMBlockCtx *block.Context
+}
+
 // PredicateFunc is the function type for validating that an access list tuple touching a precompile follows the predicate
-type PredicateFunc func(chainContext *snow.Context, blockContext *block.Context, storageSlots []byte) error
+// It is possible [blockContext] to be nil if the proposer VM is not fully activated, so predicates should explicitly check this.
+type PredicateFunc func(predicateContext *PredicateContext, storageSlots []byte) error
 
 // OnAcceptFunc is called on any log produced in a block where the address matches the precompile address
 type OnAcceptFunc func(txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error

@@ -44,6 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -112,7 +113,7 @@ func (w *worker) setEtherbase(addr common.Address) {
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWork(pendingTxs map[common.Address]types.Transactions) (*types.Block, error) {
+func (w *worker) commitNewWork(predicateContext *precompile.PredicateContext) (*types.Block, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
@@ -188,9 +189,15 @@ func (w *worker) commitNewWork(pendingTxs map[common.Address]types.Transactions)
 	// Configure any stateful precompiles that should go into effect during this block.
 	w.chainConfig.CheckConfigurePrecompiles(new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
 
+	// Get the pending txs from TxPool
+	pending := w.eth.TxPool().Pending(true)
+	// Filter out transactions that don't satisfy predicateContext and remove them from TxPool
+	rules := w.chainConfig.AvalancheRules(header.Number, new(big.Int).SetUint64(header.Time))
+	pending = w.enforcePredicates(rules, predicateContext, pending)
+
 	// Split the pending transactions into locals and remotes
 	localTxs := make(map[common.Address]types.Transactions)
-	remoteTxs := pendingTxs
+	remoteTxs := pending
 	for _, account := range w.eth.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
 			delete(remoteTxs, account)
@@ -207,6 +214,34 @@ func (w *worker) commitNewWork(pendingTxs map[common.Address]types.Transactions)
 	}
 
 	return w.commit(env)
+}
+
+// txsBySender is a helper type that groups transactions by sender.
+// For each sender, the transactions should be in ascending order by nonce
+type txsBySender map[common.Address]types.Transactions
+
+// enforcePredicates takes a set of pending transactions (grouped by sender, and ordered by nonce) and returns a
+// subset of those transactions (grouped by sender) that satisfy predicateContext.
+// Any transaction sent by a given sender that is received after a transaction that does not
+// satisfy predicateContext is removed from the TxPool and is not included in the return value.
+func (w *worker) enforcePredicates(rules params.Rules, predicateContext *precompile.PredicateContext, pending txsBySender) txsBySender {
+	result := make(txsBySender, len(pending))
+	for addr, txs := range pending {
+		if invalidIndex, err := core.CheckPredicatesForSenderTxs(rules, predicateContext, txs); err != nil {
+			log.Debug(
+				"Removing transactions from sender of transaction with invalid predicate.",
+				"sender", addr.Hex(), "failedTx", txs[invalidIndex].Hash(),
+			)
+			for i := invalidIndex; i < len(txs); i++ {
+				w.eth.TxPool().RemoveTx(txs[i].Hash())
+			}
+			txs = txs[:invalidIndex]
+		}
+		if len(txs) > 0 {
+			result[addr] = txs
+		}
+	}
+	return result
 }
 
 func (w *worker) createCurrentEnvironment(parent *types.Block, header *types.Header, tstart time.Time) (*environment, error) {
