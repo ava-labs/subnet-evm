@@ -645,7 +645,7 @@ func (pool *TxPool) PendingWithPredicates(rules params.Rules, predicateContext *
 			if invalidIndex, err := CheckPredicatesForSenderTxs(rules, predicateContext, txs); err != nil {
 				log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", addr.Hex(), "failedTx", txs[invalidIndex].Hash())
 				for i := invalidIndex; i < len(txs); i++ {
-					pool.RemoveTx(txs[i].Hash())
+					pool.removeTx(txs[i].Hash(), true)
 				}
 			}
 		}
