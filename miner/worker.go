@@ -191,7 +191,7 @@ func (w *worker) commitNewWork(snowCtx *snow.Context, proposerVMBlockCtx *block.
 	w.chainConfig.CheckConfigurePrecompiles(new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
 
 	// Verify any transaction predicates with the given block context
-	pending := w.eth.TxPool().PendingWithPredicates(true, true, w.chainConfig.AvalancheRules(header.Number, new(big.Int).SetUint64(header.Time)), snowCtx, proposerVMBlockCtx)
+	pending := w.eth.TxPool().PendingWithPredicates(w.chainConfig.AvalancheRules(header.Number, new(big.Int).SetUint64(header.Time)), snowCtx, proposerVMBlockCtx, true, true)
 
 	// Split the pending transactions into locals and remotes
 	localTxs := make(map[common.Address]types.Transactions)
