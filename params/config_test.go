@@ -188,11 +188,11 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 
 	rewardManagerConfig, ok := c.GenesisPrecompiles[rewardmanager.ConfigKey]
 	require.True(ok)
-	require.Equal(rewardManagerConfig.Key(), rewardmanager.ConfigKey)
+	require.Equal(rewardManagerConfig.Module().Key, rewardmanager.ConfigKey)
 	require.True(rewardManagerConfig.Equal(testRewardManagerConfig))
 
 	contractNativeMinterConfig := c.GenesisPrecompiles[nativeminter.ConfigKey]
-	require.Equal(contractNativeMinterConfig.Key(), nativeminter.ConfigKey)
+	require.Equal(contractNativeMinterConfig.Module().Key, nativeminter.ConfigKey)
 	require.True(contractNativeMinterConfig.Equal(testContractNativeMinterConfig))
 
 	// Marshal and unmarshal again and check that the result is the same

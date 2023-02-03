@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000002")
 
 	// Singleton StatefulPrecompiledContract for W/R access to the tx allow list.
 	TxAllowListPrecompile precompile.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(ContractAddress)

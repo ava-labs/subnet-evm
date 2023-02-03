@@ -9,16 +9,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-type StatefulPrecompileModule interface {
+type StatefulPrecompileModule struct {
 	// Address returns the address where the stateful precompile is accessible.
-	Address() common.Address
+	Address common.Address
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
-	Contract() StatefulPrecompiledContract
+	Contract StatefulPrecompiledContract
 	// Key returns the unique key for the stateful precompile.
-	Key() string
+	Key string
 	// NewConfig returns a new instance of the stateful precompile config.
-	NewConfig() StatefulPrecompileConfig
+	NewConfigFn func() StatefulPrecompileConfig
 }
 
 var (
@@ -57,17 +57,17 @@ func ReservedAddress(addr common.Address) bool {
 }
 
 func RegisterModule(stm StatefulPrecompileModule) error {
-	address := stm.Address()
-	key := stm.Key()
+	address := stm.Address
+	key := stm.Key
 	if !ReservedAddress(address) {
 		return fmt.Errorf("address %s not in a reserved range", address)
 	}
 
-	for _, precompile := range registeredModules {
-		if precompile.Key() == key {
+	for _, registeredModule := range registeredModules {
+		if registeredModule.Key == key {
 			return fmt.Errorf("name %s already used by a stateful precompile", key)
 		}
-		if precompile.Address() == address {
+		if registeredModule.Address == address {
 			return fmt.Errorf("address %s already used by a stateful precompile", address)
 		}
 	}
@@ -81,7 +81,7 @@ func RegisterModule(stm StatefulPrecompileModule) error {
 func GetPrecompileModuleByAddress(address common.Address) (StatefulPrecompileModule, bool) {
 	index, ok := registeredModulesIndex[address]
 	if !ok {
-		return nil, false
+		return StatefulPrecompileModule{}, false
 	}
 
 	return registeredModules[index], true
@@ -89,12 +89,12 @@ func GetPrecompileModuleByAddress(address common.Address) (StatefulPrecompileMod
 
 func GetPrecompileModule(key string) (StatefulPrecompileModule, bool) {
 	for _, stm := range registeredModules {
-		if stm.Key() == key {
+		if stm.Key == key {
 			return stm, true
 		}
 	}
 
-	return nil, false
+	return StatefulPrecompileModule{}, false
 }
 
 func RegisteredModules() []StatefulPrecompileModule {

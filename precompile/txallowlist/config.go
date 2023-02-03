@@ -17,16 +17,25 @@ var _ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
 // must be unique across all precompiles.
 const ConfigKey = "txAllowListConfig"
 
+var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000002")
+
+var Module = precompile.StatefulPrecompileModule{
+	Key:         ConfigKey,
+	NewConfigFn: func() precompile.StatefulPrecompileConfig { return new(TxAllowListConfig) },
+	Address:     ContractAddress,
+	Contract:    TxAllowListPrecompile,
+}
+
+// NewModule returns a new module for TxAllowList.
+func (_ *TxAllowListConfig) Module() precompile.StatefulPrecompileModule {
+	return Module
+}
+
 // TxAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the TxAllowList specific precompile address.
 type TxAllowListConfig struct {
 	allowlist.AllowListConfig
 	precompile.UpgradeableConfig
-}
-
-// NewModule returns a new module for TxAllowList.
-func NewModule() precompile.StatefulPrecompileModule {
-	return &TxAllowListConfig{}
 }
 
 // NewTxAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -52,29 +61,9 @@ func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
 	}
 }
 
-// Address returns the address of the contract deployer allow list.
-func (_ *TxAllowListConfig) Address() common.Address {
-	return ContractAddress
-}
-
-// Contract returns the singleton stateful precompiled contract to be used for the allow list.
-func (_ *TxAllowListConfig) Contract() precompile.StatefulPrecompiledContract {
-	return TxAllowListPrecompile
-}
-
-// Key returns the key used in json config files to specify this precompile config.
-func (c *TxAllowListConfig) Key() string {
-	return ConfigKey
-}
-
-// NewConfig returns a new instance of TxAllowListConfig.
-func (_ *TxAllowListConfig) NewConfig() precompile.StatefulPrecompileConfig {
-	return new(TxAllowListConfig)
-}
-
 // Configure configures [state] with the desired admins based on [c].
 func (c *TxAllowListConfig) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	return c.AllowListConfig.Configure(state, c.Address())
+	return c.AllowListConfig.Configure(state, ContractAddress)
 }
 
 // Equal returns true if [s] is a [*TxAllowListConfig] and it has been configured identical to [c].

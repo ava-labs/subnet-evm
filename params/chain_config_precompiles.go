@@ -22,9 +22,9 @@ func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
 
 	*ccp = make(ChainConfigPrecompiles)
 	for _, module := range precompile.RegisteredModules() {
-		key := module.Key()
+		key := module.Key
 		if value, ok := raw[key]; ok {
-			conf := module.NewConfig()
+			conf := module.NewConfigFn()
 			err := json.Unmarshal(value, conf)
 			if err != nil {
 				return err

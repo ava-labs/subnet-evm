@@ -159,7 +159,7 @@ func init() {
 	// Ensure that this package will panic during init if there is a conflict present with the declared
 	// precompile addresses.
 	for _, module := range precompile.RegisteredModules() {
-		address := module.Address()
+		address := module.Address
 		if _, ok := PrecompileAllNativeAddresses[address]; ok {
 			panic(fmt.Errorf("precompile address collides with existing native address: %s", address))
 		}

@@ -10,7 +10,6 @@ import (
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 // be enabled via a network upgrade.
 type StatefulPrecompileConfig interface {
-	StatefulPrecompileModule
 	// Timestamp returns the timestamp at which this stateful precompile should be enabled.
 	// 1) 0 indicates that the precompile should be enabled from genesis.
 	// 2) n indicates that the precompile should be enabled in the first block with timestamp >= [n].
@@ -32,6 +31,8 @@ type StatefulPrecompileConfig interface {
 	// provides the config the ability to set its initial state and should only modify the state within
 	// its own address space.
 	Configure(ChainConfig, StateDB, BlockContext) error
+
+	Module() StatefulPrecompileModule
 }
 
 // Configure sets the nonce and code to non-empty values then calls Configure on [precompileConfig] to make the necessary
@@ -40,10 +41,10 @@ type StatefulPrecompileConfig interface {
 func Configure(chainConfig ChainConfig, blockContext BlockContext, precompileConfig StatefulPrecompileConfig, state StateDB) error {
 	// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
 	// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
-	state.SetNonce(precompileConfig.Address(), 1)
+	state.SetNonce(precompileConfig.Module().Address, 1)
 	// Set the code of the precompile's address to a non-zero length byte slice to ensure that the precompile
 	// can be called from within Solidity contracts. Solidity adds a check before invoking a contract to ensure
 	// that it does not attempt to invoke a non-existent contract.
-	state.SetCode(precompileConfig.Address(), []byte{0x1})
+	state.SetCode(precompileConfig.Module().Address, []byte{0x1})
 	return precompileConfig.Configure(chainConfig, state, blockContext)
 }

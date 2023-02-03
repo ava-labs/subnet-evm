@@ -46,7 +46,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		if !ok {
 			return fmt.Errorf("unknown precompile module: %s", key)
 		}
-		conf := module.NewConfig()
+		conf := module.NewConfigFn()
 		err := json.Unmarshal(value, conf)
 		if err != nil {
 			return err
@@ -60,7 +60,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 // Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
 func (u *PrecompileUpgrade) MarshalJSON() ([]byte, error) {
 	res := make(ChainConfigPrecompiles)
-	res[u.Key()] = u.StatefulPrecompileConfig
+	res[u.Module().Key] = u.StatefulPrecompileConfig
 	return json.Marshal(res)
 }
 
@@ -100,7 +100,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 	// previousUpgradeTimestamp is used to verify monotonically increasing timestamps.
 	var previousUpgradeTimestamp *big.Int
 	for i, upgrade := range c.PrecompileUpgrades {
-		key := upgrade.Key()
+		key := upgrade.Module().Key
 
 		// lastUpgradeByKey is the previous processed upgrade for this precompile key.
 		lastUpgradeByKey, ok := lastPrecompileUpgrades[key]
@@ -170,7 +170,7 @@ func (c *ChainConfig) getActivatingPrecompileConfigs(address common.Address, fro
 		return configs
 	}
 
-	key := module.Key()
+	key := module.Key
 
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
@@ -181,7 +181,7 @@ func (c *ChainConfig) getActivatingPrecompileConfigs(address common.Address, fro
 	}
 	// Loop over all upgrades checking for the requested precompile config.
 	for _, upgrade := range upgrades {
-		if upgrade.Key() == key {
+		if upgrade.Module().Key == key {
 			// Check if the precompile activates in the specified range.
 			if utils.IsForkTransition(upgrade.Timestamp(), from, to) {
 				configs = append(configs, upgrade.StatefulPrecompileConfig)
@@ -199,7 +199,7 @@ func (c *ChainConfig) getActivatingPrecompileConfigs(address common.Address, fro
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
 	for _, module := range precompile.RegisteredModules() {
-		if err := c.checkPrecompileCompatible(module.Address(), precompileUpgrades, lastTimestamp); err != nil {
+		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, lastTimestamp); err != nil {
 			return err
 		}
 	}
@@ -252,7 +252,7 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []precompile.StatefulPrecompileConfig {
 	statefulPrecompileConfigs := make([]precompile.StatefulPrecompileConfig, 0)
 	for _, module := range precompile.RegisteredModules() {
-		if config := c.GetActivePrecompileConfig(module.Address(), blockTimestamp); config != nil {
+		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil {
 			statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
 		}
 	}
@@ -272,13 +272,13 @@ func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContex
 	// This is important because we want to configure precompiles in the same order
 	// so that the state is deterministic.
 	for _, module := range precompile.RegisteredModules() {
-		key := module.Key()
-		for _, config := range c.getActivatingPrecompileConfigs(module.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
+		key := module.Key
+		for _, config := range c.getActivatingPrecompileConfigs(module.Address, parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
 			if config.IsDisabled() {
 				log.Info("Disabling precompile", "name", key)
-				statedb.Suicide(module.Address())
+				statedb.Suicide(module.Address)
 				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
 				// This enables re-configuration of the same contract state in the same block.
 				// Without an immediate Finalise call after the Suicide, a reconfigured precompiled state can be wiped out

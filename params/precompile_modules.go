@@ -38,7 +38,7 @@ func init() {
 	// in the state.
 	precompile.RegisterModule(deployerallowlist.NewModule())
 	precompile.RegisterModule(nativeminter.NewModule())
-	precompile.RegisterModule(txallowlist.NewModule())
+	precompile.RegisterModule(txallowlist.Module)
 	precompile.RegisterModule(feemanager.NewModule())
 	precompile.RegisterModule(rewardmanager.NewModule())
 	// ADD YOUR PRECOMPILE HERE

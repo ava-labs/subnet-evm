@@ -599,7 +599,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 		if config.IsDisabled() {
 			continue
 		}
-		rules.ActivePrecompiles[config.Address()] = config.Contract()
+		rules.ActivePrecompiles[config.Module().Address] = config.Module().Contract
 	}
 
 	return rules
