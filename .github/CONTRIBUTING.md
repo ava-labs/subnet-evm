@@ -29,7 +29,7 @@ guidelines:
 
 ## Documentation guidelines
 
-- Code should be well commented, so the it is easier to read and maintain.
+- Code should be well commented, so it is easier to read and maintain.
  Any complex sections or invariants should be documented explicitly.
 - Code must be documented adhering to the official Go
   [commentary](https://golang.org/doc/effective_go.html#commentary) guidelines.
