@@ -13,17 +13,18 @@ import (
 
 var _ precompile.StatefulPrecompileConfig = &TxAllowListConfig{}
 
-// ConfigKey is the key used in json config files to specify this precompile config.
-// must be unique across all precompiles.
-const ConfigKey = "txAllowListConfig"
+var Module precompile.StatefulPrecompileModule
 
-var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000002")
-
-var Module = precompile.StatefulPrecompileModule{
-	Key:         ConfigKey,
-	NewConfigFn: func() precompile.StatefulPrecompileConfig { return new(TxAllowListConfig) },
-	Address:     ContractAddress,
-	Contract:    TxAllowListPrecompile,
+func InitModule(address common.Address, key string) precompile.StatefulPrecompileModule {
+	Module = precompile.StatefulPrecompileModule{
+		Address: address,
+		Key:     key,
+		NewConfigFn: func() precompile.StatefulPrecompileConfig {
+			return &TxAllowListConfig{}
+		},
+		Contract: allowlist.CreateAllowListPrecompile(address),
+	}
+	return Module
 }
 
 // NewModule returns a new module for TxAllowList.
@@ -63,7 +64,7 @@ func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
 
 // Configure configures [state] with the desired admins based on [c].
 func (c *TxAllowListConfig) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	return c.AllowListConfig.Configure(state, ContractAddress)
+	return c.AllowListConfig.Configure(state, c.Module().Address)
 }
 
 // Equal returns true if [s] is a [*TxAllowListConfig] and it has been configured identical to [c].

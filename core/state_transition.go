@@ -249,7 +249,7 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		// Check that the sender is on the tx allow list if enabled
-		if st.evm.ChainConfig().IsPrecompileEnabled(txallowlist.ContractAddress, st.evm.Context.Time) {
+		if st.evm.ChainConfig().IsPrecompileEnabled(txallowlist.Module.Address, st.evm.Context.Time) {
 			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, st.msg.From())
 			if !txAllowListRole.IsEnabled() {
 				return fmt.Errorf("%w: %s", txallowlist.ErrSenderAddressNotAllowListed, st.msg.From())

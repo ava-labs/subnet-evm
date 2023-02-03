@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
@@ -38,7 +39,10 @@ func init() {
 	// in the state.
 	precompile.RegisterModule(deployerallowlist.NewModule())
 	precompile.RegisterModule(nativeminter.NewModule())
-	precompile.RegisterModule(txallowlist.Module)
+	precompile.RegisterModule(txallowlist.InitModule(
+		common.HexToAddress("0x0200000000000000000000000000000000000002"),
+		"txAllowListConfig",
+	))
 	precompile.RegisterModule(feemanager.NewModule())
 	precompile.RegisterModule(rewardmanager.NewModule())
 	// ADD YOUR PRECOMPILE HERE
