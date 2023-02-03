@@ -14,6 +14,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/precompile"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -139,7 +140,11 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 	// As such, we need to ensure that we only verify the block once, so if the block is currently processing, we only check the predicates and return.
 	if b.status == choices.Processing {
 		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-		if _, err := core.CheckPredicatesForSenderTxs(rules, b.vm.ctx, proposerVMBlockCtx, b.ethBlock.Transactions()); err != nil {
+		predicateCtx := precompile.PredicateContext{
+			SnowCtx:            b.vm.ctx,
+			ProposerVMBlockCtx: proposerVMBlockCtx,
+		}
+		if _, err := core.CheckPredicatesForSenderTxs(rules, &predicateCtx, b.ethBlock.Transactions()); err != nil {
 			return fmt.Errorf("predicate transaction verification failed: %w", err)
 		}
 		return nil
@@ -158,7 +163,11 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	// been valid at the time the block was accepted.
 	if b.vm.bootstrapped {
 		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-		if _, err := core.CheckPredicatesForSenderTxs(rules, b.vm.ctx, proposerVMBlockCtx, b.ethBlock.Transactions()); err != nil {
+		predicateCtx := precompile.PredicateContext{
+			SnowCtx:            b.vm.ctx,
+			ProposerVMBlockCtx: proposerVMBlockCtx,
+		}
+		if _, err := core.CheckPredicatesForSenderTxs(rules, &predicateCtx, b.ethBlock.Transactions()); err != nil {
 			return fmt.Errorf("predicate transaction verification failed: %w", err)
 		}
 	}

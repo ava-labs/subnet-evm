@@ -32,6 +32,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -631,8 +632,12 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	} else {
 		log.Debug("Building block without context")
 	}
+	predicateCtx := precompile.PredicateContext{
+		SnowCtx:            vm.ctx,
+		ProposerVMBlockCtx: proposerVMBlockCtx,
+	}
 
-	block, err := vm.miner.GenerateBlock(vm.ctx, proposerVMBlockCtx)
+	block, err := vm.miner.GenerateBlock(&predicateCtx)
 	vm.builder.handleGenerateBlock()
 	if err != nil {
 		return nil, err

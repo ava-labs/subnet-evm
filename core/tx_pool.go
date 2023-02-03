@@ -36,8 +36,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -624,7 +622,7 @@ func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transacti
 // The enforceTips parameter can be used to do an extra filtering on the pending
 // transactions and only return those whose **effective** tip is large enough in
 // the next pending execution environment.
-func (pool *TxPool) PendingWithPredicates(rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context, enforcePredicates bool, enforceTips bool) map[common.Address]types.Transactions {
+func (pool *TxPool) PendingWithPredicates(rules params.Rules, predicateContext *precompile.PredicateContext, enforcePredicates bool, enforceTips bool) map[common.Address]types.Transactions {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -644,7 +642,7 @@ func (pool *TxPool) PendingWithPredicates(rules params.Rules, snowCtx *snow.Cont
 
 		// If the miner requests predicate enforcement, we remove all transactions after and including the index of the first failed predicate
 		if enforcePredicates {
-			if invalidIndex, err := CheckPredicatesForSenderTxs(rules, snowCtx, proposerVMBlockCtx, txs); err != nil {
+			if invalidIndex, err := CheckPredicatesForSenderTxs(rules, predicateContext, txs); err != nil {
 				log.Debug("Removing transactions from sender of transaction with invalid predicate.", "sender", addr.Hex(), "failedTx", txs[invalidIndex].Hash())
 				for i := invalidIndex; i < len(txs); i++ {
 					pool.RemoveTx(txs[i].Hash())

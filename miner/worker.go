@@ -36,8 +36,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/subnet-evm/consensus"
@@ -46,6 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -114,7 +113,7 @@ func (w *worker) setEtherbase(addr common.Address) {
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWork(snowCtx *snow.Context, proposerVMBlockCtx *block.Context) (*types.Block, error) {
+func (w *worker) commitNewWork(predicateContext *precompile.PredicateContext) (*types.Block, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
@@ -191,7 +190,7 @@ func (w *worker) commitNewWork(snowCtx *snow.Context, proposerVMBlockCtx *block.
 	w.chainConfig.CheckConfigurePrecompiles(new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
 
 	// Verify any transaction predicates with the given block context
-	pending := w.eth.TxPool().PendingWithPredicates(w.chainConfig.AvalancheRules(header.Number, new(big.Int).SetUint64(header.Time)), snowCtx, proposerVMBlockCtx, true, true)
+	pending := w.eth.TxPool().PendingWithPredicates(w.chainConfig.AvalancheRules(header.Number, new(big.Int).SetUint64(header.Time)), predicateContext, true, true)
 
 	// Split the pending transactions into locals and remotes
 	localTxs := make(map[common.Address]types.Transactions)
