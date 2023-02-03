@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// PredicateContext provides context to stateful precompile predicates
 type PredicateContext struct {
 	SnowCtx            *snow.Context
 	ProposerVMBlockCtx *block.Context

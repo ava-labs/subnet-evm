@@ -216,11 +216,13 @@ func (w *worker) commitNewWork(predicateContext *precompile.PredicateContext) (*
 	return w.commit(env)
 }
 
+// txsBySender is a helper type that groups transactions by sender.
+// For each sender, the transactions should be in ascending order by nonce
 type txsBySender map[common.Address]types.Transactions
 
-// enforcePredicates takes a set of pending transactions (grouped by sender) and returns a
+// enforcePredicates takes a set of pending transactions (grouped by sender, and ordered by nonce) and returns a
 // subset of those transactions (grouped by sender) that satisfy predicateContext.
-// Any transaction sent by a given sender that is received afer a transaction that does not
+// Any transaction sent by a given sender that is received after a transaction that does not
 // satisfy predicateContext is removed from the TxPool and is not included in the return value.
 func (w *worker) enforcePredicates(rules params.Rules, predicateContext *precompile.PredicateContext, pending txsBySender) txsBySender {
 	result := make(txsBySender, len(pending))
