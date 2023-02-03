@@ -14,7 +14,8 @@ import (
 
 // CheckPredicatesForSenderTxs checks the stateful precompile predicates of any of the given
 // transactions that reference a stateful precompile address in their access list.
-// The parameter [txs] represents a flattened, nonce-ordered list of transactions originating from the same sender
+// The parameter [txs] represents a flattened list of transactions. It is up to the caller to decide the ordering of
+// the transactions in [txs] in relation to the return value of this function.
 // Returns [len(txs), nil] if and only if all referenced predicates are met.
 // Otherwise, returns the index of the first transaction that was invalid and the predicate error.
 func CheckPredicatesForSenderTxs(rules params.Rules, snowCtx *snow.Context, proposerVMBlockCtx *block.Context, txs types.Transactions) (int, error) {
