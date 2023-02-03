@@ -631,7 +631,7 @@ func (pool *TxPool) PendingWithPredicates(rules params.Rules, predicateContext *
 		txs := list.Flatten()
 
 		// If the miner requests tip enforcement, cap the lists now
-		if enforceTips {
+		if enforceTips && !pool.locals.contains(addr) {
 			for i, tx := range txs {
 				if tx.EffectiveGasTipIntCmp(pool.gasPrice, pool.priced.urgent.baseFee) < 0 {
 					txs = txs[:i]
