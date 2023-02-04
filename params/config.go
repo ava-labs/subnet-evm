@@ -171,6 +171,9 @@ type UpgradeConfig struct {
 	// forks must be present or upgradeBytes will be rejected.
 	NetworkUpgrades *NetworkUpgrades `json:"networkUpgrades,omitempty"`
 
+	// Config for enabling state upgrades from genesis.
+	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
+
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
 }
@@ -342,6 +345,11 @@ func (c *ChainConfig) Verify() error {
 		return err
 	}
 
+	// Verify the state upgrades are internally consistent given the existing chainConfig.
+	if err := c.verifyStateUpgrades(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -473,6 +481,11 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, lastHeight *big.Int, 
 
 	// Check that the precompiles on the new config are compatible with the existing precompile config.
 	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, lastTimestamp); err != nil {
+		return err
+	}
+
+	// Check that the state upgrades on the new config are compatible with the existing state upgrade config.
+	if err := c.CheckStateUpgradesCompatible(newcfg.StateUpgrades, lastTimestamp); err != nil {
 		return err
 	}
 

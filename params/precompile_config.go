@@ -346,13 +346,14 @@ func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []prec
 	return statefulPrecompileConfigs
 }
 
-// CheckConfigurePrecompiles checks if any of the precompiles specified by the chain config are enabled or disabled by the block
+// ApplyStateUpgrades checks if any of the precompiles specified by the chain config are enabled or disabled by the block
 // transition from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure]
 // or [Deconfigure] to apply the necessary state transitions for the upgrade.
 // This function is called:
 // - within genesis setup to configure the starting state for precompiles enabled at genesis,
 // - during block processing to update the state before processing the given block.
-func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) {
+// TODO - Consider moving this out of the precompile package and into a state transition package.
+func (c *ChainConfig) ApplyStateUpgrades(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) {
 	blockTimestamp := blockContext.Timestamp()
 	for _, key := range precompileKeys { // Note: configure precompiles in a deterministic order.
 		for _, config := range c.getActivatingPrecompileConfigs(parentTimestamp, blockTimestamp, key, c.PrecompileUpgrades) {
@@ -369,6 +370,28 @@ func (c *ChainConfig) CheckConfigurePrecompiles(parentTimestamp *big.Int, blockC
 			} else {
 				log.Info("Activating new precompile", "name", key, "config", config)
 				precompile.Configure(c, blockContext, config, statedb)
+			}
+		}
+	}
+
+	// Apply the StateUpgrades.
+	for _, key := range stateUpgradeKeys { // Note: configure state upgrades in a deterministic order.
+		for _, config := range c.getActivatingStateUpgradeConfigs(parentTimestamp, blockTimestamp, key, c.StateUpgrades) {
+			// If this transition activates the upgrade, configure the stateful precompile.
+			// (or deconfigure it if it is being disabled.)
+			if config.IsDisabled() {
+				// TODO We don't really enable or disable state upgrades, we just execute it and mark it as done.
+				log.Info("Disabling state upgrade", "name", key)
+				//statedb.Suicide(config.Address())
+				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
+				// This enables re-configuration of the same contract state in the same block.
+				// Without an immediate Finalise call after the Suicide, a reconfigured precompiled state can be wiped out
+				// since Suicide will be committed after the reconfiguration.
+				statedb.Finalise(true)
+			} else {
+				log.Info("Activating new precompile", "name", key, "config", config)
+				// TODO The statedb might need to be type cast
+				//stateupgrade.RunUpgrade(c, blockContext, config, statedb)
 			}
 		}
 	}

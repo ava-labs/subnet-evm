@@ -307,7 +307,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 
 	// Configure any stateful precompiles that should be enabled in the genesis.
-	g.Config.CheckConfigurePrecompiles(nil, types.NewBlockWithHeader(head), statedb)
+	g.Config.ApplyStateUpgrades(nil, types.NewBlockWithHeader(head), statedb)
 
 	// Do custom allocation after airdrop in case an address shows up in standard
 	// allocation
