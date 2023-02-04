@@ -8,6 +8,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -25,7 +26,7 @@ type ContractDeployerAllowListConfig struct {
 }
 
 // NewModule returns a new module for ContractDeployerAllowList.
-func NewModule() precompile.StatefulPrecompileModule {
+func NewModule() modules.Module {
 	return &ContractDeployerAllowListConfig{}
 }
 

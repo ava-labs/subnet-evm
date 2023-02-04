@@ -1,34 +1,36 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package precompile
+package modules
 
 import (
 	"fmt"
 
+	"github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-type StatefulPrecompileModule interface {
+type Module interface {
+	// Key returns the unique key for the stateful precompile.
+	Key() string
 	// Address returns the address where the stateful precompile is accessible.
 	Address() common.Address
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
-	Contract() StatefulPrecompiledContract
-	// Key returns the unique key for the stateful precompile.
-	Key() string
+	Executor() execution.Execution
 	// NewConfig returns a new instance of the stateful precompile config.
-	NewConfig() StatefulPrecompileConfig
+	NewConfig() config.Config
 }
 
 var (
-	// registeredModulesIndex is a map of key to StatefulPrecompileModule
+	// registeredModulesIndex is a map of key to Module
 	// used to quickly look up a module by key
 	registeredModulesIndex = make(map[common.Address]int, 0)
-	// registeredModules is a list of StatefulPrecompileModule to preserve order
+	// registeredModules is a list of Module to preserve order
 	// for deterministic iteration
-	registeredModules = make([]StatefulPrecompileModule, 0)
+	registeredModules = make([]Module, 0)
 
 	reservedRanges = []utils.AddressRange{
 		{
@@ -57,18 +59,18 @@ func ReservedAddress(addr common.Address) bool {
 	return false
 }
 
-func RegisterModule(stm StatefulPrecompileModule) error {
+func RegisterModule(stm Module) error {
 	address := stm.Address()
 	key := stm.Key()
 	if !ReservedAddress(address) {
 		return fmt.Errorf("address %s not in a reserved range", address)
 	}
 
-	for _, precompile := range registeredModules {
-		if precompile.Key() == key {
+	for _, module := range registeredModules {
+		if module.Key() == key {
 			return fmt.Errorf("name %s already used by a stateful precompile", key)
 		}
-		if precompile.Address() == address {
+		if module.Address() == address {
 			return fmt.Errorf("address %s already used by a stateful precompile", address)
 		}
 	}
@@ -79,7 +81,7 @@ func RegisterModule(stm StatefulPrecompileModule) error {
 	return nil
 }
 
-func GetPrecompileModuleByAddress(address common.Address) (StatefulPrecompileModule, bool) {
+func GetPrecompileModuleByAddress(address common.Address) (Module, bool) {
 	index, ok := registeredModulesIndex[address]
 	if !ok {
 		return nil, false
@@ -88,7 +90,7 @@ func GetPrecompileModuleByAddress(address common.Address) (StatefulPrecompileMod
 	return registeredModules[index], true
 }
 
-func GetPrecompileModule(key string) (StatefulPrecompileModule, bool) {
+func GetPrecompileModule(key string) (Module, bool) {
 	for _, stm := range registeredModules {
 		if stm.Key() == key {
 			return stm, true
@@ -98,6 +100,6 @@ func GetPrecompileModule(key string) (StatefulPrecompileModule, bool) {
 	return nil, false
 }
 
-func RegisteredModules() []StatefulPrecompileModule {
+func RegisteredModules() []Module {
 	return registeredModules
 }

@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,7 +17,7 @@ import (
 func TestVerifyUpgradeConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := *TestChainConfig
-	chainConfig.GenesisPrecompiles = ChainConfigPrecompiles{
+	chainConfig.GenesisPrecompiles = precompileConfig.ChainConfigPrecompiles{
 		txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil),
 	}
 
@@ -73,7 +74,7 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 	admins := []common.Address{{1}}
 	chainConfig := *TestChainConfig
-	chainConfig.GenesisPrecompiles = ChainConfigPrecompiles{
+	chainConfig.GenesisPrecompiles = precompileConfig.ChainConfigPrecompiles{
 		txallowlist.ConfigKey:       txallowlist.NewTxAllowListConfig(big.NewInt(1), admins, nil),
 		deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(10), admins, nil),
 	}

@@ -10,6 +10,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
+	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -59,7 +60,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 // MarshalJSON marshal the precompile config into json based on the precompile key.
 // Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
 func (u *PrecompileUpgrade) MarshalJSON() ([]byte, error) {
-	res := make(ChainConfigPrecompiles)
+	res := make(precompileConfig.ChainConfigPrecompiles)
 	res[u.Key()] = u.StatefulPrecompileConfig
 	return json.Marshal(res)
 }
@@ -153,16 +154,16 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 // GetActivePrecompileConfig returns the most recent precompile config corresponding to [address].
 // If none have occurred, returns nil.
 func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTimestamp *big.Int) precompile.StatefulPrecompileConfig {
-	configs := c.getActivatingPrecompileConfigs(address, nil, blockTimestamp, c.PrecompileUpgrades)
+	configs := c.GetActivatingPrecompileConfigs(address, nil, blockTimestamp, c.PrecompileUpgrades)
 	if len(configs) == 0 {
 		return nil
 	}
 	return configs[len(configs)-1] // return the most recent config
 }
 
-// getActivatingPrecompileConfigs returns all upgrades configured to activate during the state transition from a block with timestamp [from]
+// GetActivatingPrecompileConfigs returns all upgrades configured to activate during the state transition from a block with timestamp [from]
 // to a block with timestamp [to].
-func (c *ChainConfig) getActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []precompile.StatefulPrecompileConfig {
+func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []precompile.StatefulPrecompileConfig {
 	configs := make([]precompile.StatefulPrecompileConfig, 0)
 	// Get key from address.
 	module, ok := precompile.GetPrecompileModuleByAddress(address)
@@ -212,8 +213,8 @@ func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []Precompile
 // Upgrades that have already gone into effect cannot be modified or absent from [precompileUpgrades].
 func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
 	// all active upgrades must match
-	activeUpgrades := c.getActivatingPrecompileConfigs(address, nil, lastTimestamp, c.PrecompileUpgrades)
-	newUpgrades := c.getActivatingPrecompileConfigs(address, nil, lastTimestamp, precompileUpgrades)
+	activeUpgrades := c.GetActivatingPrecompileConfigs(address, nil, lastTimestamp, c.PrecompileUpgrades)
+	newUpgrades := c.GetActivatingPrecompileConfigs(address, nil, lastTimestamp, precompileUpgrades)
 
 	// first, check existing upgrades are there
 	for i, upgrade := range activeUpgrades {
@@ -258,39 +259,4 @@ func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []prec
 	}
 
 	return statefulPrecompileConfigs
-}
-
-// ConfigurePrecompiles checks if any of the precompiles specified by the chain config are enabled or disabled by the block
-// transition from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure]
-// or [Deconfigure] to apply the necessary state transitions for the upgrade.
-// This function is called:
-// - within genesis setup to configure the starting state for precompiles enabled at genesis,
-// - during block processing to update the state before processing the given block.
-func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContext precompile.BlockContext, statedb precompile.StateDB) error {
-	blockTimestamp := blockContext.Timestamp()
-	// Note: RegisteredModules returns precompiles in order they are registered.
-	// This is important because we want to configure precompiles in the same order
-	// so that the state is deterministic.
-	for _, module := range precompile.RegisteredModules() {
-		key := module.Key()
-		for _, config := range c.getActivatingPrecompileConfigs(module.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
-			// If this transition activates the upgrade, configure the stateful precompile.
-			// (or deconfigure it if it is being disabled.)
-			if config.IsDisabled() {
-				log.Info("Disabling precompile", "name", key)
-				statedb.Suicide(module.Address())
-				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
-				// This enables re-configuration of the same contract state in the same block.
-				// Without an immediate Finalise call after the Suicide, a reconfigured precompiled state can be wiped out
-				// since Suicide will be committed after the reconfiguration.
-				statedb.Finalise(true)
-			} else {
-				log.Info("Activating new precompile", "name", key, "config", config)
-				if err := precompile.Configure(c, blockContext, config, statedb); err != nil {
-					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", key, err)
-				}
-			}
-		}
-	}
-	return nil
 }

@@ -79,7 +79,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	)
 
 	// Configure any stateful precompiles that should go into effect during this block.
-	err := p.config.ConfigurePrecompiles(new(big.Int).SetUint64(parent.Time), block, statedb)
+	err := ConfigurePrecompiles(p.config, new(big.Int).SetUint64(parent.Time), block, statedb)
 	if err != nil {
 		log.Error("failed to configure precompiles processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
 		return nil, nil, 0, err
