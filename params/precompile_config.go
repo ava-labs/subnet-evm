@@ -5,6 +5,7 @@ package params
 
 import (
 	"fmt"
+	"github.com/ava-labs/subnet-evm/stateupgrade"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
@@ -389,9 +390,8 @@ func (c *ChainConfig) ApplyStateUpgrades(parentTimestamp *big.Int, blockContext 
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				log.Info("Activating new precompile", "name", key, "config", config)
-				// TODO The statedb might need to be type cast
-				//stateupgrade.RunUpgrade(c, blockContext, config, statedb)
+				log.Info("Activating new state upgrade", "name", key, "config", config)
+				stateupgrade.RunUpgrade(c, blockContext, config, statedb)
 			}
 		}
 	}

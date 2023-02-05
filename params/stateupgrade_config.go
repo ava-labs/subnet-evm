@@ -19,10 +19,10 @@ type stateUpgradeKey int
 const (
 	stateUpgradeCodeKey stateUpgradeKey = iota + 1
 	stateUpgradeStateKey
-	stateUpgradeBalanceKey
-	stateUpgradeDeployKey
+	//stateUpgradeBalanceKey
+	//stateUpgradeDeployKey
 )
-var stateUpgradeKeys = []stateUpgradeKey{stateUpgradeCodeKey, stateUpgradeStateKey, stateUpgradeBalanceKey, stateUpgradeDeployKey}
+var stateUpgradeKeys = []stateUpgradeKey{stateUpgradeCodeKey, stateUpgradeStateKey/*, stateUpgradeBalanceKey, stateUpgradeDeployKey*/}
 
 // StateUpgrade is a helper struct embedded in UpgradeConfig, representing
 // each of the possible stateful state upgrade types that can be activated
@@ -38,6 +38,12 @@ func (p *StateUpgrade) getByKey(key stateUpgradeKey) (stateupgrade.StateUpgradeC
 	switch key {
 	case stateUpgradeCodeKey:
 		return p.StateUpgradeCodeConfig, p.StateUpgradeCodeConfig != nil
+	case stateUpgradeStateKey:
+		return p.StateUpgradeStateConfig, p.StateUpgradeStateConfig != nil
+	//case stateUpgradeBalanceKey:
+	//	return p.StateUpgradeBalanceConfig, p.StateUpgradeBalanceConfig != nil
+	//case stateUpgradeDeployKey:
+	//	return p.StateUpgradeDeployConfig, p.StateUpgradeDeployConfig != nil
 	default:
 		panic(fmt.Sprintf("unknown state upgrade key: %v", key))
 	}

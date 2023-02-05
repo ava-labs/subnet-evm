@@ -19,7 +19,7 @@ type StateUpgradeCodeConfigStruct struct {
 // StateUpgradeCodeConfig implements the StateUpgradeConfig interface.
 type StateUpgradeCodeConfig struct {
 	UpgradeableConfig
-	InitialStateUpgradeCodeConfig *StateUpgradeCodeConfigStruct `json:"initialStateUpgradeCodeConfig,omitempty"`
+	InitialStateUpgradeCodeConfig *StateUpgradeCodeConfigStruct `json:"config,omitempty"`
 }
 
 func init() {
