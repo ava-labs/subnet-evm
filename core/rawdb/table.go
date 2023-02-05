@@ -168,11 +168,6 @@ func (b *tableBatch) Reset() {
 	b.batch.Reset()
 }
 
-// Inner returns itself
-func (b *tableBatch) Inner() ethdb.Batch {
-	return b
-}
-
 // tableReplayer is a wrapper around a batch replayer which truncates
 // the added prefix.
 type tableReplayer struct {

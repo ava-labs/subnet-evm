@@ -46,10 +46,6 @@ type Batch interface {
 
 	// Replay replays the batch contents.
 	Replay(w KeyValueWriter) error
-
-	// Inner implements the AvalancheGo batch interface
-	// Returns the underlying batch on the base database if one exists. Otherwise returns itself.
-	Inner() Batch
 }
 
 // Batcher wraps the NewBatch method of a backing data store.

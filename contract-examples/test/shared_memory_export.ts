@@ -36,11 +36,11 @@ describe("SharedMemoryExport", function () {
     fundedSigner = await ethers.getSigner(fundedAddr);
     signer1 = (await ethers.getSigners())[1]
     signer2 = (await ethers.getSigners())[2]
-    // const Contract: ContractFactory = await ethers.getContractFactory("ExampleSharedMemory", { signer: fundedSigner })
-    // contract = await Contract.deploy(1000000000)
-    // await contract.deployed()
-    // const contractAddress: string = contract.address
-    // console.log(`Contract deployed to: ${contractAddress}`)
+    const Contract: ContractFactory = await ethers.getContractFactory("ExampleSharedMemory", { signer: fundedSigner })
+    contract = await Contract.deploy(1000000000)
+    await contract.deployed()
+    const contractAddress: string = contract.address
+    console.log(`Contract deployed to: ${contractAddress}`)
 
     precompile = await ethers.getContractAt("ISharedMemory", SHARED_MEMORY_ADDRESS, fundedSigner);
   });
@@ -57,6 +57,7 @@ describe("SharedMemoryExport", function () {
     let updatedBalance = await ethers.provider.getBalance(fundedAddr)
     console.log("Starting balance: %d, Updated balance: %d", startingBalance, updatedBalance)
     expect(updatedBalance.lt(startingBalance)).to.be.true
+    // TODO: assert the exact balance based off of gas used + gasPrice + export of 1 AVAX
   });
 
   it("exportAVAX via contract", async function () {
