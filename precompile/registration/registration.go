@@ -3,18 +3,7 @@
 
 package registration
 
+// Force imports of each precompile to ensure each precompile's init function runs and registers itself
 import (
-	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
+	_ "github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 )
-
-// This init function is defined as a convenience location to register precompile modules
-func init() {
-	modules.RegisterModule(deployerallowlist.NewModule())
-	// modules.RegisterModule(nativeminter.NewModule())
-	// modules.RegisterModule(txallowlist.NewModule())
-	// modules.RegisterModule(feemanager.NewModule())
-	// modules.RegisterModule(rewardmanager.NewModule())
-	// ADD YOUR PRECOMPILE HERE
-	// mdoules.RegisterModule({yourPrecompilePackage}.{YourPrecompile}Config{})
-}

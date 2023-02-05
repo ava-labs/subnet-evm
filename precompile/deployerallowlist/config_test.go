@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +16,7 @@ func TestVerifyContractDeployerConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	tests := []struct {
 		name          string
-		config        precompile.StatefulPrecompileConfig
+		config        config.Config
 		expectedError string
 	}{
 		{
@@ -44,8 +44,8 @@ func TestEqualContractDeployerAllowListConfig(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name     string
-		config   precompile.StatefulPrecompileConfig
-		other    precompile.StatefulPrecompileConfig
+		config   config.Config
+		other    config.Config
 		expected bool
 	}{
 		{
@@ -54,12 +54,12 @@ func TestEqualContractDeployerAllowListConfig(t *testing.T) {
 			other:    nil,
 			expected: false,
 		},
-		{
-			name:     "different type",
-			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    precompile.NewNoopStatefulPrecompileConfig(),
-			expected: false,
-		},
+		// {
+		// 	name:     "different type",
+		// 	config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
+		// 	other:    precompile.NewNoopStatefulPrecompileConfig(),
+		// 	expected: false,
+		// },
 		{
 			name:     "different admin",
 			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),

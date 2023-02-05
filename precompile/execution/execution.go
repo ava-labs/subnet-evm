@@ -10,7 +10,8 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/state"
-	_ "github.com/ava-labs/subnet-evm/params"
+
+	// _ "github.com/ava-labs/subnet-evm/params"
 	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/common"
 )

@@ -6,28 +6,18 @@ package deployerallowlist
 import (
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ precompile.StatefulPrecompileConfig = &ContractDeployerAllowListConfig{}
-
-// ConfigKey is the key used in json config files to specify this precompile config.
-// must be unique across all precompiles.
-const ConfigKey = "contractDeployerAllowListConfig"
+var _ config.Config = &ContractDeployerAllowListConfig{}
 
 // ContractDeployerAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the contract deployer specific precompile address.
 type ContractDeployerAllowListConfig struct {
 	allowlist.AllowListConfig
-	precompile.UpgradeableConfig
-}
-
-// NewModule returns a new module for ContractDeployerAllowList.
-func NewModule() modules.Module {
-	return &ContractDeployerAllowListConfig{}
+	config.UpgradeableConfig
 }
 
 // NewContractDeployerAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -38,7 +28,7 @@ func NewContractDeployerAllowListConfig(blockTimestamp *big.Int, admins []common
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: blockTimestamp},
+		UpgradeableConfig: config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
 	}
 }
 
@@ -46,40 +36,19 @@ func NewContractDeployerAllowListConfig(blockTimestamp *big.Int, admins []common
 // that disables ContractDeployerAllowList.
 func NewDisableContractDeployerAllowListConfig(blockTimestamp *big.Int) *ContractDeployerAllowListConfig {
 	return &ContractDeployerAllowListConfig{
-		UpgradeableConfig: precompile.UpgradeableConfig{
+		UpgradeableConfig: config.UpgradeableConfig{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
 	}
 }
 
-// Address returns the address of the contract deployer allow list.
-func (ContractDeployerAllowListConfig) Address() common.Address {
-	return ContractAddress
-}
+func (ContractDeployerAllowListConfig) Key() string { return ConfigKey }
 
-// Contract returns the singleton stateful precompiled contract to be used for the allow list.
-func (ContractDeployerAllowListConfig) Contract() precompile.StatefulPrecompiledContract {
-	return ContractDeployerAllowListPrecompile
-}
-
-// Key returns the key used in json config files to specify this precompile config.
-func (ContractDeployerAllowListConfig) Key() string {
-	return ConfigKey
-}
-
-// NewConfig returns a new instance of this config.
-func (ContractDeployerAllowListConfig) NewConfig() precompile.StatefulPrecompileConfig {
-	return new(ContractDeployerAllowListConfig)
-}
-
-// Configure configures [state] with the desired admins based on [c].
-func (c *ContractDeployerAllowListConfig) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	return c.AllowListConfig.Configure(state, ContractAddress)
-}
+func (ContractDeployerAllowListConfig) Address() common.Address { return ContractAddress }
 
 // Equal returns true if [s] is a [*ContractDeployerAllowListConfig] and it has been configured identical to [c].
-func (c *ContractDeployerAllowListConfig) Equal(s precompile.StatefulPrecompileConfig) bool {
+func (c *ContractDeployerAllowListConfig) Equal(s config.Config) bool {
 	// typecast before comparison
 	other, ok := (s).(*ContractDeployerAllowListConfig)
 	if !ok {
@@ -87,3 +56,5 @@ func (c *ContractDeployerAllowListConfig) Equal(s precompile.StatefulPrecompileC
 	}
 	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }
+
+func (c *ContractDeployerAllowListConfig) Verify() error { return c.AllowListConfig.Verify() }

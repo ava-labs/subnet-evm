@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -24,7 +25,7 @@ func ConfigurePrecompiles(c *params.ChainConfig, parentTimestamp *big.Int, block
 	// Note: RegisteredModules returns precompiles in order they are registered.
 	// This is important because we want to configure precompiles in the same order
 	// so that the state is deterministic.
-	for _, module := range precompile.RegisteredModules() {
+	for _, module := range config.GetConfigs() {
 		key := module.Key()
 		for _, config := range c.GetActivatingPrecompileConfigs(module.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.

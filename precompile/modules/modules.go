@@ -20,8 +20,7 @@ type Module interface {
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
 	Executor() execution.Execution
-	// NewConfig returns a new instance of the stateful precompile config.
-	NewConfig() config.Config
+	config.Factory
 }
 
 var (
@@ -77,6 +76,8 @@ func RegisterModule(stm Module) error {
 
 	registeredModulesIndex[address] = len(registeredModules)
 	registeredModules = append(registeredModules, stm)
+	_ = config.RegisterConfig(key, address, stm)
+	_ = execution.RegisterExecution(key, stm.Executor())
 
 	return nil
 }

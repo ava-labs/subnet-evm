@@ -34,7 +34,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/config"
 	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -84,7 +84,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		GenesisPrecompiles:  precompileConfig.ChainConfigPrecompiles{},
+		GenesisPrecompiles:  precompileConfig.Configs{},
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: big.NewInt(0),
 		},
@@ -106,7 +106,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
-		GenesisPrecompiles:  precompileConfig.ChainConfigPrecompiles{},
+		GenesisPrecompiles:  precompileConfig.Configs{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 
@@ -126,7 +126,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{},
-		GenesisPrecompiles:  precompileConfig.ChainConfigPrecompiles{},
+		GenesisPrecompiles:  precompileConfig.Configs{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 )
@@ -158,9 +158,9 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 
-	NetworkUpgrades                                            // Config for timestamps that enable avalanche network upgrades
-	GenesisPrecompiles precompileConfig.ChainConfigPrecompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
-	UpgradeConfig      `json:"-"`                              // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+	NetworkUpgrades                             // Config for timestamps that enable avalanche network upgrades
+	GenesisPrecompiles precompileConfig.Configs `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	UpgradeConfig      `json:"-"`               // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
 }
 
 // UnmarshalJSON parses the JSON-encoded data and stores the result in the
@@ -560,7 +560,7 @@ type Rules struct {
 	// for this rule set.
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
-	ActivePrecompiles map[common.Address]precompile.StatefulPrecompiledContract
+	ActivePrecompiles map[common.Address]config.Config
 }
 
 func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
@@ -595,12 +595,12 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsSubnetEVM = c.IsSubnetEVM(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	rules.ActivePrecompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)
+	rules.ActivePrecompiles = make(map[common.Address]config.Config)
 	for _, config := range c.EnabledStatefulPrecompiles(blockTimestamp) {
 		if config.IsDisabled() {
 			continue
 		}
-		rules.ActivePrecompiles[config.Address()] = config.Contract()
+		rules.ActivePrecompiles[config.Address()] = config
 	}
 
 	return rules

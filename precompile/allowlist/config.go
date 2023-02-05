@@ -6,7 +6,7 @@ package allowlist
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -18,7 +18,7 @@ type AllowListConfig struct {
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
-func (c *AllowListConfig) Configure(state precompile.StateDB, precompileAddr common.Address) error {
+func (c *AllowListConfig) Configure(state *state.StateDB, precompileAddr common.Address) error {
 	for _, enabledAddr := range c.EnabledAddresses {
 		SetAllowListRole(state, precompileAddr, enabledAddr, EnabledRole)
 	}
