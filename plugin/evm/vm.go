@@ -87,6 +87,7 @@ const (
 	decidedCacheSize    = 100
 	missingCacheSize    = 50
 	unverifiedCacheSize = 50
+	signatureCacheSize  = 500
 
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
@@ -105,6 +106,7 @@ var (
 	lastAcceptedKey = []byte("last_accepted_key")
 	acceptedPrefix  = []byte("snowman_accepted")
 	metadataPrefix  = []byte("metadata")
+	warpPrefix      = []byte("warp")
 	ethDBPrefix     = []byte("ethdb")
 )
 
@@ -179,6 +181,9 @@ type VM struct {
 	// [acceptedBlockDB] is the database to store the last accepted
 	// block.
 	acceptedBlockDB database.Database
+
+	// [warpDB] is used to store warp message signatures
+	warpDB database.Database
 
 	toEngine chan<- commonEng.Message
 
@@ -280,6 +285,7 @@ func (vm *VM) Initialize(
 	vm.db = versiondb.New(baseDB)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
+	vm.warpDB = prefixdb.New(warpPrefix, vm.db)
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -420,6 +426,9 @@ func (vm *VM) Initialize(
 	vm.networkCodec = message.Codec
 	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
+
+	// initialize warp backend
+	vm.backend = warp.NewWarpBackend(vm.ctx, vm.warpDB, signatureCacheSize)
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
