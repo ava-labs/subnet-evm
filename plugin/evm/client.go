@@ -8,9 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/api"
-	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/rpc"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -25,7 +23,6 @@ type Client interface {
 	LockProfile(ctx context.Context) error
 	SetLogLevel(ctx context.Context, level log.Lvl) error
 	GetVMConfig(ctx context.Context) (*Config, error)
-	GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*[bls.SignatureLen]byte, error)
 }
 
 // Client implementation for interacting with EVM [chain]
@@ -34,16 +31,16 @@ type client struct {
 }
 
 // NewClient returns a Client for interacting with EVM [chain]
-func NewClient(uri, chain, api string) Client {
+func NewClient(uri, chain string) Client {
 	return &client{
-		requester: rpc.NewEndpointRequester(fmt.Sprintf("%s/ext/bc/%s/%s", uri, chain, api)),
+		requester: rpc.NewEndpointRequester(fmt.Sprintf("%s/ext/bc/%s/admin", uri, chain)),
 	}
 }
 
 // NewCChainClient returns a Client for interacting with the C Chain
 func NewCChainClient(uri string) Client {
 	// TODO: Update for Subnet-EVM compatibility
-	return NewClient(uri, "C", "admin")
+	return NewClient(uri, "C")
 }
 
 func (c *client) StartCPUProfiler(ctx context.Context) error {
@@ -74,10 +71,4 @@ func (c *client) GetVMConfig(ctx context.Context) (*Config, error) {
 	res := &ConfigReply{}
 	err := c.requester.SendRequest(ctx, "admin.getVMConfig", struct{}{}, res)
 	return res.Config, err
-}
-
-func (c *client) GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*[bls.SignatureLen]byte, error) {
-	res := &message.SignatureResponse{}
-	err := c.requester.SendRequest(ctx, "snowman.getSignature", &signatureRequest, res)
-	return &res.Signature, err
 }
