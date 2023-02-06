@@ -334,13 +334,31 @@ func exportUTXO(accessibleState PrecompileAccessibleState, caller common.Address
 		return nil, remainingGas, err
 	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
+	chainCtx := accessibleState.GetSnowContext()
+	// TODO fix typo DesinationChainID -> DestinationChainID in original solidity interface and re-generate
+	if err := verify.SameSubnet(context.TODO(), chainCtx, ids.ID(inputStruct.DesinationChainID)); err != nil {
+		return nil, remainingGas, err
+	}
+	assetID := CalculateANTAssetID(common.Hash(chainCtx.ChainID), caller)
 
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	topics, data, err := SharedMemoryABI.PackEvent(
+		"ExportUTXO",
+		inputStruct.Amount,
+		inputStruct.DesinationChainID,
+		assetID,
+		inputStruct.Locktime,
+		inputStruct.Threshold,
+		inputStruct.Addrs,
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(SharedMemoryAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
+
+	// TODO: add atomic trie handling if we are going to keep it inside of the storage trie
+
+	// Return an empty output and the remaining gas
+	return []byte{}, remainingGas, nil
 }
 
 // UnpackGetNativeTokenAssetIDInput attempts to unpack [input] into the common.Address type argument

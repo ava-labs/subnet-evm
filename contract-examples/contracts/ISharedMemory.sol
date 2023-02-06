@@ -53,7 +53,7 @@ interface ISharedMemory {
     // exportUTXO generates a UTXO with a unique UTXOID with the specified amount, locktime, threshold, and set of addresses
     // and an assetID derived from msg.sender and the blockchainID
     // This emits an ExportUTXO event.
-    function exportUTXO(uint64 amount, bytes32 desinationChainID, uint64 locktime, uint64 threshold, address[] calldata addrs) external;
+    function exportUTXO(uint64 amount, bytes32 destinationChainID, uint64 locktime, uint64 threshold, address[] calldata addrs) external;
 
     // ExportAVAX is emitted by exportAVAX to indicate that the export AVAX operation has taken place.
     // When the block is accepted, the VM will parse the generated log (if it was not reverted) and perform the export
