@@ -9,17 +9,20 @@ import (
 )
 
 type StateUpgradeStateConfigStruct struct {
-	// The source contract address.
-	Source common.Address `json:"source,omitempty"`
-
 	// The address of the contract that will be upgraded.
-	Target common.Address `json:"target,omitempty"`
+	Address common.Address `json:"address,omitempty"`
+
+	// The memory slot.
+	Slot *big.Int `json:"slot,omitempty"`
+
+	// The new cap to be set.
+	Value *big.Int `json:"value,omitempty"`
 }
 
 // StateUpgradeStateConfig implements the StateUpgradeConfig interface.
 type StateUpgradeStateConfig struct {
 	UpgradeableConfig
-	InitialStateUpgradeStateConfig *StateUpgradeStateConfigStruct `json:"initialStateUpgradeStateConfig,omitempty"`
+	InitialStateUpgradeStateConfig *StateUpgradeStateConfigStruct `json:"config,omitempty"`
 }
 
 func init() {
@@ -72,14 +75,13 @@ func (c *StateUpgradeStateConfig) RunUpgrade(_ ChainConfig, state StateDB, _ Blo
 	// 3) If BlockTimestamp is 1000, this will be called while processing the first block
 	// whose timestamp is >= 1000
 
-	// Set the code.
-	log.Info("Running StateUpgradeState Config", "config", c)
+	// Set the storage slot.
+	log.Info("Running State Upgrader State", "config", c)
 	if c.InitialStateUpgradeStateConfig != nil {
-		// Load the account of the source contract.
-		log.Info("Setting the code", "source", c.InitialStateUpgradeStateConfig.Source, "target", c.InitialStateUpgradeStateConfig.Target, "code", state.GetCode(c.InitialStateUpgradeStateConfig.Source))
-		state.SetCode(c.InitialStateUpgradeStateConfig.Target, state.GetCode(c.InitialStateUpgradeStateConfig.Source))
+		log.Info("Setting the storage", "address", c.InitialStateUpgradeStateConfig.Address, "slot", c.InitialStateUpgradeStateConfig.Slot, "value", c.InitialStateUpgradeStateConfig.Value)
+		state.SetState(c.InitialStateUpgradeStateConfig.Address, common.BigToHash(c.InitialStateUpgradeStateConfig.Slot), common.BigToHash(c.InitialStateUpgradeStateConfig.Value))
 	} else {
-		log.Error("Code Upgrader Config is not set")
+		log.Error("State Upgrader Config is not set")
 	}
 }
 
