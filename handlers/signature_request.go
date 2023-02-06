@@ -9,10 +9,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto/bls"
+	"github.com/ava-labs/subnet-evm/handlers/stats"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
-	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -51,8 +50,7 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 		s.stats.UpdateSignatureRequestTime(time.Since(startTime))
 	}()
 
-	var signature [bls.SignatureLen]byte
-	sig, err := s.backend.GetSignature(ctx, signatureRequest.MessageID)
+	signature, err := s.backend.GetSignature(ctx, signatureRequest.MessageID)
 	if err != nil {
 		log.Debug("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
 		s.stats.IncSignatureMiss()
@@ -60,7 +58,6 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	}
 
 	s.stats.IncSignatureHit()
-	copy(signature[:], sig)
 	response := message.SignatureResponse{Signature: signature}
 	responseBytes, err := s.codec.Marshal(message.Version, response)
 	if err != nil {

@@ -14,9 +14,9 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
+	"github.com/ava-labs/subnet-evm/handlers/stats"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
-	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +50,7 @@ func TestSignatureHandler(t *testing.T) {
 			setup: func() (request message.SignatureRequest, expectedResponse []byte) {
 				return message.SignatureRequest{
 					MessageID: messageID,
-				}, signature
+				}, signature[:]
 			},
 			verifyStats: func(t *testing.T, stats *stats.MockHandlerStats) {
 				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
@@ -90,7 +90,9 @@ func TestSignatureHandler(t *testing.T) {
 			_, err = message.Codec.Unmarshal(responseBytes, &response)
 			require.NoError(t, err, "error unmarshalling SignatureResponse")
 
-			assert.Equal(t, expectedResponse, response.Signature[:])
+			var expectedSignature [bls.SignatureLen]byte
+			copy(expectedSignature[:], expectedResponse)
+			assert.Equal(t, expectedSignature, response.Signature)
 			test.verifyStats(t, mockHandlerStats)
 		})
 	}

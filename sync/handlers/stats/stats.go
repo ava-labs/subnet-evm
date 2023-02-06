@@ -14,7 +14,6 @@ type HandlerStats interface {
 	BlockRequestHandlerStats
 	CodeRequestHandlerStats
 	LeafsRequestHandlerStats
-	SignatureRequestHandlerStats
 }
 
 type BlockRequestHandlerStats interface {
@@ -52,13 +51,6 @@ type LeafsRequestHandlerStats interface {
 	IncSnapshotSegmentInvalid()
 }
 
-type SignatureRequestHandlerStats interface {
-	IncSignatureRequest()
-	IncSignatureHit()
-	IncSignatureMiss()
-	UpdateSignatureRequestTime(duration time.Duration)
-}
-
 type handlerStats struct {
 	// BlockRequestHandler metrics
 	blockRequest               metrics.Counter
@@ -91,12 +83,6 @@ type handlerStats struct {
 	snapshotReadSuccess        metrics.Counter
 	snapshotSegmentValid       metrics.Counter
 	snapshotSegmentInvalid     metrics.Counter
-
-	// SignatureRequestHandler metrics
-	signatureRequest        metrics.Counter
-	signatureHit            metrics.Counter
-	signatureMiss           metrics.Counter
-	signatureProcessingTime metrics.Timer
 }
 
 func (h *handlerStats) IncBlockRequest() {
@@ -180,13 +166,6 @@ func (h *handlerStats) IncSnapshotReadSuccess()    { h.snapshotReadSuccess.Inc(1
 func (h *handlerStats) IncSnapshotSegmentValid()   { h.snapshotSegmentValid.Inc(1) }
 func (h *handlerStats) IncSnapshotSegmentInvalid() { h.snapshotSegmentInvalid.Inc(1) }
 
-func (h *handlerStats) IncSignatureRequest() { h.signatureRequest.Inc(1) }
-func (h *handlerStats) IncSignatureHit()     { h.signatureHit.Inc(1) }
-func (h *handlerStats) IncSignatureMiss()    { h.signatureMiss.Inc(1) }
-func (h *handlerStats) UpdateSignatureRequestTime(duration time.Duration) {
-	h.signatureProcessingTime.Update(duration)
-}
-
 func NewHandlerStats(enabled bool) HandlerStats {
 	if !enabled {
 		return NewNoopHandlerStats()
@@ -223,12 +202,6 @@ func NewHandlerStats(enabled bool) HandlerStats {
 		snapshotReadSuccess:        metrics.GetOrRegisterCounter("leafs_request_snapshot_read_success", nil),
 		snapshotSegmentValid:       metrics.GetOrRegisterCounter("leafs_request_snapshot_segment_valid", nil),
 		snapshotSegmentInvalid:     metrics.GetOrRegisterCounter("leafs_request_snapshot_segment_invalid", nil),
-
-		// initialize signature request stats
-		signatureRequest:        metrics.GetOrRegisterCounter("signature_request_count", nil),
-		signatureHit:            metrics.GetOrRegisterCounter("signature_request_hit", nil),
-		signatureMiss:           metrics.GetOrRegisterCounter("signature_request_miss", nil),
-		signatureProcessingTime: metrics.GetOrRegisterTimer("signature_request_duration", nil),
 	}
 }
 
@@ -266,7 +239,3 @@ func (n *noopHandlerStats) IncSnapshotReadAttempt()                             
 func (n *noopHandlerStats) IncSnapshotReadSuccess()                             {}
 func (n *noopHandlerStats) IncSnapshotSegmentValid()                            {}
 func (n *noopHandlerStats) IncSnapshotSegmentInvalid()                          {}
-func (n *noopHandlerStats) IncSignatureRequest()                                {}
-func (n *noopHandlerStats) IncSignatureHit()                                    {}
-func (n *noopHandlerStats) IncSignatureMiss()                                   {}
-func (n *noopHandlerStats) UpdateSignatureRequestTime(duration time.Duration)   {}

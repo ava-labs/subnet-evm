@@ -36,7 +36,7 @@ func (NoopMempoolGossipHandler) HandleTxs(nodeID ids.NodeID, _ TxsGossip) error 
 // Also see GossipHandler for implementation style.
 type RequestHandler interface {
 	HandleTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest LeafsRequest) ([]byte, error)
-	HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, request BlockRequest) ([]byte, error)
+	HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, blockRequest BlockRequest) ([]byte, error)
 	HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest CodeRequest) ([]byte, error)
 	HandleSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest SignatureRequest) ([]byte, error)
 }

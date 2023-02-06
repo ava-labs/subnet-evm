@@ -1,4 +1,4 @@
-// (c) 2019-2021, Ava Labs, Inc. All rights reserved.
+// (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package warp
@@ -29,34 +29,36 @@ func TestAddAndGetValidMessage(t *testing.T) {
 	sk, err := bls.NewSecretKey()
 	require.NoError(t, err)
 	snowCtx.TeleporterSigner = teleporter.NewSigner(sk, sourceChainID)
-	be := NewWarpBackend(snowCtx, db, 500)
+	backend := NewWarpBackend(snowCtx, db, 500)
 
 	// Create a new unsigned message and add it to the warp backend.
 	unsignedMsg, err := teleporter.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
 	require.NoError(t, err)
-	err = be.AddMessage(context.Background(), unsignedMsg)
+	err = backend.AddMessage(context.Background(), unsignedMsg)
 	require.NoError(t, err)
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
 	messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
-	signature, err := be.GetSignature(context.Background(), messageID)
+	signature, err := backend.GetSignature(context.Background(), messageID)
 	require.NoError(t, err)
 
+	var expectedSignature [bls.SignatureLen]byte
 	expectedSig, err := snowCtx.TeleporterSigner.Sign(unsignedMsg)
 	require.NoError(t, err)
-	require.Equal(t, expectedSig, signature)
+	copy(expectedSignature[:], expectedSig)
+	require.Equal(t, expectedSignature, signature)
 }
 
 func TestAddAndGetUnknownMessage(t *testing.T) {
 	db := memdb.New()
 
-	be := NewWarpBackend(snow.DefaultContextTest(), db, 500)
+	backend := NewWarpBackend(snow.DefaultContextTest(), db, 500)
 	unsignedMsg, err := teleporter.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
 	require.NoError(t, err)
 
 	// Try getting a signature for a message that was not added.
 	messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
-	_, err = be.GetSignature(context.Background(), messageID)
+	_, err = backend.GetSignature(context.Background(), messageID)
 	require.Error(t, err)
 }
 
@@ -69,20 +71,22 @@ func TestZeroSizedCache(t *testing.T) {
 	snowCtx.TeleporterSigner = teleporter.NewSigner(sk, sourceChainID)
 
 	// Verify zero sized cache works normally, because the lru cache will be initialized to size 1 for any size parameter <= 0.
-	be := NewWarpBackend(snowCtx, db, 0)
+	backend := NewWarpBackend(snowCtx, db, 0)
 
 	// Create a new unsigned message and add it to the warp backend.
 	unsignedMsg, err := teleporter.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
 	require.NoError(t, err)
-	err = be.AddMessage(context.Background(), unsignedMsg)
+	err = backend.AddMessage(context.Background(), unsignedMsg)
 	require.NoError(t, err)
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
 	messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
-	signature, err := be.GetSignature(context.Background(), messageID)
+	signature, err := backend.GetSignature(context.Background(), messageID)
 	require.NoError(t, err)
 
+	var expectedSignature [bls.SignatureLen]byte
 	expectedSig, err := snowCtx.TeleporterSigner.Sign(unsignedMsg)
 	require.NoError(t, err)
-	require.Equal(t, expectedSig, signature)
+	copy(expectedSignature[:], expectedSig)
+	require.Equal(t, expectedSignature, signature)
 }
