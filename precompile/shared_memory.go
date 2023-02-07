@@ -25,7 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// XXX
+// TODO calculate gas costs
 const (
 	ExportAVAXGasCost            uint64 = writeGasCostPerSlot + readGasCostPerSlot
 	ExportUTXOGasCost            uint64 = writeGasCostPerSlot + readGasCostPerSlot
@@ -158,6 +158,8 @@ func (c *SharedMemoryConfig) Predicate() PredicateFunc {
 	return SharedMemoryPredicate
 }
 
+// TODO: consider changing this to specify a single UTXO and allowing the predicate to unmarshal a slice
+// of pairs (SourceChainID, UTXO)
 type AtomicPredicate struct {
 	// Which chain to consume the funds from
 	SourceChain ids.ID `serialize:"true" json:"sourceChain"`
@@ -246,7 +248,7 @@ func ApplySharedMemoryLogs(snowCtx *snow.Context, txHash common.Hash, logIndex i
 		return ids.ID{}, nil, fmt.Errorf("shared memory accept: %w", err)
 	}
 
-	// TODO: separate this out better
+	// TODO: separate this out better and implement remaining handlers
 	switch {
 	case event.Name == "ExportAVAX":
 		ev := &ExportAVAXEvent{}
@@ -682,7 +684,6 @@ func importUTXO(accessibleState PrecompileAccessibleState, caller common.Address
 }
 
 // createSharedMemoryPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
-
 func createSharedMemoryPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	var functions []*statefulPrecompileFunction
 
