@@ -14,6 +14,7 @@ import (
 // WarpAPI introduces snowman specific functionality to the evm
 type WarpAPI struct{ vm *VM }
 
+// GetSignature returns the BLS signature associated with a messageID. In the raw request, [messageID] should be cb58 encoded
 func (api *WarpAPI) GetSignature(ctx context.Context, messageID ids.ID) (*message.SignatureResponse, error) {
 	signature, err := api.vm.backend.GetSignature(ctx, messageID)
 	if err != nil {

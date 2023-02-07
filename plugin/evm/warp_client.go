@@ -22,12 +22,12 @@ type WarpClient interface {
 	GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*[bls.SignatureLen]byte, error)
 }
 
-// Client implementation for interacting with EVM [chain]
+// warpClient implementation for interacting with EVM [chain]
 type warpClient struct {
 	client *rpc.Client
 }
 
-// NewClient returns a Client for interacting with EVM [chain]
+// NewWarpClient returns a WarpClient for interacting with EVM [chain]
 func NewWarpClient(uri, chain string) (WarpClient, error) {
 	client, err := rpc.Dial(fmt.Sprintf("%s/ext/bc/%s/rpc", uri, chain))
 	if err != nil {
@@ -39,6 +39,7 @@ func NewWarpClient(uri, chain string) (WarpClient, error) {
 	}, nil
 }
 
+// GetSignature requests the BLS signature associated with a messageID
 func (c *warpClient) GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*[bls.SignatureLen]byte, error) {
 	req, err := cb58.Encode(signatureRequest.MessageID[:])
 	if err != nil {
