@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	GetBlockchainIdGasCost                        uint64 = 5_000
+	GetBlockchainIDGasCost                        uint64 = 5_000
 	GetVerifiedWarpMessageGasCost                 uint64 = 100_000
 	GetVerifiedWarpMessageGasCostPerAggregatedKey uint64 = 1_000
 	SendWarpMessageGasCost                        uint64 = 100_000
 
 	// WarpMessengerRawABI contains the raw ABI of WarpMessenger contract.
-	WarpMessengerRawABI  = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationChainId\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"sender\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"}],\"name\":\"SendWarpMessage\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getBlockchainId\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"blockchainId\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"messageIndex\",\"type\":\"uint256\"}],\"name\":\"getVerifiedWarpMessage\",\"outputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"originChainId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"originSenderAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationChainId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"internalType\":\"structWarpMessage\",\"name\":\"message\",\"type\":\"tuple\"},{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"destinationChainId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"name\":\"sendWarpMessage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+	WarpMessengerRawABI  = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"sender\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"}],\"name\":\"SendWarpMessage\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getBlockchainID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"blockchainID\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"messageIndex\",\"type\":\"uint256\"}],\"name\":\"getVerifiedWarpMessage\",\"outputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"originChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"originSenderAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"internalType\":\"struct WarpMessage\",\"name\":\"message\",\"type\":\"tuple\"},{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"name\":\"sendWarpMessage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 	SubmitMessageEventID = "da2b1cd3e6664863b4ad90f53a4e14fca9fc00f3f0e01e5c7b236a4355b6591a" // Keccack256("SubmitMessage(bytes32,uint256)")
 
 	// Default stake threshold for aggregate signature verification. (67%)
@@ -60,9 +60,9 @@ type WarpMessengerConfig struct {
 
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
 type WarpMessage struct {
-	OriginChainId       [32]byte
+	OriginChainID       [32]byte
 	OriginSenderAddress [32]byte
-	DestinationChainId  [32]byte
+	DestinationChainID  [32]byte
 	DestinationAddress  [32]byte
 	Payload             []byte
 }
@@ -73,7 +73,7 @@ type GetVerifiedWarpMessageOutput struct {
 }
 
 type SendWarpMessageInput struct {
-	DestinationChainId [32]byte
+	DestinationChainID [32]byte
 	DestinationAddress [32]byte
 	Payload            []byte
 }
@@ -115,7 +115,7 @@ func (c *WarpMessengerConfig) Equal(s StatefulPrecompileConfig) bool {
 	if !ok {
 		return false
 	}
-	
+
 	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom WarpMessengerConfig, to check if [other] and the current [c] are equal
 	// if WarpMessengerConfig contains only UpgradeableConfig  you can skip modifying it.
@@ -216,20 +216,20 @@ func (c *WarpMessengerConfig) OnAccept() OnAcceptFunc {
 	return nil
 }
 
-// PackGetBlockchainId packs the include selector (first 4 func signature bytes).
+// PackGetBlockchainID packs the include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
-func PackGetBlockchainId() ([]byte, error) {
-	return WarpMessengerABI.Pack("getBlockchainId")
+func PackGetBlockchainID() ([]byte, error) {
+	return WarpMessengerABI.Pack("getBlockchainID")
 }
 
-// PackGetBlockchainIdOutput attempts to pack given blockchainId of type [32]byte
+// PackGetBlockchainIDOutput attempts to pack given blockchainID of type [32]byte
 // to conform the ABI outputs.
-func PackGetBlockchainIdOutput(blockchainId [32]byte) ([]byte, error) {
-	return WarpMessengerABI.PackOutput("getBlockchainId", blockchainId)
+func PackGetBlockchainIDOutput(blockchainID [32]byte) ([]byte, error) {
+	return WarpMessengerABI.PackOutput("getBlockchainID", blockchainID)
 }
 
-func getBlockchainId(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = deductGas(suppliedGas, GetBlockchainIdGasCost); err != nil {
+func getBlockchainID(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	if remainingGas, err = deductGas(suppliedGas, GetBlockchainIDGasCost); err != nil {
 		return nil, 0, err
 	}
 
@@ -237,7 +237,7 @@ func getBlockchainId(accessibleState PrecompileAccessibleState, caller common.Ad
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
-	packedOutput, err := PackGetBlockchainIdOutput(accessibleState.GetSnowContext().ChainID)
+	packedOutput, err := PackGetBlockchainIDOutput(accessibleState.GetSnowContext().ChainID)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -322,7 +322,7 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 	}
 
 	numSigners := set.BitsFromBytes(bitSetSignature.Signers).HammingWeight()
-	if remainingGas, err = deductGas(remainingGas, GetVerifiedWarpMessageGasCost*uint64(numSigners)); err != nil {
+	if remainingGas, err = deductGas(remainingGas, GetVerifiedWarpMessageGasCostPerAggregatedKey*uint64(numSigners)); err != nil {
 		return nil, 0, err
 	}
 
@@ -357,7 +357,7 @@ func UnpackSendWarpMessageInput(input []byte) (SendWarpMessageInput, error) {
 
 // PackSendWarpMessage packs [inputStruct] of type SendWarpMessageInput into the appropriate arguments for sendWarpMessage.
 func PackSendWarpMessage(inputStruct SendWarpMessageInput) ([]byte, error) {
-	return WarpMessengerABI.Pack("sendWarpMessage", inputStruct.DestinationChainId, inputStruct.DestinationAddress, inputStruct.Payload)
+	return WarpMessengerABI.Pack("sendWarpMessage", inputStruct.DestinationChainID, inputStruct.DestinationAddress, inputStruct.Payload)
 }
 
 func sendWarpMessage(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -376,9 +376,9 @@ func sendWarpMessage(accessibleState PrecompileAccessibleState, caller common.Ad
 	}
 
 	message := &WarpMessage{
-		OriginChainId:       accessibleState.GetSnowContext().ChainID,
+		OriginChainID:       accessibleState.GetSnowContext().ChainID,
 		OriginSenderAddress: caller.Hash(),
-		DestinationChainId:  inputStruct.DestinationChainId,
+		DestinationChainID:  inputStruct.DestinationChainID,
 		DestinationAddress:  inputStruct.DestinationAddress,
 		Payload:             inputStruct.Payload,
 	}
@@ -392,8 +392,8 @@ func sendWarpMessage(accessibleState PrecompileAccessibleState, caller common.Ad
 		WarpMessengerAddress,
 		[]common.Hash{
 			common.HexToHash(SubmitMessageEventID),
-			message.OriginChainId,
-			message.DestinationChainId,
+			message.OriginChainID,
+			message.DestinationChainID,
 		},
 		data,
 		accessibleState.GetBlockContext().Number().Uint64())
@@ -405,11 +405,11 @@ func sendWarpMessage(accessibleState PrecompileAccessibleState, caller common.Ad
 func createWarpMessengerPrecompile(precompileAddr common.Address) StatefulPrecompiledContract {
 	var functions []*statefulPrecompileFunction
 
-	methodGetBlockchainId, ok := WarpMessengerABI.Methods["getBlockchainId"]
+	methodGetBlockchainID, ok := WarpMessengerABI.Methods["getBlockchainID"]
 	if !ok {
 		panic("given method does not exist in the ABI")
 	}
-	functions = append(functions, newStatefulPrecompileFunction(methodGetBlockchainId.ID, getBlockchainId))
+	functions = append(functions, newStatefulPrecompileFunction(methodGetBlockchainID.ID, getBlockchainID))
 
 	methodGetVerifiedWarpMessage, ok := WarpMessengerABI.Methods["getVerifiedWarpMessage"]
 	if !ok {

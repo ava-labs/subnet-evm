@@ -26,7 +26,7 @@ func init() {
 	errs := wrappers.Errs{}
 	errs.Add(
 		// Warp messenger types
-		c.RegisterType(CrossChainMessage{}),
+		c.RegisterType(WarpMessage{}),
 
 		Codec.RegisterCodec(Version, c),
 	)
