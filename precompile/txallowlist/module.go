@@ -14,7 +14,7 @@ import (
 // must be unique across all precompiles.
 const ConfigKey = "txAllowListConfig"
 
-var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
+var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000002")
 
 func init() {
 	modules.RegisterModule(&Module{})
