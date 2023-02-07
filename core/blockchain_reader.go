@@ -27,6 +27,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -38,6 +39,8 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
@@ -344,14 +347,78 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 // Otherwise returns the fee config in the chain config.
 // Assumes that a valid configuration is stored when the precompile is activated.
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return config.FeeConfig, common.Big0, nil
+	config := bc.Config()
+	bigTime := new(big.Int).SetUint64(parent.Time)
+	if !config.IsPrecompileEnabled(feemanager.ContractAddress, bigTime) {
+		return config.FeeConfig, common.Big0, nil
+	}
+
+	// try to return it from the cache
+	if cached, hit := bc.feeConfigCache.Get(parent.Root); hit {
+		cachedFeeConfig, ok := cached.(*cacheableFeeConfig)
+		if !ok {
+			return commontype.EmptyFeeConfig, nil, fmt.Errorf("expected type cacheableFeeConfig, got %T", cached)
+		}
+		return cachedFeeConfig.feeConfig, cachedFeeConfig.lastChangedAt, nil
+	}
+
+	stateDB, err := bc.StateAt(parent.Root)
+	if err != nil {
+		return commontype.EmptyFeeConfig, nil, err
+	}
+
+	storedFeeConfig := feemanager.GetStoredFeeConfig(stateDB)
+	// this should not return an invalid fee config since it's assumed that
+	// StoreFeeConfig returns an error when an invalid fee config is attempted to be stored.
+	// However an external stateDB call can modify the contract state.
+	// This check is added to add a defense in-depth.
+	if err := storedFeeConfig.Verify(); err != nil {
+		return commontype.EmptyFeeConfig, nil, err
+	}
+	lastChangedAt := feemanager.GetFeeConfigLastChangedAt(stateDB)
+	cacheable := &cacheableFeeConfig{feeConfig: storedFeeConfig, lastChangedAt: lastChangedAt}
+	// add it to the cache
+	bc.feeConfigCache.Add(parent.Root, cacheable)
+	return storedFeeConfig, lastChangedAt, nil
 }
 
 // GetCoinbaseAt returns the configured coinbase address at [parent].
 // If RewardManager is activated at [parent], returns the reward manager config in the precompile contract state.
 // If fee recipients are allowed, returns true in the second return value.
 func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
-	return constants.BlackholeAddr, false, nil
+	config := bc.Config()
+	bigTime := new(big.Int).SetUint64(parent.Time)
+
+	if !config.IsSubnetEVM(bigTime) {
+		return constants.BlackholeAddr, false, nil
+	}
+
+	if !config.IsPrecompileEnabled(rewardmanager.ContractAddress, bigTime) {
+		if bc.chainConfig.AllowFeeRecipients {
+			return common.Address{}, true, nil
+		} else {
+			return constants.BlackholeAddr, false, nil
+		}
+	}
+
+	// try to return it from the cache
+	if cached, hit := bc.coinbaseConfigCache.Get(parent.Root); hit {
+		cachedCoinbaseConfig, ok := cached.(*cacheableCoinbaseConfig)
+		if !ok {
+			return common.Address{}, false, fmt.Errorf("expected type cachedCoinbaseConfig, got %T", cached)
+		}
+		return cachedCoinbaseConfig.coinbaseAddress, cachedCoinbaseConfig.allowFeeRecipients, nil
+	}
+
+	stateDB, err := bc.StateAt(parent.Root)
+	if err != nil {
+		return common.Address{}, false, err
+	}
+	rewardAddress, feeRecipients := rewardmanager.GetStoredRewardAddress(stateDB)
+
+	cacheable := &cacheableCoinbaseConfig{coinbaseAddress: rewardAddress, allowFeeRecipients: feeRecipients}
+	bc.coinbaseConfigCache.Add(parent.Root, cacheable)
+	return rewardAddress, feeRecipients, nil
 }
 
 // GetLogs fetches all logs from a given block.

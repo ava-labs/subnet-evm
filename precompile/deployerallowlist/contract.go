@@ -4,7 +4,6 @@
 package deployerallowlist
 
 import (
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ethereum/go-ethereum/common"
@@ -15,13 +14,13 @@ var ContractDeployerAllowListPrecompile execution.Contract = allowlist.CreateAll
 
 // GetContractDeployerAllowListStatus returns the role of [address] for the contract deployer
 // allow list.
-func GetContractDeployerAllowListStatus(stateDB *state.StateDB, address common.Address) allowlist.Role {
+func GetContractDeployerAllowListStatus(stateDB execution.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetContractDeployerAllowListStatus sets the permissions of [address] to [role] for the
 // contract deployer allow list.
 // assumes [role] has already been verified as valid.
-func SetContractDeployerAllowListStatus(stateDB *state.StateDB, address common.Address, role allowlist.Role) {
+func SetContractDeployerAllowListStatus(stateDB execution.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }

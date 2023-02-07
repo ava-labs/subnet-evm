@@ -283,7 +283,7 @@ func TestRewardManagerRun(t *testing.T) {
 			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 
 			if test.config != nil {
-				test.config.Configure(nil, state, blockContext)
+				config.Configure(nil, state, blockContext)
 			}
 			ret, remainingGas, err := rewardmanager.RewardManagerPrecompile.Run(accesibleState, test.caller, rewardmanager.ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {

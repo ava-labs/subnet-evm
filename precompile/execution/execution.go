@@ -9,9 +9,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/state"
-
-	// _ "github.com/ava-labs/subnet-evm/params"
 	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -31,9 +28,32 @@ type ChainConfig interface {
 	AllowedFeeRecipients() bool
 }
 
-// PrecompileAccessibleState defines the interface exposed to stateful precompile contracts
+// StateDB is the interface for accessing EVM state
+type StateDB interface {
+	GetState(common.Address, common.Hash) common.Hash
+	SetState(common.Address, common.Hash, common.Hash)
+
+	SetCode(common.Address, []byte)
+
+	SetNonce(common.Address, uint64)
+	GetNonce(common.Address) uint64
+
+	GetBalance(common.Address) *big.Int
+	AddBalance(common.Address, *big.Int)
+	SubBalance(common.Address, *big.Int)
+
+	CreateAccount(common.Address)
+	Exist(common.Address) bool
+
+	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
+
+	Suicide(common.Address) bool
+	Finalise(deleteEmptyObjects bool)
+}
+
+// AccessibleState defines the interface exposed to stateful precompile contracts
 type AccessibleState interface {
-	GetStateDB() *state.StateDB
+	GetStateDB() StateDB
 	GetBlockContext() BlockContext
 	GetSnowContext() *snow.Context
 	CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error)
@@ -48,6 +68,6 @@ type BlockContext interface {
 }
 
 type Execution interface {
-	Configure(chainConfig ChainConfig, precompileConfig precompileConfig.Config, state *state.StateDB, blockContext BlockContext) error
+	Configure(chainConfig ChainConfig, precompileConfig precompileConfig.Config, state StateDB, blockContext BlockContext) error
 	Contract() Contract
 }

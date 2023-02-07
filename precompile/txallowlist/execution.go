@@ -1,7 +1,7 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package deployerallowlist
+package txallowlist
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 type Executor struct{}
 
 // Configure configures [state] with the desired admins based on [cfg].
-func (Executor) Configure(_ execution.ChainConfig, cfg config.Config, state execution.StateDB, _ execution.BlockContext) error {
-	config, ok := cfg.(*ContractDeployerAllowListConfig)
+func (Executor) Configure(chainConfig execution.ChainConfig, cfg config.Config, state execution.StateDB, _ execution.BlockContext) error {
+	config, ok := cfg.(*TxAllowListConfig)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
@@ -22,5 +22,5 @@ func (Executor) Configure(_ execution.ChainConfig, cfg config.Config, state exec
 }
 
 func (Executor) Contract() execution.Contract {
-	return ContractDeployerAllowListPrecompile
+	return TxAllowListPrecompile
 }

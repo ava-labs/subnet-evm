@@ -39,6 +39,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
@@ -191,7 +192,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 		"allow list enabled in genesis": {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
-				config.GenesisPrecompiles = params.ChainConfigPrecompiles{
+				config.GenesisPrecompiles = precompileConfig.Configs{
 					deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil),
 				}
 				return &config
@@ -271,7 +272,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	contractDeployerConfig := deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(51), nil, nil)
 	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
-			StatefulPrecompileConfig: contractDeployerConfig,
+			Config: contractDeployerConfig,
 		},
 	}
 

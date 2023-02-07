@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -52,7 +51,7 @@ var (
 
 // GetAllowListStatus returns the allow list role of [address] for the precompile
 // at [precompileAddr]
-func GetAllowListStatus(state *state.StateDB, precompileAddr common.Address, address common.Address) Role {
+func GetAllowListStatus(state execution.StateDB, precompileAddr common.Address, address common.Address) Role {
 	// Generate the state key for [address]
 	addressKey := address.Hash()
 	return Role(state.GetState(precompileAddr, addressKey))
@@ -61,7 +60,7 @@ func GetAllowListStatus(state *state.StateDB, precompileAddr common.Address, add
 // SetAllowListRole sets the permissions of [address] to [role] for the precompile
 // at [precompileAddr].
 // assumes [role] has already been verified as valid.
-func SetAllowListRole(stateDB *state.StateDB, precompileAddr, address common.Address, role Role) {
+func SetAllowListRole(stateDB execution.StateDB, precompileAddr, address common.Address, role Role) {
 	// Generate the state key for [address]
 	addressKey := address.Hash()
 	// Assign [role] to the address
