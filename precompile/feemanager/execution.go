@@ -31,7 +31,6 @@ func (Executor) Configure(chainConfig execution.ChainConfig, cfg config.Config, 
 		}
 	}
 	return config.AllowListConfig.Configure(state, ContractAddress)
-
 }
 
 func (Executor) Contract() execution.Contract {

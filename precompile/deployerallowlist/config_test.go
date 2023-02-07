@@ -54,12 +54,12 @@ func TestEqualContractDeployerAllowListConfig(t *testing.T) {
 			other:    nil,
 			expected: false,
 		},
-		// {
-		// 	name:     "different type",
-		// 	config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
-		// 	other:    precompile.NewNoopStatefulPrecompileConfig(),
-		// 	expected: false,
-		// },
+		{
+			name:     "different type",
+			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
+			other:    config.NewNoopStatefulPrecompileConfig(),
+			expected: false,
+		},
 		{
 			name:     "different admin",
 			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
