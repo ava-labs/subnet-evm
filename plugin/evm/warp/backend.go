@@ -64,7 +64,7 @@ func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *teleporte
 
 func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([]byte, error) {
 	if sig, ok := w.signatureCache.Get(messageID); ok {
-		return sig.([]byte), nil
+		return sig, nil
 	}
 
 	unsignedMessageBytes, err := w.db.Get(messageID[:])
@@ -82,6 +82,6 @@ func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([]byt
 		return nil, fmt.Errorf("failed to sign warp message: %w", err)
 	}
 
-	w.signatureCache.Put(messageID[:], signature)
+	w.signatureCache.Put(messageID, signature)
 	return signature, nil
 }
