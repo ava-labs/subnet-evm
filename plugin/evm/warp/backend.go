@@ -31,7 +31,7 @@ type WarpBackend interface {
 type warpBackend struct {
 	db             database.Database
 	snowCtx        *snow.Context
-	signatureCache *cache.LRU
+	signatureCache *cache.LRU[ids.ID, []byte]
 }
 
 // NewWarpBackend creates a new WarpBackend, and initializes the signature cache and message tracking database.
@@ -39,7 +39,7 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, signatureCacheS
 	return &warpBackend{
 		db:             db,
 		snowCtx:        snowCtx,
-		signatureCache: &cache.LRU{Size: signatureCacheSize},
+		signatureCache: &cache.LRU[ids.ID, []byte]{Size: signatureCacheSize},
 	}
 }
 
