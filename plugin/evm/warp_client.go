@@ -5,6 +5,7 @@ package evm
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
@@ -27,12 +28,15 @@ type warpClient struct {
 // NewClient returns a Client for interacting with EVM [chain]
 func NewWarpClient(uri, chain string) WarpClient {
 	return &warpClient{
-		requester: rpc.NewEndpointRequester(fmt.Sprintf("%s/ext/bc/%s/warp", uri, chain)),
+		requester: rpc.NewEndpointRequester(fmt.Sprintf("%s/ext/bc/%s/rpc", uri, chain)),
 	}
 }
 
 func (c *warpClient) GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*[bls.SignatureLen]byte, error) {
+	sigReqJson := SignatureRequest{
+		MessageID: hex.EncodeToString(signatureRequest.MessageID[:]),
+	}
 	res := &message.SignatureResponse{}
-	err := c.requester.SendRequest(ctx, "warp.getSignature", &signatureRequest, res)
+	err := c.requester.SendRequest(ctx, "warp_getSignature", &sigReqJson, res)
 	return &res.Signature, err
 }

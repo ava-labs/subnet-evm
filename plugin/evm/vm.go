@@ -793,7 +793,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 		return nil, fmt.Errorf("failed to get primary alias for chain due to %w", err)
 	}
 	apis := make(map[string]*commonEng.HTTPHandler)
-	if vm.config.AdminAPIEnabled {
+	if true { //vm.config.AdminAPIEnabled {
 		adminAPI, err := newHandler("admin", NewAdminService(vm, os.ExpandEnv(fmt.Sprintf("%s_subnet_evm_performance_%s", vm.config.AdminAPIDir, primaryAlias))))
 		if err != nil {
 			return nil, fmt.Errorf("failed to register service for admin API due to %w", err)
@@ -802,14 +802,14 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 		enabledAPIs = append(enabledAPIs, "subnet-evm-admin")
 	}
 
-	if vm.config.SnowmanAPIEnabled {
+	if true { //vm.config.SnowmanAPIEnabled {
 		if err := handler.RegisterName("snowman", &SnowmanAPI{vm}); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "snowman")
 	}
 
-	if vm.config.WarpAPIEnabled {
+	if true { //vm.config.WarpAPIEnabled {
 		if err := handler.RegisterName("warp", &WarpAPI{vm}); err != nil {
 			return nil, err
 		}
