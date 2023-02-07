@@ -496,13 +496,66 @@ func importAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 		return nil, remainingGas, fmt.Errorf("predicate source chain %s does not match specified source chain: %s", atomicPredicate.SourceChain, inputStruct.SourceChain)
 	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
+	var specifiedUTXO *avax.UTXO
+	for _, utxo := range atomicPredicate.ImportedUTXOs {
+		if utxo.ID == inputStruct.UtxoID {
+			specifiedUTXO = utxo
+			break
+		}
+	}
+	if specifiedUTXO == nil {
+		return nil, remainingGas, fmt.Errorf("failed to find UTXO %s in atomic predicate", inputStruct.UtxoID)
+	}
+	// TODO: check to see that the UTXO has not been marked as consumed within the statedb
 
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	if avaxAssetID := accessibleState.GetSnowContext().AVAXAssetID; specifiedUTXO.AssetID() != avaxAssetID {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specifies assetID %s, expected AVAXAssetID: %s", inputStruct.UtxoID, specifiedUTXO.AssetID(), avaxAssetID)
+	}
+
+	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
+	if !ok {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has wrong output type %T", specifiedUTXO.ID, specifiedUTXO.Out)
+	}
+
+	// Ensure that the locktime of the UTXO has passed
+	if blockTimestamp := accessibleState.GetBlockContext().Timestamp().Uint64(); transferOut.Locktime > blockTimestamp {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.ID, transferOut.Locktime, blockTimestamp)
+	}
+	// Confirm that the threshold is 1
+	if transferOut.Threshold != 1 {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.ID)
+	}
+	validSpender := false
+	for _, spender := range transferOut.Addrs {
+		if spender == ids.ShortID(caller) {
+			validSpender = true
+			break
+		}
+	}
+	if !validSpender {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s does not include msg.sender %s as a valid spender address", specifiedUTXO.ID, caller)
+	}
+
+	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
+	topics, data, err := SharedMemoryABI.PackEvent(
+		"ImportAVAX",
+		transferOut.Amt, // Use the denomination 10^9
+		inputStruct.SourceChain,
+		transferOut.Locktime,
+		transferOut.Threshold,
+		transferOut.Addrs,
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(SharedMemoryAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
+
+	// Convert the specified amount to denomination 10^18 and increment the balance
+	amount := big.NewInt(int64(transferOut.Amt))
+	convertedAmount := amount.Mul(amount, big.NewInt(1000000000))
+	accessibleState.GetStateDB().AddBalance(caller, convertedAmount)
+
+	return []byte{}, remainingGas, nil
 }
 
 // UnpackImportUTXOInput attempts to unpack [input] into the arguments for the ImportUTXOInput{}
@@ -544,11 +597,82 @@ func importUTXO(accessibleState PrecompileAccessibleState, caller common.Address
 	if err != nil {
 		return nil, remainingGas, err
 	}
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(SharedMemoryAddress)
+	if !exists {
+		return nil, remainingGas, fmt.Errorf("no predicate available to import, caller %s, input: 0x%x, suppliedGas: %d", caller, input, suppliedGas)
+	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct             // CUSTOM CODE OPERATES ON INPUT
-	var output ImportUTXOOutput // CUSTOM CODE FOR AN OUTPUT
-	packedOutput, err := PackImportUTXOOutput(output)
+	atomicPredicate := new(AtomicPredicate)
+	_, err = codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
+	// Note: this should never happen since this should be unmarshalled within the predicate verification
+	if err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to unmarshal shared memory predicate: %w", err)
+	}
+
+	if atomicPredicate.SourceChain != inputStruct.SourceChain {
+		return nil, remainingGas, fmt.Errorf("predicate source chain %s does not match specified source chain: %s", atomicPredicate.SourceChain, inputStruct.SourceChain)
+	}
+
+	var specifiedUTXO *avax.UTXO
+	for _, utxo := range atomicPredicate.ImportedUTXOs {
+		if utxo.ID == inputStruct.UtxoID {
+			specifiedUTXO = utxo
+			break
+		}
+	}
+	if specifiedUTXO == nil {
+		return nil, remainingGas, fmt.Errorf("failed to find UTXO %s in atomic predicate", inputStruct.UtxoID)
+	}
+	// TODO: check to see that the UTXO has not been marked as consumed within the statedb
+
+	if avaxAssetID := accessibleState.GetSnowContext().AVAXAssetID; specifiedUTXO.AssetID() == avaxAssetID {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specifies AVAXAssetID %s which must be called with importAVAX", inputStruct.UtxoID, avaxAssetID)
+	}
+
+	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
+	if !ok {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has wrong output type %T", specifiedUTXO.ID, specifiedUTXO.Out)
+	}
+
+	// Ensure that the locktime of the UTXO has passed
+	if blockTimestamp := accessibleState.GetBlockContext().Timestamp().Uint64(); transferOut.Locktime > blockTimestamp {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.ID, transferOut.Locktime, blockTimestamp)
+	}
+	// Confirm that the threshold is 1
+	if transferOut.Threshold != 1 {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.ID)
+	}
+
+	assetID := CalculateANTAssetID(common.Hash(accessibleState.GetSnowContext().ChainID), caller)
+	if assetID == common.Hash(specifiedUTXO.AssetID()) {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified incorrect assetID %s for caller %s, with actual assetID: %s", specifiedUTXO.ID, specifiedUTXO.AssetID(), caller, assetID)
+	}
+
+	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
+	topics, data, err := SharedMemoryABI.PackEvent(
+		"ImportUTXO",
+		transferOut.Amt,
+		inputStruct.SourceChain,
+		specifiedUTXO.AssetID(),
+		transferOut.Locktime,
+		transferOut.Threshold,
+		transferOut.Addrs,
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(SharedMemoryAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
+
+	addrs := make([]common.Address, 0, len(transferOut.Addrs))
+	for _, addr := range transferOut.Addrs {
+		addrs = append(addrs, common.Address(addr))
+	}
+	packedOutput, err := PackImportUTXOOutput(ImportUTXOOutput{
+		Amount:    transferOut.Amt,
+		Locktime:  transferOut.Locktime,
+		Threshold: uint64(transferOut.Threshold),
+		Addrs:     addrs,
+	})
 	if err != nil {
 		return nil, remainingGas, err
 	}

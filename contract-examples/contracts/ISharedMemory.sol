@@ -78,12 +78,14 @@ interface ISharedMemory {
     // importUTXO attempts to import the UTXO specified by UTXOID. If the UTXO is available, then it returns the UTXO details to the caller
     // for the caller to credit any balance changes as a result of importing the UTXO.
     // importUTXO performs the following verification:
-    // 1. Verify the UTXO is available in the BlockContext and TxContext
-    // 2. Verify the UTXO has not already been spent at this point in the EVM's execution
-    // 3. Verify that the assetID of the UTXO matches the assetID that corresponds to msg.sender
+    // 1. Verify the UTXO is available in the predicate and has not been marked as spent in the StateDB
+    // 2. Verify the UTXO's assetID is NOT AVAX
+    // 3. Verify that the multisig has a threshold of 1 and specifies exactly one address.
+    // 4. Verify that getNativeTokenAssetID(msg.sender) matches the specified assetID
     //
     // If verification passes, then importUTXO emits an ImportUTXO event, which will trigger a Remove request on shared memory during block
     // acceptance.
+    // Finally, it will return the UTXO details to the caller so the caller can decide what state changes to make based off of conusming the UTXO.
     function importUTXO(bytes32 sourceChain, bytes32 utxoID) external returns (uint64 amount, uint64 locktime, uint64 threshold, address[] calldata addrs);
 
     // ImportAVAX is emitted by importAVAX to indicate that the import operation has taken place.
@@ -93,18 +95,13 @@ interface ISharedMemory {
 
     // importAVAX attempts to import the AVAX UTXO specified by UTXOID.
     // importAVAX performs the following verification:
-    // 1. Verify the UTXO is available in the BlockContext and TxContext
-    // 2. Verify the UTXO has not already been spent at this point in the EVM's execution
-    // 3. Verify that the UTXO's assetID is AVAX
-    // 4. Verify that the multisig specifies a single address msg.sender with a threshold of 1.
-    // 5. Verify that block.timestamp is after locktime
+    // 1. Verify the UTXO is available in the predicate and has not been marked as spent in the StateDB
+    // 2. Verify that the UTXO's assetID is AVAX
+    // 3. Verify that the multisig has a threshold of 1 and the caller, msg.sender, is one of the specified senders
+    // 4. Verify that block.timestamp is after locktime
     //
-    // If verification passes, then importAVAX emits an ImportAVAX event, which will trigger a Remove request on shared memory during block
-    // acceptance.
-    // Since this imports AVAX to the chain, this will additionally credit msg.sender with the imported amount of AVAX.
-    // There are two options to do this:
-    // 1. AddBalance directly (this breaks an invariant of the EVM that your balance cannot be modified during a call other than through a call operation)
-    // 2. Call msg.sender with the amount of the UTXO and no calldata.
-    // XXX
+    // If verification passes, then importAVAX will:
+    // 1. Emit an ImportAVAX log that will trigger a Remove operation of the consumed UTXO when the block is accepted
+    // 2. Increase the balance of the caller address by the imported amount (converted from denomination 10^9 to denomination 10^18)
     function importAVAX(bytes32 sourceChain, bytes32 utxoID) external;
 }
