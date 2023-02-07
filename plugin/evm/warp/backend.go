@@ -18,8 +18,6 @@ import (
 
 var (
 	_ WarpBackend = &warpBackend{}
-
-	emptySignature = [bls.SignatureLen]byte{}
 )
 
 // WarpBackend tracks signature eligible warp messages and provides an interface to fetch them.
@@ -76,18 +74,18 @@ func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([bls.
 
 	unsignedMessageBytes, err := w.db.Get(messageID[:])
 	if err != nil {
-		return emptySignature, fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
 	}
 
 	unsignedMessage, err := teleporter.ParseUnsignedMessage(unsignedMessageBytes)
 	if err != nil {
-		return emptySignature, fmt.Errorf("failed to parse unsigned message %s: %w", messageID.String(), err)
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to parse unsigned message %s: %w", messageID.String(), err)
 	}
 
 	var signature [bls.SignatureLen]byte
 	sig, err := w.snowCtx.TeleporterSigner.Sign(unsignedMessage)
 	if err != nil {
-		return emptySignature, fmt.Errorf("failed to sign warp message: %w", err)
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
 	}
 
 	copy(signature[:], sig)
