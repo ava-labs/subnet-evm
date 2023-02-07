@@ -813,11 +813,10 @@ func TestSetPreferenceRace(t *testing.T) {
 // will not attempt to orphan either when verifying blocks C and D
 // from another VM (which have a common ancestor under the finalized
 // frontier).
-//
-//	 A
-//	/ \
-//
+//   A
+//  / \
 // B   C
+//
 // verifies block B and C, then Accepts block B. Then we test to ensure
 // that the VM defends against any attempt to set the preference or to
 // accept block C, which should be an orphaned block at this point and
@@ -996,8 +995,8 @@ func TestReorgProtection(t *testing.T) {
 
 // Regression test to ensure that a VM that accepts block C while preferring
 // block B will trigger a reorg.
-//	 A
-//	/ \
+//   A
+//  / \
 // B   C
 func TestNonCanonicalAccept(t *testing.T) {
 	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
@@ -1164,11 +1163,11 @@ func TestNonCanonicalAccept(t *testing.T) {
 // Regression test to ensure that a VM that verifies block B, C, then
 // D (preferring block B) does not trigger a reorg through the re-verification
 // of block C or D.
-//	 A
-//	/ \
+//   A
+//  / \
 // B   C
-//	   |
-//	   D
+//     |
+//     D
 func TestStickyPreference(t *testing.T) {
 	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
@@ -1433,11 +1432,11 @@ func TestStickyPreference(t *testing.T) {
 // Regression test to ensure that a VM that prefers block B is able to parse
 // block C but unable to parse block D because it names B as an uncle, which
 // are not supported.
-//	 A
-//	/ \
+//   A
+//  / \
 // B   C
-//	   |
-//	   D
+//     |
+//     D
 func TestUncleBlock(t *testing.T) {
 	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
@@ -1679,11 +1678,11 @@ func TestEmptyBlock(t *testing.T) {
 
 // Regression test to ensure that a VM that verifies block B, C, then
 // D (preferring block B) reorgs when C and then D are accepted.
-//	 A
-//	/ \
+//   A
+//  / \
 // B   C
-//	   |
-//	   D
+//     |
+//     D
 func TestAcceptReorg(t *testing.T) {
 	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
@@ -3160,7 +3159,6 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 }
 
 func TestSignatureRequestsToVM(t *testing.T) {
-	codec := message.Codec
 	_, vm, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
@@ -3173,7 +3171,7 @@ func TestSignatureRequestsToVM(t *testing.T) {
 		MessageID: ids.GenerateTestID(),
 	}
 
-	requestBytes, err := codec.Marshal(message.Version, &signatureRequest)
+	requestBytes, err := message.Codec.Marshal(message.Version, &signatureRequest)
 	require.NoError(t, err)
 
 	// Currently with warp not being initialized we just need to make sure the NoopSignatureRequestHandler does not
