@@ -4,6 +4,7 @@
 package precompile
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -154,7 +155,72 @@ func (c *SharedMemoryConfig) Verify() error {
 // if the access list of the transaction includes a tuple that references the precompile address.
 // Returns nil here to indicate that this precompile does not enforce a predicate.
 func (c *SharedMemoryConfig) Predicate() PredicateFunc {
-	// TODO
+	return SharedMemoryPredicate
+}
+
+type AtomicPredicate struct {
+	// Which chain to consume the funds from
+	SourceChain ids.ID `serialize:"true" json:"sourceChain"`
+	// UTXOs consumable in this transaction
+	ImportedUTXOs []*avax.UTXO `serialize:"true" json:"importedInputs"`
+}
+
+// SharedMemoryPredicate verifies that the UTXOs specified by [predicateBytes] are present in shared memory, valid, and
+// have not been consumed yet.
+// SharedMemoryPredicate is called before the transaction execution, so it is up to the precompile implementation to validate
+// that the caller has permission to consume the UTXO and how consuming the UTXO works.
+func SharedMemoryPredicate(chainContext *snow.Context, predicateBytes []byte) error {
+	atomicPredicate := new(AtomicPredicate)
+	version, err := codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal shared memory predicate: %w", err)
+	}
+	if version != 0 {
+		return fmt.Errorf("invalid version for shared memory predicate: %d", version)
+	}
+
+	utxoIDs := make([][]byte, len(atomicPredicate.ImportedUTXOs))
+	for i, in := range atomicPredicate.ImportedUTXOs {
+		inputID := in.UTXOID.InputID()
+		utxoIDs[i] = inputID[:]
+	}
+	// allUTXOBytes is guaranteed to be the same length as utxoIDs
+	allUTXOBytes, err := chainContext.SharedMemory.Get(atomicPredicate.SourceChain, utxoIDs)
+	if err != nil {
+		return fmt.Errorf("failed to fetch import UTXOs from %s due to: %w", atomicPredicate.SourceChain, err)
+	}
+
+	// TODO: check that the UTXO has not been marked as consumed within the statedb
+	// XXX make sure this handles the async acceptor here
+
+	for i, specifiedUTXO := range atomicPredicate.ImportedUTXOs {
+		specifiedUTXOBytes, err := codec.Codec.Marshal(0, specifiedUTXO)
+		if err != nil {
+			return fmt.Errorf("failed to marshal specified UTXO: %s", specifiedUTXO.ID)
+		}
+		utxoBytes := allUTXOBytes[i]
+
+		if !bytes.Equal(specifiedUTXOBytes, utxoBytes) {
+			return fmt.Errorf("UTXO %s mismatching byte representation: 0x%x expected: 0x%x", specifiedUTXO.ID, specifiedUTXOBytes, utxoBytes)
+		}
+
+		// Validate that the specified UTXO is valid to be imported to the EVM
+		transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
+		if !ok {
+			return fmt.Errorf("UTXO %s invalid UTXO output type: %T", specifiedUTXO.ID, specifiedUTXO.Out)
+		}
+		// Do not allow a transfer amount of 0 - no VM should export an atomic UTXO with an amount of 0, so this
+		// should never happen, but just in case another VM implements this incorrectly, we add an extra check here
+		if transferOut.Amt == 0 {
+			return fmt.Errorf("UTXO %s cannot specify an amount of 0", specifiedUTXO.ID)
+		}
+		// When import is called within the EVM, there will only be one caller address, so we require a threshold of 1
+		// since a UTXO with a threshold of 2 will never be valid to import.
+		if transferOut.Threshold != 1 {
+			return fmt.Errorf("UTXO %s specified invalid threshold", specifiedUTXO.ID)
+		}
+	}
+
 	return nil
 }
 
@@ -412,6 +478,22 @@ func importAVAX(accessibleState PrecompileAccessibleState, caller common.Address
 	inputStruct, err := UnpackImportAVAXInput(input)
 	if err != nil {
 		return nil, remainingGas, err
+	}
+
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(SharedMemoryAddress)
+	if !exists {
+		return nil, remainingGas, fmt.Errorf("no predicate available to import, caller %s, input: 0x%x, suppliedGas: %d", caller, input, suppliedGas)
+	}
+
+	atomicPredicate := new(AtomicPredicate)
+	_, err = codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
+	// Note: this should never happen since this should be unmarshalled within the predicate verification
+	if err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to unmarshal shared memory predicate: %w", err)
+	}
+
+	if atomicPredicate.SourceChain != inputStruct.SourceChain {
+		return nil, remainingGas, fmt.Errorf("predicate source chain %s does not match specified source chain: %s", atomicPredicate.SourceChain, inputStruct.SourceChain)
 	}
 
 	// CUSTOM CODE STARTS HERE

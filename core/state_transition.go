@@ -346,21 +346,6 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.PrepareAccessList(msg.From(), msg.To(), vm.ActivePrecompiles(rules), msg.AccessList())
 	}
 
-	// Prior to execution, we check the predicate of each precompile over the access list for the tx
-	for _, accessTuple := range msg.AccessList() {
-		precompileConfig, ok := rules.Precompiles[accessTuple.Address]
-		if !ok {
-			continue
-		}
-		predicate := precompileConfig.Predicate()
-		if predicate == nil {
-			continue
-		}
-
-		if err := predicate(accessTuple.StorageKeys); err != nil {
-			return nil, err
-		}
-	}
 	var (
 		ret   []byte
 		vmerr error // vm errors do not effect consensus and are therefore not assigned to err
