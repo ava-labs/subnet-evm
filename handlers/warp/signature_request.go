@@ -1,7 +1,7 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package handlers
+package warp
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/handlers/stats"
+	"github.com/ava-labs/subnet-evm/handlers/warp/stats"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
 	"github.com/ethereum/go-ethereum/log"
