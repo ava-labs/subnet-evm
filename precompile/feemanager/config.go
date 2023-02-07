@@ -46,7 +46,8 @@ func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
 	}
 }
 
-func (FeeManagerConfig) Key() string             { return ConfigKey }
+func (FeeManagerConfig) Key() string { return ConfigKey }
+
 func (FeeManagerConfig) Address() common.Address { return ContractAddress }
 
 // Equal returns true if [cfg] is a [*FeeManagerConfig] and it has been configured identical to [c].

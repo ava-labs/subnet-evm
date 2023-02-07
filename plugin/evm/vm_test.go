@@ -2188,8 +2188,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	genesis.Config.GenesisPrecompiles = precompileConfig.Configs{
-		// TODO:fix
-		// txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(0), testEthAddrs[0:1], nil),
+		txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(0), testEthAddrs[0:1], nil),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {

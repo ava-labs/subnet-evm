@@ -6,4 +6,8 @@ package registration
 // Force imports of each precompile to ensure each precompile's init function runs and registers itself
 import (
 	_ "github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
+	_ "github.com/ava-labs/subnet-evm/precompile/feemanager"
+	_ "github.com/ava-labs/subnet-evm/precompile/nativeminter"
+	_ "github.com/ava-labs/subnet-evm/precompile/rewardmanager"
+	_ "github.com/ava-labs/subnet-evm/precompile/txallowlist"
 )
