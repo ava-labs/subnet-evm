@@ -5,39 +5,39 @@
 
 pragma solidity >=0.8.16;
 
-struct CrossChainMessage {
-    bytes32 sourceChainID;
-    bytes32 senderAddress;
-    bytes32 destinationChainID;
-    bytes32 destinationAddress;
-    bytes payload;
-}
+    struct WarpMessage {
+        bytes32 originChainId;
+        bytes32 originSenderAddress;
+        bytes32 destinationChainId;
+        bytes32 destinationAddress;
+        bytes payload;
+    }
 
 interface WarpMessenger {
-    event SendCrossChainMessage(
-        bytes32 indexed destinationChainID,
+    event SendWarpMessage(
+        bytes32 indexed destinationChainId,
         bytes32 indexed destinationAddress,
         bytes32 indexed sender,
         bytes message
     );
 
-    // sendCrossChainMessage emits a request for the Subnet to send a cross subnet message from [msg.sender]
+    // sendWarpMessage emits a request for the subnet to send a warp message from [msg.sender]
     // with the specified parameters.
-    // This emits a SendCrossChainMessage log, which will be picked up by validators to queue the signing of
+    // This emits a SendWarpMessage log, which will be picked up by validators to queue the signing of
     // a Warp message if/when the block is accepted.
-    function sendCrossChainMessage(
-        bytes32 destinationChainID,
+    function sendWarpMessage(
+        bytes32 destinationChainId,
         bytes32 destinationAddress,
         bytes calldata payload
     ) external;
 
-    // getVerifiedCrossChainMessage parses the message in the predicate storage slots as a Warp Message.
+    // getVerifiedWarpMessage parses the message in the predicate storage slots as a Warp Message.
     // This message is then delivered on chain by performing evm.Call with the Warp precompile as the caller,
     // the destinationAddress as the receiver.
     // The full message and a boolean indicating if the operation executed successfully is returned to the caller.
-    function getVerifiedCrossChainMessage(uint256 messageIndex)
-        external
-        returns (CrossChainMessage calldata message, bool success);
+    function getVerifiedWarpMessage(uint256 messageIndex)
+    external
+    returns (WarpMessage calldata message, bool success);
 
-    function getBlockchainId() external view returns (bytes32 chainID);
+    function getBlockchainId() external view returns (bytes32 blockchainId);
 }
