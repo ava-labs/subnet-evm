@@ -5,12 +5,14 @@ package evm
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 
+	"github.com/ava-labs/subnet-evm/rpc"
+
+	"github.com/ava-labs/avalanchego/utils/cb58"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
-	"github.com/ava-labs/avalanchego/utils/rpc"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // Interface compliance
@@ -22,21 +24,33 @@ type WarpClient interface {
 
 // Client implementation for interacting with EVM [chain]
 type warpClient struct {
-	requester rpc.EndpointRequester
+	client *rpc.Client
 }
 
 // NewClient returns a Client for interacting with EVM [chain]
-func NewWarpClient(uri, chain string) WarpClient {
-	return &warpClient{
-		requester: rpc.NewEndpointRequester(fmt.Sprintf("%s/ext/bc/%s/rpc", uri, chain)),
+func NewWarpClient(uri, chain string) (WarpClient, error) {
+	client, err := rpc.Dial(fmt.Sprintf("%s/ext/bc/%s/rpc", uri, chain))
+	if err != nil {
+		log.Error("failed to dial client")
+		return nil, err
 	}
+	return &warpClient{
+		client: client,
+	}, nil
 }
 
 func (c *warpClient) GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*[bls.SignatureLen]byte, error) {
-	sigReqJson := SignatureRequest{
-		MessageID: hex.EncodeToString(signatureRequest.MessageID[:]),
+	req, err := cb58.Encode(signatureRequest.MessageID[:])
+	if err != nil {
+		log.Info("failed to base58 encode the request", "messageID", signatureRequest.MessageID)
+		return nil, err
 	}
-	res := &message.SignatureResponse{}
-	err := c.requester.SendRequest(ctx, "warp_getSignature", &sigReqJson, res)
+
+	var res message.SignatureResponse
+	err = c.client.CallContext(ctx, &res, "warp_getSignature", req)
+	if err != nil {
+		log.Info("call to warp_getSignature failed", "err", err)
+		return nil, err
+	}
 	return &res.Signature, err
 }
