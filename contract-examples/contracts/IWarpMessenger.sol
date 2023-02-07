@@ -5,13 +5,13 @@
 
 pragma solidity >=0.8.16;
 
-    struct WarpMessage {
-        bytes32 originChainID;
-        bytes32 originSenderAddress;
-        bytes32 destinationChainID;
-        bytes32 destinationAddress;
-        bytes payload;
-    }
+struct WarpMessage {
+    bytes32 originChainID;
+    bytes32 originSenderAddress;
+    bytes32 destinationChainID;
+    bytes32 destinationAddress;
+    bytes payload;
+}
 
 interface WarpMessenger {
     event SendWarpMessage(
@@ -36,8 +36,8 @@ interface WarpMessenger {
     // the destinationAddress as the receiver.
     // The full message and a boolean indicating if the operation executed successfully is returned to the caller.
     function getVerifiedWarpMessage(uint256 messageIndex)
-    external
-    returns (WarpMessage calldata message, bool success);
+        external
+        returns (WarpMessage calldata message, bool success);
 
     function getBlockchainID() external view returns (bytes32 blockchainID);
 }
