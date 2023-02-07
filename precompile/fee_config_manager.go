@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -316,15 +317,18 @@ func StoreFeeConfig(stateDB StateDB, feeConfig commontype.FeeConfig, blockContex
 // The execution function parses [input] into FeeConfig structure and sets contract storage accordingly.
 func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = deductGas(suppliedGas, SetFeeConfigGasCost); err != nil {
+		log.Warn("setFeeConfig errorred", "outOfGas", "suppliedGas", suppliedGas)
 		return nil, 0, err
 	}
 
 	if readOnly {
+		log.Warn("setFeeConfig errorred", "writeProtection")
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
 	feeConfig, err := UnpackFeeConfigInput(input)
 	if err != nil {
+		log.Warn("setFeeConfig errorred", "failed to unpack fee config input", err, "input", common.Bytes2Hex(input))
 		return nil, remainingGas, err
 	}
 
@@ -332,10 +336,12 @@ func setFeeConfig(accessibleState PrecompileAccessibleState, caller common.Addre
 	// Verify that the caller is in the allow list and therefore has the right to modify it
 	callerStatus := getAllowListStatus(stateDB, FeeConfigManagerAddress, caller)
 	if !callerStatus.IsEnabled() {
+		log.Warn("setFeeConfig errorred", "invalid status", callerStatus)
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
 
 	if err := StoreFeeConfig(stateDB, feeConfig, accessibleState.GetBlockContext()); err != nil {
+		log.Warn("failed to StoreFeeConfig", "err", err)
 		return nil, remainingGas, err
 	}
 

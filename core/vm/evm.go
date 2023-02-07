@@ -39,6 +39,7 @@ import (
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/holiman/uint256"
 )
 
@@ -226,6 +227,9 @@ func (evm *EVM) Interpreter() *EVMInterpreter {
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
 func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	if addr == precompile.FeeConfigManagerAddress {
+		log.Info("Call operation on FeeConfigManager", "caller", caller.Address(), "addr", addr, "input", input, "gas", gas, "value", value)
+	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, vmerrs.ErrDepth
@@ -320,6 +324,9 @@ func (evm *EVM) CallFromPrecompile(caller common.Address, addr common.Address, i
 // CallCode differs from Call in the sense that it executes the given address'
 // code with the caller as context.
 func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	if addr == precompile.FeeConfigManagerAddress {
+		log.Info("CallCode operation on FeeConfigManager", "caller", caller.Address(), "addr", addr, "input", input, "gas", gas, "value", value)
+	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, vmerrs.ErrDepth
@@ -371,6 +378,9 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 // DelegateCall differs from CallCode in the sense that it executes the given address'
 // code with the caller as context and the caller is set to the caller of the caller.
 func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
+	if addr == precompile.FeeConfigManagerAddress {
+		log.Info("DelegateCall operation on FeeConfigManager", "caller", caller.Address(), "addr", addr, "input", input, "gas", gas)
+	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, vmerrs.ErrDepth
@@ -410,6 +420,9 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 // Opcodes that attempt to perform such modifications will result in exceptions
 // instead of performing the modifications.
 func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte, gas uint64) (ret []byte, leftOverGas uint64, err error) {
+	if addr == precompile.FeeConfigManagerAddress {
+		log.Info("StaticCall operation on FeeConfigManager", "caller", caller.Address(), "addr", addr, "input", input, "gas", gas)
+	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, vmerrs.ErrDepth
