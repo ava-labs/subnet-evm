@@ -138,7 +138,7 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 	}
 	// VerifyWithContext may be called multiple times on the same block with multiple contexts, but the engine will only call Accept or Reject once.
 	// As such, we need to ensure that we only verify the block once, so if the block is currently processing, we only check the predicates and return.
-	if b.status == choices.Processing {
+	if b.vm.State.IsProcessing(b.id) {
 		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 		predicateCtx := precompile.PredicateContext{
 			SnowCtx:            b.vm.ctx,
