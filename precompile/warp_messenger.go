@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -177,7 +176,7 @@ func (c *WarpMessengerConfig) verifyPredicate(predicateContext *PredicateContext
 		return err
 	}
 
-	// Check that each message was intended for this chain, and verify the aggregate signature of each message.
+	// Iterate and try to parse into warp signed messages, then verify each message's aggregate signature.
 	for _, messageBytes := range messagesBytes {
 		message, err := teleporter.ParseMessage(messageBytes)
 		if err != nil {
@@ -199,10 +198,8 @@ func (c *WarpMessengerConfig) verifyPredicate(predicateContext *PredicateContext
 		if err != nil {
 			return err
 		}
-		log.Info("Warp message verification passed.")
 	}
 
-	log.Info("Warp precompile predicate passed.")
 	return nil
 }
 

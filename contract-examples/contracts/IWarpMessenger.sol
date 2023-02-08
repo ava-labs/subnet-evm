@@ -32,9 +32,6 @@ interface WarpMessenger {
     ) external;
 
     // getVerifiedWarpMessage parses the message in the predicate storage slots as a Warp Message.
-    // This message is then delivered on chain by performing evm.Call with the Warp precompile as the caller,
-    // the destinationAddress as the receiver.
-    // The full message and a boolean indicating if the operation executed successfully is returned to the caller.
     function getVerifiedWarpMessage(uint256 messageIndex)
         external
         returns (WarpMessage calldata message, bool success);
