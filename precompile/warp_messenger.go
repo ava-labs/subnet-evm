@@ -226,10 +226,6 @@ func getBlockchainID(accessibleState PrecompileAccessibleState, caller common.Ad
 		return nil, 0, err
 	}
 
-	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
-	}
-
 	packedOutput, err := PackGetBlockchainIDOutput(accessibleState.GetSnowContext().ChainID)
 	if err != nil {
 		return nil, remainingGas, err
@@ -270,9 +266,7 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 	if remainingGas, err = deductGas(suppliedGas, GetVerifiedWarpMessageGasCost); err != nil {
 		return nil, 0, err
 	}
-	if readOnly {
-		return nil, remainingGas, vmerrs.ErrWriteProtection
-	}
+
 	// attempts to unpack [input] into the arguments to the GetVerifiedWarpMessageInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [messageIndex] variable in your code

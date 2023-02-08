@@ -1359,18 +1359,6 @@ func TestWarpMessengerRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: precompile.ErrMissingStorageSlots.Error(),
 		},
-		"readOnly get blockchain ID fails": {
-			caller: noRoleAddr,
-			input: func() []byte {
-				input, err := precompile.PackGetBlockchainID()
-				require.NoError(t, err)
-
-				return input
-			},
-			suppliedGas: precompile.GetBlockchainIDGasCost,
-			readOnly:    true,
-			expectedErr: vmerrs.ErrWriteProtection.Error(),
-		},
 		"readOnly send warp message fails": {
 			caller: noRoleAddr,
 			input: func() []byte {
@@ -1380,18 +1368,6 @@ func TestWarpMessengerRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: precompile.SendWarpMessageGasCost,
-			readOnly:    true,
-			expectedErr: vmerrs.ErrWriteProtection.Error(),
-		},
-		"readOnly get verified warp message fails": {
-			caller: noRoleAddr,
-			input: func() []byte {
-				input, err := precompile.PackGetVerifiedWarpMessage(big.NewInt(0))
-				require.NoError(t, err)
-
-				return input
-			},
-			suppliedGas: precompile.GetVerifiedWarpMessageGasCost,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
