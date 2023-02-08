@@ -276,7 +276,7 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 	}
 
 	storageSlots, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(WarpMessengerAddress)
-	if !exists || storageSlots == nil {
+	if !exists {
 		return nil, remainingGas, ErrMissingStorageSlots
 	}
 
