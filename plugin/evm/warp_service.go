@@ -5,25 +5,29 @@ package evm
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
+
+type SignatureResponse struct {
+	Signature hexutil.Bytes
+}
 
 // WarpAPI introduces snowman specific functionality to the evm
 type WarpAPI struct{ vm *VM }
 
 // GetSignature returns the BLS signature associated with a messageID. In the raw request, [messageID] should be cb58 encoded
-func (api *WarpAPI) GetSignature(ctx context.Context, messageID ids.ID) (*message.SignatureResponse, error) {
+func (api *WarpAPI) GetSignature(ctx context.Context, messageID ids.ID) (*SignatureResponse, error) {
 	signature, err := api.vm.backend.GetSignature(ctx, messageID)
 	if err != nil {
-		log.Debug("Unknown warp signature requested", "messageID", messageID)
-		return nil, nil
+		return nil, fmt.Errorf("failed to get signature for with error %w", err)
 	}
+	sigBytes := (hexutil.Bytes)(signature[:])
 
-	response := message.SignatureResponse{
-		Signature: signature,
+	response := SignatureResponse{
+		Signature: sigBytes,
 	}
 	return &response, nil
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/cb58"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // Interface compliance
@@ -31,8 +30,7 @@ type warpClient struct {
 func NewWarpClient(uri, chain string) (WarpClient, error) {
 	client, err := rpc.Dial(fmt.Sprintf("%s/ext/bc/%s/rpc", uri, chain))
 	if err != nil {
-		log.Error("failed to dial client")
-		return nil, err
+		return nil, fmt.Errorf("failed to dial client. err: %w", err)
 	}
 	return &warpClient{
 		client: client,
@@ -43,15 +41,13 @@ func NewWarpClient(uri, chain string) (WarpClient, error) {
 func (c *warpClient) GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*[bls.SignatureLen]byte, error) {
 	req, err := cb58.Encode(signatureRequest.MessageID[:])
 	if err != nil {
-		log.Info("failed to base58 encode the request", "messageID", signatureRequest.MessageID)
-		return nil, err
+		return nil, fmt.Errorf("failed to base58 encode the request. messageID: %s, error: %w", signatureRequest.MessageID, err)
 	}
 
 	var res message.SignatureResponse
 	err = c.client.CallContext(ctx, &res, "warp_getSignature", req)
 	if err != nil {
-		log.Info("call to warp_getSignature failed", "err", err)
-		return nil, err
+		return nil, fmt.Errorf("call to warp_getSignature failed. err: %w", err)
 	}
 	return &res.Signature, err
 }
