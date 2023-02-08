@@ -68,7 +68,7 @@ func TestSignatureHandler(t *testing.T) {
 			verifyStats: func(t *testing.T, stats *stats.MockHandlerStats) {
 				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
 				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestMiss)
-				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestHit)
+				assert.EqualValues(t, 0, mockHandlerStats.SignatureRequestHit)
 				assert.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
 			},
 		},
@@ -85,6 +85,7 @@ func TestSignatureHandler(t *testing.T) {
 
 			// If the expected response is empty, assert that the handler returns an empty response and return early.
 			if len(expectedResponse) == 0 {
+				test.verifyStats(t, mockHandlerStats)
 				assert.Len(t, responseBytes, 0, "expected response to be empty")
 				return
 			}
