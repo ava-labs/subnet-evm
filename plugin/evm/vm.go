@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
+
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -147,6 +149,10 @@ func init() {
 	originalStderr = os.Stderr
 }
 
+type Backend interface {
+	warp.WarpBackend
+}
+
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
@@ -187,6 +193,8 @@ type VM struct {
 	builder *blockBuilder
 
 	gossiper Gossiper
+
+	backend Backend
 
 	clock mockable.Clock
 
@@ -277,6 +285,7 @@ func (vm *VM) Initialize(
 	vm.db = versiondb.New(baseDB)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
+	vm.backend = warp.NewNoopBackend()
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -462,6 +471,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.config.EthBackendSettings(),
 		lastAcceptedHash,
 		&vm.clock,
+		vm.backend,
 	)
 	if err != nil {
 		return err

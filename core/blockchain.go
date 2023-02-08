@@ -38,6 +38,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/plugin/evm"
+
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -247,6 +249,7 @@ type BlockChain struct {
 	prefetcher Prefetcher // Block state prefetcher interface
 	processor  Processor  // Block transaction processor interface
 	vmConfig   vm.Config
+	vmBackend  evm.Backend
 
 	badBlocks *lru.Cache // Bad block cache
 
@@ -300,7 +303,7 @@ type BlockChain struct {
 // Processor.
 func NewBlockChain(
 	db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine,
-	vmConfig vm.Config, lastAcceptedHash common.Hash,
+	vmConfig vm.Config, lastAcceptedHash common.Hash, backend evm.Backend,
 ) (*BlockChain, error) {
 	if cacheConfig == nil {
 		return nil, errCacheConfigNotSpecified
@@ -331,6 +334,7 @@ func NewBlockChain(
 		coinbaseConfigCache: coinbaseConfigCache,
 		engine:              engine,
 		vmConfig:            vmConfig,
+		vmBackend:           backend,
 		badBlocks:           badBlocks,
 		senderCacher:        newTxSenderCacher(runtime.NumCPU()),
 		acceptorQueue:       make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
@@ -1053,6 +1057,33 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	bc.addAcceptorQueue(block)
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
+	return bc.handlePrecompilePostAccept(block)
+}
+
+// handlePrecompilePostAccept handles executing the post-accept functions of any active precompiles
+// on the logs contained in the block.
+func (bc *BlockChain) handlePrecompilePostAccept(block *types.Block) error {
+	rules := bc.chainConfig.AvalancheRules(block.Number(), block.Timestamp())
+	receipts := rawdb.ReadReceipts(bc.db, block.Hash(), block.NumberU64(), bc.chainConfig)
+
+	for txIndex, receipt := range receipts {
+		for _, log := range receipt.Logs {
+			precompileConfig, ok := rules.Precompiles[log.Address]
+			if !ok {
+				continue
+			}
+
+			onAccept := precompileConfig.OnAccept()
+			if onAccept == nil {
+				continue
+			}
+
+			if err := onAccept(bc.vmBackend, log.TxHash, txIndex, log.Topics, log.Data); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

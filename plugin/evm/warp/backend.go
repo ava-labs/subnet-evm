@@ -15,7 +15,10 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 )
 
-var _ WarpBackend = &warpBackend{}
+var (
+	_ WarpBackend = &warpBackend{}
+	_ WarpBackend = &noopBackend{}
+)
 
 // WarpBackend tracks signature eligible warp messages and provides an interface to fetch them.
 // The backend is also used to query for warp message signatures by the signature request handler.
@@ -84,4 +87,18 @@ func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([]byt
 
 	w.signatureCache.Put(messageID[:], signature)
 	return signature, nil
+}
+
+type noopBackend struct{}
+
+func NewNoopBackend() WarpBackend {
+	return noopBackend{}
+}
+
+func (n noopBackend) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
+	return nil
+}
+
+func (n noopBackend) GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error) {
+	return nil, nil
 }

@@ -10,9 +10,11 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -206,7 +208,23 @@ func (c *WarpMessengerConfig) verifyPredicate(predicateContext *PredicateContext
 // OnAccept optionally returns a function to perform on any log with the precompile address.
 // If enabled, this will be called after the block is accepted to perform post-accept computation.
 func (c *WarpMessengerConfig) OnAccept() OnAcceptFunc {
-	return nil
+	return c.onAccept
+}
+
+func (c *WarpMessengerConfig) onAccept(backend evm.Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
+	if len(topics) != 3 || topics[0] != common.HexToHash(SubmitMessageEventID) {
+		return errors.New("unexpected number of topics for warp precompile accept")
+	}
+
+	unsignedMessage, err := teleporter.NewUnsignedMessage(
+		ids.ID(topics[1]),
+		ids.ID(topics[2]),
+		logData)
+	if err != nil {
+		return errors.New("failed to create new unsigned message")
+	}
+
+	return backend.AddMessage(context.Background(), unsignedMessage)
 }
 
 // PackGetBlockchainID packs the include selector (first 4 func signature bytes).
