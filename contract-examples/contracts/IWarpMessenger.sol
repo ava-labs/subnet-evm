@@ -33,7 +33,7 @@ interface WarpMessenger {
 
     // getVerifiedWarpMessage parses the message in the predicate storage slots as a Warp Message.
     function getVerifiedWarpMessage(uint256 messageIndex)
-        external
+        external view
         returns (WarpMessage calldata message, bool success);
 
     function getBlockchainID() external view returns (bytes32 blockchainID);
