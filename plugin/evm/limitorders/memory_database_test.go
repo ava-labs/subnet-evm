@@ -385,12 +385,16 @@ func TestUpdateNextFundingTime(t *testing.T) {
 }
 
 func TestGetNextFundingTime(t *testing.T) {
-	inMemoryDatabase := NewInMemoryDatabase()
-	nextHour := time.Now().UTC().Round(time.Hour)
-	if time.Since(nextHour) >= 0 {
-		nextHour = nextHour.Add(time.Hour)
-	}
-	assert.Equal(t, uint64(nextHour.Unix()), inMemoryDatabase.GetNextFundingTime())
+	t.Run("when funding time is not set", func(t *testing.T) {
+		inMemoryDatabase := NewInMemoryDatabase()
+		assert.Equal(t, uint64(0), inMemoryDatabase.GetNextFundingTime())
+	})
+	t.Run("when funding time is set", func(t *testing.T) {
+		inMemoryDatabase := NewInMemoryDatabase()
+		nextFundingTime := uint64(time.Now().Unix())
+		inMemoryDatabase.UpdateNextFundingTime(nextFundingTime)
+		assert.Equal(t, nextFundingTime, inMemoryDatabase.GetNextFundingTime())
+	})
 }
 
 func TestUpdateLastPrice(t *testing.T) {

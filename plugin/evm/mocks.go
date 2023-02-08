@@ -41,7 +41,7 @@ func (db *MockLimitOrderDatabase) GetShortOrders(market limitorders.Market) []li
 	return args.Get(0).([]limitorders.LimitOrder)
 }
 
-func (db *MockLimitOrderDatabase) UpdatePosition(trader common.Address, market limitorders.Market, size *big.Int, openNotional *big.Int) {
+func (db *MockLimitOrderDatabase) UpdatePosition(trader common.Address, market limitorders.Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
 }
 
 func (db *MockLimitOrderDatabase) UpdateMargin(trader common.Address, collateral limitorders.Collateral, addAmount *big.Int) {
@@ -60,7 +60,7 @@ func (db *MockLimitOrderDatabase) GetNextFundingTime() uint64 {
 	return 0
 }
 
-func (db *MockLimitOrderDatabase) GetLiquidableTraders(market limitorders.Market, oraclePrice *big.Int) ([]limitorders.LiquidablePosition) {
+func (db *MockLimitOrderDatabase) GetAllTraders() map[common.Address]limitorders.Trader {
 	return nil
 }
 
@@ -69,6 +69,10 @@ func (db *MockLimitOrderDatabase) UpdateLastPrice(market limitorders.Market, las
 
 func (db *MockLimitOrderDatabase) GetLastPrice(market limitorders.Market) *big.Int {
 	return big.NewInt(0)
+}
+
+func (db *MockLimitOrderDatabase) GetOrderBookData() limitorders.InMemoryDatabase {
+	return *&limitorders.InMemoryDatabase{}
 }
 
 type MockLimitOrderTxProcessor struct {

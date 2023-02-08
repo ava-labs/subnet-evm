@@ -11,12 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestSetOrderBookContractFileLocation(t *testing.T) {
-	newFileLocation := "new/location"
-	limitorders.SetOrderBookContractFileLocation(newFileLocation)
-	// assert.Equal(t, newFileLocation, orderBookContractFileLocation)
-}
-
 func newVM(t *testing.T) *VM {
 	txFeeCap := float64(11)
 	enabledEthAPIs := []string{"debug"}
