@@ -7,7 +7,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/crypto/bls"
+	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -1271,6 +1274,178 @@ func TestRewardManagerRun(t *testing.T) {
 				test.config.Configure(params.TestChainConfig, state, blockContext)
 			}
 			ret, remainingGas, err := precompile.RewardManagerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snow.DefaultContextTest()}, test.caller, precompile.RewardManagerAddress, test.input(), test.suppliedGas, test.readOnly)
+			if len(test.expectedErr) != 0 {
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, uint64(0), remainingGas)
+			require.Equal(t, test.expectedRes, ret)
+
+			if test.assertState != nil {
+				test.assertState(t, state)
+			}
+		})
+	}
+}
+
+func TestWarpMessengerRun(t *testing.T) {
+	type test struct {
+		caller       common.Address
+		preCondition func(t *testing.T, state *state.StateDB)
+		input        func() []byte
+		suppliedGas  uint64
+		readOnly     bool
+		config       *precompile.WarpMessengerConfig
+
+		expectedRes []byte
+		expectedErr string
+
+		assertState func(t *testing.T, state *state.StateDB)
+	}
+
+	noRoleAddr := common.HexToAddress("0xF60C45c607D0f41687c94C314d300f483661E13a")
+	snowCtx := snow.DefaultContextTest()
+	snowCtx.ChainID = ids.GenerateTestID()
+	sk, err := bls.NewSecretKey()
+	require.NoError(t, err)
+	snowCtx.TeleporterSigner = teleporter.NewSigner(sk, snowCtx.ChainID)
+
+	sendInput := precompile.SendWarpMessageInput{
+		DestinationChainID: ids.GenerateTestID(),
+		DestinationAddress: [32]byte{},
+		Payload:            nil,
+	}
+
+	for name, test := range map[string]test{
+		"get blockchain ID succeeds": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackGetBlockchainID()
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.GetBlockchainIDGasCost,
+			readOnly:    false,
+			expectedRes: func() []byte {
+				res, err := precompile.PackGetBlockchainIDOutput(snowCtx.ChainID)
+				require.NoError(t, err)
+				return res
+			}(),
+		},
+		"send warp message succeeds": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackSendWarpMessage(sendInput)
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.SendWarpMessageGasCost,
+			readOnly:    false,
+			expectedRes: []byte{},
+		},
+		"get verified warp message no storage slots fails": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackGetVerifiedWarpMessage(big.NewInt(0))
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.GetVerifiedWarpMessageGasCost,
+			readOnly:    false,
+			expectedErr: precompile.ErrMissingStorageSlots.Error(),
+		},
+		"readOnly get blockchain ID fails": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackGetBlockchainID()
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.GetBlockchainIDGasCost,
+			readOnly:    true,
+			expectedErr: vmerrs.ErrWriteProtection.Error(),
+		},
+		"readOnly send warp message fails": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackSendWarpMessage(sendInput)
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.SendWarpMessageGasCost,
+			readOnly:    true,
+			expectedErr: vmerrs.ErrWriteProtection.Error(),
+		},
+		"readOnly get verified warp message fails": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackGetVerifiedWarpMessage(big.NewInt(0))
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.GetVerifiedWarpMessageGasCost,
+			readOnly:    true,
+			expectedErr: vmerrs.ErrWriteProtection.Error(),
+		},
+		"insufficient gas get blockchain ID": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackGetBlockchainID()
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.GetBlockchainIDGasCost - 1,
+			readOnly:    false,
+			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"insufficient gas send warp message": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackSendWarpMessage(sendInput)
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.SendWarpMessageGasCost - 1,
+			readOnly:    false,
+			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"insufficient gas get verified warp message": {
+			caller: noRoleAddr,
+			input: func() []byte {
+				input, err := precompile.PackGetVerifiedWarpMessage(big.NewInt(0))
+				require.NoError(t, err)
+
+				return input
+			},
+			suppliedGas: precompile.GetVerifiedWarpMessageGasCost - 1,
+			readOnly:    false,
+			expectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db := rawdb.NewMemoryDatabase()
+			state, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+			require.NoError(t, err)
+
+			if test.preCondition != nil {
+				test.preCondition(t, state)
+			}
+
+			blockContext := &mockBlockContext{blockNumber: testBlockNumber}
+			if test.config != nil {
+				test.config.Configure(params.TestChainConfig, state, blockContext)
+			}
+			ret, remainingGas, err := precompile.WarpMessengerPrecompile.Run(&mockAccessibleState{state: state, blockContext: blockContext, snowContext: snowCtx}, test.caller, precompile.WarpMessengerAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

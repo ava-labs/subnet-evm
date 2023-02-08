@@ -40,15 +40,19 @@ const (
 var (
 	_ = errors.New
 	_ = big.NewInt
-	_ = strings.NewReader
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
 	_ StatefulPrecompileConfig = &WarpMessengerConfig{}
 
-	WarpMessengerABI abi.ABI // will be initialized by init function
+	ErrMissingStorageSlots       = errors.New("missing access list storage slots from precompile during execution")
+	ErrInvalidMessageIndex       = errors.New("invalid message index")
+	ErrInvalidSignature          = errors.New("invalid aggregate signature")
+	ErrMissingProposerVMBlockCtx = errors.New("missing proposer VM block context")
+	ErrWrongChainID              = errors.New("wrong chain id")
 
+	WarpMessengerABI        abi.ABI                     // will be initialized by init function
 	WarpMessengerPrecompile StatefulPrecompiledContract // will be initialized by init function
 )
 
@@ -92,7 +96,6 @@ func init() {
 // WarpMessenger .
 func NewWarpMessengerConfig(blockTimestamp *big.Int) *WarpMessengerConfig {
 	return &WarpMessengerConfig{
-
 		UpgradeableConfig: UpgradeableConfig{BlockTimestamp: blockTimestamp},
 	}
 }
@@ -116,7 +119,6 @@ func (c *WarpMessengerConfig) Equal(s StatefulPrecompileConfig) bool {
 		return false
 	}
 
-	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom WarpMessengerConfig, to check if [other] and the current [c] are equal
 	// if WarpMessengerConfig contains only UpgradeableConfig  you can skip modifying it.
 	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig)
@@ -137,8 +139,6 @@ func (c *WarpMessengerConfig) Address() common.Address {
 
 // Configure configures [state] with the initial configuration.
 func (c *WarpMessengerConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
-
-	// CUSTOM CODE STARTS HERE
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for WarpMessenger.
@@ -148,10 +148,6 @@ func (c *WarpMessengerConfig) Contract() StatefulPrecompiledContract {
 
 // Verify tries to verify WarpMessengerConfig and returns an error accordingly.
 func (c *WarpMessengerConfig) Verify() error {
-
-	// CUSTOM CODE STARTS HERE
-	// Add your own custom verify code for WarpMessengerConfig here
-	// and return an error accordingly
 	return nil
 }
 
@@ -165,7 +161,7 @@ func (c *WarpMessengerConfig) Predicate() PredicateFunc {
 func (c *WarpMessengerConfig) verifyPredicate(predicateContext *PredicateContext, storageSlots []byte) error {
 	// The proposer VM block context is required to verify aggregate signatures.
 	if predicateContext.ProposerVMBlockCtx == nil {
-		return errors.New("missing proposer VM block context")
+		return ErrMissingProposerVMBlockCtx
 	}
 
 	// If there are no storage slots, we consider the predicate to be valid because
@@ -190,7 +186,7 @@ func (c *WarpMessengerConfig) verifyPredicate(predicateContext *PredicateContext
 
 		// TODO: Should we add a special chain ID that is allowed as the "anycast" chain ID? Just need to think through if there are any security implications.
 		if message.DestinationChainID != predicateContext.SnowCtx.ChainID {
-			return errors.New("wrong chain id")
+			return ErrWrongChainID
 		}
 
 		err = message.Signature.Verify(
@@ -290,7 +286,7 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 
 	storageSlots, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(WarpMessengerAddress)
 	if !exists || storageSlots == nil {
-		return nil, remainingGas, errors.New("missing access list storage slots from precompile during execution")
+		return nil, remainingGas, ErrMissingStorageSlots
 	}
 
 	var signedMessages [][]byte
@@ -301,11 +297,11 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 
 	// Check that the message index exists.
 	if !inputIndex.IsInt64() {
-		return nil, remainingGas, errors.New("invalid message index")
+		return nil, remainingGas, ErrInvalidMessageIndex
 	}
 	messageIndex := inputIndex.Int64()
 	if len(signedMessages) <= int(messageIndex) {
-		return nil, remainingGas, errors.New("invalid message index")
+		return nil, remainingGas, ErrInvalidMessageIndex
 	}
 
 	// Parse the raw message to be processed.
@@ -318,7 +314,7 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 	// Charge gas per validator included in the aggregate signature
 	bitSetSignature, ok := message.Signature.(*teleporter.BitSetSignature)
 	if !ok {
-		return nil, remainingGas, errors.New("invalid aggregate signature")
+		return nil, remainingGas, ErrInvalidSignature
 	}
 
 	numSigners := set.BitsFromBytes(bitSetSignature.Signers).HammingWeight()
