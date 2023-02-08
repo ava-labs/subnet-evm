@@ -8,10 +8,8 @@
 
 * @ceyonur @darioush @aaronbuchwald
 
-# These owners will be the owner of the contract-examples sub-directory.
+# Specific directories:
 
+peer/ @anusha-ctrl
 contract-examples/ @anusha-ctrl
-
-# These owners will be the owner of the scripts sub-directory.
-
 scripts/ @anusha-ctrl
