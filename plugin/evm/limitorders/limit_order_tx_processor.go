@@ -31,8 +31,10 @@ var OrderBookContractAddress = common.HexToAddress("0x03000000000000000000000000
 var MarginAccountContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000070")
 var ClearingHouseContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000071")
 
-func SetOrderBookContractFileLocation(location string) {
-	orderBookContractFileLocation = location
+func SetContractFilesLocation(orderBook string, marginAccount string, clearingHouse string) {
+	orderBookContractFileLocation = orderBook
+	marginAccountContractFileLocation = marginAccount
+	clearingHouseContractFileLocation = clearingHouse
 }
 
 type LimitOrderTxProcessor interface {
@@ -41,21 +43,14 @@ type LimitOrderTxProcessor interface {
 	CheckIfOrderBookContractCall(tx *types.Transaction) bool
 	ExecuteFundingPaymentTx() error
 	ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error
-	HandleOrderBookEvent(event *types.Log)
-	HandleMarginAccountEvent(event *types.Log)
-	HandleClearingHouseEvent(event *types.Log)
 }
 
 type limitOrderTxProcessor struct {
-	txPool                       *core.TxPool
-	memoryDb                     LimitOrderDatabase
-	orderBookABI                 abi.ABI
-	marginAccountABI             abi.ABI
-	clearingHouseABI             abi.ABI
-	marginAccountContractAddress common.Address
-	clearingHouseContractAddress common.Address
-	orderBookContractAddress     common.Address
-	backend                      *eth.EthAPIBackend
+	txPool                   *core.TxPool
+	memoryDb                 LimitOrderDatabase
+	orderBookABI             abi.ABI
+	orderBookContractAddress common.Address
+	backend                  *eth.EthAPIBackend
 }
 
 // Order type is copy of Order struct defined in Orderbook contract
@@ -74,28 +69,12 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 		panic(err)
 	}
 
-	jsonBytes, _ = ioutil.ReadFile(marginAccountContractFileLocation)
-	marginAccountABI, err := abi.FromSolidityJson(string(jsonBytes))
-	if err != nil {
-		panic(err)
-	}
-
-	jsonBytes, _ = ioutil.ReadFile(clearingHouseContractFileLocation)
-	clearingHouseABI, err := abi.FromSolidityJson(string(jsonBytes))
-	if err != nil {
-		panic(err)
-	}
-
 	return &limitOrderTxProcessor{
-		txPool:                       txPool,
-		orderBookABI:                 orderBookABI,
-		marginAccountABI:             marginAccountABI,
-		clearingHouseABI:             clearingHouseABI,
-		memoryDb:                     memoryDb,
-		orderBookContractAddress:     OrderBookContractAddress,
-		marginAccountContractAddress: MarginAccountContractAddress,
-		clearingHouseContractAddress: ClearingHouseContractAddress,
-		backend:                      backend,
+		txPool:                   txPool,
+		orderBookABI:             orderBookABI,
+		memoryDb:                 memoryDb,
+		orderBookContractAddress: OrderBookContractAddress,
+		backend:                  backend,
 	}
 }
 

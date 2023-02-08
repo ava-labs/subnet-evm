@@ -27,27 +27,30 @@ type LimitOrderProcesser interface {
 }
 
 type limitOrderProcesser struct {
-	ctx                   *snow.Context
-	txPool                *core.TxPool
-	shutdownChan          <-chan struct{}
-	shutdownWg            *sync.WaitGroup
-	backend               *eth.EthAPIBackend
-	blockChain            *core.BlockChain
-	memoryDb              limitorders.LimitOrderDatabase
-	limitOrderTxProcessor limitorders.LimitOrderTxProcessor
+	ctx                    *snow.Context
+	txPool                 *core.TxPool
+	shutdownChan           <-chan struct{}
+	shutdownWg             *sync.WaitGroup
+	backend                *eth.EthAPIBackend
+	blockChain             *core.BlockChain
+	memoryDb               limitorders.LimitOrderDatabase
+	limitOrderTxProcessor  limitorders.LimitOrderTxProcessor
+	contractEventProcessor *limitorders.ContractEventsProcessor
 }
 
 func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, memoryDb limitorders.LimitOrderDatabase, lotp limitorders.LimitOrderTxProcessor) LimitOrderProcesser {
 	log.Info("**** NewLimitOrderProcesser")
+	contractEventProcessor := limitorders.NewContractEventsProcessor(memoryDb)
 	return &limitOrderProcesser{
-		ctx:                   ctx,
-		txPool:                txPool,
-		shutdownChan:          shutdownChan,
-		shutdownWg:            shutdownWg,
-		backend:               backend,
-		memoryDb:              memoryDb,
-		blockChain:            blockChain,
-		limitOrderTxProcessor: lotp,
+		ctx:                    ctx,
+		txPool:                 txPool,
+		shutdownChan:           shutdownChan,
+		shutdownWg:             shutdownWg,
+		backend:                backend,
+		memoryDb:               memoryDb,
+		blockChain:             blockChain,
+		limitOrderTxProcessor:  lotp,
+		contractEventProcessor: contractEventProcessor,
 	}
 }
 
@@ -133,7 +136,7 @@ func (lop *limitOrderProcesser) runMatchingEngine(longOrders []limitorders.Limit
 func (lop *limitOrderProcesser) runLiquidations(market limitorders.Market, longOrders []limitorders.LimitOrder, shortOrders []limitorders.LimitOrder) (filteredLongOrder []limitorders.LimitOrder, filteredShortOrder []limitorders.LimitOrder) {
 	oraclePrice := big.NewInt(20 * 10e6) // @todo: get it from the oracle
 
-	liquidablePositions := lop.memoryDb.GetLiquidableTraders(market, oraclePrice)
+	liquidablePositions := limitorders.GetLiquidableTraders(lop.memoryDb.GetAllTraders(), market, lop.memoryDb.GetLastPrice(market), oraclePrice)
 
 	for i, liquidable := range liquidablePositions {
 		var oppositeOrders []limitorders.LimitOrder
@@ -222,11 +225,11 @@ func processEvents(logs []*types.Log, lop *limitOrderProcesser) {
 		}
 		switch event.Address {
 		case limitorders.OrderBookContractAddress:
-			lop.limitOrderTxProcessor.HandleOrderBookEvent(event)
+			lop.contractEventProcessor.HandleOrderBookEvent(event)
 		case limitorders.MarginAccountContractAddress:
-			lop.limitOrderTxProcessor.HandleMarginAccountEvent(event)
+			lop.contractEventProcessor.HandleMarginAccountEvent(event)
 		case limitorders.ClearingHouseContractAddress:
-			lop.limitOrderTxProcessor.HandleClearingHouseEvent(event)
+			lop.contractEventProcessor.HandleClearingHouseEvent(event)
 		}
 	}
 }

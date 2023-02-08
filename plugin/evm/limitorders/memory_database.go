@@ -83,9 +83,9 @@ type LimitOrderDatabase interface {
 	ResetUnrealisedFunding(market Market, trader common.Address, cumulativePremiumFraction *big.Int)
 	UpdateNextFundingTime(nextFundingTime uint64)
 	GetNextFundingTime() uint64
-	GetLiquidableTraders(market Market, oraclePrice *big.Int) []LiquidablePosition
 	UpdateLastPrice(market Market, lastPrice *big.Int)
 	GetLastPrice(market Market) *big.Int
+	GetAllTraders() map[common.Address]Trader
 	GetOrderBookData() InMemoryDatabase
 }
 
@@ -228,6 +228,13 @@ func (db *InMemoryDatabase) UpdateLastPrice(market Market, lastPrice *big.Int) {
 
 func (db *InMemoryDatabase) GetLastPrice(market Market) *big.Int {
 	return db.LastPrice[market]
+}
+func (db *InMemoryDatabase) GetAllTraders() map[common.Address]Trader {
+	traderMap := map[common.Address]Trader{}
+	for address, trader := range db.TraderMap {
+		traderMap[address] = *trader
+	}
+	return traderMap
 }
 
 func sortLongOrders(orders []LimitOrder) []LimitOrder {

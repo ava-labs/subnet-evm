@@ -24,13 +24,13 @@ func (liq LiquidablePosition) GetUnfilledSize() *big.Int {
 	return big.NewInt(0).Sub(liq.Size, liq.FilledSize)
 }
 
-func (db *InMemoryDatabase) GetLiquidableTraders(market Market, oraclePrice *big.Int) []LiquidablePosition {
+func GetLiquidableTraders(traderMap map[common.Address]Trader, market Market, lastPrice *big.Int, oraclePrice *big.Int) []LiquidablePosition {
 	liquidablePositions := []LiquidablePosition{}
-	markPrice := db.LastPrice[market]
+	markPrice := lastPrice
 
 	overSpreadLimit := isOverSpreadLimit(markPrice, oraclePrice)
 
-	for addr, trader := range db.TraderMap {
+	for addr, trader := range traderMap {
 		position := trader.Positions[market]
 		if position != nil {
 			margin := getMarginForTrader(trader, market)
@@ -84,7 +84,7 @@ func isOverSpreadLimit(markPrice *big.Int, oraclePrice *big.Int) bool {
 	}
 }
 
-func getNormalisedMargin(trader *Trader) *big.Int {
+func getNormalisedMargin(trader Trader) *big.Int {
 	return trader.Margins[HUSD]
 
 	// this will change after multi collateral
@@ -96,7 +96,7 @@ func getNormalisedMargin(trader *Trader) *big.Int {
 	// return normalisedMargin
 }
 
-func getMarginForTrader(trader *Trader, market Market) *big.Int {
+func getMarginForTrader(trader Trader, market Market) *big.Int {
 	if position, ok := trader.Positions[market]; ok {
 		if position.UnrealisedFunding != nil {
 			return big.NewInt(0).Sub(getNormalisedMargin(trader), position.UnrealisedFunding)
