@@ -64,7 +64,7 @@ type PrecompileUpgrade struct {
 	TxAllowListConfig               *precompile.TxAllowListConfig               `json:"txAllowListConfig,omitempty"`               // Config for the tx allow list precompile
 	FeeManagerConfig                *precompile.FeeConfigManagerConfig          `json:"feeManagerConfig,omitempty"`                // Config for the fee manager precompile
 	RewardManagerConfig             *precompile.RewardManagerConfig             `json:"rewardManagerConfig,omitempty"`             // Config for the reward manager precompile
-	WarpMessengerConfig             *precompile.WarpMessengerConfig             `json:"warpMessengerConfig, omitempty"`            // Config for the warp messenger precompile
+	WarpMessengerConfig             *precompile.WarpMessengerConfig             `json:"warpMessengerConfig,omitempty"`             // Config for the warp messenger precompile
 	// ADD YOUR PRECOMPILE HERE
 	// {YourPrecompile}Config  *precompile.{YourPrecompile}Config `json:"{yourPrecompile}Config,omitempty"`
 }
