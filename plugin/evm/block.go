@@ -106,7 +106,6 @@ func (b *Block) syntacticVerify() error {
 }
 
 // Verify implements the snowman.Block interface
-// Since VerifyWithContext is implemented, we never expect this to be called.
 func (b *Block) Verify(context.Context) error {
 	return b.verify(nil, true)
 }
