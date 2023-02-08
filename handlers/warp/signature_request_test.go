@@ -55,6 +55,7 @@ func TestSignatureHandler(t *testing.T) {
 			verifyStats: func(t *testing.T, stats *stats.MockHandlerStats) {
 				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
 				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestHit)
+				assert.EqualValues(t, 0, mockHandlerStats.SignatureRequestMiss)
 				assert.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
 			},
 		},
@@ -67,6 +68,7 @@ func TestSignatureHandler(t *testing.T) {
 			verifyStats: func(t *testing.T, stats *stats.MockHandlerStats) {
 				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
 				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestMiss)
+				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestHit)
 				assert.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
 			},
 		},
