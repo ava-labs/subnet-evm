@@ -34,7 +34,7 @@ type WarpBackend interface {
 type warpBackend struct {
 	db             database.Database
 	snowCtx        *snow.Context
-	signatureCache *cache.LRU[ids.ID, []byte]
+	signatureCache *cache.LRU[ids.ID, [bls.SignatureLen]byte]
 }
 
 // NewWarpBackend creates a new WarpBackend, and initializes the signature cache and message tracking database.
@@ -63,7 +63,7 @@ func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *teleporte
 	}
 
 	copy(signature[:], sig)
-	w.signatureCache.Put(ids.ID(messageID), signature)
+	w.signatureCache.Put(messageID, signature)
 	return nil
 }
 
@@ -88,8 +88,7 @@ func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([bls.
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
 	}
 
-	w.signatureCache.Put(messageID, signature)
 	copy(signature[:], sig)
-	w.signatureCache.Put(messageID[:], signature)
+	w.signatureCache.Put(messageID, signature)
 	return signature, nil
 }
