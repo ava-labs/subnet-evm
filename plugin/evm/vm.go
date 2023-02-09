@@ -83,10 +83,10 @@ const (
 	// and fail verification
 	maxFutureBlockTime = 10 * time.Second
 
-	decidedCacheSize    = 100
-	missingCacheSize    = 50
-	unverifiedCacheSize = 50
-	signatureCacheSize  = 500
+	decidedCacheSize       = 100
+	missingCacheSize       = 50
+	unverifiedCacheSize    = 50
+	warpSignatureCacheSize = 500
 
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
@@ -182,6 +182,7 @@ type VM struct {
 	acceptedBlockDB database.Database
 
 	// [warpDB] is used to store warp message signatures
+	// set to a prefixDB with the prefix [warpPrefix]
 	warpDB database.Database
 
 	toEngine chan<- commonEng.Message
@@ -214,8 +215,9 @@ type VM struct {
 	StateSyncServer
 	StateSyncClient
 
-	// AWM backend
-	backend warp.WarpBackend
+	// Avalanche Warp Messaging backend
+	// Used to serve BLS signatures of warp messages over RPC
+	warpBackend warp.WarpBackend
 }
 
 /*
@@ -427,7 +429,7 @@ func (vm *VM) Initialize(
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// initialize warp backend
-	vm.backend = warp.NewWarpBackend(vm.ctx, vm.warpDB, signatureCacheSize)
+	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
@@ -810,7 +812,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	}
 
 	if vm.config.WarpAPIEnabled {
-		if err := handler.RegisterName("warp", &WarpAPI{vm}); err != nil {
+		if err := handler.RegisterName("warp", &WarpAPI{vm.warpBackend}); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
