@@ -1,7 +1,7 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package handlers
+package warp
 
 import (
 	"context"
@@ -59,7 +59,7 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 
 	s.stats.IncSignatureHit()
 	response := message.SignatureResponse{Signature: signature}
-	responseBytes, err := s.codec.Marshal(message.Version, response)
+	responseBytes, err := s.codec.Marshal(message.Version, &response)
 	if err != nil {
 		log.Warn("could not marshal SignatureResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "err", err)
 		return nil, nil
