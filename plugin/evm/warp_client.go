@@ -7,14 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-
 	"github.com/ava-labs/avalanchego/utils/cb58"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-// Interface compliance
 var _ WarpClient = (*warpClient)(nil)
 
 type WarpClient interface {
