@@ -84,6 +84,7 @@ func TestSignatureHandler(t *testing.T) {
 
 			// If the expected response is empty, assert that the handler returns an empty response and return early.
 			if len(expectedResponse) == 0 {
+				test.verifyStats(t, mockHandlerStats)
 				require.Len(t, responseBytes, 0, "expected response to be empty")
 				return
 			}
