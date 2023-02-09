@@ -1,14 +1,13 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package service
+package warp
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/ava-labs/avalanchego/utils/cb58"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -16,7 +15,7 @@ import (
 var _ WarpClient = (*warpClient)(nil)
 
 type WarpClient interface {
-	GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*hexutil.Bytes, error)
+	GetSignature(ctx context.Context, signatureRequest ids.ID) (hexutil.Bytes, error)
 }
 
 // warpClient implementation for interacting with EVM [chain]
@@ -36,16 +35,11 @@ func NewWarpClient(uri, chain string) (WarpClient, error) {
 }
 
 // GetSignature requests the BLS signature associated with a messageID
-func (c *warpClient) GetSignature(ctx context.Context, signatureRequest message.SignatureRequest) (*hexutil.Bytes, error) {
-	req, err := cb58.Encode(signatureRequest.MessageID[:])
-	if err != nil {
-		return nil, fmt.Errorf("failed to base58 encode the request. messageID: %s, error: %w", signatureRequest.MessageID, err)
-	}
-
-	var res SignatureResponse
-	err = c.client.CallContext(ctx, &res, "warp_getSignature", req)
+func (c *warpClient) GetSignature(ctx context.Context, messageID ids.ID) (hexutil.Bytes, error) {
+	var res hexutil.Bytes
+	err := c.client.CallContext(ctx, &res, "warp_getSignature", messageID[:])
 	if err != nil {
 		return nil, fmt.Errorf("call to warp_getSignature failed. err: %w", err)
 	}
-	return &res.Signature, err
+	return res, err
 }

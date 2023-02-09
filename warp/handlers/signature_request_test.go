@@ -15,7 +15,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/warp/service"
+	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,7 +26,7 @@ func TestSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	snowCtx.TeleporterSigner = teleporter.NewSigner(blsSecretKey, snowCtx.ChainID)
-	warpBackend := service.NewWarpBackend(snowCtx, database, 100)
+	warpBackend := warp.NewWarpBackend(snowCtx, database, 100)
 
 	msg, err := teleporter.NewUnsignedMessage(snowCtx.ChainID, snowCtx.CChainID, []byte("test"))
 	require.NoError(t, err)

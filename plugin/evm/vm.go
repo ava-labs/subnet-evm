@@ -35,7 +35,7 @@ import (
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/trie"
-	warpService "github.com/ava-labs/subnet-evm/warp/service"
+	"github.com/ava-labs/subnet-evm/warp"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -215,7 +215,7 @@ type VM struct {
 
 	// Avalanche Warp Messaging backend
 	// Used to serve BLS signatures of warp messages over RPC
-	warpBackend warpService.WarpBackend
+	warpBackend warp.WarpBackend
 }
 
 /*
@@ -427,7 +427,7 @@ func (vm *VM) Initialize(
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// initialize warp backend
-	vm.warpBackend = warpService.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
+	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
@@ -810,7 +810,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	}
 
 	if vm.config.WarpAPIEnabled {
-		if err := handler.RegisterName("warp", &warpService.WarpAPI{Backend: vm.warpBackend}); err != nil {
+		if err := handler.RegisterName("warp", &warp.WarpAPI{Backend: vm.warpBackend}); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
