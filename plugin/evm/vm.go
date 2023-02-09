@@ -14,9 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
-
+	
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 

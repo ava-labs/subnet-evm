@@ -226,7 +226,7 @@ func New(
 	}
 
 	var err error
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, lastAcceptedHash)
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, lastAcceptedHash, backend)
 	if err != nil {
 		return nil, err
 	}
