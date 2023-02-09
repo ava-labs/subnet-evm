@@ -54,6 +54,7 @@ func TestSignatureHandler(t *testing.T) {
 			verifyStats: func(t *testing.T, stats *stats.MockHandlerStats) {
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestHit)
+				require.EqualValues(t, 0, mockHandlerStats.SignatureRequestMiss)
 				require.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
 			},
 		},
@@ -66,6 +67,7 @@ func TestSignatureHandler(t *testing.T) {
 			verifyStats: func(t *testing.T, stats *stats.MockHandlerStats) {
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestMiss)
+				require.EqualValues(t, 0, mockHandlerStats.SignatureRequestHit)
 				require.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
 			},
 		},
@@ -80,7 +82,7 @@ func TestSignatureHandler(t *testing.T) {
 			responseBytes, err := signatureRequestHandler.OnSignatureRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
 			require.NoError(t, err)
 
-			// If the expected response is empty, require that the handler returns an empty response and return early.
+			// If the expected response is empty, assert that the handler returns an empty response and return early.
 			if len(expectedResponse) == 0 {
 				require.Len(t, responseBytes, 0, "expected response to be empty")
 				return
