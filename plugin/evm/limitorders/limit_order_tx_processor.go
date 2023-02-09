@@ -79,28 +79,29 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error {
-	return lotp.executeOrderBookLocalTx("liquidateAndExecuteOrder", trader.String(), matchedOrder.RawOrder, matchedOrder.Signature, fillAmount)
+	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "liquidateAndExecuteOrder", trader.String(), matchedOrder.RawOrder, matchedOrder.Signature, fillAmount)
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
-	return lotp.executeOrderBookLocalTx("settleFunding")
+	return lotp.executeLocalTx(lotp.clearingHouseContractAddress, lotp.clearingHouseABI, "settleFunding")
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount *big.Int) error {
 	orders := make([]Order, 2)
 	orders[0], orders[1] = getOrderFromRawOrder(incomingOrder.RawOrder), getOrderFromRawOrder(matchedOrder.RawOrder)
 
+	log.Info("matching", "long order price", orders[0].Price, "short order price", orders[1].Price)
 	signatures := make([][]byte, 2)
 	signatures[0] = incomingOrder.Signature
 	signatures[1] = matchedOrder.Signature
 
-	return lotp.executeOrderBookLocalTx("executeMatchedOrders", orders, signatures, fillAmount)
+	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "executeMatchedOrders", orders, signatures, fillAmount)
 }
 
-func (lotp *limitOrderTxProcessor) executeOrderBookLocalTx(method string, args ...interface{}) error {
+func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contractABI abi.ABI, method string, args ...interface{}) error {
 	nonce := lotp.txPool.Nonce(common.HexToAddress(userAddress1)) // admin address
 
-	data, err := lotp.orderBookABI.Pack(method, args...)
+	data, err := contractABI.Pack(method, args...)
 	if err != nil {
 		log.Error("abi.Pack failed", "err", err)
 		return err
@@ -110,7 +111,7 @@ func (lotp *limitOrderTxProcessor) executeOrderBookLocalTx(method string, args .
 		log.Error("HexToECDSA failed", "err", err)
 		return err
 	}
-	tx := types.NewTransaction(nonce, lotp.orderBookContractAddress, big.NewInt(0), 5000000, big.NewInt(0), data)
+	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 500000, big.NewInt(60000000000), data)
 	signer := types.NewLondonSigner(lotp.backend.ChainConfig().ChainID)
 	signedTx, err := types.SignTx(tx, signer, key)
 	if err != nil {
@@ -118,9 +119,10 @@ func (lotp *limitOrderTxProcessor) executeOrderBookLocalTx(method string, args .
 	}
 	err = lotp.txPool.AddLocal(signedTx)
 	if err != nil {
-		log.Error("lop.txPool.AddLocal failed", "err", err)
+		log.Error("lop.txPool.AddLocal failed", "err", err, "tx", signedTx.Hash().String(), "nonce", nonce)
 		return err
 	}
+	log.Info("executeLocalTx - AddLocal success", "tx", signedTx.Hash().String(), "nonce", nonce)
 	return nil
 }
 

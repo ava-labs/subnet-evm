@@ -56,15 +56,16 @@ func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
 		order := getOrderFromRawOrder(args["order"])
 
 		cep.database.Add(&LimitOrder{
-			Market:            Market(order.AmmIndex.Int64()),
-			PositionType:      getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
-			UserAddress:       getAddressFromTopicHash(event.Topics[1]).String(),
-			BaseAssetQuantity: order.BaseAssetQuantity,
-			Price:             order.Price,
-			Status:            Placed,
-			RawOrder:          args["order"],
-			Signature:         args["signature"].([]byte),
-			BlockNumber:       big.NewInt(int64(event.BlockNumber)),
+			Market:                  Market(order.AmmIndex.Int64()),
+			PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
+			UserAddress:             getAddressFromTopicHash(event.Topics[1]).String(),
+			BaseAssetQuantity:       order.BaseAssetQuantity,
+			FilledBaseAssetQuantity: big.NewInt(0),
+			Price:                   order.Price,
+			Status:                  Placed,
+			RawOrder:                args["order"],
+			Signature:               args["signature"].([]byte),
+			BlockNumber:             big.NewInt(int64(event.BlockNumber)),
 		})
 	case cep.orderBookABI.Events["OrderCancelled"].ID:
 		err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelled", event.Data)
@@ -84,9 +85,7 @@ func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
 			return
 		}
 		log.Info("HandleOrderBookEvent", "OrdersMatched args", args)
-		fmt.Println("xxxxx")
 		signatures := args["signatures"].([2][]byte)
-		fmt.Println("yyyy")
 		fillAmount := args["fillAmount"].(*big.Int)
 		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signatures[0])
 		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signatures[1])
@@ -102,7 +101,7 @@ func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
 		fillAmount := args["fillAmount"].(*big.Int)
 		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signature)
 	}
-	log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
+	// log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
 
 }
 

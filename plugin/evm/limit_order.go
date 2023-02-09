@@ -113,6 +113,7 @@ func (lop *limitOrderProcesser) RunLiquidationsAndMatching() {
 func (lop *limitOrderProcesser) runMatchingEngine(longOrders []limitorders.LimitOrder, shortOrders []limitorders.LimitOrder) {
 
 	if len(longOrders) == 0 || len(shortOrders) == 0 {
+		log.Info("runMatchingEngine - no short and no long")
 		return
 	}
 	for i := 0; i < len(longOrders); i++ {
@@ -131,6 +132,7 @@ func (lop *limitOrderProcesser) runMatchingEngine(longOrders []limitorders.Limit
 			}
 		}
 	}
+	log.Info("runMatchingEngine - end of matching")
 }
 
 func (lop *limitOrderProcesser) runLiquidations(market limitorders.Market, longOrders []limitorders.LimitOrder, shortOrders []limitorders.LimitOrder) (filteredLongOrder []limitorders.LimitOrder, filteredShortOrder []limitorders.LimitOrder) {
