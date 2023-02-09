@@ -10,7 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/warp"
+	"github.com/ava-labs/subnet-evm/warp/service"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -22,12 +22,12 @@ type SignatureRequestHandler interface {
 
 // signatureRequestHandler implements the SignatureRequestHandler interface
 type signatureRequestHandler struct {
-	backend warp.WarpBackend
+	backend service.WarpBackend
 	codec   codec.Manager
 	stats   SignatureRequestHandlerStats
 }
 
-func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats SignatureRequestHandlerStats) SignatureRequestHandler {
+func NewSignatureRequestHandler(backend service.WarpBackend, codec codec.Manager, stats SignatureRequestHandlerStats) SignatureRequestHandler {
 	return &signatureRequestHandler{
 		backend: backend,
 		codec:   codec,
