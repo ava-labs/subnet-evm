@@ -48,7 +48,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
@@ -248,7 +248,7 @@ type BlockChain struct {
 	prefetcher Prefetcher // Block state prefetcher interface
 	processor  Processor  // Block transaction processor interface
 	vmConfig   vm.Config
-	vmBackend  evm.Backend
+	vmBackend  precompile.Backend
 
 	badBlocks *lru.Cache // Bad block cache
 
@@ -300,10 +300,7 @@ type BlockChain struct {
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator and
 // Processor.
-func NewBlockChain(
-	db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine,
-	vmConfig vm.Config, lastAcceptedHash common.Hash, backend evm.Backend,
-) (*BlockChain, error) {
+func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, lastAcceptedHash common.Hash, backend precompile.Backend) (*BlockChain, error) {
 	if cacheConfig == nil {
 		return nil, errCacheConfigNotSpecified
 	}

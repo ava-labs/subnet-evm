@@ -53,14 +53,7 @@ func createBlockChain(
 	lastAcceptedHash common.Hash,
 ) (*BlockChain, error) {
 	// Import the chain. This runs all block validation rules.
-	blockchain, err := NewBlockChain(
-		db,
-		cacheConfig,
-		chainConfig,
-		dummy.NewCoinbaseFaker(),
-		vm.Config{},
-		lastAcceptedHash,
-	)
+	blockchain, err := NewBlockChain(db, cacheConfig, chainConfig, dummy.NewCoinbaseFaker(), vm.Config{}, lastAcceptedHash, nil)
 	return blockchain, err
 }
 
@@ -692,7 +685,7 @@ func TestCanonicalHashMarker(t *testing.T) {
 		// Initialize test chain
 		diskdb := rawdb.NewMemoryDatabase()
 		gspec.MustCommit(diskdb)
-		chain, err := NewBlockChain(diskdb, DefaultCacheConfig, params.TestChainConfig, engine, vm.Config{}, common.Hash{})
+		chain, err := NewBlockChain(diskdb, DefaultCacheConfig, params.TestChainConfig, engine, vm.Config{}, common.Hash{}, nil)
 		if err != nil {
 			t.Fatalf("failed to create tester chain: %v", err)
 		}

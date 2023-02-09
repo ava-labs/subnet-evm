@@ -35,6 +35,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/eth"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
@@ -112,7 +113,7 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 	genesis := core.Genesis{Config: cpcfg, GasLimit: gasLimit, Alloc: alloc}
 	genesis.MustCommit(database)
 	cacheConfig := &core.CacheConfig{}
-	blockchain, _ := core.NewBlockChain(database, cacheConfig, genesis.Config, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{})
+	blockchain, _ := core.NewBlockChain(database, cacheConfig, genesis.Config, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, precompile.NewNoopBackend())
 
 	backend := &SimulatedBackend{
 		database:   database,

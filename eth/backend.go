@@ -54,7 +54,7 @@ import (
 	"github.com/ava-labs/subnet-evm/miner"
 	"github.com/ava-labs/subnet-evm/node"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
@@ -122,7 +122,7 @@ func New(
 	settings Settings,
 	lastAcceptedHash common.Hash,
 	clock *mockable.Clock,
-	backend evm.Backend,
+	backend precompile.Backend,
 ) (*Ethereum, error) {
 	if chainDb == nil {
 		return nil, errors.New("chainDb cannot be nil")
@@ -231,7 +231,7 @@ func New(
 		return nil, err
 	}
 
-	if err := eth.handleOfflinePruning(cacheConfig, chainConfig, vmConfig, lastAcceptedHash); err != nil {
+	if err := eth.handleOfflinePruning(cacheConfig, chainConfig, vmConfig, lastAcceptedHash, backend); err != nil {
 		return nil, err
 	}
 
@@ -422,7 +422,7 @@ func (s *Ethereum) precheckPopulateMissingTries() error {
 	return nil
 }
 
-func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, chainConfig *params.ChainConfig, vmConfig vm.Config, lastAcceptedHash common.Hash) error {
+func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, chainConfig *params.ChainConfig, vmConfig vm.Config, lastAcceptedHash common.Hash, backend precompile.Backend) error {
 	if s.config.OfflinePruning && !s.config.Pruning {
 		return core.ErrRefuseToCorruptArchiver
 	}
@@ -463,7 +463,7 @@ func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, chainConf
 	}
 	// Note: Time Marker is written inside of [Prune] before compaction begins
 	// (considered an optional optimization)
-	s.blockchain, err = core.NewBlockChain(s.chainDb, cacheConfig, chainConfig, s.engine, vmConfig, lastAcceptedHash)
+	s.blockchain, err = core.NewBlockChain(s.chainDb, cacheConfig, chainConfig, s.engine, vmConfig, lastAcceptedHash, backend)
 	if err != nil {
 		return fmt.Errorf("failed to re-initialize blockchain after offline pruning: %w", err)
 	}

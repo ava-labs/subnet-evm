@@ -80,7 +80,7 @@ func TestHeaderInsertion(t *testing.T) {
 			Config:  params.TestChainConfig,
 		}).MustCommit(db)
 	)
-	chain, err := NewBlockChain(db, DefaultCacheConfig, params.TestChainConfig, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{})
+	chain, err := NewBlockChain(db, DefaultCacheConfig, params.TestChainConfig, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

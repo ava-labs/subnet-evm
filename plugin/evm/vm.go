@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	
+
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -147,10 +147,6 @@ func init() {
 	originalStderr = os.Stderr
 }
 
-type Backend interface {
-	warp.WarpBackend
-}
-
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
@@ -192,7 +188,7 @@ type VM struct {
 
 	gossiper Gossiper
 
-	backend Backend
+	backend precompile.Backend
 
 	clock mockable.Clock
 
@@ -283,7 +279,7 @@ func (vm *VM) Initialize(
 	vm.db = versiondb.New(baseDB)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	vm.backend = warp.NewNoopBackend()
+	vm.backend = precompile.NewNoopBackend()
 
 	if vm.config.InspectDatabase {
 		start := time.Now()

@@ -9,7 +9,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -24,7 +23,7 @@ type PredicateContext struct {
 type PredicateFunc func(predicateContext *PredicateContext, storageSlots []byte) error
 
 // OnAcceptFunc is called on any log produced in a block where the address matches the precompile address
-type OnAcceptFunc func(backend evm.Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
+type OnAcceptFunc func(backend Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
 
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 type StatefulPrecompileConfig interface {

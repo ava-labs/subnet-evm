@@ -126,7 +126,7 @@ func TestSetupGenesis(t *testing.T) {
 				// Advance to block #4, past the SubnetEVM transition block of customg.
 				genesis := oldcustomg.MustCommit(db)
 
-				bc, _ := NewBlockChain(db, DefaultCacheConfig, oldcustomg.Config, dummy.NewFullFaker(), vm.Config{}, common.Hash{})
+				bc, _ := NewBlockChain(db, DefaultCacheConfig, oldcustomg.Config, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, nil)
 				defer bc.Stop()
 
 				blocks, _, _ := GenerateChain(oldcustomg.Config, genesis, dummy.NewFullFaker(), db, 4, 25, nil)
@@ -244,7 +244,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 		GasLimit: params.SubnetEVMDefaultChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	genesis := customg.MustCommit(db)
-	bc, _ := NewBlockChain(db, DefaultCacheConfig, customg.Config, dummy.NewFullFaker(), vm.Config{}, common.Hash{})
+	bc, _ := NewBlockChain(db, DefaultCacheConfig, customg.Config, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, nil)
 	defer bc.Stop()
 
 	// Advance header to block #4, past the ContractDeployerAllowListConfig.

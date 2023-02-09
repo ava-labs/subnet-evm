@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -43,12 +42,14 @@ var (
 	_ StatefulPrecompileConfig = &WarpMessengerConfig{}
 
 	ErrMissingStorageSlots       = errors.New("missing access list storage slots from precompile during execution")
+	ErrMissingPrecompileBackend  = errors.New("missing vm supported backend for precompile")
 	ErrInvalidMessageIndex       = errors.New("invalid message index")
 	ErrInvalidSignature          = errors.New("invalid aggregate signature")
 	ErrMissingProposerVMBlockCtx = errors.New("missing proposer VM block context")
 	ErrWrongChainID              = errors.New("wrong chain id")
 	ErrInvalidQuorumDenominator  = errors.New("quorum denominator can not be zero")
 	ErrGreaterQuorumNumerator    = errors.New("quorum numerator can not be greater than quorum denominator")
+	ErrInvalidLogTopics          = errors.New("invalid topics in transaction log")
 
 	WarpMessengerABI        abi.ABI                     // will be initialized by init function
 	WarpMessengerPrecompile StatefulPrecompiledContract // will be initialized by init function
@@ -257,9 +258,13 @@ func (c *WarpMessengerConfig) OnAccept() OnAcceptFunc {
 	return c.onAccept
 }
 
-func (c *WarpMessengerConfig) onAccept(backend evm.Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
+func (c *WarpMessengerConfig) onAccept(backend Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
+	if backend == nil {
+		return ErrMissingPrecompileBackend
+	}
+
 	if len(topics) != 3 || topics[0] != common.HexToHash(SubmitMessageEventID) {
-		return errors.New("unexpected number of topics for warp precompile accept")
+		return ErrInvalidLogTopics
 	}
 
 	unsignedMessage, err := teleporter.NewUnsignedMessage(
@@ -267,7 +272,7 @@ func (c *WarpMessengerConfig) onAccept(backend evm.Backend, txHash common.Hash, 
 		ids.ID(topics[2]),
 		logData)
 	if err != nil {
-		return errors.New("failed to create new unsigned message")
+		return err
 	}
 
 	return backend.AddMessage(context.Background(), unsignedMessage)
