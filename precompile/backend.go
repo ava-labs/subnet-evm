@@ -13,6 +13,7 @@ import (
 
 var _ Backend = (*noopBackend)(nil)
 
+// Backend defines the interface for precompiles to interact with vm backends.
 type Backend interface {
 	warp.WarpBackend
 }

@@ -188,7 +188,7 @@ type VM struct {
 
 	gossiper Gossiper
 
-	backend precompile.Backend
+	precompileBackend precompile.Backend
 
 	clock mockable.Clock
 
@@ -279,7 +279,7 @@ func (vm *VM) Initialize(
 	vm.db = versiondb.New(baseDB)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	vm.backend = precompile.NewNoopBackend()
+	vm.precompileBackend = precompile.NewNoopBackend()
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -465,7 +465,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 		vm.config.EthBackendSettings(),
 		lastAcceptedHash,
 		&vm.clock,
-		vm.backend,
+		vm.precompileBackend,
 	)
 	if err != nil {
 		return err
