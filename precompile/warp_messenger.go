@@ -28,11 +28,6 @@ const (
 	// WarpMessengerRawABI contains the raw ABI of WarpMessenger contract.
 	WarpMessengerRawABI  = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"sender\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"}],\"name\":\"SendWarpMessage\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getBlockchainID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"blockchainID\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"messageIndex\",\"type\":\"uint256\"}],\"name\":\"getVerifiedWarpMessage\",\"outputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"originChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"originSenderAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"internalType\":\"structWarpMessage\",\"name\":\"message\",\"type\":\"tuple\"},{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"name\":\"sendWarpMessage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 	SubmitMessageEventID = "da2b1cd3e6664863b4ad90f53a4e14fca9fc00f3f0e01e5c7b236a4355b6591a" // Keccack256("SubmitMessage(bytes32,uint256)")
-
-	// Default stake threshold for aggregate signature verification. (67%)
-	// TODO: This should be made configuration on the VM level.
-	WarpQuorumNumerator   = 67
-	WarpQuorumDenominator = 100
 )
 
 // Reference imports to suppress errors from unused imports. This code and any unnecessary imports can be removed.
@@ -50,15 +45,22 @@ var (
 	ErrInvalidSignature          = errors.New("invalid aggregate signature")
 	ErrMissingProposerVMBlockCtx = errors.New("missing proposer VM block context")
 	ErrWrongChainID              = errors.New("wrong chain id")
+	ErrInvalidQuorumDenominator  = errors.New("quorum denominator can not be zero")
+	ErrGreaterQuorumNumerator    = errors.New("quorum numerator can not be greater than quorum denominator")
 
 	WarpMessengerABI        abi.ABI                     // will be initialized by init function
 	WarpMessengerPrecompile StatefulPrecompiledContract // will be initialized by init function
+
+	// Default stake threshold for aggregate signature verification. (67%)
+	WarpQuorumNumerator   = uint64(67)
+	WarpQuorumDenominator = uint64(100)
 )
 
 // WarpMessengerConfig implements the StatefulPrecompileConfig
 // interface while adding in the WarpMessenger specific precompile address.
 type WarpMessengerConfig struct {
 	UpgradeableConfig
+	InitialWarpConfig *InitialWarpConfig `json:"initialWarpConfig,omitempty"`
 }
 
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
@@ -79,6 +81,35 @@ type SendWarpMessageInput struct {
 	DestinationChainID [32]byte
 	DestinationAddress [32]byte
 	Payload            []byte
+}
+
+type InitialWarpConfig struct {
+	QuorumNumerator   uint64 `json:"quorumNumerator,omitempty"`
+	QuorumDenominator uint64 `json:"quorumDenominator,omitempty"`
+}
+
+func (i *InitialWarpConfig) Verify() error {
+	switch {
+	case i.QuorumDenominator == uint64(0):
+		return ErrInvalidQuorumDenominator
+	case i.QuorumNumerator > i.QuorumDenominator:
+		return ErrGreaterQuorumNumerator
+	default:
+		return nil
+	}
+}
+
+func (i *InitialWarpConfig) Equal(other *InitialWarpConfig) bool {
+	if other == nil {
+		return false
+	}
+
+	return i.QuorumNumerator == other.QuorumNumerator && i.QuorumDenominator == other.QuorumDenominator
+}
+
+func (i *InitialWarpConfig) Configure(state StateDB) {
+	WarpQuorumNumerator = i.QuorumNumerator
+	WarpQuorumDenominator = i.QuorumDenominator
 }
 
 func init() {
@@ -121,7 +152,15 @@ func (c *WarpMessengerConfig) Equal(s StatefulPrecompileConfig) bool {
 	// modify this boolean accordingly with your custom WarpMessengerConfig, to check if [other] and the current [c] are equal
 	// if WarpMessengerConfig contains only UpgradeableConfig  you can skip modifying it.
 	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig)
-	return equals
+	if !equals {
+		return false
+	}
+
+	if c.InitialWarpConfig == nil {
+		return other.InitialWarpConfig == nil
+	}
+
+	return c.InitialWarpConfig.Equal(other.InitialWarpConfig)
 }
 
 // String returns a string representation of the WarpMessengerConfig.
@@ -138,6 +177,9 @@ func (c *WarpMessengerConfig) Address() common.Address {
 
 // Configure configures [state] with the initial configuration.
 func (c *WarpMessengerConfig) Configure(_ ChainConfig, state StateDB, _ BlockContext) {
+	if c.InitialWarpConfig != nil {
+		c.InitialWarpConfig.Configure(state)
+	}
 }
 
 // Contract returns the singleton stateful precompiled contract to be used for WarpMessenger.
@@ -147,6 +189,10 @@ func (c *WarpMessengerConfig) Contract() StatefulPrecompiledContract {
 
 // Verify tries to verify WarpMessengerConfig and returns an error accordingly.
 func (c *WarpMessengerConfig) Verify() error {
+	if c.InitialWarpConfig != nil {
+		return c.InitialWarpConfig.Verify()
+	}
+
 	return nil
 }
 

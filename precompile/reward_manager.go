@@ -65,12 +65,12 @@ func (i *InitialRewardConfig) Verify() error {
 	}
 }
 
-func (c *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {
+func (i *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {
 	if other == nil {
 		return false
 	}
 
-	return c.AllowFeeRecipients == other.AllowFeeRecipients && c.RewardAddress == other.RewardAddress
+	return i.AllowFeeRecipients == other.AllowFeeRecipients && i.RewardAddress == other.RewardAddress
 }
 
 func (i *InitialRewardConfig) Configure(state StateDB) {
