@@ -1,7 +1,7 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package warp
+package handlers
 
 import (
 	"context"
@@ -9,9 +9,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/handlers/warp/stats"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
+	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -25,10 +24,10 @@ type SignatureRequestHandler interface {
 type signatureRequestHandler struct {
 	backend warp.WarpBackend
 	codec   codec.Manager
-	stats   stats.SignatureRequestHandlerStats
+	stats   SignatureRequestHandlerStats
 }
 
-func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) SignatureRequestHandler {
+func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats SignatureRequestHandlerStats) SignatureRequestHandler {
 	return &signatureRequestHandler{
 		backend: backend,
 		codec:   codec,

@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
+	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
