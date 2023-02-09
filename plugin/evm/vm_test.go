@@ -820,7 +820,7 @@ func TestSetPreferenceRace(t *testing.T) {
 //	 A
 //	/ \
 //
-// # B   C
+// B   C
 //
 // verifies block B and C, then Accepts block B. Then we test to ensure
 // that the VM defends against any attempt to set the preference or to
