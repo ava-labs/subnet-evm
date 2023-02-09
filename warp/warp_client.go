@@ -15,7 +15,7 @@ import (
 var _ WarpClient = (*warpClient)(nil)
 
 type WarpClient interface {
-	GetSignature(ctx context.Context, signatureRequest ids.ID) (hexutil.Bytes, error)
+	GetSignature(ctx context.Context, signatureRequest ids.ID) ([]byte, error)
 }
 
 // warpClient implementation for interacting with EVM [chain]
@@ -35,7 +35,7 @@ func NewWarpClient(uri, chain string) (WarpClient, error) {
 }
 
 // GetSignature requests the BLS signature associated with a messageID
-func (c *warpClient) GetSignature(ctx context.Context, messageID ids.ID) (hexutil.Bytes, error) {
+func (c *warpClient) GetSignature(ctx context.Context, messageID ids.ID) ([]byte, error) {
 	var res hexutil.Bytes
 	err := c.client.CallContext(ctx, &res, "warp_getSignature", messageID[:])
 	if err != nil {
