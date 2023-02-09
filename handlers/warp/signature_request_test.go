@@ -17,7 +17,6 @@ import (
 	"github.com/ava-labs/subnet-evm/handlers/stats"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,10 +52,9 @@ func TestSignatureHandler(t *testing.T) {
 				}, signature[:]
 			},
 			verifyStats: func(t *testing.T, stats *stats.MockHandlerStats) {
-				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
-				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestHit)
-				assert.EqualValues(t, 0, mockHandlerStats.SignatureRequestMiss)
-				assert.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
+				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
+				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestHit)
+				require.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
 			},
 		},
 		"unknown": {
@@ -66,10 +64,9 @@ func TestSignatureHandler(t *testing.T) {
 				}, nil
 			},
 			verifyStats: func(t *testing.T, stats *stats.MockHandlerStats) {
-				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
-				assert.EqualValues(t, 1, mockHandlerStats.SignatureRequestMiss)
-				assert.EqualValues(t, 0, mockHandlerStats.SignatureRequestHit)
-				assert.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
+				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
+				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestMiss)
+				require.Greater(t, mockHandlerStats.SignatureRequestDuration, time.Duration(0))
 			},
 		},
 	}
@@ -81,21 +78,18 @@ func TestSignatureHandler(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			request, expectedResponse := test.setup()
 			responseBytes, err := signatureRequestHandler.OnSignatureRequest(context.Background(), ids.GenerateTestNodeID(), 1, request)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
-			// If the expected response is empty, assert that the handler returns an empty response and return early.
+			// If the expected response is empty, require that the handler returns an empty response and return early.
 			if len(expectedResponse) == 0 {
-				test.verifyStats(t, mockHandlerStats)
-				assert.Len(t, responseBytes, 0, "expected response to be empty")
+				require.Len(t, responseBytes, 0, "expected response to be empty")
 				return
 			}
 			var response message.SignatureResponse
 			_, err = message.Codec.Unmarshal(responseBytes, &response)
 			require.NoError(t, err, "error unmarshalling SignatureResponse")
 
-			var expectedSignature [bls.SignatureLen]byte
-			copy(expectedSignature[:], expectedResponse)
-			assert.Equal(t, expectedSignature, response.Signature)
+			require.Equal(t, expectedResponse, response.Signature[:])
 			test.verifyStats(t, mockHandlerStats)
 		})
 	}

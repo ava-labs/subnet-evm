@@ -16,9 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 )
 
-var (
-	_ WarpBackend = &warpBackend{}
-)
+var _ WarpBackend = &warpBackend{}
 
 // WarpBackend tracks signature eligible warp messages and provides an interface to fetch them.
 // The backend is also used to query for warp message signatures by the signature request handler.
