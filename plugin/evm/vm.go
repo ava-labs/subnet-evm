@@ -15,7 +15,6 @@ import (
 	"time"
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
-	"github.com/ava-labs/subnet-evm/plugin/evm/handler"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -621,7 +620,7 @@ func (vm *VM) setAppRequestHandlers() {
 		},
 	)
 
-	networkHandler := handler.NewNetworkHandler(vm.blockChain, evmTrieDB, vm.networkCodec)
+	networkHandler := newNetworkHandler(vm.blockChain, evmTrieDB, vm.networkCodec)
 	vm.Network.SetRequestHandler(networkHandler)
 }
 

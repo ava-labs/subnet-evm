@@ -1,7 +1,7 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package handler
+package evm
 
 import (
 	"context"
@@ -25,8 +25,8 @@ type networkHandler struct {
 	signatureRequestHandler      warpHandlers.SignatureRequestHandler
 }
 
-// NewNetworkHandler constructs the handler for serving network requests.
-func NewNetworkHandler(
+// newNetworkHandler constructs the handler for serving network requests.
+func newNetworkHandler(
 	provider syncHandlers.SyncDataProvider,
 	evmTrieDB *trie.Database,
 	networkCodec codec.Manager,
