@@ -37,7 +37,7 @@ func NewWarpClient(uri, chain string) (WarpClient, error) {
 // GetSignature requests the BLS signature associated with a messageID
 func (c *warpClient) GetSignature(ctx context.Context, messageID ids.ID) ([]byte, error) {
 	var res hexutil.Bytes
-	err := c.client.CallContext(ctx, &res, "warp_getSignature", messageID[:])
+	err := c.client.CallContext(ctx, &res, "warp_getSignature", messageID)
 	if err != nil {
 		return nil, fmt.Errorf("call to warp_getSignature failed. err: %w", err)
 	}
