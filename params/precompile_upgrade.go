@@ -11,6 +11,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/registerer"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -42,10 +43,11 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		return errMultipleKeys
 	}
 	for key, value := range raw {
-		config, ok := config.GetNewConfig(key)
+		module, ok := registerer.GetPrecompileModule(key)
 		if !ok {
 			return fmt.Errorf("unknown precompile config: %s", key)
 		}
+		config := module.NewConfig()
 		err := json.Unmarshal(value, config)
 		if err != nil {
 			return err
@@ -58,7 +60,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 // MarshalJSON marshal the precompile config into json based on the precompile key.
 // Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
 func (u *PrecompileUpgrade) MarshalJSON() ([]byte, error) {
-	res := make(precompileConfig.Configs)
+	res := make(map[string]precompileConfig.Config)
 	res[u.Key()] = u.Config
 	return json.Marshal(res)
 }
@@ -131,7 +133,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		// Verify specified timestamps are monotonically increasing across same precompile keys.
 		// Note: It is NOT OK for multiple configs of the SAME key to specify the same timestamp.
 		if lastTimestamp != nil && (upgradeTimestamp.Cmp(lastTimestamp) <= 0) {
-			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: config block timestamp (%v) <= previous timestamp of same key (%v)", key, i, upgradeTimestamp, lastTimestamp)
+			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: config block timestamp (%v) <= previous timestamp (%v) of same key", key, i, upgradeTimestamp, lastTimestamp)
 		}
 
 		if err := upgrade.Verify(); err != nil {
@@ -164,16 +166,22 @@ func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTim
 func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []config.Config {
 	configs := make([]config.Config, 0)
 
+	// Get key from address.
+	module, ok := registerer.GetPrecompileModuleByAddress(address)
+	if !ok {
+		return configs
+	}
+	key := module.NewConfig().Key()
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
-	if config, ok := c.GenesisPrecompiles.GetConfigByAddress(address); ok {
+	if config, ok := c.GenesisPrecompiles[key]; ok {
 		if utils.IsForkTransition(config.Timestamp(), from, to) {
 			configs = append(configs, config)
 		}
 	}
 	// Loop over all upgrades checking for the requested precompile config.
 	for _, upgrade := range upgrades {
-		if upgrade.Address() == address {
+		if upgrade.Key() == key {
 			// Check if the precompile activates in the specified range.
 			if utils.IsForkTransition(upgrade.Timestamp(), from, to) {
 				configs = append(configs, upgrade.Config)
@@ -190,8 +198,8 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 // Assumes given timestamp is the last accepted block timestamp.
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
-	for _, address := range config.GetAddresses() {
-		if err := c.checkPrecompileCompatible(address, precompileUpgrades, lastTimestamp); err != nil {
+	for _, module := range registerer.RegisteredModules() {
+		if err := c.checkPrecompileCompatible(module.Address(), precompileUpgrades, lastTimestamp); err != nil {
 			return err
 		}
 	}
@@ -243,8 +251,8 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 // have been activated through an upgrade.
 func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []config.Config {
 	statefulPrecompileConfigs := make([]config.Config, 0)
-	for _, address := range config.GetAddresses() {
-		if config := c.GetActivePrecompileConfig(address, blockTimestamp); config != nil {
+	for _, module := range registerer.RegisteredModules() {
+		if config := c.GetActivePrecompileConfig(module.Address(), blockTimestamp); config != nil {
 			statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
 		}
 	}

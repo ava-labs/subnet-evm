@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ contract.Module = Module{}
+var _ contract.Module = &Module{}
 
 // ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
@@ -21,10 +21,6 @@ const ConfigKey = "contractNativeMinterConfig"
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000001")
 
 type Module struct{}
-
-func (Module) Key() string {
-	return ConfigKey
-}
 
 // Address returns the address of the native minter.
 func (Module) Address() common.Address {

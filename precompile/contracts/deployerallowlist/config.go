@@ -45,8 +45,6 @@ func NewDisableContractDeployerAllowListConfig(blockTimestamp *big.Int) *Contrac
 
 func (ContractDeployerAllowListConfig) Key() string { return ConfigKey }
 
-func (ContractDeployerAllowListConfig) Address() common.Address { return ContractAddress }
-
 // Equal returns true if [cfg] is a [*ContractDeployerAllowListConfig] and it has been configured identical to [c].
 func (c *ContractDeployerAllowListConfig) Equal(cfg config.Config) bool {
 	// typecast before comparison

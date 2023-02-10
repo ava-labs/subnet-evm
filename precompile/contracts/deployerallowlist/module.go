@@ -21,10 +21,6 @@ var ContractAddress = common.HexToAddress("0x02000000000000000000000000000000000
 
 type Module struct{}
 
-func (Module) Key() string {
-	return ConfigKey
-}
-
 // Address returns the address of the contract deployer allow list.
 func (Module) Address() common.Address {
 	return ContractAddress

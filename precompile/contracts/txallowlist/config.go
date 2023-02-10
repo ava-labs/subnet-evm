@@ -43,8 +43,6 @@ func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
 	}
 }
 
-func (_ *TxAllowListConfig) Address() common.Address { return ContractAddress }
-
 func (c *TxAllowListConfig) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*TxAllowListConfig] and it has been configured identical to [c].

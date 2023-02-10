@@ -32,6 +32,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/precompile/registry"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -277,6 +278,10 @@ func (vm *VM) Initialize(
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	g := new(core.Genesis)
 	if err := json.Unmarshal(genesisBytes, g); err != nil {
+		return err
+	}
+
+	if err := registry.RegisterPrecompileModules(); err != nil {
 		return err
 	}
 

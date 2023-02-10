@@ -1,12 +1,11 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package registry
+package registerer
 
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -48,25 +47,15 @@ func ReservedAddress(addr common.Address) bool {
 }
 
 // RegisterModule registers a stateful precompile module
-// This function should be called in the init function of the module
-// to ensure that the module is registered before the node starts
-// and the module is available for use.
-// This function will panic if the module cannot be registered.
-func RegisterModule(stm contract.Module) {
-	if err := registerModule(stm); err != nil {
-		panic(err)
-	}
-}
-
-func registerModule(stm contract.Module) error {
+func RegisterModule(stm contract.Module) error {
 	address := stm.Address()
-	key := stm.Key()
+	key := stm.NewConfig().Key()
 	if !ReservedAddress(address) {
 		return fmt.Errorf("address %s not in a reserved range", address)
 	}
 
 	for _, module := range registeredModules {
-		if module.Key() == key {
+		if module.NewConfig().Key() == key {
 			return fmt.Errorf("name %s already used by a stateful precompile", key)
 		}
 		if module.Address() == address {
@@ -76,7 +65,7 @@ func registerModule(stm contract.Module) error {
 
 	registeredModulesIndex[address] = len(registeredModules)
 	registeredModules = append(registeredModules, stm)
-	return config.RegisterConfig(key, address, stm)
+	return nil
 }
 
 func GetPrecompileModuleByAddress(address common.Address) (contract.Module, bool) {
@@ -90,7 +79,7 @@ func GetPrecompileModuleByAddress(address common.Address) (contract.Module, bool
 
 func GetPrecompileModule(key string) (contract.Module, bool) {
 	for _, stm := range registeredModules {
-		if stm.Key() == key {
+		if stm.NewConfig().Key() == key {
 			return stm, true
 		}
 	}

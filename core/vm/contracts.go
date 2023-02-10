@@ -36,7 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/registry"
+	"github.com/ava-labs/subnet-evm/precompile/registerer"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -159,7 +159,7 @@ func init() {
 
 	// Ensure that this package will panic during init if there is a conflict present with the declared
 	// precompile addresses.
-	for _, module := range registry.RegisteredModules() {
+	for _, module := range registerer.RegisteredModules() {
 		address := module.Address()
 		if _, ok := PrecompileAllNativeAddresses[address]; ok {
 			panic(fmt.Errorf("precompile address collides with existing native address: %s", address))

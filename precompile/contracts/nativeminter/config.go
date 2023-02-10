@@ -49,8 +49,6 @@ func NewDisableContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNati
 }
 func (ContractNativeMinterConfig) Key() string { return ConfigKey }
 
-func (ContractNativeMinterConfig) Address() common.Address { return ContractAddress }
-
 // Equal returns true if [cfg] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
 func (c *ContractNativeMinterConfig) Equal(cfg config.Config) bool {
 	// typecast before comparison

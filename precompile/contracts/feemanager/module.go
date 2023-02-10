@@ -11,7 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ contract.Module = Module{}
+var _ contract.Module = &Module{}
 
 // ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
@@ -20,10 +20,6 @@ const ConfigKey = "feeManagerConfig"
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000003")
 
 type Module struct{}
-
-func (Module) Key() string {
-	return ConfigKey
-}
 
 // Address returns the address of the fee manager.
 func (Module) Address() common.Address {

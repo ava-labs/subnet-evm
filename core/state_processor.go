@@ -35,9 +35,8 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/registry"
+	"github.com/ava-labs/subnet-evm/precompile/registerer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -184,32 +183,32 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 	// Note: RegisteredModules returns precompiles in order they are registered.
 	// This is important because we want to configure precompiles in the same order
 	// so that the state is deterministic.
-	for _, config := range config.GetConfigs() {
-		key := config.Key()
-		for _, activatingConfig := range c.GetActivatingPrecompileConfigs(config.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
+	for _, module := range registerer.RegisteredModules() {
+		key := module.NewConfig().Key()
+		for _, activatingConfig := range c.GetActivatingPrecompileConfigs(module.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
 			if activatingConfig.IsDisabled() {
 				log.Info("Disabling precompile", "name", key)
-				statedb.Suicide(config.Address())
+				statedb.Suicide(module.Address())
 				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
 				// This enables re-configuration of the same contract state in the same block.
 				// Without an immediate Finalise call after the Suicide, a reconfigured precompiled state can be wiped out
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				module, ok := registry.GetPrecompileModule(key)
+				module, ok := registerer.GetPrecompileModule(key)
 				if !ok {
 					return fmt.Errorf("could not find module for activating precompile, name: %s", key)
 				}
 				log.Info("Activating new precompile", "name", key, "config", activatingConfig)
 				// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
 				// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
-				statedb.SetNonce(activatingConfig.Address(), 1)
+				statedb.SetNonce(module.Address(), 1)
 				// Set the code of the precompile's address to a non-zero length byte slice to ensure that the precompile
 				// can be called from within Solidity contracts. Solidity adds a check before invoking a contract to ensure
 				// that it does not attempt to invoke a non-existent contract.
-				statedb.SetCode(activatingConfig.Address(), []byte{0x1})
+				statedb.SetCode(module.Address(), []byte{0x1})
 				if err := module.Configure(c, activatingConfig, statedb, blockContext); err != nil {
 					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", key, err)
 				}

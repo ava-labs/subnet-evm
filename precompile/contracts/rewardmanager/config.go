@@ -86,8 +86,6 @@ func NewDisableRewardManagerConfig(blockTimestamp *big.Int) *RewardManagerConfig
 	}
 }
 
-func (RewardManagerConfig) Address() common.Address { return ContractAddress }
-
 func (RewardManagerConfig) Key() string { return ConfigKey }
 
 func (c *RewardManagerConfig) Verify() error {

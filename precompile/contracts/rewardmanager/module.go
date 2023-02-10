@@ -11,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var _ contract.Module = &Module{}
+
 // ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
 const ConfigKey = "rewardManagerConfig"
@@ -18,10 +20,6 @@ const ConfigKey = "rewardManagerConfig"
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
 
 type Module struct{}
-
-func (Module) Key() string {
-	return ConfigKey
-}
 
 // Address returns the address of the reward manager.
 func (Module) Address() common.Address {
