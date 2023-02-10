@@ -5,8 +5,7 @@ package txallowlist
 
 import (
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -15,10 +14,6 @@ import (
 const ConfigKey = "txAllowListConfig"
 
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000002")
-
-func init() {
-	modules.RegisterModule(&Module{})
-}
 
 type Module struct{}
 
@@ -35,6 +30,6 @@ func (Module) NewConfig() config.Config {
 	return &TxAllowListConfig{}
 }
 
-func (Module) Executor() execution.Execution {
+func (Module) Executor() contract.Execution {
 	return &Executor{}
 }

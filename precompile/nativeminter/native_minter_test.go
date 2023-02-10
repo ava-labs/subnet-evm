@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -168,8 +168,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			require.Equal(t, allowlist.AdminRole, GetContractNativeMinterStatus(state, adminAddr))
 			require.Equal(t, allowlist.EnabledRole, GetContractNativeMinterStatus(state, enabledAddr))
 
-			blockContext := execution.NewMockBlockContext(common.Big0, 0)
-			accesibleState := execution.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
+			blockContext := contract.NewMockBlockContext(common.Big0, 0)
+			accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 			if test.config != nil {
 				Executor{}.Configure(params.TestChainConfig, test.config, state, blockContext)
 			}

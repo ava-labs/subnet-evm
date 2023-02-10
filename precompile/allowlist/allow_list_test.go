@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -260,8 +260,8 @@ func TestAllowListRun(t *testing.T) {
 				test.config.Configure(state, dummyContractAddr)
 			}
 
-			blockContext := execution.NewMockBlockContext(common.Big0, 0)
-			accesibleState := execution.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
+			blockContext := contract.NewMockBlockContext(common.Big0, 0)
+			accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 			if test.input != nil {
 				ret, remainingGas, err := testAllowListPrecompile.Run(accesibleState, test.caller, dummyContractAddr, test.input(), test.suppliedGas, test.readOnly)
 

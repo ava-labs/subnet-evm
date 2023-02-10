@@ -7,21 +7,10 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-type Module interface {
-	// Key returns the unique key for the stateful precompile.
-	Key() string
-	// Address returns the address where the stateful precompile is accessible.
-	Address() common.Address
-	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
-	// this config is enabled.
-	Executor() execution.Execution
-	config.Factory
-}
 
 var (
 	// registeredModulesIndex is a map of key to Module
@@ -29,7 +18,7 @@ var (
 	registeredModulesIndex = make(map[common.Address]int, 0)
 	// registeredModules is a list of Module to preserve order
 	// for deterministic iteration
-	registeredModules = make([]Module, 0)
+	registeredModules = make([]contract.Module, 0)
 
 	reservedRanges = []utils.AddressRange{
 		{
@@ -58,7 +47,18 @@ func ReservedAddress(addr common.Address) bool {
 	return false
 }
 
-func RegisterModule(stm Module) error {
+// RegisterModule registers a stateful precompile module
+// This function should be called in the init function of the module
+// to ensure that the module is registered before the node starts
+// and the module is available for use.
+// This function will panic if the module cannot be registered.
+func RegisterModule(stm contract.Module) {
+	if err := registerModule(stm); err != nil {
+		panic(err)
+	}
+}
+
+func registerModule(stm contract.Module) error {
 	address := stm.Address()
 	key := stm.Key()
 	if !ReservedAddress(address) {
@@ -76,13 +76,10 @@ func RegisterModule(stm Module) error {
 
 	registeredModulesIndex[address] = len(registeredModules)
 	registeredModules = append(registeredModules, stm)
-	_ = config.RegisterConfig(key, address, stm)
-	_ = execution.RegisterExecution(key, stm.Executor())
-
-	return nil
+	return config.RegisterConfig(key, address, stm)
 }
 
-func GetPrecompileModuleByAddress(address common.Address) (Module, bool) {
+func GetPrecompileModuleByAddress(address common.Address) (contract.Module, bool) {
 	index, ok := registeredModulesIndex[address]
 	if !ok {
 		return nil, false
@@ -91,7 +88,7 @@ func GetPrecompileModuleByAddress(address common.Address) (Module, bool) {
 	return registeredModules[index], true
 }
 
-func GetPrecompileModule(key string) (Module, bool) {
+func GetPrecompileModule(key string) (contract.Module, bool) {
 	for _, stm := range registeredModules {
 		if stm.Key() == key {
 			return stm, true
@@ -101,6 +98,6 @@ func GetPrecompileModule(key string) (Module, bool) {
 	return nil, false
 }
 
-func RegisteredModules() []Module {
+func RegisteredModules() []contract.Module {
 	return registeredModules
 }

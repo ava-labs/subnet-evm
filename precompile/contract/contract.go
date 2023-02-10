@@ -6,7 +6,6 @@ package contract
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -14,13 +13,7 @@ const (
 	SelectorLen = 4
 )
 
-type RunStatefulPrecompileFunc func(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
-
-// StatefulPrecompiledContract is the interface for executing a precompiled contract
-type StatefulPrecompiledContract interface {
-	// Run executes the precompiled contract.
-	Run(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
-}
+type RunStatefulPrecompileFunc func(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 
 // StatefulPrecompileFunction defines a function implemented by a stateful precompile
 type StatefulPrecompileFunction struct {
@@ -68,7 +61,7 @@ func NewStatefulPrecompileContract(fallback RunStatefulPrecompileFunc, functions
 
 // Run selects the function using the 4 byte function selector at the start of the input and executes the underlying function on the
 // given arguments.
-func (s *statefulPrecompileWithFunctionSelectors) Run(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func (s *statefulPrecompileWithFunctionSelectors) Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	// If there is no input data present, call the fallback function if present.
 	if len(input) == 0 && s.fallback != nil {
 		return s.fallback(accessibleState, caller, addr, nil, suppliedGas, readOnly)

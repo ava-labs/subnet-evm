@@ -2,18 +2,20 @@
 // See the file LICENSE for licensing terms.
 
 // Defines the interface for the configuration and execution of a precompile contract
-package execution
+package contract
 
 import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile/config"
 	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-type Contract interface {
+// StatefulPrecompiledContract is the interface for executing a precompiled contract
+type StatefulPrecompiledContract interface {
 	// Run executes the precompiled contract.
 	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
@@ -69,5 +71,16 @@ type BlockContext interface {
 
 type Execution interface {
 	Configure(chainConfig ChainConfig, precompileConfig precompileConfig.Config, state StateDB, blockContext BlockContext) error
-	Contract() Contract
+	Contract() StatefulPrecompiledContract
+}
+
+type Module interface {
+	// Key returns the unique key for the stateful precompile.
+	Key() string
+	// Address returns the address where the stateful precompile is accessible.
+	Address() common.Address
+	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
+	// this config is enabled.
+	Executor() Execution
+	config.Factory
 }

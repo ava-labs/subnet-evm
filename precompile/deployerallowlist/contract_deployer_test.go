@@ -11,7 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -196,8 +196,8 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			require.Equal(t, allowlist.AdminRole, GetContractDeployerAllowListStatus(state, adminAddr))
 			require.Equal(t, allowlist.EnabledRole, GetContractDeployerAllowListStatus(state, noRoleAddr))
 
-			blockContext := execution.NewMockBlockContext(common.Big0, 0)
-			accesibleState := execution.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
+			blockContext := contract.NewMockBlockContext(common.Big0, 0)
+			accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 			ret, remainingGas, err := ContractDeployerAllowListPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)

@@ -9,7 +9,6 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -51,7 +50,7 @@ var (
 
 // GetAllowListStatus returns the allow list role of [address] for the precompile
 // at [precompileAddr]
-func GetAllowListStatus(state execution.StateDB, precompileAddr common.Address, address common.Address) Role {
+func GetAllowListStatus(state contract.StateDB, precompileAddr common.Address, address common.Address) Role {
 	// Generate the state key for [address]
 	addressKey := address.Hash()
 	return Role(state.GetState(precompileAddr, addressKey))
@@ -60,7 +59,7 @@ func GetAllowListStatus(state execution.StateDB, precompileAddr common.Address, 
 // SetAllowListRole sets the permissions of [address] to [role] for the precompile
 // at [precompileAddr].
 // assumes [role] has already been verified as valid.
-func SetAllowListRole(stateDB execution.StateDB, precompileAddr, address common.Address, role Role) {
+func SetAllowListRole(stateDB contract.StateDB, precompileAddr, address common.Address, role Role) {
 	// Generate the state key for [address]
 	addressKey := address.Hash()
 	// Assign [role] to the address
@@ -104,7 +103,7 @@ func PackReadAllowList(address common.Address) []byte {
 // createAllowListRoleSetter returns an execution function for setting the allow list status of the input address argument to [role].
 // This execution function is speciifc to [precompileAddr].
 func createAllowListRoleSetter(precompileAddr common.Address, role Role) contract.RunStatefulPrecompileFunc {
-	return func(evm execution.AccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	return func(evm contract.AccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 		if remainingGas, err = contract.DeductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
 			return nil, 0, err
 		}
@@ -137,7 +136,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 // The execution function parses the input into a single address and returns the 32 byte hash that specifies the
 // designated role of that address
 func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrecompileFunc {
-	return func(evm execution.AccessibleState, callerAddr common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	return func(evm contract.AccessibleState, callerAddr common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 		if remainingGas, err = contract.DeductGas(suppliedGas, ReadAllowListGasCost); err != nil {
 			return nil, 0, err
 		}
@@ -154,7 +153,7 @@ func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrec
 }
 
 // createAllowListPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr]
-func CreateAllowListPrecompile(precompileAddr common.Address) execution.Contract {
+func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulPrecompiledContract {
 	// Construct the contract with no fallback function.
 	allowListFuncs := CreateAllowListFunctions(precompileAddr)
 	contract, err := contract.NewStatefulPrecompileContract(nil, allowListFuncs)

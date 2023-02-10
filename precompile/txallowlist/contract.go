@@ -8,7 +8,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -20,13 +19,13 @@ var (
 )
 
 // GetTxAllowListStatus returns the role of [address] for the tx allow list.
-func GetTxAllowListStatus(stateDB execution.StateDB, address common.Address) allowlist.Role {
+func GetTxAllowListStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetTxAllowListStatus sets the permissions of [address] to [role] for the
 // tx allow list.
 // assumes [role] has already been verified as valid.
-func SetTxAllowListStatus(stateDB execution.StateDB, address common.Address, role allowlist.Role) {
+func SetTxAllowListStatus(stateDB contract.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }

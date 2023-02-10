@@ -37,7 +37,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
@@ -46,8 +45,8 @@ import (
 )
 
 var (
-	_ execution.AccessibleState = &EVM{}
-	_ execution.BlockContext    = &BlockContext{}
+	_ contract.AccessibleState = &EVM{}
+	_ contract.BlockContext    = &BlockContext{}
 )
 
 // IsProhibited returns true if [addr] is in the prohibited list of addresses which should
@@ -216,12 +215,12 @@ func (evm *EVM) GetSnowContext() *snow.Context {
 }
 
 // GetStateDB returns the evm's StateDB
-func (evm *EVM) GetStateDB() execution.StateDB {
+func (evm *EVM) GetStateDB() contract.StateDB {
 	return evm.StateDB
 }
 
 // GetBlockContext returns the evm's BlockContext
-func (evm *EVM) GetBlockContext() execution.BlockContext {
+func (evm *EVM) GetBlockContext() contract.BlockContext {
 	return &evm.Context
 }
 

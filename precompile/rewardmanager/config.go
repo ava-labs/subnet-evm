@@ -11,7 +11,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -39,7 +39,7 @@ func (i *InitialRewardConfig) Verify() error {
 	}
 }
 
-func (i *InitialRewardConfig) Configure(state execution.StateDB) error {
+func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 	// enable allow fee recipients
 	if i.AllowFeeRecipients {
 		EnableAllowFeeRecipients(state)

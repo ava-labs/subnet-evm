@@ -7,13 +7,13 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 )
 
 type Executor struct{}
 
 // Configure configures [state] with the desired admins based on [cfg].
-func (Executor) Configure(chainConfig execution.ChainConfig, cfg config.Config, state execution.StateDB, _ execution.BlockContext) error {
+func (Executor) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
 	config, ok := cfg.(*RewardManagerConfig)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
@@ -37,6 +37,6 @@ func (Executor) Configure(chainConfig execution.ChainConfig, cfg config.Config, 
 	return nil
 }
 
-func (Executor) Contract() execution.Contract {
+func (Executor) Contract() contract.StatefulPrecompiledContract {
 	return RewardManagerPrecompile
 }

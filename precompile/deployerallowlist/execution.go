@@ -7,13 +7,13 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 )
 
 type Executor struct{}
 
 // Configure configures [state] with the desired admins based on [cfg].
-func (Executor) Configure(_ execution.ChainConfig, cfg config.Config, state execution.StateDB, _ execution.BlockContext) error {
+func (Executor) Configure(_ contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
 	config, ok := cfg.(*ContractDeployerAllowListConfig)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
@@ -21,6 +21,6 @@ func (Executor) Configure(_ execution.ChainConfig, cfg config.Config, state exec
 	return config.AllowListConfig.Configure(state, ContractAddress)
 }
 
-func (Executor) Contract() execution.Contract {
+func (Executor) Contract() contract.StatefulPrecompiledContract {
 	return ContractDeployerAllowListPrecompile
 }

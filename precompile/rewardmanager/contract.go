@@ -15,7 +15,6 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	_ "embed"
@@ -66,13 +65,13 @@ func init() {
 }
 
 // GetRewardManagerAllowListStatus returns the role of [address] for the RewardManager list.
-func GetRewardManagerAllowListStatus(stateDB execution.StateDB, address common.Address) allowlist.Role {
+func GetRewardManagerAllowListStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetRewardManagerAllowListStatus sets the permissions of [address] to [role] for the
 // RewardManager list. Assumes [role] has already been verified as valid.
-func SetRewardManagerAllowListStatus(stateDB execution.StateDB, address common.Address, role allowlist.Role) {
+func SetRewardManagerAllowListStatus(stateDB contract.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 
@@ -83,16 +82,16 @@ func PackAllowFeeRecipients() ([]byte, error) {
 }
 
 // EnableAllowFeeRecipients enables fee recipients.
-func EnableAllowFeeRecipients(stateDB execution.StateDB) {
+func EnableAllowFeeRecipients(stateDB contract.StateDB) {
 	stateDB.SetState(ContractAddress, rewardAddressStorageKey, allowFeeRecipientsAddressValue)
 }
 
 // DisableRewardAddress disables rewards and burns them by sending to Blackhole Address.
-func DisableFeeRewards(stateDB execution.StateDB) {
+func DisableFeeRewards(stateDB contract.StateDB) {
 	stateDB.SetState(ContractAddress, rewardAddressStorageKey, constants.BlackholeAddr.Hash())
 }
 
-func allowFeeRecipients(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, AllowFeeRecipientsGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -132,7 +131,7 @@ func PackAreFeeRecipientsAllowedOutput(isAllowed bool) ([]byte, error) {
 	return RewardManagerABI.PackOutput("areFeeRecipientsAllowed", isAllowed)
 }
 
-func areFeeRecipientsAllowed(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func areFeeRecipientsAllowed(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, AreFeeRecipientsAllowedGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -165,13 +164,13 @@ func PackCurrentRewardAddressOutput(rewardAddress common.Address) ([]byte, error
 
 // GetStoredRewardAddress returns the current value of the address stored under rewardAddressStorageKey.
 // Returns an empty address and true if allow fee recipients is enabled, otherwise returns current reward address and false.
-func GetStoredRewardAddress(stateDB execution.StateDB) (common.Address, bool) {
+func GetStoredRewardAddress(stateDB contract.StateDB) (common.Address, bool) {
 	val := stateDB.GetState(ContractAddress, rewardAddressStorageKey)
 	return common.BytesToAddress(val.Bytes()), val == allowFeeRecipientsAddressValue
 }
 
 // StoredRewardAddress stores the given [val] under rewardAddressStorageKey.
-func StoreRewardAddress(stateDB execution.StateDB, val common.Address) error {
+func StoreRewardAddress(stateDB contract.StateDB, val common.Address) error {
 	// if input is empty, return an error
 	if val == (common.Address{}) {
 		return ErrEmptyRewardAddress
@@ -198,7 +197,7 @@ func UnpackSetRewardAddressInput(input []byte) (common.Address, error) {
 	return unpacked, nil
 }
 
-func setRewardAddress(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func setRewardAddress(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, SetRewardAddressGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -234,7 +233,7 @@ func setRewardAddress(accessibleState execution.AccessibleState, caller common.A
 	return packedOutput, remainingGas, nil
 }
 
-func currentRewardAddress(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func currentRewardAddress(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, CurrentRewardAddressGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -257,7 +256,7 @@ func PackDisableRewards() ([]byte, error) {
 	return RewardManagerABI.Pack("disableRewards")
 }
 
-func disableRewards(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func disableRewards(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, DisableRewardsGasCost); err != nil {
 		return nil, 0, err
 	}

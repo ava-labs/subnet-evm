@@ -10,7 +10,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -33,13 +32,13 @@ var (
 )
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
-func GetContractNativeMinterStatus(stateDB execution.StateDB, address common.Address) allowlist.Role {
+func GetContractNativeMinterStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetContractNativeMinterStatus sets the permissions of [address] to [role] for the
 // minter list. assumes [role] has already been verified as valid.
-func SetContractNativeMinterStatus(stateDB execution.StateDB, address common.Address, role allowlist.Role) {
+func SetContractNativeMinterStatus(stateDB contract.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 
@@ -69,7 +68,7 @@ func UnpackMintInput(input []byte) (common.Address, *big.Int, error) {
 
 // mintNativeCoin checks if the caller is permissioned for minting operation.
 // The execution function parses the [input] into native coin amount and receiver address.
-func mintNativeCoin(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, MintGasCost); err != nil {
 		return nil, 0, err
 	}

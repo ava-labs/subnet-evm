@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -54,13 +53,13 @@ var (
 )
 
 // GetFeeManagerStatus returns the role of [address] for the fee config manager list.
-func GetFeeManagerStatus(stateDB execution.StateDB, address common.Address) allowlist.Role {
+func GetFeeManagerStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
 // SetFeeManagerStatus sets the permissions of [address] to [role] for the
 // fee config manager list. assumes [role] has already been verified as valid.
-func SetFeeManagerStatus(stateDB execution.StateDB, address common.Address, role allowlist.Role) {
+func SetFeeManagerStatus(stateDB contract.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 
@@ -145,7 +144,7 @@ func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 }
 
 // GetStoredFeeConfig returns fee config from contract storage in given state
-func GetStoredFeeConfig(stateDB execution.StateDB) commontype.FeeConfig {
+func GetStoredFeeConfig(stateDB contract.StateDB) commontype.FeeConfig {
 	feeConfig := commontype.FeeConfig{}
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
 		val := stateDB.GetState(ContractAddress, common.Hash{byte(i)})
@@ -174,14 +173,14 @@ func GetStoredFeeConfig(stateDB execution.StateDB) commontype.FeeConfig {
 	return feeConfig
 }
 
-func GetFeeConfigLastChangedAt(stateDB execution.StateDB) *big.Int {
+func GetFeeConfigLastChangedAt(stateDB contract.StateDB) *big.Int {
 	val := stateDB.GetState(ContractAddress, feeConfigLastChangedAtKey)
 	return val.Big()
 }
 
 // StoreFeeConfig stores given [feeConfig] and block number in the [blockContext] to the [stateDB].
 // A validation on [feeConfig] is done before storing.
-func StoreFeeConfig(stateDB execution.StateDB, feeConfig commontype.FeeConfig, blockContext execution.BlockContext) error {
+func StoreFeeConfig(stateDB contract.StateDB, feeConfig commontype.FeeConfig, blockContext contract.BlockContext) error {
 	if err := feeConfig.Verify(); err != nil {
 		return fmt.Errorf("cannot verify fee config: %w", err)
 	}
@@ -226,7 +225,7 @@ func StoreFeeConfig(stateDB execution.StateDB, feeConfig commontype.FeeConfig, b
 
 // setFeeConfig checks if the caller has permissions to set the fee config.
 // The execution function parses [input] into FeeConfig structure and sets contract storage accordingly.
-func setFeeConfig(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func setFeeConfig(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, SetFeeConfigGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -257,7 +256,7 @@ func setFeeConfig(accessibleState execution.AccessibleState, caller common.Addre
 
 // getFeeConfig returns the stored fee config as an output.
 // The execution function reads the contract state for the stored fee config and returns the output.
-func getFeeConfig(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func getFeeConfig(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetFeeConfigGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -275,7 +274,7 @@ func getFeeConfig(accessibleState execution.AccessibleState, caller common.Addre
 
 // getFeeConfigLastChangedAt returns the block number that fee config was last changed in.
 // The execution function reads the contract state for the stored block number and returns the output.
-func getFeeConfigLastChangedAt(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func getFeeConfigLastChangedAt(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetLastChangedAtGasCost); err != nil {
 		return nil, 0, err
 	}

@@ -36,7 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -179,7 +179,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 // - within genesis setup to configure the starting state for precompiles enabled at genesis,
 // - during block processing to update the state before processing the given block.
 // - during block producing to apply the precompile upgrades before producing the block.
-func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int, blockContext execution.BlockContext, statedb *state.StateDB) error {
+func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 	// Note: RegisteredModules returns precompiles in order they are registered.
 	// This is important because we want to configure precompiles in the same order

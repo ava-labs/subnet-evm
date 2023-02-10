@@ -13,7 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -126,7 +126,7 @@ func TestFeeManagerRun(t *testing.T) {
 		"get fee config from non-enabled address": {
 			caller: noRoleAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
-				err := StoreFeeConfig(state, testFeeConfig, execution.NewMockBlockContext(big.NewInt(6), 0))
+				err := StoreFeeConfig(state, testFeeConfig, contract.NewMockBlockContext(big.NewInt(6), 0))
 				require.NoError(t, err)
 			},
 			input: func() []byte {
@@ -171,7 +171,7 @@ func TestFeeManagerRun(t *testing.T) {
 		"get last changed at from non-enabled address": {
 			caller: noRoleAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
-				err := StoreFeeConfig(state, testFeeConfig, execution.NewMockBlockContext(testBlockNumber, 0))
+				err := StoreFeeConfig(state, testFeeConfig, contract.NewMockBlockContext(testBlockNumber, 0))
 				require.NoError(t, err)
 			},
 			input: func() []byte {
@@ -250,8 +250,8 @@ func TestFeeManagerRun(t *testing.T) {
 			if test.preCondition != nil {
 				test.preCondition(t, state)
 			}
-			blockContext := execution.NewMockBlockContext(testBlockNumber, 0)
-			accesibleState := execution.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
+			blockContext := contract.NewMockBlockContext(testBlockNumber, 0)
+			accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 			if test.config != nil {
 				Executor{}.Configure(nil, test.config, state, blockContext)
 			}

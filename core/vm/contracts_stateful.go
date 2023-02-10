@@ -5,7 +5,6 @@ package vm
 
 import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -22,11 +21,11 @@ func newWrappedPrecompiledContract(p PrecompiledContract) contract.StatefulPreco
 }
 
 // Run implements the StatefulPrecompiledContract interface
-func (w *wrappedPrecompiledContract) Run(accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func (w *wrappedPrecompiledContract) Run(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	return RunPrecompiledContract(w.p, input, suppliedGas)
 }
 
 // RunStatefulPrecompiledContract confirms runs [precompile] with the specified parameters.
-func RunStatefulPrecompiledContract(precompile contract.StatefulPrecompiledContract, accessibleState execution.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func RunStatefulPrecompiledContract(precompile contract.StatefulPrecompiledContract, accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	return precompile.Run(accessibleState, caller, addr, input, suppliedGas, readOnly)
 }

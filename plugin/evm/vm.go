@@ -46,9 +46,6 @@ import (
 	// inside of cmd/geth.
 	_ "github.com/ava-labs/subnet-evm/eth/tracers/native"
 
-	// Force-load precompiles to trigger registration
-	_ "github.com/ava-labs/subnet-evm/precompile/registration"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
