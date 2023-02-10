@@ -1,7 +1,7 @@
 // (c) 2019-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package statefulprecompiles
+package nativeminter
 
 import (
 	"testing"
@@ -10,14 +10,29 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
 )
+
+type precompileTest struct {
+	caller      common.Address
+	input       func() []byte
+	suppliedGas uint64
+	readOnly    bool
+
+	config config.Config
+
+	preCondition func(t *testing.T, state *state.StateDB)
+	assertState  func(t *testing.T, state *state.StateDB)
+
+	expectedRes []byte
+	expectedErr string
+}
 
 func TestContractNativeMinterRun(t *testing.T) {
 	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
@@ -28,24 +43,24 @@ func TestContractNativeMinterRun(t *testing.T) {
 		"mint funds from no role fails": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := nativeminter.PackMintInput(noRoleAddr, common.Big1)
+				input, err := PackMintInput(noRoleAddr, common.Big1)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: nativeminter.MintGasCost,
+			suppliedGas: MintGasCost,
 			readOnly:    false,
-			expectedErr: nativeminter.ErrCannotMint.Error(),
+			expectedErr: ErrCannotMint.Error(),
 		},
 		"mint funds from enabled address": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := nativeminter.PackMintInput(enabledAddr, common.Big1)
+				input, err := PackMintInput(enabledAddr, common.Big1)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: nativeminter.MintGasCost,
+			suppliedGas: MintGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
@@ -54,7 +69,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 		},
 		"initial mint funds": {
 			caller: enabledAddr,
-			config: &nativeminter.ContractNativeMinterConfig{
+			config: &ContractNativeMinterConfig{
 				InitialMint: map[common.Address]*math.HexOrDecimal256{
 					enabledAddr: math.NewHexOrDecimal256(2),
 				},
@@ -66,12 +81,12 @@ func TestContractNativeMinterRun(t *testing.T) {
 		"mint funds from admin address": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := nativeminter.PackMintInput(adminAddr, common.Big1)
+				input, err := PackMintInput(adminAddr, common.Big1)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: nativeminter.MintGasCost,
+			suppliedGas: MintGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
@@ -81,12 +96,12 @@ func TestContractNativeMinterRun(t *testing.T) {
 		"mint max big funds": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := nativeminter.PackMintInput(adminAddr, math.MaxBig256)
+				input, err := PackMintInput(adminAddr, math.MaxBig256)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: nativeminter.MintGasCost,
+			suppliedGas: MintGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
@@ -96,48 +111,48 @@ func TestContractNativeMinterRun(t *testing.T) {
 		"readOnly mint with noRole fails": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := nativeminter.PackMintInput(adminAddr, common.Big1)
+				input, err := PackMintInput(adminAddr, common.Big1)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: nativeminter.MintGasCost,
+			suppliedGas: MintGasCost,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly mint with allow role fails": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := nativeminter.PackMintInput(enabledAddr, common.Big1)
+				input, err := PackMintInput(enabledAddr, common.Big1)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: nativeminter.MintGasCost,
+			suppliedGas: MintGasCost,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly mint with admin role fails": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := nativeminter.PackMintInput(adminAddr, common.Big1)
+				input, err := PackMintInput(adminAddr, common.Big1)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: nativeminter.MintGasCost,
+			suppliedGas: MintGasCost,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"insufficient gas mint from admin": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := nativeminter.PackMintInput(enabledAddr, common.Big1)
+				input, err := PackMintInput(enabledAddr, common.Big1)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: nativeminter.MintGasCost - 1,
+			suppliedGas: MintGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
@@ -148,18 +163,18 @@ func TestContractNativeMinterRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			nativeminter.SetContractNativeMinterStatus(state, adminAddr, allowlist.AdminRole)
-			nativeminter.SetContractNativeMinterStatus(state, enabledAddr, allowlist.EnabledRole)
-			require.Equal(t, allowlist.AdminRole, nativeminter.GetContractNativeMinterStatus(state, adminAddr))
-			require.Equal(t, allowlist.EnabledRole, nativeminter.GetContractNativeMinterStatus(state, enabledAddr))
+			SetContractNativeMinterStatus(state, adminAddr, allowlist.AdminRole)
+			SetContractNativeMinterStatus(state, enabledAddr, allowlist.EnabledRole)
+			require.Equal(t, allowlist.AdminRole, GetContractNativeMinterStatus(state, adminAddr))
+			require.Equal(t, allowlist.EnabledRole, GetContractNativeMinterStatus(state, enabledAddr))
 
-			blockContext := precompile.NewMockBlockContext(common.Big0, 0)
-			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
+			blockContext := execution.NewMockBlockContext(common.Big0, 0)
+			accesibleState := execution.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 			if test.config != nil {
-				test.config.Configure(params.TestChainConfig, state, blockContext)
+				Executor{}.Configure(params.TestChainConfig, test.config, state, blockContext)
 			}
 			if test.input != nil {
-				ret, remainingGas, err := nativeminter.ContractNativeMinterPrecompile.Run(accesibleState, test.caller, nativeminter.ContractAddress, test.input(), test.suppliedGas, test.readOnly)
+				ret, remainingGas, err := ContractNativeMinterPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 				if len(test.expectedErr) != 0 {
 					require.ErrorContains(t, err, test.expectedErr)
 				} else {

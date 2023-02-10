@@ -1,7 +1,7 @@
 // (c) 2019-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package statefulprecompiles
+package rewardmanager
 
 import (
 	"math/big"
@@ -11,15 +11,30 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
+	"github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
 var testBlockNumber = big.NewInt(7)
+
+type precompileTest struct {
+	caller      common.Address
+	input       func() []byte
+	suppliedGas uint64
+	readOnly    bool
+
+	config config.Config
+
+	preCondition func(t *testing.T, state *state.StateDB)
+	assertState  func(t *testing.T, state *state.StateDB)
+
+	expectedRes []byte
+	expectedErr string
+}
 
 func TestRewardManagerRun(t *testing.T) {
 	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
@@ -31,68 +46,68 @@ func TestRewardManagerRun(t *testing.T) {
 		"set allow fee recipients from no role fails": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackAllowFeeRecipients()
+				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.AllowFeeRecipientsGasCost,
+			suppliedGas: AllowFeeRecipientsGasCost,
 			readOnly:    false,
-			expectedErr: rewardmanager.ErrCannotAllowFeeRecipients.Error(),
+			expectedErr: ErrCannotAllowFeeRecipients.Error(),
 		},
 		"set reward address from no role fails": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackSetRewardAddress(testAddr)
+				input, err := PackSetRewardAddress(testAddr)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.SetRewardAddressGasCost,
+			suppliedGas: SetRewardAddressGasCost,
 			readOnly:    false,
-			expectedErr: rewardmanager.ErrCannotSetRewardAddress.Error(),
+			expectedErr: ErrCannotSetRewardAddress.Error(),
 		},
 		"disable rewards from no role fails": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackDisableRewards()
+				input, err := PackDisableRewards()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.DisableRewardsGasCost,
+			suppliedGas: DisableRewardsGasCost,
 			readOnly:    false,
-			expectedErr: rewardmanager.ErrCannotDisableRewards.Error(),
+			expectedErr: ErrCannotDisableRewards.Error(),
 		},
 		"set allow fee recipients from enabled succeeds": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackAllowFeeRecipients()
+				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.AllowFeeRecipientsGasCost,
+			suppliedGas: AllowFeeRecipientsGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				_, isFeeRecipients := rewardmanager.GetStoredRewardAddress(state)
+				_, isFeeRecipients := GetStoredRewardAddress(state)
 				require.True(t, isFeeRecipients)
 			},
 		},
 		"set reward address from enabled succeeds": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackSetRewardAddress(testAddr)
+				input, err := PackSetRewardAddress(testAddr)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.SetRewardAddressGasCost,
+			suppliedGas: SetRewardAddressGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				address, isFeeRecipients := rewardmanager.GetStoredRewardAddress(state)
+				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.Equal(t, testAddr, address)
 				require.False(t, isFeeRecipients)
 			},
@@ -100,16 +115,16 @@ func TestRewardManagerRun(t *testing.T) {
 		"disable rewards from enabled succeeds": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackDisableRewards()
+				input, err := PackDisableRewards()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.DisableRewardsGasCost,
+			suppliedGas: DisableRewardsGasCost,
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				address, isFeeRecipients := rewardmanager.GetStoredRewardAddress(state)
+				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.False(t, isFeeRecipients)
 				require.Equal(t, constants.BlackholeAddr, address)
 			},
@@ -117,18 +132,18 @@ func TestRewardManagerRun(t *testing.T) {
 		"get current reward address from no role succeeds": {
 			caller: noRoleAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
-				rewardmanager.StoreRewardAddress(state, testAddr)
+				StoreRewardAddress(state, testAddr)
 			},
 			input: func() []byte {
-				input, err := rewardmanager.PackCurrentRewardAddress()
+				input, err := PackCurrentRewardAddress()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.CurrentRewardAddressGasCost,
+			suppliedGas: CurrentRewardAddressGasCost,
 			readOnly:    false,
 			expectedRes: func() []byte {
-				res, err := rewardmanager.PackCurrentRewardAddressOutput(testAddr)
+				res, err := PackCurrentRewardAddressOutput(testAddr)
 				require.NoError(t, err)
 				return res
 			}(),
@@ -136,17 +151,17 @@ func TestRewardManagerRun(t *testing.T) {
 		"get are fee recipients allowed from no role succeeds": {
 			caller: noRoleAddr,
 			preCondition: func(t *testing.T, state *state.StateDB) {
-				rewardmanager.EnableAllowFeeRecipients(state)
+				EnableAllowFeeRecipients(state)
 			},
 			input: func() []byte {
-				input, err := rewardmanager.PackAreFeeRecipientsAllowed()
+				input, err := PackAreFeeRecipientsAllowed()
 				require.NoError(t, err)
 				return input
 			},
-			suppliedGas: rewardmanager.AreFeeRecipientsAllowedGasCost,
+			suppliedGas: AreFeeRecipientsAllowedGasCost,
 			readOnly:    false,
 			expectedRes: func() []byte {
-				res, err := rewardmanager.PackAreFeeRecipientsAllowedOutput(true)
+				res, err := PackAreFeeRecipientsAllowedOutput(true)
 				require.NoError(t, err)
 				return res
 			}(),
@@ -154,19 +169,19 @@ func TestRewardManagerRun(t *testing.T) {
 		"get initial config with address": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackCurrentRewardAddress()
+				input, err := PackCurrentRewardAddress()
 				require.NoError(t, err)
 				return input
 			},
-			suppliedGas: rewardmanager.CurrentRewardAddressGasCost,
-			config: &rewardmanager.RewardManagerConfig{
-				InitialRewardConfig: &rewardmanager.InitialRewardConfig{
+			suppliedGas: CurrentRewardAddressGasCost,
+			config: &RewardManagerConfig{
+				InitialRewardConfig: &InitialRewardConfig{
 					RewardAddress: testAddr,
 				},
 			},
 			readOnly: false,
 			expectedRes: func() []byte {
-				res, err := rewardmanager.PackCurrentRewardAddressOutput(testAddr)
+				res, err := PackCurrentRewardAddressOutput(testAddr)
 				require.NoError(t, err)
 				return res
 			}(),
@@ -174,19 +189,19 @@ func TestRewardManagerRun(t *testing.T) {
 		"get initial config with allow fee recipients enabled": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackAreFeeRecipientsAllowed()
+				input, err := PackAreFeeRecipientsAllowed()
 				require.NoError(t, err)
 				return input
 			},
-			suppliedGas: rewardmanager.AreFeeRecipientsAllowedGasCost,
-			config: &rewardmanager.RewardManagerConfig{
-				InitialRewardConfig: &rewardmanager.InitialRewardConfig{
+			suppliedGas: AreFeeRecipientsAllowedGasCost,
+			config: &RewardManagerConfig{
+				InitialRewardConfig: &InitialRewardConfig{
 					AllowFeeRecipients: true,
 				},
 			},
 			readOnly: false,
 			expectedRes: func() []byte {
-				res, err := rewardmanager.PackAreFeeRecipientsAllowedOutput(true)
+				res, err := PackAreFeeRecipientsAllowedOutput(true)
 				require.NoError(t, err)
 				return res
 			}(),
@@ -194,72 +209,72 @@ func TestRewardManagerRun(t *testing.T) {
 		"readOnly allow fee recipients with allowed role fails": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackAllowFeeRecipients()
+				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.AllowFeeRecipientsGasCost,
+			suppliedGas: AllowFeeRecipientsGasCost,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly set reward addresss with allowed role fails": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackSetRewardAddress(testAddr)
+				input, err := PackSetRewardAddress(testAddr)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.SetRewardAddressGasCost,
+			suppliedGas: SetRewardAddressGasCost,
 			readOnly:    true,
 			expectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"insufficient gas set reward address from allowed role": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackSetRewardAddress(testAddr)
+				input, err := PackSetRewardAddress(testAddr)
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.SetRewardAddressGasCost - 1,
+			suppliedGas: SetRewardAddressGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"insufficient gas allow fee recipients from allowed role": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackAllowFeeRecipients()
+				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.AllowFeeRecipientsGasCost - 1,
+			suppliedGas: AllowFeeRecipientsGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"insufficient gas read current reward address from allowed role": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackCurrentRewardAddress()
+				input, err := PackCurrentRewardAddress()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.CurrentRewardAddressGasCost - 1,
+			suppliedGas: CurrentRewardAddressGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"insufficient gas are fee recipients allowed from allowed role": {
 			caller: enabledAddr,
 			input: func() []byte {
-				input, err := rewardmanager.PackAreFeeRecipientsAllowed()
+				input, err := PackAreFeeRecipientsAllowed()
 				require.NoError(t, err)
 
 				return input
 			},
-			suppliedGas: rewardmanager.AreFeeRecipientsAllowedGasCost - 1,
+			suppliedGas: AreFeeRecipientsAllowedGasCost - 1,
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
@@ -270,22 +285,22 @@ func TestRewardManagerRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			rewardmanager.SetRewardManagerAllowListStatus(state, adminAddr, allowlist.AdminRole)
-			rewardmanager.SetRewardManagerAllowListStatus(state, enabledAddr, allowlist.EnabledRole)
-			require.Equal(t, allowlist.AdminRole, rewardmanager.GetRewardManagerAllowListStatus(state, adminAddr))
-			require.Equal(t, allowlist.EnabledRole, rewardmanager.GetRewardManagerAllowListStatus(state, enabledAddr))
+			SetRewardManagerAllowListStatus(state, adminAddr, allowlist.AdminRole)
+			SetRewardManagerAllowListStatus(state, enabledAddr, allowlist.EnabledRole)
+			require.Equal(t, allowlist.AdminRole, GetRewardManagerAllowListStatus(state, adminAddr))
+			require.Equal(t, allowlist.EnabledRole, GetRewardManagerAllowListStatus(state, enabledAddr))
 
 			if test.preCondition != nil {
 				test.preCondition(t, state)
 			}
 
-			blockContext := precompile.NewMockBlockContext(testBlockNumber, 0)
-			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
+			blockContext := execution.NewMockBlockContext(testBlockNumber, 0)
+			accesibleState := execution.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 
 			if test.config != nil {
-				config.Configure(nil, state, blockContext)
+				Executor{}.Configure(nil, test.config, state, blockContext)
 			}
-			ret, remainingGas, err := rewardmanager.RewardManagerPrecompile.Run(accesibleState, test.caller, rewardmanager.ContractAddress, test.input(), test.suppliedGas, test.readOnly)
+			ret, remainingGas, err := RewardManagerPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

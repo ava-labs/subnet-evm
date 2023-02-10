@@ -1,7 +1,7 @@
 // (c) 2019-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package statefulprecompiles
+package txallowlist
 
 import (
 	"testing"
@@ -9,15 +9,30 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/execution"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
-func TestContractDeployerAllowListRun(t *testing.T) {
+type precompileTest struct {
+	caller      common.Address
+	input       func() []byte
+	suppliedGas uint64
+	readOnly    bool
+
+	config config.Config
+
+	preCondition func(t *testing.T, state *state.StateDB)
+	assertState  func(t *testing.T, state *state.StateDB)
+
+	expectedRes []byte
+	expectedErr string
+}
+
+func TestTxAllowListRun(t *testing.T) {
 	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
 	noRoleAddr := common.HexToAddress("0xF60C45c607D0f41687c94C314d300f483661E13a")
 
@@ -34,11 +49,11 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				res := deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr)
+				res := GetTxAllowListStatus(state, noRoleAddr)
 				require.Equal(t, allowlist.AdminRole, res)
 			},
 		},
-		"set deployer": {
+		"set allowed": {
 			caller: adminAddr,
 			input: func() []byte {
 				input, err := allowlist.PackModifyAllowList(noRoleAddr, allowlist.EnabledRole)
@@ -50,14 +65,14 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				res := deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr)
+				res := GetTxAllowListStatus(state, noRoleAddr)
 				require.Equal(t, allowlist.EnabledRole, res)
 			},
 		},
 		"set no role": {
 			caller: adminAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.EnabledRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.NoRole)
 				require.NoError(t, err)
 
 				return input
@@ -66,14 +81,14 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
-				res := deployerallowlist.GetContractDeployerAllowListStatus(state, adminAddr)
-				require.Equal(t, allowlist.EnabledRole, res)
+				res := GetTxAllowListStatus(state, adminAddr)
+				require.Equal(t, allowlist.NoRole, res)
 			},
 		},
 		"set no role from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
-				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.EnabledRole)
+				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.NoRole)
 				require.NoError(t, err)
 
 				return input
@@ -82,7 +97,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
-		"set deployer from non-admin": {
+		"set allowed from non-admin": {
 			caller: noRoleAddr,
 			input: func() []byte {
 				input, err := allowlist.PackModifyAllowList(adminAddr, allowlist.EnabledRole)
@@ -130,24 +145,24 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
-		"read allow list no role": {
+		"read allow listwith no role": {
 			caller: noRoleAddr,
 			input: func() []byte {
 				return allowlist.PackReadAllowList(noRoleAddr)
 			},
 			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(allowlist.EnabledRole).Bytes(),
+			expectedRes: common.Hash(allowlist.NoRole).Bytes(),
 			assertState: nil,
 		},
-		"read allow list admin role": {
+		"read allow list with admin role": {
 			caller: adminAddr,
 			input: func() []byte {
 				return allowlist.PackReadAllowList(noRoleAddr)
 			},
 			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    false,
-			expectedRes: common.Hash(allowlist.EnabledRole).Bytes(),
+			expectedRes: common.Hash(allowlist.NoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list with readOnly enabled": {
@@ -157,7 +172,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			},
 			suppliedGas: allowlist.ReadAllowListGasCost,
 			readOnly:    true,
-			expectedRes: common.Hash(allowlist.EnabledRole).Bytes(),
+			expectedRes: common.Hash(allowlist.NoRole).Bytes(),
 			assertState: nil,
 		},
 		"read allow list out of gas": {
@@ -176,14 +191,12 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 			require.NoError(t, err)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			deployerallowlist.SetContractDeployerAllowListStatus(state, adminAddr, allowlist.AdminRole)
-			deployerallowlist.SetContractDeployerAllowListStatus(state, noRoleAddr, allowlist.EnabledRole)
-			require.Equal(t, allowlist.AdminRole, deployerallowlist.GetContractDeployerAllowListStatus(state, adminAddr))
-			require.Equal(t, allowlist.EnabledRole, deployerallowlist.GetContractDeployerAllowListStatus(state, noRoleAddr))
+			SetTxAllowListStatus(state, adminAddr, allowlist.AdminRole)
+			require.Equal(t, allowlist.AdminRole, GetTxAllowListStatus(state, adminAddr))
 
-			blockContext := precompile.NewMockBlockContext(common.Big0, 0)
-			accesibleState := precompile.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
-			ret, remainingGas, err := deployerallowlist.ContractDeployerAllowListPrecompile.Run(accesibleState, test.caller, deployerallowlist.ContractAddress, test.input(), test.suppliedGas, test.readOnly)
+			blockContext := execution.NewMockBlockContext(common.Big0, 0)
+			accesibleState := execution.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
+			ret, remainingGas, err := TxAllowListPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {
 				require.ErrorContains(t, err, test.expectedErr)
 			} else {

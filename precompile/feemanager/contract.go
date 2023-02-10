@@ -218,6 +218,9 @@ func StoreFeeConfig(stateDB execution.StateDB, feeConfig commontype.FeeConfig, b
 	}
 	stateDB.SetState(ContractAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
 
+	conf := GetStoredFeeConfig(stateDB)
+	fmt.Println(conf)
+
 	return nil
 }
 
