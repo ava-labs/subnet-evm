@@ -1,9 +1,9 @@
 package limitorders
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/big"
+	"sort"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -43,7 +43,31 @@ func NewContractEventsProcessor(database LimitOrderDatabase) *ContractEventsProc
 	}
 }
 
-func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
+func (cep *ContractEventsProcessor) ProcessEvents(logs []*types.Log) {
+	// sort by block number & log index
+	sort.SliceStable(logs, func(i, j int) bool {
+		if logs[i].BlockNumber == logs[j].BlockNumber {
+			return logs[i].Index < logs[j].Index
+		}
+		return logs[i].BlockNumber < logs[j].BlockNumber
+	})
+	for _, event := range logs {
+		if event.Removed {
+			// skip removed logs
+			continue
+		}
+		switch event.Address {
+		case OrderBookContractAddress:
+			cep.handleOrderBookEvent(event)
+		case MarginAccountContractAddress:
+			cep.handleMarginAccountEvent(event)
+		case ClearingHouseContractAddress:
+			cep.handleClearingHouseEvent(event)
+		}
+	}
+}
+
+func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
 	case cep.orderBookABI.Events["OrderPlaced"].ID:
@@ -56,15 +80,16 @@ func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
 		order := getOrderFromRawOrder(args["order"])
 
 		cep.database.Add(&LimitOrder{
-			Market:            Market(order.AmmIndex.Int64()),
-			PositionType:      getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
-			UserAddress:       getAddressFromTopicHash(event.Topics[1]).String(),
-			BaseAssetQuantity: order.BaseAssetQuantity,
-			Price:             order.Price,
-			Status:            Placed,
-			RawOrder:          args["order"],
-			Signature:         args["signature"].([]byte),
-			BlockNumber:       big.NewInt(int64(event.BlockNumber)),
+			Market:                  Market(order.AmmIndex.Int64()),
+			PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
+			UserAddress:             getAddressFromTopicHash(event.Topics[1]).String(),
+			BaseAssetQuantity:       order.BaseAssetQuantity,
+			FilledBaseAssetQuantity: big.NewInt(0),
+			Price:                   order.Price,
+			Status:                  Placed,
+			RawOrder:                args["order"],
+			Signature:               args["signature"].([]byte),
+			BlockNumber:             big.NewInt(int64(event.BlockNumber)),
 		})
 	case cep.orderBookABI.Events["OrderCancelled"].ID:
 		err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelled", event.Data)
@@ -84,9 +109,7 @@ func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
 			return
 		}
 		log.Info("HandleOrderBookEvent", "OrdersMatched args", args)
-		fmt.Println("xxxxx")
 		signatures := args["signatures"].([2][]byte)
-		fmt.Println("yyyy")
 		fillAmount := args["fillAmount"].(*big.Int)
 		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signatures[0])
 		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signatures[1])
@@ -106,7 +129,7 @@ func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
 
 }
 
-func (cep *ContractEventsProcessor) HandleMarginAccountEvent(event *types.Log) {
+func (cep *ContractEventsProcessor) handleMarginAccountEvent(event *types.Log) {
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
 	case cep.marginAccountABI.Events["MarginAdded"].ID:
@@ -138,7 +161,7 @@ func (cep *ContractEventsProcessor) HandleMarginAccountEvent(event *types.Log) {
 	log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
 }
 
-func (cep *ContractEventsProcessor) HandleClearingHouseEvent(event *types.Log) {
+func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
 	case cep.clearingHouseABI.Events["FundingRateUpdated"].ID:

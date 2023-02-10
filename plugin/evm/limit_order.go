@@ -3,7 +3,6 @@ package evm
 import (
 	"context"
 	"math/big"
-	"sort"
 	"sync"
 
 	"github.com/ava-labs/subnet-evm/core"
@@ -69,18 +68,18 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 		for toBlock.Cmp(fromBlock) >= 0 {
 			logs, err := filterAPI.GetLogs(ctx, filters.FilterCriteria{
 				FromBlock: fromBlock,
-				ToBlock: toBlock,
+				ToBlock:   toBlock,
 				Addresses: []common.Address{limitorders.OrderBookContractAddress, limitorders.ClearingHouseContractAddress, limitorders.MarginAccountContractAddress},
 			})
 			if err != nil {
 				log.Error("ListenAndProcessTransactions - GetLogs failed", "err", err)
 				panic(err)
 			}
-			processEvents(logs, lop)
+			lop.contractEventProcessor.ProcessEvents(logs)
 			log.Info("ListenAndProcessTransactions", "number of logs", len(logs), "err", err)
 
 			fromBlock = toBlock.Add(fromBlock, big.NewInt(1))
-			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))	
+			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 		}
 	}
 
@@ -202,36 +201,12 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 		for {
 			select {
 			case logs := <-logsCh:
-				processEvents(logs, lop)
+				lop.contractEventProcessor.ProcessEvents(logs)
 			case <-lop.shutdownChan:
 				return
 			}
 		}
 	})
-}
-
-func processEvents(logs []*types.Log, lop *limitOrderProcesser) {
-	// sort by block number & log index
-	sort.SliceStable(logs, func(i, j int) bool {
-		if logs[i].BlockNumber == logs[j].BlockNumber {
-			return logs[i].Index < logs[j].Index
-		}
-		return logs[i].BlockNumber < logs[j].BlockNumber
-	})
-	for _, event := range logs {
-		if event.Removed {
-			// skip removed logs
-			continue
-		}
-		switch event.Address {
-		case limitorders.OrderBookContractAddress:
-			lop.contractEventProcessor.HandleOrderBookEvent(event)
-		case limitorders.MarginAccountContractAddress:
-			lop.contractEventProcessor.HandleMarginAccountEvent(event)
-		case limitorders.ClearingHouseContractAddress:
-			lop.contractEventProcessor.HandleClearingHouseEvent(event)
-		}
-	}
 }
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *limitorders.OrderBookAPI {
