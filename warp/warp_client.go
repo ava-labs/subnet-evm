@@ -15,7 +15,7 @@ import (
 var _ WarpClient = (*warpClient)(nil)
 
 type WarpClient interface {
-	GetSignature(ctx context.Context, signatureRequest ids.ID) ([]byte, error)
+	GetSignature(ctx context.Context, messageID ids.ID) ([]byte, error)
 }
 
 // warpClient implementation for interacting with EVM [chain]
