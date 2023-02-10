@@ -227,15 +227,13 @@ type txsBySender map[common.Address]types.Transactions
 func (w *worker) enforcePredicates(rules params.Rules, predicateContext *precompile.PredicateContext, pending txsBySender) txsBySender {
 	result := make(txsBySender, len(pending))
 	for addr, txs := range pending {
-		if invalidIndex, err := core.CheckPredicatesForSenderTxs(rules, predicateContext, txs); err != nil {
-			log.Debug(
-				"Removing transactions from sender of transaction with invalid predicate.",
-				"sender", addr.Hex(), "failedTx", txs[invalidIndex].Hash(),
-			)
-			for i := invalidIndex; i < len(txs); i++ {
-				w.eth.TxPool().RemoveTx(txs[i].Hash())
+		for i, tx := range txs {
+			if err := core.CheckPredicates(rules, predicateContext, tx); err != nil {
+				log.Debug("Transaction predicate failed verification in miner", "sender", addr, "err", err)
+				w.eth.TxPool().RemoveTx(tx.Hash()) // RemoveTx will move all subsequent transctions back to the future queue
+				txs = txs[:i]                      // Cut off any transactions past the failed predicate
+				break
 			}
-			txs = txs[:invalidIndex]
 		}
 		if len(txs) > 0 {
 			result[addr] = txs

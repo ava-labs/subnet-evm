@@ -143,8 +143,10 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 			SnowCtx:            b.vm.ctx,
 			ProposerVMBlockCtx: proposerVMBlockCtx,
 		}
-		if _, err := core.CheckPredicatesForSenderTxs(rules, &predicateCtx, b.ethBlock.Transactions()); err != nil {
-			return fmt.Errorf("predicate transaction verification failed: %w", err)
+		for _, tx := range b.ethBlock.Transactions() {
+			if err := core.CheckPredicates(rules, &predicateCtx, tx); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -166,8 +168,11 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 			SnowCtx:            b.vm.ctx,
 			ProposerVMBlockCtx: proposerVMBlockCtx,
 		}
-		if _, err := core.CheckPredicatesForSenderTxs(rules, &predicateCtx, b.ethBlock.Transactions()); err != nil {
-			return fmt.Errorf("predicate transaction verification failed: %w", err)
+
+		for _, tx := range b.ethBlock.Transactions() {
+			if err := core.CheckPredicates(rules, &predicateCtx, tx); err != nil {
+				return err
+			}
 		}
 	}
 
