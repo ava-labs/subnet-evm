@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/execution"
@@ -21,7 +21,7 @@ import (
 // This function is called:
 // - within genesis setup to configure the starting state for precompiles enabled at genesis,
 // - during block processing to update the state before processing the given block.
-func ConfigurePrecompiles(c *params.ChainConfig, parentTimestamp *big.Int, blockContext execution.BlockContext, statedb vm.StateDB) error {
+func ConfigurePrecompiles(c *params.ChainConfig, parentTimestamp *big.Int, blockContext execution.BlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 	// Note: RegisteredModules returns precompiles in order they are registered.
 	// This is important because we want to configure precompiles in the same order
@@ -45,6 +45,13 @@ func ConfigurePrecompiles(c *params.ChainConfig, parentTimestamp *big.Int, block
 					return fmt.Errorf("could not find module for activating precompile, name: %s", key)
 				}
 				log.Info("Activating new precompile", "name", key, "config", activatingConfig)
+				// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
+				// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
+				statedb.SetNonce(activatingConfig.Address(), 1)
+				// Set the code of the precompile's address to a non-zero length byte slice to ensure that the precompile
+				// can be called from within Solidity contracts. Solidity adds a check before invoking a contract to ensure
+				// that it does not attempt to invoke a non-existent contract.
+				statedb.SetCode(activatingConfig.Address(), []byte{0x1})
 				if err := module.Executor().Configure(c, activatingConfig, statedb, blockContext); err != nil {
 					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", key, err)
 				}
