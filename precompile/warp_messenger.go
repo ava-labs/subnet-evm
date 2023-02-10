@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -49,7 +50,12 @@ var (
 	ErrWrongChainID              = errors.New("wrong chain id")
 	ErrInvalidQuorumDenominator  = errors.New("quorum denominator can not be zero")
 	ErrGreaterQuorumNumerator    = errors.New("quorum numerator can not be greater than quorum denominator")
-	ErrInvalidLogTopics          = errors.New("invalid topics in transaction log")
+	ErrInvalidTopicHash          = func(topic common.Hash) error {
+		return fmt.Errorf("expected hash %s for topic at zero index, but got %s", SubmitMessageEventID, topic.String())
+	}
+	ErrInvalidTopicCount = func(numTopics int) error {
+		return fmt.Errorf("expected three topics but got %d", numTopics)
+	}
 
 	WarpMessengerABI        abi.ABI                     // will be initialized by init function
 	WarpMessengerPrecompile StatefulPrecompiledContract // will be initialized by init function
@@ -263,8 +269,12 @@ func (c *WarpMessengerConfig) onAccept(backend Backend, txHash common.Hash, logI
 		return ErrMissingPrecompileBackend
 	}
 
-	if len(topics) != 3 || topics[0] != common.HexToHash(SubmitMessageEventID) {
-		return ErrInvalidLogTopics
+	if len(topics) != 3 {
+		return ErrInvalidTopicCount(len(topics))
+	}
+
+	if topics[0] != common.HexToHash(SubmitMessageEventID) {
+		return ErrInvalidTopicHash(topics[0])
 	}
 
 	unsignedMessage, err := teleporter.NewUnsignedMessage(

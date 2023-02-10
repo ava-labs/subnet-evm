@@ -6,16 +6,15 @@ package precompile
 import (
 	"context"
 
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
-	"github.com/ava-labs/subnet-evm/plugin/evm/warp"
 )
 
 var _ Backend = (*noopBackend)(nil)
 
 // Backend defines the interface for precompiles to interact with vm backends.
 type Backend interface {
-	warp.WarpBackend
+	// AddMessage adds an unsigned message to the warp backend database
+	AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error
 }
 
 type noopBackend struct{}
@@ -26,8 +25,4 @@ func NewNoopBackend() Backend {
 
 func (n noopBackend) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
 	return nil
-}
-
-func (n noopBackend) GetSignature(ctx context.Context, messageHash ids.ID) ([]byte, error) {
-	return nil, nil
 }
