@@ -288,7 +288,6 @@ func (vm *VM) Initialize(
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	vm.warpDB = prefixdb.New(warpPrefix, vm.db)
-	vm.precompileBackend = vm.warpDB
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -432,6 +431,7 @@ func (vm *VM) Initialize(
 
 	// initialize warp backend
 	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
+	vm.precompileBackend = vm.warpBackend
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err

@@ -304,10 +304,6 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	if cacheConfig == nil {
 		return nil, errCacheConfigNotSpecified
 	}
-	// TODO: This is added to handle the nil backends passed in from test, when warp is initialized we should remove
-	if backend == nil {
-		backend = precompile.NewNoopBackend()
-	}
 	bodyCache, _ := lru.New(bodyCacheLimit)
 	receiptsCache, _ := lru.New(receiptsCacheLimit)
 	blockCache, _ := lru.New(blockCacheLimit)
