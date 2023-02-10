@@ -45,7 +45,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/params"
 	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/registry"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/davecgh/go-spew/spew"
@@ -634,7 +634,7 @@ func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimesta
 		blockTimestamp = new(big.Int).SetUint64(blockTimestampInt)
 	}
 	res := make(precompileConfig.Configs)
-	for _, module := range modules.RegisteredModules() {
+	for _, module := range registry.RegisteredModules() {
 		if config := s.b.ChainConfig().GetActivePrecompileConfig(module.Address(), blockTimestamp); config != nil && !config.IsDisabled() {
 			res[module.Key()] = config
 		}

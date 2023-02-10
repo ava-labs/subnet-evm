@@ -36,8 +36,8 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/registry"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -56,7 +56,7 @@ func IsProhibited(addr common.Address) bool {
 		return true
 	}
 
-	return modules.ReservedAddress(addr)
+	return registry.ReservedAddress(addr)
 }
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -96,8 +96,8 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 	config, ok := evm.chainRules.ActivePrecompiles[addr]
 	if ok {
 		key := config.Key()
-		if module, ok := modules.GetPrecompileModule(key); ok {
-			return module.Executor().Contract(), true
+		if module, ok := registry.GetPrecompileModule(key); ok {
+			return module.Contract(), true
 		}
 	}
 	return nil, false

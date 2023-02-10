@@ -69,11 +69,6 @@ type BlockContext interface {
 	Timestamp() *big.Int
 }
 
-type Execution interface {
-	Configure(chainConfig ChainConfig, precompileConfig precompileConfig.Config, state StateDB, blockContext BlockContext) error
-	Contract() StatefulPrecompiledContract
-}
-
 type Module interface {
 	// Key returns the unique key for the stateful precompile.
 	Key() string
@@ -81,6 +76,8 @@ type Module interface {
 	Address() common.Address
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
-	Executor() Execution
+	Configure(chainConfig ChainConfig, precompileConfig precompileConfig.Config, state StateDB, blockContext BlockContext) error
+	Contract() StatefulPrecompiledContract
+
 	config.Factory
 }

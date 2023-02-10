@@ -2,14 +2,14 @@
 // See the file LICENSE for licensing terms.
 
 // Defines the stateless interface for unmarshalling an arbitrary config of a precompile
-package modules
+package registry
 
 import (
-	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/feemanager"
-	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
-	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
-	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 )
 
 func init() {

@@ -4,10 +4,15 @@
 package nativeminter
 
 import (
+	"fmt"
+	"math/big"
+
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
+
+var _ contract.Module = Module{}
 
 // ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
@@ -30,6 +35,22 @@ func (Module) NewConfig() config.Config {
 	return &ContractNativeMinterConfig{}
 }
 
-func (Module) Executor() contract.Execution {
-	return &Executor{}
+// Configure configures [state] with the desired admins based on [cfg].
+func (Module) Configure(_ contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
+	config, ok := cfg.(*ContractNativeMinterConfig)
+	if !ok {
+		return fmt.Errorf("incorrect config %T: %v", config, config)
+	}
+	for to, amount := range config.InitialMint {
+		if amount != nil {
+			bigIntAmount := (*big.Int)(amount)
+			state.AddBalance(to, bigIntAmount)
+		}
+	}
+
+	return config.AllowListConfig.Configure(state, ContractAddress)
+}
+
+func (Module) Contract() contract.StatefulPrecompiledContract {
+	return ContractNativeMinterPrecompile
 }

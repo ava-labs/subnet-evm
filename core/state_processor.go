@@ -37,7 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/registry"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -198,7 +198,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				module, ok := modules.GetPrecompileModule(key)
+				module, ok := registry.GetPrecompileModule(key)
 				if !ok {
 					return fmt.Errorf("could not find module for activating precompile, name: %s", key)
 				}
@@ -210,7 +210,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 				// can be called from within Solidity contracts. Solidity adds a check before invoking a contract to ensure
 				// that it does not attempt to invoke a non-existent contract.
 				statedb.SetCode(activatingConfig.Address(), []byte{0x1})
-				if err := module.Executor().Configure(c, activatingConfig, statedb, blockContext); err != nil {
+				if err := module.Configure(c, activatingConfig, statedb, blockContext); err != nil {
 					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", key, err)
 				}
 			}
