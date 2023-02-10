@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/warp"
+	"github.com/ava-labs/subnet-evm/warp/handlers/stats"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -24,10 +25,10 @@ type SignatureRequestHandler interface {
 type signatureRequestHandler struct {
 	backend warp.WarpBackend
 	codec   codec.Manager
-	stats   SignatureRequestHandlerStats
+	stats   stats.SignatureRequestHandlerStats
 }
 
-func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats SignatureRequestHandlerStats) SignatureRequestHandler {
+func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) SignatureRequestHandler {
 	return &signatureRequestHandler{
 		backend: backend,
 		codec:   codec,

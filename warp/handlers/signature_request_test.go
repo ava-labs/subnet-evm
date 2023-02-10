@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/warp"
+	"github.com/ava-labs/subnet-evm/warp/handlers/stats"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,12 +38,12 @@ func TestSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 	unknownMessageID := ids.GenerateTestID()
 
-	mockHandlerStats := &MockSignatureRequestHandlerStats{}
+	mockHandlerStats := &stats.MockSignatureRequestHandlerStats{}
 	signatureRequestHandler := NewSignatureRequestHandler(warpBackend, message.Codec, mockHandlerStats)
 
 	tests := map[string]struct {
 		setup       func() (request message.SignatureRequest, expectedResponse []byte)
-		verifyStats func(t *testing.T, stats *MockSignatureRequestHandlerStats)
+		verifyStats func(t *testing.T, stats *stats.MockSignatureRequestHandlerStats)
 	}{
 		"normal": {
 			setup: func() (request message.SignatureRequest, expectedResponse []byte) {
@@ -50,7 +51,7 @@ func TestSignatureHandler(t *testing.T) {
 					MessageID: messageID,
 				}, signature[:]
 			},
-			verifyStats: func(t *testing.T, stats *MockSignatureRequestHandlerStats) {
+			verifyStats: func(t *testing.T, stats *stats.MockSignatureRequestHandlerStats) {
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestHit)
 				require.EqualValues(t, 0, mockHandlerStats.SignatureRequestMiss)
@@ -63,7 +64,7 @@ func TestSignatureHandler(t *testing.T) {
 					MessageID: unknownMessageID,
 				}, nil
 			},
-			verifyStats: func(t *testing.T, stats *MockSignatureRequestHandlerStats) {
+			verifyStats: func(t *testing.T, stats *stats.MockSignatureRequestHandlerStats) {
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestMiss)
 				require.EqualValues(t, 0, mockHandlerStats.SignatureRequestHit)
