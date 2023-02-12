@@ -5,6 +5,7 @@ package limitorders
 
 import (
 	"context"
+	"math/big"
 )
 
 type OrderBookAPI struct {
@@ -17,6 +18,31 @@ func NewOrderBookAPI(database LimitOrderDatabase) *OrderBookAPI {
 	}
 }
 
-func (api *OrderBookAPI) GetOrderBookData(ctx context.Context) InMemoryDatabase {
+type OrderBookResponse struct {
+	Orders []OrderMin
+}
+
+type OrderMin struct {
+	Market
+	Price *big.Int
+	Size  *big.Int
+}
+
+func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryDatabase {
 	return api.db.GetOrderBookData()
+}
+
+func (api *OrderBookAPI) GetOrderBook(ctx context.Context) OrderBookResponse {
+	allOrders := api.db.GetAllOrders()
+	orders := []OrderMin{}
+
+	for _, order := range allOrders {
+		orders = append(orders, OrderMin{
+			Market: order.Market,
+			Price:  order.Price,
+			Size:   order.GetUnFilledBaseAssetQuantity(),
+		})
+	}
+
+	return OrderBookResponse{Orders: orders}
 }
