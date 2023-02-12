@@ -1,7 +1,6 @@
 package limitorders
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/big"
 
