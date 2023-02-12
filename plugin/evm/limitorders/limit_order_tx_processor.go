@@ -46,11 +46,15 @@ type LimitOrderTxProcessor interface {
 }
 
 type limitOrderTxProcessor struct {
-	txPool                   *core.TxPool
-	memoryDb                 LimitOrderDatabase
-	orderBookABI             abi.ABI
-	orderBookContractAddress common.Address
-	backend                  *eth.EthAPIBackend
+	txPool                       *core.TxPool
+	memoryDb                     LimitOrderDatabase
+	orderBookABI                 abi.ABI
+	clearingHouseABI             abi.ABI
+	marginAccountABI             abi.ABI
+	orderBookContractAddress     common.Address
+	clearingHouseContractAddress common.Address
+	marginAccountContractAddress common.Address
+	backend                      *eth.EthAPIBackend
 }
 
 // Order type is copy of Order struct defined in Orderbook contract
@@ -69,12 +73,28 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 		panic(err)
 	}
 
+	jsonBytes, _ = ioutil.ReadFile(clearingHouseContractFileLocation)
+	clearingHouseABI, err := abi.FromSolidityJson(string(jsonBytes))
+	if err != nil {
+		panic(err)
+	}
+
+	jsonBytes, _ = ioutil.ReadFile(marginAccountContractFileLocation)
+	marginAccountABI, err := abi.FromSolidityJson(string(jsonBytes))
+	if err != nil {
+		panic(err)
+	}
+
 	return &limitOrderTxProcessor{
-		txPool:                   txPool,
-		orderBookABI:             orderBookABI,
-		memoryDb:                 memoryDb,
-		orderBookContractAddress: OrderBookContractAddress,
-		backend:                  backend,
+		txPool:                       txPool,
+		orderBookABI:                 orderBookABI,
+		clearingHouseABI:             clearingHouseABI,
+		marginAccountABI:             marginAccountABI,
+		memoryDb:                     memoryDb,
+		orderBookContractAddress:     OrderBookContractAddress,
+		clearingHouseContractAddress: ClearingHouseContractAddress,
+		marginAccountContractAddress: MarginAccountContractAddress,
+		backend:                      backend,
 	}
 }
 
@@ -111,7 +131,7 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 		log.Error("HexToECDSA failed", "err", err)
 		return err
 	}
-	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 500000, big.NewInt(60000000000), data)
+	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 5000000, big.NewInt(60000000000), data)
 	signer := types.NewLondonSigner(lotp.backend.ChainConfig().ChainID)
 	signedTx, err := types.SignTx(tx, signer, key)
 	if err != nil {
