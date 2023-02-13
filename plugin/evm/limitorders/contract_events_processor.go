@@ -176,6 +176,7 @@ func (cep *ContractEventsProcessor) HandleClearingHouseEvent(event *types.Log) {
 		baseAsset := args["baseAsset"].(*big.Int)
 		quoteAsset := args["quoteAsset"].(*big.Int)
 		lastPrice := big.NewInt(0).Div(big.NewInt(0).Mul(quoteAsset, big.NewInt(1e18)), baseAsset)
+		lastPrice.Abs(lastPrice)
 		cep.database.UpdateLastPrice(market, lastPrice)
 
 		openNotional := args["openNotional"].(*big.Int)
