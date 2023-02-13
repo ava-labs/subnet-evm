@@ -338,14 +338,21 @@ func (vm *VM) Initialize(
 		return err
 	}
 
+	// vm.ChainConfig() should be available for wrapping VMs before vm.initializeChain()
+	vm.chainConfig = g.Config
+
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
-	// NetworkID here is different than Avalanche's NetworkID.
-	// Avalanche's NetworkID represents the Avalanche network is running on
-	// like Fuji, Mainnet, Local, etc.
-	// The NetworkId here is kept same as ChainID to be compatible with
-	// Ethereum tooling.
 	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
+	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.ReadLastAccepted]
+	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
+	if err != nil {
+		return err
+	}
+	log.Info("read last accepted",
+		"hash", lastAcceptedHash,
+		"height", lastAcceptedHeight,
+	)
 
 	// Set minimum price for mining and default gas price oracle value to the min
 	// gas price to prevent so transactions and blocks all use the correct fees
@@ -380,7 +387,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
 	vm.ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
 	vm.ethConfig.AllowMissingTries = vm.config.AllowMissingTries
-	vm.ethConfig.SnapshotDelayInit = vm.config.StateSyncEnabled
+	vm.ethConfig.SnapshotDelayInit = vm.stateSyncEnabled(lastAcceptedHeight)
 	vm.ethConfig.SnapshotWait = vm.config.SnapshotWait
 	vm.ethConfig.SnapshotVerify = vm.config.SnapshotVerify
 	vm.ethConfig.HistoricalProofQueryWindow = vm.config.HistoricalProofQueryWindow
@@ -409,7 +416,7 @@ func (vm *VM) Initialize(
 		if vm.config.OfflinePruning {
 			return errFirewoodOfflinePruningUnsupported
 		}
-		if vm.config.StateSyncEnabled {
+		if vm.config.StateSyncEnabled == nil || *vm.config.StateSyncEnabled {
 			return errFirewoodStateSyncUnsupported
 		}
 	}
@@ -435,20 +442,6 @@ func (vm *VM) Initialize(
 		log.Info("Config has not specified any coinbase address. Defaulting to the blackhole address.")
 		vm.ethConfig.Miner.Etherbase = constants.BlackholeAddr
 	}
-
-	vm.chainConfig = g.Config
-
-	// create genesisHash after applying upgradeBytes in case
-	// upgradeBytes modifies genesis.
-	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.readLastAccepted]
-	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
-	if err != nil {
-		return err
-	}
-	log.Info("read last accepted",
-		"hash", lastAcceptedHash,
-		"height", lastAcceptedHeight,
-	)
 
 	vm.networkCodec = message.Codec
 	vm.Network, err = network.NewNetwork(vm.ctx, appSender, vm.networkCodec, vm.config.MaxOutboundActiveRequests, vm.sdkMetrics)
@@ -652,9 +645,10 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 // If state sync is disabled, this function will wipe any ongoing summary from
 // disk to ensure that we do not continue syncing from an invalid snapshot.
 func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
+	stateSyncEnabled := vm.stateSyncEnabled(lastAcceptedHeight)
 	// parse nodeIDs from state sync IDs in vm config
 	var stateSyncIDs []ids.NodeID
-	if vm.config.StateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
+	if stateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
 		nodeIDs := strings.Split(vm.config.StateSyncIDs, ",")
 		stateSyncIDs = make([]ids.NodeID, len(nodeIDs))
 		for i, nodeIDString := range nodeIDs {
@@ -679,7 +673,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 				BlockParser:      vm,
 			},
 		),
-		Enabled:            vm.config.StateSyncEnabled,
+		Enabled:            stateSyncEnabled,
 		SkipResume:         vm.config.StateSyncSkipResume,
 		MinBlocks:          vm.config.StateSyncMinBlocks,
 		RequestSize:        vm.config.StateSyncRequestSize,
@@ -693,7 +687,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
 	// sync using a snapshot that has been modified by the node running normal operations.
-	if !vm.config.StateSyncEnabled {
+	if !stateSyncEnabled {
 		return vm.Client.ClearOngoingSummary()
 	}
 
@@ -1358,6 +1352,16 @@ func (vm *VM) Disconnected(ctx context.Context, nodeID ids.NodeID) error {
 	}
 
 	return vm.Network.Disconnected(ctx, nodeID)
+}
+
+func (vm *VM) stateSyncEnabled(lastAcceptedHeight uint64) bool {
+	if vm.config.StateSyncEnabled != nil {
+		// if the config is set, use that
+		return *vm.config.StateSyncEnabled
+	}
+
+	// enable state sync by default if the chain is empty.
+	return lastAcceptedHeight == 0
 }
 
 func (vm *VM) PutLastAcceptedID(id ids.ID) error {
