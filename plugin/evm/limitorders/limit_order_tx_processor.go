@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"math/big"
+	"os"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core"
@@ -67,19 +68,20 @@ type Order struct {
 }
 
 func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, backend *eth.EthAPIBackend) LimitOrderTxProcessor {
-	jsonBytes, _ := ioutil.ReadFile(orderBookContractFileLocation)
+	prefix := os.Getenv("ARTIFACT_PATH_PREFIX")
+	jsonBytes, _ := ioutil.ReadFile(prefix + orderBookContractFileLocation)
 	orderBookABI, err := abi.FromSolidityJson(string(jsonBytes))
 	if err != nil {
 		panic(err)
 	}
 
-	jsonBytes, _ = ioutil.ReadFile(clearingHouseContractFileLocation)
+	jsonBytes, _ = ioutil.ReadFile(prefix + clearingHouseContractFileLocation)
 	clearingHouseABI, err := abi.FromSolidityJson(string(jsonBytes))
 	if err != nil {
 		panic(err)
 	}
 
-	jsonBytes, _ = ioutil.ReadFile(marginAccountContractFileLocation)
+	jsonBytes, _ = ioutil.ReadFile(prefix + marginAccountContractFileLocation)
 	marginAccountABI, err := abi.FromSolidityJson(string(jsonBytes))
 	if err != nil {
 		panic(err)
