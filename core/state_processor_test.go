@@ -316,7 +316,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 				SubnetEVMTimestamp: big.NewInt(0),
 			},
 			GenesisPrecompiles: params.ChainConfigPrecompiles{
-				txallowlist.ConfigKey: txallowlist.NewTxAllowListConfig(big.NewInt(0), nil, nil),
+				txallowlist.ConfigKey: txallowlist.NewConfig(big.NewInt(0), nil, nil),
 			},
 		}
 		signer     = types.LatestSigner(config)

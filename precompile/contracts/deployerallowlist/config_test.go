@@ -21,7 +21,7 @@ func TestVerifyContractDeployerConfig(t *testing.T) {
 	}{
 		{
 			name:          "invalid allow list config in deployer allowlist",
-			config:        NewContractDeployerAllowListConfig(big.NewInt(3), admins, admins),
+			config:        NewConfig(big.NewInt(3), admins, admins),
 			expectedError: "cannot set address",
 		},
 	}
@@ -50,38 +50,38 @@ func TestEqualContractDeployerAllowListConfig(t *testing.T) {
 	}{
 		{
 			name:     "non-nil config and nil other",
-			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
 			other:    nil,
 			expected: false,
 		},
 		{
 			name:     "different type",
-			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
 			other:    config.NewNoopStatefulPrecompileConfig(),
 			expected: false,
 		},
 		{
 			name:     "different admin",
-			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    NewContractDeployerAllowListConfig(big.NewInt(3), []common.Address{{3}}, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
+			other:    NewConfig(big.NewInt(3), []common.Address{{3}}, enableds),
 			expected: false,
 		},
 		{
 			name:     "different enabled",
-			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    NewContractDeployerAllowListConfig(big.NewInt(3), admins, []common.Address{{3}}),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
+			other:    NewConfig(big.NewInt(3), admins, []common.Address{{3}}),
 			expected: false,
 		},
 		{
 			name:     "different timestamp",
-			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    NewContractDeployerAllowListConfig(big.NewInt(4), admins, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
+			other:    NewConfig(big.NewInt(4), admins, enableds),
 			expected: false,
 		},
 		{
 			name:     "same config",
-			config:   NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    NewContractDeployerAllowListConfig(big.NewInt(3), admins, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
+			other:    NewConfig(big.NewInt(3), admins, enableds),
 			expected: true,
 		},
 	}

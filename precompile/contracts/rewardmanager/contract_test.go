@@ -174,7 +174,7 @@ func TestRewardManagerRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: CurrentRewardAddressGasCost,
-			config: &RewardManagerConfig{
+			config: &Config{
 				InitialRewardConfig: &InitialRewardConfig{
 					RewardAddress: testAddr,
 				},
@@ -194,7 +194,7 @@ func TestRewardManagerRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: AreFeeRecipientsAllowedGasCost,
-			config: &RewardManagerConfig{
+			config: &Config{
 				InitialRewardConfig: &InitialRewardConfig{
 					AllowFeeRecipients: true,
 				},

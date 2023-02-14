@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ config.Config = &RewardManagerConfig{}
+var _ config.Config = &Config{}
 
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
@@ -54,18 +54,18 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 	return nil
 }
 
-// RewardManagerConfig implements the StatefulPrecompileConfig
+// Config implements the StatefulPrecompileConfig
 // interface while adding in the RewardManager specific precompile config.
-type RewardManagerConfig struct {
+type Config struct {
 	allowlist.Config
 	config.Uprade
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
 
-// NewRewardManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // RewardManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial rewards config if specified.
-func NewRewardManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *RewardManagerConfig {
-	return &RewardManagerConfig{
+func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *Config {
+	return &Config{
 		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
@@ -75,10 +75,10 @@ func NewRewardManagerConfig(blockTimestamp *big.Int, admins []common.Address, en
 	}
 }
 
-// NewDisableRewardManagerConfig returns config for a network upgrade at [blockTimestamp]
+// NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables RewardManager.
-func NewDisableRewardManagerConfig(blockTimestamp *big.Int) *RewardManagerConfig {
-	return &RewardManagerConfig{
+func NewDisableConfig(blockTimestamp *big.Int) *Config {
+	return &Config{
 		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
@@ -86,9 +86,9 @@ func NewDisableRewardManagerConfig(blockTimestamp *big.Int) *RewardManagerConfig
 	}
 }
 
-func (RewardManagerConfig) Key() string { return ConfigKey }
+func (Config) Key() string { return ConfigKey }
 
-func (c *RewardManagerConfig) Verify() error {
+func (c *Config) Verify() error {
 	if err := c.Config.Verify(); err != nil {
 		return err
 	}
@@ -99,9 +99,9 @@ func (c *RewardManagerConfig) Verify() error {
 }
 
 // Equal returns true if [cfg] is a [*RewardManagerConfig] and it has been configured identical to [c].
-func (c *RewardManagerConfig) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg config.Config) bool {
 	// typecast before comparison
-	other, ok := (cfg).(*RewardManagerConfig)
+	other, ok := (cfg).(*Config)
 	if !ok {
 		return false
 	}

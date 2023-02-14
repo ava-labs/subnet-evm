@@ -28,16 +28,18 @@ var Module = modules.Module{
 type configuror struct{}
 
 func init() {
-	modules.RegisterModule(Module)
+	if err := modules.RegisterModule(Module); err != nil {
+		panic(err)
+	}
 }
 
 func (*configuror) NewConfig() config.Config {
-	return &FeeManagerConfig{}
+	return &Config{}
 }
 
 // Configure configures [state] with the desired admins based on [configIface].
 func (*configuror) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, blockContext contract.BlockContext) error {
-	config, ok := cfg.(*FeeManagerConfig)
+	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}

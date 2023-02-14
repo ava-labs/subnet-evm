@@ -96,7 +96,7 @@ func TestFeeManagerRun(t *testing.T) {
 			suppliedGas: SetFeeConfigGasCost,
 			readOnly:    false,
 			expectedRes: nil,
-			config: &FeeManagerConfig{
+			config: &Config{
 				InitialFeeConfig: &testFeeConfig,
 			},
 			expectedErr: "cannot be greater than maxBlockGasCost",
@@ -152,7 +152,7 @@ func TestFeeManagerRun(t *testing.T) {
 				return PackGetFeeConfigInput()
 			},
 			suppliedGas: GetFeeConfigGasCost,
-			config: &FeeManagerConfig{
+			config: &Config{
 				InitialFeeConfig: &testFeeConfig,
 			},
 			readOnly: true,

@@ -69,7 +69,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 		},
 		"initial mint funds": {
 			caller: enabledAddr,
-			config: &ContractNativeMinterConfig{
+			config: &Config{
 				InitialMint: map[common.Address]*math.HexOrDecimal256{
 					enabledAddr: math.NewHexOrDecimal256(2),
 				},

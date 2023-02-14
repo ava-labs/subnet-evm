@@ -1549,8 +1549,8 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	config := *params.TestChainConfig
 	// Set all of the required config parameters
 	config.GenesisPrecompiles = params.ChainConfigPrecompiles{
-		deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil),
-		feemanager.ConfigKey:        feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil),
+		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(big.NewInt(0), []common.Address{addr1}, nil),
+		feemanager.ConfigKey:        feemanager.NewConfig(big.NewInt(0), []common.Address{addr1}, nil, nil),
 	}
 	gspec := &Genesis{
 		Config: &config,

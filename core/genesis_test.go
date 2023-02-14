@@ -192,7 +192,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
 				config.GenesisPrecompiles = params.ChainConfigPrecompiles{
-					deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr}, nil),
+					deployerallowlist.ConfigKey: deployerallowlist.NewConfig(big.NewInt(0), []common.Address{addr}, nil),
 				}
 				return &config
 			},
@@ -268,7 +268,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	require.Greater(block.Time(), bc.lastAccepted.Time())
 
 	activatedGenesis := customg
-	contractDeployerConfig := deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(51), nil, nil)
+	contractDeployerConfig := deployerallowlist.NewConfig(big.NewInt(51), nil, nil)
 	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			Config: contractDeployerConfig,
