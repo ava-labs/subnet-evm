@@ -9,7 +9,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/registerer"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -19,7 +19,8 @@ const ConfigKey = "contractNativeMinterConfig"
 
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000001")
 
-var Module = contract.Module{
+var Module = modules.Module{
+	ConfigKey:    ConfigKey,
 	Address:      ContractAddress,
 	Contract:     ContractNativeMinterPrecompile,
 	Configurator: &configuror{},
@@ -28,7 +29,7 @@ var Module = contract.Module{
 type configuror struct{}
 
 func init() {
-	registerer.RegisterModule(Module)
+	modules.RegisterModule(Module)
 }
 
 func (*configuror) NewConfig() config.Config {

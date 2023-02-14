@@ -11,7 +11,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/registerer"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -43,7 +43,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		return errMultipleKeys
 	}
 	for key, value := range raw {
-		module, ok := registerer.GetPrecompileModule(key)
+		module, ok := modules.GetPrecompileModule(key)
 		if !ok {
 			return fmt.Errorf("unknown precompile config: %s", key)
 		}
@@ -167,11 +167,11 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 	configs := make([]config.Config, 0)
 
 	// Get key from address.
-	module, ok := registerer.GetPrecompileModuleByAddress(address)
+	module, ok := modules.GetPrecompileModuleByAddress(address)
 	if !ok {
 		return configs
 	}
-	key := module.NewConfig().Key()
+	key := module.ConfigKey
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
 	if config, ok := c.GenesisPrecompiles[key]; ok {
@@ -198,7 +198,7 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 // Assumes given timestamp is the last accepted block timestamp.
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
-	for _, module := range registerer.RegisteredModules() {
+	for _, module := range modules.RegisteredModules() {
 		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, lastTimestamp); err != nil {
 			return err
 		}
@@ -251,7 +251,7 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 // have been activated through an upgrade.
 func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []config.Config {
 	statefulPrecompileConfigs := make([]config.Config, 0)
-	for _, module := range registerer.RegisteredModules() {
+	for _, module := range modules.RegisteredModules() {
 		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil {
 			statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
 		}

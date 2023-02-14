@@ -35,7 +35,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/registerer"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -596,7 +596,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]config.Config)
-	for _, module := range registerer.RegisteredModules() {
+	for _, module := range modules.RegisteredModules() {
 		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil {
 			rules.ActivePrecompiles[module.Address] = config
 		}

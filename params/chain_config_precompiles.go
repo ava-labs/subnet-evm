@@ -7,18 +7,18 @@ import (
 	"encoding/json"
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	"github.com/ava-labs/subnet-evm/precompile/registerer"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type ChainConfigPrecompiles map[string]config.Config
 
 func (ccp *ChainConfigPrecompiles) GetConfigByAddress(address common.Address) (config.Config, bool) {
-	module, ok := registerer.GetPrecompileModuleByAddress(address)
+	module, ok := modules.GetPrecompileModuleByAddress(address)
 	if !ok {
 		return nil, false
 	}
-	key := module.NewConfig().Key()
+	key := module.ConfigKey
 	config, ok := (*ccp)[key]
 	return config, ok
 }
@@ -33,8 +33,8 @@ func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
 	}
 
 	*ccp = make(ChainConfigPrecompiles)
-	for _, module := range registerer.RegisteredModules() {
-		key := module.NewConfig().Key()
+	for _, module := range modules.RegisteredModules() {
+		key := module.ConfigKey
 		if value, ok := raw[key]; ok {
 			conf := module.NewConfig()
 			err := json.Unmarshal(value, conf)

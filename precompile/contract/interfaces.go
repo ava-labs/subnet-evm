@@ -77,12 +77,3 @@ type Configurator interface {
 		blockContext BlockContext,
 	) error
 }
-
-type Module struct {
-	// Address returns the address where the stateful precompile is accessible.
-	Address common.Address
-	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
-	// this config is enabled.
-	Contract StatefulPrecompiledContract
-	Configurator
-}

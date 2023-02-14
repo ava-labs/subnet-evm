@@ -37,7 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/registerer"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -56,7 +56,7 @@ func IsProhibited(addr common.Address) bool {
 		return true
 	}
 
-	return registerer.ReservedAddress(addr)
+	return modules.ReservedAddress(addr)
 }
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -94,7 +94,7 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 
 	// Otherwise, check the chain rules for the additionally configured precompiles.
 	if _, ok = evm.chainRules.ActivePrecompiles[addr]; ok {
-		module, ok := registerer.GetPrecompileModuleByAddress(addr)
+		module, ok := modules.GetPrecompileModuleByAddress(addr)
 		return module.Contract, ok
 	}
 

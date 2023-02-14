@@ -36,7 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/registerer"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -183,8 +183,8 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 	// Note: RegisteredModules returns precompiles in order they are registered.
 	// This is important because we want to configure precompiles in the same order
 	// so that the state is deterministic.
-	for _, module := range registerer.RegisteredModules() {
-		key := module.NewConfig().Key()
+	for _, module := range modules.RegisteredModules() {
+		key := module.ConfigKey
 		for _, activatingConfig := range c.GetActivatingPrecompileConfigs(module.Address, parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
@@ -197,7 +197,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				module, ok := registerer.GetPrecompileModule(key)
+				module, ok := modules.GetPrecompileModule(key)
 				if !ok {
 					return fmt.Errorf("could not find module for activating precompile, name: %s", key)
 				}

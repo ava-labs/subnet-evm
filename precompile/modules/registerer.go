@@ -1,13 +1,12 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package registerer
+package modules
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -15,7 +14,7 @@ import (
 var (
 	// registeredModules is a list of Module to preserve order
 	// for deterministic iteration
-	registeredModules = make([]contract.Module, 0)
+	registeredModules = make([]Module, 0)
 
 	reservedRanges = []utils.AddressRange{
 		{
@@ -45,15 +44,15 @@ func ReservedAddress(addr common.Address) bool {
 }
 
 // RegisterModule registers a stateful precompile module
-func RegisterModule(stm contract.Module) error {
+func RegisterModule(stm Module) error {
 	address := stm.Address
-	key := stm.NewConfig().Key()
+	key := stm.ConfigKey
 	if !ReservedAddress(address) {
 		return fmt.Errorf("address %s not in a reserved range", address)
 	}
 
 	for _, registeredModule := range registeredModules {
-		if registeredModule.NewConfig().Key() == key {
+		if registeredModule.ConfigKey == key {
 			return fmt.Errorf("name %s already used by a stateful precompile", key)
 		}
 		if registeredModule.Address == address {
@@ -65,29 +64,29 @@ func RegisterModule(stm contract.Module) error {
 	return nil
 }
 
-func GetPrecompileModuleByAddress(address common.Address) (contract.Module, bool) {
+func GetPrecompileModuleByAddress(address common.Address) (Module, bool) {
 	for _, stm := range registeredModules {
 		if stm.Address == address {
 			return stm, true
 		}
 	}
-	return contract.Module{}, false
+	return Module{}, false
 }
 
-func GetPrecompileModule(key string) (contract.Module, bool) {
+func GetPrecompileModule(key string) (Module, bool) {
 	for _, stm := range registeredModules {
-		if stm.NewConfig().Key() == key {
+		if stm.ConfigKey == key {
 			return stm, true
 		}
 	}
-	return contract.Module{}, false
+	return Module{}, false
 }
 
-func RegisteredModules() []contract.Module {
+func RegisteredModules() []Module {
 	return registeredModules
 }
 
-func insertSortedByAddress(data []contract.Module, stm contract.Module) []contract.Module {
+func insertSortedByAddress(data []Module, stm Module) []Module {
 	// sort by address to ensure deterministic iteration
 	// start at the end of the list and work backwards
 	// this is faster than sorting the list every time
@@ -102,7 +101,7 @@ func insertSortedByAddress(data []contract.Module, stm contract.Module) []contra
 	return insertAt(data, index, stm)
 }
 
-func insertAt(data []contract.Module, index int, stm contract.Module) []contract.Module {
+func insertAt(data []Module, index int, stm Module) []Module {
 	// if the index is out of bounds, append the module
 	if index >= len(data) {
 		data = append(data, stm)
