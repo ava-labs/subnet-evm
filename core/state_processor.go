@@ -180,7 +180,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 // - during block producing to apply the precompile upgrades before producing the block.
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
-	// Note: RegisteredModules returns precompiles in order they are registered.
+	// Note: RegisteredModules returns precompiles sorted by module addresses.
 	// This is important because we want to configure precompiles in the same order
 	// so that the state is deterministic.
 	for _, module := range modules.RegisteredModules() {

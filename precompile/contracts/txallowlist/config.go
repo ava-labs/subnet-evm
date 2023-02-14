@@ -16,19 +16,19 @@ var _ config.Config = &TxAllowListConfig{}
 // TxAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the TxAllowList specific precompile address.
 type TxAllowListConfig struct {
-	allowlist.AllowListConfig
-	config.UpgradeableConfig
+	allowlist.Config
+	config.Uprade
 }
 
 // NewTxAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // TxAllowList with the given [admins] and [enableds] as members of the allowlist.
 func NewTxAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *TxAllowListConfig {
 	return &TxAllowListConfig{
-		AllowListConfig: allowlist.AllowListConfig{
+		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig: config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
+		Uprade: config.Uprade{BlockTimestamp: blockTimestamp},
 	}
 }
 
@@ -36,7 +36,7 @@ func NewTxAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enab
 // that disables TxAllowList.
 func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
 	return &TxAllowListConfig{
-		UpgradeableConfig: config.UpgradeableConfig{
+		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -52,5 +52,5 @@ func (c *TxAllowListConfig) Equal(cfg config.Config) bool {
 	if !ok {
 		return false
 	}
-	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	return c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 }

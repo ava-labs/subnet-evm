@@ -19,8 +19,8 @@ var _ config.Config = &ContractNativeMinterConfig{}
 // ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the ContractNativeMinter specific precompile address.
 type ContractNativeMinterConfig struct {
-	allowlist.AllowListConfig
-	config.UpgradeableConfig
+	allowlist.Config
+	config.Uprade
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
 }
 
@@ -28,12 +28,12 @@ type ContractNativeMinterConfig struct {
 // ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
 func NewContractNativeMinterConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *ContractNativeMinterConfig {
 	return &ContractNativeMinterConfig{
-		AllowListConfig: allowlist.AllowListConfig{
+		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig: config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
-		InitialMint:       initialMint,
+		Uprade:      config.Uprade{BlockTimestamp: blockTimestamp},
+		InitialMint: initialMint,
 	}
 }
 
@@ -41,7 +41,7 @@ func NewContractNativeMinterConfig(blockTimestamp *big.Int, admins []common.Addr
 // that disables ContractNativeMinter.
 func NewDisableContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNativeMinterConfig {
 	return &ContractNativeMinterConfig{
-		UpgradeableConfig: config.UpgradeableConfig{
+		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -56,7 +56,7 @@ func (c *ContractNativeMinterConfig) Equal(cfg config.Config) bool {
 	if !ok {
 		return false
 	}
-	eq := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	eq := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 	if !eq {
 		return false
 	}
@@ -81,7 +81,7 @@ func (c *ContractNativeMinterConfig) Equal(cfg config.Config) bool {
 }
 
 func (c *ContractNativeMinterConfig) Verify() error {
-	if err := c.AllowListConfig.Verify(); err != nil {
+	if err := c.Config.Verify(); err != nil {
 		return err
 	}
 	// ensure that all of the initial mint values in the map are non-nil positive values

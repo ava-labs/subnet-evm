@@ -42,7 +42,7 @@ func (*configuror) Configure(chainConfig contract.ChainConfig, cfg config.Config
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
 	// TODO: should we move this to the end and return it for consistency with other precompiles?
-	if err := config.AllowListConfig.Configure(state, ContractAddress); err != nil {
+	if err := config.Config.Configure(state, ContractAddress); err != nil {
 		return err
 	}
 	// configure the RewardManager with the given initial configuration

@@ -41,5 +41,5 @@ func (*configuror) Configure(chainConfig contract.ChainConfig, cfg config.Config
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
-	return config.AllowListConfig.Configure(state, ContractAddress)
+	return config.Config.Configure(state, ContractAddress)
 }

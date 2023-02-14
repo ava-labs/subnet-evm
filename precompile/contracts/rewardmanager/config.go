@@ -57,8 +57,8 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 // RewardManagerConfig implements the StatefulPrecompileConfig
 // interface while adding in the RewardManager specific precompile config.
 type RewardManagerConfig struct {
-	allowlist.AllowListConfig
-	config.UpgradeableConfig
+	allowlist.Config
+	config.Uprade
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
 
@@ -66,11 +66,11 @@ type RewardManagerConfig struct {
 // RewardManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial rewards config if specified.
 func NewRewardManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *RewardManagerConfig {
 	return &RewardManagerConfig{
-		AllowListConfig: allowlist.AllowListConfig{
+		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig:   config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
+		Uprade:              config.Uprade{BlockTimestamp: blockTimestamp},
 		InitialRewardConfig: initialConfig,
 	}
 }
@@ -79,7 +79,7 @@ func NewRewardManagerConfig(blockTimestamp *big.Int, admins []common.Address, en
 // that disables RewardManager.
 func NewDisableRewardManagerConfig(blockTimestamp *big.Int) *RewardManagerConfig {
 	return &RewardManagerConfig{
-		UpgradeableConfig: config.UpgradeableConfig{
+		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -89,7 +89,7 @@ func NewDisableRewardManagerConfig(blockTimestamp *big.Int) *RewardManagerConfig
 func (RewardManagerConfig) Key() string { return ConfigKey }
 
 func (c *RewardManagerConfig) Verify() error {
-	if err := c.AllowListConfig.Verify(); err != nil {
+	if err := c.Config.Verify(); err != nil {
 		return err
 	}
 	if c.InitialRewardConfig != nil {
@@ -107,7 +107,7 @@ func (c *RewardManagerConfig) Equal(cfg config.Config) bool {
 	}
 	// modify this boolean accordingly with your custom RewardManagerConfig, to check if [other] and the current [c] are equal
 	// if RewardManagerConfig contains only UpgradeableConfig and precompile.AllowListConfig you can skip modifying it.
-	equals := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	equals := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 	if !equals {
 		return false
 	}

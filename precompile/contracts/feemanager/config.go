@@ -17,8 +17,8 @@ var _ config.Config = &FeeManagerConfig{}
 // FeeManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the FeeManager specific precompile address.
 type FeeManagerConfig struct {
-	allowlist.AllowListConfig // Config for the fee config manager allow list
-	config.UpgradeableConfig
+	allowlist.Config // Config for the fee config manager allow list
+	config.Uprade
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
 
@@ -26,12 +26,12 @@ type FeeManagerConfig struct {
 // FeeManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
 func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeManagerConfig {
 	return &FeeManagerConfig{
-		AllowListConfig: allowlist.AllowListConfig{
+		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig: config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
-		InitialFeeConfig:  initialConfig,
+		Uprade:           config.Uprade{BlockTimestamp: blockTimestamp},
+		InitialFeeConfig: initialConfig,
 	}
 }
 
@@ -39,7 +39,7 @@ func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enabl
 // that disables FeeManager.
 func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
 	return &FeeManagerConfig{
-		UpgradeableConfig: config.UpgradeableConfig{
+		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -55,7 +55,7 @@ func (c *FeeManagerConfig) Equal(cfg config.Config) bool {
 	if !ok {
 		return false
 	}
-	eq := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	eq := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 	if !eq {
 		return false
 	}
@@ -68,7 +68,7 @@ func (c *FeeManagerConfig) Equal(cfg config.Config) bool {
 }
 
 func (c *FeeManagerConfig) Verify() error {
-	if err := c.AllowListConfig.Verify(); err != nil {
+	if err := c.Config.Verify(); err != nil {
 		return err
 	}
 	if c.InitialFeeConfig == nil {
