@@ -34,15 +34,9 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
-	"github.com/ava-labs/subnet-evm/precompile/registry"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
-
-func init() {
-	// We need to explicitly register the precompiles here.
-	_ = registry.RegisterPrecompileModules()
-}
 
 func TestCheckCompatible(t *testing.T) {
 	type test struct {

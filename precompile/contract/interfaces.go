@@ -68,13 +68,21 @@ type BlockContext interface {
 	Timestamp() *big.Int
 }
 
-type Module interface {
+type Configurator interface {
+	NewConfig() config.Config
+	Configure(
+		chainConfig ChainConfig,
+		precompileConfig config.Config,
+		state StateDB,
+		blockContext BlockContext,
+	) error
+}
+
+type Module struct {
 	// Address returns the address where the stateful precompile is accessible.
-	Address() common.Address
+	Address common.Address
 	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
 	// this config is enabled.
-	Configure(chainConfig ChainConfig, precompileConfig config.Config, state StateDB, blockContext BlockContext) error
-	Contract() StatefulPrecompiledContract
-
-	config.Factory
+	Contract StatefulPrecompiledContract
+	Configurator
 }

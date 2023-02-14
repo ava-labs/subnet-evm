@@ -597,8 +597,8 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]config.Config)
 	for _, module := range registerer.RegisteredModules() {
-		if config := c.GetActivePrecompileConfig(module.Address(), blockTimestamp); config != nil {
-			rules.ActivePrecompiles[module.Address()] = config
+		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil {
+			rules.ActivePrecompiles[module.Address] = config
 		}
 	}
 

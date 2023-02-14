@@ -95,7 +95,7 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 	// Otherwise, check the chain rules for the additionally configured precompiles.
 	if _, ok = evm.chainRules.ActivePrecompiles[addr]; ok {
 		module, ok := registerer.GetPrecompileModuleByAddress(addr)
-		return module.Contract(), ok
+		return module.Contract, ok
 	}
 
 	return nil, false

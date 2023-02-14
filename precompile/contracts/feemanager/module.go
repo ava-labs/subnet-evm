@@ -8,10 +8,9 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/registerer"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-var _ contract.Module = &Module{}
 
 // ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
@@ -19,19 +18,24 @@ const ConfigKey = "feeManagerConfig"
 
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000003")
 
-type Module struct{}
-
-// Address returns the address of the fee manager.
-func (Module) Address() common.Address {
-	return ContractAddress
+var Module = contract.Module{
+	Address:      ContractAddress,
+	Contract:     FeeManagerPrecompile,
+	Configurator: &configuror{},
 }
 
-func (Module) NewConfig() config.Config {
+type configuror struct{}
+
+func init() {
+	registerer.RegisterModule(Module)
+}
+
+func (*configuror) NewConfig() config.Config {
 	return &FeeManagerConfig{}
 }
 
 // Configure configures [state] with the desired admins based on [configIface].
-func (Module) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, blockContext contract.BlockContext) error {
+func (*configuror) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, blockContext contract.BlockContext) error {
 	config, ok := cfg.(*FeeManagerConfig)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
@@ -49,8 +53,4 @@ func (Module) Configure(chainConfig contract.ChainConfig, cfg config.Config, sta
 		}
 	}
 	return config.AllowListConfig.Configure(state, ContractAddress)
-}
-
-func (Module) Contract() contract.StatefulPrecompiledContract {
-	return FeeManagerPrecompile
 }

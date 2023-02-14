@@ -2175,7 +2175,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	}
 	role = deployerallowlist.GetContractDeployerAllowListStatus(blkState, testEthAddrs[0])
 	if role != allowlist.AdminRole {
-		t.Fatalf("Expected allow list status to be set to Admin: %s, but found: %s", allowlist.AdminRole, role)
+		t.Fatalf("Expected allow list status to be set role %s, but found: %s", allowlist.AdminRole, role)
 	}
 }
 
@@ -2420,11 +2420,11 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	// Check that address 0 is whitelisted and address 1 is not
 	role := feemanager.GetFeeManagerStatus(genesisState, testEthAddrs[0])
 	if role != allowlist.AdminRole {
-		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", feemanager.ContractAddress, role)
+		t.Fatalf("Expected fee manager list status to be set to admin: %s, but found: %s", allowlist.AdminRole, role)
 	}
 	role = feemanager.GetFeeManagerStatus(genesisState, testEthAddrs[1])
 	if role != allowlist.NoRole {
-		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", feemanager.ContractAddress, role)
+		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", allowlist.AdminRole, role)
 	}
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(vm.blockChain.Genesis().Header())

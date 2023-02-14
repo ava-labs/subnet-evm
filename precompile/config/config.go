@@ -8,10 +8,6 @@ import (
 	"math/big"
 )
 
-type Factory interface {
-	NewConfig() Config
-}
-
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 // be enabled via a network upgrade.
 type Config interface {

@@ -253,7 +253,7 @@ func TestFeeManagerRun(t *testing.T) {
 			blockContext := contract.NewMockBlockContext(testBlockNumber, 0)
 			accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 			if test.config != nil {
-				Module{}.Configure(nil, test.config, state, blockContext)
+				Module.Configure(nil, test.config, state, blockContext)
 			}
 			ret, remainingGas, err := FeeManagerPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
 			if len(test.expectedErr) != 0 {

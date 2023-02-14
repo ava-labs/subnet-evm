@@ -199,7 +199,7 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
 	for _, module := range registerer.RegisteredModules() {
-		if err := c.checkPrecompileCompatible(module.Address(), precompileUpgrades, lastTimestamp); err != nil {
+		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, lastTimestamp); err != nil {
 			return err
 		}
 	}
@@ -252,7 +252,7 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []config.Config {
 	statefulPrecompileConfigs := make([]config.Config, 0)
 	for _, module := range registerer.RegisteredModules() {
-		if config := c.GetActivePrecompileConfig(module.Address(), blockTimestamp); config != nil {
+		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil {
 			statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
 		}
 	}
