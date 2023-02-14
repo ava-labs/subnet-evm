@@ -647,19 +647,7 @@ func (vm *VM) Shutdown(context.Context) error {
 
 // buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
-	// Hourly Funding Payments
-	if vm.limitOrderProcesser.IsFundingPaymentTime(vm.miner.GetLastBlockTime()) {
-		// just execute the funding payment and skip running the matching engine
-		err := vm.limitOrderProcesser.ExecuteFundingPayment()
-		if err != nil {
-			log.Error("Funding payment job failed", "err", err)
-		}
-	} else {
-		// Place reduce position orders for accounts to be liquidated
-		// Run Matching Engine
-		vm.limitOrderProcesser.RunLiquidationsAndMatching()
-	}
-
+	vm.limitOrderProcesser.RunBuildBlockPipeline(vm.miner.GetLastBlockTime())
 	// Resume block building (untouched subnet-EVM code)
 	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()
