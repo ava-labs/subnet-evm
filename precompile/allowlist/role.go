@@ -47,3 +47,17 @@ func (s Role) IsEnabled() bool {
 		return false
 	}
 }
+
+// String returns a string representation of [s].
+func (s Role) String() string {
+	switch s {
+	case NoRole:
+		return "NoRole"
+	case EnabledRole:
+		return "EnabledRole"
+	case AdminRole:
+		return "AdminRole"
+	default:
+		return "UnknownRole"
+	}
+}

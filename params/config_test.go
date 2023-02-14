@@ -32,8 +32,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/precompile/nativeminter"
-	"github.com/ava-labs/subnet-evm/precompile/rewardmanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -146,7 +146,7 @@ func TestCheckCompatible(t *testing.T) {
 func TestConfigUnmarshalJSON(t *testing.T) {
 	require := require.New(t)
 
-	testRewardManagerConfig := rewardmanager.NewRewardManagerConfig(
+	testRewardManagerConfig := rewardmanager.NewConfig(
 		big.NewInt(1671542573),
 		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
 		nil,
@@ -154,7 +154,7 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 			AllowFeeRecipients: true,
 		})
 
-	testContractNativeMinterConfig := nativeminter.NewContractNativeMinterConfig(big.NewInt(0),
+	testContractNativeMinterConfig := nativeminter.NewConfig(big.NewInt(0),
 		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
 		nil,
 		nil,

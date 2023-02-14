@@ -6,19 +6,19 @@ package allowlist
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// AllowListConfig specifies the initial set of allow list admins.
-type AllowListConfig struct {
+// Config specifies the initial set of allow list admins.
+type Config struct {
 	AdminAddresses   []common.Address `json:"adminAddresses,omitempty"`
 	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
 }
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
-func (c *AllowListConfig) Configure(state precompile.StateDB, precompileAddr common.Address) error {
+func (c *Config) Configure(state contract.StateDB, precompileAddr common.Address) error {
 	for _, enabledAddr := range c.EnabledAddresses {
 		SetAllowListRole(state, precompileAddr, enabledAddr, EnabledRole)
 	}
@@ -29,7 +29,7 @@ func (c *AllowListConfig) Configure(state precompile.StateDB, precompileAddr com
 }
 
 // Equal returns true iff [other] has the same admins in the same order in its allow list.
-func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
+func (c *Config) Equal(other *Config) bool {
 	if other == nil {
 		return false
 	}
@@ -54,7 +54,7 @@ func areEqualAddressLists(current []common.Address, other []common.Address) bool
 }
 
 // Verify returns an error if there is an overlapping address between admin and enabled roles
-func (c *AllowListConfig) Verify() error {
+func (c *Config) Verify() error {
 	// return early if either list is empty
 	if len(c.EnabledAddresses) == 0 || len(c.AdminAddresses) == 0 {
 		return nil

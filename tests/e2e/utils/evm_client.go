@@ -15,7 +15,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 
 	"github.com/ethereum/go-ethereum/common"
 )

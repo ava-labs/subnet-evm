@@ -40,7 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -435,7 +435,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	// create a chain config with fee manager enabled at genesis with [addr] as the admin
 	chainConfig := *params.TestChainConfig
 	chainConfig.GenesisPrecompiles = params.ChainConfigPrecompiles{
-		feemanager.ConfigKey: feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr}, nil, nil),
+		feemanager.ConfigKey: feemanager.NewConfig(big.NewInt(0), []common.Address{addr}, nil, nil),
 	}
 
 	// create a fee config with higher MinBaseFee and prepare it for inclusion in a tx

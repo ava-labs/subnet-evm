@@ -6,10 +6,22 @@ package params
 import (
 	"encoding/json"
 
-	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-type ChainConfigPrecompiles map[string]precompile.StatefulPrecompileConfig
+type ChainConfigPrecompiles map[string]config.Config
+
+func (ccp *ChainConfigPrecompiles) GetConfigByAddress(address common.Address) (config.Config, bool) {
+	module, ok := modules.GetPrecompileModuleByAddress(address)
+	if !ok {
+		return nil, false
+	}
+	key := module.ConfigKey
+	config, ok := (*ccp)[key]
+	return config, ok
+}
 
 // UnmarshalJSON parses the JSON-encoded data into the ChainConfigPrecompiles.
 // ChainConfigPrecompiles is a map of precompile module keys to their
@@ -21,8 +33,8 @@ func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
 	}
 
 	*ccp = make(ChainConfigPrecompiles)
-	for _, module := range precompile.RegisteredModules() {
-		key := module.Key()
+	for _, module := range modules.RegisteredModules() {
+		key := module.ConfigKey
 		if value, ok := raw[key]; ok {
 			conf := module.NewConfig()
 			err := json.Unmarshal(value, conf)
