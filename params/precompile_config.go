@@ -273,10 +273,10 @@ func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContex
 	// so that the state is deterministic.
 	for _, module := range precompile.RegisteredModules() {
 		key := module.Key()
-		for _, config := range c.getActivatingPrecompileConfigs(module.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
+		for _, precompileConfig := range c.getActivatingPrecompileConfigs(module.Address(), parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
-			if config.IsDisabled() {
+			if precompileConfig.IsDisabled() {
 				log.Info("Disabling precompile", "name", key)
 				statedb.Suicide(module.Address())
 				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
@@ -285,9 +285,16 @@ func (c *ChainConfig) ConfigurePrecompiles(parentTimestamp *big.Int, blockContex
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				log.Info("Activating new precompile", "name", key, "config", config)
-				if err := precompile.Configure(c, blockContext, config, statedb); err != nil {
-					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", key, err)
+				log.Info("Activating new precompile", "name", key, "config", precompileConfig)
+				// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
+				// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
+				statedb.SetNonce(precompileConfig.Address(), 1)
+				// Set the code of the precompile's address to a non-zero length byte slice to ensure that the precompile
+				// can be called from within Solidity contracts. Solidity adds a check before invoking a contract to ensure
+				// that it does not attempt to invoke a non-existent contract.
+				statedb.SetCode(precompileConfig.Address(), []byte{0x1})
+				if err := precompileConfig.Configure(c, statedb, blockContext); err != nil {
+					return fmt.Errorf("could not configure precompile, key: %s, reason: %w", key, err)
 				}
 			}
 		}
