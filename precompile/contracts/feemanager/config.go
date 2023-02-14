@@ -12,52 +12,50 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ config.Config = &FeeManagerConfig{}
+var _ config.Config = &Config{}
 
-// FeeManagerConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
+// Config wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the FeeManager specific precompile address.
-type FeeManagerConfig struct {
-	allowlist.AllowListConfig // Config for the fee config manager allow list
-	config.UpgradeableConfig
+type Config struct {
+	allowlist.Config // Config for the fee config manager allow list
+	config.Uprade
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
 
-// NewFeeManagerConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // FeeManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
-func NewFeeManagerConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *FeeManagerConfig {
-	return &FeeManagerConfig{
-		AllowListConfig: allowlist.AllowListConfig{
+func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *Config {
+	return &Config{
+		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig: config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
-		InitialFeeConfig:  initialConfig,
+		Uprade:           config.Uprade{BlockTimestamp: blockTimestamp},
+		InitialFeeConfig: initialConfig,
 	}
 }
 
-// NewDisableFeeManagerConfig returns config for a network upgrade at [blockTimestamp]
+// NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables FeeManager.
-func NewDisableFeeManagerConfig(blockTimestamp *big.Int) *FeeManagerConfig {
-	return &FeeManagerConfig{
-		UpgradeableConfig: config.UpgradeableConfig{
+func NewDisableConfig(blockTimestamp *big.Int) *Config {
+	return &Config{
+		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
 	}
 }
 
-func (FeeManagerConfig) Key() string { return ConfigKey }
-
-func (FeeManagerConfig) Address() common.Address { return ContractAddress }
+func (Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*FeeManagerConfig] and it has been configured identical to [c].
-func (c *FeeManagerConfig) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg config.Config) bool {
 	// typecast before comparison
-	other, ok := (cfg).(*FeeManagerConfig)
+	other, ok := (cfg).(*Config)
 	if !ok {
 		return false
 	}
-	eq := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	eq := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 	if !eq {
 		return false
 	}
@@ -69,8 +67,8 @@ func (c *FeeManagerConfig) Equal(cfg config.Config) bool {
 	return c.InitialFeeConfig.Equal(other.InitialFeeConfig)
 }
 
-func (c *FeeManagerConfig) Verify() error {
-	if err := c.AllowListConfig.Verify(); err != nil {
+func (c *Config) Verify() error {
+	if err := c.Config.Verify(); err != nil {
 		return err
 	}
 	if c.InitialFeeConfig == nil {

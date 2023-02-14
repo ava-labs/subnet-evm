@@ -22,22 +22,22 @@ func TestVerifyTxAllowlistConfig(t *testing.T) {
 	}{
 		{
 			name:          "invalid allow list config in tx allowlist",
-			config:        NewTxAllowListConfig(big.NewInt(3), admins, admins),
+			config:        NewConfig(big.NewInt(3), admins, admins),
 			expectedError: "cannot set address",
 		},
 		{
 			name:          "nil member allow list config in tx allowlist",
-			config:        NewTxAllowListConfig(big.NewInt(3), nil, nil),
+			config:        NewConfig(big.NewInt(3), nil, nil),
 			expectedError: "",
 		},
 		{
 			name:          "empty member allow list config in tx allowlist",
-			config:        NewTxAllowListConfig(big.NewInt(3), []common.Address{}, []common.Address{}),
+			config:        NewConfig(big.NewInt(3), []common.Address{}, []common.Address{}),
 			expectedError: "",
 		},
 		{
 			name:          "valid allow list config in tx allowlist",
-			config:        NewTxAllowListConfig(big.NewInt(3), admins, enableds),
+			config:        NewConfig(big.NewInt(3), admins, enableds),
 			expectedError: "",
 		},
 	}
@@ -66,32 +66,32 @@ func TestEqualTxAllowListConfig(t *testing.T) {
 	}{
 		{
 			name:     "non-nil config and nil other",
-			config:   NewTxAllowListConfig(big.NewInt(3), admins, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
 			other:    nil,
 			expected: false,
 		},
 		{
 			name:     "different admin",
-			config:   NewTxAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    NewTxAllowListConfig(big.NewInt(3), []common.Address{{3}}, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
+			other:    NewConfig(big.NewInt(3), []common.Address{{3}}, enableds),
 			expected: false,
 		},
 		{
 			name:     "different enabled",
-			config:   NewTxAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    NewTxAllowListConfig(big.NewInt(3), admins, []common.Address{{3}}),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
+			other:    NewConfig(big.NewInt(3), admins, []common.Address{{3}}),
 			expected: false,
 		},
 		{
 			name:     "different timestamp",
-			config:   NewTxAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    NewTxAllowListConfig(big.NewInt(4), admins, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
+			other:    NewConfig(big.NewInt(4), admins, enableds),
 			expected: false,
 		},
 		{
 			name:     "same config",
-			config:   NewTxAllowListConfig(big.NewInt(3), admins, enableds),
-			other:    NewTxAllowListConfig(big.NewInt(3), admins, enableds),
+			config:   NewConfig(big.NewInt(3), admins, enableds),
+			other:    NewConfig(big.NewInt(3), admins, enableds),
 			expected: true,
 		},
 	}

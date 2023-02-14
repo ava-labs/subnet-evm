@@ -14,51 +14,49 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
-var _ config.Config = &ContractNativeMinterConfig{}
+var _ config.Config = &Config{}
 
-// ContractNativeMinterConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
+// Config wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the ContractNativeMinter specific precompile address.
-type ContractNativeMinterConfig struct {
-	allowlist.AllowListConfig
-	config.UpgradeableConfig
+type Config struct {
+	allowlist.Config
+	config.Uprade
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
 }
 
-// NewContractNativeMinterConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
-func NewContractNativeMinterConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *ContractNativeMinterConfig {
-	return &ContractNativeMinterConfig{
-		AllowListConfig: allowlist.AllowListConfig{
+func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *Config {
+	return &Config{
+		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig: config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
-		InitialMint:       initialMint,
+		Uprade:      config.Uprade{BlockTimestamp: blockTimestamp},
+		InitialMint: initialMint,
 	}
 }
 
-// NewDisableContractNativeMinterConfig returns config for a network upgrade at [blockTimestamp]
+// NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables ContractNativeMinter.
-func NewDisableContractNativeMinterConfig(blockTimestamp *big.Int) *ContractNativeMinterConfig {
-	return &ContractNativeMinterConfig{
-		UpgradeableConfig: config.UpgradeableConfig{
+func NewDisableConfig(blockTimestamp *big.Int) *Config {
+	return &Config{
+		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
 	}
 }
-func (ContractNativeMinterConfig) Key() string { return ConfigKey }
-
-func (ContractNativeMinterConfig) Address() common.Address { return ContractAddress }
+func (Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
-func (c *ContractNativeMinterConfig) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg config.Config) bool {
 	// typecast before comparison
-	other, ok := (cfg).(*ContractNativeMinterConfig)
+	other, ok := (cfg).(*Config)
 	if !ok {
 		return false
 	}
-	eq := c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	eq := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 	if !eq {
 		return false
 	}
@@ -82,8 +80,8 @@ func (c *ContractNativeMinterConfig) Equal(cfg config.Config) bool {
 	return true
 }
 
-func (c *ContractNativeMinterConfig) Verify() error {
-	if err := c.AllowListConfig.Verify(); err != nil {
+func (c *Config) Verify() error {
+	if err := c.Config.Verify(); err != nil {
 		return err
 	}
 	// ensure that all of the initial mint values in the map are non-nil positive values

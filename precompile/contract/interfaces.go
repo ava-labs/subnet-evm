@@ -10,7 +10,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/config"
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -69,15 +68,12 @@ type BlockContext interface {
 	Timestamp() *big.Int
 }
 
-type Module interface {
-	// Key returns the unique key for the stateful precompile.
-	Key() string
-	// Address returns the address where the stateful precompile is accessible.
-	Address() common.Address
-	// Contract returns a thread-safe singleton that can be used as the StatefulPrecompiledContract when
-	// this config is enabled.
-	Configure(chainConfig ChainConfig, precompileConfig precompileConfig.Config, state StateDB, blockContext BlockContext) error
-	Contract() StatefulPrecompiledContract
-
-	config.Factory
+type Configurator interface {
+	NewConfig() config.Config
+	Configure(
+		chainConfig ChainConfig,
+		precompileConfig config.Config,
+		state StateDB,
+		blockContext BlockContext,
+	) error
 }

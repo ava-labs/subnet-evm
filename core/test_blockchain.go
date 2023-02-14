@@ -17,7 +17,6 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ethereum/go-ethereum/common"
@@ -1549,9 +1548,9 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	config := *params.TestChainConfig
 	// Set all of the required config parameters
-	config.GenesisPrecompiles = precompileConfig.Configs{
-		deployerallowlist.ConfigKey: deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil),
-		feemanager.ConfigKey:        feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil),
+	config.GenesisPrecompiles = params.ChainConfigPrecompiles{
+		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(big.NewInt(0), []common.Address{addr1}, nil),
+		feemanager.ConfigKey:        feemanager.NewConfig(big.NewInt(0), []common.Address{addr1}, nil, nil),
 	}
 	gspec := &Genesis{
 		Config: &config,

@@ -11,48 +11,46 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ config.Config = &TxAllowListConfig{}
+var _ config.Config = &Config{}
 
-// TxAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
+// Config wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the TxAllowList specific precompile address.
-type TxAllowListConfig struct {
-	allowlist.AllowListConfig
-	config.UpgradeableConfig
+type Config struct {
+	allowlist.Config
+	config.Uprade
 }
 
-// NewTxAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // TxAllowList with the given [admins] and [enableds] as members of the allowlist.
-func NewTxAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *TxAllowListConfig {
-	return &TxAllowListConfig{
-		AllowListConfig: allowlist.AllowListConfig{
+func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *Config {
+	return &Config{
+		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig: config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
+		Uprade: config.Uprade{BlockTimestamp: blockTimestamp},
 	}
 }
 
-// NewDisableTxAllowListConfig returns config for a network upgrade at [blockTimestamp]
+// NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables TxAllowList.
-func NewDisableTxAllowListConfig(blockTimestamp *big.Int) *TxAllowListConfig {
-	return &TxAllowListConfig{
-		UpgradeableConfig: config.UpgradeableConfig{
+func NewDisableConfig(blockTimestamp *big.Int) *Config {
+	return &Config{
+		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
 	}
 }
 
-func (_ *TxAllowListConfig) Address() common.Address { return ContractAddress }
-
-func (c *TxAllowListConfig) Key() string { return ConfigKey }
+func (c *Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*TxAllowListConfig] and it has been configured identical to [c].
-func (c *TxAllowListConfig) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg config.Config) bool {
 	// typecast before comparison
-	other, ok := (cfg).(*TxAllowListConfig)
+	other, ok := (cfg).(*Config)
 	if !ok {
 		return false
 	}
-	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	return c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 }

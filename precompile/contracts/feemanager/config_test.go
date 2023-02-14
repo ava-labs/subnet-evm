@@ -35,12 +35,12 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 	}{
 		{
 			name:          "invalid allow list config in fee manager allowlist",
-			config:        NewFeeManagerConfig(big.NewInt(3), admins, admins, nil),
+			config:        NewConfig(big.NewInt(3), admins, admins, nil),
 			expectedError: "cannot set address",
 		},
 		{
 			name: "invalid initial fee manager config",
-			config: NewFeeManagerConfig(big.NewInt(3), admins, nil,
+			config: NewConfig(big.NewInt(3), admins, nil,
 				&commontype.FeeConfig{
 					GasLimit: big.NewInt(0),
 				}),
@@ -72,38 +72,38 @@ func TestEqualFeeManagerConfig(t *testing.T) {
 	}{
 		{
 			name:     "non-nil config and nil other",
-			config:   NewFeeManagerConfig(big.NewInt(3), admins, enableds, nil),
+			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
 			other:    nil,
 			expected: false,
 		},
 		{
 			name:     "different type",
-			config:   NewFeeManagerConfig(big.NewInt(3), admins, enableds, nil),
+			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
 			other:    config.NewNoopStatefulPrecompileConfig(),
 			expected: false,
 		},
 		{
 			name:     "different timestamp",
-			config:   NewFeeManagerConfig(big.NewInt(3), admins, nil, nil),
-			other:    NewFeeManagerConfig(big.NewInt(4), admins, nil, nil),
+			config:   NewConfig(big.NewInt(3), admins, nil, nil),
+			other:    NewConfig(big.NewInt(4), admins, nil, nil),
 			expected: false,
 		},
 		{
 			name:     "different enabled",
-			config:   NewFeeManagerConfig(big.NewInt(3), admins, nil, nil),
-			other:    NewFeeManagerConfig(big.NewInt(3), admins, enableds, nil),
+			config:   NewConfig(big.NewInt(3), admins, nil, nil),
+			other:    NewConfig(big.NewInt(3), admins, enableds, nil),
 			expected: false,
 		},
 		{
 			name:     "non-nil initial config and nil initial config",
-			config:   NewFeeManagerConfig(big.NewInt(3), admins, nil, &validFeeConfig),
-			other:    NewFeeManagerConfig(big.NewInt(3), admins, nil, nil),
+			config:   NewConfig(big.NewInt(3), admins, nil, &validFeeConfig),
+			other:    NewConfig(big.NewInt(3), admins, nil, nil),
 			expected: false,
 		},
 		{
 			name:   "different initial config",
-			config: NewFeeManagerConfig(big.NewInt(3), admins, nil, &validFeeConfig),
-			other: NewFeeManagerConfig(big.NewInt(3), admins, nil,
+			config: NewConfig(big.NewInt(3), admins, nil, &validFeeConfig),
+			other: NewConfig(big.NewInt(3), admins, nil,
 				func() *commontype.FeeConfig {
 					c := validFeeConfig
 					c.GasLimit = big.NewInt(123)
@@ -113,8 +113,8 @@ func TestEqualFeeManagerConfig(t *testing.T) {
 		},
 		{
 			name:     "same config",
-			config:   NewFeeManagerConfig(big.NewInt(3), admins, nil, &validFeeConfig),
-			other:    NewFeeManagerConfig(big.NewInt(3), admins, nil, &validFeeConfig),
+			config:   NewConfig(big.NewInt(3), admins, nil, &validFeeConfig),
+			other:    NewConfig(big.NewInt(3), admins, nil, &validFeeConfig),
 			expected: true,
 		},
 	}

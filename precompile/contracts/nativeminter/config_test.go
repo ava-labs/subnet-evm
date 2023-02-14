@@ -23,22 +23,22 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 	}{
 		{
 			name:          "invalid allow list config in native minter allowlist",
-			config:        NewContractNativeMinterConfig(big.NewInt(3), admins, admins, nil),
+			config:        NewConfig(big.NewInt(3), admins, admins, nil),
 			expectedError: "cannot set address",
 		},
 		{
 			name:          "duplicate admins in config in native minter allowlist",
-			config:        NewContractNativeMinterConfig(big.NewInt(3), append(admins, admins[0]), enableds, nil),
+			config:        NewConfig(big.NewInt(3), append(admins, admins[0]), enableds, nil),
 			expectedError: "duplicate address",
 		},
 		{
 			name:          "duplicate enableds in config in native minter allowlist",
-			config:        NewContractNativeMinterConfig(big.NewInt(3), admins, append(enableds, enableds[0]), nil),
+			config:        NewConfig(big.NewInt(3), admins, append(enableds, enableds[0]), nil),
 			expectedError: "duplicate address",
 		},
 		{
 			name: "nil amount in native minter config",
-			config: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,
+			config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): nil,
@@ -47,7 +47,7 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 		},
 		{
 			name: "negative amount in native minter config",
-			config: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,
+			config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(-1),
@@ -80,35 +80,35 @@ func TestEqualContractNativeMinterConfig(t *testing.T) {
 	}{
 		{
 			name:     "non-nil config and nil other",
-			config:   NewContractNativeMinterConfig(big.NewInt(3), admins, enableds, nil),
+			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
 			other:    nil,
 			expected: false,
 		},
 		{
 			name:     "different type",
-			config:   NewContractNativeMinterConfig(big.NewInt(3), admins, enableds, nil),
+			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
 			other:    config.NewNoopStatefulPrecompileConfig(),
 			expected: false,
 		},
 		{
 			name:     "different timestamps",
-			config:   NewContractNativeMinterConfig(big.NewInt(3), admins, nil, nil),
-			other:    NewContractNativeMinterConfig(big.NewInt(4), admins, nil, nil),
+			config:   NewConfig(big.NewInt(3), admins, nil, nil),
+			other:    NewConfig(big.NewInt(4), admins, nil, nil),
 			expected: false,
 		},
 		{
 			name:     "different enabled",
-			config:   NewContractNativeMinterConfig(big.NewInt(3), admins, nil, nil),
-			other:    NewContractNativeMinterConfig(big.NewInt(3), admins, enableds, nil),
+			config:   NewConfig(big.NewInt(3), admins, nil, nil),
+			other:    NewConfig(big.NewInt(3), admins, enableds, nil),
 			expected: false,
 		},
 		{
 			name: "different initial mint amounts",
-			config: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,
+			config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(1),
 				}),
-			other: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,
+			other: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(2),
 				}),
@@ -116,11 +116,11 @@ func TestEqualContractNativeMinterConfig(t *testing.T) {
 		},
 		{
 			name: "different initial mint addresses",
-			config: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,
+			config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(1),
 				}),
-			other: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,
+			other: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(1),
 				}),
@@ -128,11 +128,11 @@ func TestEqualContractNativeMinterConfig(t *testing.T) {
 		},
 		{
 			name: "same config",
-			config: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,
+			config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(1),
 				}),
-			other: NewContractNativeMinterConfig(big.NewInt(3), admins, nil,
+			other: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(1),
 				}),

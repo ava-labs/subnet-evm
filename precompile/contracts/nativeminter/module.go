@@ -9,10 +9,9 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-var _ contract.Module = Module{}
 
 // ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
@@ -20,24 +19,28 @@ const ConfigKey = "contractNativeMinterConfig"
 
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000001")
 
-type Module struct{}
-
-func (Module) Key() string {
-	return ConfigKey
+var Module = modules.Module{
+	ConfigKey:    ConfigKey,
+	Address:      ContractAddress,
+	Contract:     ContractNativeMinterPrecompile,
+	Configurator: &configuror{},
 }
 
-// Address returns the address of the native minter.
-func (Module) Address() common.Address {
-	return ContractAddress
+type configuror struct{}
+
+func init() {
+	if err := modules.RegisterModule(Module); err != nil {
+		panic(err)
+	}
 }
 
-func (Module) NewConfig() config.Config {
-	return &ContractNativeMinterConfig{}
+func (*configuror) NewConfig() config.Config {
+	return &Config{}
 }
 
 // Configure configures [state] with the desired admins based on [cfg].
-func (Module) Configure(_ contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
-	config, ok := cfg.(*ContractNativeMinterConfig)
+func (*configuror) Configure(_ contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
+	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
@@ -48,9 +51,5 @@ func (Module) Configure(_ contract.ChainConfig, cfg config.Config, state contrac
 		}
 	}
 
-	return config.AllowListConfig.Configure(state, ContractAddress)
-}
-
-func (Module) Contract() contract.StatefulPrecompiledContract {
-	return ContractNativeMinterPrecompile
+	return config.Config.Configure(state, ContractAddress)
 }

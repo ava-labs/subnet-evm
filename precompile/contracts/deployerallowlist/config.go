@@ -11,50 +11,48 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ config.Config = &ContractDeployerAllowListConfig{}
+var _ config.Config = &Config{}
 
-// ContractDeployerAllowListConfig wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
+// Config wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
 // interface while adding in the contract deployer specific precompile address.
-type ContractDeployerAllowListConfig struct {
-	allowlist.AllowListConfig
-	config.UpgradeableConfig
+type Config struct {
+	allowlist.Config
+	config.Uprade
 }
 
-// NewContractDeployerAllowListConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // ContractDeployerAllowList with [admins] and [enableds] as members of the allowlist.
-func NewContractDeployerAllowListConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *ContractDeployerAllowListConfig {
-	return &ContractDeployerAllowListConfig{
-		AllowListConfig: allowlist.AllowListConfig{
+func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *Config {
+	return &Config{
+		Config: allowlist.Config{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		UpgradeableConfig: config.UpgradeableConfig{BlockTimestamp: blockTimestamp},
+		Uprade: config.Uprade{BlockTimestamp: blockTimestamp},
 	}
 }
 
-// NewDisableContractDeployerAllowListConfig returns config for a network upgrade at [blockTimestamp]
+// NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables ContractDeployerAllowList.
-func NewDisableContractDeployerAllowListConfig(blockTimestamp *big.Int) *ContractDeployerAllowListConfig {
-	return &ContractDeployerAllowListConfig{
-		UpgradeableConfig: config.UpgradeableConfig{
+func NewDisableConfig(blockTimestamp *big.Int) *Config {
+	return &Config{
+		Uprade: config.Uprade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
 	}
 }
 
-func (ContractDeployerAllowListConfig) Key() string { return ConfigKey }
-
-func (ContractDeployerAllowListConfig) Address() common.Address { return ContractAddress }
+func (Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*ContractDeployerAllowListConfig] and it has been configured identical to [c].
-func (c *ContractDeployerAllowListConfig) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg config.Config) bool {
 	// typecast before comparison
-	other, ok := (cfg).(*ContractDeployerAllowListConfig)
+	other, ok := (cfg).(*Config)
 	if !ok {
 		return false
 	}
-	return c.UpgradeableConfig.Equal(&other.UpgradeableConfig) && c.AllowListConfig.Equal(&other.AllowListConfig)
+	return c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 }
 
-func (c *ContractDeployerAllowListConfig) Verify() error { return c.AllowListConfig.Verify() }
+func (c *Config) Verify() error { return c.Config.Verify() }

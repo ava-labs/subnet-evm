@@ -25,7 +25,7 @@ func TestAllowListRun(t *testing.T) {
 		expectedRes []byte
 		expectedErr string
 
-		config *AllowListConfig
+		config *Config
 
 		assertState func(t *testing.T, state *state.StateDB)
 	}
@@ -221,7 +221,7 @@ func TestAllowListRun(t *testing.T) {
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"initial config sets admins": {
-			config: &AllowListConfig{
+			config: &Config{
 				AdminAddresses: []common.Address{noRoleAddr, enabledAddr},
 			},
 			suppliedGas: 0,
@@ -233,7 +233,7 @@ func TestAllowListRun(t *testing.T) {
 			},
 		},
 		"initial config sets enabled": {
-			config: &AllowListConfig{
+			config: &Config{
 				EnabledAddresses: []common.Address{noRoleAddr, adminAddr},
 			},
 			suppliedGas: 0,

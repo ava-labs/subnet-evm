@@ -45,23 +45,20 @@ var (
 	//go:embed contract.abi
 	RewardManagerRawABI string
 
-	RewardManagerABI        abi.ABI                              // will be initialized by init function
-	RewardManagerPrecompile contract.StatefulPrecompiledContract // will be initialized by init function
+	RewardManagerABI        = parseABI(RewardManagerRawABI)
+	RewardManagerPrecompile = createRewardManagerPrecompile() // will be initialized by init function
 
 	rewardAddressStorageKey        = common.Hash{'r', 'a', 's', 'k'}
 	allowFeeRecipientsAddressValue = common.Hash{'a', 'f', 'r', 'a', 'v'}
 )
 
-func init() {
-	parsed, err := abi.JSON(strings.NewReader(RewardManagerRawABI))
+func parseABI(rawABI string) abi.ABI {
+	parsed, err := abi.JSON(strings.NewReader(rawABI))
 	if err != nil {
 		panic(err)
 	}
-	RewardManagerABI = parsed
-	RewardManagerPrecompile, err = createRewardManagerPrecompile()
-	if err != nil {
-		panic(err)
-	}
+
+	return parsed
 }
 
 // GetRewardManagerAllowListStatus returns the role of [address] for the RewardManager list.
@@ -285,7 +282,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 
 // createRewardManagerPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 // Access to the getters/setters is controlled by an allow list for [precompileAddr].
-func createRewardManagerPrecompile() (contract.StatefulPrecompiledContract, error) {
+func createRewardManagerPrecompile() contract.StatefulPrecompiledContract {
 	var functions []*contract.StatefulPrecompileFunction
 	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
@@ -299,11 +296,15 @@ func createRewardManagerPrecompile() (contract.StatefulPrecompiledContract, erro
 	for name, function := range abiFunctionMap {
 		method, ok := RewardManagerABI.Methods[name]
 		if !ok {
-			return nil, fmt.Errorf("given method (%s) does not exist in the ABI", name)
+			panic(fmt.Errorf("given method (%s) does not exist in the ABI", name))
 		}
 		functions = append(functions, contract.NewStatefulPrecompileFunction(method.ID, function))
 	}
 
 	// Construct the contract with no fallback function.
-	return contract.NewStatefulPrecompileContract(nil, functions)
+	statefulContract, err := contract.NewStatefulPrecompileContract(nil, functions)
+	if err != nil {
+		panic(err)
+	}
+	return statefulContract
 }

@@ -69,7 +69,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 		},
 		"initial mint funds": {
 			caller: enabledAddr,
-			config: &ContractNativeMinterConfig{
+			config: &Config{
 				InitialMint: map[common.Address]*math.HexOrDecimal256{
 					enabledAddr: math.NewHexOrDecimal256(2),
 				},
@@ -171,7 +171,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			blockContext := contract.NewMockBlockContext(common.Big0, 0)
 			accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
 			if test.config != nil {
-				Module{}.Configure(params.TestChainConfig, test.config, state, blockContext)
+				Module.Configure(params.TestChainConfig, test.config, state, blockContext)
 			}
 			if test.input != nil {
 				ret, remainingGas, err := ContractNativeMinterPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -17,29 +18,33 @@ const ConfigKey = "rewardManagerConfig"
 
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000004")
 
-type Module struct{}
-
-func (Module) Key() string {
-	return ConfigKey
+var Module = modules.Module{
+	ConfigKey:    ConfigKey,
+	Address:      ContractAddress,
+	Contract:     RewardManagerPrecompile,
+	Configurator: &configuror{},
 }
 
-// Address returns the address of the reward manager.
-func (Module) Address() common.Address {
-	return ContractAddress
+type configuror struct{}
+
+func init() {
+	if err := modules.RegisterModule(Module); err != nil {
+		panic(err)
+	}
 }
 
-func (Module) NewConfig() config.Config {
-	return &RewardManagerConfig{}
+func (*configuror) NewConfig() config.Config {
+	return &Config{}
 }
 
 // Configure configures [state] with the desired admins based on [cfg].
-func (Module) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
-	config, ok := cfg.(*RewardManagerConfig)
+func (*configuror) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
+	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
 	// TODO: should we move this to the end and return it for consistency with other precompiles?
-	if err := config.AllowListConfig.Configure(state, ContractAddress); err != nil {
+	if err := config.Config.Configure(state, ContractAddress); err != nil {
 		return err
 	}
 	// configure the RewardManager with the given initial configuration
@@ -55,8 +60,4 @@ func (Module) Configure(chainConfig contract.ChainConfig, cfg config.Config, sta
 		DisableFeeRewards(state)
 	}
 	return nil
-}
-
-func (Module) Contract() contract.StatefulPrecompiledContract {
-	return RewardManagerPrecompile
 }
