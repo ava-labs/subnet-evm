@@ -125,7 +125,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 		fillAmount := args["fillAmount"].(*big.Int)
 		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signature)
 	}
-	log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
+	// log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
 
 }
 
@@ -201,6 +201,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		baseAsset := args["baseAsset"].(*big.Int)
 		quoteAsset := args["quoteAsset"].(*big.Int)
 		lastPrice := big.NewInt(0).Div(big.NewInt(0).Mul(quoteAsset, big.NewInt(1e18)), baseAsset)
+		lastPrice.Abs(lastPrice)
 		cep.database.UpdateLastPrice(market, lastPrice)
 
 		openNotional := args["openNotional"].(*big.Int)
