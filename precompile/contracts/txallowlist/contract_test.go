@@ -145,7 +145,7 @@ func TestTxAllowListRun(t *testing.T) {
 			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
-		"read allow listwith no role": {
+		"read allow list with no role": {
 			caller: noRoleAddr,
 			input: func() []byte {
 				return allowlist.PackReadAllowList(noRoleAddr)
