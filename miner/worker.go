@@ -216,26 +216,20 @@ func (w *worker) commitNewWork(predicateContext *precompile.PredicateContext) (*
 	return w.commit(env)
 }
 
-// txsBySender is a helper type that groups transactions by sender.
-// For each sender, the transactions should be in ascending order by nonce
-type txsBySender map[common.Address]types.Transactions
-
 // enforcePredicates takes a set of pending transactions (grouped by sender, and ordered by nonce) and returns a
 // subset of those transactions (grouped by sender) that satisfy predicateContext.
 // Any transaction sent by a given sender that is received after a transaction that does not
 // satisfy predicateContext is removed from the TxPool and is not included in the return value.
-func (w *worker) enforcePredicates(rules params.Rules, predicateContext *precompile.PredicateContext, pending txsBySender) txsBySender {
-	result := make(txsBySender, len(pending))
+func (w *worker) enforcePredicates(rules params.Rules, predicateContext *precompile.PredicateContext, pending map[common.Address]types.Transactions) map[common.Address]types.Transactions {
+	result := make(map[common.Address]types.Transactions, len(pending))
 	for addr, txs := range pending {
-		if invalidIndex, err := core.CheckPredicatesForSenderTxs(rules, predicateContext, txs); err != nil {
-			log.Debug(
-				"Removing transactions from sender of transaction with invalid predicate.",
-				"sender", addr.Hex(), "failedTx", txs[invalidIndex].Hash(),
-			)
-			for i := invalidIndex; i < len(txs); i++ {
-				w.eth.TxPool().RemoveTx(txs[i].Hash())
+		for i, tx := range txs {
+			if err := core.CheckPredicates(rules, predicateContext, tx); err != nil {
+				log.Debug("Transaction predicate failed verification in miner", "sender", addr, "err", err)
+				w.eth.TxPool().RemoveTx(tx.Hash()) // RemoveTx will move all subsequent transactions back to the future queue
+				txs = txs[:i]                      // Cut off any transactions past the failed predicate
+				break
 			}
-			txs = txs[:invalidIndex]
 		}
 		if len(txs) > 0 {
 			result[addr] = txs

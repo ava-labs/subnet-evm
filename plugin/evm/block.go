@@ -111,8 +111,6 @@ func (b *Block) Verify(context.Context) error {
 }
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
-// TODO: Cache the result such that if called multiple times for the same block,
-// we do not need to recompute the value.
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 	precompileConfigs := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Precompiles
 	for _, tx := range b.ethBlock.Transactions() {
@@ -135,16 +133,21 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 	} else {
 		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
 	}
-	// VerifyWithContext may be called multiple times on the same block with multiple contexts, but the engine will only call Accept or Reject once.
-	// As such, we need to ensure that we only verify the block once, so if the block is currently processing, we only check the predicates and return.
+
+	// The engine may call VerifyWithContext multiple times on the same block with different contexts.
+	// Since the engine will only call Accept/Reject once, we need to ensure that we only call verify with writes=true once.
+	// Additionally, if a block is already in processing, then it has already passed verification and we only need to check that the predicates are
+	// still valid in the different context to ensure that Verify should return nil.
 	if b.vm.State.IsProcessing(b.id) {
 		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 		predicateCtx := precompile.PredicateContext{
 			SnowCtx:            b.vm.ctx,
 			ProposerVMBlockCtx: proposerVMBlockCtx,
 		}
-		if _, err := core.CheckPredicatesForSenderTxs(rules, &predicateCtx, b.ethBlock.Transactions()); err != nil {
-			return fmt.Errorf("predicate transaction verification failed: %w", err)
+		for _, tx := range b.ethBlock.Transactions() {
+			if err := core.CheckPredicates(rules, &predicateCtx, tx); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -157,17 +160,21 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
 	}
 
-	// If the chain is not yet bootstrapped, we do not need to verify the transaction predicates
-	// because the block is already included in the chain, so we know that predicates must have
-	// been valid at the time the block was accepted.
+	// Only enforce predicates if the chain has already bootstrapped.
+	// If the chain is still bootstrapping, we can assume that all blocks we are verifying have
+	// been accepted by then network and the predicate was validated by the network when the
+	// block was verified.
 	if b.vm.bootstrapped {
 		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 		predicateCtx := precompile.PredicateContext{
 			SnowCtx:            b.vm.ctx,
 			ProposerVMBlockCtx: proposerVMBlockCtx,
 		}
-		if _, err := core.CheckPredicatesForSenderTxs(rules, &predicateCtx, b.ethBlock.Transactions()); err != nil {
-			return fmt.Errorf("predicate transaction verification failed: %w", err)
+
+		for _, tx := range b.ethBlock.Transactions() {
+			if err := core.CheckPredicates(rules, &predicateCtx, tx); err != nil {
+				return err
+			}
 		}
 	}
 
