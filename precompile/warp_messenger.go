@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/ava-labs/avalanchego/utils/set"
-	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -224,7 +224,7 @@ func (c *WarpMessengerConfig) verifyPredicate(predicateContext *PredicateContext
 
 	// Iterate and try to parse into warp signed messages, then verify each message's aggregate signature.
 	for _, messageBytes := range messagesBytes {
-		message, err := teleporter.ParseMessage(messageBytes)
+		message, err := warp.ParseMessage(messageBytes)
 		if err != nil {
 			return err
 		}
@@ -343,13 +343,13 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 
 	// Parse the raw message to be processed.
 	signedMessage := signedMessages[messageIndex]
-	message, err := teleporter.ParseMessage(signedMessage)
+	message, err := warp.ParseMessage(signedMessage)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// Charge gas per validator included in the aggregate signature
-	bitSetSignature, ok := message.Signature.(*teleporter.BitSetSignature)
+	bitSetSignature, ok := message.Signature.(*warp.BitSetSignature)
 	if !ok {
 		return nil, remainingGas, ErrInvalidSignature
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
-	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -1310,7 +1310,7 @@ func TestWarpMessengerRun(t *testing.T) {
 	snowCtx.ChainID = ids.GenerateTestID()
 	sk, err := bls.NewSecretKey()
 	require.NoError(t, err)
-	snowCtx.TeleporterSigner = teleporter.NewSigner(sk, snowCtx.ChainID)
+	snowCtx.WarpSigner = warp.NewSigner(sk, snowCtx.ChainID)
 
 	sendInput := precompile.SendWarpMessageInput{
 		DestinationChainID: ids.GenerateTestID(),
