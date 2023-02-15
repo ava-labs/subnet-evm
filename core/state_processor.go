@@ -181,8 +181,9 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 	// Note: RegisteredModules returns precompiles sorted by module addresses.
-	// This is important because we want to configure precompiles in the same order
-	// so that the state is deterministic.
+	// This ensures that the order we call Configure for each precompile is consistent.
+	// This ensures even if precompiles read/write state other than their own they will observe
+	// an identical global state in a deterministic order when as they are configured.
 	for _, module := range modules.RegisteredModules() {
 		key := module.ConfigKey
 		for _, activatingConfig := range c.GetActivatingPrecompileConfigs(module.Address, parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
