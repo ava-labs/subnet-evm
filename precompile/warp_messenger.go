@@ -277,7 +277,7 @@ func (c *WarpMessengerConfig) onAccept(backend Backend, txHash common.Hash, logI
 		return ErrInvalidTopicHash(topics[0])
 	}
 
-	unsignedMessage, err := teleporter.NewUnsignedMessage(
+	unsignedMessage, err := warp.NewUnsignedMessage(
 		ids.ID(topics[1]),
 		ids.ID(topics[2]),
 		logData)
