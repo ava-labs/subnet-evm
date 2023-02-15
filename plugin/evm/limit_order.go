@@ -166,10 +166,10 @@ func (lop *limitOrderProcesser) runLiquidations(market limitorders.Market, longO
 
 			switch liquidable.PositionType {
 			case "long":
-				oppositeOrders[j].FilledBaseAssetQuantity.Sub(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
+				oppositeOrders[j].FilledBaseAssetQuantity = big.NewInt(0).Sub(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
 				liquidablePositions[i].FilledSize.Add(liquidablePositions[i].FilledSize, fillAmount)
 			case "short":
-				oppositeOrders[j].FilledBaseAssetQuantity.Add(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
+				oppositeOrders[j].FilledBaseAssetQuantity = big.NewInt(0).Add(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
 				liquidablePositions[i].FilledSize.Sub(liquidablePositions[i].FilledSize, fillAmount)
 			}
 		}
