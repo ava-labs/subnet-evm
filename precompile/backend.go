@@ -5,24 +5,40 @@ package precompile
 
 import (
 	"context"
+	"time"
 
-	"github.com/ava-labs/avalanchego/vms/platformvm/teleporter"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
-var _ Backend = (*noopBackend)(nil)
+var (
+	_ Backend = (*NoopBackend)(nil)
+	_ Backend = (*MockBackend)(nil)
+)
 
 // Backend defines the interface for precompiles to interact with vm backends.
 type Backend interface {
 	// AddMessage adds an unsigned message to the warp backend database
-	AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error
+	AddMessage(ctx context.Context, unsignedMessage *warp.UnsignedMessage) error
 }
 
-type noopBackend struct{}
-
-func NewNoopBackend() Backend {
-	return &noopBackend{}
+type MockBackend struct {
+	Stats MockHandlerStats
 }
 
-func (n noopBackend) AddMessage(ctx context.Context, unsignedMessage *teleporter.UnsignedMessage) error {
+func (m MockBackend) AddMessage(ctx context.Context, unsignedMessage *warp.UnsignedMessage) error {
+	startTime := time.Now()
+	m.Stats.IncAddSignature()
+
+	// Always report signature request time
+	defer func() {
+		m.Stats.UpdateAddSignatureProcessingTime(time.Since(startTime))
+	}()
+
+	return nil
+}
+
+type NoopBackend struct{}
+
+func (n NoopBackend) AddMessage(ctx context.Context, unsignedMessage *warp.UnsignedMessage) error {
 	return nil
 }
