@@ -170,13 +170,13 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 // verifyPredicates verifies the predicates in the block are valid according to proposerVMBlockCtx.
 func (b *Block) verifyPredicates(proposerVMBlockCtx *block.Context) error {
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-	predicateCtx := precompile.PredicateContext{
+	predicateCtx := &precompile.PredicateContext{
 		SnowCtx:            b.vm.ctx,
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}
 
 	for _, tx := range b.ethBlock.Transactions() {
-		if err := core.CheckPredicates(rules, &predicateCtx, tx); err != nil {
+		if err := core.CheckPredicates(rules, predicateCtx, tx); err != nil {
 			return err
 		}
 	}
