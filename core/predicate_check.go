@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-// CheckPredicates checks that all precompile predicates are satisifed within the current [predicateContext] for [tx]
+// CheckPredicates checks that all precompile predicates are satisfied within the current [predicateContext] for [tx]
 func CheckPredicates(rules params.Rules, predicateContext *precompile.PredicateContext, tx *types.Transaction) error {
 	precompileConfigs := rules.Precompiles
 	for _, accessTuple := range tx.AccessList() {
