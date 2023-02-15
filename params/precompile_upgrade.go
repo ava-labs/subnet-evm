@@ -16,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var errMultipleKeys = errors.New("PrecompileUpgrade must have exactly one key")
 var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig.
@@ -40,7 +39,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		return errNoKey
 	}
 	if len(raw) > 1 {
-		return errMultipleKeys
+		return fmt.Errorf("PrecompileUpgrade must have exactly one key, got %d", len(raw))
 	}
 	for key, value := range raw {
 		module, ok := modules.GetPrecompileModule(key)
@@ -247,13 +246,12 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 	return nil
 }
 
-// EnabledStatefulPrecompiles returns a slice of stateful precompile configs that
-// have been activated through an upgrade.
-func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) []config.Config {
-	statefulPrecompileConfigs := make([]config.Config, 0)
+// EnabledStatefulPrecompiles returns current stateful precompile configs that are enabled at [blockTimestamp].
+func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) ChainConfigPrecompiles {
+	statefulPrecompileConfigs := make(ChainConfigPrecompiles)
 	for _, module := range modules.RegisteredModules() {
-		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil {
-			statefulPrecompileConfigs = append(statefulPrecompileConfigs, config)
+		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
+			statefulPrecompileConfigs[module.ConfigKey] = config
 		}
 	}
 

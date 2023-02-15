@@ -13,6 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var _ contract.Configurator = &configurator{}
+
 // ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
 const ConfigKey = "contractNativeMinterConfig"
@@ -23,10 +25,10 @@ var Module = modules.Module{
 	ConfigKey:    ConfigKey,
 	Address:      ContractAddress,
 	Contract:     ContractNativeMinterPrecompile,
-	Configurator: &configuror{},
+	Configurator: &configurator{},
 }
 
-type configuror struct{}
+type configurator struct{}
 
 func init() {
 	if err := modules.RegisterModule(Module); err != nil {
@@ -34,12 +36,12 @@ func init() {
 	}
 }
 
-func (*configuror) NewConfig() config.Config {
+func (*configurator) NewConfig() config.Config {
 	return &Config{}
 }
 
 // Configure configures [state] with the desired admins based on [cfg].
-func (*configuror) Configure(_ contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
+func (*configurator) Configure(_ contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)

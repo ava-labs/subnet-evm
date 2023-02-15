@@ -105,8 +105,7 @@ func (c *Config) Equal(cfg config.Config) bool {
 	if !ok {
 		return false
 	}
-	// modify this boolean accordingly with your custom RewardManagerConfig, to check if [other] and the current [c] are equal
-	// if RewardManagerConfig contains only UpgradeableConfig and precompile.AllowListConfig you can skip modifying it.
+
 	equals := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
 	if !equals {
 		return false

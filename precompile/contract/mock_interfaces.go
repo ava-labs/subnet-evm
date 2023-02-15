@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -55,46 +54,4 @@ func (m *mockAccessibleState) GetSnowContext() *snow.Context { return m.snowCont
 
 func (m *mockAccessibleState) CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	return nil, 0, nil
-}
-
-type noopStatefulPrecompileConfig struct{}
-
-func NewNoopStatefulPrecompileConfig() *noopStatefulPrecompileConfig {
-	return &noopStatefulPrecompileConfig{}
-}
-
-func (n *noopStatefulPrecompileConfig) Address() common.Address {
-	return common.Address{}
-}
-
-func (n *noopStatefulPrecompileConfig) Timestamp() *big.Int {
-	return new(big.Int)
-}
-
-func (n *noopStatefulPrecompileConfig) IsDisabled() bool {
-	return false
-}
-
-func (n *noopStatefulPrecompileConfig) Equal(config.Config) bool {
-	return false
-}
-
-func (n *noopStatefulPrecompileConfig) Verify() error {
-	return nil
-}
-
-func (n *noopStatefulPrecompileConfig) Configure(ChainConfig, StateDB, BlockContext) error {
-	return nil
-}
-
-func (n *noopStatefulPrecompileConfig) Contract() config.Config {
-	return nil
-}
-
-func (n *noopStatefulPrecompileConfig) Key() string {
-	return ""
-}
-
-func (noopStatefulPrecompileConfig) NewConfig() config.Config {
-	return new(noopStatefulPrecompileConfig)
 }

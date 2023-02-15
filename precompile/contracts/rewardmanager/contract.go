@@ -7,17 +7,15 @@
 package rewardmanager
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-
-	_ "embed"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -45,21 +43,12 @@ var (
 	//go:embed contract.abi
 	RewardManagerRawABI string
 
-	RewardManagerABI        = parseABI(RewardManagerRawABI)
+	RewardManagerABI        = contract.ParseABI(RewardManagerRawABI)
 	RewardManagerPrecompile = createRewardManagerPrecompile() // will be initialized by init function
 
 	rewardAddressStorageKey        = common.Hash{'r', 'a', 's', 'k'}
 	allowFeeRecipientsAddressValue = common.Hash{'a', 'f', 'r', 'a', 'v'}
 )
-
-func parseABI(rawABI string) abi.ABI {
-	parsed, err := abi.JSON(strings.NewReader(rawABI))
-	if err != nil {
-		panic(err)
-	}
-
-	return parsed
-}
 
 // GetRewardManagerAllowListStatus returns the role of [address] for the RewardManager list.
 func GetRewardManagerAllowListStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {

@@ -6,7 +6,9 @@ package contract
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -74,4 +76,15 @@ func PackedHash(packed []byte, index int) []byte {
 	start := common.HashLength * index
 	end := start + common.HashLength
 	return packed[start:end]
+}
+
+// ParseABI parses the given ABI string and returns the parsed ABI.
+// If the ABI is invalid, it panics.
+func ParseABI(rawABI string) abi.ABI {
+	parsed, err := abi.JSON(strings.NewReader(rawABI))
+	if err != nil {
+		panic(err)
+	}
+
+	return parsed
 }

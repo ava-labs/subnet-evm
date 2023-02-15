@@ -160,25 +160,27 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 		nil,
 	)
 
-	config := []byte(`{
-    "chainId": 43214,
-    "allowFeeRecipients": true,
-    "rewardManagerConfig": {
-      "blockTimestamp": 1671542573,
-      "adminAddresses": [
-        "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-      ],
-      "initialRewardConfig": {
-        "allowFeeRecipients": true
-      }
-    },
-    "contractNativeMinterConfig": {
-      "blockTimestamp": 0,
-      "adminAddresses": [
-        "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-      ]
-    }
-  }`)
+	config := []byte(`
+	{
+		"chainId": 43214,
+		"allowFeeRecipients": true,
+		"rewardManagerConfig": {
+			"blockTimestamp": 1671542573,
+			"adminAddresses": [
+				"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+			],
+			"initialRewardConfig": {
+				"allowFeeRecipients": true
+			}
+		},
+		"contractNativeMinterConfig": {
+			"blockTimestamp": 0,
+			"adminAddresses": [
+				"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+			]
+		}
+	}
+	`)
 	c := ChainConfig{}
 	err := json.Unmarshal(config, &c)
 	require.NoError(err)

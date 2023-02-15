@@ -4,8 +4,8 @@
 package modules
 
 import (
-	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -87,29 +87,7 @@ func RegisteredModules() []Module {
 }
 
 func insertSortedByAddress(data []Module, stm Module) []Module {
-	// sort by address to ensure deterministic iteration
-	// start at the end of the list and work backwards
-	// this is faster than sorting the list every time
-	// since we expect sorted inserts
-	index := 0
-	for i := len(data) - 1; i >= 0; i-- {
-		if bytes.Compare(stm.Address.Bytes(), data[i].Address.Bytes()) > 0 {
-			index = i + 1
-			break
-		}
-	}
-	return insertAt(data, index, stm)
-}
-
-func insertAt(data []Module, index int, stm Module) []Module {
-	// if the index is out of bounds, append the module
-	if index >= len(data) {
-		data = append(data, stm)
-		return data
-	}
-	// shift the slice to the right and leave a space for the new element
-	data = append(data[:index+1], data[index:]...)
-	// Insert the new element.
-	data[index] = stm
+	data = append(data, stm)
+	sort.Sort(moduleArray(data))
 	return data
 }

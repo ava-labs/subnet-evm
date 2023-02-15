@@ -9,10 +9,14 @@ package registry
 //
 import (
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
-	_ "github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
-	_ "github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
+
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
 )
