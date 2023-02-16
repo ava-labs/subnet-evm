@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -20,10 +19,9 @@ import (
 )
 
 const (
-	GetBlockchainIDGasCost                        uint64 = 5_000
-	GetVerifiedWarpMessageGasCost                 uint64 = 100_000
-	GetVerifiedWarpMessageGasCostPerAggregatedKey uint64 = 1_000
-	SendWarpMessageGasCost                        uint64 = 100_000
+	GetBlockchainIDGasCost        uint64 = 5_000
+	GetVerifiedWarpMessageGasCost uint64 = 100_000
+	SendWarpMessageGasCost        uint64 = 100_000
 
 	// WarpMessengerRawABI contains the raw ABI of WarpMessenger contract.
 	WarpMessengerRawABI  = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"sender\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"}],\"name\":\"SendWarpMessage\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getBlockchainID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"blockchainID\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"messageIndex\",\"type\":\"uint256\"}],\"name\":\"getVerifiedWarpMessage\",\"outputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"originChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"originSenderAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"internalType\":\"structWarpMessage\",\"name\":\"message\",\"type\":\"tuple\"},{\"internalType\":\"bool\",\"name\":\"success\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"destinationChainID\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"destinationAddress\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"payload\",\"type\":\"bytes\"}],\"name\":\"sendWarpMessage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
@@ -40,6 +38,15 @@ var (
 var (
 	_ StatefulPrecompileConfig = &WarpMessengerConfig{}
 
+	WarpMessengerABI        abi.ABI                     // will be initialized by init function
+	WarpMessengerPrecompile StatefulPrecompiledContract // will be initialized by init function
+
+	// Default stake threshold for aggregate signature verification. (67%)
+	WarpQuorumNumerator   = uint64(67)
+	WarpQuorumDenominator = uint64(100)
+
+	signedMessages []*warp.Message
+
 	ErrMissingStorageSlots       = errors.New("missing access list storage slots from precompile during execution")
 	ErrInvalidMessageIndex       = errors.New("invalid message index")
 	ErrInvalidSignature          = errors.New("invalid aggregate signature")
@@ -47,13 +54,6 @@ var (
 	ErrWrongChainID              = errors.New("wrong chain id")
 	ErrInvalidQuorumDenominator  = errors.New("quorum denominator can not be zero")
 	ErrGreaterQuorumNumerator    = errors.New("quorum numerator can not be greater than quorum denominator")
-
-	WarpMessengerABI        abi.ABI                     // will be initialized by init function
-	WarpMessengerPrecompile StatefulPrecompiledContract // will be initialized by init function
-
-	// Default stake threshold for aggregate signature verification. (67%)
-	WarpQuorumNumerator   = uint64(67)
-	WarpQuorumDenominator = uint64(100)
 )
 
 // WarpMessengerConfig implements the StatefulPrecompileConfig
@@ -222,6 +222,7 @@ func (c *WarpMessengerConfig) verifyPredicate(predicateContext *PredicateContext
 		return err
 	}
 
+	signedMessages = make([]*warp.Message, 0, len(messagesBytes))
 	// Iterate and try to parse into warp signed messages, then verify each message's aggregate signature.
 	for _, messageBytes := range messagesBytes {
 		message, err := warp.ParseMessage(messageBytes)
@@ -244,6 +245,8 @@ func (c *WarpMessengerConfig) verifyPredicate(predicateContext *PredicateContext
 		if err != nil {
 			return err
 		}
+
+		signedMessages = append(signedMessages, message)
 	}
 
 	return nil
@@ -321,15 +324,9 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 		return nil, remainingGas, err
 	}
 
-	storageSlots, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(WarpMessengerAddress)
+	_, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(WarpMessengerAddress)
 	if !exists {
 		return nil, remainingGas, ErrMissingStorageSlots
-	}
-
-	var signedMessages [][]byte
-	err = rlp.DecodeBytes(storageSlots, &signedMessages)
-	if err != nil {
-		return nil, remainingGas, err
 	}
 
 	// Check that the message index exists.
@@ -342,22 +339,7 @@ func getVerifiedWarpMessage(accessibleState PrecompileAccessibleState, caller co
 	}
 
 	// Parse the raw message to be processed.
-	signedMessage := signedMessages[messageIndex]
-	message, err := warp.ParseMessage(signedMessage)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// Charge gas per validator included in the aggregate signature
-	bitSetSignature, ok := message.Signature.(*warp.BitSetSignature)
-	if !ok {
-		return nil, remainingGas, ErrInvalidSignature
-	}
-
-	numSigners := set.BitsFromBytes(bitSetSignature.Signers).HammingWeight()
-	if remainingGas, err = deductGas(remainingGas, GetVerifiedWarpMessageGasCostPerAggregatedKey*uint64(numSigners)); err != nil {
-		return nil, 0, err
-	}
+	message := signedMessages[messageIndex]
 
 	var warpMessage WarpMessage
 	_, err = Codec.Unmarshal(message.Payload, &warpMessage)
