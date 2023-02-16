@@ -26,8 +26,7 @@ func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
 		key := module.ConfigKey
 		if value, ok := raw[key]; ok {
 			conf := module.NewConfig()
-			err := json.Unmarshal(value, conf)
-			if err != nil {
+			if err := json.Unmarshal(value, conf); err != nil {
 				return err
 			}
 			(*ccp)[key] = conf

@@ -180,19 +180,19 @@ func TestVerifyPrecompiles(t *testing.T) {
 	admins := []common.Address{{1}}
 	tests := []struct {
 		name          string
-		upgrade       ChainConfigPrecompiles
+		precompiles   ChainConfigPrecompiles
 		expectedError string
 	}{
 		{
 			name: "invalid allow list config in tx allowlist",
-			upgrade: ChainConfigPrecompiles{
+			precompiles: ChainConfigPrecompiles{
 				txallowlist.ConfigKey: txallowlist.NewConfig(big.NewInt(3), admins, admins),
 			},
 			expectedError: "cannot set address",
 		},
 		{
 			name: "invalid initial fee manager config",
-			upgrade: ChainConfigPrecompiles{
+			precompiles: ChainConfigPrecompiles{
 				feemanager.ConfigKey: feemanager.NewConfig(big.NewInt(3), admins, nil,
 					&commontype.FeeConfig{
 						GasLimit: big.NewInt(-1),
@@ -206,7 +206,7 @@ func TestVerifyPrecompiles(t *testing.T) {
 			require := require.New(t)
 			baseConfig := *SubnetEVMDefaultChainConfig
 			config := &baseConfig
-			config.GenesisPrecompiles = tt.upgrade
+			config.GenesisPrecompiles = tt.precompiles
 
 			err := config.Verify()
 			if tt.expectedError == "" {
@@ -301,10 +301,10 @@ func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
 		})
 	require.True(rewardManagerConf.Equal(testRewardManagerConfig))
 
-	contractNativeMinterConf := upgradeConfig.PrecompileUpgrades[1]
-	require.Equal(contractNativeMinterConf.Key(), nativeminter.ConfigKey)
-	testContractNativeMinterConfig := nativeminter.NewConfig(big.NewInt(1671543172), nil, nil, nil)
-	require.True(contractNativeMinterConf.Equal(testContractNativeMinterConfig))
+	nativeMinterConfig := upgradeConfig.PrecompileUpgrades[1]
+	require.Equal(nativeMinterConfig.Key(), nativeminter.ConfigKey)
+	expectedNativeMinterConfig := nativeminter.NewConfig(big.NewInt(1671543172), nil, nil, nil)
+	require.True(nativeMinterConfig.Equal(expectedNativeMinterConfig))
 
 	// Marshal and unmarshal again and check that the result is the same
 	upgradeBytes2, err := json.Marshal(upgradeConfig)

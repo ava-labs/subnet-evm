@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// Config specifies the initial set of allow list admins.
+// Config specifies the initial set of addresses with Admin or Enabled roles.
 type Config struct {
-	AdminAddresses   []common.Address `json:"adminAddresses,omitempty"`
+	AdminAddresses   []common.Address `json:"adminAddresses,omitempty"`   // initial admin addresses
 	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
 }
 
@@ -33,11 +33,9 @@ func (c *Config) Equal(other *Config) bool {
 	if other == nil {
 		return false
 	}
-	if !areEqualAddressLists(c.AdminAddresses, other.AdminAddresses) {
-		return false
-	}
 
-	return areEqualAddressLists(c.EnabledAddresses, other.EnabledAddresses)
+	return areEqualAddressLists(c.AdminAddresses, other.AdminAddresses) &&
+		areEqualAddressLists(c.EnabledAddresses, other.EnabledAddresses)
 }
 
 // areEqualAddressLists returns true iff [a] and [b] have the same addresses in the same order.
@@ -55,30 +53,26 @@ func areEqualAddressLists(current []common.Address, other []common.Address) bool
 
 // Verify returns an error if there is an overlapping address between admin and enabled roles
 func (c *Config) Verify() error {
-	// return early if either list is empty
-	if len(c.EnabledAddresses) == 0 || len(c.AdminAddresses) == 0 {
-		return nil
-	}
+	addressMap := make(map[common.Address]Role) // tracks which addresses we have seen and their role
 
-	addressMap := make(map[common.Address]bool)
+	// check for duplicates in enabled list
 	for _, enabledAddr := range c.EnabledAddresses {
-		// check for duplicates
 		if _, ok := addressMap[enabledAddr]; ok {
 			return fmt.Errorf("duplicate address %s in enabled list", enabledAddr)
 		}
-		addressMap[enabledAddr] = false
+		addressMap[enabledAddr] = EnabledRole
 	}
 
+	// check for overlap between enabled and admin lists or duplicates in admin list
 	for _, adminAddr := range c.AdminAddresses {
-		// check for overlap between enabled and admin lists
-		if inAdmin, ok := addressMap[adminAddr]; ok {
-			if inAdmin {
+		if role, ok := addressMap[adminAddr]; ok {
+			if role == AdminRole {
 				return fmt.Errorf("duplicate address %s in admin list", adminAddr)
 			} else {
 				return fmt.Errorf("cannot set address %s as both admin and enabled", adminAddr)
 			}
 		}
-		addressMap[adminAddr] = true
+		addressMap[adminAddr] = AdminRole
 	}
 
 	return nil

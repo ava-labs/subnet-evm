@@ -20,7 +20,7 @@ var _ config.Config = &Config{}
 // interface while adding in the ContractNativeMinter specific precompile address.
 type Config struct {
 	allowlist.Config
-	config.Uprade
+	config.Upgrade
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
 }
 
@@ -32,7 +32,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Uprade:      config.Uprade{BlockTimestamp: blockTimestamp},
+		Upgrade:     config.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialMint: initialMint,
 	}
 }
@@ -41,7 +41,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables ContractNativeMinter.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Uprade: config.Uprade{
+		Upgrade: config.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -56,7 +56,7 @@ func (c *Config) Equal(cfg config.Config) bool {
 	if !ok {
 		return false
 	}
-	eq := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
+	eq := c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
 	if !eq {
 		return false
 	}

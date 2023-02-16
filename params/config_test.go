@@ -154,7 +154,8 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 			AllowFeeRecipients: true,
 		})
 
-	testContractNativeMinterConfig := nativeminter.NewConfig(big.NewInt(0),
+	testContractNativeMinterConfig := nativeminter.NewConfig(
+		big.NewInt(0),
 		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
 		nil,
 		nil,
@@ -193,9 +194,9 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require.Equal(rewardManagerConfig.Key(), rewardmanager.ConfigKey)
 	require.True(rewardManagerConfig.Equal(testRewardManagerConfig))
 
-	contractNativeMinterConfig := c.GenesisPrecompiles[nativeminter.ConfigKey]
-	require.Equal(contractNativeMinterConfig.Key(), nativeminter.ConfigKey)
-	require.True(contractNativeMinterConfig.Equal(testContractNativeMinterConfig))
+	nativeMinterConfig := c.GenesisPrecompiles[nativeminter.ConfigKey]
+	require.Equal(nativeMinterConfig.Key(), nativeminter.ConfigKey)
+	require.True(nativeMinterConfig.Equal(testContractNativeMinterConfig))
 
 	// Marshal and unmarshal again and check that the result is the same
 	marshaled, err := json.Marshal(c)

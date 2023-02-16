@@ -18,7 +18,7 @@ var _ config.Config = &Config{}
 // interface while adding in the FeeManager specific precompile address.
 type Config struct {
 	allowlist.Config // Config for the fee config manager allow list
-	config.Uprade
+	config.Upgrade
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
 
@@ -30,7 +30,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Uprade:           config.Uprade{BlockTimestamp: blockTimestamp},
+		Upgrade:          config.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialFeeConfig: initialConfig,
 	}
 }
@@ -39,7 +39,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables FeeManager.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Uprade: config.Uprade{
+		Upgrade: config.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -55,7 +55,7 @@ func (c *Config) Equal(cfg config.Config) bool {
 	if !ok {
 		return false
 	}
-	eq := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
+	eq := c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
 	if !eq {
 		return false
 	}

@@ -172,8 +172,7 @@ func (c *ChainConfig) UnmarshalJSON(data []byte) error {
 	// Alias ChainConfig to avoid recursion
 	type _ChainConfig ChainConfig
 	tmp := _ChainConfig{}
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
+	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
 
@@ -194,14 +193,13 @@ func (c ChainConfig) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	// Marshal PrecompileUpgrade
+	// To include PrecompileUpgrades, we unmarshal the json representing c
+	// then directly add the corresponding keys to the json.
 	raw := make(map[string]json.RawMessage)
-	err = json.Unmarshal(tmp, &raw)
-	if err != nil {
+	if err := json.Unmarshal(tmp, &raw); err != nil {
 		return nil, err
 	}
 
-	// Marshal Precompiles and inline them into the JSON
 	for key, value := range c.GenesisPrecompiles {
 		conf, err := json.Marshal(value)
 		if err != nil {

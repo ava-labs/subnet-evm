@@ -17,7 +17,7 @@ var _ config.Config = &Config{}
 // interface while adding in the TxAllowList specific precompile address.
 type Config struct {
 	allowlist.Config
-	config.Uprade
+	config.Upgrade
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -28,7 +28,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Uprade: config.Uprade{BlockTimestamp: blockTimestamp},
+		Upgrade: config.Upgrade{BlockTimestamp: blockTimestamp},
 	}
 }
 
@@ -36,7 +36,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables TxAllowList.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Uprade: config.Uprade{
+		Upgrade: config.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -52,5 +52,5 @@ func (c *Config) Equal(cfg config.Config) bool {
 	if !ok {
 		return false
 	}
-	return c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
+	return c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
 }

@@ -58,7 +58,7 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 // interface while adding in the RewardManager specific precompile config.
 type Config struct {
 	allowlist.Config
-	config.Uprade
+	config.Upgrade
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
 
@@ -70,7 +70,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Uprade:              config.Uprade{BlockTimestamp: blockTimestamp},
+		Upgrade:             config.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialRewardConfig: initialConfig,
 	}
 }
@@ -79,7 +79,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables RewardManager.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Uprade: config.Uprade{
+		Upgrade: config.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -106,7 +106,7 @@ func (c *Config) Equal(cfg config.Config) bool {
 		return false
 	}
 
-	equals := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
+	equals := c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
 	if !equals {
 		return false
 	}
