@@ -147,7 +147,7 @@ func precompilegen(c *cli.Context) error {
 	// Generate the contract precompile
 	configCode, contractCode, err := bind.PrecompileBind(types, abis, bins, sigs, pkg, lang, libs, aliases, abifilename)
 	if err != nil {
-		utils.Fatalf("Failed to generate ABI precompile: %v", err)
+		utils.Fatalf("Failed to generate precompile: %v", err)
 	}
 
 	// Either flush it out to a file or display on the standard output
@@ -165,13 +165,13 @@ func precompilegen(c *cli.Context) error {
 	configCodeOut := filepath.Join(outFlagStr, "config.go")
 
 	if err := os.WriteFile(configCodeOut, []byte(configCode), 0o600); err != nil {
-		utils.Fatalf("Failed to write generated precompile: %v", err)
+		utils.Fatalf("Failed to write generated config code: %v", err)
 	}
 
 	contractCodeOut := filepath.Join(outFlagStr, "contract.go")
 
 	if err := os.WriteFile(contractCodeOut, []byte(contractCode), 0o600); err != nil {
-		utils.Fatalf("Failed to write generated precompile: %v", err)
+		utils.Fatalf("Failed to write generated contract code: %v", err)
 	}
 
 	if err := os.WriteFile(abipath, []byte(abis[0]), 0o600); err != nil {

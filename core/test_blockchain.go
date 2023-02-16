@@ -16,10 +16,9 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/precompile/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
@@ -1549,8 +1548,10 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	config := *params.TestChainConfig
 	// Set all of the required config parameters
-	config.ContractDeployerAllowListConfig = deployerallowlist.NewContractDeployerAllowListConfig(big.NewInt(0), []common.Address{addr1}, nil)
-	config.FeeManagerConfig = feemanager.NewFeeManagerConfig(big.NewInt(0), []common.Address{addr1}, nil, nil)
+	config.GenesisPrecompiles = params.ChainConfigPrecompiles{
+		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(big.NewInt(0), []common.Address{addr1}, nil),
+		feemanager.ConfigKey:        feemanager.NewConfig(big.NewInt(0), []common.Address{addr1}, nil, nil),
+	}
 	gspec := &Genesis{
 		Config: &config,
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
@@ -1590,14 +1591,14 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 		"allow list": {
 			addTx: func(gen *BlockGen) {
 				feeCap := new(big.Int).Add(gen.BaseFee(), tip)
-				input, err := allowlist.PackModifyAllowList(addr2, allowlist.AllowListAdmin)
+				input, err := allowlist.PackModifyAllowList(addr2, allowlist.AdminRole)
 				if err != nil {
 					t.Fatal(err)
 				}
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &precompile.ContractDeployerAllowListAddress,
+					To:        &deployerallowlist.ContractAddress,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,
@@ -1613,23 +1614,23 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 			},
 			verifyState: func(sdb *state.StateDB) error {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
-				if allowlist.AllowListAdmin != res {
-					return fmt.Errorf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AllowListAdmin)
+				if allowlist.AdminRole != res {
+					return fmt.Errorf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AdminRole)
 				}
 				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
-				if allowlist.AllowListAdmin != res {
-					return fmt.Errorf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.AllowListAdmin)
+				if allowlist.AdminRole != res {
+					return fmt.Errorf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.AdminRole)
 				}
 				return nil
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
 				res := deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr1)
-				if allowlist.AllowListAdmin != res {
-					t.Fatalf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AllowListAdmin)
+				if allowlist.AdminRole != res {
+					t.Fatalf("unexpected allow list status for addr1 %s, expected %s", res, allowlist.AdminRole)
 				}
 				res = deployerallowlist.GetContractDeployerAllowListStatus(sdb, addr2)
-				if allowlist.AllowListNoRole != res {
-					t.Fatalf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.AllowListNoRole)
+				if allowlist.NoRole != res {
+					t.Fatalf("unexpected allow list status for addr2 %s, expected %s", res, allowlist.NoRole)
 				}
 			},
 		},
@@ -1643,7 +1644,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 				tx := types.NewTx(&types.DynamicFeeTx{
 					ChainID:   params.TestChainConfig.ChainID,
 					Nonce:     gen.TxNonce(addr1),
-					To:        &precompile.FeeManagerAddress,
+					To:        &feemanager.ContractAddress,
 					Gas:       3_000_000,
 					Value:     common.Big0,
 					GasFeeCap: feeCap,
@@ -1659,7 +1660,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 			},
 			verifyState: func(sdb *state.StateDB) error {
 				res := feemanager.GetFeeManagerStatus(sdb, addr1)
-				assert.Equal(allowlist.AllowListAdmin, res)
+				assert.Equal(allowlist.AdminRole, res)
 
 				storedConfig := feemanager.GetStoredFeeConfig(sdb)
 				assert.EqualValues(testFeeConfig, storedConfig)
@@ -1671,7 +1672,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 			},
 			verifyGenesis: func(sdb *state.StateDB) {
 				res := feemanager.GetFeeManagerStatus(sdb, addr1)
-				assert.Equal(allowlist.AllowListAdmin, res)
+				assert.Equal(allowlist.AdminRole, res)
 
 				feeConfig, _, err := blockchain.GetFeeConfigAt(blockchain.Genesis().Header())
 				assert.NoError(err)

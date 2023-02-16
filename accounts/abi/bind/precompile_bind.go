@@ -43,11 +43,13 @@ func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []m
 
 	configBind, err := bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, configHook)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("failed to generate config binding: %w", err)
 	}
 	contractBind, err := bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, contractHook)
-
-	return configBind, contractBind, err
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate contract binding: %w", err)
+	}
+	return configBind, contractBind, nil
 }
 
 func createPrecompileHook(abifilename string, template string) BindHook {

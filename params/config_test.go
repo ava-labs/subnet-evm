@@ -27,9 +27,15 @@
 package params
 
 import (
+	"encoding/json"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckCompatible(t *testing.T) {
@@ -135,4 +141,68 @@ func TestCheckCompatible(t *testing.T) {
 			t.Errorf("error mismatch:\nstored: %v\nnew: %v\nblockHeight: %v\nerr: %v\nwant: %v", test.stored, test.new, test.blockHeight, err, test.wantErr)
 		}
 	}
+}
+
+func TestConfigUnmarshalJSON(t *testing.T) {
+	require := require.New(t)
+
+	testRewardManagerConfig := rewardmanager.NewConfig(
+		big.NewInt(1671542573),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		&rewardmanager.InitialRewardConfig{
+			AllowFeeRecipients: true,
+		})
+
+	testContractNativeMinterConfig := nativeminter.NewConfig(
+		big.NewInt(0),
+		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
+		nil,
+		nil,
+	)
+
+	config := []byte(`
+	{
+		"chainId": 43214,
+		"allowFeeRecipients": true,
+		"rewardManagerConfig": {
+			"blockTimestamp": 1671542573,
+			"adminAddresses": [
+				"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+			],
+			"initialRewardConfig": {
+				"allowFeeRecipients": true
+			}
+		},
+		"contractNativeMinterConfig": {
+			"blockTimestamp": 0,
+			"adminAddresses": [
+				"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+			]
+		}
+	}
+	`)
+	c := ChainConfig{}
+	err := json.Unmarshal(config, &c)
+	require.NoError(err)
+
+	require.Equal(c.ChainID, big.NewInt(43214))
+	require.Equal(c.AllowFeeRecipients, true)
+
+	rewardManagerConfig, ok := c.GenesisPrecompiles[rewardmanager.ConfigKey]
+	require.True(ok)
+	require.Equal(rewardManagerConfig.Key(), rewardmanager.ConfigKey)
+	require.True(rewardManagerConfig.Equal(testRewardManagerConfig))
+
+	nativeMinterConfig := c.GenesisPrecompiles[nativeminter.ConfigKey]
+	require.Equal(nativeMinterConfig.Key(), nativeminter.ConfigKey)
+	require.True(nativeMinterConfig.Equal(testContractNativeMinterConfig))
+
+	// Marshal and unmarshal again and check that the result is the same
+	marshaled, err := json.Marshal(c)
+	require.NoError(err)
+	c2 := ChainConfig{}
+	err = json.Unmarshal(marshaled, &c2)
+	require.NoError(err)
+	require.Equal(c, c2)
 }

@@ -34,7 +34,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile"
+	"github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -83,7 +84,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-
+		GenesisPrecompiles:  ChainConfigPrecompiles{},
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: big.NewInt(0),
 		},
@@ -105,7 +106,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
-		PrecompileUpgrade:   PrecompileUpgrade{},
+		GenesisPrecompiles:  ChainConfigPrecompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 
@@ -125,7 +126,7 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		NetworkUpgrades:     NetworkUpgrades{},
-		PrecompileUpgrade:   PrecompileUpgrade{},
+		GenesisPrecompiles:  ChainConfigPrecompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
 )
@@ -157,9 +158,57 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 
-	NetworkUpgrades              // Config for timestamps that enable avalanche network upgrades
-	PrecompileUpgrade            // Config for enabling precompiles from genesis
-	UpgradeConfig     `json:"-"` // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+	NetworkUpgrades                           // Config for timestamps that enable avalanche network upgrades
+	GenesisPrecompiles ChainConfigPrecompiles `json:"-"` // Config for enabling precompiles from genesis. JSON encode/decode will be handled by the custom marshaler/unmarshaler.
+	UpgradeConfig      `json:"-"`             // Config specified in upgradeBytes (avalanche network upgrades or enable/disabling precompiles). Skip encoding/decoding directly into ChainConfig.
+}
+
+// UnmarshalJSON parses the JSON-encoded data and stores the result in the
+// object pointed to by c.
+// This is a custom unmarshaler to handle the Precompiles field.
+// Precompiles was presented as an inline object in the JSON.
+// This custom unmarshaler ensures backwards compatibility with the old format.
+func (c *ChainConfig) UnmarshalJSON(data []byte) error {
+	// Alias ChainConfig to avoid recursion
+	type _ChainConfig ChainConfig
+	tmp := _ChainConfig{}
+	if err := json.Unmarshal(data, &tmp); err != nil {
+		return err
+	}
+
+	// At this point we have populated all fields except PrecompileUpgrade
+	*c = ChainConfig(tmp)
+
+	// Unmarshal inlined PrecompileUpgrade
+	return json.Unmarshal(data, &c.GenesisPrecompiles)
+}
+
+// MarshalJSON returns the JSON encoding of c.
+// This is a custom marshaler to handle the Precompiles field.
+func (c ChainConfig) MarshalJSON() ([]byte, error) {
+	// Alias ChainConfig to avoid recursion
+	type _ChainConfig ChainConfig
+	tmp, err := json.Marshal(_ChainConfig(c))
+	if err != nil {
+		return nil, err
+	}
+
+	// To include PrecompileUpgrades, we unmarshal the json representing c
+	// then directly add the corresponding keys to the json.
+	raw := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(tmp, &raw); err != nil {
+		return nil, err
+	}
+
+	for key, value := range c.GenesisPrecompiles {
+		conf, err := json.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		raw[key] = conf
+	}
+
+	return json.Marshal(raw)
 }
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -191,7 +240,7 @@ func (c *ChainConfig) String() string {
 	if err != nil {
 		networkUpgradesBytes = []byte("cannot marshal NetworkUpgrades")
 	}
-	precompileUpgradeBytes, err := json.Marshal(c.PrecompileUpgrade)
+	precompileUpgradeBytes, err := json.Marshal(c.GenesisPrecompiles)
 	if err != nil {
 		precompileUpgradeBytes = []byte("cannot marshal PrecompileUpgrade")
 	}
@@ -274,7 +323,7 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, blockTimestamp *big.Int) bool {
-	config := c.GetPrecompileConfig(address, blockTimestamp)
+	config := c.GetActivePrecompileConfig(address, blockTimestamp)
 	return config != nil && !config.IsDisabled()
 }
 
@@ -305,7 +354,7 @@ func (c *ChainConfig) Verify() error {
 
 	// Verify the precompile upgrades are internally consistent given the existing chainConfig.
 	if err := c.verifyPrecompileUpgrades(); err != nil {
-		return err
+		return fmt.Errorf("invalid precompile upgrades: %w", err)
 	}
 
 	return nil
@@ -505,15 +554,15 @@ type Rules struct {
 	// Rules for Avalanche releases
 	IsSubnetEVM bool
 
-	// Precompiles maps addresses to stateful precompiled contracts that are enabled
+	// ActivePrecompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
-	Precompiles map[common.Address]precompile.StatefulPrecompiledContract
+	ActivePrecompiles map[common.Address]config.Config
 }
 
 func (r *Rules) IsPrecompileEnabled(addr common.Address) bool {
-	_, ok := r.Precompiles[addr]
+	_, ok := r.ActivePrecompiles[addr]
 	return ok
 }
 
@@ -544,12 +593,11 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsSubnetEVM = c.IsSubnetEVM(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	rules.Precompiles = make(map[common.Address]precompile.StatefulPrecompiledContract)
-	for _, config := range c.EnabledStatefulPrecompiles(blockTimestamp) {
-		if config.IsDisabled() {
-			continue
+	rules.ActivePrecompiles = make(map[common.Address]config.Config)
+	for _, module := range modules.RegisteredModules() {
+		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil {
+			rules.ActivePrecompiles[module.Address] = config
 		}
-		rules.Precompiles[config.Address()] = config.Contract()
 	}
 
 	return rules

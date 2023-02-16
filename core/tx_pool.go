@@ -42,8 +42,10 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile"
-	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/vmerrs"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	"github.com/ethereum/go-ethereum/event"
@@ -694,10 +696,10 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 
 	// If the tx allow list is enabled, return an error if the from address is not allow listed.
 	headTimestamp := big.NewInt(int64(pool.currentHead.Time))
-	if pool.chainconfig.IsPrecompileEnabled(precompile.TxAllowListAddress, headTimestamp) {
+	if pool.chainconfig.IsPrecompileEnabled(txallowlist.ContractAddress, headTimestamp) {
 		txAllowListRole := txallowlist.GetTxAllowListStatus(pool.currentState, from)
 		if !txAllowListRole.IsEnabled() {
-			return fmt.Errorf("%w: %s", txallowlist.ErrSenderAddressNotAllowListed, from)
+			return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, from)
 		}
 	}
 	return nil
@@ -1446,7 +1448,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	// without requiring FeeManager is enabled.
 	// This is already being set by SetMinFee when gas price updater starts.
 	// However tests are currently failing if we change this check to IsSubnetEVM.
-	if pool.chainconfig.IsPrecompileEnabled(precompile.FeeManagerAddress, new(big.Int).SetUint64(newHead.Time)) {
+	if pool.chainconfig.IsPrecompileEnabled(feemanager.ContractAddress, new(big.Int).SetUint64(newHead.Time)) {
 		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
 			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)

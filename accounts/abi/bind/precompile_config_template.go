@@ -14,14 +14,14 @@ const tmplSourcePrecompileConfigGo = `
 // For testing take a look at other precompile tests in core/stateful_precompile_test.go and config_test.go in other precompile folders.
 
 /* General guidelines for precompile development:
-1- Read the comment and set a suitable contract address in precompile/params.go. E.g:
-	{{.Contract.Type}}Address = common.HexToAddress("ASUITABLEHEXADDRESS")
-2- Set gas costs in contract.go
-3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
+1- Read the comment and set a suitable contract address in generated contract.go. E.g:
+	ContractAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
+2- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 Typically, custom codes are required in only those areas.
-4- Add your upgradable config in params/precompile_config.go
-5- Add your precompile upgrade in params/config.go
-6- Add your config unit test in {generatedpkg}/config_test.go
+3- Set gas costs in generated contract.go
+4- Register your precompile module in params/precompile_modules.go
+5- Add your config unit tests under generated package config_test.go
+6- Add your contract unit tests under tests/statefulprecompiles/{precompilename}_test.go
 7- Add your solidity interface and test contract to contract-examples/contracts
 8- Write solidity tests for your precompile in contract-examples/test
 9- Create your genesis with your precompile enabled in tests/e2e/genesis/
@@ -33,24 +33,27 @@ Typically, custom codes are required in only those areas.
 package {{.Package}}
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile"
+	{{- if .Contract.AllowList}}
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	{{- end}}
 
 	"github.com/ethereum/go-ethereum/common"
 )
 
-{{$contract := .Contract}}
-var (
-	_ precompile.StatefulPrecompileConfig = &{{.Contract.Type}}Config{}
-)
+var _ precompile.StatefulPrecompileConfig = &{{.Contract.Type}}Config{}
+
+// ConfigKey is the key used in json config files to specify this precompile config.
+// Must be unique across all precompiles.
+const ConfigKey = "{{decapitalise .Contract.Type}}Config"
 
 // {{.Contract.Type}}Config implements the StatefulPrecompileConfig
 // interface while adding in the {{.Contract.Type}} specific precompile address.
 type {{.Contract.Type}}Config struct {
 	{{- if .Contract.AllowList}}
-	precompile.AllowListConfig
+	allowlist.AllowListConfig
 	{{- end}}
 	precompile.UpgradeableConfig
 }
@@ -81,7 +84,7 @@ type {{capitalise .Normalized.Name}}Output struct{
 // {{.Contract.Type}} {{if .Contract.AllowList}} with the given [admins] as members of the allowlist {{end}}.
 func New{{.Contract.Type}}Config(blockTimestamp *big.Int{{if .Contract.AllowList}}, admins []common.Address{{end}}) *{{.Contract.Type}}Config {
 	return &{{.Contract.Type}}Config{
-		{{if .Contract.AllowList}}AllowListConfig:   precompile.AllowListConfig{AllowListAdmins: admins},{{end}}
+		{{if .Contract.AllowList}}AllowListConfig:   allowlist.AllowListConfig{AdminAddresses: admins},{{end}}
 		UpgradeableConfig: precompile.UpgradeableConfig{BlockTimestamp: blockTimestamp},
 	}
 }
@@ -125,27 +128,41 @@ func (c *{{.Contract.Type}}Config) Equal(s precompile.StatefulPrecompileConfig) 
 	return equals
 }
 
-// Address returns the address of the {{.Contract.Type}}. Addresses reside under the precompile/params.go
-// Select a non-conflicting address and set it in the params.go.
-func (c *{{.Contract.Type}}Config) Address() common.Address {
-	return {{.Contract.Type}}Address
-}
-
 // Configure configures [state] with the initial configuration.
 func (c *{{.Contract.Type}}Config) Configure(_ precompile.ChainConfig, state precompile.StateDB, _ precompile.BlockContext) error {
-	{{if .Contract.AllowList}}c.AllowListConfig.Configure(state, {{.Contract.Type}}Address){{end}}
+	{{if .Contract.AllowList}}c.AllowListConfig.Configure(state, ContractAddress){{end}}
 	// CUSTOM CODE STARTS HERE
 	return nil
 }
 
+
+// Required module functions for {{.Contract.Type}}Config
+// These functions mostly do not require any custom code.
+
+// NewModule returns a new module for {{.Contract.Type}}.
+func NewModule() precompile.StatefulPrecompileModule {
+	return &{{.Contract.Type}}Config{}
+}
+
+// Address returns the address of the {{.Contract.Type}}.
+// Select a non-conflicting address and set it in generated contract.go
+func ({{.Contract.Type}}Config) Address() common.Address {
+	return ContractAddress
+}
+
 // Contract returns the singleton stateful precompiled contract to be used for {{.Contract.Type}}.
-func (c *{{.Contract.Type}}Config) Contract() precompile.StatefulPrecompiledContract {
+func ({{.Contract.Type}}Config) Contract() precompile.StatefulPrecompiledContract {
 	return {{.Contract.Type}}Precompile
 }
 
-// String returns a string representation of the {{.Contract.Type}}Config.
-func (c *{{.Contract.Type}}Config) String() string {
-	bytes, _ := json.Marshal(c)
-	return string(bytes)
+// Key returns the key used in json config files to specify this precompile config.
+func ({{.Contract.Type}}Config) Key() string {
+	return ConfigKey
+}
+
+// New returns a new {{.Contract.Type}}Config.
+// This is used by the json parser to create a new instance of the {{.Contract.Type}}Config.
+func ({{.Contract.Type}}Config) NewConfig() precompile.StatefulPrecompileConfig {
+	return new({{.Contract.Type}}Config)
 }
 `

@@ -15,7 +15,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/txallowlist"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -167,7 +167,7 @@ func (ec *EvmClient) TransferTx(
 		if err := ec.ethClient.SendTransaction(ctx, signedTx); err != nil {
 			log.Printf("failed to send transaction: %v (key address %s)", err, sender)
 
-			if strings.Contains(err.Error(), txallowlist.ErrSenderAddressNotAllowListed.Error()) {
+			if strings.Contains(err.Error(), vmerrs.ErrSenderAddressNotAllowListed.Error()) {
 				return nil, err
 			}
 
