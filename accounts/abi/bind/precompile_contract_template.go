@@ -41,16 +41,16 @@ Typically, custom codes are required in only those areas.
 8- Write solidity tests for your precompile in contract-examples/test
 9- Create your genesis with your precompile enabled in tests/e2e/genesis/
 10- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
-11- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
-
+11- Run your e2e precompile Solidity tests with './scripts/run_ginkgo.sh'
 */
 
 package {{.Package}}
 
 import (
-	"math/big"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
