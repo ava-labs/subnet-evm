@@ -44,9 +44,9 @@ import (
 )
 
 var (
-	chainConfig = params.TestChainConfig
-	signer      = types.LatestSigner(chainConfig)
-	testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	config     = params.TestChainConfig
+	signer     = types.LatestSigner(config)
+	testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 )
 
 func makeTx(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *types.Transaction {
@@ -71,12 +71,12 @@ func mkDynamicTx(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, ga
 // blockchain imports bad blocks, meaning blocks which have valid headers but
 // contain invalid transactions
 func TestStateProcessorErrors(t *testing.T) {
-	chainConfig.FeeConfig.MinBaseFee = params.TestMaxBaseFee
+	config.FeeConfig.MinBaseFee = params.TestMaxBaseFee
 	{ // Tests against a 'recent' chain definition
 		var (
 			db    = rawdb.NewMemoryDatabase()
 			gspec = &Genesis{
-				Config: chainConfig,
+				Config: config,
 				Alloc: GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): GenesisAccount{
 						Balance: big.NewInt(2000000000000000000), // 2 ether
@@ -254,7 +254,7 @@ func TestStateProcessorErrors(t *testing.T) {
 		var (
 			db    = rawdb.NewMemoryDatabase()
 			gspec = &Genesis{
-				Config: chainConfig,
+				Config: config,
 				Alloc: GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): GenesisAccount{
 						Balance: big.NewInt(1000000000000000000), // 1 ether

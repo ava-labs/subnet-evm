@@ -21,7 +21,7 @@ var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 // PrecompileUpgrade is a helper struct embedded in UpgradeConfig.
 // It is used to unmarshal the json into the correct precompile config type
 // based on the key. Keys are defined in each precompile module, and registered in
-// params/precompile_modules.go.
+// precompile/registry/registry.go.
 type PrecompileUpgrade struct {
 	config.Config
 }
@@ -29,6 +29,7 @@ type PrecompileUpgrade struct {
 // UnmarshalJSON unmarshals the json into the correct precompile config type
 // based on the key. Keys are defined in each precompile module, and registered in
 // params/precompile_modules.go.
+// precompile/registry/registry.go.
 // Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
 func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 	raw := make(map[string]json.RawMessage)
@@ -47,8 +48,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("unknown precompile config: %s", key)
 		}
 		config := module.NewConfig()
-		err := json.Unmarshal(value, config)
-		if err != nil {
+		if err := json.Unmarshal(value, config); err != nil {
 			return err
 		}
 		u.Config = config
@@ -163,13 +163,12 @@ func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTim
 // GetActivatingPrecompileConfigs returns all upgrades configured to activate during the state transition from a block with timestamp [from]
 // to a block with timestamp [to].
 func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []config.Config {
-	configs := make([]config.Config, 0)
-
 	// Get key from address.
 	module, ok := modules.GetPrecompileModuleByAddress(address)
 	if !ok {
-		return configs
+		return nil
 	}
+	configs := make([]config.Config, 0)
 	key := module.ConfigKey
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
@@ -191,11 +190,12 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 }
 
 // CheckPrecompilesCompatible checks if [precompileUpgrades] are compatible with [c] at [headTimestamp].
-// Returns a ConfigCompatError if upgrades already forked at [headTimestamp] are missing from
-// [precompileUpgrades]. Upgrades not already forked may be modified or absent from [precompileUpgrades].
+// Returns a ConfigCompatError if upgrades already activated at [headTimestamp] are missing from
+// [precompileUpgrades]. Upgrades not already activated may be modified or absent from [precompileUpgrades].
 // Returns nil if [precompileUpgrades] is compatible with [c].
 // Assumes given timestamp is the last accepted block timestamp.
-// This ensures that as long as the node has not accepted a block with a different rule set it will allow a new upgrade to be applied as long as it activates after the last accepted block.
+// This ensures that as long as the node has not accepted a block with a different rule set it will allow a
+// new upgrade to be applied as long as it activates after the last accepted block.
 func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
 	for _, module := range modules.RegisteredModules() {
 		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, lastTimestamp); err != nil {
@@ -206,15 +206,16 @@ func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []Precompile
 	return nil
 }
 
-// checkPrecompileCompatible verifies that the precompile specified by [address] is compatible between [c] and [precompileUpgrades] at [headTimestamp].
-// Returns an error if upgrades already forked at [headTimestamp] are missing from [precompileUpgrades].
+// checkPrecompileCompatible verifies that the precompile specified by [address] is compatible between [c]
+// and [precompileUpgrades] at [headTimestamp].
+// Returns an error if upgrades already activated at [headTimestamp] are missing from [precompileUpgrades].
 // Upgrades that have already gone into effect cannot be modified or absent from [precompileUpgrades].
 func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
-	// all active upgrades must match
+	// All active upgrades (from nil to [lastTimestamp]) must match.
 	activeUpgrades := c.GetActivatingPrecompileConfigs(address, nil, lastTimestamp, c.PrecompileUpgrades)
 	newUpgrades := c.GetActivatingPrecompileConfigs(address, nil, lastTimestamp, precompileUpgrades)
 
-	// first, check existing upgrades are there
+	// Check activated upgrades are still present.
 	for i, upgrade := range activeUpgrades {
 		if len(newUpgrades) <= i {
 			// missing upgrade
@@ -224,7 +225,7 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 				nil,
 			)
 		}
-		// All upgrades that have forked must be identical.
+		// All upgrades that have activated must be identical.
 		if !upgrade.Equal(newUpgrades[i]) {
 			return newCompatError(
 				fmt.Sprintf("PrecompileUpgrade[%d]", i),

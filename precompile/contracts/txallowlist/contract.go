@@ -4,19 +4,13 @@
 package txallowlist
 
 import (
-	"errors"
-
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var (
-	// Singleton StatefulPrecompiledContract for W/R access to the tx allow list.
-	TxAllowListPrecompile contract.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(ContractAddress)
-
-	ErrSenderAddressNotAllowListed = errors.New("cannot issue transaction from non-allow listed address")
-)
+// Singleton StatefulPrecompiledContract for W/R access to the tx allow list.
+var TxAllowListPrecompile contract.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(ContractAddress)
 
 // GetTxAllowListStatus returns the role of [address] for the tx allow list.
 func GetTxAllowListStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {

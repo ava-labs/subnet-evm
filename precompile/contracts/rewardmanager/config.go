@@ -54,11 +54,11 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 	return nil
 }
 
-// Config implements the StatefulPrecompileConfig
-// interface while adding in the RewardManager specific precompile config.
+// Config implements the StatefulPrecompileConfig interface while adding in the
+// RewardManager specific precompile config.
 type Config struct {
 	allowlist.Config
-	config.Uprade
+	config.Upgrade
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
 
@@ -70,7 +70,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Uprade:              config.Uprade{BlockTimestamp: blockTimestamp},
+		Upgrade:             config.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialRewardConfig: initialConfig,
 	}
 }
@@ -79,23 +79,22 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables RewardManager.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Uprade: config.Uprade{
+		Upgrade: config.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
 	}
 }
 
-func (Config) Key() string { return ConfigKey }
+func (*Config) Key() string { return ConfigKey }
 
 func (c *Config) Verify() error {
-	if err := c.Config.Verify(); err != nil {
-		return err
-	}
 	if c.InitialRewardConfig != nil {
-		return c.InitialRewardConfig.Verify()
+		if err := c.InitialRewardConfig.Verify(); err != nil {
+			return err
+		}
 	}
-	return nil
+	return c.Config.Verify()
 }
 
 // Equal returns true if [cfg] is a [*RewardManagerConfig] and it has been configured identical to [c].
@@ -106,14 +105,14 @@ func (c *Config) Equal(cfg config.Config) bool {
 		return false
 	}
 
-	equals := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
-	if !equals {
-		return false
+	if c.InitialRewardConfig != nil {
+		if other.InitialRewardConfig == nil {
+			return false
+		}
+		if !c.InitialRewardConfig.Equal(other.InitialRewardConfig) {
+			return false
+		}
 	}
 
-	if c.InitialRewardConfig == nil {
-		return other.InitialRewardConfig == nil
-	}
-
-	return c.InitialRewardConfig.Equal(other.InitialRewardConfig)
+	return c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
 }

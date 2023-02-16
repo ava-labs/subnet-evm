@@ -9,29 +9,29 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
-// Uprade contains the timestamp for the upgrade along with
+// Upgrade contains the timestamp for the upgrade along with
 // a boolean [Disable]. If [Disable] is set, the upgrade deactivates
-// the precompile and resets its storage.
-type Uprade struct {
+// the precompile and clears its storage.
+type Upgrade struct {
 	BlockTimestamp *big.Int `json:"blockTimestamp"`
 	Disable        bool     `json:"disable,omitempty"`
 }
 
 // Timestamp returns the timestamp this network upgrade goes into effect.
-func (c *Uprade) Timestamp() *big.Int {
-	return c.BlockTimestamp
+func (u *Upgrade) Timestamp() *big.Int {
+	return u.BlockTimestamp
 }
 
 // IsDisabled returns true if the network upgrade deactivates the precompile.
-func (c *Uprade) IsDisabled() bool {
-	return c.Disable
+func (u *Upgrade) IsDisabled() bool {
+	return u.Disable
 }
 
 // Equal returns true iff [other] has the same blockTimestamp and has the
 // same on value for the Disable flag.
-func (c *Uprade) Equal(other *Uprade) bool {
+func (u *Upgrade) Equal(other *Upgrade) bool {
 	if other == nil {
 		return false
 	}
-	return c.Disable == other.Disable && utils.BigNumEqual(c.BlockTimestamp, other.BlockTimestamp)
+	return u.Disable == other.Disable && utils.BigNumEqual(u.BlockTimestamp, other.BlockTimestamp)
 }

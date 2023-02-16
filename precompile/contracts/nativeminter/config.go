@@ -16,12 +16,12 @@ import (
 
 var _ config.Config = &Config{}
 
-// Config wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
-// interface while adding in the ContractNativeMinter specific precompile address.
+// Config implements the StatefulPrecompileConfig interface while adding in the
+// ContractNativeMinter specific precompile config.
 type Config struct {
 	allowlist.Config
-	config.Uprade
-	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
+	config.Upgrade
+	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // addresses to receive the initial mint mapped to the amount to mint
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -32,7 +32,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Uprade:      config.Uprade{BlockTimestamp: blockTimestamp},
+		Upgrade:     config.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialMint: initialMint,
 	}
 }
@@ -41,13 +41,13 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables ContractNativeMinter.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Uprade: config.Uprade{
+		Upgrade: config.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
 	}
 }
-func (Config) Key() string { return ConfigKey }
+func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
 func (c *Config) Equal(cfg config.Config) bool {
@@ -56,7 +56,7 @@ func (c *Config) Equal(cfg config.Config) bool {
 	if !ok {
 		return false
 	}
-	eq := c.Uprade.Equal(&other.Uprade) && c.Config.Equal(&other.Config)
+	eq := c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
 	if !eq {
 		return false
 	}
@@ -81,9 +81,6 @@ func (c *Config) Equal(cfg config.Config) bool {
 }
 
 func (c *Config) Verify() error {
-	if err := c.Config.Verify(); err != nil {
-		return err
-	}
 	// ensure that all of the initial mint values in the map are non-nil positive values
 	for addr, amount := range c.InitialMint {
 		if amount == nil {
@@ -94,5 +91,5 @@ func (c *Config) Verify() error {
 			return fmt.Errorf("initial mint cannot contain invalid amount %v for address %s", bigIntAmount, addr)
 		}
 	}
-	return nil
+	return c.Config.Verify()
 }

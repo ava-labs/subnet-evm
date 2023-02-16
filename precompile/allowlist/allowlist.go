@@ -6,21 +6,18 @@ package allowlist
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// AllowList is a precompile that allows the admin to set the permissions of
-// addresses. AllowList itself is not a precompile, but rather a helper
-// function that is used by other precompiles to determine if an address has
-// permissions.
-// The permissions are:
-// 1. No role assigned - this is equivalent to common.Hash{} and deletes the key from the DB when set
-// 2. Enabled are allowed to take certain actions
-// 3. Admin - allowed to modify both the admin and enabled list as well as take certain actions
+// AllowList is an abstraction that allows other precompiles to manage
+// which addresses can call the precompile by maintaining an allowlist
+// in the storage trie. Each account may have one of the following roles:
+// 1. NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
+// 2. EnabledRole - allowed to call the precompile
+// 3. Admin - allowed to modify both the allowlist and call the precompile
 
 const (
 	SetAdminFuncKey      = "setAdmin"
@@ -32,10 +29,12 @@ const (
 	ReadAllowListGasCost   = contract.ReadGasCostPerSlot
 )
 
+const allowListInputLen = common.HashLength
+
 var (
-	NoRole      Role = Role(common.BigToHash(big.NewInt(0))) // No role assigned - this is equivalent to common.Hash{} and deletes the key from the DB when set
-	EnabledRole Role = Role(common.BigToHash(big.NewInt(1))) // Deployers are allowed to create new contracts
-	AdminRole   Role = Role(common.BigToHash(big.NewInt(2))) // Admin - allowed to modify both the admin and deployer list as well as deploy contracts
+	NoRole      = Role(common.BigToHash(common.Big0)) // NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
+	EnabledRole = Role(common.BigToHash(common.Big1)) // EnabledRole - allowed to call the precompile
+	AdminRole   = Role(common.BigToHash(common.Big2)) // Admin - allowed to modify both the allowlist and call the precompile
 
 	// AllowList function signatures
 	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
@@ -44,8 +43,6 @@ var (
 	readAllowListSignature = contract.CalculateFunctionSelector("readAllowList(address)")
 	// Error returned when an invalid write is attempted
 	ErrCannotModifyAllowList = errors.New("non-admin cannot modify allow list")
-
-	allowListInputLen = common.HashLength
 )
 
 // GetAllowListStatus returns the allow list role of [address] for the precompile
@@ -152,7 +149,7 @@ func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrec
 	}
 }
 
-// createAllowListPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr]
+// CreateAllowListPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr]
 func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulPrecompiledContract {
 	// Construct the contract with no fallback function.
 	allowListFuncs := CreateAllowListFunctions(precompileAddr)

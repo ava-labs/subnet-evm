@@ -58,31 +58,31 @@ func TestEqualAllowListConfig(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name     string
-		config   Config
+		config   *Config
 		other    *Config
 		expected bool
 	}{
 		{
 			name:     "non-nil config and nil other",
-			config:   Config{admins, enableds},
+			config:   &Config{admins, enableds},
 			other:    nil,
 			expected: false,
 		},
 		{
 			name:     "different admin",
-			config:   Config{admins, enableds},
+			config:   &Config{admins, enableds},
 			other:    &Config{[]common.Address{{3}}, enableds},
 			expected: false,
 		},
 		{
 			name:     "different enabled",
-			config:   Config{admins, enableds},
+			config:   &Config{admins, enableds},
 			other:    &Config{admins, []common.Address{{3}}},
 			expected: false,
 		},
 		{
 			name:     "same config",
-			config:   Config{admins, enableds},
+			config:   &Config{admins, enableds},
 			other:    &Config{admins, enableds},
 			expected: true,
 		},

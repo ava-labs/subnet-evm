@@ -44,6 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
@@ -698,7 +699,7 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 	if pool.chainconfig.IsPrecompileEnabled(txallowlist.ContractAddress, headTimestamp) {
 		txAllowListRole := txallowlist.GetTxAllowListStatus(pool.currentState, from)
 		if !txAllowListRole.IsEnabled() {
-			return fmt.Errorf("%w: %s", txallowlist.ErrSenderAddressNotAllowListed, from)
+			return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, from)
 		}
 	}
 	return nil

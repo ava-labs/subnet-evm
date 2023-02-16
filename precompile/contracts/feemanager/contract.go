@@ -216,10 +216,6 @@ func StoreFeeConfig(stateDB contract.StateDB, feeConfig commontype.FeeConfig, bl
 		return fmt.Errorf("blockNumber cannot be nil")
 	}
 	stateDB.SetState(ContractAddress, feeConfigLastChangedAtKey, common.BigToHash(blockNumber))
-
-	conf := GetStoredFeeConfig(stateDB)
-	fmt.Println(conf)
-
 	return nil
 }
 
