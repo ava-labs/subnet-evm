@@ -112,7 +112,7 @@ func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]by
 // assumes that [input] does not include selector (omits first 4 bytes in PackSetFeeConfigInput)
 func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 	if len(input) != feeConfigInputLen {
-		return commontype.FeeConfig{}, fmt.Errorf("invalid input length for fee config input: %d", len(input))
+		return commontype.FeeConfig{}, fmt.Errorf("invalid input length for fee config Input: %d", len(input))
 	}
 	feeConfig := commontype.FeeConfig{}
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {

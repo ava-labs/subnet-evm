@@ -39,7 +39,7 @@ func (*configurator) NewConfig() config.Config {
 	return &Config{}
 }
 
-// Configure configures [state] with the initial state for the precompile.
+// Configure configures [state] with the given [cfg] config.
 func (c *configurator) Configure(_ contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {

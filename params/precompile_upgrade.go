@@ -248,8 +248,8 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 }
 
 // EnabledStatefulPrecompiles returns current stateful precompile configs that are enabled at [blockTimestamp].
-func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) ChainConfigPrecompiles {
-	statefulPrecompileConfigs := make(ChainConfigPrecompiles)
+func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) Precompiles {
+	statefulPrecompileConfigs := make(Precompiles)
 	for _, module := range modules.RegisteredModules() {
 		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
 			statefulPrecompileConfigs[module.ConfigKey] = config

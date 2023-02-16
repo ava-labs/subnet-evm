@@ -17,12 +17,12 @@ func TestVerifyContractDeployerConfig(t *testing.T) {
 	tests := []struct {
 		name          string
 		config        config.Config
-		expectedError string
+		ExpectedError string
 	}{
 		{
 			name:          "invalid allow list config in deployer allowlist",
 			config:        NewConfig(big.NewInt(3), admins, admins),
-			expectedError: "cannot set address",
+			ExpectedError: "cannot set address",
 		},
 	}
 	for _, tt := range tests {
@@ -30,10 +30,10 @@ func TestVerifyContractDeployerConfig(t *testing.T) {
 			require := require.New(t)
 
 			err := tt.config.Verify()
-			if tt.expectedError == "" {
+			if tt.ExpectedError == "" {
 				require.NoError(err)
 			} else {
-				require.ErrorContains(err, tt.expectedError)
+				require.ErrorContains(err, tt.ExpectedError)
 			}
 		})
 	}

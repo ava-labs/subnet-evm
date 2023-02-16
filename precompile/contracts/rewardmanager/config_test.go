@@ -18,12 +18,12 @@ func TestVerifyRewardManagerConfig(t *testing.T) {
 	tests := []struct {
 		name          string
 		config        config.Config
-		expectedError string
+		ExpectedError string
 	}{
 		{
 			name:          "duplicate enableds in config in reward manager allowlist",
 			config:        NewConfig(big.NewInt(3), admins, append(enableds, enableds[0]), nil),
-			expectedError: "duplicate address",
+			ExpectedError: "duplicate address",
 		},
 		{
 			name: "both reward mechanisms should not be activated at the same time in reward manager",
@@ -31,7 +31,7 @@ func TestVerifyRewardManagerConfig(t *testing.T) {
 				AllowFeeRecipients: true,
 				RewardAddress:      common.HexToAddress("0x01"),
 			}),
-			expectedError: ErrCannotEnableBothRewards.Error(),
+			ExpectedError: ErrCannotEnableBothRewards.Error(),
 		},
 	}
 	for _, tt := range tests {
@@ -39,10 +39,10 @@ func TestVerifyRewardManagerConfig(t *testing.T) {
 			require := require.New(t)
 
 			err := tt.config.Verify()
-			if tt.expectedError == "" {
+			if tt.ExpectedError == "" {
 				require.NoError(err)
 			} else {
-				require.ErrorContains(err, tt.expectedError)
+				require.ErrorContains(err, tt.ExpectedError)
 			}
 		})
 	}

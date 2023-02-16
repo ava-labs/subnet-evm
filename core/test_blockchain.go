@@ -1548,7 +1548,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	config := *params.TestChainConfig
 	// Set all of the required config parameters
-	config.GenesisPrecompiles = params.ChainConfigPrecompiles{
+	config.GenesisPrecompiles = params.Precompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(big.NewInt(0), []common.Address{addr1}, nil),
 		feemanager.ConfigKey:        feemanager.NewConfig(big.NewInt(0), []common.Address{addr1}, nil, nil),
 	}

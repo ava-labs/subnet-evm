@@ -19,22 +19,22 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 	tests := []struct {
 		name          string
 		config        config.Config
-		expectedError string
+		ExpectedError string
 	}{
 		{
 			name:          "invalid allow list config in native minter allowlist",
 			config:        NewConfig(big.NewInt(3), admins, admins, nil),
-			expectedError: "cannot set address",
+			ExpectedError: "cannot set address",
 		},
 		{
 			name:          "duplicate admins in config in native minter allowlist",
 			config:        NewConfig(big.NewInt(3), append(admins, admins[0]), enableds, nil),
-			expectedError: "duplicate address",
+			ExpectedError: "duplicate address",
 		},
 		{
 			name:          "duplicate enableds in config in native minter allowlist",
 			config:        NewConfig(big.NewInt(3), admins, append(enableds, enableds[0]), nil),
-			expectedError: "duplicate address",
+			ExpectedError: "duplicate address",
 		},
 		{
 			name: "nil amount in native minter config",
@@ -43,7 +43,7 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): nil,
 				}),
-			expectedError: "initial mint cannot contain nil",
+			ExpectedError: "initial mint cannot contain nil",
 		},
 		{
 			name: "negative amount in native minter config",
@@ -52,7 +52,7 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(-1),
 				}),
-			expectedError: "initial mint cannot contain invalid amount",
+			ExpectedError: "initial mint cannot contain invalid amount",
 		},
 	}
 	for _, tt := range tests {
@@ -60,10 +60,10 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 			require := require.New(t)
 
 			err := tt.config.Verify()
-			if tt.expectedError == "" {
+			if tt.ExpectedError == "" {
 				require.NoError(err)
 			} else {
-				require.ErrorContains(err, tt.expectedError)
+				require.ErrorContains(err, tt.ExpectedError)
 			}
 		})
 	}

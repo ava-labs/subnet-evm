@@ -23,7 +23,8 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// FeeManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial fee config if specified.
+// FeeManager with the given [admins] and [enableds] as members of the
+// allowlist with [initialConfig] as initial fee config if specified.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *Config {
 	return &Config{
 		Config: allowlist.Config{

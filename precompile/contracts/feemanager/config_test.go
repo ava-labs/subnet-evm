@@ -31,12 +31,12 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 	tests := []struct {
 		name          string
 		config        config.Config
-		expectedError string
+		ExpectedError string
 	}{
 		{
 			name:          "invalid allow list config in fee manager allowlist",
 			config:        NewConfig(big.NewInt(3), admins, admins, nil),
-			expectedError: "cannot set address",
+			ExpectedError: "cannot set address",
 		},
 		{
 			name: "invalid initial fee manager config",
@@ -44,7 +44,7 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 				&commontype.FeeConfig{
 					GasLimit: big.NewInt(0),
 				}),
-			expectedError: "gasLimit = 0 cannot be less than or equal to 0",
+			ExpectedError: "gasLimit = 0 cannot be less than or equal to 0",
 		},
 	}
 	for _, tt := range tests {
@@ -52,10 +52,10 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 			require := require.New(t)
 
 			err := tt.config.Verify()
-			if tt.expectedError == "" {
+			if tt.ExpectedError == "" {
 				require.NoError(err)
 			} else {
-				require.ErrorContains(err, tt.expectedError)
+				require.ErrorContains(err, tt.ExpectedError)
 			}
 		})
 	}

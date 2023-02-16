@@ -12,27 +12,11 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
-
-type precompileTest struct {
-	caller      common.Address
-	input       func() []byte
-	suppliedGas uint64
-	readOnly    bool
-
-	config config.Config
-
-	preCondition func(t *testing.T, state *state.StateDB)
-	assertState  func(t *testing.T, state *state.StateDB)
-
-	expectedRes []byte
-	expectedErr string
-}
 
 var testFeeConfig = commontype.FeeConfig{
 	GasLimit:        big.NewInt(8_000_000),
@@ -50,73 +34,72 @@ var testFeeConfig = commontype.FeeConfig{
 func TestFeeManagerRun(t *testing.T) {
 	testBlockNumber := big.NewInt(7)
 
-	adminAddr := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
-	enabledAddr := common.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
-	noRoleAddr := common.HexToAddress("0xF60C45c607D0f41687c94C314d300f483661E13a")
+	adminAddr := common.BigToAddress(common.Big0)
+	enabledAddr := common.BigToAddress(common.Big1)
+	noRoleAddr := common.BigToAddress(common.Big2)
 
-	for name, test := range map[string]precompileTest{
+	for name, test := range map[string]contract.PrecompileTest{
 		"set config from no role fails": {
-			caller: noRoleAddr,
-			input: func() []byte {
+			Caller: noRoleAddr,
+			Input: func(tt *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(t, err)
+				require.NoError(tt, err)
 
 				return input
-			},
-			suppliedGas: SetFeeConfigGasCost,
-			readOnly:    false,
-			expectedErr: ErrCannotChangeFee.Error(),
+			}(t),
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    false,
+			ExpectedErr: ErrCannotChangeFee.Error(),
 		},
 		"set config from enabled address": {
-			caller: enabledAddr,
-			input: func() []byte {
+			Caller: enabledAddr,
+			Input: func(tt *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(t, err)
+				require.NoError(tt, err)
 
 				return input
-			},
-			suppliedGas: SetFeeConfigGasCost,
-			readOnly:    false,
-			expectedRes: []byte{},
-			assertState: func(t *testing.T, state *state.StateDB) {
+			}(t),
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t *testing.T, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
 				require.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
 		"set invalid config from enabled address": {
-			caller: enabledAddr,
-			input: func() []byte {
+			Caller: enabledAddr,
+			Input: func(tt *testing.T) []byte {
 				feeConfig := testFeeConfig
 				feeConfig.MinBlockGasCost = new(big.Int).Mul(feeConfig.MaxBlockGasCost, common.Big2)
 				input, err := PackSetFeeConfig(feeConfig)
-				require.NoError(t, err)
+				require.NoError(tt, err)
 
 				return input
-			},
-			suppliedGas: SetFeeConfigGasCost,
-			readOnly:    false,
-			expectedRes: nil,
-			config: &Config{
+			}(t),
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    false,
+			Config: &Config{
 				InitialFeeConfig: &testFeeConfig,
 			},
-			expectedErr: "cannot be greater than maxBlockGasCost",
-			assertState: func(t *testing.T, state *state.StateDB) {
+			ExpectedErr: "cannot be greater than maxBlockGasCost",
+			AfterHook: func(t *testing.T, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
 				require.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
 		"set config from admin address": {
-			caller: adminAddr,
-			input: func() []byte {
+			Caller: adminAddr,
+			Input: func(tt *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(t, err)
+				require.NoError(tt, err)
 
 				return input
-			},
-			suppliedGas: SetFeeConfigGasCost,
-			readOnly:    false,
-			expectedRes: []byte{},
-			assertState: func(t *testing.T, state *state.StateDB) {
+			}(t),
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t *testing.T, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
 				require.Equal(t, testFeeConfig, feeConfig)
 				lastChangedAt := GetFeeConfigLastChangedAt(state)
@@ -124,22 +107,20 @@ func TestFeeManagerRun(t *testing.T) {
 			},
 		},
 		"get fee config from non-enabled address": {
-			caller: noRoleAddr,
-			preCondition: func(t *testing.T, state *state.StateDB) {
+			Caller: noRoleAddr,
+			BeforeHook: func(t *testing.T, state contract.StateDB) {
 				err := StoreFeeConfig(state, testFeeConfig, contract.NewMockBlockContext(big.NewInt(6), 0))
 				require.NoError(t, err)
 			},
-			input: func() []byte {
-				return PackGetFeeConfigInput()
-			},
-			suppliedGas: GetFeeConfigGasCost,
-			readOnly:    true,
-			expectedRes: func() []byte {
+			Input:       PackGetFeeConfigInput(),
+			SuppliedGas: GetFeeConfigGasCost,
+			ReadOnly:    true,
+			ExpectedRes: func() []byte {
 				res, err := PackFeeConfig(testFeeConfig)
 				require.NoError(t, err)
 				return res
 			}(),
-			assertState: func(t *testing.T, state *state.StateDB) {
+			AfterHook: func(t *testing.T, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
 				lastChangedAt := GetFeeConfigLastChangedAt(state)
 				require.Equal(t, testFeeConfig, feeConfig)
@@ -147,21 +128,19 @@ func TestFeeManagerRun(t *testing.T) {
 			},
 		},
 		"get initial fee config": {
-			caller: noRoleAddr,
-			input: func() []byte {
-				return PackGetFeeConfigInput()
-			},
-			suppliedGas: GetFeeConfigGasCost,
-			config: &Config{
+			Caller:      noRoleAddr,
+			Input:       PackGetFeeConfigInput(),
+			SuppliedGas: GetFeeConfigGasCost,
+			Config: &Config{
 				InitialFeeConfig: &testFeeConfig,
 			},
-			readOnly: true,
-			expectedRes: func() []byte {
+			ReadOnly: true,
+			ExpectedRes: func() []byte {
 				res, err := PackFeeConfig(testFeeConfig)
 				require.NoError(t, err)
 				return res
 			}(),
-			assertState: func(t *testing.T, state *state.StateDB) {
+			AfterHook: func(t *testing.T, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
 				lastChangedAt := GetFeeConfigLastChangedAt(state)
 				require.Equal(t, testFeeConfig, feeConfig)
@@ -169,18 +148,16 @@ func TestFeeManagerRun(t *testing.T) {
 			},
 		},
 		"get last changed at from non-enabled address": {
-			caller: noRoleAddr,
-			preCondition: func(t *testing.T, state *state.StateDB) {
+			Caller: noRoleAddr,
+			BeforeHook: func(t *testing.T, state contract.StateDB) {
 				err := StoreFeeConfig(state, testFeeConfig, contract.NewMockBlockContext(testBlockNumber, 0))
 				require.NoError(t, err)
 			},
-			input: func() []byte {
-				return PackGetLastChangedAtInput()
-			},
-			suppliedGas: GetLastChangedAtGasCost,
-			readOnly:    true,
-			expectedRes: common.BigToHash(testBlockNumber).Bytes(),
-			assertState: func(t *testing.T, state *state.StateDB) {
+			Input:       PackGetLastChangedAtInput(),
+			SuppliedGas: GetLastChangedAtGasCost,
+			ReadOnly:    true,
+			ExpectedRes: common.BigToHash(testBlockNumber).Bytes(),
+			AfterHook: func(t *testing.T, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
 				lastChangedAt := GetFeeConfigLastChangedAt(state)
 				require.Equal(t, testFeeConfig, feeConfig)
@@ -188,52 +165,52 @@ func TestFeeManagerRun(t *testing.T) {
 			},
 		},
 		"readOnly setFeeConfig with noRole fails": {
-			caller: noRoleAddr,
-			input: func() []byte {
+			Caller: noRoleAddr,
+			Input: func(tt *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(t, err)
+				require.NoError(tt, err)
 
 				return input
-			},
-			suppliedGas: SetFeeConfigGasCost,
-			readOnly:    true,
-			expectedErr: vmerrs.ErrWriteProtection.Error(),
+			}(t),
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    true,
+			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with allow role fails": {
-			caller: enabledAddr,
-			input: func() []byte {
+			Caller: enabledAddr,
+			Input: func(tt *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(t, err)
+				require.NoError(tt, err)
 
 				return input
-			},
-			suppliedGas: SetFeeConfigGasCost,
-			readOnly:    true,
-			expectedErr: vmerrs.ErrWriteProtection.Error(),
+			}(t),
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    true,
+			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with admin role fails": {
-			caller: adminAddr,
-			input: func() []byte {
+			Caller: adminAddr,
+			Input: func(tt *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(t, err)
+				require.NoError(tt, err)
 
 				return input
-			},
-			suppliedGas: SetFeeConfigGasCost,
-			readOnly:    true,
-			expectedErr: vmerrs.ErrWriteProtection.Error(),
+			}(t),
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    true,
+			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"insufficient gas setFeeConfig from admin": {
-			caller: adminAddr,
-			input: func() []byte {
+			Caller: adminAddr,
+			Input: func(tt *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(t, err)
+				require.NoError(tt, err)
 
 				return input
-			},
-			suppliedGas: SetFeeConfigGasCost - 1,
-			readOnly:    false,
-			expectedErr: vmerrs.ErrOutOfGas.Error(),
+			}(t),
+			SuppliedGas: SetFeeConfigGasCost - 1,
+			ReadOnly:    false,
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -247,26 +224,26 @@ func TestFeeManagerRun(t *testing.T) {
 			require.Equal(t, allowlist.AdminRole, GetFeeManagerStatus(state, adminAddr))
 			require.Equal(t, allowlist.EnabledRole, GetFeeManagerStatus(state, enabledAddr))
 
-			if test.preCondition != nil {
-				test.preCondition(t, state)
+			if test.BeforeHook != nil {
+				test.BeforeHook(t, state)
 			}
 			blockContext := contract.NewMockBlockContext(testBlockNumber, 0)
 			accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
-			if test.config != nil {
-				Module.Configure(nil, test.config, state, blockContext)
+			if test.Config != nil {
+				Module.Configure(nil, test.Config, state, blockContext)
 			}
-			ret, remainingGas, err := FeeManagerPrecompile.Run(accesibleState, test.caller, ContractAddress, test.input(), test.suppliedGas, test.readOnly)
-			if len(test.expectedErr) != 0 {
-				require.ErrorContains(t, err, test.expectedErr)
+			ret, remainingGas, err := FeeManagerPrecompile.Run(accesibleState, test.Caller, ContractAddress, test.Input, test.SuppliedGas, test.ReadOnly)
+			if len(test.ExpectedErr) != 0 {
+				require.ErrorContains(t, err, test.ExpectedErr)
 			} else {
 				require.NoError(t, err)
 			}
 
 			require.Equal(t, uint64(0), remainingGas)
-			require.Equal(t, test.expectedRes, ret)
+			require.Equal(t, test.ExpectedRes, ret)
 
-			if test.assertState != nil {
-				test.assertState(t, state)
+			if test.AfterHook != nil {
+				test.AfterHook(t, state)
 			}
 		})
 	}

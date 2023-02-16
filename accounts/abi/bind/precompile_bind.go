@@ -52,8 +52,9 @@ func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []m
 	return configBind, contractBind, nil
 }
 
+// createPrecompileHook creates a bind hook for precompiled contracts.
 func createPrecompileHook(abifilename string, template string) BindHook {
-	var bindHook BindHook = func(lang Lang, pkg string, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (interface{}, string, error) {
+	return func(lang Lang, pkg string, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (interface{}, string, error) {
 		// verify first
 		if lang != LangGo {
 			return nil, "", errors.New("only GoLang binding for precompiled contracts is supported yet")
@@ -81,7 +82,9 @@ func createPrecompileHook(abifilename string, template string) BindHook {
 		}
 		isAllowList := allowListEnabled(funcs)
 		if isAllowList {
-			// remove these functions as we will directly inherit AllowList
+			// these functions are not needed for binded contract.
+			// AllowList struct can provide the same functionality,
+			// so we don't need to generate them.
 			delete(funcs, readAllowListFuncKey)
 			delete(funcs, setAdminFuncKey)
 			delete(funcs, setEnabledFuncKey)
@@ -102,7 +105,6 @@ func createPrecompileHook(abifilename string, template string) BindHook {
 		}
 		return data, template, nil
 	}
-	return bindHook
 }
 
 func allowListEnabled(funcs map[string]*tmplMethod) bool {

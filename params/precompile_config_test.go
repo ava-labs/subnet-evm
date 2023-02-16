@@ -23,7 +23,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
-	config.GenesisPrecompiles = ChainConfigPrecompiles{
+	config.GenesisPrecompiles = Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(big.NewInt(2), nil, nil),
 	}
 	config.PrecompileUpgrades = []PrecompileUpgrade{
@@ -180,19 +180,19 @@ func TestVerifyPrecompiles(t *testing.T) {
 	admins := []common.Address{{1}}
 	tests := []struct {
 		name          string
-		precompiles   ChainConfigPrecompiles
+		precompiles   Precompiles
 		expectedError string
 	}{
 		{
 			name: "invalid allow list config in tx allowlist",
-			precompiles: ChainConfigPrecompiles{
+			precompiles: Precompiles{
 				txallowlist.ConfigKey: txallowlist.NewConfig(big.NewInt(3), admins, admins),
 			},
 			expectedError: "cannot set address",
 		},
 		{
 			name: "invalid initial fee manager config",
-			precompiles: ChainConfigPrecompiles{
+			precompiles: Precompiles{
 				feemanager.ConfigKey: feemanager.NewConfig(big.NewInt(3), admins, nil,
 					&commontype.FeeConfig{
 						GasLimit: big.NewInt(-1),
@@ -240,7 +240,7 @@ func TestGetPrecompileConfig(t *testing.T) {
 	assert := assert.New(t)
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
-	config.GenesisPrecompiles = ChainConfigPrecompiles{
+	config.GenesisPrecompiles = Precompiles{
 		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(big.NewInt(10), nil, nil),
 	}
 

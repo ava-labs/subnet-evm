@@ -10,18 +10,18 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 )
 
-type ChainConfigPrecompiles map[string]config.Config
+type Precompiles map[string]config.Config
 
 // UnmarshalJSON parses the JSON-encoded data into the ChainConfigPrecompiles.
 // ChainConfigPrecompiles is a map of precompile module keys to their
 // configuration.
-func (ccp *ChainConfigPrecompiles) UnmarshalJSON(data []byte) error {
+func (ccp *Precompiles) UnmarshalJSON(data []byte) error {
 	raw := make(map[string]json.RawMessage)
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 
-	*ccp = make(ChainConfigPrecompiles)
+	*ccp = make(Precompiles)
 	for _, module := range modules.RegisteredModules() {
 		key := module.ConfigKey
 		if value, ok := raw[key]; ok {

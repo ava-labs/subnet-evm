@@ -51,6 +51,7 @@ const (
 	readAllowListFuncKey = "readAllowList"
 )
 
+// BindHook is a callback function that can be used to customize the binding.
 type BindHook func(lang Lang, pkg string, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (data interface{}, templateSource string, err error)
 
 // Lang is a target programming language selector to generate bindings for.

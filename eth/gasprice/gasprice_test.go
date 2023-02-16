@@ -96,7 +96,7 @@ func (b *testBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 }
 
 func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
-	var gspec = &core.Genesis{
+	gspec := &core.Genesis{
 		Config: config,
 		Alloc:  core.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
 	}
@@ -124,7 +124,7 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 }
 
 func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
-	var gspec = &core.Genesis{
+	gspec := &core.Genesis{
 		Config: config,
 		Alloc:  core.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
 	}
@@ -434,7 +434,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 
 	// create a chain config with fee manager enabled at genesis with [addr] as the admin
 	chainConfig := *params.TestChainConfig
-	chainConfig.GenesisPrecompiles = params.ChainConfigPrecompiles{
+	chainConfig.GenesisPrecompiles = params.Precompiles{
 		feemanager.ConfigKey: feemanager.NewConfig(big.NewInt(0), []common.Address{addr}, nil, nil),
 	}
 

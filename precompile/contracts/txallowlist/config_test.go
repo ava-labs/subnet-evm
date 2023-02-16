@@ -18,27 +18,27 @@ func TestVerifyTxAllowlistConfig(t *testing.T) {
 	tests := []struct {
 		name          string
 		config        config.Config
-		expectedError string
+		ExpectedError string
 	}{
 		{
 			name:          "invalid allow list config in tx allowlist",
 			config:        NewConfig(big.NewInt(3), admins, admins),
-			expectedError: "cannot set address",
+			ExpectedError: "cannot set address",
 		},
 		{
 			name:          "nil member allow list config in tx allowlist",
 			config:        NewConfig(big.NewInt(3), nil, nil),
-			expectedError: "",
+			ExpectedError: "",
 		},
 		{
 			name:          "empty member allow list config in tx allowlist",
 			config:        NewConfig(big.NewInt(3), []common.Address{}, []common.Address{}),
-			expectedError: "",
+			ExpectedError: "",
 		},
 		{
 			name:          "valid allow list config in tx allowlist",
 			config:        NewConfig(big.NewInt(3), admins, enableds),
-			expectedError: "",
+			ExpectedError: "",
 		},
 	}
 	for _, tt := range tests {
@@ -46,10 +46,10 @@ func TestVerifyTxAllowlistConfig(t *testing.T) {
 			require := require.New(t)
 
 			err := tt.config.Verify()
-			if tt.expectedError == "" {
+			if tt.ExpectedError == "" {
 				require.NoError(err)
 			} else {
-				require.ErrorContains(err, tt.expectedError)
+				require.ErrorContains(err, tt.ExpectedError)
 			}
 		})
 	}
