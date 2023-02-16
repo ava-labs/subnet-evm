@@ -46,6 +46,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: allowlist.ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := GetContractDeployerAllowListStatus(state, noRoleAddr)
@@ -61,6 +62,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: allowlist.ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := GetContractDeployerAllowListStatus(state, noRoleAddr)
@@ -76,6 +78,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: allowlist.ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := GetContractDeployerAllowListStatus(state, adminAddr)
@@ -91,6 +94,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: allowlist.ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set deployer from non-admin": {
@@ -102,6 +106,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: allowlist.ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from non-admin": {
@@ -113,6 +118,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: allowlist.ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: allowlist.ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
@@ -136,6 +142,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: allowlist.ModifyAllowListGasCost - 1,
+			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"read allow list no role": {
@@ -144,6 +151,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return allowlist.PackReadAllowList(noRoleAddr)
 			},
 			suppliedGas: allowlist.ReadAllowListGasCost,
+			readOnly:    false,
 			expectedRes: common.Hash(allowlist.EnabledRole).Bytes(),
 			assertState: nil,
 		},
@@ -153,6 +161,7 @@ func TestContractDeployerAllowListRun(t *testing.T) {
 				return allowlist.PackReadAllowList(noRoleAddr)
 			},
 			suppliedGas: allowlist.ReadAllowListGasCost,
+			readOnly:    false,
 			expectedRes: common.Hash(allowlist.EnabledRole).Bytes(),
 			assertState: nil,
 		},

@@ -49,6 +49,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: MintGasCost,
+			readOnly:    false,
 			expectedErr: ErrCannotMint.Error(),
 		},
 		"mint funds from enabled address": {
@@ -60,6 +61,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: MintGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				require.Equal(t, common.Big1, state.GetBalance(enabledAddr), "expected minted funds")
@@ -85,6 +87,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: MintGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				require.Equal(t, common.Big1, state.GetBalance(adminAddr), "expected minted funds")
@@ -99,6 +102,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: MintGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				require.Equal(t, math.MaxBig256, state.GetBalance(adminAddr), "expected minted funds")
@@ -149,6 +153,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: MintGasCost - 1,
+			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 	} {

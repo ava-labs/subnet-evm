@@ -64,6 +64,7 @@ func TestFeeManagerRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: SetFeeConfigGasCost,
+			readOnly:    false,
 			expectedErr: ErrCannotChangeFee.Error(),
 		},
 		"set config from enabled address": {
@@ -75,6 +76,7 @@ func TestFeeManagerRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: SetFeeConfigGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
@@ -92,6 +94,7 @@ func TestFeeManagerRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: SetFeeConfigGasCost,
+			readOnly:    false,
 			expectedRes: nil,
 			config: &Config{
 				InitialFeeConfig: &testFeeConfig,
@@ -111,6 +114,7 @@ func TestFeeManagerRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: SetFeeConfigGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
@@ -228,6 +232,7 @@ func TestFeeManagerRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: SetFeeConfigGasCost - 1,
+			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 	} {
