@@ -252,7 +252,7 @@ func (st *StateTransition) preCheck() error {
 		if st.evm.ChainConfig().IsPrecompileEnabled(txallowlist.ContractAddress, st.evm.Context.Time) {
 			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, st.msg.From())
 			if !txAllowListRole.IsEnabled() {
-				return fmt.Errorf("%w: %s", txallowlist.ErrSenderAddressNotAllowListed, st.msg.From())
+				return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, st.msg.From())
 			}
 		}
 	}

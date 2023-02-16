@@ -43,7 +43,7 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	}
 }
 
-func (Config) Key() string { return ConfigKey }
+func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*ContractDeployerAllowListConfig] and it has been configured identical to [c].
 func (c *Config) Equal(cfg config.Config) bool {

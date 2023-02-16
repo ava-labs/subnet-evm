@@ -14,8 +14,8 @@ import (
 
 var _ config.Config = &Config{}
 
-// Config wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
-// interface while adding in the FeeManager specific precompile address.
+// Config implements the StatefulPrecompileConfig interface while adding in the
+// FeeManager specific precompile config.
 type Config struct {
 	allowlist.Config // Config for the fee config manager allow list
 	config.Upgrade
@@ -46,7 +46,7 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	}
 }
 
-func (Config) Key() string { return ConfigKey }
+func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*FeeManagerConfig] and it has been configured identical to [c].
 func (c *Config) Equal(cfg config.Config) bool {

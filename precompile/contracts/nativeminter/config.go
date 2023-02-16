@@ -16,12 +16,12 @@ import (
 
 var _ config.Config = &Config{}
 
-// Config wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
-// interface while adding in the ContractNativeMinter specific precompile address.
+// Config implements the StatefulPrecompileConfig interface while adding in the
+// ContractNativeMinter specific precompile config.
 type Config struct {
 	allowlist.Config
 	config.Upgrade
-	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // initial mint config to be immediately minted
+	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // addresses to receive the initial mint mapped to the amount to mint
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -47,7 +47,7 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 		},
 	}
 }
-func (Config) Key() string { return ConfigKey }
+func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
 func (c *Config) Equal(cfg config.Config) bool {
@@ -81,9 +81,6 @@ func (c *Config) Equal(cfg config.Config) bool {
 }
 
 func (c *Config) Verify() error {
-	if err := c.Config.Verify(); err != nil {
-		return err
-	}
 	// ensure that all of the initial mint values in the map are non-nil positive values
 	for addr, amount := range c.InitialMint {
 		if amount == nil {
@@ -94,5 +91,5 @@ func (c *Config) Verify() error {
 			return fmt.Errorf("initial mint cannot contain invalid amount %v for address %s", bigIntAmount, addr)
 		}
 	}
-	return nil
+	return c.Config.Verify()
 }

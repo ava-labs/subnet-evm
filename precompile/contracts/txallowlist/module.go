@@ -39,7 +39,7 @@ func (*configurator) NewConfig() config.Config {
 	return &Config{}
 }
 
-// Configure configures [state] with the desired admins based on [cfg].
+// Configure configures [state] with the initial state for the precompile.
 func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {

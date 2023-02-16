@@ -13,8 +13,8 @@ import (
 
 var _ config.Config = &Config{}
 
-// Config wraps [AllowListConfig] and uses it to implement the StatefulPrecompileConfig
-// interface while adding in the TxAllowList specific precompile address.
+// Config implements the StatefulPrecompileConfig interface while adding in the
+// TxAllowList specific precompile config.
 type Config struct {
 	allowlist.Config
 	config.Upgrade
