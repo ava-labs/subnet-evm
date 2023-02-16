@@ -46,6 +46,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := GetAllowListStatus(state, dummyContractAddr, noRoleAddr)
@@ -61,6 +62,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := GetAllowListStatus(state, dummyContractAddr, noRoleAddr)
@@ -76,6 +78,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedRes: []byte{},
 			assertState: func(t *testing.T, state *state.StateDB) {
 				res := GetAllowListStatus(state, dummyContractAddr, enabledAddr)
@@ -91,6 +94,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set enabled from no role": {
@@ -102,6 +106,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from no role": {
@@ -113,6 +118,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set no role from enabled": {
@@ -124,6 +130,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set enabled from enabled": {
@@ -135,6 +142,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from enabled": {
@@ -146,6 +154,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost,
+			readOnly:    false,
 			expectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
@@ -169,6 +178,7 @@ func TestAllowListRun(t *testing.T) {
 				return input
 			},
 			suppliedGas: ModifyAllowListGasCost - 1,
+			readOnly:    false,
 			expectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"read allow list no role": {
@@ -177,6 +187,7 @@ func TestAllowListRun(t *testing.T) {
 				return PackReadAllowList(noRoleAddr)
 			},
 			suppliedGas: ReadAllowListGasCost,
+			readOnly:    false,
 			expectedRes: common.Hash(NoRole).Bytes(),
 			assertState: nil,
 		},
@@ -186,6 +197,7 @@ func TestAllowListRun(t *testing.T) {
 				return PackReadAllowList(adminAddr)
 			},
 			suppliedGas: ReadAllowListGasCost,
+			readOnly:    false,
 			expectedRes: common.Hash(AdminRole).Bytes(),
 			assertState: nil,
 		},
@@ -213,6 +225,7 @@ func TestAllowListRun(t *testing.T) {
 				AdminAddresses: []common.Address{noRoleAddr, enabledAddr},
 			},
 			suppliedGas: 0,
+			readOnly:    false,
 			expectedErr: "",
 			assertState: func(t *testing.T, state *state.StateDB) {
 				require.Equal(t, AdminRole, GetAllowListStatus(state, dummyContractAddr, noRoleAddr))
@@ -224,6 +237,7 @@ func TestAllowListRun(t *testing.T) {
 				EnabledAddresses: []common.Address{noRoleAddr, adminAddr},
 			},
 			suppliedGas: 0,
+			readOnly:    false,
 			expectedErr: "",
 			assertState: func(t *testing.T, state *state.StateDB) {
 				require.Equal(t, EnabledRole, GetAllowListStatus(state, dummyContractAddr, adminAddr))
