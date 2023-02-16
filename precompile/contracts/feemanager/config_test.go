@@ -28,6 +28,8 @@ var validFeeConfig = commontype.FeeConfig{
 
 func TestVerifyFeeManagerConfig(t *testing.T) {
 	admins := []common.Address{{1}}
+	invalidFeeConfig := validFeeConfig
+	invalidFeeConfig.GasLimit = big.NewInt(0)
 	tests := []struct {
 		name          string
 		config        config.Config
@@ -39,12 +41,14 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 			ExpectedError: "cannot set address",
 		},
 		{
-			name: "invalid initial fee manager config",
-			config: NewConfig(big.NewInt(3), admins, nil,
-				&commontype.FeeConfig{
-					GasLimit: big.NewInt(0),
-				}),
+			name:          "invalid initial fee manager config",
+			config:        NewConfig(big.NewInt(3), admins, nil, &invalidFeeConfig),
 			ExpectedError: "gasLimit = 0 cannot be less than or equal to 0",
+		},
+		{
+			name:          "nil initial fee manager config",
+			config:        NewConfig(big.NewInt(3), admins, nil, &commontype.FeeConfig{}),
+			ExpectedError: "gasLimit cannot be nil",
 		},
 	}
 	for _, tt := range tests {
