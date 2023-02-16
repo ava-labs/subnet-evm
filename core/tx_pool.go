@@ -190,7 +190,7 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	Journal:   "transactions.rlp",
 	Rejournal: time.Hour,
 
-	PriceLimit: 1,
+	PriceLimit: 0,
 	PriceBump:  10,
 
 	AccountSlots: 16,
@@ -328,7 +328,9 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		initDoneCh:          make(chan struct{}),
 		generalShutdownChan: make(chan struct{}),
 		gasPrice:            new(big.Int).SetUint64(config.PriceLimit),
+		minimumFee:          new(big.Int).Add(common.Big0, chainconfig.FeeConfig.MinBaseFee),
 	}
+
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
 		log.Info("Setting new local account", "address", addr)
