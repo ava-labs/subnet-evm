@@ -24,11 +24,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package bind
+package precompilebind
 
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,7 +99,7 @@ func golangBindingsFailure(t *testing.T) {
 	for i, tt := range bindFailedTests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Generate the binding
-			_, _, err := PrecompileBind([]string{tt.name}, tt.abi, tt.bytecode, tt.fsigs, "bindtest", LangGo, tt.libs, tt.aliases, "")
+			_, _, _, err := PrecompileBind([]string{tt.name}, tt.abi, tt.bytecode, tt.fsigs, "bindtest", bind.LangGo, tt.libs, tt.aliases, "")
 			if err == nil {
 				t.Fatalf("test %d: no error occurred but was expected", i)
 			}

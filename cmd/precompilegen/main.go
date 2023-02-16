@@ -34,6 +34,7 @@ import (
 	"strings"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
+	"github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind"
 	"github.com/ava-labs/subnet-evm/internal/flags"
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/log"
@@ -145,7 +146,7 @@ func precompilegen(c *cli.Context) error {
 		abipath = filepath.Join(outFlagStr, abifilename)
 	}
 	// Generate the contract precompile
-	configCode, contractCode, err := bind.PrecompileBind(types, abis, bins, sigs, pkg, lang, libs, aliases, abifilename)
+	configCode, contractCode, moduleCode, err := precompilebind.PrecompileBind(types, abis, bins, sigs, pkg, lang, libs, aliases, abifilename)
 	if err != nil {
 		utils.Fatalf("Failed to generate precompile: %v", err)
 	}
@@ -156,11 +157,13 @@ func precompilegen(c *cli.Context) error {
 		fmt.Printf("%s\n", configCode)
 		fmt.Print("-----Contract Code-----\n")
 		fmt.Printf("%s\n", contractCode)
+		fmt.Print("-----Module Code-----\n")
+		fmt.Printf("%s\n", moduleCode)
 		return nil
 	}
 
 	if _, err := os.Stat(outFlagStr); os.IsNotExist(err) {
-		os.MkdirAll(outFlagStr, 0700) // Create your file
+		os.MkdirAll(outFlagStr, 0o700) // Create your file
 	}
 	configCodeOut := filepath.Join(outFlagStr, "config.go")
 
@@ -172,6 +175,12 @@ func precompilegen(c *cli.Context) error {
 
 	if err := os.WriteFile(contractCodeOut, []byte(contractCode), 0o600); err != nil {
 		utils.Fatalf("Failed to write generated contract code: %v", err)
+	}
+
+	moduleCodeOut := filepath.Join(outFlagStr, "module.go")
+
+	if err := os.WriteFile(moduleCodeOut, []byte(moduleCode), 0o600); err != nil {
+		utils.Fatalf("Failed to write generated module code: %v", err)
 	}
 
 	if err := os.WriteFile(abipath, []byte(abis[0]), 0o600); err != nil {

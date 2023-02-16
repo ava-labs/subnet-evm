@@ -28,42 +28,56 @@
 //
 // Detailed usage document and tutorial available on the go-ethereum Wiki page:
 // https://github.com/ethereum/go-ethereum/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
-package bind
+package precompilebind
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
+)
+
+const (
+	setAdminFuncKey      = "setAdmin"
+	setEnabledFuncKey    = "setEnabled"
+	setNoneFuncKey       = "setNone"
+	readAllowListFuncKey = "readAllowList"
 )
 
 // PrecompileBind generates a Go binding for a precompiled contract. It returns config binding and contract binding.
-func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang Lang, libs map[string]string, aliases map[string]string, abifilename string) (string, string, error) {
+func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang bind.Lang, libs map[string]string, aliases map[string]string, abifilename string) (string, string, string, error) {
 	// create hooks
 	configHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigGo)
 	contractHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractGo)
+	moduleHook := createPrecompileHook(abifilename, tmplSourcePrecompileModuleGo)
 
-	configBind, err := bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, configHook)
+	configBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, configHook)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate config binding: %w", err)
+		return "", "", "", fmt.Errorf("failed to generate config binding: %w", err)
 	}
-	contractBind, err := bindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, contractHook)
+	contractBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, contractHook)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate contract binding: %w", err)
+		return "", "", "", fmt.Errorf("failed to generate contract binding: %w", err)
 	}
-	return configBind, contractBind, nil
+	moduleBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, moduleHook)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to generate module binding: %w", err)
+	}
+	return configBind, contractBind, moduleBind, nil
 }
 
 // createPrecompileHook creates a bind hook for precompiled contracts.
-func createPrecompileHook(abifilename string, template string) BindHook {
-	return func(lang Lang, pkg string, types []string, contracts map[string]*tmplContract, structs map[string]*tmplStruct) (interface{}, string, error) {
+func createPrecompileHook(abifilename string, template string) bind.BindHook {
+	return func(lang bind.Lang, pkg string, types []string, contracts map[string]*bind.TmplContract, structs map[string]*bind.TmplStruct) (interface{}, string, error) {
 		// verify first
-		if lang != LangGo {
+		if lang != bind.LangGo {
 			return nil, "", errors.New("only GoLang binding for precompiled contracts is supported yet")
 		}
 
 		if len(types) != 1 {
 			return nil, "", errors.New("cannot generate more than 1 contract")
 		}
-		funcs := make(map[string]*tmplMethod)
+		funcs := make(map[string]*bind.TmplMethod)
 
 		contract := contracts[types[0]]
 
@@ -92,7 +106,7 @@ func createPrecompileHook(abifilename string, template string) BindHook {
 		}
 
 		precompileContract := &tmplPrecompileContract{
-			tmplContract: contract,
+			TmplContract: contract,
 			AllowList:    isAllowList,
 			Funcs:        funcs,
 			ABIFilename:  abifilename,
@@ -107,7 +121,7 @@ func createPrecompileHook(abifilename string, template string) BindHook {
 	}
 }
 
-func allowListEnabled(funcs map[string]*tmplMethod) bool {
+func allowListEnabled(funcs map[string]*bind.TmplMethod) bool {
 	keys := []string{readAllowListFuncKey, setAdminFuncKey, setEnabledFuncKey, setNoneFuncKey}
 	for _, key := range keys {
 		if _, ok := funcs[key]; !ok {
@@ -117,7 +131,7 @@ func allowListEnabled(funcs map[string]*tmplMethod) bool {
 	return true
 }
 
-func checkOutputName(method tmplMethod) error {
+func checkOutputName(method bind.TmplMethod) error {
 	for _, output := range method.Original.Outputs {
 		if output.Name == "" {
 			return fmt.Errorf("ABI outputs for %s require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs", method.Original.Name)

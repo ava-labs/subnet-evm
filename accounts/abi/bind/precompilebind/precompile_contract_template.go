@@ -1,20 +1,22 @@
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
-package bind
+package precompilebind
+
+import "github.com/ava-labs/subnet-evm/accounts/abi/bind"
 
 // tmplPrecompileData is the data structure required to fill the binding template.
 type tmplPrecompileData struct {
 	Package  string
-	Contract *tmplPrecompileContract // The contract to generate into this file
-	Structs  map[string]*tmplStruct  // Contract struct type definitions
+	Contract *tmplPrecompileContract     // The contract to generate into this file
+	Structs  map[string]*bind.TmplStruct // Contract struct type definitions
 }
 
 // tmplPrecompileContract contains the data needed to generate an individual contract binding.
 type tmplPrecompileContract struct {
-	*tmplContract
-	AllowList   bool                   // Indicator whether the contract uses AllowList precompile
-	Funcs       map[string]*tmplMethod // Contract functions that include both Calls + Transacts in tmplContract
-	ABIFilename string                 // Path to the ABI file
+	*bind.TmplContract
+	AllowList   bool                        // Indicator whether the contract uses AllowList precompile
+	Funcs       map[string]*bind.TmplMethod // Contract functions that include both Calls + Transacts in tmplContract
+	ABIFilename string                      // Path to the ABI file
 }
 
 // tmplSourcePrecompileContractGo is the Go precompiled contract source template.
@@ -48,26 +50,33 @@ Typically, custom codes are required in only those areas.
 package {{.Package}}
 
 import (
-	"math/big"
 	"errors"
 	"fmt"
-	"strings"
+	"math/big"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/precompile"
 	{{- if .Contract.AllowList}}
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	{{- end}}
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	_ "embed"
 
 	"github.com/ethereum/go-ethereum/common"
 )
-
+{{$contract := .Contract}}
 const (
+	// Gas costs for each function. These are set to 0 by default.
+	// You should set a gas cost for each function in your contract.
+	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
+	// There are some predefined gas costs in contract/utils.go that you can use.
+	{{- if .Contract.AllowList}}
+	// This contract also uses AllowList precompile.
+	// You should also increase gas costs of functions that read from AllowList storage.
+	{{- end}}}
 	{{- range .Contract.Funcs}}
-	{{.Normalized.Name}}GasCost uint64 = 0 // SET A GAS COST HERE
+	{{.Normalized.Name}}GasCost uint64 = 0 {{if not .Original.IsConstant | and $contract.AllowList}} + allowlist.ReadAllowListGasCost {{end}}	// SET A GAS COST HERE
 	{{- end}}
 	{{- if .Contract.Fallback}}
 	{{.Contract.Type}}FallbackGasCost uint64 = 0 // SET A GAS COST LESS THAN 2300 HERE
@@ -81,14 +90,8 @@ var (
 	_ = big.NewInt
 )
 
-{{$contract := .Contract}}
 // Singleton StatefulPrecompiledContract and signatures.
 var (
-	// ContractAddress is the defined address of the precompile contract.
-	// This should be unique across all precompile contracts.
-	// See params/precompile_modules.go for registered precompile contracts and more information.
-	ContractAddress = common.HexToAddress("{ASUITABLEHEXADDRESS}") // SET A SUITABLE HEX ADDRESS HERE
-
 	{{- range .Contract.Funcs}}
 
 	{{- if not .Original.IsConstant | and $contract.AllowList}}
@@ -108,9 +111,10 @@ var (
 	//go:embed {{.Contract.ABIFilename}}
 	{{.Contract.Type}}RawABI string
 	{{- end}}
-	{{.Contract.Type}}ABI abi.ABI // will be initialized by init function
 
-	{{.Contract.Type}}Precompile precompile.StatefulPrecompiledContract // will be initialized by init function
+	{{.Contract.Type}}ABI = contract.ParseABI({{.Contract.Type}}RawABI)
+
+	{{.Contract.Type}}Precompile = create{{.Contract.Type}}Precompile()
 )
 
 {{$structs := .Structs}}
@@ -135,22 +139,9 @@ type {{capitalise .Normalized.Name}}Output struct{
 {{- end}}
 {{- end}}
 
-func init() {
-	parsed, err := abi.JSON(strings.NewReader({{.Contract.Type}}RawABI))
-	if err != nil {
-		panic(err)
-	}
-	{{.Contract.Type}}ABI = parsed
-
-	{{.Contract.Type}}Precompile, err = create{{.Contract.Type}}Precompile()
-	if err != nil {
-		panic(err)
-	}
-}
-
 {{if .Contract.AllowList}}
 // Get{{.Contract.Type}}AllowListStatus returns the role of [address] for the {{.Contract.Type}} list.
-func Get{{.Contract.Type}}AllowListStatus(stateDB precompile.StateDB, address common.Address) allowlist.AllowListRole {
+func Get{{.Contract.Type}}AllowListStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
 	return allowlist.GetAllowListStatus(stateDB, ContractAddress, address)
 }
 
@@ -160,7 +151,7 @@ func Get{{.Contract.Type}}AllowListStatus(stateDB precompile.StateDB, address co
 // and [address] hash. It means that any reusage of the [address] key for different value
 // conflicts with the same slot [role] is stored.
 // Precompile implementations must use a different key than [address] for their storage.
-func Set{{.Contract.Type}}AllowListStatus(stateDB precompile.StateDB, address common.Address, role allowlist.AllowListRole) {
+func Set{{.Contract.Type}}AllowListStatus(stateDB contract.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 {{end}}
@@ -229,8 +220,8 @@ func Pack{{$method.Normalized.Name}}Output ({{decapitalise $output.Name}} {{bind
 }
 {{end}}
 
-func {{decapitalise .Normalized.Name}}(accessibleState precompile.PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = precompile.DeductGas(suppliedGas, {{.Normalized.Name}}GasCost); err != nil {
+func {{decapitalise .Normalized.Name}}(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	if remainingGas, err = contract.DeductGas(suppliedGas, {{.Normalized.Name}}GasCost); err != nil {
 		return nil, 0, err
 	}
 
@@ -294,8 +285,8 @@ func {{decapitalise .Normalized.Name}}(accessibleState precompile.PrecompileAcce
 {{- with .Contract.Fallback}}
 // {{decapitalise $contract.Type}}Fallback executed if a function identifier does not match any of the available functions in a smart contract.
 // This function cannot take an input or return an output.
-func {{decapitalise $contract.Type}}Fallback (accessibleState precompile.PrecompileAccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = precompile.DeductGas(suppliedGas, {{$contract.Type}}FallbackGasCost); err != nil {
+func {{decapitalise $contract.Type}}Fallback (accessibleState contract.AccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	if remainingGas, err = contract.DeductGas(suppliedGas, {{$contract.Type}}FallbackGasCost); err != nil {
 		return nil, 0, err
 	}
 
@@ -330,13 +321,13 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState precompile.Precomp
 
 // create{{.Contract.Type}}Precompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 {{if .Contract.AllowList}} // Access to the getters/setters is controlled by an allow list for ContractAddress.{{end}}
-func create{{.Contract.Type}}Precompile() (precompile.StatefulPrecompiledContract, error) {
-	var functions []*precompile.StatefulPrecompileFunction
+func create{{.Contract.Type}}Precompile() contract.StatefulPrecompiledContract {
+	var functions []*contract.StatefulPrecompileFunction
 	{{- if .Contract.AllowList}}
 	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
 	{{- end}}
 
-	abiFunctionMap := map[string]precompile.RunStatefulPrecompileFunc{
+	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		{{- range .Contract.Funcs}}
 		"{{.Original.Name}}": {{decapitalise .Normalized.Name}},
 		{{- end}}
@@ -345,17 +336,25 @@ func create{{.Contract.Type}}Precompile() (precompile.StatefulPrecompiledContrac
 	for name, function := range abiFunctionMap {
 		method, ok := {{$contract.Type}}ABI.Methods[name]
 		if !ok {
-			return nil, fmt.Errorf("given method (%s) does not exist in the ABI", name)
+			panic(fmt.Errorf("given method (%s) does not exist in the ABI", name))
 		}
-		functions = append(functions, precompile.NewStatefulPrecompileFunction(method.ID, function))
+		functions = append(functions, contract.NewStatefulPrecompileFunction(method.ID, function))
 	}
 
 	{{- if .Contract.Fallback}}
 	// Construct the contract with the fallback function.
-	return precompile.NewStatefulPrecompileContract({{decapitalise $contract.Type}}Fallback, functions)
+	statefulContract, err :=  contract.NewStatefulPrecompileContract({{decapitalise $contract.Type}}Fallback, functions)
+	if err != nil {
+		panic(err)
+	}
+	return statefulContract
 	{{- else}}
 	// Construct the contract with no fallback function.
-	return precompile.NewStatefulPrecompileContract(nil, functions)
+	statefulContract, err := contract.NewStatefulPrecompileContract(nil, functions)
+	if err != nil {
+		panic(err)
+	}
+	return statefulContract
 	{{- end}}
 }
 `
