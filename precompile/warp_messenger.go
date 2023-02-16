@@ -264,6 +264,9 @@ func (c *WarpMessengerConfig) OnAccept() OnAcceptFunc {
 	return c.onAccept
 }
 
+// onAccept implements OnAccept, and is called on logs with the warp precompile address after the block is accepted.
+// For SubmitMessageEventID logs we form a warp unsigned message and add it to the warp backend.
+// Expects returned errors to be treated as FATAL
 func (c *WarpMessengerConfig) onAccept(backend Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
 	if backend == nil {
 		return ErrMissingPrecompileBackend

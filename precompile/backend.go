@@ -25,7 +25,7 @@ type MockBackend struct {
 	Stats MockHandlerStats
 }
 
-func (m MockBackend) AddMessage(ctx context.Context, unsignedMessage *warp.UnsignedMessage) error {
+func (m *MockBackend) AddMessage(ctx context.Context, unsignedMessage *warp.UnsignedMessage) error {
 	startTime := time.Now()
 	m.Stats.IncAddSignature()
 
