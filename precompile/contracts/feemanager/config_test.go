@@ -39,12 +39,9 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 			expectedError: "cannot set address",
 		},
 		{
-			name: "invalid initial fee manager config",
-			config: NewConfig(big.NewInt(3), admins, nil,
-				&commontype.FeeConfig{
-					GasLimit: big.NewInt(0),
-				}),
-			expectedError: "gasLimit = 0 cannot be less than or equal to 0",
+			name:          "invalid initial fee manager config",
+			config:        NewConfig(big.NewInt(3), admins, nil, &commontype.FeeConfig{}),
+			expectedError: "gasLimit cannot be nil",
 		},
 	}
 	for _, tt := range tests {
