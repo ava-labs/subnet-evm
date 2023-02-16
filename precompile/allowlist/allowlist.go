@@ -17,7 +17,7 @@ import (
 // in the storage trie. Each account may have one of the following roles:
 // 1. NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
 // 2. EnabledRole - allowed to call the precompile
-// 3. Admin - allowed to modify both the allowlist and call the precompile
+// 3. Admin - allowed to both modify the allowlist and call the precompile
 
 const (
 	SetAdminFuncKey      = "setAdmin"
@@ -27,14 +27,14 @@ const (
 
 	ModifyAllowListGasCost = contract.WriteGasCostPerSlot
 	ReadAllowListGasCost   = contract.ReadGasCostPerSlot
-)
 
-const allowListInputLen = common.HashLength
+	allowListInputLen = common.HashLength
+)
 
 var (
 	NoRole      = Role(common.BigToHash(common.Big0)) // NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
 	EnabledRole = Role(common.BigToHash(common.Big1)) // EnabledRole - allowed to call the precompile
-	AdminRole   = Role(common.BigToHash(common.Big2)) // Admin - allowed to modify both the allowlist and call the precompile
+	AdminRole   = Role(common.BigToHash(common.Big2)) // Admin - allowed to both modify the allowlist and call the precompile
 
 	// AllowList function signatures
 	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
