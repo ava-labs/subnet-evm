@@ -328,7 +328,6 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		initDoneCh:          make(chan struct{}),
 		generalShutdownChan: make(chan struct{}),
 		gasPrice:            new(big.Int).SetUint64(config.PriceLimit),
-		minimumFee:          new(big.Int).Add(common.Big0, chainconfig.FeeConfig.MinBaseFee),
 	}
 
 	pool.locals = newAccountSet(pool.signer)

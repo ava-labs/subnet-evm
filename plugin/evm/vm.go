@@ -469,6 +469,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	}
 	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
+	vm.txPool.SetGasPrice(vm.chainConfig.FeeConfig.MinBaseFee)
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
 
