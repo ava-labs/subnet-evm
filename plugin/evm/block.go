@@ -113,16 +113,18 @@ func (b *Block) Verify(context.Context) error {
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 	precompileConfigs := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Precompiles
+
+	// Check if any of the transactions in the block list a precompile address in the access list.
 	for _, tx := range b.ethBlock.Transactions() {
 		for _, accessTuple := range tx.AccessList() {
 			if _, ok := precompileConfigs[accessTuple.Address]; ok {
-				log.Debug("Should verify block with proposer VM context", "block", b.ID(), "height", b.Height())
+				log.Debug("Block verification requires proposerVM context", "block", b.ID(), "height", b.Height())
 				return true, nil
 			}
 		}
 	}
-	log.Debug("Block does not require proposer VM context for verification.", "block", b.ID(), "height", b.Height())
 
+	log.Debug("Block verification does not require proposerVM context", "block", b.ID(), "height", b.Height())
 	return false, nil
 }
 
@@ -134,23 +136,6 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
 	}
 
-	// The engine may call VerifyWithContext multiple times on the same block with different contexts.
-	// Since the engine will only call Accept/Reject once, we need to ensure that we only call verify with writes=true once.
-	// Additionally, if a block is already in processing, then it has already passed verification and we only need to check that the predicates are
-	// still valid in the different context to ensure that Verify should return nil.
-	if b.vm.State.IsProcessing(b.id) {
-		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-		predicateCtx := precompile.PredicateContext{
-			SnowCtx:            b.vm.ctx,
-			ProposerVMBlockCtx: proposerVMBlockCtx,
-		}
-		for _, tx := range b.ethBlock.Transactions() {
-			if err := core.CheckPredicates(rules, &predicateCtx, tx); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
 	return b.verify(proposerVMBlockCtx, true)
 }
 
@@ -162,23 +147,40 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 
 	// Only enforce predicates if the chain has already bootstrapped.
 	// If the chain is still bootstrapping, we can assume that all blocks we are verifying have
-	// been accepted by then network and the predicate was validated by the network when the
-	// block was verified.
+	// been accepted by the network (so the predicate was validated by the network when the
+	// block was originally verified).
 	if b.vm.bootstrapped {
-		rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-		predicateCtx := precompile.PredicateContext{
-			SnowCtx:            b.vm.ctx,
-			ProposerVMBlockCtx: proposerVMBlockCtx,
-		}
-
-		for _, tx := range b.ethBlock.Transactions() {
-			if err := core.CheckPredicates(rules, &predicateCtx, tx); err != nil {
-				return err
-			}
+		if err := b.verifyPredicates(proposerVMBlockCtx); err != nil {
+			return fmt.Errorf("failed to verify predicates: %w", err)
 		}
 	}
 
+	// The engine may call VerifyWithContext multiple times on the same block with different contexts.
+	// Since the engine will only call Accept/Reject once, we should only call InsertBlockManual once.
+	// Additionally, if a block is already in processing, then it has already passed verification and
+	// at this point we have checked the predicates are still valid in the different context so we
+	// can return nil.
+	if b.vm.State.IsProcessing(b.id) {
+		return nil
+	}
+
 	return b.vm.blockChain.InsertBlockManual(b.ethBlock, writes)
+}
+
+// verifyPredicates verifies the predicates in the block are valid according to proposerVMBlockCtx.
+func (b *Block) verifyPredicates(proposerVMBlockCtx *block.Context) error {
+	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+	predicateCtx := &precompile.PredicateContext{
+		SnowCtx:            b.vm.ctx,
+		ProposerVMBlockCtx: proposerVMBlockCtx,
+	}
+
+	for _, tx := range b.ethBlock.Transactions() {
+		if err := core.CheckPredicates(rules, predicateCtx, tx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Bytes implements the snowman.Block interface
