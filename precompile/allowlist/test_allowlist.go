@@ -204,21 +204,16 @@ func RunTestsWithAllowListSetup(t *testing.T, module modules.Module, newStateDB 
 	contractAddress := module.Address
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			beforeHook := test.BeforeHook
-			test.BeforeHook = func(t *testing.T, state contract.StateDB) {
-				// Set up the state so that each address has the expected permissions at the start.
-				SetAllowListRole(state, contractAddress, AdminAddr, AdminRole)
-				SetAllowListRole(state, contractAddress, EnabledAddr, EnabledRole)
-				require.Equal(t, AdminRole, GetAllowListStatus(state, contractAddress, AdminAddr))
-				require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, EnabledAddr))
-				require.Equal(t, NoRole, GetAllowListStatus(state, contractAddress, NoRoleAddr))
-
-				// call the original before hook
-				if beforeHook != nil {
-					beforeHook(t, state)
-				}
-			}
 			state := newStateDB(t)
+
+			// Set up the state so that each address has the expected permissions at the start.
+			SetAllowListRole(state, contractAddress, AdminAddr, AdminRole)
+			SetAllowListRole(state, contractAddress, EnabledAddr, EnabledRole)
+			require.Equal(t, AdminRole, GetAllowListStatus(state, contractAddress, AdminAddr))
+			require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, EnabledAddr))
+			require.Equal(t, NoRole, GetAllowListStatus(state, contractAddress, NoRoleAddr))
+
+			// Run the test
 			test.Run(t, module, state)
 		})
 	}

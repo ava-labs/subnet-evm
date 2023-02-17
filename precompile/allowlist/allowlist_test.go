@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
 	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/test_utils"
@@ -51,13 +50,6 @@ func (d *dummyConfigurator) Configure(
 	return cfg.Configure(state, dummyAddr)
 }
 
-func newStateDB(t *testing.T) contract.StateDB {
-	db := memorydb.New()
-	stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-	require.NoError(t, err)
-	return stateDB
-}
-
 func TestAllowListRun(t *testing.T) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
@@ -94,6 +86,6 @@ func TestAllowListRun(t *testing.T) {
 		},
 	}
 
-	RunTestsWithAllowListSetup(t, dummyModule, newStateDB, AllowListTests(dummyModule))
-	RunTestsWithAllowListSetup(t, dummyModule, newStateDB, tests)
+	RunTestsWithAllowListSetup(t, dummyModule, state.NewTestStateDB, AllowListTests(dummyModule))
+	RunTestsWithAllowListSetup(t, dummyModule, state.NewTestStateDB, tests)
 }
