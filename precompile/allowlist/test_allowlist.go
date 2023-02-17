@@ -199,13 +199,17 @@ func AddAllowListTests(t *testing.T, module modules.Module, tests map[string]tes
 		},
 	}
 
+	// wrap existing tests with allowlist setup
+	for name, test := range tests {
+		tests[name] = withAllowListSetup(t, module, test)
+	}
 	for name, test := range allowlistTests {
-		tests[name] = test
+		tests[name] = withAllowListSetup(t, module, test)
 	}
 	return tests
 }
 
-func WithAllowListSetup(t *testing.T, module modules.Module, test test_utils.PrecompileTest) test_utils.PrecompileTest {
+func withAllowListSetup(t *testing.T, module modules.Module, test test_utils.PrecompileTest) test_utils.PrecompileTest {
 	contractAddress := module.Address
 	beforeHook := test.BeforeHook
 	test.BeforeHook = func(t *testing.T, state contract.StateDB) {

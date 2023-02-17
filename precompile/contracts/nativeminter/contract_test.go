@@ -143,7 +143,7 @@ func TestContractNativeMinterRun(t *testing.T) {
 			stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
 			require.NoError(t, err)
 
-			allowlist.WithAllowListSetup(t, Module, test).Run(t, Module, stateDB)
+			test.Run(t, Module, stateDB)
 		})
 	}
 }

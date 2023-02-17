@@ -9,19 +9,21 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/test_utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTxAllowListRun(t *testing.T) {
 	// TODO: add module specific tests
-	for name, test := range allowlist.AddAllowListTests(t, Module, nil) {
+	tests := make(map[string]test_utils.PrecompileTest)
+	for name, test := range allowlist.AddAllowListTests(t, Module, tests) {
 		t.Run(name, func(t *testing.T) {
 			db := memorydb.New()
 			stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
 			require.NoError(t, err)
 
-			allowlist.WithAllowListSetup(t, Module, test).Run(t, Module, stateDB)
+			test.Run(t, Module, stateDB)
 		})
 	}
 }

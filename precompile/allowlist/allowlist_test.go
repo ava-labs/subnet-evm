@@ -93,7 +93,7 @@ func TestAllowListRun(t *testing.T) {
 			stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
 			require.NoError(t, err)
 
-			WithAllowListSetup(t, dummyModule, test).Run(t, dummyModule, stateDB)
+			withAllowListSetup(t, dummyModule, test).Run(t, dummyModule, stateDB)
 		})
 	}
 }
