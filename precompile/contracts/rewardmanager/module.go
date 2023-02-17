@@ -45,13 +45,9 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.Conf
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
-	err := config.Configure(state, ContractAddress)
-	if err != nil {
-		return err
-	}
 	// configure the RewardManager with the given initial configuration
 	if config.InitialRewardConfig != nil {
-		return config.InitialRewardConfig.Configure(state)
+		config.InitialRewardConfig.Configure(state)
 	} else if chainConfig.AllowedFeeRecipients() {
 		// configure the RewardManager according to chainConfig
 		EnableAllowFeeRecipients(state)
@@ -61,5 +57,5 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.Conf
 		// default to disabling rewards
 		DisableFeeRewards(state)
 	}
-	return nil
+	return config.Configure(state, ContractAddress)
 }
