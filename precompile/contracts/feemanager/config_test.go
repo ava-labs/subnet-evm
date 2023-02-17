@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
-	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )

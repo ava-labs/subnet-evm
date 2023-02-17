@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
