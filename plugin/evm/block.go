@@ -13,8 +13,10 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -60,11 +62,53 @@ func (b *Block) Accept(context.Context) error {
 	if err := vm.blockChain.Accept(b.ethBlock); err != nil {
 		return fmt.Errorf("chain could not accept %s: %w", b.ID(), err)
 	}
+	// Call Accept for relevant precompile logs. This should apply DB operations to the VM's versionDB
+	// to be committed atomically with marking this block as accepted.
+	if err := b.handlePrecompileAccept(); err != nil {
+		return err
+	}
 	if err := vm.acceptedBlockDB.Put(lastAcceptedKey, b.id[:]); err != nil {
 		return fmt.Errorf("failed to put %s as the last accepted block: %w", b.ID(), err)
 	}
 
 	return vm.db.Commit()
+}
+
+// handlePrecompileAccept calls Accept on any logs generated with an active precompile address that implements
+// contract.Accepter
+// This function assumes that the Accept function will ONLY operate on state maintained in the VM's versiondb.
+// This ensures that any DB operations are performed atomically with marking the block as accepted.
+func (b *Block) handlePrecompileAccept() error {
+	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+	receipts := rawdb.ReadReceipts(b.vm.chaindb, b.ethBlock.Hash(), b.ethBlock.NumberU64(), b.vm.chainConfig)
+	if receipts == nil {
+		return fmt.Errorf("failed to read receipts for accepted block %s, height %d", b.ethBlock.Hash(), b.ethBlock.NumberU64())
+	}
+
+	for txIndex, receipt := range receipts {
+		for _, log := range receipt.Logs {
+			_, ok := rules.ActivePrecompiles[log.Address]
+			if !ok {
+				continue
+			}
+
+			module, ok := modules.GetPrecompileModuleByAddress(log.Address)
+			if !ok {
+				return fmt.Errorf("accepter accessed precompile config under address %s with no registered module", log.Address)
+			}
+
+			accepter, ok := module.Contract.(contract.Accepter)
+			if !ok {
+				continue
+			}
+
+			if err := accepter.Accept(log.TxHash, txIndex, log.Topics, log.Data); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // Reject implements the snowman.Block interface

@@ -24,7 +24,7 @@ func CheckPredicates(rules params.Rules, predicateContext *contract.PredicateCon
 
 		module, ok := modules.GetPrecompileModuleByAddress(accessTuple.Address)
 		if !ok {
-			return fmt.Errorf("accessed precompile config under address %s with no registered module", accessTuple.Address)
+			return fmt.Errorf("predicate accessed precompile config under address %s with no registered module", accessTuple.Address)
 		}
 		predicater, ok := module.Contract.(contract.Predicater)
 		if !ok {
