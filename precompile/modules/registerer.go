@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -49,6 +50,10 @@ func RegisterModule(stm Module) error {
 	key := stm.ConfigKey
 	if !ReservedAddress(address) {
 		return fmt.Errorf("address %s not in a reserved range", address)
+	}
+
+	if address == constants.BlackholeAddr {
+		return fmt.Errorf("address %s overlaps with blackhole address", address)
 	}
 
 	for _, registeredModule := range registeredModules {
