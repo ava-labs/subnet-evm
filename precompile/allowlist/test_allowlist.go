@@ -245,7 +245,13 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 	}
 }
 
-func RunTestsWithAllowListSetup(t *testing.T, module modules.Module, newStateDB func(t *testing.T) contract.StateDB, tests map[string]testutils.PrecompileTest) {
+func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, newStateDB func(t *testing.T) contract.StateDB, contractTests map[string]testutils.PrecompileTest) {
+	tests := AllowListTests(module)
+	// Add the contract specific tests to the map of tests to run.
+	for name, test := range contractTests {
+		tests[name] = test
+	}
+
 	contractAddress := module.Address
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

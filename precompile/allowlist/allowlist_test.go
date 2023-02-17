@@ -54,5 +54,5 @@ func TestAllowListRun(t *testing.T) {
 		Contract:     CreateAllowListPrecompile(dummyAddr),
 		Configurator: &dummyConfigurator{},
 	}
-	RunTestsWithAllowListSetup(t, dummyModule, state.NewTestStateDB, AllowListTests(dummyModule))
+	RunPrecompileWithAllowListTests(t, dummyModule, state.NewTestStateDB, nil)
 }

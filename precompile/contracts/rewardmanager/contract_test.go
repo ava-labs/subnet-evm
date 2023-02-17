@@ -257,6 +257,6 @@ func TestRewardManagerRun(t *testing.T) {
 		},
 	}
 
-	allowlist.RunTestsWithAllowListSetup(t, Module, state.NewTestStateDB, tests)
-	allowlist.RunTestsWithAllowListSetup(t, Module, state.NewTestStateDB, allowlist.AllowListTests(Module))
+	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, tests)
+	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, allowlist.AllowListTests(Module))
 }

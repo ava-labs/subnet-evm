@@ -11,5 +11,5 @@ import (
 )
 
 func TestTxAllowListRun(t *testing.T) {
-	allowlist.RunTestsWithAllowListSetup(t, Module, state.NewTestStateDB, allowlist.AllowListTests(Module))
+	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, nil)
 }

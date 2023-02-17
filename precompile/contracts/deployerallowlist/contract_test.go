@@ -11,6 +11,5 @@ import (
 )
 
 func TestContractDeployerAllowListRun(t *testing.T) {
-	// TODO: add module specific tests
-	allowlist.RunTestsWithAllowListSetup(t, Module, state.NewTestStateDB, allowlist.AllowListTests(Module))
+	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, nil)
 }

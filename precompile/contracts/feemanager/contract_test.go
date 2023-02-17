@@ -210,6 +210,5 @@ func TestFeeManager(t *testing.T) {
 		},
 	}
 
-	allowlist.RunTestsWithAllowListSetup(t, Module, state.NewTestStateDB, tests)
-	allowlist.RunTestsWithAllowListSetup(t, Module, state.NewTestStateDB, allowlist.AllowListTests(Module))
+	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, tests)
 }
