@@ -261,7 +261,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 }
 
 // SetDefaultRoles returns a BeforeHook that sets roles TestAdminAddr and TestEnabledAddr
-//to have the AdminRole and EnabledRole respectively.
+// to have the AdminRole and EnabledRole respectively.
 func SetDefaultRoles(contractAddress common.Address) func(t *testing.T, state contract.StateDB) {
 	return func(t *testing.T, state contract.StateDB) {
 		SetAllowListRole(state, contractAddress, TestAdminAddr, AdminRole)
