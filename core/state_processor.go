@@ -183,7 +183,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 	// Note: RegisteredModules returns precompiles sorted by module addresses.
 	// This ensures that the order we call Configure for each precompile is consistent.
 	// This ensures even if precompiles read/write state other than their own they will observe
-	// an identical global state in a deterministic order when as they are configured.
+	// an identical global state in a deterministic order when they are configured.
 	for _, module := range modules.RegisteredModules() {
 		key := module.ConfigKey
 		for _, activatingConfig := range c.GetActivatingPrecompileConfigs(module.Address, parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
