@@ -33,7 +33,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
@@ -163,9 +162,6 @@ func init() {
 		address := module.Address
 		if _, ok := PrecompileAllNativeAddresses[address]; ok {
 			panic(fmt.Errorf("precompile address collides with existing native address: %s", address))
-		}
-		if address == constants.BlackholeAddr {
-			panic(fmt.Errorf("cannot use address %s for stateful precompile - overlaps with blackhole address", address))
 		}
 	}
 }

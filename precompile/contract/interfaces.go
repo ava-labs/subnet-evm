@@ -69,10 +69,10 @@ type BlockContext interface {
 }
 
 type Configurator interface {
-	NewConfig() config.Config
+	NewConfig() config.StatefulPrecompileConfig
 	Configure(
 		chainConfig ChainConfig,
-		precompileConfig config.Config,
+		precompileConfig config.StatefulPrecompileConfig,
 		state StateDB,
 		blockContext BlockContext,
 	) error

@@ -29,7 +29,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
-				Config: txallowlist.NewConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1], nil),
+				StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1], nil),
 			},
 		},
 	}
@@ -72,7 +72,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	upgradeConfig.PrecompileUpgrades = append(
 		upgradeConfig.PrecompileUpgrades,
 		params.PrecompileUpgrade{
-			Config: txallowlist.NewDisableConfig(big.NewInt(disableAllowListTimestamp.Unix())),
+			StatefulPrecompileConfig: txallowlist.NewDisableConfig(big.NewInt(disableAllowListTimestamp.Unix())),
 		},
 	)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)

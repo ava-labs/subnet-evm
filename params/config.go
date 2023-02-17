@@ -558,7 +558,7 @@ type Rules struct {
 	// for this rule set.
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
-	ActivePrecompiles map[common.Address]config.Config
+	ActivePrecompiles map[common.Address]config.StatefulPrecompileConfig
 }
 
 // IsPrecompileEnabled returns true if the precompile at [addr] is enabled for this rule set.
@@ -594,7 +594,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsSubnetEVM = c.IsSubnetEVM(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	rules.ActivePrecompiles = make(map[common.Address]config.Config)
+	rules.ActivePrecompiles = make(map[common.Address]config.StatefulPrecompileConfig)
 	for _, module := range modules.RegisteredModules() {
 		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config

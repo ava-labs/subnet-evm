@@ -11,12 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ config.Config = &Config{}
+var _ config.StatefulPrecompileConfig = &Config{}
 
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // TxAllowList specific precompile config.
 type Config struct {
-	allowlist.Config
+	allowlist.AllowListConfig
 	config.Upgrade
 }
 
@@ -24,7 +24,7 @@ type Config struct {
 // TxAllowList with the given [admins] and [enableds] as members of the allowlist.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *Config {
 	return &Config{
-		Config: allowlist.Config{
+		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
@@ -43,14 +43,16 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	}
 }
 
-func (c *Config) Key() string { return ConfigKey }
+func (c *Config) Key() string {
+	return ConfigKey
+}
 
 // Equal returns true if [cfg] is a [*TxAllowListConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg config.StatefulPrecompileConfig) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {
 		return false
 	}
-	return c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
+	return c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }

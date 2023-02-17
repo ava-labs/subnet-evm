@@ -46,7 +46,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	badConfig.PrecompileUpgrades = append(
 		badConfig.PrecompileUpgrades,
 		PrecompileUpgrade{
-			Config: txallowlist.NewDisableConfig(big.NewInt(5)),
+			StatefulPrecompileConfig: txallowlist.NewDisableConfig(big.NewInt(5)),
 		},
 	)
 	err = badConfig.Verify()
@@ -57,7 +57,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 	badConfig.PrecompileUpgrades = append(
 		badConfig.PrecompileUpgrades,
 		PrecompileUpgrade{
-			Config: txallowlist.NewConfig(big.NewInt(5), admins, nil),
+			StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(5), admins, nil),
 		},
 	)
 	err = badConfig.Verify()
@@ -70,13 +70,13 @@ func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
 	config := &baseConfig
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		// this does NOT enable the precompile, so it should be upgradeable.
-		{Config: txallowlist.NewConfig(nil, nil, nil)},
+		{StatefulPrecompileConfig: txallowlist.NewConfig(nil, nil, nil)},
 	}
 	require.False(t, config.IsPrecompileEnabled(txallowlist.ContractAddress, common.Big0)) // check the precompile is not enabled.
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
 			// enable TxAllowList at timestamp 5
-			Config: txallowlist.NewConfig(big.NewInt(5), admins, nil),
+			StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(5), admins, nil),
 		},
 	}
 
@@ -95,10 +95,10 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "enable and disable tx allow list",
 			upgrades: []PrecompileUpgrade{
 				{
-					Config: txallowlist.NewConfig(big.NewInt(1), admins, nil),
+					StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(1), admins, nil),
 				},
 				{
-					Config: txallowlist.NewDisableConfig(big.NewInt(2)),
+					StatefulPrecompileConfig: txallowlist.NewDisableConfig(big.NewInt(2)),
 				},
 			},
 			expectedError: "",
@@ -107,13 +107,13 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "invalid allow list config in tx allowlist",
 			upgrades: []PrecompileUpgrade{
 				{
-					Config: txallowlist.NewConfig(big.NewInt(1), admins, nil),
+					StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(1), admins, nil),
 				},
 				{
-					Config: txallowlist.NewDisableConfig(big.NewInt(2)),
+					StatefulPrecompileConfig: txallowlist.NewDisableConfig(big.NewInt(2)),
 				},
 				{
-					Config: txallowlist.NewConfig(big.NewInt(3), admins, admins),
+					StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(3), admins, admins),
 				},
 			},
 			expectedError: "cannot set address",
@@ -122,7 +122,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "invalid initial fee manager config",
 			upgrades: []PrecompileUpgrade{
 				{
-					Config: feemanager.NewConfig(big.NewInt(3), admins, nil,
+					StatefulPrecompileConfig: feemanager.NewConfig(big.NewInt(3), admins, nil,
 						func() *commontype.FeeConfig {
 							feeConfig := DefaultFeeConfig
 							feeConfig.GasLimit = big.NewInt(-1)
@@ -136,7 +136,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "invalid initial fee manager config gas limit 0",
 			upgrades: []PrecompileUpgrade{
 				{
-					Config: feemanager.NewConfig(big.NewInt(3), admins, nil,
+					StatefulPrecompileConfig: feemanager.NewConfig(big.NewInt(3), admins, nil,
 						func() *commontype.FeeConfig {
 							feeConfig := DefaultFeeConfig
 							feeConfig.GasLimit = common.Big0
@@ -150,10 +150,10 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "different upgrades are allowed to configure same timestamp for different precompiles",
 			upgrades: []PrecompileUpgrade{
 				{
-					Config: txallowlist.NewConfig(big.NewInt(1), admins, nil),
+					StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(1), admins, nil),
 				},
 				{
-					Config: feemanager.NewConfig(big.NewInt(1), admins, nil, nil),
+					StatefulPrecompileConfig: feemanager.NewConfig(big.NewInt(1), admins, nil, nil),
 				},
 			},
 			expectedError: "",
@@ -162,10 +162,10 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "different upgrades must be monotonically increasing",
 			upgrades: []PrecompileUpgrade{
 				{
-					Config: txallowlist.NewConfig(big.NewInt(2), admins, nil),
+					StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(2), admins, nil),
 				},
 				{
-					Config: feemanager.NewConfig(big.NewInt(1), admins, nil, nil),
+					StatefulPrecompileConfig: feemanager.NewConfig(big.NewInt(1), admins, nil, nil),
 				},
 			},
 			expectedError: "config block timestamp (1) < previous timestamp (2)",
@@ -174,10 +174,10 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 			name: "upgrades with same keys are not allowed to configure same timestamp for same precompiles",
 			upgrades: []PrecompileUpgrade{
 				{
-					Config: txallowlist.NewConfig(big.NewInt(1), admins, nil),
+					StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(1), admins, nil),
 				},
 				{
-					Config: txallowlist.NewDisableConfig(big.NewInt(1)),
+					StatefulPrecompileConfig: txallowlist.NewDisableConfig(big.NewInt(1)),
 				},
 			},
 			expectedError: " config block timestamp (1) <= previous timestamp (1) of same key",
@@ -250,10 +250,10 @@ func TestVerifyRequiresSortedTimestamps(t *testing.T) {
 	config := &baseConfig
 	config.PrecompileUpgrades = []PrecompileUpgrade{
 		{
-			Config: txallowlist.NewConfig(big.NewInt(2), admins, nil),
+			StatefulPrecompileConfig: txallowlist.NewConfig(big.NewInt(2), admins, nil),
 		},
 		{
-			Config: deployerallowlist.NewConfig(big.NewInt(1), admins, nil),
+			StatefulPrecompileConfig: deployerallowlist.NewConfig(big.NewInt(1), admins, nil),
 		},
 	}
 

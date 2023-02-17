@@ -16,7 +16,7 @@ func TestVerifyContractDeployerConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	tests := []struct {
 		name          string
-		config        config.Config
+		config        config.StatefulPrecompileConfig
 		ExpectedError string
 	}{
 		{
@@ -44,8 +44,8 @@ func TestEqualContractDeployerAllowListConfig(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name     string
-		config   config.Config
-		other    config.Config
+		config   config.StatefulPrecompileConfig
+		other    config.StatefulPrecompileConfig
 		expected bool
 	}{
 		{

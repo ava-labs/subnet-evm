@@ -39,7 +39,7 @@ type PrecompileTest struct {
 	// It should be the same precompile config that is used in the
 	// precompile's configurator.
 	// If nil, Configure on the Configurator will not be called.
-	Config config.Config
+	Config config.StatefulPrecompileConfig
 	// BeforeHook is called before the precompile is called.
 	BeforeHook func(t *testing.T, state StateDB)
 	// AfterHook is called after the precompile is called.

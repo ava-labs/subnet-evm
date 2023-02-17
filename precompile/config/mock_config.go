@@ -11,10 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ Config = &noopStatefulPrecompileConfig{}
+var _ StatefulPrecompileConfig = &noopStatefulPrecompileConfig{}
 
-type noopStatefulPrecompileConfig struct {
-}
+type noopStatefulPrecompileConfig struct{}
 
 func NewNoopStatefulPrecompileConfig() *noopStatefulPrecompileConfig {
 	return &noopStatefulPrecompileConfig{}
@@ -36,7 +35,7 @@ func (n *noopStatefulPrecompileConfig) IsDisabled() bool {
 	return false
 }
 
-func (n *noopStatefulPrecompileConfig) Equal(Config) bool {
+func (n *noopStatefulPrecompileConfig) Equal(StatefulPrecompileConfig) bool {
 	return false
 }
 

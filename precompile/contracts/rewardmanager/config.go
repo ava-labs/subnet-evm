@@ -15,7 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ config.Config = &Config{}
+var _ config.StatefulPrecompileConfig = &Config{}
 
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
@@ -57,7 +57,7 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // RewardManager specific precompile config.
 type Config struct {
-	allowlist.Config
+	allowlist.AllowListConfig
 	config.Upgrade
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
@@ -66,7 +66,7 @@ type Config struct {
 // RewardManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial rewards config if specified.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *Config {
 	return &Config{
-		Config: allowlist.Config{
+		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
@@ -86,7 +86,9 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	}
 }
 
-func (*Config) Key() string { return ConfigKey }
+func (*Config) Key() string {
+	return ConfigKey
+}
 
 func (c *Config) Verify() error {
 	if c.InitialRewardConfig != nil {
@@ -94,11 +96,11 @@ func (c *Config) Verify() error {
 			return err
 		}
 	}
-	return c.Config.Verify()
+	return c.AllowListConfig.Verify()
 }
 
 // Equal returns true if [cfg] is a [*RewardManagerConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg config.StatefulPrecompileConfig) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {
@@ -114,5 +116,5 @@ func (c *Config) Equal(cfg config.Config) bool {
 		}
 	}
 
-	return c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
+	return c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }

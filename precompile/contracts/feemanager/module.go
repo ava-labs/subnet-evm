@@ -35,12 +35,12 @@ func init() {
 	}
 }
 
-func (*configurator) NewConfig() config.Config {
+func (*configurator) NewConfig() config.StatefulPrecompileConfig {
 	return &Config{}
 }
 
 // Configure configures [state] with the desired admins based on [configIface].
-func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, blockContext contract.BlockContext) error {
+func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.StatefulPrecompileConfig, state contract.StateDB, blockContext contract.BlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
@@ -57,5 +57,6 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.Conf
 			return fmt.Errorf("cannot configure fee config in chain config: %w", err)
 		}
 	}
-	return config.Config.Configure(state, ContractAddress)
+	config.AllowListConfig.Configure(state, ContractAddress)
+	return nil
 }

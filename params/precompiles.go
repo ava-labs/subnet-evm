@@ -10,7 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 )
 
-type Precompiles map[string]config.Config
+type Precompiles map[string]config.StatefulPrecompileConfig
 
 // UnmarshalJSON parses the JSON-encoded data into the ChainConfigPrecompiles.
 // ChainConfigPrecompiles is a map of precompile module keys to their

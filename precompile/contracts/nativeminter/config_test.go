@@ -18,7 +18,7 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name          string
-		config        config.Config
+		config        config.StatefulPrecompileConfig
 		ExpectedError string
 	}{
 		{
@@ -74,8 +74,8 @@ func TestEqualContractNativeMinterConfig(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name     string
-		config   config.Config
-		other    config.Config
+		config   config.StatefulPrecompileConfig
+		other    config.StatefulPrecompileConfig
 		expected bool
 	}{
 		{

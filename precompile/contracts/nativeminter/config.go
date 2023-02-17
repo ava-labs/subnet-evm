@@ -14,12 +14,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
-var _ config.Config = &Config{}
+var _ config.StatefulPrecompileConfig = &Config{}
 
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // ContractNativeMinter specific precompile config.
 type Config struct {
-	allowlist.Config
+	allowlist.AllowListConfig
 	config.Upgrade
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // addresses to receive the initial mint mapped to the amount to mint
 }
@@ -28,7 +28,7 @@ type Config struct {
 // ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *Config {
 	return &Config{
-		Config: allowlist.Config{
+		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
@@ -47,16 +47,19 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 		},
 	}
 }
-func (*Config) Key() string { return ConfigKey }
+
+func (*Config) Key() string {
+	return ConfigKey
+}
 
 // Equal returns true if [cfg] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg config.StatefulPrecompileConfig) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {
 		return false
 	}
-	eq := c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
+	eq := c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 	if !eq {
 		return false
 	}
@@ -91,5 +94,5 @@ func (c *Config) Verify() error {
 			return fmt.Errorf("initial mint cannot contain invalid amount %v for address %s", bigIntAmount, addr)
 		}
 	}
-	return c.Config.Verify()
+	return c.AllowListConfig.Verify()
 }

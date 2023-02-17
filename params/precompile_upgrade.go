@@ -23,7 +23,7 @@ var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 // based on the key. Keys are defined in each precompile module, and registered in
 // precompile/registry/registry.go.
 type PrecompileUpgrade struct {
-	config.Config
+	config.StatefulPrecompileConfig
 }
 
 // UnmarshalJSON unmarshals the json into the correct precompile config type
@@ -51,7 +51,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(value, config); err != nil {
 			return err
 		}
-		u.Config = config
+		u.StatefulPrecompileConfig = config
 	}
 	return nil
 }
@@ -59,8 +59,8 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 // MarshalJSON marshal the precompile config into json based on the precompile key.
 // Ex: {"feeManagerConfig": {...}} where "feeManagerConfig" is the key
 func (u *PrecompileUpgrade) MarshalJSON() ([]byte, error) {
-	res := make(map[string]precompileConfig.Config)
-	res[u.Key()] = u.Config
+	res := make(map[string]precompileConfig.StatefulPrecompileConfig)
+	res[u.Key()] = u.StatefulPrecompileConfig
 	return json.Marshal(res)
 }
 
@@ -152,7 +152,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 
 // GetActivePrecompileConfig returns the most recent precompile config corresponding to [address].
 // If none have occurred, returns nil.
-func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTimestamp *big.Int) config.Config {
+func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTimestamp *big.Int) config.StatefulPrecompileConfig {
 	configs := c.GetActivatingPrecompileConfigs(address, nil, blockTimestamp, c.PrecompileUpgrades)
 	if len(configs) == 0 {
 		return nil
@@ -162,13 +162,13 @@ func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTim
 
 // GetActivatingPrecompileConfigs returns all upgrades configured to activate during the state transition from a block with timestamp [from]
 // to a block with timestamp [to].
-func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []config.Config {
+func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []config.StatefulPrecompileConfig {
 	// Get key from address.
 	module, ok := modules.GetPrecompileModuleByAddress(address)
 	if !ok {
 		return nil
 	}
-	configs := make([]config.Config, 0)
+	configs := make([]config.StatefulPrecompileConfig, 0)
 	key := module.ConfigKey
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.
@@ -182,7 +182,7 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 		if upgrade.Key() == key {
 			// Check if the precompile activates in the specified range.
 			if utils.IsForkTransition(upgrade.Timestamp(), from, to) {
-				configs = append(configs, upgrade.Config)
+				configs = append(configs, upgrade.StatefulPrecompileConfig)
 			}
 		}
 	}
@@ -217,10 +217,11 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 
 	// Check activated upgrades are still present.
 	for i, upgrade := range activeUpgrades {
+		key := upgrade.Key()
 		if len(newUpgrades) <= i {
 			// missing upgrade
 			return newCompatError(
-				fmt.Sprintf("missing PrecompileUpgrade[%d]", i),
+				fmt.Sprintf("missing PrecompileUpgrade (%s) at %d", key, i),
 				upgrade.Timestamp(),
 				nil,
 			)
@@ -228,7 +229,7 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 		// All upgrades that have activated must be identical.
 		if !upgrade.Equal(newUpgrades[i]) {
 			return newCompatError(
-				fmt.Sprintf("PrecompileUpgrade[%d]", i),
+				fmt.Sprintf("PrecompileUpgrade (%s) at %d", key, i),
 				upgrade.Timestamp(),
 				newUpgrades[i].Timestamp(),
 			)
@@ -237,8 +238,9 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 	// then, make sure newUpgrades does not have additional upgrades
 	// that are already activated. (cannot perform retroactive upgrade)
 	if len(newUpgrades) > len(activeUpgrades) {
+		faultyUpgrade := newUpgrades[len(activeUpgrades)]
 		return newCompatError(
-			fmt.Sprintf("cannot retroactively enable PrecompileUpgrade[%d]", len(activeUpgrades)),
+			fmt.Sprintf("cannot retroactively enable PrecompileUpgrade (%s) at %d", faultyUpgrade.Key(), len(activeUpgrades)),
 			nil,
 			newUpgrades[len(activeUpgrades)].Timestamp(), // this indexes to the first element in newUpgrades after the end of activeUpgrades
 		)
