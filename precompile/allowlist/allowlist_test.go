@@ -9,9 +9,9 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/test_utils"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -57,7 +57,7 @@ func TestAllowListRun(t *testing.T) {
 		Configurator: &dummyConfigurator{},
 	}
 
-	tests := map[string]test_utils.PrecompileTest{
+	tests := map[string]testutils.PrecompileTest{
 		"initial config sets admins": {
 			Config: &dummyConfig{
 				&AllowListConfig{

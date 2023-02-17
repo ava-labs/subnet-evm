@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/test_utils"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -17,7 +17,7 @@ import (
 )
 
 func TestContractNativeMinterRun(t *testing.T) {
-	tests := map[string]test_utils.PrecompileTest{
+	tests := map[string]testutils.PrecompileTest{
 		"mint funds from no role fails": {
 			Caller: allowlist.NoRoleAddr,
 			InputFn: func(t *testing.T) []byte {

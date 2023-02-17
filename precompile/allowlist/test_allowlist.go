@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/test_utils"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -20,9 +20,9 @@ var (
 	NoRoleAddr  = common.BigToAddress(common.Big3)
 )
 
-func AllowListTests(module modules.Module) map[string]test_utils.PrecompileTest {
+func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 	contractAddress := module.Address
-	return map[string]test_utils.PrecompileTest{
+	return map[string]testutils.PrecompileTest{
 		"set admin": {
 			Caller: AdminAddr,
 			InputFn: func(t *testing.T) []byte {
@@ -198,7 +198,7 @@ func AllowListTests(module modules.Module) map[string]test_utils.PrecompileTest 
 	}
 }
 
-func RunTestsWithAllowListSetup(t *testing.T, module modules.Module, newStateDB func(t *testing.T) contract.StateDB, tests map[string]test_utils.PrecompileTest) {
+func RunTestsWithAllowListSetup(t *testing.T, module modules.Module, newStateDB func(t *testing.T) contract.StateDB, tests map[string]testutils.PrecompileTest) {
 	contractAddress := module.Address
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
