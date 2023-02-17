@@ -51,13 +51,6 @@ func (d *dummyConfigurator) Configure(
 	return cfg.Configure(state, dummyAddr)
 }
 
-func newStateDB(t *testing.T) contract.StateDB {
-	db := memorydb.New()
-	stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-	require.NoError(t, err)
-	return stateDB
-}
-
 func TestAllowListRun(t *testing.T) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
@@ -94,6 +87,13 @@ func TestAllowListRun(t *testing.T) {
 		},
 	}
 
-	RunTestsWithAllowListSetup(t, dummyModule, newStateDB, AllowListTests(dummyModule))
-	RunTestsWithAllowListSetup(t, dummyModule, newStateDB, tests)
+	for name, test := range AddAllowListTests(t, dummyModule, tests) {
+		t.Run(name, func(t *testing.T) {
+			db := memorydb.New()
+			stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+			require.NoError(t, err)
+
+			WithAllowListSetup(t, dummyModule, test).Run(t, dummyModule, stateDB)
+		})
+	}
 }

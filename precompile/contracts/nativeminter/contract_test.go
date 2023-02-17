@@ -17,13 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newStateDB(t *testing.T) contract.StateDB {
-	db := memorydb.New()
-	stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-	require.NoError(t, err)
-	return stateDB
-}
-
 func TestContractNativeMinterRun(t *testing.T) {
 	tests := map[string]test_utils.PrecompileTest{
 		"mint funds from no role fails": {
@@ -144,6 +137,13 @@ func TestContractNativeMinterRun(t *testing.T) {
 		},
 	}
 
-	allowlist.RunTestsWithAllowListSetup(t, Module, newStateDB, tests)
-	allowlist.RunTestsWithAllowListSetup(t, Module, newStateDB, allowlist.AllowListTests(Module))
+	for name, test := range allowlist.AddAllowListTests(t, Module, tests) {
+		t.Run(name, func(t *testing.T) {
+			db := memorydb.New()
+			stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+			require.NoError(t, err)
+
+			allowlist.WithAllowListSetup(t, Module, test).Run(t, Module, stateDB)
+		})
+	}
 }

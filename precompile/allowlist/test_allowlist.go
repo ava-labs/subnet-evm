@@ -20,9 +20,9 @@ var (
 	NoRoleAddr  = common.BigToAddress(common.Big3)
 )
 
-func AllowListTests(module modules.Module) map[string]test_utils.PrecompileTest {
+func AddAllowListTests(t *testing.T, module modules.Module, tests map[string]test_utils.PrecompileTest) map[string]test_utils.PrecompileTest {
 	contractAddress := module.Address
-	return map[string]test_utils.PrecompileTest{
+	allowlistTests := map[string]test_utils.PrecompileTest{
 		"set admin": {
 			Caller: AdminAddr,
 			InputFn: func(t *testing.T) []byte {
@@ -198,28 +198,28 @@ func AllowListTests(module modules.Module) map[string]test_utils.PrecompileTest 
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 	}
+
+	for name, test := range allowlistTests {
+		tests[name] = test
+	}
+	return tests
 }
 
-func RunTestsWithAllowListSetup(t *testing.T, module modules.Module, newStateDB func(t *testing.T) contract.StateDB, tests map[string]test_utils.PrecompileTest) {
+func WithAllowListSetup(t *testing.T, module modules.Module, test test_utils.PrecompileTest) test_utils.PrecompileTest {
 	contractAddress := module.Address
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			beforeHook := test.BeforeHook
-			test.BeforeHook = func(t *testing.T, state contract.StateDB) {
-				// Set up the state so that each address has the expected permissions at the start.
-				SetAllowListRole(state, contractAddress, AdminAddr, AdminRole)
-				SetAllowListRole(state, contractAddress, EnabledAddr, EnabledRole)
-				require.Equal(t, AdminRole, GetAllowListStatus(state, contractAddress, AdminAddr))
-				require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, EnabledAddr))
-				require.Equal(t, NoRole, GetAllowListStatus(state, contractAddress, NoRoleAddr))
+	beforeHook := test.BeforeHook
+	test.BeforeHook = func(t *testing.T, state contract.StateDB) {
+		// Set up the state so that each address has the expected permissions at the start.
+		SetAllowListRole(state, contractAddress, AdminAddr, AdminRole)
+		SetAllowListRole(state, contractAddress, EnabledAddr, EnabledRole)
+		require.Equal(t, AdminRole, GetAllowListStatus(state, contractAddress, AdminAddr))
+		require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, EnabledAddr))
+		require.Equal(t, NoRole, GetAllowListStatus(state, contractAddress, NoRoleAddr))
 
-				// call the original before hook
-				if beforeHook != nil {
-					beforeHook(t, state)
-				}
-			}
-			state := newStateDB(t)
-			test.Run(t, module, state)
-		})
+		// call the original before hook
+		if beforeHook != nil {
+			beforeHook(t, state)
+		}
 	}
+	return test
 }

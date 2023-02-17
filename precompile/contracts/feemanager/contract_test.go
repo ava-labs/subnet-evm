@@ -31,13 +31,6 @@ var testFeeConfig = commontype.FeeConfig{
 	BlockGasCostStep: big.NewInt(200_000),
 }
 
-func newStateDB(t *testing.T) contract.StateDB {
-	db := memorydb.New()
-	stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
-	require.NoError(t, err)
-	return stateDB
-}
-
 func TestFeeManager(t *testing.T) {
 	testBlockNumber := big.NewInt(7)
 	tests := map[string]test_utils.PrecompileTest{
@@ -218,6 +211,13 @@ func TestFeeManager(t *testing.T) {
 		},
 	}
 
-	allowlist.RunTestsWithAllowListSetup(t, Module, newStateDB, tests)
-	allowlist.RunTestsWithAllowListSetup(t, Module, newStateDB, allowlist.AllowListTests(Module))
+	for name, test := range allowlist.AddAllowListTests(t, Module, tests) {
+		t.Run(name, func(t *testing.T) {
+			db := memorydb.New()
+			stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+			require.NoError(t, err)
+
+			allowlist.WithAllowListSetup(t, Module, test).Run(t, Module, stateDB)
+		})
+	}
 }

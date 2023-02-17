@@ -265,6 +265,13 @@ func TestRewardManagerRun(t *testing.T) {
 		},
 	}
 
-	allowlist.RunTestsWithAllowListSetup(t, Module, newStateDB, tests)
-	allowlist.RunTestsWithAllowListSetup(t, Module, newStateDB, allowlist.AllowListTests(Module))
+	for name, test := range allowlist.AddAllowListTests(t, Module, tests) {
+		t.Run(name, func(t *testing.T) {
+			db := memorydb.New()
+			stateDB, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+			require.NoError(t, err)
+
+			allowlist.WithAllowListSetup(t, Module, test).Run(t, Module, stateDB)
+		})
+	}
 }
