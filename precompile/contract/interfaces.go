@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,6 +18,29 @@ import (
 type StatefulPrecompiledContract interface {
 	// Run executes the precompiled contract.
 	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
+}
+
+// PredicateContext provides context to stateful precompile predicates
+type PredicateContext struct {
+	SnowCtx            *snow.Context
+	ProposerVMBlockCtx *block.Context
+}
+
+// Predicater is an optional interface for StatefulPrecompiledContracts to implement.
+// If implemented, the predicate will be enforced on every transaction in a block, prior to the block's execution.
+// If VerifyPredicate returns an error, the block will fail verification with no further processing.
+// WARNING: this is not intended to be used for custom precompiles. Backwards compatibility with custom precompiles that
+// use the Predicater interface will not be supported.
+type Predicater interface {
+	VerifyPredicate(predicateContext *PredicateContext, storageSlots []byte) error
+}
+
+// Accepter is an optional interface for StatefulPrecompiledContracts to implement.
+// If implemented, Accept will be called for every log with the address of the precompile when the block is accepted.
+// WARNING: this is not intended to be used for custom precompiles. Backwards compatibility with custom precompiles that
+// use the Accepter interface will not be supported.
+type Accepter interface {
+	Accept(txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
 }
 
 // ChainContext defines an interface that provides information to a stateful precompile
@@ -47,6 +71,7 @@ type StateDB interface {
 	Exist(common.Address) bool
 
 	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
+	GetPredicateStorageSlots(address common.Address) ([]byte, bool)
 
 	Suicide(common.Address) bool
 	Finalise(deleteEmptyObjects bool)

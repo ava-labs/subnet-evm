@@ -82,6 +82,7 @@ type StateDB interface {
 	Snapshot() int
 
 	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
+	GetPredicateStorageSlots(address common.Address) ([]byte, bool)
 	AddPreimage(common.Hash, []byte)
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) error

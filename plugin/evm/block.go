@@ -12,10 +12,19 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
+	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+)
+
+var (
+	_ snowman.Block           = (*Block)(nil)
+	_ block.WithVerifyContext = (*Block)(nil)
 )
 
 // Block implements the snowman.Block interface
@@ -102,15 +111,82 @@ func (b *Block) syntacticVerify() error {
 
 // Verify implements the snowman.Block interface
 func (b *Block) Verify(context.Context) error {
-	return b.verify(true)
+	return b.verify(nil, true)
 }
 
-func (b *Block) verify(writes bool) error {
+// ShouldVerifyWithContext implements the block.WithVerifyContext interface
+func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
+	precompileConfigs := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).ActivePrecompiles
+
+	// Check if any of the transactions in the block list a precompile address in the access list.
+	for _, tx := range b.ethBlock.Transactions() {
+		for _, accessTuple := range tx.AccessList() {
+			if _, ok := precompileConfigs[accessTuple.Address]; ok {
+				log.Debug("Block verification requires proposerVM context", "block", b.ID(), "height", b.Height())
+				return true, nil
+			}
+		}
+	}
+
+	log.Debug("Block verification does not require proposerVM context", "block", b.ID(), "height", b.Height())
+	return false, nil
+}
+
+// VerifyWithContext implements the block.WithVerifyContext interface
+func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
+	if proposerVMBlockCtx != nil {
+		log.Debug("Verifying block with context", "block", b.ID(), "height", b.Height())
+	} else {
+		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
+	}
+
+	return b.verify(proposerVMBlockCtx, true)
+}
+
+// Verify the block is valid.
+// Enforces that the predicates are valid within [proposerVMBlockCtx].
+// Writes the block to disk iff writes=true
+func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
 	}
 
+	// Only enforce predicates if the chain has already bootstrapped.
+	// If the chain is still bootstrapping, we can assume that all blocks we are verifying have
+	// been accepted by the network (so the predicate was validated by the network when the
+	// block was originally verified).
+	if b.vm.bootstrapped {
+		if err := b.verifyPredicates(proposerVMBlockCtx); err != nil {
+			return fmt.Errorf("failed to verify predicates: %w", err)
+		}
+	}
+
+	// The engine may call VerifyWithContext multiple times on the same block with different contexts.
+	// Since the engine will only call Accept/Reject once, we should only call InsertBlockManual once.
+	// Additionally, if a block is already in processing, then it has already passed verification and
+	// at this point we have checked the predicates are still valid in the different context so we
+	// can return nil.
+	if b.vm.State.IsProcessing(b.id) {
+		return nil
+	}
+
 	return b.vm.blockChain.InsertBlockManual(b.ethBlock, writes)
+}
+
+// verifyPredicates verifies the predicates in the block are valid according to proposerVMBlockCtx.
+func (b *Block) verifyPredicates(proposerVMBlockCtx *block.Context) error {
+	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+	predicateCtx := &contract.PredicateContext{
+		SnowCtx:            b.vm.ctx,
+		ProposerVMBlockCtx: proposerVMBlockCtx,
+	}
+
+	for _, tx := range b.ethBlock.Transactions() {
+		if err := core.CheckPredicates(rules, predicateCtx, tx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Bytes implements the snowman.Block interface
