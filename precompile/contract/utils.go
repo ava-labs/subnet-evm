@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"testing"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -23,32 +21,6 @@ const (
 )
 
 var functionSignatureRegex = regexp.MustCompile(`[\w]+\(((([\w]+)?)|((([\w]+),)+([\w]+)))\)`)
-
-// PrecompileTest is a test case for a precompile
-type PrecompileTest struct {
-	// Caller is the address of the precompile caller
-	Caller common.Address
-	// Input is the raw input bytes to the precompile
-	Input []byte
-	// SuppliedGas is the amount of gas supplied to the precompile
-	SuppliedGas uint64
-	// ReadOnly is whether the precompile should be called in read only
-	// mode. If true, the precompile should not modify the state.
-	ReadOnly bool
-	// Config is the config to use for the precompile
-	// It should be the same precompile config that is used in the
-	// precompile's configurator.
-	// If nil, Configure on the Configurator will not be called.
-	Config config.Config
-	// BeforeHook is called before the precompile is called.
-	BeforeHook func(t *testing.T, state StateDB)
-	// AfterHook is called after the precompile is called.
-	AfterHook func(t *testing.T, state StateDB)
-	// ExpectedRes is the expected raw byte result returned by the precompile
-	ExpectedRes []byte
-	// ExpectedErr is the expected error returned by the precompile
-	ExpectedErr string
-}
 
 // CalculateFunctionSelector returns the 4 byte function selector that results from [functionSignature]
 // Ex. the function setBalance(addr address, balance uint256) should be passed in as the string:
