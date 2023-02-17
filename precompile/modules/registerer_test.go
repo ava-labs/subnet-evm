@@ -44,11 +44,16 @@ func TestInsertSortedByAddress(t *testing.T) {
 	require.Equal(t, []Module{module0, module1, module2, module3}, data)
 }
 
-func TestRegisterModule(t *testing.T) {
-	// test that blackhole address is not allowed
-	moduleBlackhole := Module{
+func TestRegisterModuleInvalidAddresses(t *testing.T) {
+	// Test the blockhole address cannot be registered
+	m := Module{
 		Address: constants.BlackholeAddr,
 	}
-	err := RegisterModule(moduleBlackhole)
+	err := RegisterModule(m)
 	require.ErrorContains(t, err, "overlaps with blackhole address")
+
+	// Test an address outside of the reserved ranges cannot be registered
+	m.Address = common.BigToAddress(big.NewInt(1))
+	err = RegisterModule(m)
+	require.ErrorContains(t, err, "not in a reserved range")
 }
