@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -56,9 +57,10 @@ func (test PrecompileTest) Run(t *testing.T, module modules.Module, state contra
 
 	blockContext := contract.NewMockBlockContext(big.NewInt(test.BlockNumber), 0)
 	accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
+	chainConfig := contract.NewMockChainState(commontype.ValidTestFeeConfig, false)
 
 	if test.Config != nil {
-		err := module.Configure(nil, test.Config, state, blockContext)
+		err := module.Configure(chainConfig, test.Config, state, blockContext)
 		require.NoError(t, err)
 	}
 

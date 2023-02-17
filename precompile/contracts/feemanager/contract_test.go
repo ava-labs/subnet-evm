@@ -34,7 +34,7 @@ func TestFeeManager(t *testing.T) {
 	testBlockNumber := big.NewInt(7)
 	tests := map[string]testutils.PrecompileTest{
 		"set config from no role fails": {
-			Caller: allowlist.NoRoleAddr,
+			Caller: allowlist.TestNoRoleAddr,
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -46,7 +46,7 @@ func TestFeeManager(t *testing.T) {
 			ExpectedErr: ErrCannotChangeFee.Error(),
 		},
 		"set config from enabled address": {
-			Caller: allowlist.EnabledAddr,
+			Caller: allowlist.TestEnabledAddr,
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestFeeManager(t *testing.T) {
 			},
 		},
 		"set invalid config from enabled address": {
-			Caller: allowlist.EnabledAddr,
+			Caller: allowlist.TestEnabledAddr,
 			InputFn: func(t *testing.T) []byte {
 				feeConfig := testFeeConfig
 				feeConfig.MinBlockGasCost = new(big.Int).Mul(feeConfig.MaxBlockGasCost, common.Big2)
@@ -83,10 +83,10 @@ func TestFeeManager(t *testing.T) {
 			},
 		},
 		"set config from admin address": {
-			Caller: allowlist.AdminAddr,
-			InputFn: func(tt *testing.T) []byte {
+			Caller: allowlist.TestAdminAddr,
+			InputFn: func(t *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(tt, err)
+				require.NoError(t, err)
 
 				return input
 			},
@@ -102,7 +102,7 @@ func TestFeeManager(t *testing.T) {
 			},
 		},
 		"get fee config from non-enabled address": {
-			Caller: allowlist.NoRoleAddr,
+			Caller: allowlist.TestNoRoleAddr,
 			BeforeHook: func(t *testing.T, state contract.StateDB) {
 				err := StoreFeeConfig(state, testFeeConfig, contract.NewMockBlockContext(big.NewInt(6), 0))
 				require.NoError(t, err)
@@ -123,7 +123,7 @@ func TestFeeManager(t *testing.T) {
 			},
 		},
 		"get initial fee config": {
-			Caller:      allowlist.NoRoleAddr,
+			Caller:      allowlist.TestNoRoleAddr,
 			Input:       PackGetFeeConfigInput(),
 			SuppliedGas: GetFeeConfigGasCost,
 			Config: &Config{
@@ -144,7 +144,7 @@ func TestFeeManager(t *testing.T) {
 			},
 		},
 		"get last changed at from non-enabled address": {
-			Caller: allowlist.NoRoleAddr,
+			Caller: allowlist.TestNoRoleAddr,
 			BeforeHook: func(t *testing.T, state contract.StateDB) {
 				err := StoreFeeConfig(state, testFeeConfig, contract.NewMockBlockContext(testBlockNumber, 0))
 				require.NoError(t, err)
@@ -161,10 +161,10 @@ func TestFeeManager(t *testing.T) {
 			},
 		},
 		"readOnly setFeeConfig with noRole fails": {
-			Caller: allowlist.NoRoleAddr,
-			InputFn: func(tt *testing.T) []byte {
+			Caller: allowlist.TestNoRoleAddr,
+			InputFn: func(t *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(tt, err)
+				require.NoError(t, err)
 
 				return input
 			},
@@ -173,10 +173,10 @@ func TestFeeManager(t *testing.T) {
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with allow role fails": {
-			Caller: allowlist.EnabledAddr,
-			InputFn: func(tt *testing.T) []byte {
+			Caller: allowlist.TestEnabledAddr,
+			InputFn: func(t *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(tt, err)
+				require.NoError(t, err)
 
 				return input
 			},
@@ -185,10 +185,10 @@ func TestFeeManager(t *testing.T) {
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly setFeeConfig with admin role fails": {
-			Caller: allowlist.AdminAddr,
-			InputFn: func(tt *testing.T) []byte {
+			Caller: allowlist.TestAdminAddr,
+			InputFn: func(t *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(tt, err)
+				require.NoError(t, err)
 
 				return input
 			},
@@ -197,10 +197,10 @@ func TestFeeManager(t *testing.T) {
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"insufficient gas setFeeConfig from admin": {
-			Caller: allowlist.AdminAddr,
-			InputFn: func(tt *testing.T) []byte {
+			Caller: allowlist.TestAdminAddr,
+			InputFn: func(t *testing.T) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(tt, err)
+				require.NoError(t, err)
 
 				return input
 			},

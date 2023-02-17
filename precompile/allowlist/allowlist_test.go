@@ -11,9 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -56,36 +54,5 @@ func TestAllowListRun(t *testing.T) {
 		Contract:     CreateAllowListPrecompile(dummyAddr),
 		Configurator: &dummyConfigurator{},
 	}
-
-	tests := map[string]testutils.PrecompileTest{
-		"initial config sets admins": {
-			Config: &dummyConfig{
-				&AllowListConfig{
-					AdminAddresses: []common.Address{NoRoleAddr, EnabledAddr},
-				},
-			},
-			SuppliedGas: 0,
-			ReadOnly:    false,
-			AfterHook: func(t *testing.T, state contract.StateDB) {
-				require.Equal(t, AdminRole, GetAllowListStatus(state, dummyAddr, NoRoleAddr))
-				require.Equal(t, AdminRole, GetAllowListStatus(state, dummyAddr, EnabledAddr))
-			},
-		},
-		"initial config sets enabled": {
-			Config: &dummyConfig{
-				&AllowListConfig{
-					EnabledAddresses: []common.Address{NoRoleAddr, AdminAddr},
-				},
-			},
-			SuppliedGas: 0,
-			ReadOnly:    false,
-			AfterHook: func(t *testing.T, state contract.StateDB) {
-				require.Equal(t, EnabledRole, GetAllowListStatus(state, dummyAddr, AdminAddr))
-				require.Equal(t, EnabledRole, GetAllowListStatus(state, dummyAddr, NoRoleAddr))
-			},
-		},
-	}
-
 	RunTestsWithAllowListSetup(t, dummyModule, state.NewTestStateDB, AllowListTests(dummyModule))
-	RunTestsWithAllowListSetup(t, dummyModule, state.NewTestStateDB, tests)
 }
