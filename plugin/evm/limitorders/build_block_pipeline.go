@@ -29,19 +29,22 @@ func (pipeline *BuildBlockPipeline) Run(lastBlockTime uint64) {
 	} else {
 		pipeline.lotp.PurgeLocalTx()
 		for _, market := range GetActiveMarkets() {
-			pipeline.runPipelineForMarket(market)
+			pipeline.runLiquidationsAndMatchingForMarket(market)
 		}
 	}
 }
 
-func (pipeline *BuildBlockPipeline) runPipelineForMarket(market Market) {
+func (pipeline *BuildBlockPipeline) runLiquidationsAndMatchingForMarket(market Market) {
 	longOrders := pipeline.db.GetLongOrders(market)
 	shortOrders := pipeline.db.GetShortOrders(market)
-	longOrders, shortOrders = pipeline.runLiquidations(market, longOrders, shortOrders)
-	runMatchingEngine(pipeline.lotp, longOrders, shortOrders)
+	modifiedLongOrders, modifiedShortOrders := pipeline.runLiquidations(market, longOrders, shortOrders)
+	runMatchingEngine(pipeline.lotp, modifiedLongOrders, modifiedShortOrders)
 }
 
 func (pipeline *BuildBlockPipeline) runLiquidations(market Market, longOrders []LimitOrder, shortOrders []LimitOrder) (filteredLongOrder []LimitOrder, filteredShortOrder []LimitOrder) {
+	if len(longOrders) == 0 && len(shortOrders) == 0 {
+		return
+	}
 	oraclePrice := big.NewInt(20 * 10e6) // @todo: get it from the oracle
 
 	liquidablePositions := GetLiquidableTraders(pipeline.db.GetAllTraders(), market, pipeline.db.GetLastPrice(market), oraclePrice)
