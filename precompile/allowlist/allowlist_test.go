@@ -8,41 +8,41 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/test_utils"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	_ config.Config         = &dummyConfig{}
-	_ contract.Configurator = &dummyConfigurator{}
+	_ precompileconfig.Config = &dummyConfig{}
+	_ contract.Configurator   = &dummyConfigurator{}
 
 	dummyAddr = common.Address{1}
 )
 
 type dummyConfig struct {
-	*Config
+	*AllowListConfig
 }
 
 func (d *dummyConfig) Key() string         { return "dummy" }
 func (d *dummyConfig) Timestamp() *big.Int { return common.Big0 }
 func (d *dummyConfig) IsDisabled() bool    { return false }
-func (d *dummyConfig) Equal(other config.Config) bool {
-	return d.Config.Equal(other.(*dummyConfig).Config)
+func (d *dummyConfig) Equal(other precompileconfig.Config) bool {
+	return d.AllowListConfig.Equal(other.(*dummyConfig).AllowListConfig)
 }
 
 type dummyConfigurator struct{}
 
-func (d *dummyConfigurator) NewConfig() config.Config {
+func (d *dummyConfigurator) NewConfig() precompileconfig.Config {
 	return &dummyConfig{}
 }
 
 func (d *dummyConfigurator) Configure(
 	chainConfig contract.ChainConfig,
-	precompileConfig config.Config,
+	precompileConfig precompileconfig.Config,
 	state contract.StateDB,
 	blockContext contract.BlockContext,
 ) error {
@@ -60,7 +60,7 @@ func TestAllowListRun(t *testing.T) {
 	tests := map[string]test_utils.PrecompileTest{
 		"initial config sets admins": {
 			Config: &dummyConfig{
-				&Config{
+				&AllowListConfig{
 					AdminAddresses: []common.Address{NoRoleAddr, EnabledAddr},
 				},
 			},
@@ -73,7 +73,7 @@ func TestAllowListRun(t *testing.T) {
 		},
 		"initial config sets enabled": {
 			Config: &dummyConfig{
-				&Config{
+				&AllowListConfig{
 					EnabledAddresses: []common.Address{NoRoleAddr, AdminAddr},
 				},
 			},

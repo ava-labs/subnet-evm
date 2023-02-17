@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +33,7 @@ type PrecompileTest struct {
 	// It should be the same precompile config that is used in the
 	// precompile's configurator.
 	// If nil, Configure will not be called.
-	Config config.Config
+	Config precompileconfig.Config
 	// BeforeHook is called before the precompile is called.
 	BeforeHook func(t *testing.T, state contract.StateDB)
 	// AfterHook is called after the precompile is called.
