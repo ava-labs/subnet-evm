@@ -1,7 +1,7 @@
 // (c) 2022 Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package config
+package precompileconfig
 
 import (
 	"math/big"
