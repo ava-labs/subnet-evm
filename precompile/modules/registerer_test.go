@@ -7,11 +7,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRegisterModule(t *testing.T) {
+func TestInsertSortedByAddress(t *testing.T) {
 	data := make([]Module, 0)
 	// test that the module is registered in sorted order
 	module1 := Module{
@@ -41,4 +42,13 @@ func TestRegisterModule(t *testing.T) {
 
 	data = insertSortedByAddress(data, module2)
 	require.Equal(t, []Module{module0, module1, module2, module3}, data)
+}
+
+func TestRegisterModule(t *testing.T) {
+	// test that blackhole address is not allowed
+	moduleBlackhole := Module{
+		Address: constants.BlackholeAddr,
+	}
+	err := RegisterModule(moduleBlackhole)
+	require.ErrorContains(t, err, "overlaps with blackhole address")
 }
