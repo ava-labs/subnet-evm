@@ -57,7 +57,7 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // RewardManager specific precompile config.
 type Config struct {
-	allowlist.AllowList
+	allowlist.AllowListConfig
 	precompileconfig.Upgrade
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
@@ -66,7 +66,7 @@ type Config struct {
 // RewardManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial rewards config if specified.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *Config {
 	return &Config{
-		AllowList: allowlist.AllowList{
+		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
@@ -94,7 +94,7 @@ func (c *Config) Verify() error {
 			return err
 		}
 	}
-	return c.AllowList.Verify()
+	return c.AllowListConfig.Verify()
 }
 
 // Equal returns true if [cfg] is a [*RewardManagerConfig] and it has been configured identical to [c].
@@ -114,5 +114,5 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 		}
 	}
 
-	return c.Upgrade.Equal(&other.Upgrade) && c.AllowList.Equal(&other.AllowList)
+	return c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }

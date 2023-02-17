@@ -16,7 +16,7 @@ var _ precompileconfig.Config = &Config{}
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // TxAllowList specific precompile config.
 type Config struct {
-	allowlist.AllowList
+	allowlist.AllowListConfig
 	precompileconfig.Upgrade
 }
 
@@ -24,7 +24,7 @@ type Config struct {
 // TxAllowList with the given [admins] and [enableds] as members of the allowlist.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *Config {
 	return &Config{
-		AllowList: allowlist.AllowList{
+		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
@@ -52,5 +52,5 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	if !ok {
 		return false
 	}
-	return c.Upgrade.Equal(&other.Upgrade) && c.AllowList.Equal(&other.AllowList)
+	return c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }

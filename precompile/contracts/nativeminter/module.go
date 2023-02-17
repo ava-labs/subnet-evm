@@ -53,5 +53,5 @@ func (*configurator) Configure(_ contract.ChainConfig, cfg precompileconfig.Conf
 		}
 	}
 
-	return config.AllowList.Configure(state, ContractAddress)
+	return config.AllowListConfig.Configure(state, ContractAddress)
 }

@@ -17,7 +17,7 @@ var _ precompileconfig.Config = &Config{}
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // FeeManager specific precompile config.
 type Config struct {
-	allowlist.AllowList // Config for the fee config manager allow list
+	allowlist.AllowListConfig // Config for the fee config manager allow list
 	precompileconfig.Upgrade
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
@@ -27,7 +27,7 @@ type Config struct {
 // allowlist with [initialConfig] as initial fee config if specified.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *Config {
 	return &Config{
-		AllowList: allowlist.AllowList{
+		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
@@ -56,7 +56,7 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	if !ok {
 		return false
 	}
-	eq := c.Upgrade.Equal(&other.Upgrade) && c.AllowList.Equal(&other.AllowList)
+	eq := c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 	if !eq {
 		return false
 	}
@@ -69,7 +69,7 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 }
 
 func (c *Config) Verify() error {
-	if err := c.AllowList.Verify(); err != nil {
+	if err := c.AllowListConfig.Verify(); err != nil {
 		return err
 	}
 	if c.InitialFeeConfig == nil {

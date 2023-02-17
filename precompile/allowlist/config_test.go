@@ -15,27 +15,27 @@ func TestVerifyAllowlistAllowList(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name          string
-		config        AllowList
+		config        AllowListConfig
 		expectedError string
 	}{
 		{
 			name:          "invalid allow list config in allowlist",
-			config:        AllowList{admins, admins},
+			config:        AllowListConfig{admins, admins},
 			expectedError: "cannot set address",
 		},
 		{
 			name:          "nil member allow list config in allowlist",
-			config:        AllowList{nil, nil},
+			config:        AllowListConfig{nil, nil},
 			expectedError: "",
 		},
 		{
 			name:          "empty member allow list config in allowlist",
-			config:        AllowList{[]common.Address{}, []common.Address{}},
+			config:        AllowListConfig{[]common.Address{}, []common.Address{}},
 			expectedError: "",
 		},
 		{
 			name:          "valid allow list config in allowlist",
-			config:        AllowList{admins, enableds},
+			config:        AllowListConfig{admins, enableds},
 			expectedError: "",
 		},
 	}
@@ -58,32 +58,32 @@ func TestEqualAllowListAllowList(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name     string
-		config   *AllowList
-		other    *AllowList
+		config   *AllowListConfig
+		other    *AllowListConfig
 		expected bool
 	}{
 		{
 			name:     "non-nil config and nil other",
-			config:   &AllowList{admins, enableds},
+			config:   &AllowListConfig{admins, enableds},
 			other:    nil,
 			expected: false,
 		},
 		{
 			name:     "different admin",
-			config:   &AllowList{admins, enableds},
-			other:    &AllowList{[]common.Address{{3}}, enableds},
+			config:   &AllowListConfig{admins, enableds},
+			other:    &AllowListConfig{[]common.Address{{3}}, enableds},
 			expected: false,
 		},
 		{
 			name:     "different enabled",
-			config:   &AllowList{admins, enableds},
-			other:    &AllowList{admins, []common.Address{{3}}},
+			config:   &AllowListConfig{admins, enableds},
+			other:    &AllowListConfig{admins, []common.Address{{3}}},
 			expected: false,
 		},
 		{
 			name:     "same config",
-			config:   &AllowList{admins, enableds},
-			other:    &AllowList{admins, enableds},
+			config:   &AllowListConfig{admins, enableds},
+			other:    &AllowListConfig{admins, enableds},
 			expected: true,
 		},
 	}

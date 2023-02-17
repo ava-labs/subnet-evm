@@ -57,5 +57,5 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompilec
 			return fmt.Errorf("cannot configure fee config in chain config: %w", err)
 		}
 	}
-	return config.AllowList.Configure(state, ContractAddress)
+	return config.AllowListConfig.Configure(state, ContractAddress)
 }

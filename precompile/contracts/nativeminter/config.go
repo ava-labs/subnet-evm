@@ -19,7 +19,7 @@ var _ precompileconfig.Config = &Config{}
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // ContractNativeMinter specific precompile config.
 type Config struct {
-	allowlist.AllowList
+	allowlist.AllowListConfig
 	precompileconfig.Upgrade
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // addresses to receive the initial mint mapped to the amount to mint
 }
@@ -28,7 +28,7 @@ type Config struct {
 // ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *Config {
 	return &Config{
-		AllowList: allowlist.AllowList{
+		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
@@ -56,7 +56,7 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	if !ok {
 		return false
 	}
-	eq := c.Upgrade.Equal(&other.Upgrade) && c.AllowList.Equal(&other.AllowList)
+	eq := c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 	if !eq {
 		return false
 	}
@@ -91,5 +91,5 @@ func (c *Config) Verify() error {
 			return fmt.Errorf("initial mint cannot contain invalid amount %v for address %s", bigIntAmount, addr)
 		}
 	}
-	return c.AllowList.Verify()
+	return c.AllowListConfig.Verify()
 }

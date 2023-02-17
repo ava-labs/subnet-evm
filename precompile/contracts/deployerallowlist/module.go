@@ -45,5 +45,5 @@ func (c *configurator) Configure(_ contract.ChainConfig, cfg precompileconfig.Co
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
-	return config.AllowList.Configure(state, ContractAddress)
+	return config.AllowListConfig.Configure(state, ContractAddress)
 }
