@@ -43,7 +43,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 	contractAddress := module.Address
 	return map[string]testutils.PrecompileTest{
 		"set admin": {
-			Caller: TestAdminAddr,
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, AdminRole)
 				require.NoError(t, err)
@@ -59,7 +60,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			},
 		},
 		"set enabled": {
-			Caller: TestAdminAddr,
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, EnabledRole)
 				require.NoError(t, err)
@@ -75,7 +77,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			},
 		},
 		"set no role": {
-			Caller: TestAdminAddr,
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, NoRole)
 				require.NoError(t, err)
@@ -91,7 +94,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			},
 		},
 		"set no role from no role": {
-			Caller: TestNoRoleAddr,
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, NoRole)
 				require.NoError(t, err)
@@ -103,7 +107,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set enabled from no role": {
-			Caller: TestNoRoleAddr,
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, EnabledRole)
 				require.NoError(t, err)
@@ -115,7 +120,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from no role": {
-			Caller: TestNoRoleAddr,
+			Caller:     TestNoRoleAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, AdminRole)
 				require.NoError(t, err)
@@ -127,7 +133,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set no role from enabled": {
-			Caller: TestEnabledAddr,
+			Caller:     TestEnabledAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestAdminAddr, NoRole)
 				require.NoError(t, err)
@@ -139,7 +146,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set enabled from enabled": {
-			Caller: TestEnabledAddr,
+			Caller:     TestEnabledAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, EnabledRole)
 				require.NoError(t, err)
@@ -151,7 +159,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set admin from enabled": {
-			Caller: TestEnabledAddr,
+			Caller:     TestEnabledAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, AdminRole)
 				require.NoError(t, err)
@@ -163,7 +172,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
-			Caller: TestAdminAddr,
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, NoRole)
 				require.NoError(t, err)
@@ -175,7 +185,8 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"set no role insufficient gas": {
-			Caller: TestAdminAddr,
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, NoRole)
 				require.NoError(t, err)
@@ -188,6 +199,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		},
 		"read allow list no role": {
 			Caller:      TestNoRoleAddr,
+			BeforeHook:  SetDefaultRoles(contractAddress),
 			Input:       PackReadAllowList(TestNoRoleAddr),
 			SuppliedGas: ReadAllowListGasCost,
 			ReadOnly:    false,
@@ -195,6 +207,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		},
 		"read allow list admin role": {
 			Caller:      TestAdminAddr,
+			BeforeHook:  SetDefaultRoles(contractAddress),
 			Input:       PackReadAllowList(TestAdminAddr),
 			SuppliedGas: ReadAllowListGasCost,
 			ReadOnly:    false,
@@ -202,6 +215,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		},
 		"read allow list with readOnly enabled": {
 			Caller:      TestAdminAddr,
+			BeforeHook:  SetDefaultRoles(contractAddress),
 			Input:       PackReadAllowList(TestNoRoleAddr),
 			SuppliedGas: ReadAllowListGasCost,
 			ReadOnly:    true,
@@ -209,6 +223,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		},
 		"read allow list out of gas": {
 			Caller:      TestAdminAddr,
+			BeforeHook:  SetDefaultRoles(contractAddress),
 			Input:       PackReadAllowList(TestNoRoleAddr),
 			SuppliedGas: ReadAllowListGasCost - 1,
 			ReadOnly:    true,
@@ -245,6 +260,18 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 	}
 }
 
+// SetDefaultRoles returns a BeforeHook that sets roles TestAdminAddr and TestEnabledAddr
+//to have the AdminRole and EnabledRole respectively.
+func SetDefaultRoles(contractAddress common.Address) func(t *testing.T, state contract.StateDB) {
+	return func(t *testing.T, state contract.StateDB) {
+		SetAllowListRole(state, contractAddress, TestAdminAddr, AdminRole)
+		SetAllowListRole(state, contractAddress, TestEnabledAddr, EnabledRole)
+		require.Equal(t, AdminRole, GetAllowListStatus(state, contractAddress, TestAdminAddr))
+		require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, TestEnabledAddr))
+		require.Equal(t, NoRole, GetAllowListStatus(state, contractAddress, TestNoRoleAddr))
+	}
+}
+
 func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, newStateDB func(t *testing.T) contract.StateDB, contractTests map[string]testutils.PrecompileTest) {
 	tests := AllowListTests(module)
 	// Add the contract specific tests to the map of tests to run.
@@ -255,23 +282,9 @@ func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, newSta
 		tests[name] = test
 	}
 
-	contractAddress := module.Address
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			state := newStateDB(t)
-
-			// Set up the state so that each address has the expected permissions at the start.
-			// The test may specify a BeforeHook to opt out of this behavior.
-			if test.BeforeHook == nil {
-				SetAllowListRole(state, contractAddress, TestAdminAddr, AdminRole)
-				SetAllowListRole(state, contractAddress, TestEnabledAddr, EnabledRole)
-				require.Equal(t, AdminRole, GetAllowListStatus(state, contractAddress, TestAdminAddr))
-				require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, TestEnabledAddr))
-				require.Equal(t, NoRole, GetAllowListStatus(state, contractAddress, TestNoRoleAddr))
-			}
-
-			// Run the test
-			test.Run(t, module, state)
+			test.Run(t, module, newStateDB(t))
 		})
 	}
 }

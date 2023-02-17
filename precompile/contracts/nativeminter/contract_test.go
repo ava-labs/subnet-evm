@@ -19,7 +19,8 @@ import (
 func TestContractNativeMinterRun(t *testing.T) {
 	tests := map[string]testutils.PrecompileTest{
 		"mint funds from no role fails": {
-			Caller: allowlist.TestNoRoleAddr,
+			Caller:     allowlist.TestNoRoleAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackMintInput(allowlist.TestNoRoleAddr, common.Big1)
 				require.NoError(t, err)
@@ -31,7 +32,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			ExpectedErr: ErrCannotMint.Error(),
 		},
 		"mint funds from enabled address": {
-			Caller: allowlist.TestEnabledAddr,
+			Caller:     allowlist.TestEnabledAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 				require.NoError(t, err)
@@ -46,7 +48,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 		},
 		"initial mint funds": {
-			Caller: allowlist.TestEnabledAddr,
+			Caller:     allowlist.TestEnabledAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			Config: &Config{
 				InitialMint: map[common.Address]*math.HexOrDecimal256{
 					allowlist.TestEnabledAddr: math.NewHexOrDecimal256(2),
@@ -57,7 +60,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 		},
 		"mint funds from admin address": {
-			Caller: allowlist.TestAdminAddr,
+			Caller:     allowlist.TestAdminAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackMintInput(allowlist.TestAdminAddr, common.Big1)
 				require.NoError(t, err)
@@ -72,7 +76,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 		},
 		"mint max big funds": {
-			Caller: allowlist.TestAdminAddr,
+			Caller:     allowlist.TestAdminAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackMintInput(allowlist.TestAdminAddr, math.MaxBig256)
 				require.NoError(t, err)
@@ -87,7 +92,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			},
 		},
 		"readOnly mint with noRole fails": {
-			Caller: allowlist.TestNoRoleAddr,
+			Caller:     allowlist.TestNoRoleAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackMintInput(allowlist.TestAdminAddr, common.Big1)
 				require.NoError(t, err)
@@ -99,7 +105,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly mint with allow role fails": {
-			Caller: allowlist.TestEnabledAddr,
+			Caller:     allowlist.TestEnabledAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 				require.NoError(t, err)
@@ -111,7 +118,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"readOnly mint with admin role fails": {
-			Caller: allowlist.TestAdminAddr,
+			Caller:     allowlist.TestAdminAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackMintInput(allowlist.TestAdminAddr, common.Big1)
 				require.NoError(t, err)
@@ -123,7 +131,8 @@ func TestContractNativeMinterRun(t *testing.T) {
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"insufficient gas mint from admin": {
-			Caller: allowlist.TestAdminAddr,
+			Caller:     allowlist.TestAdminAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t *testing.T) []byte {
 				input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 				require.NoError(t, err)
