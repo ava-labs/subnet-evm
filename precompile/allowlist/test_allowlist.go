@@ -249,6 +249,9 @@ func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, newSta
 	tests := AllowListTests(module)
 	// Add the contract specific tests to the map of tests to run.
 	for name, test := range contractTests {
+		if _, exists := tests[name]; exists {
+			t.Fatalf("duplicate test name: %s", name)
+		}
 		tests[name] = test
 	}
 
@@ -258,11 +261,14 @@ func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, newSta
 			state := newStateDB(t)
 
 			// Set up the state so that each address has the expected permissions at the start.
-			SetAllowListRole(state, contractAddress, TestAdminAddr, AdminRole)
-			SetAllowListRole(state, contractAddress, TestEnabledAddr, EnabledRole)
-			require.Equal(t, AdminRole, GetAllowListStatus(state, contractAddress, TestAdminAddr))
-			require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, TestEnabledAddr))
-			require.Equal(t, NoRole, GetAllowListStatus(state, contractAddress, TestNoRoleAddr))
+			// The test may specify a BeforeHook to opt out of this behavior.
+			if test.BeforeHook == nil {
+				SetAllowListRole(state, contractAddress, TestAdminAddr, AdminRole)
+				SetAllowListRole(state, contractAddress, TestEnabledAddr, EnabledRole)
+				require.Equal(t, AdminRole, GetAllowListStatus(state, contractAddress, TestAdminAddr))
+				require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, TestEnabledAddr))
+				require.Equal(t, NoRole, GetAllowListStatus(state, contractAddress, TestNoRoleAddr))
+			}
 
 			// Run the test
 			test.Run(t, module, state)
