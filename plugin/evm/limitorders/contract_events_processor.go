@@ -3,6 +3,7 @@ package limitorders
 import (
 	"io/ioutil"
 	"math/big"
+	"sort"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -42,7 +43,31 @@ func NewContractEventsProcessor(database LimitOrderDatabase) *ContractEventsProc
 	}
 }
 
-func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
+func (cep *ContractEventsProcessor) ProcessEvents(logs []*types.Log) {
+	// sort by block number & log index
+	sort.SliceStable(logs, func(i, j int) bool {
+		if logs[i].BlockNumber == logs[j].BlockNumber {
+			return logs[i].Index < logs[j].Index
+		}
+		return logs[i].BlockNumber < logs[j].BlockNumber
+	})
+	for _, event := range logs {
+		if event.Removed {
+			// skip removed logs
+			continue
+		}
+		switch event.Address {
+		case OrderBookContractAddress:
+			cep.handleOrderBookEvent(event)
+		case MarginAccountContractAddress:
+			cep.handleMarginAccountEvent(event)
+		case ClearingHouseContractAddress:
+			cep.handleClearingHouseEvent(event)
+		}
+	}
+}
+
+func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
 	case cep.orderBookABI.Events["OrderPlaced"].ID:
@@ -104,7 +129,7 @@ func (cep *ContractEventsProcessor) HandleOrderBookEvent(event *types.Log) {
 
 }
 
-func (cep *ContractEventsProcessor) HandleMarginAccountEvent(event *types.Log) {
+func (cep *ContractEventsProcessor) handleMarginAccountEvent(event *types.Log) {
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
 	case cep.marginAccountABI.Events["MarginAdded"].ID:
@@ -136,7 +161,7 @@ func (cep *ContractEventsProcessor) HandleMarginAccountEvent(event *types.Log) {
 	log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
 }
 
-func (cep *ContractEventsProcessor) HandleClearingHouseEvent(event *types.Log) {
+func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
 	case cep.clearingHouseABI.Events["FundingRateUpdated"].ID:
