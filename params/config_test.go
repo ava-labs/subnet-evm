@@ -206,3 +206,24 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require.NoError(err)
 	require.Equal(c, c2)
 }
+
+func TestActivePrecompiles(t *testing.T) {
+	config := ChainConfig{
+		UpgradeConfig: UpgradeConfig{
+			PrecompileUpgrades: []PrecompileUpgrade{
+				{
+					nativeminter.NewConfig(common.Big0, nil, nil, nil), // enable at genesis
+				},
+				{
+					nativeminter.NewDisableConfig(common.Big1), // disable at timestamp 1
+				},
+			},
+		},
+	}
+
+	rules0 := config.AvalancheRules(common.Big0, common.Big0)
+	require.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
+
+	rules1 := config.AvalancheRules(common.Big0, common.Big1)
+	require.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
+}

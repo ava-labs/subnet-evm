@@ -6,9 +6,9 @@ package feemanager
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -35,12 +35,12 @@ func init() {
 	}
 }
 
-func (*configurator) NewConfig() config.Config {
+func (*configurator) NewConfig() precompileconfig.Config {
 	return &Config{}
 }
 
 // Configure configures [state] with the desired admins based on [configIface].
-func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, blockContext contract.BlockContext) error {
+func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, blockContext contract.BlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
@@ -57,5 +57,5 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.Conf
 			return fmt.Errorf("cannot configure fee config in chain config: %w", err)
 		}
 	}
-	return config.Config.Configure(state, ContractAddress)
+	return config.AllowListConfig.Configure(state, ContractAddress)
 }

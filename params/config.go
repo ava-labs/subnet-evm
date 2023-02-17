@@ -34,8 +34,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -558,7 +558,7 @@ type Rules struct {
 	// for this rule set.
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
-	ActivePrecompiles map[common.Address]config.Config
+	ActivePrecompiles map[common.Address]precompileconfig.Config
 }
 
 // IsPrecompileEnabled returns true if the precompile at [addr] is enabled for this rule set.
@@ -594,7 +594,7 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 	rules.IsSubnetEVM = c.IsSubnetEVM(blockTimestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
-	rules.ActivePrecompiles = make(map[common.Address]config.Config)
+	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
 	for _, module := range modules.RegisteredModules() {
 		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config

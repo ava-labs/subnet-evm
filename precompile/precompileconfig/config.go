@@ -2,7 +2,7 @@
 // See the file LICENSE for licensing terms.
 
 // Defines the stateless interface for unmarshalling an arbitrary config of a precompile
-package config
+package precompileconfig
 
 import (
 	"math/big"
