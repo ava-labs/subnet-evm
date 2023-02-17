@@ -189,10 +189,8 @@ func AllowListTests(module modules.Module) map[string]test_utils.PrecompileTest 
 			ExpectedRes: common.Hash(NoRole).Bytes(),
 		},
 		"read allow list out of gas": {
-			Caller: AdminAddr,
-			InputFn: func(t *testing.T) []byte {
-				return PackReadAllowList(NoRoleAddr)
-			},
+			Caller:      AdminAddr,
+			Input:       PackReadAllowList(NoRoleAddr),
 			SuppliedGas: ReadAllowListGasCost - 1,
 			ReadOnly:    true,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
