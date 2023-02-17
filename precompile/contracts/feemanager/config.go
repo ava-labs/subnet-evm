@@ -8,17 +8,17 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/config"
+	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ config.Config = &Config{}
+var _ precompileConfig.Config = &Config{}
 
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // FeeManager specific precompile config.
 type Config struct {
-	allowlist.Config // Config for the fee config manager allow list
-	config.Upgrade
+	allowlist.AllowList // Config for the fee config manager allow list
+	precompileConfig.Upgrade
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
 
@@ -27,11 +27,11 @@ type Config struct {
 // allowlist with [initialConfig] as initial fee config if specified.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *Config {
 	return &Config{
-		Config: allowlist.Config{
+		AllowList: allowlist.AllowList{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Upgrade:          config.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:          precompileConfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialFeeConfig: initialConfig,
 	}
 }
@@ -40,7 +40,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables FeeManager.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Upgrade: config.Upgrade{
+		Upgrade: precompileConfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -50,13 +50,13 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*FeeManagerConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg precompileConfig.Config) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {
 		return false
 	}
-	eq := c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
+	eq := c.Upgrade.Equal(&other.Upgrade) && c.AllowList.Equal(&other.AllowList)
 	if !eq {
 		return false
 	}
@@ -69,7 +69,7 @@ func (c *Config) Equal(cfg config.Config) bool {
 }
 
 func (c *Config) Verify() error {
-	if err := c.Config.Verify(); err != nil {
+	if err := c.AllowList.Verify(); err != nil {
 		return err
 	}
 	if c.InitialFeeConfig == nil {

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/precompile/config"
+	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -39,7 +39,7 @@ type PrecompileTest struct {
 	// It should be the same precompile config that is used in the
 	// precompile's configurator.
 	// If nil, Configure on the Configurator will not be called.
-	Config config.Config
+	Config precompileConfig.Config
 	// BeforeHook is called before the precompile is called.
 	BeforeHook func(t *testing.T, state StateDB)
 	// AfterHook is called after the precompile is called.

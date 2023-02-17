@@ -10,15 +10,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// Config specifies the initial set of addresses with Admin or Enabled roles.
-type Config struct {
+// AllowList specifies the initial set of addresses with Admin or Enabled roles.
+type AllowList struct {
 	AdminAddresses   []common.Address `json:"adminAddresses,omitempty"`   // initial admin addresses
 	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
 }
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
-func (c *Config) Configure(state contract.StateDB, precompileAddr common.Address) error {
+func (c *AllowList) Configure(state contract.StateDB, precompileAddr common.Address) error {
 	for _, enabledAddr := range c.EnabledAddresses {
 		SetAllowListRole(state, precompileAddr, enabledAddr, EnabledRole)
 	}
@@ -29,7 +29,7 @@ func (c *Config) Configure(state contract.StateDB, precompileAddr common.Address
 }
 
 // Equal returns true iff [other] has the same admins in the same order in its allow list.
-func (c *Config) Equal(other *Config) bool {
+func (c *AllowList) Equal(other *AllowList) bool {
 	if other == nil {
 		return false
 	}
@@ -52,7 +52,7 @@ func areEqualAddressLists(current []common.Address, other []common.Address) bool
 }
 
 // Verify returns an error if there is an overlapping address between admin and enabled roles
-func (c *Config) Verify() error {
+func (c *AllowList) Verify() error {
 	addressMap := make(map[common.Address]Role) // tracks which addresses we have seen and their role
 
 	// check for duplicates in enabled list

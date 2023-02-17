@@ -10,12 +10,12 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/config"
+	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ config.Config = &Config{}
+var _ precompileConfig.Config = &Config{}
 
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
@@ -57,8 +57,8 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // RewardManager specific precompile config.
 type Config struct {
-	allowlist.Config
-	config.Upgrade
+	allowlist.AllowList
+	precompileConfig.Upgrade
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
 
@@ -66,11 +66,11 @@ type Config struct {
 // RewardManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial rewards config if specified.
 func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *Config {
 	return &Config{
-		Config: allowlist.Config{
+		AllowList: allowlist.AllowList{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Upgrade:             config.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:             precompileConfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialRewardConfig: initialConfig,
 	}
 }
@@ -79,7 +79,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables RewardManager.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Upgrade: config.Upgrade{
+		Upgrade: precompileConfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -94,11 +94,11 @@ func (c *Config) Verify() error {
 			return err
 		}
 	}
-	return c.Config.Verify()
+	return c.AllowList.Verify()
 }
 
 // Equal returns true if [cfg] is a [*RewardManagerConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg config.Config) bool {
+func (c *Config) Equal(cfg precompileConfig.Config) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {
@@ -114,5 +114,5 @@ func (c *Config) Equal(cfg config.Config) bool {
 		}
 	}
 
-	return c.Upgrade.Equal(&other.Upgrade) && c.Config.Equal(&other.Config)
+	return c.Upgrade.Equal(&other.Upgrade) && c.AllowList.Equal(&other.AllowList)
 }

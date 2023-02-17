@@ -6,7 +6,7 @@ package txallowlist
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/precompile/config"
+	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
@@ -35,15 +35,15 @@ func init() {
 	}
 }
 
-func (*configurator) NewConfig() config.Config {
+func (*configurator) NewConfig() precompileConfig.Config {
 	return &Config{}
 }
 
 // Configure configures [state] with the initial state for the precompile.
-func (*configurator) Configure(chainConfig contract.ChainConfig, cfg config.Config, state contract.StateDB, _ contract.BlockContext) error {
+func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompileConfig.Config, state contract.StateDB, _ contract.BlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
-	return config.Config.Configure(state, ContractAddress)
+	return config.AllowList.Configure(state, ContractAddress)
 }

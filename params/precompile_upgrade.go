@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/precompile/config"
 	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -23,7 +22,7 @@ var errNoKey = errors.New("PrecompileUpgrade cannot be empty")
 // based on the key. Keys are defined in each precompile module, and registered in
 // precompile/registry/registry.go.
 type PrecompileUpgrade struct {
-	config.Config
+	precompileConfig.Config
 }
 
 // UnmarshalJSON unmarshals the json into the correct precompile config type
@@ -152,7 +151,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 
 // GetActivePrecompileConfig returns the most recent precompile config corresponding to [address].
 // If none have occurred, returns nil.
-func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTimestamp *big.Int) config.Config {
+func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTimestamp *big.Int) precompileConfig.Config {
 	configs := c.GetActivatingPrecompileConfigs(address, nil, blockTimestamp, c.PrecompileUpgrades)
 	if len(configs) == 0 {
 		return nil
@@ -162,13 +161,13 @@ func (c *ChainConfig) GetActivePrecompileConfig(address common.Address, blockTim
 
 // GetActivatingPrecompileConfigs returns all upgrades configured to activate during the state transition from a block with timestamp [from]
 // to a block with timestamp [to].
-func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []config.Config {
+func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []precompileConfig.Config {
 	// Get key from address.
 	module, ok := modules.GetPrecompileModuleByAddress(address)
 	if !ok {
 		return nil
 	}
-	configs := make([]config.Config, 0)
+	configs := make([]precompileConfig.Config, 0)
 	key := module.ConfigKey
 	// First check the embedded [upgrade] for precompiles configured
 	// in the genesis chain config.

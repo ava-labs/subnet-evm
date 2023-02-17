@@ -2,8 +2,7 @@
 // See the file LICENSE for licensing terms.
 
 // TODO: replace with gomock
-
-package config
+package precompileConfig
 
 import (
 	"math/big"
