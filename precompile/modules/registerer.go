@@ -48,11 +48,12 @@ func ReservedAddress(addr common.Address) bool {
 func RegisterModule(stm Module) error {
 	address := stm.Address
 	key := stm.ConfigKey
-	if !ReservedAddress(address) {
-		return fmt.Errorf("address %s not in a reserved range", address)
-	}
+
 	if address == constants.BlackholeAddr {
 		return fmt.Errorf("address %s overlaps with blackhole address", address)
+	}
+	if !ReservedAddress(address) {
+		return fmt.Errorf("address %s not in a reserved range", address)
 	}
 
 	for _, registeredModule := range registeredModules {
