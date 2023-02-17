@@ -10,12 +10,12 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ precompileConfig.Config = &Config{}
+var _ precompileconfig.Config = &Config{}
 
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
@@ -58,7 +58,7 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 // RewardManager specific precompile config.
 type Config struct {
 	allowlist.AllowList
-	precompileConfig.Upgrade
+	precompileconfig.Upgrade
 	InitialRewardConfig *InitialRewardConfig `json:"initialRewardConfig,omitempty"`
 }
 
@@ -70,7 +70,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Upgrade:             precompileConfig.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:             precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialRewardConfig: initialConfig,
 	}
 }
@@ -79,7 +79,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables RewardManager.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Upgrade: precompileConfig.Upgrade{
+		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -98,7 +98,7 @@ func (c *Config) Verify() error {
 }
 
 // Equal returns true if [cfg] is a [*RewardManagerConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg precompileConfig.Config) bool {
+func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {

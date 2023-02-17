@@ -8,19 +8,19 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
+	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
-var _ precompileConfig.Config = &Config{}
+var _ precompileconfig.Config = &Config{}
 
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // ContractNativeMinter specific precompile config.
 type Config struct {
 	allowlist.AllowList
-	precompileConfig.Upgrade
+	precompileconfig.Upgrade
 	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // addresses to receive the initial mint mapped to the amount to mint
 }
 
@@ -32,7 +32,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Upgrade:     precompileConfig.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:     precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialMint: initialMint,
 	}
 }
@@ -41,7 +41,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables ContractNativeMinter.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Upgrade: precompileConfig.Upgrade{
+		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -50,7 +50,7 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg precompileConfig.Config) bool {
+func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {

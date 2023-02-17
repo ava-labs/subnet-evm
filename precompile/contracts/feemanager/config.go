@@ -8,17 +8,17 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
+	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ precompileConfig.Config = &Config{}
+var _ precompileconfig.Config = &Config{}
 
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // FeeManager specific precompile config.
 type Config struct {
 	allowlist.AllowList // Config for the fee config manager allow list
-	precompileConfig.Upgrade
+	precompileconfig.Upgrade
 	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
 }
 
@@ -31,7 +31,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Upgrade:          precompileConfig.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:          precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialFeeConfig: initialConfig,
 	}
 }
@@ -40,7 +40,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables FeeManager.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Upgrade: precompileConfig.Upgrade{
+		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -50,7 +50,7 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*FeeManagerConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg precompileConfig.Config) bool {
+func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {

@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
@@ -18,7 +18,7 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name          string
-		config        precompileConfig.Config
+		config        precompileconfig.Config
 		ExpectedError string
 	}{
 		{
@@ -74,8 +74,8 @@ func TestEqualContractNativeMinterConfig(t *testing.T) {
 	enableds := []common.Address{{2}}
 	tests := []struct {
 		name     string
-		config   precompileConfig.Config
-		other    precompileConfig.Config
+		config   precompileconfig.Config
+		other    precompileconfig.Config
 		expected bool
 	}{
 		{
@@ -87,7 +87,7 @@ func TestEqualContractNativeMinterConfig(t *testing.T) {
 		{
 			name:     "different type",
 			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
-			other:    precompileConfig.NewNoopStatefulPrecompileConfig(),
+			other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
 			expected: false,
 		},
 		{

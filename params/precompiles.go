@@ -6,11 +6,11 @@ package params
 import (
 	"encoding/json"
 
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
-type Precompiles map[string]precompileConfig.Config
+type Precompiles map[string]precompileconfig.Config
 
 // UnmarshalJSON parses the JSON-encoded data into the ChainConfigPrecompiles.
 // ChainConfigPrecompiles is a map of precompile module keys to their

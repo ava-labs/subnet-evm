@@ -7,17 +7,17 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
+	precompileconfig "github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var _ precompileConfig.Config = &Config{}
+var _ precompileconfig.Config = &Config{}
 
 // Config contains the configuration for the ContractDeployerAllowList precompile,
 // consisting of the initial allowlist and the timestamp for the network upgrade.
 type Config struct {
 	allowlist.AllowList
-	precompileConfig.Upgrade
+	precompileconfig.Upgrade
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -28,7 +28,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
 		},
-		Upgrade: precompileConfig.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 	}
 }
 
@@ -36,7 +36,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 // that disables ContractDeployerAllowList.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	return &Config{
-		Upgrade: precompileConfig.Upgrade{
+		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
 			Disable:        true,
 		},
@@ -46,7 +46,7 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*ContractDeployerAllowListConfig] and it has been configured identical to [c].
-func (c *Config) Equal(cfg precompileConfig.Config) bool {
+func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	// typecast before comparison
 	other, ok := (cfg).(*Config)
 	if !ok {

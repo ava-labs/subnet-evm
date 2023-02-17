@@ -9,7 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
-	precompileConfig "github.com/ava-labs/subnet-evm/precompile/config"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -69,10 +69,10 @@ type BlockContext interface {
 }
 
 type Configurator interface {
-	NewConfig() precompileConfig.Config
+	NewConfig() precompileconfig.Config
 	Configure(
 		chainConfig ChainConfig,
-		precompileConfig precompileConfig.Config,
+		precompileconfig precompileconfig.Config,
 		state StateDB,
 		blockContext BlockContext,
 	) error
