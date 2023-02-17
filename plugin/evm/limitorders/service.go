@@ -25,6 +25,10 @@ type OrderBookResponse struct {
 	Orders []OrderMin
 }
 
+type OpenOrdersResponse struct {
+	Orders []LimitOrder
+}
+
 type OrderMin struct {
 	Market
 	Price *big.Int
@@ -65,18 +69,19 @@ func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*O
 	return &OrderBookResponse{Orders: orders}, nil
 }
 
-func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OrderBookResponse {
-	traderOrders := []OrderMin{}
+func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenOrdersResponse {
+	traderOrders := []LimitOrder{}
 	orderMap := api.db.GetOrderBookData().OrderMap
 	for _, order := range orderMap {
 		if strings.ToLower(order.UserAddress) == strings.ToLower(trader) {
-			traderOrders = append(traderOrders, OrderMin{
+			traderOrders = append(traderOrders, LimitOrder{
 				Market: order.Market,
 				Price: order.Price,
-				Size: order.GetUnFilledBaseAssetQuantity(),
+				BaseAssetQuantity: order.BaseAssetQuantity,
+				FilledBaseAssetQuantity: order.FilledBaseAssetQuantity,
 			})
 		}
 	}
 
-	return OrderBookResponse{Orders: traderOrders}
+	return OpenOrdersResponse{Orders: traderOrders}
 }
