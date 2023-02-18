@@ -400,7 +400,11 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 // subset of those transactions (grouped by sender) that satisfy predicateContext.
 // Any transaction sent by a given sender that is received after a transaction that does not
 // satisfy predicateContext is removed from the TxPool and is not included in the return value.
-func (w *worker) enforcePredicates(rules params.Rules, predicateContext *contract.PredicateContext, pending map[common.Address]types.Transactions) map[common.Address]types.Transactions {
+func (w *worker) enforcePredicates(
+	rules params.Rules,
+	predicateContext *contract.PredicateContext,
+	pending map[common.Address]types.Transactions,
+) map[common.Address]types.Transactions {
 	result := make(map[common.Address]types.Transactions, len(pending))
 	for addr, txs := range pending {
 		for i, tx := range txs {
