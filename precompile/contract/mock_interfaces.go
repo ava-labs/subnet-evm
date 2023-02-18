@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -54,4 +55,19 @@ func (m *mockAccessibleState) GetSnowContext() *snow.Context { return m.snowCont
 
 func (m *mockAccessibleState) CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	return nil, 0, nil
+}
+
+type mockChainState struct {
+	feeConfig            commontype.FeeConfig
+	allowedFeeRecipients bool
+}
+
+func (m *mockChainState) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
+func (m *mockChainState) AllowedFeeRecipients() bool         { return m.allowedFeeRecipients }
+
+func NewMockChainState(feeConfig commontype.FeeConfig, allowedFeeRecipients bool) *mockChainState {
+	return &mockChainState{
+		feeConfig:            feeConfig,
+		allowedFeeRecipients: allowedFeeRecipients,
+	}
 }
