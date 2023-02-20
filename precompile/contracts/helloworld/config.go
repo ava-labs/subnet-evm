@@ -9,9 +9,9 @@
 // See the tutorial in https://docs.avax.network/subnets/hello-world-precompile-tutorial for more information about precompile development.
 
 /* General guidelines for precompile development:
-1- Read the comment and set a suitable contract address in generated module.go. E.g:
+1- Set a suitable config key in generated module.go. E.g: "yourPrecompileConfig"
+2- Read the comment and set a suitable contract address in generated module.go. E.g:
 	ContractAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
-2- Set a suitable config key in generated module.go. E.g: "yourPrecompileConfig"
 3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Typically, custom codes are required in only those areas.
 Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 4- Set gas costs in generated contract.go
@@ -30,7 +30,10 @@ package helloworld
 import (
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var _ precompileconfig.Config = &Config{}
@@ -38,14 +41,19 @@ var _ precompileconfig.Config = &Config{}
 // Config implements the StatefulPrecompileConfig
 // interface while adding in the HelloWorld specific precompile address.
 type Config struct {
+	allowlist.AllowListConfig
 	precompileconfig.Upgrade
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // HelloWorld with the given [admins] and [enableds] as members of the allowlist.
-// HelloWorld .
-func NewConfig(blockTimestamp *big.Int) *Config {
+// HelloWorld  with the given [admins] as members of the allowlist .
+func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *Config {
 	return &Config{
+		AllowListConfig: allowlist.AllowListConfig{
+			AdminAddresses:   admins,
+			EnabledAddresses: enableds,
+		},
 		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 	}
 }
@@ -67,6 +75,10 @@ func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify() error {
+	// Verify AllowList first
+	if err := c.AllowListConfig.Verify(); err != nil {
+		return err
+	}
 
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom verify code for Config here
@@ -83,7 +95,7 @@ func (c *Config) Equal(s precompileconfig.Config) bool {
 	}
 	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom Config, to check if [other] and the current [c] are equal
-	// if Config contains only Upgrade  you can skip modifying it.
-	equals := c.Upgrade.Equal(&other.Upgrade)
+	// if Config contains only Upgrade  and AllowListConfig  you can skip modifying it.
+	equals := c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 	return equals
 }

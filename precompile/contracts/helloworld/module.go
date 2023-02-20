@@ -9,9 +9,9 @@
 // See the tutorial in https://docs.avax.network/subnets/hello-world-precompile-tutorial for more information about precompile development.
 
 /* General guidelines for precompile development:
-1- Read the comment and set a suitable contract address in generated module.go. E.g:
+1- Set a suitable config key in generated module.go. E.g: "yourPrecompileConfig"
+2- Read the comment and set a suitable contract address in generated module.go. E.g:
 	ContractAddress = common.HexToAddress("ASUITABLEHEXADDRESS")
-2- Set a suitable config key in generated module.go. E.g: "yourPrecompileConfig"
 3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Typically, custom codes are required in only those areas.
 Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 4- Set gas costs in generated contract.go
@@ -46,7 +46,7 @@ const ConfigKey = "helloWorldConfig"
 // ContractAddress is the defined address of the precompile contract.
 // This should be unique across all precompile contracts.
 // See params/precompile_modules.go for registered precompile contracts and more information.
-var ContractAddress = common.HexToAddress("{ASUITABLEHEXADDRESS}") // SET A SUITABLE HEX ADDRESS HERE
+var ContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000000") // SET A SUITABLE HEX ADDRESS HERE
 
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{
@@ -83,6 +83,6 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompilec
 	}
 	// CUSTOM CODE STARTS HERE
 
-	return nil
-
+	// AllowList is activated for this precompile. Configuring allowlist addresses here.
+	return config.AllowListConfig.Configure(state, ContractAddress)
 }

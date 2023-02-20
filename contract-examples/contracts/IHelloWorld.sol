@@ -4,8 +4,9 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity >=0.8.0;
+import "./IAllowList.sol";
 
-interface IHelloWorld {
+interface IHelloWorld is IAllowList {
   // sayHello returns the stored greeting string
   function sayHello() external view returns (string calldata result);
 
