@@ -6,6 +6,11 @@ if ! [[ "$0" =~ scripts/run_local.sh ]]; then
   exit 255
 fi
 
+if [[ -z "${ARTIFACT_PATH_PREFIX}" ]]; then
+  echo "ARTIFACT_PATH_PREFIX must be set"
+  exit 255
+fi
+
 VERSION='v1.9.7'
 ANR_VERSION='8438e423db523743c48bd178bc20642f9c3ba049'
 

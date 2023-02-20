@@ -20,14 +20,15 @@ func NewBuildBlockPipeline(db LimitOrderDatabase, lotp LimitOrderTxProcessor) *B
 }
 
 func (pipeline *BuildBlockPipeline) Run(lastBlockTime uint64) {
+	pipeline.lotp.PurgeLocalTx()
 	if isFundingPaymentTime(lastBlockTime, pipeline.db) {
+		log.Info("BuildBlockPipeline - isFundingPaymentTime")
 		// just execute the funding payment and skip running the matching engine
 		err := executeFundingPayment(pipeline.lotp)
 		if err != nil {
 			log.Error("Funding payment job failed", "err", err)
 		}
 	} else {
-		pipeline.lotp.PurgeLocalTx()
 		for _, market := range GetActiveMarkets() {
 			pipeline.runLiquidationsAndMatchingForMarket(market)
 		}
@@ -35,6 +36,7 @@ func (pipeline *BuildBlockPipeline) Run(lastBlockTime uint64) {
 }
 
 func (pipeline *BuildBlockPipeline) runLiquidationsAndMatchingForMarket(market Market) {
+	log.Info("BuildBlockPipeline - runLiquidationsAndMatchingForMarket")
 	longOrders := pipeline.db.GetLongOrders(market)
 	shortOrders := pipeline.db.GetShortOrders(market)
 	modifiedLongOrders, modifiedShortOrders := pipeline.runLiquidations(market, longOrders, shortOrders)
@@ -88,6 +90,7 @@ func (pipeline *BuildBlockPipeline) runLiquidations(market Market, longOrders []
 
 func runMatchingEngine(lotp LimitOrderTxProcessor, longOrders []LimitOrder, shortOrders []LimitOrder) {
 	if len(longOrders) == 0 || len(shortOrders) == 0 {
+		log.Info("BuildBlockPipeline - either no long or no short orders", "long", len(longOrders), "short", len(shortOrders))
 		return
 	}
 	for i := 0; i < len(longOrders); i++ {

@@ -91,6 +91,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			Signature:               args["signature"].([]byte),
 			BlockNumber:             big.NewInt(int64(event.BlockNumber)),
 		})
+		SendTxReadySignal()
 	case cep.orderBookABI.Events["OrderCancelled"].ID:
 		err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelled", event.Data)
 		if err != nil {

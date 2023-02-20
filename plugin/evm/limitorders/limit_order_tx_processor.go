@@ -105,7 +105,7 @@ func (lotp *limitOrderTxProcessor) ExecuteLiquidation(trader common.Address, mat
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
-	return lotp.executeLocalTx(lotp.clearingHouseContractAddress, lotp.clearingHouseABI, "settleFunding")
+	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "settleFunding")
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount *big.Int) error {
@@ -145,6 +145,7 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 		return err
 	}
 	log.Info("executeLocalTx - AddLocal success", "tx", signedTx.Hash().String(), "nonce", nonce)
+	
 	return nil
 }
 
