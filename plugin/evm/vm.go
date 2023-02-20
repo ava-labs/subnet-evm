@@ -600,6 +600,7 @@ func (vm *VM) initBlockBuilding() {
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
 
+	limitorders.SetToEngine(vm.builder.notifyBuildBlockChan)
 	vm.limitOrderProcesser.ListenAndProcessTransactions()
 }
 
