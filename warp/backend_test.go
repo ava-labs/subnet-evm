@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/hashing"
-	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,11 +28,11 @@ func TestAddAndGetValidMessage(t *testing.T) {
 	snowCtx := snow.DefaultContextTest()
 	sk, err := bls.NewSecretKey()
 	require.NoError(t, err)
-	snowCtx.WarpSigner = warp.NewSigner(sk, sourceChainID)
+	snowCtx.WarpSigner = avalancheWarp.NewSigner(sk, sourceChainID)
 	backend := NewWarpBackend(snowCtx, db, 500)
 
 	// Create a new unsigned message and add it to the warp backend.
-	unsignedMsg, err := warp.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
+	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
 	require.NoError(t, err)
 	err = backend.AddMessage(context.Background(), unsignedMsg)
 	require.NoError(t, err)
@@ -51,7 +51,7 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 	db := memdb.New()
 
 	backend := NewWarpBackend(snow.DefaultContextTest(), db, 500)
-	unsignedMsg, err := warp.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
+	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
 	require.NoError(t, err)
 
 	// Try getting a signature for a message that was not added.
@@ -66,13 +66,13 @@ func TestZeroSizedCache(t *testing.T) {
 	snowCtx := snow.DefaultContextTest()
 	sk, err := bls.NewSecretKey()
 	require.NoError(t, err)
-	snowCtx.WarpSigner = warp.NewSigner(sk, sourceChainID)
+	snowCtx.WarpSigner = avalancheWarp.NewSigner(sk, sourceChainID)
 
 	// Verify zero sized cache works normally, because the lru cache will be initialized to size 1 for any size parameter <= 0.
 	backend := NewWarpBackend(snowCtx, db, 0)
 
 	// Create a new unsigned message and add it to the warp backend.
-	unsignedMsg, err := warp.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
+	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, payload)
 	require.NoError(t, err)
 	err = backend.AddMessage(context.Background(), unsignedMsg)
 	require.NoError(t, err)
