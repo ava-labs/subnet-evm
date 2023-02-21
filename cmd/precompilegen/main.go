@@ -53,19 +53,19 @@ var (
 	// Flags needed by abigen
 	abiFlag = &cli.StringFlag{
 		Name:  "abi",
-		Usage: "Path to the Ethereum contract ABI json to bind, - for STDIN",
+		Usage: "Path to the contract ABI json to generate, - for STDIN",
 	}
 	typeFlag = &cli.StringFlag{
 		Name:  "type",
-		Usage: "Struct name for the precompile (default = {ABI name})",
+		Usage: "Struct name for the precompile (default = {abi file name})",
 	}
 	pkgFlag = &cli.StringFlag{
 		Name:  "pkg",
-		Usage: "Package name to generate the precompile into (default = {type})",
+		Usage: "Go package name to generate the precompile into (default = {type})",
 	}
 	outFlag = &cli.StringFlag{
 		Name:  "out",
-		Usage: "Output folder for the generated precompile files, - for STDOUT (default = ./{pkg})",
+		Usage: "Output folder for the generated precompile files, - for STDOUT (default = ./precompile/contracts/{pkg})",
 	}
 )
 
@@ -134,7 +134,7 @@ func precompilegen(c *cli.Context) error {
 	}
 
 	if outFlagStr == "" {
-		outFlagStr = filepath.Join("./", pkg)
+		outFlagStr = filepath.Join("./precompile/contracts", pkg)
 	}
 
 	abifilename := ""
