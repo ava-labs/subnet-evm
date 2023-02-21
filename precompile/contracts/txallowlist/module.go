@@ -36,7 +36,7 @@ func init() {
 }
 
 func (*configurator) MakeConfig() precompileconfig.Config {
-	return &Config{}
+	return new(Config)
 }
 
 // Configure configures [state] with the initial state for the precompile.
