@@ -69,7 +69,7 @@ type BlockContext interface {
 }
 
 type Configurator interface {
-	NewConfig() precompileconfig.Config
+	MakeConfig() precompileconfig.Config
 	Configure(
 		chainConfig ChainConfig,
 		precompileconfig precompileconfig.Config,

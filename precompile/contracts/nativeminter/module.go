@@ -36,7 +36,7 @@ func init() {
 	}
 }
 
-func (*configurator) NewConfig() precompileconfig.Config {
+func (*configurator) MakeConfig() precompileconfig.Config {
 	return &Config{}
 }
 
