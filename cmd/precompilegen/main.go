@@ -33,6 +33,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	_ "embed"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind"
 	"github.com/ava-labs/subnet-evm/internal/flags"
@@ -47,25 +49,28 @@ var (
 	gitDate   = ""
 
 	app *cli.App
+
+	//go:embed template-readme.md
+	readme string
 )
 
 var (
 	// Flags needed by abigen
 	abiFlag = &cli.StringFlag{
 		Name:  "abi",
-		Usage: "Path to the Ethereum contract ABI json to bind, - for STDIN",
+		Usage: "Path to the contract ABI json to generate, - for STDIN",
 	}
 	typeFlag = &cli.StringFlag{
 		Name:  "type",
-		Usage: "Struct name for the precompile (default = {ABI name})",
+		Usage: "Struct name for the precompile (default = {abi file name})",
 	}
 	pkgFlag = &cli.StringFlag{
 		Name:  "pkg",
-		Usage: "Package name to generate the precompile into (default = {type})",
+		Usage: "Go package name to generate the precompile into (default = {type})",
 	}
 	outFlag = &cli.StringFlag{
 		Name:  "out",
-		Usage: "Output folder for the generated precompile files, - for STDOUT (default = ./{pkg})",
+		Usage: "Output folder for the generated precompile files, - for STDOUT (default = ./precompile/contracts/{pkg})",
 	}
 )
 
@@ -134,7 +139,7 @@ func precompilegen(c *cli.Context) error {
 	}
 
 	if outFlagStr == "" {
-		outFlagStr = filepath.Join("./", pkg)
+		outFlagStr = filepath.Join("./precompile/contracts", pkg)
 	}
 
 	abifilename := ""
@@ -185,6 +190,12 @@ func precompilegen(c *cli.Context) error {
 
 	if err := os.WriteFile(abipath, []byte(abis[0]), 0o600); err != nil {
 		utils.Fatalf("Failed to write ABI: %v", err)
+	}
+
+	readmeOut := filepath.Join(outFlagStr, "README.md")
+
+	if err := os.WriteFile(readmeOut, []byte(readme), 0o600); err != nil {
+		utils.Fatalf("Failed to write README: %v", err)
 	}
 
 	fmt.Println("Precompile files generated successfully at: ", outFlagStr)
