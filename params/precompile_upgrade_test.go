@@ -275,7 +275,7 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				if tt.expectedErrorString != "" {
 					require.ErrorContains(t, err, tt.expectedErrorString)
 				} else {
-					require.NoError(t, err)
+					require.Nil(t, err)
 				}
 			}
 		})
