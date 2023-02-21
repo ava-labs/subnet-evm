@@ -396,10 +396,12 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
 }
 
-// enforcePredicates takes a set of pending transactions (grouped by sender, and ordered by nonce) and returns a
-// subset of those transactions (grouped by sender) that satisfy predicateContext.
-// Any transaction sent by a given sender that is received after a transaction that does not
-// satisfy predicateContext is removed from the TxPool and is not included in the return value.
+// enforcePredicates takes a set of pending transactions (grouped by sender, and ordered by nonce)
+// and returns the subset of those transactions (following the same grouping) that satisfy predicateContext.
+// Any transaction that fails predicate verification will be removed from the tx pool and excluded
+// from the return value.
+// Transactions with a nonce that follows a removed transaction will be added back to the future
+// queue of the tx pool.
 func (w *worker) enforcePredicates(
 	rules params.Rules,
 	predicateContext *contract.PredicateContext,

@@ -189,7 +189,7 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 
 // Verify the block is valid.
 // Enforces that the predicates are valid within [proposerVMBlockCtx].
-// Writes the block to disk iff writes=true
+// Writes the block details to disk and the state to the trie manager iff writes=true.
 func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
