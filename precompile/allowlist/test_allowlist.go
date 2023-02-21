@@ -273,6 +273,7 @@ func SetDefaultRoles(contractAddress common.Address) func(t *testing.T, state co
 }
 
 func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, newStateDB func(t *testing.T) contract.StateDB, contractTests map[string]testutils.PrecompileTest) {
+	t.Helper()
 	tests := AllowListTests(module)
 	// Add the contract specific tests to the map of tests to run.
 	for name, test := range contractTests {
