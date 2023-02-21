@@ -46,7 +46,7 @@ func (u *PrecompileUpgrade) UnmarshalJSON(data []byte) error {
 		if !ok {
 			return fmt.Errorf("unknown precompile config: %s", key)
 		}
-		config := module.NewConfig()
+		config := module.MakeConfig()
 		if err := json.Unmarshal(value, config); err != nil {
 			return err
 		}

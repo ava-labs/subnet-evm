@@ -25,7 +25,7 @@ func (ccp *Precompiles) UnmarshalJSON(data []byte) error {
 	for _, module := range modules.RegisteredModules() {
 		key := module.ConfigKey
 		if value, ok := raw[key]; ok {
-			conf := module.NewConfig()
+			conf := module.MakeConfig()
 			if err := json.Unmarshal(value, conf); err != nil {
 				return err
 			}

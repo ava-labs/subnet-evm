@@ -49,10 +49,10 @@ func init() {
 	}
 }
 
-// NewConfig returns a new precompile precompileconfig.
-// This is required for Marshal/Unmarshal the precompile precompileconfig.
-func (*configurator) NewConfig() precompileconfig.Config {
-	return &Config{}
+// MakeConfig returns a new precompile config instance.
+// This is required for Marshal/Unmarshal the precompile config.
+func (*configurator) MakeConfig() precompileconfig.Config {
+	return new(Config)
 }
 
 // Configure configures [state] with the given [cfg] precompileconfig.

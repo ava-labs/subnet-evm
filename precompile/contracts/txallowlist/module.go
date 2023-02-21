@@ -35,8 +35,8 @@ func init() {
 	}
 }
 
-func (*configurator) NewConfig() precompileconfig.Config {
-	return &Config{}
+func (*configurator) MakeConfig() precompileconfig.Config {
+	return new(Config)
 }
 
 // Configure configures [state] with the initial state for the precompile.
