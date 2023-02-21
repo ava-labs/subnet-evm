@@ -1,4 +1,4 @@
-There are some must-be-done changes waiting in the file. Each area requiring you to add your code is marked with CUSTOM CODE to make them easy to find and modify.
+There are some must-be-done changes waiting in the generated file. Each area requiring you to add your code is marked with CUSTOM CODE to make them easy to find and modify.
 Additionally there are other files you need to edit to activate your precompile.
 These areas are highlighted with comments "ADD YOUR PRECOMPILE HERE".
 For testing take a look at other precompile tests in contract_test.go and config_test.go in other precompile folders.
