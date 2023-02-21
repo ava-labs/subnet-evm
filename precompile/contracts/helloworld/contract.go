@@ -15,14 +15,15 @@
 3- It is recommended to only modify code in the highlighted areas marked with "CUSTOM CODE STARTS HERE". Typically, custom codes are required in only those areas.
 Modifying code outside of these areas should be done with caution and with a deep understanding of how these changes may impact the EVM.
 4- Set gas costs in generated contract.go
-5- Add your config unit tests under generated package config_test.go
-6- Add your contract unit tests undertgenerated package contract_test.go
-7- Additionally you can add a full-fledged VM test for your precompile under plugin/vm/vm_test.go. See existing precompile tests for examples.
-8- Add your solidity interface and test contract to contract-examples/contracts
-9- Write solidity tests for your precompile in contract-examples/test
-10- Create your genesis with your precompile enabled in tests/e2e/genesis/
-11- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
-12- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
+5- Force import your precompile package in precompile/registry/registry.go
+6- Add your config unit tests under generated package config_test.go
+7- Add your contract unit tests undertgenerated package contract_test.go
+8- Additionally you can add a full-fledged VM test for your precompile under plugin/vm/vm_test.go. See existing precompile tests for examples.
+9- Add your solidity interface and test contract to contract-examples/contracts
+10- Write solidity tests for your precompile in contract-examples/test
+11- Create your genesis with your precompile enabled in tests/e2e/genesis/
+12- Create e2e test for your solidity test in tests/e2e/solidity/suites.go
+13- Run your e2e precompile Solidity tests with 'E2E=true ./scripts/run.sh'
 */
 
 package helloworld
@@ -30,7 +31,6 @@ package helloworld
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -49,20 +49,14 @@ const (
 	// There are some predefined gas costs in contract/utils.go that you can use.
 	// This contract also uses AllowList precompile.
 	// You should also increase gas costs of functions that read from AllowList storage.}
-	SayHelloGasCost    uint64 = 0                                  // SET A GAS COST HERE
-	SetGreetingGasCost uint64 = 0 + allowlist.ReadAllowListGasCost // SET A GAS COST HERE
-)
-
-// CUSTOM CODE STARTS HERE
-// Reference imports to suppress errors from unused imports. This code and any unnecessary imports can be removed.
-var (
-	_ = errors.New
-	_ = big.NewInt
+	SayHelloGasCost    uint64 = contract.ReadGasCostPerSlot
+	SetGreetingGasCost uint64 = contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
 	ErrCannotSetGreeting = errors.New("non-enabled cannot call setGreeting")
+	ErrInputExceedsLimit = errors.New("input string is longer than 32 bytes")
 
 	// HelloWorldRawABI contains the raw ABI of HelloWorld contract.
 	//go:embed contract.abi
@@ -71,6 +65,8 @@ var (
 	HelloWorldABI = contract.ParseABI(HelloWorldRawABI)
 
 	HelloWorldPrecompile = createHelloWorldPrecompile()
+
+	storageKeyHash = common.BytesToHash([]byte("storageKey"))
 )
 
 // GetHelloWorldAllowListStatus returns the role of [address] for the HelloWorld list.
@@ -100,6 +96,16 @@ func PackSayHelloOutput(result string) ([]byte, error) {
 	return HelloWorldABI.PackOutput("sayHello", result)
 }
 
+// GetGreeting returns the value of the storage key "storageKey" in the contract storage,
+// with leading zeroes trimmed.
+// This function is mostly used for tests.
+func GetGreeting(stateDB contract.StateDB) string {
+	// Get the value set at recipient
+	value := stateDB.GetState(ContractAddress, storageKeyHash)
+	return string(common.TrimLeftZeroes(value.Bytes()))
+}
+
+// sayHello is the reader fucntion that returns the value of greeting stored in the contract storage.
 func sayHello(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, SayHelloGasCost); err != nil {
 		return nil, 0, err
@@ -108,8 +114,11 @@ func sayHello(accessibleState contract.AccessibleState, caller common.Address, a
 
 	// CUSTOM CODE STARTS HERE
 
-	var output string // CUSTOM CODE FOR AN OUTPUT
-	packedOutput, err := PackSayHelloOutput(output)
+	// Get the current state
+	currentState := accessibleState.GetStateDB()
+	// Get the value set at recipient
+	value := GetGreeting(currentState)
+	packedOutput, err := PackSayHelloOutput(value)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -136,6 +145,15 @@ func PackSetGreeting(response string) ([]byte, error) {
 	return HelloWorldABI.Pack("setGreeting", response)
 }
 
+// StoreGreeting sets the value of the storage key "storageKey" in the contract storage.
+func StoreGreeting(stateDB contract.StateDB, input string) {
+	inputPadded := common.LeftPadBytes([]byte(input), common.HashLength)
+	inputHash := common.BytesToHash(inputPadded)
+
+	stateDB.SetState(ContractAddress, storageKeyHash, inputHash)
+}
+
+// setGreeting is a state-changer function that sets the value of the greeting in the contract storage.
 func setGreeting(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, SetGreetingGasCost); err != nil {
 		return nil, 0, err
@@ -163,8 +181,17 @@ func setGreeting(accessibleState contract.AccessibleState, caller common.Address
 	// allow list code ends here.
 
 	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
+	// Check if the input string is longer than HashLength
+	if len(inputStruct) > common.HashLength {
+		return nil, 0, ErrInputExceedsLimit
+	}
+
+	// setGreeting is the execution function
+	// "SetGreeting(name string)" and sets the storageKey
+	// in the string returned by hello world
+	StoreGreeting(stateDB, inputStruct)
+
+	// This function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
 	// Return the packed output and the remaining gas
