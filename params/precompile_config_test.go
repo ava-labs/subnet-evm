@@ -15,7 +15,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +38,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 
 	// check this config is valid
 	err := config.Verify()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// same precompile cannot be configured twice for the same timestamp
 	badConfig := *config
@@ -50,7 +49,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 		},
 	)
 	err = badConfig.Verify()
-	assert.ErrorContains(t, err, "config block timestamp (5) <= previous timestamp (5) of same key")
+	require.ErrorContains(t, err, "config block timestamp (5) <= previous timestamp (5) of same key")
 
 	// cannot enable a precompile without disabling it first.
 	badConfig = *config
@@ -61,7 +60,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 		},
 	)
 	err = badConfig.Verify()
-	assert.ErrorContains(t, err, "disable should be [true]")
+	require.ErrorContains(t, err, "disable should be [true]")
 }
 
 func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
@@ -259,11 +258,11 @@ func TestVerifyRequiresSortedTimestamps(t *testing.T) {
 
 	// block timestamps must be monotonically increasing, so this config is invalid
 	err := config.Verify()
-	assert.ErrorContains(t, err, "config block timestamp (1) < previous timestamp (2)")
+	require.ErrorContains(t, err, "config block timestamp (1) < previous timestamp (2)")
 }
 
 func TestGetPrecompileConfig(t *testing.T) {
-	assert := assert.New(t)
+	require := require.New(t)
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
 	config.GenesisPrecompiles = Precompiles{
@@ -271,16 +270,16 @@ func TestGetPrecompileConfig(t *testing.T) {
 	}
 
 	deployerConfig := config.GetActivePrecompileConfig(deployerallowlist.ContractAddress, big.NewInt(0))
-	assert.Nil(deployerConfig)
+	require.Nil(deployerConfig)
 
 	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.ContractAddress, big.NewInt(10))
-	assert.NotNil(deployerConfig)
+	require.NotNil(deployerConfig)
 
 	deployerConfig = config.GetActivePrecompileConfig(deployerallowlist.ContractAddress, big.NewInt(11))
-	assert.NotNil(deployerConfig)
+	require.NotNil(deployerConfig)
 
 	txAllowListConfig := config.GetActivePrecompileConfig(txallowlist.ContractAddress, big.NewInt(0))
-	assert.Nil(txAllowListConfig)
+	require.Nil(txAllowListConfig)
 }
 
 func TestPrecompileUpgradeUnmarshalJSON(t *testing.T) {
