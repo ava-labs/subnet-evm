@@ -23,7 +23,7 @@ func IncrOne(bytes []byte) {
 func HashSliceToBytes(hashes []common.Hash) []byte {
 	bytes := make([]byte, common.HashLength*len(hashes))
 	for i, hash := range hashes {
-		copy(bytes[i*common.HashLength:(i+1)*common.HashLength], hash.Bytes())
+		copy(bytes[i*common.HashLength:], hash[:])
 	}
 	return bytes
 }

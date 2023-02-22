@@ -1078,6 +1078,9 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 
 	// Note: If an address is specified multiple times in the access list, only the
 	// last storage slots provided for it are used in predicates.
+	// During predicate verification, we enforce that a precompile address can only
+	// have one access tuple per address to avoid a situation where we verify multiple
+	// predicates and only expose the data from the last one.
 	s.predicateStorageSlots = make(map[common.Address][]byte)
 	for _, el := range list {
 		s.AddAddressToAccessList(el.Address)
