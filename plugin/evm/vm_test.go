@@ -2480,7 +2480,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	}
 	role = feemanager.GetFeeManagerStatus(genesisState, testEthAddrs[1])
 	if role != allowlist.NoRole {
-		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", allowlist.AdminRole, role)
+		t.Fatalf("Expected fee manager list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
 	}
 	// Contract is initialized but no preconfig is given, reader should return genesis fee config
 	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(vm.blockChain.Genesis().Header())

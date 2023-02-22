@@ -34,7 +34,7 @@ func (d *dummyConfig) Equal(other precompileconfig.Config) bool {
 
 type dummyConfigurator struct{}
 
-func (d *dummyConfigurator) NewConfig() precompileconfig.Config {
+func (d *dummyConfigurator) MakeConfig() precompileconfig.Config {
 	return &dummyConfig{}
 }
 

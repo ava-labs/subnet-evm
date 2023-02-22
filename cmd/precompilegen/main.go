@@ -33,6 +33,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	_ "embed"
+
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind/precompilebind"
 	"github.com/ava-labs/subnet-evm/internal/flags"
@@ -47,6 +49,9 @@ var (
 	gitDate   = ""
 
 	app *cli.App
+
+	//go:embed template-readme.md
+	readme string
 )
 
 var (
@@ -185,6 +190,12 @@ func precompilegen(c *cli.Context) error {
 
 	if err := os.WriteFile(abipath, []byte(abis[0]), 0o600); err != nil {
 		utils.Fatalf("Failed to write ABI: %v", err)
+	}
+
+	readmeOut := filepath.Join(outFlagStr, "README.md")
+
+	if err := os.WriteFile(readmeOut, []byte(readme), 0o600); err != nil {
+		utils.Fatalf("Failed to write README: %v", err)
 	}
 
 	fmt.Println("Precompile files generated successfully at: ", outFlagStr)

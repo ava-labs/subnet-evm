@@ -30,7 +30,7 @@ func mkConfigWithAllowList(module modules.Module, cfg *AllowListConfig) precompi
 		panic(err)
 	}
 
-	moduleCfg := module.NewConfig()
+	moduleCfg := module.MakeConfig()
 	err = json.Unmarshal(jsonBytes, moduleCfg)
 	if err != nil {
 		panic(err)

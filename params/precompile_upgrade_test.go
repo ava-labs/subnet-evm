@@ -10,7 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyUpgradeConfig(t *testing.T) {
@@ -62,9 +62,9 @@ func TestVerifyUpgradeConfig(t *testing.T) {
 			err := chainConfig.Verify()
 
 			if tt.expectedErrorString != "" {
-				assert.ErrorContains(t, err, tt.expectedErrorString)
+				require.ErrorContains(t, err, tt.expectedErrorString)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -273,11 +273,9 @@ func TestCheckCompatibleUpgradeConfigs(t *testing.T) {
 				}
 
 				if tt.expectedErrorString != "" {
-					assert.ErrorContains(t, err, tt.expectedErrorString)
+					require.ErrorContains(t, err, tt.expectedErrorString)
 				} else {
-					if err != nil {
-						t.Fatal(err)
-					}
+					require.Nil(t, err)
 				}
 			}
 		})
