@@ -24,8 +24,8 @@ import (
 
 var _ precompileconfig.Config = &Config{}
 
-// Config implements the StatefulPrecompileConfig
-// interface while adding in the {{.Contract.Type}} specific precompile address.
+// Config implements the precompileconfig.Config interface and
+// adds specific configuration for {{.Contract.Type}}.
 type Config struct {
 	{{- if .Contract.AllowList}}
 	allowlist.AllowListConfig
@@ -36,14 +36,14 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// {{.Contract.Type}} {{if .Contract.AllowList}} with the given [admins] as members of the allowlist {{end}}.
+// {{.Contract.Type}} {{- if .Contract.AllowList}} with the given [admins] as members of the allowlist {{end}}.
 func NewConfig(blockTimestamp *big.Int{{if .Contract.AllowList}}, admins []common.Address, enableds []common.Address,{{end}}) *Config {
 	return &Config{
 		{{- if .Contract.AllowList}}
 		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses: admins,
 			EnabledAddresses: enableds,
-			},
+		},
 		{{- end}}
 		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 	}
@@ -66,12 +66,12 @@ func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify() error {
-	{{if .Contract.AllowList}}
+	{{- if .Contract.AllowList}}
 	// Verify AllowList first
 	if err := c.AllowListConfig.Verify(); err != nil {
 		return err
 	}
-	{{end}}
+	{{- end}}
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom verify code for Config here
 	// and return an error accordingly
@@ -88,7 +88,7 @@ func (c *Config) Equal(s precompileconfig.Config) bool {
 	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom Config, to check if [other] and the current [c] are equal
 	// if Config contains only Upgrade {{if .Contract.AllowList}} and AllowListConfig {{end}} you can skip modifying it.
-	equals := c.Upgrade.Equal(&other.Upgrade) {{if .Contract.AllowList}} && c.AllowListConfig.Equal(&other.AllowListConfig) {{end}}
+	equals := c.Upgrade.Equal(&other.Upgrade) {{- if .Contract.AllowList}} && c.AllowListConfig.Equal(&other.AllowListConfig) {{end}}
 	return equals
 }
 `
