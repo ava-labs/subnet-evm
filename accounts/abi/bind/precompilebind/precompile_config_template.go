@@ -87,7 +87,7 @@ func (c *Config) Equal(s precompileconfig.Config) bool {
 	}
 	// CUSTOM CODE STARTS HERE
 	// modify this boolean accordingly with your custom Config, to check if [other] and the current [c] are equal
-	// if Config contains only Upgrade {{if .Contract.AllowList}} and AllowListConfig {{end}} you can skip modifying it.
+	// if Config contains only Upgrade {{- if .Contract.AllowList}} and AllowListConfig {{end}} you can skip modifying it.
 	equals := c.Upgrade.Equal(&other.Upgrade) {{- if .Contract.AllowList}} && c.AllowListConfig.Equal(&other.AllowListConfig) {{end}}
 	return equals
 }
