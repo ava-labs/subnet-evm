@@ -84,8 +84,6 @@ type StateDB interface {
 	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
 	GetPredicateStorageSlots(address common.Address) ([]byte, bool)
 	AddPreimage(common.Hash, []byte)
-
-	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) error
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM
