@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ethereum/go-ethereum/rlp"
 
 	_ "embed"
 
@@ -56,6 +58,13 @@ var (
 	ErrInvalidQuorumDenominator  = errors.New("quorum denominator can not be zero")
 	ErrGreaterQuorumNumerator    = errors.New("quorum numerator can not be greater than quorum denominator")
 	ErrQuorumNilCheck            = errors.New("can not only set one of quorum numerator and denominator")
+	ErrMissingPrecompileBackend  = errors.New("missing vm supported backend for precompile")
+	ErrInvalidTopicHash          = func(topic common.Hash) error {
+		return fmt.Errorf("expected hash %s for topic at zero index, but got %s", SubmitMessageEventID, topic.String())
+	}
+	ErrInvalidTopicCount = func(numTopics int) error {
+		return fmt.Errorf("expected three topics but got %d", numTopics)
+	}
 )
 
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
@@ -77,6 +86,80 @@ type SendWarpMessageInput struct {
 	DestinationAddress [32]byte
 	Payload            []byte
 }
+
+func VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
+	// The proposer VM block context is required to verify aggregate signatures.
+	if predicateContext.ProposerVMBlockCtx == nil {
+		return ErrMissingProposerVMBlockCtx
+	}
+
+	// If there are no storage slots, we consider the predicate to be valid because
+	// there are no messages to be received.
+	if len(storageSlots) == 0 {
+		return nil
+	}
+
+	// RLP decode the list of signed messages.
+	var messagesBytes [][]byte
+	err := rlp.DecodeBytes(storageSlots, &messagesBytes)
+	if err != nil {
+		return err
+	}
+
+	// TODO: save the parsed and verified warp messages to use in getVerifiedWarpMessage
+	// Iterate and try to parse into warp signed messages, then verify each message's aggregate signature.
+	for _, messageBytes := range messagesBytes {
+		message, err := warp.ParseMessage(messageBytes)
+		if err != nil {
+			return err
+		}
+
+		// TODO: Should we add a special chain ID that is allowed as the "anycast" chain ID? Just need to think through if there are any security implications.
+		if message.DestinationChainID != predicateContext.SnowCtx.ChainID {
+			return ErrWrongChainID
+		}
+
+		// TODO: discussions around saving quorum numerator and denominator in state, and adding signature verification.
+		//err = message.Signature.Verify(
+		//	context.Background(),
+		//	&message.UnsignedMessage,
+		//	predicateContext.SnowCtx.ValidatorState,
+		//	predicateContext.ProposerVMBlockCtx.PChainHeight,
+		//	c.QuorumNumerator.Uint64(),
+		//	c.QuorumDenominator.Uint64())
+		//if err != nil {
+		//	return err
+		//}
+
+	}
+
+	return nil
+}
+
+// TODO: Implement Accepter interface
+//func Accept(backend precompile.Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
+//	if backend == nil {
+//		return ErrMissingPrecompileBackend
+//	}
+//
+//	if len(topics) != 3 {
+//		return ErrInvalidTopicCount(len(topics))
+//	}
+//
+//	if topics[0] != common.HexToHash(SubmitMessageEventID) {
+//		return ErrInvalidTopicHash(topics[0])
+//	}
+//
+//	unsignedMessage, err := warp.NewUnsignedMessage(
+//		ids.ID(topics[1]),
+//		ids.ID(topics[2]),
+//		logData)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return backend.AddMessage(context.Background(), unsignedMessage)
+//}
 
 // PackGetBlockchainID packs the include selector (first 4 func signature bytes).
 // This function is mostly used for tests.

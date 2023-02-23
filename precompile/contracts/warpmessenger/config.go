@@ -16,8 +16,8 @@ var _ precompileconfig.Config = &Config{}
 // adds specific configuration for WarpMessenger.
 type Config struct {
 	precompileconfig.Upgrade
-	// CUSTOM CODE STARTS HERE
-	// Add your own custom fields for Config here
+	QuorumNumerator   *big.Int `json:"quorumNumerator,omitempty"`
+	QuorumDenominator *big.Int `json:"quorumDenominator,omitempty"`
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
@@ -45,10 +45,20 @@ func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify() error {
-	// CUSTOM CODE STARTS HERE
-	// Add your own custom verify code for Config here
-	// and return an error accordingly
-	return nil
+	switch {
+	case c.QuorumNumerator == nil && c.QuorumDenominator == nil:
+		return nil
+	case c.QuorumNumerator == nil:
+		return ErrQuorumNilCheck
+	case c.QuorumDenominator == nil:
+		return ErrQuorumNilCheck
+	case c.QuorumDenominator.Cmp(big.NewInt(0)) == 0:
+		return ErrInvalidQuorumDenominator
+	case c.QuorumNumerator.Cmp(c.QuorumDenominator) == 1:
+		return ErrGreaterQuorumNumerator
+	default:
+		return nil
+	}
 }
 
 // Equal returns true if [s] is a [*Config] and it has been configured identical to [c].
