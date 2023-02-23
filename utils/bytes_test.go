@@ -43,6 +43,10 @@ func TestHashSliceToBytes(t *testing.T) {
 		expected []byte
 	}
 	for name, test := range map[string]test{
+		"empty slice": {
+			input:    []common.Hash{},
+			expected: []byte{},
+		},
 		"convert single hash": {
 			input: []common.Hash{
 				common.BytesToHash([]byte{1, 2, 3}),
