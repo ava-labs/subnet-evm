@@ -3,8 +3,15 @@
 
 package main
 
-import "github.com/ava-labs/subnet-evm/plugin/runner"
+import (
+	"fmt"
+
+	"github.com/ava-labs/avalanchego/version"
+	"github.com/ava-labs/subnet-evm/plugin/evm"
+	"github.com/ava-labs/subnet-evm/plugin/runner"
+)
 
 func main() {
-	runner.Run()
+	versionString := fmt.Sprintf("Subnet-EVM/%s [AvalancheGo=%s, rpcchainvm=%d]", evm.Version, version.Current, version.RPCChainVMProtocol)
+	runner.Run(versionString)
 }
