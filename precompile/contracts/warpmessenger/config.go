@@ -72,5 +72,25 @@ func (c *Config) Equal(s precompileconfig.Config) bool {
 	// modify this boolean accordingly with your custom Config, to check if [other] and the current [c] are equal
 	// if Config contains only Upgrade you can skip modifying it.
 	equals := c.Upgrade.Equal(&other.Upgrade)
-	return equals
+	if !equals {
+		return false
+	}
+
+	if (c.QuorumNumerator == nil && other.QuorumNumerator != nil) || (other.QuorumNumerator == nil && c.QuorumNumerator != nil) {
+		return false
+	}
+
+	if (c.QuorumDenominator == nil && other.QuorumDenominator != nil) || (other.QuorumDenominator == nil && c.QuorumDenominator != nil) {
+		return false
+	}
+
+	if c.QuorumNumerator != nil && c.QuorumNumerator.Cmp(other.QuorumNumerator) != 0 {
+		return false
+	}
+
+	if c.QuorumDenominator != nil && c.QuorumDenominator.Cmp(other.QuorumDenominator) != 0 {
+		return false
+	}
+
+	return true
 }
