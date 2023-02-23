@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/onsi/gomega"
+	"golang.org/x/sync/errgroup"
 )
 
 func RunHardhatTests(test string, rpcURI string) {
@@ -46,7 +47,7 @@ func RunHardhatTests(test string, rpcURI string) {
 	gomega.Expect(err).Should(gomega.BeNil())
 }
 
-func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
+func CreateNewSubnet(ctx context.Context, genesisFilePaths []string) []ids.ID {
 	kc := secp256k1fx.NewKeychain(genesis.EWOQKey)
 
 	// NewWalletFromURI fetches the available UTXOs owned by [kc] on the network
@@ -63,38 +64,61 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 		},
 	}
 
+	genesisBytesArr := make([][]byte, 0, len(genesisFilePaths))
 	wd, err := os.Getwd()
 	gomega.Expect(err).Should(gomega.BeNil())
-	log.Info("Reading genesis file", "filePath", genesisFilePath, "wd", wd)
-	genesisBytes, err := os.ReadFile(genesisFilePath)
-	gomega.Expect(err).Should(gomega.BeNil())
+	log.Info("Creating new subnet with specified blockchains", "wd", wd)
+
+	for _, genesisFilePath := range genesisFilePaths {
+		log.Info("Reading genesis file", "filePath", genesisFilePath)
+		genesisBytes, err := os.ReadFile(genesisFilePath)
+		gomega.Expect(err).Should(gomega.BeNil())
+		genesisBytesArr = append(genesisBytesArr, genesisBytes)
+	}
 
 	log.Info("Creating new subnet")
 	createSubnetTxID, err := pWallet.IssueCreateSubnetTx(owner)
 	gomega.Expect(err).Should(gomega.BeNil())
 
-	genesis := &core.Genesis{}
-	err = json.Unmarshal(genesisBytes, genesis)
-	gomega.Expect(err).Should(gomega.BeNil())
+	blockchainIDs := make([]ids.ID, 0, len(genesisBytesArr))
+	for _, genesisBytes := range genesisBytesArr {
+		genesis := &core.Genesis{}
+		err = json.Unmarshal(genesisBytes, genesis)
+		gomega.Expect(err).Should(gomega.BeNil())
 
-	log.Info("Creating new Subnet-EVM blockchain", "genesis", genesis)
-	createChainTxID, err := pWallet.IssueCreateChainTx(
-		createSubnetTxID,
-		genesisBytes,
-		evm.ID,
-		nil,
-		"testChain",
-	)
-	gomega.Expect(err).Should(gomega.BeNil())
+		log.Info("Creating new Subnet-EVM blockchain", "genesis", genesis)
+		createChainTxID, err := pWallet.IssueCreateChainTx(
+			createSubnetTxID,
+			genesisBytes,
+			evm.ID,
+			nil,
+			"testChain",
+		)
+		gomega.Expect(err).Should(gomega.BeNil())
+		blockchainIDs = append(blockchainIDs, createChainTxID)
+	}
 
-	// Confirm the new blockchain is ready by waiting for the readiness endpoint
-	infoClient := info.NewClient(DefaultLocalNodeURI)
-	bootstrapped, err := info.AwaitBootstrapped(ctx, infoClient, createChainTxID.String(), 2*time.Second)
-	gomega.Expect(err).Should(gomega.BeNil())
-	gomega.Expect(bootstrapped).Should(gomega.BeTrue())
+	eg, egCtx := errgroup.WithContext(ctx)
+	for _, blockchainID := range blockchainIDs {
+		blockchainID := blockchainID
+		eg.Go(func() error {
+			// Confirm the new blockchain is ready by waiting for the readiness endpoint
+			infoClient := info.NewClient(DefaultLocalNodeURI)
+			bootstrapped, err := info.AwaitBootstrapped(egCtx, infoClient, blockchainID.String(), 2*time.Second)
+			if err != nil {
+				return err
+			}
+			if !bootstrapped {
+				return fmt.Errorf("blockchain %s not bootstrapped", blockchainID)
+			}
+			return nil
+		})
+	}
+	// Check that all blockchains bootstrap correctly
+	gomega.Expect(eg.Wait()).Should(gomega.BeNil())
 
-	// Return the blockchainID of the newly created blockchain
-	return createChainTxID.String()
+	// Return the blockchainIDs of the newly created blockchains
+	return blockchainIDs
 }
 
 func ExecuteHardHatTestOnNewBlockchain(ctx context.Context, test string) {
@@ -102,8 +126,8 @@ func ExecuteHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 
 	genesisFilePath := fmt.Sprintf("./tests/precompile/genesis/%s.json", test)
 
-	blockchainID := CreateNewSubnet(ctx, genesisFilePath)
-	chainURI := fmt.Sprintf("%s/ext/bc/%s/rpc", DefaultLocalNodeURI, blockchainID)
+	blockchainIDs := CreateNewSubnet(ctx, []string{genesisFilePath})
+	chainURI := fmt.Sprintf("%s/ext/bc/%s/rpc", DefaultLocalNodeURI, blockchainIDs[0])
 
 	log.Info("Created subnet successfully", "ChainURI", chainURI)
 	RunHardhatTests(test, chainURI)
