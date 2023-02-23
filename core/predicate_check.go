@@ -39,7 +39,7 @@ func CheckPredicates(rules params.Rules, predicateContext *contract.PredicateCon
 			return fmt.Errorf("predicate %s failed verification for tx %s: specified %s in access list multiple times", address, tx.Hash(), address)
 		}
 		precompileAddressChecks[address] = struct{}{}
-		
+
 		if err := predicater.VerifyPredicate(predicateContext, utils.HashSliceToBytes(accessTuple.StorageKeys)); err != nil {
 			return fmt.Errorf("predicate %s failed verification for tx %s: %w", address, tx.Hash(), err)
 		}
