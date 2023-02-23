@@ -35,30 +35,7 @@ type Config struct {
 	// Add your own custom fields for Config here
 }
 
-{{$structs := .Structs}}
-{{range $structs}}
-	// {{.Name}} is an auto generated low-level Go binding around an user-defined struct.
-	type {{.Name}} struct {
-	{{range $field := .Fields}}
-	{{$field.Name}} {{$field.Type}}{{end}}
-	}
-{{- end}}
-
-{{- range .Contract.Funcs}}
-{{ if len .Normalized.Inputs | lt 1}}
-type {{capitalise .Normalized.Name}}Input struct{
-{{range .Normalized.Inputs}} {{capitalise .Name}} {{bindtype .Type $structs}}; {{end}}
-}
-{{- end}}
-{{ if len .Normalized.Outputs | lt 1}}
-type {{capitalise .Normalized.Name}}Output struct{
-{{range .Normalized.Outputs}} {{capitalise .Name}} {{bindtype .Type $structs}}; {{end}}
-}
-{{- end}}
-{{- end}}
-
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// {{.Contract.Type}} with the given [admins] and [enableds] as members of the allowlist.
 // {{.Contract.Type}} {{if .Contract.AllowList}} with the given [admins] as members of the allowlist {{end}}.
 func NewConfig(blockTimestamp *big.Int{{if .Contract.AllowList}}, admins []common.Address, enableds []common.Address,{{end}}) *Config {
 	return &Config{
