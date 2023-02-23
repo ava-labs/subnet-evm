@@ -41,6 +41,7 @@ type OrderForOpenOrders struct {
 	Size       *big.Int
 	FilledSize *big.Int
 	Timestamp  uint64
+	Salt       *big.Int
 }
 
 func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryDatabase {
@@ -87,6 +88,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenO
 				Price:      order.Price,
 				Size:       order.BaseAssetQuantity,
 				FilledSize: order.FilledBaseAssetQuantity,
+				Salt:       getOrderFromRawOrder(order.RawOrder).Salt,
 			})
 		}
 	}
