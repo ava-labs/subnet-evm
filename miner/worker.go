@@ -412,8 +412,11 @@ func (w *worker) enforcePredicates(
 		for i, tx := range txs {
 			if err := core.CheckPredicates(rules, predicateContext, tx); err != nil {
 				log.Debug("Transaction predicate failed verification in miner", "sender", addr, "err", err)
-				w.eth.TxPool().RemoveTx(tx.Hash()) // RemoveTx will move all subsequent transactions back to the future queue
-				txs = txs[:i]                      // Cut off any transactions past the failed predicate
+				// If the transaction fails the predicate check, we remove the transaction from the mempool
+				// and move all transactions from the same address with a subsequent nonce back to the
+				// future queue of the transaction pool.
+				w.eth.TxPool().RemoveTx(tx.Hash())
+				txs = txs[:i] // Cut off any transactions past the failed predicate in the return value
 				break
 			}
 		}
