@@ -236,6 +236,9 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if !inputIndex.IsInt64() {
 		return nil, remainingGas, ErrInvalidMessageIndex
 	}
+
+	// TODO: Get the requested warp message from previously parsed/verified messages in predicate.
+	// TODO: Unmarshal the already verified message into warp message to return as output.
 	//messageIndex := inputIndex.Int64()
 	//if len(signedMessages) <= int(messageIndex) {
 	//	return nil, remainingGas, ErrInvalidMessageIndex
