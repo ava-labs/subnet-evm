@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
@@ -35,12 +36,16 @@ type Predicater interface {
 	VerifyPredicate(predicateContext *PredicateContext, storageSlots []byte) error
 }
 
+type Backend interface {
+	AddWarpMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
+}
+
 // Accepter is an optional interface for StatefulPrecompiledContracts to implement.
 // If implemented, Accept will be called for every log with the address of the precompile when the block is accepted.
 // WARNING: this is not intended to be used for custom precompiles. Backwards compatibility with custom precompiles that
 // use the Accepter interface will not be supported.
 type Accepter interface {
-	Accept(txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
+	Accept(backend Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
 }
 
 // ChainContext defines an interface that provides information to a stateful precompile
