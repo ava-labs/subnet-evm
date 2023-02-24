@@ -13,7 +13,8 @@ import (
 
 const (
 	QuorumDenominator      uint64 = 100
-	DefaultQuorumNumerator uint64 = 34
+	DefaultQuorumNumerator uint64 = 67
+	MinimumQuorumNumerator        = 34
 )
 
 var _ precompileconfig.Config = &Config{}
@@ -54,10 +55,10 @@ func (c *Config) Verify() error {
 	switch {
 	case c.QuorumNumerator == 0: // If the numerator is 0, treat as default option.
 		return nil
-	case c.QuorumNumerator > 100:
-		return fmt.Errorf("cannot use quorum numerator greater than 100: %d", c.QuorumNumerator)
-	case c.QuorumNumerator < 51:
-		return fmt.Errorf("cannot use quorum numerator < 51: %d", c.QuorumNumerator)
+	case c.QuorumNumerator > QuorumDenominator:
+		return fmt.Errorf("cannot use quorum numerator greater than %d: %d", QuorumDenominator, c.QuorumNumerator)
+	case c.QuorumNumerator < MinimumQuorumNumerator:
+		return fmt.Errorf("cannot use quorum numerator %d < %d", c.QuorumNumerator, MinimumQuorumNumerator)
 	default:
 		return nil
 	}
