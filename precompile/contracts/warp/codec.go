@@ -6,20 +6,19 @@ package warp
 import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/codec/linearcodec"
-	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
+	"github.com/ava-labs/subnet-evm/params"
 )
 
 const (
 	codecVersion   uint16 = 0
-	maxMessageSize        = 512 * units.KiB
-	maxSliceLen           = maxMessageSize
+	maxMessageSize        = params.MaxCodeSize
+	maxSliceLen           = params.MaxCodeSize
 )
 
 // Codec does serialization and deserialization
 var Codec codec.Manager
 
-// TODO: switch from using Codec to use ABI serialization
 func init() {
 	Codec = codec.NewManager(maxMessageSize)
 	lc := linearcodec.NewCustomMaxLength(maxSliceLen)
