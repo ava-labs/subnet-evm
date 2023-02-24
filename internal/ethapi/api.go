@@ -57,6 +57,8 @@ import (
 	"github.com/tyler-smith/go-bip39"
 )
 
+const maxJSONLen = 64 * 1024 * 1024 // 64MB
+
 // EthereumAPI provides an API to access Ethereum related information.
 type EthereumAPI struct {
 	b Backend
@@ -141,7 +143,7 @@ func (s *EthereumAPI) Syncing() (interface{}, error) {
 
 type GetChainConfigResponse struct {
 	*params.ChainConfig
-	UpgradeConfig params.UpgradeConfig `json:"upgrades"`
+	UpgradeConfig params.UpgradeConfig
 }
 
 // MarshalJSON implements json.Marshaler. This is a workaround for the fact that
@@ -155,6 +157,9 @@ func (s *GetChainConfigResponse) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(chainConfigJSON) > maxJSONLen {
+		return nil, errors.New("value too large")
+	}
 
 	type upgrades struct {
 		UpgradeConfig params.UpgradeConfig `json:"upgrades"`
@@ -164,6 +169,10 @@ func (s *GetChainConfigResponse) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(upgradeJSON) > maxJSONLen {
+		return nil, errors.New("value too large")
+	}
+
 	// merge the two JSON objects
 	mergedJSON := make([]byte, 0, len(chainConfigJSON)+len(upgradeJSON)+1)
 	mergedJSON = append(mergedJSON, chainConfigJSON[:len(chainConfigJSON)-1]...)
