@@ -39,3 +39,11 @@ interface WarpMessenger {
 
     function getBlockchainID() external view returns (bytes32 blockchainID);
 }
+
+// TODO
+// 1. Set up e2e test
+// 2. Benchmark send/receive functionality for gas cost estimate
+// 3. Switch to saving parsed messages during predicate verification to make available during tx execution
+// 4. Handle gas costs appropriately
+// 5. Stress test
+// 6. Add periodic database cleanup
