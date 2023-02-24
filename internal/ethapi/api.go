@@ -28,6 +28,7 @@ package ethapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -140,16 +141,44 @@ func (s *EthereumAPI) Syncing() (interface{}, error) {
 
 type GetChainConfigResponse struct {
 	*params.ChainConfig
-	params.UpgradeConfig `json:"upgrades"`
+	UpgradeConfig params.UpgradeConfig `json:"upgrades"`
 }
 
-func (s *BlockChainAPI) GetChainConfig(ctx context.Context) GetChainConfigResponse {
+// MarshalJSON implements json.Marshaler. This is a workaround for the fact that
+// the embedded ChainConfig struct has a MarshalJSON method, which prevents
+// the default JSON marshalling from working for UpgradeConfig.
+// TODO: consider removing this method by allowing external tag for the embedded
+// ChainConfig struct.
+func (s *GetChainConfigResponse) MarshalJSON() ([]byte, error) {
+	// embed the ChainConfig struct into the response
+	chainConfigJSON, err := json.Marshal(s.ChainConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	type upgrades struct {
+		UpgradeConfig params.UpgradeConfig `json:"upgrades"`
+	}
+
+	upgradeJSON, err := json.Marshal(upgrades{s.UpgradeConfig})
+	if err != nil {
+		return nil, err
+	}
+	// merge the two JSON objects
+	mergedJSON := make([]byte, 0, len(chainConfigJSON)+len(upgradeJSON)+1)
+	mergedJSON = append(mergedJSON, chainConfigJSON[:len(chainConfigJSON)-1]...)
+	mergedJSON = append(mergedJSON, ',')
+	mergedJSON = append(mergedJSON, upgradeJSON[1:]...)
+	return mergedJSON, nil
+}
+
+func (s *BlockChainAPI) GetChainConfig(ctx context.Context) *GetChainConfigResponse {
 	config := s.b.ChainConfig()
 	resp := GetChainConfigResponse{
 		ChainConfig:   config,
 		UpgradeConfig: config.UpgradeConfig,
 	}
-	return resp
+	return &resp
 }
 
 // TxPoolAPI offers and API for the transaction pool. It only operates on data that is non confidential.
