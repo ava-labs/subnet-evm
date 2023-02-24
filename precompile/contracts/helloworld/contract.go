@@ -24,7 +24,7 @@ const (
 	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
 	// There are some predefined gas costs in contract/utils.go that you can use.
 	// This contract also uses AllowList precompile.
-	// You should also increase gas costs of functions that read from AllowList storage.}
+	// You should also increase gas costs of functions that read from AllowList storage.
 	SayHelloGasCost    uint64 = contract.ReadGasCostPerSlot
 	SetGreetingGasCost uint64 = contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost
 )
