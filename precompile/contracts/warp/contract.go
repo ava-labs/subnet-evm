@@ -176,6 +176,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	}
 
 	// TODO: switch to extracting the already parsed/verified message saved during predicate verification.
+	// TODO: charge gas for predicate computation prior to tx execution
 	warpMessages, err := decodeWarpMessages(predicateBytes)
 	if err != nil {
 		return nil, remainingGas, err

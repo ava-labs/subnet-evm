@@ -13,7 +13,7 @@ import (
 
 const (
 	QuorumDenominator      uint64 = 100
-	DefaultQuorumNumerator uint64 = 67
+	DefaultQuorumNumerator uint64 = 34
 )
 
 var _ precompileconfig.Config = &Config{}
