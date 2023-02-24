@@ -5,6 +5,7 @@
 package warp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -12,6 +13,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -20,21 +22,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// Gas Costs TODO
 const (
-	// Gas costs for each function. These are set to 0 by default.
-	// You should set a gas cost for each function in your contract.
-	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
-	// There are some predefined gas costs in contract/utils.go that you can use.
 	GetBlockchainIDGasCost        uint64 = 0 // SET A GAS COST HERE
 	GetVerifiedWarpMessageGasCost uint64 = 0 // SET A GAS COST HERE
 	SendWarpMessageGasCost        uint64 = 0 // SET A GAS COST HERE
-)
-
-// CUSTOM CODE STARTS HERE
-// Reference imports to suppress errors from unused imports. This code and any unnecessary imports can be removed.
-var (
-	_ = errors.New
-	_ = big.NewInt
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -87,7 +79,36 @@ type SendWarpMessageInput struct {
 	Payload            []byte
 }
 
-func VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
+// decodeWarpMessages decodes [storageSlots] into an array of warp messages.
+func decodeWarpMessages(storageSlots []byte) ([]*warp.Message, error) {
+	if len(storageSlots) == 0 {
+		return nil, nil
+	}
+
+	// RLP decode the list of signed messages.
+	var messagesBytes [][]byte
+	err := rlp.DecodeBytes(storageSlots, &messagesBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode predicate storage slots into warp messages: %w", err)
+	}
+
+	warpMessages := make([]*warp.Message, 0)
+	for i, messageBytes := range messagesBytes {
+		message, err := warp.ParseMessage(messageBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode predicate storage slot message %d into warp message: %w", i, err)
+		}
+		warpMessages = append(warpMessages, message)
+	}
+
+	return warpMessages, nil
+}
+
+func VerifyPredicate(predicateContext *contract.PredicateContext, config precompileconfig.Config, storageSlots []byte) error {
+	warpConfig, ok := config.(*Config)
+	if !ok {
+		return fmt.Errorf("failed to convert config to expected warp messenger config type, found type: %T", config)
+	}
 	// The proposer VM block context is required to verify aggregate signatures.
 	if predicateContext.ProposerVMBlockCtx == nil {
 		return ErrMissingProposerVMBlockCtx
@@ -99,38 +120,27 @@ func VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots [
 		return nil
 	}
 
-	// RLP decode the list of signed messages.
-	var messagesBytes [][]byte
-	err := rlp.DecodeBytes(storageSlots, &messagesBytes)
+	warpMessages, err := decodeWarpMessages(storageSlots)
 	if err != nil {
 		return err
 	}
 
-	// TODO: save the parsed and verified warp messages to use in getVerifiedWarpMessage
-	// Iterate and try to parse into warp signed messages, then verify each message's aggregate signature.
-	for _, messageBytes := range messagesBytes {
-		message, err := warp.ParseMessage(messageBytes)
+	quorumNumerator := DefaultQuorumNumerator
+	if warpConfig.QuorumNumerator != 0 {
+		quorumNumerator = warpConfig.QuorumNumerator
+	}
+	for _, warpMessage := range warpMessages {
+		err = warpMessage.Signature.Verify(
+			context.Background(),
+			&warpMessage.UnsignedMessage,
+			predicateContext.SnowCtx.ValidatorState,
+			predicateContext.ProposerVMBlockCtx.PChainHeight,
+			quorumNumerator,
+			QuorumDenominator,
+		)
 		if err != nil {
 			return err
 		}
-
-		// TODO: Should we add a special chain ID that is allowed as the "anycast" chain ID? Just need to think through if there are any security implications.
-		if message.DestinationChainID != predicateContext.SnowCtx.ChainID {
-			return ErrWrongChainID
-		}
-
-		// TODO: discussions around saving quorum numerator and denominator in state, and adding signature verification.
-		//err = message.Signature.Verify(
-		//	context.Background(),
-		//	&message.UnsignedMessage,
-		//	predicateContext.SnowCtx.ValidatorState,
-		//	predicateContext.ProposerVMBlockCtx.PChainHeight,
-		//	c.QuorumNumerator.Uint64(),
-		//	c.QuorumDenominator.Uint64())
-		//if err != nil {
-		//	return err
-		//}
-
 	}
 
 	return nil
@@ -227,9 +237,15 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, err
 	}
 
-	_, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	if !exists {
 		return nil, remainingGas, ErrMissingStorageSlots
+	}
+
+	// TODO: switch to extracting the already parsed/verified message saved during predicate verification.
+	warpMessages, err := decodeWarpMessages(predicateBytes)
+	if err != nil {
+		return nil, remainingGas, err
 	}
 
 	// Check that the message index exists.
@@ -237,21 +253,19 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, ErrInvalidMessageIndex
 	}
 
-	// TODO: Get the requested warp message from previously parsed/verified messages in predicate.
-	// TODO: Unmarshal the already verified message into warp message to return as output.
-	//messageIndex := inputIndex.Int64()
-	//if len(signedMessages) <= int(messageIndex) {
-	//	return nil, remainingGas, ErrInvalidMessageIndex
-	//}
-	//
-	//// Parse the raw message to be processed.
-	//message := signedMessages[messageIndex]
-	//
+	messageIndex := inputIndex.Int64()
+	if len(warpMessages) <= int(messageIndex) {
+		return nil, remainingGas, ErrInvalidMessageIndex
+	}
+
+	message := warpMessages[messageIndex]
+	_ = message
 	var warpMessage WarpMessage
-	//_, err = Codec.Unmarshal(message.Payload, &warpMessage)
-	//if err != nil {
-	//	return nil, remainingGas, err
-	//}
+	// Can we validate this completely during the predicate so we don't have this error case here?
+	_, err = Codec.Unmarshal(message.Payload, &warpMessage)
+	if err != nil {
+		return nil, remainingGas, err
+	}
 
 	output := GetVerifiedWarpMessageOutput{
 		Message: warpMessage,
@@ -290,7 +304,6 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	}
 	// attempts to unpack [input] into the arguments to the SendWarpMessageInput.
 	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
 	inputStruct, err := UnpackSendWarpMessageInput(input)
 	if err != nil {
 		return nil, remainingGas, err
@@ -304,12 +317,10 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		Payload:             inputStruct.Payload,
 	}
 
-	// Marshal
-	//data, err := Codec.Marshal(Version, message)
-	//if err != nil {
-	//	return nil, remainingGas, err
-	//}
-	var data []byte
+	payloadBytes, err := Codec.Marshal(codecVersion, message)
+	if err != nil {
+		return nil, remainingGas, err
+	}
 
 	accessibleState.GetStateDB().AddLog(
 		ContractAddress,
@@ -318,7 +329,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 			message.OriginChainID,
 			message.DestinationChainID,
 		},
-		data,
+		payloadBytes, // XXX
 		accessibleState.GetBlockContext().Number().Uint64())
 
 	return []byte{}, remainingGas, nil

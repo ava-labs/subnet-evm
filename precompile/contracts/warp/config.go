@@ -5,9 +5,15 @@
 package warp
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+)
+
+const (
+	QuorumDenominator      uint64 = 100
+	DefaultQuorumNumerator uint64 = 67
 )
 
 var _ precompileconfig.Config = &Config{}
@@ -16,15 +22,15 @@ var _ precompileconfig.Config = &Config{}
 // adds specific configuration for WarpMessenger.
 type Config struct {
 	precompileconfig.Upgrade
-	QuorumNumerator   *big.Int `json:"quorumNumerator,omitempty"`
-	QuorumDenominator *big.Int `json:"quorumDenominator,omitempty"`
+	QuorumNumerator uint64 `json:"quorumNumerator,omitempty"`
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // WarpMessenger.
-func NewConfig(blockTimestamp *big.Int) *Config {
+func NewConfig(blockTimestamp *big.Int, quorumNumerator uint64) *Config {
 	return &Config{
-		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:         precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		QuorumNumerator: quorumNumerator,
 	}
 }
 
@@ -46,16 +52,12 @@ func (*Config) Key() string { return ConfigKey }
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify() error {
 	switch {
-	case c.QuorumNumerator == nil && c.QuorumDenominator == nil:
+	case c.QuorumNumerator == 0: // If the numerator is 0, treat as default option.
 		return nil
-	case c.QuorumNumerator == nil:
-		return ErrQuorumNilCheck
-	case c.QuorumDenominator == nil:
-		return ErrQuorumNilCheck
-	case c.QuorumDenominator.Cmp(big.NewInt(0)) == 0:
-		return ErrInvalidQuorumDenominator
-	case c.QuorumNumerator.Cmp(c.QuorumDenominator) == 1:
-		return ErrGreaterQuorumNumerator
+	case c.QuorumNumerator > 100:
+		return fmt.Errorf("cannot use quorum numerator greater than 100: %d", c.QuorumNumerator)
+	case c.QuorumNumerator < 51:
+		return fmt.Errorf("cannot use quorum numerator < 51: %d", c.QuorumNumerator)
 	default:
 		return nil
 	}
@@ -68,29 +70,10 @@ func (c *Config) Equal(s precompileconfig.Config) bool {
 	if !ok {
 		return false
 	}
-	// CUSTOM CODE STARTS HERE
-	// modify this boolean accordingly with your custom Config, to check if [other] and the current [c] are equal
-	// if Config contains only Upgrade you can skip modifying it.
 	equals := c.Upgrade.Equal(&other.Upgrade)
 	if !equals {
 		return false
 	}
 
-	if (c.QuorumNumerator == nil && other.QuorumNumerator != nil) || (other.QuorumNumerator == nil && c.QuorumNumerator != nil) {
-		return false
-	}
-
-	if (c.QuorumDenominator == nil && other.QuorumDenominator != nil) || (other.QuorumDenominator == nil && c.QuorumDenominator != nil) {
-		return false
-	}
-
-	if c.QuorumNumerator != nil && c.QuorumNumerator.Cmp(other.QuorumNumerator) != 0 {
-		return false
-	}
-
-	if c.QuorumDenominator != nil && c.QuorumDenominator.Cmp(other.QuorumDenominator) != 0 {
-		return false
-	}
-
-	return true
+	return c.QuorumNumerator == other.QuorumNumerator
 }
