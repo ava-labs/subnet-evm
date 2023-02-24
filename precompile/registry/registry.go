@@ -17,7 +17,7 @@ import (
 
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 
-	_ "github.com/ava-labs/subnet-evm/precompile/contracts/warpmessenger"
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
 )
