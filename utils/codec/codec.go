@@ -10,7 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 )
 
-const codecVersion uint16 = 0
+const CodecVersion uint16 = 0
 
 // Codec does serialization and deserialization
 var Codec codec.Manager
@@ -29,7 +29,7 @@ func init() {
 		c.RegisterType(&secp256k1fx.Credential{}),
 		c.RegisterType(&secp256k1fx.Input{}),
 		c.RegisterType(&secp256k1fx.OutputOwners{}),
-		Codec.RegisterCodec(codecVersion, c),
+		Codec.RegisterCodec(CodecVersion, c),
 	)
 
 	if errs.Errored() {

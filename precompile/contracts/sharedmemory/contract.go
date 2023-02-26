@@ -5,12 +5,21 @@
 package sharedmemory
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/chains/atomic"
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/vms/components/avax"
+	"github.com/ava-labs/avalanchego/vms/components/verify"
+	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/utils/codec"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	_ "embed"
@@ -23,23 +32,19 @@ const (
 	// You should set a gas cost for each function in your contract.
 	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
 	// There are some predefined gas costs in contract/utils.go that you can use.
-	ExportAVAXGasCost            uint64 = 0 // SET A GAS COST HERE
-	ExportUTXOGasCost            uint64 = 0 // SET A GAS COST HERE
-	GetNativeTokenAssetIDGasCost uint64 = 0 // SET A GAS COST HERE
-	ImportAVAXGasCost            uint64 = 0 // SET A GAS COST HERE
-	ImportUTXOGasCost            uint64 = 0 // SET A GAS COST HERE
+	ExportAVAXGasCost            uint64 = contract.WriteGasCostPerSlot + contract.ReadGasCostPerSlot
+	ExportUTXOGasCost            uint64 = contract.WriteGasCostPerSlot + contract.ReadGasCostPerSlot
+	ImportAVAXGasCost            uint64 = contract.WriteGasCostPerSlot + contract.ReadGasCostPerSlot
+	ImportUTXOGasCost            uint64 = contract.WriteGasCostPerSlot + contract.ReadGasCostPerSlot
+	GetNativeTokenAssetIDGasCost uint64 = 100 // Based off of sha256
 )
 
-// CUSTOM CODE STARTS HERE
-// Reference imports to suppress errors from unused imports. This code and any unnecessary imports can be removed.
 var (
-	_ = errors.New
-	_ = big.NewInt
+	_ contract.Predicater = &sharedMemoryPredicater{}
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
-
 	// SharedMemoryRawABI contains the raw ABI of SharedMemory contract.
 	//go:embed contract.abi
 	SharedMemoryRawABI string
@@ -102,21 +107,36 @@ func exportAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
-	// attempts to unpack [input] into the arguments to the ExportAVAXInput.
-	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
 	inputStruct, err := UnpackExportAVAXInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
+	chainCtx := accessibleState.GetSnowContext()
+	if err := verify.SameSubnet(context.TODO(), chainCtx, ids.ID(inputStruct.DestinationChainID)); err != nil {
+		return nil, remainingGas, err
+	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
+	balance := accessibleState.GetStateDB().GetBalance(ContractAddress)
+	accessibleState.GetStateDB().SubBalance(ContractAddress, balance)
+	convertedBalance := balance.Div(balance, big.NewInt(1000000000)) // TODO: make var
 
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	topics, data, err := SharedMemoryABI.PackEvent(
+		"ExportAVAX",
+		convertedBalance.Uint64(), // XXX validate this value
+		inputStruct.DestinationChainID,
+		inputStruct.Locktime,
+		inputStruct.Threshold,
+		inputStruct.Addrs,
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
+
+	// TODO: add atomic trie handling if we are going to keep it inside of the storage trie
+
+	// Return an empty output and the remaining gas
+	return []byte{}, remainingGas, nil
 }
 
 // UnpackExportUTXOInput attempts to unpack [input] as ExportUTXOInput
@@ -148,13 +168,30 @@ func exportUTXO(accessibleState contract.AccessibleState, caller common.Address,
 		return nil, remainingGas, err
 	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
+	chainCtx := accessibleState.GetSnowContext()
+	if err := verify.SameSubnet(context.TODO(), chainCtx, ids.ID(inputStruct.DestinationChainID)); err != nil {
+		return nil, remainingGas, err
+	}
+	assetID := CalculateANTAssetID(common.Hash(chainCtx.ChainID), caller)
 
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	topics, data, err := SharedMemoryABI.PackEvent(
+		"ExportUTXO",
+		inputStruct.Amount,
+		inputStruct.DestinationChainID,
+		assetID,
+		inputStruct.Locktime,
+		inputStruct.Threshold,
+		inputStruct.Addrs,
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
+
+	// TODO: add atomic trie handling if we are going to keep it inside of the storage trie
+
+	// Return an empty output and the remaining gas
+	return []byte{}, remainingGas, nil
 }
 
 // UnpackGetNativeTokenAssetIDInput attempts to unpack [input] into the common.Address type argument
@@ -187,21 +224,16 @@ func getNativeTokenAssetID(accessibleState contract.AccessibleState, caller comm
 	}
 	// attempts to unpack [input] into the arguments to the GetNativeTokenAssetIDInput.
 	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackGetNativeTokenAssetIDInput(input)
+	address, err := UnpackGetNativeTokenAssetIDInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-
-	var output [32]byte // CUSTOM CODE FOR AN OUTPUT
-	packedOutput, err := PackGetNativeTokenAssetIDOutput(output)
+	assetID := CalculateANTAssetID(common.Hash(accessibleState.GetSnowContext().ChainID), address)
+	packedOutput, err := PackGetNativeTokenAssetIDOutput(assetID)
 	if err != nil {
 		return nil, remainingGas, err
 	}
-
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
 }
@@ -235,13 +267,80 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 		return nil, remainingGas, err
 	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
+	if !exists {
+		return nil, remainingGas, fmt.Errorf("no predicate available to import, caller %s, input: 0x%x, suppliedGas: %d", caller, input, suppliedGas)
+	}
 
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	atomicPredicate := new(AtomicPredicate)
+	_, err = codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
+	// Note: this should never happen since this should be unmarshalled within the predicate verification
+	if err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to unmarshal shared memory predicate: %w", err)
+	}
+
+	if atomicPredicate.SourceChain != inputStruct.SourceChain {
+		return nil, remainingGas, fmt.Errorf("predicate source chain %s does not match specified source chain: %s", atomicPredicate.SourceChain, inputStruct.SourceChain)
+	}
+
+	var specifiedUTXO *avax.UTXO
+	for _, utxo := range atomicPredicate.ImportedUTXOs {
+		if utxo.ID == inputStruct.UtxoID {
+			specifiedUTXO = utxo
+			break
+		}
+	}
+	if specifiedUTXO == nil {
+		return nil, remainingGas, fmt.Errorf("failed to find UTXO %s in atomic predicate", inputStruct.UtxoID)
+	}
+	// TODO: check to see that the UTXO has not been marked as consumed within the statedb
+
+	if avaxAssetID := accessibleState.GetSnowContext().AVAXAssetID; specifiedUTXO.AssetID() != avaxAssetID {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specifies assetID %s, expected AVAXAssetID: %s", inputStruct.UtxoID, specifiedUTXO.AssetID(), avaxAssetID)
+	}
+
+	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
+	if !ok {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has wrong output type %T", specifiedUTXO.ID, specifiedUTXO.Out)
+	}
+
+	// Ensure that the locktime of the UTXO has passed
+	if blockTimestamp := accessibleState.GetBlockContext().Timestamp().Uint64(); transferOut.Locktime > blockTimestamp {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.ID, transferOut.Locktime, blockTimestamp)
+	}
+	// Confirm that the threshold is 1
+	if transferOut.Threshold != 1 {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.ID)
+	}
+	validSpender := false
+	for _, spender := range transferOut.Addrs {
+		if spender == ids.ShortID(caller) {
+			validSpender = true
+			break
+		}
+	}
+	if !validSpender {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s does not include msg.sender %s as a valid spender address", specifiedUTXO.ID, caller)
+	}
+
+	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
+	topics, data, err := SharedMemoryABI.PackEvent(
+		"ImportAVAX",
+		transferOut.Amt, // Use the denomination 10^9
+		inputStruct.SourceChain,
+		specifiedUTXO.ID,
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
+
+	// Convert the specified amount to denomination 10^18 and increment the balance
+	amount := big.NewInt(int64(transferOut.Amt))
+	convertedAmount := amount.Mul(amount, big.NewInt(1000000000))
+	accessibleState.GetStateDB().AddBalance(caller, convertedAmount)
+
+	return []byte{}, remainingGas, nil
 }
 
 // UnpackImportUTXOInput attempts to unpack [input] as ImportUTXOInput
@@ -251,11 +350,6 @@ func UnpackImportUTXOInput(input []byte) (ImportUTXOInput, error) {
 	err := SharedMemoryABI.UnpackInputIntoInterface(&inputStruct, "importUTXO", input)
 
 	return inputStruct, err
-}
-
-// PackImportUTXO packs [inputStruct] of type ImportUTXOInput into the appropriate arguments for importUTXO.
-func PackImportUTXO(inputStruct ImportUTXOInput) ([]byte, error) {
-	return SharedMemoryABI.Pack("importUTXO", inputStruct.SourceChain, inputStruct.UtxoID)
 }
 
 // PackImportUTXOOutput attempts to pack given [outputStruct] of type ImportUTXOOutput
@@ -283,11 +377,88 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	if err != nil {
 		return nil, remainingGas, err
 	}
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
+	if !exists {
+		return nil, remainingGas, fmt.Errorf("no predicate available to import, caller %s, input: 0x%x, suppliedGas: %d", caller, input, suppliedGas)
+	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct             // CUSTOM CODE OPERATES ON INPUT
-	var output ImportUTXOOutput // CUSTOM CODE FOR AN OUTPUT
-	packedOutput, err := PackImportUTXOOutput(output)
+	atomicPredicate := new(AtomicPredicate)
+	_, err = codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
+	// Note: this should never happen since this should be unmarshalled within the predicate verification
+	if err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to unmarshal shared memory predicate: %w", err)
+	}
+
+	if atomicPredicate.SourceChain != inputStruct.SourceChain {
+		return nil, remainingGas, fmt.Errorf("predicate source chain %s does not match specified source chain: %s", atomicPredicate.SourceChain, inputStruct.SourceChain)
+	}
+
+	// Verify the UTXO named in the tx is specified in the predicate.
+	// This ensures the UTXO is present in the shared memory if the VM
+	// is bootstrapped so we do not need to check the shared memory here.
+	// This allows for repeatible exeuction of the transaction, since either
+	// - The VM is bootstrapped and this node verifies the predicate itself,
+	//   which guarantees the UTXO is present in shared memory. Or,
+	// - The VM is bootstrapping and it relies on the network's consensus to
+	//   have properly verified the predicate at the time of execution.
+	var specifiedUTXO *avax.UTXO
+	for _, utxo := range atomicPredicate.ImportedUTXOs {
+		if utxo.ID == inputStruct.UtxoID {
+			specifiedUTXO = utxo
+			break
+		}
+	}
+	if specifiedUTXO == nil {
+		return nil, remainingGas, fmt.Errorf("failed to find UTXO %s in atomic predicate", inputStruct.UtxoID)
+	}
+	// TODO: check to see that the UTXO has not been marked as consumed within the statedb
+
+	if avaxAssetID := accessibleState.GetSnowContext().AVAXAssetID; specifiedUTXO.AssetID() == avaxAssetID {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specifies AVAXAssetID %s which must be called with importAVAX", inputStruct.UtxoID, avaxAssetID)
+	}
+
+	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
+	if !ok {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has wrong output type %T", specifiedUTXO.ID, specifiedUTXO.Out)
+	}
+
+	// Ensure that the locktime of the UTXO has passed
+	if blockTimestamp := accessibleState.GetBlockContext().Timestamp().Uint64(); transferOut.Locktime > blockTimestamp {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.ID, transferOut.Locktime, blockTimestamp)
+	}
+	// Confirm that the threshold is 1
+	if transferOut.Threshold != 1 {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.ID)
+	}
+
+	assetID := CalculateANTAssetID(common.Hash(accessibleState.GetSnowContext().ChainID), caller)
+	if assetID == common.Hash(specifiedUTXO.AssetID()) {
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified incorrect assetID %s for caller %s, with actual assetID: %s", specifiedUTXO.ID, specifiedUTXO.AssetID(), caller, assetID)
+	}
+
+	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
+	topics, data, err := SharedMemoryABI.PackEvent(
+		"ImportUTXO",
+		transferOut.Amt,
+		inputStruct.SourceChain,
+		specifiedUTXO.AssetID(),
+		specifiedUTXO.ID,
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
+
+	addrs := make([]common.Address, 0, len(transferOut.Addrs))
+	for _, addr := range transferOut.Addrs {
+		addrs = append(addrs, common.Address(addr))
+	}
+	packedOutput, err := PackImportUTXOOutput(ImportUTXOOutput{
+		Amount:    transferOut.Amt,
+		Locktime:  transferOut.Locktime,
+		Threshold: uint64(transferOut.Threshold),
+		Addrs:     addrs,
+	})
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -321,4 +492,116 @@ func createSharedMemoryPrecompile() contract.StatefulPrecompiledContract {
 		panic(err)
 	}
 	return statefulContract
+}
+
+type sharedMemoryPredicater struct {
+	contract.StatefulPrecompiledContract
+}
+
+// TODO: consider changing this to specify a single UTXO and allowing the predicate to unmarshal a slice
+// of pairs (SourceChainID, UTXO)
+type AtomicPredicate struct {
+	// Which chain to consume the funds from
+	SourceChain ids.ID `serialize:"true" json:"sourceChain"`
+	// UTXOs consumable in this transaction
+	ImportedUTXOs []*avax.UTXO `serialize:"true" json:"importedInputs"`
+}
+
+// VerifyPredicate verifies that the UTXOs specified by [predicateBytes] are present in shared memory, valid, and
+// have not been consumed yet.
+// VerifyPredicated is called before the transaction execution, so it is up to the precompile implementation to validate
+// that the caller has permission to consume the UTXO and how consuming the UTXO works.
+func (s *sharedMemoryPredicater) VerifyPredicate(predicateContext *contract.PredicateContext, predicateBytes []byte) error {
+	atomicPredicate := new(AtomicPredicate)
+	version, err := codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal shared memory predicate: %w", err)
+	}
+	if version != 0 {
+		return fmt.Errorf("invalid version for shared memory predicate: %d", version)
+	}
+
+	utxoIDs := make([][]byte, len(atomicPredicate.ImportedUTXOs))
+	for i, in := range atomicPredicate.ImportedUTXOs {
+		inputID := in.UTXOID.InputID()
+		utxoIDs[i] = inputID[:]
+	}
+	// allUTXOBytes is guaranteed to be the same length as utxoIDs
+	allUTXOBytes, err := predicateContext.SnowCtx.SharedMemory.Get(atomicPredicate.SourceChain, utxoIDs)
+	if err != nil {
+		return fmt.Errorf("failed to fetch import UTXOs from %s due to: %w", atomicPredicate.SourceChain, err)
+	}
+
+	// TODO: check that the UTXO has not been marked as consumed within the statedb
+	// XXX make sure this handles the async acceptor here
+
+	for i, specifiedUTXO := range atomicPredicate.ImportedUTXOs {
+		specifiedUTXOBytes, err := codec.Codec.Marshal(0, specifiedUTXO)
+		if err != nil {
+			return fmt.Errorf("failed to marshal specified UTXO: %s", specifiedUTXO.ID)
+		}
+		utxoBytes := allUTXOBytes[i]
+
+		if !bytes.Equal(specifiedUTXOBytes, utxoBytes) {
+			return fmt.Errorf("UTXO %s mismatching byte representation: 0x%x expected: 0x%x", specifiedUTXO.ID, specifiedUTXOBytes, utxoBytes)
+		}
+
+		// Validate that the specified UTXO is valid to be imported to the EVM
+		transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
+		if !ok {
+			return fmt.Errorf("UTXO %s invalid UTXO output type: %T", specifiedUTXO.ID, specifiedUTXO.Out)
+		}
+		// Do not allow a transfer amount of 0 - no VM should export an atomic UTXO with an amount of 0, so this
+		// should never happen, but just in case another VM implements this incorrectly, we add an extra check here
+		if transferOut.Amt == 0 {
+			return fmt.Errorf("UTXO %s cannot specify an amount of 0", specifiedUTXO.ID)
+		}
+		// When import is called within the EVM, there will only be one caller address, so we require a threshold of 1
+		// since a UTXO with a threshold of 2 will never be valid to import.
+		if transferOut.Threshold != 1 {
+			return fmt.Errorf("UTXO %s specified invalid threshold", specifiedUTXO.ID)
+		}
+	}
+
+	return nil
+}
+
+type sharedMemoryAccepter struct {
+	contract.StatefulPrecompiledContract
+}
+
+// Accept will be called for every log with the address of the precompile when the block is accepted.
+func (s *sharedMemoryAccepter) Accept(acceptCtx *contract.AcceptContext, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
+	chainID, requests, err := acceptedLogsToSharedMemoryOps(acceptCtx.SnowCtx, txHash, logIndex, topics, logData)
+	if err != nil {
+		return err
+	}
+	acceptCtx.SharedMemory.AddSharedMemoryRequests(chainID, requests)
+	return nil
+}
+
+// acceptedLogsToSharedMemoryOps processes the event's log data and topics, and returns a
+// chainID and the atomic requests that should be sent to the shared memory for that chain.
+func acceptedLogsToSharedMemoryOps(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error) {
+	if len(topics) == 0 {
+		return ids.ID{}, nil, errors.New("SharedMemory does not handle logs with 0 topics")
+	}
+	event, err := SharedMemoryABI.EventByID(topics[0]) // First topic is the event ID
+	if err != nil {
+		return ids.ID{}, nil, fmt.Errorf("shared memory accept: %w", err)
+	}
+
+	// TODO: separate this out better and implement remaining handlers
+	switch event.Name {
+	case "ExportUTXO":
+		return handleExportUTXO(snowCtx, txHash, logIndex, topics, logData)
+	case "ExportAVAX":
+		return handleExportAVAX(snowCtx, txHash, logIndex, topics, logData)
+	case "ImportUTXO":
+		return handleImportUTXO(snowCtx, txHash, logIndex, topics, logData)
+	case "ImportAVAX":
+		return handleImportAVAX(snowCtx, txHash, logIndex, topics, logData)
+	default:
+		return ids.ID{}, nil, fmt.Errorf("shared memory accept unexpected log: %q", event.Name)
+	}
 }

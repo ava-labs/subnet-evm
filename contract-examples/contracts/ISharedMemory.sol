@@ -73,7 +73,7 @@ interface ISharedMemory {
     // When the block is accepted, the VM will parse the generated log (if it was not reverted) and perform the import
     // operation on shared memory.
     // TODO: should we use assetID or the contract address that corresponds to the assetID
-    event ImportUTXO(uint64 amount, bytes32 indexed sourceChainID, bytes32 indexed assetID, uint64 locktime, uint64 threshold, address[] addrs);
+    event ImportUTXO(uint64 amount, bytes32 indexed sourceChainID, bytes32 indexed assetID, bytes32 utxoID);
 
     // importUTXO attempts to import the UTXO specified by UTXOID. If the UTXO is available, then it returns the UTXO details to the caller
     // for the caller to credit any balance changes as a result of importing the UTXO.
@@ -91,7 +91,7 @@ interface ISharedMemory {
     // ImportAVAX is emitted by importAVAX to indicate that the import operation has taken place.
     // When the block is accepted, the VM will parse the generated log (if it was not reverted) and perform the import
     // operation on shared memory.
-    event ImportAVAX(uint64 amount, bytes32 indexed sourceChainID, uint64 locktime, uint64 threshold, address[] addrs);
+    event ImportAVAX(uint64 amount, bytes32 indexed sourceChainID, bytes32 utxoID);
 
     // importAVAX attempts to import the AVAX UTXO specified by UTXOID.
     // importAVAX performs the following verification:

@@ -52,34 +52,40 @@ describe("SharedMemoryExport", function () {
     // call exportAVAX via EOA
     let value = ethers.utils.parseUnits("1", "ether")
     let exportAVAXTx = await precompile.exportAVAX(blockchainIDB, 0, 1, [fundedAddr], { value: value })
-    await exportAVAXTx.wait()
+    let receipt = await exportAVAXTx.wait()
+
+    // find the tx fee
+    let gasUsed: BigNumber = receipt.cumulativeGasUsed
+    let gasPrice: BigNumber = receipt.effectiveGasPrice
+    let txFee = gasUsed.mul(gasPrice)
     
     // verify balance update
     let updatedBalance = await ethers.provider.getBalance(fundedAddr)
     console.log("Starting balance: %d, Updated balance: %d", startingBalance, updatedBalance)
     expect(updatedBalance.lt(startingBalance)).to.be.true
-    let expectedBalance = startingBalance.sub(value)
+    let expectedBalance = startingBalance.sub(value).sub(txFee)
     console.log("expected balance %d", expectedBalance)
-    expect(expectedBalance.lt(updatedBalance)).to.be.true
+    expect(expectedBalance.eq(updatedBalance)).to.be.true
   });
 
   it("exportAVAX via contract", async function () {
-    let fundTx = 
-    let startingBalance: BigNumber = await ethers.provider.getBalance(fundedAddr)
-    console.log("Starting balance of %d", startingBalance)
+    // TODO: implement
+    // let fundTx = 
+    // let startingBalance: BigNumber = await ethers.provider.getBalance(fundedAddr)
+    // console.log("Starting balance of %d", startingBalance)
     
-    // call exportAVAX via EOA
-    let value = ethers.utils.parseUnits("1", "ether")
-    let exportAVAXTx = await precompile.exportAVAX(blockchainIDB, 0, 1, [fundedAddr], { value: value })
-    await exportAVAXTx.wait()
+    // // call exportAVAX via EOA
+    // let value = ethers.utils.parseUnits("1", "ether")
+    // let exportAVAXTx = await precompile.exportAVAX(blockchainIDB, 0, 1, [fundedAddr], { value: value })
+    // await exportAVAXTx.wait()
     
-    // verify balance update
-    let updatedBalance = await ethers.provider.getBalance(fundedAddr)
-    console.log("Starting balance: %d, Updated balance: %d", startingBalance, updatedBalance)
-    expect(updatedBalance.lt(startingBalance)).to.be.true
-    let expectedBalance = startingBalance.sub(value)
-    console.log("expected balance %d", expectedBalance)
-    expect(expectedBalance.lt(updatedBalance)).to.be.true
+    // // verify balance update
+    // let updatedBalance = await ethers.provider.getBalance(fundedAddr)
+    // console.log("Starting balance: %d, Updated balance: %d", startingBalance, updatedBalance)
+    // expect(updatedBalance.lt(startingBalance)).to.be.true
+    // let expectedBalance = startingBalance.sub(value)
+    // console.log("expected balance %d", expectedBalance)
+    // expect(expectedBalance.lt(updatedBalance)).to.be.true
   });
 
   // TODO: export non-AVAX asset from EOA and contract

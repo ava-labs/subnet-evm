@@ -58,6 +58,6 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompilec
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
-	// CUSTOM CODE STARTS HERE
+	// TODO: the configure function could be used to set up the atomic trie.
 	return nil
 }
