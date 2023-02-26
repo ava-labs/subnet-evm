@@ -8,8 +8,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/chains/atomic"
-	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	engCommon "github.com/ava-labs/avalanchego/snow/engine/common"
@@ -34,12 +32,9 @@ func TestSharedMemory(t *testing.T) {
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
 
-	ctx, dbManager, genesisBytes, issuer := setupGenesis(t, string(genesisJSON))
+	ctx, dbManager, genesisBytes, issuer, atomicMemory := setupGenesis(t, string(genesisJSON))
 
-	// make a new atomic memory and add create the shared memory objects
-	// for this chain and the x-chain with the corresponding chainIDs.
-	atomicMemory := atomic.NewMemory(prefixdb.New([]byte{0}, dbManager.Current().Database))
-	ctx.SharedMemory = atomicMemory.NewSharedMemory(ctx.ChainID)
+	// Find the X Chain's shared memory
 	xChainSharedMemory := atomicMemory.NewSharedMemory(testXChainID)
 
 	// initialize and configure the VM

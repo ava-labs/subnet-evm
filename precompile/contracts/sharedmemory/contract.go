@@ -491,7 +491,7 @@ func createSharedMemoryPrecompile() contract.StatefulPrecompiledContract {
 	if err != nil {
 		panic(err)
 	}
-	return statefulContract
+	return &sharedMemoryAccepter{&sharedMemoryPredicater{statefulContract}}
 }
 
 type sharedMemoryPredicater struct {
