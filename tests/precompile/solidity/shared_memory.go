@@ -49,6 +49,6 @@ var _ = ginkgo.Describe("[Shared Memory]", ginkgo.Ordered, func() {
 		// TODO: Verify eth_logs for shared memory are correct
 
 		// Confirm via API that the UTXOs were created on blockchainB
-		utils.RunHardhatTests("shared_memory_import", chainURI) // TODO: implement this test file
+		// utils.RunHardhatTests("shared_memory_import", chainURI) // TODO: implement this test file
 	})
 })
