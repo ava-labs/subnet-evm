@@ -52,3 +52,4 @@ dist/
 
 # generator rpc file for e2e tests
 contract-examples/dynamic_rpc.json
+node_modules
