@@ -559,6 +559,12 @@ type Rules struct {
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
 	ActivePrecompiles map[common.Address]precompileconfig.Config
+	// PrecompilePredicates maps addresses to stateful precompile predicate functions
+	// that are enabled for this rule set.
+	PredicatePrecompiles map[common.Address]precompileconfig.Predicater
+	// AccepterPrecompiles map addresses to stateful precompile accepter functions
+	// that are enabled for this rule set.
+	AccepterPrecompiles map[common.Address]precompileconfig.Accepter
 }
 
 // IsPrecompileEnabled returns true if the precompile at [addr] is enabled for this rule set.
@@ -595,9 +601,17 @@ func (c *ChainConfig) AvalancheRules(blockNum, blockTimestamp *big.Int) Rules {
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
+	rules.PredicatePrecompiles = make(map[common.Address]precompileconfig.Predicater)
+	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
 	for _, module := range modules.RegisteredModules() {
 		if config := c.GetActivePrecompileConfig(module.Address, blockTimestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config
+			if precompilePredicate, ok := config.(precompileconfig.Predicater); ok {
+				rules.PredicatePrecompiles[module.Address] = precompilePredicate
+			}
+			if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
+				rules.AccepterPrecompiles[module.Address] = precompileAccepter
+			}
 		}
 	}
 

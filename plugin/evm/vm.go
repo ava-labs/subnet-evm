@@ -45,7 +45,7 @@ import (
 	// inside of cmd/geth.
 	_ "github.com/ava-labs/subnet-evm/eth/tracers/native"
 
-	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	// Force-load precompiles to trigger registration
 	_ "github.com/ava-labs/subnet-evm/precompile/registry"
 
@@ -651,12 +651,12 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	} else {
 		log.Debug("Building block without context")
 	}
-	predicateCtx := contract.PredicateContext{
+	predicateCtx := &precompileconfig.PredicateContext{
 		SnowCtx:            vm.ctx,
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}
 
-	block, err := vm.miner.GenerateBlock(&predicateCtx)
+	block, err := vm.miner.GenerateBlock(predicateCtx)
 	vm.builder.handleGenerateBlock()
 	if err != nil {
 		return nil, err
@@ -677,7 +677,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	// We call verify without writes here to avoid generating a reference
 	// to the blk state root in the triedb when we are going to call verify
 	// again from the consensus engine with writes enabled.
-	if err := blk.verify(proposerVMBlockCtx, false /*=writes*/); err != nil {
+	if err := blk.verify(predicateCtx, false /*=writes*/); err != nil {
 		return nil, fmt.Errorf("block failed verification due to: %w", err)
 	}
 
