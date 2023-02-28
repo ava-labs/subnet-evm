@@ -17,9 +17,6 @@ type StateDB interface {
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
-
-	Snapshot() int
-	RevertToSnapshot(int)
 }
 
 // BlockContext defines an interface that provides information about the
@@ -27,9 +24,4 @@ type StateDB interface {
 type BlockContext interface {
 	Number() *big.Int
 	Timestamp() *big.Int
-}
-
-// AccessibleState defines the interface exposed to state upgrades
-type AccessibleState interface {
-	CreateAt(contractAddr common.Address, callerAddr common.Address, code []byte, gas uint64, value *big.Int) ([]byte, common.Address, uint64, error)
 }

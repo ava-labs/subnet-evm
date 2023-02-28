@@ -14,7 +14,6 @@ func Configure(
 	stateUpgrade *params.StateUpgrade,
 	blockContext BlockContext,
 	state StateDB,
-	accessibleState AccessibleState,
 ) error {
 	log.Info("Configuring state upgrade", "block", blockContext.Number(), "timestamp", blockContext.Timestamp())
 	if err := addToBalance(stateUpgrade, state); err != nil {
@@ -24,9 +23,6 @@ func Configure(
 		return err
 	}
 	if err := setCode(stateUpgrade, state); err != nil {
-		return err
-	}
-	if err := deployContractTo(stateUpgrade, state, accessibleState); err != nil {
 		return err
 	}
 	return nil
@@ -61,20 +57,6 @@ func setStorage(stateUpgrade *params.StateUpgrade, state StateDB) error {
 func setCode(stateUpgrade *params.StateUpgrade, state StateDB) error {
 	for account, code := range stateUpgrade.SetCode {
 		state.SetCode(account, code)
-	}
-	return nil
-}
-
-// deployContractTo deploys contracts according to the [DeployContractTo] list in [stateUpgrade].
-func deployContractTo(stateUpgrade *params.StateUpgrade, statedb StateDB, evm AccessibleState) error {
-	for _, contract := range stateUpgrade.DeployContractTo {
-		snapshot := statedb.Snapshot()
-		output, _, remainingGas, err := evm.CreateAt(contract.DeployTo, contract.Caller, contract.Input, contract.Gas, contract.Value)
-		log.Info("Deploying contract to address as state upgrade", "address", contract.DeployTo, "output", output, "remainingGas", remainingGas, "err", err)
-		if err != nil {
-			// if the creation fails, revert the state to the snapshot
-			statedb.RevertToSnapshot(snapshot)
-		}
 	}
 	return nil
 }

@@ -71,26 +71,25 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(block *types.Block, parent *types.Header, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 	var (
-		receipts    types.Receipts
-		usedGas     = new(uint64)
-		header      = block.Header()
-		blockHash   = block.Hash()
-		blockNumber = block.Number()
-		allLogs     []*types.Log
-		gp          = new(GasPool).AddGas(block.GasLimit())
-		timestamp   = new(big.Int).SetUint64(header.Time)
+		receipts        types.Receipts
+		usedGas         = new(uint64)
+		header          = block.Header()
+		blockHash       = block.Hash()
+		blockNumber     = block.Number()
+		allLogs         []*types.Log
+		gp              = new(GasPool).AddGas(block.GasLimit())
+		timestamp       = new(big.Int).SetUint64(header.Time)
+		parentTimestamp = new(big.Int).SetUint64(parent.Time)
 	)
 
 	// Configure any stateful precompiles that should go into effect during this block.
-	err := ApplyPrecompileActivations(p.config, new(big.Int).SetUint64(parent.Time), block, statedb)
-	if err != nil {
-		log.Error("failed to configure precompiles processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
+	if err := ApplyPrecompileActivations(p.config, parentTimestamp, block, statedb); err != nil {
+		log.Error("failed to configure precompiles processing block", "hash", blockHash, "number", blockNumber, "timestamp", block.Time(), "err", err)
 		return nil, nil, 0, err
 	}
 	// Configure any state upgrades that should go into effect during this block.
-	err = ApplyStateUpgrades(p.config, new(big.Int).SetUint64(parent.Time), p.bc, header, statedb, cfg)
-	if err != nil {
-		log.Error("failed to configure state upgrades processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
+	if err := ApplyStateUpgrades(p.config, parentTimestamp, block, statedb); err != nil {
+		log.Error("failed to configure state upgrades processing block", "hash", blockHash, "number", blockNumber, "timestamp", block.Time(), "err", err)
 		return nil, nil, 0, err
 	}
 
@@ -232,12 +231,10 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 // This function is called:
 // - during block processing to update the state before processing the given block.
 // - during block producing to apply the precompile upgrades before producing the block.
-func ApplyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, bc ChainContext, header *types.Header, statedb *state.StateDB, cfg vm.Config) error {
-	blockContext := NewEVMBlockContext(header, bc, nil)
+func ApplyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext stateupgrade.BlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades
 	for _, upgrade := range c.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), c.StateUpgrades) {
-		vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, c, cfg)
-		if err := stateupgrade.Configure(&upgrade, &blockContext, statedb, vmenv); err != nil {
+		if err := stateupgrade.Configure(&upgrade, blockContext, statedb); err != nil {
 			return fmt.Errorf("could not configure state upgrade, reason: %w", err)
 		}
 	}
