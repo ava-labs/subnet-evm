@@ -182,7 +182,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 // to apply the necessary state transitions for the upgrade.
 // This function is called:
 // - within genesis setup to configure the starting state for precompiles enabled at genesis,
-// - during block processing to update the state before processing the given block.
+// - during block processing to update the state before processing the given block,
 // - during block producing to apply the precompile upgrades before producing the block.
 func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
@@ -229,7 +229,8 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 // transition from [parentTimestamp] to the timestamp set in [header]. If this is the case, it calls [Configure]
 // to apply the necessary state transitions for the upgrade.
 // This function is called:
-// - during block processing to update the state before processing the given block.
+// - within genesis setup to apply state upgrades if they are specified at genesis,
+// - during block processing to update the state before processing the given block,
 // - during block producing to apply the state upgrades before producing the block.
 func ApplyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext stateupgrade.BlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades

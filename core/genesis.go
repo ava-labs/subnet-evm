@@ -306,12 +306,6 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Coinbase:   g.Coinbase,
 	}
 
-	// Configure any stateful precompiles that should be enabled in the genesis.
-	err = ApplyPrecompileActivations(g.Config, nil, types.NewBlockWithHeader(head), statedb)
-	if err != nil {
-		panic(fmt.Sprintf("unable to configure precompiles in genesis block: %v", err))
-	}
-
 	// Do custom allocation after airdrop in case an address shows up in standard
 	// allocation
 	for addr, account := range g.Alloc {
@@ -322,6 +316,19 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key, value)
 		}
 	}
+
+	// Configure any stateful precompiles that should activate in the genesis.
+	blockContext := types.NewBlockWithHeader(head)
+	err = ApplyPrecompileActivations(g.Config, nil, blockContext, statedb)
+	if err != nil {
+		panic(fmt.Sprintf("unable to configure precompiles in genesis block: %v", err))
+	}
+	// Configure any state upgrades that should activate in the genesis.
+	err = ApplyStateUpgrades(g.Config, nil, blockContext, statedb)
+	if err != nil {
+		panic(fmt.Sprintf("unable to configure state upgrades in genesis block: %v", err))
+	}
+
 	root := statedb.IntermediateRoot(false)
 	head.Root = root
 

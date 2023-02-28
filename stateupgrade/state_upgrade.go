@@ -12,7 +12,7 @@ import (
 // Configure applies the state upgrade to the state.
 func Configure(stateUpgrade *params.StateUpgrade, blockContext BlockContext, state StateDB) error {
 	log.Info("Configuring state upgrade", "block", blockContext.Number(), "timestamp", blockContext.Timestamp())
-	for account, upgrade := range stateUpgrade.ModifiedAccounts {
+	for account, upgrade := range stateUpgrade.Accounts {
 		if err := upgradeAccount(account, upgrade, state); err != nil {
 			return err
 		}

@@ -13,10 +13,10 @@ import (
 // StateUpgrade describes the modifications to be made to the state during
 // a state upgrade.
 type StateUpgrade struct {
-	blockTimestamp *big.Int
+	BlockTimestamp *big.Int `json:"blockTimestamp,omitempty"`
 
 	// map from account address to the modification to be made to the account.
-	ModifiedAccounts map[common.Address]StateUpgradeAccount `json:"modifiedAccounts"`
+	Accounts map[common.Address]StateUpgradeAccount `json:"accounts"`
 }
 
 // StateUpgradeAccount describes the modifications to be made to an account during

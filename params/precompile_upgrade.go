@@ -153,7 +153,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 func (c *ChainConfig) verifyStateUpgrades() error {
 	var previousUpgradeTimestamp *big.Int
 	for i, upgrade := range c.StateUpgrades {
-		upgradeTimestamp := upgrade.blockTimestamp
+		upgradeTimestamp := upgrade.BlockTimestamp
 		// Verify specified timestamps are strictly monotonically increasing.
 		if previousUpgradeTimestamp != nil && upgradeTimestamp.Cmp(previousUpgradeTimestamp) <= 0 {
 			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) <= previous timestamp (%v)", i, upgradeTimestamp, previousUpgradeTimestamp)
@@ -207,7 +207,7 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 func (c *ChainConfig) GetActivatingStateUpgrades(from *big.Int, to *big.Int, upgrades []StateUpgrade) []StateUpgrade {
 	activating := make([]StateUpgrade, 0)
 	for _, upgrade := range upgrades {
-		if utils.IsForkTransition(upgrade.blockTimestamp, from, to) {
+		if utils.IsForkTransition(upgrade.BlockTimestamp, from, to) {
 			activating = append(activating, upgrade)
 		}
 	}
@@ -284,7 +284,7 @@ func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade,
 			// missing upgrade
 			return newCompatError(
 				fmt.Sprintf("missing StateUpgrade[%d]", i),
-				upgrade.blockTimestamp,
+				upgrade.BlockTimestamp,
 				nil,
 			)
 		}
@@ -292,8 +292,8 @@ func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade,
 		if !upgrade.Equal(&newUpgrades[i]) {
 			return newCompatError(
 				fmt.Sprintf("StateUpgrade[%d]", i),
-				upgrade.blockTimestamp,
-				newUpgrades[i].blockTimestamp,
+				upgrade.BlockTimestamp,
+				newUpgrades[i].BlockTimestamp,
 			)
 		}
 	}
@@ -303,7 +303,7 @@ func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade,
 		return newCompatError(
 			fmt.Sprintf("cannot retroactively enable StateUpgrade[%d]", len(activeUpgrades)),
 			nil,
-			newUpgrades[len(activeUpgrades)].blockTimestamp, // this indexes to the first element in newUpgrades after the end of activeUpgrades
+			newUpgrades[len(activeUpgrades)].BlockTimestamp, // this indexes to the first element in newUpgrades after the end of activeUpgrades
 		)
 	}
 
