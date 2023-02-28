@@ -298,7 +298,6 @@ func TestVMStateUpgrade(t *testing.T) {
 	}
 
 	// This modification will be applied to a new account
-	upgradeTimestamp := time.Unix(10, 0)
 	newAccount := common.Address{42}
 	code := []byte{0x01, 0x02, 0x03}
 	newAccountUpgrade := &params.StateUpgradeAccount{
@@ -307,6 +306,7 @@ func TestVMStateUpgrade(t *testing.T) {
 		Code:          code,
 	}
 
+	upgradeTimestamp := time.Unix(10, 0) // arbitrary timestamp to perform the network upgrade
 	upgradeBytesJSON := fmt.Sprintf(
 		`{
 			"stateUpgrades": [
