@@ -285,9 +285,9 @@ func TestVMStateUpgrade(t *testing.T) {
 	genesis := &core.Genesis{}
 	err := json.Unmarshal([]byte(genesisJSONSubnetEVM), genesis)
 	require.NoError(t, err)
-	storageKey := common.HexToHash("0x1234")
 	genesisAccount, ok := genesis.Alloc[testEthAddrs[0]]
 	require.True(t, ok)
+	storageKey := common.HexToHash("0x1234")
 	genesisAccount.Storage = map[common.Hash]common.Hash{storageKey: common.HexToHash("0x5555")}
 	genesisStr := mustMarshal(t, genesis)
 
@@ -325,11 +325,15 @@ func TestVMStateUpgrade(t *testing.T) {
 		newAccount.Hex(),
 		mustMarshal(t, newAccountUpgrade),
 	)
-	fmt.Println(upgradeBytesJSON)
 
 	// initialize the VM with these upgrade bytes
 	issuer, vm, _, _ := GenesisVM(t, true, genesisStr, "", upgradeBytesJSON)
 	defer func() { require.NoError(t, vm.Shutdown(context.Background())) }()
+
+	// Verify the new account doesn't exist yet
+	genesisState, err := vm.blockChain.State()
+	require.NoError(t, err)
+	require.Equal(t, common.Big0, genesisState.GetBalance(newAccount))
 
 	// Advance the chain to the upgrade time
 	vm.clock.Set(upgradeTimestamp)
