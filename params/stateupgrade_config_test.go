@@ -4,6 +4,7 @@
 package params
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -25,15 +26,15 @@ func TestVerifyStateUpgrades(t *testing.T) {
 		{
 			name: "valid upgrade",
 			upgrades: []StateUpgrade{
-				{BlockTimestamp: common.Big1, Accounts: modifiedAccounts},
-				{BlockTimestamp: common.Big2, Accounts: modifiedAccounts},
+				{BlockTimestamp: common.Big1, StateUpgradeAccounts: modifiedAccounts},
+				{BlockTimestamp: common.Big2, StateUpgradeAccounts: modifiedAccounts},
 			},
 		},
 		{
 			name: "upgrade block timestamp is not strictly increasing",
 			upgrades: []StateUpgrade{
-				{BlockTimestamp: common.Big1, Accounts: modifiedAccounts},
-				{BlockTimestamp: common.Big1, Accounts: modifiedAccounts},
+				{BlockTimestamp: common.Big1, StateUpgradeAccounts: modifiedAccounts},
+				{BlockTimestamp: common.Big1, StateUpgradeAccounts: modifiedAccounts},
 			},
 			expectedError: "config block timestamp (1) <= previous timestamp (1)",
 		},
@@ -57,10 +58,10 @@ func TestVerifyStateUpgrades(t *testing.T) {
 
 func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
 	chainConfig := *TestChainConfig
-	stateUpgrade := map[common.Address]StateUpgradeAccount{
+	stateUpgrade := StateUpgradeAccounts{
 		{1}: {BalanceChange: common.Big1},
 	}
-	differentStateUpgrade := map[common.Address]StateUpgradeAccount{
+	differentStateUpgrade := StateUpgradeAccounts{
 		{2}: {BalanceChange: common.Big1},
 	}
 
@@ -70,12 +71,12 @@ func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
 			configs: []*UpgradeConfig{
 				{
 					StateUpgrades: []StateUpgrade{
-						{BlockTimestamp: big.NewInt(6), Accounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(6), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 				{
 					StateUpgrades: []StateUpgrade{
-						{BlockTimestamp: big.NewInt(6), Accounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(6), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 			},
@@ -86,14 +87,14 @@ func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
 			configs: []*UpgradeConfig{
 				{
 					StateUpgrades: []StateUpgrade{
-						{BlockTimestamp: big.NewInt(6), Accounts: stateUpgrade},
-						{BlockTimestamp: big.NewInt(7), Accounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(6), StateUpgradeAccounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(7), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 				{
 					StateUpgrades: []StateUpgrade{
-						{BlockTimestamp: big.NewInt(6), Accounts: stateUpgrade},
-						{BlockTimestamp: big.NewInt(7), Accounts: differentStateUpgrade},
+						{BlockTimestamp: big.NewInt(6), StateUpgradeAccounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(7), StateUpgradeAccounts: differentStateUpgrade},
 					},
 				},
 			},
@@ -103,13 +104,13 @@ func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
 			configs: []*UpgradeConfig{
 				{
 					StateUpgrades: []StateUpgrade{
-						{BlockTimestamp: big.NewInt(6), Accounts: stateUpgrade},
-						{BlockTimestamp: big.NewInt(7), Accounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(6), StateUpgradeAccounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(7), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 				{
 					StateUpgrades: []StateUpgrade{
-						{BlockTimestamp: big.NewInt(6), Accounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(6), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 			},
@@ -120,7 +121,7 @@ func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
 			configs: []*UpgradeConfig{
 				{
 					StateUpgrades: []StateUpgrade{
-						{BlockTimestamp: big.NewInt(5), Accounts: stateUpgrade},
+						{BlockTimestamp: big.NewInt(5), StateUpgradeAccounts: stateUpgrade},
 					},
 				},
 			},
@@ -132,4 +133,25 @@ func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
 			tt.run(t, chainConfig)
 		})
 	}
+}
+
+func TestUnmarshalJSON(t *testing.T) {
+	jsonBytes := []byte(
+		`{
+			"stateUpgrades": [
+				{
+					"blockTimestamp": 1677608400,
+					"accounts": {
+						"8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
+							"balanceChange": "0x52B7D2DCC80CD2E4000000"
+						}
+					}
+				}
+			]
+		}`,
+	)
+
+	var config UpgradeConfig
+	err := json.Unmarshal(jsonBytes, &config)
+	require.NoError(t, err)
 }
