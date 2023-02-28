@@ -53,7 +53,6 @@ func TestVerifyStateUpgrades(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
