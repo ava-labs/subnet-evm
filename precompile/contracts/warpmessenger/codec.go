@@ -1,14 +1,13 @@
 // (c) 2022-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package precompile
+package warp
 
 import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/codec/linearcodec"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	warp "github.com/ava-labs/subnet-evm/precompile/contracts/warpmessenger"
 )
 
 const (
@@ -27,7 +26,7 @@ func init() {
 	errs := wrappers.Errs{}
 	errs.Add(
 		// Warp messenger types
-		c.RegisterType(warp.WarpMessage{}),
+		c.RegisterType(WarpMessage{}),
 
 		Codec.RegisterCodec(Version, c),
 	)

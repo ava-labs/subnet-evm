@@ -253,7 +253,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, err
 	}
 	var warpMessage WarpMessage
-	_, err = precompile.Codec.Unmarshal(message.Payload, &warpMessage)
+	_, err = Codec.Unmarshal(message.Payload, &warpMessage)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -310,7 +310,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	}
 
 	// Marshal
-	data, err := precompile.Codec.Marshal(precompile.Version, message)
+	data, err := Codec.Marshal(Version, message)
 	if err != nil {
 		return nil, remainingGas, err
 	}
