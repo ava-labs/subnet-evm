@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/stateupgrade"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -84,6 +85,12 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 	err := ApplyPrecompileActivations(p.config, new(big.Int).SetUint64(parent.Time), block, statedb)
 	if err != nil {
 		log.Error("failed to configure precompiles processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
+		return nil, nil, 0, err
+	}
+	// Configure any state upgrades that should go into effect during this block.
+	err = ApplyStateUpgrades(p.config, new(big.Int).SetUint64(parent.Time), p.bc, header, statedb, cfg)
+	if err != nil {
+		log.Error("failed to configure state upgrades processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
 		return nil, nil, 0, err
 	}
 
@@ -214,6 +221,24 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", key, err)
 				}
 			}
+		}
+	}
+	return nil
+}
+
+// ApplyStateUpgrades checks if any of the state upgrades specified by the chain config are activated by the block
+// transition from [parentTimestamp] to the timestamp set in [header]. If this is the case, it calls [Configure]
+// to apply the necessary state transitions for the upgrade.
+// This function is called:
+// - during block processing to update the state before processing the given block.
+// - during block producing to apply the precompile upgrades before producing the block.
+func ApplyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, bc ChainContext, header *types.Header, statedb *state.StateDB, cfg vm.Config) error {
+	blockContext := NewEVMBlockContext(header, bc, nil)
+	// Apply state upgrades
+	for _, upgrade := range c.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), c.StateUpgrades) {
+		vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, c, cfg)
+		if err := stateupgrade.Configure(&upgrade, &blockContext, statedb, vmenv); err != nil {
+			return fmt.Errorf("could not configure state upgrade, reason: %w", err)
 		}
 	}
 	return nil

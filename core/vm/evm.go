@@ -604,5 +604,13 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 	return evm.create(caller, codeAndHash, gas, endowment, contractAddr, CREATE2)
 }
 
+// CreateAt creates a new contract using code as deployment code,
+// and deploys it to the specified address. For use by the state upgrade.
+func (evm *EVM) CreateAt(contractAddr common.Address, callerAddr common.Address, code []byte, gas uint64, value *big.Int) ([]byte, common.Address, uint64, error) {
+	codeAndHash := &codeAndHash{code: code}
+	caller := AccountRef(callerAddr)
+	return evm.create(caller, codeAndHash, gas, value, contractAddr, CREATE)
+}
+
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
