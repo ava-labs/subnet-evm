@@ -8,35 +8,23 @@ import (
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 )
 
+// StateUpgrade describes the modifications to be made to the state during
+// a state upgrade.
 type StateUpgrade struct {
 	blockTimestamp *big.Int
 
-	// Adds the specified amount to the balance of the specified address
-	AddToBalance map[common.Address]*math.HexOrDecimal256 `json:"addToBalance,omitempty"`
-
-	// Sets the specified storage slots of the specified addresses
-	// to the given values. Note that the value of common.Hash{} will
-	// remove the storage key
-	SetStorage map[common.Address]map[common.Hash]common.Hash `json:"setStorage,omitempty"`
-
-	// Sets the code of the specified contract to the given value
-	SetCode map[common.Address][]byte `json:"setCode,omitempty"`
-
-	// Deploys contracts with the specified creation bytecode to the
-	// specified addresses, instead of the normal rules for deriving
-	// the address of a created contract.
-	DeployContractTo []ContractDeploy `json:"deployContractTo,omitempty"`
+	// map from account address to the modification to be made to the account.
+	ModifiedAccounts map[common.Address]StateUpgradeAccount `json:"modifiedAccounts"`
 }
 
-type ContractDeploy struct {
-	DeployTo common.Address `json:"deployTo,omitempty"` // The address to deploy the contract to
-	Caller   common.Address `json:"caller,omitempty"`   // The address of the caller
-	Input    []byte         `json:"input,omitempty"`    // The input bytecode to create the contract
-	Gas      uint64         `json:"gas,omitempty"`      // The gas to use when creating the contract
-	Value    *big.Int       `json:"value,omitempty"`    // The value to send when creating the contract
+// StateUpgradeAccount describes the modifications to be made to an account during
+// a state upgrade.
+type StateUpgradeAccount struct {
+	Code          []byte                      `json:"code,omitempty"`
+	Storage       map[common.Hash]common.Hash `json:"storage,omitempty"`
+	BalanceChange *big.Int                    `json:"balanceChange,omitempty"`
 }
 
 func (s *StateUpgrade) Equal(other *StateUpgrade) bool {

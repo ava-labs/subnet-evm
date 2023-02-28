@@ -230,7 +230,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 // to apply the necessary state transitions for the upgrade.
 // This function is called:
 // - during block processing to update the state before processing the given block.
-// - during block producing to apply the precompile upgrades before producing the block.
+// - during block producing to apply the state upgrades before producing the block.
 func ApplyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext stateupgrade.BlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades
 	for _, upgrade := range c.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), c.StateUpgrades) {

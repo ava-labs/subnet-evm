@@ -15,6 +15,9 @@ type StateDB interface {
 	SetCode(common.Address, []byte)
 	AddBalance(common.Address, *big.Int)
 
+	GetNonce(common.Address) uint64
+	SetNonce(common.Address, uint64)
+
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
 }
