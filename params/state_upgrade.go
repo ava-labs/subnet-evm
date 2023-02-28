@@ -42,7 +42,27 @@ func (s *StateUpgrade) Equal(other *StateUpgrade) bool {
 type stateUpgradeAccountMarshaling struct {
 	Code          hexutil.Bytes
 	Storage       map[storageJSON]storageJSON
-	BalanceChange *math.HexOrDecimal256
+	BalanceChange *SignedHexOrDecimal256
+}
+
+type SignedHexOrDecimal256 math.HexOrDecimal256
+
+func (s *SignedHexOrDecimal256) UnmarshalText(input []byte) error {
+	if len(input) > 0 && input[0] == '-' {
+		err := (*math.HexOrDecimal256)(s).UnmarshalText(input[1:])
+		if err != nil {
+			return err
+		}
+		neg := new(big.Int).Neg((*big.Int)(s))
+		*s = *(*SignedHexOrDecimal256)(neg)
+		return nil
+	}
+
+	return (*math.HexOrDecimal256)(s).UnmarshalText(input)
+}
+
+func (s *SignedHexOrDecimal256) MarshalText() ([]byte, error) {
+	return (*math.HexOrDecimal256)(s).MarshalText()
 }
 
 // storageJSON represents a 256 bit byte array, but allows less than 256 bits when

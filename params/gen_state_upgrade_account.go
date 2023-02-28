@@ -8,7 +8,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
 )
 
 var _ = (*stateUpgradeAccountMarshaling)(nil)
@@ -18,7 +17,7 @@ func (s StateUpgradeAccount) MarshalJSON() ([]byte, error) {
 	type StateUpgradeAccount struct {
 		Code          hexutil.Bytes               `json:"code,omitempty"`
 		Storage       map[storageJSON]storageJSON `json:"storage,omitempty"`
-		BalanceChange *math.HexOrDecimal256       `json:"balanceChange,omitempty"`
+		BalanceChange *SignedHexOrDecimal256      `json:"balanceChange,omitempty"`
 	}
 	var enc StateUpgradeAccount
 	enc.Code = s.Code
@@ -28,7 +27,7 @@ func (s StateUpgradeAccount) MarshalJSON() ([]byte, error) {
 			enc.Storage[storageJSON(k)] = storageJSON(v)
 		}
 	}
-	enc.BalanceChange = (*math.HexOrDecimal256)(s.BalanceChange)
+	enc.BalanceChange = (*SignedHexOrDecimal256)(s.BalanceChange)
 	return json.Marshal(&enc)
 }
 
@@ -37,7 +36,7 @@ func (s *StateUpgradeAccount) UnmarshalJSON(input []byte) error {
 	type StateUpgradeAccount struct {
 		Code          *hexutil.Bytes              `json:"code,omitempty"`
 		Storage       map[storageJSON]storageJSON `json:"storage,omitempty"`
-		BalanceChange *math.HexOrDecimal256       `json:"balanceChange,omitempty"`
+		BalanceChange *SignedHexOrDecimal256      `json:"balanceChange,omitempty"`
 	}
 	var dec StateUpgradeAccount
 	if err := json.Unmarshal(input, &dec); err != nil {
