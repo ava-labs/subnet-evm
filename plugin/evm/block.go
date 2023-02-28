@@ -102,7 +102,7 @@ func (b *Block) handlePrecompileAccept() error {
 				continue
 			}
 
-			if err := accepter.Accept(log.TxHash, txIndex, log.Topics, log.Data); err != nil {
+			if err := accepter.Accept(b.vm.precompileBackend, log.TxHash, txIndex, log.Topics, log.Data); err != nil {
 				return err
 			}
 		}

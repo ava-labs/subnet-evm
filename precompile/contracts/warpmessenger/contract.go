@@ -5,12 +5,15 @@
 package warp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -21,13 +24,12 @@ import (
 )
 
 const (
-	// Gas costs for each function. These are set to 0 by default.
-	// You should set a gas cost for each function in your contract.
-	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
-	// There are some predefined gas costs in contract/utils.go that you can use.
-	GetBlockchainIDGasCost        uint64 = 0 // SET A GAS COST HERE
-	GetVerifiedWarpMessageGasCost uint64 = 0 // SET A GAS COST HERE
-	SendWarpMessageGasCost        uint64 = 0 // SET A GAS COST HERE
+	GetBlockchainIDGasCost        uint64 = 5_000
+	GetVerifiedWarpMessageGasCost uint64 = 100_000
+	SendWarpMessageGasCost        uint64 = 100_000
+
+	DefaultQuorumNumerator   = 67
+	DefaultQuorumDenominator = 100
 )
 
 // CUSTOM CODE STARTS HERE
@@ -87,7 +89,11 @@ type SendWarpMessageInput struct {
 	Payload            []byte
 }
 
-func VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
+type warpContract struct {
+	contract.StatefulPrecompiledContract
+}
+
+func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
 	// The proposer VM block context is required to verify aggregate signatures.
 	if predicateContext.ProposerVMBlockCtx == nil {
 		return ErrMissingProposerVMBlockCtx
@@ -114,52 +120,45 @@ func VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots [
 			return err
 		}
 
-		// TODO: Should we add a special chain ID that is allowed as the "anycast" chain ID? Just need to think through if there are any security implications.
-		if message.DestinationChainID != predicateContext.SnowCtx.ChainID {
-			return ErrWrongChainID
+		err = message.Signature.Verify(
+			context.Background(),
+			&message.UnsignedMessage,
+			predicateContext.SnowCtx.ValidatorState,
+			predicateContext.ProposerVMBlockCtx.PChainHeight,
+			DefaultQuorumNumerator,
+			DefaultQuorumDenominator)
+		if err != nil {
+			return err
 		}
-
-		// TODO: discussions around saving quorum numerator and denominator in state, and adding signature verification.
-		//err = message.Signature.Verify(
-		//	context.Background(),
-		//	&message.UnsignedMessage,
-		//	predicateContext.SnowCtx.ValidatorState,
-		//	predicateContext.ProposerVMBlockCtx.PChainHeight,
-		//	c.QuorumNumerator.Uint64(),
-		//	c.QuorumDenominator.Uint64())
-		//if err != nil {
-		//	return err
-		//}
 
 	}
 
 	return nil
 }
 
-// TODO: Implement Accepter interface
-//func Accept(backend precompile.Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
-//	if backend == nil {
-//		return ErrMissingPrecompileBackend
-//	}
-//
-//	if len(topics) != 3 {
-//		return ErrInvalidTopicCount(len(topics))
-//	}
-//
-//	if topics[0] != common.HexToHash(SubmitMessageEventID) {
-//		return ErrInvalidTopicHash(topics[0])
-//	}
-//
-//	unsignedMessage, err := warp.NewUnsignedMessage(
-//		ids.ID(topics[1]),
-//		ids.ID(topics[2]),
-//		logData)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return backend.AddMessage(context.Background(), unsignedMessage)
-//}
+func (w *warpContract) Accept(backend precompile.Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
+	if backend == nil {
+		return ErrMissingPrecompileBackend
+	}
+
+	if len(topics) != 3 {
+		return ErrInvalidTopicCount(len(topics))
+	}
+
+	if topics[0] != common.HexToHash(SubmitMessageEventID) {
+		return ErrInvalidTopicHash(topics[0])
+	}
+
+	unsignedMessage, err := warp.NewUnsignedMessage(
+		ids.ID(topics[1]),
+		ids.ID(topics[2]),
+		logData)
+	if err != nil {
+		return err
+	}
+
+	return backend.AddMessage(context.Background(), unsignedMessage)
+}
 
 // PackGetBlockchainID packs the include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
@@ -227,31 +226,37 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, err
 	}
 
-	_, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
+	storageSlots, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	if !exists {
 		return nil, remainingGas, ErrMissingStorageSlots
+	}
+
+	var signedMessages [][]byte
+	err = rlp.DecodeBytes(storageSlots, &signedMessages)
+	if err != nil {
+		return nil, remainingGas, err
 	}
 
 	// Check that the message index exists.
 	if !inputIndex.IsInt64() {
 		return nil, remainingGas, ErrInvalidMessageIndex
 	}
+	messageIndex := inputIndex.Int64()
+	if len(signedMessages) <= int(messageIndex) {
+		return nil, remainingGas, ErrInvalidMessageIndex
+	}
 
-	// TODO: Get the requested warp message from previously parsed/verified messages in predicate.
-	// TODO: Unmarshal the already verified message into warp message to return as output.
-	//messageIndex := inputIndex.Int64()
-	//if len(signedMessages) <= int(messageIndex) {
-	//	return nil, remainingGas, ErrInvalidMessageIndex
-	//}
-	//
-	//// Parse the raw message to be processed.
-	//message := signedMessages[messageIndex]
-	//
+	// Parse the raw message to be processed.
+	signedMessage := signedMessages[messageIndex]
+	message, err := warp.ParseMessage(signedMessage)
+	if err != nil {
+		return nil, remainingGas, err
+	}
 	var warpMessage WarpMessage
-	//_, err = Codec.Unmarshal(message.Payload, &warpMessage)
-	//if err != nil {
-	//	return nil, remainingGas, err
-	//}
+	_, err = precompile.Codec.Unmarshal(message.Payload, &warpMessage)
+	if err != nil {
+		return nil, remainingGas, err
+	}
 
 	output := GetVerifiedWarpMessageOutput{
 		Message: warpMessage,
@@ -305,11 +310,10 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	}
 
 	// Marshal
-	//data, err := Codec.Marshal(Version, message)
-	//if err != nil {
-	//	return nil, remainingGas, err
-	//}
-	var data []byte
+	data, err := precompile.Codec.Marshal(precompile.Version, message)
+	if err != nil {
+		return nil, remainingGas, err
+	}
 
 	accessibleState.GetStateDB().AddLog(
 		ContractAddress,
@@ -346,5 +350,6 @@ func createWarpMessengerPrecompile() contract.StatefulPrecompiledContract {
 	if err != nil {
 		panic(err)
 	}
-	return statefulContract
+
+	return &warpContract{StatefulPrecompiledContract: statefulContract}
 }

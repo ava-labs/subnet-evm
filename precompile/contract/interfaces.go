@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -40,7 +41,7 @@ type Predicater interface {
 // WARNING: this is not intended to be used for custom precompiles. Backwards compatibility with custom precompiles that
 // use the Accepter interface will not be supported.
 type Accepter interface {
-	Accept(txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
+	Accept(backend precompile.Backend, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
 }
 
 // ChainContext defines an interface that provides information to a stateful precompile

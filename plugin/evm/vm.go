@@ -16,6 +16,7 @@ import (
 	"time"
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
+	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -195,6 +196,8 @@ type VM struct {
 	builder *blockBuilder
 
 	gossiper Gossiper
+
+	precompileBackend precompile.Backend
 
 	clock mockable.Clock
 
@@ -423,6 +426,7 @@ func (vm *VM) Initialize(
 
 	// initialize warp backend
 	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
+	vm.precompileBackend = vm.warpBackend
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
@@ -461,14 +465,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	if err != nil {
 		return err
 	}
-	vm.eth, err = eth.New(
-		node,
-		&vm.ethConfig,
-		vm.chaindb,
-		vm.config.EthBackendSettings(),
-		lastAcceptedHash,
-		&vm.clock,
-	)
+	vm.eth, err = eth.New(node, &vm.ethConfig, vm.chaindb, vm.config.EthBackendSettings(), lastAcceptedHash, &vm.clock)
 	if err != nil {
 		return err
 	}
