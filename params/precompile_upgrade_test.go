@@ -269,7 +269,7 @@ func (tt *upgradeCompatibilityTest) run(t *testing.T, chainConfig ChainConfig) {
 		// the next upgradeBytes. (only check the result on the last apply)
 		if i != len(tt.configs)-1 {
 			if err != nil {
-				t.Fatalf("expecting ApplyUpgradeBytes call %d to return nil, got %s", i+1, err)
+				t.Fatalf("expecting checkCompatible call %d to return nil, got %s", i+1, err)
 			}
 			chainConfig = newCfg
 			continue
