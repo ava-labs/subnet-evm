@@ -179,7 +179,7 @@ func TestVerifyPrecompileUpgrades(t *testing.T) {
 					Config: txallowlist.NewDisableConfig(big.NewInt(1)),
 				},
 			},
-			expectedError: " config block timestamp (1) <= previous timestamp (1) of same key",
+			expectedError: "config block timestamp (1) <= previous timestamp (1) of same key",
 		},
 	}
 	for _, tt := range tests {

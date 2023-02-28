@@ -356,8 +356,11 @@ func TestVMStateUpgrade(t *testing.T) {
 	require.NoError(t, err)
 
 	// Existing account
-	expectedGenesisBalance := genesisAccount.Balance.Add(genesisAccount.Balance, genesisAccountUpgrade.BalanceChange)
-	require.Equal(t, state.GetBalance(testEthAddrs[0]), expectedGenesisBalance)
+	expectedGenesisAccountBalance := new(big.Int).Add(
+		genesisAccount.Balance,
+		genesisAccountUpgrade.BalanceChange,
+	)
+	require.Equal(t, state.GetBalance(testEthAddrs[0]), expectedGenesisAccountBalance)
 	require.Equal(t, state.GetState(testEthAddrs[0], storageKey), genesisAccountUpgrade.Storage[storageKey])
 
 	// New account
