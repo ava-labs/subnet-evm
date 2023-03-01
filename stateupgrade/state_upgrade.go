@@ -4,14 +4,14 @@
 package stateupgrade
 
 import (
+	"math/big"
+
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // Configure applies the state upgrade to the state.
-func Configure(stateUpgrade *params.StateUpgrade, blockContext BlockContext, state StateDB) error {
-	log.Info("Configuring state upgrade", "block", blockContext.Number(), "timestamp", blockContext.Timestamp())
+func Configure(stateUpgrade *params.StateUpgrade, state StateDB) error {
 	for account, upgrade := range stateUpgrade.StateUpgradeAccounts {
 		if err := upgradeAccount(account, upgrade, state); err != nil {
 			return err
@@ -22,19 +22,18 @@ func Configure(stateUpgrade *params.StateUpgrade, blockContext BlockContext, sta
 
 // upgradeAccount applies the state upgrade to the given account.
 func upgradeAccount(account common.Address, upgrade params.StateUpgradeAccount, state StateDB) error {
-	// TODO: is this necessary?
+	// Create the account if it does not exist
 	if !state.Exist(account) {
-		// Create the account if it does not exist.
 		state.CreateAccount(account)
 	}
 
 	if upgrade.BalanceChange != nil {
-		state.AddBalance(account, upgrade.BalanceChange)
+		state.AddBalance(account, (*big.Int)(upgrade.BalanceChange))
 	}
-	if upgrade.Code != nil {
+	if len(upgrade.Code) != 0 {
+		// if the nonce is 0, set the nonce to 1 as we would when deploying a contract at
+		// the address.
 		if state.GetNonce(account) == 0 {
-			// If the nonce is 0, we will set it to a non-zero value
-			// so the account is not considered empty.
 			state.SetNonce(account, 1)
 		}
 		state.SetCode(account, upgrade.Code)

@@ -21,10 +21,3 @@ type StateDB interface {
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
 }
-
-// BlockContext defines an interface that provides information about the
-// block that activates the state upgrade.
-type BlockContext interface {
-	Number() *big.Int
-	Timestamp() *big.Int
-}

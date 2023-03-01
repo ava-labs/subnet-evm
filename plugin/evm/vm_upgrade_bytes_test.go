@@ -22,6 +22,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -293,7 +294,7 @@ func TestVMStateUpgrade(t *testing.T) {
 
 	// This modification will be applied to an existing account
 	genesisAccountUpgrade := &params.StateUpgradeAccount{
-		BalanceChange: big.NewInt(-100),
+		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 		Storage:       map[common.Hash]common.Hash{storageKey: {}},
 	}
 
@@ -301,7 +302,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	newAccount := common.Address{42}
 	code := []byte{0x01, 0x02, 0x03}
 	newAccountUpgrade := &params.StateUpgradeAccount{
-		BalanceChange: big.NewInt(100),
+		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 		Storage:       map[common.Hash]common.Hash{storageKey: common.HexToHash("0x6666")},
 		Code:          code,
 	}
@@ -358,14 +359,14 @@ func TestVMStateUpgrade(t *testing.T) {
 	// Existing account
 	expectedGenesisAccountBalance := new(big.Int).Add(
 		genesisAccount.Balance,
-		genesisAccountUpgrade.BalanceChange,
+		(*big.Int)(genesisAccountUpgrade.BalanceChange),
 	)
 	require.Equal(t, state.GetBalance(testEthAddrs[0]), expectedGenesisAccountBalance)
 	require.Equal(t, state.GetState(testEthAddrs[0], storageKey), genesisAccountUpgrade.Storage[storageKey])
 
 	// New account
 	expectedNewAccountBalance := newAccountUpgrade.BalanceChange
-	require.Equal(t, state.GetBalance(newAccount), expectedNewAccountBalance)
+	require.Equal(t, state.GetBalance(newAccount), (*big.Int)(expectedNewAccountBalance))
 	require.Equal(t, state.GetCode(newAccount), code)
 	require.Equal(t, state.GetNonce(newAccount), uint64(1)) // Nonce should be set to 1 when code is set if nonce was 0
 	require.Equal(t, state.GetState(newAccount, storageKey), newAccountUpgrade.Storage[storageKey])

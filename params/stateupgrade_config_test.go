@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyStateUpgrades(t *testing.T) {
 	modifiedAccounts := map[common.Address]StateUpgradeAccount{
 		{1}: {
-			BalanceChange: common.Big1,
+			BalanceChange: (*math.HexOrDecimal256)(common.Big1),
 		},
 	}
 	tests := []struct {
@@ -66,11 +67,11 @@ func TestVerifyStateUpgrades(t *testing.T) {
 
 func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
 	chainConfig := *TestChainConfig
-	stateUpgrade := StateUpgradeAccounts{
-		{1}: {BalanceChange: common.Big1},
+	stateUpgrade := map[common.Address]StateUpgradeAccount{
+		{1}: {BalanceChange: (*math.HexOrDecimal256)(common.Big1)},
 	}
-	differentStateUpgrade := StateUpgradeAccounts{
-		{2}: {BalanceChange: common.Big1},
+	differentStateUpgrade := map[common.Address]StateUpgradeAccount{
+		{2}: {BalanceChange: (*math.HexOrDecimal256)(common.Big1)},
 	}
 
 	tests := map[string]upgradeCompatibilityTest{
@@ -143,15 +144,15 @@ func TestCheckCompatibleStateUpgradeConfigs(t *testing.T) {
 	}
 }
 
-func TestUnmarshalJSON(t *testing.T) {
+func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 	jsonBytes := []byte(
 		`{
 			"stateUpgrades": [
 				{
 					"blockTimestamp": 1677608400,
 					"accounts": {
-						"8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
-							"balanceChange": "0x52B7D2DCC80CD2E4000000"
+						"0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC": {
+							"balanceChange": "100"
 						}
 					}
 				}
@@ -159,7 +160,20 @@ func TestUnmarshalJSON(t *testing.T) {
 		}`,
 	)
 
-	var config UpgradeConfig
-	err := json.Unmarshal(jsonBytes, &config)
+	upgradeConfig := UpgradeConfig{
+		StateUpgrades: []StateUpgrade{
+			{
+				BlockTimestamp: big.NewInt(1677608400),
+				StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
+					common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"): {
+						BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
+					},
+				},
+			},
+		},
+	}
+	var unmarshaledConfig UpgradeConfig
+	err := json.Unmarshal(jsonBytes, &unmarshaledConfig)
 	require.NoError(t, err)
+	require.Equal(t, upgradeConfig, unmarshaledConfig)
 }
