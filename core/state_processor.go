@@ -235,8 +235,8 @@ func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockCo
 // transition from [parentTimestamp] to the timestamp set in [header]. If this is the case, it calls [Configure]
 // to apply the necessary state transitions for the upgrade.
 // This function is called:
-// - during block processing to update the state before processing the given block,
-// - during block producing to apply the state upgrades before producing the block.
+// - in block processing to update the state when processing a block.
+// - in the miner to apply the state upgrades when producing a block.
 func ApplyUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext stateupgrade.BlockContext, statedb *state.StateDB) error {
 	if err := ApplyPrecompileActivations(c, parentTimestamp, blockContext, statedb); err != nil {
 		return err
