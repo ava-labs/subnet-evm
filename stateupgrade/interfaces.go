@@ -21,3 +21,15 @@ type StateDB interface {
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
 }
+
+// ChainContext defines an interface that provides information to a state upgrade
+// about the chain configuration.
+type ChainContext interface {
+	IsEIP158(num *big.Int) bool
+}
+
+// BlockContext defines an interface that provides information to a state upgrade
+// about the block that activates the upgrade.
+type BlockContext interface {
+	Number() *big.Int
+}

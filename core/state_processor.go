@@ -224,7 +224,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades
 	for _, upgrade := range c.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), c.StateUpgrades) {
-		if err := stateupgrade.Configure(&upgrade, statedb); err != nil {
+		if err := stateupgrade.Configure(&upgrade, c, statedb, blockContext); err != nil {
 			return fmt.Errorf("could not configure state upgrade: %w", err)
 		}
 	}

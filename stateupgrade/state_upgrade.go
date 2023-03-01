@@ -11,9 +11,10 @@ import (
 )
 
 // Configure applies the state upgrade to the state.
-func Configure(stateUpgrade *params.StateUpgrade, state StateDB) error {
+func Configure(stateUpgrade *params.StateUpgrade, chainConfig ChainContext, state StateDB, blockContext BlockContext) error {
+	isEIP158 := chainConfig.IsEIP158(blockContext.Number())
 	for account, upgrade := range stateUpgrade.StateUpgradeAccounts {
-		if err := upgradeAccount(account, upgrade, state); err != nil {
+		if err := upgradeAccount(account, upgrade, state, isEIP158); err != nil {
 			return err
 		}
 	}
@@ -21,7 +22,7 @@ func Configure(stateUpgrade *params.StateUpgrade, state StateDB) error {
 }
 
 // upgradeAccount applies the state upgrade to the given account.
-func upgradeAccount(account common.Address, upgrade params.StateUpgradeAccount, state StateDB) error {
+func upgradeAccount(account common.Address, upgrade params.StateUpgradeAccount, state StateDB, isEIP158 bool) error {
 	// Create the account if it does not exist
 	if !state.Exist(account) {
 		state.CreateAccount(account)
@@ -33,7 +34,7 @@ func upgradeAccount(account common.Address, upgrade params.StateUpgradeAccount, 
 	if len(upgrade.Code) != 0 {
 		// if the nonce is 0, set the nonce to 1 as we would when deploying a contract at
 		// the address.
-		if state.GetNonce(account) == 0 {
+		if isEIP158 && state.GetNonce(account) == 0 {
 			state.SetNonce(account, 1)
 		}
 		state.SetCode(account, upgrade.Code)
