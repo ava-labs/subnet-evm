@@ -185,17 +185,10 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
-	// Configure any stateful precompiles that should go into effect during this block.
-	blockContext := types.NewBlockWithHeader(header)
-	err = core.ApplyPrecompileActivations(w.chainConfig, new(big.Int).SetUint64(parent.Time()), blockContext, env.state)
+	// Configure any upgrades that should go into effect during this block.
+	err = core.ApplyUpgrades(w.chainConfig, new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
 	if err != nil {
 		log.Error("failed to configure precompiles mining new block", "parent", parent.Hash(), "number", header.Number, "timestamp", header.Time, "err", err)
-		return nil, err
-	}
-	// Configure any state upgrades that should go into effect during this block.
-	err = core.ApplyStateUpgrades(w.chainConfig, new(big.Int).SetUint64(parent.Time()), blockContext, env.state)
-	if err != nil {
-		log.Error("failed to configure state upgrades mining new block", "parent", parent.Hash(), "number", header.Number, "timestamp", header.Time, "err", err)
 		return nil, err
 	}
 

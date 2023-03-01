@@ -71,25 +71,20 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(block *types.Block, parent *types.Header, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 	var (
-		receipts        types.Receipts
-		usedGas         = new(uint64)
-		header          = block.Header()
-		blockHash       = block.Hash()
-		blockNumber     = block.Number()
-		allLogs         []*types.Log
-		gp              = new(GasPool).AddGas(block.GasLimit())
-		timestamp       = new(big.Int).SetUint64(header.Time)
-		parentTimestamp = new(big.Int).SetUint64(parent.Time)
+		receipts    types.Receipts
+		usedGas     = new(uint64)
+		header      = block.Header()
+		blockHash   = block.Hash()
+		blockNumber = block.Number()
+		allLogs     []*types.Log
+		gp          = new(GasPool).AddGas(block.GasLimit())
+		timestamp   = new(big.Int).SetUint64(header.Time)
 	)
 
-	// Configure any stateful precompiles that should go into effect during this block.
-	if err := ApplyPrecompileActivations(p.config, parentTimestamp, block, statedb); err != nil {
-		log.Error("failed to configure precompiles processing block", "hash", blockHash, "number", blockNumber, "timestamp", block.Time(), "err", err)
-		return nil, nil, 0, err
-	}
-	// Configure any state upgrades that should go into effect during this block.
-	if err := ApplyStateUpgrades(p.config, parentTimestamp, block, statedb); err != nil {
-		log.Error("failed to configure state upgrades processing block", "hash", blockHash, "number", blockNumber, "timestamp", block.Time(), "err", err)
+	// Configure any upgrades that should go into effect during this block.
+	err := ApplyUpgrades(p.config, new(big.Int).SetUint64(parent.Time), block, statedb)
+	if err != nil {
+		log.Error("failed to configure precompiles processing block", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
 		return nil, nil, 0, err
 	}
 
@@ -177,14 +172,12 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	return applyTransaction(msg, config, author, gp, statedb, header.Number, header.Hash(), tx, usedGas, vmenv)
 }
 
-// ApplyPrecompileActivations checks if any of the precompiles specified by the chain config are enabled or disabled by the block
+// ApplyPrecompileUpgrades checks if any of the precompiles specified by the chain config are enabled or disabled by the block
 // transition from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure]
 // to apply the necessary state transitions for the upgrade.
-// This function is called:
-// - within genesis setup to configure the starting state for precompiles enabled at genesis,
-// - during block processing to update the state before processing the given block,
-// - during block producing to apply the precompile upgrades before producing the block.
-func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
+// This function is called within genesis setup to configure the starting state for precompiles enabled at genesis.
+// In block processing and building, ApplyUpgrades is called instead which also applies state upgrades.
+func ApplyPrecompileUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 	// Note: RegisteredModules returns precompiles sorted by module addresses.
 	// This ensures that the order we call Configure for each precompile is consistent.
@@ -225,14 +218,10 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 	return nil
 }
 
-// ApplyStateUpgrades checks if any of the state upgrades specified by the chain config are activated by the block
+// applyStateUpgrades checks if any of the state upgrades specified by the chain config are activated by the block
 // transition from [parentTimestamp] to the timestamp set in [header]. If this is the case, it calls [Configure]
 // to apply the necessary state transitions for the upgrade.
-// This function is called:
-// - within genesis setup to apply state upgrades if they are specified at genesis,
-// - during block processing to update the state before processing the given block,
-// - during block producing to apply the state upgrades before producing the block.
-func ApplyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext stateupgrade.BlockContext, statedb *state.StateDB) error {
+func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext stateupgrade.BlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades
 	for _, upgrade := range c.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), c.StateUpgrades) {
 		if err := stateupgrade.Configure(&upgrade, blockContext, statedb); err != nil {
@@ -240,4 +229,17 @@ func ApplyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockCo
 		}
 	}
 	return nil
+}
+
+// ApplyUpgrades checks if any of the precompile or state upgrades specified by the chain config are activated by the block
+// transition from [parentTimestamp] to the timestamp set in [header]. If this is the case, it calls [Configure]
+// to apply the necessary state transitions for the upgrade.
+// This function is called:
+// - during block processing to update the state before processing the given block,
+// - during block producing to apply the state upgrades before producing the block.
+func ApplyUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext stateupgrade.BlockContext, statedb *state.StateDB) error {
+	if err := ApplyPrecompileUpgrades(c, parentTimestamp, blockContext, statedb); err != nil {
+		return err
+	}
+	return applyStateUpgrades(c, parentTimestamp, blockContext, statedb)
 }
