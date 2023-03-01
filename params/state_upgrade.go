@@ -11,8 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
-//go:generate go run github.com/fjl/gencodec -type StateUpgradeAccount -field-override stateUpgradeAccountMarshaling -out gen_state_upgrade_account.go
-
 // StateUpgrade describes the modifications to be made to the state during
 // a state upgrade.
 type StateUpgrade struct {
