@@ -172,12 +172,12 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	return applyTransaction(msg, config, author, gp, statedb, header.Number, header.Hash(), tx, usedGas, vmenv)
 }
 
-// ApplyPrecompileUpgrades checks if any of the precompiles specified by the chain config are enabled or disabled by the block
+// ApplyPrecompileActivations checks if any of the precompiles specified by the chain config are enabled or disabled by the block
 // transition from [parentTimestamp] to the timestamp set in [blockContext]. If this is the case, it calls [Configure]
 // to apply the necessary state transitions for the upgrade.
 // This function is called within genesis setup to configure the starting state for precompiles enabled at genesis.
 // In block processing and building, ApplyUpgrades is called instead which also applies state upgrades.
-func ApplyPrecompileUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
+func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 	// Note: RegisteredModules returns precompiles sorted by module addresses.
 	// This ensures that the order we call Configure for each precompile is consistent.
@@ -238,7 +238,7 @@ func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockCo
 // - during block processing to update the state before processing the given block,
 // - during block producing to apply the state upgrades before producing the block.
 func ApplyUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext stateupgrade.BlockContext, statedb *state.StateDB) error {
-	if err := ApplyPrecompileUpgrades(c, parentTimestamp, blockContext, statedb); err != nil {
+	if err := ApplyPrecompileActivations(c, parentTimestamp, blockContext, statedb); err != nil {
 		return err
 	}
 	return applyStateUpgrades(c, parentTimestamp, blockContext, statedb)
