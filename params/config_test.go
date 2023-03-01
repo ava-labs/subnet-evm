@@ -244,5 +244,4 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	require.NoError(t, err)
 	configBytes := []byte(`{"chainId":1,"feeConfig":{"gasLimit":8000000,"targetBlockRate":2,"minBaseFee":25000000000,"targetGas":15000000,"baseFeeChangeDenominator":36,"minBlockGasCost":0,"maxBlockGasCost":1000000,"blockGasCostStep":200000},"homesteadBlock":0,"eip150Block":0,"eip150Hash":"0x0000000000000000000000000000000000000000000000000000000000000000","eip155Block":0,"eip158Block":0,"byzantiumBlock":0,"constantinopleBlock":0,"petersburgBlock":0,"istanbulBlock":0,"muirGlacierBlock":0,"subnetEVMTimestamp":0,"UpgradeConfig":{"precompileUpgrades":[{"txAllowListConfig":{"blockTimestamp":100}}]}}`)
 	require.Equal(t, configBytes, result)
-
 }
