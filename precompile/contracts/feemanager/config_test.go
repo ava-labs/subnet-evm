@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -30,39 +32,16 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	invalidFeeConfig := validFeeConfig
 	invalidFeeConfig.GasLimit = big.NewInt(0)
-	tests := []struct {
-		name          string
-		config        precompileconfig.Config
-		ExpectedError string
-	}{
-		{
-			name:          "invalid allow list config in fee manager allowlist",
-			config:        NewConfig(big.NewInt(3), admins, admins, nil),
-			ExpectedError: "cannot set address",
-		},
-		{
-			name:          "invalid initial fee manager config",
-			config:        NewConfig(big.NewInt(3), admins, nil, &invalidFeeConfig),
+	tests := map[string]testutils.ConfigVerifyTest{
+		"invalid initial fee manager config": {
+			Config:        NewConfig(big.NewInt(3), admins, nil, &invalidFeeConfig),
 			ExpectedError: "gasLimit = 0 cannot be less than or equal to 0",
-		},
-		{
-			name:          "nil initial fee manager config",
-			config:        NewConfig(big.NewInt(3), admins, nil, &commontype.FeeConfig{}),
+		}, "nil initial fee manager config": {
+			Config:        NewConfig(big.NewInt(3), admins, nil, &commontype.FeeConfig{}),
 			ExpectedError: "gasLimit cannot be nil",
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-
-			err := tt.config.Verify()
-			if tt.ExpectedError == "" {
-				require.NoError(err)
-			} else {
-				require.ErrorContains(err, tt.ExpectedError)
-			}
-		})
-	}
+	allowlist.VerifyPrecompileWithAllowListTests(t, Module, tests)
 }
 
 func TestEqualFeeManagerConfig(t *testing.T) {

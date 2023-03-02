@@ -7,36 +7,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyContractDeployerConfig(t *testing.T) {
-	admins := []common.Address{{1}}
-	tests := []struct {
-		name          string
-		config        precompileconfig.Config
-		ExpectedError string
-	}{
-		{
-			name:          "invalid allow list config in deployer allowlist",
-			config:        NewConfig(big.NewInt(3), admins, admins),
-			ExpectedError: "cannot set address",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-
-			err := tt.config.Verify()
-			if tt.ExpectedError == "" {
-				require.NoError(err)
-			} else {
-				require.ErrorContains(err, tt.ExpectedError)
-			}
-		})
-	}
+	allowlist.VerifyPrecompileWithAllowListTests(t, Module, nil)
 }
 
 func TestEqualContractDeployerAllowListConfig(t *testing.T) {

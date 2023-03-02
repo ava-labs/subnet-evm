@@ -7,52 +7,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyTxAllowlistConfig(t *testing.T) {
-	admins := []common.Address{{1}}
-	enableds := []common.Address{{2}}
-	tests := []struct {
-		name          string
-		config        precompileconfig.Config
-		ExpectedError string
-	}{
-		{
-			name:          "invalid allow list config in tx allowlist",
-			config:        NewConfig(big.NewInt(3), admins, admins),
-			ExpectedError: "cannot set address",
-		},
-		{
-			name:          "nil member allow list config in tx allowlist",
-			config:        NewConfig(big.NewInt(3), nil, nil),
-			ExpectedError: "",
-		},
-		{
-			name:          "empty member allow list config in tx allowlist",
-			config:        NewConfig(big.NewInt(3), []common.Address{}, []common.Address{}),
-			ExpectedError: "",
-		},
-		{
-			name:          "valid allow list config in tx allowlist",
-			config:        NewConfig(big.NewInt(3), admins, enableds),
-			ExpectedError: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-
-			err := tt.config.Verify()
-			if tt.ExpectedError == "" {
-				require.NoError(err)
-			} else {
-				require.ErrorContains(err, tt.ExpectedError)
-			}
-		})
-	}
+	allowlist.VerifyPrecompileWithAllowListTests(t, Module, nil)
 }
 
 func TestEqualTxAllowListConfig(t *testing.T) {

@@ -7,7 +7,9 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
@@ -16,38 +18,29 @@ import (
 func TestVerifyContractNativeMinterConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	enableds := []common.Address{{2}}
-	tests := []struct {
-		name          string
-		config        precompileconfig.Config
-		ExpectedError string
-	}{
-		{
-			name:          "invalid allow list config in native minter allowlist",
-			config:        NewConfig(big.NewInt(3), admins, admins, nil),
+	tests := map[string]testutils.ConfigVerifyTest{
+		"invalid allow list config in native minter allowlist": {
+			Config:        NewConfig(big.NewInt(3), admins, admins, nil),
 			ExpectedError: "cannot set address",
 		},
-		{
-			name:          "duplicate admins in config in native minter allowlist",
-			config:        NewConfig(big.NewInt(3), append(admins, admins[0]), enableds, nil),
+		"duplicate admins in config in native minter allowlist": {
+			Config:        NewConfig(big.NewInt(3), append(admins, admins[0]), enableds, nil),
 			ExpectedError: "duplicate address",
 		},
-		{
-			name:          "duplicate enableds in config in native minter allowlist",
-			config:        NewConfig(big.NewInt(3), admins, append(enableds, enableds[0]), nil),
+		"duplicate enableds in config in native minter allowlist": {
+			Config:        NewConfig(big.NewInt(3), admins, append(enableds, enableds[0]), nil),
 			ExpectedError: "duplicate address",
 		},
-		{
-			name: "nil amount in native minter config",
-			config: NewConfig(big.NewInt(3), admins, nil,
+		"nil amount in native minter config": {
+			Config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): nil,
 				}),
 			ExpectedError: "initial mint cannot contain nil",
 		},
-		{
-			name: "negative amount in native minter config",
-			config: NewConfig(big.NewInt(3), admins, nil,
+		"negative amount in native minter config": {
+			Config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(123),
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(-1),
@@ -55,18 +48,7 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 			ExpectedError: "initial mint cannot contain invalid amount",
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-
-			err := tt.config.Verify()
-			if tt.ExpectedError == "" {
-				require.NoError(err)
-			} else {
-				require.ErrorContains(err, tt.ExpectedError)
-			}
-		})
-	}
+	allowlist.VerifyPrecompileWithAllowListTests(t, Module, tests)
 }
 
 func TestEqualContractNativeMinterConfig(t *testing.T) {
