@@ -677,6 +677,9 @@ func (cu *ChainConfigWithUpgradesJSON) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
+// ToWithUpgradesJSON converts the ChainConfig to ChainConfigWithUpgradesJSON with upgrades explicitly displayed.
+// ChainConfig does not include upgrades in its JSON output.
+// This is a workaround for showing upgrades in the JSON output.
 func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
 	return &ChainConfigWithUpgradesJSON{
 		ChainConfig:   *c,
