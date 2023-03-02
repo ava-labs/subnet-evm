@@ -12,7 +12,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyContractNativeMinterConfig(t *testing.T) {
@@ -52,80 +51,57 @@ func TestVerifyContractNativeMinterConfig(t *testing.T) {
 }
 
 func TestEqualContractNativeMinterConfig(t *testing.T) {
-	admins := []common.Address{{1}}
-	enableds := []common.Address{{2}}
-	tests := []struct {
-		name     string
-		config   precompileconfig.Config
-		other    precompileconfig.Config
-		expected bool
-	}{
-		{
-			name:     "non-nil config and nil other",
-			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
-			other:    nil,
-			expected: false,
+	admins := []common.Address{allowlist.TestAdminAddr}
+	enableds := []common.Address{allowlist.TestEnabledAddr}
+	tests := map[string]testutils.ConfigEqualTest{
+		"non-nil config and nil other": {
+			Config:   NewConfig(big.NewInt(3), admins, enableds, nil),
+			Other:    nil,
+			Expected: false,
 		},
-		{
-			name:     "different type",
-			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
-			other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
-			expected: false,
+		"different type": {
+			Config:   NewConfig(big.NewInt(3), admins, enableds, nil),
+			Other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
+			Expected: false,
 		},
-		{
-			name:     "different timestamps",
-			config:   NewConfig(big.NewInt(3), admins, nil, nil),
-			other:    NewConfig(big.NewInt(4), admins, nil, nil),
-			expected: false,
+		"different timestamps": {
+			Config:   NewConfig(big.NewInt(3), admins, nil, nil),
+			Other:    NewConfig(big.NewInt(4), admins, nil, nil),
+			Expected: false,
 		},
-		{
-			name:     "different enabled",
-			config:   NewConfig(big.NewInt(3), admins, nil, nil),
-			other:    NewConfig(big.NewInt(3), admins, enableds, nil),
-			expected: false,
-		},
-		{
-			name: "different initial mint amounts",
-			config: NewConfig(big.NewInt(3), admins, nil,
+		"different initial mint amounts": {
+			Config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(1),
 				}),
-			other: NewConfig(big.NewInt(3), admins, nil,
+			Other: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(2),
 				}),
-			expected: false,
+			Expected: false,
 		},
-		{
-			name: "different initial mint addresses",
-			config: NewConfig(big.NewInt(3), admins, nil,
+		"different initial mint addresses": {
+			Config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(1),
 				}),
-			other: NewConfig(big.NewInt(3), admins, nil,
+			Other: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x02"): math.NewHexOrDecimal256(1),
 				}),
-			expected: false,
+			Expected: false,
 		},
-		{
-			name: "same config",
-			config: NewConfig(big.NewInt(3), admins, nil,
+		"same config": {
+			Config: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(1),
 				}),
-			other: NewConfig(big.NewInt(3), admins, nil,
+			Other: NewConfig(big.NewInt(3), admins, nil,
 				map[common.Address]*math.HexOrDecimal256{
 					common.HexToAddress("0x01"): math.NewHexOrDecimal256(1),
 				}),
-			expected: true,
+			Expected: true,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-
-			require.Equal(tt.expected, tt.config.Equal(tt.other))
-		})
-	}
+	allowlist.EqualPrecompileWithAllowListTests(t, Module, tests)
 }

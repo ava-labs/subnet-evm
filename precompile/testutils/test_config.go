@@ -7,8 +7,15 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
-// PrecompileConfigTest is a test case for precompile configs
+// ConfigVerifyTest is a test case for verifying a config
 type ConfigVerifyTest struct {
 	Config        precompileconfig.Config
 	ExpectedError string
+}
+
+// ConfigEqualTest is a test case for comparing two configs
+type ConfigEqualTest struct {
+	Config   precompileconfig.Config
+	Other    precompileconfig.Config
+	Expected bool
 }

@@ -9,8 +9,8 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyTxAllowlistConfig(t *testing.T) {
@@ -18,50 +18,29 @@ func TestVerifyTxAllowlistConfig(t *testing.T) {
 }
 
 func TestEqualTxAllowListConfig(t *testing.T) {
-	admins := []common.Address{{1}}
-	enableds := []common.Address{{2}}
-	tests := []struct {
-		name     string
-		config   precompileconfig.Config
-		other    precompileconfig.Config
-		expected bool
-	}{
-		{
-			name:     "non-nil config and nil other",
-			config:   NewConfig(big.NewInt(3), admins, enableds),
-			other:    nil,
-			expected: false,
+	admins := []common.Address{allowlist.TestAdminAddr}
+	enableds := []common.Address{allowlist.TestEnabledAddr}
+	tests := map[string]testutils.ConfigEqualTest{
+		"non-nil config and nil other": {
+			Config:   NewConfig(big.NewInt(3), admins, enableds),
+			Other:    nil,
+			Expected: false,
 		},
-		{
-			name:     "different admin",
-			config:   NewConfig(big.NewInt(3), admins, enableds),
-			other:    NewConfig(big.NewInt(3), []common.Address{{3}}, enableds),
-			expected: false,
+		"different type": {
+			Config:   NewConfig(nil, nil, nil),
+			Other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
+			Expected: false,
 		},
-		{
-			name:     "different enabled",
-			config:   NewConfig(big.NewInt(3), admins, enableds),
-			other:    NewConfig(big.NewInt(3), admins, []common.Address{{3}}),
-			expected: false,
+		"different timestamp": {
+			Config:   NewConfig(big.NewInt(3), admins, enableds),
+			Other:    NewConfig(big.NewInt(4), admins, enableds),
+			Expected: false,
 		},
-		{
-			name:     "different timestamp",
-			config:   NewConfig(big.NewInt(3), admins, enableds),
-			other:    NewConfig(big.NewInt(4), admins, enableds),
-			expected: false,
-		},
-		{
-			name:     "same config",
-			config:   NewConfig(big.NewInt(3), admins, enableds),
-			other:    NewConfig(big.NewInt(3), admins, enableds),
-			expected: true,
+		"same config": {
+			Config:   NewConfig(big.NewInt(3), admins, enableds),
+			Other:    NewConfig(big.NewInt(3), admins, enableds),
+			Expected: true,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-
-			require.Equal(tt.expected, tt.config.Equal(tt.other))
-		})
-	}
+	allowlist.EqualPrecompileWithAllowListTests(t, Module, tests)
 }

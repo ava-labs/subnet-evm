@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 )
 
 func TestVerifyRewardManagerConfig(t *testing.T) {
@@ -32,71 +31,53 @@ func TestVerifyRewardManagerConfig(t *testing.T) {
 func TestEqualRewardManagerConfig(t *testing.T) {
 	admins := []common.Address{{1}}
 	enableds := []common.Address{{2}}
-	tests := []struct {
-		name     string
-		config   precompileconfig.Config
-		other    precompileconfig.Config
-		expected bool
-	}{
-		{
-			name:     "non-nil config and nil other",
-			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
-			other:    nil,
-			expected: false,
+	tests := map[string]testutils.ConfigEqualTest{
+		"non-nil config and nil other": {
+			Config:   NewConfig(big.NewInt(3), admins, enableds, nil),
+			Other:    nil,
+			Expected: false,
 		},
-		{
-			name:     "different type",
-			config:   NewConfig(big.NewInt(3), admins, enableds, nil),
-			other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
-			expected: false,
+		"different type": {
+			Config:   NewConfig(big.NewInt(3), admins, enableds, nil),
+			Other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
+			Expected: false,
 		},
-		{
-			name:     "different timestamp",
-			config:   NewConfig(big.NewInt(3), admins, nil, nil),
-			other:    NewConfig(big.NewInt(4), admins, nil, nil),
-			expected: false,
+		"different timestamp": {
+			Config:   NewConfig(big.NewInt(3), admins, nil, nil),
+			Other:    NewConfig(big.NewInt(4), admins, nil, nil),
+			Expected: false,
 		},
-		{
-			name:     "different enabled",
-			config:   NewConfig(big.NewInt(3), admins, nil, nil),
-			other:    NewConfig(big.NewInt(3), admins, enableds, nil),
-			expected: false,
+		"different enabled": {
+			Config:   NewConfig(big.NewInt(3), admins, nil, nil),
+			Other:    NewConfig(big.NewInt(3), admins, enableds, nil),
+			Expected: false,
 		},
-		{
-			name: "non-nil initial config and nil initial config",
-			config: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
+		"non-nil initial config and nil initial config": {
+			Config: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
 				AllowFeeRecipients: true,
 			}),
-			other:    NewConfig(big.NewInt(3), admins, nil, nil),
-			expected: false,
+			Other:    NewConfig(big.NewInt(3), admins, nil, nil),
+			Expected: false,
 		},
-		{
-			name: "different initial config",
-			config: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
+		"different initial config": {
+			Config: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
 				RewardAddress: common.HexToAddress("0x01"),
 			}),
-			other: NewConfig(big.NewInt(3), admins, nil,
+			Other: NewConfig(big.NewInt(3), admins, nil,
 				&InitialRewardConfig{
 					RewardAddress: common.HexToAddress("0x02"),
 				}),
-			expected: false,
+			Expected: false,
 		},
-		{
-			name: "same config",
-			config: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
+		"same config": {
+			Config: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
 				RewardAddress: common.HexToAddress("0x01"),
 			}),
-			other: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
+			Other: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
 				RewardAddress: common.HexToAddress("0x01"),
 			}),
-			expected: true,
+			Expected: true,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require := require.New(t)
-
-			require.Equal(tt.expected, tt.config.Equal(tt.other))
-		})
-	}
+	allowlist.EqualPrecompileWithAllowListTests(t, Module, tests)
 }

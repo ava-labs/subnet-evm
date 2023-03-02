@@ -60,6 +60,31 @@ func AllowListConfigVerifyTests(module modules.Module) map[string]testutils.Conf
 	}
 }
 
+func AllowListConfigEqualTests(module modules.Module) map[string]testutils.ConfigEqualTest {
+	return map[string]testutils.ConfigEqualTest{
+		"allowlist non-nil config and nil other": {
+			Config:   mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
+			Other:    nil,
+			Expected: false,
+		},
+		"allowlist different admin": {
+			Config:   mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
+			Other:    mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{{3}}, []common.Address{TestEnabledAddr}}),
+			Expected: false,
+		},
+		"allowlist different enabled": {
+			Config:   mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
+			Other:    mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{module.Address}, []common.Address{{3}}}),
+			Expected: false,
+		},
+		"allowlist same config": {
+			Config:   mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
+			Other:    mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
+			Expected: true,
+		},
+	}
+}
+
 func VerifyPrecompileWithAllowListTests(t *testing.T, module modules.Module, verifyTests map[string]testutils.ConfigVerifyTest) {
 	t.Helper()
 	tests := AllowListConfigVerifyTests(module)
@@ -82,6 +107,27 @@ func VerifyPrecompileWithAllowListTests(t *testing.T, module modules.Module, ver
 			} else {
 				require.ErrorContains(err, test.ExpectedError)
 			}
+		})
+	}
+}
+
+func EqualPrecompileWithAllowListTests(t *testing.T, module modules.Module, equalTests map[string]testutils.ConfigEqualTest) {
+	t.Helper()
+	tests := AllowListConfigEqualTests(module)
+	// Add the contract specific tests to the map of tests to run.
+	for name, test := range equalTests {
+		if _, exists := tests[name]; exists {
+			t.Fatalf("duplicate test name: %s", name)
+		}
+		tests[name] = test
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Helper()
+			require := require.New(t)
+
+			require.Equal(test.Expected, test.Config.Equal(test.Other))
 		})
 	}
 }
