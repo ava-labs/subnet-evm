@@ -18,7 +18,7 @@ func TestVerifyAllowlistAllowList(t *testing.T) {
 	VerifyPrecompileWithAllowListTests(t, dummyModule, nil)
 }
 
-func TestEqualAllowListAllowList(t *testing.T) {
+func TestEqualAllowList(t *testing.T) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
 		Contract:     CreateAllowListPrecompile(dummyAddr),

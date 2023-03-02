@@ -35,7 +35,8 @@ func TestVerifyFeeManagerConfig(t *testing.T) {
 		"invalid initial fee manager config": {
 			Config:        NewConfig(big.NewInt(3), admins, nil, &invalidFeeConfig),
 			ExpectedError: "gasLimit = 0 cannot be less than or equal to 0",
-		}, "nil initial fee manager config": {
+		},
+		"nil initial fee manager config": {
 			Config:        NewConfig(big.NewInt(3), admins, nil, &commontype.FeeConfig{}),
 			ExpectedError: "gasLimit cannot be nil",
 		},
