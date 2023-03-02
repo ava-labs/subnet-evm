@@ -1568,7 +1568,7 @@ type BadBlockReason struct {
 	Receipts    types.Receipts      `json:"receipts"`
 	Number      uint64              `json:"number"`
 	Hash        common.Hash         `json:"hash"`
-	Error       string               `json:"error"`
+	Error       string              `json:"error"`
 }
 
 func (b *BadBlockReason) String() string {
