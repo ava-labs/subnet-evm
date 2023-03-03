@@ -292,6 +292,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	require.True(t, ok)
 	storageKey := common.HexToHash("0x1234")
 	genesisAccount.Storage = map[common.Hash]common.Hash{storageKey: common.HexToHash("0x5555")}
+	genesis.Alloc[testEthAddrs[0]] = genesisAccount // have to assign this back to the map for changes to take effect.
 	genesisStr := mustMarshal(t, genesis)
 
 	// This modification will be applied to an existing account
