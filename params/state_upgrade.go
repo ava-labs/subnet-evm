@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
@@ -23,7 +24,7 @@ type StateUpgrade struct {
 // StateUpgradeAccount describes the modifications to be made to an account during
 // a state upgrade.
 type StateUpgradeAccount struct {
-	Code          []byte                      `json:"code,omitempty"`
+	Code          hexutil.Bytes               `json:"code,omitempty"`
 	Storage       map[common.Hash]common.Hash `json:"storage,omitempty"`
 	BalanceChange *math.HexOrDecimal256       `json:"balanceChange,omitempty"`
 }
