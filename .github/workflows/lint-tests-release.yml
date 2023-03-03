@@ -35,6 +35,8 @@ jobs:
         shell: bash
       - run: ./scripts/build.sh ./build/subnetevm
         shell: bash
+      - run: ./scripts/build_image.sh
+        shell: bash
       - run: ./scripts/build_test.sh -race
         shell: bash
       - run: ./scripts/coverage.sh
