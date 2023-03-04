@@ -292,24 +292,29 @@ func TestVMStateUpgrade(t *testing.T) {
 	require.True(t, ok)
 	storageKey := common.HexToHash("0x1234")
 	genesisAccount.Storage = map[common.Hash]common.Hash{storageKey: common.HexToHash("0x5555")}
+	genesisCode, err := hexutil.Decode("0xabcd")
+	require.NoError(t, err)
+	genesisAccount.Code = genesisCode
+	genesisAccount.Nonce = 2                        // set to a non-zero value to test that it is preserved
 	genesis.Alloc[testEthAddrs[0]] = genesisAccount // have to assign this back to the map for changes to take effect.
 	genesisStr := mustMarshal(t, genesis)
 
+	upgradedCodeStr := "0xdeadbeef" // this upgradedCode will be applied during the upgrade
+	upgradedCode, err := hexutil.Decode(upgradedCodeStr)
 	// This modification will be applied to an existing account
 	genesisAccountUpgrade := &params.StateUpgradeAccount{
 		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 		Storage:       map[common.Hash]common.Hash{storageKey: {}},
+		Code:          upgradedCode,
 	}
 
 	// This modification will be applied to a new account
 	newAccount := common.Address{42}
-	codeStr := "0xdeadbeef"
-	code, err := hexutil.Decode(codeStr)
 	require.NoError(t, err)
 	newAccountUpgrade := &params.StateUpgradeAccount{
 		BalanceChange: (*math.HexOrDecimal256)(big.NewInt(100)),
 		Storage:       map[common.Hash]common.Hash{storageKey: common.HexToHash("0x6666")},
-		Code:          code,
+		Code:          upgradedCode,
 	}
 
 	upgradeTimestamp := time.Unix(10, 0) // arbitrary timestamp to perform the network upgrade
@@ -331,7 +336,7 @@ func TestVMStateUpgrade(t *testing.T) {
 		newAccount.Hex(),
 		mustMarshal(t, newAccountUpgrade),
 	)
-	require.Contains(t, upgradeBytesJSON, codeStr)
+	require.Contains(t, upgradeBytesJSON, upgradedCodeStr)
 
 	// initialize the VM with these upgrade bytes
 	issuer, vm, _, _ := GenesisVM(t, true, genesisStr, "", upgradeBytesJSON)
@@ -369,12 +374,15 @@ func TestVMStateUpgrade(t *testing.T) {
 	)
 	require.Equal(t, state.GetBalance(testEthAddrs[0]), expectedGenesisAccountBalance)
 	require.Equal(t, state.GetState(testEthAddrs[0], storageKey), genesisAccountUpgrade.Storage[storageKey])
+	require.Equal(t, state.GetCode(testEthAddrs[0]), upgradedCode)
+	require.Equal(t, state.GetCodeHash(testEthAddrs[0]), crypto.Keccak256Hash(upgradedCode))
+	require.Equal(t, state.GetNonce(testEthAddrs[0]), genesisAccount.Nonce) // Nonce should be preserved since it was non-zero
 
 	// New account
 	expectedNewAccountBalance := newAccountUpgrade.BalanceChange
 	require.Equal(t, state.GetBalance(newAccount), (*big.Int)(expectedNewAccountBalance))
-	require.Equal(t, state.GetCode(newAccount), code)
-	require.Equal(t, state.GetCodeHash(newAccount), crypto.Keccak256Hash(code))
+	require.Equal(t, state.GetCode(newAccount), upgradedCode)
+	require.Equal(t, state.GetCodeHash(newAccount), crypto.Keccak256Hash(upgradedCode))
 	require.Equal(t, state.GetNonce(newAccount), uint64(1)) // Nonce should be set to 1 when code is set if nonce was 0
 	require.Equal(t, state.GetState(newAccount, storageKey), newAccountUpgrade.Storage[storageKey])
 }
