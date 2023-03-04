@@ -299,7 +299,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	genesis.Alloc[testEthAddrs[0]] = genesisAccount // have to assign this back to the map for changes to take effect.
 	genesisStr := mustMarshal(t, genesis)
 
-	upgradedCodeStr := "0xdeadbeef" // this upgradedCode will be applied during the upgrade
+	upgradedCodeStr := "0xdeadbeef" // this code will be applied during the upgrade
 	upgradedCode, err := hexutil.Decode(upgradedCodeStr)
 	// This modification will be applied to an existing account
 	genesisAccountUpgrade := &params.StateUpgradeAccount{
