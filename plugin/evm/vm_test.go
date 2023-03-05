@@ -144,18 +144,6 @@ func NewContext() *snow.Context {
 	return ctx
 }
 
-type snLookup struct {
-	chainsToSubnet map[ids.ID]ids.ID
-}
-
-func (sn *snLookup) SubnetID(chainID ids.ID) (ids.ID, error) {
-	subnetID, ok := sn.chainsToSubnet[chainID]
-	if !ok {
-		return ids.ID{}, errors.New("unknown chain")
-	}
-	return subnetID, nil
-}
-
 // If [genesisJSON] is empty, defaults to using [genesisJSONLatest]
 func setupGenesis(t *testing.T,
 	genesisJSON string,
