@@ -35,13 +35,19 @@ jobs:
         shell: bash
       - run: ./scripts/build.sh ./build/subnetevm
         shell: bash
-      - run: ./scripts/build_image.sh
-        shell: bash
       - run: ./scripts/build_test.sh -race
         shell: bash
       - run: ./scripts/coverage.sh
         shell: bash
 
+  build_image:
+    name: Build Docker Image
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - run: PUSH_DOCKER_IMAGE=true ./scripts/build_image.sh
+        shell: bash
+      
   e2e_test:
     name: e2e tests
     runs-on: ubuntu-latest
