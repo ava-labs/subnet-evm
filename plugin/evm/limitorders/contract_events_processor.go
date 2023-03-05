@@ -99,9 +99,8 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			return
 		}
 		log.Info("HandleOrderBookEvent", "OrderCancelled args", args)
-		signature := args["signature"].([]byte)
-
-		cep.database.Delete(signature)
+		orderId := getIdFromOrder(getOrderFromRawOrder(args["order"]))
+		cep.database.Delete(orderId)
 	case cep.orderBookABI.Events["OrdersMatched"].ID:
 		log.Info("OrdersMatched event")
 		err := cep.orderBookABI.UnpackIntoMap(args, "OrdersMatched", event.Data)
@@ -110,10 +109,10 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			return
 		}
 		log.Info("HandleOrderBookEvent", "OrdersMatched args", args)
-		signatures := args["signatures"].([2][]byte)
+		orders := getOrdersFromRawOrderList(args["orders"])
 		fillAmount := args["fillAmount"].(*big.Int)
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signatures[0])
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signatures[1])
+		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, orders[0])
+		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, orders[1])
 	case cep.orderBookABI.Events["LiquidationOrderMatched"].ID:
 		log.Info("LiquidationOrderMatched event")
 		err := cep.orderBookABI.UnpackIntoMap(args, "LiquidationOrderMatched", event.Data)
@@ -122,9 +121,9 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			return
 		}
 		log.Info("HandleOrderBookEvent", "LiquidationOrderMatched args", args)
-		signature := args["signature"].([]byte)
 		fillAmount := args["fillAmount"].(*big.Int)
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, signature)
+		order := getOrderFromRawOrder(args["order"])
+		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order)
 	}
 	// log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
 
@@ -166,7 +165,6 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
 	case cep.clearingHouseABI.Events["FundingRateUpdated"].ID:
-		log.Info("FundingRateUpdated event")
 		err := cep.clearingHouseABI.UnpackIntoMap(args, "FundingRateUpdated", event.Data)
 		if err != nil {
 			log.Error("error in clearingHouseABI.UnpackIntoMap", "method", "FundingRateUpdated", "err", err)
@@ -175,6 +173,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		cumulativePremiumFraction := args["cumulativePremiumFraction"].(*big.Int)
 		nextFundingTime := args["nextFundingTime"].(*big.Int)
 		market := Market(int(event.Topics[1].Big().Int64()))
+		log.Info("FundingRateUpdated event", "args", args, "cumulativePremiumFraction", cumulativePremiumFraction, "market", market)
 		cep.database.UpdateUnrealisedFunding(Market(market), cumulativePremiumFraction)
 		cep.database.UpdateNextFundingTime(nextFundingTime.Uint64())
 

@@ -145,7 +145,7 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 		return err
 	}
 	log.Info("executeLocalTx - AddLocal success", "tx", signedTx.Hash().String(), "nonce", nonce)
-	
+
 	return nil
 }
 
@@ -224,7 +224,23 @@ func getOrderFromRawOrder(rawOrder interface{}) Order {
 	return order
 }
 
+func getOrdersFromRawOrderList(rawOrders interface{}) [2]Order {
+	orders := [2]Order{}
+	marshalledOrders, _ := json.Marshal(rawOrders)
+	_ = json.Unmarshal(marshalledOrders, &orders)
+	return orders
+}
+
 func getAddressFromTopicHash(topicHash common.Hash) common.Address {
 	address32 := topicHash.String() // address in 32 bytes with 0 padding
 	return common.HexToAddress(address32[:2] + address32[26:])
+}
+
+func getIdFromLimitOrder(order LimitOrder) string {
+	rawOrder := getOrderFromRawOrder(order.RawOrder)
+	return order.UserAddress + rawOrder.Salt.String()
+}
+
+func getIdFromOrder(order Order) string {
+	return order.Trader.String() + order.Salt.String()
 }
