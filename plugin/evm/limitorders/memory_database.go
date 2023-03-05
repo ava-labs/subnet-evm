@@ -73,8 +73,8 @@ type Trader struct {
 type LimitOrderDatabase interface {
 	GetAllOrders() []LimitOrder
 	Add(order *LimitOrder)
-	Delete(signature []byte)
-	UpdateFilledBaseAssetQuantity(quantity *big.Int, signature []byte)
+	Delete(id string)
+	UpdateFilledBaseAssetQuantity(quantity *big.Int, order Order)
 	GetLongOrders(market Market) []LimitOrder
 	GetShortOrders(market Market) []LimitOrder
 	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool)
@@ -90,7 +90,7 @@ type LimitOrderDatabase interface {
 }
 
 type InMemoryDatabase struct {
-	OrderMap        map[string]*LimitOrder     `json:"order_map"`  // signature => order
+	OrderMap        map[string]*LimitOrder     `json:"order_map"`  // ID => order
 	TraderMap       map[common.Address]*Trader `json:"trader_map"` // address => trader info
 	NextFundingTime uint64                     `json:"next_funding_time"`
 	LastPrice       map[Market]*big.Int        `json:"last_price"`
@@ -118,15 +118,15 @@ func (db *InMemoryDatabase) GetAllOrders() []LimitOrder {
 }
 
 func (db *InMemoryDatabase) Add(order *LimitOrder) {
-	db.OrderMap[string(order.Signature)] = order
+	db.OrderMap[getIdFromLimitOrder(*order)] = order
 }
 
-func (db *InMemoryDatabase) Delete(signature []byte) {
-	deleteOrder(db, signature)
+func (db *InMemoryDatabase) Delete(id string) {
+	deleteOrder(db, id)
 }
 
-func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, signature []byte) {
-	limitOrder := db.OrderMap[string(signature)]
+func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, order Order) {
+	limitOrder := db.OrderMap[getIdFromOrder(order)]
 	if limitOrder.PositionType == "long" {
 		limitOrder.FilledBaseAssetQuantity.Add(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
 	}
@@ -135,7 +135,7 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, sig
 	}
 
 	if limitOrder.BaseAssetQuantity.Cmp(limitOrder.FilledBaseAssetQuantity) == 0 {
-		deleteOrder(db, signature)
+		deleteOrder(db, getIdFromLimitOrder(*limitOrder))
 	}
 }
 
@@ -277,8 +277,8 @@ func getNextHour() time.Time {
 	return nextHour
 }
 
-func deleteOrder(db *InMemoryDatabase, signature []byte) {
-	delete(db.OrderMap, string(signature))
+func deleteOrder(db *InMemoryDatabase, id string) {
+	delete(db.OrderMap, id)
 }
 
 func (db *InMemoryDatabase) GetOrderBookData() InMemoryDatabase {
