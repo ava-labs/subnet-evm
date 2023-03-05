@@ -198,6 +198,7 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 
 	db.TraderMap[trader].Positions[market].Size = size
 	db.TraderMap[trader].Positions[market].OpenNotional = openNotional
+	db.TraderMap[trader].Positions[market].LastPremiumFraction = big.NewInt(0)
 
 	if !isLiquidation {
 		db.TraderMap[trader].Positions[market].LiquidationThreshold = getLiquidationThreshold(size)
