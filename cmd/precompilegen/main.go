@@ -215,6 +215,12 @@ func precompilegen(c *cli.Context) error {
 		if err := os.WriteFile(configTestCodeOut, []byte(configTestCode), 0o600); err != nil {
 			utils.Fatalf("Failed to write generated test code: %v", err)
 		}
+
+		contractTestCode := bindedFiles.ContractTest
+		contractTestCodeOut := filepath.Join(outFlagStr, "contract_test.go")
+		if err := os.WriteFile(contractTestCodeOut, []byte(contractTestCode), 0o600); err != nil {
+			utils.Fatalf("Failed to write generated test code: %v", err)
+		}
 	}
 
 	fmt.Println("Precompile files generated successfully at: ", outFlagStr)

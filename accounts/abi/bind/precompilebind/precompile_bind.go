@@ -45,10 +45,11 @@ const (
 )
 
 type BindedFiles struct {
-	Contract   string
-	Config     string
-	Module     string
-	ConfigTest string
+	Contract     string
+	Config       string
+	Module       string
+	ConfigTest   string
+	ContractTest string
 }
 
 // PrecompileBind generates a Go binding for a precompiled contract. It returns config binding and contract binding.
@@ -58,6 +59,7 @@ func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []m
 	contractHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractGo)
 	moduleHook := createPrecompileHook(abifilename, tmplSourcePrecompileModuleGo)
 	configTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigTestGo)
+	contractTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractTestGo)
 
 	configBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, configHook)
 	if err != nil {
@@ -83,6 +85,12 @@ func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []m
 			return BindedFiles{}, fmt.Errorf("failed to generate config test binding: %w", err)
 		}
 		bindedFiles.ConfigTest = configTestBind
+
+		contractTestBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, contractTestHook)
+		if err != nil {
+			return BindedFiles{}, fmt.Errorf("failed to generate contract test binding: %w", err)
+		}
+		bindedFiles.ContractTest = contractTestBind
 	}
 
 	return bindedFiles, nil
