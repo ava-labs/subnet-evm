@@ -6,7 +6,6 @@ package limitorders
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strconv"
 	"strings"
 )
@@ -31,17 +30,17 @@ type OpenOrdersResponse struct {
 
 type OrderMin struct {
 	Market
-	Price *big.Int
-	Size  *big.Int
+	Price string
+	Size  string
 }
 
 type OrderForOpenOrders struct {
 	Market
-	Price      *big.Int
-	Size       *big.Int
-	FilledSize *big.Int
+	Price      string
+	Size       string
+	FilledSize string
 	Timestamp  uint64
-	Salt       *big.Int
+	Salt       string
 }
 
 func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryDatabase {
@@ -70,8 +69,8 @@ func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*O
 	for _, order := range allOrders {
 		orders = append(orders, OrderMin{
 			Market: order.Market,
-			Price:  order.Price,
-			Size:   order.GetUnFilledBaseAssetQuantity(),
+			Price:  order.Price.String(),
+			Size:   order.GetUnFilledBaseAssetQuantity().String(),
 		})
 	}
 
@@ -85,10 +84,10 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenO
 		if strings.ToLower(order.UserAddress) == strings.ToLower(trader) {
 			traderOrders = append(traderOrders, OrderForOpenOrders{
 				Market:     order.Market,
-				Price:      order.Price,
-				Size:       order.BaseAssetQuantity,
-				FilledSize: order.FilledBaseAssetQuantity,
-				Salt:       getOrderFromRawOrder(order.RawOrder).Salt,
+				Price:      order.Price.String(),
+				Size:       order.BaseAssetQuantity.String(),
+				FilledSize: order.FilledBaseAssetQuantity.String(),
+				Salt:       getOrderFromRawOrder(order.RawOrder).Salt.String(),
 			})
 		}
 	}
