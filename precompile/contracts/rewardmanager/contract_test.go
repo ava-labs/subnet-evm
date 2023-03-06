@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRewardManagerRun(t *testing.T) {
+func TestRun(t *testing.T) {
 	testAddr := common.HexToAddress("0x0123")
 
 	tests := map[string]testutils.PrecompileTest{
