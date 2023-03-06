@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 )
 
-func TestVerifyAllowlistAllowList(t *testing.T) {
+func TestVerify(t *testing.T) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
 		Contract:     CreateAllowListPrecompile(dummyAddr),
@@ -18,7 +18,7 @@ func TestVerifyAllowlistAllowList(t *testing.T) {
 	VerifyPrecompileWithAllowListTests(t, dummyModule, nil)
 }
 
-func TestEqualAllowList(t *testing.T) {
+func TestEqual(t *testing.T) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
 		Contract:     CreateAllowListPrecompile(dummyAddr),

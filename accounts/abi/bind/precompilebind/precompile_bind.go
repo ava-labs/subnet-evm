@@ -44,26 +44,48 @@ const (
 	readAllowListFuncKey = "readAllowList"
 )
 
+type BindedFiles struct {
+	Contract   string
+	Config     string
+	Module     string
+	ConfigTest string
+}
+
 // PrecompileBind generates a Go binding for a precompiled contract. It returns config binding and contract binding.
-func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang bind.Lang, libs map[string]string, aliases map[string]string, abifilename string) (string, string, string, error) {
+func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang bind.Lang, libs map[string]string, aliases map[string]string, abifilename string, generateTests bool) (BindedFiles, error) {
 	// create hooks
 	configHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigGo)
 	contractHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractGo)
 	moduleHook := createPrecompileHook(abifilename, tmplSourcePrecompileModuleGo)
+	configTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigTestGo)
 
 	configBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, configHook)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to generate config binding: %w", err)
+		return BindedFiles{}, fmt.Errorf("failed to generate config binding: %w", err)
 	}
 	contractBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, contractHook)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to generate contract binding: %w", err)
+		return BindedFiles{}, fmt.Errorf("failed to generate contract binding: %w", err)
 	}
 	moduleBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, moduleHook)
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to generate module binding: %w", err)
+		return BindedFiles{}, fmt.Errorf("failed to generate module binding: %w", err)
 	}
-	return configBind, contractBind, moduleBind, nil
+	bindedFiles := BindedFiles{
+		Contract: contractBind,
+		Config:   configBind,
+		Module:   moduleBind,
+	}
+
+	if generateTests {
+		configTestBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, configTestHook)
+		if err != nil {
+			return BindedFiles{}, fmt.Errorf("failed to generate config test binding: %w", err)
+		}
+		bindedFiles.ConfigTest = configTestBind
+	}
+
+	return bindedFiles, nil
 }
 
 // createPrecompileHook creates a bind hook for precompiled contracts.
