@@ -44,6 +44,8 @@ const (
 	readAllowListFuncKey = "readAllowList"
 )
 
+// BindedFiles contains the generated binding file contents.
+// This is used to return the contents in a expandable way.
 type BindedFiles struct {
 	Contract     string
 	Config       string

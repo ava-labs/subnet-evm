@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
@@ -65,7 +64,7 @@ func TestVerifyWithChainConfig(t *testing.T) {
 }
 
 func TestVerifyWithChainConfigAtNilTimestamp(t *testing.T) {
-	admins := []common.Address{allowlist.TestAdminAddr}
+	admins := []common.Address{{0}}
 	baseConfig := *SubnetEVMDefaultChainConfig
 	config := &baseConfig
 	config.PrecompileUpgrades = []PrecompileUpgrade{
