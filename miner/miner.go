@@ -33,7 +33,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
@@ -63,7 +63,7 @@ func (miner *Miner) SetEtherbase(addr common.Address) {
 	miner.worker.setEtherbase(addr)
 }
 
-func (miner *Miner) GenerateBlock(predicateContext *contract.PredicateContext) (*types.Block, error) {
+func (miner *Miner) GenerateBlock(predicateContext *precompileconfig.ProposerPredicateContext) (*types.Block, error) {
 	return miner.worker.commitNewWork(predicateContext)
 }
 

@@ -15,8 +15,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -92,6 +91,12 @@ func (b *Block) Accept(context.Context) error {
 // This ensures that any DB operations are performed atomically with marking the block as accepted.
 func (b *Block) handlePrecompileAccept(sharedMemoryWriter *sharedMemoryWriter) error {
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
+	// Short circuit early if there are no precompile accepters to execute
+	if len(rules.AccepterPrecompiles) == 0 {
+		return nil
+	}
+
+	// Read the receipts
 	receipts := rawdb.ReadReceipts(b.vm.chaindb, b.ethBlock.Hash(), b.ethBlock.NumberU64(), b.vm.chainConfig)
 	if receipts == nil {
 		return fmt.Errorf("failed to read receipts for accepted block %s, height %d", b.ethBlock.Hash(), b.ethBlock.NumberU64())
@@ -99,22 +104,12 @@ func (b *Block) handlePrecompileAccept(sharedMemoryWriter *sharedMemoryWriter) e
 
 	for txIndex, receipt := range receipts {
 		for _, log := range receipt.Logs {
-			_, ok := rules.ActivePrecompiles[log.Address]
+			accepter, ok := rules.AccepterPrecompiles[log.Address]
 			if !ok {
 				continue
 			}
 
-			module, ok := modules.GetPrecompileModuleByAddress(log.Address)
-			if !ok {
-				return fmt.Errorf("accepter accessed precompile config under address %s with no registered module", log.Address)
-			}
-
-			accepter, ok := module.Contract.(contract.Accepter)
-			if !ok {
-				continue
-			}
-
-			acceptCtx := &contract.AcceptContext{
+			acceptCtx := &precompileconfig.AcceptContext{
 				SnowCtx:      b.vm.ctx,
 				SharedMemory: sharedMemoryWriter,
 			}
@@ -171,17 +166,26 @@ func (b *Block) syntacticVerify() error {
 
 // Verify implements the snowman.Block interface
 func (b *Block) Verify(context.Context) error {
-	return b.verify(nil, true)
+	return b.verify(&precompileconfig.ProposerPredicateContext{
+		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+			SnowCtx: b.vm.ctx,
+		},
+		ProposerVMBlockCtx: nil,
+	}, true)
 }
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	precompileConfigs := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).ActivePrecompiles
+	precompilePredicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).ProposerPredicates
+	// Short circuit early if there are no precompile predicates to verify
+	if len(precompilePredicates) == 0 {
+		return false, nil
+	}
 
-	// Check if any of the transactions in the block list a precompile address in the access list.
+	// Check if any of the transactions in the block specify a precompile that enforces a predicate
 	for _, tx := range b.ethBlock.Transactions() {
 		for _, accessTuple := range tx.AccessList() {
-			if _, ok := precompileConfigs[accessTuple.Address]; ok {
+			if _, ok := precompilePredicates[accessTuple.Address]; ok {
 				log.Debug("Block verification requires proposerVM context", "block", b.ID(), "height", b.Height())
 				return true, nil
 			}
@@ -200,13 +204,18 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
 	}
 
-	return b.verify(proposerVMBlockCtx, true)
+	return b.verify(&precompileconfig.ProposerPredicateContext{
+		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+			SnowCtx: b.vm.ctx,
+		},
+		ProposerVMBlockCtx: proposerVMBlockCtx,
+	}, true)
 }
 
 // Verify the block is valid.
 // Enforces that the predicates are valid within [proposerVMBlockCtx].
 // Writes the block details to disk and the state to the trie manager iff writes=true.
-func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
+func (b *Block) verify(predicateContext *precompileconfig.ProposerPredicateContext, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
 	}
@@ -216,7 +225,7 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 	// been accepted by the network (so the predicate was validated by the network when the
 	// block was originally verified).
 	if b.vm.bootstrapped {
-		if err := b.verifyPredicates(proposerVMBlockCtx); err != nil {
+		if err := b.verifyPredicates(predicateContext); err != nil {
 			return fmt.Errorf("failed to verify predicates: %w", err)
 		}
 	}
@@ -234,12 +243,8 @@ func (b *Block) verify(proposerVMBlockCtx *block.Context, writes bool) error {
 }
 
 // verifyPredicates verifies the predicates in the block are valid according to proposerVMBlockCtx.
-func (b *Block) verifyPredicates(proposerVMBlockCtx *block.Context) error {
+func (b *Block) verifyPredicates(predicateCtx *precompileconfig.ProposerPredicateContext) error {
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
-	predicateCtx := &contract.PredicateContext{
-		SnowCtx:            b.vm.ctx,
-		ProposerVMBlockCtx: proposerVMBlockCtx,
-	}
 
 	for _, tx := range b.ethBlock.Transactions() {
 		if err := core.CheckPredicates(rules, predicateCtx, tx); err != nil {

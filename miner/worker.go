@@ -44,7 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -113,7 +113,7 @@ func (w *worker) setEtherbase(addr common.Address) {
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWork(predicateContext *contract.PredicateContext) (*types.Block, error) {
+func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredicateContext) (*types.Block, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
@@ -404,9 +404,14 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 // queue of the tx pool.
 func (w *worker) enforcePredicates(
 	rules params.Rules,
-	predicateContext *contract.PredicateContext,
+	predicateContext *precompileconfig.ProposerPredicateContext,
 	pending map[common.Address]types.Transactions,
 ) map[common.Address]types.Transactions {
+	// Short circuit early if there are no precompile predicates to verify and return the
+	// unmodified pending transactions.
+	if len(rules.PredicatePrecompiles) == 0 {
+		return pending
+	}
 	result := make(map[common.Address]types.Transactions, len(pending))
 	for addr, txs := range pending {
 		for i, tx := range txs {
