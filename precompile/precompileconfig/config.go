@@ -48,7 +48,6 @@ type PrecompilePredicater interface {
 	VerifyPredicate(predicateContext *PrecompilePredicateContext, storageSlots []byte) error
 }
 
-
 // ProposerPredicateContext is the context passed in to the ProposerPredicater interface to verify
 // a precompile predicate within a specific ProposerVM wrapper.
 type ProposerPredicateContext struct {
