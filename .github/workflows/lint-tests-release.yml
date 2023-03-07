@@ -48,14 +48,10 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      -
-        name: Docker Login
-        uses: docker/login-action@v2
+      - uses: docker/login-action@v2
           username: ${{ secrets.docker_username }}
           password: ${{ secrets.docker_pass }}
-      -
-        name: Docker Build and Push Image
-        run: PUSH_DOCKER_IMAGE=true ./scripts/build_image.sh
+      - run: PUSH_DOCKER_IMAGE=true ./scripts/build_image.sh
         shell: bash
       
   e2e_test:
