@@ -4,6 +4,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -12,6 +13,8 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
+
+var errNilProposerVMBlockCtxWithProposerPredicate = errors.New("engine cannot specify nil ProposerVM block context with non-empty proposer predicates")
 
 // CheckPredicates checks that all precompile predicates are satisfied within the current [predicateContext] for [tx]
 func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.ProposerPredicateContext, tx *types.Transaction) error {
@@ -52,6 +55,10 @@ func checkProposerPrecompilePredicates(rules params.Rules, predicateContext *pre
 	// Short circuit early if there are no precompile predicates to verify
 	if len(rules.ProposerPredicates) == 0 {
 		return nil
+	}
+	// If a proposer predicate is specified, reuqire that the ProposerVMBlockCtx is non-nil.
+	if predicateContext.ProposerVMBlockCtx == nil {
+		return errNilProposerVMBlockCtxWithProposerPredicate
 	}
 	precompilePredicates := rules.ProposerPredicates
 	// Track addresses that we've performed a predicate check for

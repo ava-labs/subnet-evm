@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -37,12 +38,12 @@ func (m *mockProposerPredicater) VerifyPredicate(predicateContext *precompilecon
 }
 
 type predicateCheckTest struct {
-	address                  common.Address
-	predicater               precompileconfig.PrecompilePredicater
-	proposerPredicater       precompileconfig.ProposerPredicater
-	accessList               types.AccessList
-	proposerPredicateContext precompileconfig.ProposerPredicateContext
-	expectedErr              error
+	address               common.Address
+	predicater            precompileconfig.PrecompilePredicater
+	proposerPredicater    precompileconfig.ProposerPredicater
+	accessList            types.AccessList
+	emptyProposerBlockCtx bool
+	expectedErr           error
 }
 
 func TestCheckPredicate(t *testing.T) {
@@ -147,6 +148,12 @@ func TestCheckPredicate(t *testing.T) {
 			}),
 			expectedErr: fmt.Errorf("unexpected bytes: 0x%x", common.Hash{2}.Bytes()),
 		},
+		"proposer predicate with empty proposer block ctx": {
+			address:               common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
+			proposerPredicater:    &mockProposerPredicater{predicateFunc: func(_ *precompileconfig.ProposerPredicateContext, b []byte) error { return nil }},
+			emptyProposerBlockCtx: true,
+			expectedErr:           errNilProposerVMBlockCtxWithProposerPredicate,
+		},
 	} {
 		test := test
 		t.Run(name, func(t *testing.T) {
@@ -163,7 +170,11 @@ func TestCheckPredicate(t *testing.T) {
 			tx := types.NewTx(&types.DynamicFeeTx{
 				AccessList: test.accessList,
 			})
-			err := CheckPredicates(rules, &test.proposerPredicateContext, tx)
+			predicateContext := &precompileconfig.ProposerPredicateContext{}
+			if !test.emptyProposerBlockCtx {
+				predicateContext.ProposerVMBlockCtx = &block.Context{}
+			}
+			err := CheckPredicates(rules, predicateContext, tx)
 			if test.expectedErr == nil {
 				require.NoError(t, err)
 			} else {
