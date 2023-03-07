@@ -142,6 +142,9 @@ type UpgradeConfig struct {
 	// forks must be present or upgradeBytes will be rejected.
 	NetworkUpgrades *NetworkUpgrades `json:"networkUpgrades,omitempty"`
 
+	// Config for modifying state as a network upgrade.
+	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
+
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
 }
