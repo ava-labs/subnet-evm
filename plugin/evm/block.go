@@ -150,8 +150,10 @@ func (b *Block) syntacticVerify() error {
 
 // Verify implements the snowman.Block interface
 func (b *Block) Verify(context.Context) error {
-	return b.verify(&precompileconfig.PredicateContext{
-		SnowCtx:            b.vm.ctx,
+	return b.verify(&precompileconfig.ProposerPredicateContext{
+		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+			SnowCtx: b.vm.ctx,
+		},
 		ProposerVMBlockCtx: nil,
 	}, true)
 }
@@ -186,8 +188,10 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 		log.Debug("Verifying block without context", "block", b.ID(), "height", b.Height())
 	}
 
-	return b.verify(&precompileconfig.PredicateContext{
-		SnowCtx:            b.vm.ctx,
+	return b.verify(&precompileconfig.ProposerPredicateContext{
+		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+			SnowCtx: b.vm.ctx,
+		},
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}, true)
 }
@@ -195,7 +199,7 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 // Verify the block is valid.
 // Enforces that the predicates are valid within [proposerVMBlockCtx].
 // Writes the block details to disk and the state to the trie manager iff writes=true.
-func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writes bool) error {
+func (b *Block) verify(predicateContext *precompileconfig.ProposerPredicateContext, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
 		return fmt.Errorf("syntactic block verification failed: %w", err)
 	}
@@ -223,7 +227,7 @@ func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writ
 }
 
 // verifyPredicates verifies the predicates in the block are valid according to proposerVMBlockCtx.
-func (b *Block) verifyPredicates(predicateCtx *precompileconfig.PredicateContext) error {
+func (b *Block) verifyPredicates(predicateCtx *precompileconfig.ProposerPredicateContext) error {
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 
 	for _, tx := range b.ethBlock.Transactions() {

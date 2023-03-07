@@ -113,7 +113,7 @@ func (w *worker) setEtherbase(addr common.Address) {
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateContext) (*types.Block, error) {
+func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredicateContext) (*types.Block, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
@@ -404,7 +404,7 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 // queue of the tx pool.
 func (w *worker) enforcePredicates(
 	rules params.Rules,
-	predicateContext *precompileconfig.PredicateContext,
+	predicateContext *precompileconfig.ProposerPredicateContext,
 	pending map[common.Address]types.Transactions,
 ) map[common.Address]types.Transactions {
 	// Short circuit early if there are no precompile predicates to verify and return the

@@ -30,25 +30,46 @@ type Config interface {
 	Verify() error
 }
 
-// PredicateContext provides context to stateful precompile predicates
-type PredicateContext struct {
+// PredicateContext is the context passed in to the Predicater interface.
+type PrecompilePredicateContext struct {
 	SnowCtx *snow.Context
+}
+
+// Predicater is an optional interface for StatefulPrecompileContracts to implement.
+// If implemented, the predicate will be enforced on every transaction in a block, prior to
+// the blcok's execution.
+// If VerifyPredicate returns an error, the block will fail verification with no further processing.
+// WARNING: If you are implementing a custom precompile, beware that subnet-evm
+// will not maintain backwards compatibility of this interface and your code should not
+// rely on this. Designed for use only by precompiles that ship with subnet-evm.
+type PrecompilePredicater interface {
+	VerifyPredicate(predicateContext *PrecompilePredicateContext, storageSlots []byte) error
+}
+
+
+// ProposerPredicateContext is the context passed in to the ProposerPredicater interface to verify
+// a precompile predicate within a specific ProposerVM wrapper.
+type ProposerPredicateContext struct {
+	// Embed the general precompile predicate context in the proposer predicate context for the
+	// context provided to precompiles that DO NOT require the ProposerVM Block Context.
+	PrecompilePredicateContext
 	// Note: ProposerVMBlockCtx may be nil if the Snowman Consensus Engine calls BuildBlock or Verify
 	// instead of BuildBlockWithContext or VerifyWithContext.
 	// In this case, it is up to the precompile to determine if a nil ProposerVMBlockCtx is valid.
 	ProposerVMBlockCtx *block.Context
 }
 
-// Predicater is an optional interface for StatefulPrecompiledContracts to implement.
-// If implemented, the predicate will be enforced on every transaction in a block, prior to the block's execution.
+// EnginePredicater is an optional interface for StatefulPrecompiledContracts to implement.
+// If implemented, the predicate will be enforced on every transaction in a block, prior to
+// the block's execution.
 // If VerifyPredicate returns an error, the block will fail verification with no further processing.
 // Note: ProposerVMBlockCtx may be nil if the engine does not specify it. In this case,
 // it's up to the precompile to determine if a nil ProposerVMBlockCtx is valid.
 // WARNING: If you are implementing a custom precompile, beware that subnet-evm
 // will not maintain backwards compatibility of this interface and your code should not
 // rely on this. Designed for use only by precompiles that ship with subnet-evm.
-type Predicater interface {
-	VerifyPredicate(predicateContext *PredicateContext, storageSlots []byte) error
+type ProposerPredicater interface {
+	VerifyPredicate(proposerPredicateContext *ProposerPredicateContext, storageSlots []byte) error
 }
 
 // Accepter is an optional interface for StatefulPrecompiledContracts to implement.
