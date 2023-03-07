@@ -15,33 +15,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
- var (
+var (
 	_ precompileconfig.PrecompilePredicater = (*mockPredicater)(nil)
-	_ precompileconfig.ProposerPredicater = (*mockProposerPredicater)(nil)
- )
+	_ precompileconfig.ProposerPredicater   = (*mockProposerPredicater)(nil)
+)
 
-	type mockPredicater struct {
+type mockPredicater struct {
 	predicateFunc func(*precompileconfig.PrecompilePredicateContext, []byte) error
 }
 
-func (m *mockPredicater) VerifyPredicate(predicateContext *precompileconfig.PrecompilePredicateContext, b []byte) error { return m.predicateFunc(predicateContext, b) }
-
+func (m *mockPredicater) VerifyPredicate(predicateContext *precompileconfig.PrecompilePredicateContext, b []byte) error {
+	return m.predicateFunc(predicateContext, b)
+}
 
 type mockProposerPredicater struct {
 	predicateFunc func(*precompileconfig.ProposerPredicateContext, []byte) error
 }
 
-func (m *mockProposerPredicater) VerifyPredicate(predicateContext *precompileconfig.ProposerPredicateContext, b []byte) error { return m.predicateFunc(predicateContext, b) }
-
-
+func (m *mockProposerPredicater) VerifyPredicate(predicateContext *precompileconfig.ProposerPredicateContext, b []byte) error {
+	return m.predicateFunc(predicateContext, b)
+}
 
 type predicateCheckTest struct {
-	address common.Address
-	predicater precompileconfig.PrecompilePredicater
-	proposerPredicater precompileconfig.ProposerPredicater
-	accessList types.AccessList
+	address                  common.Address
+	predicater               precompileconfig.PrecompilePredicater
+	proposerPredicater       precompileconfig.ProposerPredicater
+	accessList               types.AccessList
 	proposerPredicateContext precompileconfig.ProposerPredicateContext
-	expectedErr error
+	expectedErr              error
 }
 
 func TestCheckPredicate(t *testing.T) {
@@ -61,13 +62,13 @@ func TestCheckPredicate(t *testing.T) {
 			expectedErr: nil,
 		},
 		"proposer predicate, no access list passes": {
-			address: common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
+			address:            common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
 			proposerPredicater: &mockProposerPredicater{predicateFunc: func(*precompileconfig.ProposerPredicateContext, []byte) error { return nil }},
-			expectedErr: nil,
+			expectedErr:        nil,
 		},
 		"predicate, no access list passes": {
-			address: common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
-			predicater: &mockPredicater{predicateFunc: func(*precompileconfig.PrecompilePredicateContext, []byte) error { return nil }},
+			address:     common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
+			predicater:  &mockPredicater{predicateFunc: func(*precompileconfig.PrecompilePredicateContext, []byte) error { return nil }},
 			expectedErr: nil,
 		},
 		"predicate with valid access list passes": {
@@ -78,7 +79,7 @@ func TestCheckPredicate(t *testing.T) {
 				} else {
 					return fmt.Errorf("unexpected bytes: 0x%x", b)
 				}
-			 }},
+			}},
 			accessList: types.AccessList([]types.AccessTuple{
 				{
 					Address: common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
@@ -116,7 +117,7 @@ func TestCheckPredicate(t *testing.T) {
 				} else {
 					return fmt.Errorf("unexpected bytes: 0x%x", b)
 				}
-			 }},
+			}},
 			accessList: types.AccessList([]types.AccessTuple{
 				{
 					Address: common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
@@ -157,7 +158,7 @@ func TestCheckPredicate(t *testing.T) {
 			if test.predicater != nil {
 				rules.PredicatePrecompiles[test.address] = test.predicater
 			}
-			
+
 			// Specify only the access list, since this test should not depend on any other values
 			tx := types.NewTx(&types.DynamicFeeTx{
 				AccessList: test.accessList,
