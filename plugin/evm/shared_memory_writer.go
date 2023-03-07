@@ -6,10 +6,10 @@ package evm
 import (
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
-var _ contract.SharedMemoryWriter = &sharedMemoryWriter{}
+var _ precompileconfig.SharedMemoryWriter = &sharedMemoryWriter{}
 
 type sharedMemoryWriter struct {
 	requests map[ids.ID]*atomic.Requests

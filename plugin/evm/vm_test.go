@@ -565,11 +565,11 @@ func TestBuildEthTxBlock(t *testing.T) {
 // and the head of a longer chain (block D) does not corrupt the
 // canonical chain.
 //
-//	 A
-//	/ \
-//	B  C
-//	   |
-//	   D
+//	  A
+//	 / \
+//	B   C
+//	    |
+//	    D
 func TestSetPreferenceRace(t *testing.T) {
 	// Create two VMs which will agree on block A and then
 	// build the two distinct preferred chains above
