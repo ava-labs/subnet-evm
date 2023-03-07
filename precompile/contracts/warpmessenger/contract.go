@@ -6,6 +6,7 @@ package warp
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -16,6 +17,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	_ "embed"
@@ -71,11 +73,11 @@ var (
 
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
 type WarpMessage struct {
-	OriginChainID       [32]byte
-	OriginSenderAddress [32]byte
-	DestinationChainID  [32]byte
-	DestinationAddress  [32]byte
-	Payload             []byte
+	OriginChainID       [32]byte `serialize:"true"`
+	OriginSenderAddress [32]byte `serialize:"true"`
+	DestinationChainID  [32]byte `serialize:"true"`
+	DestinationAddress  [32]byte `serialize:"true"`
+	Payload             []byte   `serialize:"true"`
 }
 
 type GetVerifiedWarpMessageOutput struct {
@@ -287,6 +289,9 @@ func PackSendWarpMessage(inputStruct SendWarpMessageInput) ([]byte, error) {
 }
 
 func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	snowCtx := accessibleState.GetSnowContext()
+	log.Warn("Sending warp message called", "nodeID", snowCtx.NodeID, "pk", snowCtx.PublicKey, "signerNIL", snowCtx.WarpSigner == nil)
+	log.Error("TEST SENDING")
 	if remainingGas, err = contract.DeductGas(suppliedGas, SendWarpMessageGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -301,7 +306,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		return nil, remainingGas, err
 	}
 
-	message := &WarpMessage{
+	message := WarpMessage{
 		OriginChainID:       accessibleState.GetSnowContext().ChainID,
 		OriginSenderAddress: caller.Hash(),
 		DestinationChainID:  inputStruct.DestinationChainID,
@@ -310,10 +315,11 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	}
 
 	// Marshal
-	data, err := Codec.Marshal(Version, message)
+	data, err := Codec.Marshal(Version, &message)
 	if err != nil {
 		return nil, remainingGas, err
 	}
+	log.Warn("TESTTT ADDING LOG WITH PAYLOAD", "payload", hex.EncodeToString(message.Payload), "data", hex.EncodeToString(data), "dataLength", len(data))
 
 	accessibleState.GetStateDB().AddLog(
 		ContractAddress,
