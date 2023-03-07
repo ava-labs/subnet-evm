@@ -160,7 +160,7 @@ func (b *Block) Verify(context.Context) error {
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	precompilePredicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).PredicatePrecompiles
+	precompilePredicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).ProposerPredicates
 	// Short circuit early if there are no precompile predicates to verify
 	if len(precompilePredicates) == 0 {
 		return false, nil
