@@ -155,6 +155,11 @@ func (c *ChainConfig) verifyStateUpgrades() error {
 	var previousUpgradeTimestamp *big.Int
 	for i, upgrade := range c.StateUpgrades {
 		upgradeTimestamp := upgrade.BlockTimestamp
+		// Verify the upgrade's timestamp is greater than 0 (to avoid confusion with genesis).
+		if upgradeTimestamp.Cmp(common.Big0) <= 0 {
+			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) must be greater than 0", i, upgradeTimestamp)
+		}
+
 		// Verify specified timestamps are strictly monotonically increasing.
 		if previousUpgradeTimestamp != nil && upgradeTimestamp.Cmp(previousUpgradeTimestamp) <= 0 {
 			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) <= previous timestamp (%v)", i, upgradeTimestamp, previousUpgradeTimestamp)

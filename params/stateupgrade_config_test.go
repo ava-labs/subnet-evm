@@ -40,12 +40,19 @@ func TestVerifyStateUpgrades(t *testing.T) {
 			expectedError: "config block timestamp (1) <= previous timestamp (1)",
 		},
 		{
-			name: "upgrade block timestamp is decreases",
+			name: "upgrade block timestamp decreases",
 			upgrades: []StateUpgrade{
 				{BlockTimestamp: common.Big2, StateUpgradeAccounts: modifiedAccounts},
 				{BlockTimestamp: common.Big1, StateUpgradeAccounts: modifiedAccounts},
 			},
 			expectedError: "config block timestamp (1) <= previous timestamp (2)",
+		},
+		{
+			name: "upgrade block timestamp is zero",
+			upgrades: []StateUpgrade{
+				{BlockTimestamp: common.Big0, StateUpgradeAccounts: modifiedAccounts},
+			},
+			expectedError: "config block timestamp (0) must be greater than 0",
 		},
 	}
 	for _, tt := range tests {
