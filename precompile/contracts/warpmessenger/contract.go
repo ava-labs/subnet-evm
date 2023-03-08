@@ -151,7 +151,7 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 			DefaultQuorumNumerator,
 			DefaultQuorumDenominator)
 		if err != nil {
-			log.Warn("TEST FAILED SIGNATURE VERIFY PREDICATE")
+			log.Warn("TEST FAILED SIGNATURE VERIFY PREDICATE", "err", err.Error())
 			return err
 		}
 
@@ -256,13 +256,18 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if !exists {
 		return nil, remainingGas, ErrMissingStorageSlots
 	}
-	log.Warn("TEST GETTING VERIFIED MESSAGE GOT STORAGE SLOTS")
-	var signedMessages [][]byte
-	err = rlp.DecodeBytes(storageSlots, &signedMessages)
+
+	sanitizedSlots, err := sanitizeStorageSlots(storageSlots)
 	if err != nil {
 		return nil, remainingGas, err
 	}
-
+	log.Warn("TEST GETTING VERIFIED MESSAGE GOT STORAGE SLOTS")
+	var signedMessages [][]byte
+	err = rlp.DecodeBytes(sanitizedSlots, &signedMessages)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	log.Warn("TEST FINISHED DECODING SIGNED MSGS", "count", len(signedMessages))
 	// Check that the message index exists.
 	if !inputIndex.IsInt64() {
 		return nil, remainingGas, ErrInvalidMessageIndex
@@ -278,6 +283,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if err != nil {
 		return nil, remainingGas, err
 	}
+	log.Warn("TEST PARSED MESSAGE")
 	var warpMessage WarpMessage
 	_, err = Codec.Unmarshal(message.Payload, &warpMessage)
 	if err != nil {
