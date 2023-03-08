@@ -303,7 +303,7 @@ func (n *network) CrossChainAppResponse(ctx context.Context, respondingChainID i
 // expects the deadline to not have been passed
 func (n *network) AppRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, deadline time.Time, request []byte) error {
 	log.Debug("received AppRequest from node", "nodeID", nodeID, "requestID", requestID, "requestLen", len(request))
-
+	log.Warn("TEST GOT APP REQUEST", "nodeID", nodeID, "requestID", requestID, "requestLen", len(request))
 	var req message.Request
 	if _, err := n.codec.Unmarshal(request, &req); err != nil {
 		log.Debug("failed to unmarshal app request", "nodeID", nodeID, "requestID", requestID, "requestLen", len(request), "err", err)
@@ -321,7 +321,7 @@ func (n *network) AppRequest(ctx context.Context, nodeID ids.NodeID, requestID u
 	// passed into n.AppSender.SendAppResponse below
 	handleCtx, cancel := context.WithDeadline(context.Background(), bufferedDeadline)
 	defer cancel()
-
+	log.Warn("TEST HANDLING APP REQUEST")
 	responseBytes, err := req.Handle(handleCtx, nodeID, requestID, n.appRequestHandler)
 	switch {
 	case err != nil && err != context.DeadlineExceeded:

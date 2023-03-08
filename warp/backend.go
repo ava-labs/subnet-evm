@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var _ WarpBackend = &warpBackend{}
@@ -46,6 +47,7 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, signatureCacheS
 
 func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *avalancheWarp.UnsignedMessage) error {
 	messageID := hashing.ComputeHash256Array(unsignedMessage.Bytes())
+	log.Warn("TEST TO ADD MESSAGE", "w", w, "nodeID", w.snowCtx.NodeID.String(), "messageID", ids.ID(messageID).String(), "chain", w.snowCtx.ChainID.String())
 
 	// In the case when a node restarts, and possibly changes its bls key, the cache gets emptied but the database does not.
 	// So to avoid having incorrect signatures saved in the database after a bls key change, we save the full message in the database.
@@ -62,16 +64,20 @@ func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *avalanche
 
 	copy(signature[:], sig)
 	w.signatureCache.Put(messageID, signature)
+	log.Warn("TEST FINISHED ADDING MESSAGE", "w", w, "nodeID", w.snowCtx.NodeID.String(), "messageID", ids.ID(messageID).String())
+
 	return nil
 }
 
 func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([bls.SignatureLen]byte, error) {
+	log.Warn("TEST TO GET MESSAGE", "w", w, "nodeID", w.snowCtx.NodeID.String(), "messageID", messageID.String())
 	if sig, ok := w.signatureCache.Get(messageID); ok {
 		return sig, nil
 	}
 
 	unsignedMessageBytes, err := w.db.Get(messageID[:])
 	if err != nil {
+		log.Warn("TEST GETTING MESSAGE", "w", w, "nodeID", w.snowCtx.NodeID.String(), "messageID", messageID.String(), "chain", w.snowCtx.ChainID.String())
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
 	}
 
@@ -88,5 +94,6 @@ func (w *warpBackend) GetSignature(ctx context.Context, messageID ids.ID) ([bls.
 
 	copy(signature[:], sig)
 	w.signatureCache.Put(messageID, signature)
+	log.Warn("TEST SUCCESSFULLY GOT MESSAGE", "w", w, "nodeID", w.snowCtx.NodeID.String(), "messageID", messageID.String())
 	return signature, nil
 }

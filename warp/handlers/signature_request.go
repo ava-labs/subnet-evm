@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/handlers/stats"
@@ -42,6 +43,7 @@ func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, s
 // Returns empty response if signature is not found
 // Assumes ctx is active
 func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error) {
+	log.Warn("TEST HANDLING SIGNATURE REQUEST", "nodeID", nodeID.String(), "messageID", signatureRequest.MessageID.String())
 	startTime := time.Now()
 	s.stats.IncSignatureRequest()
 
@@ -49,12 +51,17 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	defer func() {
 		s.stats.UpdateSignatureRequestTime(time.Since(startTime))
 	}()
-
 	signature, err := s.backend.GetSignature(ctx, signatureRequest.MessageID)
 	if err != nil {
 		log.Debug("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
 		s.stats.IncSignatureMiss()
-		return nil, nil
+		response := message.SignatureResponse{Signature: [bls.SignatureLen]byte{}}
+		responseBytes, err := s.codec.Marshal(message.Version, &response)
+		if err != nil {
+			log.Warn("could not marshal SignatureResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "err", err)
+			return nil, nil
+		}
+		return responseBytes, nil
 	}
 
 	s.stats.IncSignatureHit()

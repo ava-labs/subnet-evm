@@ -6,7 +6,6 @@ package warp
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -95,7 +94,24 @@ type warpContract struct {
 	contract.StatefulPrecompiledContract
 }
 
+// sanitizeStorageSlots converts a slice of common.Hash to a byte array and strips any leading zero bytes.
+// Invariant: If it exists, the first element of input is not all zeros.
+func sanitizeStorageSlots(input []byte) ([]byte, error) {
+	// Count the number of leading zeros
+	leadingZeroCount := 0
+	for leadingZeroCount < len(input) {
+		if input[leadingZeroCount] != 0x00 {
+			break
+		}
+		leadingZeroCount++
+	}
+
+	// Strip off the leading zeros
+	return input[leadingZeroCount:], nil
+}
+
 func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
+	log.Warn("TEST WARP PREDICATE START")
 	// The proposer VM block context is required to verify aggregate signatures.
 	if predicateContext.ProposerVMBlockCtx == nil {
 		return ErrMissingProposerVMBlockCtx
@@ -107,9 +123,14 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 		return nil
 	}
 
+	sanitizedSlots, err := sanitizeStorageSlots(storageSlots)
+	if err != nil {
+		return err
+	}
+
 	// RLP decode the list of signed messages.
 	var messagesBytes [][]byte
-	err := rlp.DecodeBytes(storageSlots, &messagesBytes)
+	err = rlp.DecodeBytes(sanitizedSlots, &messagesBytes)
 	if err != nil {
 		return err
 	}
@@ -130,10 +151,12 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 			DefaultQuorumNumerator,
 			DefaultQuorumDenominator)
 		if err != nil {
+			log.Warn("TEST FAILED SIGNATURE VERIFY PREDICATE")
 			return err
 		}
 
 	}
+	log.Warn("TEST WARP PREDICATE PASSED")
 
 	return nil
 }
@@ -216,6 +239,7 @@ func PackGetVerifiedWarpMessageOutput(outputStruct GetVerifiedWarpMessageOutput)
 }
 
 func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	log.Warn("TEST GETTING VERIFIED MESSAGE")
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetVerifiedWarpMessageGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -232,7 +256,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if !exists {
 		return nil, remainingGas, ErrMissingStorageSlots
 	}
-
+	log.Warn("TEST GETTING VERIFIED MESSAGE GOT STORAGE SLOTS")
 	var signedMessages [][]byte
 	err = rlp.DecodeBytes(storageSlots, &signedMessages)
 	if err != nil {
@@ -269,6 +293,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if err != nil {
 		return nil, remainingGas, err
 	}
+	log.Warn("TEST GETTING VERIFIED MESSAGE FINISHED")
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
@@ -289,9 +314,6 @@ func PackSendWarpMessage(inputStruct SendWarpMessageInput) ([]byte, error) {
 }
 
 func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	snowCtx := accessibleState.GetSnowContext()
-	log.Warn("Sending warp message called", "nodeID", snowCtx.NodeID, "pk", snowCtx.PublicKey, "signerNIL", snowCtx.WarpSigner == nil)
-	log.Error("TEST SENDING")
 	if remainingGas, err = contract.DeductGas(suppliedGas, SendWarpMessageGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -319,7 +341,6 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	log.Warn("TESTTT ADDING LOG WITH PAYLOAD", "payload", hex.EncodeToString(message.Payload), "data", hex.EncodeToString(data), "dataLength", len(data))
 
 	accessibleState.GetStateDB().AddLog(
 		ContractAddress,
