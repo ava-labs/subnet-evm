@@ -6,6 +6,7 @@ package warp
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -299,7 +300,12 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	log.Warn("TEST GETTING VERIFIED MESSAGE FINISHED")
+	log.Warn("TEST GETTING VERIFIED MESSAGE FINISHED",
+		"originChainID", hex.EncodeToString(warpMessage.OriginChainID[:]),
+		"originSenderAddress", hex.EncodeToString(warpMessage.OriginSenderAddress[:]),
+		"destinationChainID", hex.EncodeToString(warpMessage.DestinationChainID[:]),
+		"destinationAddress", hex.EncodeToString(warpMessage.DestinationAddress[:]),
+		"payload", hex.EncodeToString(warpMessage.Payload[:]))
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
