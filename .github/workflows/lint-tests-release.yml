@@ -47,10 +47,8 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/login-action@v2
-          username: ${{ secrets.docker_username }}
-          password: ${{ secrets.docker_pass }}
+      - run: echo ${{ secrets.docker_pass }} | docker login --username ${{ secrets.docker_username }} --password-stdin
+        shell: bash
       - run: PUSH_DOCKER_IMAGE=true ./scripts/build_image.sh
         shell: bash
       
