@@ -79,8 +79,8 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 			lop.contractEventProcessor.ProcessEvents(logs)
 			log.Info("ListenAndProcessTransactions", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs), "err", err)
 
-			fromBlock = toBlock.Add(fromBlock, big.NewInt(1))
 			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
+			fromBlock = fromBlock.Add(toBlock, big.NewInt(1))
 		}
 	}
 
