@@ -305,7 +305,8 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		"originSenderAddress", hex.EncodeToString(warpMessage.OriginSenderAddress[:]),
 		"destinationChainID", hex.EncodeToString(warpMessage.DestinationChainID[:]),
 		"destinationAddress", hex.EncodeToString(warpMessage.DestinationAddress[:]),
-		"payload", hex.EncodeToString(warpMessage.Payload[:]))
+		"payload", hex.EncodeToString(warpMessage.Payload[:]),
+		"gasLeft", remainingGas)
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
