@@ -45,6 +45,7 @@ type LimitOrder struct {
 	UserAddress             string   `json:"user_address"`
 	BaseAssetQuantity       *big.Int `json:"base_asset_quantity"`
 	FilledBaseAssetQuantity *big.Int `json:"filled_base_asset_quantity"`
+	Salt                    *big.Int `json:"salt"`
 	Price                   *big.Int `json:"price"`
 	Status                  Status   `json:"status"`
 	Signature               []byte   `json:"signature"`
@@ -74,7 +75,7 @@ type LimitOrderDatabase interface {
 	GetAllOrders() []LimitOrder
 	Add(order *LimitOrder)
 	Delete(id string)
-	UpdateFilledBaseAssetQuantity(quantity *big.Int, order Order)
+	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId string)
 	GetLongOrders(market Market) []LimitOrder
 	GetShortOrders(market Market) []LimitOrder
 	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool)
@@ -121,12 +122,12 @@ func (db *InMemoryDatabase) Add(order *LimitOrder) {
 	db.OrderMap[getIdFromLimitOrder(*order)] = order
 }
 
-func (db *InMemoryDatabase) Delete(id string) {
-	deleteOrder(db, id)
+func (db *InMemoryDatabase) Delete(orderId string) {
+	deleteOrder(db, orderId)
 }
 
-func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, order Order) {
-	limitOrder := db.OrderMap[getIdFromOrder(order)]
+func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId string) {
+	limitOrder := db.OrderMap[orderId]
 	if limitOrder.PositionType == "long" {
 		limitOrder.FilledBaseAssetQuantity.Add(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
 	}
@@ -135,7 +136,7 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, ord
 	}
 
 	if limitOrder.BaseAssetQuantity.Cmp(limitOrder.FilledBaseAssetQuantity) == 0 {
-		deleteOrder(db, getIdFromLimitOrder(*limitOrder))
+		deleteOrder(db, orderId)
 	}
 }
 
@@ -291,4 +292,8 @@ func getLiquidationThreshold(size *big.Int) *big.Int {
 	threshold := big.NewInt(0).Add(maxLiquidationSize, big.NewInt(1))
 	liquidationThreshold := utils.BigIntMax(threshold, minSizeRequirement)
 	return big.NewInt(0).Mul(liquidationThreshold, big.NewInt(int64(size.Sign()))) // same sign as size
+}
+
+func getIdFromLimitOrder(order LimitOrder) string {
+	return order.UserAddress + order.Salt.String()
 }
