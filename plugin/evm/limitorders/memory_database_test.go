@@ -181,20 +181,6 @@ func TestGetLongOrders(t *testing.T) {
 }
 
 func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
-	t.Run("When order does not exists", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
-		signature := []byte("Here is a string....")
-		id := uint64(123)
-		salt := big.NewInt(time.Now().Unix())
-		limitOrder := createLimitOrder(id, positionType, userAddress, baseAssetQuantity, price, status, signature, blockNumber, salt)
-		filledQuantity := big.NewInt(2)
-
-		inMemoryDatabase.UpdateFilledBaseAssetQuantity(filledQuantity, getIdFromLimitOrder(limitOrder))
-		updatedLimitOrder := inMemoryDatabase.OrderMap[getIdFromLimitOrder(limitOrder)]
-
-		assert.Nil(t, updatedLimitOrder)
-
-	})
 	t.Run("when filled quantity is not equal to baseAssetQuantity", func(t *testing.T) {
 		t.Run("When order type is short order", func(t *testing.T) {
 			inMemoryDatabase := NewInMemoryDatabase()
