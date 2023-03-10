@@ -6,26 +6,7 @@ import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import { ECDSAUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import { EIP712Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
-interface IOrderBook {
-    struct Order {
-        uint256 ammIndex;
-        address trader;
-        int256 baseAssetQuantity;
-        uint256 price;
-        uint256 salt;
-    }
-
-    enum OrderStatus {
-        Invalid,
-        Placed,
-        Filled,
-        Cancelled
-    }
-
-    function executeMatchedOrders(Order[2] memory orders, bytes[2] memory signatures, int256 fillAmount) external;
-    function executeFundingPayment() external;
-    function getLastTradePrices() external view returns(uint[] memory lastTradePrices);
-}
+import { IOrderBook } from "./interfaces/IOrderBook.sol";
 
 contract OrderBook is IOrderBook, EIP712Upgradeable {
     using SafeCast for uint256;
@@ -45,10 +26,6 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         int256 size;
         uint256 openNotional;
     }
-
-    event OrderPlaced(address indexed trader, Order order, bytes signature);
-    event OrderCancelled(address indexed trader, Order order);
-    event OrdersMatched(Order[2] orders, bytes[2] signatures, uint256 fillAmount, address relayer);
 
     // following vars are used to mock clearingHouse
     // ammIndex => address => Position
@@ -147,7 +124,10 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         emit OrderCancelled(order.trader, order);
     }
 
-    function executeFundingPayment() external {}
+    /**
+     * @dev is a no-op here but works in the implementation in the protocol repo
+    */
+    function settleFunding() external {}
 
     /**
     @dev assuming one order is in liquidation zone and other is out of it

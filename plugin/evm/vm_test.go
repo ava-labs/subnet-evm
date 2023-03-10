@@ -210,8 +210,8 @@ func GenesisVM(t *testing.T,
 	appSender := &engCommon.SenderTest{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
-	fileLocation := "../../contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json"
-	limitorders.SetContractFilesLocation(fileLocation, fileLocation, fileLocation)
+	// fileLocation := "../../contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json"
+	// limitorders.SetContractFilesLocation(fileLocation, fileLocation, fileLocation)
 	if err := vm.Initialize(
 		context.Background(),
 		ctx,

@@ -1,7 +1,6 @@
 package limitorders
 
 import (
-	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -11,10 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
-
-var orderBookTestContractFileLocation = "../../../contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json"
-var marginAccountTestContractFileLocation = "../../../contract-examples/artifacts/contracts/hubble-v2/MarginAccount.sol/MarginAccount.json"
-var clearingHouseTestContractFileLocation = "../../../contract-examples/artifacts/contracts/hubble-v2/ClearingHouse.sol/ClearingHouse.json"
 
 func TestProcessEvents(t *testing.T) {
 	t.Run("when events are from orderbook contract", func(t *testing.T) {
@@ -32,7 +27,7 @@ func TestProcessEvents(t *testing.T) {
 	t.Run("it sorts events by blockNumber and executes in order", func(t *testing.T) {
 		db := NewInMemoryDatabase()
 		cep := newcep(t, db)
-		orderBookABI := getABIfromJson(orderBookTestContractFileLocation)
+		orderBookABI := getABIfromJson(orderBookAbi)
 
 		traderAddress := common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 		ammIndex := big.NewInt(0)
@@ -82,7 +77,7 @@ func TestProcessEvents(t *testing.T) {
 		blockNumber := uint64(12)
 
 		//MarginAccount Contract log
-		marginAccountABI := getABIfromJson(marginAccountTestContractFileLocation)
+		marginAccountABI := getABIfromJson(marginAccountAbi)
 		marginAccountEvent := getEventFromABI(marginAccountABI, "MarginAdded")
 		marginAccountEventTopics := []common.Hash{marginAccountEvent.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(collateral)))}
 		marginAdded := multiplyBasePrecision(big.NewInt(100))
@@ -130,14 +125,14 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	salt := big.NewInt(1675239557437)
 	signature := []byte("signature")
 	order := getOrder(ammIndex, traderAddress, baseAssetQuantity, price, salt)
-	orderBookABI := getABIfromJson(orderBookTestContractFileLocation)
+	orderBookABI := getABIfromJson(orderBookAbi)
 	orderBookEvent := getEventFromABI(orderBookABI, "OrderPlaced")
 	orderPlacedEventData, _ := orderBookEvent.Inputs.NonIndexed().Pack(order, signature)
 	orderBookEventTopics := []common.Hash{orderBookEvent.ID, traderAddress.Hash()}
 	orderBookLog := getEventLog(OrderBookContractAddress, orderBookEventTopics, orderPlacedEventData, blockNumber)
 
 	//MarginAccount Contract log
-	marginAccountABI := getABIfromJson(marginAccountTestContractFileLocation)
+	marginAccountABI := getABIfromJson(marginAccountAbi)
 	marginAccountEvent := getEventFromABI(marginAccountABI, "MarginAdded")
 	marginAccountEventTopics := []common.Hash{marginAccountEvent.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(collateral)))}
 	marginAdded := multiplyBasePrecision(big.NewInt(100))
@@ -146,7 +141,7 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	marginAccountLog := getEventLog(MarginAccountContractAddress, marginAccountEventTopics, marginAddedEventData, blockNumber)
 
 	//ClearingHouse Contract log
-	clearingHouseABI := getABIfromJson(clearingHouseTestContractFileLocation)
+	clearingHouseABI := getABIfromJson(clearingHouseAbi)
 	clearingHouseEvent := getEventFromABI(clearingHouseABI, "FundingRateUpdated")
 	clearingHouseEventTopics := []common.Hash{clearingHouseEvent.ID, common.BigToHash(big.NewInt(int64(market)))}
 
@@ -194,7 +189,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 	signature := []byte("signature")
 	order := getOrder(ammIndex, traderAddress, baseAssetQuantity, price, salt)
 	blockNumber := uint64(12)
-	orderBookABI := getABIfromJson(orderBookTestContractFileLocation)
+	orderBookABI := getABIfromJson(orderBookAbi)
 
 	t.Run("When event is orderPlaced", func(t *testing.T) {
 		db := NewInMemoryDatabase()
@@ -358,7 +353,7 @@ func TestHandleMarginAccountEvent(t *testing.T) {
 	blockNumber := uint64(12)
 	collateral := HUSD
 
-	marginAccountABI := getABIfromJson(marginAccountTestContractFileLocation)
+	marginAccountABI := getABIfromJson(marginAccountAbi)
 
 	t.Run("when event is MarginAdded", func(t *testing.T) {
 		db := NewInMemoryDatabase()
@@ -429,7 +424,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 	blockNumber := uint64(12)
 	collateral := HUSD
 	market := AvaxPerp
-	clearingHouseABI := getABIfromJson(clearingHouseTestContractFileLocation)
+	clearingHouseABI := getABIfromJson(clearingHouseAbi)
 	openNotional := multiplyBasePrecision(big.NewInt(100))
 	size := multiplyPrecisionSize(big.NewInt(10))
 	lastPremiumFraction := multiplyBasePrecision(big.NewInt(1))
@@ -599,12 +594,10 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 }
 
 func newcep(t *testing.T, db LimitOrderDatabase) *ContractEventsProcessor {
-	SetContractFilesLocation(orderBookTestContractFileLocation, marginAccountTestContractFileLocation, clearingHouseTestContractFileLocation)
 	return NewContractEventsProcessor(db)
 }
 
-func getABIfromJson(fileLocation string) abi.ABI {
-	jsonBytes, _ := ioutil.ReadFile(fileLocation)
+func getABIfromJson(jsonBytes []byte) abi.ABI {
 	returnedABI, err := abi.FromSolidityJson(string(jsonBytes))
 	if err != nil {
 		panic(err)

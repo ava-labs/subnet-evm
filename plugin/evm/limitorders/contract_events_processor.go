@@ -2,9 +2,7 @@ package limitorders
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"math/big"
-	"os"
 	"sort"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
@@ -21,21 +19,17 @@ type ContractEventsProcessor struct {
 }
 
 func NewContractEventsProcessor(database LimitOrderDatabase) *ContractEventsProcessor {
-	prefix := os.Getenv("ARTIFACT_PATH_PREFIX")
-	jsonBytes, _ := ioutil.ReadFile(prefix + orderBookContractFileLocation)
-	orderBookABI, err := abi.FromSolidityJson(string(jsonBytes))
+	orderBookABI, err := abi.FromSolidityJson(string(orderBookAbi))
 	if err != nil {
 		panic(err)
 	}
 
-	jsonBytes, _ = ioutil.ReadFile(prefix + marginAccountContractFileLocation)
-	marginAccountABI, err := abi.FromSolidityJson(string(jsonBytes))
+	marginAccountABI, err := abi.FromSolidityJson(string(marginAccountAbi))
 	if err != nil {
 		panic(err)
 	}
 
-	jsonBytes, _ = ioutil.ReadFile(prefix + clearingHouseContractFileLocation)
-	clearingHouseABI, err := abi.FromSolidityJson(string(jsonBytes))
+	clearingHouseABI, err := abi.FromSolidityJson(string(clearingHouseAbi))
 	if err != nil {
 		panic(err)
 	}
