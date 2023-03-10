@@ -43,7 +43,6 @@ func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, s
 // Returns empty response if signature is not found
 // Assumes ctx is active
 func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error) {
-	log.Warn("TEST HANDLING SIGNATURE REQUEST", "nodeID", nodeID.String(), "messageID", signatureRequest.MessageID.String())
 	startTime := time.Now()
 	s.stats.IncSignatureRequest()
 
@@ -53,7 +52,7 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	}()
 	signature, err := s.backend.GetSignature(ctx, signatureRequest.MessageID)
 	if err != nil {
-		log.Debug("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
+		log.Warn("Unknown warp signature requested", "messageID", signatureRequest.MessageID, "error", err)
 		s.stats.IncSignatureMiss()
 		response := message.SignatureResponse{Signature: [bls.SignatureLen]byte{}}
 		responseBytes, err := s.codec.Marshal(message.Version, &response)

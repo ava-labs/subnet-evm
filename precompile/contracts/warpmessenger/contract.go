@@ -112,7 +112,6 @@ func sanitizeStorageSlots(input []byte) ([]byte, error) {
 }
 
 func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
-	log.Warn("TEST WARP PREDICATE START")
 	// The proposer VM block context is required to verify aggregate signatures.
 	if predicateContext.ProposerVMBlockCtx == nil {
 		return ErrMissingProposerVMBlockCtx
@@ -152,12 +151,12 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 			DefaultQuorumNumerator,
 			DefaultQuorumDenominator)
 		if err != nil {
-			log.Warn("TEST FAILED SIGNATURE VERIFY PREDICATE", "err", err.Error())
+			log.Warn("warp predicate signature verification failed", "err", err.Error())
 			return err
 		}
 
 	}
-	log.Warn("TEST WARP PREDICATE PASSED")
+	log.Debug("Successfully passed through warp predicate")
 
 	return nil
 }
@@ -240,7 +239,6 @@ func PackGetVerifiedWarpMessageOutput(outputStruct GetVerifiedWarpMessageOutput)
 }
 
 func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	log.Warn("TEST GETTING VERIFIED MESSAGE")
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetVerifiedWarpMessageGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -262,13 +260,13 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	log.Warn("TEST GETTING VERIFIED MESSAGE GOT STORAGE SLOTS")
+
 	var signedMessages [][]byte
 	err = rlp.DecodeBytes(sanitizedSlots, &signedMessages)
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	log.Warn("TEST FINISHED DECODING SIGNED MSGS", "count", len(signedMessages))
+
 	// Check that the message index exists.
 	if !inputIndex.IsInt64() {
 		return nil, remainingGas, ErrInvalidMessageIndex
@@ -284,7 +282,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	log.Warn("TEST PARSED MESSAGE")
+
 	var warpMessage WarpMessage
 	_, err = Codec.Unmarshal(message.Payload, &warpMessage)
 	if err != nil {
@@ -300,7 +298,8 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	log.Warn("TEST GETTING VERIFIED MESSAGE FINISHED",
+
+	log.Debug("Got verified warp message from precompile",
 		"originChainID", hex.EncodeToString(warpMessage.OriginChainID[:]),
 		"originSenderAddress", hex.EncodeToString(warpMessage.OriginSenderAddress[:]),
 		"destinationChainID", hex.EncodeToString(warpMessage.DestinationChainID[:]),
