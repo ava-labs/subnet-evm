@@ -2,7 +2,6 @@ package limitorders
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"math/big"
@@ -215,32 +214,4 @@ func getOrderBookContractCallMethod(tx *types.Transaction, orderBookABI abi.ABI,
 		err := errors.New("tx is not an orderbook contract call")
 		return nil, err
 	}
-}
-
-func getOrderFromRawOrder(rawOrder interface{}) Order {
-	order := Order{}
-	marshalledOrder, _ := json.Marshal(rawOrder)
-	_ = json.Unmarshal(marshalledOrder, &order)
-	return order
-}
-
-func getOrdersFromRawOrderList(rawOrders interface{}) [2]Order {
-	orders := [2]Order{}
-	marshalledOrders, _ := json.Marshal(rawOrders)
-	_ = json.Unmarshal(marshalledOrders, &orders)
-	return orders
-}
-
-func getAddressFromTopicHash(topicHash common.Hash) common.Address {
-	address32 := topicHash.String() // address in 32 bytes with 0 padding
-	return common.HexToAddress(address32[:2] + address32[26:])
-}
-
-func getIdFromLimitOrder(order LimitOrder) string {
-	rawOrder := getOrderFromRawOrder(order.RawOrder)
-	return order.UserAddress + rawOrder.Salt.String()
-}
-
-func getIdFromOrder(order Order) string {
-	return order.Trader.String() + order.Salt.String()
 }

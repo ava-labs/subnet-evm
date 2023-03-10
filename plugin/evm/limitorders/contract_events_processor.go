@@ -1,13 +1,15 @@
 package limitorders
 
 import (
-	"os"
+	"encoding/json"
 	"io/ioutil"
 	"math/big"
+	"os"
 	"sort"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -91,6 +93,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			Status:                  Placed,
 			RawOrder:                args["order"],
 			Signature:               args["signature"].([]byte),
+			Salt:                    order.Salt,
 			BlockNumber:             big.NewInt(int64(event.BlockNumber)),
 		})
 		SendTxReadySignal()
@@ -113,8 +116,8 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 		log.Info("HandleOrderBookEvent", "OrdersMatched args", args)
 		orders := getOrdersFromRawOrderList(args["orders"])
 		fillAmount := args["fillAmount"].(*big.Int)
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, orders[0])
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, orders[1])
+		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, getIdFromOrder(orders[0]))
+		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, getIdFromOrder(orders[1]))
 	case cep.orderBookABI.Events["LiquidationOrderMatched"].ID:
 		log.Info("LiquidationOrderMatched event")
 		err := cep.orderBookABI.UnpackIntoMap(args, "LiquidationOrderMatched", event.Data)
@@ -125,7 +128,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 		log.Info("HandleOrderBookEvent", "LiquidationOrderMatched args", args)
 		fillAmount := args["fillAmount"].(*big.Int)
 		order := getOrderFromRawOrder(args["order"])
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order)
+		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, getIdFromOrder(order))
 	}
 	// log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
 
@@ -227,4 +230,27 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		size := args["size"].(*big.Int)
 		cep.database.UpdatePosition(getAddressFromTopicHash(event.Topics[1]), market, size, openNotional, true)
 	}
+}
+
+func getAddressFromTopicHash(topicHash common.Hash) common.Address {
+	address32 := topicHash.String() // address in 32 bytes with 0 padding
+	return common.HexToAddress(address32[:2] + address32[26:])
+}
+
+func getOrderFromRawOrder(rawOrder interface{}) Order {
+	order := Order{}
+	marshalledOrder, _ := json.Marshal(rawOrder)
+	_ = json.Unmarshal(marshalledOrder, &order)
+	return order
+}
+
+func getOrdersFromRawOrderList(rawOrders interface{}) [2]Order {
+	orders := [2]Order{}
+	marshalledOrders, _ := json.Marshal(rawOrders)
+	_ = json.Unmarshal(marshalledOrders, &orders)
+	return orders
+}
+
+func getIdFromOrder(order Order) string {
+	return order.Trader.String() + order.Salt.String()
 }

@@ -24,10 +24,10 @@ func (db *MockLimitOrderDatabase) GetAllOrders() []LimitOrder {
 func (db *MockLimitOrderDatabase) Add(order *LimitOrder) {
 }
 
-func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, signature []byte) {
+func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId string) {
 }
 
-func (db *MockLimitOrderDatabase) Delete(signature []byte) {
+func (db *MockLimitOrderDatabase) Delete(id string) {
 }
 
 func (db *MockLimitOrderDatabase) GetLongOrders(market Market) []LimitOrder {
