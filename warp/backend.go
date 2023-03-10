@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var _ WarpBackend = &warpBackend{}
@@ -62,6 +63,8 @@ func (w *warpBackend) AddMessage(ctx context.Context, unsignedMessage *avalanche
 
 	copy(signature[:], sig)
 	w.signatureCache.Put(messageID, signature)
+	log.Debug("Added warp unsigned message to backend", "nodeID", w.snowCtx.NodeID.String(), "messageID", ids.ID(messageID).String())
+
 	return nil
 }
 
