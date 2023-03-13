@@ -1,9 +1,10 @@
 # Hubble v2
 
-To run local network - run `./scripts/run_local.sh`
-To kill the network - run `./kill.sh`
+To run a fresh local network - run `./scripts/run_local_cli.sh`
+To run on the same network with updated evm code(it preserves all evm state) - run `./scripts/upgrade_local.sh`
+To kill network - run `avalanche network clean`
 
-
+To see logs - run `./scripts/show_logs.sh`
 
 # Subnet EVM
 
