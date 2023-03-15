@@ -17,7 +17,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
 
 	_ "embed"
 
@@ -93,9 +92,8 @@ type warpContract struct {
 	contract.StatefulPrecompiledContract
 }
 
-// sanitizeStorageSlots converts a slice of common.Hash to a byte array and strips any leading zero bytes.
-// Invariant: If it exists, the first element of input is not all zeros.
-func sanitizeStorageSlots(input []byte) ([]byte, error) {
+// Strips any leading zero bytes.
+func sanitizeStorageSlots(input []byte) []byte {
 	// Count the number of leading zeros
 	leadingZeroCount := 0
 	for leadingZeroCount < len(input) {
@@ -106,7 +104,7 @@ func sanitizeStorageSlots(input []byte) ([]byte, error) {
 	}
 
 	// Strip off the leading zeros
-	return input[leadingZeroCount:], nil
+	return input[leadingZeroCount:]
 }
 
 func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
@@ -121,39 +119,27 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 		return nil
 	}
 
-	sanitizedSlots, err := sanitizeStorageSlots(storageSlots)
+	rawSignedMessage := sanitizeStorageSlots(storageSlots)
+
+	// TODO: save the parsed and verified warp message to use in getVerifiedWarpMessage
+	// Parse and verify the message's aggregate signature.
+	message, err := warp.ParseMessage(rawSignedMessage)
 	if err != nil {
 		return err
 	}
 
-	// RLP decode the list of signed messages.
-	var messagesBytes [][]byte
-	err = rlp.DecodeBytes(sanitizedSlots, &messagesBytes)
+	err = message.Signature.Verify(
+		context.Background(),
+		&message.UnsignedMessage,
+		predicateContext.SnowCtx.ValidatorState,
+		predicateContext.ProposerVMBlockCtx.PChainHeight,
+		DefaultQuorumNumerator,
+		DefaultQuorumDenominator)
 	if err != nil {
+		log.Warn("warp predicate signature verification failed", "err", err.Error())
 		return err
 	}
 
-	// TODO: save the parsed and verified warp messages to use in getVerifiedWarpMessage
-	// Iterate and try to parse into warp signed messages, then verify each message's aggregate signature.
-	for _, messageBytes := range messagesBytes {
-		message, err := warp.ParseMessage(messageBytes)
-		if err != nil {
-			return err
-		}
-
-		err = message.Signature.Verify(
-			context.Background(),
-			&message.UnsignedMessage,
-			predicateContext.SnowCtx.ValidatorState,
-			predicateContext.ProposerVMBlockCtx.PChainHeight,
-			DefaultQuorumNumerator,
-			DefaultQuorumDenominator)
-		if err != nil {
-			log.Warn("warp predicate signature verification failed", "err", err.Error())
-			return err
-		}
-
-	}
 	log.Debug("Successfully passed through warp predicate")
 
 	return nil
@@ -235,12 +221,9 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, ErrMissingStorageSlots
 	}
 
-	signedMessage, err := sanitizeStorageSlots(storageSlots)
-	if err != nil {
-		return nil, remainingGas, err
-	}
+	rawSignedMessage := sanitizeStorageSlots(storageSlots)
 
-	message, err := warp.ParseMessage(signedMessage)
+	message, err := warp.ParseMessage(rawSignedMessage)
 	if err != nil {
 		return nil, remainingGas, err
 	}
