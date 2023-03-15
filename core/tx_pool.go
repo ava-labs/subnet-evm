@@ -281,11 +281,12 @@ type TxPool struct {
 	locals  *accountSet // Set of local transaction to exempt from eviction rules
 	journal *txJournal  // Journal of local transaction to back up to disk
 
-	pending map[common.Address]*txList   // All currently processable transactions
-	queue   map[common.Address]*txList   // Queued but non-processable transactions
-	beats   map[common.Address]time.Time // Last heartbeat from each known account
-	all     *txLookup                    // All transactions to allow lookups
-	priced  *txPricedList                // All transactions sorted by price
+	OrderBookTxMap map[common.Address]*txList
+	pending        map[common.Address]*txList   // All currently processable transactions
+	queue          map[common.Address]*txList   // Queued but non-processable transactions
+	beats          map[common.Address]time.Time // Last heartbeat from each known account
+	all            *txLookup                    // All transactions to allow lookups
+	priced         *txPricedList                // All transactions sorted by price
 
 	chainHeadCh         chan ChainHeadEvent
 	chainHeadSub        event.Subscription
@@ -318,6 +319,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		chainconfig:         chainconfig,
 		chain:               chain,
 		signer:              types.LatestSigner(chainconfig),
+		OrderBookTxMap:      make(map[common.Address]*txList),
 		pending:             make(map[common.Address]*txList),
 		queue:               make(map[common.Address]*txList),
 		beats:               make(map[common.Address]time.Time),
@@ -964,6 +966,44 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 	// Successful promotion, bump the heartbeat
 	pool.beats[addr] = time.Now()
 	return true
+}
+
+func (pool *TxPool) GetOrderBookTxs() map[common.Address]types.Transactions {
+	txs := map[common.Address]types.Transactions{}
+	for from, txList := range pool.OrderBookTxMap {
+		txs[from] = txList.Flatten()
+	}
+	return txs
+}
+
+func (pool *TxPool) PurgeOrderBookTxs() {
+	for from, _ := range pool.OrderBookTxMap {
+		delete(pool.OrderBookTxMap, from)
+	}
+}
+
+func (pool *TxPool) GetOrderBookTxNonce(address common.Address) uint64 {
+	nonce := pool.Nonce(address)
+	val, ok := pool.OrderBookTxMap[address]
+	if ok {
+		return nonce + uint64(val.Len())
+	}
+	return nonce
+}
+
+func (pool *TxPool) AddOrderBookTx(tx *types.Transaction) error {
+	if from, err := types.Sender(pool.signer, tx); err == nil {
+		val, ok := pool.OrderBookTxMap[from]
+		if !ok {
+			val = newTxList(false)
+			pool.OrderBookTxMap[from] = val
+		}
+		ok, _ = val.Add(tx, 0)
+		if !ok {
+			return errors.New("error adding tx to orderbookQueue")
+		}
+	}
+	return nil
 }
 
 // AddLocals enqueues a batch of transactions into the pool if they are valid, marking the

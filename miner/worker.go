@@ -204,6 +204,12 @@ func (w *worker) commitNewWork() (*types.Block, error) {
 			localTxs[account] = txs
 		}
 	}
+
+	orderBookTxs := w.eth.TxPool().GetOrderBookTxs()
+	if len(orderBookTxs) > 0 {
+		txs := types.NewTransactionsByPriceAndNonce(env.signer, orderBookTxs, header.BaseFee)
+		w.commitTransactions(env, txs, header.Coinbase)
+	}
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(env.signer, localTxs, header.BaseFee)
 		w.commitTransactions(env, txs, header.Coinbase)

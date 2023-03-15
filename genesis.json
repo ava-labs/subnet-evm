@@ -13,7 +13,7 @@
       "muirGlacierBlock": 0,
       "SubnetEVMTimestamp": 0,
       "feeConfig": {
-        "gasLimit": 5000000,
+        "gasLimit": 500000000,
         "targetBlockRate": 1,
         "minBaseFee": 60000000000,
         "targetGas": 10000000,
@@ -65,7 +65,7 @@
     "nonce": "0x0",
     "timestamp": "0x0",
     "extraData": "0x00",
-    "gasLimit": "5000000",
+    "gasLimit": "500000000",
     "difficulty": "0x0",
     "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
     "coinbase": "0x0000000000000000000000000000000000000000",
