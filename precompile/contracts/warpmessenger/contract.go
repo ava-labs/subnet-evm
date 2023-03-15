@@ -125,6 +125,7 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 	// Parse and verify the message's aggregate signature.
 	message, err := warp.ParseMessage(rawSignedMessage)
 	if err != nil {
+		log.Warn("failed parsing warp message to verify predicate", "err", err.Error(), "rawMessage", hex.EncodeToString(rawSignedMessage))
 		return err
 	}
 
