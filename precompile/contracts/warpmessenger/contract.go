@@ -119,7 +119,12 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 		return nil
 	}
 
+	// Strip of the leading zeros and leading 0x01 starting identifier
 	rawSignedMessage := sanitizeStorageSlots(storageSlots)
+	if len(rawSignedMessage) <= 1 {
+		return ErrMissingStorageSlots
+	}
+	rawSignedMessage = rawSignedMessage[1:]
 
 	// TODO: save the parsed and verified warp message to use in getVerifiedWarpMessage
 	// Parse and verify the message's aggregate signature.
@@ -222,7 +227,12 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, ErrMissingStorageSlots
 	}
 
+	// Strip of the leading zeros and leading 0x01 starting identifier
 	rawSignedMessage := sanitizeStorageSlots(storageSlots)
+	if len(rawSignedMessage) <= 1 {
+		return nil, remainingGas, ErrMissingStorageSlots
+	}
+	rawSignedMessage = rawSignedMessage[1:]
 
 	message, err := warp.ParseMessage(rawSignedMessage)
 	if err != nil {
