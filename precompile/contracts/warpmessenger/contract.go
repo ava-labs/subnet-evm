@@ -53,6 +53,7 @@ var (
 	SubmitMessageEventID = "da2b1cd3e6664863b4ad90f53a4e14fca9fc00f3f0e01e5c7b236a4355b6591a" // Keccack256("SubmitMessage(bytes32,uint256)")
 
 	ErrMissingStorageSlots       = errors.New("missing access list storage slots from precompile during execution")
+	ErrInvalidStorageSlots       = errors.New("invalid serialized storage slots")
 	ErrInvalidSignature          = errors.New("invalid aggregate signature")
 	ErrMissingProposerVMBlockCtx = errors.New("missing proposer VM block context")
 	ErrWrongChainID              = errors.New("wrong chain id")
@@ -92,8 +93,8 @@ type warpContract struct {
 	contract.StatefulPrecompiledContract
 }
 
-// Strips any leading zero bytes.
-func sanitizeStorageSlots(input []byte) []byte {
+// Strips any leading zero bytes and the starting identifier (0x01).
+func sanitizeStorageSlots(input []byte) ([]byte, error) {
 	// Count the number of leading zeros
 	leadingZeroCount := 0
 	for leadingZeroCount < len(input) {
@@ -103,8 +104,12 @@ func sanitizeStorageSlots(input []byte) []byte {
 		leadingZeroCount++
 	}
 
-	// Strip off the leading zeros
-	return input[leadingZeroCount:]
+	if leadingZeroCount >= len(input) || input[leadingZeroCount] != 0x01 {
+		return nil, ErrInvalidStorageSlots
+	}
+
+	// Strip off the leading zeros and 0x01
+	return input[leadingZeroCount+1:], nil
 }
 
 func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
@@ -120,11 +125,11 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 	}
 
 	// Strip of the leading zeros and leading 0x01 starting identifier
-	rawSignedMessage := sanitizeStorageSlots(storageSlots)
-	if len(rawSignedMessage) <= 1 {
-		return ErrMissingStorageSlots
+	rawSignedMessage, err := sanitizeStorageSlots(storageSlots)
+	if err != nil {
+		log.Warn("failed santizing storage slots in warp predicate", "err", err)
+		return err
 	}
-	rawSignedMessage = rawSignedMessage[1:]
 
 	// TODO: save the parsed and verified warp message to use in getVerifiedWarpMessage
 	// Parse and verify the message's aggregate signature.
@@ -228,11 +233,11 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	}
 
 	// Strip of the leading zeros and leading 0x01 starting identifier
-	rawSignedMessage := sanitizeStorageSlots(storageSlots)
-	if len(rawSignedMessage) <= 1 {
-		return nil, remainingGas, ErrMissingStorageSlots
+	rawSignedMessage, err := sanitizeStorageSlots(storageSlots)
+	if err != nil {
+		log.Warn("failed santizing storage slots in getVerifiedWarpMessage", "err", err)
+		return nil, remainingGas, err
 	}
-	rawSignedMessage = rawSignedMessage[1:]
 
 	message, err := warp.ParseMessage(rawSignedMessage)
 	if err != nil {
