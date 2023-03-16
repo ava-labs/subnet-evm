@@ -326,6 +326,19 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 	return utils.IsForked(c.getNetworkUpgrades().SubnetEVMTimestamp, blockTimestamp)
 }
 
+func (r *Rules) PredicatesExist() bool {
+	return len(r.PredicatePrecompiles) > 0 || len(r.ProposerPredicates) > 0
+}
+
+func (r *Rules) PredicateExists(addr common.Address) bool {
+	_, predicateExists := r.PredicatePrecompiles[addr]
+	if predicateExists {
+		return true
+	}
+	_, proposerPredicateExists := r.ProposerPredicates[addr]
+	return proposerPredicateExists
+}
+
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, blockTimestamp *big.Int) bool {
 	config := c.getActivePrecompileConfig(address, blockTimestamp)

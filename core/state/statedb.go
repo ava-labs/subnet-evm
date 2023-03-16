@@ -1094,6 +1094,9 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 func (s *StateDB) preparePredicateStorageSlots(rules params.Rules, list types.AccessList) {
 	s.predicateStorageSlots = make(map[common.Address][]byte)
 	for _, el := range list {
+		if !rules.PredicateExists(el.Address) {
+			continue
+		}
 		s.predicateStorageSlots[el.Address] = utils.HashSliceToBytes(el.StorageKeys)
 	}
 }
