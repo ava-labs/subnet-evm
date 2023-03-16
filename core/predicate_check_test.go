@@ -110,7 +110,7 @@ func TestCheckPredicate(t *testing.T) {
 			}),
 			expectedErr: nil,
 		},
-		"predicate with invalid access list passes": {
+		"predicate with invalid access list errors": {
 			address: common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
 			predicater: &mockPredicater{predicateFunc: func(_ *precompileconfig.PrecompilePredicateContext, b []byte) error {
 				if bytes.Equal(b, common.Hash{1}.Bytes()) {
@@ -129,7 +129,7 @@ func TestCheckPredicate(t *testing.T) {
 			}),
 			expectedErr: fmt.Errorf("unexpected bytes: 0x%x", common.Hash{2}.Bytes()),
 		},
-		"proposer predicate with invalid access list passes": {
+		"proposer predicate with invalid access list errors": {
 			address: common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"),
 			proposerPredicater: &mockProposerPredicater{predicateFunc: func(_ *precompileconfig.ProposerPredicateContext, b []byte) error {
 				if bytes.Equal(b, common.Hash{1}.Bytes()) {

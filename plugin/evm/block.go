@@ -214,7 +214,7 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 }
 
 // Verify the block is valid.
-// Enforces that the predicates are valid within [proposerVMBlockCtx].
+// Enforces that the predicates are valid within [predicateContext].
 // Writes the block details to disk and the state to the trie manager iff writes=true.
 func (b *Block) verify(predicateContext *precompileconfig.ProposerPredicateContext, writes bool) error {
 	if err := b.syntacticVerify(); err != nil {
@@ -243,12 +243,12 @@ func (b *Block) verify(predicateContext *precompileconfig.ProposerPredicateConte
 	return b.vm.blockChain.InsertBlockManual(b.ethBlock, writes)
 }
 
-// verifyPredicates verifies the predicates in the block are valid according to proposerVMBlockCtx.
-func (b *Block) verifyPredicates(predicateCtx *precompileconfig.ProposerPredicateContext) error {
+// verifyPredicates verifies the predicates in the block are valid according to predicateContext.
+func (b *Block) verifyPredicates(predicateContext *precompileconfig.ProposerPredicateContext) error {
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 
 	for _, tx := range b.ethBlock.Transactions() {
-		if err := core.CheckPredicates(rules, predicateCtx, tx); err != nil {
+		if err := core.CheckPredicates(rules, predicateContext, tx); err != nil {
 			return err
 		}
 	}

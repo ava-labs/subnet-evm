@@ -32,12 +32,12 @@ type Config interface {
 	Verify() error
 }
 
-// PredicateContext is the context passed in to the PrecompilePredicater interface.
+// PrecompilePredicateContext is the context passed in to the PrecompilePredicater interface.
 type PrecompilePredicateContext struct {
 	SnowCtx *snow.Context
 }
 
-// Predicater is an optional interface for StatefulPrecompileContracts to implement.
+// PrecompilePredicater is an optional interface for StatefulPrecompileContracts to implement.
 // If implemented, the predicate will be enforced on every transaction in a block, prior to
 // the blcok's execution.
 // If VerifyPredicate returns an error, the block will fail verification with no further processing.
