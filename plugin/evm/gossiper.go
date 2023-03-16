@@ -242,6 +242,11 @@ func (n *pushGossiper) awaitEthTxGossip() {
 			regossipTicker         = time.NewTicker(n.config.RegossipFrequency.Duration)
 			priorityRegossipTicker = time.NewTicker(n.config.PriorityRegossipFrequency.Duration)
 		)
+		defer func() {
+			gossipTicker.Stop()
+			regossipTicker.Stop()
+			priorityRegossipTicker.Stop()
+		}()
 
 		for {
 			select {
