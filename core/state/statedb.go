@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -1063,7 +1064,7 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 // - Add the contents of the optional tx access list (2930)
 //
 // This method should only be called if Berlin/SubnetEVM/2929+2930 is applicable at the current number.
-func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
+func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, rules params.Rules, precompiles []common.Address, list types.AccessList) {
 	// Clear out any leftover from previous executions
 	s.accessList = newAccessList()
 
@@ -1082,7 +1083,7 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 			s.AddSlotToAccessList(el.Address, key)
 		}
 	}
-	s.preparePredicateStorageSlots(list)
+	s.preparePredicateStorageSlots(rules, list)
 }
 
 // preparePredicateStorageSlots populates the predicateStorageSlots field from the transaction's access list
@@ -1090,7 +1091,7 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 // for it are used in predicates.
 // During predicate verification, we require that a precompile address is only specififed in the access list
 // once to avoid a situation where we verify multiple predicate and only expose data from the last one.
-func (s *StateDB) preparePredicateStorageSlots(list types.AccessList) {
+func (s *StateDB) preparePredicateStorageSlots(rules params.Rules, list types.AccessList) {
 	s.predicateStorageSlots = make(map[common.Address][]byte)
 	for _, el := range list {
 		s.predicateStorageSlots[el.Address] = utils.HashSliceToBytes(el.StorageKeys)
