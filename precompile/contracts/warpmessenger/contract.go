@@ -124,7 +124,7 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 		return nil
 	}
 
-	// Strip of the leading zeros and leading 0x01 starting identifier
+	// Strip off the leading zeros and leading 0x01 starting identifier
 	rawSignedMessage, err := sanitizeStorageSlots(storageSlots)
 	if err != nil {
 		log.Warn("failed santizing storage slots in warp predicate", "err", err)
@@ -180,12 +180,6 @@ func (w *warpContract) Accept(backend precompile.Backend, txHash common.Hash, lo
 	return backend.AddMessage(context.Background(), unsignedMessage)
 }
 
-// PackGetBlockchainID packs the include selector (first 4 func signature bytes).
-// This function is mostly used for tests.
-func PackGetBlockchainID() ([]byte, error) {
-	return WarpMessengerABI.Pack("getBlockchainID")
-}
-
 // PackGetBlockchainIDOutput attempts to pack given blockchainID of type [32]byte
 // to conform the ABI outputs.
 func PackGetBlockchainIDOutput(blockchainID [32]byte) ([]byte, error) {
@@ -204,12 +198,6 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
-}
-
-// PackGetVerifiedWarpMessage packs the include selector (first 4 func signature bytes).
-// This function is mostly used for tests.
-func PackGetVerifiedWarpMessage() ([]byte, error) {
-	return WarpMessengerABI.Pack("getVerifiedWarpMessage")
 }
 
 // PackGetVerifiedWarpMessageOutput attempts to pack given [outputStruct] of type GetVerifiedWarpMessageOutput
@@ -232,7 +220,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, ErrMissingStorageSlots
 	}
 
-	// Strip of the leading zeros and leading 0x01 starting identifier
+	// Strip off the leading zeros and leading 0x01 starting identifier
 	rawSignedMessage, err := sanitizeStorageSlots(storageSlots)
 	if err != nil {
 		log.Warn("failed santizing storage slots in getVerifiedWarpMessage", "err", err)
