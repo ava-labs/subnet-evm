@@ -39,7 +39,7 @@ type PrecompilePredicateContext struct {
 
 // PrecompilePredicater is an optional interface for StatefulPrecompileContracts to implement.
 // If implemented, the predicate will be enforced on every transaction in a block, prior to
-// the blcok's execution.
+// the block's execution.
 // If VerifyPredicate returns an error, the block will fail verification with no further processing.
 // WARNING: If you are implementing a custom precompile, beware that subnet-evm
 // will not maintain backwards compatibility of this interface and your code should not
@@ -61,6 +61,8 @@ type ProposerPredicateContext struct {
 // the block's execution.
 // If VerifyPredicate returns an error, the block will fail verification with no further processing.
 // Note: ProposerVMBlockCtx is guaranteed to be non-nil.
+// Precompiles should use ProposerPredicater instead of PrecompilePredicater iff their execution
+// depends on the ProposerVM Block Context.
 // WARNING: If you are implementing a custom precompile, beware that subnet-evm
 // will not maintain backwards compatibility of this interface and your code should not
 // rely on this. Designed for use only by precompiles that ship with subnet-evm.

@@ -49,5 +49,3 @@ cmd/simulator/.simulator/*
 
 # goreleaser
 dist/
-
-node_modules
