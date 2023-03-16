@@ -1097,10 +1097,7 @@ func (s *StateDB) preparePredicateStorageSlots(rules params.Rules, list types.Ac
 		if !rules.PredicateExists(el.Address) {
 			continue
 		}
-		b, exists := utils.HashSliceToBytes(el.StorageKeys)
-		if !exists {
-			continue
-		}
+		b := utils.HashSliceToBytes(el.StorageKeys)
 		s.predicateStorageSlots[el.Address] = b
 	}
 }

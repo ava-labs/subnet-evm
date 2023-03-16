@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/utils"
@@ -42,9 +43,16 @@ func TestIncrOne(t *testing.T) {
 func testBytesToHashSlice(t testing.TB, b []byte) {
 	hashSlice := BytesToHashSlice(b)
 
-	copiedBytes, ok := HashSliceToBytes(hashSlice)
-	require.True(t, ok)
-	require.Equal(t, b, copiedBytes)
+	copiedBytes := HashSliceToBytes(hashSlice)
+
+	if len(b)%32 == 0 {
+		require.Equal(t, b, copiedBytes)
+	} else {
+		require.Equal(t, b, copiedBytes[:len(b)])
+		// Require that any additional padding is all zeroes
+		padding := copiedBytes[len(b):]
+		require.Equal(t, bytes.Repeat([]byte{0x00}, len(padding)), padding)
+	}
 }
 
 func FuzzHashSliceToBytes(f *testing.F) {

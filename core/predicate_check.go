@@ -40,7 +40,7 @@ func checkPrecompilePredicates(rules params.Rules, predicateContext *precompilec
 			return fmt.Errorf("predicate %s failed verification for tx %s: specified %s in access list multiple times", address, tx.Hash(), address)
 		}
 		precompileAddressChecks[address] = struct{}{}
-		predicateBytes, _ := utils.HashSliceToBytes(accessTuple.StorageKeys)
+		predicateBytes := utils.HashSliceToBytes(accessTuple.StorageKeys)
 		if err := predicater.VerifyPredicate(predicateContext, predicateBytes); err != nil {
 			return fmt.Errorf("predicate %s failed verification for tx %s: %w", address, tx.Hash(), err)
 		}
@@ -68,7 +68,7 @@ func checkProposerPrecompilePredicates(rules params.Rules, predicateContext *pre
 			return fmt.Errorf("predicate %s failed verification for tx %s: specified %s in access list multiple times", address, tx.Hash(), address)
 		}
 		precompileAddressChecks[address] = struct{}{}
-		predicateBytes, _ := utils.HashSliceToBytes(accessTuple.StorageKeys)
+		predicateBytes := utils.HashSliceToBytes(accessTuple.StorageKeys)
 		if err := predicater.VerifyPredicate(predicateContext, predicateBytes); err != nil {
 			return fmt.Errorf("predicate %s failed verification for tx %s: %w", address, tx.Hash(), err)
 		}
