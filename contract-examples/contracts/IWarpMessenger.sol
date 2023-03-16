@@ -33,7 +33,7 @@ interface WarpMessenger {
 
     // getVerifiedWarpMessage parses the message in the predicate storage slots as a Warp Message,
     // and returns the message with a boolean of whether the operation was successful.
-    function getVerifiedWarpMessage(uint256 messageIndex)
+    function getVerifiedWarpMessage()
         external view
         returns (WarpMessage calldata message, bool success);
 

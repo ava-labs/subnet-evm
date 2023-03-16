@@ -13,12 +13,10 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/precompile"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
 
 	_ "embed"
 
@@ -55,7 +53,7 @@ var (
 	SubmitMessageEventID = "da2b1cd3e6664863b4ad90f53a4e14fca9fc00f3f0e01e5c7b236a4355b6591a" // Keccack256("SubmitMessage(bytes32,uint256)")
 
 	ErrMissingStorageSlots       = errors.New("missing access list storage slots from precompile during execution")
-	ErrInvalidMessageIndex       = errors.New("invalid message index")
+	ErrInvalidStorageSlots       = errors.New("invalid serialized storage slots")
 	ErrInvalidSignature          = errors.New("invalid aggregate signature")
 	ErrMissingProposerVMBlockCtx = errors.New("missing proposer VM block context")
 	ErrWrongChainID              = errors.New("wrong chain id")
@@ -95,8 +93,7 @@ type warpContract struct {
 	contract.StatefulPrecompiledContract
 }
 
-// sanitizeStorageSlots converts a slice of common.Hash to a byte array and strips any leading zero bytes.
-// Invariant: If it exists, the first element of input is not all zeros.
+// Strips any leading zero bytes and the starting identifier (0x01).
 func sanitizeStorageSlots(input []byte) ([]byte, error) {
 	// Count the number of leading zeros
 	leadingZeroCount := 0
@@ -107,8 +104,12 @@ func sanitizeStorageSlots(input []byte) ([]byte, error) {
 		leadingZeroCount++
 	}
 
-	// Strip off the leading zeros
-	return input[leadingZeroCount:], nil
+	if leadingZeroCount >= len(input) || input[leadingZeroCount] != 0x01 {
+		return nil, ErrInvalidStorageSlots
+	}
+
+	// Strip off the leading zeros and 0x01
+	return input[leadingZeroCount+1:], nil
 }
 
 func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateContext, storageSlots []byte) error {
@@ -123,39 +124,33 @@ func (w *warpContract) VerifyPredicate(predicateContext *contract.PredicateConte
 		return nil
 	}
 
-	sanitizedSlots, err := sanitizeStorageSlots(storageSlots)
+	// Strip off the leading zeros and leading 0x01 starting identifier
+	rawSignedMessage, err := sanitizeStorageSlots(storageSlots)
 	if err != nil {
+		log.Warn("failed santizing storage slots in warp predicate", "err", err)
 		return err
 	}
 
-	// RLP decode the list of signed messages.
-	var messagesBytes [][]byte
-	err = rlp.DecodeBytes(sanitizedSlots, &messagesBytes)
+	// TODO: save the parsed and verified warp message to use in getVerifiedWarpMessage
+	// Parse and verify the message's aggregate signature.
+	message, err := warp.ParseMessage(rawSignedMessage)
 	if err != nil {
+		log.Warn("failed parsing warp message to verify predicate", "err", err.Error(), "rawMessage", hex.EncodeToString(rawSignedMessage))
 		return err
 	}
 
-	// TODO: save the parsed and verified warp messages to use in getVerifiedWarpMessage
-	// Iterate and try to parse into warp signed messages, then verify each message's aggregate signature.
-	for _, messageBytes := range messagesBytes {
-		message, err := warp.ParseMessage(messageBytes)
-		if err != nil {
-			return err
-		}
-
-		err = message.Signature.Verify(
-			context.Background(),
-			&message.UnsignedMessage,
-			predicateContext.SnowCtx.ValidatorState,
-			predicateContext.ProposerVMBlockCtx.PChainHeight,
-			DefaultQuorumNumerator,
-			DefaultQuorumDenominator)
-		if err != nil {
-			log.Warn("warp predicate signature verification failed", "err", err.Error())
-			return err
-		}
-
+	err = message.Signature.Verify(
+		context.Background(),
+		&message.UnsignedMessage,
+		predicateContext.SnowCtx.ValidatorState,
+		predicateContext.ProposerVMBlockCtx.PChainHeight,
+		DefaultQuorumNumerator,
+		DefaultQuorumDenominator)
+	if err != nil {
+		log.Warn("warp predicate signature verification failed", "err", err.Error())
+		return err
 	}
+
 	log.Debug("Successfully passed through warp predicate")
 
 	return nil
@@ -185,12 +180,6 @@ func (w *warpContract) Accept(backend precompile.Backend, txHash common.Hash, lo
 	return backend.AddMessage(context.Background(), unsignedMessage)
 }
 
-// PackGetBlockchainID packs the include selector (first 4 func signature bytes).
-// This function is mostly used for tests.
-func PackGetBlockchainID() ([]byte, error) {
-	return WarpMessengerABI.Pack("getBlockchainID")
-}
-
 // PackGetBlockchainIDOutput attempts to pack given blockchainID of type [32]byte
 // to conform the ABI outputs.
 func PackGetBlockchainIDOutput(blockchainID [32]byte) ([]byte, error) {
@@ -211,24 +200,6 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	return packedOutput, remainingGas, nil
 }
 
-// UnpackGetVerifiedWarpMessageInput attempts to unpack [input] into the *big.Int type argument
-// assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackGetVerifiedWarpMessageInput(input []byte) (*big.Int, error) {
-	res, err := WarpMessengerABI.UnpackInput("getVerifiedWarpMessage", input)
-	if err != nil {
-		return big.NewInt(0), err
-	}
-	unpacked := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
-	return unpacked, nil
-}
-
-// PackGetVerifiedWarpMessage packs [messageIndex] of type *big.Int into the appropriate arguments for getVerifiedWarpMessage.
-// the packed bytes include selector (first 4 func signature bytes).
-// This function is mostly used for tests.
-func PackGetVerifiedWarpMessage(messageIndex *big.Int) ([]byte, error) {
-	return WarpMessengerABI.Pack("getVerifiedWarpMessage", messageIndex)
-}
-
 // PackGetVerifiedWarpMessageOutput attempts to pack given [outputStruct] of type GetVerifiedWarpMessageOutput
 // to conform the ABI outputs.
 func PackGetVerifiedWarpMessageOutput(outputStruct GetVerifiedWarpMessageOutput) ([]byte, error) {
@@ -243,42 +214,20 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, 0, err
 	}
 
-	// attempts to unpack [input] into the arguments to the GetVerifiedWarpMessageInput.
-	// Assumes that [input] does not include selector
-	// You can use unpacked [messageIndex] variable in your code
-	inputIndex, err := UnpackGetVerifiedWarpMessageInput(input)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
+	// Get and parse the raw signed message bytes from the predicate storage slots
 	storageSlots, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	if !exists {
 		return nil, remainingGas, ErrMissingStorageSlots
 	}
 
-	sanitizedSlots, err := sanitizeStorageSlots(storageSlots)
+	// Strip off the leading zeros and leading 0x01 starting identifier
+	rawSignedMessage, err := sanitizeStorageSlots(storageSlots)
 	if err != nil {
+		log.Warn("failed santizing storage slots in getVerifiedWarpMessage", "err", err)
 		return nil, remainingGas, err
 	}
 
-	var signedMessages [][]byte
-	err = rlp.DecodeBytes(sanitizedSlots, &signedMessages)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// Check that the message index exists.
-	if !inputIndex.IsInt64() {
-		return nil, remainingGas, ErrInvalidMessageIndex
-	}
-	messageIndex := inputIndex.Int64()
-	if len(signedMessages) <= int(messageIndex) {
-		return nil, remainingGas, ErrInvalidMessageIndex
-	}
-
-	// Parse the raw message to be processed.
-	signedMessage := signedMessages[messageIndex]
-	message, err := warp.ParseMessage(signedMessage)
+	message, err := warp.ParseMessage(rawSignedMessage)
 	if err != nil {
 		return nil, remainingGas, err
 	}
