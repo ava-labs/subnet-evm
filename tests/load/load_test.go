@@ -10,17 +10,22 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/ava-labs/avalanchego/api/health"
+	"github.com/ava-labs/avalanche-network-runner/rpcpb"
+	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ava-labs/subnet-evm/tests/utils"
+	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/go-cmd/cmd"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
 
-var startCmd *cmd.Cmd
+var (
+	config   = runner.NewDefaultANRConfig()
+	manager  = runner.NewNetworkManager(config)
+	done     <-chan struct{}
+	numNodes = 5
+)
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -29,33 +34,46 @@ func TestE2E(t *testing.T) {
 
 // BeforeSuite starts an AvalancheGo process to use for the e2e tests
 var _ = ginkgo.BeforeSuite(func() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
+	// Name 10 new validators (which should have BLS key registered)
+	subnetA := make([]string, 0)
+	for i := 1; i <= numNodes; i++ {
+		subnetA = append(subnetA, fmt.Sprintf("node%d-bls", i))
+	}
 
-	wd, err := os.Getwd()
+	ctx := context.Background()
+	var err error
+	done, err = manager.StartDefaultNetwork(ctx)
 	gomega.Expect(err).Should(gomega.BeNil())
-	log.Info("Starting AvalancheGo node", "wd", wd)
-	startCmd, err = utils.RunCommand("./scripts/run.sh")
+	err = manager.SetupNetwork(
+		ctx,
+		config.AvalancheGoExecPath,
+		[]*rpcpb.BlockchainSpec{
+			{
+				VmName:       evm.IDStr,
+				Genesis:      "./tests/load/genesis/genesis.json",
+				ChainConfig:  "",
+				SubnetConfig: "",
+				Participants: subnetA,
+			},
+		},
+	)
 	gomega.Expect(err).Should(gomega.BeNil())
-
-	// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
-	healthClient := health.NewClient(utils.DefaultLocalNodeURI)
-	healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second)
-	gomega.Expect(err).Should(gomega.BeNil())
-	gomega.Expect(healthy).Should(gomega.BeTrue())
-	log.Info("AvalancheGo node is healthy")
 })
 
 var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 	ginkgo.It("basic subnet load test", ginkgo.Label("load"), func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
+		subnetIDs := manager.GetSubnets()
+		gomega.Expect(len(subnetIDs)).Should(gomega.Equal(1))
+		subnetID := subnetIDs[0]
+		subnetDetails, ok := manager.GetSubnet(subnetID)
+		gomega.Expect(ok).Should(gomega.BeTrue())
+		blockchainID := subnetDetails.BlockchainID
 
-		blockchainID := utils.CreateNewSubnet(ctx, "./tests/load/genesis/genesis.json")
-
-		rpcEndpoints := make([]string, 0, len(utils.NodeURIs))
-		for _, uri := range []string{utils.DefaultLocalNodeURI} { // TODO: use NodeURIs instead, hack until fixing multi node in a network behavior
-			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
+		nodeURIs := subnetDetails.ValidatorURIs
+		gomega.Expect(len(nodeURIs)).Should(gomega.Equal(numNodes))
+		rpcEndpoints := make([]string, 0, len(nodeURIs))
+		for _, uri := range nodeURIs {
+			rpcEndpoints = append(rpcEndpoints, utils.ToRPCURI(uri, blockchainID.String()))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
 		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
@@ -72,8 +90,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	gomega.Expect(startCmd).ShouldNot(gomega.BeNil())
-	gomega.Expect(startCmd.Stop()).Should(gomega.BeNil())
-	// TODO add a new node to bootstrap off of the existing node and ensure it can bootstrap all subnets
-	// created during the test
+	gomega.Expect(manager).ShouldNot(gomega.BeNil())
+	gomega.Expect(manager.TeardownNetwork()).Should(gomega.BeNil())
+	// TODO: bootstrap an additional node to ensure that we can bootstrap the test data correctly
 })
