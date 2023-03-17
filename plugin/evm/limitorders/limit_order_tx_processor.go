@@ -138,10 +138,10 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 	}
 	err = lotp.txPool.AddOrderBookTx(signedTx)
 	if err != nil {
-		log.Error("lop.txPool.AddLocal failed", "err", err, "tx", signedTx.Hash().String(), "nonce", nonce)
+		log.Error("lop.txPool.AddOrderBookTx failed", "err", err, "tx", signedTx.Hash().String(), "nonce", nonce)
 		return err
 	}
-	log.Info("executeLocalTx - AddLocal success", "tx", signedTx.Hash().String(), "nonce", nonce)
+	log.Info("executeLocalTx - AddOrderBookTx success", "tx", signedTx.Hash().String(), "nonce", nonce)
 
 	return nil
 }

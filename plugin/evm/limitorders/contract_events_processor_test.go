@@ -55,7 +55,7 @@ func TestProcessEvents(t *testing.T) {
 		fillAmount := big.NewInt(3000000000000000000)
 		orders := []Order{longOrder, shortOrder}
 		signatures := [][]byte{longSignature, shortSignature}
-		ordersMatchedEventData, _ := ordersMatchedEvent.Inputs.NonIndexed().Pack(orders, signatures, fillAmount, relayer)
+		ordersMatchedEventData, _ := ordersMatchedEvent.Inputs.NonIndexed().Pack(orders, signatures, fillAmount, price, relayer)
 		ordersMatchedEventLog := getEventLog(OrderBookContractAddress, ordersMatchedEventTopics, ordersMatchedEventData, ordersMatchedBlockNumber)
 		cep.ProcessEvents([]*types.Log{ordersMatchedEventLog, longOrderPlacedEventLog, shortOrderPlacedEventLog})
 
@@ -298,12 +298,12 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			assert.Equal(t, int64(0), longOrder.FilledBaseAssetQuantity.Int64())
 			assert.Equal(t, int64(0), shortOrder.FilledBaseAssetQuantity.Int64())
 		})
-		t.Run("When data in log unpack suceeds", func(t *testing.T) {
+		t.Run("When data in log unpack succeeds", func(t *testing.T) {
 			order1 := getOrderFromLimitOrder(*longOrder)
 			order2 := getOrderFromLimitOrder(*shortOrder)
 			orders := []Order{order1, order2}
 			signatures := [][]byte{signature1, signature2}
-			ordersMatchedEventData, _ := event.Inputs.NonIndexed().Pack(orders, signatures, fillAmount, relayer)
+			ordersMatchedEventData, _ := event.Inputs.NonIndexed().Pack(orders, signatures, fillAmount, price, relayer)
 			log := getEventLog(OrderBookContractAddress, topics, ordersMatchedEventData, blockNumber)
 			cep.ProcessEvents([]*types.Log{log})
 			assert.Equal(t, big.NewInt(fillAmount.Int64()), longOrder.FilledBaseAssetQuantity)
