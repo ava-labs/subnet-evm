@@ -5,33 +5,27 @@
 package warp
 
 import (
-	"errors"
 	"fmt"
-	"math/big"
 
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
+	warpMessages "github.com/ava-labs/subnet-evm/warp/messages"
 
 	_ "embed"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
-	// Gas costs for each function. These are set to 0 by default.
-	// You should set a gas cost for each function in your contract.
-	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
-	// There are some predefined gas costs in contract/utils.go that you can use.
-	GetBlockchainIDGasCost        uint64 = 0 // SET A GAS COST HERE
-	GetVerifiedWarpMessageGasCost uint64 = 0 // SET A GAS COST HERE
-	SendWarpMessageGasCost        uint64 = 0 // SET A GAS COST HERE
-)
-
-// CUSTOM CODE STARTS HERE
-// Reference imports to suppress errors from unused imports. This code and any unnecessary imports can be removed.
-var (
-	_ = errors.New
-	_ = big.NewInt
+	GetBlockchainIDGasCost        uint64 = 2 // Based on GasQuickStep used in existing EVM instructions
+	SendWarpMessageGasCost        uint64 = 0 // TODO base this off of the cost of performing this in the EVM + cost of signing a message
+	GetVerifiedWarpMessageGasCost uint64 = 0 // TODO: base this off of the number of signers
+	GasCostPerWarpSigner          uint64 = 0 // TODO
+	GasCostPerWarpMessageBytes    uint64 = 0 // TODO
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -82,12 +76,7 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetBlockchainIDGasCost); err != nil {
 		return nil, 0, err
 	}
-	// no input provided for this function
-
-	// CUSTOM CODE STARTS HERE
-
-	var output [32]byte // CUSTOM CODE FOR AN OUTPUT
-	packedOutput, err := PackGetBlockchainIDOutput(output)
+	packedOutput, err := PackGetBlockchainIDOutput(accessibleState.GetSnowContext().ChainID)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -111,19 +100,58 @@ func PackGetVerifiedWarpMessageOutput(outputStruct GetVerifiedWarpMessageOutput)
 	)
 }
 
-func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetVerifiedWarpMessageGasCost); err != nil {
 		return nil, 0, err
 	}
-	// no input provided for this function
+	// Ignore input since there are no arguments
 
-	// CUSTOM CODE STARTS HERE
-	var output GetVerifiedWarpMessageOutput // CUSTOM CODE FOR AN OUTPUT
-	packedOutput, err := PackGetVerifiedWarpMessageOutput(output)
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
+	// If there is no such value, return false to the caller.
+	// Note: decoding errors will return an error instead.
+	if !exists {
+		packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
+			Exists: false,
+		})
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		return packedOutput, remainingGas, nil
+	}
+
+	msgBytesGas, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
+	if overflow {
+		return nil, remainingGas, fmt.Errorf("overflow calculating gas cost for warp message bytes of size %d", len(predicateBytes))
+	}
+	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
+		return nil, 0, err
+	}
+
+	warpMessage, err := warp.ParseMessage(predicateBytes)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
+	addressedPayload, err := warpMessages.ParseAddressedPayload(warpMessage.UnsignedMessage.Payload)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
+		Message: WarpMessage{
+			OriginChainID:       warpMessage.SourceChainID,
+			OriginSenderAddress: addressedPayload.SourceAddress,
+			DestinationChainID:  warpMessage.DestinationChainID,
+			DestinationAddress:  addressedPayload.DestinationAddress,
+			Payload:             addressedPayload.Payload,
+		},
+		Exists: true,
+	})
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// TODO: remove
+	log.Info("getVerifiedWarpMessage successful", "originaChainID", warpMessage.SourceChainID, "originSenderAddress", addressedPayload.SourceAddress, "destinationChainID", warpMessage.DestinationChainID, "destinationAddress", addressedPayload.DestinationAddress, "payload", common.Bytes2Hex(addressedPayload.Payload))
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
 }
@@ -149,25 +177,55 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
-	// attempts to unpack [input] into the arguments to the SendWarpMessageInput.
-	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
+	// unpack the arguemnts
 	inputStruct, err := UnpackSendWarpMessageInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
-	// CUSTOM CODE STARTS HERE
-	_ = inputStruct // CUSTOM CODE OPERATES ON INPUT
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
+	var (
+		sourceChainID      = accessibleState.GetSnowContext().ChainID
+		destinationChainID = inputStruct.DestinationChainID
+		sourceAddress      = caller.Hash()
+		destinationAddress = inputStruct.DestinationAddress
+		payload            = inputStruct.Payload
+	)
 
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	addressedPayload, err := warp.NewAddressedPayload(
+		ids.ID(sourceAddress),
+		destinationAddress,
+		payload,
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	warpMessage, err := warp.NewUnsignedMessage(
+		sourceChainID,
+		destinationChainID,
+		addressedPayload.Bytes(),
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// Add a log to be handled if this action is finalized.
+	accessibleState.GetStateDB().AddLog(
+		ContractAddress,
+		[]common.Hash{
+			WarpABI.Events["SendWarpMessage"].ID,
+			destinationChainID,
+			destinationAddress,
+			sourceAddress,
+		},
+		warpMessage.Bytes(),
+		accessibleState.GetBlockContext().Number().Uint64(),
+	)
+
+	// Return an empty output and the remaining gas
+	return []byte{}, remainingGas, nil
 }
 
 // createWarpPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
-
 func createWarpPrecompile() contract.StatefulPrecompiledContract {
 	var functions []*contract.StatefulPrecompileFunction
 

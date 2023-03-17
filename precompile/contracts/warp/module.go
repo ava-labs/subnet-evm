@@ -20,10 +20,8 @@ var _ contract.Configurator = &configurator{}
 // must be unique across all precompiles.
 const ConfigKey = "warpConfig"
 
-// ContractAddress is the defined address of the precompile contract.
-// This should be unique across all precompile contracts.
-// See precompile/registry/registry.go for registered precompile contracts and more information.
-var ContractAddress = common.HexToAddress("{ASUITABLEHEXADDRESS}") // SET A SUITABLE HEX ADDRESS HERE
+// ContractAddress is the address of the warp precompile contract
+var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000005")
 
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{
@@ -49,15 +47,11 @@ func (*configurator) MakeConfig() precompileconfig.Config {
 	return new(Config)
 }
 
-// Configure configures [state] with the given [cfg] precompileconfig.
-// This function is called by the EVM once per precompile contract activation.
-// You can use this function to set up your precompile contract's initial state,
-// by using the [cfg] config and [state] stateDB.
+// Configure is a no-op for warp since it does not need to store any information in the state
 func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, _ contract.BlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
-	// CUSTOM CODE STARTS HERE
 	return nil
 }

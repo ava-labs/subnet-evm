@@ -21,13 +21,6 @@ interface WarpMessenger {
         bytes message
     );
 
-    event ReceiveWarpMessage(
-        bytes32 indexed originChainID,
-        bytes32 indexed originSenderAddress,
-        bytes32 indexed receiver,
-        bytes payload
-    );
-
     // sendWarpMessage emits a request for the subnet to send a warp message from [msg.sender]
     // with the specified parameters.
     // This emits a SendWarpMessage log, which will be picked up by validators to queue the signing of
@@ -41,7 +34,6 @@ interface WarpMessenger {
     // getVerifiedWarpMessage parses the pre-verified warp message in the
     // predicate storage slots as a WarpMessage and returns it to the caller.
     // Returns false if no such predicate exists.
-    // Emits a ReceiveWarpMessage event if successful.
     function getVerifiedWarpMessage()
         external view
         returns (WarpMessage calldata message, bool exists);
