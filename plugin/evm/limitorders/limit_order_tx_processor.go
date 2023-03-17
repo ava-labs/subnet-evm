@@ -2,8 +2,10 @@ package limitorders
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"math/big"
+	"os"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core"
@@ -14,13 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
-
-// using multiple private keys to make executeMatchedOrders contract call.
-// This will be replaced by validator's private key and address
-var userAddress1 = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-var privateKey1 = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
-var userAddress2 = "0x4Cf2eD3665F6bFA95cE6A11CFDb7A2EF5FC1C7E4"
-var privateKey2 = "31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc"
 
 var OrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000069")
 var MarginAccountContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000070")
@@ -50,6 +45,8 @@ type limitOrderTxProcessor struct {
 	clearingHouseContractAddress common.Address
 	marginAccountContractAddress common.Address
 	backend                      *eth.EthAPIBackend
+	validatorAddress             common.Address
+	validatorPrivateKey          string
 }
 
 // Order type is copy of Order struct defined in Orderbook contract
@@ -76,6 +73,14 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 	if err != nil {
 		panic(err)
 	}
+	validatorPrivateKey := os.Getenv("VALIDATOR_PRIVATE_KEY")
+	if validatorPrivateKey == "" || !isValidPrivateKey(validatorPrivateKey) {
+		panic("either private key is not supplied or it is invalid")
+	}
+	validatorAddress, err := getAddressFromPrivateKey(validatorPrivateKey)
+	if err != nil {
+		panic("Unable to get address from validator private key")
+	}
 
 	return &limitOrderTxProcessor{
 		txPool:                       txPool,
@@ -87,6 +92,8 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 		clearingHouseContractAddress: ClearingHouseContractAddress,
 		marginAccountContractAddress: MarginAccountContractAddress,
 		backend:                      backend,
+		validatorAddress:             validatorAddress,
+		validatorPrivateKey:          validatorPrivateKey,
 	}
 }
 
@@ -111,14 +118,14 @@ func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrd
 }
 
 func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contractABI abi.ABI, method string, args ...interface{}) error {
-	nonce := lotp.txPool.GetOrderBookTxNonce(common.HexToAddress(userAddress1)) // admin address
+	nonce := lotp.txPool.GetOrderBookTxNonce(common.HexToAddress(lotp.validatorAddress.Hex())) // admin address
 
 	data, err := contractABI.Pack(method, args...)
 	if err != nil {
 		log.Error("abi.Pack failed", "err", err)
 		return err
 	}
-	key, err := crypto.HexToECDSA(privateKey1) // admin private key
+	key, err := crypto.HexToECDSA(lotp.validatorPrivateKey) // admin private key
 	if err != nil {
 		log.Error("HexToECDSA failed", "err", err)
 		return err
@@ -204,4 +211,23 @@ func getOrderBookContractCallMethod(tx *types.Transaction, orderBookABI abi.ABI,
 		err := errors.New("tx is not an orderbook contract call")
 		return nil, err
 	}
+}
+
+func getAddressFromPrivateKey(key string) (common.Address, error) {
+	privateKey, err := crypto.HexToECDSA(key) // admin private key
+	if err != nil {
+		return common.Address{}, err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return common.Address{}, errors.New("unable to get address from private key")
+	}
+	address := crypto.PubkeyToAddress(*publicKeyECDSA)
+	return address, nil
+}
+
+func isValidPrivateKey(key string) bool {
+	_, err := getAddressFromPrivateKey(key)
+	return err == nil
 }
