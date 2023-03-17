@@ -21,11 +21,20 @@ import (
 )
 
 var (
-	config   = runner.NewDefaultANRConfig()
-	manager  = runner.NewNetworkManager(config)
+	config   runner.ANRConfig
+	manager  runner.NetworkManager
 	done     <-chan struct{}
 	numNodes = 5
 )
+
+func init() {
+	config := runner.NewDefaultANRConfig()
+	if envBuildPath, exists := os.LookupEnv("AVALANCHEGO_BUILD_PATH"); exists {
+		config.AvalancheGoExecPath = fmt.Sprintf("%s/avalanchego", envBuildPath)
+		config.PluginDir = fmt.Sprintf("%s/plugins", envBuildPath)
+	}
+	manager = *runner.NewNetworkManager(config)
+}
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
