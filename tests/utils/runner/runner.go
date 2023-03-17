@@ -47,7 +47,7 @@ type NetworkManager struct {
 }
 
 func NewDefaultANRConfig() ANRConfig {
-	return ANRConfig{
+	defaultConfig := ANRConfig{
 		LogLevel:            "info",
 		AvalancheGoExecPath: os.ExpandEnv("$GOPATH/src/github.com/ava-labs/avalanchego/build/avalanchego"),
 		PluginDir:           os.ExpandEnv("$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins"),
@@ -63,6 +63,12 @@ func NewDefaultANRConfig() ANRConfig {
 			"throttler-outbound-validator-alloc-size":"107374182"
 		}`,
 	}
+	// If AVALANCHEGO_BUILD_PATH is populated, override location set by GOPATH
+	if envBuildPath, exists := os.LookupEnv("AVALANCHEGO_BUILD_PATH"); exists {
+		defaultConfig.AvalancheGoExecPath = fmt.Sprintf("%s/avalanchego", envBuildPath)
+		defaultConfig.PluginDir = fmt.Sprintf("%s/plugins", envBuildPath)
+	}
+	return defaultConfig
 }
 
 // NewNetworkManager constructs a new instance of a network manager
