@@ -84,3 +84,13 @@ func (test PrecompileTest) Run(t *testing.T, module modules.Module, state contra
 		test.AfterHook(t, state)
 	}
 }
+
+func RunPrecompileTests(t *testing.T, module modules.Module, newStateDB func(t *testing.T) contract.StateDB, contractTests map[string]PrecompileTest) {
+	t.Helper()
+
+	for name, test := range contractTests {
+		t.Run(name, func(t *testing.T) {
+			test.Run(t, module, newStateDB(t))
+		})
+	}
+}

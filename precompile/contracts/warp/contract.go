@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	warpMessages "github.com/ava-labs/subnet-evm/warp/messages"
@@ -21,11 +22,16 @@ import (
 )
 
 const (
-	GetBlockchainIDGasCost        uint64 = 2 // Based on GasQuickStep used in existing EVM instructions
-	SendWarpMessageGasCost        uint64 = 0 // TODO base this off of the cost of performing this in the EVM + cost of signing a message
-	GetVerifiedWarpMessageGasCost uint64 = 0 // TODO: base this off of the number of signers
-	GasCostPerWarpSigner          uint64 = 0 // TODO
-	GasCostPerWarpMessageBytes    uint64 = 0 // TODO
+	GetBlockchainIDGasCost uint64 = 2 // Based on GasQuickStep used in existing EVM instructions
+	// Cost of fixed log size and writing log to database (Note: this calculation includes buffer room because a warp message
+	// is not stored in the trie and not stored permanently)
+	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + contract.WriteGasCostPerSlot
+	// TODO: Gas cost per byte in the payload/log data of the produced warp message
+	SendWarpMessageGasCostPerByte uint64 = 1
+
+	GetVerifiedWarpMessageGasCost uint64 = 1 // TODO: base this off of the number of signers
+	GasCostPerWarpSigner          uint64 = 1 // TODO
+	GasCostPerWarpMessageBytes    uint64 = 1 // TODO
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -121,7 +127,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 
 	msgBytesGas, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
 	if overflow {
-		return nil, remainingGas, fmt.Errorf("overflow calculating gas cost for warp message bytes of size %d", len(predicateBytes))
+		return nil, remainingGas, vmerrs.ErrOutOfGas
 	}
 	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
 		return nil, 0, err
@@ -172,6 +178,15 @@ func PackSendWarpMessage(inputStruct SendWarpMessageInput) ([]byte, error) {
 
 func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, SendWarpMessageGasCost); err != nil {
+		return nil, 0, err
+	}
+	// This gas cost includes buffer room because it is based off of the total size of the input instead of the produced payload.
+	// This ensures that we charge gas before we unpack the variable sized input.
+	payloadGas, overflow := math.SafeMul(SendWarpMessageGasCostPerByte, uint64(len(input)))
+	if overflow {
+		return nil, 0, vmerrs.ErrOutOfGas
+	}
+	if remainingGas, err = contract.DeductGas(remainingGas, payloadGas); err != nil {
 		return nil, 0, err
 	}
 	if readOnly {

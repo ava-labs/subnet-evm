@@ -23,7 +23,6 @@ import (
 var (
 	config   = runner.NewDefaultANRConfig()
 	manager  = runner.NewNetworkManager(config)
-	done     <-chan struct{}
 	numNodes = 5
 )
 
@@ -42,7 +41,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	ctx := context.Background()
 	var err error
-	done, err = manager.StartDefaultNetwork(ctx)
+	_, err = manager.StartDefaultNetwork(ctx)
 	gomega.Expect(err).Should(gomega.BeNil())
 	err = manager.SetupNetwork(
 		ctx,

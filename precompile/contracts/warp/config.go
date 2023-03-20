@@ -23,7 +23,11 @@ const (
 	MinQuorumNumerator     uint64 = 33
 )
 
-var _ precompileconfig.Config = &Config{}
+var (
+	_ precompileconfig.Config             = &Config{}
+	_ precompileconfig.ProposerPredicater = &Config{}
+	_ precompileconfig.Accepter           = &Config{}
+)
 
 var errOverflowSignersGasCost = errors.New("overflow calculating warp signers gas cost")
 
@@ -35,11 +39,18 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// Warp.
-func NewConfig(blockTimestamp *big.Int) *Config {
+// Warp with the given quorum numerator.
+func NewConfig(blockTimestamp *big.Int, quorumNumerator uint64) *Config {
 	return &Config{
-		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade:         precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		QuorumNumerator: quorumNumerator,
 	}
+}
+
+// NewDefaultConfig returns a config for a network upgrade at [blockTimestamp] that enables
+// Warp with the default quorum numerator (0 denotes using the default).
+func NewDefaultConfig(blockTimestamp *big.Int) *Config {
+	return NewConfig(blockTimestamp, 0)
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
@@ -129,6 +140,27 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 	return msgGas, nil
 }
 
+// TODO: move to general package, cleanup, and test
+var predicateEndByte = byte(0xff)
+
+func PackPredicate(predicate []byte) []byte {
+	predicate = append(predicate, predicateEndByte)
+	return common.RightPadBytes(predicate, (len(predicate)+31/32)*32)
+}
+
+func UnpackPredicate(paddedPredicate []byte) ([]byte, error) {
+	trimmedPredicateBytes := common.TrimRightZeroes(paddedPredicate)
+	if len(trimmedPredicateBytes) == 0 {
+		return nil, fmt.Errorf("warp predicate specified invalid all zero bytes: 0x%x", paddedPredicate)
+	}
+
+	if trimmedPredicateBytes[len(trimmedPredicateBytes)-1] != predicateEndByte {
+		return nil, fmt.Errorf("invalid end delimiter")
+	}
+
+	return trimmedPredicateBytes[:len(trimmedPredicateBytes)-1], nil
+}
+
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.ProposerPredicateContext, predicateBytes []byte) error {
 	if predicateContext.ProposerVMBlockCtx == nil {
 		return fmt.Errorf("cannot specify a proposer predicate for %s in a block before ProposerVM activation", ConfigKey)
@@ -137,7 +169,12 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.ProposerPred
 	if overflow {
 		return fmt.Errorf("overflow calculating gas cost for warp message bytes of size %d", len(predicateBytes))
 	}
-	warpMessage, err := warp.ParseMessage(predicateBytes)
+
+	unpackedPredicateBytes, err := UnpackPredicate(predicateBytes)
+	if err != nil {
+		return err
+	}
+	warpMessage, err := warp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
 		return err
 	}

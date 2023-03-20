@@ -283,9 +283,5 @@ func RunPrecompileWithAllowListTests(t *testing.T, module modules.Module, newSta
 		tests[name] = test
 	}
 
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			test.Run(t, module, newStateDB(t))
-		})
-	}
+	testutils.RunPrecompileTests(t, module, newStateDB, tests)
 }

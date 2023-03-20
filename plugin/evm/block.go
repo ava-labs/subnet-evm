@@ -98,8 +98,8 @@ func (b *Block) handlePrecompileAccept(sharedMemoryWriter *sharedMemoryWriter) e
 
 	// Read the receipts
 	receipts := rawdb.ReadReceipts(b.vm.chaindb, b.ethBlock.Hash(), b.ethBlock.NumberU64(), b.vm.chainConfig)
-	if receipts == nil {
-		return fmt.Errorf("failed to read receipts for accepted block %s, height %d", b.ethBlock.Hash(), b.ethBlock.NumberU64())
+	if len(receipts) == 0 && b.ethBlock.ReceiptHash() != types.EmptyRootHash {
+		return fmt.Errorf("failed to fetch receipts for accepted block with non-empty root hash (%s) (Block: %s, Height: %d)", b.ethBlock.ReceiptHash(), b.ethBlock.Hash(), b.ethBlock.NumberU64())
 	}
 
 	for txIndex, receipt := range receipts {
