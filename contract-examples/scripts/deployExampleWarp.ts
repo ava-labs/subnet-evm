@@ -4,18 +4,17 @@ import {
   } from "ethers"
   import { ethers } from "hardhat"
 
-  const main = async (): Promise<any> => {
-    const contractFactory: ContractFactory = await ethers.getContractFactory("ExampleWarp")
-    const contract: Contract = await contractFactory.deploy()
+const main = async (): Promise<any> => {
+  const contractFactory: ContractFactory = await ethers.getContractFactory("ExampleWarp")
+  const contract: Contract = await contractFactory.deploy()
+  
+  await contract.deployed()
+  console.log(`Contract deployed to: ${contract.address}`)
+}
 
-    await contract.deployed()
-    console.log(`Contract deployed to: ${contract.address}`)
-  }
-
-  main()
-    .then(() => process.exit(0))
-    .catch(error => {
-      console.error(error)
-      process.exit(1)
-    })
-    
+main()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error)
+    process.exit(1)
+  })
