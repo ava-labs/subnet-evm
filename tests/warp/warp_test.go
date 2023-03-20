@@ -136,8 +136,11 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(len(subnetBDetails.ValidatorURIs)).Should(gomega.Equal(5))
 		chainBURIs = append(chainBURIs, subnetBDetails.ValidatorURIs...)
 
-		log.Info("Creating ethclient")
-		client, err := ethclient.Dial(utils.ToWebsocketURI(chainAURIs[0], blockchainIDA.String()))
+		log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA.String(), "blockchainIDB", blockchainIDB)
+
+		wsURI := utils.ToWebsocketURI(chainAURIs[0], blockchainIDA.String())
+		log.Info("Creating ethclient for blockchainIDA", "wsURI", wsURI)
+		client, err := ethclient.Dial(wsURI)
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		log.Info("Subscribing to new heads")
@@ -240,8 +243,9 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp"), func() {
 		ctx := context.Background()
 
-		log.Info("Creating ethclient for blockchainB")
-		client, err := ethclient.Dial(utils.ToWebsocketURI(chainBURIs[0], blockchainIDB.String()))
+		wsURI := utils.ToWebsocketURI(chainBURIs[0], blockchainIDB.String())
+		log.Info("Creating ethclient for blockchainB", "wsURI", wsURI)
+		client, err := ethclient.Dial(wsURI)
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		log.Info("Subscribing to new heads")

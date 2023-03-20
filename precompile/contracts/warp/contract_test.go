@@ -34,11 +34,6 @@ func TestWarpContractRun(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := map[string]testutils.PrecompileTest{
-		// getVerfiedWarpMessage - assumes that the predicate has been validated should just read the message in
-		// populated and not populated
-		// invalid message in predicate
-		// invalid addressed payload in predicate
-		// valid message
 		"getBlockchainID success": {
 			Caller: callerAddr,
 			InputFn: func(t *testing.T) []byte {
@@ -116,6 +111,12 @@ func TestWarpContractRun(t *testing.T) {
 				// TODO: check that the log was produced correctly
 			},
 		},
+		// TODO: add unit tests for getVerifiedWarpMessage
+		// This is currently difficult to do because 
+		// populated and not populated
+		// invalid message in predicate
+		// invalid addressed payload in predicate
+		// valid message
 		// TODO: implement receive tests
 	}
 
