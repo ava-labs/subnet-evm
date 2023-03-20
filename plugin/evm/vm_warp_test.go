@@ -218,4 +218,10 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	require.Equal(t, choices.Processing, block2.Status())
 	require.NoError(t, vm.SetPreference(context.Background(), block2.ID()))
 	require.NoError(t, block2.Accept(context.Background()))
+
+	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	verifiedMessageReceipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
+	require.Len(t, verifiedMessageReceipts, 1)
+	verifiedMessageTxReceipt := verifiedMessageReceipts[0]
+	require.Equal(t, types.ReceiptStatusSuccessful, verifiedMessageTxReceipt.Status)
 }
