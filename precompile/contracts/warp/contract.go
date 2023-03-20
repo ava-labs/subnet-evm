@@ -131,8 +131,11 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
 		return nil, 0, err
 	}
-
-	warpMessage, err := warp.ParseMessage(predicateBytes)
+	unpackedPredicateBytes, err := UnpackPredicate(predicateBytes)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	warpMessage, err := warp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
 		return nil, remainingGas, err
 	}
