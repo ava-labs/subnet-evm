@@ -50,17 +50,18 @@ func TestE2E(t *testing.T) {
 // a single Subnet-EVM blockchain.
 var _ = ginkgo.BeforeSuite(func() {
 	// Name 10 new validators (which should have BLS key registered)
-	subnetA := make([]string, 0)
-	subnetB := []string{}
+	subnetANodeNames := make([]string, 0)
+	subnetBNodeNames := []string{}
 	for i := 1; i <= 10; i++ {
 		n := fmt.Sprintf("node%d-bls", i)
 		if i <= 5 {
-			subnetA = append(subnetA, n)
+			subnetANodeNames = append(subnetANodeNames, n)
 		} else {
-			subnetB = append(subnetB, n)
+			subnetBNodeNames = append(subnetBNodeNames, n)
 		}
 	}
 
+	// Construct the network using the avalanche-network-runner
 	ctx := context.Background()
 	var err error
 	_, err = manager.StartDefaultNetwork(ctx)
@@ -74,14 +75,14 @@ var _ = ginkgo.BeforeSuite(func() {
 				Genesis:      "./tests/precompile/genesis/warp.json",
 				ChainConfig:  "",
 				SubnetConfig: "",
-				Participants: subnetA,
+				Participants: subnetANodeNames,
 			},
 			{
 				VmName:       evm.IDStr,
 				Genesis:      "./tests/precompile/genesis/warp.json",
 				ChainConfig:  "",
 				SubnetConfig: "",
-				Participants: subnetB,
+				Participants: subnetBNodeNames,
 			},
 		},
 	)
@@ -96,17 +97,18 @@ var _ = ginkgo.AfterSuite(func() {
 
 var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 	var (
-		unsignedWarpMsg              *avalancheWarp.UnsignedMessage
-		unsignedWarpMessageID        ids.ID
-		signedWarpMsg                *avalancheWarp.Message
-		blockchainIDA, blockchainIDB ids.ID
-		chainAURIs                   []string
-		chainBURIs                   []string
-		chainID                      = big.NewInt(99999)
-		fundedKey                    *ecdsa.PrivateKey
-		fundedAddress                common.Address
-		payload                      = []byte{1, 2, 3}
-		txSigner                     = types.LatestSignerForChainID(chainID)
+		unsignedWarpMsg                *avalancheWarp.UnsignedMessage
+		unsignedWarpMessageID          ids.ID
+		signedWarpMsg                  *avalancheWarp.Message
+		blockchainIDA, blockchainIDB   ids.ID
+		chainAURIs                     []string
+		chainAWSClient, chainBWSClient ethclient.Client
+		chainBURIs                     []string
+		chainID                        = big.NewInt(99999)
+		fundedKey                      *ecdsa.PrivateKey
+		fundedAddress                  common.Address
+		payload                        = []byte{1, 2, 3}
+		txSigner                       = types.LatestSignerForChainID(chainID)
 	)
 
 	var err error
@@ -116,9 +118,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 	}
 	fundedAddress = crypto.PubkeyToAddress(fundedKey.PublicKey)
 
-	ginkgo.It("Send Message from A to B", ginkgo.Label("Warp"), ginkgo.Label("SendWarp"), func() {
-		ctx := context.Background()
-
+	ginkgo.It("Setup URIs", ginkgo.Label("Warp", "Setup"), func() {
 		subnetIDs := manager.GetSubnets()
 		gomega.Expect(len(subnetIDs)).Should(gomega.Equal(2))
 
@@ -138,14 +138,26 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA.String(), "blockchainIDB", blockchainIDB)
 
-		wsURI := utils.ToWebsocketURI(chainAURIs[0], blockchainIDA.String())
-		log.Info("Creating ethclient for blockchainIDA", "wsURI", wsURI)
-		client, err := ethclient.Dial(wsURI)
+		chainAWSURI := utils.ToWebsocketURI(chainAURIs[0], blockchainIDA.String())
+		log.Info("Creating ethclient for blockchainIDA", "wsURI", chainAWSURI)
+		chainAWSClient, err = ethclient.Dial(chainAWSURI)
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		chainBWSURI := utils.ToWebsocketURI(chainBURIs[0], blockchainIDB.String())
+		log.Info("Creating ethclient for blockchainB", "wsURI", chainBWSURI)
+		chainBWSClient, err = ethclient.Dial(chainBWSURI)
+		gomega.Expect(err).Should(gomega.BeNil())
+
+	})
+
+	ginkgo.It("Send Message from A to B", ginkgo.Label("Warp", "SendWarp"), func() {
+		ctx := context.Background()
+
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		log.Info("Subscribing to new heads")
 		newHeads := make(chan *types.Header, 10)
-		sub, err := client.SubscribeNewHead(ctx, newHeads)
+		sub, err := chainAWSClient.SubscribeNewHead(ctx, newHeads)
 		gomega.Expect(err).Should(gomega.BeNil())
 		defer sub.Unsubscribe()
 
@@ -168,14 +180,14 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
 		log.Info("Sending sendWarpMessage transaction", "txHash", signedTx.Hash())
-		err = client.SendTransaction(ctx, signedTx)
+		err = chainAWSClient.SendTransaction(ctx, signedTx)
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		log.Info("Waiting for new block confirmation")
 		newHead := <-newHeads
 		blockHash := newHead.Hash()
 		log.Info("Fetching relevant warp logs from the newly produced block")
-		logs, err := client.FilterLogs(ctx, interfaces.FilterQuery{
+		logs, err := chainAWSClient.FilterLogs(ctx, interfaces.FilterQuery{
 			BlockHash: &blockHash,
 			Addresses: []common.Address{warp.Module.Address},
 		})
@@ -193,7 +205,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "unsignedWarpMessage", unsignedWarpMsg)
 	})
 
-	ginkgo.It("Aggregate Warp Signature", ginkgo.Label("Warp"), ginkgo.Label("ReceiveWarp"), func() {
+	ginkgo.It("Aggregate Warp Signature", ginkgo.Label("Warp", "ReceiveWarp"), func() {
 		ctx := context.Background()
 
 		blsSignatures := make([]*bls.Signature, 0, len(chainAURIs))
@@ -240,17 +252,12 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		signedWarpMsg = warpMsg
 	})
 
-	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp"), func() {
+	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
 		ctx := context.Background()
-
-		wsURI := utils.ToWebsocketURI(chainBURIs[0], blockchainIDB.String())
-		log.Info("Creating ethclient for blockchainB", "wsURI", wsURI)
-		client, err := ethclient.Dial(wsURI)
-		gomega.Expect(err).Should(gomega.BeNil())
 
 		log.Info("Subscribing to new heads")
 		newHeads := make(chan *types.Header, 10)
-		sub, err := client.SubscribeNewHead(ctx, newHeads)
+		sub, err := chainBWSClient.SubscribeNewHead(ctx, newHeads)
 		gomega.Expect(err).Should(gomega.BeNil())
 		defer sub.Unsubscribe()
 
@@ -262,7 +269,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		triggerTx, err := types.SignTx(types.NewTransaction(0, fundedAddress, common.Big1, 21_000, big.NewInt(225*params.GWei), nil), txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		err = client.SendTransaction(ctx, triggerTx)
+		err = chainBWSClient.SendTransaction(ctx, triggerTx)
 		gomega.Expect(err).Should(gomega.BeNil())
 		newHead := <-newHeads
 		log.Info("Transaction triggered new block", "blockHash", newHead.Hash())
@@ -271,7 +278,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		triggerTx2, err := types.SignTx(types.NewTransaction(1, fundedAddress, common.Big1, 21_000, big.NewInt(225*params.GWei), nil), txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		err = client.SendTransaction(ctx, triggerTx2)
+		err = chainBWSClient.SendTransaction(ctx, triggerTx2)
 		gomega.Expect(err).Should(gomega.BeNil())
 		newHead = <-newHeads
 		log.Info("Transaction2 triggered new block", "blockHash", newHead.Hash())
@@ -299,20 +306,20 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		txBytes, err := signedTx.MarshalBinary()
 		gomega.Expect(err).Should(gomega.BeNil())
 		log.Info("Sending getVerifiedWarpMessage transaction", "txHash", signedTx.Hash(), "txBytes", common.Bytes2Hex(txBytes))
-		err = client.SendTransaction(ctx, signedTx)
+		err = chainBWSClient.SendTransaction(ctx, signedTx)
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		log.Info("Waiting for new block confirmation")
 		newHead = <-newHeads
 		blockHash := newHead.Hash()
 		log.Info("Fetching relevant warp logs and receipts from new block")
-		logs, err := client.FilterLogs(ctx, interfaces.FilterQuery{
+		logs, err := chainBWSClient.FilterLogs(ctx, interfaces.FilterQuery{
 			BlockHash: &blockHash,
 			Addresses: []common.Address{warp.Module.Address},
 		})
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(len(logs)).Should(gomega.Equal(0))
-		receipt, err := client.TransactionReceipt(ctx, signedTx.Hash())
+		receipt, err := chainBWSClient.TransactionReceipt(ctx, signedTx.Hash())
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(receipt.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful))
 	})
