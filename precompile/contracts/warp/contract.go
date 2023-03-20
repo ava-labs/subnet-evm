@@ -206,7 +206,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		payload            = inputStruct.Payload
 	)
 
-	addressedPayload, err := warp.NewAddressedPayload(
+	addressedPayload, err := warpMessages.NewAddressedPayload(
 		ids.ID(sourceAddress),
 		destinationAddress,
 		payload,
