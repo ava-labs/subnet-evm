@@ -289,7 +289,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 			ChainID:   chainID,
 			Nonce:     2,
 			To:        &warp.Module.Address,
-			Gas:       200_000,
+			Gas:       5_000_000,
 			GasFeeCap: big.NewInt(225 * params.GWei),
 			GasTipCap: big.NewInt(params.GWei),
 			Value:     common.Big0,
