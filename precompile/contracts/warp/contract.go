@@ -111,7 +111,6 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, 0, err
 	}
 	// Ignore input since there are no arguments
-
 	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	// If there is no such value, return false to the caller.
 	// Note: decoding errors will return an error instead.

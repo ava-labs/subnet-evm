@@ -211,6 +211,22 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	return nil
 }
 
+func (n *NetworkManager) SaveSnapshot(ctx context.Context, snapshotName string) error {
+	_, err := n.anrClient.SaveSnapshot(ctx, snapshotName)
+	if err != nil {
+		return fmt.Errorf("failed to save ANR snapshot: %w", err)
+	}
+	return nil
+}
+
+func (n *NetworkManager) LoadSnapshot(ctx context.Context, snapshotName string) error {
+	_, err := n.anrClient.LoadSnapshot(ctx, snapshotName)
+	if err != nil {
+		return fmt.Errorf("failed to load ANR snapshot %s: %w", snapshotName, err)
+	}
+	return nil
+}
+
 // This is an ugly hack to redial the server and create a new client connection.
 // This is used to support tearing down the network from an external command.
 func (n *NetworkManager) redialServer() error {

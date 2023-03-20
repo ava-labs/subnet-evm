@@ -35,8 +35,10 @@ import (
 )
 
 var (
-	config  = runner.NewDefaultANRConfig()
-	manager = runner.NewNetworkManager(config)
+	config           = runner.NewDefaultANRConfig()
+	manager          = runner.NewNetworkManager(config)
+	snapshotName     = "WarpSubnetToSubnet"
+	snapshotsEnabled = true // TODO: use os.Getenv("NETWORK_SNAPSHOT_ENABLED") == "true"
 )
 
 func TestE2E(t *testing.T) {
@@ -49,6 +51,17 @@ func TestE2E(t *testing.T) {
 // Adds two disjoin sets of 5 of the new validator nodes to validate two new subnets with a
 // a single Subnet-EVM blockchain.
 var _ = ginkgo.BeforeSuite(func() {
+	ctx := context.Background()
+	var err error
+	if snapshotsEnabled {
+		log.Info("Snapshot loading enabled, attempting to load snapshot", "snapshotName", snapshotName)
+		err = manager.LoadSnapshot(ctx, snapshotName)
+		if err == nil {
+			log.Info("Loaded snapshot successfully")
+		} else {
+			log.Info("Failed to load snapshot, constructing network")
+		}
+	}
 	// Name 10 new validators (which should have BLS key registered)
 	subnetANodeNames := make([]string, 0)
 	subnetBNodeNames := []string{}
@@ -62,8 +75,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 
 	// Construct the network using the avalanche-network-runner
-	ctx := context.Background()
-	var err error
 	_, err = manager.StartDefaultNetwork(ctx)
 	gomega.Expect(err).Should(gomega.BeNil())
 	err = manager.SetupNetwork(
@@ -87,6 +98,11 @@ var _ = ginkgo.BeforeSuite(func() {
 		},
 	)
 	gomega.Expect(err).Should(gomega.BeNil())
+
+	if snapshotsEnabled {
+		err = manager.SaveSnapshot(ctx, snapshotName)
+		gomega.Expect(err).Should(gomega.BeNil())
+	}
 })
 
 var _ = ginkgo.AfterSuite(func() {
