@@ -24,5 +24,5 @@ jobs:
           go-version: ${{ matrix.go }}
       - run: go mod download
         shell: bash
-      - run: go test ./plugin/evm/... -test.v 
+      - run: VALIDATOR_PRIVATE_KEY=31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc go test ./plugin/evm/... -test.v 
         shell: bash
