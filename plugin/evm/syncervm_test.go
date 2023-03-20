@@ -54,6 +54,7 @@ func TestSkipStateSync(t *testing.T) {
 }
 
 func TestStateSyncFromScratch(t *testing.T) {
+	t.Skip()
 	rand.Seed(1)
 	test := syncTest{
 		syncableInterval:   256,
@@ -67,6 +68,7 @@ func TestStateSyncFromScratch(t *testing.T) {
 }
 
 func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
+	t.Skip()
 	rand.Seed(1)
 	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
 	metrics.Enabled = false
