@@ -139,7 +139,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA.String(), "blockchainIDB", blockchainIDB)
 
 		chainAWSURI := utils.ToWebsocketURI(chainAURIs[0], blockchainIDA.String())
-		log.Info("Creating ethclient for blockchainIDA", "wsURI", chainAWSURI)
+		log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
 		chainAWSClient, err = ethclient.Dial(chainAWSURI)
 		gomega.Expect(err).Should(gomega.BeNil())
 
