@@ -118,7 +118,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 	}
 	fundedAddress = crypto.PubkeyToAddress(fundedKey.PublicKey)
 
-	ginkgo.It("Setup URIs", ginkgo.Label("Warp", "Setup"), func() {
+	ginkgo.It("Setup URIs", ginkgo.Label("Warp", "SetupWarp"), func() {
 		subnetIDs := manager.GetSubnets()
 		gomega.Expect(len(subnetIDs)).Should(gomega.Equal(2))
 
