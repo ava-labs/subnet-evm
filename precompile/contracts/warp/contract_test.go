@@ -112,7 +112,7 @@ func TestWarpContractRun(t *testing.T) {
 			},
 		},
 		// TODO: add unit tests for getVerifiedWarpMessage
-		// This is currently difficult to do because 
+		// This is currently difficult to do because
 		// populated and not populated
 		// invalid message in predicate
 		// invalid addressed payload in predicate
