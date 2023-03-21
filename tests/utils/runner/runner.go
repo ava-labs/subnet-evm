@@ -267,28 +267,6 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	return nil
 }
 
-func (n *NetworkManager) SaveSnapshot(ctx context.Context, snapshotName string) error {
-	if err := n.init(); err != nil {
-		return err
-	}
-	_, err := n.anrClient.SaveSnapshot(ctx, snapshotName)
-	if err != nil {
-		return fmt.Errorf("failed to save ANR snapshot: %w", err)
-	}
-	return nil
-}
-
-func (n *NetworkManager) LoadSnapshot(ctx context.Context, snapshotName string) error {
-	if err := n.init(); err != nil {
-		return err
-	}
-	_, err := n.anrClient.LoadSnapshot(ctx, snapshotName)
-	if err != nil {
-		return fmt.Errorf("failed to load ANR snapshot %s: %w", snapshotName, err)
-	}
-	return nil
-}
-
 // TeardownNetwork tears down the network constructed by the network manager and cleans up
 // everything associated with it.
 func (n *NetworkManager) TeardownNetwork() error {
