@@ -65,10 +65,10 @@ github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kd
 github.com/apache/arrow/go/arrow v0.0.0-20191024131854-af6fa24be0db/go.mod h1:VTxUBvSJ3s3eHAg65PNgrsn5BtqCRPdmyXh6rAfdxN0=
 github.com/ava-labs/avalanche-network-runner v1.3.10-0.20230308045825-b56131338316 h1:lDxWzRKovVZ4BtM1LDWStlZzV2W47LLql4WiR073AUY=
 github.com/ava-labs/avalanche-network-runner v1.3.10-0.20230308045825-b56131338316/go.mod h1:PNHqHZxYMxqNKyM/gjwZ9ek5TIJzesizlu+v3kprSuA=
-github.com/ava-labs/avalanchego v1.9.12-rc.5 h1:Ffd/H5wmIcSLWjsjENIUHSDSIOxztwTwbw1e61hkPT8=
-github.com/ava-labs/avalanchego v1.9.12-rc.5/go.mod h1:nNc+4JCIJMaEt2xRmeMVAUyQwDIap7RvnMrfWD2Tpo8=
-github.com/ava-labs/coreth v0.11.8-rc.3 h1:pS+OTFPc9edcFuCJIQGn5TdyAZncT9Hhs9jCcmm7+PM=
-github.com/ava-labs/coreth v0.11.8-rc.3/go.mod h1:pc44yvJD4jTPIwkPI64pUXyJDvQ/UAqkbmhXOx78PXA=
+github.com/ava-labs/avalanchego v1.9.12 h1:bDDNfJeeyLHviIQV2jiQUTHbMB0m7+oDreIvhWjkePQ=
+github.com/ava-labs/avalanchego v1.9.12/go.mod h1:Unm7ruhAvLSRP+7gIfwyHNf+wEehWLsFhY9yp10nDbw=
+github.com/ava-labs/coreth v0.11.9-rc.0 h1:7oK5DWtvDEMKEaduw/34r5kdwUssRsFszCl1FFUvvPc=
+github.com/ava-labs/coreth v0.11.9-rc.0/go.mod h1:y41I9mWK04s8oObvQeYjkdoidtPhkPqV8prRPN6zrd4=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
