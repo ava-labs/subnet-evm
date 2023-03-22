@@ -47,11 +47,6 @@ func TestEqualRewardManagerConfig(t *testing.T) {
 			Other:    NewConfig(big.NewInt(4), admins, nil, nil),
 			Expected: false,
 		},
-		"different enabled": {
-			Config:   NewConfig(big.NewInt(3), admins, nil, nil),
-			Other:    NewConfig(big.NewInt(3), admins, enableds, nil),
-			Expected: false,
-		},
 		"non-nil initial config and nil initial config": {
 			Config: NewConfig(big.NewInt(3), admins, nil, &InitialRewardConfig{
 				AllowFeeRecipients: true,
