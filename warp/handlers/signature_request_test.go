@@ -39,7 +39,7 @@ func TestSignatureHandler(t *testing.T) {
 	unknownMessageID := ids.GenerateTestID()
 
 	mockHandlerStats := &stats.MockSignatureRequestHandlerStats{}
-	signatureRequestHandler := NewSignatureRequestHandler(warpBackend, message.Codec, mockHandlerStats)
+	signatureRequestHandler := NewSignatureRequestHandler(warpBackend, message.Codec, mockHandlerStats, ids.Empty)
 
 	tests := map[string]struct {
 		setup       func() (request message.SignatureRequest, expectedResponse []byte)

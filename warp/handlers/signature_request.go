@@ -27,13 +27,15 @@ type signatureRequestHandler struct {
 	backend warp.WarpBackend
 	codec   codec.Manager
 	stats   stats.SignatureRequestHandlerStats
+	chainID ids.ID
 }
 
-func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) SignatureRequestHandler {
+func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats stats.SignatureRequestHandlerStats, chainID ids.ID) SignatureRequestHandler {
 	return &signatureRequestHandler{
 		backend: backend,
 		codec:   codec,
 		stats:   stats,
+		chainID: chainID,
 	}
 }
 
@@ -64,7 +66,10 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	}
 
 	s.stats.IncSignatureHit()
-	response := message.SignatureResponse{Signature: signature}
+	response := message.SignatureResponse{
+		Signature: signature,
+		ChainID:   s.chainID,
+	}
 	responseBytes, err := s.codec.Marshal(message.Version, &response)
 	if err != nil {
 		log.Warn("could not marshal SignatureResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "err", err)

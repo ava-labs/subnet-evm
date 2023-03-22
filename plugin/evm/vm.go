@@ -612,7 +612,7 @@ func (vm *VM) setAppRequestHandlers() {
 		},
 	)
 
-	networkHandler := newNetworkHandler(vm.blockChain, evmTrieDB, vm.networkCodec, vm.warpBackend)
+	networkHandler := newNetworkHandler(vm.blockChain, evmTrieDB, vm.networkCodec, vm.warpBackend, vm.ctx.ChainID)
 	vm.Network.SetRequestHandler(networkHandler)
 }
 

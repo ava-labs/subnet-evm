@@ -30,4 +30,5 @@ func (s SignatureRequest) Handle(ctx context.Context, nodeID ids.NodeID, request
 // The response contains a BLS signature of the requested message, signed by the responding node's BLS private key.
 type SignatureResponse struct {
 	Signature [bls.SignatureLen]byte `serialize:"true"`
+	ChainID   ids.ID                 `serialize:"true"`
 }

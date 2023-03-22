@@ -28,7 +28,7 @@ type networkHandler struct {
 }
 
 // newNetworkHandler constructs the handler for serving network requests.
-func newNetworkHandler(provider syncHandlers.SyncDataProvider, evmTrieDB *trie.Database, networkCodec codec.Manager, backend warp.WarpBackend) message.RequestHandler {
+func newNetworkHandler(provider syncHandlers.SyncDataProvider, evmTrieDB *trie.Database, networkCodec codec.Manager, backend warp.WarpBackend, chainID ids.ID) message.RequestHandler {
 	syncStats := syncStats.NewHandlerStats(metrics.Enabled)
 	warpStats := warpStats.NewStats(metrics.Enabled)
 	return &networkHandler{
@@ -38,7 +38,7 @@ func newNetworkHandler(provider syncHandlers.SyncDataProvider, evmTrieDB *trie.D
 		codeRequestHandler:           syncHandlers.NewCodeRequestHandler(evmTrieDB.DiskDB(), networkCodec, syncStats),
 
 		// TODO: initialize actual signature request handler when warp is ready
-		signatureRequestHandler: warpHandlers.NewSignatureRequestHandler(backend, networkCodec, warpStats),
+		signatureRequestHandler: warpHandlers.NewSignatureRequestHandler(backend, networkCodec, warpStats, chainID),
 	}
 }
 
