@@ -104,6 +104,8 @@ func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, txHash common
 	return nil
 }
 
+// verifyWarpMessage checks that [warpMsg] can be parsed as an addressed payload and verifies the Warp Message Signature
+// within [predicateContext].
 func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPredicateContext, warpMsg *warp.Message) (uint64, error) {
 	numSigners, err := warpMsg.Signature.NumSigners()
 	if err != nil {
@@ -141,6 +143,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 	return msgGas, nil
 }
 
+// VerifyPredicate verifies the predicate represents a valid signed and properly formatted Avalanche Warp Message.
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.ProposerPredicateContext, predicateBytes []byte) error {
 	if predicateContext.ProposerVMBlockCtx == nil {
 		return fmt.Errorf("cannot specify a proposer predicate for %s in a block before ProposerVM activation", ConfigKey)
