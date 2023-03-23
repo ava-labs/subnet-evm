@@ -11,6 +11,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/utils"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -140,27 +141,6 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 	return msgGas, nil
 }
 
-// TODO: move to general package, cleanup, and test
-var predicateEndByte = byte(0xff)
-
-func PackPredicate(predicate []byte) []byte {
-	predicate = append(predicate, predicateEndByte)
-	return common.RightPadBytes(predicate, (len(predicate)+31/32)*32)
-}
-
-func UnpackPredicate(paddedPredicate []byte) ([]byte, error) {
-	trimmedPredicateBytes := common.TrimRightZeroes(paddedPredicate)
-	if len(trimmedPredicateBytes) == 0 {
-		return nil, fmt.Errorf("warp predicate specified invalid all zero bytes: 0x%x", paddedPredicate)
-	}
-
-	if trimmedPredicateBytes[len(trimmedPredicateBytes)-1] != predicateEndByte {
-		return nil, fmt.Errorf("invalid end delimiter")
-	}
-
-	return trimmedPredicateBytes[:len(trimmedPredicateBytes)-1], nil
-}
-
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.ProposerPredicateContext, predicateBytes []byte) error {
 	if predicateContext.ProposerVMBlockCtx == nil {
 		return fmt.Errorf("cannot specify a proposer predicate for %s in a block before ProposerVM activation", ConfigKey)
@@ -170,7 +150,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.ProposerPred
 		return fmt.Errorf("overflow calculating gas cost for warp message bytes of size %d", len(predicateBytes))
 	}
 
-	unpackedPredicateBytes, err := UnpackPredicate(predicateBytes)
+	unpackedPredicateBytes, err := utils.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return err
 	}

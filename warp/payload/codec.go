@@ -22,6 +22,7 @@ func init() {
 
 	errs := wrappers.Errs{}
 	errs.Add(
+		lc.RegisterType(&AddressedPayload{}),
 		c.RegisterCodec(codecVersion, lc),
 	)
 	if errs.Errored() {

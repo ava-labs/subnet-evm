@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 
@@ -131,7 +132,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
 		return nil, 0, err
 	}
-	unpackedPredicateBytes, err := UnpackPredicate(predicateBytes)
+	unpackedPredicateBytes, err := utils.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return nil, remainingGas, err
 	}
