@@ -11,7 +11,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	warpMessages "github.com/ava-labs/subnet-evm/warp/messages"
+	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
@@ -120,7 +120,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 	}
 
 	// Verify the warp payload can be decoded to the expected type
-	_, err = warpMessages.ParseAddressedPayload(warpMsg.UnsignedMessage.Payload)
+	_, err = warpPayload.ParseAddressedPayload(warpMsg.UnsignedMessage.Payload)
 	if err != nil {
 		return 0, fmt.Errorf("failed to parse warp payload into addressed payload: %w", err)
 	}

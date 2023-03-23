@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	warpMessages "github.com/ava-labs/subnet-evm/warp/messages"
+	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 
 	_ "embed"
 
@@ -140,7 +140,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, err
 	}
 
-	addressedPayload, err := warpMessages.ParseAddressedPayload(warpMessage.UnsignedMessage.Payload)
+	addressedPayload, err := warpPayload.ParseAddressedPayload(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -208,7 +208,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		payload            = inputStruct.Payload
 	)
 
-	addressedPayload, err := warpMessages.NewAddressedPayload(
+	addressedPayload, err := warpPayload.NewAddressedPayload(
 		ids.ID(sourceAddress),
 		destinationAddress,
 		payload,
