@@ -19,6 +19,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+// Subnet provides the basic details of a created subnet
+// Note: currently assumes one blockchain per subnet
 type Subnet struct {
 	// SubnetID is the txID of the transaction that created the subnet
 	SubnetID ids.ID
@@ -35,14 +37,17 @@ type ANRConfig struct {
 	GlobalNodeConfig    string
 }
 
+// NetworkManager is a wrapper around the ANR to simplify the setup and teardown code
+// of tests that rely on the ANR.
 type NetworkManager struct {
 	ANRConfig ANRConfig
 
-	// Map SubnetID to Subnet details
 	subnets []*Subnet
 
+	logFactory      logging.Factory
 	anrClient       runner_sdk.Client
 	anrServer       runner_server.Server
+	done            chan struct{}
 	serverCtxCancel context.CancelFunc
 }
 
@@ -73,29 +78,28 @@ func NewDefaultANRConfig() ANRConfig {
 
 // NewNetworkManager constructs a new instance of a network manager
 func NewNetworkManager(config ANRConfig) *NetworkManager {
-	return &NetworkManager{
+	manager := &NetworkManager{
 		ANRConfig: config,
 	}
-}
 
-// StartDefaultNetwork constructs a default 5 node network.
-func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct{}, error) {
-	done := make(chan struct{})
-	logLevel, err := logging.ToLevel(n.ANRConfig.LogLevel)
+	logLevel, err := logging.ToLevel(config.LogLevel)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ANR log level: %w", err)
+		panic(fmt.Errorf("invalid ANR log level: %w", err))
 	}
-	logFactory := logging.NewFactory(logging.Config{
+	manager.logFactory = logging.NewFactory(logging.Config{
 		DisplayLevel: logLevel,
 		LogLevel:     logLevel,
 	})
-	zapServerLog, err := logFactory.Make("server")
+
+	return manager
+}
+
+// startServer starts a new ANR server and sets/overwrites the anrServer, done channel, and serverCtxCancel function.
+func (n *NetworkManager) startServer(ctx context.Context) (<-chan struct{}, error) {
+	done := make(chan struct{})
+	zapServerLog, err := n.logFactory.Make("server")
 	if err != nil {
 		return nil, fmt.Errorf("failed to make server log: %w", err)
-	}
-	zapLog, err := logFactory.Make("main")
-	if err != nil {
-		return nil, fmt.Errorf("failed to make client log: %w", err)
 	}
 
 	n.anrServer, err = runner_server.New(
@@ -112,6 +116,7 @@ func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct
 	if err != nil {
 		return nil, fmt.Errorf("failed to start ANR server: %w", err)
 	}
+	n.done = done
 
 	// Use a separate background context here, since the server should only be canceled by explicit shutdown
 	serverCtx, serverCtxCancel := context.WithCancel(context.Background())
@@ -125,12 +130,67 @@ func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct
 		close(done)
 	}()
 
+	return done, nil
+}
+
+// startClient starts an ANR Client dialing the ANR server at the expected endpoint.
+// Note: will overwrite client if it already exists.
+func (n *NetworkManager) startClient() error {
+	logLevel, err := logging.ToLevel(n.ANRConfig.LogLevel)
+	if err != nil {
+		return fmt.Errorf("failed to parse ANR log level: %w", err)
+	}
+	logFactory := logging.NewFactory(logging.Config{
+		DisplayLevel: logLevel,
+		LogLevel:     logLevel,
+	})
+	zapLog, err := logFactory.Make("main")
+	if err != nil {
+		return fmt.Errorf("failed to make client log: %w", err)
+	}
+
 	n.anrClient, err = runner_sdk.New(runner_sdk.Config{
 		Endpoint:    "0.0.0.0:12352",
 		DialTimeout: 10 * time.Second,
 	}, zapLog)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start ANR client: %w", err)
+		return fmt.Errorf("failed to start ANR client: %w", err)
+	}
+
+	return nil
+}
+
+// initServer starts the ANR server if it is not populated
+func (n *NetworkManager) initServer() error {
+	if n.anrServer != nil {
+		return nil
+	}
+
+	_, err := n.startServer(context.Background())
+	return err
+}
+
+// initClient starts an ANR client if it not populated
+func (n *NetworkManager) initClient() error {
+	if n.anrClient != nil {
+		return nil
+	}
+
+	return n.startClient()
+}
+
+// init starts the ANR server and client if they are not yet populated
+func (n *NetworkManager) init() error {
+	if err := n.initServer(); err != nil {
+		return err
+	}
+	return n.initClient()
+}
+
+// StartDefaultNetwork constructs a default 5 node network.
+func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct{}, error) {
+	if err := n.init(); err != nil {
+		return nil, err
 	}
 
 	log.Info("Sending 'start'", "AvalancheGoExecPath", n.ANRConfig.AvalancheGoExecPath)
@@ -146,12 +206,16 @@ func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct
 		return nil, fmt.Errorf("failed to start ANR network: %w", err)
 	}
 	log.Info("successfully started cluster", "RootDataDir", resp.ClusterInfo.RootDataDir, "Subnets", resp.GetClusterInfo().GetSubnets())
-	return done, nil
+	return n.done, nil
 }
 
 // SetupNetwork constructs blockchains with the given [blockchainSpecs] and adds them to the network manager.
 // Uses [execPath] as the AvalancheGo binary execution path for any started nodes.
+// Note: this assumes that the default network has already been constructed.
 func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, blockchainSpecs []*rpcpb.BlockchainSpec) error {
+	if err := n.init(); err != nil {
+		return err
+	}
 	sresp, err := n.anrClient.CreateSpecificBlockchains(
 		ctx,
 		execPath,
@@ -211,41 +275,6 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	return nil
 }
 
-// This is an ugly hack to redial the server and create a new client connection.
-// This is used to support tearing down the network from an external command.
-func (n *NetworkManager) redialServer() error {
-	logLevel, err := logging.ToLevel(n.ANRConfig.LogLevel)
-	if err != nil {
-		return fmt.Errorf("failed to parse ANR log level: %w", err)
-	}
-	logFactory := logging.NewFactory(logging.Config{
-		DisplayLevel: logLevel,
-		LogLevel:     logLevel,
-	})
-	zapLog, err := logFactory.Make("main")
-	if err != nil {
-		return fmt.Errorf("failed to make client log: %w", err)
-	}
-
-	n.anrClient, err = runner_sdk.New(runner_sdk.Config{
-		Endpoint:    "0.0.0.0:12352",
-		DialTimeout: 10 * time.Second,
-	}, zapLog)
-	if err != nil {
-		return fmt.Errorf("failed to start ANR client: %w", err)
-	}
-
-	return nil
-}
-
-func (n *NetworkManager) initClient() error {
-	if n.anrClient != nil {
-		return nil
-	}
-
-	return n.redialServer()
-}
-
 // TeardownNetwork tears down the network constructed by the network manager and cleans up
 // everything associated with it.
 func (n *NetworkManager) TeardownNetwork() error {
@@ -268,11 +297,12 @@ func (n *NetworkManager) TeardownNetwork() error {
 // CloseClient closes the connection between the ANR client and server without terminating the
 // running network.
 func (n *NetworkManager) CloseClient() error {
-	if err := n.initClient(); err != nil {
-		return err
+	if n.anrClient == nil {
+		return nil
 	}
-
-	return n.anrClient.Close()
+	err := n.anrClient.Close()
+	n.anrClient = nil
+	return err
 }
 
 // GetSubnets returns the IDs of the currently running subnets
