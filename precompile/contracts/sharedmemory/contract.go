@@ -5,15 +5,11 @@
 package sharedmemory
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/components/verify"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
@@ -37,10 +33,6 @@ const (
 	ImportAVAXGasCost            uint64 = contract.WriteGasCostPerSlot + contract.ReadGasCostPerSlot
 	ImportUTXOGasCost            uint64 = contract.WriteGasCostPerSlot + contract.ReadGasCostPerSlot
 	GetNativeTokenAssetIDGasCost uint64 = 100 // Based off of sha256
-)
-
-var (
-	_ contract.Predicater = &sharedMemoryPredicater{}
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -491,117 +483,5 @@ func createSharedMemoryPrecompile() contract.StatefulPrecompiledContract {
 	if err != nil {
 		panic(err)
 	}
-	return &sharedMemoryAccepter{&sharedMemoryPredicater{statefulContract}}
-}
-
-type sharedMemoryPredicater struct {
-	contract.StatefulPrecompiledContract
-}
-
-// TODO: consider changing this to specify a single UTXO and allowing the predicate to unmarshal a slice
-// of pairs (SourceChainID, UTXO)
-type AtomicPredicate struct {
-	// Which chain to consume the funds from
-	SourceChain ids.ID `serialize:"true" json:"sourceChain"`
-	// UTXOs consumable in this transaction
-	ImportedUTXOs []*avax.UTXO `serialize:"true" json:"importedInputs"`
-}
-
-// VerifyPredicate verifies that the UTXOs specified by [predicateBytes] are present in shared memory, valid, and
-// have not been consumed yet.
-// VerifyPredicated is called before the transaction execution, so it is up to the precompile implementation to validate
-// that the caller has permission to consume the UTXO and how consuming the UTXO works.
-func (s *sharedMemoryPredicater) VerifyPredicate(predicateContext *contract.PredicateContext, predicateBytes []byte) error {
-	atomicPredicate := new(AtomicPredicate)
-	version, err := codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal shared memory predicate: %w", err)
-	}
-	if version != 0 {
-		return fmt.Errorf("invalid version for shared memory predicate: %d", version)
-	}
-
-	utxoIDs := make([][]byte, len(atomicPredicate.ImportedUTXOs))
-	for i, in := range atomicPredicate.ImportedUTXOs {
-		inputID := in.UTXOID.InputID()
-		utxoIDs[i] = inputID[:]
-	}
-	// allUTXOBytes is guaranteed to be the same length as utxoIDs
-	allUTXOBytes, err := predicateContext.SnowCtx.SharedMemory.Get(atomicPredicate.SourceChain, utxoIDs)
-	if err != nil {
-		return fmt.Errorf("failed to fetch import UTXOs from %s due to: %w", atomicPredicate.SourceChain, err)
-	}
-
-	// TODO: check that the UTXO has not been marked as consumed within the statedb
-	// XXX make sure this handles the async acceptor here
-
-	for i, specifiedUTXO := range atomicPredicate.ImportedUTXOs {
-		specifiedUTXOBytes, err := codec.Codec.Marshal(0, specifiedUTXO)
-		if err != nil {
-			return fmt.Errorf("failed to marshal specified UTXO: %s", specifiedUTXO.ID)
-		}
-		utxoBytes := allUTXOBytes[i]
-
-		if !bytes.Equal(specifiedUTXOBytes, utxoBytes) {
-			return fmt.Errorf("UTXO %s mismatching byte representation: 0x%x expected: 0x%x", specifiedUTXO.ID, specifiedUTXOBytes, utxoBytes)
-		}
-
-		// Validate that the specified UTXO is valid to be imported to the EVM
-		transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
-		if !ok {
-			return fmt.Errorf("UTXO %s invalid UTXO output type: %T", specifiedUTXO.ID, specifiedUTXO.Out)
-		}
-		// Do not allow a transfer amount of 0 - no VM should export an atomic UTXO with an amount of 0, so this
-		// should never happen, but just in case another VM implements this incorrectly, we add an extra check here
-		if transferOut.Amt == 0 {
-			return fmt.Errorf("UTXO %s cannot specify an amount of 0", specifiedUTXO.ID)
-		}
-		// When import is called within the EVM, there will only be one caller address, so we require a threshold of 1
-		// since a UTXO with a threshold of 2 will never be valid to import.
-		if transferOut.Threshold != 1 {
-			return fmt.Errorf("UTXO %s specified invalid threshold", specifiedUTXO.ID)
-		}
-	}
-
-	return nil
-}
-
-type sharedMemoryAccepter struct {
-	contract.StatefulPrecompiledContract
-}
-
-// Accept will be called for every log with the address of the precompile when the block is accepted.
-func (s *sharedMemoryAccepter) Accept(acceptCtx *contract.AcceptContext, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
-	chainID, requests, err := acceptedLogsToSharedMemoryOps(acceptCtx.SnowCtx, txHash, logIndex, topics, logData)
-	if err != nil {
-		return err
-	}
-	acceptCtx.SharedMemory.AddSharedMemoryRequests(chainID, requests)
-	return nil
-}
-
-// acceptedLogsToSharedMemoryOps processes the event's log data and topics, and returns a
-// chainID and the atomic requests that should be sent to the shared memory for that chain.
-func acceptedLogsToSharedMemoryOps(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error) {
-	if len(topics) == 0 {
-		return ids.ID{}, nil, errors.New("SharedMemory does not handle logs with 0 topics")
-	}
-	event, err := SharedMemoryABI.EventByID(topics[0]) // First topic is the event ID
-	if err != nil {
-		return ids.ID{}, nil, fmt.Errorf("shared memory accept: %w", err)
-	}
-
-	// TODO: separate this out better and implement remaining handlers
-	switch event.Name {
-	case "ExportUTXO":
-		return handleExportUTXO(snowCtx, txHash, logIndex, topics, logData)
-	case "ExportAVAX":
-		return handleExportAVAX(snowCtx, txHash, logIndex, topics, logData)
-	case "ImportUTXO":
-		return handleImportUTXO(snowCtx, txHash, logIndex, topics, logData)
-	case "ImportAVAX":
-		return handleImportAVAX(snowCtx, txHash, logIndex, topics, logData)
-	default:
-		return ids.ID{}, nil, fmt.Errorf("shared memory accept unexpected log: %q", event.Name)
-	}
+	return statefulContract
 }
