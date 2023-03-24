@@ -31,7 +31,6 @@ func TestSharedMemoryRun(t *testing.T) {
 		caller       common.Address
 		preCondition func(t *testing.T, state *state.StateDB)
 		input        func() []byte
-		value        *big.Int
 		suppliedGas  uint64
 		readOnly     bool
 		config       *Config
