@@ -1,14 +1,25 @@
 # Avalanche Warp Messaging
 
-Avalanche Warp Messaging offers a basic primitive allowing Subnets including the Avalanche Primary Network to communicate with each other. Enabling Cross-Subnet communication allows applications launched on Subnets to achieve horizontal scaling to communicate seamlessly.
+Avalanche Warp Messaging offers a basic primitive to enable Cross-Subnet communication on the Avalanche Network.
 
-Avalanche Warp Messaging is a basic primitive built with the intention to allow arbitrary Custom Virtual Machines (including, but not limited to Subnet-EVM) 
+It is intended to allow communication between arbitrary Custom Virtual Machines (including, but not limited to Subnet-EVM).
 
-## What is Avalanche Warp Messaging
+## How does Avalanche Warp Messaging Work
 
-Avalanche Warp Messaging
+Avalanche Warp Messaging relies on the organization of Avalanche Subnets through the P-Chain.
+
+- how are Avalanche Subnets organized
+- P-Chain organizes Avalanche Subnets
+- Every subnet validator has read-access to the P-Chain state
+- the P-Chain registers BLS Public Keys for every validator
+
+- that's where we are, what can we do with it?
 
 ## Subnet to Subnet
+
+- the validator set of subent A can send a message on behalf of any blockchain on its Subnet
+- note: AvalancheGo will only sign a message on behalf of a VM if the SourceChainID matches the blockchainID of that blockchain (add link)
+- 
 
 ## Subnet to C-Chain (Primary Network)
 
