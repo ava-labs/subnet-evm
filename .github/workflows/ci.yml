@@ -9,6 +9,14 @@ on:
   pull_request:
 
 jobs:
+  checkout_avgo:
+    name: Checkout
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        repository: 'github.com/ava-labs/avalanchego'
+        ref: 'e880743'
+
   lint_test:
     name: Lint
     runs-on: ubuntu-20.04
