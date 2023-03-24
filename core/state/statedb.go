@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -698,7 +699,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key Key, value Va
 
 // copyPredicateStorageSlots creates a deep copy of the provided predicateStorageSlots map.
 func copyPredicateStorageSlots(predicateStorageSlots map[common.Address][]byte) map[common.Address][]byte {
-	res := make(map[common.Address][]byte)
+	res := make(map[common.Address][]byte, len(predicateStorageSlots))
 	for address, slots := range predicateStorageSlots {
 		res[address] = common.CopyBytes(slots)
 	}
@@ -1080,7 +1081,7 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 // - Add the contents of the optional tx access list (2930)
 //
 // This method should only be called if Berlin/SubnetEVM/2929+2930 is applicable at the current number.
-func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
+func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, rules params.Rules, precompiles []common.Address, list types.AccessList) {
 	// Clear out any leftover from previous executions
 	s.accessList = newAccessList()
 
@@ -1093,16 +1094,26 @@ func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, 
 		s.AddAddressToAccessList(addr)
 	}
 
-	// Note: If an address is specified multiple times in the access list, only the
-	// last storage slots provided for it are used in predicates.
-	// During predicate verification, we enforce that a precompile address can only
-	// have one access tuple per address to avoid a situation where we verify multiple
-	// predicates and only expose the data from the last one.
-	s.predicateStorageSlots = make(map[common.Address][]byte)
 	for _, el := range list {
 		s.AddAddressToAccessList(el.Address)
 		for _, key := range el.StorageKeys {
 			s.AddSlotToAccessList(el.Address, key)
+		}
+		s.predicateStorageSlots[el.Address] = utils.HashSliceToBytes(el.StorageKeys)
+	}
+	s.preparePredicateStorageSlots(rules, list)
+}
+
+// preparePredicateStorageSlots populates the predicateStorageSlots field from the transaction's access list
+// Note: if an address is specified multiple times in the access list, only the last storage slots provided
+// for it are used in predicates.
+// During predicate verification, we require that a precompile address is only specififed in the access list
+// once to avoid a situation where we verify multiple predicate and only expose data from the last one.
+func (s *StateDB) preparePredicateStorageSlots(rules params.Rules, list types.AccessList) {
+	s.predicateStorageSlots = make(map[common.Address][]byte)
+	for _, el := range list {
+		if !rules.PredicateExists(el.Address) {
+			continue
 		}
 		s.predicateStorageSlots[el.Address] = utils.HashSliceToBytes(el.StorageKeys)
 	}

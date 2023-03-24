@@ -44,7 +44,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -113,7 +113,7 @@ func (w *worker) setEtherbase(addr common.Address) {
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWork(predicateContext *contract.PredicateContext) (*types.Block, error) {
+func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredicateContext) (*types.Block, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
@@ -186,8 +186,8 @@ func (w *worker) commitNewWork(predicateContext *contract.PredicateContext) (*ty
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
-	// Configure any stateful precompiles that should go into effect during this block.
-	err = core.ApplyPrecompileActivations(w.chainConfig, new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
+	// Configure any upgrades that should go into effect during this block.
+	err = core.ApplyUpgrades(w.chainConfig, new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
 	if err != nil {
 		log.Error("failed to configure precompiles mining new block", "parent", parent.Hash(), "number", header.Number, "timestamp", header.Time, "err", err)
 		return nil, err
@@ -368,7 +368,7 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 		logs = append(logs, receipt.Logs...)
 	}
 
-	log.Info("Commit new mining work", "number", block.Number(), "hash", hash, "uncles", 0, "txs", env.tcount,
+	log.Info("Commit new mining work", "number", block.Number(), "hash", hash, "timestamp", block.Time(), "uncles", 0, "txs", env.tcount,
 		"gas", block.GasUsed(), "fees", totalFees(block, receipts), "elapsed", common.PrettyDuration(time.Since(env.start)))
 
 	// Note: the miner no longer emits a NewMinedBlock event. Instead the caller
@@ -404,16 +404,24 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 // queue of the tx pool.
 func (w *worker) enforcePredicates(
 	rules params.Rules,
-	predicateContext *contract.PredicateContext,
+	predicateContext *precompileconfig.ProposerPredicateContext,
 	pending map[common.Address]types.Transactions,
 ) map[common.Address]types.Transactions {
+	// Short circuit early if there are no precompile predicates to verify and return the
+	// unmodified pending transactions.
+	if !rules.PredicatesExist() {
+		return pending
+	}
 	result := make(map[common.Address]types.Transactions, len(pending))
 	for addr, txs := range pending {
 		for i, tx := range txs {
 			if err := core.CheckPredicates(rules, predicateContext, tx); err != nil {
 				log.Debug("Transaction predicate failed verification in miner", "sender", addr, "err", err)
-				w.eth.TxPool().RemoveTx(tx.Hash()) // RemoveTx will move all subsequent transactions back to the future queue
-				txs = txs[:i]                      // Cut off any transactions past the failed predicate
+				// If the transaction fails the predicate check, we remove the transaction from the mempool
+				// and move all transactions from the same address with a subsequent nonce back to the
+				// future queue of the transaction pool.
+				w.eth.TxPool().RemoveTx(tx.Hash())
+				txs = txs[:i] // Cut off any transactions past the failed predicate in the return value
 				break
 			}
 		}
