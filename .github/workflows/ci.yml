@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: 'ava-labs/avalanchego'
-          ref: 'e880743'
+          ref: 'e88074399cdf4bc75af0c39f6d2ceef3254d8ffb'
 
   lint_test:
     name: Lint
