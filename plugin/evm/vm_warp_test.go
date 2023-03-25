@@ -184,7 +184,7 @@ func TestWarpPrecompileE2E(t *testing.T) {
 			AccessList: types.AccessList{
 				types.AccessTuple{
 					Address:     warp.ContractAddress,
-					StorageKeys: byteUtils.BytesToHashSlice(warp.PackPredicate(signedMessage.Bytes())),
+					StorageKeys: byteUtils.BytesToHashSlice(byteUtils.PackPredicate(signedMessage.Bytes())),
 				},
 			},
 		}),

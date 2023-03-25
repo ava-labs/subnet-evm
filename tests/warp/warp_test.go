@@ -297,7 +297,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 			AccessList: types.AccessList{
 				types.AccessTuple{
 					Address:     warp.ContractAddress,
-					StorageKeys: byteUtils.BytesToHashSlice(warp.PackPredicate(signedWarpMsg.Bytes())),
+					StorageKeys: byteUtils.BytesToHashSlice(byteUtils.PackPredicate(signedWarpMsg.Bytes())),
 				},
 			},
 		})
