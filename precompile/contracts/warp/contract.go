@@ -32,6 +32,7 @@ const (
 
 	GasCostPerWarpSigner       uint64 = 1 // TODO: charge for number of signers and the cost of the validator set lookup on the P-Chain
 	GasCostPerWarpMessageBytes uint64 = 1 // TODO: charge O(n) cost for decoding predicate of input size n
+	// GasCostPerSourceSubnetValidator uint64 = 1 // TODO: charge O(n) cost for subnet validator set lookup
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
