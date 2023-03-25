@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
+	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
@@ -123,7 +124,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 	if err := warpMsg.Signature.Verify(
 		context.Background(),
 		&warpMsg.UnsignedMessage,
-		predicateContext.SnowCtx.ValidatorState, // TODO: special case messages from the C-Chain
+		warpValidators.NewState(predicateContext.SnowCtx), // Wrap validators.State on the chain snow context to special case the Primary Network
 		predicateContext.ProposerVMBlockCtx.PChainHeight,
 		quorumNumerator,
 		QuorumDenominator,
