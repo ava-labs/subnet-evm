@@ -43,3 +43,13 @@ func (c *warpClient) GetSignature(ctx context.Context, messageID ids.ID) ([]byte
 	}
 	return res, err
 }
+
+// GetAggregateSignature requests the aggregate signature associated with messageID
+func (c *warpClient) GetAggregateSignature(ctx context.Context, messageID ids.ID) ([]byte, error) {
+	var res hexutil.Bytes
+	err := c.client.CallContext(ctx, &res, "warp_getAggregateSignature", messageID)
+	if err != nil {
+		return nil, fmt.Errorf("call to warp_getAggregateSignature failed. err: %w", err)
+	}
+	return res, err
+}

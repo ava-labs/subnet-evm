@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/warp"
+	"github.com/ava-labs/subnet-evm/warp/aggregator"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -812,7 +813,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	}
 
 	if vm.config.WarpAPIEnabled {
-		if err := handler.RegisterName("warp", &warp.WarpAPI{Backend: vm.warpBackend}); err != nil {
+		if err := handler.RegisterName("warp", warp.NewWarpAPI(vm.warpBackend, aggregator.NewAggregator(vm.ctx, vm.client))); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
