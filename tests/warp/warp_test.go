@@ -25,8 +25,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
-	byteUtils "github.com/ava-labs/subnet-evm/utils"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
+	warpTransaction "github.com/ava-labs/subnet-evm/warp/transaction"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -285,22 +285,18 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		packedInput, err := warp.PackGetVerifiedWarpMessage()
 		gomega.Expect(err).Should(gomega.BeNil())
-		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   chainID,
-			Nonce:     2,
-			To:        &warp.Module.Address,
-			Gas:       5_000_000,
-			GasFeeCap: big.NewInt(225 * params.GWei),
-			GasTipCap: big.NewInt(params.GWei),
-			Value:     common.Big0,
-			Data:      packedInput,
-			AccessList: types.AccessList{
-				types.AccessTuple{
-					Address:     warp.ContractAddress,
-					StorageKeys: byteUtils.BytesToHashSlice(byteUtils.PackPredicate(signedWarpMsg.Bytes())),
-				},
-			},
-		})
+		tx := warpTransaction.NewWarpTx(
+			chainID,
+			2,
+			&warp.Module.Address,
+			5_000_000,
+			big.NewInt(225*params.GWei),
+			big.NewInt(params.GWei),
+			common.Big0,
+			packedInput,
+			types.AccessList{},
+			signedWarpMsg,
+		)
 		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
 		txBytes, err := signedTx.MarshalBinary()

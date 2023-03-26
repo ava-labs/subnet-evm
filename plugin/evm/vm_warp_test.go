@@ -25,7 +25,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/rpc"
-	byteUtils "github.com/ava-labs/subnet-evm/utils"
+	warpTransaction "github.com/ava-labs/subnet-evm/warp/transaction"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
@@ -175,22 +175,18 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	getWarpMsgInput, err := warp.PackGetVerifiedWarpMessage()
 	require.NoError(t, err)
 	signedTx1, err := types.SignTx(
-		types.NewTx(&types.DynamicFeeTx{
-			ChainID:   vm.chainConfig.ChainID,
-			Nonce:     1,
-			To:        &warp.Module.Address,
-			Gas:       1_000_000,
-			GasFeeCap: big.NewInt(225 * params.GWei),
-			GasTipCap: big.NewInt(params.GWei),
-			Value:     common.Big0,
-			Data:      getWarpMsgInput,
-			AccessList: types.AccessList{
-				types.AccessTuple{
-					Address:     warp.ContractAddress,
-					StorageKeys: byteUtils.BytesToHashSlice(byteUtils.PackPredicate(signedMessage.Bytes())),
-				},
-			},
-		}),
+		warpTransaction.NewWarpTx(
+			vm.chainConfig.ChainID,
+			1,
+			&warp.Module.Address,
+			1_000_000,
+			big.NewInt(225*params.GWei),
+			big.NewInt(params.GWei),
+			common.Big0,
+			getWarpMsgInput,
+			types.AccessList{},
+			signedMessage,
+		),
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
 		testKeys[0],
 	)
@@ -202,11 +198,6 @@ func TestWarpPrecompileE2E(t *testing.T) {
 		}
 	}
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
-
-	hexGetWarpMsgInput := hexutil.Bytes(getWarpMsgInput)
-	hexGasLimit := hexutil.Uint64(1_000_000)
-	blockNum := new(rpc.BlockNumber)
-	*blockNum = rpc.LatestBlockNumber
 
 	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
 		Message: warp.WarpMessage{
@@ -221,19 +212,20 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	require.NoError(t, err)
 
 	// Assert that DoCall returns the expected output
+	hexGetWarpMsgInput := hexutil.Bytes(signedTx1.Data())
+	hexGasLimit := hexutil.Uint64(signedTx1.Gas())
+	accessList := signedTx1.AccessList()
+	blockNum := new(rpc.BlockNumber)
+	*blockNum = rpc.LatestBlockNumber
+
 	executionRes, err := ethapi.DoCall(
 		context.Background(),
 		vm.eth.APIBackend,
 		ethapi.TransactionArgs{
-			To:    &warp.Module.Address,
-			Input: &hexGetWarpMsgInput,
-			AccessList: &types.AccessList{
-				types.AccessTuple{
-					Address:     warp.ContractAddress,
-					StorageKeys: byteUtils.BytesToHashSlice(byteUtils.PackPredicate(signedMessage.Bytes())),
-				},
-			},
-			Gas: &hexGasLimit,
+			To:         signedTx1.To(),
+			Input:      &hexGetWarpMsgInput,
+			AccessList: &accessList,
+			Gas:        &hexGasLimit,
 		},
 		rpc.BlockNumberOrHash{BlockNumber: blockNum},
 		nil,
