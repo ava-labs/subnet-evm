@@ -35,13 +35,13 @@ func (api *WarpAPI) GetSignature(ctx context.Context, messageID ids.ID) (hexutil
 }
 
 // GetAggregateSignature fetches the aggregate signature for the requested [messageID]
-func (api *WarpAPI) GetAggregateSignature(ctx context.Context, messageID ids.ID) (signedMessageBytes hexutil.Bytes, err error) {
+func (api *WarpAPI) GetAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) (signedMessageBytes hexutil.Bytes, err error) {
 	unsignedMessage, err := api.backend.GetMessage(messageID)
 	if err != nil {
 		return nil, err
 	}
 
-	signatureResult, err := api.aggregator.AggregateSignatures(ctx, unsignedMessage, 67)
+	signatureResult, err := api.aggregator.AggregateSignatures(ctx, unsignedMessage, quorumNum)
 	if err != nil {
 		return nil, err
 	}
