@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/api/info"
@@ -208,8 +209,13 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		// Check for relevant warp log from subscription and ensure that it matches
 		// the log extracted from the last block.
 		txLog := logs[0]
-		warpLog := <-warpLogsChan
-		gomega.Expect(warpLog).Should(gomega.Equal(txLog))
+		select {
+		case warpLog := <-warpLogsChan:
+			gomega.Expect(warpLog).Should(gomega.Equal(txLog))
+		case <-time.After(5 * time.Second):
+			gomega.Expect(fmt.Errorf("failed to fetch txLog (%v) via subscription", txLog)).Should(gomega.BeNil())
+		}
+		warpLogsSub.Unsubscribe()
 
 		log.Info("Parsing logData as unsigned warp message")
 		unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
