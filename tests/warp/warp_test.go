@@ -161,6 +161,16 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		defer sub.Unsubscribe()
 
+		// Create a channel to handle accepted warp logs
+		warpLogsChan := make(chan types.Log, 10)
+		warpLogsSub, err := chainBWSClient.SubscribeFilterLogs(
+			ctx,
+			interfaces.FilterQuery{Addresses: []common.Address{warp.Module.Address}},
+			warpLogsChan,
+		)
+		gomega.Expect(err).Should(gomega.BeNil())
+		defer warpLogsSub.Unsubscribe()
+
 		packedInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
 			DestinationChainID: blockchainIDB,
 			DestinationAddress: fundedAddress.Hash(),
@@ -186,6 +196,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Waiting for new block confirmation")
 		newHead := <-newHeads
 		blockHash := newHead.Hash()
+
 		log.Info("Fetching relevant warp logs from the newly produced block")
 		logs, err := chainAWSClient.FilterLogs(ctx, interfaces.FilterQuery{
 			BlockHash: &blockHash,
@@ -194,8 +205,13 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(len(logs)).Should(gomega.Equal(1))
 
-		log.Info("Parsing logData as unsigned warp message")
+		// Check for relevant warp log from subscription and ensure that it matches
+		// the log extracted from the last block.
 		txLog := logs[0]
+		warpLog := <-warpLogsChan
+		gomega.Expect(warpLog).Should(gomega.Equal(txLog))
+
+		log.Info("Parsing logData as unsigned warp message")
 		unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
 		gomega.Expect(err).Should(gomega.BeNil())
 
