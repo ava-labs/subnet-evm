@@ -214,7 +214,7 @@ func TestWarpPrecompileE2E(t *testing.T) {
 			OriginSenderAddress: testEthAddrs[0].Hash(),
 			DestinationChainID:  vm.ctx.CChainID,
 			DestinationAddress:  testEthAddrs[1].Hash(),
-			Payload:             payload,``
+			Payload:             payload,
 		},
 		Exists: true,
 	})
