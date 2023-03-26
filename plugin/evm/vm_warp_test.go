@@ -21,14 +21,17 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
+	"github.com/ava-labs/subnet-evm/rpc"
 	byteUtils "github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
 
-// Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
+// Test that sending a valid signed warp message results in successful delivery.
 func TestWarpPrecompileE2E(t *testing.T) {
 	// Setup chain params
 	genesis := &core.Genesis{}
@@ -199,6 +202,47 @@ func TestWarpPrecompileE2E(t *testing.T) {
 		}
 	}
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
+
+	hexGetWarpMsgInput := hexutil.Bytes(getWarpMsgInput)
+	hexGasLimit := hexutil.Uint64(1_000_000)
+	blockNum := new(rpc.BlockNumber)
+	*blockNum = rpc.LatestBlockNumber
+
+	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
+		Message: warp.WarpMessage{
+			OriginChainID:       vm.ctx.ChainID,
+			OriginSenderAddress: testEthAddrs[0].Hash(),
+			DestinationChainID:  vm.ctx.CChainID,
+			DestinationAddress:  testEthAddrs[1].Hash(),
+			Payload:             payload,``
+		},
+		Exists: true,
+	})
+	require.NoError(t, err)
+
+	// Assert that DoCall returns the expected output
+	executionRes, err := ethapi.DoCall(
+		context.Background(),
+		vm.eth.APIBackend,
+		ethapi.TransactionArgs{
+			To:    &warp.Module.Address,
+			Input: &hexGetWarpMsgInput,
+			AccessList: &types.AccessList{
+				types.AccessTuple{
+					Address:     warp.ContractAddress,
+					StorageKeys: byteUtils.BytesToHashSlice(byteUtils.PackPredicate(signedMessage.Bytes())),
+				},
+			},
+			Gas: &hexGasLimit,
+		},
+		rpc.BlockNumberOrHash{BlockNumber: blockNum},
+		nil,
+		time.Second,
+		10_000_000,
+	)
+	require.NoError(t, err)
+	require.NoError(t, executionRes.Err)
+	require.Equal(t, expectedOutput, executionRes.ReturnData)
 
 	<-issuer
 
