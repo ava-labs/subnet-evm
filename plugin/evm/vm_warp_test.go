@@ -54,7 +54,12 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+	reorgSub := vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+	defer reorgSub.Unsubscribe()
+
+	acceptedLogsChan := make(chan []*types.Log, 10)
+	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
+	defer logsSub.Unsubscribe()
 
 	payload := utils.RandomBytes(100)
 
@@ -115,6 +120,15 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	require.NoError(t, err)
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(t, err)
+
+	select {
+	case acceptedLogs := <-acceptedLogsChan:
+		require.Len(t, acceptedLogs, 1, "unexpected length of accepted logs")
+		require.Equal(t, acceptedLogs[0], receipts[0].Logs[0])
+	case <-time.After(time.Second):
+		t.Fatal("Failed to read accepted logs from subscription")
+	}
+	logsSub.Unsubscribe()
 
 	// Verify the produced signature is valid
 	require.True(t, bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
