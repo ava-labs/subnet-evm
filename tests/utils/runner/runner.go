@@ -12,6 +12,7 @@ import (
 	runner_sdk "github.com/ava-labs/avalanche-network-runner/client"
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	runner_server "github.com/ava-labs/avalanche-network-runner/server"
+	"github.com/ava-labs/avalanchego/api/info"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
@@ -268,6 +269,15 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 		}
 		for _, nodeName := range chainSpec.Participants {
 			subnet.ValidatorURIs = append(subnet.ValidatorURIs, nodeInfos[nodeName].Uri)
+			infoClient := info.NewClient(nodeInfos[nodeName].Uri)
+			bootstrapped, err := info.AwaitBootstrapped(ctx, infoClient, blockchainIDStr, time.Second)
+			if err != nil {
+				return fmt.Errorf("failed to wait for node %s to finish bootstrapping %s: %w", nodeName, blockchainIDStr, err)
+			}
+			if !bootstrapped {
+				return fmt.Errorf("failed to wait for node %s to finish bootstrapping %s", nodeName, blockchainIDStr)
+			}
+
 		}
 		n.subnets = append(n.subnets, subnet)
 	}

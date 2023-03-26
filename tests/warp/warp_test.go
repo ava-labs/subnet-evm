@@ -101,9 +101,8 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		unsignedWarpMessageID          ids.ID
 		signedWarpMsg                  *avalancheWarp.Message
 		blockchainIDA, blockchainIDB   ids.ID
-		chainAURIs                     []string
+		chainAURIs, chainBURIs         []string
 		chainAWSClient, chainBWSClient ethclient.Client
-		chainBURIs                     []string
 		chainID                        = big.NewInt(99999)
 		fundedKey                      *ecdsa.PrivateKey
 		fundedAddress                  common.Address

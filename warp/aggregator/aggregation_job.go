@@ -13,11 +13,13 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type signatureAggregationJob struct {
-	client   ClientBackend
+	// SignatureBackend is assumed to be thread-safe and may be used by multiple signature aggregation jobs concurrently
+	client   SignatureBackend
 	height   uint64
 	subnetID ids.ID
 
@@ -35,7 +37,7 @@ type AggregateSignatureResult struct {
 }
 
 func NewSignatureAggregationJob(
-	client ClientBackend,
+	client SignatureBackend,
 	height uint64,
 	subnetID ids.ID,
 	quorumNum uint64,
@@ -84,20 +86,24 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			log.Info("Fetching warp signature", "nodeID", signatureJob.nodeID, "index", i)
 			blsSignature, err := signatureJob.Execute(signatureFetchCtx)
 			if err != nil {
-				log.Debug("Failed to fetch signature at index %d: %s", i, signatureJob)
+				log.Info("Failed to fetch signature at index %d: %s", i, signatureJob)
 				return
 			}
+			log.Info("Retrieved warp signature", "nodeID", signatureJob.nodeID, "index", i, "signature", hexutil.Bytes(bls.SignatureToBytes(blsSignature)))
 			// Add the signature and check if we've reached the requested threshold
 			signatureLock.Lock()
 			defer signatureLock.Unlock()
 
 			blsSignatures = append(blsSignatures, blsSignature)
 			bitSet.Add(i)
+			log.Info("Updated weight", "totalWeight", signatureWeight+signatureJob.weight, "addedWeight", signatureJob.weight)
 			signatureWeight += signatureJob.weight
 			// If the signature weight meets the requested threshold, cancel signature fetching
 			if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, a.cancelQuorumNum, a.quorumDen); err == nil {
+				log.Info("Verify weight passed, exiting aggregation early", "cancelQuorumNum", a.cancelQuorumNum, "totalWeight", totalWeight, "signatureWeight", signatureWeight)
 				signatureFetchCancel()
 			}
 		}()

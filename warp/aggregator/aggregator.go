@@ -6,24 +6,23 @@ package aggregator
 import (
 	"context"
 
-	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	warpPrecompile "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	wrappedValidators "github.com/ava-labs/subnet-evm/warp/validators"
 )
 
 type Aggregator struct {
-	chainContext *snow.Context
-	client       ClientBackend
-	state        validators.State
+	subnetID ids.ID
+	client   SignatureBackend
+	state    validators.State
 }
 
-func NewAggregator(chainContext *snow.Context, client ClientBackend) *Aggregator {
+func NewAggregator(subnetID ids.ID, state validators.State, client SignatureBackend) *Aggregator {
 	return &Aggregator{
-		chainContext: chainContext,
-		client:       client,
-		state:        wrappedValidators.NewState(chainContext),
+		subnetID: subnetID,
+		client:   client,
+		state:    state,
 	}
 }
 
@@ -35,10 +34,10 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 	job := NewSignatureAggregationJob(
 		a.client,
 		pChainHeight,
-		a.chainContext.SubnetID,
+		a.subnetID,
 		quorumNum,
 		quorumNum,
-		warpPrecompile.DefaultQuorumNumerator,
+		warpPrecompile.QuorumDenominator,
 		a.state,
 		unsignedMessage,
 	)

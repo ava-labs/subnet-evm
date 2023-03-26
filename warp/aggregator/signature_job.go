@@ -5,23 +5,26 @@ package aggregator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-// ClientBackend defines the minimum network interface to perform signature aggregation
-type ClientBackend interface {
-	SendAppRequest(nodeID ids.NodeID, message []byte) ([]byte, error)
+var errInvalidSignature = errors.New("invalid signature")
+
+// SignatureBackend defines the minimum network interface to perform signature aggregation
+type SignatureBackend interface {
+	// FetchWarpSignature attempts to fetch a BLS Signature from [nodeID] for [unsignedWarpMessage]
+	FetchWarpSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error)
 }
 
 type signatureJob struct {
-	client ClientBackend
-	msg    *avalancheWarp.UnsignedMessage
+	backend SignatureBackend
+	msg     *avalancheWarp.UnsignedMessage
 
 	nodeID    ids.NodeID
 	publicKey *bls.PublicKey
@@ -32,9 +35,9 @@ func (s *signatureJob) String() string {
 	return fmt.Sprintf("(NodeID: %s, UnsignedMsgID: %s)", s.nodeID, s.msg.ID())
 }
 
-func newSignatureJob(client ClientBackend, validator *avalancheWarp.Validator, msg *avalancheWarp.UnsignedMessage) *signatureJob {
+func newSignatureJob(backend SignatureBackend, validator *avalancheWarp.Validator, msg *avalancheWarp.UnsignedMessage) *signatureJob {
 	return &signatureJob{
-		client:    client,
+		backend:   backend,
 		msg:       msg,
 		nodeID:    validator.NodeIDs[0], // XXX: should we attempt to fetch from all nodeIDs and use the first valid response?
 		publicKey: validator.PublicKey,
@@ -42,35 +45,15 @@ func newSignatureJob(client ClientBackend, validator *avalancheWarp.Validator, m
 	}
 }
 
+// Execute attempts to fetch the signature from the nodeID specified in this job and then verifies and returns the signature
 func (s *signatureJob) Execute(ctx context.Context) (*bls.Signature, error) {
-	signatureReq := message.SignatureRequest{
-		MessageID: s.msg.ID(),
-	}
-	signatureReqBytes, err := message.RequestToBytes(message.Codec, signatureReq)
+	signature, err := s.backend.FetchWarpSignature(ctx, s.nodeID, s.msg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal signature request: %w", err)
+		return nil, err
 	}
 
-	for ctx.Err() == nil {
-		signatureRes, err := s.client.SendAppRequest(s.nodeID, signatureReqBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		var response message.SignatureResponse
-		if _, err := message.Codec.Unmarshal(signatureRes, &response); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal signature res: %w", err)
-		}
-
-		blsSignature, err := bls.SignatureFromBytes(response.Signature[:])
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse signature from res: %w", err)
-		}
-		if !bls.Verify(s.publicKey, blsSignature, s.msg.Bytes()) {
-			return nil, fmt.Errorf("node %s returned invalid signature %s for msg %s", s.nodeID, hexutil.Bytes(response.Signature[:]), s.msg.ID())
-		}
-		return blsSignature, nil
+	if !bls.Verify(s.publicKey, signature, s.msg.Bytes()) {
+		return nil, fmt.Errorf("%w: node %s returned invalid signature %s for msg %s", errInvalidSignature, s.nodeID, hexutil.Bytes(bls.SignatureToBytes(signature)), s.msg.ID())
 	}
-
-	return nil, fmt.Errorf("ctx expired fetching signature for message %s from %s: %w", s.msg.ID(), s.nodeID, ctx.Err())
+	return signature, nil
 }

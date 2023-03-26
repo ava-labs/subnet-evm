@@ -5,21 +5,50 @@ package aggregator
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/stretchr/testify/require"
 )
 
-type mockClient struct {
-	handleReq func(nodeID ids.NodeID, msg []byte) ([]byte, error)
+type mockFetcher struct {
+	fetch func(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error)
 }
 
-func (m *mockClient) SendAppRequest(nodeID ids.NodeID, message []byte) ([]byte, error) {
-	return m.handleReq(nodeID, message)
+func (m *mockFetcher) FetchWarpSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+	return m.fetch(ctx, nodeID, unsignedWarpMessage)
+}
+
+var (
+	nodeIDs       []ids.NodeID
+	blsSecretKeys []*bls.SecretKey
+	blsPublicKeys []*bls.PublicKey
+	unsignedMsg   *avalancheWarp.UnsignedMessage
+	blsSignatures []*bls.Signature
+)
+
+func init() {
+	var err error
+	unsignedMsg, err = avalancheWarp.NewUnsignedMessage(ids.GenerateTestID(), ids.GenerateTestID(), []byte{1, 2, 3})
+	if err != nil {
+		panic(err)
+	}
+	for i := 0; i < 5; i++ {
+		nodeIDs = append(nodeIDs, ids.GenerateTestNodeID())
+
+		blsSecretKey, err := bls.NewSecretKey()
+		if err != nil {
+			panic(err)
+		}
+		blsPublicKey := bls.PublicFromSecretKey(blsSecretKey)
+		blsSignature := bls.Sign(blsSecretKey, unsignedMsg.Bytes())
+		blsSecretKeys = append(blsSecretKeys, blsSecretKey)
+		blsPublicKeys = append(blsPublicKeys, blsPublicKey)
+		blsSignatures = append(blsSignatures, blsSignature)
+	}
 }
 
 type signatureJobTest struct {
@@ -30,6 +59,8 @@ type signatureJobTest struct {
 }
 
 func executeSignatureJobTest(t testing.TB, test signatureJobTest) {
+	t.Helper()
+
 	blsSignature, err := test.job.Execute(test.ctx)
 	if test.expectedErr != nil {
 		require.ErrorIs(t, err, test.expectedErr)
@@ -40,30 +71,15 @@ func executeSignatureJobTest(t testing.TB, test signatureJobTest) {
 }
 
 func TestSignatureRequestSuccess(t *testing.T) {
-	nodeID := ids.GenerateTestNodeID()
-	blsSecretKey, err := bls.NewSecretKey()
-	require.NoError(t, err)
-	blsPublicKey := bls.PublicFromSecretKey(blsSecretKey)
-	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(ids.GenerateTestID(), ids.GenerateTestID(), []byte{1, 2, 3})
-	require.NoError(t, err)
-	blsSignature := bls.Sign(blsSecretKey, unsignedMsg.Bytes())
-
 	job := newSignatureJob(
-		&mockClient{
-			handleReq: func(_ ids.NodeID, _ []byte) ([]byte, error) {
-				var response message.SignatureResponse
-				signatureBytes := bls.SignatureToBytes(blsSignature)
-				copy(response.Signature[:], signatureBytes)
-				res, err := message.Codec.Marshal(message.Version, response)
-				if err != nil {
-					panic(err)
-				}
-				return res, nil
+		&mockFetcher{
+			fetch: func(context.Context, ids.NodeID, *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+				return blsSignatures[0], nil
 			},
 		},
 		&avalancheWarp.Validator{
-			NodeIDs:   []ids.NodeID{nodeID},
-			PublicKey: blsPublicKey,
+			NodeIDs:   nodeIDs[:1],
+			PublicKey: blsPublicKeys[0],
 			Weight:    10,
 		},
 		unsignedMsg,
@@ -72,6 +88,51 @@ func TestSignatureRequestSuccess(t *testing.T) {
 	executeSignatureJobTest(t, signatureJobTest{
 		ctx:               context.Background(),
 		job:               job,
-		expectedSignature: blsSignature,
+		expectedSignature: blsSignatures[0],
+	})
+}
+
+func TestSignatureRequestFails(t *testing.T) {
+	err := errors.New("expected error")
+	job := newSignatureJob(
+		&mockFetcher{
+			fetch: func(context.Context, ids.NodeID, *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+				return nil, err
+			},
+		},
+		&avalancheWarp.Validator{
+			NodeIDs:   nodeIDs[:1],
+			PublicKey: blsPublicKeys[0],
+			Weight:    10,
+		},
+		unsignedMsg,
+	)
+
+	executeSignatureJobTest(t, signatureJobTest{
+		ctx:         context.Background(),
+		job:         job,
+		expectedErr: err,
+	})
+}
+
+func TestSignatureRequestInvalidSignature(t *testing.T) {
+	job := newSignatureJob(
+		&mockFetcher{
+			fetch: func(context.Context, ids.NodeID, *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+				return blsSignatures[1], nil
+			},
+		},
+		&avalancheWarp.Validator{
+			NodeIDs:   nodeIDs[:1],
+			PublicKey: blsPublicKeys[0],
+			Weight:    10,
+		},
+		unsignedMsg,
+	)
+
+	executeSignatureJobTest(t, signatureJobTest{
+		ctx:         context.Background(),
+		job:         job,
+		expectedErr: errInvalidSignature,
 	})
 }
