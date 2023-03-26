@@ -111,6 +111,7 @@ func PackGetVerifiedWarpMessageOutput(outputStruct GetVerifiedWarpMessageOutput)
 // getVerifiedWarpMessage retrieves the pre-verified warp message from the predicate storage slots and returns
 // the expected ABI encoding of the message to the caller.
 func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	remainingGas = suppliedGas
 	// XXX Note: there is no base cost for retrieving a verified warp message. Instead, we charge for each piece of gas,
 	// prior to each execution step.
 	// Ignore input since there are no arguments
