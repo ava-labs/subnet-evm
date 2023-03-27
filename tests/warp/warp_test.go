@@ -149,6 +149,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 	})
 
+	// Send a transaction to Subnet A to issue a Warp Message to Subnet B
 	ginkgo.It("Send Message from A to B", ginkgo.Label("Warp", "SendWarp"), func() {
 		ctx := context.Background()
 
@@ -226,6 +227,8 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "unsignedWarpMessage", unsignedWarpMsg)
 	})
 
+	// Aggregate a Warp Signature by sending an API request to each node requesting its signature and manually
+	// constructing a valid Avalanche Warp Message
 	ginkgo.It("Aggregate Warp Signature via API", ginkgo.Label("Warp", "ReceiveWarp", "AggregateWarpManually"), func() {
 		ctx := context.Background()
 
@@ -273,6 +276,8 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		signedWarpMsg = warpMsg
 	})
 
+	// Aggregate a Warp Signature using the node's Signature Aggregation API call and verifying that its output matches the
+	// the manual construction
 	ginkgo.It("Aggregate Warp Signature via Aggregator", ginkgo.Label("Warp", "ReceiveWarp", "AggregatorWarp"), func() {
 		ctx := context.Background()
 
@@ -285,6 +290,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(signedWarpMessageBytes).Should(gomega.Equal(signedWarpMsg.Bytes()))
 	})
 
+	// Verify successful delivery of the Avalanche Warp Message from Chain A to Chain B
 	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
 		ctx := context.Background()
 
