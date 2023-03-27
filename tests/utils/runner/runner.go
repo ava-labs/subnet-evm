@@ -277,7 +277,6 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 			if !bootstrapped {
 				return fmt.Errorf("failed to wait for node %s to finish bootstrapping %s", nodeName, blockchainIDStr)
 			}
-
 		}
 		n.subnets = append(n.subnets, subnet)
 	}
