@@ -155,22 +155,12 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		gomega.Expect(err).Should(gomega.BeNil())
 
+		// TODO: switch to using SubscribeFilterLogs to retrieve the warp log
 		log.Info("Subscribing to new heads")
 		newHeads := make(chan *types.Header, 10)
 		sub, err := chainAWSClient.SubscribeNewHead(ctx, newHeads)
 		gomega.Expect(err).Should(gomega.BeNil())
 		defer sub.Unsubscribe()
-
-		// TODO: switch to using SubscribeFilterLogs
-		// Create a channel to handle accepted warp logs
-		// warpLogsChan := make(chan types.Log, 10)
-		// warpLogsSub, err := chainBWSClient.SubscribeFilterLogs(
-		// 	ctx,
-		// 	interfaces.FilterQuery{Addresses: []common.Address{warp.Module.Address}},
-		// 	warpLogsChan,
-		// )
-		// gomega.Expect(err).Should(gomega.BeNil())
-		// defer warpLogsSub.Unsubscribe()
 
 		packedInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
 			DestinationChainID: blockchainIDB,
@@ -209,14 +199,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		// Check for relevant warp log from subscription and ensure that it matches
 		// the log extracted from the last block.
 		txLog := logs[0]
-		// select {
-		// case warpLog := <-warpLogsChan:
-		// 	gomega.Expect(warpLog).Should(gomega.Equal(txLog))
-		// case <-time.After(5 * time.Second):
-		// 	gomega.Expect(fmt.Errorf("failed to fetch txLog (%v) via subscription", txLog)).Should(gomega.BeNil())
-		// }
-		// warpLogsSub.Unsubscribe()
-
 		log.Info("Parsing logData as unsigned warp message")
 		unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
 		gomega.Expect(err).Should(gomega.BeNil())
