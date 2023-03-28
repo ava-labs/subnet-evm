@@ -30,8 +30,9 @@ type OpenOrdersResponse struct {
 
 type OrderMin struct {
 	Market
-	Price string
-	Size  string
+	Price          string
+	Size           string
+	InprogressSize string
 }
 
 type OrderForOpenOrders struct {

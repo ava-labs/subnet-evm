@@ -16,18 +16,29 @@ func NewMockLimitOrderDatabase() *MockLimitOrderDatabase {
 	return &MockLimitOrderDatabase{}
 }
 
+func (db *MockLimitOrderDatabase) SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error {
+	return nil
+}
+
+func (db *MockLimitOrderDatabase) RevertLastStatus(orderId common.Hash) error {
+	return nil
+}
+
+func (db *MockLimitOrderDatabase) Accept(blockNumber uint64) {
+}
+
 func (db *MockLimitOrderDatabase) GetAllOrders() []LimitOrder {
 	args := db.Called()
 	return args.Get(0).([]LimitOrder)
 }
 
-func (db *MockLimitOrderDatabase) Add(order *LimitOrder) {
+func (db *MockLimitOrderDatabase) Add(orderId common.Hash, order *LimitOrder) {
 }
 
-func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId string) {
+func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64) {
 }
 
-func (db *MockLimitOrderDatabase) Delete(id string) {
+func (db *MockLimitOrderDatabase) Delete(id common.Hash) {
 }
 
 func (db *MockLimitOrderDatabase) GetLongOrders(market Market) []LimitOrder {
@@ -64,7 +75,16 @@ func (db *MockLimitOrderDatabase) GetAllTraders() map[common.Address]Trader {
 	return args.Get(0).(map[common.Address]Trader)
 }
 
-func (db *MockLimitOrderDatabase) UpdateLastPrice(market Market, lastPrice *big.Int) {
+func (db *MockLimitOrderDatabase) UpdateLastPrice(market Market, lastPrice *big.Int) {}
+
+func (db *MockLimitOrderDatabase) GetInProgressBlocks() []*types.Block {
+	return []*types.Block{}
+}
+
+func (db *MockLimitOrderDatabase) UpdateInProgressState(block *types.Block, quantityMap map[string]*big.Int) {
+}
+
+func (db *MockLimitOrderDatabase) RemoveInProgressState(block *types.Block, quantityMap map[string]*big.Int) {
 }
 
 func (db *MockLimitOrderDatabase) GetLastPrice(market Market) *big.Int {

@@ -55,9 +55,9 @@ func (pipeline *BuildBlockPipeline) runLiquidations(market Market, longOrders []
 		var oppositeOrders []LimitOrder
 		switch liquidable.PositionType {
 		case "long":
-			oppositeOrders = shortOrders
-		case "short":
 			oppositeOrders = longOrders
+		case "short":
+			oppositeOrders = shortOrders
 		}
 		if len(oppositeOrders) == 0 {
 			log.Error("no matching order found for liquidation", "trader", liquidable.Address.String(), "size", liquidable.Size)
@@ -77,10 +77,10 @@ func (pipeline *BuildBlockPipeline) runLiquidations(market Market, longOrders []
 
 			switch liquidable.PositionType {
 			case "long":
-				oppositeOrders[j].FilledBaseAssetQuantity = big.NewInt(0).Sub(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
+				oppositeOrders[j].FilledBaseAssetQuantity = big.NewInt(0).Add(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
 				liquidablePositions[i].FilledSize.Add(liquidablePositions[i].FilledSize, fillAmount)
 			case "short":
-				oppositeOrders[j].FilledBaseAssetQuantity = big.NewInt(0).Add(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
+				oppositeOrders[j].FilledBaseAssetQuantity = big.NewInt(0).Sub(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
 				liquidablePositions[i].FilledSize.Sub(liquidablePositions[i].FilledSize, fillAmount)
 			}
 		}

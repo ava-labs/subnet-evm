@@ -8,6 +8,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -42,21 +43,54 @@ func NewContractEventsProcessor(database LimitOrderDatabase) *ContractEventsProc
 }
 
 func (cep *ContractEventsProcessor) ProcessEvents(logs []*types.Log) {
-	// sort by block number & log index
-	sort.SliceStable(logs, func(i, j int) bool {
+	var (
+		deletedLogs []*types.Log
+		rebirthLogs []*types.Log
+	)
+	for i := 0; i < len(logs); i++ {
+		log := logs[i]
+		if log.Removed {
+			deletedLogs = append(deletedLogs, log)
+		} else {
+			rebirthLogs = append(rebirthLogs, log)
+		}
+	}
+
+	// deletedLogs are in descending order by (blockNumber, LogIndex)
+	// rebirthLogs should be in ascending order by (blockNumber, LogIndex)
+	sort.Slice(deletedLogs, func(i, j int) bool {
+		if deletedLogs[i].BlockNumber == deletedLogs[j].BlockNumber {
+			return deletedLogs[i].Index > deletedLogs[j].Index
+		}
+		return deletedLogs[i].BlockNumber > deletedLogs[j].BlockNumber
+	})
+
+	sort.Slice(rebirthLogs, func(i, j int) bool {
+		if rebirthLogs[i].BlockNumber == rebirthLogs[j].BlockNumber {
+			return rebirthLogs[i].Index < rebirthLogs[j].Index
+		}
+		return rebirthLogs[i].BlockNumber < rebirthLogs[j].BlockNumber
+	})
+
+	logs = append(deletedLogs, rebirthLogs...)
+	for _, event := range logs {
+		switch event.Address {
+		case OrderBookContractAddress:
+			cep.handleOrderBookEvent(event)
+		}
+	}
+}
+
+func (cep *ContractEventsProcessor) ProcessAcceptedEvents(logs []*types.Log) {
+	sort.Slice(logs, func(i, j int) bool {
 		if logs[i].BlockNumber == logs[j].BlockNumber {
 			return logs[i].Index < logs[j].Index
 		}
 		return logs[i].BlockNumber < logs[j].BlockNumber
 	})
+
 	for _, event := range logs {
-		if event.Removed {
-			// skip removed logs
-			continue
-		}
 		switch event.Address {
-		case OrderBookContractAddress:
-			cep.handleOrderBookEvent(event)
 		case MarginAccountContractAddress:
 			cep.handleMarginAccountEvent(event)
 		case ClearingHouseContractAddress:
@@ -65,7 +99,13 @@ func (cep *ContractEventsProcessor) ProcessEvents(logs []*types.Log) {
 	}
 }
 
+func parseOrderId(orderHash interface{}) common.Hash {
+	_orderId, _ := orderHash.([32]byte)
+	return common.BytesToHash(_orderId[:])
+}
+
 func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
+	removed := event.Removed
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
 	case cep.orderBookABI.Events["OrderPlaced"].ID:
@@ -74,44 +114,67 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderPlaced", "err", err)
 			return
 		}
-		log.Info("HandleOrderBookEvent", "orderplaced args", args)
-		order := getOrderFromRawOrder(args["order"])
-
-		cep.database.Add(&LimitOrder{
-			Market:                  Market(order.AmmIndex.Int64()),
-			PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
-			UserAddress:             getAddressFromTopicHash(event.Topics[1]).String(),
-			BaseAssetQuantity:       order.BaseAssetQuantity,
-			FilledBaseAssetQuantity: big.NewInt(0),
-			Price:                   order.Price,
-			Status:                  Placed,
-			RawOrder:                args["order"],
-			Signature:               args["signature"].([]byte),
-			Salt:                    order.Salt,
-			BlockNumber:             big.NewInt(int64(event.BlockNumber)),
-		})
-		SendTxReadySignal()
+		log.Info("HandleOrderBookEvent", "orderplaced args", args, "removed", removed)
+		orderId := parseOrderId(args["orderHash"])
+		if !removed {
+			order := getOrderFromRawOrder(args["order"])
+			log.Info("#### adding order", "orderId", orderId.String(), "block", event.BlockHash.String(), "number", event.BlockNumber)
+			cep.database.Add(orderId, &LimitOrder{
+				Market:                  Market(order.AmmIndex.Int64()),
+				PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
+				UserAddress:             getAddressFromTopicHash(event.Topics[1]).String(),
+				BaseAssetQuantity:       order.BaseAssetQuantity,
+				FilledBaseAssetQuantity: big.NewInt(0),
+				Price:                   order.Price,
+				RawOrder:                args["order"],
+				Signature:               args["signature"].([]byte),
+				Salt:                    order.Salt,
+				BlockNumber:             big.NewInt(int64(event.BlockNumber)),
+			})
+		} else {
+			log.Info("#### deleting order", "orderId", orderId, "block", event.BlockHash.String(), "number", event.BlockNumber)
+			cep.database.Delete(orderId)
+		}
+		SendTxReadySignal() // what does this do?
 	case cep.orderBookABI.Events["OrderCancelled"].ID:
 		err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelled", event.Data)
 		if err != nil {
 			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderCancelled", "err", err)
 			return
 		}
-		log.Info("HandleOrderBookEvent", "OrderCancelled args", args)
-		orderId := getIdFromOrder(getOrderFromRawOrder(args["order"]))
-		cep.database.Delete(orderId)
+		log.Info("HandleOrderBookEvent", "OrderCancelled args", args, "removed", removed)
+		orderId := parseOrderId(args["orderHash"])
+		if !removed {
+			if err := cep.database.SetOrderStatus(orderId, Cancelled, event.BlockNumber); err != nil {
+				log.Error("error in SetOrderStatus", "method", "OrderCancelled", "err", err)
+				return
+			}
+		} else {
+			if err := cep.database.RevertLastStatus(orderId); err != nil {
+				log.Error("error in SetOrderStatus", "method", "OrderCancelled", "removed", true, "err", err)
+				return
+			}
+		}
 	case cep.orderBookABI.Events["OrdersMatched"].ID:
-		log.Info("OrdersMatched event")
 		err := cep.orderBookABI.UnpackIntoMap(args, "OrdersMatched", event.Data)
 		if err != nil {
 			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrdersMatched", "err", err)
 			return
 		}
-		log.Info("HandleOrderBookEvent", "OrdersMatched args", args)
-		orders := getOrdersFromRawOrderList(args["orders"])
+
+		order0Id := parseOrderId(args["orderHash"].([2][32]byte)[0])
+		order1Id := parseOrderId(args["orderHash"].([2][32]byte)[1])
 		fillAmount := args["fillAmount"].(*big.Int)
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, getIdFromOrder(orders[0]))
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, getIdFromOrder(orders[1]))
+		if !removed {
+			log.Info("#### matched orders", "orderId_0", order0Id.String(), "orderId_1", order1Id, "block", event.BlockHash.String(), "number", event.BlockNumber)
+			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order0Id, event.BlockNumber)
+			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order1Id, event.BlockNumber)
+		} else {
+			fillAmount.Neg(fillAmount)
+			log.Info("#### removed matched orders", "orderId_0", order0Id.String(), "orderId_1", order1Id, "block", event.BlockHash.String(), "number", event.BlockNumber)
+			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order0Id, event.BlockNumber)
+			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order1Id, event.BlockNumber)
+		}
 	case cep.orderBookABI.Events["LiquidationOrderMatched"].ID:
 		log.Info("LiquidationOrderMatched event")
 		err := cep.orderBookABI.UnpackIntoMap(args, "LiquidationOrderMatched", event.Data)
@@ -121,11 +184,34 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 		}
 		log.Info("HandleOrderBookEvent", "LiquidationOrderMatched args", args)
 		fillAmount := args["fillAmount"].(*big.Int)
-		order := getOrderFromRawOrder(args["order"])
-		cep.database.UpdateFilledBaseAssetQuantity(fillAmount, getIdFromOrder(order))
-	}
-	// log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
 
+		orderId := parseOrderId(args["orderHash"])
+		// @todo update liquidable position info
+		if !removed {
+			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, orderId, event.BlockNumber)
+		} else {
+			cep.database.UpdateFilledBaseAssetQuantity(fillAmount.Neg(fillAmount), orderId, event.BlockNumber)
+		}
+	case cep.orderBookABI.Events["OrderMatchingError"].ID:
+		err := cep.orderBookABI.UnpackIntoMap(args, "OrderMatchingError", event.Data)
+		if err != nil {
+			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderMatchingError", "err", err)
+			return
+		}
+		log.Info("HandleOrderBookEvent", "OrderMatchingError args", args)
+		orderId := event.Topics[1]
+		if !removed {
+			if err := cep.database.SetOrderStatus(orderId, Execution_Failed, event.BlockNumber); err != nil {
+				log.Error("error in SetOrderStatus", "method", "OrderMatchingError", "err", err)
+				return
+			}
+		} else {
+			if err := cep.database.RevertLastStatus(orderId); err != nil {
+				log.Error("error in SetOrderStatus", "method", "OrderMatchingError", "removed", true, "err", err)
+				return
+			}
+		}
+	}
 }
 
 func (cep *ContractEventsProcessor) handleMarginAccountEvent(event *types.Log) {
@@ -245,6 +331,7 @@ func getOrdersFromRawOrderList(rawOrders interface{}) [2]Order {
 	return orders
 }
 
-func getIdFromOrder(order Order) string {
-	return order.Trader.String() + order.Salt.String()
+// @todo change this to return the EIP712 hash instead
+func getIdFromOrder(order Order) common.Hash {
+	return crypto.Keccak256Hash([]byte(order.Trader.String() + order.Salt.String()))
 }

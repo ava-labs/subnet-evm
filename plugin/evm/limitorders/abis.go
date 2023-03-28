@@ -11,37 +11,41 @@ var orderBookAbi = []byte(`{"abi": [
         "type": "address"
       },
       {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          }
-        ],
         "indexed": false,
-        "internalType": "struct IOrderBook.Order",
-        "name": "order",
-        "type": "tuple"
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "err",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "toLiquidate",
+        "type": "uint256"
+      }
+    ],
+    "name": "LiquidationError",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "trader",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
       },
       {
         "indexed": false,
@@ -75,40 +79,32 @@ var orderBookAbi = []byte(`{"abi": [
         "type": "address"
       },
       {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          }
-        ],
         "indexed": false,
-        "internalType": "struct IOrderBook.Order",
-        "name": "order",
-        "type": "tuple"
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
       }
     ],
     "name": "OrderCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "err",
+        "type": "string"
+      }
+    ],
+    "name": "OrderMatchingError",
     "type": "event"
   },
   {
@@ -158,6 +154,12 @@ var orderBookAbi = []byte(`{"abi": [
         "internalType": "bytes",
         "name": "signature",
         "type": "bytes"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
       }
     ],
     "name": "OrderPlaced",
@@ -167,43 +169,10 @@ var orderBookAbi = []byte(`{"abi": [
     "anonymous": false,
     "inputs": [
       {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          }
-        ],
         "indexed": false,
-        "internalType": "struct IOrderBook.Order[2]",
-        "name": "orders",
-        "type": "tuple[2]"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[2]",
-        "name": "signatures",
-        "type": "bytes[2]"
+        "internalType": "bytes32[2]",
+        "name": "orderHash",
+        "type": "bytes32[2]"
       },
       {
         "indexed": false,

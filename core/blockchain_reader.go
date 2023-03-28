@@ -321,6 +321,11 @@ func (bc *BlockChain) SubscribeLogsEvent(ch chan<- []*types.Log) event.Subscript
 	return bc.scope.Track(bc.logsFeed.Subscribe(ch))
 }
 
+// SubscribeHubbleLogsEvent registers a subscription of []*types.Log.
+func (bc *BlockChain) SubscribeHubbleLogsEvent(ch chan<- []*types.Log) event.Subscription {
+	return bc.scope.Track(bc.hubbleFeed.Subscribe(ch))
+}
+
 // SubscribeBlockProcessingEvent registers a subscription of bool where true means
 // block processing has started while false means it has stopped.
 func (bc *BlockChain) SubscribeBlockProcessingEvent(ch chan<- bool) event.Subscription {

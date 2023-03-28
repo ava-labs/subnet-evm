@@ -34,6 +34,7 @@ type limitOrderProcesser struct {
 	limitOrderTxProcessor  limitorders.LimitOrderTxProcessor
 	contractEventProcessor *limitorders.ContractEventsProcessor
 	buildBlockPipeline     *limitorders.BuildBlockPipeline
+	mu                     sync.Mutex
 }
 
 func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, memoryDb limitorders.LimitOrderDatabase, lotp limitorders.LimitOrderTxProcessor) LimitOrderProcesser {
@@ -97,7 +98,7 @@ func (lop *limitOrderProcesser) GetOrderBookAPI() *limitorders.OrderBookAPI {
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 	logsCh := make(chan []*types.Log)
-	logsSubscription := lop.backend.SubscribeAcceptedLogsEvent(logsCh)
+	logsSubscription := lop.backend.SubscribeHubbleLogsEvent(logsCh)
 	lop.shutdownWg.Add(1)
 	go lop.ctx.Log.RecoverAndPanic(func() {
 		defer lop.shutdownWg.Done()
@@ -112,4 +113,47 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 			}
 		}
 	})
+
+	acceptedLogsCh := make(chan []*types.Log)
+	acceptedLogsSubscription := lop.backend.SubscribeAcceptedLogsEvent(acceptedLogsCh)
+	lop.shutdownWg.Add(1)
+	go lop.ctx.Log.RecoverAndPanic(func() {
+		defer lop.shutdownWg.Done()
+		defer acceptedLogsSubscription.Unsubscribe()
+
+		for {
+			select {
+			case logs := <-acceptedLogsCh:
+				lop.contractEventProcessor.ProcessAcceptedEvents(logs)
+			case <-lop.shutdownChan:
+				return
+			}
+		}
+	})
+
+	chainAcceptedEventCh := make(chan core.ChainEvent)
+	chainAcceptedEventSubscription := lop.backend.SubscribeChainAcceptedEvent(chainAcceptedEventCh)
+	lop.shutdownWg.Add(1)
+	go lop.ctx.Log.RecoverAndPanic(func() {
+		defer lop.shutdownWg.Done()
+		defer chainAcceptedEventSubscription.Unsubscribe()
+
+		for {
+			select {
+			case chainAcceptedEvent := <-chainAcceptedEventCh:
+				lop.handleChainAcceptedEvent(chainAcceptedEvent)
+			case <-lop.shutdownChan:
+				return
+			}
+		}
+	})
+}
+
+func (lop *limitOrderProcesser) handleChainAcceptedEvent(event core.ChainEvent) {
+	lop.mu.Lock()
+	defer lop.mu.Unlock()
+
+	block := event.Block
+	log.Info("#### received ChainAcceptedEvent", "number", block.NumberU64(), "hash", block.Hash().String())
+	lop.memoryDb.Accept(block.NumberU64())
 }

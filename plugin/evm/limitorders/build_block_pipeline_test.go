@@ -45,35 +45,33 @@ func TestRunLiquidations(t *testing.T) {
 			}
 			traderMap := map[common.Address]Trader{longTraderAddress: trader}
 			lastPrice := big.NewInt(20 * 10e6)
-			t.Run("when no short orders are present in database for matching", func(t *testing.T) {
+			t.Run("when no long orders are present in database for matching", func(t *testing.T) {
 				db, lotp, pipeline := setupDependencies(t)
 				db.On("GetAllTraders").Return(traderMap)
 				db.On("GetLastPrice").Return(lastPrice)
-				longOrders := []LimitOrder{getLongOrder()}
-				shortOrders := []LimitOrder{}
+				longOrders := []LimitOrder{}
+				shortOrders := []LimitOrder{getShortOrder()}
 				modifiedLongOrders, modifiedShortOrders := pipeline.runLiquidations(market, longOrders, shortOrders)
 				assert.Equal(t, longOrders, modifiedLongOrders)
 				assert.Equal(t, shortOrders, modifiedShortOrders)
 				lotp.AssertNotCalled(t, "ExecuteLiquidation", mock.Anything, mock.Anything, mock.Anything)
 			})
-			t.Run("when short orders are present in database for matching", func(t *testing.T) {
+			t.Run("when long orders are present in database for matching", func(t *testing.T) {
 				db, lotp, pipeline := setupDependencies(t)
 				db.On("GetAllTraders").Return(traderMap)
 				db.On("GetLastPrice").Return(lastPrice)
-				longOrders := []LimitOrder{getLongOrder()}
+				longOrder := getLongOrder()
+				longOrders := []LimitOrder{longOrder}
 				shortOrder := getShortOrder()
 				shortOrders := []LimitOrder{shortOrder}
-				expectedFillAmount := big.NewInt(0).Abs(shortOrder.BaseAssetQuantity)
-				lotp.On("ExecuteLiquidation", longTraderAddress, shortOrder, expectedFillAmount).Return(nil)
+				expectedFillAmount := big.NewInt(0).Abs(longOrder.BaseAssetQuantity)
+				lotp.On("ExecuteLiquidation", longTraderAddress, longOrder, expectedFillAmount).Return(nil)
 				modifiedLongOrders, modifiedShortOrders := pipeline.runLiquidations(market, longOrders, shortOrders)
 
-				lotp.AssertCalled(t, "ExecuteLiquidation", longTraderAddress, shortOrder, expectedFillAmount)
+				lotp.AssertCalled(t, "ExecuteLiquidation", longTraderAddress, longOrder, expectedFillAmount)
 
-				assert.NotEqual(t, shortOrder, modifiedShortOrders[0])
-				assert.Equal(t, big.NewInt(0).Neg(expectedFillAmount), shortOrders[0].FilledBaseAssetQuantity)
-				shortOrder.FilledBaseAssetQuantity = big.NewInt(0).Neg(expectedFillAmount)
-				assert.Equal(t, shortOrder, shortOrders[0])
-				assert.Equal(t, longOrders, modifiedLongOrders)
+				assert.Equal(t, shortOrder, modifiedShortOrders[0])
+				assert.Equal(t, modifiedLongOrders[0].FilledBaseAssetQuantity.Uint64(), expectedFillAmount.Uint64())
 			})
 		})
 		t.Run("when liquidable position is short", func(t *testing.T) {
@@ -94,35 +92,35 @@ func TestRunLiquidations(t *testing.T) {
 			}
 			traderMap := map[common.Address]Trader{shortTraderAddress: trader}
 			lastPrice := big.NewInt(20 * 10e6)
-			t.Run("when no long orders are present in database for matching", func(t *testing.T) {
+			t.Run("when no short orders are present in database for matching", func(t *testing.T) {
 				db, lotp, pipeline := setupDependencies(t)
 				db.On("GetAllTraders").Return(traderMap)
 				db.On("GetLastPrice").Return(lastPrice)
-				longOrders := []LimitOrder{}
-				shortOrders := []LimitOrder{getShortOrder()}
+				longOrders := []LimitOrder{getLongOrder()}
+				shortOrders := []LimitOrder{}
 				modifiedLongOrders, modifiedShortOrders := pipeline.runLiquidations(market, longOrders, shortOrders)
-				assert.Equal(t, 0, len(modifiedLongOrders))
-				assert.Equal(t, shortOrders[0], modifiedShortOrders[0])
+				assert.Equal(t, longOrders[0], modifiedLongOrders[0])
+				assert.Equal(t, 0, len(modifiedShortOrders))
 				lotp.AssertNotCalled(t, "ExecuteLiquidation", mock.Anything, mock.Anything, mock.Anything)
 			})
-			t.Run("when long orders are present in database for matching", func(t *testing.T) {
+			t.Run("when short orders are present in database for matching", func(t *testing.T) {
 				db, lotp, pipeline := setupDependencies(t)
 				db.On("GetAllTraders").Return(traderMap)
 				db.On("GetLastPrice").Return(lastPrice)
 				longOrder := getLongOrder()
 				longOrders := []LimitOrder{longOrder}
-				shortOrders := []LimitOrder{getShortOrder()}
-				expectedFillAmount := longOrder.BaseAssetQuantity
-				lotp.On("ExecuteLiquidation", shortTraderAddress, longOrder, expectedFillAmount).Return(nil)
+				shortOrder := getShortOrder()
+				shortOrders := []LimitOrder{shortOrder}
+				expectedFillAmount := shortOrder.BaseAssetQuantity.Abs(shortOrder.BaseAssetQuantity)
+				lotp.On("ExecuteLiquidation", shortTraderAddress, shortOrder, expectedFillAmount).Return(nil)
 				modifiedLongOrders, modifiedShortOrders := pipeline.runLiquidations(market, longOrders, shortOrders)
-				assert.Equal(t, shortOrders[0], modifiedShortOrders[0])
+				assert.Equal(t, longOrders[0], modifiedLongOrders[0])
 
-				lotp.AssertCalled(t, "ExecuteLiquidation", shortTraderAddress, longOrder, expectedFillAmount)
+				lotp.AssertCalled(t, "ExecuteLiquidation", shortTraderAddress, shortOrder, expectedFillAmount)
 
-				assert.NotEqual(t, longOrder, modifiedLongOrders[0])
-				assert.Equal(t, expectedFillAmount, longOrders[0].FilledBaseAssetQuantity)
-				longOrder.FilledBaseAssetQuantity = expectedFillAmount
-				assert.Equal(t, longOrder, longOrders[0])
+				assert.NotEqual(t, shortOrder, modifiedShortOrders[0])
+				assert.Equal(t, expectedFillAmount, big.NewInt(0).Abs(shortOrders[0].FilledBaseAssetQuantity))
+				shortOrder.FilledBaseAssetQuantity = expectedFillAmount
 				assert.Equal(t, longOrders, modifiedLongOrders)
 			})
 		})
@@ -471,14 +469,14 @@ func TestMatchLongAndShortOrder(t *testing.T) {
 func getShortOrder() LimitOrder {
 	signature := []byte("Here is a short order")
 	salt := big.NewInt(time.Now().Unix())
-	shortOrder := createLimitOrder(uint64(1), "short", "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-10), big.NewInt(20.0), "unfulfilled", signature, big.NewInt(2), salt)
+	shortOrder, _ := createLimitOrder("short", "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-10), big.NewInt(20.0), Placed, signature, big.NewInt(2), salt)
 	return shortOrder
 }
 
 func getLongOrder() LimitOrder {
 	signature := []byte("Here is a long order")
 	salt := big.NewInt(time.Now().Unix())
-	longOrder := createLimitOrder(uint64(1), "long", "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(10), big.NewInt(20.0), "unfulfilled", signature, big.NewInt(2), salt)
+	longOrder, _ := createLimitOrder("long", "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(10), big.NewInt(20.0), Placed, signature, big.NewInt(2), salt)
 	return longOrder
 }
 

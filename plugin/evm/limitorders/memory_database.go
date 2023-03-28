@@ -1,12 +1,17 @@
 package limitorders
 
 import (
+	"errors"
+	"fmt"
 	"math/big"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var maxLiquidationRatio *big.Int = big.NewInt(25 * 10e4)
@@ -30,31 +35,42 @@ const (
 
 var collateralWeightMap map[Collateral]float64 = map[Collateral]float64{HUSD: 1}
 
-type Status string
+type Status uint8
 
 const (
-	Placed    = "placed"
-	Filled    = "filled"
-	Cancelled = "cancelled"
+	Placed Status = iota
+	FulFilled
+	Cancelled
+	Execution_Failed
 )
 
+type Lifecycle struct {
+	BlockNumber uint64
+	Status      Status
+}
+
 type LimitOrder struct {
-	Id                      uint64   `json:"id"`
-	Market                  Market   `json:"market"`
-	PositionType            string   `json:"position_type"`
-	UserAddress             string   `json:"user_address"`
-	BaseAssetQuantity       *big.Int `json:"base_asset_quantity"`
-	FilledBaseAssetQuantity *big.Int `json:"filled_base_asset_quantity"`
-	Salt                    *big.Int `json:"salt"`
-	Price                   *big.Int `json:"price"`
-	Status                  Status   `json:"status"`
-	Signature               []byte   `json:"signature"`
-	RawOrder                interface{}
-	BlockNumber             *big.Int `json:"block_number"` // block number order was placed on
+	Market Market `json:"market"`
+	// @todo make this an enum
+	PositionType            string      `json:"position_type"`
+	UserAddress             string      `json:"user_address"`
+	BaseAssetQuantity       *big.Int    `json:"base_asset_quantity"`
+	FilledBaseAssetQuantity *big.Int    `json:"filled_base_asset_quantity"`
+	Salt                    *big.Int    `json:"salt"`
+	Price                   *big.Int    `json:"price"`
+	LifecycleList           []Lifecycle `json:"lifecycle_list"`
+	Signature               []byte      `json:"signature"`
+	BlockNumber             *big.Int    `json:"block_number"` // block number order was placed on
+	RawOrder                interface{} `json:"-"`
 }
 
 func (order LimitOrder) GetUnFilledBaseAssetQuantity() *big.Int {
 	return big.NewInt(0).Sub(order.BaseAssetQuantity, order.FilledBaseAssetQuantity)
+}
+
+func (order LimitOrder) getOrderStatus() Lifecycle {
+	lifecycle := order.LifecycleList
+	return lifecycle[len(lifecycle)-1]
 }
 
 type Position struct {
@@ -73,9 +89,9 @@ type Trader struct {
 
 type LimitOrderDatabase interface {
 	GetAllOrders() []LimitOrder
-	Add(order *LimitOrder)
-	Delete(id string)
-	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId string)
+	Add(orderId common.Hash, order *LimitOrder)
+	Delete(orderId common.Hash)
+	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64)
 	GetLongOrders(market Market) []LimitOrder
 	GetShortOrders(market Market) []LimitOrder
 	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool)
@@ -88,17 +104,21 @@ type LimitOrderDatabase interface {
 	GetLastPrice(market Market) *big.Int
 	GetAllTraders() map[common.Address]Trader
 	GetOrderBookData() InMemoryDatabase
+	Accept(blockNumber uint64)
+	SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error
+	RevertLastStatus(orderId common.Hash) error
 }
 
 type InMemoryDatabase struct {
-	OrderMap        map[string]*LimitOrder     `json:"order_map"`  // ID => order
-	TraderMap       map[common.Address]*Trader `json:"trader_map"` // address => trader info
-	NextFundingTime uint64                     `json:"next_funding_time"`
-	LastPrice       map[Market]*big.Int        `json:"last_price"`
+	mu              sync.Mutex                  `json:"-"`
+	OrderMap        map[common.Hash]*LimitOrder `json:"order_map"`  // ID => order
+	TraderMap       map[common.Address]*Trader  `json:"trader_map"` // address => trader info
+	NextFundingTime uint64                      `json:"next_funding_time"`
+	LastPrice       map[Market]*big.Int         `json:"last_price"`
 }
 
 func NewInMemoryDatabase() *InMemoryDatabase {
-	orderMap := map[string]*LimitOrder{}
+	orderMap := map[common.Hash]*LimitOrder{}
 	lastPrice := map[Market]*big.Int{AvaxPerp: big.NewInt(0)}
 	traderMap := map[common.Address]*Trader{}
 
@@ -110,7 +130,45 @@ func NewInMemoryDatabase() *InMemoryDatabase {
 	}
 }
 
+func (db *InMemoryDatabase) Accept(blockNumber uint64) {
+	for orderId, order := range db.OrderMap {
+		lifecycle := order.getOrderStatus()
+		if lifecycle.Status != Placed && lifecycle.BlockNumber <= blockNumber {
+			delete(db.OrderMap, orderId)
+		}
+	}
+}
+
+func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if db.OrderMap[orderId] == nil {
+		return errors.New(fmt.Sprintf("Invalid orderId %s", orderId.Hex()))
+	}
+	db.OrderMap[orderId].LifecycleList = append(db.OrderMap[orderId].LifecycleList, Lifecycle{blockNumber, status})
+	return nil
+}
+
+func (db *InMemoryDatabase) RevertLastStatus(orderId common.Hash) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if db.OrderMap[orderId] == nil {
+		return errors.New(fmt.Sprintf("Invalid orderId %s", orderId.Hex()))
+	}
+
+	lifeCycleList := db.OrderMap[orderId].LifecycleList
+	if len(lifeCycleList) > 0 {
+		db.OrderMap[orderId].LifecycleList = lifeCycleList[:len(lifeCycleList)-1]
+	}
+	return nil
+}
+
 func (db *InMemoryDatabase) GetAllOrders() []LimitOrder {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	allOrders := []LimitOrder{}
 	for _, order := range db.OrderMap {
 		allOrders = append(allOrders, *order)
@@ -118,16 +176,27 @@ func (db *InMemoryDatabase) GetAllOrders() []LimitOrder {
 	return allOrders
 }
 
-func (db *InMemoryDatabase) Add(order *LimitOrder) {
-	db.OrderMap[getIdFromLimitOrder(*order)] = order
+func (db *InMemoryDatabase) Add(orderId common.Hash, order *LimitOrder) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	order.LifecycleList = append(order.LifecycleList, Lifecycle{order.BlockNumber.Uint64(), Placed})
+	db.OrderMap[orderId] = order
 }
 
-func (db *InMemoryDatabase) Delete(orderId string) {
-	deleteOrder(db, orderId)
+func (db *InMemoryDatabase) Delete(orderId common.Hash) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	delete(db.OrderMap, orderId)
 }
 
-func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId string) {
+func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	limitOrder := db.OrderMap[orderId]
+
 	if limitOrder.PositionType == "long" {
 		limitOrder.FilledBaseAssetQuantity.Add(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
 	}
@@ -136,7 +205,12 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, ord
 	}
 
 	if limitOrder.BaseAssetQuantity.Cmp(limitOrder.FilledBaseAssetQuantity) == 0 {
-		deleteOrder(db, orderId)
+		limitOrder.LifecycleList = append(limitOrder.LifecycleList, Lifecycle{blockNumber, FulFilled})
+	}
+
+	if quantity.Cmp(big.NewInt(0)) == -1 && limitOrder.getOrderStatus().Status == FulFilled {
+		// handling reorgs
+		limitOrder.LifecycleList = limitOrder.LifecycleList[:len(limitOrder.LifecycleList)-1]
 	}
 }
 
@@ -151,7 +225,9 @@ func (db *InMemoryDatabase) UpdateNextFundingTime(nextFundingTime uint64) {
 func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
 	var longOrders []LimitOrder
 	for _, order := range db.OrderMap {
-		if order.PositionType == "long" && order.Market == market {
+		if order.PositionType == "long" &&
+			order.Market == market &&
+			order.getOrderStatus().Status == Placed {
 			longOrders = append(longOrders, *order)
 		}
 	}
@@ -162,7 +238,9 @@ func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
 func (db *InMemoryDatabase) GetShortOrders(market Market) []LimitOrder {
 	var shortOrders []LimitOrder
 	for _, order := range db.OrderMap {
-		if order.PositionType == "short" && order.Market == market {
+		if order.PositionType == "short" &&
+			order.Market == market &&
+			order.getOrderStatus().Status == Placed {
 			shortOrders = append(shortOrders, *order)
 		}
 	}
@@ -231,6 +309,7 @@ func (db *InMemoryDatabase) UpdateLastPrice(market Market, lastPrice *big.Int) {
 func (db *InMemoryDatabase) GetLastPrice(market Market) *big.Int {
 	return db.LastPrice[market]
 }
+
 func (db *InMemoryDatabase) GetAllTraders() map[common.Address]Trader {
 	traderMap := map[common.Address]Trader{}
 	for address, trader := range db.TraderMap {
@@ -278,7 +357,8 @@ func getNextHour() time.Time {
 	return nextHour
 }
 
-func deleteOrder(db *InMemoryDatabase, id string) {
+func deleteOrder(db *InMemoryDatabase, id common.Hash) {
+	log.Info("#### deleting order", "orderId", id)
 	delete(db.OrderMap, id)
 }
 
@@ -294,6 +374,7 @@ func getLiquidationThreshold(size *big.Int) *big.Int {
 	return big.NewInt(0).Mul(liquidationThreshold, big.NewInt(int64(size.Sign()))) // same sign as size
 }
 
-func getIdFromLimitOrder(order LimitOrder) string {
-	return order.UserAddress + order.Salt.String()
+// @todo change this to return the EIP712 hash instead
+func getIdFromLimitOrder(order LimitOrder) common.Hash {
+	return crypto.Keccak256Hash([]byte(order.UserAddress + order.Salt.String()))
 }

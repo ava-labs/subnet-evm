@@ -219,6 +219,7 @@ type BlockChain struct {
 	chainHeadFeed     event.Feed
 	chainAcceptedFeed event.Feed
 	logsFeed          event.Feed
+	hubbleFeed        event.Feed
 	logsAcceptedFeed  event.Feed
 	blockProcFeed     event.Feed
 	txAcceptedFeed    event.Feed
@@ -1101,6 +1102,7 @@ func (bc *BlockChain) writeCanonicalBlockWithLogs(block *types.Block, logs []*ty
 	bc.chainFeed.Send(ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
 	if len(logs) > 0 {
 		bc.logsFeed.Send(logs)
+		bc.hubbleFeed.Send(logs)
 	}
 	bc.chainHeadFeed.Send(ChainHeadEvent{Block: block})
 }
@@ -1500,7 +1502,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	// Ensure the user sees large reorgs
 	if len(oldChain) > 0 && len(newChain) > 0 {
 		logFn := log.Info
-		msg := "Resetting chain preference"
+		msg := "#### Resetting chain preference"
 		if len(oldChain) > 63 {
 			msg = "Large chain preference change detected"
 			logFn = log.Warn
@@ -1550,6 +1552,9 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	if len(rebirthLogs) > 0 {
 		bc.logsFeed.Send(mergeLogs(rebirthLogs, false))
 	}
+	if len(deletedLogs) > 0 || len(rebirthLogs) > 0 {
+		bc.hubbleFeed.Send(append(mergeLogs(deletedLogs, false), mergeLogs(rebirthLogs, false)...))
+	}
 	if len(oldChain) > 0 {
 		for i := len(oldChain) - 1; i >= 0; i-- {
 			bc.chainSideFeed.Send(ChainSideEvent{Block: oldChain[i]})
@@ -1581,11 +1586,11 @@ func (b *BadBlockReason) String() string {
 	reason := fmt.Sprintf(`
 	########## BAD BLOCK #########
 	Chain config: %v
-	
+
 	Number: %v
 	Hash: %#x
 	%v
-	
+
 	Error: %v
 	##############################
 	`, b.ChainConfig, b.Number, b.Hash, receiptString, b.Error)
