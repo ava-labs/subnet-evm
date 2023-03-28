@@ -33,6 +33,7 @@ type OrderMin struct {
 	Price          string
 	Size           string
 	InprogressSize string
+	Hash           string
 }
 
 type OrderForOpenOrders struct {
@@ -72,6 +73,7 @@ func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*O
 			Market: order.Market,
 			Price:  order.Price.String(),
 			Size:   order.GetUnFilledBaseAssetQuantity().String(),
+			Hash:   getIdFromLimitOrder(order).String(),
 		})
 	}
 
