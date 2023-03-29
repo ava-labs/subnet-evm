@@ -271,9 +271,7 @@ func TestT8n(t *testing.T) {
 			case err != nil:
 				t.Fatalf("test %d, json parsing failed: %v", i, err)
 			case !ok:
-				// TODO: DANGER: undo this change, it's just for debugging
-				// t.Fatalf("test %d: output wrong, have \n%v\nwant\n%v\n", i, string(have), string(want))
-				t.Logf("test %d: output wrong, have \n%v\nwant\n%v\n", i, string(have), string(want))
+				t.Fatalf("test %d: output wrong, have \n%v\nwant\n%v\n", i, string(have), string(want))
 			}
 		}
 		tt.WaitExit()
