@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var _ WarpBackend = &warpBackend{}
@@ -61,10 +62,12 @@ func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage)
 
 	copy(signature[:], sig)
 	w.signatureCache.Put(messageID, signature)
+	log.Warn("Added warp message signature", "messageID", unsignedMessage.ID(), "messageID2", ids.ID(messageID))
 	return nil
 }
 
 func (w *warpBackend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
+	log.Warn("Getting warp message signature", "messageID", messageID)
 	if sig, ok := w.signatureCache.Get(messageID); ok {
 		return sig, nil
 	}
