@@ -37,6 +37,7 @@ func TestSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 	unknownMessageID := ids.GenerateTestID()
 
+	emptySignature := [bls.SignatureLen]byte{}
 	mockHandlerStats := &stats.MockSignatureRequestHandlerStats{}
 	signatureRequestHandler := NewSignatureRequestHandler(warpBackend, message.Codec, mockHandlerStats)
 
@@ -61,7 +62,7 @@ func TestSignatureHandler(t *testing.T) {
 			setup: func() (request message.SignatureRequest, expectedResponse []byte) {
 				return message.SignatureRequest{
 					MessageID: unknownMessageID,
-				}, nil
+				}, emptySignature[:]
 			},
 			verifyStats: func(t *testing.T, stats *stats.MockSignatureRequestHandlerStats) {
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)
