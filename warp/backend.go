@@ -66,7 +66,7 @@ func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage)
 }
 
 func (w *warpBackend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
-	log.Warn("Getting warp message from backend", "messageID", messageID)
+	log.Debug("Getting warp message from backend", "messageID", messageID)
 	if sig, ok := w.signatureCache.Get(messageID); ok {
 		return sig, nil
 	}
