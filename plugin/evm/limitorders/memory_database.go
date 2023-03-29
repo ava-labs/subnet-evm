@@ -10,7 +10,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -372,9 +371,4 @@ func getLiquidationThreshold(size *big.Int) *big.Int {
 	threshold := big.NewInt(0).Add(maxLiquidationSize, big.NewInt(1))
 	liquidationThreshold := utils.BigIntMax(threshold, minSizeRequirement)
 	return big.NewInt(0).Mul(liquidationThreshold, big.NewInt(int64(size.Sign()))) // same sign as size
-}
-
-// @todo change this to return the EIP712 hash instead
-func getIdFromLimitOrder(order LimitOrder) common.Hash {
-	return crypto.Keccak256Hash([]byte(order.UserAddress + order.Salt.String()))
 }

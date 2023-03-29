@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type OrderBookAPI struct {
@@ -43,6 +45,7 @@ type OrderForOpenOrders struct {
 	FilledSize string
 	Timestamp  uint64
 	Salt       string
+	Hash       string
 }
 
 func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryDatabase {
@@ -51,7 +54,7 @@ func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryD
 
 func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*OrderBookResponse, error) {
 	// market is a string cuz it's an optional param
-	allOrders := api.db.GetAllOrders()
+	allOrders := api.db.GetOrderBookData().OrderMap
 	orders := []OrderMin{}
 
 	if len(marketStr) > 0 {
@@ -59,21 +62,21 @@ func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*O
 		if err != nil {
 			return nil, fmt.Errorf("invalid market")
 		}
-		marketOrders := []LimitOrder{}
-		for _, order := range allOrders {
+		marketOrders := map[common.Hash]*LimitOrder{}
+		for hash, order := range allOrders {
 			if order.Market == Market(market) {
-				marketOrders = append(marketOrders, order)
+				marketOrders[hash] = order
 			}
 		}
 		allOrders = marketOrders
 	}
 
-	for _, order := range allOrders {
+	for hash, order := range allOrders {
 		orders = append(orders, OrderMin{
 			Market: order.Market,
 			Price:  order.Price.String(),
 			Size:   order.GetUnFilledBaseAssetQuantity().String(),
-			Hash:   getIdFromLimitOrder(order).String(),
+			Hash:   hash.String(),
 		})
 	}
 
@@ -83,14 +86,15 @@ func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*O
 func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenOrdersResponse {
 	traderOrders := []OrderForOpenOrders{}
 	orderMap := api.db.GetOrderBookData().OrderMap
-	for _, order := range orderMap {
-		if strings.ToLower(order.UserAddress) == strings.ToLower(trader) {
+	for hash, order := range orderMap {
+		if strings.EqualFold(order.UserAddress, trader) {
 			traderOrders = append(traderOrders, OrderForOpenOrders{
 				Market:     order.Market,
 				Price:      order.Price.String(),
 				Size:       order.BaseAssetQuantity.String(),
 				FilledSize: order.FilledBaseAssetQuantity.String(),
 				Salt:       getOrderFromRawOrder(order.RawOrder).Salt.String(),
+				Hash:       hash.String(),
 			})
 		}
 	}

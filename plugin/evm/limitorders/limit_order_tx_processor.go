@@ -109,7 +109,6 @@ func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrd
 	orders := make([]Order, 2)
 	orders[0], orders[1] = getOrderFromRawOrder(incomingOrder.RawOrder), getOrderFromRawOrder(matchedOrder.RawOrder)
 
-	log.Info("#### matching", "long order price", orders[0].Price, "short order price", orders[1].Price, "long order id", getIdFromOrder(orders[0]), "short order id", getIdFromOrder(orders[1]))
 	signatures := make([][]byte, 2)
 	signatures[0] = incomingOrder.Signature
 	signatures[1] = matchedOrder.Signature

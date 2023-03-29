@@ -8,7 +8,6 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -115,7 +114,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			return
 		}
 		log.Info("HandleOrderBookEvent", "orderplaced args", args, "removed", removed)
-		orderId := parseOrderId(args["orderHash"])
+		orderId := event.Topics[2]
 		if !removed {
 			order := getOrderFromRawOrder(args["order"])
 			log.Info("#### adding order", "orderId", orderId.String(), "block", event.BlockHash.String(), "number", event.BlockNumber)
@@ -143,7 +142,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			return
 		}
 		log.Info("HandleOrderBookEvent", "OrderCancelled args", args, "removed", removed)
-		orderId := parseOrderId(args["orderHash"])
+		orderId := event.Topics[2]
 		if !removed {
 			if err := cep.database.SetOrderStatus(orderId, Cancelled, event.BlockNumber); err != nil {
 				log.Error("error in SetOrderStatus", "method", "OrderCancelled", "err", err)
@@ -162,8 +161,8 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			return
 		}
 
-		order0Id := parseOrderId(args["orderHash"].([2][32]byte)[0])
-		order1Id := parseOrderId(args["orderHash"].([2][32]byte)[1])
+		order0Id := event.Topics[1]
+		order1Id := event.Topics[2]
 		fillAmount := args["fillAmount"].(*big.Int)
 		if !removed {
 			log.Info("#### matched orders", "orderId_0", order0Id.String(), "orderId_1", order1Id, "block", event.BlockHash.String(), "number", event.BlockNumber)
@@ -185,7 +184,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 		log.Info("HandleOrderBookEvent", "LiquidationOrderMatched args", args)
 		fillAmount := args["fillAmount"].(*big.Int)
 
-		orderId := parseOrderId(args["orderHash"])
+		orderId := event.Topics[2]
 		// @todo update liquidable position info
 		if !removed {
 			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, orderId, event.BlockNumber)
@@ -329,9 +328,4 @@ func getOrdersFromRawOrderList(rawOrders interface{}) [2]Order {
 	marshalledOrders, _ := json.Marshal(rawOrders)
 	_ = json.Unmarshal(marshalledOrders, &orders)
 	return orders
-}
-
-// @todo change this to return the EIP712 hash instead
-func getIdFromOrder(order Order) common.Hash {
-	return crypto.Keccak256Hash([]byte(order.Trader.String() + order.Salt.String()))
 }
