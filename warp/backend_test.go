@@ -37,7 +37,7 @@ func TestAddAndGetValidMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify that a signature is returned successfully, and compare to expected signature.
-	messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
+	messageID := unsignedMsg.ID()
 	signature, err := backend.GetSignature(messageID)
 	require.NoError(t, err)
 
@@ -54,7 +54,7 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try getting a signature for a message that was not added.
-	messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
+	messageID := unsignedMsg.ID()
 	_, err = backend.GetSignature(messageID)
 	require.Error(t, err)
 }

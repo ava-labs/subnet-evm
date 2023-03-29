@@ -50,11 +50,14 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	defer func() {
 		s.stats.UpdateSignatureRequestTime(time.Since(startTime))
 	}()
-	log.Warn("Getting warp message signature", "messageID", signatureRequest.MessageID)
+
 	signature, err := s.backend.GetSignature(signatureRequest.MessageID)
 	if err != nil {
-		log.Warn("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
+		log.Debug("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
 		s.stats.IncSignatureMiss()
+
+		// Return empty response because the message was not found in backend,
+		// instead of returning nil, which would drop message response.
 		emptyResponse := message.SignatureResponse{Signature: [bls.SignatureLen]byte{}}
 		emptyResponseBytes, err := s.codec.Marshal(message.Version, &emptyResponse)
 		if err != nil {

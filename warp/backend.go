@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
-	"github.com/ava-labs/avalanchego/utils/hashing"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -45,7 +44,7 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, signatureCacheS
 }
 
 func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
-	messageID := hashing.ComputeHash256Array(unsignedMessage.Bytes())
+	messageID := unsignedMessage.ID()
 
 	// In the case when a node restarts, and possibly changes its bls key, the cache gets emptied but the database does not.
 	// So to avoid having incorrect signatures saved in the database after a bls key change, we save the full message in the database.
@@ -62,12 +61,12 @@ func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage)
 
 	copy(signature[:], sig)
 	w.signatureCache.Put(messageID, signature)
-	log.Warn("Added warp message signature", "messageID", unsignedMessage.ID(), "messageID2", ids.ID(messageID))
+	log.Debug("Added warp message to backend", "messageID", messageID)
 	return nil
 }
 
 func (w *warpBackend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
-	log.Warn("Getting warp message signature", "messageID", messageID)
+	log.Warn("Getting warp message from backend", "messageID", messageID)
 	if sig, ok := w.signatureCache.Get(messageID); ok {
 		return sig, nil
 	}
