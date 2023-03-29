@@ -223,10 +223,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
-	context.Random = nil
 	if config.IsSubnetEVM(new(big.Int)) && t.json.Env.Random != nil {
-		rnd := common.BigToHash(t.json.Env.Random)
-		context.Random = &rnd
 		context.Difficulty = big.NewInt(0)
 	}
 	evm := vm.NewEVM(context, txContext, statedb, config, vmconfig)
