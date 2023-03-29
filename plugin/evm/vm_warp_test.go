@@ -21,14 +21,17 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
-	byteUtils "github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/rpc"
+	warpTransaction "github.com/ava-labs/subnet-evm/warp/transaction"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
 
-// Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
+// Test that sending a valid signed warp message results in successful delivery.
 func TestWarpPrecompileE2E(t *testing.T) {
 	// Setup chain params
 	genesis := &core.Genesis{}
@@ -51,7 +54,12 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+	reorgSub := vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+	defer reorgSub.Unsubscribe()
+
+	acceptedLogsChan := make(chan []*types.Log, 10)
+	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
+	defer logsSub.Unsubscribe()
 
 	payload := utils.RandomBytes(100)
 
@@ -113,6 +121,15 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(t, err)
 
+	select {
+	case acceptedLogs := <-acceptedLogsChan:
+		require.Len(t, acceptedLogs, 1, "unexpected length of accepted logs")
+		require.Equal(t, acceptedLogs[0], receipts[0].Logs[0])
+	case <-time.After(time.Second):
+		t.Fatal("Failed to read accepted logs from subscription")
+	}
+	logsSub.Unsubscribe()
+
 	// Verify the produced signature is valid
 	require.True(t, bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
 
@@ -172,22 +189,18 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	getWarpMsgInput, err := warp.PackGetVerifiedWarpMessage()
 	require.NoError(t, err)
 	signedTx1, err := types.SignTx(
-		types.NewTx(&types.DynamicFeeTx{
-			ChainID:   vm.chainConfig.ChainID,
-			Nonce:     1,
-			To:        &warp.Module.Address,
-			Gas:       1_000_000,
-			GasFeeCap: big.NewInt(225 * params.GWei),
-			GasTipCap: big.NewInt(params.GWei),
-			Value:     common.Big0,
-			Data:      getWarpMsgInput,
-			AccessList: types.AccessList{
-				types.AccessTuple{
-					Address:     warp.ContractAddress,
-					StorageKeys: byteUtils.BytesToHashSlice(warp.PackPredicate(signedMessage.Bytes())),
-				},
-			},
-		}),
+		warpTransaction.NewWarpTx(
+			vm.chainConfig.ChainID,
+			1,
+			&warp.Module.Address,
+			1_000_000,
+			big.NewInt(225*params.GWei),
+			big.NewInt(params.GWei),
+			common.Big0,
+			getWarpMsgInput,
+			types.AccessList{},
+			signedMessage,
+		),
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
 		testKeys[0],
 	)
@@ -199,6 +212,43 @@ func TestWarpPrecompileE2E(t *testing.T) {
 		}
 	}
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
+
+	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
+		Message: warp.WarpMessage{
+			OriginChainID:       vm.ctx.ChainID,
+			OriginSenderAddress: testEthAddrs[0].Hash(),
+			DestinationChainID:  vm.ctx.CChainID,
+			DestinationAddress:  testEthAddrs[1].Hash(),
+			Payload:             payload,
+		},
+		Exists: true,
+	})
+	require.NoError(t, err)
+
+	// Assert that DoCall returns the expected output
+	hexGetWarpMsgInput := hexutil.Bytes(signedTx1.Data())
+	hexGasLimit := hexutil.Uint64(signedTx1.Gas())
+	accessList := signedTx1.AccessList()
+	blockNum := new(rpc.BlockNumber)
+	*blockNum = rpc.LatestBlockNumber
+
+	executionRes, err := ethapi.DoCall(
+		context.Background(),
+		vm.eth.APIBackend,
+		ethapi.TransactionArgs{
+			To:         signedTx1.To(),
+			Input:      &hexGetWarpMsgInput,
+			AccessList: &accessList,
+			Gas:        &hexGasLimit,
+		},
+		rpc.BlockNumberOrHash{BlockNumber: blockNum},
+		nil,
+		time.Second,
+		10_000_000,
+	)
+	require.NoError(t, err)
+	require.NoError(t, executionRes.Err)
+	require.Equal(t, expectedOutput, executionRes.ReturnData)
 
 	<-issuer
 

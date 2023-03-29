@@ -4,6 +4,7 @@
 package payload
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -30,4 +31,21 @@ func TestAddressedPayload(t *testing.T) {
 func TestParseAddressedPayloadJunk(t *testing.T) {
 	_, err := ParseAddressedPayload(utils.RandomBytes(1024))
 	require.Error(t, err)
+}
+
+func TestParseAddressedPayload(t *testing.T) {
+	base64Payload := "AAAAAAAAAQIDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMHCAk="
+	payload := &AddressedPayload{
+		SourceAddress:      ids.ID{1, 2, 3},
+		DestinationAddress: ids.ID{4, 5, 6},
+		Payload:            []byte{7, 8, 9},
+	}
+
+	require.NoError(t, payload.Initialize())
+
+	require.Equal(t, base64Payload, base64.StdEncoding.EncodeToString(payload.Bytes()))
+
+	parsedPayload, err := ParseAddressedPayload(payload.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, payload, parsedPayload)
 }

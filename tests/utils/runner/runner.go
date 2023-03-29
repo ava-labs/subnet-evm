@@ -12,6 +12,7 @@ import (
 	runner_sdk "github.com/ava-labs/avalanche-network-runner/client"
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	runner_server "github.com/ava-labs/avalanche-network-runner/server"
+	"github.com/ava-labs/avalanchego/api/info"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
@@ -19,6 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+// Subnet provides the basic details of a created subnet
+// Note: currently assumes one blockchain per subnet
 type Subnet struct {
 	// SubnetID is the txID of the transaction that created the subnet
 	SubnetID ids.ID
@@ -35,10 +38,11 @@ type ANRConfig struct {
 	GlobalNodeConfig    string
 }
 
+// NetworkManager is a wrapper around the ANR to simplify the setup and teardown code
+// of tests that rely on the ANR.
 type NetworkManager struct {
 	ANRConfig ANRConfig
 
-	// Map SubnetID to Subnet details
 	subnets []*Subnet
 
 	logFactory      logging.Factory
@@ -91,6 +95,7 @@ func NewNetworkManager(config ANRConfig) *NetworkManager {
 	return manager
 }
 
+// startServer starts a new ANR server and sets/overwrites the anrServer, done channel, and serverCtxCancel function.
 func (n *NetworkManager) startServer(ctx context.Context) (<-chan struct{}, error) {
 	done := make(chan struct{})
 	zapServerLog, err := n.logFactory.Make("server")
@@ -129,8 +134,8 @@ func (n *NetworkManager) startServer(ctx context.Context) (<-chan struct{}, erro
 	return done, nil
 }
 
-// This is an ugly hack to redial the server and create a new client connection.
-// This is used to support tearing down the network from an external command.
+// startClient starts an ANR Client dialing the ANR server at the expected endpoint.
+// Note: will overwrite client if it already exists.
 func (n *NetworkManager) startClient() error {
 	logLevel, err := logging.ToLevel(n.ANRConfig.LogLevel)
 	if err != nil {
@@ -156,6 +161,7 @@ func (n *NetworkManager) startClient() error {
 	return nil
 }
 
+// initServer starts the ANR server if it is not populated
 func (n *NetworkManager) initServer() error {
 	if n.anrServer != nil {
 		return nil
@@ -165,6 +171,7 @@ func (n *NetworkManager) initServer() error {
 	return err
 }
 
+// initClient starts an ANR client if it not populated
 func (n *NetworkManager) initClient() error {
 	if n.anrClient != nil {
 		return nil
@@ -173,6 +180,7 @@ func (n *NetworkManager) initClient() error {
 	return n.startClient()
 }
 
+// init starts the ANR server and client if they are not yet populated
 func (n *NetworkManager) init() error {
 	if err := n.initServer(); err != nil {
 		return err
@@ -204,6 +212,7 @@ func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct
 
 // SetupNetwork constructs blockchains with the given [blockchainSpecs] and adds them to the network manager.
 // Uses [execPath] as the AvalancheGo binary execution path for any started nodes.
+// Note: this assumes that the default network has already been constructed.
 func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, blockchainSpecs []*rpcpb.BlockchainSpec) error {
 	if err := n.init(); err != nil {
 		return err
@@ -260,6 +269,14 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 		}
 		for _, nodeName := range chainSpec.Participants {
 			subnet.ValidatorURIs = append(subnet.ValidatorURIs, nodeInfos[nodeName].Uri)
+			infoClient := info.NewClient(nodeInfos[nodeName].Uri)
+			bootstrapped, err := info.AwaitBootstrapped(ctx, infoClient, blockchainIDStr, time.Second)
+			if err != nil {
+				return fmt.Errorf("failed to wait for node %s to finish bootstrapping %s: %w", nodeName, blockchainIDStr, err)
+			}
+			if !bootstrapped {
+				return fmt.Errorf("failed to wait for node %s to finish bootstrapping %s", nodeName, blockchainIDStr)
+			}
 		}
 		n.subnets = append(n.subnets, subnet)
 	}

@@ -38,6 +38,14 @@ interface WarpMessenger {
         external view
         returns (WarpMessage calldata message, bool exists);
 
+    // Note: getVerifiedWarpMessage takes no arguments because it returns a single verified
+    // message that is encoded in the predicate (inside the tx access list) of the transaction.
+    // The alternative design to this is to verify messages during the EVM's execution in which
+    // case there would be no predicate and the block would encode the hits/misses that occur
+    // throughout its execution.
+    // This would result in the following alternative function signature:
+    // function verifyMessage(bytes calldata signedWarpMsg) external returns (WarpMessage calldata message);
+
     // getBlockchainID returns the snow.Context BlockchainID of this chain.
     // This blockchainID is the hash of the transaction that created this blockchain on the P-Chain
     // and is not related to the Ethereum ChainID.

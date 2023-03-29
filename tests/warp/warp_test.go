@@ -25,8 +25,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
-	byteUtils "github.com/ava-labs/subnet-evm/utils"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
+	warpTransaction "github.com/ava-labs/subnet-evm/warp/transaction"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -101,9 +101,8 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		unsignedWarpMessageID          ids.ID
 		signedWarpMsg                  *avalancheWarp.Message
 		blockchainIDA, blockchainIDB   ids.ID
-		chainAURIs                     []string
+		chainAURIs, chainBURIs         []string
 		chainAWSClient, chainBWSClient ethclient.Client
-		chainBURIs                     []string
 		chainID                        = big.NewInt(99999)
 		fundedKey                      *ecdsa.PrivateKey
 		fundedAddress                  common.Address
@@ -150,6 +149,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 	})
 
+	// Send a transaction to Subnet A to issue a Warp Message to Subnet B
 	ginkgo.It("Send Message from A to B", ginkgo.Label("Warp", "SendWarp"), func() {
 		ctx := context.Background()
 
@@ -160,6 +160,17 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		sub, err := chainAWSClient.SubscribeNewHead(ctx, newHeads)
 		gomega.Expect(err).Should(gomega.BeNil())
 		defer sub.Unsubscribe()
+
+		// TODO: switch to using SubscribeFilterLogs
+		// Create a channel to handle accepted warp logs
+		// warpLogsChan := make(chan types.Log, 10)
+		// warpLogsSub, err := chainBWSClient.SubscribeFilterLogs(
+		// 	ctx,
+		// 	interfaces.FilterQuery{Addresses: []common.Address{warp.Module.Address}},
+		// 	warpLogsChan,
+		// )
+		// gomega.Expect(err).Should(gomega.BeNil())
+		// defer warpLogsSub.Unsubscribe()
 
 		packedInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
 			DestinationChainID: blockchainIDB,
@@ -186,6 +197,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Waiting for new block confirmation")
 		newHead := <-newHeads
 		blockHash := newHead.Hash()
+
 		log.Info("Fetching relevant warp logs from the newly produced block")
 		logs, err := chainAWSClient.FilterLogs(ctx, interfaces.FilterQuery{
 			BlockHash: &blockHash,
@@ -194,8 +206,18 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(len(logs)).Should(gomega.Equal(1))
 
-		log.Info("Parsing logData as unsigned warp message")
+		// Check for relevant warp log from subscription and ensure that it matches
+		// the log extracted from the last block.
 		txLog := logs[0]
+		// select {
+		// case warpLog := <-warpLogsChan:
+		// 	gomega.Expect(warpLog).Should(gomega.Equal(txLog))
+		// case <-time.After(5 * time.Second):
+		// 	gomega.Expect(fmt.Errorf("failed to fetch txLog (%v) via subscription", txLog)).Should(gomega.BeNil())
+		// }
+		// warpLogsSub.Unsubscribe()
+
+		log.Info("Parsing logData as unsigned warp message")
 		unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
 		gomega.Expect(err).Should(gomega.BeNil())
 
@@ -205,7 +227,9 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "unsignedWarpMessage", unsignedWarpMsg)
 	})
 
-	ginkgo.It("Aggregate Warp Signature", ginkgo.Label("Warp", "ReceiveWarp"), func() {
+	// Aggregate a Warp Signature by sending an API request to each node requesting its signature and manually
+	// constructing a valid Avalanche Warp Message
+	ginkgo.It("Aggregate Warp Signature via API", ginkgo.Label("Warp", "ReceiveWarp", "AggregateWarpManually"), func() {
 		ctx := context.Background()
 
 		blsSignatures := make([]*bls.Signature, 0, len(chainAURIs))
@@ -252,6 +276,21 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		signedWarpMsg = warpMsg
 	})
 
+	// Aggregate a Warp Signature using the node's Signature Aggregation API call and verifying that its output matches the
+	// the manual construction
+	ginkgo.It("Aggregate Warp Signature via Aggregator", ginkgo.Label("Warp", "ReceiveWarp", "AggregatorWarp"), func() {
+		ctx := context.Background()
+
+		// Verify that the signature aggregation matches the results of manually constructing the warp message
+		warpClient, err := warpBackend.NewWarpClient(chainAURIs[0], blockchainIDA.String())
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		signedWarpMessageBytes, err := warpClient.GetAggregateSignature(ctx, unsignedWarpMessageID, 100)
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(signedWarpMessageBytes).Should(gomega.Equal(signedWarpMsg.Bytes()))
+	})
+
+	// Verify successful delivery of the Avalanche Warp Message from Chain A to Chain B
 	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
 		ctx := context.Background()
 
@@ -285,22 +324,18 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		packedInput, err := warp.PackGetVerifiedWarpMessage()
 		gomega.Expect(err).Should(gomega.BeNil())
-		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   chainID,
-			Nonce:     2,
-			To:        &warp.Module.Address,
-			Gas:       5_000_000,
-			GasFeeCap: big.NewInt(225 * params.GWei),
-			GasTipCap: big.NewInt(params.GWei),
-			Value:     common.Big0,
-			Data:      packedInput,
-			AccessList: types.AccessList{
-				types.AccessTuple{
-					Address:     warp.ContractAddress,
-					StorageKeys: byteUtils.BytesToHashSlice(warp.PackPredicate(signedWarpMsg.Bytes())),
-				},
-			},
-		})
+		tx := warpTransaction.NewWarpTx(
+			chainID,
+			2,
+			&warp.Module.Address,
+			5_000_000,
+			big.NewInt(225*params.GWei),
+			big.NewInt(params.GWei),
+			common.Big0,
+			packedInput,
+			types.AccessList{},
+			signedWarpMsg,
+		)
 		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
 		txBytes, err := signedTx.MarshalBinary()

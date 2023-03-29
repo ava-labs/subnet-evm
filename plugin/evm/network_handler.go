@@ -31,18 +31,15 @@ type networkHandler struct {
 func newNetworkHandler(
 	provider syncHandlers.SyncDataProvider,
 	evmTrieDB *trie.Database,
-	networkCodec codec.Manager,
 	warpBackend warp.WarpBackend,
+	networkCodec codec.Manager,
 ) message.RequestHandler {
 	syncStats := syncStats.NewHandlerStats(metrics.Enabled)
 	return &networkHandler{
-		// State sync handlers
 		stateTrieLeafsRequestHandler: syncHandlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, syncStats),
 		blockRequestHandler:          syncHandlers.NewBlockRequestHandler(provider, networkCodec, syncStats),
 		codeRequestHandler:           syncHandlers.NewCodeRequestHandler(evmTrieDB.DiskDB(), networkCodec, syncStats),
-
-		// TODO: initialize actual signature request handler when warp is ready
-		signatureRequestHandler: warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec, warpStats.NewStats(metrics.Enabled)),
+		signatureRequestHandler:      warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec, warpStats.NewStats()),
 	}
 }
 
