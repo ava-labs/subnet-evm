@@ -24,12 +24,10 @@ import (
 	"math/big"
 	"os"
 
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/consensus/clique"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -74,9 +72,9 @@ type bbInput struct {
 
 	Ethash    bool                 `json:"-"`
 	EthashDir string               `json:"-"`
-	PowMode   ethash.Mode          `json:"-"`
 	Txs       []*types.Transaction `json:"-"`
 	Ommers    []*types.Header      `json:"-"`
+	// PowMode   ethash.Mode          `json:"-"`
 }
 
 type cliqueInput struct {
@@ -170,67 +168,13 @@ func (i *bbInput) SealBlock(block *types.Block) (*types.Block, error) {
 
 // sealEthash seals the given block using ethash.
 func (i *bbInput) sealEthash(block *types.Block) (*types.Block, error) {
-	if i.Header.Nonce != nil {
-		return nil, NewError(ErrorConfig, fmt.Errorf("sealing with ethash will overwrite provided nonce"))
-	}
-	ethashConfig := ethash.Config{
-		PowMode:        i.PowMode,
-		DatasetDir:     i.EthashDir,
-		CacheDir:       i.EthashDir,
-		DatasetsInMem:  1,
-		DatasetsOnDisk: 2,
-		CachesInMem:    2,
-		CachesOnDisk:   3,
-	}
-	engine := ethash.New(ethashConfig, nil, true)
-	defer engine.Close()
-	// Use a buffered chan for results.
-	// If the testmode is used, the sealer will return quickly, and complain
-	// "Sealing result is not read by miner" if it cannot write the result.
-	results := make(chan *types.Block, 1)
-	if err := engine.Seal(nil, block, results, nil); err != nil {
-		panic(fmt.Sprintf("failed to seal block: %v", err))
-	}
-	found := <-results
-	return block.WithSeal(found.Header()), nil
+	// NOTE: this has been removed
+	return block, nil
 }
 
 // sealClique seals the given block using clique.
 func (i *bbInput) sealClique(block *types.Block) (*types.Block, error) {
-	// If any clique value overwrites an explicit header value, fail
-	// to avoid silently building a block with unexpected values.
-	if i.Header.Extra != nil {
-		return nil, NewError(ErrorConfig, fmt.Errorf("sealing with clique will overwrite provided extra data"))
-	}
-	header := block.Header()
-	if i.Clique.Voted != nil {
-		if i.Header.Coinbase != nil {
-			return nil, NewError(ErrorConfig, fmt.Errorf("sealing with clique and voting will overwrite provided coinbase"))
-		}
-		header.Coinbase = *i.Clique.Voted
-	}
-	if i.Clique.Authorize != nil {
-		if i.Header.Nonce != nil {
-			return nil, NewError(ErrorConfig, fmt.Errorf("sealing with clique and voting will overwrite provided nonce"))
-		}
-		if *i.Clique.Authorize {
-			header.Nonce = [8]byte{}
-		} else {
-			header.Nonce = [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-		}
-	}
-	// Extra is fixed 32 byte vanity and 65 byte signature
-	header.Extra = make([]byte, 32+65)
-	copy(header.Extra[0:32], i.Clique.Vanity.Bytes()[:])
-
-	// Sign the seal hash and fill in the rest of the extra data
-	h := clique.SealHash(header)
-	sighash, err := crypto.Sign(h[:], i.Clique.Key)
-	if err != nil {
-		return nil, err
-	}
-	copy(header.Extra[32:], sighash)
-	block = block.WithSeal(header)
+	// NOTE: this has been removed
 	return block, nil
 }
 
@@ -259,14 +203,13 @@ func BuildBlock(ctx *cli.Context) error {
 
 func readInput(ctx *cli.Context) (*bbInput, error) {
 	var (
-		headerStr  = ctx.String(InputHeaderFlag.Name)
-		ommersStr  = ctx.String(InputOmmersFlag.Name)
-		txsStr     = ctx.String(InputTxsRlpFlag.Name)
-		cliqueStr  = ctx.String(SealCliqueFlag.Name)
-		ethashOn   = ctx.Bool(SealEthashFlag.Name)
-		ethashDir  = ctx.String(SealEthashDirFlag.Name)
-		ethashMode = ctx.String(SealEthashModeFlag.Name)
-		inputData  = &bbInput{}
+		headerStr = ctx.String(InputHeaderFlag.Name)
+		ommersStr = ctx.String(InputOmmersFlag.Name)
+		txsStr    = ctx.String(InputTxsRlpFlag.Name)
+		cliqueStr = ctx.String(SealCliqueFlag.Name)
+		ethashOn  = ctx.Bool(SealEthashFlag.Name)
+		ethashDir = ctx.String(SealEthashDirFlag.Name)
+		inputData = &bbInput{}
 	)
 	if ethashOn && cliqueStr != "" {
 		return nil, NewError(ErrorConfig, fmt.Errorf("both ethash and clique sealing specified, only one may be chosen"))
@@ -274,16 +217,6 @@ func readInput(ctx *cli.Context) (*bbInput, error) {
 	if ethashOn {
 		inputData.Ethash = ethashOn
 		inputData.EthashDir = ethashDir
-		switch ethashMode {
-		case "normal":
-			inputData.PowMode = ethash.ModeNormal
-		case "test":
-			inputData.PowMode = ethash.ModeTest
-		case "fake":
-			inputData.PowMode = ethash.ModeFake
-		default:
-			return nil, NewError(ErrorConfig, fmt.Errorf("unknown pow mode: %s, supported modes: test, fake, normal", ethashMode))
-		}
 	}
 	if headerStr == stdinSelector || ommersStr == stdinSelector || txsStr == stdinSelector || cliqueStr == stdinSelector {
 		decoder := json.NewDecoder(os.Stdin)

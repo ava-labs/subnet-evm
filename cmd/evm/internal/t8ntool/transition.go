@@ -26,18 +26,18 @@ import (
 	"path"
 	"strings"
 
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/eth/tracers/logger"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/tests"
 	"github.com/urfave/cli/v2"
 )
 
@@ -240,31 +240,33 @@ func Transition(ctx *cli.Context) error {
 		}
 	}
 	// We may have to sign the transactions.
-	signer := types.MakeSigner(chainConfig, big.NewInt(int64(prestate.Env.Number)))
+	signer := types.MakeSigner(chainConfig, big.NewInt(int64(prestate.Env.Number)), big.NewInt(int64(prestate.Env.Timestamp)))
 
 	if txs, err = signUnsignedTransactions(txsWithKeys, signer); err != nil {
 		return NewError(ErrorJson, fmt.Errorf("failed signing transactions: %v", err))
 	}
 	// Sanity check, to not `panic` in state_transition
-	if chainConfig.IsLondon(big.NewInt(int64(prestate.Env.Number))) {
+	// NOTE: IsLondon replaced with IsSubnetEVM here
+	if chainConfig.IsSubnetEVM(big.NewInt(int64(prestate.Env.Timestamp))) {
 		if prestate.Env.BaseFee == nil {
 			return NewError(ErrorConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
 		}
 	}
-	isMerged := chainConfig.TerminalTotalDifficulty != nil && chainConfig.TerminalTotalDifficulty.BitLen() == 0
+	// NOTE: Removed isMerged logic here.
+	// isMerged := chainConfig.TerminalTotalDifficulty != nil && chainConfig.TerminalTotalDifficulty.BitLen() == 0
 	env := prestate.Env
-	if isMerged {
-		// post-merge:
-		// - random must be supplied
-		// - difficulty must be zero
-		switch {
-		case env.Random == nil:
-			return NewError(ErrorConfig, errors.New("post-merge requires currentRandom to be defined in env"))
-		case env.Difficulty != nil && env.Difficulty.BitLen() != 0:
-			return NewError(ErrorConfig, errors.New("post-merge difficulty must be zero (or omitted) in env"))
-		}
-		prestate.Env.Difficulty = nil
-	} else if env.Difficulty == nil {
+	// if isMerged {
+	// 	// post-merge:
+	// 	// - random must be supplied
+	// 	// - difficulty must be zero
+	// 	switch {
+	// 	case env.Random == nil:
+	// 		return NewError(ErrorConfig, errors.New("post-merge requires currentRandom to be defined in env"))
+	// 	case env.Difficulty != nil && env.Difficulty.BitLen() != 0:
+	// 		return NewError(ErrorConfig, errors.New("post-merge difficulty must be zero (or omitted) in env"))
+	// 	}
+	// 	prestate.Env.Difficulty = nil
+	if env.Difficulty == nil {
 		// pre-merge:
 		// If difficulty was not provided by caller, we need to calculate it.
 		switch {
@@ -334,8 +336,9 @@ func (t *txWithKey) UnmarshalJSON(input []byte) error {
 // signUnsignedTransactions converts the input txs to canonical transactions.
 //
 // The transactions can have two forms, either
-//   1. unsigned or
-//   2. signed
+//  1. unsigned or
+//  2. signed
+//
 // For (1), r, s, v, need so be zero, and the `secretKey` needs to be set.
 // If so, we sign it here and now, with the given `secretKey`
 // If the condition above is not met, then it's considered a signed transaction.
