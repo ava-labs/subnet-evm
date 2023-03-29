@@ -266,6 +266,12 @@ func Transition(ctx *cli.Context) error {
 	// 		return NewError(ErrorConfig, errors.New("post-merge difficulty must be zero (or omitted) in env"))
 	// 	}
 	// 	prestate.Env.Difficulty = nil
+	if env.Random != nil {
+		// NOTE: subnet-evm continues to return the difficulty value for the RANDOM opcode,
+		// so for testing if Random is set in the environment, we copy it to difficulty instead.
+		env.Difficulty = env.Random
+		prestate.Env.Difficulty = env.Random
+	}
 	if env.Difficulty == nil {
 		// pre-merge:
 		// If difficulty was not provided by caller, we need to calculate it.

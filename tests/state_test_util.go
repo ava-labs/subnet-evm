@@ -121,6 +121,20 @@ func GetChainConfig(forkString string) (baseConfig *params.ChainConfig, eips []i
 		ok                    bool
 		baseName, eipsStrings = splitForks[0], splitForks[1:]
 	)
+
+	// NOTE: this is added to support mapping geth fork names to
+	// subnet-evm fork names.
+	forkAliases := map[string]string{
+		"London":       "SubnetEVM",
+		"Berlin":       "SubnetEVM",
+		"ArrowGlacier": "SubnetEVM",
+		"GrayGlacier":  "SubnetEVM",
+		"Merged":       "SubnetEVM",
+	}
+	if alias, ok := forkAliases[baseName]; ok {
+		baseName = alias
+	}
+
 	if baseConfig, ok = Forks[baseName]; !ok {
 		return nil, nil, UnsupportedForkError{baseName}
 	}

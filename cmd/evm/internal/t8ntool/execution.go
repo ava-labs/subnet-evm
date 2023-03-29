@@ -297,5 +297,6 @@ func rlpHash(x interface{}) (h common.Hash) {
 func calcDifficulty(config *params.ChainConfig, number, currentTime, parentTime uint64,
 	parentDifficulty *big.Int, parentUncleHash common.Hash) *big.Int {
 	// NOTE: this has been removed
-	return common.Big0
+	// TODO: consider replacing with panic
+	return parentDifficulty
 }
