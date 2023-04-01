@@ -9,16 +9,22 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/eth"
+	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/event"
 )
 
 type OrderBookAPI struct {
-	db LimitOrderDatabase
+	db      LimitOrderDatabase
+	backend *eth.EthAPIBackend
 }
 
-func NewOrderBookAPI(database LimitOrderDatabase) *OrderBookAPI {
+func NewOrderBookAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend) *OrderBookAPI {
 	return &OrderBookAPI{
-		db: database,
+		db:      database,
+		backend: backend,
 	}
 }
 
@@ -100,4 +106,40 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenO
 	}
 
 	return OpenOrdersResponse{Orders: traderOrders}
+}
+
+// NewOrderBookState send a notification each time a new (header) block is appended to the chain.
+func (api *OrderBookAPI) NewOrderBookState(ctx context.Context) (*rpc.Subscription, error) {
+	notifier, supported := rpc.NotifierFromContext(ctx)
+	if !supported {
+		return &rpc.Subscription{}, rpc.ErrNotificationsUnsupported
+	}
+
+	rpcSub := notifier.CreateSubscription()
+
+	go func() {
+		var (
+			headers    = make(chan core.ChainHeadEvent)
+			headersSub event.Subscription
+		)
+
+		headersSub = api.backend.SubscribeChainHeadEvent(headers)
+		defer headersSub.Unsubscribe()
+
+		for {
+			select {
+			case <-headers:
+				orderBookData := api.GetDetailedOrderBookData(ctx)
+				notifier.Notify(rpcSub.ID, &orderBookData)
+			case <-rpcSub.Err():
+				headersSub.Unsubscribe()
+				return
+			case <-notifier.Closed():
+				headersSub.Unsubscribe()
+				return
+			}
+		}
+	}()
+
+	return rpcSub, nil
 }

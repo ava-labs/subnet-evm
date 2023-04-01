@@ -35,12 +35,15 @@ type limitOrderProcesser struct {
 	contractEventProcessor *limitorders.ContractEventsProcessor
 	buildBlockPipeline     *limitorders.BuildBlockPipeline
 	mu                     sync.Mutex
+	filterAPI              *filters.FilterAPI
 }
 
 func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, memoryDb limitorders.LimitOrderDatabase, lotp limitorders.LimitOrderTxProcessor) LimitOrderProcesser {
 	log.Info("**** NewLimitOrderProcesser")
 	contractEventProcessor := limitorders.NewContractEventsProcessor(memoryDb)
 	buildBlockPipeline := limitorders.NewBuildBlockPipeline(memoryDb, lotp)
+	filterSystem := filters.NewFilterSystem(backend, filters.Config{})
+	filterAPI := filters.NewFilterAPI(filterSystem, true)
 	return &limitOrderProcesser{
 		ctx:                    ctx,
 		txPool:                 txPool,
@@ -52,6 +55,7 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan
 		limitOrderTxProcessor:  lotp,
 		contractEventProcessor: contractEventProcessor,
 		buildBlockPipeline:     buildBlockPipeline,
+		filterAPI:              filterAPI,
 	}
 }
 
@@ -61,14 +65,11 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAccepted)
 		ctx := context.Background()
 
-		filterSystem := filters.NewFilterSystem(lop.backend, filters.Config{})
-		filterAPI := filters.NewFilterAPI(filterSystem, true)
-
 		var fromBlock, toBlock *big.Int
 		fromBlock = big.NewInt(0)
 		toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 		for toBlock.Cmp(fromBlock) >= 0 {
-			logs, err := filterAPI.GetLogs(ctx, filters.FilterCriteria{
+			logs, err := lop.filterAPI.GetLogs(ctx, filters.FilterCriteria{
 				FromBlock: fromBlock,
 				ToBlock:   toBlock,
 				Addresses: []common.Address{limitorders.OrderBookContractAddress, limitorders.ClearingHouseContractAddress, limitorders.MarginAccountContractAddress},
@@ -93,7 +94,7 @@ func (lop *limitOrderProcesser) RunBuildBlockPipeline(lastBlockTime uint64) {
 }
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *limitorders.OrderBookAPI {
-	return limitorders.NewOrderBookAPI(lop.memoryDb)
+	return limitorders.NewOrderBookAPI(lop.memoryDb, lop.backend)
 }
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
