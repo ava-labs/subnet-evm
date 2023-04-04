@@ -216,6 +216,8 @@ func GenesisVM(t *testing.T,
 	appSender := &commonEng.SenderTest{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
+	appSender.CantSendAppResponse = true
+	appSender.SendAppResponseF = func(context.Context, ids.NodeID, uint32, []byte) error { return nil }
 	err := vm.Initialize(
 		context.Background(),
 		ctx,
@@ -3198,9 +3200,6 @@ func TestSignatureRequestsToVM(t *testing.T) {
 	requestBytes, err := message.Codec.Marshal(message.Version, &signatureRequest)
 	require.NoError(t, err)
 
-	// Currently with warp not being initialized we just need to make sure the NoopSignatureRequestHandler does not
-	// panic/crash when sent a SignatureRequest.
-	// TODO: We will need to update the test when warp is initialized to check for expected response.
 	err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, time.Now().Add(60*time.Second), requestBytes)
 	require.NoError(t, err)
 }
