@@ -216,8 +216,6 @@ func GenesisVM(t *testing.T,
 	appSender := &commonEng.SenderTest{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
-	appSender.CantSendAppResponse = true
-	appSender.SendAppResponseF = func(context.Context, ids.NodeID, uint32, []byte) error { return nil }
 	err := vm.Initialize(
 		context.Background(),
 		ctx,
@@ -3182,24 +3180,4 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	err = vm.Network.CrossChainAppRequest(context.Background(), requestingChainID, 1, time.Now().Add(60*time.Second), crossChainRequest)
 	require.NoError(err)
 	require.True(calledSendCrossChainAppResponseFn, "sendCrossChainAppResponseFn was not called")
-}
-
-func TestSignatureRequestsToVM(t *testing.T) {
-	_, vm, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
-
-	defer func() {
-		err := vm.Shutdown(context.Background())
-		require.NoError(t, err)
-	}()
-
-	// Generate a SignatureRequest for an unknown message
-	var signatureRequest message.Request = message.SignatureRequest{
-		MessageID: ids.GenerateTestID(),
-	}
-
-	requestBytes, err := message.Codec.Marshal(message.Version, &signatureRequest)
-	require.NoError(t, err)
-
-	err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, time.Now().Add(60*time.Second), requestBytes)
-	require.NoError(t, err)
 }
