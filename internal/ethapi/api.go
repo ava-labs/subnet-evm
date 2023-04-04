@@ -102,8 +102,8 @@ type feeHistoryResult struct {
 }
 
 // FeeHistory returns the fee market history.
-func (s *EthereumAPI) FeeHistory(ctx context.Context, blockCount rpc.DecimalOrHex, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*feeHistoryResult, error) {
-	oldest, reward, baseFee, gasUsed, err := s.b.FeeHistory(ctx, int(blockCount), lastBlock, rewardPercentiles)
+func (s *EthereumAPI) FeeHistory(ctx context.Context, blockCount math.HexOrDecimal64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*feeHistoryResult, error) {
+	oldest, reward, baseFee, gasUsed, err := s.b.FeeHistory(ctx, uint64(blockCount), lastBlock, rewardPercentiles)
 	if err != nil {
 		return nil, err
 	}
@@ -138,18 +138,8 @@ func (s *EthereumAPI) Syncing() (interface{}, error) {
 	return false, nil
 }
 
-type GetChainConfigResponse struct {
-	*params.ChainConfig
-	params.UpgradeConfig `json:"upgrades"`
-}
-
-func (s *BlockChainAPI) GetChainConfig(ctx context.Context) GetChainConfigResponse {
-	config := s.b.ChainConfig()
-	resp := GetChainConfigResponse{
-		ChainConfig:   config,
-		UpgradeConfig: config.UpgradeConfig,
-	}
-	return resp
+func (s *BlockChainAPI) GetChainConfig(ctx context.Context) *params.ChainConfigWithUpgradesJSON {
+	return s.b.ChainConfig().ToWithUpgradesJSON()
 }
 
 // TxPoolAPI offers and API for the transaction pool. It only operates on data that is non confidential.
@@ -1730,7 +1720,7 @@ func (s *TransactionAPI) GetTransactionReceipt(ctx context.Context, hash common.
 	if err != nil {
 		return nil, err
 	}
-	if len(receipts) <= int(index) {
+	if uint64(len(receipts)) <= index {
 		return nil, nil
 	}
 	receipt := receipts[index]
