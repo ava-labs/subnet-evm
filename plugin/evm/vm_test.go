@@ -3181,3 +3181,55 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	require.NoError(err)
 	require.True(calledSendCrossChainAppResponseFn, "sendCrossChainAppResponseFn was not called")
 }
+
+func TestSignatureRequestsToVM(t *testing.T) {
+	_, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+
+	defer func() {
+		err := vm.Shutdown(context.Background())
+		require.NoError(t, err)
+	}()
+
+	calledSendAppResponseFn := false
+	appSender.SendAppResponseF = func(ctx context.Context, nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+		calledSendAppResponseFn = true
+		var response message.SignatureResponse
+		_, err := message.Codec.Unmarshal(responseBytes, &response)
+		require.NoError(t, err)
+
+		return nil
+	}
+	// Generate a SignatureRequest for an unknown message
+	var signatureRequest message.Request = message.SignatureRequest{
+		MessageID: ids.GenerateTestID(),
+	}
+
+	requestBytes, err := message.Codec.Marshal(message.Version, &signatureRequest)
+	require.NoError(t, err)
+
+	// Send the app request and make sure we called SendAppResponseFn
+	err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, time.Now().Add(60*time.Second), requestBytes)
+	require.NoError(t, err)
+	require.True(t, calledSendAppResponseFn)
+
+	// Generate a new warp unsigned message and add to warp backend.
+	warpMessage, err := avalancheWarp.NewUnsignedMessage(vm.ctx.ChainID, ids.GenerateTestID(), []byte{1, 2, 3})
+	require.NoError(t, err)
+
+	err = vm.warpBackend.AddMessage(warpMessage)
+	require.NoError(t, err)
+
+	// Generate a SignatureRequest for an unknown message
+	signatureRequest = message.SignatureRequest{
+		MessageID: warpMessage.ID(),
+	}
+
+	requestBytes, err = message.Codec.Marshal(message.Version, &signatureRequest)
+	require.NoError(t, err)
+
+	calledSendAppResponseFn = false
+	// Send the app request and make sure we called SendAppResponseFn
+	err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, time.Now().Add(60*time.Second), requestBytes)
+	require.NoError(t, err)
+	require.True(t, calledSendAppResponseFn)
+}
