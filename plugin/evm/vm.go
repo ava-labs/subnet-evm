@@ -661,6 +661,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	block, err := vm.miner.GenerateBlock(predicateCtx)
 	vm.builder.handleGenerateBlock()
 	if err != nil {
+		log.Error("buildBlock - GenerateBlock failed", "err", err)
 		return nil, err
 	}
 
@@ -680,6 +681,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	// to the blk state root in the triedb when we are going to call verify
 	// again from the consensus engine with writes enabled.
 	if err := blk.verify(predicateCtx, false /*=writes*/); err != nil {
+		log.Error("buildBlock - verify failed", "err", err, "number", block.NumberU64())
 		return nil, fmt.Errorf("block failed verification due to: %w", err)
 	}
 

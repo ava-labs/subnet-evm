@@ -113,12 +113,10 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderPlaced", "err", err)
 			return
 		}
-		log.Info("HandleOrderBookEvent", "orderplaced args", args, "removed", removed)
 		orderId := event.Topics[2]
 		if !removed {
 			order := getOrderFromRawOrder(args["order"])
-			log.Info("#### adding order", "orderId", orderId.String(), "block", event.BlockHash.String(), "number", event.BlockNumber)
-			cep.database.Add(orderId, &LimitOrder{
+			limitOrder := LimitOrder{
 				Market:                  Market(order.AmmIndex.Int64()),
 				PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
 				UserAddress:             getAddressFromTopicHash(event.Topics[1]).String(),
@@ -129,9 +127,11 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 				Signature:               args["signature"].([]byte),
 				Salt:                    order.Salt,
 				BlockNumber:             big.NewInt(int64(event.BlockNumber)),
-			})
+			}
+			log.Info("#### adding order", "orderId", orderId.String(), "order", limitOrder)
+			cep.database.Add(orderId, &limitOrder)
 		} else {
-			log.Info("#### deleting order", "orderId", orderId, "block", event.BlockHash.String(), "number", event.BlockNumber)
+			log.Info("#### deleting order", "orderId", orderId.String(), "block", event.BlockHash.String(), "number", event.BlockNumber)
 			cep.database.Delete(orderId)
 		}
 		SendTxReadySignal() // what does this do?
@@ -165,12 +165,12 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 		order1Id := event.Topics[2]
 		fillAmount := args["fillAmount"].(*big.Int)
 		if !removed {
-			log.Info("#### matched orders", "orderId_0", order0Id.String(), "orderId_1", order1Id, "block", event.BlockHash.String(), "number", event.BlockNumber)
+			log.Info("#### matched orders", "orderId_0", order0Id.String(), "orderId_1", order1Id.String(), "number", event.BlockNumber)
 			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order0Id, event.BlockNumber)
 			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order1Id, event.BlockNumber)
 		} else {
 			fillAmount.Neg(fillAmount)
-			log.Info("#### removed matched orders", "orderId_0", order0Id.String(), "orderId_1", order1Id, "block", event.BlockHash.String(), "number", event.BlockNumber)
+			log.Info("#### removed matched orders", "orderId_0", order0Id.String(), "orderId_1", order1Id.String(), "number", event.BlockNumber)
 			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order0Id, event.BlockNumber)
 			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order1Id, event.BlockNumber)
 		}
@@ -222,27 +222,33 @@ func (cep *ContractEventsProcessor) handleMarginAccountEvent(event *types.Log) {
 			log.Error("error in marginAccountABI.UnpackIntoMap", "method", "MarginAdded", "err", err)
 			return
 		}
+		trader := getAddressFromTopicHash(event.Topics[1])
 		collateral := event.Topics[2].Big().Int64()
-		cep.database.UpdateMargin(getAddressFromTopicHash(event.Topics[1]), Collateral(collateral), args["amount"].(*big.Int))
+		amount := args["amount"].(*big.Int)
+		log.Info("MarginAdded:", "trader", trader, "collateral", collateral, "amount", amount.Uint64())
+		cep.database.UpdateMargin(trader, Collateral(collateral), amount)
 	case cep.marginAccountABI.Events["MarginRemoved"].ID:
 		err := cep.marginAccountABI.UnpackIntoMap(args, "MarginRemoved", event.Data)
 		if err != nil {
 			log.Error("error in marginAccountABI.UnpackIntoMap", "method", "MarginRemoved", "err", err)
 			return
 		}
+		trader := getAddressFromTopicHash(event.Topics[1])
 		collateral := event.Topics[2].Big().Int64()
-		cep.database.UpdateMargin(getAddressFromTopicHash(event.Topics[1]), Collateral(collateral), big.NewInt(0).Neg(args["amount"].(*big.Int)))
+		amount := args["amount"].(*big.Int)
+		log.Info("MarginRemoved:", "trader", trader, "collateral", collateral, "amount", amount.Uint64())
+		cep.database.UpdateMargin(trader, Collateral(collateral), big.NewInt(0).Neg(amount))
 	case cep.marginAccountABI.Events["PnLRealized"].ID:
 		err := cep.marginAccountABI.UnpackIntoMap(args, "PnLRealized", event.Data)
 		if err != nil {
 			log.Error("error in marginAccountABI.UnpackIntoMap", "method", "PnLRealized", "err", err)
 			return
 		}
+		trader := getAddressFromTopicHash(event.Topics[1])
 		realisedPnL := args["realizedPnl"].(*big.Int)
-
-		cep.database.UpdateMargin(getAddressFromTopicHash(event.Topics[1]), HUSD, realisedPnL)
+		log.Info("PnLRealized:", "trader", trader, "amount", realisedPnL.Uint64())
+		cep.database.UpdateMargin(trader, HUSD, realisedPnL)
 	}
-	log.Info("Log found", "log_.Address", event.Address.String(), "log_.BlockNumber", event.BlockNumber, "log_.Index", event.Index, "log_.TxHash", event.TxHash.String())
 }
 
 func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {

@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var (
@@ -322,6 +323,7 @@ func (self *DummyEngine) verifyBlockFee(
 	//
 	// NOTE: To determine the [requiredBlockFee], multiply [requiredBlockGasCost]
 	// by [baseFee].
+	log.Info("verifyBlockFee", "blockGas", blockGas, "requiredBlockGasCost", requiredBlockGasCost, "baseFee", baseFee, "totalBlockFee", totalBlockFee)
 	if blockGas.Cmp(requiredBlockGasCost) < 0 {
 		return fmt.Errorf(
 			"insufficient gas (%d) to cover the block cost (%d) at base fee (%d) (total block fee: %d)",

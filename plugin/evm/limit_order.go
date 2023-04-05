@@ -71,19 +71,21 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 		for toBlock.Cmp(fromBlock) >= 0 {
 			logs, err := lop.filterAPI.GetLogs(ctx, filters.FilterCriteria{
 				FromBlock: fromBlock,
-				ToBlock:   toBlock,
+				ToBlock:   toBlock, // check that this is inclusive...
 				Addresses: []common.Address{limitorders.OrderBookContractAddress, limitorders.ClearingHouseContractAddress, limitorders.MarginAccountContractAddress},
 			})
+			log.Info("ListenAndProcessTransactions", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs), "err", err)
 			if err != nil {
 				log.Error("ListenAndProcessTransactions - GetLogs failed", "err", err)
 				panic(err)
 			}
 			lop.contractEventProcessor.ProcessEvents(logs)
-			log.Info("ListenAndProcessTransactions", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs), "err", err)
+			lop.contractEventProcessor.ProcessAcceptedEvents(logs)
 
-			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 			fromBlock = fromBlock.Add(toBlock, big.NewInt(1))
+			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 		}
+		lop.memoryDb.Accept(lastAccepted.Uint64()) // will delete stale orders from the memorydb
 	}
 
 	lop.listenAndStoreLimitOrderTransactions()

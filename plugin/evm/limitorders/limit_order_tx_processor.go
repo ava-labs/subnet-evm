@@ -98,14 +98,18 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error {
-	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "liquidateAndExecuteOrder", trader.String(), matchedOrder.RawOrder, matchedOrder.Signature, fillAmount)
+	log.Info("ExecuteLiquidation", "trader", trader, "matchedOrder", matchedOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18))
+	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "liquidateAndExecuteOrder", trader, getOrderFromRawOrder(matchedOrder.RawOrder), matchedOrder.Signature, fillAmount)
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
+	log.Info("ExecuteFundingPaymentTx")
 	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "settleFunding")
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount *big.Int) error {
+	log.Info("ExecuteMatchedOrdersTx", "LongOrder", incomingOrder, "ShortOrder", matchedOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18))
+
 	orders := make([]Order, 2)
 	orders[0], orders[1] = getOrderFromRawOrder(incomingOrder.RawOrder), getOrderFromRawOrder(matchedOrder.RawOrder)
 
@@ -121,7 +125,7 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 
 	data, err := contractABI.Pack(method, args...)
 	if err != nil {
-		log.Error("abi.Pack failed", "err", err)
+		log.Error("abi.Pack failed", "method", method, "args", args, "err", err)
 		return err
 	}
 	key, err := crypto.HexToECDSA(lotp.validatorPrivateKey) // admin private key
@@ -129,7 +133,7 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 		log.Error("HexToECDSA failed", "err", err)
 		return err
 	}
-	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 5000000, big.NewInt(60000000000), data)
+	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 5000000, big.NewInt(70000000000), data)
 	signer := types.NewLondonSigner(lotp.backend.ChainConfig().ChainID)
 	signedTx, err := types.SignTx(tx, signer, key)
 	if err != nil {

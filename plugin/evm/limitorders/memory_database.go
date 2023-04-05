@@ -1,6 +1,7 @@
 package limitorders
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,8 +14,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+var _1e18 = big.NewInt(1e18)
+var _1e6 = big.NewInt(1e6)
+
 var maxLiquidationRatio *big.Int = big.NewInt(25 * 10e4)
-var minSizeRequirement *big.Int = big.NewInt(0).Mul(big.NewInt(5), big.NewInt(1e18))
+var minSizeRequirement *big.Int = big.NewInt(0).Mul(big.NewInt(5), _1e18)
 
 type Market int
 
@@ -72,6 +76,10 @@ func (order LimitOrder) getOrderStatus() Lifecycle {
 	return lifecycle[len(lifecycle)-1]
 }
 
+func (order LimitOrder) String() string {
+	return fmt.Sprintf("LimitOrder: Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, Signature: %v, BlockNumber: %s", order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), hex.EncodeToString(order.Signature), order.BlockNumber)
+}
+
 type Position struct {
 	OpenNotional         *big.Int `json:"open_notional"`
 	Size                 *big.Int `json:"size"`
@@ -81,9 +89,8 @@ type Position struct {
 }
 
 type Trader struct {
-	Positions   map[Market]*Position    `json:"positions"` // position for every market
-	Margins     map[Collateral]*big.Int `json:"margins"`   // available margin/balance for every market
-	BlockNumber *big.Int                `json:"block_number"`
+	Positions map[Market]*Position    `json:"positions"` // position for every market
+	Margins   map[Collateral]*big.Int `json:"margins"`   // available margin/balance for every market
 }
 
 type LimitOrderDatabase interface {
@@ -226,7 +233,8 @@ func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
 	for _, order := range db.OrderMap {
 		if order.PositionType == "long" &&
 			order.Market == market &&
-			order.getOrderStatus().Status == Placed {
+			order.getOrderStatus().Status == Placed { // &&
+			// order.Price.Cmp(big.NewInt(20e6)) <= 0 { // hardcode amm spread check eligibility for now
 			longOrders = append(longOrders, *order)
 		}
 	}
@@ -260,6 +268,7 @@ func (db *InMemoryDatabase) UpdateMargin(trader common.Address, collateral Colla
 	}
 
 	db.TraderMap[trader].Margins[collateral].Add(db.TraderMap[trader].Margins[collateral], addAmount)
+	log.Info("UpdateMargin", "trader", trader.String(), "collateral", collateral, "updated margin", db.TraderMap[trader].Margins[collateral].Uint64())
 }
 
 func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
@@ -281,6 +290,9 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 	if !isLiquidation {
 		db.TraderMap[trader].Positions[market].LiquidationThreshold = getLiquidationThreshold(size)
 	}
+	// adjust the liquidation threshold if > resultant position size (for both isLiquidation = true/false)
+	threshold := utils.BigIntMinAbs(db.TraderMap[trader].Positions[market].LiquidationThreshold, size)
+	db.TraderMap[trader].Positions[market].LiquidationThreshold.Mul(threshold, big.NewInt(int64(size.Sign()))) // same sign as size
 }
 
 func (db *InMemoryDatabase) UpdateUnrealisedFunding(market Market, cumulativePremiumFraction *big.Int) {

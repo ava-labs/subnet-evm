@@ -9,6 +9,7 @@ import (
 )
 
 func TestGetLiquidableTraders(t *testing.T) {
+	spreadRatioThreshold = big.NewInt(2e5) // this assumption has been made in the test cases
 	t.Run("When no trader exist", func(t *testing.T) {
 		var market Market = 1
 		traderMap := map[common.Address]Trader{}

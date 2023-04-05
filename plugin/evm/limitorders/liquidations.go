@@ -1,14 +1,17 @@
 package limitorders
 
 import (
+	"math"
 	"math/big"
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var maintenanceMargin = big.NewInt(1e5)
-var spreadRatioThreshold = big.NewInt(20 * 1e4)
+var spreadRatioThreshold = big.NewInt(1e6)
+
 var BASE_PRECISION = big.NewInt(1e6)
 var SIZE_BASE_PRECISION = big.NewInt(1e18)
 
@@ -29,21 +32,25 @@ func GetLiquidableTraders(traderMap map[common.Address]Trader, market Market, la
 	markPrice := lastPrice
 
 	overSpreadLimit := isOverSpreadLimit(markPrice, oraclePrice)
+	log.Info("GetLiquidableTraders:", "markPrice", markPrice, "oraclePrice", oraclePrice, "overSpreadLimit", overSpreadLimit)
 
 	for addr, trader := range traderMap {
 		position := trader.Positions[market]
-		if position != nil {
+		if position != nil && position.Size.Sign() != 0 {
 			margin := getMarginForTrader(trader, market)
 			marginFraction := getMarginFraction(margin, markPrice, position)
 
+			log.Info("GetLiquidableTraders", "trader", addr.String(), "traderInfo", trader, "marginFraction", marginFraction, "margin", margin.Uint64())
 			if overSpreadLimit {
 				oracleBasedMarginFraction := getMarginFraction(margin, oraclePrice, position)
 				if oracleBasedMarginFraction.Cmp(marginFraction) == 1 {
 					marginFraction = oracleBasedMarginFraction
 				}
+				log.Info("GetLiquidableTraders", "trader", addr.String(), "oracleBasedMarginFraction", oracleBasedMarginFraction)
 			}
 
 			if marginFraction.Cmp(maintenanceMargin) == -1 {
+				log.Info("GetLiquidableTraders - below maintenanceMargin", "trader", addr.String())
 				liquidable := LiquidablePosition{
 					Address:        addr,
 					Size:           position.LiquidationThreshold,
@@ -121,10 +128,11 @@ func getUnrealisedPnl(price *big.Int, position *Position, notionalPosition *big.
 func getMarginFraction(margin *big.Int, price *big.Int, position *Position) *big.Int {
 	notionalPosition := getNotionalPosition(price, position.Size)
 	unrealisedPnl := getUnrealisedPnl(price, position, notionalPosition)
+	log.Info("getMarginFraction:", "notionalPosition", notionalPosition, "unrealisedPnl", unrealisedPnl)
 	effectionMargin := big.NewInt(0).Add(margin, unrealisedPnl)
 	mf := big.NewInt(0).Div(multiplyBasePrecision(effectionMargin), notionalPosition)
 	if mf.Sign() == -1 {
-		return big.NewInt(0)
+		return big.NewInt(0) // why?
 	}
 	return mf
 }
@@ -143,4 +151,8 @@ func dividePrecisionSize(number *big.Int) *big.Int {
 
 func divideByBasePrecision(number *big.Int) *big.Int {
 	return big.NewInt(0).Div(number, BASE_PRECISION)
+}
+
+func prettifyScaledBigInt(number *big.Int, precision int8) string {
+	return new(big.Float).Quo(new(big.Float).SetInt(number), big.NewFloat(math.Pow10(int(precision)))).String()
 }

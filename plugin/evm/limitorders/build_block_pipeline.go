@@ -50,6 +50,7 @@ func (pipeline *BuildBlockPipeline) runLiquidations(market Market, longOrders []
 	oraclePrice := big.NewInt(20 * 10e6) // @todo: get it from the oracle
 
 	liquidablePositions := GetLiquidableTraders(pipeline.db.GetAllTraders(), market, pipeline.db.GetLastPrice(market), oraclePrice)
+	log.Info("liquidablePositions", "liquidablePositions", liquidablePositions)
 
 	for i, liquidable := range liquidablePositions {
 		var oppositeOrders []LimitOrder
