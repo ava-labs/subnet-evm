@@ -50,7 +50,7 @@ func GetLiquidableTraders(traderMap map[common.Address]Trader, market Market, la
 			}
 
 			if marginFraction.Cmp(maintenanceMargin) == -1 {
-				log.Info("GetLiquidableTraders - below maintenanceMargin", "trader", addr.String())
+				log.Info("GetLiquidableTraders - below maintenanceMargin", "trader", addr.String(), "marginFraction", marginFraction)
 				liquidable := LiquidablePosition{
 					Address:        addr,
 					Size:           position.LiquidationThreshold,

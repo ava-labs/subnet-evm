@@ -2,10 +2,12 @@ package limitorders
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +19,7 @@ import (
 var _1e18 = big.NewInt(1e18)
 var _1e6 = big.NewInt(1e6)
 
-var maxLiquidationRatio *big.Int = big.NewInt(25 * 10e4)
+var maxLiquidationRatio *big.Int = big.NewInt(25 * 1e4) // 25%
 var minSizeRequirement *big.Int = big.NewInt(0).Mul(big.NewInt(5), _1e18)
 
 type Market int
@@ -53,8 +55,22 @@ type Lifecycle struct {
 }
 
 type LimitOrder struct {
-	Market Market `json:"market"`
+	Market Market
 	// @todo make this an enum
+	PositionType            string
+	UserAddress             string
+	BaseAssetQuantity       *big.Int
+	FilledBaseAssetQuantity *big.Int
+	Salt                    *big.Int
+	Price                   *big.Int
+	LifecycleList           []Lifecycle
+	Signature               []byte
+	BlockNumber             *big.Int    // block number order was placed on
+	RawOrder                interface{} `json:"-"`
+}
+
+type LimitOrderJson struct {
+	Market                  Market      `json:"market"`
 	PositionType            string      `json:"position_type"`
 	UserAddress             string      `json:"user_address"`
 	BaseAssetQuantity       *big.Int    `json:"base_asset_quantity"`
@@ -62,9 +78,24 @@ type LimitOrder struct {
 	Salt                    *big.Int    `json:"salt"`
 	Price                   *big.Int    `json:"price"`
 	LifecycleList           []Lifecycle `json:"lifecycle_list"`
-	Signature               []byte      `json:"signature"`
+	Signature               string      `json:"signature"`
 	BlockNumber             *big.Int    `json:"block_number"` // block number order was placed on
-	RawOrder                interface{} `json:"-"`
+}
+
+func (order *LimitOrder) MarshalJSON() ([]byte, error) {
+	limitOrderJson := LimitOrderJson{
+		Market:                  order.Market,
+		PositionType:            order.PositionType,
+		UserAddress:             strings.ToLower(order.UserAddress),
+		BaseAssetQuantity:       order.BaseAssetQuantity,
+		FilledBaseAssetQuantity: order.FilledBaseAssetQuantity,
+		Salt:                    order.Salt,
+		Price:                   order.Price,
+		LifecycleList:           order.LifecycleList,
+		Signature:               hex.EncodeToString(order.Signature),
+		BlockNumber:             order.BlockNumber,
+	}
+	return json.Marshal(limitOrderJson)
 }
 
 func (order LimitOrder) GetUnFilledBaseAssetQuantity() *big.Int {
@@ -153,6 +184,7 @@ func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, b
 		return errors.New(fmt.Sprintf("Invalid orderId %s", orderId.Hex()))
 	}
 	db.OrderMap[orderId].LifecycleList = append(db.OrderMap[orderId].LifecycleList, Lifecycle{blockNumber, status})
+	log.Info("SetOrderStatus", "orderId", orderId.String(), "status", status, "updated state", db.OrderMap[orderId].LifecycleList)
 	return nil
 }
 

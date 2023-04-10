@@ -197,8 +197,8 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderMatchingError", "err", err)
 			return
 		}
-		log.Info("HandleOrderBookEvent", "OrderMatchingError args", args)
 		orderId := event.Topics[1]
+		log.Info("HandleOrderBookEvent", "OrderMatchingError args", args, "orderId", orderId.String())
 		if !removed {
 			if err := cep.database.SetOrderStatus(orderId, Execution_Failed, event.BlockNumber); err != nil {
 				log.Error("error in SetOrderStatus", "method", "OrderMatchingError", "err", err)
