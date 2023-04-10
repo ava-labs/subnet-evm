@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
@@ -19,6 +20,7 @@ const (
 	defaultPruningEnabled                             = true
 	defaultCommitInterval                             = 4096
 	defaultTrieCleanCache                             = 512
+	defaultTrieCleanRejournal                         = 15 * time.Minute
 	defaultTrieDirtyCache                             = 256
 	defaultTrieDirtyCommitTarget                      = 20
 	defaultSnapshotCache                              = 256
@@ -219,7 +221,12 @@ func (c Config) EthBackendSettings() eth.Settings {
 	return eth.Settings{MaxBlocksPerRequest: c.MaxBlocksPerRequest}
 }
 
-func (c *Config) SetDefaults() {
+func (c *Config) SetDefaults(ctx *snow.Context) {
+	var trieCleanJournal string
+	if ctx != nil {
+		trieCleanJournal = ctx.ChainDataDir
+	}
+
 	c.EnabledEthAPIs = defaultEnabledAPIs
 	c.RPCGasCap = defaultRpcGasCap
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
@@ -242,6 +249,8 @@ func (c *Config) SetDefaults() {
 	c.ContinuousProfilerMaxFiles = defaultContinuousProfilerMaxFiles
 	c.Pruning = defaultPruningEnabled
 	c.TrieCleanCache = defaultTrieCleanCache
+	c.TrieCleanJournal = trieCleanJournal
+	c.TrieCleanRejournal = Duration{defaultTrieCleanRejournal}
 	c.TrieDirtyCache = defaultTrieDirtyCache
 	c.TrieDirtyCommitTarget = defaultTrieDirtyCommitTarget
 	c.SnapshotCache = defaultSnapshotCache
