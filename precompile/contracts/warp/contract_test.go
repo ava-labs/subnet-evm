@@ -108,16 +108,48 @@ func TestWarpContractRun(t *testing.T) {
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t *testing.T, state contract.StateDB) {
-				// TODO: check that the log was produced correctly
+				// XXX: untangle dependency and check that the log was produced correctly
 			},
 		},
-		// TODO: add unit tests for getVerifiedWarpMessage
-		// This is currently difficult to do because
-		// populated and not populated
-		// invalid message in predicate
-		// invalid addressed payload in predicate
-		// valid message
-		// TODO: implement receive tests
+		// "get verified warp message success": {
+		// 	Caller:      callerAddr,
+		// 	InputFn:     func(t *testing.T) []byte { return sendWarpMessageInput },
+		// 	SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)),
+		// 	ReadOnly:    false,
+		// 	ExpectedRes: []byte{},
+		// 	AfterHook: func(t *testing.T, state contract.StateDB) {
+		// 	},
+		// },
+		// "get verified warp message insufficient gas": {
+		// 	Caller:      callerAddr,
+		// 	InputFn:     func(t *testing.T) []byte { return sendWarpMessageInput },
+		// 	SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)),
+		// 	ReadOnly:    false,
+		// 	ExpectedRes: []byte{},
+		// 	AfterHook: func(t *testing.T, state contract.StateDB) {
+		// 	},
+		// },
+		// "get verified warp message failed": {
+		// 	Caller:      callerAddr,
+		// 	InputFn:     func(t *testing.T) []byte { return sendWarpMessageInput },
+		// 	SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)),
+		// 	ReadOnly:    false,
+		// 	ExpectedRes: []byte{},
+		// 	AfterHook: func(t *testing.T, state contract.StateDB) {
+		// 	},
+		// },
+		// // In practice, this should never happen because the predicate will be enforced prior to execution, but we add
+		// // a unit test anyways.
+		// // TODO: capture each of the test cases: (invalid packed predicate, invalid warp message, invalid addressed payload)
+		// "get verified warp message invalid message": {
+		// 	Caller:      callerAddr,
+		// 	InputFn:     func(t *testing.T) []byte { return sendWarpMessageInput },
+		// 	SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)),
+		// 	ReadOnly:    false,
+		// 	ExpectedRes: []byte{},
+		// 	AfterHook: func(t *testing.T, state contract.StateDB) {
+		// 	},
+		// },
 	}
 
 	testutils.RunPrecompileTests(t, Module, state.NewTestStateDB, tests)
