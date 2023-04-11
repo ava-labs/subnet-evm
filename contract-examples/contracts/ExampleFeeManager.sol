@@ -3,14 +3,16 @@ pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "ds-test/src/test.sol";
 import "./AllowList.sol";
 import "./IFeeManager.sol";
+
+address constant FEE_MANAGER_ADDRESS = 0x0200000000000000000000000000000000000003;
 
 // ExampleFeeManager shows how FeeManager precompile can be used in a smart contract
 // All methods of [allowList] can be directly called. There are example calls as tasks in hardhat.config.ts file.
 contract ExampleFeeManager is AllowList {
   // Precompiled Fee Manager Contract Address
-  address constant FEE_MANAGER_ADDRESS = 0x0200000000000000000000000000000000000003;
   IFeeManager feeManager = IFeeManager(FEE_MANAGER_ADDRESS);
 
   struct FeeConfig {
@@ -82,5 +84,84 @@ contract ExampleFeeManager is AllowList {
 
   function getFeeConfigLastChangedAt() public view returns (uint256) {
     return feeManager.getFeeConfigLastChangedAt();
+  }
+}
+
+contract ExampleFeeManagerTest is DSTest {
+  uint256 testNumber;
+
+  function setUp() public {
+    // noop
+  }
+
+  function test_addContractDeployerAsOwner() public {
+    address owner = msg.sender;
+    ExampleFeeManager manager = new ExampleFeeManager();
+
+    assertEq(owner, manager.owner());
+  }
+
+  function test_enableWAGMIFeesFailure() public {
+    ExampleFeeManager example = new ExampleFeeManager();
+
+    IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
+
+    // TODO: make roles const (role: None = 0)
+    assertEq(manager.readAllowList(address(example)), 0);
+
+    try example.enableWAGMIFees() {
+      revert();
+    } catch Error(string memory) {
+      return;
+    } catch (bytes memory) {
+      return;
+    }
+  }
+
+  function test_addContractToManagerList() public {
+    ExampleFeeManager example = new ExampleFeeManager();
+    address exampleAddress = address(example);
+    // TODO: make this a const
+    address adminAddress = 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC;
+    assertEq(adminAddress, msg.sender);
+
+    address managerAddress = FEE_MANAGER_ADDRESS;
+
+    IFeeManager manager = IFeeManager(managerAddress);
+
+    // TODO: make this a const (role: ADMIN = 2)
+    assertEq(manager.readAllowList(msg.sender), 2);
+    assertEq(manager.readAllowList(exampleAddress), 0);
+
+    managerAddress.delegatecall(abi.encodeWithSelector(manager.setEnabled.selector, exampleAddress));
+
+    // TODO: make this a const (role: ENABLED = 1)
+    assertEq(manager.readAllowList(exampleAddress), 1);
+  }
+
+  function test_enableCustomFees() public {
+    ExampleFeeManager example = new ExampleFeeManager();
+    address exampleAddress = address(example);
+
+    IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
+
+    FEE_MANAGER_ADDRESS.delegatecall(abi.encodeWithSelector(manager.setEnabled.selector, exampleAddress));
+
+    ExampleFeeManager.FeeConfig memory config = example.getCurrentFeeConfig();
+
+    uint256 newGasLimit = config.gasLimit + 10;
+    uint256 newMinBaseFee = config.minBaseFee + 10;
+
+    config.gasLimit = newGasLimit;
+    config.minBaseFee = newMinBaseFee;
+
+    exampleAddress.delegatecall(abi.encodeWithSelector(example.enableCustomFees.selector, config));
+
+    ExampleFeeManager.FeeConfig memory newConfig = example.getCurrentFeeConfig();
+
+    assertEq(newConfig.gasLimit, newGasLimit);
+    assertEq(newConfig.minBaseFee, newMinBaseFee);
+
+    assertEq(example.getFeeConfigLastChangedAt(), block.number);
   }
 }
