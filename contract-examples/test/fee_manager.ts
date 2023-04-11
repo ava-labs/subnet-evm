@@ -9,9 +9,10 @@ import {
   ContractFactory,
 } from "ethers"
 import { ethers } from "hardhat"
+const assert = require("assert");
 
 // make sure this is always an admin for the precompile
-const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const FEE_MANAGER = "0x0200000000000000000000000000000000000003";
 
 const ROLES = {
@@ -42,6 +43,35 @@ const WAGMI_FEES = {
   blockGasCostStep: 100_000 // blockGasCostStep
 }
 
+const dbg = val => {
+  console.log(val)
+  return val
+}
+
+const testFn = fnName => async function () {
+  const tx = await this.testContract["test_" + fnName]()
+  const txReceipt = await tx.wait()
+  const failed = await this.testContract.callStatic.failed()
+
+  if (failed) {
+    console.log('')
+
+    txReceipt
+      .events
+      ?.filter(event => event.event?.startsWith('log'))
+      .map(event => {
+        event.args?.forEach(arg => console.log(arg))
+      })
+
+    console.log('')
+  }
+
+  assert(!failed, `${fnName} failed`)
+}
+
+const test = (name, fnName) => it(name, testFn(fnName)); 
+test.only = (name, fnName) => it.only(name, testFn(fnName));
+
 // TODO: These tests keep state to the next state. It means that some tests cases assumes some preconditions
 // set by previous test cases. We should make these tests stateless.
 describe("ExampleFeeManager", function () {
@@ -53,8 +83,9 @@ describe("ExampleFeeManager", function () {
   let nonEnabled: SignerWithAddress
   let managerPrecompile: Contract
   let ownerPrecompile: Contract
+
   before(async function () {
-    owner = await ethers.getSigner(adminAddress);
+    owner = await ethers.getSigner(ADMIN_ADDRESS);
     const contractF: ContractFactory = await ethers.getContractFactory("ExampleFeeManager", { signer: owner })
     contract = await contractF.deploy()
     await contract.deployed()
@@ -84,10 +115,27 @@ describe("ExampleFeeManager", function () {
     await tx.wait()
   });
 
+  beforeEach("setup DS-Test contract", function () {
+    return ethers.getContractFactory("ExampleFeeManagerTest", { signer: owner })
+      .then(factory => factory.deploy())
+      .then(contract => {
+        this.testContract = contract
+        return contract.deployed().then(() => contract)
+      })
+      .then(contract => contract.setUp())
+      .then(tx => tx.wait())
+      .then(() => ethers.getSigner(ADMIN_ADDRESS))
+      .then(admin => ethers.getContractAt("IFeeManager", FEE_MANAGER, admin))
+      .then(feeManager => feeManager.setAdmin(this.testContract.address))
+      .then(tx => tx.wait())
+  })
+
   it("should add contract deployer as owner", async function () {
     const contractOwnerAddr: string = await contract.owner()
     expect(owner.address).to.be.equal(contractOwnerAddr)
   });
+
+  test("* should add contract deployer as owner", "addContractDeployerAsOwner");
 
   it("contract should not be able to change fee without enabled", async function () {
     let contractRole = await managerPrecompile.readAllowList(contract.address);
@@ -102,8 +150,10 @@ describe("ExampleFeeManager", function () {
     expect.fail("should have errored")
   })
 
+  test("* contract should not be able to change fee without enabled", "enableWAGMIFeesFailure"); 
+
   it("contract should be added to manager list", async function () {
-    let adminRole = await ownerPrecompile.readAllowList(adminAddress);
+    let adminRole = await ownerPrecompile.readAllowList(ADMIN_ADDRESS);
     expect(adminRole).to.be.equal(ROLES.ADMIN)
     let contractRole = await ownerPrecompile.readAllowList(contract.address);
     expect(contractRole).to.be.equal(ROLES.NONE)
@@ -113,6 +163,8 @@ describe("ExampleFeeManager", function () {
     contractRole = await ownerPrecompile.readAllowList(contract.address);
     expect(contractRole).to.be.equal(ROLES.ENABLED)
   });
+
+  test("* contract should be added to manager list", "addContractToManagerList");
 
   it("admin should be able to change fees through contract", async function () {
     const testFees = {
@@ -139,6 +191,8 @@ describe("ExampleFeeManager", function () {
     var res = await contract.getFeeConfigLastChangedAt()
     expect(res).to.be.equal(txRes.blockNumber)
   })
+
+  test.only("admin should be able to change fees through contract", "enableCustomFees");
 
   it("admin should be able to enable wagmi fees through contract", async function () {
     var res = await contract.getCurrentFeeConfig()

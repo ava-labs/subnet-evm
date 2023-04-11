@@ -95,10 +95,8 @@ contract ExampleFeeManagerTest is DSTest {
   }
 
   function test_addContractDeployerAsOwner() public {
-    address owner = msg.sender;
     ExampleFeeManager manager = new ExampleFeeManager();
-
-    assertEq(owner, manager.owner());
+    assertEq(address(this), manager.owner());
   }
 
   function test_enableWAGMIFeesFailure() public {
@@ -110,30 +108,23 @@ contract ExampleFeeManagerTest is DSTest {
     assertEq(manager.readAllowList(address(example)), 0);
 
     try example.enableWAGMIFees() {
-      revert();
-    } catch Error(string memory) {
-      return;
-    } catch (bytes memory) {
-      return;
-    }
+      assertTrue(false, "enableWAGMIFees should fail");
+    } catch {}
   }
 
   function test_addContractToManagerList() public {
     ExampleFeeManager example = new ExampleFeeManager();
+
     address exampleAddress = address(example);
-    // TODO: make this a const
-    address adminAddress = 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC;
-    assertEq(adminAddress, msg.sender);
+    address thisAddress = address(this);
 
-    address managerAddress = FEE_MANAGER_ADDRESS;
-
-    IFeeManager manager = IFeeManager(managerAddress);
+    IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
 
     // TODO: make this a const (role: ADMIN = 2)
-    assertEq(manager.readAllowList(msg.sender), 2);
+    assertEq(manager.readAllowList(thisAddress), 2);
     assertEq(manager.readAllowList(exampleAddress), 0);
 
-    managerAddress.delegatecall(abi.encodeWithSelector(manager.setEnabled.selector, exampleAddress));
+    manager.setEnabled(exampleAddress);
 
     // TODO: make this a const (role: ENABLED = 1)
     assertEq(manager.readAllowList(exampleAddress), 1);
@@ -145,7 +136,7 @@ contract ExampleFeeManagerTest is DSTest {
 
     IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
 
-    FEE_MANAGER_ADDRESS.delegatecall(abi.encodeWithSelector(manager.setEnabled.selector, exampleAddress));
+    manager.setEnabled(exampleAddress);
 
     ExampleFeeManager.FeeConfig memory config = example.getCurrentFeeConfig();
 
@@ -155,7 +146,7 @@ contract ExampleFeeManagerTest is DSTest {
     config.gasLimit = newGasLimit;
     config.minBaseFee = newMinBaseFee;
 
-    exampleAddress.delegatecall(abi.encodeWithSelector(example.enableCustomFees.selector, config));
+    example.enableCustomFees(config);
 
     ExampleFeeManager.FeeConfig memory newConfig = example.getCurrentFeeConfig();
 
