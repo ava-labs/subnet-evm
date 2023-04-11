@@ -121,7 +121,7 @@ func init() {
 		},
 		SnowContext:  fiveNodeSnowContext,
 		StorageSlots: fiveNodeWarpMessagePredicateBytes,
-		Gas:          5*GasCostPerWarpSigner + uint64(len(fiveNodeWarpMessagePredicateBytes))*GasCostPerWarpMessageBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(fiveNodeWarpMessagePredicateBytes))*GasCostPerWarpMessageBytes + 5*GasCostPerWarpSigner,
 		GasErr:       nil,
 		PredicateErr: nil,
 	}

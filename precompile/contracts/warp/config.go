@@ -137,9 +137,14 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 
 // PredicateGas returns the amount of gas necessary to verify the predicate
 func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
-	totalGas, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
+	totalGas := GasCostPerSignatureVerification
+	bytesGasCost, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
 	if overflow {
 		return 0, fmt.Errorf("overflow calculating gas cost for warp message bytes of size %d", len(predicateBytes))
+	}
+	totalGas, overflow = math.SafeAdd(totalGas, bytesGasCost)
+	if overflow {
+		return 0, fmt.Errorf("overflow adding bytes gas cost of size %d", len(predicateBytes))
 	}
 
 	unpackedPredicateBytes, err := utils.UnpackPredicate(predicateBytes)

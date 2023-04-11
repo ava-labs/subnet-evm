@@ -87,6 +87,7 @@ func RunPredicateBenchmarks(b *testing.B, predicateTests map[string]PredicateTes
 		b.Run(name, func(b *testing.B) {
 			b.ReportAllocs()
 			start := time.Now()
+			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				test.Run(b)
 			}

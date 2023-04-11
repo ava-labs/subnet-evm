@@ -23,15 +23,16 @@ import (
 
 const (
 	GetBlockchainIDGasCost uint64 = 2 // Based on GasQuickStep used in existing EVM instructions
-	// Cost of fixed log size and writing log to database (Note: this calculation includes buffer room because a warp message
-	// is not stored in the trie and can be safely deleted within a reasonable period of time)
-	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + contract.WriteGasCostPerSlot
-	// TODO: SendWarpMessageGasCostPerByte cost accounts for producing the log itself as well as the added work of signing
-	// and storing the message.
-	SendWarpMessageGasCostPerByte uint64 = params.TxDataNonZeroGasFrontier
+	// Sum of base log gas cost, cost of producing 4 topics, and producing + serving a BLS Signature (sign + trie write)
+	// Note: using trie write for the gas cost results in a conservative overestimate since the message is stored in a
+	// flat database that can be cleaned up after a period of time instead of the EVM trie.
+	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + 20_000 + contract.WriteGasCostPerSlot
+	// SendWarpMessageGasCostPerByte cost accounts for producing a signed message of a given size
+	SendWarpMessageGasCostPerByte uint64 = params.LogDataGas
 
-	GasCostPerWarpSigner       uint64 = 300_000                        // TODO: charge for number of signers and the cost of the validator set lookup on the P-Chain
-	GasCostPerWarpMessageBytes uint64 = params.TxDataNonZeroGasEIP2028 // TODO: charge O(n) cost for decoding predicate of input size n
+	GasCostPerWarpSigner            uint64 = 3_000
+	GasCostPerWarpMessageBytes      uint64 = 100    // params.TxDataNonZeroGasEIP2028 // TODO: charge O(n) cost for decoding predicate of input size n
+	GasCostPerSignatureVerification uint64 = 60_000 // ~20x params.Ecrecover (pre-hardware acceleration)
 	// GasCostPerSourceSubnetValidator uint64 = 1 // TODO: charge O(n) cost for subnet validator set lookup
 )
 
