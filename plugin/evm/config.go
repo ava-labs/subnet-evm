@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
@@ -221,12 +220,7 @@ func (c Config) EthBackendSettings() eth.Settings {
 	return eth.Settings{MaxBlocksPerRequest: c.MaxBlocksPerRequest}
 }
 
-func (c *Config) SetDefaults(ctx *snow.Context) {
-	var trieCleanJournal string
-	if ctx != nil {
-		trieCleanJournal = ctx.ChainDataDir
-	}
-
+func (c *Config) SetDefaults(trieCleanJournalDir string) {
 	c.EnabledEthAPIs = defaultEnabledAPIs
 	c.RPCGasCap = defaultRpcGasCap
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
@@ -249,7 +243,7 @@ func (c *Config) SetDefaults(ctx *snow.Context) {
 	c.ContinuousProfilerMaxFiles = defaultContinuousProfilerMaxFiles
 	c.Pruning = defaultPruningEnabled
 	c.TrieCleanCache = defaultTrieCleanCache
-	c.TrieCleanJournal = trieCleanJournal
+	c.TrieCleanJournal = trieCleanJournalDir
 	c.TrieCleanRejournal = Duration{defaultTrieCleanRejournal}
 	c.TrieDirtyCache = defaultTrieDirtyCache
 	c.TrieDirtyCommitTarget = defaultTrieDirtyCommitTarget

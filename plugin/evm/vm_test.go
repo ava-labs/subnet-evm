@@ -254,7 +254,7 @@ func TestVMConfigDefaults(t *testing.T) {
 	_, vm, _, _ := GenesisVM(t, false, "", configJSON, "")
 
 	var vmConfig Config
-	vmConfig.SetDefaults(nil)
+	vmConfig.SetDefaults("")
 	vmConfig.RPCTxFeeCap = txFeeCap
 	vmConfig.EnabledEthAPIs = enabledEthAPIs
 	require.Equal(t, vmConfig, vm.config, "VM Config should match default with overrides")
@@ -266,7 +266,7 @@ func TestVMNilConfig(t *testing.T) {
 
 	// VM Config should match defaults if no config is passed in
 	var vmConfig Config
-	vmConfig.SetDefaults(nil)
+	vmConfig.SetDefaults("")
 	require.Equal(t, vmConfig, vm.config, "VM Config should match default config")
 	require.NoError(t, vm.Shutdown(context.Background()))
 }
@@ -2633,7 +2633,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 
 	etherBase := common.HexToAddress("0x0123456789")
 	c := Config{}
-	c.SetDefaults(nil)
+	c.SetDefaults("")
 	c.FeeRecipient = etherBase.String()
 	configJSON, err := json.Marshal(c)
 	if err != nil {
@@ -2693,7 +2693,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 
 	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
 	c := Config{}
-	c.SetDefaults(nil)
+	c.SetDefaults("")
 	c.FeeRecipient = etherBase.String()
 	configJSON, err := json.Marshal(c)
 	require.NoError(t, err)
@@ -2834,7 +2834,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.NoError(t, err)
 	etherBase := common.HexToAddress("0x0123456789") // give custom ether base
 	c := Config{}
-	c.SetDefaults(nil)
+	c.SetDefaults("")
 	c.FeeRecipient = etherBase.String()
 	configJSON, err := json.Marshal(c)
 	require.NoError(t, err)

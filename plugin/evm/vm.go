@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -227,7 +228,7 @@ func (vm *VM) Initialize(
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
-	vm.config.SetDefaults(chainCtx)
+	vm.config.SetDefaults(getDefaultTrieCleanJournalDir(chainCtx))
 	if len(configBytes) > 0 {
 		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
 			return fmt.Errorf("failed to unmarshal config %s: %w", string(configBytes), err)
@@ -958,4 +959,11 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	}
 
 	return nil
+}
+
+func getDefaultTrieCleanJournalDir(ctx *snow.Context) string {
+	if ctx == nil || ctx.ChainDataDir == "" {
+		return ""
+	}
+	return path.Join(ctx.ChainDataDir, "clean-trie-journal")
 }
