@@ -4,12 +4,14 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./AllowList.sol";
 import "./INativeMinter.sol";
+import "ds-test/src/test.sol";
+
+address constant MINTER_ADDRESS = 0x0200000000000000000000000000000000000001;
+address constant BLACKHOLE_ADDRESS = 0x0100000000000000000000000000000000000000;
 
 contract ERC20NativeMinter is ERC20, AllowList {
   // Precompiled Native Minter Contract Address
-  address constant MINTER_ADDRESS = 0x0200000000000000000000000000000000000001;
   // Designated Blackhole Address
-  address constant BLACKHOLE_ADDRESS = 0x0100000000000000000000000000000000000000;
   string private constant TOKEN_NAME = "ERC20NativeMinterToken";
   string private constant TOKEN_SYMBOL = "XMPL";
 
@@ -54,5 +56,149 @@ contract ERC20NativeMinter is ERC20, AllowList {
 
   function decimals() public view virtual override returns (uint8) {
     return 18;
+  }
+}
+
+// TODO:
+// this contract adds another (unwanted) layer of indirection
+// but it's the easiest way to match the previous HardHat testing functionality.
+// Once we completely migrate to DS-test, we can simplify this set of tests.
+contract Minter {
+  ERC20NativeMinter token;
+
+  constructor(address tokenAddress) {
+    token = ERC20NativeMinter(tokenAddress);
+  }
+
+  function mintdraw(uint amount) external {
+    token.mintdraw(amount);
+  }
+
+  function deposit(uint value) external {
+    token.deposit{value: value}();
+  }
+}
+
+contract ERC20NativeMinterTest is DSTest {
+  function setUp() public {
+    // noop
+  }
+
+  function test_mintdrawFailure() public {
+    ERC20NativeMinter token = new ERC20NativeMinter(1000);
+    address tokenAddress = address(token);
+
+    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
+
+    assertEq(nativeMinter.readAllowList(tokenAddress), 0);
+
+    try token.mintdraw(100) {
+      assertTrue(false, "mintdraw should fail");
+    } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
+  }
+
+  function test_addMinter() public {
+    ERC20NativeMinter token = new ERC20NativeMinter(1000);
+    address tokenAddress = address(token);
+
+    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
+
+    assertEq(nativeMinter.readAllowList(tokenAddress), 0);
+
+    nativeMinter.setEnabled(tokenAddress);
+
+    assertEq(nativeMinter.readAllowList(tokenAddress), 1);
+  }
+
+  function test_adminMintdraw() public {
+    ERC20NativeMinter token = new ERC20NativeMinter(1000);
+    address tokenAddress = address(token);
+
+    address testAddress = address(this);
+
+    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
+    nativeMinter.setEnabled(tokenAddress);
+
+    uint initialTokenBalance = token.balanceOf(testAddress);
+    uint initialNativeBalance = testAddress.balance;
+
+    uint amount = 100;
+
+    token.mintdraw(amount);
+
+    assertEq(token.balanceOf(testAddress), initialTokenBalance - amount);
+    assertEq(testAddress.balance, initialNativeBalance + amount);
+  }
+
+  function test_minterMintdrawFailure() public {
+    ERC20NativeMinter token = new ERC20NativeMinter(1000);
+    address tokenAddress = address(token);
+
+    Minter minter = new Minter(tokenAddress);
+    address minterAddress = address(minter);
+
+    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
+    nativeMinter.setEnabled(tokenAddress);
+
+    uint initialTokenBalance = token.balanceOf(minterAddress);
+    uint initialNativeBalance = minterAddress.balance;
+
+    assertEq(initialTokenBalance, 0);
+
+    try minter.mintdraw(100) {
+      assertTrue(false, "mintdraw should fail");
+    } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
+
+    assertEq(token.balanceOf(minterAddress), initialTokenBalance);
+    assertEq(minterAddress.balance, initialNativeBalance);
+  }
+
+  function test_minterDeposit() public {
+    ERC20NativeMinter token = new ERC20NativeMinter(1000);
+    address tokenAddress = address(token);
+
+    Minter minter = new Minter(tokenAddress);
+    address minterAddress = address(minter);
+
+    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
+    nativeMinter.setEnabled(tokenAddress);
+
+    uint amount = 100;
+
+    nativeMinter.mintNativeCoin(minterAddress, amount);
+
+    uint initialTokenBalance = token.balanceOf(minterAddress);
+    uint initialNativeBalance = minterAddress.balance;
+
+    minter.deposit(amount);
+
+    assertEq(token.balanceOf(minterAddress), initialTokenBalance + amount);
+    assertEq(minterAddress.balance, initialNativeBalance - amount);
+  }
+
+  function test_mintdraw() public {
+    ERC20NativeMinter token = new ERC20NativeMinter(1000);
+    address tokenAddress = address(token);
+
+    Minter minter = new Minter(tokenAddress);
+    address minterAddress = address(minter);
+
+    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
+    nativeMinter.setEnabled(tokenAddress);
+
+    uint amount = 100;
+
+    uint initialNativeBalance = minterAddress.balance;
+    assertEq(initialNativeBalance, 0);
+
+    token.mint(minterAddress, amount);
+
+    uint initialTokenBalance = token.balanceOf(minterAddress);
+    assertEq(initialTokenBalance, amount);
+
+    minter.mintdraw(amount);
+
+    assertEq(token.balanceOf(minterAddress), 0);
+    assertEq(minterAddress.balance, amount);
   }
 }
