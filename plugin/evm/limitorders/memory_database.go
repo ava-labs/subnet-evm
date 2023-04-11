@@ -261,6 +261,8 @@ func (db *InMemoryDatabase) UpdateNextFundingTime(nextFundingTime uint64) {
 }
 
 func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
+	db.mu.Lock()
+	defer db.mu.Unlock()
 	var longOrders []LimitOrder
 	for _, order := range db.OrderMap {
 		if order.PositionType == "long" &&
@@ -275,6 +277,8 @@ func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
 }
 
 func (db *InMemoryDatabase) GetShortOrders(market Market) []LimitOrder {
+	db.mu.Lock()
+	defer db.mu.Unlock()
 	var shortOrders []LimitOrder
 	for _, order := range db.OrderMap {
 		if order.PositionType == "short" &&

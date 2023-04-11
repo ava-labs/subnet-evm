@@ -530,6 +530,7 @@ func TestGetLastPrice(t *testing.T) {
 
 func createLimitOrder(positionType string, userAddress string, baseAssetQuantity *big.Int, price *big.Int, status Status, signature []byte, blockNumber *big.Int, salt *big.Int) (LimitOrder, common.Hash) {
 	lo := LimitOrder{
+		Market:                  GetActiveMarkets()[0],
 		PositionType:            positionType,
 		UserAddress:             userAddress,
 		FilledBaseAssetQuantity: big.NewInt(0),

@@ -6,8 +6,10 @@ package limitorders
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth"
@@ -145,4 +147,95 @@ func (api *OrderBookAPI) NewOrderBookState(ctx context.Context) (*rpc.Subscripti
 	}()
 
 	return rpcSub, nil
+}
+
+func (api *OrderBookAPI) GetDepthForMarket(ctx context.Context, market int) *MarketDepth {
+	return getDepthForMarket(api.db, Market(market))
+}
+
+func (api *OrderBookAPI) StreamDepthUpdateForMarket(ctx context.Context, market int) (*rpc.Subscription, error) {
+	notifier, _ := rpc.NotifierFromContext(ctx)
+	rpcSub := notifier.CreateSubscription()
+
+	ticker := time.NewTicker(1 * time.Second)
+
+	var oldMarketDepth = &MarketDepth{}
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				newMarketDepth := getDepthForMarket(api.db, Market(market))
+				depthUpdate := getUpdateInDepth(newMarketDepth, oldMarketDepth)
+				notifier.Notify(rpcSub.ID, depthUpdate)
+				oldMarketDepth = newMarketDepth
+			case <-notifier.Closed():
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	return rpcSub, nil
+}
+
+func getUpdateInDepth(newMarketDepth *MarketDepth, oldMarketDepth *MarketDepth) *MarketDepth {
+	var diff = &MarketDepth{
+		Market: newMarketDepth.Market,
+		Longs:  map[string]string{},
+		Shorts: map[string]string{},
+	}
+	for price, depth := range newMarketDepth.Longs {
+		oldDepth := oldMarketDepth.Longs[price]
+		if oldDepth != depth {
+			diff.Longs[price] = depth
+		}
+	}
+	for price := range oldMarketDepth.Longs {
+		if newMarketDepth.Longs[price] == "" {
+			diff.Longs[price] = big.NewInt(0).String()
+		}
+	}
+	for price, depth := range newMarketDepth.Shorts {
+		oldDepth := oldMarketDepth.Shorts[price]
+		if oldDepth != depth {
+			diff.Shorts[price] = depth
+		}
+	}
+	for price := range oldMarketDepth.Shorts {
+		if newMarketDepth.Shorts[price] == "" {
+			diff.Shorts[price] = big.NewInt(0).String()
+		}
+	}
+	return diff
+}
+
+func getDepthForMarket(db LimitOrderDatabase, market Market) *MarketDepth {
+	longOrders := db.GetLongOrders(market)
+	shortOrders := db.GetShortOrders(market)
+	return &MarketDepth{
+		Market: market,
+		Longs:  aggregateOrdersByPrice(longOrders),
+		Shorts: aggregateOrdersByPrice(shortOrders),
+	}
+}
+
+func aggregateOrdersByPrice(orders []LimitOrder) map[string]string {
+	aggregatedOrders := map[string]string{}
+	for _, order := range orders {
+		aggregatedBaseAssetQuantity, ok := aggregatedOrders[order.Price.String()]
+		if ok {
+			quantity, _ := big.NewInt(0).SetString(aggregatedBaseAssetQuantity, 10)
+			aggregatedOrders[order.Price.String()] = quantity.Add(quantity, order.GetUnFilledBaseAssetQuantity()).String()
+		} else {
+			aggregatedOrders[order.Price.String()] = order.GetUnFilledBaseAssetQuantity().String()
+		}
+	}
+	return aggregatedOrders
+}
+
+type MarketDepth struct {
+	Market Market            `json:"market"`
+	Longs  map[string]string `json:"longs"`
+	Shorts map[string]string `json:"shorts"`
 }
