@@ -693,7 +693,9 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				require.NoError(t, err)
 				require.NotZero(t, mockHandlerStats.SnapshotReadAttemptCount)
 				require.Zero(t, mockHandlerStats.SnapshotReadSuccessCount)
-				require.NotEmpty(t, leafsResponse.Keys)
+				require.Len(t, leafsResponse.Keys, 500)
+				require.Len(t, leafsResponse.Vals, 500)
+				assertRangeProofIsValid(t, &request, &leafsResponse, false)
 			},
 		},
 	}
