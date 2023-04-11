@@ -28,10 +28,10 @@ const (
 	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + contract.WriteGasCostPerSlot
 	// TODO: SendWarpMessageGasCostPerByte cost accounts for producing the log itself as well as the added work of signing
 	// and storing the message.
-	SendWarpMessageGasCostPerByte uint64 = 1
+	SendWarpMessageGasCostPerByte uint64 = params.TxDataNonZeroGasFrontier
 
-	GasCostPerWarpSigner       uint64 = 1 // TODO: charge for number of signers and the cost of the validator set lookup on the P-Chain
-	GasCostPerWarpMessageBytes uint64 = 1 // TODO: charge O(n) cost for decoding predicate of input size n
+	GasCostPerWarpSigner       uint64 = 300_000                        // TODO: charge for number of signers and the cost of the validator set lookup on the P-Chain
+	GasCostPerWarpMessageBytes uint64 = params.TxDataNonZeroGasEIP2028 // TODO: charge O(n) cost for decoding predicate of input size n
 	// GasCostPerSourceSubnetValidator uint64 = 1 // TODO: charge O(n) cost for subnet validator set lookup
 )
 
