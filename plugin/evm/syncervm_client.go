@@ -284,6 +284,7 @@ func (client *stateSyncerClient) syncStateTrie(ctx context.Context) error {
 		DB:                       client.chaindb,
 		MaxOutstandingCodeHashes: statesync.DefaultMaxOutstandingCodeHashes,
 		NumCodeFetchingWorkers:   statesync.DefaultNumCodeFetchingWorkers,
+		RequestSize:              client.stateSyncRequestSize,
 	})
 	if err != nil {
 		return err
