@@ -28,9 +28,7 @@ const testFn = (fnName, overrides = {}) => async function () {
     txReceipt
       .events
       ?.filter(event => event.event?.startsWith('log'))
-      .map(event => {
-        event.args?.forEach(arg => console.log(arg))
-      })
+      .map(event => event.args?.forEach(arg => console.log(arg)))
 
     console.log('')
   }
@@ -47,7 +45,7 @@ describe("ExampleFeeManager", function () {
   this.timeout("30s")
 
   beforeEach("setup DS-Test contract", async function () {
-    const signer = await ethers.getSigner(ADMIN_ADDRESS);
+    const signer = await ethers.getSigner(ADMIN_ADDRESS)
     const feeManagerPromise = ethers.getContractAt("IFeeManager", FEE_MANAGER, signer)
 
     return ethers.getContractFactory("ExampleFeeManagerTest", { signer })

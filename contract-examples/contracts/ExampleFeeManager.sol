@@ -127,7 +127,7 @@ contract ExampleFeeManagerTest is DSTest {
 
     try example.enableWAGMIFees() {
       assertTrue(false, "enableWAGMIFees should fail");
-    } catch {}
+    } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
   }
 
   function test_addContractToManagerList() public {
