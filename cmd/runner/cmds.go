@@ -118,18 +118,22 @@ func startTwoSubnetNetwork(*cobra.Command, []string) error {
 		config.AvalancheGoExecPath,
 		[]*rpcpb.BlockchainSpec{
 			{
-				VmName:       evm.IDStr,
-				Genesis:      os.ExpandEnv("$GOPATH/src/github.com/ava-labs/subnet-evm/tests/precompile/genesis/fee_manager.json"),
-				ChainConfig:  "",
-				SubnetConfig: "",
-				Participants: subnetA,
+				VmName:      evm.IDStr,
+				Genesis:     os.ExpandEnv("$GOPATH/src/github.com/ava-labs/subnet-evm/tests/precompile/genesis/fee_manager.json"),
+				ChainConfig: "",
+				SubnetSpec: &rpcpb.SubnetSpec{
+					SubnetConfig: "",
+					Participants: subnetA,
+				},
 			},
 			{
-				VmName:       evm.IDStr,
-				Genesis:      os.ExpandEnv("$GOPATH/src/github.com/ava-labs/subnet-evm/tests/precompile/genesis/fee_manager.json"),
-				ChainConfig:  "",
-				SubnetConfig: "",
-				Participants: subnetB,
+				VmName:      evm.IDStr,
+				Genesis:     os.ExpandEnv("$GOPATH/src/github.com/ava-labs/subnet-evm/tests/precompile/genesis/fee_manager.json"),
+				ChainConfig: "",
+				SubnetSpec: &rpcpb.SubnetSpec{
+					SubnetConfig: "",
+					Participants: subnetB,
+				},
 			},
 		},
 	)

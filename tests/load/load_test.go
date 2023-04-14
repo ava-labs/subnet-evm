@@ -48,11 +48,13 @@ var _ = ginkgo.BeforeSuite(func() {
 		config.AvalancheGoExecPath,
 		[]*rpcpb.BlockchainSpec{
 			{
-				VmName:       evm.IDStr,
-				Genesis:      "./tests/load/genesis/genesis.json",
-				ChainConfig:  "",
-				SubnetConfig: "",
-				Participants: subnetA,
+				VmName:      evm.IDStr,
+				Genesis:     "./tests/load/genesis/genesis.json",
+				ChainConfig: "",
+				SubnetSpec: &rpcpb.SubnetSpec{
+					SubnetConfig: "",
+					Participants: subnetA,
+				},
 			},
 		},
 	)
