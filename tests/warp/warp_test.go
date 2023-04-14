@@ -71,18 +71,22 @@ var _ = ginkgo.BeforeSuite(func() {
 		config.AvalancheGoExecPath,
 		[]*rpcpb.BlockchainSpec{
 			{
-				VmName:       evm.IDStr,
-				Genesis:      "./tests/precompile/genesis/warp.json",
-				ChainConfig:  "",
-				SubnetConfig: "",
-				Participants: subnetANodeNames,
+				VmName:      evm.IDStr,
+				Genesis:     "./tests/precompile/genesis/warp.json",
+				ChainConfig: "",
+				SubnetSpec: &rpcpb.SubnetSpec{
+					SubnetConfig: "",
+					Participants: subnetANodeNames,
+				},
 			},
 			{
-				VmName:       evm.IDStr,
-				Genesis:      "./tests/precompile/genesis/warp.json",
-				ChainConfig:  "",
-				SubnetConfig: "",
-				Participants: subnetBNodeNames,
+				VmName:      evm.IDStr,
+				Genesis:     "./tests/precompile/genesis/warp.json",
+				ChainConfig: "",
+				SubnetSpec: &rpcpb.SubnetSpec{
+					SubnetConfig: "",
+					Participants: subnetBNodeNames,
+				},
 			},
 		},
 	)

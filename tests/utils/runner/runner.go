@@ -16,7 +16,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -217,31 +216,12 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	if err := n.init(); err != nil {
 		return err
 	}
-	sresp, err := n.anrClient.CreateSpecificBlockchains(
+	sresp, err := n.anrClient.CreateBlockchains(
 		ctx,
-		execPath,
 		blockchainSpecs,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create blockchains: %w", err)
-	}
-
-	// TODO: network runner health should imply custom VM healthiness
-	// or provide a separate API for custom VM healthiness
-	// "start" is async, so wait some time for cluster health
-	log.Info("waiting for all VMs to report healthy", "VMID", evm.ID)
-	for {
-		v, err := n.anrClient.Health(ctx)
-		log.Info("Pinged CLI Health", "result", v, "err", err)
-		if err != nil {
-			time.Sleep(1 * time.Second)
-			continue
-		}
-		// TODO: clean this up
-		if err != nil {
-			return fmt.Errorf("failed to ping ANR health: %w", err)
-		}
-		break
 	}
 
 	cctx, ccancel := context.WithTimeout(ctx, 2*time.Minute)
@@ -253,7 +233,7 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	nodeInfos := status.GetClusterInfo().GetNodeInfos()
 
 	for i, chainSpec := range blockchainSpecs {
-		blockchainIDStr := sresp.Chains[i]
+		blockchainIDStr := sresp.ChainIds[i]
 		blockchainID, err := ids.FromString(blockchainIDStr)
 		if err != nil {
 			panic(err)
@@ -267,7 +247,7 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 			SubnetID:     subnetID,
 			BlockchainID: blockchainID,
 		}
-		for _, nodeName := range chainSpec.Participants {
+		for _, nodeName := range chainSpec.SubnetSpec.Participants {
 			subnet.ValidatorURIs = append(subnet.ValidatorURIs, nodeInfos[nodeName].Uri)
 			infoClient := info.NewClient(nodeInfos[nodeName].Uri)
 			bootstrapped, err := info.AwaitBootstrapped(ctx, infoClient, blockchainIDStr, time.Second)
