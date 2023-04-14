@@ -653,9 +653,9 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		},
 		"reading from snapshot with stale data times out": {
 			prepareTestFn: func() (context.Context, message.LeafsRequest) {
-				// delayedReader allows us to cause the snapshot read context
-				// to timeout, so we can test the trie is read from disk as a fallback.
-				db := &delayedReader{
+				// blockingReader allows us to cause the snapshot read to block on the context
+				// timeout, so we can test the trie is read from disk as a fallback.
+				db := &blockingReader{
 					KeyValueStore: memdb,
 				}
 				snap, err := snapshot.New(db, trieDB, 64, common.Hash{}, accountTrieRoot, false, true, false)
@@ -672,13 +672,21 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					break
 				}
 				rawdb.DeleteStorageSnapshot(memdb, smallStorageAccount, firstKey)
-
-				// set the delay after creating the snapshot to avoid slowing the test
-				db.delay = 10 * time.Millisecond
 				snapshotProvider.Snapshot = snap
 
-				ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+				// configure a timeout for reading from the snapshot that will cause the
+				// fallback to reading from the trie to occur.
+				totalTimeout := 100 * time.Millisecond
+				snapshotReadTimeout := totalTimeout*maxSnapshotReadTimePercent/100 + 10*time.Millisecond
+
+				ctx, cancel := context.WithTimeout(context.Background(), totalTimeout)
 				t.Cleanup(cancel) // avoids leaking the context
+
+				snapshotReadCtx, cancel := context.WithTimeout(context.Background(), snapshotReadTimeout)
+				t.Cleanup(cancel) // avoids leaking the context
+
+				// set the blocking channel after creating the snapshot so initialization succeeds
+				db.blockChan = snapshotReadCtx.Done()
 
 				return ctx, message.LeafsRequest{
 					Root:    smallTrieRoot,

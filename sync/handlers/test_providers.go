@@ -4,8 +4,6 @@
 package handlers
 
 import (
-	"time"
-
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
@@ -33,12 +31,12 @@ func (t *TestSnapshotProvider) Snapshots() *snapshot.Tree {
 	return t.Snapshot
 }
 
-type delayedReader struct {
+type blockingReader struct {
 	ethdb.KeyValueStore
-	delay time.Duration
+	blockChan <-chan struct{}
 }
 
-func (d *delayedReader) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
+func (d *blockingReader) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 	return &delayedIterator{
 		Iterator:      d.KeyValueStore.NewIterator(prefix, start),
 		delayedReader: d,
@@ -47,10 +45,12 @@ func (d *delayedReader) NewIterator(prefix []byte, start []byte) ethdb.Iterator 
 
 type delayedIterator struct {
 	ethdb.Iterator
-	delayedReader *delayedReader
+	delayedReader *blockingReader
 }
 
 func (d *delayedIterator) Next() bool {
-	time.Sleep(d.delayedReader.delay)
+	if wait := d.delayedReader.blockChan; wait != nil {
+		<-wait
+	}
 	return d.Iterator.Next()
 }
