@@ -38,18 +38,18 @@ type blockingReader struct {
 
 func (b *blockingReader) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 	return &blockingIterator{
-		Iterator:      b.KeyValueStore.NewIterator(prefix, start),
-		delayedReader: b,
+		Iterator:       b.KeyValueStore.NewIterator(prefix, start),
+		blockingReader: b,
 	}
 }
 
 type blockingIterator struct {
 	ethdb.Iterator
-	delayedReader *blockingReader
+	blockingReader *blockingReader
 }
 
 func (b *blockingIterator) Next() bool {
-	if wait := b.delayedReader.blockChan; wait != nil {
+	if wait := b.blockingReader.blockChan; wait != nil {
 		<-wait
 	}
 	return b.Iterator.Next()
