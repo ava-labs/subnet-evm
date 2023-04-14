@@ -1,11 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.5;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./AllowList.sol";
 import "./IAllowList.sol";
 import "ds-test/src/test.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Precompiled Allow List Contract Address
 address constant TX_ALLOW_LIST = 0x0200000000000000000000000000000000000002;
@@ -16,7 +14,7 @@ contract ExampleTxAllowList is AllowList {
   constructor() AllowList(TX_ALLOW_LIST) {}
 
   function deployToken() public {
-    new ERC20("Test", "TST");
+    new AllowList(TX_ALLOW_LIST);
   }
 }
 

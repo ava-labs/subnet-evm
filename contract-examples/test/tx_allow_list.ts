@@ -95,44 +95,25 @@ describe("ExampleTxAllowList", function () {
 
   // this is testing something that is setup in the before hook 
   // I don't really understand why... 
-  it("should add contract deployer as admin", async function () {
-    const contractOwnerAdmin: string = await contract.isAdmin(contract.owner())
-    expect(contractOwnerAdmin).to.be.true
-  })
+  it.skip("should add contract deployer as admin", async function () {})
 
   test("precompile should see admin address has admin role", "precompileHasDeployerAsAdmin")
 
   // this isn't really testing the functionality of the precompile but instead testing if the genesis config 
   // set things up as expected.
-  it("precompile should see admin address has admin role", async function () {
-    // test precompile first
-    const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, admin)
-    let adminRole = await allowList.readAllowList(admin.address)
-    expect(adminRole).to.be.equal(ROLES.ADMIN)
-  })
+  it.skip("precompile should see admin address has admin role", async function () {})
 
   test("precompile should see test address has no role", "newAddressHasNoRole")
 
-  it("precompile should see test address has no role", async function () {
-    // test precompile first
-    const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, admin)
-    let role = await allowList.readAllowList(noRole.address)
-    expect(role).to.be.equal(ROLES.NONE)
-  })
+  it.skip("precompile should see test address has no role", async function () {})
 
   test("contract should report test address has on admin role", "noRoleIsNotAdmin")
 
-  it("contract should report test address has no admin role", async function () {
-    const result = await contract.isAdmin(noRole.address)
-    expect(result).to.be.false
-  })
+  it.skip("contract should report test address has no admin role", async function () {})
 
   test("contract should report admin address has admin role", "exmapleAllowListReturnsTestIsAdmin")
 
-  it("contract should report admin address has admin role", async function () {
-    const result = await contract.isAdmin(admin.address)
-    expect(result).to.be.true
-  })
+  it.skip("contract should report admin address has admin role", async function () {})
 
   // does not test the VM, but rather isolates the contract functionality
   test("should not let test address submit txs", "cantDeployFromNoRole");
@@ -146,139 +127,44 @@ describe("ExampleTxAllowList", function () {
   //         return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, st.msg.From())
   //     }
   // }
-  it("should not let test address submit txs", async function () {
-    const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: noRole })
-    let token: Contract
-    try {
-      token = await Token.deploy(11111)
-    }
-    catch (err) {
-      expect(err.message).contains("cannot issue transaction from non-allow listed address")
-      return
-    }
-    expect.fail("should have errored")
-  })
+  it.skip("should not let test address submit txs", async function () {})
 
   test("should not allow noRole to enable itself", "noRoleCannotEnableItself")
 
   // addDeployer is not a function... this test passes for the wrong reasons
-  it("should not allow noRole to enable itself", async function () {
-    try {
-      await contract.connect(noRole).addDeployer(noRole.address)
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  })
+  it.skip("should not allow noRole to enable itself", async function () {})
 
   // this test is redundant with the one above
-  it("should not allow admin to enable noRole without enabling contract", async function () {
-    const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, admin)
-    let role = await allowList.readAllowList(contract.address)
-    expect(role).to.be.equal(ROLES.NONE)
-    const result = await contract.isEnabled(contract.address)
-    expect(result).to.be.false
-    try {
-      await contract.setEnabled(noRole.address)
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  })
+  it.skip("should not allow admin to enable noRole without enabling contract", async function () {})
 
   test("should allow admin to add contract as admin", "addContractAsAdmin")
 
-  it.only("should allow admin to add contract as admin", async function () {
-    const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, admin)
-    let role = await allowList.readAllowList(contract.address)
-    expect(role).to.be.equal(ROLES.NONE)
-    let tx = await allowList.setAdmin(contract.address)
-    await tx.wait()
-    role = await allowList.readAllowList(contract.address)
-    expect(role).to.be.equal(ROLES.ADMIN)
-    const result = await contract.isAdmin(contract.address)
-    expect(result).to.be.true
-  })
+  it.skip("should allow admin to add contract as admin", async function () {})
 
   test("should allow admin to add allowed address as allowed through contract", "enableThroughContract")
 
-  it("should allow admin to add allowed address as allowed through contract", async function () {
-    let result = await contract.isEnabled(allowed.address)
-    expect(result).to.be.false
-    let tx = await contract.setEnabled(allowed.address)
-    await tx.wait()
-    result = await contract.isEnabled(allowed.address)
-    expect(result).to.be.true
-  })
+  it.skip("should allow admin to add allowed address as allowed through contract", async function () {})
 
-  test("should let allowed address deploy", "canDeploy")
+  // seems like ethers can't estimate the gas properly on this one
+  test("should let allowed address deploy", "canDeploy", { gasLimit: "20000000" })
 
-  it("should let allowed address deploy", async function () {
-    const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: allowed })
-    let token: Contract
-    token = await Token.deploy(11111)
-    await token.deployed()
-    expect(token.address).not.null
-  })
+  it.skip("should let allowed address deploy", async function () {})
 
   test("should not let allowed add another allowed", "onlyAdminCanEnable")
 
-  it("should not let allowed add another allowed", async function () {
-    try {
-      const signers: SignerWithAddress[] = await ethers.getSigners()
-      const testAddress = signers.slice(-2)[0]
-      await contract.connect(allowed).setEnabled(noRole)
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  })
+  it.skip("should not let allowed add another allowed", async function () {})
 
   test("should not let allowed to revoke admin", "onlyAdminCanRevoke") 
 
-  it("should not let allowed to revoke admin", async function () {
-    try {
-      await contract.connect(allowed).revoke(admin.address)
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  })
+  it.skip("should not let allowed to revoke admin", async function () {})
 
   // this test is redundant, allowed can't revoke anyone including itself 
-  it("should not let allowed to revoke itself", async function () {
-    try {
-      await contract.connect(allowed).revoke(allowed.address)
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  })
+  it.skip("should not let allowed to revoke itself", async function () {})
 
   test("should let admin to revoke allowed", "adminCanRevoke")
 
-  it("should let admin to revoke allowed", async function () {
-    let tx = await contract.revoke(allowed.address)
-    await tx.wait()
-    const allowList = await ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, admin)
-    let noRole = await allowList.readAllowList(allowed.address)
-    expect(noRole).to.be.equal(ROLES.NONE)
-  })
+  it.skip("should let admin to revoke allowed", async function () {})
 
   // this is only testing a require statement in the example contract
-  it("should not let admin to revoke itself", async function () {
-    try {
-      await contract.revoke(admin.address)
-    }
-    catch (err) {
-      console.log(err)
-      return
-    }
-    expect.fail("should have errored")
-  })
+  it.skip("should not let admin to revoke itself", async function () {})
 })
