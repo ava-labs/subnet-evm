@@ -36,21 +36,21 @@ type blockingReader struct {
 	blockChan <-chan struct{}
 }
 
-func (d *blockingReader) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
-	return &delayedIterator{
-		Iterator:      d.KeyValueStore.NewIterator(prefix, start),
-		delayedReader: d,
+func (b *blockingReader) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
+	return &blockingIterator{
+		Iterator:      b.KeyValueStore.NewIterator(prefix, start),
+		delayedReader: b,
 	}
 }
 
-type delayedIterator struct {
+type blockingIterator struct {
 	ethdb.Iterator
 	delayedReader *blockingReader
 }
 
-func (d *delayedIterator) Next() bool {
-	if wait := d.delayedReader.blockChan; wait != nil {
+func (b *blockingIterator) Next() bool {
+	if wait := b.delayedReader.blockChan; wait != nil {
 		<-wait
 	}
-	return d.Iterator.Next()
+	return b.Iterator.Next()
 }
