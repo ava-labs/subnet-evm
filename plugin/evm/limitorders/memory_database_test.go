@@ -99,7 +99,7 @@ func TestGetShortOrders(t *testing.T) {
 	shortOrder3, orderId := createLimitOrder("short", userAddress, baseAssetQuantity, price3, status, signature3, blockNumber3, salt3)
 	inMemoryDatabase.Add(orderId, &shortOrder3)
 
-	returnedShortOrders := inMemoryDatabase.GetShortOrders(AvaxPerp)
+	returnedShortOrders := inMemoryDatabase.GetShortOrders(AvaxPerp, nil)
 	assert.Equal(t, 3, len(returnedShortOrders))
 
 	for _, returnedOrder := range returnedShortOrders {
@@ -157,7 +157,7 @@ func TestGetLongOrders(t *testing.T) {
 	longOrder3, orderId := createLimitOrder("long", userAddress, longOrderBaseAssetQuantity, price3, status, signature3, blockNumber3, salt3)
 	inMemoryDatabase.Add(orderId, &longOrder3)
 
-	returnedLongOrders := inMemoryDatabase.GetLongOrders(AvaxPerp)
+	returnedLongOrders := inMemoryDatabase.GetLongOrders(AvaxPerp, nil)
 	assert.Equal(t, 3, len(returnedLongOrders))
 
 	//Test returnedLongOrders are sorted by price highest to lowest first and then block number from lowest to highest

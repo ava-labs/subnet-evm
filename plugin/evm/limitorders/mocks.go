@@ -41,12 +41,12 @@ func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.In
 func (db *MockLimitOrderDatabase) Delete(id common.Hash) {
 }
 
-func (db *MockLimitOrderDatabase) GetLongOrders(market Market) []LimitOrder {
+func (db *MockLimitOrderDatabase) GetLongOrders(market Market, cutOff *big.Int) []LimitOrder {
 	args := db.Called()
 	return args.Get(0).([]LimitOrder)
 }
 
-func (db *MockLimitOrderDatabase) GetShortOrders(market Market) []LimitOrder {
+func (db *MockLimitOrderDatabase) GetShortOrders(market Market, cutOff *big.Int) []LimitOrder {
 	args := db.Called()
 	return args.Get(0).([]LimitOrder)
 }
@@ -133,4 +133,8 @@ func (lotp *MockLimitOrderTxProcessor) HandleMarginAccountEvent(event *types.Log
 }
 
 func (lotp *MockLimitOrderTxProcessor) HandleClearingHouseEvent(event *types.Log) {
+}
+
+func (lotp *MockLimitOrderTxProcessor) GetUnderlyingPrice() ([]*big.Int, error) {
+	return nil, nil
 }

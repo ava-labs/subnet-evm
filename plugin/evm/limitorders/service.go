@@ -211,8 +211,8 @@ func getUpdateInDepth(newMarketDepth *MarketDepth, oldMarketDepth *MarketDepth) 
 }
 
 func getDepthForMarket(db LimitOrderDatabase, market Market) *MarketDepth {
-	longOrders := db.GetLongOrders(market)
-	shortOrders := db.GetShortOrders(market)
+	longOrders := db.GetLongOrders(market, nil)
+	shortOrders := db.GetShortOrders(market, nil)
 	return &MarketDepth{
 		Market: market,
 		Longs:  aggregateOrdersByPrice(longOrders),

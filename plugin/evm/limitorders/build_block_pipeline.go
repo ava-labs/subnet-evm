@@ -22,24 +22,51 @@ func NewBuildBlockPipeline(db LimitOrderDatabase, lotp LimitOrderTxProcessor) *B
 func (pipeline *BuildBlockPipeline) Run(lastBlockTime uint64) {
 	pipeline.lotp.PurgeLocalTx()
 	if isFundingPaymentTime(lastBlockTime, pipeline.db) {
-		log.Info("BuildBlockPipeline - isFundingPaymentTime")
+		log.Info("BuildBlockPipeline:isFundingPaymentTime")
 		// just execute the funding payment and skip running the matching engine
 		err := executeFundingPayment(pipeline.lotp)
 		if err != nil {
 			log.Error("Funding payment job failed", "err", err)
 		}
 	} else {
-		for _, market := range GetActiveMarkets() {
-			pipeline.runLiquidationsAndMatchingForMarket(market)
+		// fetch the underlying price and run the matching engine
+		underlyingPrices, err := pipeline.lotp.GetUnderlyingPrice()
+		if err != nil {
+			log.Error("could not fetch underlying price", "err", err)
+		} else {
+			for i, market := range GetActiveMarkets() {
+				pipeline.runLiquidationsAndMatchingForMarket(market, underlyingPrices[i])
+			}
 		}
 	}
 }
 
-func (pipeline *BuildBlockPipeline) runLiquidationsAndMatchingForMarket(market Market) {
-	log.Info("BuildBlockPipeline - runLiquidationsAndMatchingForMarket")
-	longOrders := pipeline.db.GetLongOrders(market)
-	shortOrders := pipeline.db.GetShortOrders(market)
+func (pipeline *BuildBlockPipeline) runLiquidationsAndMatchingForMarket(market Market, underlyingPrice *big.Int) {
+	log.Info("BuildBlockPipeline:runLiquidationsAndMatchingForMarket", "underlyingPrice", prettifyScaledBigInt(underlyingPrice, 6))
+
+	// 1. Get long orders
+	longCutOffPrice := divideByBasePrecision(big.NewInt(0).Mul(
+		underlyingPrice,
+		big.NewInt(0).Add(_1e6, spreadRatioThreshold),
+	),
+	)
+	longOrders := pipeline.db.GetLongOrders(market, longCutOffPrice)
+
+	// 2. Get short orders
+	shortCutOffPrice := big.NewInt(0)
+	if _1e6.Cmp(spreadRatioThreshold) > 0 {
+		shortCutOffPrice = divideByBasePrecision(big.NewInt(0).Mul(
+			underlyingPrice,
+			big.NewInt(0).Sub(_1e6, spreadRatioThreshold),
+		),
+		)
+	}
+	shortOrders := pipeline.db.GetShortOrders(market, shortCutOffPrice)
+
+	// 3. Run liquidations
 	modifiedLongOrders, modifiedShortOrders := pipeline.runLiquidations(market, longOrders, shortOrders)
+
+	// 4. Run matching engine
 	runMatchingEngine(pipeline.lotp, modifiedLongOrders, modifiedShortOrders)
 }
 

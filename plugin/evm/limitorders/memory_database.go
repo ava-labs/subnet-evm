@@ -129,8 +129,8 @@ type LimitOrderDatabase interface {
 	Add(orderId common.Hash, order *LimitOrder)
 	Delete(orderId common.Hash)
 	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64)
-	GetLongOrders(market Market) []LimitOrder
-	GetShortOrders(market Market) []LimitOrder
+	GetLongOrders(market Market, cutoff *big.Int) []LimitOrder
+	GetShortOrders(market Market, cutoff *big.Int) []LimitOrder
 	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool)
 	UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int)
 	UpdateUnrealisedFunding(market Market, cumulativePremiumFraction *big.Int)
@@ -260,15 +260,15 @@ func (db *InMemoryDatabase) UpdateNextFundingTime(nextFundingTime uint64) {
 	db.NextFundingTime = nextFundingTime
 }
 
-func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
+func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []LimitOrder {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	var longOrders []LimitOrder
 	for _, order := range db.OrderMap {
 		if order.PositionType == "long" &&
 			order.Market == market &&
-			order.getOrderStatus().Status == Placed { // &&
-			// order.Price.Cmp(big.NewInt(20e6)) <= 0 { // hardcode amm spread check eligibility for now
+			order.getOrderStatus().Status == Placed &&
+			(cutoff == nil || order.Price.Cmp(cutoff) <= 0) {
 			longOrders = append(longOrders, *order)
 		}
 	}
@@ -276,14 +276,15 @@ func (db *InMemoryDatabase) GetLongOrders(market Market) []LimitOrder {
 	return longOrders
 }
 
-func (db *InMemoryDatabase) GetShortOrders(market Market) []LimitOrder {
+func (db *InMemoryDatabase) GetShortOrders(market Market, cutoff *big.Int) []LimitOrder {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	var shortOrders []LimitOrder
 	for _, order := range db.OrderMap {
 		if order.PositionType == "short" &&
 			order.Market == market &&
-			order.getOrderStatus().Status == Placed {
+			order.getOrderStatus().Status == Placed &&
+			(cutoff == nil || order.Price.Cmp(cutoff) >= 0) {
 			shortOrders = append(shortOrders, *order)
 		}
 	}
