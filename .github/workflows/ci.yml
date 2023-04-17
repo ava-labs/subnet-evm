@@ -86,5 +86,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: subnet-evm-e2e-logs
-          path: /tmp/network-runner-root-data-*/
+          path: /tmp/network-runner-root-data*/
           retention-days: 5
