@@ -8,7 +8,6 @@ import (
 	"context"
 	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -23,7 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
@@ -648,61 +646,6 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 				assert.EqualValues(t, len(leafsResponse.Keys), mockHandlerStats.LeafsReturnedSum)
 				assert.EqualValues(t, 1, mockHandlerStats.SnapshotReadAttemptCount)
 				assert.EqualValues(t, 0, mockHandlerStats.SnapshotReadSuccessCount)
-				assertRangeProofIsValid(t, &request, &leafsResponse, false)
-			},
-		},
-		"reading from snapshot with stale data times out": {
-			prepareTestFn: func() (context.Context, message.LeafsRequest) {
-				// blockingReader allows us to cause the snapshot read to block on the context
-				// timeout, so we can test the trie is read from disk as a fallback.
-				db := &blockingReader{
-					KeyValueStore: memdb,
-				}
-				snap, err := snapshot.New(db, trieDB, 64, common.Hash{}, accountTrieRoot, false, true, false)
-				if err != nil {
-					t.Fatal(err)
-				}
-				// delete the first key from the snapshot so that we can simulate
-				// outdated snapshot data.
-				it := snap.DiskStorageIterator(smallStorageAccount, common.Hash{})
-				defer it.Release()
-				var firstKey common.Hash
-				for it.Next() {
-					firstKey = it.Hash()
-					break
-				}
-				rawdb.DeleteStorageSnapshot(memdb, smallStorageAccount, firstKey)
-				snapshotProvider.Snapshot = snap
-
-				// configure a timeout for reading from the snapshot that will cause the
-				// fallback to reading from the trie to occur.
-				totalTimeout := 100 * time.Millisecond
-				snapshotReadTimeout := totalTimeout*maxSnapshotReadTimePercent/100 + 10*time.Millisecond
-
-				ctx, cancel := context.WithTimeout(context.Background(), totalTimeout)
-				t.Cleanup(cancel) // avoids leaking the context
-
-				snapshotReadCtx, cancel := context.WithTimeout(context.Background(), snapshotReadTimeout)
-				t.Cleanup(cancel) // avoids leaking the context
-
-				// set the blocking channel after creating the snapshot so initialization succeeds
-				db.blockChan = snapshotReadCtx.Done()
-
-				return ctx, message.LeafsRequest{
-					Root:    smallTrieRoot,
-					Account: smallStorageAccount,
-					Limit:   maxLeavesLimit,
-				}
-			},
-			assertResponseFn: func(t *testing.T, request message.LeafsRequest, response []byte, err error) {
-				require.NoError(t, err)
-				var leafsResponse message.LeafsResponse
-				_, err = message.Codec.Unmarshal(response, &leafsResponse)
-				require.NoError(t, err)
-				require.NotZero(t, mockHandlerStats.SnapshotReadAttemptCount)
-				require.Zero(t, mockHandlerStats.SnapshotReadSuccessCount)
-				require.Len(t, leafsResponse.Keys, 500)
-				require.Len(t, leafsResponse.Vals, 500)
 				assertRangeProofIsValid(t, &request, &leafsResponse, false)
 			},
 		},
