@@ -54,8 +54,7 @@ describe("ExampleTxAllowList", function () {
     const signer = await ethers.getSigner(ADMIN_ADDRESS)
     const allowListPromise = ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, signer);
 
-    return ethers.getSigner(ADMIN_ADDRESS)
-      .then(signer => ethers.getContractFactory("ExampleTxAllowListTest", signer))
+    return ethers.getContractFactory("ExampleTxAllowListTest", { signer })
       .then(factory => factory.deploy())
       .then(contract => {
         this.testContract = contract;
