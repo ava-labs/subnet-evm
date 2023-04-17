@@ -6,7 +6,6 @@ package handlers
 import (
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -29,28 +28,4 @@ type TestSnapshotProvider struct {
 
 func (t *TestSnapshotProvider) Snapshots() *snapshot.Tree {
 	return t.Snapshot
-}
-
-type blockingReader struct {
-	ethdb.KeyValueStore
-	blockChan <-chan struct{}
-}
-
-func (b *blockingReader) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
-	return &blockingIterator{
-		Iterator:       b.KeyValueStore.NewIterator(prefix, start),
-		blockingReader: b,
-	}
-}
-
-type blockingIterator struct {
-	ethdb.Iterator
-	blockingReader *blockingReader
-}
-
-func (b *blockingIterator) Next() bool {
-	if wait := b.blockingReader.blockChan; wait != nil {
-		<-wait
-	}
-	return b.Iterator.Next()
 }
