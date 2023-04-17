@@ -87,4 +87,4 @@ jobs:
         with:
           name: subnet-evm-e2e-logs
           path: /tmp/network-runner-root-data-*/
-        retention-days: 5
+          retention-days: 5
