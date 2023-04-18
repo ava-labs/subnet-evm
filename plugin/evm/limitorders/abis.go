@@ -70,7 +70,13 @@ var orderBookAbi = []byte(`{"abi": [
         "internalType": "address",
         "name": "relayer",
         "type": "address"
-      }
+      },
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
     ],
     "name": "LiquidationOrderMatched",
     "type": "event"
@@ -89,7 +95,13 @@ var orderBookAbi = []byte(`{"abi": [
         "internalType": "bytes32",
         "name": "orderHash",
         "type": "bytes32"
-      }
+      },
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
     ],
     "name": "OrderCancelled",
     "type": "event"
@@ -166,7 +178,13 @@ var orderBookAbi = []byte(`{"abi": [
         "internalType": "bytes",
         "name": "signature",
         "type": "bytes"
-      }
+      },
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
     ],
     "name": "OrderPlaced",
     "type": "event"
@@ -209,7 +227,13 @@ var orderBookAbi = []byte(`{"abi": [
         "internalType": "address",
         "name": "relayer",
         "type": "address"
-      }
+      },
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "timestamp",
+				"type": "uint256"
+			}
     ],
     "name": "OrdersMatched",
     "type": "event"
