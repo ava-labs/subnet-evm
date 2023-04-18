@@ -8,10 +8,11 @@ import {
   ContractFactory,
 } from "ethers"
 import { ethers } from "hardhat"
+const assert = require('assert')
 
 // make sure this is always an admin for minter precompile
-const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-const ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000";
+const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+const DEPLOYER_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000";
 
 const ROLES = {
   NONE: 0,
@@ -19,12 +20,60 @@ const ROLES = {
   ADMIN: 2
 };
 
+const testFn = (fnNameOrNames: string | string[], overrides = {}, debug = false) => async function () {
+  const fnNames: string[] = Array.isArray(fnNameOrNames) ? fnNameOrNames : [fnNameOrNames];
+
+  return fnNames.reduce((p: Promise<undefined>, fnName) => p.then(async () => {
+    const tx = await this.testContract['test_' + fnName](overrides)
+    const txReceipt = await tx.wait().catch(err => err.receipt)
+
+    const failed = txReceipt.status !== 0 ? await this.testContract.callStatic.failed() : true
+    
+    if (debug || failed) {
+      console.log('')
+
+      if (!txReceipt.events) console.warn(txReceipt);
+
+      txReceipt
+        .events
+        ?.filter(event => debug || event.event?.startsWith('log'))
+        .map(event => event.args?.forEach(arg => console.log(arg)))
+
+      console.log('')
+    }
+
+    assert(!failed, `${fnName} failed`)
+  }), Promise.resolve());
+}
+
+const test = (name, fnName, overrides = {}) => it(name, testFn(fnName, overrides));
+test.only = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides));
+test.debug = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides, true));
+test.skip = (name, fnName, overrides = {}) => it.skip(name, testFn(fnName, overrides));
+
 describe("ExampleDeployerList", function () {
   let owner: SignerWithAddress
   let contract: Contract
   let deployer: SignerWithAddress
+
+  beforeEach('Setup DS-Test contract', async function () {
+    const signer = await ethers.getSigner(ADMIN_ADDRESS)
+    const allowListPromise = ethers.getContractAt("IAllowList", DEPLOYER_ALLOWLIST_ADDRESS, signer)
+
+    return ethers.getContractFactory("ExampleDeployerListTest", { signer })
+      .then(factory => factory.deploy())
+      .then(contract => {
+        this.testContract = contract;
+        return contract.deployed().then(() => contract)
+      })
+      .then(contract => contract.setUp())
+      .then(tx => Promise.all([allowListPromise, tx.wait()]))
+      .then(([allowList]) => allowList.setAdmin(this.testContract.address))
+      .then(tx => tx.wait())
+  })
+
   before(async function () {
-    owner = await ethers.getSigner(adminAddress);
+    owner = await ethers.getSigner(ADMIN_ADDRESS);
     const contractF: ContractFactory = await ethers.getContractFactory("ExampleDeployerList", { signer: owner })
     contract = await contractF.deploy()
     await contract.deployed()
@@ -33,6 +82,10 @@ describe("ExampleDeployerList", function () {
 
     const signers: SignerWithAddress[] = await ethers.getSigners()
     deployer = signers.slice(-1)[0]
+    
+    // TODO: remove this
+    console.log('Deployer address: ', deployer.address)
+    console.log('Owner address: ', owner.address)
 
     // Fund deployer address
     await owner.sendTransaction({
@@ -42,150 +95,60 @@ describe("ExampleDeployerList", function () {
 
   });
 
-  it("should add contract deployer as owner", async function () {
-    const contractOwnerAddr: string = await contract.owner()
-    expect(owner.address).to.equal(contractOwnerAddr)
-  });
+  // testing open zeppelin modifier, not necessary
+  it.skip("should add contract deployer as owner", async function () {});
 
-  it("precompile should see owner address has admin role", async function () {
-    // test precompile first
-    const allowList = await ethers.getContractAt("IAllowList", ALLOWLIST_ADDRESS, owner);
-    let adminRole = await allowList.readAllowList(owner.address);
-    expect(adminRole).to.be.equal(ROLES.ADMIN)
-  });
+  test("precompile should see owner address has admin role", "verifySenderIsAdmin")
 
-  it("precompile should see test address has no role", async function () {
-    // test precompile first
-    const allowList = await ethers.getContractAt("IAllowList", ALLOWLIST_ADDRESS, owner);
-    let noRole = await allowList.readAllowList(deployer.address);
-    expect(noRole).to.be.equal(ROLES.NONE)
-  });
+  it.skip("precompile should see owner address has admin role", async function () {});
 
-  it("contract should report test address has no admin role", async function () {
-    const result = await contract.isAdmin(deployer.address);
-    expect(result).to.be.false
-  });
+  test("precompile should see test address has no role", "newAddressHasNoRole")
 
+  it.skip("precompile should see test address has no role", async function () {});
 
-  it("contract should report owner address has admin role", async function () {
-    const result = await contract.isAdmin(owner.address);
-    expect(result).to.be.true
-  });
+  test("contract should report test address has no admin role", "noRoleIsNotAdmin")
 
-  it("should not let test address to deploy", async function () {
-    const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: deployer })
-    let token: Contract
-    try {
-      token = await Token.deploy(11111)
-    }
-    catch (err) {
-      expect(err.message).contains("is not authorized to deploy a contract");
-      return
-    }
-    expect.fail("should have errored")
-  });
+  it.skip("contract should report test address has no admin role", async function () {});
 
-  it("should not allow deployer to enable itself", async function () {
-    try {
-      await contract.connect(deployer).addDeployer(deployer.address);
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  });
+  test("contract should report owner address has admin role", "ownerIsAdmin")
 
-  it("should not allow admin to enable deployer without enabling contract", async function () {
-    const allowList = await ethers.getContractAt("IAllowList", ALLOWLIST_ADDRESS, owner);
-    let role = await allowList.readAllowList(contract.address);
-    expect(role).to.be.equal(ROLES.NONE)
-    const result = await contract.isEnabled(contract.address);
-    expect(result).to.be.false
-    try {
-      await contract.addDeployer(deployer.address);
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  });
+  it.skip("contract should report owner address has admin role", async function () {});
 
-  it("should allow admin to add contract as admin", async function () {
-    const allowList = await ethers.getContractAt("IAllowList", ALLOWLIST_ADDRESS, owner);
-    let role = await allowList.readAllowList(contract.address);
-    expect(role).to.be.equal(ROLES.NONE)
-    let tx = await allowList.setAdmin(contract.address)
-    await tx.wait()
-    role = await allowList.readAllowList(contract.address);
-    expect(role).to.be.equal(ROLES.ADMIN)
-    const result = await contract.isAdmin(contract.address);
-    expect(result).to.be.true
-  });
+  test("should not let test address deploy", "noRoleCannotDeploy")
 
-  it("should allow admin to add deployer address as deployer through contract", async function () {
-    let tx = await contract.setEnabled(deployer.address)
-    await tx.wait()
-    const result = await contract.isEnabled(deployer.address);
-    expect(result).to.be.true
-  });
+  it.skip("should not let test address to deploy", async function () {});
 
-  it("should let deployer address to deploy", async function () {
-    const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: deployer })
-    let token: Contract
-    token = await Token.deploy(11111)
-    await token.deployed()
-    expect(token.address).not.null
-  });
+  // addDeployer in not a function
+  it.skip("should not allow deployer to enable itself", async function () {});
 
-  it("should not let deployer add another deployer", async function () {
-    try {
-      const signers: SignerWithAddress[] = await ethers.getSigners()
-      const testAddress = signers.slice(-2)[0]
-      await contract.connect(deployer).addDeployer(testAddress.address);
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  });
+  // addDeployer in not a function
+  it.skip("should not allow admin to enable deployer without enabling contract", async function () {});
 
-  it("should not let deployer to revoke admin", async function () {
-    try {
-      await contract.connect(deployer).revoke(owner.address);
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  });
+  test("should allow admin to add contract as admin", "adminAddContractAsAdmin")
 
+  it.skip("should allow admin to add contract as admin", async function () {});
 
-  it("should not let deployer to revoke itself", async function () {
-    try {
-      await contract.connect(deployer).revoke(deployer.address);
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  });
+  test("should allow admin to add deployer address as deployer through contract", "addDeployerThroughContract")
 
-  it("should let admin to revoke deployer", async function () {
-    let tx = await contract.revoke(deployer.address);
-    await tx.wait()
-    const allowList = await ethers.getContractAt("IAllowList", ALLOWLIST_ADDRESS, owner);
-    let noRole = await allowList.readAllowList(deployer.address);
-    expect(noRole).to.be.equal(ROLES.NONE)
-  });
+  it.skip("should allow admin to add deployer address as deployer through contract", async function () {});
 
+  test("should let deployer address to deploy", "deployerCanDeploy")
 
-  it("should not let admin to revoke itself", async function () {
-    try {
-      await contract.revoke(owner.address);
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  });
+  it.skip("should let deployer address to deploy", async function () {});
+
+  // addDeployer in not a function
+  it.skip("should not let deployer add another deployer", async function () {});
+
+  // this was just testing a require statement in an example contract
+  it.skip("should not let deployer to revoke admin", async function () {});
+
+  // this was just testing a require statement in an example contract
+  it.skip("should not let deployer to revoke itself", async function () {});
+
+  test("should let admin revoke deployer", "adminCanRevokeDeployer")
+  
+  it.skip("should let admin revoke deployer", async function () {});
+
+  // this was just testing a require statement in an example contract 
+  it.skip("should not let admin to revoke itself", async function () {});
 })
