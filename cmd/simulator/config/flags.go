@@ -4,13 +4,9 @@
 package config
 
 import (
-	"errors"
-	"fmt"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -40,37 +36,7 @@ type Config struct {
 	Timeout      time.Duration `json:"timeout"`
 }
 
-// BuildConfig takes in a slice of arguments (Ex. os.Args[1:]) and builds a simulator config.
-// This function will exit the process if specified by CLI flags or it encounters an error.
-func BuildConfig(args []string) Config {
-	fs := BuildFlagSet()
-	v, err := BuildViper(fs, args)
-	if err != nil {
-		fmt.Printf("couldn't build viper: %s\n", err)
-		os.Exit(1)
-	}
-
-	if errors.Is(err, pflag.ErrHelp) {
-		os.Exit(0)
-	}
-
-	if err != nil {
-		fmt.Printf("couldn't configure flags: %s\n", err)
-		os.Exit(1)
-	}
-
-	if v.GetBool(VersionKey) {
-		fmt.Printf("%s\n", Version)
-		os.Exit(0)
-	}
-
-	logLevel, err := log.LvlFromString(v.GetString(LogLevelKey))
-	if err != nil {
-		fmt.Printf("couldn't parse log level: %s\n", err)
-		os.Exit(1)
-	}
-	log.Root().SetHandler(log.LvlFilterHandler(logLevel, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
-
+func BuildConfig(v *viper.Viper) Config {
 	return Config{
 		Endpoints:    v.GetStringSlice(EndpointsKey),
 		MaxFeeCap:    v.GetInt64(MaxFeeCapKey),
