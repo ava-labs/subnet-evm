@@ -9,9 +9,10 @@ import {
   ContractFactory,
 } from "ethers"
 import { ethers } from "hardhat"
+const assert = require("assert")
 
 // make sure this is always an admin for minter precompile
-const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const MINT_PRECOMPILE_ADDRESS = "0x0200000000000000000000000000000000000001";
 const mintValue = ethers.utils.parseEther("1")
 const initialValue = ethers.utils.parseEther("10")
@@ -22,12 +23,60 @@ const ROLES = {
   ADMIN: 2
 };
 
+const testFn = (fnNameOrNames: string | string[], overrides = {}, debug = false) => async function () {
+  const fnNames: string[] = Array.isArray(fnNameOrNames) ? fnNameOrNames : [fnNameOrNames];
+
+  return fnNames.reduce((p: Promise<undefined>, fnName) => p.then(async () => {
+    const tx = await this.testContract['test_' + fnName](overrides)
+    const txReceipt = await tx.wait().catch(err => err.receipt)
+
+    const failed = txReceipt.status !== 0 ? await this.testContract.callStatic.failed() : true
+    
+    if (debug || failed) {
+      console.log('')
+
+      if (!txReceipt.events) console.warn(txReceipt);
+
+      txReceipt
+        .events
+        ?.filter(event => debug || event.event?.startsWith('log'))
+        .map(event => event.args?.forEach(arg => console.log(arg)))
+
+      console.log('')
+    }
+
+    assert(!failed, `${fnName} failed`)
+  }), Promise.resolve());
+}
+
+const test = (name, fnName, overrides = {}) => it(name, testFn(fnName, overrides));
+test.only = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides));
+test.debug = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides, true));
+test.skip = (name, fnName, overrides = {}) => it.skip(name, testFn(fnName, overrides));
+
 describe("ERC20NativeMinter", function () {
   let owner: SignerWithAddress
   let contract: Contract
   let minter: SignerWithAddress
+  
+  beforeEach('Setup DS-Test contract', async function () {
+    const signer = await ethers.getSigner(ADMIN_ADDRESS)
+    const nativeMinterPromise = ethers.getContractAt("INativeMinter", MINT_PRECOMPILE_ADDRESS, signer)
+
+    return ethers.getContractFactory("ERC20NativeMinterTest", { signer })
+      .then(factory => factory.deploy())
+      .then(contract => {
+        this.testContract = contract;
+        return contract.deployed().then(() => contract)
+      })
+      .then(contract => contract.setUp())
+      .then(tx => Promise.all([nativeMinterPromise, tx.wait()]))
+      .then(([nativeMinter]) => nativeMinter.setAdmin(this.testContract.address))
+      .then(tx => tx.wait())
+  })
+
   before(async function () {
-    owner = await ethers.getSigner(adminAddress);
+    owner = await ethers.getSigner(ADMIN_ADDRESS);
     const Token: ContractFactory = await ethers.getContractFactory("ERC20NativeMinter", { signer: owner })
     contract = await Token.deploy(initialValue)
     await contract.deployed()
@@ -53,54 +102,28 @@ describe("ERC20NativeMinter", function () {
     })
   });
 
-  it("should add contract deployer as owner", async function () {
-    const contractOwnerAddr: string = await contract.owner()
-    expect(owner.address).to.equal(contractOwnerAddr)
-  });
+  // this test doesn't test precompile logic  
+  it.skip("should add contract deployer as owner", async function () {});
+
+  test("contract should not be able to mintdraw", "mintdrawFailure")
 
   // this contract is not given minter permission yet, so should not mintdraw
-  it("contract should not be able to mintdraw", async function () {
-    const minterList = await ethers.getContractAt("INativeMinter", MINT_PRECOMPILE_ADDRESS, owner);
-    let contractRole = await minterList.readAllowList(contract.address);
-    expect(contractRole).to.be.equal(ROLES.NONE)
-    try {
-      await contract.mintdraw(mintValue)
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
-  })
+  it.skip("contract should not be able to mintdraw", async function () {})
 
-  it("should be added to minter list", async function () {
-    const minterList = await ethers.getContractAt("INativeMinter", MINT_PRECOMPILE_ADDRESS, owner);
-    let adminRole = await minterList.readAllowList(adminAddress);
-    expect(adminRole).to.be.equal(ROLES.ADMIN)
-    let contractRole = await minterList.readAllowList(contract.address);
-    expect(contractRole).to.be.equal(ROLES.NONE)
+  test("should be added to minter list", "addMinter")
 
-    let mintTx = await minterList.setEnabled(contract.address);
-    await mintTx.wait()
-    contractRole = await minterList.readAllowList(contract.address);
-    expect(contractRole).to.be.equal(ROLES.MINTER)
-  });
+  it.skip("should be added to minter list", async function () {});
+
+  test("admin should mintdraw", "adminMintdraw")
 
   // admin should mintdraw since it has ERC20 token initially.
-  it("admin should mintdraw", async function () {
-    let initBalance: BigNumber = await contract.balanceOf(owner.address)
-    let initNativeBalance: BigNumber = await ethers.provider.getBalance(owner.address)
-    let tx = await contract.mintdraw(mintValue)
-    let txRec = await tx.wait()
-    let balance = await contract.balanceOf(owner.address)
-    expect(balance).to.be.equal(initBalance.sub(mintValue))
+  it.skip("admin should mintdraw", async function () {})
 
-    let nativeBalance = await ethers.provider.getBalance(owner.address)
-    let gasUsed: BigNumber = txRec.cumulativeGasUsed
-    let gasPrice: BigNumber = txRec.effectiveGasPrice
-    let txFee = gasUsed.mul(gasPrice)
-    expect(nativeBalance).to.be.equal(initNativeBalance.add(mintValue).sub(txFee))
-  })
+  test("minter should not mintdraw ", "minterMintdrawFailure")
 
+  // minter should not mintdraw since it has no ERC20 token.
+  it.skip("minter should not mintdraw ", async function () {})
+  
   // minter should not mintdraw since it has no ERC20 token.
   it("minter should not mintdraw ", async function () {
     try {
@@ -112,35 +135,13 @@ describe("ERC20NativeMinter", function () {
     expect.fail("should have errored")
   })
 
-  // minter should not mintdraw since it has no ERC20 token.
-  it("should deposit for minter", async function () {
-    let initBalance: BigNumber = await contract.balanceOf(minter.address)
-    let initNativeBalance: BigNumber = await ethers.provider.getBalance(minter.address)
-    let tx = await contract.connect(minter).deposit({ value: mintValue })
-    let txRec = await tx.wait()
+  test("should deposit for minter", "minterDeposit")
 
-    let balance = await contract.balanceOf(minter.address)
-    expect(balance).to.be.equal(initBalance.add(mintValue))
-    let nativeBalance = await ethers.provider.getBalance(minter.address)
-    let gasUsed: BigNumber = txRec.cumulativeGasUsed
-    let gasPrice: BigNumber = txRec.effectiveGasPrice
-    let txFee = gasUsed.mul(gasPrice)
-    expect(nativeBalance).to.be.equal(initNativeBalance.sub(mintValue).sub(txFee))
-  })
+  // minter should not mintdraw since it has no ERC20 token.
+  it.skip("should deposit for minter", async function () {})
+
+  test("minter should mintdraw", "mintdraw")
 
   // minter should mintdraw now since it has ERC20 token.
-  it("minter should mintdraw", async function () {
-    let initBalance: BigNumber = await contract.balanceOf(minter.address)
-    let initNativeBalance: BigNumber = await ethers.provider.getBalance(minter.address)
-    let tx = await contract.connect(minter).mintdraw(mintValue)
-    let txRec = await tx.wait()
-
-    let balance = await contract.balanceOf(minter.address)
-    expect(balance).to.be.equal(initBalance.sub(mintValue))
-    let nativeBalance = await ethers.provider.getBalance(minter.address)
-    let gasUsed: BigNumber = txRec.cumulativeGasUsed
-    let gasPrice: BigNumber = txRec.effectiveGasPrice
-    let txFee = gasUsed.mul(gasPrice)
-    expect(nativeBalance).to.be.equal(initNativeBalance.add(mintValue).sub(txFee))
-  })
+  it.skip("minter should mintdraw", async function () {})
 })
