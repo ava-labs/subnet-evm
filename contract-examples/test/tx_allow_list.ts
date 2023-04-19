@@ -1,24 +1,12 @@
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { expect } from "chai"
-import {
-  Contract,
-  ContractFactory,
-} from "ethers"
 import { ethers } from "hardhat"
 const assert = require("assert")
 
 // make sure this is always an admin for minter precompile
 const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const TX_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000002"
-
-const ROLES = {
-  NONE: 0,
-  ALLOWED: 1,
-  ADMIN: 2
-}
 
 const testFn = (fnName, overrides = {}, debug = false) => async function () {
   const tx = await this.testContract['test_' + fnName](overrides)
@@ -45,11 +33,6 @@ test.only = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overr
 test.debug = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides, true));
 
 describe("ExampleTxAllowList", function () {
-  let admin: SignerWithAddress
-  let contract: Contract
-  let allowed: SignerWithAddress
-  let noRole: SignerWithAddress
-
   beforeEach('Setup DS-Test contract', async function () {
     const signer = await ethers.getSigner(ADMIN_ADDRESS)
     const allowListPromise = ethers.getContractAt("IAllowList", TX_ALLOW_LIST_ADDRESS, signer);
@@ -64,30 +47,6 @@ describe("ExampleTxAllowList", function () {
       .then(tx => Promise.all([allowListPromise, tx.wait()]))
       .then(([allowList]) => allowList.setAdmin(this.testContract.address))
       .then(tx => tx.wait())
-  })
-
-  before(async function () {
-    admin = await ethers.getSigner(ADMIN_ADDRESS)
-    const contractF: ContractFactory = await ethers.getContractFactory("ExampleTxAllowList", { signer: admin })
-    contract = await contractF.deploy()
-    await contract.deployed()
-    const contractAddress: string = contract.address
-    console.log(`Contract deployed to: ${contractAddress}`)
-
-      ;[, allowed, noRole] = await ethers.getSigners()
-
-    // Fund allowed address
-    await admin.sendTransaction({
-      to: allowed.address,
-      value: ethers.utils.parseEther("10")
-    })
-
-    // Fund no role address
-    let tx = await admin.sendTransaction({
-      to: noRole.address,
-      value: ethers.utils.parseEther("10")
-    })
-    await tx.wait()
   })
 
   test("should add contract deployer as admin", "contractOwnerIsAdmin")

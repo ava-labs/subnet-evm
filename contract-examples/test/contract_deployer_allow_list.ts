@@ -1,24 +1,12 @@
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { expect } from "chai";
-import {
-  Contract,
-  ContractFactory,
-} from "ethers"
 import { ethers } from "hardhat"
 const assert = require('assert')
 
 // make sure this is always an admin for minter precompile
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const DEPLOYER_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000";
-
-const ROLES = {
-  NONE: 0,
-  DEPLOYER: 1,
-  ADMIN: 2
-};
 
 const testFn = (fnNameOrNames: string | string[], overrides = {}, debug = false) => async function () {
   const fnNames: string[] = Array.isArray(fnNameOrNames) ? fnNameOrNames : [fnNameOrNames];
@@ -52,10 +40,6 @@ test.debug = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, over
 test.skip = (name, fnName, overrides = {}) => it.skip(name, testFn(fnName, overrides));
 
 describe("ExampleDeployerList", function () {
-  let owner: SignerWithAddress
-  let contract: Contract
-  let deployer: SignerWithAddress
-
   beforeEach('Setup DS-Test contract', async function () {
     const signer = await ethers.getSigner(ADMIN_ADDRESS)
     const allowListPromise = ethers.getContractAt("IAllowList", DEPLOYER_ALLOWLIST_ADDRESS, signer)

@@ -1,13 +1,7 @@
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import {
-  BigNumber,
-  Contract,
-  ContractFactory,
-} from "ethers"
 import { ethers } from "hardhat"
 const assert = require("assert");
 
@@ -73,6 +67,7 @@ describe("ExampleFeeManager", function () {
     maxPriorityFeePerGas: 0,
   })
 
+  // TODO: I should be able to test inside the contract by manipulating gas mid-call
   it("should reject a transaction below the minimum", async function() {
     const maxFeePerGas = GENESIS_CONFIG.config.feeConfig.minBaseFee;
     const maxPriorityFeePerGas = 0;
