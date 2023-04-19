@@ -72,29 +72,6 @@ describe("ExampleDeployerList", function () {
       .then(tx => tx.wait())
   })
 
-  before(async function () {
-    owner = await ethers.getSigner(ADMIN_ADDRESS);
-    const contractF: ContractFactory = await ethers.getContractFactory("ExampleDeployerList", { signer: owner })
-    contract = await contractF.deploy()
-    await contract.deployed()
-    const contractAddress: string = contract.address
-    console.log(`Contract deployed to: ${contractAddress}`)
-
-    const signers: SignerWithAddress[] = await ethers.getSigners()
-    deployer = signers.slice(-1)[0]
-    
-    // TODO: remove this
-    console.log('Deployer address: ', deployer.address)
-    console.log('Owner address: ', owner.address)
-
-    // Fund deployer address
-    await owner.sendTransaction({
-      to: deployer.address,
-      value: ethers.utils.parseEther("1")
-    })
-
-  });
-
   // testing open zeppelin modifier, not necessary
   it.skip("should add contract deployer as owner", async function () {});
 
