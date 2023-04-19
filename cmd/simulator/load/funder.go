@@ -101,5 +101,6 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 		}
 		log.Info("Funded address has balance", "balance", balance)
 	}
-	return needFundsKeys, nil
+	fundedKeys = append(fundedKeys, needFundsKeys...)
+	return fundedKeys, nil
 }
