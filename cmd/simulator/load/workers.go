@@ -81,7 +81,16 @@ func (wg *WorkerGroup) Execute(ctx context.Context) error {
 	if err := wg.ConfirmAllTransactions(ctx); err != nil {
 		return err
 	}
-	log.Info("Transaction confirmation completed", "confirmationElapsed", time.Since(confirmationStart))
+	endTime := time.Now()
+	log.Info("Transaction confirmation completed", "confirmationElapsed", endTime.Sub(confirmationStart))
+	totalTxs := 0
+	for _, worker := range wg.Workers {
+		totalTxs += len(worker.txs)
+	}
 
+	// We exclude the time for ConfirmAllTransactions because we assume once the nonce is reported, the transaction has been finalized.
+	// For Subnet-EVM, this assumes that unfinalized data is not exposed via API.
+	issueAndConfirmDuration := confirmationStart.Sub(executionStart)
+	log.Info("Simulator completed", "totalTxs", totalTxs, "TPS", float64(totalTxs)/issueAndConfirmDuration.Seconds())
 	return nil
 }
