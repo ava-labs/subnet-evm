@@ -82,16 +82,19 @@ func (w *Worker) Execute(ctx context.Context) error {
 
 func awaitNonce(ctx context.Context, client ethclient.Client, address common.Address, nonce uint64) error {
 	newHeads := make(chan *types.Header)
+	defer close(newHeads)
+
 	sub, err := client.SubscribeNewHead(ctx, newHeads)
 	if err != nil {
-		return fmt.Errorf("failed to subscribe new heads: %w", err)
+		log.Debug("failed to subscribe new heads, falling back to polling", "err", err)
+	} else {
+		defer sub.Unsubscribe()
 	}
-	defer sub.Unsubscribe()
 
 	for {
 		select {
 		case <-newHeads:
-		case <-time.After(2 * time.Second):
+		case <-time.After(time.Second):
 		case <-ctx.Done():
 			return fmt.Errorf("failed to await nonce: %w", ctx.Err())
 		}

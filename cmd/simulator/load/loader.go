@@ -81,6 +81,15 @@ func CreateLoader(ctx context.Context, config config.Config) (*WorkerGroup, erro
 	if err != nil {
 		return nil, err
 	}
+	if len(clients) < config.Workers {
+		return nil, fmt.Errorf("less clients %d than requested workers %d", len(clients), config.Workers)
+	}
+	if len(senders) < config.Workers {
+		return nil, fmt.Errorf("less senders %d than requested workers %d", len(senders), config.Workers)
+	}
+	if len(txSequences) < config.Workers {
+		return nil, fmt.Errorf("less txSequences %d than requested workers %d", len(txSequences), config.Workers)
+	}
 
 	wg := NewWorkerGroup(clients[:config.Workers], senders[:config.Workers], txSequences[:config.Workers])
 	return wg, nil

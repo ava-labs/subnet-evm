@@ -17,11 +17,14 @@ import (
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds
 // from the key with the highest starting balance.
+// This function should never return a set of keys with length less than [numKeys]
 func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.Key, numKeys int, minFundsPerAddr *big.Int) ([]*key.Key, error) {
 	if len(keys) < numKeys {
 		return nil, fmt.Errorf("insufficient number of keys %d < %d", len(keys), numKeys)
 	}
 	fundedKeys := make([]*key.Key, 0, numKeys)
+	// TODO: clean up fund distribution.
+	needFundsKeys := make([]*key.Key, 0)
 	needFundsAddrs := make([]common.Address, 0)
 
 	maxFundsKey := keys[0]
@@ -34,6 +37,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 		}
 
 		if balance.Cmp(minFundsPerAddr) < 0 {
+			needFundsKeys = append(needFundsKeys, key)
 			needFundsAddrs = append(needFundsAddrs, key.Address)
 		} else {
 			fundedKeys = append(fundedKeys, key)
@@ -56,6 +60,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 	// If there are not enough funded keys, cut [needFundsAddrs] to the number of keys that
 	// must be funded to reach [numKeys] required.
 	fundKeysCutLen := numKeys - len(fundedKeys)
+	needFundsKeys = needFundsKeys[:fundKeysCutLen]
 	needFundsAddrs = needFundsAddrs[:fundKeysCutLen]
 
 	chainID, err := client.ChainID(ctx)
@@ -96,5 +101,5 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 		}
 		log.Info("Funded address has balance", "balance", balance)
 	}
-	return nil, nil
+	return needFundsKeys, nil
 }
