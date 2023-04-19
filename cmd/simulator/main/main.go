@@ -18,13 +18,13 @@ import (
 func main() {
 	fs := config.BuildFlagSet()
 	v, err := config.BuildViper(fs, os.Args[1:])
+	if errors.Is(err, pflag.ErrHelp) {
+		os.Exit(0)
+	}
+
 	if err != nil {
 		fmt.Printf("couldn't build viper: %s\n", err)
 		os.Exit(1)
-	}
-
-	if errors.Is(err, pflag.ErrHelp) {
-		os.Exit(0)
 	}
 
 	if err != nil {
