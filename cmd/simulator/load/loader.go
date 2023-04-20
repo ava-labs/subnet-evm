@@ -96,8 +96,11 @@ func CreateLoader(ctx context.Context, config config.Config) (*WorkerGroup, erro
 }
 
 func ExecuteLoader(ctx context.Context, config config.Config) error {
-	ctx, cancel := context.WithTimeout(ctx, config.Timeout)
-	defer cancel()
+	if config.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, config.Timeout)
+		defer cancel()
+	}
 
 	loader, err := CreateLoader(ctx, config)
 	if err != nil {
