@@ -3,6 +3,20 @@
 pragma solidity 0.8.9;
 
 interface IOrderBook {
+    enum OrderStatus {
+        Invalid,
+        Placed,
+        Filled,
+        Cancelled
+    }
+
+    enum OrderExecutionMode {
+        Taker,
+        Maker,
+        SameBlock,
+        Liquidation
+    }
+
     struct Order {
         uint256 ammIndex;
         address trader;
@@ -11,20 +25,21 @@ interface IOrderBook {
         uint256 salt;
     }
 
-    enum OrderStatus {
-        Invalid,
-        Placed,
-        Filled,
-        Cancelled
+    struct MatchInfo {
+        bytes32 orderHash;
+        uint blockPlaced;
+        OrderExecutionMode mode;
     }
 
-    event OrderPlaced(address indexed trader, Order order, bytes signature);
-    event OrderCancelled(address indexed trader, Order order);
-    event OrdersMatched(Order[2] orders, bytes[2] signatures, uint256 fillAmount, address relayer);
-    event LiquidationOrderMatched(address indexed trader, Order order, bytes signature, uint256 fillAmount, address relayer);
+    event OrderPlaced(address indexed trader, bytes32 indexed orderHash, Order order, bytes signature);
+    event OrderCancelled(address indexed trader, bytes32 indexed orderHash);
+    event OrdersMatched(bytes32 indexed orderHash0, bytes32 indexed orderHash1, uint256 fillAmount, uint price, uint openInterestNotional, address relayer);
+    event LiquidationOrderMatched(address indexed trader, bytes32 indexed orderHash, bytes signature, uint256 fillAmount, uint price, uint openInterestNotional, address relayer);
+    event OrderMatchingError(bytes32 indexed orderHash, string err);
+    event LiquidationError(address indexed trader, bytes32 indexed orderHash, string err, uint256 toLiquidate);
 
     function executeMatchedOrders(Order[2] memory orders, bytes[2] memory signatures, int256 fillAmount) external;
     function settleFunding() external;
+    function liquidateAndExecuteOrder(address trader, Order memory order, bytes memory signature, uint256 toLiquidate) external;
     function getLastTradePrices() external view returns(uint[] memory lastTradePrices);
-    function liquidateAndExecuteOrder(address trader, Order memory order, bytes memory signature, int toLiquidate) external;
 }

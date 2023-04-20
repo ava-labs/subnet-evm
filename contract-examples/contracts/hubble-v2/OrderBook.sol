@@ -50,31 +50,32 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         bytes[2] memory signatures,
         int256 fillAmount
     )   external
-        /* onlyValidator */
     {
         // Checks and Effects
         require(orders[0].baseAssetQuantity > 0, "OB_order_0_is_not_long");
         require(orders[1].baseAssetQuantity < 0, "OB_order_1_is_not_short");
         require(fillAmount > 0, "OB_fillAmount_is_neg");
         require(orders[0].price /* buy */ >= orders[1].price /* sell */, "OB_orders_do_not_match");
-        (bytes32 orderHash0, uint blockPlaced0) = _verifyOrder(orders[0], signatures[0], fillAmount);
-        (bytes32 orderHash1, uint blockPlaced1) = _verifyOrder(orders[1], signatures[1], -fillAmount);
-        // @todo min fillAmount and min order.baseAsset check
+        // (bytes32 orderHash0, uint blockPlaced0) = _verifyOrder(orders[0], signatures[0], fillAmount);
+        // (bytes32 orderHash1, uint blockPlaced1) = _verifyOrder(orders[1], signatures[1], -fillAmount);
+        (, bytes32 orderHash0) = verifySigner(orders[0], signatures[0]);
+        (, bytes32 orderHash1) = verifySigner(orders[1], signatures[1]);
+        // // @todo min fillAmount and min order.baseAsset check
 
-        // Effects
+        // // Effects
         _updateOrder(orderHash0, fillAmount, orders[0].baseAssetQuantity);
         _updateOrder(orderHash1, -fillAmount, orders[1].baseAssetQuantity);
 
-        // Interactions
+        // // Interactions
         uint fulfillPrice = orders[0].price; // if prices are equal or long blockPlaced <= short blockPlaced
-        if (orders[0].price != orders[1].price && blockPlaced0 > blockPlaced1) {
-            fulfillPrice = orders[1].price;
-        }
+        // if (orders[0].price != orders[1].price && blockPlaced0 > blockPlaced1) {
+        //     fulfillPrice = orders[1].price;
+        // }
 
         _openPosition(orders[0], fillAmount, fulfillPrice);
         _openPosition(orders[1], -fillAmount, fulfillPrice);
 
-        emit OrdersMatched(orders, signatures, fillAmount.toUint256(), msg.sender);
+        emit OrdersMatched(orderHash0, orderHash1, fillAmount.toUint256(), fulfillPrice, fillAmount.toUint256() * fulfillPrice, msg.sender);
     }
 
     /**
@@ -102,16 +103,16 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
     }
 
     function placeOrder(Order memory order, bytes memory signature) external {
-        require(msg.sender == order.trader, "OB_sender_is_not_trader");
+        // require(msg.sender == order.trader, "OB_sender_is_not_trader");
         // verifying signature here to avoid too many fake placeOrders
         (, bytes32 orderHash) = verifySigner(order, signature);
         // order should not exist in the orderStatus map already
-        require(orderInfo[orderHash].status == OrderStatus.Invalid, "OB_Order_already_exists");
+        // require(orderInfo[orderHash].status == OrderStatus.Invalid, "OB_Order_already_exists");
         orderInfo[orderHash] = OrderInfo(block.number, 0, OrderStatus.Placed);
         // @todo assert margin requirements for placing the order
         // @todo min size requirement while placing order
 
-        emit OrderPlaced(order.trader, order, signature);
+        emit OrderPlaced(order.trader, orderHash, order, signature);
     }
 
     function cancelOrder(Order memory order) external {
@@ -121,7 +122,7 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         require(orderInfo[orderHash].status == OrderStatus.Placed, "OB_Order_does_not_exist");
         orderInfo[orderHash].status = OrderStatus.Cancelled;
 
-        emit OrderCancelled(order.trader, order);
+        emit OrderCancelled(order.trader, orderHash);
     }
 
     /**
@@ -137,14 +138,15 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
     @param signature signature corresponding to order
     @param toLiquidate baseAsset amount being traded/liquidated. -ve if short position is being liquidated, +ve if long
     */
-    function liquidateAndExecuteOrder(address trader, Order memory order, bytes memory signature, int toLiquidate) external {
+    function liquidateAndExecuteOrder(address trader, Order memory order, bytes memory signature, uint256 toLiquidate) external {
         // liquidate
-        positions[order.ammIndex][trader].openNotional -= (order.price * abs(toLiquidate).toUint256() / 1e18);
-        positions[order.ammIndex][trader].size -= toLiquidate;
+        positions[order.ammIndex][trader].openNotional -= (order.price * toLiquidate / 1e18);
+        positions[order.ammIndex][trader].size -= toLiquidate.toInt256();
 
-        (bytes32 orderHash,) = _verifyOrder(order, signature, toLiquidate);
-        _updateOrder(orderHash, toLiquidate, order.baseAssetQuantity);
-        _openPosition(order, toLiquidate, order.price);
+        (bytes32 orderHash,) = _verifyOrder(order, signature, toLiquidate.toInt256());
+        _updateOrder(orderHash, toLiquidate.toInt256(), order.baseAssetQuantity);
+        _openPosition(order, toLiquidate.toInt256(), order.price);
+        emit LiquidationOrderMatched(trader, orderHash, signature, toLiquidate, order.price, order.price * toLiquidate, msg.sender);
     }
 
     /* ****************** */
@@ -160,12 +162,13 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
 
     function verifySigner(Order memory order, bytes memory signature) public view returns (address, bytes32) {
         bytes32 orderHash = getOrderHash(order);
-        address signer = ECDSAUpgradeable.recover(orderHash, signature);
 
+        // removed because verification is not required
+        // address signer = ECDSAUpgradeable.recover(orderHash, signature);
         // OB_SINT: Signer Is Not Trader
-        require(signer == order.trader, "OB_SINT");
+        // require(signer == order.trader, "OB_SINT");
 
-        return (signer, orderHash);
+        return (order.trader, orderHash);
     }
 
     function getOrderHash(Order memory order) public view returns (bytes32) {
