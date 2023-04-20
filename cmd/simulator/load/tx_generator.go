@@ -7,22 +7,13 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"math/big"
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
-	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 type CreateTx func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error)
-
-type TxData struct {
-	To    *common.Address
-	Data  []byte
-	Value *big.Int
-	Gas   uint64
-}
 
 // GenerateTxSequence fetches the current nonce of key and calls [generator] [numTxs] times sequentially to generate a sequence of transactions.
 func GenerateTxSequence(ctx context.Context, generator CreateTx, client ethclient.Client, key *ecdsa.PrivateKey, numTxs uint64) ([]*types.Transaction, error) {
