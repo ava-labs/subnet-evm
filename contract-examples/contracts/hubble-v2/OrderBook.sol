@@ -112,7 +112,7 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         // @todo assert margin requirements for placing the order
         // @todo min size requirement while placing order
 
-        emit OrderPlaced(order.trader, orderHash, order, signature);
+        emit OrderPlaced(order.trader, orderHash, order, signature, block.timestamp);
     }
 
     function cancelOrder(Order memory order) external {

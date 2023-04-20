@@ -31,7 +31,7 @@ interface IOrderBook {
         OrderExecutionMode mode;
     }
 
-    event OrderPlaced(address indexed trader, bytes32 indexed orderHash, Order order, bytes signature);
+    event OrderPlaced(address indexed trader, bytes32 indexed orderHash, Order order, bytes signature, uint timestamp);
     event OrderCancelled(address indexed trader, bytes32 indexed orderHash);
     event OrdersMatched(bytes32 indexed orderHash0, bytes32 indexed orderHash1, uint256 fillAmount, uint price, uint openInterestNotional, address relayer);
     event LiquidationOrderMatched(address indexed trader, bytes32 indexed orderHash, bytes signature, uint256 fillAmount, uint price, uint openInterestNotional, address relayer);

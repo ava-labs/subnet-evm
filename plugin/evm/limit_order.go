@@ -34,7 +34,6 @@ type limitOrderProcesser struct {
 	limitOrderTxProcessor  limitorders.LimitOrderTxProcessor
 	contractEventProcessor *limitorders.ContractEventsProcessor
 	buildBlockPipeline     *limitorders.BuildBlockPipeline
-	mu                     sync.Mutex
 	filterAPI              *filters.FilterAPI
 }
 
@@ -153,9 +152,6 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 }
 
 func (lop *limitOrderProcesser) handleChainAcceptedEvent(event core.ChainEvent) {
-	lop.mu.Lock()
-	defer lop.mu.Unlock()
-
 	block := event.Block
 	log.Info("#### received ChainAcceptedEvent", "number", block.NumberU64(), "hash", block.Hash().String())
 	lop.memoryDb.Accept(block.NumberU64())

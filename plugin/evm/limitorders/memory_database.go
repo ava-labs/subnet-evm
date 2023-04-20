@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -147,7 +146,7 @@ type LimitOrderDatabase interface {
 }
 
 type InMemoryDatabase struct {
-	mu              sync.Mutex                  `json:"-"`
+	mu              sync.RWMutex                `json:"-"`
 	OrderMap        map[common.Hash]*LimitOrder `json:"order_map"`  // ID => order
 	TraderMap       map[common.Address]*Trader  `json:"trader_map"` // address => trader info
 	NextFundingTime uint64                      `json:"next_funding_time"`
@@ -168,6 +167,9 @@ func NewInMemoryDatabase() *InMemoryDatabase {
 }
 
 func (db *InMemoryDatabase) Accept(blockNumber uint64) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	for orderId, order := range db.OrderMap {
 		lifecycle := order.getOrderStatus()
 		if lifecycle.Status != Placed && lifecycle.BlockNumber <= blockNumber {
@@ -204,8 +206,8 @@ func (db *InMemoryDatabase) RevertLastStatus(orderId common.Hash) error {
 }
 
 func (db *InMemoryDatabase) GetAllOrders() []LimitOrder {
-	db.mu.Lock()
-	defer db.mu.Unlock()
+	db.mu.RLock() // only read lock required
+	defer db.mu.RUnlock()
 
 	allOrders := []LimitOrder{}
 	for _, order := range db.OrderMap {
@@ -253,16 +255,23 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, ord
 }
 
 func (db *InMemoryDatabase) GetNextFundingTime() uint64 {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	return db.NextFundingTime
 }
 
 func (db *InMemoryDatabase) UpdateNextFundingTime(nextFundingTime uint64) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	db.NextFundingTime = nextFundingTime
 }
 
 func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []LimitOrder {
-	db.mu.Lock()
-	defer db.mu.Unlock()
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	var longOrders []LimitOrder
 	for _, order := range db.OrderMap {
 		if order.PositionType == "long" &&
@@ -277,8 +286,9 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []Limi
 }
 
 func (db *InMemoryDatabase) GetShortOrders(market Market, cutoff *big.Int) []LimitOrder {
-	db.mu.Lock()
-	defer db.mu.Unlock()
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	var shortOrders []LimitOrder
 	for _, order := range db.OrderMap {
 		if order.PositionType == "short" &&
@@ -293,6 +303,9 @@ func (db *InMemoryDatabase) GetShortOrders(market Market, cutoff *big.Int) []Lim
 }
 
 func (db *InMemoryDatabase) UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	if _, ok := db.TraderMap[trader]; !ok {
 		db.TraderMap[trader] = &Trader{
 			Positions: map[Market]*Position{},
@@ -309,6 +322,9 @@ func (db *InMemoryDatabase) UpdateMargin(trader common.Address, collateral Colla
 }
 
 func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	if _, ok := db.TraderMap[trader]; !ok {
 		db.TraderMap[trader] = &Trader{
 			Positions: map[Market]*Position{},
@@ -333,6 +349,9 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 }
 
 func (db *InMemoryDatabase) UpdateUnrealisedFunding(market Market, cumulativePremiumFraction *big.Int) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	for _, trader := range db.TraderMap {
 		position := trader.Positions[market]
 		if position != nil {
@@ -342,6 +361,9 @@ func (db *InMemoryDatabase) UpdateUnrealisedFunding(market Market, cumulativePre
 }
 
 func (db *InMemoryDatabase) ResetUnrealisedFunding(market Market, trader common.Address, cumulativePremiumFraction *big.Int) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	if db.TraderMap[trader] != nil {
 		if _, ok := db.TraderMap[trader].Positions[market]; ok {
 			db.TraderMap[trader].Positions[market].UnrealisedFunding = big.NewInt(0)
@@ -351,14 +373,23 @@ func (db *InMemoryDatabase) ResetUnrealisedFunding(market Market, trader common.
 }
 
 func (db *InMemoryDatabase) UpdateLastPrice(market Market, lastPrice *big.Int) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
 	db.LastPrice[market] = lastPrice
 }
 
 func (db *InMemoryDatabase) GetLastPrice(market Market) *big.Int {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	return db.LastPrice[market]
 }
 
 func (db *InMemoryDatabase) GetAllTraders() map[common.Address]Trader {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	traderMap := map[common.Address]Trader{}
 	for address, trader := range db.TraderMap {
 		traderMap[address] = *trader
@@ -396,21 +427,10 @@ func sortShortOrders(orders []LimitOrder) []LimitOrder {
 	return orders
 }
 
-func getNextHour() time.Time {
-	now := time.Now().UTC()
-	nextHour := now.Round(time.Hour)
-	if time.Since(nextHour) >= 0 {
-		nextHour = nextHour.Add(time.Hour)
-	}
-	return nextHour
-}
-
-func deleteOrder(db *InMemoryDatabase, id common.Hash) {
-	log.Info("#### deleting order", "orderId", id)
-	delete(db.OrderMap, id)
-}
-
 func (db *InMemoryDatabase) GetOrderBookData() InMemoryDatabase {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	return *db
 }
 
