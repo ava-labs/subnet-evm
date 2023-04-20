@@ -51,10 +51,40 @@ func (w *Worker) ExecuteTxsFromAddress(ctx context.Context) error {
 // Assumes that a non-zero number of transactions were already generated and that they were issued
 // by this worker.
 func (w *Worker) AwaitTxs(ctx context.Context) error {
-	lastPendingTx := w.txs[len(w.txs)-1]
-	return awaitNonce(ctx, w.client, w.address, lastPendingTx.Nonce())
+	nonce := w.txs[len(w.txs)-1].Nonce()
+
+	newHeads := make(chan *types.Header)
+	defer close(newHeads)
+
+	sub, err := w.client.SubscribeNewHead(ctx, newHeads)
+	if err != nil {
+		log.Debug("failed to subscribe new heads, falling back to polling", "err", err)
+	} else {
+		defer sub.Unsubscribe()
+	}
+
+	for {
+		select {
+		case <-newHeads:
+		case <-time.After(time.Second):
+		case <-ctx.Done():
+			return fmt.Errorf("failed to await nonce: %w", ctx.Err())
+		}
+
+		currentNonce, err := w.client.NonceAt(ctx, w.address, nil)
+		if err != nil {
+			log.Warn("failed to get nonce", "err", err)
+		}
+		if currentNonce >= nonce {
+			return nil
+		} else {
+			log.Info("fetched nonce", "awaiting", nonce, "currentNonce", currentNonce)
+		}
+	}
 }
 
+// ConfirmAllTransactions iterates over every transaction of this worker and confirms it
+// via eth_getTransactionByHash
 func (w *Worker) ConfirmAllTransactions(ctx context.Context) error {
 	for i, tx := range w.txs {
 		_, isPending, err := w.client.TransactionByHash(ctx, tx.Hash())
@@ -78,35 +108,4 @@ func (w *Worker) Execute(ctx context.Context) error {
 		return err
 	}
 	return w.ConfirmAllTransactions(ctx)
-}
-
-func awaitNonce(ctx context.Context, client ethclient.Client, address common.Address, nonce uint64) error {
-	newHeads := make(chan *types.Header)
-	defer close(newHeads)
-
-	sub, err := client.SubscribeNewHead(ctx, newHeads)
-	if err != nil {
-		log.Debug("failed to subscribe new heads, falling back to polling", "err", err)
-	} else {
-		defer sub.Unsubscribe()
-	}
-
-	for {
-		select {
-		case <-newHeads:
-		case <-time.After(time.Second):
-		case <-ctx.Done():
-			return fmt.Errorf("failed to await nonce: %w", ctx.Err())
-		}
-
-		currentNonce, err := client.NonceAt(ctx, address, nil)
-		if err != nil {
-			log.Warn("failed to get nonce", "err", err)
-		}
-		if currentNonce >= nonce {
-			return nil
-		} else {
-			log.Info("fetched nonce", "awaiting", nonce, "currentNonce", currentNonce)
-		}
-	}
 }

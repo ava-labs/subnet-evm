@@ -44,7 +44,11 @@ func main() {
 	}
 	log.Root().SetHandler(log.LvlFilterHandler(logLevel, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 
-	config := config.BuildConfig(v)
+	config, err := config.BuildConfig(v)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		os.Exit(1)
+	}
 	if err := load.ExecuteLoader(context.Background(), config); err != nil {
 		fmt.Printf("load execution failed: %s\n", err)
 		os.Exit(1)

@@ -5,19 +5,21 @@ package load
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds
 // from the key with the highest starting balance.
-// This function should never return a set of keys with length less than [numKeys]
+// This function will never return a set of keys with length less than [numKeys]
 func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.Key, numKeys int, minFundsPerAddr *big.Int) ([]*key.Key, error) {
 	if len(keys) < numKeys {
 		return nil, fmt.Errorf("insufficient number of keys %d < %d", len(keys), numKeys)
@@ -67,10 +69,6 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch chainID: %w", err)
 	}
-	nonce, err := client.NonceAt(ctx, maxFundsKey.Address, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch nonce of address %s: %w", maxFundsKey.Address, err)
-	}
 	gasFeeCap, err := client.EstimateBaseFee(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch estimated base fee: %w", err)
@@ -83,7 +81,27 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 
 	// Generate a sequence of transactions to distribute the required funds.
 	log.Info("Generating distribution transactions")
-	txs, err := GenerateFundDistributionTxSequence(maxFundsKey.PrivKey, chainID, signer, nonce, gasFeeCap, gasTipCap, needFundsAddrs, minFundsPerAddr)
+	addrs := make([]common.Address, len(needFundsAddrs))
+	copy(addrs, needFundsAddrs)
+	i := 0
+	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
+		tx, err := types.SignNewTx(key, signer, &types.DynamicFeeTx{
+			ChainID:   chainID,
+			Nonce:     nonce,
+			GasTipCap: gasTipCap,
+			GasFeeCap: gasFeeCap,
+			Gas:       params.TxGas,
+			To:        &addrs[i],
+			Data:      nil,
+			Value:     requiredFunds,
+		})
+		if err != nil {
+			return nil, err
+		}
+		i++
+		return tx, nil
+	}
+	txs, err := GenerateTxSequence(ctx, txGenerator, client, maxFundsKey.PrivKey, uint64(len(addrs)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate fund distribution sequence from %s of length %d", maxFundsKey.Address, len(needFundsAddrs))
 	}

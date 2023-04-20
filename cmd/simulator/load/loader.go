@@ -8,23 +8,21 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
-	"os"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
+// CreateLoader creates a WorkerGroup from [config] to perform the specified simulation.
 func CreateLoader(ctx context.Context, config config.Config) (*WorkerGroup, error) {
 	// Construct the arguments for the load simulator
-	switch {
-	case len(config.Endpoints) == 0:
-		fmt.Printf("Must specify at least one clientURI\n")
-		os.Exit(1)
-	case len(config.Endpoints) < config.Workers:
+	if len(config.Endpoints) < config.Workers {
 		// Ensure there are at least [config.Workers] config.Endpoints by creating
 		// duplicates as needed.
 		for i := 0; len(config.Endpoints) < config.Workers; i++ {
@@ -58,6 +56,8 @@ func CreateLoader(ctx context.Context, config config.Config) (*WorkerGroup, erro
 		}
 	}
 
+	// Each address needs: params.GWei * MaxFeeCap * params.TxGas * TxsPerWorker total wei
+	// to fund gas for all of their transactions.
 	maxFeeCap := new(big.Int).Mul(big.NewInt(params.GWei), big.NewInt(config.MaxFeeCap))
 	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*params.TxGas)))
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
@@ -76,25 +76,40 @@ func CreateLoader(ctx context.Context, config config.Config) (*WorkerGroup, erro
 	bigGwei := big.NewInt(params.GWei)
 	gasTipCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxTipCap))
 	gasFeeCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxFeeCap))
+	client := clients[0]
+	chainID, err := client.ChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch chainID: %w", err)
+	}
+	signer := types.LatestSignerForChainID(chainID)
 
-	txSequences, err := GenerateTxSequences(ctx, clients[0], pks, gasFeeCap, gasTipCap, config.TxsPerWorker)
+	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
+		addr := ethcrypto.PubkeyToAddress(key.PublicKey)
+		tx, err := types.SignNewTx(key, signer, &types.DynamicFeeTx{
+			ChainID:   chainID,
+			Nonce:     nonce,
+			GasTipCap: gasTipCap,
+			GasFeeCap: gasFeeCap,
+			Gas:       params.TxGas,
+			To:        &addr,
+			Data:      nil,
+			Value:     common.Big0,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return tx, nil
+	}
+	txSequences, err := GenerateTxSequences(ctx, txGenerator, clients[0], pks, config.TxsPerWorker)
 	if err != nil {
 		return nil, err
-	}
-	if len(clients) < config.Workers {
-		return nil, fmt.Errorf("less clients %d than requested workers %d", len(clients), config.Workers)
-	}
-	if len(senders) < config.Workers {
-		return nil, fmt.Errorf("less senders %d than requested workers %d", len(senders), config.Workers)
-	}
-	if len(txSequences) < config.Workers {
-		return nil, fmt.Errorf("less txSequences %d than requested workers %d", len(txSequences), config.Workers)
 	}
 
 	wg := NewWorkerGroup(clients[:config.Workers], senders[:config.Workers], txSequences[:config.Workers])
 	return wg, nil
 }
 
+// ExecuteLoader runs the load simulation specified by config.
 func ExecuteLoader(ctx context.Context, config config.Config) error {
 	if config.Timeout > 0 {
 		var cancel context.CancelFunc

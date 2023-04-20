@@ -18,7 +18,7 @@ type WorkerGroup struct {
 	Workers []*Worker
 }
 
-func NewWorkerGroup(clients []ethclient.Client, senders []common.Address, txSequences []types.Transactions) *WorkerGroup {
+func NewWorkerGroup(clients []ethclient.Client, senders []common.Address, txSequences [][]*types.Transaction) *WorkerGroup {
 	workers := make([]*Worker, len(clients))
 	for i, client := range clients {
 		workers[i] = NewWorker(client, senders[i], txSequences[i])
@@ -41,24 +41,32 @@ func (wg *WorkerGroup) executeTask(ctx context.Context, f func(ctx context.Conte
 	return eg.Wait()
 }
 
+// IssueTxs concurrently issues transactions from each worker
 func (wg *WorkerGroup) IssueTxs(ctx context.Context) error {
 	return wg.executeTask(ctx, func(ctx context.Context, w *Worker) error {
 		return w.ExecuteTxsFromAddress(ctx)
 	})
 }
 
+// AwaitTxs concurrently waits for each worker to confirm the nonce of its last issued transaction.
 func (wg *WorkerGroup) AwaitTxs(ctx context.Context) error {
 	return wg.executeTask(ctx, func(ctx context.Context, w *Worker) error {
 		return w.AwaitTxs(ctx)
 	})
 }
 
+// ConfirmAllTransactions concurrently waits for each worker to confirm each transaction by checking
+// for it via eth_getTransactionByHash
 func (wg *WorkerGroup) ConfirmAllTransactions(ctx context.Context) error {
 	return wg.executeTask(ctx, func(ctx context.Context, w *Worker) error {
 		return w.ConfirmAllTransactions(ctx)
 	})
 }
 
+// Execute performs executes the following steps in order:
+// - IssueTxs
+// - AwaitTxs
+// - ConfirmAllTransactions
 func (wg *WorkerGroup) Execute(ctx context.Context) error {
 	start := time.Now()
 	defer func() {
