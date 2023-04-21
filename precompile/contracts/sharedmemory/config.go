@@ -126,7 +126,7 @@ type AtomicPredicate struct {
 
 // VerifyPredicate verifies that the UTXOs specified by [predicateBytes] are present in shared memory, valid, and
 // have not been consumed yet.
-// VerifyPredicated is called before the transaction execution, so it is up to the precompile implementation to validate
+// VerifyPredicate is called before the transaction execution, so it is up to the precompile implementation to validate
 // that the caller has permission to consume the UTXO and how consuming the UTXO works.
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PrecompilePredicateContext, predicateBytes []byte) error {
 	atomicPredicate := new(AtomicPredicate)
