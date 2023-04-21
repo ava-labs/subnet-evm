@@ -35,6 +35,11 @@ type LimitOrderTxProcessor interface {
 	GetUnderlyingPrice() ([]*big.Int, error)
 }
 
+type ValidatorTxFeeConfig struct {
+	baseFeeEstimate *big.Int
+	blockNumber     uint64
+}
+
 type limitOrderTxProcessor struct {
 	txPool                       *core.TxPool
 	memoryDb                     LimitOrderDatabase
@@ -47,6 +52,7 @@ type limitOrderTxProcessor struct {
 	backend                      *eth.EthAPIBackend
 	validatorAddress             common.Address
 	validatorPrivateKey          string
+	validatorTxFeeConfig         ValidatorTxFeeConfig
 }
 
 // Order type is copy of Order struct defined in Orderbook contract
@@ -82,7 +88,7 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 		panic("Unable to get address from validator private key")
 	}
 
-	return &limitOrderTxProcessor{
+	lotp := &limitOrderTxProcessor{
 		txPool:                       txPool,
 		orderBookABI:                 orderBookABI,
 		clearingHouseABI:             clearingHouseABI,
@@ -94,7 +100,10 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 		backend:                      backend,
 		validatorAddress:             validatorAddress,
 		validatorPrivateKey:          validatorPrivateKey,
+		validatorTxFeeConfig:         ValidatorTxFeeConfig{baseFeeEstimate: big.NewInt(0), blockNumber: 0},
 	}
+	lotp.updateValidatorTxFeeConfig()
+	return lotp
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error {
@@ -121,6 +130,7 @@ func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrd
 }
 
 func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contractABI abi.ABI, method string, args ...interface{}) error {
+	lotp.updateValidatorTxFeeConfig()
 	nonce := lotp.txPool.GetOrderBookTxNonce(common.HexToAddress(lotp.validatorAddress.Hex())) // admin address
 
 	data, err := contractABI.Pack(method, args...)
@@ -133,7 +143,7 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 		log.Error("HexToECDSA failed", "err", err)
 		return err
 	}
-	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 5000000, big.NewInt(70000000000), data)
+	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 1000000, lotp.validatorTxFeeConfig.baseFeeEstimate, data)
 	signer := types.NewLondonSigner(lotp.backend.ChainConfig().ChainID)
 	signedTx, err := types.SignTx(tx, signer, key)
 	if err != nil {
@@ -147,6 +157,25 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 	log.Info("executeLocalTx - AddOrderBookTx success", "tx", signedTx.Hash().String(), "nonce", nonce)
 
 	return nil
+}
+
+func (lotp *limitOrderTxProcessor) getBaseFeeEstimate() *big.Int {
+	baseFeeEstimate, err := lotp.backend.EstimateBaseFee(context.TODO())
+	if err != nil {
+		baseFeeEstimate = big.NewInt(0).Abs(lotp.backend.CurrentBlock().BaseFee())
+		log.Info("Error in calculating updated bassFee, using last header's baseFee", "baseFeeEstimate", baseFeeEstimate)
+	}
+	return baseFeeEstimate
+}
+
+func (lotp *limitOrderTxProcessor) updateValidatorTxFeeConfig() {
+	currentBlockNumber := lotp.backend.CurrentBlock().NumberU64()
+	if lotp.validatorTxFeeConfig.blockNumber < currentBlockNumber {
+		baseFeeEstimate := lotp.getBaseFeeEstimate()
+		log.Info("inside lotp updating txFeeConfig", "blockNumber", currentBlockNumber, "baseFeeEstimate", baseFeeEstimate)
+		lotp.validatorTxFeeConfig.baseFeeEstimate = baseFeeEstimate
+		lotp.validatorTxFeeConfig.blockNumber = currentBlockNumber
+	}
 }
 
 func (lotp *limitOrderTxProcessor) PurgeLocalTx() {
