@@ -96,7 +96,7 @@ func BuildViper(fs *pflag.FlagSet, args []string) (*viper.Viper, error) {
 	return v, nil
 }
 
-// BuildFlagSet returns a complete set of flags for avalanchego
+// BuildFlagSet returns a complete set of flags for simulator
 func BuildFlagSet() *pflag.FlagSet {
 	fs := pflag.NewFlagSet("simulator", pflag.ContinueOnError)
 	addSimulatorFlags(fs)
