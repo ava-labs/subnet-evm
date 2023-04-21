@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# This script runs a 30s load simulation using RPC_ENDPOINTS environment variable to specify
+# which RPC endpoints to hit.
+
 set -e
 
 echo "Beginning simulator script"
