@@ -52,6 +52,11 @@ type StateDB interface {
 
 	Snapshot() int
 	RevertToSnapshot(int)
+
+	TxHash() common.Hash
+	GetNumLogs(txHash common.Hash) int
+	GetStateVariableLength(common.Address, string) string
+	SetStateVariableLength(common.Address, string, string)
 }
 
 // AccessibleState defines the interface exposed to stateful precompile contracts

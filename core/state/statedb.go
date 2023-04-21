@@ -356,6 +356,17 @@ func (s *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
 	return common.Hash{}
 }
 
+// GetStateVariableLength is similar to GetState, except that is allows
+// for a variable length key returns a variable length value instead of
+// the fixed length of common.Hash.
+func (s *StateDB) GetStateVariableLength(addr common.Address, key string) string {
+	stateObject := s.getStateObject(addr)
+	if stateObject != nil {
+		return string(stateObject.GetState(s.db, Key(key)))
+	}
+	return string(EmptyVal)
+}
+
 // GetProof returns the Merkle proof for a given account.
 func (s *StateDB) GetProof(addr common.Address) ([][]byte, error) {
 	return s.GetProofByHash(crypto.Keccak256Hash(addr.Bytes()))
@@ -464,10 +475,10 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 // SetStateVariableLength is similar to SetState, except that is allows
 // for a variable length key and value to be stored in the storage trie
 // instead of the fixed length of common.Hash.
-func (s *StateDB) SetStateVariableLength(addr common.Address, key Key, value Val) {
+func (s *StateDB) SetStateVariableLength(addr common.Address, key, value string) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SetState(s.db, key, value)
+		stateObject.SetState(s.db, Key(key), Val(value))
 	}
 }
 
@@ -1162,4 +1173,12 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 func (s *StateDB) GetPredicateStorageSlots(address common.Address) ([]byte, bool) {
 	storageSlots, exists := s.predicateStorageSlots[address]
 	return storageSlots, exists
+}
+
+func (s *StateDB) TxHash() common.Hash {
+	return s.thash
+}
+
+func (s *StateDB) GetNumLogs(txHash common.Hash) int {
+	return len(s.logs[txHash])
 }

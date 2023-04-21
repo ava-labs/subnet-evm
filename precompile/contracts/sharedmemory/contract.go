@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/components/verify"
@@ -125,7 +126,19 @@ func exportAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	}
 	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
-	// TODO: add atomic trie handling if we are going to keep it inside of the storage trie
+	// Add the UTXO to the sync record
+	txHash := accessibleState.GetStateDB().TxHash()
+	logIndex := accessibleState.GetStateDB().GetNumLogs(txHash) - 1
+	// TODO: possibly a cleaner way to get the ops
+	_, ops, err := handleExportAVAX(accessibleState.GetSnowContext(), txHash, logIndex, topics, data)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	height := accessibleState.GetBlockContext().Number().Uint64()
+	stateTrie := &stateTrie{accessibleState.GetStateDB()}
+	if err := addAtomicOpsToSyncRecord(codec.Codec, height, inputStruct.DestinationChainID, ops, stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
+	}
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
@@ -180,7 +193,19 @@ func exportUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	}
 	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
-	// TODO: add atomic trie handling if we are going to keep it inside of the storage trie
+	// Add the UTXO to the sync record
+	txHash := accessibleState.GetStateDB().TxHash()
+	logIndex := accessibleState.GetStateDB().GetNumLogs(txHash) - 1
+	// TODO: possibly a cleaner way to get the ops
+	_, ops, err := handleExportUTXO(accessibleState.GetSnowContext(), txHash, logIndex, topics, data)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	height := accessibleState.GetBlockContext().Number().Uint64()
+	stateTrie := &stateTrie{accessibleState.GetStateDB()}
+	if err := addAtomicOpsToSyncRecord(codec.Codec, height, inputStruct.DestinationChainID, ops, stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
+	}
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
@@ -285,10 +310,16 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	if specifiedUTXO == nil {
 		return nil, remainingGas, fmt.Errorf("failed to find UTXO %s in atomic predicate", inputStruct.UtxoID)
 	}
-	// TODO: check to see that the UTXO has not been marked as consumed within the statedb
-
 	if avaxAssetID := accessibleState.GetSnowContext().AVAXAssetID; specifiedUTXO.AssetID() != avaxAssetID {
 		return nil, remainingGas, fmt.Errorf("specified UTXO %s specifies assetID %s, expected AVAXAssetID: %s", inputStruct.UtxoID, specifiedUTXO.AssetID(), avaxAssetID)
+	}
+
+	// Check the UTXO has not been marked as spent within the statedb
+	stateTrie := &stateTrie{accessibleState.GetStateDB()}
+	if spent, err := isSpent(codec.Codec, specifiedUTXO.ID, stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.ID, err)
+	} else if spent {
+		return nil, remainingGas, fmt.Errorf("UTXO %s is already spent", specifiedUTXO.ID)
 	}
 
 	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
@@ -326,6 +357,20 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 		return nil, remainingGas, err
 	}
 	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
+
+	// Mark the UTXO as spent in the statedb
+	if err := markSpent(codec.Codec, specifiedUTXO.ID, stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to mark UTXO %s as spent: %w", specifiedUTXO.ID, err)
+	}
+
+	// Add the UTXO to the sync record
+	requests := &atomic.Requests{
+		RemoveRequests: [][]byte{specifiedUTXO.ID[:]},
+	}
+	height := accessibleState.GetBlockContext().Number().Uint64()
+	if err := addAtomicOpsToSyncRecord(codec.Codec, height, inputStruct.SourceChain, requests, stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
+	}
 
 	// Convert the specified amount to denomination 10^18 and increment the balance
 	amount := big.NewInt(int64(transferOut.Amt))
@@ -403,10 +448,16 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	if specifiedUTXO == nil {
 		return nil, remainingGas, fmt.Errorf("failed to find UTXO %s in atomic predicate", inputStruct.UtxoID)
 	}
-	// TODO: check to see that the UTXO has not been marked as consumed within the statedb
-
 	if avaxAssetID := accessibleState.GetSnowContext().AVAXAssetID; specifiedUTXO.AssetID() == avaxAssetID {
 		return nil, remainingGas, fmt.Errorf("specified UTXO %s specifies AVAXAssetID %s which must be called with importAVAX", inputStruct.UtxoID, avaxAssetID)
+	}
+
+	// Check the UTXO has not been marked as spent within the statedb
+	stateTrie := &stateTrie{accessibleState.GetStateDB()}
+	if spent, err := isSpent(codec.Codec, specifiedUTXO.ID, stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.ID, err)
+	} else if spent {
+		return nil, remainingGas, fmt.Errorf("UTXO %s is already spent", specifiedUTXO.ID)
 	}
 
 	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
@@ -441,6 +492,21 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	}
 	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
+	// Mark the UTXO as spent in the statedb
+	if err := markSpent(codec.Codec, specifiedUTXO.ID, stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to mark UTXO %s as spent: %w", specifiedUTXO.ID, err)
+	}
+
+	// Add the UTXO to the sync record
+	requests := &atomic.Requests{
+		RemoveRequests: [][]byte{specifiedUTXO.ID[:]},
+	}
+	height := accessibleState.GetBlockContext().Number().Uint64()
+	if err := addAtomicOpsToSyncRecord(codec.Codec, height, inputStruct.SourceChain, requests, stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
+	}
+
+	// Create the output
 	addrs := make([]common.Address, 0, len(transferOut.Addrs))
 	for _, addr := range transferOut.Addrs {
 		addrs = append(addrs, common.Address(addr))
