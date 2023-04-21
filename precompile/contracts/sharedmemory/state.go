@@ -58,17 +58,13 @@ func addAtomicOpsToSyncRecord(codec codec.Manager, height uint64, chainID ids.ID
 		return err
 	}
 
-	var syncRecord *atomic.Requests
+	syncRecord := &atomic.Requests{}
+	// If there is an existing sync record, unmarshal it
 	if len(data) > 0 {
-		// If there is an existing sync record, unmarshal it
-		if _, err := codec.Unmarshal(data, syncRecord); err != nil {
+		if _, err := codec.Unmarshal(data, &syncRecord); err != nil {
 			return err
 		}
-	} else {
-		// If there is no existing sync record, create a new one
-		syncRecord = &atomic.Requests{}
 	}
-
 	// Add the atomic ops to the sync record
 	syncRecord.PutRequests = append(syncRecord.PutRequests, requests.PutRequests...)
 	syncRecord.RemoveRequests = append(syncRecord.RemoveRequests, requests.RemoveRequests...)
