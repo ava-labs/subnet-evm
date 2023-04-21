@@ -22,15 +22,9 @@ import (
 // CreateLoader creates a WorkerGroup from [config] to perform the specified simulation.
 func CreateLoader(ctx context.Context, config config.Config) (*WorkerGroup, error) {
 	// Construct the arguments for the load simulator
-	if len(config.Endpoints) < config.Workers {
-		// Ensure there are at least [config.Workers] config.Endpoints by creating
-		// duplicates as needed.
-		for i := 0; len(config.Endpoints) < config.Workers; i++ {
-			config.Endpoints = append(config.Endpoints, config.Endpoints[i])
-		}
-	}
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
-	for _, clientURI := range config.Endpoints {
+	for i := 0; i < config.Workers; i++ {
+		clientURI := config.Endpoints[i%len(config.Endpoints)]
 		client, err := ethclient.Dial(clientURI)
 		if err != nil {
 			return nil, fmt.Errorf("failed to dial client at %s: %w", clientURI, err)

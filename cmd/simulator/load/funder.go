@@ -81,8 +81,6 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 
 	// Generate a sequence of transactions to distribute the required funds.
 	log.Info("Generating distribution transactions")
-	addrs := make([]common.Address, len(needFundsAddrs))
-	copy(addrs, needFundsAddrs)
 	i := 0
 	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
 		tx, err := types.SignNewTx(key, signer, &types.DynamicFeeTx{
@@ -91,7 +89,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 			GasTipCap: gasTipCap,
 			GasFeeCap: gasFeeCap,
 			Gas:       params.TxGas,
-			To:        &addrs[i],
+			To:        &needFundsAddrs[i],
 			Data:      nil,
 			Value:     requiredFunds,
 		})
@@ -101,7 +99,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 		i++
 		return tx, nil
 	}
-	txs, err := GenerateTxSequence(ctx, txGenerator, client, maxFundsKey.PrivKey, uint64(len(addrs)))
+	txs, err := GenerateTxSequence(ctx, txGenerator, client, maxFundsKey.PrivKey, uint64(len(needFundsAddrs)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate fund distribution sequence from %s of length %d", maxFundsKey.Address, len(needFundsAddrs))
 	}

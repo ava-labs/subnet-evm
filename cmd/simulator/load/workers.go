@@ -15,7 +15,7 @@ import (
 )
 
 type WorkerGroup struct {
-	Workers []*Worker
+	workers []*Worker
 }
 
 func NewWorkerGroup(clients []ethclient.Client, senders []common.Address, txSequences [][]*types.Transaction) *WorkerGroup {
@@ -25,13 +25,13 @@ func NewWorkerGroup(clients []ethclient.Client, senders []common.Address, txSequ
 	}
 
 	return &WorkerGroup{
-		Workers: workers,
+		workers: workers,
 	}
 }
 
 func (wg *WorkerGroup) executeTask(ctx context.Context, f func(ctx context.Context, w *Worker) error) error {
 	eg := errgroup.Group{}
-	for _, worker := range wg.Workers {
+	for _, worker := range wg.workers {
 		worker := worker
 		eg.Go(func() error {
 			return f(ctx, worker)
@@ -78,6 +78,7 @@ func (wg *WorkerGroup) Execute(ctx context.Context) error {
 	if err := wg.IssueTxs(ctx); err != nil {
 		return err
 	}
+
 	awaitStart := time.Now()
 	log.Info("Awaiting transactions", "startTime", awaitStart, "executionElapsed", awaitStart.Sub(executionStart))
 	if err := wg.AwaitTxs(ctx); err != nil {
@@ -89,10 +90,11 @@ func (wg *WorkerGroup) Execute(ctx context.Context) error {
 	if err := wg.ConfirmAllTransactions(ctx); err != nil {
 		return err
 	}
+
 	endTime := time.Now()
 	log.Info("Transaction confirmation completed", "confirmationElapsed", endTime.Sub(confirmationStart))
 	totalTxs := 0
-	for _, worker := range wg.Workers {
+	for _, worker := range wg.workers {
 		totalTxs += len(worker.txs)
 	}
 
