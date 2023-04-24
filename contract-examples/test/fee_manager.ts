@@ -3,35 +3,13 @@
 
 import { expect } from "chai";
 import { ethers } from "hardhat"
-const assert = require("assert");
+import { test } from "./utils"
 
 // make sure this is always an admin for the precompile
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const FEE_MANAGER = "0x0200000000000000000000000000000000000003";
 
 const GENESIS_CONFIG = require('../../tests/precompile/genesis/fee_manager.json');
-
-const testFn = (fnName, overrides = {}) => async function () {
-  const tx = await this.testContract["test_" + fnName](overrides)
-  const txReceipt = await tx.wait()
-  const failed = await this.testContract.callStatic.failed()
-
-  if (failed) {
-    console.log('')
-
-    txReceipt
-      .events
-      ?.filter(event => event.event?.startsWith('log'))
-      .map(event => event.args?.forEach(arg => console.log(arg)))
-
-    console.log('')
-  }
-
-  assert(!failed, `${fnName} failed`)
-}
-
-const test = (name, fnName, overrides = {}) => it(name, testFn(fnName, overrides)); 
-test.only = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides));
 
 // TODO: These tests keep state to the next state. It means that some tests cases assumes some preconditions
 // set by previous test cases. We should make these tests stateless.

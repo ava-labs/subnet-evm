@@ -2,41 +2,11 @@
 // See the file LICENSE for licensing terms.
 
 import { ethers } from "hardhat"
-const assert = require("assert");
+import { test } from "./utils"
 
 // make sure this is always an admin for reward manager precompile
 const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const REWARD_MANAGER_ADDRESS = "0x0200000000000000000000000000000000000004";
-
-const testFn = (fnNameOrNames: string | string[], overrides = {}, debug = false) => async function () {
-  const fnNames: string[] = Array.isArray(fnNameOrNames) ? fnNameOrNames : [fnNameOrNames];
-
-  return fnNames.reduce((p: Promise<undefined>, fnName) => p.then(async () => {
-    const tx = await this.testContract['test_' + fnName](overrides)
-    const txReceipt = await tx.wait().catch(err => err.receipt)
-
-    const failed = txReceipt.status !== 0 ? await this.testContract.callStatic.failed() : true
-    
-    if (debug || failed) {
-      console.log('')
-
-      if (!txReceipt.events) console.warn(txReceipt);
-
-      txReceipt
-        .events
-        ?.filter(event => debug || event.event?.startsWith('log'))
-        .map(event => event.args?.forEach(arg => console.log(arg)))
-
-      console.log('')
-    }
-
-    assert(!failed, `${fnName} failed`)
-  }), Promise.resolve());
-}
-
-const test = (name, fnName, overrides = {}) => it(name, testFn(fnName, overrides));
-test.only = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides));
-test.debug = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides, true));
 
 describe("ExampleRewardManager", function () {
   this.timeout("30s")
@@ -56,8 +26,6 @@ describe("ExampleRewardManager", function () {
       .then(([rewardManager]) => rewardManager.setAdmin(this.testContract.address))
       .then(tx => tx.wait())
   })
-
-  it.skip("should add contract deployer as owner", async function () {});
 
   test("should send fees to blackhole", ["sendFeesToBlackhole", "checkSendFeesToBlackhole"])
 
@@ -82,12 +50,6 @@ describe("ExampleRewardManager", function () {
 
   // I don't think it's necessary to test with an EOA since the logic is the same
   it.skip("should be able to receive fees", async function () {})
-
-  // I don't think it's necessary to test with an EOA since the logic is the same
-  it.skip("signer1 should be appointed as reward address", async function () {});
-
-  // I don't think it's necessary to test with an EOA since the logic is the same
-  it.skip("signer1 should be able to receive fees", async function () {})
 
   test("should return false for allowFeeRecipients check", "areFeeRecipientsAllowed")
 

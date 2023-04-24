@@ -2,42 +2,11 @@
 // See the file LICENSE for licensing terms.
 
 import { ethers } from "hardhat"
-const assert = require('assert')
+import { test } from "./utils"
 
 // make sure this is always an admin for minter precompile
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const DEPLOYER_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000";
-
-const testFn = (fnNameOrNames: string | string[], overrides = {}, debug = false) => async function () {
-  const fnNames: string[] = Array.isArray(fnNameOrNames) ? fnNameOrNames : [fnNameOrNames];
-
-  return fnNames.reduce((p: Promise<undefined>, fnName) => p.then(async () => {
-    const tx = await this.testContract['test_' + fnName](overrides)
-    const txReceipt = await tx.wait().catch(err => err.receipt)
-
-    const failed = txReceipt.status !== 0 ? await this.testContract.callStatic.failed() : true
-    
-    if (debug || failed) {
-      console.log('')
-
-      if (!txReceipt.events) console.warn(txReceipt);
-
-      txReceipt
-        .events
-        ?.filter(event => debug || event.event?.startsWith('log'))
-        .map(event => event.args?.forEach(arg => console.log(arg)))
-
-      console.log('')
-    }
-
-    assert(!failed, `${fnName} failed`)
-  }), Promise.resolve());
-}
-
-const test = (name, fnName, overrides = {}) => it(name, testFn(fnName, overrides));
-test.only = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides));
-test.debug = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides, true));
-test.skip = (name, fnName, overrides = {}) => it.skip(name, testFn(fnName, overrides));
 
 describe("ExampleDeployerList", function () {
   beforeEach('Setup DS-Test contract', async function () {
@@ -55,9 +24,6 @@ describe("ExampleDeployerList", function () {
       .then(([allowList]) => allowList.setAdmin(this.testContract.address))
       .then(tx => tx.wait())
   })
-
-  // testing open zeppelin modifier, not necessary
-  it.skip("should add contract deployer as owner", async function () {});
 
   test("precompile should see owner address has admin role", "verifySenderIsAdmin")
 
@@ -79,12 +45,6 @@ describe("ExampleDeployerList", function () {
 
   it.skip("should not let test address to deploy", async function () {});
 
-  // addDeployer in not a function
-  it.skip("should not allow deployer to enable itself", async function () {});
-
-  // addDeployer in not a function
-  it.skip("should not allow admin to enable deployer without enabling contract", async function () {});
-
   test("should allow admin to add contract as admin", "adminAddContractAsAdmin")
 
   it.skip("should allow admin to add contract as admin", async function () {});
@@ -97,19 +57,7 @@ describe("ExampleDeployerList", function () {
 
   it.skip("should let deployer address to deploy", async function () {});
 
-  // addDeployer in not a function
-  it.skip("should not let deployer add another deployer", async function () {});
-
-  // this was just testing a require statement in an example contract
-  it.skip("should not let deployer to revoke admin", async function () {});
-
-  // this was just testing a require statement in an example contract
-  it.skip("should not let deployer to revoke itself", async function () {});
-
   test("should let admin revoke deployer", "adminCanRevokeDeployer")
   
   it.skip("should let admin revoke deployer", async function () {});
-
-  // this was just testing a require statement in an example contract 
-  it.skip("should not let admin to revoke itself", async function () {});
 })

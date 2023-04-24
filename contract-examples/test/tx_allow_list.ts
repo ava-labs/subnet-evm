@@ -2,35 +2,11 @@
 // See the file LICENSE for licensing terms.
 
 import { ethers } from "hardhat"
-const assert = require("assert")
+import { test } from "./utils"
 
 // make sure this is always an admin for minter precompile
 const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const TX_ALLOW_LIST_ADDRESS = "0x0200000000000000000000000000000000000002"
-
-const testFn = (fnName, overrides = {}, debug = false) => async function () {
-  const tx = await this.testContract['test_' + fnName](overrides)
-  const txReceipt = await tx.wait().catch(err => err.receipt)
-
-  const failed = txReceipt.status !== 0 ? await this.testContract.callStatic.failed() : true
-  
-  if (debug || failed) {
-    console.log('')
-
-    txReceipt
-      .events
-      ?.filter(event => debug || event.event?.startsWith('log'))
-      .map(event => event.args?.forEach(arg => console.log(arg)))
-
-    console.log('')
-  }
-
-  assert(!failed, `${fnName} failed`)
-}
-
-const test = (name, fnName, overrides = {}) => it(name, testFn(fnName, overrides));
-test.only = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides));
-test.debug = (name, fnName, overrides = {}) => it.only(name, testFn(fnName, overrides, true));
 
 describe("ExampleTxAllowList", function () {
   beforeEach('Setup DS-Test contract', async function () {
@@ -92,9 +68,6 @@ describe("ExampleTxAllowList", function () {
   // addDeployer is not a function... this test passes for the wrong reasons
   it.skip("should not allow noRole to enable itself", async function () {})
 
-  // this test is redundant with the one above
-  it.skip("should not allow admin to enable noRole without enabling contract", async function () {})
-
   test("should allow admin to add contract as admin", "addContractAsAdmin")
 
   it.skip("should allow admin to add contract as admin", async function () {})
@@ -116,13 +89,7 @@ describe("ExampleTxAllowList", function () {
 
   it.skip("should not let allowed to revoke admin", async function () {})
 
-  // this test is redundant, allowed can't revoke anyone including itself 
-  it.skip("should not let allowed to revoke itself", async function () {})
-
   test("should let admin to revoke allowed", "adminCanRevoke")
 
   it.skip("should let admin to revoke allowed", async function () {})
-
-  // this is only testing a require statement in the example contract
-  it.skip("should not let admin to revoke itself", async function () {})
 })
