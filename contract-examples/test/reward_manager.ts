@@ -27,39 +27,39 @@ describe("ExampleRewardManager", function () {
       .then(tx => tx.wait())
   })
 
-  test("should send fees to blackhole", ["sendFeesToBlackhole", "checkSendFeesToBlackhole"])
+  test("should send fees to blackhole", ["test_sendFeesToBlackhole", "test_checkSendFeesToBlackhole"])
 
   // this contract is not selected as the reward address yet, so should not be able to receive fees
   it.skip("should send fees to blackhole", async function () {})
 
-  test("should not appoint reward address before enabled", "doesNotSetRewardAddressBeforeEnabled")
+  test("should not appoint reward address before enabled", "test_doesNotSetRewardAddressBeforeEnabled")
 
   it.skip("should not appoint reward address before enabled", async function () {});
 
-  test("contract should be added to enabled list", "setEnabled")
+  test("contract should be added to enabled list", "test_setEnabled")
 
   it.skip("contract should be added to enabled list", async function () {});
 
-  test("should be appointed as reward address", "setRewardAddress")
+  test("should be appointed as reward address", "test_setRewardAddress")
 
   it.skip("should be appointed as reward address", async function () {});
 
   // we need to change the fee receiver, send a transaction for the new receiver to receive fees, then check the balance change. 
   // the new fee receiver won't receive fees in the same block where it was set.
-  test("should be able to receive fees", ["setupReceiveFees", "receiveFees", "checkReceiveFees"])
+  test("should be able to receive fees", ["test_setupReceiveFees", "test_receiveFees", "test_checkReceiveFees"])
 
   // I don't think it's necessary to test with an EOA since the logic is the same
   it.skip("should be able to receive fees", async function () {})
 
-  test("should return false for allowFeeRecipients check", "areFeeRecipientsAllowed")
+  test("should return false for allowFeeRecipients check", "test_areFeeRecipientsAllowed")
 
   it.skip("should return false for allowFeeRecipients check", async function () {})
 
-  test("should enable allowFeeRecipients", "allowFeeRecipients")
+  test("should enable allowFeeRecipients", "test_allowFeeRecipients")
 
   it.skip("should enable allowFeeRecipients", async function () {})
 
-  test("should disable reward address", "disableRewardAddress")
+  test("should disable reward address", "test_disableRewardAddress")
 
   it.skip("should disable reward address", async function () {})
 });

@@ -41,7 +41,6 @@ struct FeeConfig {
 // ExampleFeeManager shows how FeeManager precompile can be used in a smart contract
 // All methods of [allowList] can be directly called. There are example calls as tasks in hardhat.config.ts file.
 contract ExampleFeeManager is AllowList {
-  // Precompiled Fee Manager Contract Address
   IFeeManager feeManager = IFeeManager(FEE_MANAGER_ADDRESS);
 
   constructor() AllowList(FEE_MANAGER_ADDRESS) {}

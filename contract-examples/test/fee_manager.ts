@@ -5,14 +5,11 @@ import { expect } from "chai";
 import { ethers } from "hardhat"
 import { test } from "./utils"
 
-// make sure this is always an admin for the precompile
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const FEE_MANAGER = "0x0200000000000000000000000000000000000003";
 
 const GENESIS_CONFIG = require('../../tests/precompile/genesis/fee_manager.json');
 
-// TODO: These tests keep state to the next state. It means that some tests cases assumes some preconditions
-// set by previous test cases. We should make these tests stateless.
 describe("ExampleFeeManager", function () {
   this.timeout("30s")
 
@@ -32,15 +29,15 @@ describe("ExampleFeeManager", function () {
       .then(tx => tx.wait())
   })
 
-  test("should add contract deployer as owner", "addContractDeployerAsOwner");
+  test("should add contract deployer as owner", "test_addContractDeployerAsOwner");
 
-  test("contract should not be able to change fee without enabled", "enableWAGMIFeesFailure"); 
+  test("contract should not be able to change fee without enabled", "test_enableWAGMIFeesFailure"); 
 
-  test("contract should be added to manager list", "addContractToManagerList");
+  test("contract should be added to manager list", "test_addContractToManagerList");
 
-  test("admin should be able to enable change fees", "changeFees");
+  test("admin should be able to enable change fees", "test_changeFees");
 
-  test("should confirm min-fee transaction", "minFeeTransaction", {
+  test("should confirm min-fee transaction", "test_minFeeTransaction", {
     maxFeePerGas: GENESIS_CONFIG.config.feeConfig.minBaseFee,
     maxPriorityFeePerGas: 0,
   })
