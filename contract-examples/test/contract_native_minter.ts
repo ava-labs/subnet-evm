@@ -26,30 +26,13 @@ describe("ERC20NativeMinter", function () {
 
   test("contract should not be able to mintdraw", "test_mintdrawFailure")
 
-  // this contract is not given minter permission yet, so should not mintdraw
-  it.skip("contract should not be able to mintdraw", async function () {})
-
   test("should be added to minter list", "test_addMinter")
-
-  it.skip("should be added to minter list", async function () {});
 
   test("admin should mintdraw", "test_adminMintdraw")
 
-  // admin should mintdraw since it has ERC20 token initially.
-  it.skip("admin should mintdraw", async function () {})
-
   test("minter should not mintdraw ", "test_minterMintdrawFailure")
-
-  // minter should not mintdraw since it has no ERC20 token.
-  it.skip("minter should not mintdraw ", async function () {})
   
   test("should deposit for minter", "test_minterDeposit")
 
-  // minter should not mintdraw since it has no ERC20 token.
-  it.skip("should deposit for minter", async function () {})
-
   test("minter should mintdraw", "test_mintdraw")
-
-  // minter should mintdraw now since it has ERC20 token.
-  it.skip("minter should mintdraw", async function () {})
 })

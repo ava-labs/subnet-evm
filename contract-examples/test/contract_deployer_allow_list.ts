@@ -5,7 +5,7 @@ import { ethers } from "hardhat"
 import { test } from "./utils"
 
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-const DEPLOYER_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000";
+const DEPLOYER_ALLOWLIST_ADDRESS = "0x0200000000000000000000000000000000000000"
 
 describe("ExampleDeployerList", function () {
   beforeEach('Setup DS-Test contract', async function () {
@@ -26,37 +26,19 @@ describe("ExampleDeployerList", function () {
 
   test("precompile should see owner address has admin role", "test_verifySenderIsAdmin")
 
-  it.skip("precompile should see owner address has admin role", async function () {});
-
   test("precompile should see test address has no role", "test_newAddressHasNoRole")
-
-  it.skip("precompile should see test address has no role", async function () {});
 
   test("contract should report test address has no admin role", "test_noRoleIsNotAdmin")
 
-  it.skip("contract should report test address has no admin role", async function () {});
-
   test("contract should report owner address has admin role", "test_ownerIsAdmin")
-
-  it.skip("contract should report owner address has admin role", async function () {});
 
   test("should not let test address deploy", "test_noRoleCannotDeploy")
 
-  it.skip("should not let test address to deploy", async function () {});
-
   test("should allow admin to add contract as admin", "test_adminAddContractAsAdmin")
-
-  it.skip("should allow admin to add contract as admin", async function () {});
 
   test("should allow admin to add deployer address as deployer through contract", "test_addDeployerThroughContract")
 
-  it.skip("should allow admin to add deployer address as deployer through contract", async function () {});
-
   test("should let deployer address to deploy", "test_deployerCanDeploy")
 
-  it.skip("should let deployer address to deploy", async function () {});
-
   test("should let admin revoke deployer", "test_adminCanRevokeDeployer")
-  
-  it.skip("should let admin revoke deployer", async function () {});
 })
