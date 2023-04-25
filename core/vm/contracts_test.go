@@ -80,7 +80,7 @@ var allPrecompiles = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{16}):   &bls12381Pairing{},
 	common.BytesToAddress([]byte{17}):   &bls12381MapG1{},
 	common.BytesToAddress([]byte{18}):   &bls12381MapG2{},
-	common.BytesToAddress([]byte{101}):  &createClient{},
+	common.BytesToAddress([]byte{101}):  &CreateClient{},
 }
 
 // EIP-152 test vectors
@@ -108,9 +108,6 @@ var blake2FMalformedInputTests = []precompiledFailureTest{
 }
 
 func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
-	p := allPrecompiles[common.HexToAddress(addr)]
-	in := common.Hex2Bytes(test.Input)
-	gas := p.RequiredGas(in)
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	statedb.Finalise(true) // Push the state into the "original" slot
@@ -120,9 +117,14 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 	}
 	vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
+	allPrecompiles[common.BytesToAddress([]byte{101})] = NewCreateClient(vmenv)
+
+	p := allPrecompiles[common.HexToAddress(addr)]
+	in := common.Hex2Bytes(test.Input)
+	gas := p.RequiredGas(in)
 
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
-		if res, _, err := RunPrecompiledContract(vmenv, p, in, gas); err != nil {
+		if res, _, err := RunPrecompiledContract(p, in, gas); err != nil {
 			t.Error(err)
 		} else if common.Bytes2Hex(res) != test.Expected {
 			t.Errorf("Expected %v, got %v", test.Expected, common.Bytes2Hex(res))
@@ -139,9 +141,6 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 }
 
 func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
-	p := allPrecompiles[common.HexToAddress(addr)]
-	in := common.Hex2Bytes(test.Input)
-	gas := p.RequiredGas(in) - 1
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	statedb.Finalise(true) // Push the state into the "original" slot
@@ -151,9 +150,14 @@ func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
 		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 	}
 	vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
+	allPrecompiles[common.BytesToAddress([]byte{101})] = NewCreateClient(vmenv)
+
+	p := allPrecompiles[common.HexToAddress(addr)]
+	in := common.Hex2Bytes(test.Input)
+	gas := p.RequiredGas(in) - 1
 
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
-		_, _, err := RunPrecompiledContract(vmenv, p, in, gas)
+		_, _, err := RunPrecompiledContract(p, in, gas)
 		if err.Error() != "out of gas" {
 			t.Errorf("Expected error [out of gas], got [%v]", err)
 		}
@@ -166,9 +170,6 @@ func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
 }
 
 func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing.T) {
-	p := allPrecompiles[common.HexToAddress(addr)]
-	in := common.Hex2Bytes(test.Input)
-	gas := p.RequiredGas(in)
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	statedb.Finalise(true) // Push the state into the "original" slot
@@ -178,9 +179,14 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 	}
 	vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
+	allPrecompiles[common.BytesToAddress([]byte{101})] = NewCreateClient(vmenv)
+
+	p := allPrecompiles[common.HexToAddress(addr)]
+	in := common.Hex2Bytes(test.Input)
+	gas := p.RequiredGas(in)
 
 	t.Run(test.Name, func(t *testing.T) {
-		_, _, err := RunPrecompiledContract(vmenv, p, in, gas)
+		_, _, err := RunPrecompiledContract(p, in, gas)
 		if err.Error() != test.ExpectedError {
 			t.Errorf("Expected error [%v], got [%v]", test.ExpectedError, err)
 		}
@@ -193,6 +199,17 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 }
 
 func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
+
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	statedb.Finalise(true) // Push the state into the "original" slot
+
+	vmctx := BlockContext{
+		CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
+		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
+	}
+	vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
+	allPrecompiles[common.BytesToAddress([]byte{101})] = NewCreateClient(vmenv)
+
 	if test.NoBenchmark {
 		return
 	}
@@ -211,18 +228,9 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 		start := time.Now()
 		bench.ResetTimer()
 
-		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-		statedb.Finalise(true) // Push the state into the "original" slot
-
-		vmctx := BlockContext{
-			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
-			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
-		}
-		vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
-
 		for i := 0; i < bench.N; i++ {
 			copy(data, in)
-			res, _, err = RunPrecompiledContract(vmenv, p, data, reqGas)
+			res, _, err = RunPrecompiledContract(p, data, reqGas)
 		}
 		bench.StopTimer()
 		elapsed := uint64(time.Since(start))
