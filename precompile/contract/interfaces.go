@@ -37,6 +37,9 @@ type StateDB interface {
 	SetNonce(common.Address, uint64)
 	GetNonce(common.Address) uint64
 
+	SetPrecompileState(common.Address, []byte)
+	GetPrecompileState(common.Address) []byte
+
 	GetBalance(common.Address) *big.Int
 	AddBalance(common.Address, *big.Int)
 

@@ -85,6 +85,9 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 	default:
 		precompiles = PrecompiledContractsHomestead
 	}
+	for i, p := range PrecompiledContractsIBCgo {
+		precompiles[i] = p
+	}
 
 	// Check the existing precompiles first
 	p, ok := precompiles[addr]
