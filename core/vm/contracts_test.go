@@ -30,9 +30,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/params"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -75,6 +80,7 @@ var allPrecompiles = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{16}):   &bls12381Pairing{},
 	common.BytesToAddress([]byte{17}):   &bls12381MapG1{},
 	common.BytesToAddress([]byte{18}):   &bls12381MapG2{},
+	common.BytesToAddress([]byte{101}):  &createClient{},
 }
 
 // EIP-152 test vectors
@@ -105,8 +111,18 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 	p := allPrecompiles[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in)
+
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	statedb.Finalise(true) // Push the state into the "original" slot
+
+	vmctx := BlockContext{
+		CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
+		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
+	}
+	vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
+
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
-		if res, _, err := RunPrecompiledContract(p, in, gas); err != nil {
+		if res, _, err := RunPrecompiledContract(vmenv, p, in, gas); err != nil {
 			t.Error(err)
 		} else if common.Bytes2Hex(res) != test.Expected {
 			t.Errorf("Expected %v, got %v", test.Expected, common.Bytes2Hex(res))
@@ -127,8 +143,17 @@ func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in) - 1
 
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	statedb.Finalise(true) // Push the state into the "original" slot
+
+	vmctx := BlockContext{
+		CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
+		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
+	}
+	vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
+
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
-		_, _, err := RunPrecompiledContract(p, in, gas)
+		_, _, err := RunPrecompiledContract(vmenv, p, in, gas)
 		if err.Error() != "out of gas" {
 			t.Errorf("Expected error [out of gas], got [%v]", err)
 		}
@@ -144,8 +169,18 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 	p := allPrecompiles[common.HexToAddress(addr)]
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in)
+
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	statedb.Finalise(true) // Push the state into the "original" slot
+
+	vmctx := BlockContext{
+		CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
+		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
+	}
+	vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
+
 	t.Run(test.Name, func(t *testing.T) {
-		_, _, err := RunPrecompiledContract(p, in, gas)
+		_, _, err := RunPrecompiledContract(vmenv, p, in, gas)
 		if err.Error() != test.ExpectedError {
 			t.Errorf("Expected error [%v], got [%v]", test.ExpectedError, err)
 		}
@@ -175,9 +210,19 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 		bench.ReportAllocs()
 		start := time.Now()
 		bench.ResetTimer()
+
+		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		statedb.Finalise(true) // Push the state into the "original" slot
+
+		vmctx := BlockContext{
+			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
+			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
+		}
+		vmenv := NewEVM(vmctx, TxContext{}, statedb, params.TestChainConfig, Config{ExtraEips: []int{2200}})
+
 		for i := 0; i < bench.N; i++ {
 			copy(data, in)
-			res, _, err = RunPrecompiledContract(p, data, reqGas)
+			res, _, err = RunPrecompiledContract(vmenv, p, data, reqGas)
 		}
 		bench.StopTimer()
 		elapsed := uint64(time.Since(start))
@@ -321,6 +366,7 @@ func TestPrecompiledBLS12381G2MultiExp(t *testing.T) { testJson("blsG2MultiExp",
 func TestPrecompiledBLS12381Pairing(t *testing.T)    { testJson("blsPairing", "10", t) }
 func TestPrecompiledBLS12381MapG1(t *testing.T)      { testJson("blsMapG1", "11", t) }
 func TestPrecompiledBLS12381MapG2(t *testing.T)      { testJson("blsMapG2", "12", t) }
+func TestPrecompiledAddOne(t *testing.T)             { testJson("addOne", "64", t) }
 
 func BenchmarkPrecompiledBLS12381G1Add(b *testing.B)      { benchJson("blsG1Add", "0a", b) }
 func BenchmarkPrecompiledBLS12381G1Mul(b *testing.B)      { benchJson("blsG1Mul", "0b", b) }
@@ -331,6 +377,7 @@ func BenchmarkPrecompiledBLS12381G2MultiExp(b *testing.B) { benchJson("blsG2Mult
 func BenchmarkPrecompiledBLS12381Pairing(b *testing.B)    { benchJson("blsPairing", "10", b) }
 func BenchmarkPrecompiledBLS12381MapG1(b *testing.B)      { benchJson("blsMapG1", "11", b) }
 func BenchmarkPrecompiledBLS12381MapG2(b *testing.B)      { benchJson("blsMapG2", "12", b) }
+func BenchmarkPrecompiledAddOne(b *testing.B)             { benchJson("addOne", "64", b) }
 
 // Failure tests
 func TestPrecompiledBLS12381G1AddFail(t *testing.T)      { testJsonFail("blsG1Add", "0a", t) }
@@ -342,6 +389,7 @@ func TestPrecompiledBLS12381G2MultiExpFail(t *testing.T) { testJsonFail("blsG2Mu
 func TestPrecompiledBLS12381PairingFail(t *testing.T)    { testJsonFail("blsPairing", "10", t) }
 func TestPrecompiledBLS12381MapG1Fail(t *testing.T)      { testJsonFail("blsMapG1", "11", t) }
 func TestPrecompiledBLS12381MapG2Fail(t *testing.T)      { testJsonFail("blsMapG2", "12", t) }
+func TestPrecompiledAddOneFail(t *testing.T)             { testJsonFail("addOne", "64", t) }
 
 func loadJson(name string) ([]precompiledTest, error) {
 	data, err := os.ReadFile(fmt.Sprintf("testdata/precompiles/%v.json", name))
