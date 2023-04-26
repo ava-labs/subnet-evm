@@ -48,4 +48,5 @@ var (
 	ErrAddrProhibited              = errors.New("prohibited address cannot be sender or created contract address")
 	ErrInvalidCoinbase             = errors.New("invalid coinbase")
 	ErrSenderAddressNotAllowListed = errors.New("cannot issue transaction from non-allow listed address")
+	ErrNamedUTXOSpent              = errors.New("utxo named in tx has already been spent")
 )

@@ -134,7 +134,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PrecompilePr
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal shared memory predicate: %w", err)
 	}
-	if version != 0 {
+	if version != codec.CodecVersion {
 		return fmt.Errorf("invalid version for shared memory predicate: %d", version)
 	}
 
@@ -150,10 +150,9 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PrecompilePr
 	}
 
 	// TODO: check that the UTXO has not been marked as consumed within the statedb
-	// XXX make sure this handles the async acceptor here
 
 	for i, specifiedUTXO := range atomicPredicate.ImportedUTXOs {
-		specifiedUTXOBytes, err := codec.Codec.Marshal(0, specifiedUTXO)
+		specifiedUTXOBytes, err := codec.Codec.Marshal(codec.CodecVersion, specifiedUTXO)
 		if err != nil {
 			return fmt.Errorf("failed to marshal specified UTXO: %s", specifiedUTXO.ID)
 		}

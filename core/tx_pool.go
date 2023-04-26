@@ -43,7 +43,9 @@ import (
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/sharedmemory"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -702,6 +704,22 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 			return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, from)
 		}
 	}
+
+	// TODO: consider making this an optional interface for precompiles
+	// If the shared memory precompile is enabled, return an error if the named utxos are spent.
+	if pool.chainconfig.IsPrecompileEnabled(sharedmemory.ContractAddress, headTimestamp) {
+		namedUTXOs, err := sharedmemory.GetNamedUTXOs(tx)
+		if err != nil {
+			return err
+		}
+		for _, utxo := range namedUTXOs {
+			if spent, err := sharedmemory.IsSpent(utxo, pool.currentState); err != nil {
+				return fmt.Errorf("cannot determine if utxos are spent: %w", err)
+			} else if spent {
+				return fmt.Errorf("%w: %s", vmerrs.ErrNamedUTXOSpent, utxo)
+			}
+		}
+	}
 	return nil
 }
 
@@ -767,6 +785,22 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	if txGas := tx.Gas(); txGas < intrGas {
 		return fmt.Errorf("%w: address %v tx gas (%v) < intrinsic gas (%v)", ErrIntrinsicGas, from.Hex(), tx.Gas(), intrGas)
+	}
+
+	// Transaction should satisfy applicable predicates at time of submission.
+	// Note we cannot guarantee the transaction will still be valid at the time
+	// of inclusion, but this is the best we can do.
+	// TODO: is this correct or should we use number+1 / current time?
+	timestamp := new(big.Int).SetUint64(pool.currentHead.Time)
+	rules := pool.chainconfig.AvalancheRules(pool.currentHead.Number, timestamp)
+	predicateCtx := &precompileconfig.ProposerPredicateContext{
+		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+			SnowCtx: pool.chainconfig.AvalancheContext.SnowCtx,
+		},
+		ProposerVMBlockCtx: nil, // TODO: can we get a recent ProposerVMBlockCtx here?
+	}
+	if err := CheckPredicates(rules, predicateCtx, tx); err != nil {
+		return err
 	}
 	return nil
 }

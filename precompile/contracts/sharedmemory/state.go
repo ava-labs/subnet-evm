@@ -5,10 +5,10 @@ package sharedmemory
 
 import (
 	"github.com/ava-labs/avalanchego/chains/atomic"
-	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/utils/codec"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -35,7 +35,11 @@ func (s *stateTrie) Put(key, value []byte) error {
 	return nil
 }
 
-func isSpent(codec codec.Manager, utxo ids.ID, trie trie) (bool, error) {
+func IsSpent(utxo ids.ID, state contract.StateDB) (bool, error) {
+	return isSpent(utxo, &stateTrie{state})
+}
+
+func isSpent(utxo ids.ID, trie trie) (bool, error) {
 	key := mkSpentUTXOKey(utxo)
 	data, err := trie.Get(key)
 	if err != nil {
@@ -44,12 +48,12 @@ func isSpent(codec codec.Manager, utxo ids.ID, trie trie) (bool, error) {
 	return len(data) > 0, nil
 }
 
-func markSpent(codec codec.Manager, utxo ids.ID, trie trie) error {
+func markSpent(utxo ids.ID, trie trie) error {
 	key := mkSpentUTXOKey(utxo)
 	return trie.Put(key, []byte{0})
 }
 
-func addAtomicOpsToSyncRecord(codec codec.Manager, height uint64, chainID ids.ID, requests *atomic.Requests, trie trie) error {
+func addAtomicOpsToSyncRecord(height uint64, chainID ids.ID, requests *atomic.Requests, trie trie) error {
 	key := mkSyncKey(height, chainID)
 
 	// First, get any existing sync record from the trie
@@ -61,7 +65,7 @@ func addAtomicOpsToSyncRecord(codec codec.Manager, height uint64, chainID ids.ID
 	syncRecord := &atomic.Requests{}
 	// If there is an existing sync record, unmarshal it
 	if len(data) > 0 {
-		if _, err := codec.Unmarshal(data, &syncRecord); err != nil {
+		if _, err := codec.Codec.Unmarshal(data, &syncRecord); err != nil {
 			return err
 		}
 	}
@@ -70,7 +74,7 @@ func addAtomicOpsToSyncRecord(codec codec.Manager, height uint64, chainID ids.ID
 	syncRecord.RemoveRequests = append(syncRecord.RemoveRequests, requests.RemoveRequests...)
 
 	// Marshal the sync record
-	data, err = codec.Marshal(0, syncRecord)
+	data, err = codec.Codec.Marshal(codec.CodecVersion, syncRecord)
 	if err != nil {
 		return err
 	}
@@ -84,7 +88,7 @@ func addAtomicOpsToSyncRecord(codec codec.Manager, height uint64, chainID ids.ID
 }
 
 func mkSyncKey(height uint64, blockchainID ids.ID) []byte {
-	packer := wrappers.Packer{Bytes: make([]byte, 0, 1+wrappers.LongLen+common.HashLength)}
+	packer := wrappers.Packer{Bytes: make([]byte, 1+wrappers.LongLen+common.HashLength)}
 	packer.PackByte(syncKeyPrefix)
 	packer.PackLong(height)
 	packer.PackFixedBytes(blockchainID[:])
@@ -92,7 +96,7 @@ func mkSyncKey(height uint64, blockchainID ids.ID) []byte {
 }
 
 func mkSpentUTXOKey(utxo ids.ID) []byte {
-	packer := wrappers.Packer{Bytes: make([]byte, 0, 1+common.HashLength)}
+	packer := wrappers.Packer{Bytes: make([]byte, 1+common.HashLength)}
 	packer.PackByte(spentUTXOPrefix)
 	packer.PackFixedBytes(utxo[:])
 	return packer.Bytes

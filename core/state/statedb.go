@@ -362,7 +362,12 @@ func (s *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
 func (s *StateDB) GetStateVariableLength(addr common.Address, key string) string {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return string(stateObject.GetState(s.db, Key(key)))
+		val := string(stateObject.GetState(s.db, Key(key)))
+		if val != string(EmptyVal) {
+			// remove the first byte, which is the prefix we added to preserve
+			// left-padded zeros.
+			return val[1:]
+		}
 	}
 	return string(EmptyVal)
 }
@@ -477,6 +482,10 @@ func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 // instead of the fixed length of common.Hash.
 func (s *StateDB) SetStateVariableLength(addr common.Address, key, value string) {
 	stateObject := s.GetOrNewStateObject(addr)
+	if value != string(EmptyVal) {
+		// add a non-zero prefix to the value to preserve left-zero padding on value
+		value = "1" + value
+	}
 	if stateObject != nil {
 		stateObject.SetState(s.db, Key(key), Val(value))
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/utils/codec"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
@@ -136,7 +137,7 @@ func exportAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	}
 	height := accessibleState.GetBlockContext().Number().Uint64()
 	stateTrie := &stateTrie{accessibleState.GetStateDB()}
-	if err := addAtomicOpsToSyncRecord(codec.Codec, height, inputStruct.DestinationChainID, ops, stateTrie); err != nil {
+	if err := addAtomicOpsToSyncRecord(height, inputStruct.DestinationChainID, ops, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
 	}
 
@@ -203,7 +204,7 @@ func exportUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	}
 	height := accessibleState.GetBlockContext().Number().Uint64()
 	stateTrie := &stateTrie{accessibleState.GetStateDB()}
-	if err := addAtomicOpsToSyncRecord(codec.Codec, height, inputStruct.DestinationChainID, ops, stateTrie); err != nil {
+	if err := addAtomicOpsToSyncRecord(height, inputStruct.DestinationChainID, ops, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
 	}
 
@@ -289,6 +290,12 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 		return nil, remainingGas, fmt.Errorf("no predicate available to import, caller %s, input: 0x%x, suppliedGas: %d", caller, input, suppliedGas)
 	}
 
+	// Remove any padding
+	predicateBytes, err = utils.UnpackPredicate(predicateBytes)
+	if err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to unpack shared memory predicate: %w", err)
+	}
+
 	atomicPredicate := new(AtomicPredicate)
 	_, err = codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
 	// Note: this should never happen since this should be unmarshalled within the predicate verification
@@ -316,7 +323,7 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 
 	// Check the UTXO has not been marked as spent within the statedb
 	stateTrie := &stateTrie{accessibleState.GetStateDB()}
-	if spent, err := isSpent(codec.Codec, specifiedUTXO.ID, stateTrie); err != nil {
+	if spent, err := isSpent(specifiedUTXO.ID, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.ID, err)
 	} else if spent {
 		return nil, remainingGas, fmt.Errorf("UTXO %s is already spent", specifiedUTXO.ID)
@@ -347,11 +354,12 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	}
 
 	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
+	inputID := specifiedUTXO.InputID()
 	topics, data, err := SharedMemoryABI.PackEvent(
 		"ImportAVAX",
 		transferOut.Amt, // Use the denomination 10^9
 		inputStruct.SourceChain,
-		specifiedUTXO.ID,
+		inputID,
 	)
 	if err != nil {
 		return nil, remainingGas, err
@@ -359,16 +367,16 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
 	// Mark the UTXO as spent in the statedb
-	if err := markSpent(codec.Codec, specifiedUTXO.ID, stateTrie); err != nil {
+	if err := markSpent(specifiedUTXO.ID, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to mark UTXO %s as spent: %w", specifiedUTXO.ID, err)
 	}
 
 	// Add the UTXO to the sync record
 	requests := &atomic.Requests{
-		RemoveRequests: [][]byte{specifiedUTXO.ID[:]},
+		RemoveRequests: [][]byte{inputID[:]},
 	}
 	height := accessibleState.GetBlockContext().Number().Uint64()
-	if err := addAtomicOpsToSyncRecord(codec.Codec, height, inputStruct.SourceChain, requests, stateTrie); err != nil {
+	if err := addAtomicOpsToSyncRecord(height, inputStruct.SourceChain, requests, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
 	}
 
@@ -400,6 +408,11 @@ func PackImportUTXOOutput(outputStruct ImportUTXOOutput) ([]byte, error) {
 	)
 }
 
+// PackImportUTXO packs [inputStruct] of type ImportUTXOInput into the appropriate arguments for importUTXO.
+func PackImportUTXO(inputStruct ImportUTXOInput) ([]byte, error) {
+	return SharedMemoryABI.Pack("importUTXO", inputStruct.SourceChain, inputStruct.UtxoID)
+}
+
 func importUTXO(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	if remainingGas, err = contract.DeductGas(suppliedGas, ImportUTXOGasCost); err != nil {
 		return nil, 0, err
@@ -417,6 +430,12 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	if !exists {
 		return nil, remainingGas, fmt.Errorf("no predicate available to import, caller %s, input: 0x%x, suppliedGas: %d", caller, input, suppliedGas)
+	}
+
+	// Remove any padding
+	predicateBytes, err = utils.UnpackPredicate(predicateBytes)
+	if err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to unpack shared memory predicate: %w", err)
 	}
 
 	atomicPredicate := new(AtomicPredicate)
@@ -454,10 +473,10 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 
 	// Check the UTXO has not been marked as spent within the statedb
 	stateTrie := &stateTrie{accessibleState.GetStateDB()}
-	if spent, err := isSpent(codec.Codec, specifiedUTXO.ID, stateTrie); err != nil {
+	if spent, err := isSpent(specifiedUTXO.ID, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.ID, err)
 	} else if spent {
-		return nil, remainingGas, fmt.Errorf("UTXO %s is already spent", specifiedUTXO.ID)
+		return nil, remainingGas, fmt.Errorf("%w: %s", vmerrs.ErrNamedUTXOSpent, specifiedUTXO.ID)
 	}
 
 	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
@@ -475,17 +494,18 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	}
 
 	assetID := CalculateANTAssetID(common.Hash(accessibleState.GetSnowContext().ChainID), caller)
-	if assetID == common.Hash(specifiedUTXO.AssetID()) {
+	if assetID != common.Hash(specifiedUTXO.AssetID()) {
 		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified incorrect assetID %s for caller %s, with actual assetID: %s", specifiedUTXO.ID, specifiedUTXO.AssetID(), caller, assetID)
 	}
 
 	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
+	inputID := specifiedUTXO.InputID()
 	topics, data, err := SharedMemoryABI.PackEvent(
 		"ImportUTXO",
 		transferOut.Amt,
 		inputStruct.SourceChain,
 		specifiedUTXO.AssetID(),
-		specifiedUTXO.ID,
+		inputID,
 	)
 	if err != nil {
 		return nil, remainingGas, err
@@ -493,16 +513,16 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
 	// Mark the UTXO as spent in the statedb
-	if err := markSpent(codec.Codec, specifiedUTXO.ID, stateTrie); err != nil {
+	if err := markSpent(specifiedUTXO.ID, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to mark UTXO %s as spent: %w", specifiedUTXO.ID, err)
 	}
 
 	// Add the UTXO to the sync record
 	requests := &atomic.Requests{
-		RemoveRequests: [][]byte{specifiedUTXO.ID[:]},
+		RemoveRequests: [][]byte{inputID[:]},
 	}
 	height := accessibleState.GetBlockContext().Number().Uint64()
-	if err := addAtomicOpsToSyncRecord(codec.Codec, height, inputStruct.SourceChain, requests, stateTrie); err != nil {
+	if err := addAtomicOpsToSyncRecord(height, inputStruct.SourceChain, requests, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
 	}
 
