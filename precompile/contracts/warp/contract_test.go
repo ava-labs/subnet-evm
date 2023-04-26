@@ -36,7 +36,7 @@ func TestWarpContractRun(t *testing.T) {
 	tests := map[string]testutils.PrecompileTest{
 		"getBlockchainID success": {
 			Caller: callerAddr,
-			InputFn: func(t *testing.T) []byte {
+			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetBlockchainID()
 				require.NoError(t, err)
 
@@ -53,7 +53,7 @@ func TestWarpContractRun(t *testing.T) {
 		},
 		"getBlockchainID readOnly": {
 			Caller: callerAddr,
-			InputFn: func(t *testing.T) []byte {
+			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetBlockchainID()
 				require.NoError(t, err)
 
@@ -70,7 +70,7 @@ func TestWarpContractRun(t *testing.T) {
 		},
 		"getBlockchainID insufficient gas": {
 			Caller: callerAddr,
-			InputFn: func(t *testing.T) []byte {
+			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetBlockchainID()
 				require.NoError(t, err)
 
@@ -82,32 +82,32 @@ func TestWarpContractRun(t *testing.T) {
 		},
 		"send warp message readOnly": {
 			Caller:      callerAddr,
-			InputFn:     func(t *testing.T) []byte { return sendWarpMessageInput },
+			InputFn:     func(t testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)),
 			ReadOnly:    true,
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
 		"send warp message insufficient gas for first step": {
 			Caller:      callerAddr,
-			InputFn:     func(t *testing.T) []byte { return sendWarpMessageInput },
+			InputFn:     func(t testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: SendWarpMessageGasCost - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"send warp message insufficient gas for payload bytes": {
 			Caller:      callerAddr,
-			InputFn:     func(t *testing.T) []byte { return sendWarpMessageInput },
+			InputFn:     func(t testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)) - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
 		"send warp message success": {
 			Caller:      callerAddr,
-			InputFn:     func(t *testing.T) []byte { return sendWarpMessageInput },
+			InputFn:     func(t testing.TB) []byte { return sendWarpMessageInput },
 			SuppliedGas: SendWarpMessageGasCost + uint64(len(sendWarpMessageInput[4:])*int(SendWarpMessageGasCostPerByte)),
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t *testing.T, state contract.StateDB) {
+			AfterHook: func(t testing.TB, state contract.StateDB) {
 				// XXX: untangle dependency and check that the log was produced correctly
 			},
 		},
