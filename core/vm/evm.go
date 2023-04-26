@@ -85,10 +85,9 @@ func (evm *EVM) precompile(addr common.Address) (contract.StatefulPrecompiledCon
 	default:
 		precompiles = PrecompiledContractsHomestead
 	}
-
-	// PrecompiledContractsIBCgo contains the set of pre-compiled Ethereum
-	// contracts provide cosmos interection with low gas commission.
-	precompiles[common.BytesToAddress([]byte{101})] = newWrappedPrecompiledContract(NewCreateClient(evm))
+	for i, p := range PrecompiledContractsIBCgo {
+		precompiles[i] = p
+	}
 
 	// Check the existing precompiles first
 	p, ok := precompiles[addr]

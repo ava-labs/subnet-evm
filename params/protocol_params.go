@@ -160,7 +160,6 @@ const (
 	Bls12381MapG2Gas          uint64 = 110000 // Gas price for BLS12-381 mapping field element to G2 operation
 
 	CreateClient  uint64 = 1
-	UpdateClient  uint64 = 1
 )
 
 // Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations
