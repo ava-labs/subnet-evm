@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/utils/codec"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -129,6 +130,10 @@ type AtomicPredicate struct {
 // VerifyPredicate is called before the transaction execution, so it is up to the precompile implementation to validate
 // that the caller has permission to consume the UTXO and how consuming the UTXO works.
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PrecompilePredicateContext, predicateBytes []byte) error {
+	predicateBytes, err := utils.UnpackPredicate(predicateBytes)
+	if err != nil {
+		return fmt.Errorf("failed to unpack shared memory predicate: %w", err)
+	}
 	atomicPredicate := new(AtomicPredicate)
 	version, err := codec.Codec.Unmarshal(predicateBytes, atomicPredicate)
 	if err != nil {

@@ -41,10 +41,6 @@ func checkPrecompilePredicates(rules params.Rules, predicateContext *precompilec
 		}
 		precompileAddressChecks[address] = struct{}{}
 		predicateBytes := utils.HashSliceToBytes(accessTuple.StorageKeys)
-		predicateBytes, err := utils.UnpackPredicate(predicateBytes)
-		if err != nil {
-			return fmt.Errorf("predicate %s failed unpacking for tx %s: %w", address, tx.Hash(), err)
-		}
 		if err := predicater.VerifyPredicate(predicateContext, predicateBytes); err != nil {
 			return fmt.Errorf("predicate %s failed verification for tx %s: %w", address, tx.Hash(), err)
 		}
