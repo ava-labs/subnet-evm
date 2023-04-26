@@ -16,6 +16,7 @@ import (
 	engCommon "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
+	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -62,52 +63,94 @@ func setupVMWithSharedMemory(t *testing.T) (*snow.Context, *VM, chan engCommon.M
 	return ctx, vm, issuer, atomicMemory
 }
 
-func TestSharedMemory(t *testing.T) {
+type exportTest struct {
+	assetID    ids.ID
+	utxoAmount uint64
+	avaxSent   uint64
+}
+
+func (et exportTest) run(t *testing.T) {
+	require := require.New(t)
+
+	// Initialize the VM
 	ctx, vm, issuer, atomicMemory := setupVMWithSharedMemory(t)
-	defer func() { require.NoError(t, vm.Shutdown(context.Background())) }()
-
-	// Find the X Chain's shared memory
-	xChainSharedMemory := atomicMemory.NewSharedMemory(ctx.XChainID)
-
-	require.NoError(t, vm.SetState(context.Background(), snow.Bootstrapping))
-	require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
-
+	defer func() { require.NoError(vm.Shutdown(context.Background())) }()
+	require.NoError(vm.SetState(context.Background(), snow.Bootstrapping))
+	require.NoError(vm.SetState(context.Background(), snow.NormalOp))
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	// Note: the addresses specified here must correspond to the account that should control the exported funds on the recipient chain
-	// If this were to be imported to the X-Chain, we would need to use an address derived from an X-Chain private key
-	data, err := sharedmemory.PackExportAVAX(sharedmemory.ExportAVAXInput{
-		DestinationChainID: testXChainID,
-		Locktime:           uint64(0),
-		Threshold:          uint64(1),
-		Addrs:              []common.Address{testEthAddrs[1]},
-	})
-	require.NoError(t, err)
+	// Get the starting balance so we can check that the correct final balance.
+	state, err := vm.blockChain.State()
+	require.NoError(err)
+	startingBalance := state.GetBalance(testEthAddrs[0])
 
-	tx := types.NewTransaction(uint64(0), sharedmemory.ContractAddress, big.NewInt(params.Ether), 200_000, big.NewInt(testMinGasPrice), data)
+	// Note: the output address specified here must correspond to the account that should control
+	// the exported funds on the recipient chain. If this were to be imported to the X-Chain, we
+	// would need to use an address derived from an X-Chain private key.
+	outAddr := common.Address{0xff}
+
+	// Prepare the data for the transaction
+	var txData []byte
+	if et.assetID == vm.ctx.AVAXAssetID {
+		txData, err = sharedmemory.PackExportAVAX(sharedmemory.ExportAVAXInput{
+			DestinationChainID: testXChainID,
+			Locktime:           uint64(0),
+			Threshold:          uint64(1),
+			Addrs:              []common.Address{outAddr},
+		})
+	} else {
+		txData, err = sharedmemory.PackExportUTXO(sharedmemory.ExportUTXOInput{
+			DestinationChainID: testXChainID,
+			Locktime:           uint64(0),
+			Threshold:          uint64(1),
+			Addrs:              []common.Address{outAddr},
+			Amount:             et.utxoAmount,
+		})
+	}
+	require.NoError(err)
+
+	// Sign and submit the transaction
+	tx := types.NewTransaction(
+		uint64(0),
+		sharedmemory.ContractAddress,
+		new(big.Int).SetUint64(et.avaxSent),
+		200_000,
+		big.NewInt(testMinGasPrice),
+		txData,
+	)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
-	require.NoError(t, err)
-
+	require.NoError(err)
 	txErrors := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx})
 	for _, err := range txErrors {
-		require.NoError(t, err)
+		require.NoError(err)
 	}
 
+	// Subscribe to logs so we can verify the expected log
+	logsCh := make(chan []*types.Log, 1)
+	vm.blockChain.SubscribeLogsEvent(logsCh)
+
+	// Build and accept the block
 	blk := issueAndAccept(t, issuer, vm)
 	newHead := <-newTxPoolHeadChan
-	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
+	require.Equal(newHead.Head.Hash(), common.Hash(blk.ID()))
 
-	// Drain the acceptor queue so that we finish processing the atomic operations
-	vm.blockChain.DrainAcceptorQueue()
+	// Verify the expected log
+	logs := <-logsCh
+	require.Len(logs, 1)
+	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	require.Equal(ethBlock.Transactions()[0].Hash(), logs[0].TxHash)
+	// TODO: maybe verify this through the Accepter interface?
 
-	values, _, _, err := xChainSharedMemory.Indexed(ctx.ChainID, [][]byte{testEthAddrs[1][:]}, nil, nil, 100)
-	require.NoError(t, err)
-	require.Len(t, values, 1)
+	// Find the X-Chain's shared memory and verify it contains the expected UTXO.
+	xChainSharedMemory := atomicMemory.NewSharedMemory(ctx.XChainID)
+	values, _, _, err := xChainSharedMemory.Indexed(ctx.ChainID, [][]byte{outAddr[:]}, nil, nil, 100)
+	require.NoError(err)
+	require.Len(values, 1)
 	utxo := &avax.UTXO{}
-	v, err := codec.Codec.Unmarshal(values[0], utxo)
-	require.NoError(t, err)
-	require.Equal(t, uint16(0), v)
+	version, err := codec.Codec.Unmarshal(values[0], utxo)
+	require.NoError(err)
+	require.Equal(codec.CodecVersion, version)
 
 	expectedUTXO := &avax.UTXO{
 		// Derive unique UTXOID from txHash and log index
@@ -115,20 +158,55 @@ func TestSharedMemory(t *testing.T) {
 			TxID:        ids.ID(signedTx.Hash()),
 			OutputIndex: uint32(0),
 		},
-		Asset: avax.Asset{ID: ctx.AVAXAssetID},
+		Asset: avax.Asset{ID: et.assetID},
 		Out: &secp256k1fx.TransferOutput{
-			Amt: 1_000_000_000,
+			Amt: et.utxoAmount,
 			OutputOwners: secp256k1fx.OutputOwners{
 				Locktime:  0,
 				Threshold: uint32(1),
-				Addrs:     []ids.ShortID{ids.ShortID(testEthAddrs[1])},
+				Addrs:     []ids.ShortID{ids.ShortID(outAddr)},
 			},
 		},
 	}
 
-	expectedUTXOBytes, err := codec.Codec.Marshal(uint16(0), expectedUTXO)
-	require.NoError(t, err)
-	require.Equal(t, expectedUTXOBytes, values[0])
+	expectedUTXOBytes, err := codec.Codec.Marshal(codec.CodecVersion, expectedUTXO)
+	require.NoError(err)
+	require.Equal(expectedUTXOBytes, values[0])
+
+	// Check the balance is has decreased by expected amount of exported
+	// AVAX and the fees paid.
+	gasPrice := new(big.Int).Add(
+		ethBlock.BaseFee(),
+		tx.EffectiveGasTipValue(ethBlock.BaseFee()),
+	)
+	feesPaid := new(big.Int).Mul(
+		gasPrice,
+		new(big.Int).SetUint64(ethBlock.GasUsed()), // Note there is only 1 tx in the block
+	)
+	state, err = vm.blockChain.State()
+	require.NoError(err)
+	balance := state.GetBalance(testEthAddrs[0])
+	expected := new(big.Int).Sub(startingBalance, new(big.Int).SetUint64(et.avaxSent))
+	expected.Sub(expected, feesPaid)
+	require.Equal(expected, balance)
+}
+
+func TestExportAssets(t *testing.T) {
+	tests := map[string]exportTest{
+		"import AVAX": {
+			assetID:    testAvaxAssetID,
+			utxoAmount: uint64(1_000_000_000),
+			avaxSent:   params.Ether,
+		},
+		"import non-AVAX": {
+			assetID:    ids.ID(sharedmemory.CalculateANTAssetID(common.Hash(testCChainID), testEthAddrs[0])),
+			utxoAmount: 1,
+			avaxSent:   0,
+		},
+	}
+	for name, et := range tests {
+		t.Run(name, et.run)
+	}
 }
 
 type importTest struct {

@@ -112,7 +112,7 @@ func exportAVAX(accessibleState contract.AccessibleState, caller common.Address,
 
 	balance := accessibleState.GetStateDB().GetBalance(ContractAddress)
 	accessibleState.GetStateDB().SubBalance(ContractAddress, balance)
-	convertedBalance := balance.Div(balance, big.NewInt(1000000000)) // TODO: make var
+	convertedBalance := balance.Div(balance, big.NewInt(1_000_000_000)) // TODO: make var
 
 	topics, data, err := SharedMemoryABI.PackEvent(
 		"ExportAVAX",
