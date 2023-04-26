@@ -30,9 +30,9 @@ const (
 	// SendWarpMessageGasCostPerByte cost accounts for producing a signed message of a given size
 	SendWarpMessageGasCostPerByte uint64 = params.LogDataGas
 
-	GasCostPerWarpSigner            uint64 = 3_000
-	GasCostPerWarpMessageBytes      uint64 = 100    // params.TxDataNonZeroGasEIP2028 // TODO: charge O(n) cost for decoding predicate of input size n
-	GasCostPerSignatureVerification uint64 = 60_000 // ~20x params.Ecrecover (pre-hardware acceleration)
+	GasCostPerWarpSigner            uint64 = 500
+	GasCostPerWarpMessageBytes      uint64 = 100 // TODO: charge O(n) cost for decoding predicate of input size n
+	GasCostPerSignatureVerification uint64 = 200_000
 	// GasCostPerSourceSubnetValidator uint64 = 1 // TODO: charge O(n) cost for subnet validator set lookup
 )
 
