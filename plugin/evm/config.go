@@ -268,6 +268,9 @@ func (c *Config) SetDefaults() {
 	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
+
+	// TODO: remove
+	c.WarpAPIEnabled = true
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {
