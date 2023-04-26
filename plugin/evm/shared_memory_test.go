@@ -193,12 +193,12 @@ func (et exportTest) run(t *testing.T) {
 
 func TestExportAssets(t *testing.T) {
 	tests := map[string]exportTest{
-		"import AVAX": {
+		"export AVAX": {
 			assetID:    testAvaxAssetID,
 			utxoAmount: uint64(1_000_000_000),
 			avaxSent:   params.Ether,
 		},
-		"import non-AVAX": {
+		"export non-AVAX": {
 			assetID:    ids.ID(sharedmemory.CalculateANTAssetID(common.Hash(testCChainID), testEthAddrs[0])),
 			utxoAmount: 1,
 			avaxSent:   0,
