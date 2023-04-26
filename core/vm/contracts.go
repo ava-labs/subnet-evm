@@ -1128,7 +1128,6 @@ func (c *createClient) Run(accessibleState contract.AccessibleState, input []byt
 		8 byte             - consensusStateLen
 		consensusStateLen  - consensusState
 	*/
-	// создать хранилище для переменной
 	b := accessibleState.GetStateDB().GetPrecompileState(common.BytesToAddress([]byte("nextClientSeq")))
 	nextClientSeq := binary.LittleEndian.Uint64(b)
 
