@@ -5,6 +5,7 @@ package warp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -32,6 +33,8 @@ var (
 	sourceChainID      = ids.GenerateTestID()
 	sourceSubnetID     = ids.GenerateTestID()
 	destinationChainID = ids.GenerateTestID()
+
+	errTest = errors.New("non-nil error")
 )
 
 func init() {
@@ -59,17 +62,17 @@ func init() {
 	}
 
 	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
-		testName := fmt.Sprintf("valid warp predicate %d nodes, N validators and N signers", totalNodes)
+		testName := fmt.Sprintf("%d nodes %d signers", totalNodes, totalNodes)
 		predicateTests[testName] = createNValidatorsAndSignersTest(totalNodes)
 	}
 
 	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
-		testName := fmt.Sprintf("valid warp predicate %d nodes, 10 heavily weighted keys", totalNodes)
+		testName := fmt.Sprintf("%d nodes 10 heavily weighted keys", totalNodes)
 		predicateTests[testName] = createMissingPublicKeyTest(10, totalNodes)
 	}
 
 	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
-		testName := fmt.Sprintf("valid warp predicate %d nodes, 10 duplicated keys", totalNodes)
+		testName := fmt.Sprintf("%d nodes 10 duplicated keys", totalNodes)
 		predicateTests[testName] = createDuplicateKeyTest(10, totalNodes)
 	}
 }
@@ -216,6 +219,41 @@ func createDuplicateKeyTest(numKeys int, numValidators int) testutils.PredicateT
 		PredicateErr: nil,
 	}
 }
+
+// func convertPlatformVMSignatureVerificationTest(t *testing.T, test avalancheWarp.SignatureVerificationTest) testutils.PredicateTest {
+// 	quorumNum := test.QuorumNum * 100 / test.QuorumDen // Convert quorumNum to assume a denominator of 100
+// 	snowCtx := snow.DefaultContextTest()
+
+// 	require := require.New(t)
+// 	ctrl := gomock.NewController(t)
+// 	defer ctrl.Finish()
+
+// 	msg := test.MsgF(require)
+// 	pChainState := test.StateF(ctrl)
+// 	snowCtx.ValidatorState = pChainState
+
+// 	return testutils.PredicateTest{
+// 		Config: NewConfig(common.Big0, quorumNum),
+// 		ProposerVMBlockContext: &block.Context{
+// 			PChainHeight: avalancheWarp.PChainHeight,
+// 		},
+// 		SnowContext:  snowCtx,
+// 		StorageSlots: utils.PackPredicate(msg.Bytes()),
+// 		Gas:          0,
+// 		GasErr:       nil,
+// 		PredicateErr: test.Err,
+// 	}
+// }
+
+// func TestWarpSignatureCases(t *testing.T) {
+// 	for _, test := range avalancheWarp.SignatureVerificationTests {
+// 		test := test
+// 		t.Run(test.Name, func(t *testing.T) {
+// 			predicateTest := convertPlatformVMSignatureVerificationTest(t, test)
+// 			predicateTest.Run(t)
+// 		})
+// 	}
+// }
 
 func TestWarpPredicate(t *testing.T) {
 	testutils.RunPredicateTests(t, predicateTests)
