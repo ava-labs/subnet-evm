@@ -253,6 +253,7 @@ func (vm *VM) Initialize(
 	vm.logger = subnetEVMLogger
 
 	log.Info("Initializing Subnet EVM VM", "Version", Version, "Config", vm.config)
+	log.Info("Additional Subnet EVM log for testing")
 
 	if len(fxs) > 0 {
 		return errUnsupportedFXs
