@@ -227,6 +227,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 				gomega.Expect(err).Should(gomega.BeNil())
 				if block.NumberU64() >= newHead.Number.Uint64() {
 					log.Info("client accepted the block containing SendWarpMessage", "client", i, "height", block.NumberU64())
+					break
 				}
 			}
 		}
