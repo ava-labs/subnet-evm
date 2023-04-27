@@ -60,17 +60,19 @@ func (test PredicateTest) Run(t testing.TB) {
 		t.Fatal("ran predicate test with precompileconfig that does not support a predicate")
 	}
 
-	if test.GasErr != nil {
+	if test.GasErr == nil {
+		require.NoError(t, gasErr)
+	} else {
 		// If an error occurs here, the test finishes here
 		require.ErrorIs(t, gasErr, test.GasErr)
 		return
 	}
-	require.Equal(t, test.Gas, gas)
 	if test.PredicateErr == nil {
 		require.NoError(t, predicateErr)
 	} else {
 		require.ErrorIs(t, predicateErr, test.PredicateErr)
 	}
+	require.Equal(t, test.Gas, gas)
 }
 
 func RunPredicateTests(t *testing.T, predicateTests map[string]PredicateTest) {
