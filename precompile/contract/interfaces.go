@@ -34,22 +34,23 @@ type StateDB interface {
 	GetState(common.Address, common.Hash) common.Hash
 	SetState(common.Address, common.Hash, common.Hash)
 
-	SetCode(common.Address, []byte)
-
 	SetNonce(common.Address, uint64)
 	GetNonce(common.Address) uint64
 
 	GetBalance(common.Address) *big.Int
 	AddBalance(common.Address, *big.Int)
-	SubBalance(common.Address, *big.Int)
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
 
 	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
+	GetPredicateStorageSlots(address common.Address) ([]byte, bool)
 
 	Suicide(common.Address) bool
 	Finalise(deleteEmptyObjects bool)
+
+	Snapshot() int
+	RevertToSnapshot(int)
 }
 
 // AccessibleState defines the interface exposed to stateful precompile contracts
