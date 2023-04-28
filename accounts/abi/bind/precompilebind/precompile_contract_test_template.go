@@ -27,7 +27,7 @@ import (
 // These tests are run against the precompile contract directly with
 // the given input and expected output. They're just a guide to
 // help you write your own tests. These tests are for general cases like
-// allowlist, readOnly behaviour and gas cost. You should write your own
+// allowlist, readOnly behaviour, and gas cost. You should write your own
 // tests for specific cases.
 func TestRun(t *testing.T) {
 	tests := map[string]testutils.PrecompileTest{
