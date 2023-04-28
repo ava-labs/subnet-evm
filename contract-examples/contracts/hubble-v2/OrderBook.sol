@@ -12,8 +12,8 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
     using SafeCast for uint256;
     using SafeCast for int256;
 
-    // keccak256("Order(uint256 ammIndex,address trader,int256 baseAssetQuantity,uint256 price,uint256 salt)");
-    bytes32 public constant ORDER_TYPEHASH = 0xba5bdc08c77846c2444ea7c84fcaf3479e3389b274ebc7ab59358538ca00dbe0;
+    // keccak256("Order(uint256 ammIndex,address trader,int256 baseAssetQuantity,uint256 price,uint256 salt,bool reduceOnly)");
+    bytes32 public constant ORDER_TYPEHASH = 0x0a2e4d36552888a97d5a8975ad22b04e90efe5ea0a8abb97691b63b431eb25d2;
 
     struct OrderInfo {
         uint blockPlaced;
@@ -75,7 +75,7 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         _openPosition(orders[0], fillAmount, fulfillPrice);
         _openPosition(orders[1], -fillAmount, fulfillPrice);
 
-        emit OrdersMatched(orderHash0, orderHash1, fillAmount.toUint256(), fulfillPrice, fillAmount.toUint256() * fulfillPrice, msg.sender);
+        emit OrdersMatched(orderHash0, orderHash1, fillAmount.toUint256(), fulfillPrice, fillAmount.toUint256() * fulfillPrice, msg.sender, block.timestamp);
     }
 
     /**
@@ -122,7 +122,7 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         require(orderInfo[orderHash].status == OrderStatus.Placed, "OB_Order_does_not_exist");
         orderInfo[orderHash].status = OrderStatus.Cancelled;
 
-        emit OrderCancelled(order.trader, orderHash);
+        emit OrderCancelled(order.trader, orderHash, block.timestamp);
     }
 
     /**
@@ -146,7 +146,7 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         (bytes32 orderHash,) = _verifyOrder(order, signature, toLiquidate.toInt256());
         _updateOrder(orderHash, toLiquidate.toInt256(), order.baseAssetQuantity);
         _openPosition(order, toLiquidate.toInt256(), order.price);
-        emit LiquidationOrderMatched(trader, orderHash, signature, toLiquidate, order.price, order.price * toLiquidate, msg.sender);
+        emit LiquidationOrderMatched(trader, orderHash, signature, toLiquidate, order.price, order.price * toLiquidate, msg.sender, block.timestamp);
     }
 
     /* ****************** */

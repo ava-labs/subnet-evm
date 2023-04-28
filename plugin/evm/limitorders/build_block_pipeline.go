@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -34,14 +35,15 @@ func (pipeline *BuildBlockPipeline) Run(lastBlockTime uint64) {
 		if err != nil {
 			log.Error("could not fetch underlying price", "err", err)
 		} else {
-			for i, market := range GetActiveMarkets() {
-				pipeline.runLiquidationsAndMatchingForMarket(market, underlyingPrices[i])
+			cancellableOrderIds := pipeline.cancelOrders(underlyingPrices)
+			for _, market := range GetActiveMarkets() {
+				pipeline.runLiquidationsAndMatchingForMarket(market, underlyingPrices[market], cancellableOrderIds)
 			}
 		}
 	}
 }
 
-func (pipeline *BuildBlockPipeline) runLiquidationsAndMatchingForMarket(market Market, underlyingPrice *big.Int) {
+func (pipeline *BuildBlockPipeline) runLiquidationsAndMatchingForMarket(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}) {
 	log.Info("BuildBlockPipeline:runLiquidationsAndMatchingForMarket", "underlyingPrice", prettifyScaledBigInt(underlyingPrice, 6))
 
 	// 1. Get long orders
@@ -63,11 +65,33 @@ func (pipeline *BuildBlockPipeline) runLiquidationsAndMatchingForMarket(market M
 	}
 	shortOrders := pipeline.db.GetShortOrders(market, shortCutOffPrice)
 
-	// 3. Run liquidations
+	// 3. Remove orders that were just cancelled
+	longOrders = removeOrdersWithIds(longOrders, cancellableOrderIds)
+	shortOrders = removeOrdersWithIds(shortOrders, cancellableOrderIds)
+
+	// 4. Run liquidations
 	modifiedLongOrders, modifiedShortOrders := pipeline.runLiquidations(market, longOrders, shortOrders)
 
-	// 4. Run matching engine
+	// 5. Run matching engine
 	runMatchingEngine(pipeline.lotp, modifiedLongOrders, modifiedShortOrders)
+}
+
+func (pipeline *BuildBlockPipeline) cancelOrders(oraclePrices map[Market]*big.Int) map[common.Hash]struct{} {
+	cancellableOrders := pipeline.db.GetOrdersToCancel(oraclePrices)
+	cancellableOrderIds := map[common.Hash]struct{}{}
+	// @todo: if there are too many cancellable orders, they might not fit in a single block. Need to adjust for that.
+	for _, orderIds := range cancellableOrders {
+		err := pipeline.lotp.ExecuteOrderCancel(orderIds)
+		if err != nil {
+			log.Error("Error in ExecuteOrderCancel", "orderIds", formatHashSlice(orderIds), "err", err)
+		} else {
+			for _, orderId := range orderIds {
+				cancellableOrderIds[orderId] = struct{}{}
+			}
+		}
+	}
+
+	return cancellableOrderIds
 }
 
 func (pipeline *BuildBlockPipeline) runLiquidations(market Market, longOrders []LimitOrder, shortOrders []LimitOrder) (filteredLongOrder []LimitOrder, filteredShortOrder []LimitOrder) {
@@ -165,4 +189,22 @@ func executeFundingPayment(lotp LimitOrderTxProcessor) error {
 	// @todo get index twap for each market with warp msging
 
 	return lotp.ExecuteFundingPaymentTx()
+}
+
+func removeOrdersWithIds(orders []LimitOrder, orderIds map[common.Hash]struct{}) []LimitOrder {
+	var filteredOrders []LimitOrder
+	for _, order := range orders {
+		if _, ok := orderIds[order.Id]; !ok {
+			filteredOrders = append(filteredOrders, order)
+		}
+	}
+	return filteredOrders
+}
+
+func formatHashSlice(hashes []common.Hash) []string {
+	var formattedHashes []string
+	for _, hash := range hashes {
+		formattedHashes = append(formattedHashes, hash.String())
+	}
+	return formattedHashes
 }

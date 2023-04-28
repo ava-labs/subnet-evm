@@ -54,6 +54,7 @@ type OrderForOpenOrders struct {
 	Timestamp  uint64
 	Salt       string
 	OrderId    string
+	ReduceOnly bool
 }
 
 func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryDatabase {
@@ -106,6 +107,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenO
 				FilledSize: order.FilledBaseAssetQuantity.String(),
 				Salt:       getOrderFromRawOrder(order.RawOrder).Salt.String(),
 				OrderId:    hash.String(),
+				ReduceOnly: order.ReduceOnly,
 			})
 		}
 	}

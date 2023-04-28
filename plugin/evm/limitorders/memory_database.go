@@ -18,9 +18,6 @@ import (
 var _1e18 = big.NewInt(1e18)
 var _1e6 = big.NewInt(1e6)
 
-var maxLiquidationRatio *big.Int = big.NewInt(25 * 1e4) // 25%
-var minSizeRequirement *big.Int = big.NewInt(0).Mul(big.NewInt(5), _1e18)
-
 type Market int
 
 const (
@@ -54,6 +51,7 @@ type Lifecycle struct {
 }
 
 type LimitOrder struct {
+	Id     common.Hash
 	Market Market
 	// @todo make this an enum
 	PositionType            string
@@ -62,6 +60,7 @@ type LimitOrder struct {
 	FilledBaseAssetQuantity *big.Int
 	Salt                    *big.Int
 	Price                   *big.Int
+	ReduceOnly              bool
 	LifecycleList           []Lifecycle
 	Signature               []byte
 	BlockNumber             *big.Int    // block number order was placed on
@@ -79,6 +78,7 @@ type LimitOrderJson struct {
 	LifecycleList           []Lifecycle `json:"lifecycle_list"`
 	Signature               string      `json:"signature"`
 	BlockNumber             *big.Int    `json:"block_number"` // block number order was placed on
+	ReduceOnly              bool        `json:"reduce_only"`
 }
 
 func (order *LimitOrder) MarshalJSON() ([]byte, error) {
@@ -93,6 +93,7 @@ func (order *LimitOrder) MarshalJSON() ([]byte, error) {
 		LifecycleList:           order.LifecycleList,
 		Signature:               hex.EncodeToString(order.Signature),
 		BlockNumber:             order.BlockNumber,
+		ReduceOnly:              order.ReduceOnly,
 	}
 	return json.Marshal(limitOrderJson)
 }
@@ -107,7 +108,7 @@ func (order LimitOrder) getOrderStatus() Lifecycle {
 }
 
 func (order LimitOrder) String() string {
-	return fmt.Sprintf("LimitOrder: Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, Signature: %v, BlockNumber: %s", order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), hex.EncodeToString(order.Signature), order.BlockNumber)
+	return fmt.Sprintf("LimitOrder: Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, Signature: %v, BlockNumber: %s", order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, hex.EncodeToString(order.Signature), order.BlockNumber)
 }
 
 type Position struct {
@@ -118,9 +119,14 @@ type Position struct {
 	LiquidationThreshold *big.Int `json:"liquidation_threshold"`
 }
 
+type Margin struct {
+	Reserved  *big.Int                `json:"reserved"`
+	Deposited map[Collateral]*big.Int `json:"deposited"`
+}
+
 type Trader struct {
-	Positions map[Market]*Position    `json:"positions"` // position for every market
-	Margins   map[Collateral]*big.Int `json:"margins"`   // available margin/balance for every market
+	Positions map[Market]*Position `json:"positions"` // position for every market
+	Margin    Margin               `json:"margin"`    // available margin/balance for every market
 }
 
 type LimitOrderDatabase interface {
@@ -132,12 +138,14 @@ type LimitOrderDatabase interface {
 	GetShortOrders(market Market, cutoff *big.Int) []LimitOrder
 	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool)
 	UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int)
+	UpdateReservedMargin(trader common.Address, addAmount *big.Int)
 	UpdateUnrealisedFunding(market Market, cumulativePremiumFraction *big.Int)
 	ResetUnrealisedFunding(market Market, trader common.Address, cumulativePremiumFraction *big.Int)
 	UpdateNextFundingTime(nextFundingTime uint64)
 	GetNextFundingTime() uint64
 	UpdateLastPrice(market Market, lastPrice *big.Int)
 	GetLastPrice(market Market) *big.Int
+	GetOrdersToCancel(oraclePrice map[Market]*big.Int) map[common.Address][]common.Hash
 	GetAllTraders() map[common.Address]Trader
 	GetOrderBookData() InMemoryDatabase
 	Accept(blockNumber uint64)
@@ -220,6 +228,7 @@ func (db *InMemoryDatabase) Add(orderId common.Hash, order *LimitOrder) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
+	order.Id = orderId
 	order.LifecycleList = append(order.LifecycleList, Lifecycle{order.BlockNumber.Uint64(), Placed})
 	db.OrderMap[orderId] = order
 }
@@ -277,7 +286,8 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []Limi
 		if order.PositionType == "long" &&
 			order.Market == market &&
 			order.getOrderStatus().Status == Placed &&
-			(cutoff == nil || order.Price.Cmp(cutoff) <= 0) {
+			(cutoff == nil || order.Price.Cmp(cutoff) <= 0) &&
+			(!order.ReduceOnly || db.willReducePosition(order)) {
 			longOrders = append(longOrders, *order)
 		}
 	}
@@ -294,7 +304,8 @@ func (db *InMemoryDatabase) GetShortOrders(market Market, cutoff *big.Int) []Lim
 		if order.PositionType == "short" &&
 			order.Market == market &&
 			order.getOrderStatus().Status == Placed &&
-			(cutoff == nil || order.Price.Cmp(cutoff) >= 0) {
+			(cutoff == nil || order.Price.Cmp(cutoff) >= 0) &&
+			(!order.ReduceOnly || db.willReducePosition(order)) {
 			shortOrders = append(shortOrders, *order)
 		}
 	}
@@ -307,18 +318,27 @@ func (db *InMemoryDatabase) UpdateMargin(trader common.Address, collateral Colla
 	defer db.mu.Unlock()
 
 	if _, ok := db.TraderMap[trader]; !ok {
-		db.TraderMap[trader] = &Trader{
-			Positions: map[Market]*Position{},
-			Margins:   map[Collateral]*big.Int{},
-		}
+		db.TraderMap[trader] = getBlankTrader()
 	}
 
-	if _, ok := db.TraderMap[trader].Margins[collateral]; !ok {
-		db.TraderMap[trader].Margins[collateral] = big.NewInt(0)
+	if _, ok := db.TraderMap[trader].Margin.Deposited[collateral]; !ok {
+		db.TraderMap[trader].Margin.Deposited[collateral] = big.NewInt(0)
 	}
 
-	db.TraderMap[trader].Margins[collateral].Add(db.TraderMap[trader].Margins[collateral], addAmount)
-	log.Info("UpdateMargin", "trader", trader.String(), "collateral", collateral, "updated margin", db.TraderMap[trader].Margins[collateral].Uint64())
+	db.TraderMap[trader].Margin.Deposited[collateral].Add(db.TraderMap[trader].Margin.Deposited[collateral], addAmount)
+	log.Info("UpdateMargin", "trader", trader.String(), "collateral", collateral, "updated margin", db.TraderMap[trader].Margin.Deposited[collateral].Uint64())
+}
+
+func (db *InMemoryDatabase) UpdateReservedMargin(trader common.Address, addAmount *big.Int) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if _, ok := db.TraderMap[trader]; !ok {
+		db.TraderMap[trader] = getBlankTrader()
+	}
+
+	db.TraderMap[trader].Margin.Reserved.Add(db.TraderMap[trader].Margin.Reserved, addAmount)
+	log.Info("UpdateReservedMargin", "trader", trader.String(), "updated reserved margin", db.TraderMap[trader].Margin.Reserved.Uint64())
 }
 
 func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
@@ -326,10 +346,7 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 	defer db.mu.Unlock()
 
 	if _, ok := db.TraderMap[trader]; !ok {
-		db.TraderMap[trader] = &Trader{
-			Positions: map[Market]*Position{},
-			Margins:   map[Collateral]*big.Int{},
-		}
+		db.TraderMap[trader] = getBlankTrader()
 	}
 
 	if _, ok := db.TraderMap[trader].Positions[market]; !ok {
@@ -342,6 +359,10 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 
 	if !isLiquidation {
 		db.TraderMap[trader].Positions[market].LiquidationThreshold = getLiquidationThreshold(size)
+	}
+
+	if db.TraderMap[trader].Positions[market].UnrealisedFunding == nil {
+		db.TraderMap[trader].Positions[market].UnrealisedFunding = big.NewInt(0)
 	}
 	// adjust the liquidation threshold if > resultant position size (for both isLiquidation = true/false)
 	threshold := utils.BigIntMinAbs(db.TraderMap[trader].Positions[market].LiquidationThreshold, size)
@@ -397,6 +418,73 @@ func (db *InMemoryDatabase) GetAllTraders() map[common.Address]Trader {
 	return traderMap
 }
 
+func (db *InMemoryDatabase) GetOrdersToCancel(oraclePrice map[Market]*big.Int) map[common.Address][]common.Hash {
+	ordersToCancel := map[common.Address][]common.Hash{}
+	for addr, trader := range db.TraderMap {
+		availableMargin := getAvailableMargin(*trader, oraclePrice)
+		log.Info("GetOrdersToCancel", "trader", addr.String(), "availableMargin", availableMargin)
+		if availableMargin.Cmp(big.NewInt(0)) == -1 {
+			log.Info("GetOrdersToCancel - negative available margin", "trader", addr.String(), "availableMargin", availableMargin)
+			traderOrders := db.getTraderOrders(addr)
+			sort.Slice(traderOrders, func(i, j int) bool {
+				// higher diff comes first
+				iDiff := big.NewInt(0).Abs(big.NewInt(0).Sub(traderOrders[i].Price, oraclePrice[traderOrders[i].Market]))
+				jDiff := big.NewInt(0).Abs(big.NewInt(0).Sub(traderOrders[j].Price, oraclePrice[traderOrders[j].Market]))
+				return iDiff.Cmp(jDiff) > 0
+			})
+
+			if len(traderOrders) > 0 {
+				// cancel orders until available margin is positive
+				ordersToCancel[addr] = []common.Hash{}
+				for _, order := range traderOrders {
+					ordersToCancel[addr] = append(ordersToCancel[addr], order.Id)
+					orderNotional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.GetUnFilledBaseAssetQuantity(), order.Price), _1e18)) // | size * current price |
+					marginReleased := divideByBasePrecision(big.NewInt(0).Mul(orderNotional, minAllowableMargin))
+					availableMargin.Add(availableMargin, marginReleased)
+					log.Info("in loop", "availableMargin", availableMargin, "marginReleased", marginReleased, "orderNotional", orderNotional)
+					if availableMargin.Cmp(big.NewInt(0)) >= 0 {
+						break
+					}
+				}
+			}
+		}
+	}
+
+	return ordersToCancel
+}
+
+func (db *InMemoryDatabase) getTraderOrders(trader common.Address) []LimitOrder {
+	traderOrders := []LimitOrder{}
+	for _, order := range db.OrderMap {
+		if strings.EqualFold(order.UserAddress, trader.String()) {
+			traderOrders = append(traderOrders, *order)
+		}
+	}
+	return traderOrders
+}
+
+func (db *InMemoryDatabase) willReducePosition(order *LimitOrder) bool {
+	trader := common.HexToAddress(order.UserAddress)
+	if db.TraderMap[trader] == nil {
+		return false
+	}
+	positions := db.TraderMap[trader].Positions
+	if position, ok := positions[order.Market]; ok {
+		finalSize := big.NewInt(0).Add(position.Size, order.BaseAssetQuantity)
+		if big.NewInt(0).Abs(finalSize).Cmp(big.NewInt(0).Abs(position.Size)) != -1 {
+			// abosulte position will increase
+			return false
+		}
+		if finalSize.Sign() != position.Size.Sign() {
+			// position will change sign
+			return false
+		}
+		return true
+	} else {
+		return false
+	}
+}
+
 func sortLongOrders(orders []LimitOrder) []LimitOrder {
 	sort.SliceStable(orders, func(i, j int) bool {
 		if orders[i].Price.Cmp(orders[j].Price) == 1 {
@@ -440,4 +528,16 @@ func getLiquidationThreshold(size *big.Int) *big.Int {
 	threshold := big.NewInt(0).Add(maxLiquidationSize, big.NewInt(1))
 	liquidationThreshold := utils.BigIntMax(threshold, minSizeRequirement)
 	return big.NewInt(0).Mul(liquidationThreshold, big.NewInt(int64(size.Sign()))) // same sign as size
+}
+
+func getBlankTrader() *Trader {
+	return &Trader{
+		Positions: map[Market]*Position{},
+		Margin: Margin{
+			Reserved: big.NewInt(0),
+			Deposited: map[Collateral]*big.Int{
+				0: big.NewInt(0),
+			},
+		},
+	}
 }

@@ -57,6 +57,9 @@ func (db *MockLimitOrderDatabase) UpdatePosition(trader common.Address, market M
 func (db *MockLimitOrderDatabase) UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int) {
 }
 
+func (db *MockLimitOrderDatabase) UpdateReservedMargin(trader common.Address, addAmount *big.Int) {
+}
+
 func (db *MockLimitOrderDatabase) UpdateUnrealisedFunding(market Market, fundingRate *big.Int) {
 }
 
@@ -90,6 +93,11 @@ func (db *MockLimitOrderDatabase) RemoveInProgressState(block *types.Block, quan
 func (db *MockLimitOrderDatabase) GetLastPrice(market Market) *big.Int {
 	args := db.Called()
 	return args.Get(0).(*big.Int)
+}
+
+func (db *MockLimitOrderDatabase) GetOrdersToCancel(oraclePrice map[Market]*big.Int) map[common.Address][]common.Hash {
+	args := db.Called()
+	return args.Get(0).(map[common.Address][]common.Hash)
 }
 
 func (db *MockLimitOrderDatabase) GetOrderBookData() InMemoryDatabase {
@@ -126,6 +134,11 @@ func (lotp *MockLimitOrderTxProcessor) ExecuteLiquidation(trader common.Address,
 	return args.Error(0)
 }
 
+func (lotp *MockLimitOrderTxProcessor) ExecuteOrderCancel(orderIds []common.Hash) error {
+	args := lotp.Called(orderIds)
+	return args.Error(0)
+}
+
 func (lotp *MockLimitOrderTxProcessor) HandleOrderBookEvent(event *types.Log) {
 }
 
@@ -135,6 +148,6 @@ func (lotp *MockLimitOrderTxProcessor) HandleMarginAccountEvent(event *types.Log
 func (lotp *MockLimitOrderTxProcessor) HandleClearingHouseEvent(event *types.Log) {
 }
 
-func (lotp *MockLimitOrderTxProcessor) GetUnderlyingPrice() ([]*big.Int, error) {
+func (lotp *MockLimitOrderTxProcessor) GetUnderlyingPrice() (map[Market]*big.Int, error) {
 	return nil, nil
 }

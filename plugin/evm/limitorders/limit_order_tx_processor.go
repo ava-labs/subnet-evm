@@ -27,12 +27,13 @@ var MarginAccountContractAddress = common.HexToAddress("0x0300000000000000000000
 var ClearingHouseContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000071")
 
 type LimitOrderTxProcessor interface {
-	ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount *big.Int) error
 	PurgeLocalTx()
 	CheckIfOrderBookContractCall(tx *types.Transaction) bool
+	ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount *big.Int) error
 	ExecuteFundingPaymentTx() error
 	ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error
-	GetUnderlyingPrice() ([]*big.Int, error)
+	ExecuteOrderCancel(orderIds []common.Hash) error
+	GetUnderlyingPrice() (map[Market]*big.Int, error)
 }
 
 type ValidatorTxFeeConfig struct {
@@ -62,6 +63,7 @@ type Order struct {
 	BaseAssetQuantity *big.Int       `json:"baseAssetQuantity"`
 	Price             *big.Int       `json:"price"`
 	Salt              *big.Int       `json:"salt"`
+	ReduceOnly        bool           `json:"reduceOnly"`
 }
 
 func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, backend *eth.EthAPIBackend) LimitOrderTxProcessor {
@@ -129,6 +131,11 @@ func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrd
 	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "executeMatchedOrders", orders, signatures, fillAmount)
 }
 
+func (lotp *limitOrderTxProcessor) ExecuteOrderCancel(orderIds []common.Hash) error {
+	log.Info("ExecuteOrderCancel", "orderIds", formatHashSlice(orderIds))
+	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "cancelMultipleOrders", orderIds)
+}
+
 func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contractABI abi.ABI, method string, args ...interface{}) error {
 	lotp.updateValidatorTxFeeConfig()
 	nonce := lotp.txPool.GetOrderBookTxNonce(common.HexToAddress(lotp.validatorAddress.Hex())) // admin address
@@ -193,7 +200,7 @@ func (lotp *limitOrderTxProcessor) PurgeLocalTx() {
 	lotp.txPool.PurgeOrderBookTxs()
 }
 
-func (lotp *limitOrderTxProcessor) GetUnderlyingPrice() ([]*big.Int, error) {
+func (lotp *limitOrderTxProcessor) GetUnderlyingPrice() (map[Market]*big.Int, error) {
 	data, err := lotp.clearingHouseABI.Pack("getUnderlyingPrice")
 	if err != nil {
 		log.Error("abi.Pack failed", "method", "getUnderlyingPrice", "err", err)
@@ -221,7 +228,11 @@ func (lotp *limitOrderTxProcessor) GetUnderlyingPrice() ([]*big.Int, error) {
 	if len(uintArray) != 0 {
 		underlyingPrices := uintArray[0].([]*big.Int)
 		if len(underlyingPrices) != 0 {
-			return underlyingPrices, nil
+			underlyingPriceMap := map[Market]*big.Int{}
+			for i, underlyingPrice := range underlyingPrices {
+				underlyingPriceMap[Market(i)] = underlyingPrice
+			}
+			return underlyingPriceMap, nil
 		}
 	}
 	return nil, fmt.Errorf("Contracts have not yet initialized")

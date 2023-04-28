@@ -36,9 +36,10 @@ func TestRunLiquidations(t *testing.T) {
 			longEntryPrice := multiplyBasePrecision(big.NewInt(300))
 			openNotionalLong := dividePrecisionSize(big.NewInt(0).Mul(longEntryPrice, longSize))
 			trader := Trader{
-				Margins: map[Collateral]*big.Int{
-					collateral: marginLong,
-				},
+				Margin: Margin{
+					Deposited: map[Collateral]*big.Int{
+						collateral: marginLong,
+					}},
 				Positions: map[Market]*Position{
 					market: getPosition(market, openNotionalLong, longSize, big.NewInt(0), big.NewInt(0), big.NewInt(0)),
 				},
@@ -83,9 +84,10 @@ func TestRunLiquidations(t *testing.T) {
 			shortEntryPrice := multiplyBasePrecision(big.NewInt(100))
 			openNotionalShort := dividePrecisionSize(big.NewInt(0).Abs(big.NewInt(0).Mul(shortEntryPrice, shortSize)))
 			trader := Trader{
-				Margins: map[Collateral]*big.Int{
-					collateral: marginShort,
-				},
+				Margin: Margin{
+					Deposited: map[Collateral]*big.Int{
+						collateral: marginShort,
+					}},
 				Positions: map[Market]*Position{
 					market: getPosition(market, openNotionalShort, shortSize, big.NewInt(0), big.NewInt(0), big.NewInt(0)),
 				},

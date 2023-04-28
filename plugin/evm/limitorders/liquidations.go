@@ -9,11 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var maintenanceMargin = big.NewInt(1e5)
-var spreadRatioThreshold = big.NewInt(1e6)
-
-var BASE_PRECISION = big.NewInt(1e6)
-var SIZE_BASE_PRECISION = big.NewInt(1e18)
+var BASE_PRECISION = _1e6
+var SIZE_BASE_PRECISION = _1e18
 
 type LiquidablePosition struct {
 	Address        common.Address
@@ -92,7 +89,7 @@ func isOverSpreadLimit(markPrice *big.Int, oraclePrice *big.Int) bool {
 }
 
 func getNormalisedMargin(trader Trader) *big.Int {
-	return trader.Margins[HUSD]
+	return trader.Margin.Deposited[HUSD]
 
 	// this will change after multi collateral
 	// var normalisedMargin *big.Int
@@ -135,6 +132,42 @@ func getMarginFraction(margin *big.Int, price *big.Int, position *Position) *big
 		return big.NewInt(0) // why?
 	}
 	return mf
+}
+
+// function getAvailableMargin(address trader) public view override returns (int availableMargin) {
+// 	// availableMargin = margin + unrealizedPnl - fundingPayment - reservedMargin - utilizedMargin
+// 	uint notionalPosition;
+// 	(notionalPosition, availableMargin) = clearingHouse.getNotionalPositionAndMargin(trader, true, IClearingHouse.Mode.Min_Allowable_Margin);
+// 	int utilizedMargin = notionalPosition.toInt256() * clearingHouse.maintenanceMargin() / 1e6;
+// 	availableMargin = availableMargin - utilizedMargin - reservedMargin[trader].toInt256();
+// }
+
+func getAvailableMargin(trader Trader, priceMap map[Market]*big.Int) *big.Int {
+	totalNotionalPosition := big.NewInt(0)
+	totalUnrealisedFunding := big.NewInt(0)
+	totalUnrealisedPnL := big.NewInt(0)
+	for _, market := range GetActiveMarkets() {
+		if _, ok := trader.Positions[market]; !ok {
+			continue
+		}
+		notionalPosition := getNotionalPosition(priceMap[market], trader.Positions[market].Size)
+		unrealisedPnL := getUnrealisedPnl(priceMap[market], trader.Positions[market], notionalPosition)
+
+		totalNotionalPosition = big.NewInt(0).Add(totalNotionalPosition, notionalPosition)
+		totalUnrealisedFunding = big.NewInt(0).Add(totalUnrealisedFunding, trader.Positions[market].UnrealisedFunding)
+		totalUnrealisedPnL = big.NewInt(0).Add(totalUnrealisedPnL, unrealisedPnL)
+	}
+
+	utilisedMargin := divideByBasePrecision(big.NewInt(0).Mul(totalNotionalPosition, minAllowableMargin))
+
+	// available margin =  depositedMargin + totalUnrealisedPnL - totalUnrealisedFunding - utilisedMargin - trader.Margin.Reserved
+	netMargin := big.NewInt(0).Add(getNormalisedMargin(trader), totalUnrealisedPnL)
+	netMargin = netMargin.Sub(netMargin, totalUnrealisedFunding)
+
+	availableMargin := big.NewInt(0).Sub(netMargin, utilisedMargin)
+	availableMargin = availableMargin.Sub(availableMargin, trader.Margin.Reserved)
+	log.Info("#### getAvailableMargin", "netMargin", netMargin, "totalUnrealisedPnL", totalUnrealisedPnL, "totalUnrealisedFunding", totalUnrealisedFunding, "utilisedMargin", utilisedMargin, "trader.Margin.Reserved", trader.Margin.Reserved, "availableMargin", availableMargin)
+	return availableMargin
 }
 
 func multiplyBasePrecision(number *big.Int) *big.Int {

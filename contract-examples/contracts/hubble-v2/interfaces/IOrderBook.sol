@@ -23,6 +23,7 @@ interface IOrderBook {
         int256 baseAssetQuantity;
         uint256 price;
         uint256 salt;
+        bool reduceOnly;
     }
 
     struct MatchInfo {
@@ -32,9 +33,9 @@ interface IOrderBook {
     }
 
     event OrderPlaced(address indexed trader, bytes32 indexed orderHash, Order order, bytes signature, uint timestamp);
-    event OrderCancelled(address indexed trader, bytes32 indexed orderHash);
-    event OrdersMatched(bytes32 indexed orderHash0, bytes32 indexed orderHash1, uint256 fillAmount, uint price, uint openInterestNotional, address relayer);
-    event LiquidationOrderMatched(address indexed trader, bytes32 indexed orderHash, bytes signature, uint256 fillAmount, uint price, uint openInterestNotional, address relayer);
+    event OrderCancelled(address indexed trader, bytes32 indexed orderHash, uint timestamp);
+    event OrdersMatched(bytes32 indexed orderHash0, bytes32 indexed orderHash1, uint256 fillAmount, uint price, uint openInterestNotional, address relayer, uint timestamp);
+    event LiquidationOrderMatched(address indexed trader, bytes32 indexed orderHash, bytes signature, uint256 fillAmount, uint price, uint openInterestNotional, address relayer, uint timestamp);
     event OrderMatchingError(bytes32 indexed orderHash, string err);
     event LiquidationError(address indexed trader, bytes32 indexed orderHash, string err, uint256 toLiquidate);
 

@@ -126,6 +126,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 				RawOrder:                args["order"],
 				Signature:               args["signature"].([]byte),
 				Salt:                    order.Salt,
+				ReduceOnly:              order.ReduceOnly,
 				BlockNumber:             big.NewInt(int64(event.BlockNumber)),
 			}
 			log.Info("#### adding order", "orderId", orderId.String(), "order", limitOrder)
@@ -225,7 +226,7 @@ func (cep *ContractEventsProcessor) handleMarginAccountEvent(event *types.Log) {
 		trader := getAddressFromTopicHash(event.Topics[1])
 		collateral := event.Topics[2].Big().Int64()
 		amount := args["amount"].(*big.Int)
-		log.Info("MarginAdded:", "trader", trader, "collateral", collateral, "amount", amount.Uint64())
+		log.Info("MarginAdded", "trader", trader, "collateral", collateral, "amount", amount.Uint64())
 		cep.database.UpdateMargin(trader, Collateral(collateral), amount)
 	case cep.marginAccountABI.Events["MarginRemoved"].ID:
 		err := cep.marginAccountABI.UnpackIntoMap(args, "MarginRemoved", event.Data)
@@ -236,8 +237,28 @@ func (cep *ContractEventsProcessor) handleMarginAccountEvent(event *types.Log) {
 		trader := getAddressFromTopicHash(event.Topics[1])
 		collateral := event.Topics[2].Big().Int64()
 		amount := args["amount"].(*big.Int)
-		log.Info("MarginRemoved:", "trader", trader, "collateral", collateral, "amount", amount.Uint64())
+		log.Info("MarginRemoved", "trader", trader, "collateral", collateral, "amount", amount.Uint64())
 		cep.database.UpdateMargin(trader, Collateral(collateral), big.NewInt(0).Neg(amount))
+	case cep.marginAccountABI.Events["MarginReserved"].ID:
+		err := cep.marginAccountABI.UnpackIntoMap(args, "MarginReserved", event.Data)
+		if err != nil {
+			log.Error("error in marginAccountABI.UnpackIntoMap", "method", "MarginReserved", "err", err)
+			return
+		}
+		trader := getAddressFromTopicHash(event.Topics[1])
+		amount := args["amount"].(*big.Int)
+		log.Info("MarginReserved", "trader", trader, "amount", amount.Uint64())
+		cep.database.UpdateReservedMargin(trader, amount)
+	case cep.marginAccountABI.Events["MarginReleased"].ID:
+		err := cep.marginAccountABI.UnpackIntoMap(args, "MarginReleased", event.Data)
+		if err != nil {
+			log.Error("error in marginAccountABI.UnpackIntoMap", "method", "MarginReleased", "err", err)
+			return
+		}
+		trader := getAddressFromTopicHash(event.Topics[1])
+		amount := args["amount"].(*big.Int)
+		log.Info("MarginReleased", "trader", trader, "amount", amount.Uint64())
+		cep.database.UpdateReservedMargin(trader, big.NewInt(0).Neg(amount))
 	case cep.marginAccountABI.Events["PnLRealized"].ID:
 		err := cep.marginAccountABI.UnpackIntoMap(args, "PnLRealized", event.Data)
 		if err != nil {
@@ -288,10 +309,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		}
 
 		market := Market(int(event.Topics[2].Big().Int64()))
-		baseAsset := args["baseAsset"].(*big.Int)
-		quoteAsset := args["quoteAsset"].(*big.Int)
-		lastPrice := big.NewInt(0).Div(big.NewInt(0).Mul(quoteAsset, big.NewInt(1e18)), baseAsset)
-		lastPrice.Abs(lastPrice)
+		lastPrice := args["price"].(*big.Int)
 		cep.database.UpdateLastPrice(market, lastPrice)
 
 		openNotional := args["openNotional"].(*big.Int)
@@ -306,9 +324,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		}
 
 		market := Market(int(event.Topics[2].Big().Int64()))
-		baseAsset := args["baseAsset"].(*big.Int)
-		quoteAsset := args["quoteAsset"].(*big.Int)
-		lastPrice := big.NewInt(0).Div(big.NewInt(0).Mul(quoteAsset, big.NewInt(1e18)), baseAsset)
+		lastPrice := args["price"].(*big.Int)
 		cep.database.UpdateLastPrice(market, lastPrice)
 
 		openNotional := args["openNotional"].(*big.Int)
