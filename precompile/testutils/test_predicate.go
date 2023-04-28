@@ -17,7 +17,8 @@ type PredicateTest struct {
 	Config precompileconfig.Config
 
 	ProposerVMBlockContext *block.Context
-	SnowContext            *snow.Context
+
+	SnowContext *snow.Context
 
 	StorageSlots         []byte
 	Gas                  uint64
@@ -25,10 +26,12 @@ type PredicateTest struct {
 }
 
 func (test PredicateTest) Run(t testing.TB) {
+	t.Helper()
 	var (
 		gas                  uint64
 		gasErr, predicateErr error
 	)
+
 	switch predicate := test.Config.(type) {
 	case precompileconfig.PrecompilePredicater:
 		gas, gasErr = predicate.PredicateGas(test.StorageSlots)
@@ -80,27 +83,32 @@ func RunPredicateTests(t *testing.T, predicateTests map[string]PredicateTest) {
 	}
 }
 
+func (test PredicateTest) RunBenchmark(b *testing.B) {
+	b.ReportAllocs()
+	start := time.Now()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		test.Run(b)
+	}
+	b.StopTimer()
+	elapsed := uint64(time.Since(start))
+	if elapsed < 1 {
+		elapsed = 1
+	}
+
+	gasUsed := test.Gas * uint64(b.N)
+	b.ReportMetric(float64(test.Gas), "gas/op")
+	// Keep it as uint64, multiply 100 to get two digit float later
+	mgasps := (100 * 1000 * gasUsed) / elapsed
+	b.ReportMetric(float64(mgasps)/100, "mgas/s")
+}
+
 func RunPredicateBenchmarks(b *testing.B, predicateTests map[string]PredicateTest) {
 	b.Helper()
 
 	for name, test := range predicateTests {
 		b.Run(name, func(b *testing.B) {
-			b.ReportAllocs()
-			start := time.Now()
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
-				test.Run(b)
-			}
-			b.StopTimer()
-			elapsed := uint64(time.Since(start))
-			if elapsed < 1 {
-				elapsed = 1
-			}
-
-			b.ReportMetric(float64(test.Gas), "gas/op")
-			// Keep it as uint64, multiply 100 to get two digit float later
-			mgasps := (100 * 1000 * test.Gas) / elapsed
-			b.ReportMetric(float64(mgasps)/100, "mgas/s")
+			test.RunBenchmark(b)
 		})
 	}
 }

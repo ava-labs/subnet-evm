@@ -211,6 +211,26 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		unsignedWarpMessageID = unsignedMsg.ID()
 		unsignedWarpMsg = unsignedMsg
 		log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "unsignedWarpMessage", unsignedWarpMsg)
+
+		// Loop over each client on chain A to ensure they all have time to accept the block.
+		// Note: if we did not confirm this here, the next stage could be racy since it assumes every node
+		// has accepted the block.
+		for i, uri := range chainAURIs {
+			chainAWSURI := utils.ToWebsocketURI(uri, blockchainIDA.String())
+			log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
+			client, err := ethclient.Dial(chainAWSURI)
+			gomega.Expect(err).Should(gomega.BeNil())
+
+			// Loop until each node has advanced to >= the height of the block that emitted the warp log
+			for {
+				block, err := client.BlockByNumber(ctx, nil)
+				gomega.Expect(err).Should(gomega.BeNil())
+				if block.NumberU64() >= newHead.Number.Uint64() {
+					log.Info("client accepted the block containing SendWarpMessage", "client", i, "height", block.NumberU64())
+					break
+				}
+			}
+		}
 	})
 
 	// Aggregate a Warp Signature by sending an API request to each node requesting its signature and manually

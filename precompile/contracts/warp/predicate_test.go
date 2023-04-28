@@ -22,42 +22,17 @@ import (
 )
 
 var (
-	nodeIDs             []ids.NodeID
-	blsSecretKeys       []*bls.SecretKey
-	blsPublicKeys       []*bls.PublicKey
-	unsignedMsg         *avalancheWarp.UnsignedMessage
-	addressedPayload    *warpPayload.AddressedPayload
-	blsSignatures       []*bls.Signature
-	predicateTests      = make(map[string]testutils.PredicateTest)
-	sourceChainID       = ids.GenerateTestID()
-	sourceSubnetID      = ids.GenerateTestID()
-	destinationChainID  = ids.GenerateTestID()
-	getExpectedSubnetID = func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
-		if chainID == sourceChainID {
-			return sourceSubnetID, nil
-		} else {
-			return ids.ID{}, fmt.Errorf("unexpected blockchainID: %s", chainID)
-		}
-	}
+	nodeIDs            []ids.NodeID
+	blsSecretKeys      []*bls.SecretKey
+	blsPublicKeys      []*bls.PublicKey
+	unsignedMsg        *avalancheWarp.UnsignedMessage
+	addressedPayload   *warpPayload.AddressedPayload
+	blsSignatures      []*bls.Signature
+	predicateTests     = make(map[string]testutils.PredicateTest)
+	sourceChainID      = ids.GenerateTestID()
+	sourceSubnetID     = ids.GenerateTestID()
+	destinationChainID = ids.GenerateTestID()
 )
-
-func produceGetValidatorSetF(
-	expectedHeight uint64,
-	expectedSubnetID ids.ID,
-	res map[ids.NodeID]*validators.GetValidatorOutput,
-	err error,
-) func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-	return func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-		if height != expectedHeight {
-			return nil, fmt.Errorf("height (expected: %d, actual: %d)", expectedHeight, height)
-		}
-		if subnetID != expectedSubnetID {
-			return nil, fmt.Errorf("subnetID (expected: %s, actual: %s)", expectedSubnetID, subnetID)
-		}
-
-		return res, err
-	}
-}
 
 func init() {
 	var err error
@@ -69,7 +44,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10_000; i++ {
 		nodeIDs = append(nodeIDs, ids.GenerateTestNodeID())
 
 		blsSecretKey, err := bls.NewSecretKey()
@@ -83,63 +58,163 @@ func init() {
 		blsSignatures = append(blsSignatures, blsSignature)
 	}
 
-	fiveRegisteredNodes := make(map[ids.NodeID]*validators.GetValidatorOutput)
-	for i := 0; i < 5; i++ {
-		fiveRegisteredNodes[nodeIDs[i]] = &validators.GetValidatorOutput{
+	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
+		testName := fmt.Sprintf("valid warp predicate %d nodes, N validators and N signers", totalNodes)
+		predicateTests[testName] = createNValidatorsAndSignersTest(totalNodes)
+	}
+
+	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
+		testName := fmt.Sprintf("valid warp predicate %d nodes, 10 heavily weighted keys", totalNodes)
+		predicateTests[testName] = createMissingPublicKeyTest(10, totalNodes)
+	}
+
+	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
+		testName := fmt.Sprintf("valid warp predicate %d nodes, 10 duplicated keys", totalNodes)
+		predicateTests[testName] = createDuplicateKeyTest(10, totalNodes)
+	}
+}
+
+func createPredicate(numKeys int) []byte {
+	aggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:numKeys])
+	if err != nil {
+		panic(err)
+	}
+	bitSet := set.NewBits()
+	for i := 0; i < numKeys; i++ {
+		bitSet.Add(i)
+	}
+	warpSignature := &avalancheWarp.BitSetSignature{
+		Signers: bitSet.Bytes(),
+	}
+	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
+	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
+	if err != nil {
+		panic(err)
+	}
+	predicateBytes := utils.PackPredicate(warpMsg.Bytes())
+	return predicateBytes
+}
+
+func createNValidatorsAndSignersTest(numKeys int) testutils.PredicateTest {
+	predicateBytes := createPredicate(numKeys)
+
+	validatorOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+	for i := 0; i < numKeys; i++ {
+		validatorOutput[nodeIDs[i]] = &validators.GetValidatorOutput{
 			NodeID:    nodeIDs[i],
 			PublicKey: blsPublicKeys[i],
 			Weight:    20,
 		}
 	}
-
-	fiveNodeAggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:5])
-	if err != nil {
-		panic(err)
+	snowCtx := snow.DefaultContextTest()
+	state := &validators.TestState{
+		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+			return sourceSubnetID, nil
+		},
+		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			return validatorOutput, nil
+		},
 	}
-	fiveNodeBitSet := set.NewBits(0, 1, 2, 3, 4)
-	fiveNodeWarpSignature := &avalancheWarp.BitSetSignature{
-		Signers: fiveNodeBitSet.Bytes(),
-	}
-	copy(fiveNodeWarpSignature.Signature[:], bls.SignatureToBytes(fiveNodeAggregateSignature))
-	fiveNodeWarpMessage, err := avalancheWarp.NewMessage(unsignedMsg, fiveNodeWarpSignature)
-	if err != nil {
-		panic(err)
-	}
+	snowCtx.ValidatorState = state
 
-	fiveNodeSnowContext := snow.DefaultContextTest()
-	fiveNodeSnowContext.ValidatorState = &validators.TestState{
-		GetSubnetIDF:     getExpectedSubnetID,
-		GetValidatorSetF: produceGetValidatorSetF(1, sourceSubnetID, fiveRegisteredNodes, nil),
-	}
-
-	fiveNodeWarpMessagePredicateBytes := utils.PackPredicate(fiveNodeWarpMessage.Bytes())
-
-	predicateTests["valid warp predicate"] = testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(1), 0),
+	return testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
 		ProposerVMBlockContext: &block.Context{
 			PChainHeight: 1,
 		},
-		SnowContext:  fiveNodeSnowContext,
-		StorageSlots: fiveNodeWarpMessagePredicateBytes,
-		Gas:          GasCostPerSignatureVerification + uint64(len(fiveNodeWarpMessagePredicateBytes))*GasCostPerWarpMessageBytes + 5*GasCostPerWarpSigner,
+		SnowContext:  snowCtx,
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:       nil,
 		PredicateErr: nil,
 	}
+}
 
-	// TODO: implement the following test cases:
-	// copy all test cases from avalanchego/vms/platformvm/warp/signature_test.go (https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/warp/signature_test.go#L165)
+func createMissingPublicKeyTest(numKeys int, numValidators int) testutils.PredicateTest {
+	predicateBytes := createPredicate(numKeys)
 
-	// Add the following cases with the following numbers of total validators and BLS keys
-	// 10 validators 10 keys (10 heavily weighted with no duplicate validator keys)
-	// 100 validators 10 keys
-	// 1000 validators 10 keys
-	// 10 validators 10 keys (duplicate keys as necessary for every validator to be assigned a key)
-	// 100 validators 10 keys
-	// 1000 validators 10 keys
-	// 10 validators 10 keys
-	// 100 validators 100 keys
-	// 1000 validators 1000 keys
-	// 10000 validators 10000 keys (optional)
+	validatorOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+	for i := 0; i < numKeys; i++ {
+		validatorOutput[nodeIDs[i]] = &validators.GetValidatorOutput{
+			NodeID:    nodeIDs[i],
+			PublicKey: blsPublicKeys[i],
+			Weight:    10_000_000,
+		}
+	}
+	// Add remaining nodes with no BLS Public Key and negligible weight
+	for i := 10; i < numValidators; i++ {
+		validatorOutput[nodeIDs[i]] = &validators.GetValidatorOutput{
+			NodeID:    nodeIDs[i],
+			PublicKey: nil,
+			Weight:    20,
+		}
+	}
+	snowCtx := snow.DefaultContextTest()
+	state := &validators.TestState{
+		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+			return sourceSubnetID, nil
+		},
+		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			return validatorOutput, nil
+		},
+	}
+	snowCtx.ValidatorState = state
+
+	return testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerVMBlockContext: &block.Context{
+			PChainHeight: 1,
+		},
+		SnowContext:  snowCtx,
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       nil,
+		PredicateErr: nil,
+	}
+}
+
+func createDuplicateKeyTest(numKeys int, numValidators int) testutils.PredicateTest {
+	predicateBytes := createPredicate(numKeys)
+
+	validatorOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+	for i := 0; i < numKeys; i++ {
+		validatorOutput[nodeIDs[i]] = &validators.GetValidatorOutput{
+			NodeID:    nodeIDs[i],
+			PublicKey: blsPublicKeys[i],
+			Weight:    10_000_000,
+		}
+	}
+
+	// Add remaining nodes with a duplicate BLS Public Key and negligible weight
+	for i := 10; i < numValidators; i++ {
+		validatorOutput[nodeIDs[i]] = &validators.GetValidatorOutput{
+			NodeID:    nodeIDs[i],
+			PublicKey: blsPublicKeys[i%10],
+			Weight:    20,
+		}
+	}
+	snowCtx := snow.DefaultContextTest()
+	state := &validators.TestState{
+		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+			return sourceSubnetID, nil
+		},
+		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			return validatorOutput, nil
+		},
+	}
+	snowCtx.ValidatorState = state
+
+	return testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerVMBlockContext: &block.Context{
+			PChainHeight: 1,
+		},
+		SnowContext:  snowCtx,
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       nil,
+		PredicateErr: nil,
+	}
 }
 
 func TestWarpPredicate(t *testing.T) {
