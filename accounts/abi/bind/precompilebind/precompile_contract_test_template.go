@@ -42,7 +42,7 @@ func TestRun(t *testing.T) {
 		"calling {{decapitalise $func.Normalized.Name}} from {{$role}} should {{- if $fail}} fail {{- else}} succeed{{- end}}":  {
 			Caller:     allowlist.Test{{$role}}Addr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t *testing.T) []byte {
+			InputFn: func(t testing.TB) []byte {
 				{{- if len $func.Normalized.Inputs | lt 1}}
 				// CUSTOM CODE STARTS HERE
 				// populate test input here
@@ -74,7 +74,7 @@ func TestRun(t *testing.T) {
 		{{- if not $func.Original.IsConstant}}
 		"readOnly {{decapitalise $func.Normalized.Name}} should fail": {
 			Caller:	common.Address{1},
-			InputFn: func(t *testing.T) []byte {
+			InputFn: func(t testing.TB) []byte {
 				{{- if len $func.Normalized.Inputs | lt 1}}
 				// CUSTOM CODE STARTS HERE
 				// populate test input here
@@ -99,7 +99,7 @@ func TestRun(t *testing.T) {
 		{{- end}}
 		"insufficient gas for {{decapitalise $func.Normalized.Name}} should fail": {
 			Caller:	common.Address{1},
-			InputFn: func(t *testing.T) []byte {
+			InputFn: func(t testing.TB) []byte {
 				{{- if len $func.Normalized.Inputs | lt 1}}
 				// CUSTOM CODE STARTS HERE
 				// populate test input here
