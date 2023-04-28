@@ -18,7 +18,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -163,8 +162,6 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, err
 	}
 
-	// TODO: remove
-	log.Info("getVerifiedWarpMessage successful", "originaChainID", warpMessage.SourceChainID, "originSenderAddress", addressedPayload.SourceAddress, "destinationChainID", warpMessage.DestinationChainID, "destinationAddress", addressedPayload.DestinationAddress, "payload", common.Bytes2Hex(addressedPayload.Payload))
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
 }

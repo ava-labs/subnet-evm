@@ -6,15 +6,22 @@ package warp
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
+	"math/big"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	precompileUtils "github.com/ava-labs/subnet-evm/utils"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -25,12 +32,22 @@ const pChainHeight uint64 = 1337
 var (
 	_ utils.Sortable[*testValidator] = (*testValidator)(nil)
 
-	errTest = errors.New("non-nil error")
-	// sourceChainID = ids.GenerateTestID()
-	subnetID = ids.GenerateTestID()
+	errTest            = errors.New("non-nil error")
+	sourceChainID      = ids.GenerateTestID()
+	sourceSubnetID     = ids.GenerateTestID()
+	destinationChainID = ids.GenerateTestID()
 
-	testVdrs []*testValidator
-	tests    []signatureTest
+	unsignedMsg           *avalancheWarp.UnsignedMessage
+	addressedPayload      *warpPayload.AddressedPayload
+	addressedPayloadBytes []byte
+	blsSignatures         []*bls.Signature
+
+	numTestVdrs = 10_000
+	testVdrs    []*testValidator
+	vdrs        map[ids.NodeID]*validators.GetValidatorOutput
+	tests       []signatureTest
+
+	predicateTests = make(map[string]testutils.PredicateTest)
 )
 
 type testValidator struct {
@@ -73,14 +90,13 @@ type signatureTest struct {
 }
 
 func init() {
-	testVdrs = []*testValidator{
-		newTestValidator(),
-		newTestValidator(),
-		newTestValidator(),
+	testVdrs = make([]*testValidator, 0, numTestVdrs)
+	for i := 0; i < numTestVdrs; i++ {
+		testVdrs = append(testVdrs, newTestValidator())
 	}
 	utils.Sort(testVdrs)
 
-	vdrs := map[ids.NodeID]*validators.GetValidatorOutput{
+	vdrs = map[ids.NodeID]*validators.GetValidatorOutput{
 		testVdrs[0].nodeID: {
 			NodeID:    testVdrs[0].nodeID,
 			PublicKey: testVdrs[0].vdr.PublicKey,
@@ -98,18 +114,198 @@ func init() {
 		},
 	}
 
-	addressedPayload, err := warpPayload.NewAddressedPayload(ids.GenerateTestID(), ids.GenerateTestID(), []byte{1, 2, 3})
+	var err error
+	addressedPayload, err = warpPayload.NewAddressedPayload(ids.GenerateTestID(), ids.GenerateTestID(), []byte{1, 2, 3})
 	if err != nil {
 		panic(err)
 	}
-	addressedPayloadBytes := addressedPayload.Bytes()
+	addressedPayloadBytes = addressedPayload.Bytes()
+	unsignedMsg, err = avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, addressedPayload.Bytes())
+	if err != nil {
+		panic(err)
+	}
 
+	for _, testVdr := range testVdrs {
+		blsSignature := bls.Sign(testVdr.sk, unsignedMsg.Bytes())
+		blsSignatures = append(blsSignatures, blsSignature)
+	}
+
+	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
+		testName := fmt.Sprintf("%d nodes %d signers", totalNodes, totalNodes)
+		predicateTests[testName] = createNValidatorsAndSignersTest(totalNodes)
+	}
+
+	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
+		testName := fmt.Sprintf("%d nodes 10 heavily weighted keys", totalNodes)
+		predicateTests[testName] = createMissingPublicKeyTest(10, totalNodes)
+	}
+
+	for _, totalNodes := range []int{10, 100, 1_000, 10_000} {
+		testName := fmt.Sprintf("%d nodes 10 duplicated keys", totalNodes)
+		predicateTests[testName] = createDuplicateKeyTest(10, totalNodes)
+	}
+}
+
+func createWarpMessage(numKeys int) *avalancheWarp.Message {
+	aggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:numKeys])
+	if err != nil {
+		panic(err)
+	}
+	bitSet := set.NewBits()
+	for i := 0; i < numKeys; i++ {
+		bitSet.Add(i)
+	}
+	warpSignature := &avalancheWarp.BitSetSignature{
+		Signers: bitSet.Bytes(),
+	}
+	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
+	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
+	if err != nil {
+		panic(err)
+	}
+	return warpMsg
+}
+
+func createPredicate(numKeys int) []byte {
+	warpMsg := createWarpMessage(numKeys)
+	predicateBytes := precompileUtils.PackPredicate(warpMsg.Bytes())
+	return predicateBytes
+}
+
+type validatorRange struct {
+	start  int
+	end    int
+	weight uint64
+}
+
+func createSnowCtx(validatorRanges []validatorRange) *snow.Context {
+	validatorOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+
+	for _, validatorRange := range validatorRanges {
+		for i := validatorRange.start; i < validatorRange.end; i++ {
+			validatorOutput[testVdrs[i].nodeID] = &validators.GetValidatorOutput{
+				NodeID:    testVdrs[i].nodeID,
+				PublicKey: testVdrs[i].vdr.PublicKey,
+				Weight:    validatorRange.weight,
+			}
+		}
+	}
+
+	snowCtx := snow.DefaultContextTest()
+	state := &validators.TestState{
+		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
+			return sourceSubnetID, nil
+		},
+		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			return validatorOutput, nil
+		},
+	}
+	snowCtx.ValidatorState = state
+	return snowCtx
+}
+
+func createNValidatorsAndSignersTest(numKeys int) testutils.PredicateTest {
+	predicateBytes := createPredicate(numKeys)
+
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    numKeys,
+			weight: 20,
+		},
+	})
+
+	return testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+				SnowCtx: snowCtx,
+			},
+			ProposerVMBlockCtx: &block.Context{
+				PChainHeight: 1,
+			},
+		},
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       nil,
+		PredicateErr: nil,
+	}
+}
+
+func createMissingPublicKeyTest(numKeys int, numValidators int) testutils.PredicateTest {
+	predicateBytes := createPredicate(numKeys)
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    numKeys,
+			weight: 10_000_000,
+		},
+		{
+			start:  10,
+			end:    numValidators,
+			weight: 20,
+		},
+	})
+
+	return testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+				SnowCtx: snowCtx,
+			},
+			ProposerVMBlockCtx: &block.Context{
+				PChainHeight: 1,
+			},
+		},
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       nil,
+		PredicateErr: nil,
+	}
+}
+
+func createDuplicateKeyTest(numKeys int, numValidators int) testutils.PredicateTest {
+	predicateBytes := createPredicate(numKeys)
+
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			0,
+			numKeys,
+			10_000_000,
+		},
+		{
+			10,
+			numValidators,
+			20,
+		},
+	})
+
+	return testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+				SnowCtx: snowCtx,
+			},
+			ProposerVMBlockCtx: &block.Context{
+				PChainHeight: 1,
+			},
+		},
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       nil,
+		PredicateErr: nil,
+	}
+}
+
+// This test copies the test coverage from https://github.com/ava-labs/avalanchego/blob/v1.10.0/vms/platformvm/warp/signature_test.go#L137.
+// These tests are only expected to fail if there is a breaking change in AvalancheGo that unexpectedly changes behavior.
+func TestSignatureVerification(t *testing.T) {
 	tests = []signatureTest{
 		{
 			name: "can't get subnetID",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, errTest)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, errTest)
 				return state
 			},
 			quorumNum: 1,
@@ -135,8 +331,8 @@ func init() {
 			name: "can't get validator set",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(nil, errTest)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(nil, errTest)
 				return state
 			},
 			quorumNum: 1,
@@ -162,8 +358,8 @@ func init() {
 			name: "weight overflow",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(map[ids.NodeID]*validators.GetValidatorOutput{
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(map[ids.NodeID]*validators.GetValidatorOutput{
 					testVdrs[0].nodeID: {
 						NodeID:    testVdrs[0].nodeID,
 						PublicKey: testVdrs[0].vdr.PublicKey,
@@ -202,8 +398,8 @@ func init() {
 			name: "invalid bit set index",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 1,
@@ -232,8 +428,8 @@ func init() {
 			name: "unknown index",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 1,
@@ -265,8 +461,8 @@ func init() {
 			name: "insufficient weight",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 1,
@@ -309,8 +505,8 @@ func init() {
 			name: "can't parse sig",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 1,
@@ -343,8 +539,8 @@ func init() {
 			name: "no validators",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(nil, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(nil, nil)
 				return state
 			},
 			quorumNum: 1,
@@ -378,8 +574,8 @@ func init() {
 			name: "invalid signature (substitute)",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 3,
@@ -422,8 +618,8 @@ func init() {
 			name: "invalid signature (missing one)",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 3,
@@ -462,8 +658,8 @@ func init() {
 			name: "invalid signature (extra one)",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 3,
@@ -507,8 +703,8 @@ func init() {
 			name: "valid signature",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 1,
@@ -551,8 +747,8 @@ func init() {
 			name: "valid signature (boundary)",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(vdrs, nil)
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(vdrs, nil)
 				return state
 			},
 			quorumNum: 2,
@@ -595,8 +791,8 @@ func init() {
 			name: "valid signature (missing key)",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(map[ids.NodeID]*validators.GetValidatorOutput{
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(map[ids.NodeID]*validators.GetValidatorOutput{
 					testVdrs[0].nodeID: {
 						NodeID:    testVdrs[0].nodeID,
 						PublicKey: nil,
@@ -656,8 +852,8 @@ func init() {
 			name: "valid signature (duplicate key)",
 			stateF: func(ctrl *gomock.Controller) validators.State {
 				state := validators.NewMockState(ctrl)
-				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(subnetID, nil)
-				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, subnetID).Return(map[ids.NodeID]*validators.GetValidatorOutput{
+				state.EXPECT().GetSubnetID(gomock.Any(), sourceChainID).Return(sourceSubnetID, nil)
+				state.EXPECT().GetValidatorSet(gomock.Any(), pChainHeight, sourceSubnetID).Return(map[ids.NodeID]*validators.GetValidatorOutput{
 					testVdrs[0].nodeID: {
 						NodeID:    testVdrs[0].nodeID,
 						PublicKey: nil,
@@ -712,11 +908,7 @@ func init() {
 			err: nil,
 		},
 	}
-}
 
-// This test copies the test coverage from https://github.com/ava-labs/avalanchego/blob/v1.10.0/vms/platformvm/warp/signature_test.go#L137.
-// These tests are only expected to fail if there is a breaking change in AvalancheGo that unexpectedly changes behavior.
-func TestSignatureVerification(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
@@ -737,4 +929,282 @@ func TestSignatureVerification(t *testing.T) {
 			require.ErrorIs(err, tt.err)
 		})
 	}
+}
+
+func TestWarpPredicate(t *testing.T) {
+	testutils.RunPredicateTests(t, predicateTests)
+}
+
+func BenchmarkWarpPredicate(b *testing.B) {
+	testutils.RunPredicateBenchmarks(b, predicateTests)
+}
+
+func TestWarpNilProposerCtx(t *testing.T) {
+	numKeys := 1
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    numKeys,
+			weight: 20,
+		},
+	})
+	predicateBytes := createPredicate(numKeys)
+	test := testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+				SnowCtx: snowCtx,
+			},
+			ProposerVMBlockCtx: nil,
+		},
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       nil,
+		PredicateErr: errNoProposerPredicate,
+	}
+
+	test.Run(t)
+}
+
+func TestInvalidPredicatePacking(t *testing.T) {
+	numKeys := 1
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    numKeys,
+			weight: 20,
+		},
+	})
+	predicateBytes := createPredicate(numKeys)
+	predicateBytes = append(predicateBytes, byte(0x01)) // Invalidate the predicate byte packing
+
+	test := testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+				SnowCtx: snowCtx,
+			},
+			ProposerVMBlockCtx: &block.Context{
+				PChainHeight: 1,
+			},
+		},
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       errInvalidPredicateBytes,
+		PredicateErr: nil, // Won't be reached
+	}
+
+	test.Run(t)
+}
+
+func TestInvalidWarpMessage(t *testing.T) {
+	numKeys := 1
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    numKeys,
+			weight: 20,
+		},
+	})
+	warpMsg := createWarpMessage(1)
+	warpMsgBytes := warpMsg.Bytes()
+	warpMsgBytes = append(warpMsgBytes, byte(0x01)) // Invalidate warp message packing
+	predicateBytes := precompileUtils.PackPredicate(warpMsgBytes)
+
+	test := testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+				SnowCtx: snowCtx,
+			},
+			ProposerVMBlockCtx: &block.Context{
+				PChainHeight: 1,
+			},
+		},
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       errInvalidWarpMsg,
+		PredicateErr: nil, // Won't be reached
+	}
+
+	test.Run(t)
+}
+
+func TestInvalidAddressedPayload(t *testing.T) {
+	numKeys := 1
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    numKeys,
+			weight: 20,
+		},
+	})
+	aggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:numKeys])
+	require.NoError(t, err)
+	bitSet := set.NewBits()
+	for i := 0; i < numKeys; i++ {
+		bitSet.Add(i)
+	}
+	warpSignature := &avalancheWarp.BitSetSignature{
+		Signers: bitSet.Bytes(),
+	}
+	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
+	// Create an unsigned message with an invalid addressed payload
+	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, []byte{1, 2, 3})
+	require.NoError(t, err)
+	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
+	require.NoError(t, err)
+	warpMsgBytes := warpMsg.Bytes()
+	predicateBytes := precompileUtils.PackPredicate(warpMsgBytes)
+
+	test := testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+				SnowCtx: snowCtx,
+			},
+			ProposerVMBlockCtx: &block.Context{
+				PChainHeight: 1,
+			},
+		},
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       nil,
+		PredicateErr: errInvalidAddressedPayload,
+	}
+
+	test.Run(t)
+}
+
+func TestInvalidBitSet(t *testing.T) {
+	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+		sourceChainID,
+		ids.Empty,
+		[]byte{1, 2, 3},
+	)
+	require.NoError(t, err)
+
+	msg, err := avalancheWarp.NewMessage(
+		unsignedMsg,
+		&avalancheWarp.BitSetSignature{
+			Signers:   make([]byte, 1),
+			Signature: [bls.SignatureLen]byte{},
+		},
+	)
+	require.NoError(t, err)
+
+	numKeys := 1
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    numKeys,
+			weight: 20,
+		},
+	})
+	predicateBytes := precompileUtils.PackPredicate(msg.Bytes())
+	test := testutils.PredicateTest{
+		Config: NewConfig(big.NewInt(0), 0),
+		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+				SnowCtx: snowCtx,
+			},
+			ProposerVMBlockCtx: &block.Context{
+				PChainHeight: 1,
+			},
+		},
+		StorageSlots: predicateBytes,
+		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+		GasErr:       errCannotNumSigners,
+		PredicateErr: nil, // Won't be reached
+	}
+
+	test.Run(t)
+}
+
+func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    100,
+			weight: 20,
+		},
+	})
+
+	tests := make(map[string]testutils.PredicateTest)
+	for _, numSigners := range []int{1, int(DefaultQuorumNumerator) - 1, int(DefaultQuorumNumerator), int(DefaultQuorumNumerator) + 1, 99, 100, 101} {
+		var (
+			predicateBytes       = createPredicate(numSigners)
+			expectedPredicateErr error
+		)
+		// If the number of signers is less than the DefaultQuorumNumerator (67)
+		if numSigners < int(DefaultQuorumNumerator) {
+			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
+		}
+		if numSigners > int(QuorumDenominator) {
+			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
+		}
+		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
+			Config: NewConfig(big.NewInt(0), 0),
+			ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+				PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+					SnowCtx: snowCtx,
+				},
+				ProposerVMBlockCtx: &block.Context{
+					PChainHeight: 1,
+				},
+			},
+			StorageSlots: predicateBytes,
+			Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numSigners)*GasCostPerWarpSigner,
+			GasErr:       nil,
+			PredicateErr: expectedPredicateErr,
+		}
+	}
+	testutils.RunPredicateTests(t, tests)
+}
+
+func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:  0,
+			end:    100,
+			weight: 20,
+		},
+	})
+
+	tests := make(map[string]testutils.PredicateTest)
+	nonDefaultQuorumNumerator := 50
+	// Ensure this test fails if the DefaultQuroumNumerator is changed to an unexpected value during development
+	require.NotEqual(t, nonDefaultQuorumNumerator, int(DefaultQuorumNumerator))
+	// Add cases with default quorum
+	for _, numSigners := range []int{nonDefaultQuorumNumerator, nonDefaultQuorumNumerator + 1, 99, 100, 101} {
+		var (
+			predicateBytes       = createPredicate(numSigners)
+			expectedPredicateErr error
+		)
+		// If the number of signers is less than the quorum numerator, expect ErrInsufficientWeight
+		if numSigners < nonDefaultQuorumNumerator {
+			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
+		}
+		if numSigners > int(QuorumDenominator) {
+			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
+		}
+		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)
+		tests[name] = testutils.PredicateTest{
+			Config: NewConfig(big.NewInt(0), uint64(nonDefaultQuorumNumerator)),
+			ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
+				PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+					SnowCtx: snowCtx,
+				},
+				ProposerVMBlockCtx: &block.Context{
+					PChainHeight: 1,
+				},
+			},
+			StorageSlots: predicateBytes,
+			Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numSigners)*GasCostPerWarpSigner,
+			GasErr:       nil,
+			PredicateErr: expectedPredicateErr,
+		}
+	}
+
+	testutils.RunPredicateTests(t, tests)
 }

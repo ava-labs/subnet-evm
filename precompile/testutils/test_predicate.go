@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
 )
@@ -16,9 +14,7 @@ import (
 type PredicateTest struct {
 	Config precompileconfig.Config
 
-	ProposerVMBlockContext *block.Context
-
-	SnowContext *snow.Context
+	ProposerPredicateContext *precompileconfig.ProposerPredicateContext
 
 	StorageSlots         []byte
 	Gas                  uint64
@@ -30,49 +26,24 @@ func (test PredicateTest) Run(t testing.TB) {
 	var (
 		gas                  uint64
 		gasErr, predicateErr error
+		predicate            = test.Config.(precompileconfig.ProposerPredicater)
 	)
 
-	switch predicate := test.Config.(type) {
-	case precompileconfig.PrecompilePredicater:
-		gas, gasErr = predicate.PredicateGas(test.StorageSlots)
-		if gasErr == nil {
-			predicateErr = predicate.VerifyPredicate(
-				&precompileconfig.PrecompilePredicateContext{
-					SnowCtx: test.SnowContext,
-				},
-				test.StorageSlots,
-			)
-		}
-	case precompileconfig.ProposerPredicater:
-		gas, gasErr = predicate.PredicateGas(test.StorageSlots)
-		if gasErr == nil {
-			predicateErr = predicate.VerifyPredicate(
-				&precompileconfig.ProposerPredicateContext{
-					PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
-						SnowCtx: test.SnowContext,
-					},
-					ProposerVMBlockCtx: test.ProposerVMBlockContext,
-				},
-				test.StorageSlots,
-			)
-		}
-	default:
-		t.Fatal("ran predicate test with precompileconfig that does not support a predicate")
-	}
-
-	if test.GasErr == nil {
-		require.NoError(t, gasErr)
-	} else {
-		// If an error occurs here, the test finishes here
+	gas, gasErr = predicate.PredicateGas(test.StorageSlots)
+	if test.GasErr != nil {
 		require.ErrorIs(t, gasErr, test.GasErr)
-		return
+		return // If PredicateGas returns an error, the predicate is invalidated and no further checks are needed
+	} else {
+		require.NoError(t, gasErr)
 	}
+	require.Equal(t, test.Gas, gas)
+
+	predicateErr = predicate.VerifyPredicate(test.ProposerPredicateContext, test.StorageSlots)
 	if test.PredicateErr == nil {
 		require.NoError(t, predicateErr)
 	} else {
 		require.ErrorIs(t, predicateErr, test.PredicateErr)
 	}
-	require.Equal(t, test.Gas, gas)
 }
 
 func RunPredicateTests(t *testing.T, predicateTests map[string]PredicateTest) {
