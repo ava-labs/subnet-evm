@@ -124,7 +124,7 @@ func TestRun(t *testing.T) {
 		{{- end}}
 	}
 	{{- if .Contract.AllowList}}
-	// Run tests with allow list tests.
+	// Run tests with allowlist tests.
 	// This adds allowlist run tests to your custom tests
 	// and runs them all together.
 	// Even if you don't add any custom tests, keep this. This will still
