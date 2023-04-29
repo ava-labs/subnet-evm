@@ -100,6 +100,14 @@ func (db *MockLimitOrderDatabase) GetOrdersToCancel(oraclePrice map[Market]*big.
 	return args.Get(0).(map[common.Address][]common.Hash)
 }
 
+func (db *MockLimitOrderDatabase) GetLastPrices() map[Market]*big.Int {
+	return map[Market]*big.Int{}
+}
+
+func (db *MockLimitOrderDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int) ([]LiquidablePosition, map[common.Address][]common.Hash) {
+	return []LiquidablePosition{}, map[common.Address][]common.Hash{}
+}
+
 func (db *MockLimitOrderDatabase) GetOrderBookData() InMemoryDatabase {
 	return *&InMemoryDatabase{}
 }

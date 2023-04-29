@@ -204,6 +204,7 @@ func TestGetLongOrders(t *testing.T) {
 }
 
 func TestGetCancellableOrders(t *testing.T) {
+	// also tests getTotalNotionalPositionAndUnrealizedPnl
 	getReservedMargin := func(order LimitOrder) *big.Int {
 		notional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.BaseAssetQuantity, order.Price), _1e18))
 		return divideByBasePrecision(big.NewInt(0).Mul(notional, minAllowableMargin))
@@ -227,7 +228,8 @@ func TestGetCancellableOrders(t *testing.T) {
 	price3 := multiplyBasePrecision(big.NewInt(8))
 	shortOrder3, orderId3 := createLimitOrder("short", userAddress, baseAssetQuantity, price3, status, signature1, blockNumber1, salt3)
 
-	inMemoryDatabase.UpdateMargin(trader, HUSD, multiplyBasePrecision(big.NewInt(40)))
+	depositMargin := multiplyBasePrecision(big.NewInt(40))
+	inMemoryDatabase.UpdateMargin(trader, HUSD, depositMargin)
 
 	// 3 different short orders with price = 10, 9, 8
 	inMemoryDatabase.Add(orderId1, &shortOrder1)
@@ -239,16 +241,44 @@ func TestGetCancellableOrders(t *testing.T) {
 
 	// 1 fulfilled order at price = 10, size = 9
 	size := big.NewInt(0).Mul(big.NewInt(-9), _1e18)
-	inMemoryDatabase.UpdatePosition(trader, AvaxPerp, size, big.NewInt(90000000), false)
+	fulfilPrice := multiplyBasePrecision(big.NewInt(10))
+	inMemoryDatabase.UpdatePosition(trader, AvaxPerp, size, dividePrecisionSize(new(big.Int).Mul(new(big.Int).Abs(size), fulfilPrice)), false)
+	inMemoryDatabase.UpdateLastPrice(AvaxPerp, fulfilPrice)
 
 	// price has moved from 10 to 11 now
 	priceMap := map[Market]*big.Int{
 		AvaxPerp: multiplyBasePrecision(big.NewInt(11)),
 	}
-	ordersToCancel := inMemoryDatabase.GetOrdersToCancel(priceMap)
+	// Setup completed, assertions start here
+	_trader := inMemoryDatabase.TraderMap[trader]
+	assert.Equal(t, big.NewInt(0), getTotalFunding(_trader))
+	assert.Equal(t, depositMargin, getNormalisedMargin(_trader))
+
+	// last price based notional = 9 * 10 = 90, pnl = 0, mf = (40-0)/90 = 0.44
+	// oracle price based notional = 9 * 11 = 99, pnl = -9, mf = (40-9)/99 = 0.31
+	// for Min_Allowable_Margin we select the min of 2 hence, oracle based mf
+	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, Min_Allowable_Margin, priceMap, inMemoryDatabase.GetLastPrices())
+	assert.Equal(t, multiplyBasePrecision(big.NewInt(99)), notionalPosition)
+	assert.Equal(t, multiplyBasePrecision(big.NewInt(-9)), unrealizePnL)
+
+	// for Maintenance_Margin we select the max of 2 hence, last price based mf
+	notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, Maintenance_Margin, priceMap, inMemoryDatabase.GetLastPrices())
+	assert.Equal(t, multiplyBasePrecision(big.NewInt(90)), notionalPosition)
+	assert.Equal(t, big.NewInt(0), unrealizePnL)
+
+	marginFraction := calcMarginFraction(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices())
+	assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(depositMargin /* uPnL = 0 */), notionalPosition), marginFraction)
+
+	availableMargin := getAvailableMargin(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices())
+	// availableMargin = 40 - 9 - (99 + (10+9+8) * 3)/5 = -5
+	assert.Equal(t, multiplyBasePrecision(big.NewInt(-5)), availableMargin)
+	_, ordersToCancel := inMemoryDatabase.GetNaughtyTraders(priceMap)
 
 	// t.Log("####", "ordersToCancel", ordersToCancel)
-	assert.Equal(t, 1, len(ordersToCancel))         // only one trader
+	assert.Equal(t, 1, len(ordersToCancel)) // only one trader
+	// orders will be cancelled in the order of price, hence orderId3, 2, 1
+	// orderId3 will free up 8*3/5 = 4.8
+	// orderId2 will free up 9*3/5 = 5.4
 	assert.Equal(t, 2, len(ordersToCancel[trader])) // 2 orders
 	assert.Equal(t, ordersToCancel[trader][0], orderId3)
 	assert.Equal(t, ordersToCancel[trader][1], orderId2)
