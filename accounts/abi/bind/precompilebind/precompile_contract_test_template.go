@@ -26,8 +26,8 @@ import (
 // TestRun tests the Run function of the precompile contract.
 // These tests are run against the precompile contract directly with
 // the given input and expected output. They're just a guide to
-// help you write your own tests. These test are for general cases like
-// allowlist, readOnly behaviour and gas cost. You should write your own
+// help you write your own tests. These tests are for general cases like
+// allowlist, readOnly behaviour, and gas cost. You should write your own
 // tests for specific cases.
 func TestRun(t *testing.T) {
 	tests := map[string]testutils.PrecompileTest{
@@ -124,7 +124,7 @@ func TestRun(t *testing.T) {
 		{{- end}}
 	}
 	{{- if .Contract.AllowList}}
-	// Run tests with allow list tests.
+	// Run tests with allowlist tests.
 	// This adds allowlist run tests to your custom tests
 	// and runs them all together.
 	// Even if you don't add any custom tests, keep this. This will still
