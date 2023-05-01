@@ -134,7 +134,7 @@ func TestRun(t *testing.T) {
 	// Run tests.
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			test.Run(t, module, state.NewTestStateDB(t *testing.T))
+			test.Run(t, Module, state.NewTestStateDB(t))
 		})
 	}
 	{{- end}}
