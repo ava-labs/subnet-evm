@@ -136,7 +136,7 @@ func exportAVAX(accessibleState contract.AccessibleState, caller common.Address,
 		return nil, remainingGas, err
 	}
 	height := accessibleState.GetBlockContext().Number().Uint64()
-	stateTrie := &stateTrie{accessibleState.GetStateDB()}
+	stateTrie := &StateTrie{accessibleState.GetStateDB()}
 	if err := addAtomicOpsToSyncRecord(height, inputStruct.DestinationChainID, ops, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
 	}
@@ -203,7 +203,7 @@ func exportUTXO(accessibleState contract.AccessibleState, caller common.Address,
 		return nil, remainingGas, err
 	}
 	height := accessibleState.GetBlockContext().Number().Uint64()
-	stateTrie := &stateTrie{accessibleState.GetStateDB()}
+	stateTrie := &StateTrie{accessibleState.GetStateDB()}
 	if err := addAtomicOpsToSyncRecord(height, inputStruct.DestinationChainID, ops, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to add atomic ops to sync record: %w", err)
 	}
@@ -322,7 +322,7 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	}
 
 	// Check the UTXO has not been marked as spent within the statedb
-	stateTrie := &stateTrie{accessibleState.GetStateDB()}
+	stateTrie := &StateTrie{accessibleState.GetStateDB()}
 	if spent, err := isSpent(specifiedUTXO.ID, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.ID, err)
 	} else if spent {
@@ -472,7 +472,7 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	}
 
 	// Check the UTXO has not been marked as spent within the statedb
-	stateTrie := &stateTrie{accessibleState.GetStateDB()}
+	stateTrie := &StateTrie{accessibleState.GetStateDB()}
 	if spent, err := isSpent(specifiedUTXO.ID, stateTrie); err != nil {
 		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.ID, err)
 	} else if spent {

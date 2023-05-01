@@ -4,6 +4,9 @@
 package sharedmemory
 
 import (
+	"encoding/binary"
+	"fmt"
+
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
@@ -13,7 +16,7 @@ import (
 )
 
 const (
-	syncKeyPrefix   = 's'
+	syncKeyPrefix   = 's' // latest serial number is stored at this key
 	spentUTXOPrefix = 'u'
 )
 
@@ -22,21 +25,22 @@ type trie interface {
 	Put(key, value []byte) error
 }
 
-type stateTrie struct {
-	s contract.StateDB
+type StateTrie struct {
+	StateDB contract.StateDB
 }
 
-func (s *stateTrie) Get(key []byte) ([]byte, error) {
-	return []byte(s.s.GetStateVariableLength(ContractAddress, string(key))), nil
+func (s *StateTrie) Get(key []byte) ([]byte, error) {
+	return []byte(s.StateDB.GetStateVariableLength(ContractAddress, string(key))), nil
 }
 
-func (s *stateTrie) Put(key, value []byte) error {
-	s.s.SetStateVariableLength(ContractAddress, string(key), string(value))
+func (s *StateTrie) Put(key, value []byte) error {
+	fmt.Println("put", common.Bytes2Hex(key), common.Bytes2Hex(value))
+	s.StateDB.SetStateVariableLength(ContractAddress, string(key), string(value))
 	return nil
 }
 
 func IsSpent(utxo ids.ID, state contract.StateDB) (bool, error) {
-	return isSpent(utxo, &stateTrie{state})
+	return isSpent(utxo, &StateTrie{state})
 }
 
 func isSpent(utxo ids.ID, trie trie) (bool, error) {
@@ -53,28 +57,29 @@ func markSpent(utxo ids.ID, trie trie) error {
 	return trie.Put(key, []byte{0})
 }
 
-func addAtomicOpsToSyncRecord(height uint64, chainID ids.ID, requests *atomic.Requests, trie trie) error {
-	key := mkSyncKey(height, chainID)
+type SyncRecord struct {
+	// TODO: maybe we want height here too?
+	ChainID  ids.ID           `serialize:"true"`
+	Requests *atomic.Requests `serialize:"true"`
+}
 
-	// First, get any existing sync record from the trie
-	data, err := trie.Get(key)
+// addAtomicOpsToSyncRecord adds the atomic ops for [chainID] represented by
+// [requests] to the [trie] provided.
+func addAtomicOpsToSyncRecord(height uint64, chainID ids.ID, requests *atomic.Requests, trie trie) error {
+	// Get the key to store the next sync record at
+	key, err := nextSyncKey(trie)
 	if err != nil {
 		return err
 	}
 
-	syncRecord := &atomic.Requests{}
-	// If there is an existing sync record, unmarshal it
-	if len(data) > 0 {
-		if _, err := codec.Codec.Unmarshal(data, &syncRecord); err != nil {
-			return err
-		}
+	// Create the sync record
+	syncRecord := &SyncRecord{
+		ChainID:  chainID,
+		Requests: requests,
 	}
-	// Add the atomic ops to the sync record
-	syncRecord.PutRequests = append(syncRecord.PutRequests, requests.PutRequests...)
-	syncRecord.RemoveRequests = append(syncRecord.RemoveRequests, requests.RemoveRequests...)
 
 	// Marshal the sync record
-	data, err = codec.Codec.Marshal(codec.CodecVersion, syncRecord)
+	data, err := codec.Codec.Marshal(codec.CodecVersion, syncRecord)
 	if err != nil {
 		return err
 	}
@@ -87,12 +92,54 @@ func addAtomicOpsToSyncRecord(height uint64, chainID ids.ID, requests *atomic.Re
 	return nil
 }
 
-func mkSyncKey(height uint64, blockchainID ids.ID) []byte {
-	packer := wrappers.Packer{Bytes: make([]byte, 1+wrappers.LongLen+common.HashLength)}
-	packer.PackByte(syncKeyPrefix)
-	packer.PackLong(height)
-	packer.PackFixedBytes(blockchainID[:])
-	return packer.Bytes
+func nextSyncKey(trie trie) ([]byte, error) {
+	// Get the last used serial number from the trie
+	serialNumber, err := GetSerialNumber(trie)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the key and persist the new serial number
+	// to the trie
+	key := mkSyncKey(serialNumber + 1)
+	if err := trie.Put([]byte{syncKeyPrefix}, key[1:]); err != nil {
+		return nil, err
+	}
+
+	return key, nil
+}
+
+func mkSyncKey(serialNumber uint64) []byte {
+	key := make([]byte, 1+wrappers.LongLen)
+	key[0] = syncKeyPrefix
+	binary.BigEndian.PutUint64(key[1:], serialNumber)
+	return key
+}
+
+func GetSyncRecord(serialNumber uint64, trie trie) (SyncRecord, error) {
+	key := mkSyncKey(serialNumber)
+	data, err := trie.Get(key)
+	if err != nil {
+		return SyncRecord{}, err
+	}
+
+	var syncRecord SyncRecord
+	if _, err := codec.Codec.Unmarshal(data, &syncRecord); err != nil {
+		return SyncRecord{}, err
+	}
+
+	return syncRecord, nil
+}
+
+func GetSerialNumber(trie trie) (uint64, error) {
+	data, err := trie.Get([]byte{syncKeyPrefix})
+	if err != nil {
+		return 0, err
+	}
+	if len(data) == 0 {
+		return 0, nil
+	}
+	return binary.BigEndian.Uint64(data), nil
 }
 
 func mkSpentUTXOKey(utxo ids.ID) []byte {

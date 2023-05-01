@@ -122,7 +122,9 @@ func (b *Block) handlePrecompileAccept(sharedMemoryWriter *sharedMemoryWriter) e
 		}
 	}
 
-	return nil
+	// increment the last applied log index for the shared memory syncer
+	// to match the number of logs accepted via the accepter interface.
+	return b.vm.sharedMemorySyncer.incLastApplied(sharedMemoryWriter.numRequests)
 }
 
 // Reject implements the snowman.Block interface

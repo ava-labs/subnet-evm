@@ -213,6 +213,9 @@ type VM struct {
 	// Avalanche Warp Messaging backend
 	// Used to serve BLS signatures of warp messages over RPC
 	warpBackend warp.WarpBackend
+
+	// Shared memory
+	sharedMemorySyncer *sharedMemorySyncer
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -420,6 +423,13 @@ func (vm *VM) Initialize(
 		return err
 	}
 
+	// Initialize the shared memory syncer
+	vm.sharedMemorySyncer = newSharedMemorySyncer(
+		vm.metadataDB, vm.db, vm.eth.BlockChain(), vm.ctx.SharedMemory)
+	if err := vm.sharedMemorySyncer.initialize(); err != nil {
+		return err
+	}
+
 	go vm.ctx.Log.RecoverAndPanic(vm.startContinuousProfiler)
 
 	vm.initializeStateSyncServer()
@@ -570,6 +580,11 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 		vm.bootstrapped = false
 		return nil
 	case snow.Bootstrapping:
+		// Note: This works for now. We need to reconsider how this is done
+		// for dynamic state sync root updates.
+		if err := vm.syncSharedMemoryToLastAccepted(); err != nil {
+			return err
+		}
 		vm.bootstrapped = false
 		if err := vm.StateSyncClient.Error(); err != nil {
 			return err
@@ -583,6 +598,11 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 	default:
 		return snow.ErrUnknownState
 	}
+}
+
+func (vm *VM) syncSharedMemoryToLastAccepted() error {
+	lastAcceptedRoot := vm.eth.BlockChain().CurrentBlock().Root()
+	return vm.sharedMemorySyncer.syncSharedMemoryToState(lastAcceptedRoot)
 }
 
 // initBlockBuilding starts goroutines to manage block building
