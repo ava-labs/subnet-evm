@@ -4,6 +4,7 @@
 package warp
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -33,6 +34,10 @@ const (
 	GasCostPerWarpMessageBytes      uint64 = 100 // TODO: charge O(n) cost for decoding predicate of input size n
 	GasCostPerSignatureVerification uint64 = 200_000
 	// GasCostPerSourceSubnetValidator uint64 = 1 // TODO: charge O(n) cost for subnet validator set lookup
+)
+
+var (
+	errInvalidSendInput = errors.New("invalid sendWarpMessage input")
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -137,16 +142,16 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	}
 	unpackedPredicateBytes, err := utils.UnpackPredicate(predicateBytes)
 	if err != nil {
-		return nil, remainingGas, err
+		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
 	}
 	warpMessage, err := warp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
-		return nil, remainingGas, err
+		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
 	}
 
 	addressedPayload, err := warpPayload.ParseAddressedPayload(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
-		return nil, remainingGas, err
+		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
 	}
 	packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 		Message: WarpMessage{
@@ -201,7 +206,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	// unpack the arguments
 	inputStruct, err := UnpackSendWarpMessageInput(input)
 	if err != nil {
-		return nil, remainingGas, err
+		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidSendInput, err)
 	}
 
 	var (
@@ -220,7 +225,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	warpMessage, err := warp.NewUnsignedMessage(
+	unsignedWarpMessage, err := warp.NewUnsignedMessage(
 		sourceChainID,
 		destinationChainID,
 		addressedPayload.Bytes(),
@@ -238,7 +243,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 			destinationAddress,
 			sourceAddress,
 		},
-		warpMessage.Bytes(),
+		unsignedWarpMessage.Bytes(),
 		accessibleState.GetBlockContext().Number().Uint64(),
 	)
 
