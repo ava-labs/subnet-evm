@@ -24,9 +24,6 @@ export default {
       {
         version: "0.8.0"
       },
-      {
-        version: "0.8.5"
-      }
     ]
   },
   networks: {
