@@ -80,7 +80,6 @@ var allPrecompiles = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{16}):   &bls12381Pairing{},
 	common.BytesToAddress([]byte{17}):   &bls12381MapG1{},
 	common.BytesToAddress([]byte{18}):   &bls12381MapG2{},
-	common.BytesToAddress([]byte{101}):  &createClient{},
 }
 
 // EIP-152 test vectors
@@ -113,8 +112,7 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 	gas := p.RequiredGas(in)
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	statedb.Finalise(true) // Push the state into the "original" slot
-
+	statedb.Finalise(true)
 	vmctx := BlockContext{
 		CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
 		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
@@ -144,8 +142,7 @@ func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
 	gas := p.RequiredGas(in) - 1
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	statedb.Finalise(true) // Push the state into the "original" slot
-
+	statedb.Finalise(true)
 	vmctx := BlockContext{
 		CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
 		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
@@ -171,8 +168,7 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 	gas := p.RequiredGas(in)
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	statedb.Finalise(true) // Push the state into the "original" slot
-
+	statedb.Finalise(true)
 	vmctx := BlockContext{
 		CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
 		Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
@@ -212,8 +208,7 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 		bench.ResetTimer()
 
 		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-		statedb.Finalise(true) // Push the state into the "original" slot
-
+		statedb.Finalise(true)
 		vmctx := BlockContext{
 			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
 			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
