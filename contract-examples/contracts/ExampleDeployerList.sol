@@ -20,8 +20,13 @@ contract ExampleDeployerList is AllowList {
   }
 }
 
+// This is an empty contract that can be used to test contract deployment
 contract Example {}
 
+// ExampleDeployerListTest defines transactions that are used to test
+// the DeployerAllowList precompile by instantiating and calling the
+// ExampleDeployerList and making assertions.
+// The transactions are put together as steps of a complete test in contract_deployer_allow_list.ts.
 // TODO: a bunch of these tests have repeated code that should be combined
 contract ExampleDeployerListTest is AllowListTest {
   ExampleDeployerList private example;
