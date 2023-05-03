@@ -25,16 +25,13 @@ type exportAVAXEvent struct {
 	Addrs     []common.Address
 }
 
-func handleExportAVAX(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error) {
+func ExportAVAXEventToUTXO(assetID ids.ID, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (*avax.UTXO, error) {
 	// Parse the log data into the exportAVAXEvent struct
 	ev := &exportAVAXEvent{}
 	err := SharedMemoryABI.UnpackIntoInterface(ev, "ExportAVAX", logData)
 	if err != nil {
-		return ids.ID{}, nil, fmt.Errorf("failed to unpack ExportAVAX event data: %w", err)
+		return nil, fmt.Errorf("failed to unpack ExportAVAX event data: %w", err)
 	}
-	// Parse the topics data.
-	// TODO: Improve this by using the ABI to unpack the topics.
-	destinationChainID := ids.ID(topics[1])
 
 	addrs := make([]ids.ShortID, 0, len(ev.Addrs))
 	for _, addr := range ev.Addrs {
@@ -46,7 +43,7 @@ func handleExportAVAX(snowCtx *snow.Context, txHash common.Hash, logIndex int, t
 			TxID:        ids.ID(txHash),
 			OutputIndex: uint32(logIndex),
 		},
-		Asset: avax.Asset{ID: snowCtx.AVAXAssetID},
+		Asset: avax.Asset{ID: assetID},
 		Out: &secp256k1fx.TransferOutput{
 			Amt: ev.Amount,
 			OutputOwners: secp256k1fx.OutputOwners{
@@ -55,6 +52,17 @@ func handleExportAVAX(snowCtx *snow.Context, txHash common.Hash, logIndex int, t
 				Addrs:     addrs,
 			},
 		},
+	}
+	return utxo, nil
+}
+
+func handleExportAVAX(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error) {
+	// Parse the topics data.
+	// TODO: Improve this by using the ABI to unpack the topics.
+	destinationChainID := ids.ID(topics[1])
+	utxo, err := ExportAVAXEventToUTXO(snowCtx.AVAXAssetID, txHash, logIndex, topics, logData)
+	if err != nil {
+		return ids.ID{}, nil, err
 	}
 
 	utxoBytes, err := codec.Codec.Marshal(codec.CodecVersion, utxo)

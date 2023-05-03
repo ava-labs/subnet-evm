@@ -44,7 +44,7 @@ func GetNamedUTXOs(tx *types.Transaction) ([]ids.ID, error) {
 		}
 
 		for _, utxo := range atomicPredicate.ImportedUTXOs {
-			namedUTXOs = append(namedUTXOs, utxo.ID)
+			namedUTXOs = append(namedUTXOs, utxo.InputID())
 		}
 	}
 	return namedUTXOs, nil

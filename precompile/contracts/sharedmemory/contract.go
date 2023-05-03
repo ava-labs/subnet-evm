@@ -112,6 +112,8 @@ func exportAVAX(accessibleState contract.AccessibleState, caller common.Address,
 
 	balance := accessibleState.GetStateDB().GetBalance(ContractAddress)
 	accessibleState.GetStateDB().SubBalance(ContractAddress, balance)
+	// TODO: need to reject exporting values below 1_000_000_000
+	// Otherwise on import the value will be 0 and it will be rejected.
 	convertedBalance := balance.Div(balance, big.NewInt(1_000_000_000)) // TODO: make var
 
 	topics, data, err := SharedMemoryABI.PackEvent(
@@ -129,6 +131,7 @@ func exportAVAX(accessibleState contract.AccessibleState, caller common.Address,
 
 	// Add the UTXO to the sync record
 	txHash := accessibleState.GetStateDB().TxHash()
+	// TODO: verify this reliable with multiple txs in the block
 	logIndex := accessibleState.GetStateDB().GetNumLogs(txHash) - 1
 	// TODO: possibly a cleaner way to get the ops
 	_, ops, err := handleExportAVAX(accessibleState.GetSnowContext(), txHash, logIndex, topics, data)
@@ -309,7 +312,7 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 
 	var specifiedUTXO *avax.UTXO
 	for _, utxo := range atomicPredicate.ImportedUTXOs {
-		if utxo.ID == inputStruct.UtxoID {
+		if utxo.InputID() == inputStruct.UtxoID {
 			specifiedUTXO = utxo
 			break
 		}
@@ -323,24 +326,24 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 
 	// Check the UTXO has not been marked as spent within the statedb
 	stateTrie := &StateTrie{accessibleState.GetStateDB()}
-	if spent, err := isSpent(specifiedUTXO.ID, stateTrie); err != nil {
-		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.ID, err)
+	if spent, err := isSpent(specifiedUTXO.InputID(), stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.InputID(), err)
 	} else if spent {
-		return nil, remainingGas, fmt.Errorf("UTXO %s is already spent", specifiedUTXO.ID)
+		return nil, remainingGas, fmt.Errorf("UTXO %s is already spent", specifiedUTXO.InputID())
 	}
 
 	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
 	if !ok {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s has wrong output type %T", specifiedUTXO.ID, specifiedUTXO.Out)
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has wrong output type %T", specifiedUTXO.InputID(), specifiedUTXO.Out)
 	}
 
 	// Ensure that the locktime of the UTXO has passed
 	if blockTimestamp := accessibleState.GetBlockContext().Timestamp().Uint64(); transferOut.Locktime > blockTimestamp {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.ID, transferOut.Locktime, blockTimestamp)
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.InputID(), transferOut.Locktime, blockTimestamp)
 	}
 	// Confirm that the threshold is 1
 	if transferOut.Threshold != 1 {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.ID)
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.InputID())
 	}
 	validSpender := false
 	for _, spender := range transferOut.Addrs {
@@ -350,7 +353,7 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 		}
 	}
 	if !validSpender {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s does not include msg.sender %s as a valid spender address", specifiedUTXO.ID, caller)
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s does not include msg.sender %s as a valid spender address", specifiedUTXO.InputID(), caller)
 	}
 
 	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
@@ -367,8 +370,8 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
 	// Mark the UTXO as spent in the statedb
-	if err := markSpent(specifiedUTXO.ID, stateTrie); err != nil {
-		return nil, remainingGas, fmt.Errorf("failed to mark UTXO %s as spent: %w", specifiedUTXO.ID, err)
+	if err := markSpent(specifiedUTXO.InputID(), stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to mark UTXO %s as spent: %w", specifiedUTXO.InputID(), err)
 	}
 
 	// Add the UTXO to the sync record
@@ -459,7 +462,7 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	//   have properly verified the predicate at the time of execution.
 	var specifiedUTXO *avax.UTXO
 	for _, utxo := range atomicPredicate.ImportedUTXOs {
-		if utxo.ID == inputStruct.UtxoID {
+		if utxo.InputID() == inputStruct.UtxoID {
 			specifiedUTXO = utxo
 			break
 		}
@@ -473,29 +476,29 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 
 	// Check the UTXO has not been marked as spent within the statedb
 	stateTrie := &StateTrie{accessibleState.GetStateDB()}
-	if spent, err := isSpent(specifiedUTXO.ID, stateTrie); err != nil {
-		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.ID, err)
+	if spent, err := isSpent(specifiedUTXO.InputID(), stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to check if UTXO %s is spent: %w", specifiedUTXO.InputID(), err)
 	} else if spent {
-		return nil, remainingGas, fmt.Errorf("%w: %s", vmerrs.ErrNamedUTXOSpent, specifiedUTXO.ID)
+		return nil, remainingGas, fmt.Errorf("%w: %s", vmerrs.ErrNamedUTXOSpent, specifiedUTXO.InputID())
 	}
 
 	transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
 	if !ok {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s has wrong output type %T", specifiedUTXO.ID, specifiedUTXO.Out)
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has wrong output type %T", specifiedUTXO.InputID(), specifiedUTXO.Out)
 	}
 
 	// Ensure that the locktime of the UTXO has passed
 	if blockTimestamp := accessibleState.GetBlockContext().Timestamp().Uint64(); transferOut.Locktime > blockTimestamp {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.ID, transferOut.Locktime, blockTimestamp)
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.InputID(), transferOut.Locktime, blockTimestamp)
 	}
 	// Confirm that the threshold is 1
 	if transferOut.Threshold != 1 {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.ID)
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.InputID())
 	}
 
 	assetID := CalculateANTAssetID(common.Hash(accessibleState.GetSnowContext().ChainID), caller)
 	if assetID != common.Hash(specifiedUTXO.AssetID()) {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified incorrect assetID %s for caller %s, with actual assetID: %s", specifiedUTXO.ID, specifiedUTXO.AssetID(), caller, assetID)
+		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified incorrect assetID %s for caller %s, with actual assetID: %s", specifiedUTXO.InputID(), specifiedUTXO.AssetID(), caller, assetID)
 	}
 
 	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
@@ -513,8 +516,8 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	accessibleState.GetStateDB().AddLog(ContractAddress, topics, data, accessibleState.GetBlockContext().Number().Uint64())
 
 	// Mark the UTXO as spent in the statedb
-	if err := markSpent(specifiedUTXO.ID, stateTrie); err != nil {
-		return nil, remainingGas, fmt.Errorf("failed to mark UTXO %s as spent: %w", specifiedUTXO.ID, err)
+	if err := markSpent(specifiedUTXO.InputID(), stateTrie); err != nil {
+		return nil, remainingGas, fmt.Errorf("failed to mark UTXO %s as spent: %w", specifiedUTXO.InputID(), err)
 	}
 
 	// Add the UTXO to the sync record

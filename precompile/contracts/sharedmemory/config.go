@@ -159,28 +159,28 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PrecompilePr
 	for i, specifiedUTXO := range atomicPredicate.ImportedUTXOs {
 		specifiedUTXOBytes, err := codec.Codec.Marshal(codec.CodecVersion, specifiedUTXO)
 		if err != nil {
-			return fmt.Errorf("failed to marshal specified UTXO: %s", specifiedUTXO.ID)
+			return fmt.Errorf("failed to marshal specified UTXO: %s", specifiedUTXO.InputID())
 		}
 		utxoBytes := allUTXOBytes[i]
 
 		if !bytes.Equal(specifiedUTXOBytes, utxoBytes) {
-			return fmt.Errorf("UTXO %s mismatching byte representation: 0x%x expected: 0x%x", specifiedUTXO.ID, specifiedUTXOBytes, utxoBytes)
+			return fmt.Errorf("UTXO %s mismatching byte representation: 0x%x expected: 0x%x", specifiedUTXO.InputID(), specifiedUTXOBytes, utxoBytes)
 		}
 
 		// Validate that the specified UTXO is valid to be imported to the EVM
 		transferOut, ok := specifiedUTXO.Out.(*secp256k1fx.TransferOutput)
 		if !ok {
-			return fmt.Errorf("UTXO %s invalid UTXO output type: %T", specifiedUTXO.ID, specifiedUTXO.Out)
+			return fmt.Errorf("UTXO %s invalid UTXO output type: %T", specifiedUTXO.InputID(), specifiedUTXO.Out)
 		}
 		// Do not allow a transfer amount of 0 - no VM should export an atomic UTXO with an amount of 0, so this
 		// should never happen, but just in case another VM implements this incorrectly, we add an extra check here
 		if transferOut.Amt == 0 {
-			return fmt.Errorf("UTXO %s cannot specify an amount of 0", specifiedUTXO.ID)
+			return fmt.Errorf("UTXO %s cannot specify an amount of 0", specifiedUTXO.InputID())
 		}
 		// When import is called within the EVM, there will only be one caller address, so we require a threshold of 1
 		// since a UTXO with a threshold of 2 will never be valid to import.
 		if transferOut.Threshold != 1 {
-			return fmt.Errorf("UTXO %s specified invalid threshold", specifiedUTXO.ID)
+			return fmt.Errorf("UTXO %s specified invalid threshold", specifiedUTXO.InputID())
 		}
 	}
 

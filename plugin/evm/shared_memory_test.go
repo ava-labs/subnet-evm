@@ -215,10 +215,9 @@ type importTest struct {
 	expectedAVAXImport uint64
 }
 
-// Testing imports is a bit more complicated, since the VM
-// needs to account to prevent double spends in transactions
-// that occur in the same block prior to the current tx, and
-// also to prevent double spends in transactions that occur
+// Testing imports is a bit more complicated, since the VM needs to account to
+// prevent double spends in transactions that occur in the same block prior to
+// the current tx, and also to prevent double spends in transactions that occur
 // previously verified but yet unaccessed ancestor blocks.
 func (it importTest) run(t *testing.T) {
 	require := require.New(t)
@@ -231,8 +230,8 @@ func (it importTest) run(t *testing.T) {
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
 	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
 
-	// Get the starting balance so we can check that the correct amount was imported
-	// minus fees.
+	// Get the starting balance so we can check that the correct amount was
+	// imported minus fees.
 	state, err := vm.blockChain.State()
 	require.NoError(err)
 	startingBalance := state.GetBalance(testEthAddrs[0])
@@ -250,12 +249,12 @@ func (it importTest) run(t *testing.T) {
 	if it.assetID == ctx.AVAXAssetID {
 		txData, err = sharedmemory.PackImportAVAX(sharedmemory.ImportAVAXInput{
 			SourceChain: ctx.XChainID,
-			UtxoID:      utxo.ID,
+			UtxoID:      utxo.InputID(),
 		})
 	} else {
 		txData, err = sharedmemory.PackImportUTXO(sharedmemory.ImportUTXOInput{
 			SourceChain: ctx.XChainID,
-			UtxoID:      utxo.ID,
+			UtxoID:      utxo.InputID(),
 		})
 	}
 	require.NoError(err)
