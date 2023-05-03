@@ -47,7 +47,10 @@ func RunHardhatTests(test string, rpcURI string) {
 	gomega.Expect(err).Should(gomega.BeNil())
 }
 
-func CreateNewSubnet(ctx context.Context, genesisFilePaths []string) []ids.ID {
+// CreateNewSubnet creates subnets with the specified genesisFilePaths
+// using the P chain wallet [wallet] and returns the IDs of the newly created
+// blockchains along with the AVAX asset ID.
+func CreateNewSubnet(ctx context.Context, genesisFilePaths []string) ([]ids.ID, ids.ID) {
 	kc := secp256k1fx.NewKeychain(genesis.EWOQKey)
 
 	// NewWalletFromURI fetches the available UTXOs owned by [kc] on the network
@@ -118,7 +121,7 @@ func CreateNewSubnet(ctx context.Context, genesisFilePaths []string) []ids.ID {
 	gomega.Expect(eg.Wait()).Should(gomega.BeNil())
 
 	// Return the blockchainIDs of the newly created blockchains
-	return blockchainIDs
+	return blockchainIDs, pWallet.AVAXAssetID()
 }
 
 func ExecuteHardHatTestOnNewBlockchain(ctx context.Context, test string) {
@@ -126,7 +129,7 @@ func ExecuteHardHatTestOnNewBlockchain(ctx context.Context, test string) {
 
 	genesisFilePath := fmt.Sprintf("./tests/precompile/genesis/%s.json", test)
 
-	blockchainIDs := CreateNewSubnet(ctx, []string{genesisFilePath})
+	blockchainIDs, _ := CreateNewSubnet(ctx, []string{genesisFilePath})
 	chainURI := fmt.Sprintf("%s/ext/bc/%s/rpc", DefaultLocalNodeURI, blockchainIDs[0])
 
 	log.Info("Created subnet successfully", "ChainURI", chainURI)

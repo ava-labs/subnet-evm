@@ -10,12 +10,34 @@ import {
   Event,
 } from "ethers"
 import { ethers } from "hardhat"
+import { test } from "./utils"
 import ts = require("typescript");
 
 const fundedAddr: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const SHARED_MEMORY_ADDRESS = "0x0200000000000000000000000000000000000005";
 
-describe("SharedMemoryExport", function () {
+function packPredicate(predicate: string): string {
+  predicate = ethers.utils.hexConcat([predicate, "0xff"])
+  let predicateByteLen = (predicate.length-2)/2
+  let expectedLen = Math.ceil(predicateByteLen / 32)*32
+  let numZeroes = expectedLen - predicateByteLen
+  return predicate + "00".repeat(numZeroes)
+}
+
+function bytesToHashSlice(hexString: string): string[] {
+  const partLength = 32; // length of each part in bytes
+  const parts = [];
+  const byteLength = ethers.utils.hexDataLength(hexString);
+
+  for (let i = 0; i < byteLength; i += partLength) {
+    const part = ethers.utils.hexDataSlice(hexString, i, i + partLength);
+    parts.push(part);
+  }
+
+  return parts
+}
+
+describe("SharedMemoryImport", function () {
   this.timeout("30s")
   let fundedSigner: SignerWithAddress
   let contract: Contract
@@ -52,47 +74,54 @@ describe("SharedMemoryExport", function () {
   })
 
 
-  it("exportAVAX via contract", async function () {
+  it("importAVAX via contract", async function () {
     let testContract: Contract = this.testContract;
-    
-    let startingBalance: BigNumber = await ethers.provider.getBalance(fundedAddr)
-    console.log("Starting balance of %d", startingBalance)
     console.log("testContract", testContract.address)
-    
-    // Fund the contract
-    // Note 1 gwei is the minimum amount of AVAX that can be sent due to
-    // denomination adjustment in exported UTXOs.
-    let amount = ethers.utils.parseUnits("1", "gwei") 
-    let tx = await fundedSigner.sendTransaction({
-      to: testContract.address,
-      value: amount,
-    })
-    let receipt = await tx.wait()
-    expect(receipt.status == 1).to.be.true
 
-    // ExportAVAX
-    // Note we export AVAX to testContract.address, which is the contract we
-    // just deployed. This is because the import test will also deploy a
-    // contract from the same account with the same nonce.
-    tx = await testContract.test_exportAVAX(
-       amount, blockchainIDB, testContract.address)
-    let txReceipt = await tx.wait()
+    let predicateBytes = "0x" + process.env.PREDICATE_BYTES_0
+    let utxoID = "0x" + process.env.UTXO_ID_0
+
+    // add padding and compute the access list to name the imported UTXO
+    let utxoIDBytes32 = ethers.utils.hexZeroPad(utxoID, 32)
+    let predicateBytesPacked = packPredicate(predicateBytes)
+    let predicateStorageKeys = bytesToHashSlice(predicateBytesPacked)
+    // TODO: remove debugging log
+    console.log(
+      "utxoID", utxoID,
+      "utxoIDBytes32", utxoIDBytes32,
+      "predicateBytes", predicateBytes,
+      "predicateBytesPacked", predicateBytesPacked,
+      "predicateStorageKeys", predicateStorageKeys,
+    )
+    let accessList = [
+      {
+        address: SHARED_MEMORY_ADDRESS,
+        storageKeys: predicateStorageKeys,
+      }
+    ]
+
+    // ImportAVAX
+    let expectedValue = ethers.utils.parseUnits("1", "gwei")
+    let tx = await testContract.populateTransaction.test_importAVAX(
+      blockchainIDA, utxoIDBytes32, expectedValue, {accessList})
+    let signedTx = await fundedSigner.sendTransaction(tx);
+    let txReceipt = await signedTx.wait()
     console.log("txReceipt", txReceipt.status)
     expect(await testContract.callStatic.failed()).to.be.false
 
     // Verify logs were emitted as expected
-    let foundLog = txReceipt.logs.find(
+    let foundLog = txReceipt.logs.some(
       (log: Event, _: any, __: any) => 
         log.address === SHARED_MEMORY_ADDRESS &&
         log.topics.length === 2 && // TODO: review the indexed vs. non-indexed log data
         // TODO: get the string from the contract abi
-        log.topics[0] === ethers.utils.id("ExportAVAX(uint64,bytes32,uint64,uint64,address[])") &&
-        log.topics[1] == blockchainIDB // destination
+        log.topics[0] === ethers.utils.id("ImportAVAX(uint64,bytes32,bytes32)") &&
+        log.topics[1] == blockchainIDA // source
     )
     // TODO: consider verifying more about the logs
-    expect(foundLog).to.exist;
+    expect(foundLog).to.be.true
   })
 
 
-  // TODO: export non-AVAX asset
+  // TODO: import non-AVAX asset
 });

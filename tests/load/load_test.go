@@ -51,7 +51,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		blockchainIDs := utils.CreateNewSubnet(ctx, []string{"./tests/load/genesis/genesis.json"})
+		blockchainIDs, _ := utils.CreateNewSubnet(ctx, []string{"./tests/load/genesis/genesis.json"})
 
 		rpcEndpoints := make([]string, 0, len(utils.NodeURIs))
 		for _, uri := range []string{utils.DefaultLocalNodeURI} { // TODO: use NodeURIs instead, hack until fixing multi node in a network behavior
