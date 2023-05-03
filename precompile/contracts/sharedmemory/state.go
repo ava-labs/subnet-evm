@@ -5,7 +5,6 @@ package sharedmemory
 
 import (
 	"encoding/binary"
-	"fmt"
 
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
@@ -34,7 +33,6 @@ func (s *StateTrie) Get(key []byte) ([]byte, error) {
 }
 
 func (s *StateTrie) Put(key, value []byte) error {
-	fmt.Println("put", common.Bytes2Hex(key), common.Bytes2Hex(value))
 	s.StateDB.SetStateVariableLength(ContractAddress, string(key), string(value))
 	return nil
 }
