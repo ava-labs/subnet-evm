@@ -157,76 +157,10 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	assert.Equal(t, signedTx1.Hash(), txs[0].Hash())
 }
 
-func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
-	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
-	metrics.Enabled = false
-	defer func() {
-		metrics.Enabled = true
-	}()
-
-	// Get a json specifying a Network upgrade at genesis
-	// to apply as upgradeBytes.
-	subnetEVMTimestamp := time.Unix(10, 0)
-	upgradeConfig := &params.UpgradeConfig{
-		NetworkUpgrades: &params.NetworkUpgrades{
-			SubnetEVMTimestamp: big.NewInt(subnetEVMTimestamp.Unix()),
-		},
-	}
-	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
-	configJSON := "{\"skip-subnet-evm-upgrade-check\": true}"
-
-	// initialize the VM with these upgrade bytes
-	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, configJSON, string(upgradeBytesJSON))
-	vm.clock.Set(subnetEVMTimestamp)
-
-	// verify upgrade is applied
-	if !vm.chainConfig.IsSubnetEVM(big.NewInt(subnetEVMTimestamp.Unix())) {
-		t.Fatal("expected subnet-evm network upgrade to have been enabled")
-	}
-
-	// Submit a successful transaction and build a block to move the chain head past the SubnetEVMTimestamp network upgrade
-	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
-	assert.NoError(t, err)
-	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
-
-	issueAndAccept(t, issuer, vm) // make a block
-
-	if err := vm.Shutdown(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-
-	// VM should not start again without proper upgrade bytes.
-	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), []byte{}, []byte{}, issuer, []*commonEng.Fx{}, appSender)
-	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
-
-	// VM should not start if fork is moved back
-	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(2)
-	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
-	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*commonEng.Fx{}, appSender)
-	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
-
-	// VM should not start if fork is moved forward
-	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(30)
-	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
-	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*commonEng.Fx{}, appSender)
-	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
-}
-
 func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	// make genesis w/ fork at block 5
+	// but this should not be used because we are enforcing
+	// network upgrades within the code
 	var genesis core.Genesis
 	if err := json.Unmarshal([]byte(genesisJSONPreSubnetEVM), &genesis); err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
@@ -238,44 +172,15 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
 	}
 
-	// Get a json specifying a Network upgrade at genesis
-	// to apply as upgradeBytes.
-	subnetEVMTimestamp := time.Unix(10, 0)
-	upgradeConfig := &params.UpgradeConfig{
-		NetworkUpgrades: &params.NetworkUpgrades{
-			SubnetEVMTimestamp: big.NewInt(subnetEVMTimestamp.Unix()),
-		},
-	}
-	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
-	configJSON := "{\"skip-subnet-evm-upgrade-check\": true}"
-
 	// initialize the VM with these upgrade bytes
-	_, vm, _, _ := GenesisVM(t, true, string(genesisBytes), configJSON, string(upgradeBytesJSON))
+	_, vm, _, _ := GenesisVM(t, true, string(genesisBytes), "", "")
 
 	// verify upgrade is rescheduled
-	assert.False(t, vm.chainConfig.IsSubnetEVM(genesisSubnetEVMTimestamp))
-	assert.True(t, vm.chainConfig.IsSubnetEVM(big.NewInt(subnetEVMTimestamp.Unix())))
+	assert.True(t, vm.chainConfig.IsSubnetEVM(big.NewInt(0)))
 
 	if err := vm.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-
-	// abort a fork specified in genesis
-	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = nil
-	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
-
-	// initialize the VM with these upgrade bytes
-	_, vm, _, _ = GenesisVM(t, true, string(genesisBytes), configJSON, string(upgradeBytesJSON))
-
-	// verify upgrade is aborted
-	assert.False(t, vm.chainConfig.IsSubnetEVM(genesisSubnetEVMTimestamp))
-	assert.False(t, vm.chainConfig.IsSubnetEVM(big.NewInt(subnetEVMTimestamp.Unix())))
 
 	if err := vm.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)

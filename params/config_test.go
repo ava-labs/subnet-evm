@@ -245,7 +245,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
+			NetworkUpgrades:     NetworkUpgrades{big.NewInt(0), big.NewInt(0)},
 			GenesisPrecompiles:  Precompiles{},
 		},
 		UpgradeConfig: UpgradeConfig{

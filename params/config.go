@@ -70,7 +70,8 @@ var (
 )
 
 var (
-	// SubnetEVMDefaultChainConfig is the default configuration
+	// SubnetEVMDefaultConfig is the default configuration
+	// without any network upgrades.
 	SubnetEVMDefaultChainConfig = &ChainConfig{
 		ChainID:            SubnetEVMChainID,
 		FeeConfig:          DefaultFeeConfig,
@@ -87,9 +88,6 @@ var (
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
 		GenesisPrecompiles:  Precompiles{},
-		NetworkUpgrades: NetworkUpgrades{
-			SubnetEVMTimestamp: big.NewInt(0),
-		},
 	}
 
 	TestChainConfig = &ChainConfig{
@@ -107,7 +105,7 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
+		NetworkUpgrades:     NetworkUpgrades{big.NewInt(0), big.NewInt(0)},
 		GenesisPrecompiles:  Precompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
@@ -137,11 +135,6 @@ var (
 // - Timestamps that enable avalanche network upgrades,
 // - Enabling or disabling precompiles as network upgrades.
 type UpgradeConfig struct {
-	// Config for blocks/timestamps that enable network upgrades.
-	// Note: if NetworkUpgrades is specified in the JSON all previously activated
-	// forks must be present or upgradeBytes will be rejected.
-	NetworkUpgrades *NetworkUpgrades `json:"networkUpgrades,omitempty"`
-
 	// Config for modifying state as a network upgrade.
 	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
 
@@ -323,7 +316,7 @@ func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 
 // IsSubnetEVM returns whether [blockTimestamp] is either equal to the SubnetEVM fork block timestamp or greater.
 func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
-	return utils.IsForked(c.getNetworkUpgrades().SubnetEVMTimestamp, blockTimestamp)
+	return utils.IsForked(c.SubnetEVMTimestamp, blockTimestamp)
 }
 
 func (r *Rules) PredicatesExist() bool {
@@ -498,14 +491,8 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, lastHeight *big.Int, 
 	}
 
 	// Check subnet-evm specific activations
-	newNetworkUpgrades := newcfg.getNetworkUpgrades()
-	if c.UpgradeConfig.NetworkUpgrades != nil && newcfg.UpgradeConfig.NetworkUpgrades == nil {
-		// Note: if the current NetworkUpgrades are set via UpgradeConfig, then a new config
-		// without NetworkUpgrades will be treated as having specified an empty set of network
-		// upgrades (ie., treated as the user intends to cancel scheduled forks)
-		newNetworkUpgrades = &NetworkUpgrades{}
-	}
-	if err := c.getNetworkUpgrades().CheckCompatible(newNetworkUpgrades, lastTimestamp); err != nil {
+	newNetworkUpgrades := newcfg.NetworkUpgrades
+	if err := c.NetworkUpgrades.CheckCompatible(newNetworkUpgrades, lastTimestamp); err != nil {
 		return err
 	}
 
@@ -521,15 +508,6 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, lastHeight *big.Int, 
 
 	// TODO verify that the fee config is fully compatible between [c] and [newcfg].
 	return nil
-}
-
-// getNetworkUpgrades returns NetworkUpgrades from upgrade config if set there,
-// otherwise it falls back to the genesis chain config.
-func (c *ChainConfig) getNetworkUpgrades() *NetworkUpgrades {
-	if upgradeConfigOverride := c.UpgradeConfig.NetworkUpgrades; upgradeConfigOverride != nil {
-		return upgradeConfigOverride
-	}
-	return &c.NetworkUpgrades
 }
 
 // isForkIncompatible returns true if a fork scheduled at s1 cannot be rescheduled to

@@ -405,18 +405,6 @@ func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
 			configJSON:  "",
 			expectedErr: errSubnetEVMUpgradeNotEnabled,
 		},
-		{
-			// we do not expect an err when skip-subnet-evm-upgrade-check is set to true
-			genesisJSON: genesisJSONPreSubnetEVM,
-			configJSON:  "{\"skip-subnet-evm-upgrade-check\": true}",
-			expectedErr: nil,
-		},
-		{
-			// we do not expect an err when skip-subnet-evm-upgrade-check is set to true
-			genesisJSON: genesisJSONSubnetEVMLateEnablement,
-			configJSON:  "{\"skip-subnet-evm-upgrade-check\": true}",
-			expectedErr: nil,
-		},
 	}
 
 	for _, test := range genesisTests {

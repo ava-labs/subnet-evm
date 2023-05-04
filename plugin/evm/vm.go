@@ -290,6 +290,10 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
+	// We enforce network upgrades here, regardless of the chain config
+	// provided in the genesis file.
+	g.Config.NetworkUpgrades = params.GetNetworkUpgrades(chainCtx.NetworkID)
+
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
 		g.AirdropData, err = os.ReadFile(vm.config.AirdropFile)
@@ -310,6 +314,10 @@ func (vm *VM) Initialize(
 
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
+	// NetworkID of EVM is equal to the ChainID
+	// But this is different than Avalanche's NetworkID
+	// which represents the Avalanche network the EVM is running on
+	// like Fuji, Mainnet, Local, etc.
 	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
 
 	// Set minimum price for mining and default gas price oracle value to the min
@@ -375,14 +383,6 @@ func (vm *VM) Initialize(
 
 	vm.chainConfig = g.Config
 	vm.networkID = vm.ethConfig.NetworkId
-
-	// TODO: remove SkipSubnetEVMUpgradeCheck after next network upgrade
-	if !vm.config.SkipSubnetEVMUpgradeCheck {
-		// check that subnetEVM upgrade is enabled from genesis before upgradeBytes
-		if !vm.chainConfig.IsSubnetEVM(common.Big0) {
-			return errSubnetEVMUpgradeNotEnabled
-		}
-	}
 
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.

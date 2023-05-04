@@ -240,11 +240,11 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 
 	customg := Genesis{
-		Config: params.SubnetEVMDefaultChainConfig,
+		Config: params.TestChainConfig,
 		Alloc: GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
-		GasLimit: params.SubnetEVMDefaultChainConfig.FeeConfig.GasLimit.Uint64(),
+		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	genesis := customg.MustCommit(db)
 	bc, _ := NewBlockChain(db, DefaultCacheConfig, customg.Config, dummy.NewFullFaker(), vm.Config{}, common.Hash{})
