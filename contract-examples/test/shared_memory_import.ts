@@ -13,8 +13,18 @@ import { ethers } from "hardhat"
 import { test } from "./utils"
 import ts = require("typescript");
 
-const fundedAddr: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+const FUNDED_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC";
 const SHARED_MEMORY_ADDRESS = "0x0200000000000000000000000000000000000005";
+
+enum BlockchainName {A, B}
+const getBlockchainId = (name: BlockchainName) => {
+  switch (name) {
+    case BlockchainName.A: 
+      return "0x" + process.env.BLOCKCHAIN_ID_A
+    case BlockchainName.B: 
+      return "0x" + process.env.BLOCKCHAIN_ID_B
+  }
+}
 
 function packPredicate(predicate: string): string {
   predicate = ethers.utils.hexConcat([predicate, "0xff"])
@@ -39,23 +49,24 @@ function bytesToHashSlice(hexString: string): string[] {
 
 describe("SharedMemoryImport", function () {
   this.timeout("30s")
+
+  // Populate blockchainIDs from the environment variables
+  const [blockchainIDA, blockchainIDB] = [
+    getBlockchainId(BlockchainName.A),
+    getBlockchainId(BlockchainName.B),
+  ]
   let fundedSigner: SignerWithAddress
-  let contract: Contract
   let signer1: SignerWithAddress
   let signer2: SignerWithAddress
   let precompile: Contract
-  let blockchainIDA: string
-  let blockchainIDB: string
+  let contract: Contract
 
   beforeEach('Setup DS-Test contract', async function () {
     // Populate blockchainIDs from the environment variables
-    blockchainIDA = "0x" + process.env.BLOCKCHAIN_ID_A
-    blockchainIDB = "0x" + process.env.BLOCKCHAIN_ID_B
     console.log("blockchainIDA %s, blockchainIDB: %s", blockchainIDA, blockchainIDB)
 
-    fundedSigner = await ethers.getSigner(fundedAddr);
-    signer1 = (await ethers.getSigners())[1]
-    signer2 = (await ethers.getSigners())[2]
+    const signers = await ethers.getSigners();
+    [fundedSigner, signer1, signer2] = signers
 
     const sharedMemory = await ethers.getContractAt(
        "ISharedMemory", SHARED_MEMORY_ADDRESS, fundedSigner)
@@ -65,12 +76,10 @@ describe("SharedMemoryImport", function () {
       .then(factory => factory.deploy())
       .then(contract => {
         this.testContract = contract
-        return Promise.all([
-          contract.deployed().then(() => contract),
-        ])
+        return contract.deployed().then(() => contract)
       })
-      .then(([contract]) => contract.setUp())
-      .then(tx0 => tx0.wait())
+      .then(contract => contract.setUp())
+      .then(tx => tx.wait())
   })
 
 
@@ -123,5 +132,53 @@ describe("SharedMemoryImport", function () {
   })
 
 
-  // TODO: import non-AVAX asset
+  it("importUTXO via contract", async function () {
+    this.skip();
+    let testContract: Contract = this.testContract;
+    console.log("testContract", testContract.address)
+
+    let predicateBytes = "0x" + process.env.PREDICATE_BYTES_1
+    let utxoID = "0x" + process.env.UTXO_ID_1
+
+    // add padding and compute the access list to name the imported UTXO
+    let utxoIDBytes32 = ethers.utils.hexZeroPad(utxoID, 32)
+    let predicateBytesPacked = packPredicate(predicateBytes)
+    let predicateStorageKeys = bytesToHashSlice(predicateBytesPacked)
+    // TODO: remove debugging log
+    console.log(
+      "utxoID", utxoID,
+      "utxoIDBytes32", utxoIDBytes32,
+      "predicateBytes", predicateBytes,
+      "predicateBytesPacked", predicateBytesPacked,
+      "predicateStorageKeys", predicateStorageKeys,
+    )
+    let accessList = [
+      {
+        address: SHARED_MEMORY_ADDRESS,
+        storageKeys: predicateStorageKeys,
+      }
+    ]
+
+    // ImportAVAX
+    let expectedValue = ethers.utils.parseUnits("1", "gwei")
+    let tx = await testContract.populateTransaction.test_importERC20(
+      blockchainIDA, utxoIDBytes32, expectedValue, {accessList})
+    let signedTx = await fundedSigner.sendTransaction(tx);
+    let txReceipt = await signedTx.wait()
+    console.log("txReceipt", txReceipt.status)
+    expect(await testContract.callStatic.failed()).to.be.false
+
+    // Verify logs were emitted as expected
+    let foundLog = txReceipt.logs.some(
+      (log: Event, _: any, __: any) => 
+        log.address === SHARED_MEMORY_ADDRESS &&
+        log.topics.length === 3 && // TODO: review the indexed vs. non-indexed log data
+        // TODO: get the string from the contract abi
+        log.topics[0] === ethers.utils.id("ImportUTXO(uint64,bytes32,bytes32)") &&
+        log.topics[1] == blockchainIDA // source
+       // TODO: verify the assetID in log.topics[2]
+    )
+    // TODO: consider verifying more about the logs
+    expect(foundLog).to.be.true
+  })
 });

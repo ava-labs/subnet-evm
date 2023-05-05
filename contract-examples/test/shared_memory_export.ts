@@ -12,28 +12,38 @@ import {
 import { ethers } from "hardhat"
 import ts = require("typescript");
 
-const fundedAddr: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+const FUNDED_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const SHARED_MEMORY_ADDRESS = "0x0200000000000000000000000000000000000005";
+
+enum BlockchainName {A, B}
+const getBlockchainId = (name: BlockchainName) => {
+  switch (name) {
+    case BlockchainName.A: 
+      return "0x" + process.env.BLOCKCHAIN_ID_A
+    case BlockchainName.B: 
+      return "0x" + process.env.BLOCKCHAIN_ID_B
+  }
+}
 
 describe("SharedMemoryExport", function () {
   this.timeout("30s")
+
+  const [blockchainIDA, blockchainIDB] = [
+    // Populate blockchainIDs from the environment variables
+    getBlockchainId(BlockchainName.A),
+    getBlockchainId(BlockchainName.B),
+  ]
   let fundedSigner: SignerWithAddress
-  let contract: Contract
   let signer1: SignerWithAddress
   let signer2: SignerWithAddress
   let precompile: Contract
-  let blockchainIDA: string
-  let blockchainIDB: string
+  let contract: Contract
 
   beforeEach('Setup DS-Test contract', async function () {
-    // Populate blockchainIDs from the environment variables
-    blockchainIDA = "0x" + process.env.BLOCKCHAIN_ID_A
-    blockchainIDB = "0x" + process.env.BLOCKCHAIN_ID_B
     console.log("blockchainIDA %s, blockchainIDB: %s", blockchainIDA, blockchainIDB)
 
-    fundedSigner = await ethers.getSigner(fundedAddr);
-    signer1 = (await ethers.getSigners())[1]
-    signer2 = (await ethers.getSigners())[2]
+    const signers = await ethers.getSigners();
+    [fundedSigner, signer1, signer2] = signers
 
     const sharedMemory = await ethers.getContractAt(
        "ISharedMemory", SHARED_MEMORY_ADDRESS, fundedSigner)
@@ -43,20 +53,15 @@ describe("SharedMemoryExport", function () {
       .then(factory => factory.deploy())
       .then(contract => {
         this.testContract = contract
-        return Promise.all([
-          contract.deployed().then(() => contract),
-        ])
+        return contract.deployed().then(() => contract)
       })
-      .then(([contract]) => contract.setUp())
-      .then(tx0 => tx0.wait())
+      .then(contract => contract.setUp())
+      .then(tx => tx.wait())
   })
 
 
   it("exportAVAX via contract", async function () {
     let testContract: Contract = this.testContract;
-    
-    let startingBalance: BigNumber = await ethers.provider.getBalance(fundedAddr)
-    console.log("Starting balance of %d", startingBalance)
     console.log("testContract", testContract.address)
     
     // Fund the contract
@@ -73,7 +78,8 @@ describe("SharedMemoryExport", function () {
     // ExportAVAX
     // Note we export AVAX to testContract.address, which is the contract we
     // just deployed. This is because the import test will also deploy a
-    // contract from the same account with the same nonce.
+    // contract from the same account with the same nonce on the other
+    // blockchain.
     tx = await testContract.test_exportAVAX(
        amount, blockchainIDB, testContract.address)
     let txReceipt = await tx.wait()
@@ -94,5 +100,40 @@ describe("SharedMemoryExport", function () {
   })
 
 
-  // TODO: export non-AVAX asset
+  it("exportUTXO via contract", async function () {
+    let testContract: Contract = this.testContract;
+    console.log("testContract", testContract.address)
+
+    // Allow the ERC20 contract to spend tokens on behalf of the test contract
+    let amount = 1_000_000_000;
+    let tx = await testContract.test_approveERC20(amount);
+    let receipt = await tx.wait();
+    expect(receipt.status == 1).to.be.true;
+
+    let approvalAmount = await testContract.callStatic.approvalAmount();
+    console.log("approvalAmount", approvalAmount);
+
+    // ExportERC20
+    // Note we export AVAX to testContract.address, which is the contract we
+    // just deployed. This is because the import test will also deploy a
+    // contract from the same account with the same nonce.
+   tx = await testContract.test_exportERC20(
+     amount, blockchainIDB, testContract.address)
+   let txReceipt = await tx.wait()
+   console.log("txReceipt", txReceipt.status)
+   expect(await testContract.callStatic.failed()).to.be.false
+
+   // Verify logs were emitted as expected
+   let foundLog = txReceipt.logs.find(
+     (log: Event, _: any, __: any) => 
+       log.address === SHARED_MEMORY_ADDRESS &&
+       log.topics.length === 3 && // TODO: review the indexed vs. non-indexed log data
+       // TODO: get the string from the contract abi
+       log.topics[0] === ethers.utils.id("ExportUTXO(uint64,bytes32,bytes32,uint64,uint64,address[])") &&
+       log.topics[1] == blockchainIDB // destination
+       // TODO: verify the assetID in log.topics[2]
+   )
+   // TODO: consider verifying more about the logs
+   expect(foundLog).to.exist;
+  })
 });

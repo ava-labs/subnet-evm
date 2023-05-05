@@ -68,14 +68,32 @@ var _ = ginkgo.Describe("[Shared Memory]", ginkgo.Ordered, func() {
 			},
 		)
 		gomega.Expect(err).Should(gomega.BeNil())
-		gomega.Expect(logs).Should(gomega.HaveLen(1))
+		gomega.Expect(logs).Should(gomega.HaveLen(2))
 
 		for idx, log := range logs {
 			// TODO: I am going to calculate the predicate bytes here now to
 			// close the loop on testing. We should have a design that does not
 			// require the importer to use the codec to issue a transaction.
-			parsedUTXO, err := sharedmemory.ExportAVAXEventToUTXO(
-				avaxAssetID, log.TxHash, int(log.Index), log.Topics, log.Data)
+			var (
+				parsedUTXO *avax.UTXO
+				err        error
+			)
+			if idx == 0 {
+				parsedUTXO, err = sharedmemory.ExportAVAXEventToUTXO(
+					avaxAssetID,
+					log.TxHash,
+					int(log.Index),
+					log.Topics,
+					log.Data,
+				)
+			} else {
+				parsedUTXO, err = sharedmemory.ExportUTXOEventToUTXO(
+					log.TxHash,
+					int(log.Index),
+					log.Topics,
+					log.Data,
+				)
+			}
 			gomega.Expect(err).Should(gomega.BeNil())
 
 			utxoID := parsedUTXO.InputID()

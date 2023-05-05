@@ -93,17 +93,16 @@ type exportUTXOEvent struct {
 	Addrs     []common.Address
 }
 
-func handleExportUTXO(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error) {
+func ExportUTXOEventToUTXO(
+	txHash common.Hash, logIndex int, topics []common.Hash, logData []byte,
+) (*avax.UTXO, error) {
+	assetID := ids.ID(topics[2])
 	// Parse the log data into the exportUTXOEvent struct
 	ev := &exportUTXOEvent{}
 	err := SharedMemoryABI.UnpackIntoInterface(ev, "ExportUTXO", logData)
 	if err != nil {
-		return ids.ID{}, nil, fmt.Errorf("failed to unpack ExportUTXO event data: %w", err)
+		return nil, fmt.Errorf("failed to unpack ExportUTXO event data: %w", err)
 	}
-	// Parse the topics data.
-	// TODO: Improve this by using the ABI to unpack the topics.
-	destinationChainID := ids.ID(topics[1])
-	assetID := ids.ID(topics[2])
 
 	addrs := make([]ids.ShortID, 0, len(ev.Addrs))
 	for _, addr := range ev.Addrs {
@@ -124,6 +123,17 @@ func handleExportUTXO(snowCtx *snow.Context, txHash common.Hash, logIndex int, t
 				Addrs:     addrs,
 			},
 		},
+	}
+	return utxo, nil
+}
+
+func handleExportUTXO(snowCtx *snow.Context, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) (ids.ID, *atomic.Requests, error) {
+	// Parse the topics data.
+	// TODO: Improve this by using the ABI to unpack the topics.
+	destinationChainID := ids.ID(topics[1])
+	utxo, err := ExportUTXOEventToUTXO(txHash, logIndex, topics, logData)
+	if err != nil {
+		return ids.ID{}, nil, err
 	}
 
 	utxoBytes, err := codec.Codec.Marshal(codec.CodecVersion, utxo)

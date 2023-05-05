@@ -20,11 +20,50 @@ contract ERC20SharedMemory is ERC20 {
     _mint(_msgSender(), initSupply);
   }
 
+  function exportUTXO(
+      bytes32 destinationChainID, uint64 amount, address addr) public {
+    // Transfer tokens to this contract
+    // require(
+    //   transferFrom(_msgSender(), address(this), uint(amount)),
+    //   "ERC20SharedMemory: transferFrom failed"
+    // );
+    // TODO: figure out why the allowance is not working
+
+    _transfer(_msgSender(), address(this), amount);
+
+
+    // TODO: burn the tokens
+
+    // Only support exporting to one address for now
+    address[] memory addrs = new address[](1);
+    addrs[0] = addr;
+
+    // Export tokens to destination chain
+    sharedMemory.exportUTXO(amount, destinationChainID, 0, 1, addrs);
+  }
+
+  function importUTXO(bytes32 sourceChain, bytes32 utxoID) public {
+    // Import tokens from source chain
+    // TODO: I don't think we need to expose all the utxo details,
+    // the precompile already verifies timelock and threshold.
+    (uint64 amount, , , address[] memory addrs) = sharedMemory.importUTXO(
+      sourceChain, utxoID);
+
+    // Require the UTXO only has one spender and it matches the caller
+    require(addrs.length == 1, "ERC20SharedMemory: invalid UTXO");
+    require(addrs[0] == _msgSender(), "ERC20SharedMemory: invalid spender");
+
+    // Mint tokens to the caller
+    _mint(_msgSender(), amount);
+  }
+
   function decimals() public view virtual override returns (uint8) {
     return 18;
   }
 
-  receive() external payable {}
+  function approvalAmount() public view returns (uint) {
+    return allowance(_msgSender(), address(this));
+  }
 }
 
 contract ERC20SharedMemoryTest is DSTest {
@@ -33,27 +72,48 @@ contract ERC20SharedMemoryTest is DSTest {
   ERC20SharedMemory private erc20;
 
   function setUp() public {
-    erc20 = new ERC20SharedMemory(100);
+    erc20 = new ERC20SharedMemory(1_000_000_000);
+  }
+
+  function approvalAmount() public view returns (uint) {
+    return erc20.approvalAmount();
   }
 
   function test_exportAVAX(
-      uint value, bytes32 destinationChainID, address addr) public {
+      uint amount, bytes32 destinationChainID, address addr) public {
     address testAddress = address(this);
     uint balanceNative = testAddress.balance;
-    assertEq(balanceNative, value);
+    assertEq(balanceNative, amount);
 
     address[] memory addrs = new address[](1);
     addrs[0] = addr;
 
-    sharedMemory.exportAVAX{value: value}(destinationChainID, 0, 1, addrs);
+    sharedMemory.exportAVAX{value: amount}(destinationChainID, 0, 1, addrs);
 
     // balance should decrease after a successful call to exportAVAX
     balanceNative = testAddress.balance;
     assertEq(balanceNative, 0);
   }
+
+  function test_approveERC20(uint amount) public { 
+    erc20.approve(address(erc20), amount);
+  }
+
+  function test_exportERC20(
+      uint amount, bytes32 destinationChainID, address addr) public {
+    address testAddress = address(this);
+    uint balance = erc20.balanceOf(testAddress);
+    assertEq(balance, amount);
+    
+    erc20.exportUTXO(destinationChainID, uint64(amount), addr);
+
+    // balance should decrease after a successful call to exportUTXO
+    balance = erc20.balanceOf(testAddress);
+    assertEq(balance, 0);
+  }
   
   function test_importAVAX(
-      bytes32 sourceChain, bytes32 utxoID, uint expectedValue) public {
+      bytes32 sourceChain, bytes32 utxoID, uint expectedBalance) public {
     address testAddress = address(this);
     uint balanceNative = testAddress.balance;
     assertEq(balanceNative, 0);
@@ -62,7 +122,20 @@ contract ERC20SharedMemoryTest is DSTest {
 
     // balance should increase after a successful call to importAVAX
     balanceNative = testAddress.balance;
-    assertEq(balanceNative, expectedValue);
+    assertEq(balanceNative, expectedBalance);
+  }
+
+  function test_importERC20(
+      bytes32 sourceChain, bytes32 utxoID, uint expectedBalance) public {
+    address testAddress = address(this);
+    uint balance = erc20.balanceOf(testAddress);
+    assertEq(balance, 0);
+
+    sharedMemory.importUTXO(sourceChain, utxoID);
+
+    // balance should increase after a successful call to importUTXO
+    balance = erc20.balanceOf(testAddress);
+    assertEq(balance, expectedBalance);
   }
 
   receive() external payable {}
