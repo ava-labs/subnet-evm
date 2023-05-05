@@ -361,8 +361,6 @@ func TestPrecompiledBLS12381G2MultiExp(t *testing.T) { testJson("blsG2MultiExp",
 func TestPrecompiledBLS12381Pairing(t *testing.T)    { testJson("blsPairing", "10", t) }
 func TestPrecompiledBLS12381MapG1(t *testing.T)      { testJson("blsMapG1", "11", t) }
 func TestPrecompiledBLS12381MapG2(t *testing.T)      { testJson("blsMapG2", "12", t) }
-func TestPrecompiledAddOne(t *testing.T)             { testJson("addOne", "64", t) }
-
 func BenchmarkPrecompiledBLS12381G1Add(b *testing.B)      { benchJson("blsG1Add", "0a", b) }
 func BenchmarkPrecompiledBLS12381G1Mul(b *testing.B)      { benchJson("blsG1Mul", "0b", b) }
 func BenchmarkPrecompiledBLS12381G1MultiExp(b *testing.B) { benchJson("blsG1MultiExp", "0c", b) }
@@ -372,8 +370,6 @@ func BenchmarkPrecompiledBLS12381G2MultiExp(b *testing.B) { benchJson("blsG2Mult
 func BenchmarkPrecompiledBLS12381Pairing(b *testing.B)    { benchJson("blsPairing", "10", b) }
 func BenchmarkPrecompiledBLS12381MapG1(b *testing.B)      { benchJson("blsMapG1", "11", b) }
 func BenchmarkPrecompiledBLS12381MapG2(b *testing.B)      { benchJson("blsMapG2", "12", b) }
-func BenchmarkPrecompiledAddOne(b *testing.B)             { benchJson("addOne", "64", b) }
-
 // Failure tests
 func TestPrecompiledBLS12381G1AddFail(t *testing.T)      { testJsonFail("blsG1Add", "0a", t) }
 func TestPrecompiledBLS12381G1MulFail(t *testing.T)      { testJsonFail("blsG1Mul", "0b", t) }
@@ -384,8 +380,6 @@ func TestPrecompiledBLS12381G2MultiExpFail(t *testing.T) { testJsonFail("blsG2Mu
 func TestPrecompiledBLS12381PairingFail(t *testing.T)    { testJsonFail("blsPairing", "10", t) }
 func TestPrecompiledBLS12381MapG1Fail(t *testing.T)      { testJsonFail("blsMapG1", "11", t) }
 func TestPrecompiledBLS12381MapG2Fail(t *testing.T)      { testJsonFail("blsMapG2", "12", t) }
-func TestPrecompiledAddOneFail(t *testing.T)             { testJsonFail("addOne", "64", t) }
-
 func loadJson(name string) ([]precompiledTest, error) {
 	data, err := os.ReadFile(fmt.Sprintf("testdata/precompiles/%v.json", name))
 	if err != nil {
