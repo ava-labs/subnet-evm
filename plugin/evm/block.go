@@ -104,7 +104,7 @@ func (b *Block) handlePrecompileAccept(sharedMemoryWriter *sharedMemoryWriter) e
 		return fmt.Errorf("failed to fetch receipts for accepted block with non-empty root hash (%s) (Block: %s, Height: %d)", b.ethBlock.ReceiptHash(), b.ethBlock.Hash(), b.ethBlock.NumberU64())
 	}
 
-	for txIndex, receipt := range receipts {
+	for _, receipt := range receipts {
 		for _, log := range receipt.Logs {
 			accepter, ok := rules.AccepterPrecompiles[log.Address]
 			if !ok {
@@ -116,7 +116,7 @@ func (b *Block) handlePrecompileAccept(sharedMemoryWriter *sharedMemoryWriter) e
 				SharedMemory: sharedMemoryWriter,
 				Warp:         b.vm.warpBackend,
 			}
-			if err := accepter.Accept(acceptCtx, log.TxHash, txIndex, log.Topics, log.Data); err != nil {
+			if err := accepter.Accept(acceptCtx, log.TxHash, int(log.Index), log.Topics, log.Data); err != nil {
 				return err
 			}
 		}
