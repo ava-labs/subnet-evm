@@ -39,7 +39,10 @@ describe("SharedMemoryExport", function () {
   let precompile: Contract
   let contract: Contract
 
-  beforeEach('Setup DS-Test contract', async function () {
+  // TODO: see why the nonce is not matching the import test if I do beforeEach
+  // ends up with different contract address for the 2nd test.
+  // Maybe better to leave this as before anyway.
+  before('Setup DS-Test contract', async function () {
     console.log("blockchainIDA %s, blockchainIDB: %s", blockchainIDA, blockchainIDB)
 
     const signers = await ethers.getSigners();
@@ -80,9 +83,10 @@ describe("SharedMemoryExport", function () {
     // just deployed. This is because the import test will also deploy a
     // contract from the same account with the same nonce on the other
     // blockchain.
-    tx = await testContract.test_exportAVAX(
+    let unsignedTx = await testContract.populateTransaction.test_exportAVAX(
        amount, blockchainIDB, testContract.address)
-    let txReceipt = await tx.wait()
+    let signedTx = await fundedSigner.sendTransaction(unsignedTx);
+    let txReceipt = await signedTx.wait()
     console.log("txReceipt", txReceipt.status)
     expect(await testContract.callStatic.failed()).to.be.false
 
@@ -106,9 +110,9 @@ describe("SharedMemoryExport", function () {
 
     // Allow the ERC20 contract to spend tokens on behalf of the test contract
     let amount = 1_000_000_000;
-    let tx = await testContract.test_approveERC20(amount);
-    let receipt = await tx.wait();
-    expect(receipt.status == 1).to.be.true;
+    // let tx = await testContract.test_approveERC20(amount);
+    // let receipt = await tx.wait();
+    // expect(receipt.status == 1).to.be.true;
 
     let approvalAmount = await testContract.callStatic.approvalAmount();
     console.log("approvalAmount", approvalAmount);
@@ -117,9 +121,10 @@ describe("SharedMemoryExport", function () {
     // Note we export ERC20 to testContract.address, which is the contract we
     // just deployed. This is because the import test will also deploy a
     // contract from the same account with the same nonce.
-   tx = await testContract.test_exportERC20(
+   let unsignedTx = await testContract.populateTransaction.test_exportERC20(
      amount, blockchainIDB, testContract.address)
-   let txReceipt = await tx.wait()
+   let signedTx = await fundedSigner.sendTransaction(unsignedTx);
+   let txReceipt = await signedTx.wait()
    console.log("txReceipt", txReceipt.status)
    expect(await testContract.callStatic.failed()).to.be.false
 

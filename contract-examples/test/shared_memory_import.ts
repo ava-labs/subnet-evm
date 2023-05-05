@@ -61,7 +61,10 @@ describe("SharedMemoryImport", function () {
   let precompile: Contract
   let contract: Contract
 
-  beforeEach('Setup DS-Test contract', async function () {
+  // TODO: see why the nonce is not matching the export test if I do beforeEach
+  // ends up with different contract address for the 2nd test.
+  // Maybe better to leave this as before anyway.
+  before('Setup DS-Test contract', async function () {
     // Populate blockchainIDs from the environment variables
     console.log("blockchainIDA %s, blockchainIDB: %s", blockchainIDA, blockchainIDB)
 
@@ -86,6 +89,16 @@ describe("SharedMemoryImport", function () {
   it("importAVAX via contract", async function () {
     let testContract: Contract = this.testContract;
     console.log("testContract", testContract.address)
+
+    // Send an arbitrary TX to increase the nonce
+    // So there is repeatable deployed contract addresses
+    let amount = ethers.utils.parseUnits("1", "gwei") 
+    let tx0 = await fundedSigner.sendTransaction({
+      to: signer1.address,
+      value: amount,
+    })
+    let receipt = await tx0.wait()
+    expect(receipt.status == 1).to.be.true
 
     let predicateBytes = "0x" + process.env.PREDICATE_BYTES_0
     let utxoID = "0x" + process.env.UTXO_ID_0
@@ -133,7 +146,6 @@ describe("SharedMemoryImport", function () {
 
 
   it("importUTXO via contract", async function () {
-    this.skip();
     let testContract: Contract = this.testContract;
     console.log("testContract", testContract.address)
 
@@ -174,7 +186,7 @@ describe("SharedMemoryImport", function () {
         log.address === SHARED_MEMORY_ADDRESS &&
         log.topics.length === 3 && // TODO: review the indexed vs. non-indexed log data
         // TODO: get the string from the contract abi
-        log.topics[0] === ethers.utils.id("ImportUTXO(uint64,bytes32,bytes32)") &&
+        log.topics[0] === ethers.utils.id("ImportUTXO(uint64,bytes32,bytes32,bytes32)") &&
         log.topics[1] == blockchainIDA // source
        // TODO: verify the assetID in log.topics[2]
     )

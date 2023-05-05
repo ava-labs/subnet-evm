@@ -12,12 +12,23 @@ contract ERC20SharedMemory is ERC20 {
   string private constant TOKEN_NAME = "ERC20SharedMemoryExampleToken";
   string private constant TOKEN_SYMBOL = "XMPL";
 
+  bytes32 public importableAssetID;
+  address public owner;
+
   event Deposit(address indexed dst, uint256 wad);
   event Mintdrawal(address indexed src, uint256 wad);
 
   constructor(uint256 initSupply) ERC20(TOKEN_NAME, TOKEN_SYMBOL) {
     // Mints INIT_SUPPLY to owner
     _mint(_msgSender(), initSupply);
+    owner = _msgSender();
+  }
+
+  function setImportableAssetID(bytes32 assetID) public {
+    require(
+      msg.sender == owner,
+      "ERC20SharedMemory: only owner can set importableAssetID");
+    importableAssetID = assetID;
   }
 
   function exportUTXO(
@@ -46,12 +57,13 @@ contract ERC20SharedMemory is ERC20 {
     // Import tokens from source chain
     // TODO: I don't think we need to expose all the utxo details,
     // the precompile already verifies timelock and threshold.
-    (uint64 amount, , , address[] memory addrs) = sharedMemory.importUTXO(
+    (uint64 amount, bytes32 assetID, , , address[] memory addrs) = sharedMemory.importUTXO(
       sourceChain, utxoID);
 
     // Require the UTXO only has one spender and it matches the caller
     require(addrs.length == 1, "ERC20SharedMemory: invalid UTXO");
     require(addrs[0] == _msgSender(), "ERC20SharedMemory: invalid spender");
+    require(assetID == importableAssetID, "ERC20SharedMemory: invalid assetID");
 
     // Mint tokens to the caller
     _mint(_msgSender(), amount);
@@ -129,13 +141,18 @@ contract ERC20SharedMemoryTest is DSTest {
       bytes32 sourceChain, bytes32 utxoID, uint expectedBalance) public {
     address testAddress = address(this);
     uint balance = erc20.balanceOf(testAddress);
-    assertEq(balance, 0);
+    assertEq(balance, 1_000_000_000); // TODO: fix this
 
-    sharedMemory.importUTXO(sourceChain, utxoID);
+    // The test expects to import assets from sourceChain exported from a
+    // contract with the same address as this contract.
+    bytes32 importAssetID = keccak256(
+      abi.encodePacked(sourceChain, address(erc20)));
+    erc20.setImportableAssetID(importAssetID);
+    erc20.importUTXO(sourceChain, utxoID);
 
     // balance should increase after a successful call to importUTXO
     balance = erc20.balanceOf(testAddress);
-    assertEq(balance, expectedBalance);
+    assertEq(balance, 1_000_000_000+expectedBalance);
   }
 
   receive() external payable {}

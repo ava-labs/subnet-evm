@@ -75,6 +75,7 @@ type ImportUTXOInput struct {
 
 type ImportUTXOOutput struct {
 	Amount    uint64
+	AssetID   [32]byte
 	Locktime  uint64
 	Threshold uint64
 	Addrs     []common.Address
@@ -405,6 +406,7 @@ func UnpackImportUTXOInput(input []byte) (ImportUTXOInput, error) {
 func PackImportUTXOOutput(outputStruct ImportUTXOOutput) ([]byte, error) {
 	return SharedMemoryABI.PackOutput("importUTXO",
 		outputStruct.Amount,
+		outputStruct.AssetID,
 		outputStruct.Locktime,
 		outputStruct.Threshold,
 		outputStruct.Addrs,
@@ -496,10 +498,15 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified invalid threshold", specifiedUTXO.InputID())
 	}
 
-	assetID := CalculateANTAssetID(common.Hash(accessibleState.GetSnowContext().ChainID), caller)
-	if assetID != common.Hash(specifiedUTXO.AssetID()) {
-		return nil, remainingGas, fmt.Errorf("specified UTXO %s specified incorrect assetID %s for caller %s, with actual assetID: %s", specifiedUTXO.InputID(), specifiedUTXO.AssetID(), caller, assetID)
-	}
+	// TODO: should we have this check?
+	// I think the smart contract should have discretion over which assetIDs
+	// it accepts. For example, it may maintain an allowance of assetIDs that
+	// correspond to the same ERC20 token on different chains.
+	//
+	// assetID := CalculateANTAssetID(common.Hash(accessibleState.GetSnowContext().ChainID), caller)
+	// if assetID != common.Hash(specifiedUTXO.AssetID()) {
+	// 	return nil, remainingGas, fmt.Errorf("specified UTXO %s specified incorrect assetID %s for caller %s, with actual assetID: %s", specifiedUTXO.InputID(), specifiedUTXO.AssetID(), caller, assetID)
+	// }
 
 	// Emit an ImportAVAX log to signal the OnAccept handler to consume the UTXO when the block is accepted
 	inputID := specifiedUTXO.InputID()
@@ -536,6 +543,7 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	}
 	packedOutput, err := PackImportUTXOOutput(ImportUTXOOutput{
 		Amount:    transferOut.Amt,
+		AssetID:   specifiedUTXO.AssetID(),
 		Locktime:  transferOut.Locktime,
 		Threshold: uint64(transferOut.Threshold),
 		Addrs:     addrs,

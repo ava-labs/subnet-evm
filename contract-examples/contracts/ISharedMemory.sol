@@ -81,12 +81,11 @@ interface ISharedMemory {
     // 1. Verify the UTXO is available in the predicate and has not been marked as spent in the StateDB
     // 2. Verify the UTXO's assetID is NOT AVAX
     // 3. Verify that the multisig has a threshold of 1 and specifies exactly one address.
-    // 4. Verify that getNativeTokenAssetID(msg.sender) matches the specified assetID
     //
     // If verification passes, then importUTXO emits an ImportUTXO event, which will trigger a Remove request on shared memory during block
     // acceptance.
     // Finally, it will return the UTXO details to the caller so the caller can decide what state changes to make based off of conusming the UTXO.
-    function importUTXO(bytes32 sourceChain, bytes32 utxoID) external returns (uint64 amount, uint64 locktime, uint64 threshold, address[] calldata addrs);
+    function importUTXO(bytes32 sourceChain, bytes32 utxoID) external returns (uint64 amount, bytes32 assetID, uint64 locktime, uint64 threshold, address[] calldata addrs);
 
     // ImportAVAX is emitted by importAVAX to indicate that the import operation has taken place.
     // When the block is accepted, the VM will parse the generated log (if it was not reverted) and perform the import
