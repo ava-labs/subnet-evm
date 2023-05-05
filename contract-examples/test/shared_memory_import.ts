@@ -159,7 +159,7 @@ describe("SharedMemoryImport", function () {
       }
     ]
 
-    // ImportAVAX
+    // ImportERC20
     let expectedValue = ethers.utils.parseUnits("1", "gwei")
     let tx = await testContract.populateTransaction.test_importERC20(
       blockchainIDA, utxoIDBytes32, expectedValue, {accessList})

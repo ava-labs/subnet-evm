@@ -28,8 +28,8 @@ const getBlockchainId = (name: BlockchainName) => {
 describe("SharedMemoryExport", function () {
   this.timeout("30s")
 
+  // Populate blockchainIDs from the environment variables
   const [blockchainIDA, blockchainIDB] = [
-    // Populate blockchainIDs from the environment variables
     getBlockchainId(BlockchainName.A),
     getBlockchainId(BlockchainName.B),
   ]
@@ -114,7 +114,7 @@ describe("SharedMemoryExport", function () {
     console.log("approvalAmount", approvalAmount);
 
     // ExportERC20
-    // Note we export AVAX to testContract.address, which is the contract we
+    // Note we export ERC20 to testContract.address, which is the contract we
     // just deployed. This is because the import test will also deploy a
     // contract from the same account with the same nonce.
    tx = await testContract.test_exportERC20(
