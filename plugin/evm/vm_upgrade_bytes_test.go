@@ -181,10 +181,6 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	if err := vm.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-
-	if err := vm.Shutdown(context.Background()); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func mustMarshal(t *testing.T, v interface{}) string {
