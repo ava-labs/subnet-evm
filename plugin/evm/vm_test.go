@@ -387,45 +387,6 @@ func issueAndAccept(t *testing.T, issuer <-chan commonEng.Message, vm *VM) snowm
 	return blk
 }
 
-func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
-	genesisTests := []struct {
-		genesisJSON string
-		configJSON  string
-		expectedErr error
-	}{
-		{
-			// we expect an error when subnet evm upgrade is nil in chain config
-			genesisJSON: genesisJSONPreSubnetEVM,
-			configJSON:  "",
-			expectedErr: errSubnetEVMUpgradeNotEnabled,
-		},
-		{
-			// we expect an error when subnet evm upgrade is not enabled at genesis and at a later block instead
-			genesisJSON: genesisJSONSubnetEVMLateEnablement,
-			configJSON:  "",
-			expectedErr: errSubnetEVMUpgradeNotEnabled,
-		},
-	}
-
-	for _, test := range genesisTests {
-		ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
-		vm := &VM{}
-		err := vm.Initialize(
-			context.Background(),
-			ctx,
-			dbManager,
-			genesisBytes,
-			[]byte(""),
-			[]byte(test.configJSON),
-			issuer,
-			[]*commonEng.Fx{},
-			nil,
-		)
-
-		require.ErrorIs(t, err, test.expectedErr)
-	}
-}
-
 func TestBuildEthTxBlock(t *testing.T) {
 	// reduce block gas cost
 	issuer, vm, dbManager, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")

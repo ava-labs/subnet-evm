@@ -114,14 +114,13 @@ var (
 )
 
 var (
-	errEmptyBlock                 = errors.New("empty block")
-	errUnsupportedFXs             = errors.New("unsupported feature extensions")
-	errInvalidBlock               = errors.New("invalid block")
-	errInvalidNonce               = errors.New("invalid nonce")
-	errUnclesUnsupported          = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM        = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM   = errors.New("nil blockGasCost is invalid after subnetEVM")
-	errSubnetEVMUpgradeNotEnabled = errors.New("SubnetEVM upgrade is not enabled in genesis")
+	errEmptyBlock               = errors.New("empty block")
+	errUnsupportedFXs           = errors.New("unsupported feature extensions")
+	errInvalidBlock             = errors.New("invalid block")
+	errInvalidNonce             = errors.New("invalid nonce")
+	errUnclesUnsupported        = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM      = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM = errors.New("nil blockGasCost is invalid after subnetEVM")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
