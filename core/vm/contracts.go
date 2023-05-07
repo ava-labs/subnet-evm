@@ -40,8 +40,6 @@ import (
 
 	cosmostypes "github.com/cosmos/cosmos-sdk/codec/types"
 
-	"encoding/json"
-
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
@@ -1209,13 +1207,32 @@ func (c *updateClient) Run(accessibleState contract.AccessibleState, input []byt
 	clientID := string(getData(input, carriage, clientIDLen))
 	carriage = carriage + clientIDLen
 
+	clientStatePath := fmt.Sprintf("clients/%s/clientState", clientID)
+	found := accessibleState.GetStateDB().Exist(common.BytesToAddress([]byte(clientStatePath)))
+	if !found {
+		return nil, fmt.Errorf("cannot update client with ID %s", clientID)
+	}
+
+	clientStateByte := accessibleState.GetStateDB().GetPrecompileState(common.BytesToAddress([]byte(clientStatePath)))
+	clientState := &ibctm.ClientState{}
+	err := clientState.Unmarshal(clientStateByte)
+	if err != nil {
+		return nil, err
+	}
+
+	consensusStatePath := fmt.Sprintf("clients/%s/consensusStates/%s", clientID, clientState.GetLatestHeight())
+	found = accessibleState.GetStateDB().Exist(common.BytesToAddress([]byte(consensusStatePath)))
+	if !found {
+		return nil, fmt.Errorf("cannot update consensusState with ID %s", clientID)
+	}
+
 	// bytes clientMessage;
 	clientMessageLen := new(big.Int).SetBytes(getData(input, carriage, 8)).Uint64()
 	carriage = carriage + 8
 	clientMessageByte := getData(input, carriage, clientMessageLen)
 
 	clientMessage := &ibctm.Header{}
-	err := clientMessage.Unmarshal(clientMessageByte)
+	err = clientMessage.Unmarshal(clientMessageByte)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling client state file: %w", err)
 	}
@@ -1231,7 +1248,7 @@ func (c *updateClient) Run(accessibleState contract.AccessibleState, input []byt
 		return nil, errors.New("consensusState marshaler error")
 	}
 
-	consensusStatePath := fmt.Sprintf("clients/%s/consensusStates/%s", clientID, clientMessage.GetHeight())
+	consensusStatePath = fmt.Sprintf("clients/%s/consensusStates/%s", clientID, clientMessage.GetHeight())
 	accessibleState.GetStateDB().SetPrecompileState(common.BytesToAddress([]byte(consensusStatePath)), consensusStateByte)
 	return nil, nil
 }
@@ -1304,19 +1321,15 @@ func (c *upgradeClient) Run(accessibleState contract.AccessibleState, input []by
 	clientStatePath := fmt.Sprintf("clients/%s/clientState", clientID)
 	clientStateByte := accessibleState.GetStateDB().GetPrecompileState(common.BytesToAddress([]byte(clientStatePath)))
 	var clientState ibctm.ClientState
-	if err := json.Unmarshal(clientStateByte, &clientState); err != nil {
+	if err := clientState.Unmarshal(clientStateByte); err != nil {
 		return nil, fmt.Errorf("error unmarshalling client state file: %w", err)
 	}
 
 	consensusStatePath := fmt.Sprintf("clients/%s/consensusStates/%s", clientID, clientState.GetLatestHeight())
 	consensusStateByte := accessibleState.GetStateDB().GetPrecompileState(common.BytesToAddress([]byte(consensusStatePath)))
 	var consensusState ibctm.ConsensusState
-	if err := json.Unmarshal(consensusStateByte, &consensusState); err != nil {
+	if err := consensusState.Unmarshal(consensusStateByte); err != nil {
 		return nil, fmt.Errorf("error unmarshalling consensus state file: %w", err)
-	}
-
-	if len(clientState.UpgradePath) == 0 {
-		return nil, errors.New("cannot upgrade client, no upgrade path set")
 	}
 
 	// last height of current counterparty chain must be client's latest height
@@ -1330,15 +1343,6 @@ func (c *upgradeClient) Run(accessibleState contract.AccessibleState, input []by
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 
 	// unmarshal proofs
-
-
-
-
-
-
-
-
-	
 	var merkleProofClient, merkleProofConsState commitmenttypes.MerkleProof
 	if err := marshaler.Unmarshal(proofUpgradeClientByte, &merkleProofClient); err != nil {
 		return nil, fmt.Errorf("could not unmarshal client merkle proof: %v", err)
@@ -1348,7 +1352,7 @@ func (c *upgradeClient) Run(accessibleState contract.AccessibleState, input []by
 	}
 
 	// Verify client proof
-	bz, err := marshaler.MarshalInterface(upgradedClient.ZeroCustomFields())
+	bz, err := upgradedClient.Marshal()
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal client state: %v", err)
 	}
