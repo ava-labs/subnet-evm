@@ -188,7 +188,7 @@ func init() {
 
 // ActivePrecompiles returns the precompiles enabled with the current configuration.
 func ActivePrecompiles(rules params.Rules) []common.Address {
-	res := []common.Address{}
+	var res []common.Address
 	switch {
 	case rules.IsSubnetEVM:
 		res = PrecompiledAddressesBerlin
@@ -199,9 +199,7 @@ func ActivePrecompiles(rules params.Rules) []common.Address {
 	default:
 		res = PrecompiledAddressesHomestead
 	}
-	for _, address := range PrecompiledAddressesIBCgo {
-		res = append(res, address)
-	}
+	res = append(res, PrecompiledAddressesIBCgo...)
 	return res
 }
 
