@@ -63,42 +63,31 @@ func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryD
 
 func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*OrderBookResponse, error) {
 	// market is a string cuz it's an optional param
-	allOrders := api.db.GetOrderBookData().OrderMap
-	orders := []OrderMin{}
-
+	var market *int
 	if len(marketStr) > 0 {
-		market, err := strconv.Atoi(marketStr)
-		if err != nil {
+		var err error
+		_market, err := strconv.Atoi(marketStr)
+		if err != nil || _market < len(GetActiveMarkets())-1 {
 			return nil, fmt.Errorf("invalid market")
 		}
-		marketOrders := map[common.Hash]*LimitOrder{}
-		for hash, order := range allOrders {
-			if order.Market == Market(market) {
-				if order.PositionType == "short" /* || order.Price.Cmp(big.NewInt(20e6)) <= 0 */ {
-					marketOrders[hash] = order
-				}
-			}
+		market = &_market
+	}
+
+	allOrders := api.db.GetAllOrders()
+	orders := []OrderMin{}
+	for _, order := range allOrders {
+		if market == nil || order.Market == Market(*market) {
+			orders = append(orders, order.ToOrderMin())
 		}
-		allOrders = marketOrders
 	}
-
-	for hash, order := range allOrders {
-		orders = append(orders, OrderMin{
-			Market:  order.Market,
-			Price:   order.Price.String(),
-			Size:    order.GetUnFilledBaseAssetQuantity().String(),
-			Signer:  order.UserAddress,
-			OrderId: hash.String(),
-		})
-	}
-
 	return &OrderBookResponse{Orders: orders}, nil
 }
 
 func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenOrdersResponse {
 	traderOrders := []OrderForOpenOrders{}
-	orderMap := api.db.GetOrderBookData().OrderMap
-	for hash, order := range orderMap {
+	traderHash := common.HexToAddress(trader)
+	orders := api.db.GetOpenOrdersForTrader(traderHash)
+	for _, order := range orders {
 		if strings.EqualFold(order.UserAddress, trader) {
 			traderOrders = append(traderOrders, OrderForOpenOrders{
 				Market:     order.Market,
@@ -106,7 +95,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenO
 				Size:       order.BaseAssetQuantity.String(),
 				FilledSize: order.FilledBaseAssetQuantity.String(),
 				Salt:       getOrderFromRawOrder(order.RawOrder).Salt.String(),
-				OrderId:    hash.String(),
+				OrderId:    order.Id.String(),
 				ReduceOnly: order.ReduceOnly,
 			})
 		}

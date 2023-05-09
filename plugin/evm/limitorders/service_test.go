@@ -45,6 +45,9 @@ func TestAggregatedOrderBook(t *testing.T) {
 			},
 		}
 		assert.Equal(t, expectedAggregatedOrderBookState, *response)
+
+		orderbook, _ := service.GetOrderBook(ctx, "0")
+		assert.Equal(t, 4, len(orderbook.Orders))
 	})
 	t.Run("when event is the first event after subscribe", func(t *testing.T) {
 		t.Run("when orderbook has no orders", func(t *testing.T) {

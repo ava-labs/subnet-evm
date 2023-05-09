@@ -19,7 +19,7 @@ import (
 
 type LimitOrderProcesser interface {
 	ListenAndProcessTransactions()
-	RunBuildBlockPipeline(lastBlockTime uint64)
+	RunBuildBlockPipeline()
 	GetOrderBookAPI() *limitorders.OrderBookAPI
 }
 
@@ -90,8 +90,8 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 	lop.listenAndStoreLimitOrderTransactions()
 }
 
-func (lop *limitOrderProcesser) RunBuildBlockPipeline(lastBlockTime uint64) {
-	lop.buildBlockPipeline.Run(lastBlockTime)
+func (lop *limitOrderProcesser) RunBuildBlockPipeline() {
+	lop.buildBlockPipeline.Run()
 }
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *limitorders.OrderBookAPI {

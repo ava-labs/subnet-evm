@@ -31,7 +31,7 @@ func TestRunLiquidations(t *testing.T) {
 		liquidablePositions := []LiquidablePosition{{
 			Address:      traderAddress,
 			Market:       market,
-			PositionType: "long",
+			PositionType: LONG,
 			Size:         multiplyPrecisionSize(big.NewInt(7)),
 			FilledSize:   big.NewInt(0),
 		}}
@@ -69,7 +69,7 @@ func TestRunLiquidations(t *testing.T) {
 		liquidablePositions := []LiquidablePosition{{
 			Address:      traderAddress,
 			Market:       market,
-			PositionType: "short",
+			PositionType: SHORT,
 			Size:         multiplyPrecisionSize(big.NewInt(-7)),
 			FilledSize:   big.NewInt(0),
 		}}
@@ -432,14 +432,14 @@ func TestMatchLongAndShortOrder(t *testing.T) {
 func getShortOrder() LimitOrder {
 	signature := []byte("Here is a short order")
 	salt := big.NewInt(time.Now().Unix())
-	shortOrder, _ := createLimitOrder("short", "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-10), big.NewInt(20.0), Placed, signature, big.NewInt(2), salt)
+	shortOrder, _ := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-10), big.NewInt(20.0), Placed, signature, big.NewInt(2), salt)
 	return shortOrder
 }
 
 func getLongOrder() LimitOrder {
 	signature := []byte("Here is a long order")
 	salt := big.NewInt(time.Now().Unix())
-	longOrder, _ := createLimitOrder("long", "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(10), big.NewInt(20.0), Placed, signature, big.NewInt(2), salt)
+	longOrder, _ := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(10), big.NewInt(20.0), Placed, signature, big.NewInt(2), salt)
 	return longOrder
 }
 

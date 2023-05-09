@@ -595,9 +595,9 @@ func (vm *VM) initBlockBuilding() {
 	vm.gossiper = vm.createGossiper(gossipStats)
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
+	vm.builder.awaitBuildTimer()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
 
-	limitorders.SetToEngine(vm.builder.notifyBuildBlockChan)
 	vm.limitOrderProcesser.ListenAndProcessTransactions()
 }
 
@@ -647,6 +647,7 @@ func (vm *VM) buildBlock(ctx context.Context) (snowman.Block, error) {
 }
 
 func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) (snowman.Block, error) {
+	log.Info("#### buildBlockWithContext called")
 	if proposerVMBlockCtx != nil {
 		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
@@ -659,6 +660,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}
 
+	vm.limitOrderProcesser.RunBuildBlockPipeline()
 	block, err := vm.miner.GenerateBlock(predicateCtx)
 	vm.builder.handleGenerateBlock()
 	if err != nil {

@@ -98,11 +98,6 @@ func (cep *ContractEventsProcessor) ProcessAcceptedEvents(logs []*types.Log) {
 	}
 }
 
-func parseOrderId(orderHash interface{}) common.Hash {
-	_orderId, _ := orderHash.([32]byte)
-	return common.BytesToHash(_orderId[:])
-}
-
 func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 	removed := event.Removed
 	args := map[string]interface{}{}
@@ -135,7 +130,6 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			log.Info("#### deleting order", "orderId", orderId.String(), "block", event.BlockHash.String(), "number", event.BlockNumber)
 			cep.database.Delete(orderId)
 		}
-		SendTxReadySignal() // what does this do?
 	case cep.orderBookABI.Events["OrderCancelled"].ID:
 		err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelled", event.Data)
 		if err != nil {
@@ -285,7 +279,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		nextFundingTime := args["nextFundingTime"].(*big.Int)
 		market := Market(int(event.Topics[1].Big().Int64()))
 		log.Info("FundingRateUpdated event", "args", args, "cumulativePremiumFraction", cumulativePremiumFraction, "market", market)
-		cep.database.UpdateUnrealisedFunding(Market(market), cumulativePremiumFraction)
+		cep.database.UpdateUnrealisedFunding(market, cumulativePremiumFraction)
 		cep.database.UpdateNextFundingTime(nextFundingTime.Uint64())
 
 	case cep.clearingHouseABI.Events["FundingPaid"].ID:
@@ -297,7 +291,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		}
 		market := Market(int(event.Topics[2].Big().Int64()))
 		cumulativePremiumFraction := args["cumulativePremiumFraction"].(*big.Int)
-		cep.database.ResetUnrealisedFunding(Market(market), getAddressFromTopicHash(event.Topics[1]), cumulativePremiumFraction)
+		cep.database.ResetUnrealisedFunding(market, getAddressFromTopicHash(event.Topics[1]), cumulativePremiumFraction)
 
 	// both PositionModified and PositionLiquidated have the exact same signature
 	case cep.clearingHouseABI.Events["PositionModified"].ID:
@@ -343,11 +337,4 @@ func getOrderFromRawOrder(rawOrder interface{}) Order {
 	marshalledOrder, _ := json.Marshal(rawOrder)
 	_ = json.Unmarshal(marshalledOrder, &order)
 	return order
-}
-
-func getOrdersFromRawOrderList(rawOrders interface{}) [2]Order {
-	orders := [2]Order{}
-	marshalledOrders, _ := json.Marshal(rawOrders)
-	_ = json.Unmarshal(marshalledOrders, &orders)
-	return orders
 }

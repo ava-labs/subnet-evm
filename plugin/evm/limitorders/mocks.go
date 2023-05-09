@@ -112,6 +112,10 @@ func (db *MockLimitOrderDatabase) GetOrderBookData() InMemoryDatabase {
 	return *&InMemoryDatabase{}
 }
 
+func (db *MockLimitOrderDatabase) GetOpenOrdersForTrader(trader common.Address) []LimitOrder {
+	return nil
+}
+
 type MockLimitOrderTxProcessor struct {
 	mock.Mock
 }

@@ -34,6 +34,17 @@ const (
 	HUSD Collateral = iota
 )
 
+type PositionType int
+
+const (
+	LONG PositionType = iota
+	SHORT
+)
+
+func (p PositionType) String() string {
+	return [...]string{"long", "short"}[p]
+}
+
 type Status uint8
 
 const (
@@ -49,10 +60,9 @@ type Lifecycle struct {
 }
 
 type LimitOrder struct {
-	Id     common.Hash
-	Market Market
-	// @todo make this an enum
-	PositionType            string
+	Id                      common.Hash
+	Market                  Market
+	PositionType            PositionType
 	UserAddress             string
 	BaseAssetQuantity       *big.Int
 	FilledBaseAssetQuantity *big.Int
@@ -82,7 +92,7 @@ type LimitOrderJson struct {
 func (order *LimitOrder) MarshalJSON() ([]byte, error) {
 	limitOrderJson := LimitOrderJson{
 		Market:                  order.Market,
-		PositionType:            order.PositionType,
+		PositionType:            order.PositionType.String(),
 		UserAddress:             strings.ToLower(order.UserAddress),
 		BaseAssetQuantity:       order.BaseAssetQuantity,
 		FilledBaseAssetQuantity: order.FilledBaseAssetQuantity,
@@ -107,6 +117,16 @@ func (order LimitOrder) getOrderStatus() Lifecycle {
 
 func (order LimitOrder) String() string {
 	return fmt.Sprintf("LimitOrder: Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, Signature: %v, BlockNumber: %s", order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, hex.EncodeToString(order.Signature), order.BlockNumber)
+}
+
+func (order LimitOrder) ToOrderMin() OrderMin {
+	return OrderMin{
+		Market:  order.Market,
+		Price:   order.Price.String(),
+		Size:    order.GetUnFilledBaseAssetQuantity().String(),
+		Signer:  order.UserAddress,
+		OrderId: order.Id.String(),
+	}
 }
 
 type Position struct {
@@ -150,10 +170,11 @@ type LimitOrderDatabase interface {
 	SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
 	GetNaughtyTraders(oraclePrices map[Market]*big.Int) ([]LiquidablePosition, map[common.Address][]common.Hash)
+	GetOpenOrdersForTrader(trader common.Address) []LimitOrder
 }
 
 type InMemoryDatabase struct {
-	mu              sync.RWMutex                `json:"-"`
+	mu              *sync.RWMutex               `json:"-"`
 	OrderMap        map[common.Hash]*LimitOrder `json:"order_map"`  // ID => order
 	TraderMap       map[common.Address]*Trader  `json:"trader_map"` // address => trader info
 	NextFundingTime uint64                      `json:"next_funding_time"`
@@ -170,12 +191,8 @@ func NewInMemoryDatabase() *InMemoryDatabase {
 		TraderMap:       traderMap,
 		NextFundingTime: 0,
 		LastPrice:       lastPrice,
+		mu:              &sync.RWMutex{},
 	}
-}
-
-// assumes db.mu.RLock() is held
-func (db *InMemoryDatabase) GetTraderMap() map[common.Address]*Trader {
-	return db.TraderMap
 }
 
 func (db *InMemoryDatabase) Accept(blockNumber uint64) {
@@ -250,10 +267,10 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, ord
 
 	limitOrder := db.OrderMap[orderId]
 
-	if limitOrder.PositionType == "long" {
+	if limitOrder.PositionType == LONG {
 		limitOrder.FilledBaseAssetQuantity.Add(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
 	}
-	if limitOrder.PositionType == "short" {
+	if limitOrder.PositionType == SHORT {
 		limitOrder.FilledBaseAssetQuantity.Sub(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled - quantity
 	}
 
@@ -287,7 +304,7 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []Limi
 
 	var longOrders []LimitOrder
 	for _, order := range db.OrderMap {
-		if order.PositionType == "long" &&
+		if order.PositionType == LONG &&
 			order.Market == market &&
 			order.getOrderStatus().Status == Placed &&
 			(cutoff == nil || order.Price.Cmp(cutoff) <= 0) &&
@@ -305,7 +322,7 @@ func (db *InMemoryDatabase) GetShortOrders(market Market, cutoff *big.Int) []Lim
 
 	var shortOrders []LimitOrder
 	for _, order := range db.OrderMap {
-		if order.PositionType == "short" &&
+		if order.PositionType == SHORT &&
 			order.Market == market &&
 			order.getOrderStatus().Status == Placed &&
 			(cutoff == nil || order.Price.Cmp(cutoff) >= 0) &&
@@ -429,6 +446,13 @@ func (db *InMemoryDatabase) GetAllTraders() map[common.Address]Trader {
 	return traderMap
 }
 
+func (db *InMemoryDatabase) GetOpenOrdersForTrader(trader common.Address) []LimitOrder {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	return db.getTraderOrders(trader)
+}
+
 func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFraction *big.Int) LiquidablePosition {
 	liquidable := LiquidablePosition{}
 	// iterate through the markets and return the first one with an open position
@@ -446,9 +470,9 @@ func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFra
 			FilledSize:     big.NewInt(0),
 		}
 		if position.Size.Sign() == -1 {
-			liquidable.PositionType = "short"
+			liquidable.PositionType = SHORT
 		} else {
-			liquidable.PositionType = "long"
+			liquidable.PositionType = LONG
 		}
 	}
 	return liquidable
@@ -461,16 +485,16 @@ func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int) 
 	liquidablePositions := []LiquidablePosition{}
 	ordersToCancel := map[common.Address][]common.Hash{}
 
-	for addr, trader := range db.GetTraderMap() {
+	for addr, trader := range db.TraderMap {
 		pendingFunding := getTotalFunding(trader)
-		marginFraction := calcMarginFraction(trader, pendingFunding, oraclePrices, db.GetLastPrices())
+		marginFraction := calcMarginFraction(trader, pendingFunding, oraclePrices, db.LastPrice)
 		if marginFraction.Cmp(maintenanceMargin) == -1 {
 			log.Info("below maintenanceMargin", "trader", addr.String(), "marginFraction", prettifyScaledBigInt(marginFraction, 6))
 			liquidablePositions = append(liquidablePositions, determinePositionToLiquidate(trader, addr, marginFraction))
 			continue // we do not check for their open orders yet. Maybe liquidating them first will make available margin positive
 		}
 		availableMargin := getAvailableMargin(trader, pendingFunding, oraclePrices, db.LastPrice)
-		log.Info("getAvailableMargin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
+		// log.Info("getAvailableMargin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
 		if availableMargin.Cmp(big.NewInt(0)) == -1 {
 			log.Info("negative available margin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
 			db.determineOrdersToCancel(addr, trader, availableMargin, oraclePrices, ordersToCancel)
@@ -497,6 +521,10 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 		// cancel orders until available margin is positive
 		ordersToCancel[addr] = []common.Hash{}
 		for _, order := range traderOrders {
+			// cannot cancel ReduceOnly orders because no margin is reserved for them
+			if order.ReduceOnly {
+				continue
+			}
 			ordersToCancel[addr] = append(ordersToCancel[addr], order.Id)
 			orderNotional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.GetUnFilledBaseAssetQuantity(), order.Price), _1e18)) // | size * current price |
 			marginReleased := divideByBasePrecision(big.NewInt(0).Mul(orderNotional, minAllowableMargin))

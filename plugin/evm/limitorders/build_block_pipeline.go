@@ -2,6 +2,7 @@ package limitorders
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,10 +21,10 @@ func NewBuildBlockPipeline(db LimitOrderDatabase, lotp LimitOrderTxProcessor) *B
 	}
 }
 
-func (pipeline *BuildBlockPipeline) Run(lastBlockTime uint64) {
+func (pipeline *BuildBlockPipeline) Run() {
 	pipeline.lotp.PurgeLocalTx()
 
-	if isFundingPaymentTime(lastBlockTime, pipeline.db) {
+	if isFundingPaymentTime(pipeline.db.GetNextFundingTime()) {
 		log.Info("BuildBlockPipeline:isFundingPaymentTime")
 		// just execute the funding payment and skip running the matching engine
 		err := executeFundingPayment(pipeline.lotp)
@@ -62,12 +63,14 @@ func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Ad
 	cancellableOrderIds := map[common.Hash]struct{}{}
 	// @todo: if there are too many cancellable orders, they might not fit in a single block. Need to adjust for that.
 	for _, orderIds := range cancellableOrders {
-		err := pipeline.lotp.ExecuteOrderCancel(orderIds)
-		if err != nil {
-			log.Error("Error in ExecuteOrderCancel", "orderIds", formatHashSlice(orderIds), "err", err)
-		} else {
-			for _, orderId := range orderIds {
-				cancellableOrderIds[orderId] = struct{}{}
+		if len(orderIds) > 0 {
+			err := pipeline.lotp.ExecuteOrderCancel(orderIds)
+			if err != nil {
+				log.Error("Error in ExecuteOrderCancel", "orderIds", formatHashSlice(orderIds), "err", err)
+			} else {
+				for _, orderId := range orderIds {
+					cancellableOrderIds[orderId] = struct{}{}
+				}
 			}
 		}
 	}
@@ -107,9 +110,9 @@ func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []Liquid
 	for i, liquidable := range liquidablePositions {
 		var oppositeOrders []LimitOrder
 		switch liquidable.PositionType {
-		case "long":
+		case LONG:
 			oppositeOrders = orderMap[liquidable.Market].longOrders
-		case "short":
+		case SHORT:
 			oppositeOrders = orderMap[liquidable.Market].shortOrders
 		}
 		if len(oppositeOrders) == 0 {
@@ -129,10 +132,10 @@ func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []Liquid
 			pipeline.lotp.ExecuteLiquidation(liquidable.Address, oppositeOrder, fillAmount)
 
 			switch liquidable.PositionType {
-			case "long":
+			case LONG:
 				oppositeOrders[j].FilledBaseAssetQuantity.Add(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
 				liquidablePositions[i].FilledSize.Add(liquidablePositions[i].FilledSize, fillAmount)
-			case "short":
+			case SHORT:
 				oppositeOrders[j].FilledBaseAssetQuantity.Sub(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
 				liquidablePositions[i].FilledSize.Sub(liquidablePositions[i].FilledSize, fillAmount)
 			}
@@ -178,11 +181,13 @@ func matchLongAndShortOrder(lotp LimitOrderTxProcessor, longOrder LimitOrder, sh
 	return longOrder, shortOrder, false
 }
 
-func isFundingPaymentTime(lastBlockTime uint64, db LimitOrderDatabase) bool {
-	if db.GetNextFundingTime() == 0 {
+func isFundingPaymentTime(nextFundingTime uint64) bool {
+	if nextFundingTime == 0 {
 		return false
 	}
-	return lastBlockTime >= db.GetNextFundingTime()
+
+	now := uint64(time.Now().Unix())
+	return now >= nextFundingTime
 }
 
 func executeFundingPayment(lotp LimitOrderTxProcessor) error {

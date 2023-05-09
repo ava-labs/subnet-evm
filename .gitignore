@@ -62,3 +62,5 @@ plugins/evm/hubble.db
 
 *.bin
 local_status.sh
+
+networks/*/*.env

@@ -26,7 +26,7 @@ func TestProcessEvents(t *testing.T) {
 		ammIndex := big.NewInt(0)
 		baseAssetQuantity := big.NewInt(5000000000000000000)
 		price := big.NewInt(1000000000)
-		longSignature := []byte("long")
+		longSignature := []byte("dummy-sig-long")
 		salt1 := big.NewInt(1675239557437)
 		longOrder := getOrder(ammIndex, traderAddress, baseAssetQuantity, price, salt1)
 		longOrderId := getIdFromOrder(longOrder)
@@ -41,7 +41,7 @@ func TestProcessEvents(t *testing.T) {
 		longOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, longSignature, timestamp)
 		longOrderPlacedEventLog := getEventLog(OrderBookContractAddress, longOrderPlacedEventTopics, longOrderPlacedEventData, ordersPlacedBlockNumber)
 
-		shortSignature := []byte("short")
+		shortSignature := []byte("dummy-sig-short")
 		shortOrderPlacedEventTopics := []common.Hash{orderPlacedEvent.ID, traderAddress.Hash(), shortOrderId}
 		shortOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(shortOrder, shortSignature, timestamp)
 		shortOrderPlacedEventLog := getEventLog(OrderBookContractAddress, shortOrderPlacedEventTopics, shortOrderPlacedEventData, ordersPlacedBlockNumber)
@@ -160,7 +160,7 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	args := map[string]interface{}{}
 	orderBookABI.UnpackIntoMap(args, "OrderPlaced", orderPlacedEventData)
 	assert.Equal(t, Market(ammIndex.Int64()), actualLimitOrder.Market)
-	assert.Equal(t, "long", actualLimitOrder.PositionType)
+	assert.Equal(t, LONG, actualLimitOrder.PositionType)
 	assert.Equal(t, traderAddress.String(), actualLimitOrder.UserAddress)
 	assert.Equal(t, *baseAssetQuantity, *actualLimitOrder.BaseAssetQuantity)
 	assert.Equal(t, *price, *actualLimitOrder.Price)
@@ -215,7 +215,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			args := map[string]interface{}{}
 			orderBookABI.UnpackIntoMap(args, "OrderPlaced", orderPlacedEventData)
 			assert.Equal(t, Market(ammIndex.Int64()), actualLimitOrder.Market)
-			assert.Equal(t, "long", actualLimitOrder.PositionType)
+			assert.Equal(t, LONG, actualLimitOrder.PositionType)
 			assert.Equal(t, traderAddress.String(), actualLimitOrder.UserAddress)
 			assert.Equal(t, *baseAssetQuantity, *actualLimitOrder.BaseAssetQuantity)
 			assert.Equal(t, *price, *actualLimitOrder.Price)
@@ -233,7 +233,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		blockNumber := uint64(4)
 		limitOrder := &LimitOrder{
 			Market:            Market(ammIndex.Int64()),
-			PositionType:      "long",
+			PositionType:      LONG,
 			UserAddress:       traderAddress.String(),
 			BaseAssetQuantity: baseAssetQuantity,
 			Price:             price,
@@ -267,7 +267,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		signature2 := []byte("shortOrder")
 		longOrder := &LimitOrder{
 			Market:                  Market(ammIndex.Int64()),
-			PositionType:            "long",
+			PositionType:            LONG,
 			UserAddress:             traderAddress.String(),
 			BaseAssetQuantity:       baseAssetQuantity,
 			Price:                   price,
@@ -278,7 +278,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		}
 		shortOrder := &LimitOrder{
 			Market:                  Market(ammIndex.Int64()),
-			PositionType:            "short",
+			PositionType:            SHORT,
 			UserAddress:             traderAddress.String(),
 			BaseAssetQuantity:       big.NewInt(0).Mul(baseAssetQuantity, big.NewInt(-1)),
 			Price:                   price,
@@ -317,7 +317,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		signature := []byte("longOrder")
 		longOrder := &LimitOrder{
 			Market:                  Market(ammIndex.Int64()),
-			PositionType:            "long",
+			PositionType:            LONG,
 			UserAddress:             traderAddress.String(),
 			BaseAssetQuantity:       baseAssetQuantity,
 			Price:                   price,
