@@ -238,9 +238,9 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 // regression test for precompile activation after header block
 func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-
+	copyCfg := *params.TestChainConfig
 	customg := Genesis{
-		Config: params.TestChainConfig,
+		Config: &copyCfg,
 		Alloc: GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
