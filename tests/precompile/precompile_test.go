@@ -5,14 +5,13 @@ package precompile
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/ava-labs/avalanchego/api/health"
 	"github.com/ava-labs/subnet-evm/tests/utils"
+
+	"github.com/ava-labs/avalanchego/api/health"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/go-cmd/cmd"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
@@ -20,7 +19,7 @@ import (
 	_ "github.com/ava-labs/subnet-evm/tests/precompile/solidity"
 )
 
-var startCmd *cmd.Cmd
+var tearDown func()
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -32,14 +31,17 @@ var _ = ginkgo.BeforeSuite(func() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	wd, err := os.Getwd()
+	log.Info("Starting AvalancheGo node")
+	err, nodeUrl, tearDownFunc := utils.SpinupAvalancheNode()
 	gomega.Expect(err).Should(gomega.BeNil())
-	log.Info("Starting AvalancheGo node", "wd", wd)
-	startCmd, err = utils.RunCommand("./scripts/run.sh")
-	gomega.Expect(err).Should(gomega.BeNil())
+	gomega.Expect(tearDownFunc).ShouldNot(gomega.BeNil())
+	tearDown = tearDownFunc
+
+	// confirm that Kurtosis started the node on the expected url
+	gomega.Expect(nodeUrl).Should(gomega.Equal(utils.DefaultLocalNodeURI))
 
 	// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
-	healthClient := health.NewClient(utils.DefaultLocalNodeURI)
+	healthClient := health.NewClient(nodeUrl)
 	healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(healthy).Should(gomega.BeTrue())
@@ -47,8 +49,8 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	gomega.Expect(startCmd).ShouldNot(gomega.BeNil())
-	gomega.Expect(startCmd.Stop()).Should(gomega.BeNil())
+	gomega.Expect(tearDown).ShouldNot(gomega.BeNil())
+	tearDown()
 	// TODO add a new node to bootstrap off of the existing node and ensure it can bootstrap all subnets
 	// created during the test
 })
