@@ -13,9 +13,10 @@ const (
 	isPartitioningEnabled    = false
 	enclaveIdPrefix          = "avalanche-test"
 	avalancheStarlarkPackage = "github.com/kurtosis-tech/avalanche-package"
-	emptySerializedParams    = `{"test_mode": 9650}`
-	defaultParallelism       = 4
-	firstNodeId              = "node-0"
+	// forces the node to launch on 9650 instead of ephemeral ports
+	emptySerializedParams = `{"test_mode": true}`
+	defaultParallelism    = 4
+	firstNodeId           = "node-0"
 )
 
 func SpinupAvalancheNode() (error, string, func()) {
