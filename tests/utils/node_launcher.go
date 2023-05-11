@@ -59,7 +59,7 @@ func SpinupAvalancheNode(ctx context.Context) (error, string, func()) {
 	rpcPortNumber := rpcPortSpec.GetNumber()
 
 	tearDownFunction := func() {
-		fmt.Println(fmt.Sprintf("Destroying enclave with id '%v'", enclaveId))
+		fmt.Println(fmt.Printf("Destroying enclave with id '%v'", enclaveId))
 		kurtosisCtx.DestroyEnclave(ctx, enclaveId)
 	}
 
