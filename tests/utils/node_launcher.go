@@ -63,6 +63,9 @@ func SpinupAvalancheNode() (error, string, func()) {
 
 	tearDownFunction := func() {
 		fmt.Println(fmt.Printf("Destroying enclave with id '%v'", enclaveId))
+		if err = kurtosisCtx.StopEnclave(ctx, enclaveId); err != nil {
+			fmt.Printf("An error occurred while stopping the enclave with id '%v'\n", enclaveId)
+		}
 		if err = kurtosisCtx.DestroyEnclave(ctx, enclaveId); err != nil {
 			fmt.Printf("An error occurred while cleaning up the enclave with id '%v'\n", enclaveId)
 		}
