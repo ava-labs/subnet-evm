@@ -11,7 +11,7 @@ import (
 
 const (
 	isPartitioningEnabled    = false
-	enclaveIdPrefix          = "avalanche-test"
+	enclaveIdPrefix          = "test"
 	avalancheStarlarkPackage = "github.com/kurtosis-tech/avalanche-package"
 	// forces the node to launch on 9650 instead of ephemeral ports
 	forceExposeOn9650  = `{"test_mode": true}`
