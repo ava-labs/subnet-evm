@@ -32,9 +32,10 @@ var _ = ginkgo.BeforeSuite(func() {
 	defer cancel()
 
 	log.Info("Starting AvalancheGo node")
-	err, nodeUrl, tearDown := utils.SpinupAvalancheNode(ctx)
+	err, nodeUrl, tearDownFunc := utils.SpinupAvalancheNode(ctx)
 	gomega.Expect(err).Should(gomega.BeNil())
-	gomega.Expect(tearDown).ShouldNot(gomega.BeNil())
+	gomega.Expect(tearDownFunc).ShouldNot(gomega.BeNil())
+	tearDown = tearDownFunc
 
 	// confirm that Kurtosis started the node on the expected url
 	gomega.Expect(nodeUrl).Should(gomega.Equal(utils.DefaultLocalNodeURI))
