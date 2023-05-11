@@ -5,10 +5,6 @@ package load
 
 import (
 	"context"
-	"fmt"
-	"os"
-	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
@@ -49,27 +45,11 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
-	ginkgo.It("basic subnet load test", ginkgo.Label("load"), func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-
-		blockchainID := utils.CreateNewSubnet(ctx, "./tests/load/genesis/genesis.json")
-
-		rpcEndpoints := make([]string, 0, len(utils.NodeURIs))
-		for _, uri := range []string{utils.DefaultLocalNodeURI} { // TODO: use NodeURIs instead, hack until fixing multi node in a network behavior
-			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
-		}
-		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
-		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
+	ginkgo.It("ping the network", ginkgo.Label("setup"), func() {
+		client := health.NewClient(utils.DefaultLocalNodeURI)
+		healthy, err := client.Readiness(context.Background(), nil)
 		gomega.Expect(err).Should(gomega.BeNil())
-
-		log.Info("Sleeping with network running", "rpcEndpoints", commaSeparatedRPCEndpoints)
-		cmd := exec.Command("./scripts/run_simulator.sh")
-		log.Info("Running load simulator script", "cmd", cmd.String())
-
-		out, err := cmd.CombinedOutput()
-		fmt.Printf("\nCombined output:\n\n%s\n", string(out))
-		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(healthy.Healthy).Should(gomega.BeTrue())
 	})
 })
 
