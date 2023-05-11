@@ -19,6 +19,8 @@ import (
 	"github.com/onsi/gomega"
 )
 
+var tearDown func()
+
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "subnet-evm small load simulator test suite")
@@ -33,7 +35,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	err, nodeUrl, tearDown := utils.SpinupAvalancheNode(ctx)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(tearDown).ShouldNot(gomega.BeNil())
-	ginkgo.DeferCleanup(tearDown)
 
 	// confirm that Kurtosis started the node on the expected url
 	gomega.Expect(nodeUrl).Should(gomega.Equal(utils.DefaultLocalNodeURI))
@@ -72,6 +73,8 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	gomega.Expect(tearDown).ShouldNot(gomega.BeNil())
+	tearDown()
 	// TODO add a new node to bootstrap off of the existing node and ensure it can bootstrap all subnets
 	// created during the test
 })
