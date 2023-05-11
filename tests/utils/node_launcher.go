@@ -66,6 +66,7 @@ func SpinupAvalancheNode() (error, string, func()) {
 		if err = kurtosisCtx.DestroyEnclave(ctx, enclaveId); err != nil {
 			fmt.Printf("An error occurred while cleaning up the enclave with id '%v'\n", enclaveId)
 		}
+		time.Sleep(time.Second * 5)
 	}
 
 	return nil, fmt.Sprintf("http://127.0.0.1:%d", rpcPortNumber), tearDownFunction
