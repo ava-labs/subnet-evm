@@ -30,7 +30,8 @@ ACK_GINKGO_RC=true ginkgo build ./tests/precompile ./tests/load
 
 kurtosis enclave ls
 docker ps
-lsof -i:9650
+lsof -i:9650 || echo "this didn't work"
+netstat -tulpn | grep ':9650'
 
 ./tests/load/load.test \
   --ginkgo.vv \
