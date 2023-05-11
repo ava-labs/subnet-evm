@@ -62,11 +62,9 @@ func SpinupAvalancheNode() (error, string, func()) {
 
 	tearDownFunction := func() {
 		fmt.Println(fmt.Printf("Destroying enclave with id '%v'", enclaveId))
-		newKurtosisContext, err := kurtosis_context.NewKurtosisContextFromLocalEngine()
-		if err != nil {
-			fmt.Println("An error occurred while creating a new Kurtosis Context")
+		if err = kurtosisCtx.DestroyEnclave(ctx, enclaveId); err != nil {
+			fmt.Printf("An error occurred while cleaning up the enclave with id '%v'\n", enclaveId)
 		}
-		newKurtosisContext.DestroyEnclave(ctx, enclaveId)
 	}
 
 	return nil, fmt.Sprintf("http://127.0.0.1:%d", rpcPortNumber), tearDownFunction
