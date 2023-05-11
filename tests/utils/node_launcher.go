@@ -14,9 +14,9 @@ const (
 	enclaveIdPrefix          = "avalanche-test"
 	avalancheStarlarkPackage = "github.com/kurtosis-tech/avalanche-package"
 	// forces the node to launch on 9650 instead of ephemeral ports
-	emptySerializedParams = `{"test_mode": true}`
-	defaultParallelism    = 4
-	firstNodeId           = "node-0"
+	forceExposeOn9650  = `{"test_mode": true}`
+	defaultParallelism = 4
+	firstNodeId        = "node-0"
 )
 
 func SpinupAvalancheNode() (error, string, func()) {
@@ -33,7 +33,7 @@ func SpinupAvalancheNode() (error, string, func()) {
 		return err, "", nil
 	}
 
-	runResult, err := enclaveCtx.RunStarlarkRemotePackageBlocking(ctx, avalancheStarlarkPackage, emptySerializedParams, false, defaultParallelism)
+	runResult, err := enclaveCtx.RunStarlarkRemotePackageBlocking(ctx, avalancheStarlarkPackage, forceExposeOn9650, false, defaultParallelism)
 	if err != nil {
 		return err, "", nil
 	}
