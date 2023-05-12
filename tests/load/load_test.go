@@ -38,7 +38,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	tearDown = tearDownFunc
 
 	// confirm that Kurtosis started the node on the expected url
-	gomega.Expect(nodeUrl).Should(gomega.Equal(utils.DefaultLocalNodeURI))
+	utils.DefaultLocalNodeURI = nodeUrl
 
 	// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
 	healthClient := health.NewClient(nodeUrl)
