@@ -551,6 +551,7 @@ func (pool *TxPool) stats() (int, int) {
 // Content retrieves the data content of the transaction pool, returning all the
 // pending as well as queued transactions, grouped by account and sorted by nonce.
 func (pool *TxPool) Content() (map[common.Address]types.Transactions, map[common.Address]types.Transactions) {
+	// "txList.Flatten" mutates the list thus we need write lock
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -590,6 +591,7 @@ func (pool *TxPool) ContentFrom(addr common.Address) (types.Transactions, types.
 // transactions and only return those whose **effective** tip is large enough in
 // the next pending execution environment.
 func (pool *TxPool) Pending(enforceTips bool) map[common.Address]types.Transactions {
+	// "txList.Flatten" mutates the list thus we need write lock
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -626,6 +628,7 @@ func (pool *TxPool) PendingSize() int {
 // PendingFrom returns the same set of transactions that would be returned from Pending restricted to only
 // transactions from [addrs].
 func (pool *TxPool) PendingFrom(addrs []common.Address, enforceTips bool) map[common.Address]types.Transactions {
+	// "txList.Flatten" mutates the list thus we need write lock
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
