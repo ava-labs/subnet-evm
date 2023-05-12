@@ -28,11 +28,6 @@ ACK_GINKGO_RC=true ginkgo build ./tests/precompile ./tests/load
   --ginkgo.vv \
   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
 
-kurtosis enclave ls
-docker ps
-lsof -i:9650 || echo "this didn't work"
-nc -v -n 127.0.0.1 9650
-
 ./tests/load/load.test \
   --ginkgo.vv \
   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
