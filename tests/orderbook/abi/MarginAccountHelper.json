@@ -1,56 +1,56 @@
 [
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_marginAccount",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "_vusd",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "_wavax",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_marginAccount",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_vusd",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_wavax",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
     },
     {
-      "inputs": [],
-      "name": "addMarginWithAvax",
-      "outputs": [],
-      "stateMutability": "payable",
-      "type": "function"
+        "inputs": [],
+        "name": "addMarginWithAvax",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "addVUSDMarginWithReserve",
-      "outputs": [],
-      "stateMutability": "payable",
-      "type": "function"
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "addVUSDMarginWithReserve",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
     },
     {
-      "inputs": [],
-      "name": "wavax",
-      "outputs": [
-        {
-          "internalType": "contract IWAVAX",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
+        "inputs": [],
+        "name": "wavax",
+        "outputs": [
+            {
+                "internalType": "contract IWAVAX",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
     }
-  ]
+]

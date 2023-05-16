@@ -170,16 +170,15 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, order1Id, event.BlockNumber)
 		}
 	case cep.orderBookABI.Events["LiquidationOrderMatched"].ID:
-		log.Info("LiquidationOrderMatched event")
 		err := cep.orderBookABI.UnpackIntoMap(args, "LiquidationOrderMatched", event.Data)
 		if err != nil {
 			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "LiquidationOrderMatched", "err", err)
 			return
 		}
-		log.Info("HandleOrderBookEvent", "LiquidationOrderMatched args", args)
 		fillAmount := args["fillAmount"].(*big.Int)
 
 		orderId := event.Topics[2]
+		log.Info("HandleOrderBookEvent", "LiquidationOrderMatched args", args, "orderId", orderId.String())
 		// @todo update liquidable position info
 		if !removed {
 			cep.database.UpdateFilledBaseAssetQuantity(fillAmount, orderId, event.BlockNumber)
@@ -310,12 +309,13 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		size := args["size"].(*big.Int)
 		cep.database.UpdatePosition(getAddressFromTopicHash(event.Topics[1]), market, size, openNotional, false)
 	case cep.clearingHouseABI.Events["PositionLiquidated"].ID:
-		log.Info("PositionLiquidated event")
 		err := cep.clearingHouseABI.UnpackIntoMap(args, "PositionLiquidated", event.Data)
 		if err != nil {
 			log.Error("error in clearingHouseABI.UnpackIntoMap", "method", "PositionLiquidated", "err", err)
 			return
 		}
+		trader := getAddressFromTopicHash(event.Topics[1])
+		log.Info("PositionLiquidated event", "args", args, "trader", trader)
 
 		market := Market(int(event.Topics[2].Big().Int64()))
 		lastPrice := args["price"].(*big.Int)
@@ -323,7 +323,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 
 		openNotional := args["openNotional"].(*big.Int)
 		size := args["size"].(*big.Int)
-		cep.database.UpdatePosition(getAddressFromTopicHash(event.Topics[1]), market, size, openNotional, true)
+		cep.database.UpdatePosition(trader, market, size, openNotional, true)
 	}
 }
 

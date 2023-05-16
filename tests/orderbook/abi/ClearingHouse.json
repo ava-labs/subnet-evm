@@ -1,16 +1,5 @@
 [
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "_trustedForwarder",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
-    },
-    {
         "anonymous": false,
         "inputs": [
             {
@@ -146,7 +135,7 @@
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "quoteAsset",
+                "name": "price",
                 "type": "uint256"
             },
             {
@@ -166,6 +155,12 @@
                 "internalType": "uint256",
                 "name": "openNotional",
                 "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "int256",
+                "name": "fee",
+                "type": "int256"
             },
             {
                 "indexed": false,
@@ -201,7 +196,7 @@
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "quoteAsset",
+                "name": "price",
                 "type": "uint256"
             },
             {
@@ -221,6 +216,12 @@
                 "internalType": "uint256",
                 "name": "openNotional",
                 "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "int256",
+                "name": "fee",
+                "type": "int256"
             },
             {
                 "indexed": false,
@@ -383,25 +384,6 @@
                 "internalType": "address",
                 "name": "trader",
                 "type": "address"
-            }
-        ],
-        "name": "getMarginFraction",
-        "outputs": [
-            {
-                "internalType": "int256",
-                "name": "",
-                "type": "int256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "trader",
-                "type": "address"
             },
             {
                 "internalType": "bool",
@@ -425,6 +407,30 @@
                 "internalType": "int256",
                 "name": "margin",
                 "type": "int256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "int256",
+                "name": "baseAssetQuantity",
+                "type": "int256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "price",
+                "type": "uint256"
+            }
+        ],
+        "name": "getRequiredMargin",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "requiredMargin",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
@@ -478,6 +484,19 @@
                 "internalType": "int256",
                 "name": "unrealizedPnl",
                 "type": "int256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getUnderlyingPrice",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "prices",
+                "type": "uint256[]"
             }
         ],
         "stateMutability": "view",
@@ -569,25 +588,6 @@
     {
         "inputs": [
             {
-                "internalType": "address",
-                "name": "forwarder",
-                "type": "address"
-            }
-        ],
-        "name": "isTrustedForwarder",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
                 "components": [
                     {
                         "internalType": "uint256",
@@ -613,6 +613,11 @@
                         "internalType": "uint256",
                         "name": "salt",
                         "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "reduceOnly",
+                        "type": "bool"
                     }
                 ],
                 "internalType": "struct IOrderBook.Order",
@@ -632,9 +637,9 @@
                         "type": "uint256"
                     },
                     {
-                        "internalType": "bool",
-                        "name": "isMakerOrder",
-                        "type": "bool"
+                        "internalType": "enum IOrderBook.OrderExecutionMode",
+                        "name": "mode",
+                        "type": "uint8"
                     }
                 ],
                 "internalType": "struct IOrderBook.MatchInfo",
@@ -721,9 +726,9 @@
         "name": "makerFee",
         "outputs": [
             {
-                "internalType": "uint256",
+                "internalType": "int256",
                 "name": "",
-                "type": "uint256"
+                "type": "int256"
             }
         ],
         "stateMutability": "view",
@@ -783,6 +788,11 @@
                         "internalType": "uint256",
                         "name": "salt",
                         "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "reduceOnly",
+                        "type": "bool"
                     }
                 ],
                 "internalType": "struct IOrderBook.Order[2]",
@@ -802,9 +812,9 @@
                         "type": "uint256"
                     },
                     {
-                        "internalType": "bool",
-                        "name": "isMakerOrder",
-                        "type": "bool"
+                        "internalType": "enum IOrderBook.OrderExecutionMode",
+                        "name": "mode",
+                        "type": "uint8"
                     }
                 ],
                 "internalType": "struct IOrderBook.MatchInfo[2]",
@@ -855,6 +865,11 @@
                         "internalType": "uint256",
                         "name": "salt",
                         "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "reduceOnly",
+                        "type": "bool"
                     }
                 ],
                 "internalType": "struct IOrderBook.Order",
@@ -872,9 +887,9 @@
                 "type": "uint256"
             },
             {
-                "internalType": "bool",
-                "name": "isMakerOrder",
-                "type": "bool"
+                "internalType": "enum IOrderBook.OrderExecutionMode",
+                "name": "mode",
+                "type": "uint8"
             }
         ],
         "name": "openPosition",
@@ -954,14 +969,14 @@
                 "type": "int256"
             },
             {
-                "internalType": "uint256",
+                "internalType": "int256",
                 "name": "_takerFee",
-                "type": "uint256"
+                "type": "int256"
             },
             {
-                "internalType": "uint256",
+                "internalType": "int256",
                 "name": "_makerFee",
-                "type": "uint256"
+                "type": "int256"
             },
             {
                 "internalType": "uint256",
@@ -996,9 +1011,9 @@
         "name": "takerFee",
         "outputs": [
             {
-                "internalType": "uint256",
+                "internalType": "int256",
                 "name": "",
-                "type": "uint256"
+                "type": "int256"
             }
         ],
         "stateMutability": "view",

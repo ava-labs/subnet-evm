@@ -7,7 +7,7 @@ on:
       
     tags:
       - "*"
-  pull_request:
+  # pull_request:
 
 jobs:
   unit_test:

@@ -3,4 +3,4 @@
 set -e
 
 source ./scripts/utils.sh
-showLogs "$1"
+showLogs "$1" "$2"
