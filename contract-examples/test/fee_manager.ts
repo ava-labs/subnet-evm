@@ -29,29 +29,29 @@ describe("ExampleFeeManager", function () {
       .then(tx => tx.wait())
   })
 
-  test("should add contract deployer as owner", "test_addContractDeployerAsOwner")
+  test("should add contract deployer as owner", "step_addContractDeployerAsOwner")
 
-  test("contract should not be able to change fee without enabled", "test_enableWAGMIFeesFailure")
+  test("contract should not be able to change fee without enabled", "step_enableWAGMIFeesFailure")
 
-  test("contract should be added to manager list", "test_addContractToManagerList")
+  test("contract should be added to manager list", "step_addContractToManagerList")
 
-  test("admin should be able to enable change fees", "test_changeFees")
+  test("admin should be able to enable change fees", "step_changeFees")
 
-  test("should confirm min-fee transaction", "test_minFeeTransaction", {
+  test("should confirm min-fee transaction", "step_minFeeTransaction", {
     maxFeePerGas: GENESIS_CONFIG.config.feeConfig.minBaseFee,
     maxPriorityFeePerGas: 0,
   })
 
   test("should reject a transaction below the minimum", [
-    "test_raiseMinFeeByOne",
+    "step_raiseMinFeeByOne",
     {
-      method: "test_minFeeTransaction",
+      method: "step_minFeeTransaction",
       shouldFail: true,
       overrides: {
         maxFeePerGas: GENESIS_CONFIG.config.feeConfig.minBaseFee,
         maxPriorityFeePerGas: 0,
       },
     },
-    "test_lowerMinFeeByOne",
+    "step_lowerMinFeeByOne",
   ])
 })

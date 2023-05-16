@@ -20,19 +20,19 @@ contract ExampleDeployerListTest is AllowListTest {
     allowList.setNone(OTHER_ADDRESS);
   }
 
-  function test_verifySenderIsAdmin() public {
+  function step_verifySenderIsAdmin() public {
     IAllowList allowList = IAllowList(DEPLOYER_LIST);
     assertRole(allowList.readAllowList(msg.sender), AllowList.Role.Admin);
   }
 
-  function test_newAddressHasNoRole() public {
+  function step_newAddressHasNoRole() public {
     address exampleAddress = address(example);
     IAllowList allowList = IAllowList(DEPLOYER_LIST);
 
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
   }
 
-  function test_noRoleIsNotAdmin() public {
+  function step_noRoleIsNotAdmin() public {
     address exampleAddress = address(example);
 
     IAllowList allowList = IAllowList(DEPLOYER_LIST);
@@ -41,7 +41,7 @@ contract ExampleDeployerListTest is AllowListTest {
     assertTrue(!example.isAdmin(exampleAddress));
   }
 
-  function test_ownerIsAdmin() public {
+  function step_ownerIsAdmin() public {
     address exampleAddress = address(example);
 
     IAllowList allowList = IAllowList(DEPLOYER_LIST);
@@ -50,7 +50,7 @@ contract ExampleDeployerListTest is AllowListTest {
     assertTrue(example.isAdmin(address(this)));
   }
 
-  function test_noRoleCannotDeploy() public {
+  function step_noRoleCannotDeploy() public {
     IAllowList allowList = IAllowList(DEPLOYER_LIST);
 
     assertRole(allowList.readAllowList(tx.origin), AllowList.Role.None);
@@ -60,7 +60,7 @@ contract ExampleDeployerListTest is AllowListTest {
     } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
   }
 
-  function test_adminAddContractAsAdmin() public {
+  function step_adminAddContractAsAdmin() public {
     address exampleAddress = address(example);
 
     IAllowList allowList = IAllowList(DEPLOYER_LIST);
@@ -74,7 +74,7 @@ contract ExampleDeployerListTest is AllowListTest {
     assertTrue(example.isAdmin(exampleAddress));
   }
 
-  function test_addDeployerThroughContract() public {
+  function step_addDeployerThroughContract() public {
     ExampleDeployerList other = new ExampleDeployerList();
     address exampleAddress = address(example);
     address otherAddress = address(other);
@@ -92,7 +92,7 @@ contract ExampleDeployerListTest is AllowListTest {
     assertTrue(example.isEnabled(otherAddress));
   }
 
-  function test_deployerCanDeploy() public {
+  function step_deployerCanDeploy() public {
     ExampleDeployerList deployer = new ExampleDeployerList();
     address exampleAddress = address(example);
     address deployerAddress = address(deployer);
@@ -112,7 +112,7 @@ contract ExampleDeployerListTest is AllowListTest {
     deployer.deployContract();
   }
 
-  function test_adminCanRevokeDeployer() public {
+  function step_adminCanRevokeDeployer() public {
     ExampleDeployerList deployer = new ExampleDeployerList();
     address exampleAddress = address(example);
     address deployerAddress = address(deployer);

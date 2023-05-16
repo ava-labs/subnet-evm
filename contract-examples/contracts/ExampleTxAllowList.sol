@@ -27,44 +27,44 @@ contract ExampleTxAllowListTest is AllowListTest {
     allowList.setNone(OTHER_ADDRESS);
   }
 
-  function test_contractOwnerIsAdmin() public {
+  function step_contractOwnerIsAdmin() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     assertTrue(example.isAdmin(address(this)));
   }
 
-  function test_precompileHasDeployerAsAdmin() public {
+  function step_precompileHasDeployerAsAdmin() public {
     IAllowList allowList = IAllowList(TX_ALLOW_LIST);
     assertRole(allowList.readAllowList(msg.sender), AllowList.Role.Admin);
   }
 
-  function test_newAddressHasNoRole() public {
+  function step_newAddressHasNoRole() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     IAllowList allowList = IAllowList(TX_ALLOW_LIST);
     assertRole(allowList.readAllowList(address(example)), AllowList.Role.None);
   }
 
-  function test_noRoleIsNotAdmin() public {
+  function step_noRoleIsNotAdmin() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     ExampleTxAllowList other = new ExampleTxAllowList();
     assertTrue(!example.isAdmin(address(other)));
   }
 
-  function test_exmapleAllowListReturnsTestIsAdmin() public {
+  function step_exmapleAllowListReturnsTestIsAdmin() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     assertTrue(example.isAdmin(address(this)));
   }
 
-  function test_fromOther() public {
+  function step_fromOther() public {
     // used as a noop to test transaction-success or failure, depending on wether the signer has been added to the tx-allow-list
   }
 
-  function test_enableOther() public {
+  function step_enableOther() public {
     IAllowList allowList = IAllowList(TX_ALLOW_LIST);
     assertRole(allowList.readAllowList(OTHER_ADDRESS), AllowList.Role.None);
     allowList.setEnabled(OTHER_ADDRESS);
   }
 
-  function test_noRoleCannotEnableItself() public {
+  function step_noRoleCannotEnableItself() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     IAllowList allowList = IAllowList(TX_ALLOW_LIST);
 
@@ -75,7 +75,7 @@ contract ExampleTxAllowListTest is AllowListTest {
     } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
   }
 
-  function test_addContractAsAdmin() public {
+  function step_addContractAsAdmin() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     address exampleAddress = address(example);
 
@@ -90,7 +90,7 @@ contract ExampleTxAllowListTest is AllowListTest {
     assertTrue(example.isAdmin(exampleAddress));
   }
 
-  function test_enableThroughContract() public {
+  function step_enableThroughContract() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     ExampleTxAllowList other = new ExampleTxAllowList();
     address exampleAddress = address(example);
@@ -112,7 +112,7 @@ contract ExampleTxAllowListTest is AllowListTest {
     assertTrue(example.isEnabled(otherAddress));
   }
 
-  function test_canDeploy() public {
+  function step_canDeploy() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     address exampleAddress = address(example);
 
@@ -123,7 +123,7 @@ contract ExampleTxAllowListTest is AllowListTest {
     example.deployContract();
   }
 
-  function test_onlyAdminCanEnable() public {
+  function step_onlyAdminCanEnable() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     ExampleTxAllowList other = new ExampleTxAllowList();
     address exampleAddress = address(example);
@@ -147,7 +147,7 @@ contract ExampleTxAllowListTest is AllowListTest {
     assertTrue(!example.isEnabled(otherAddress));
   }
 
-  function test_onlyAdminCanRevoke() public {
+  function step_onlyAdminCanRevoke() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     ExampleTxAllowList other = new ExampleTxAllowList();
     address exampleAddress = address(example);
@@ -172,7 +172,7 @@ contract ExampleTxAllowListTest is AllowListTest {
     assertTrue(example.isAdmin(otherAddress));
   }
 
-  function test_adminCanRevoke() public {
+  function step_adminCanRevoke() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     ExampleTxAllowList other = new ExampleTxAllowList();
     address exampleAddress = address(example);

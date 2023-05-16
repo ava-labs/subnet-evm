@@ -27,21 +27,21 @@ describe("ExampleRewardManager", function () {
       .then(tx => tx.wait())
   })
 
-  test("should send fees to blackhole", ["test_captureBlackholeBalance", "test_checkSendFeesToBlackhole"])
+  test("should send fees to blackhole", ["step_captureBlackholeBalance", "step_checkSendFeesToBlackhole"])
 
-  test("should not appoint reward address before enabled", "test_doesNotSetRewardAddressBeforeEnabled")
+  test("should not appoint reward address before enabled", "step_doesNotSetRewardAddressBeforeEnabled")
 
-  test("contract should be added to enabled list", "test_setEnabled")
+  test("contract should be added to enabled list", "step_setEnabled")
 
-  test("should be appointed as reward address", "test_setRewardAddress")
+  test("should be appointed as reward address", "step_setRewardAddress")
 
   // we need to change the fee receiver, send a transaction for the new receiver to receive fees, then check the balance change. 
   // the new fee receiver won't receive fees in the same block where it was set.
-  test("should be able to receive fees", ["test_setupReceiveFees", "test_receiveFees", "test_checkReceiveFees"])
+  test("should be able to receive fees", ["step_setupReceiveFees", "step_receiveFees", "step_checkReceiveFees"])
 
-  test("should return false for allowFeeRecipients check", "test_areFeeRecipientsAllowed")
+  test("should return false for allowFeeRecipients check", "step_areFeeRecipientsAllowed")
 
-  test("should enable allowFeeRecipients", "test_allowFeeRecipients")
+  test("should enable allowFeeRecipients", "step_allowFeeRecipients")
 
-  test("should disable reward address", "test_disableRewardAddress")
+  test("should disable reward address", "step_disableRewardAddress")
 });

@@ -30,7 +30,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     // noop
   }
 
-  function test_mintdrawFailure() public {
+  function step_mintdrawFailure() public {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
 
@@ -43,7 +43,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
   }
 
-  function test_addMinter() public {
+  function step_addMinter() public {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
 
@@ -56,7 +56,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     assertRole(nativeMinter.readAllowList(tokenAddress), AllowList.Role.Enabled);
   }
 
-  function test_adminMintdraw() public {
+  function step_adminMintdraw() public {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
 
@@ -76,7 +76,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     assertEq(testAddress.balance, initialNativeBalance + amount);
   }
 
-  function test_minterMintdrawFailure() public {
+  function step_minterMintdrawFailure() public {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
 
@@ -99,7 +99,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     assertEq(minterAddress.balance, initialNativeBalance);
   }
 
-  function test_minterDeposit() public {
+  function step_minterDeposit() public {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
 
@@ -122,7 +122,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     assertEq(minterAddress.balance, initialNativeBalance - amount);
   }
 
-  function test_mintdraw() public {
+  function step_mintdraw() public {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
 

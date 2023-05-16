@@ -111,12 +111,12 @@ contract ExampleFeeManagerTest is AllowListTest {
     // noop
   }
 
-  function test_addContractDeployerAsOwner() public {
+  function step_addContractDeployerAsOwner() public {
     ExampleFeeManager manager = new ExampleFeeManager();
     assertEq(address(this), manager.owner());
   }
 
-  function test_enableWAGMIFeesFailure() public {
+  function step_enableWAGMIFeesFailure() public {
     ExampleFeeManager example = new ExampleFeeManager();
 
     IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
@@ -128,7 +128,7 @@ contract ExampleFeeManagerTest is AllowListTest {
     } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
   }
 
-  function test_addContractToManagerList() public {
+  function step_addContractToManagerList() public {
     ExampleFeeManager example = new ExampleFeeManager();
 
     address exampleAddress = address(example);
@@ -144,7 +144,7 @@ contract ExampleFeeManagerTest is AllowListTest {
     assertRole(manager.readAllowList(exampleAddress), AllowList.Role.Enabled);
   }
 
-  function test_changeFees() public {
+  function step_changeFees() public {
     ExampleFeeManager example = new ExampleFeeManager();
     address exampleAddress = address(example);
 
@@ -197,11 +197,11 @@ contract ExampleFeeManagerTest is AllowListTest {
     example.enableCustomFees(config);
   }
 
-  function test_minFeeTransaction() public {
+  function step_minFeeTransaction() public {
     // used as a noop for testing min-fees associated with a transaction
   }
 
-  function test_raiseMinFeeByOne() public {
+  function step_raiseMinFeeByOne() public {
     ExampleFeeManager example = new ExampleFeeManager();
     address exampleAddress = address(example);
 
@@ -215,7 +215,7 @@ contract ExampleFeeManagerTest is AllowListTest {
     example.enableCustomFees(config);
   }
 
-  function test_lowerMinFeeByOne() public {
+  function step_lowerMinFeeByOne() public {
     ExampleFeeManager example = new ExampleFeeManager();
     address exampleAddress = address(example);
 

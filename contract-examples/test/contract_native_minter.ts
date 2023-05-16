@@ -24,15 +24,15 @@ describe("ERC20NativeMinter", function () {
       .then(tx => tx.wait())
   })
 
-  test("contract should not be able to mintdraw", "test_mintdrawFailure")
+  test("contract should not be able to mintdraw", "step_mintdrawFailure")
 
-  test("should be added to minter list", "test_addMinter")
+  test("should be added to minter list", "step_addMinter")
 
-  test("admin should mintdraw", "test_adminMintdraw")
+  test("admin should mintdraw", "step_adminMintdraw")
 
-  test("minter should not mintdraw ", "test_minterMintdrawFailure")
+  test("minter should not mintdraw ", "step_minterMintdrawFailure")
   
-  test("should deposit for minter", "test_minterDeposit")
+  test("should deposit for minter", "step_minterDeposit")
 
-  test("minter should mintdraw", "test_mintdraw")
+  test("minter should mintdraw", "step_mintdraw")
 })

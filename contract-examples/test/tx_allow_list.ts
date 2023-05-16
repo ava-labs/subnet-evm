@@ -27,45 +27,45 @@ describe("ExampleTxAllowList", function () {
       .then(tx => tx.wait())
   })
 
-  test("should add contract deployer as admin", "test_contractOwnerIsAdmin")
+  test("should add contract deployer as admin", "step_contractOwnerIsAdmin")
 
-  test("precompile should see admin address has admin role", "test_precompileHasDeployerAsAdmin")
+  test("precompile should see admin address has admin role", "step_precompileHasDeployerAsAdmin")
 
-  test("precompile should see test address has no role", "test_newAddressHasNoRole")
+  test("precompile should see test address has no role", "step_newAddressHasNoRole")
 
-  test("contract should report test address has on admin role", "test_noRoleIsNotAdmin")
+  test("contract should report test address has on admin role", "step_noRoleIsNotAdmin")
 
-  test("contract should report admin address has admin role", "test_exmapleAllowListReturnsTestIsAdmin")
+  test("contract should report admin address has admin role", "step_exmapleAllowListReturnsTestIsAdmin")
 
   test("should not let test address submit txs", [
     {
-      method: "test_fromOther",
+      method: "step_fromOther",
       overrides: { from: OTHER_SIGNER },
       shouldFail: true,
     },
     {
-      method: "test_enableOther",
+      method: "step_enableOther",
       overrides: { from: ADMIN_ADDRESS },
       shouldFail: false,
     },
     {
-      method: "test_fromOther",
+      method: "step_fromOther",
       overrides: { from: OTHER_SIGNER },
       shouldFail: false,
     },
   ]);
 
-  test("should not allow noRole to enable itself", "test_noRoleCannotEnableItself")
+  test("should not allow noRole to enable itself", "step_noRoleCannotEnableItself")
 
-  test("should allow admin to add contract as admin", "test_addContractAsAdmin")
+  test("should allow admin to add contract as admin", "step_addContractAsAdmin")
 
-  test("should allow admin to add allowed address as allowed through contract", "test_enableThroughContract")
+  test("should allow admin to add allowed address as allowed through contract", "step_enableThroughContract")
 
-  test("should let allowed address deploy", "test_canDeploy")
+  test("should let allowed address deploy", "step_canDeploy")
 
-  test("should not let allowed add another allowed", "test_onlyAdminCanEnable")
+  test("should not let allowed add another allowed", "step_onlyAdminCanEnable")
 
-  test("should not let allowed to revoke admin", "test_onlyAdminCanRevoke") 
+  test("should not let allowed to revoke admin", "step_onlyAdminCanRevoke")
 
-  test("should let admin to revoke allowed", "test_adminCanRevoke")
+  test("should let admin to revoke allowed", "step_adminCanRevoke")
 })

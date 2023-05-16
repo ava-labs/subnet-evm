@@ -44,15 +44,15 @@ contract ExampleRewardManagerTest is AllowListTest {
     blackholeBalance = BLACKHOLE_ADDRESS.balance;
   }
 
-  function test_captureBlackholeBalance() public {
+  function step_captureBlackholeBalance() public {
     blackholeBalance = BLACKHOLE_ADDRESS.balance;
   }
 
-  function test_checkSendFeesToBlackhole() public {
+  function step_checkSendFeesToBlackhole() public {
     assertGt(BLACKHOLE_ADDRESS.balance, blackholeBalance);
   }
 
-  function test_doesNotSetRewardAddressBeforeEnabled() public {
+  function step_doesNotSetRewardAddressBeforeEnabled() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
     IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
@@ -64,7 +64,7 @@ contract ExampleRewardManagerTest is AllowListTest {
     } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
   }
 
-  function test_setEnabled() public {
+  function step_setEnabled() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
     IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
@@ -74,7 +74,7 @@ contract ExampleRewardManagerTest is AllowListTest {
     assertRole(rewardManager.readAllowList(exampleAddress), AllowList.Role.Enabled);
   }
 
-  function test_setRewardAddress() public {
+  function step_setRewardAddress() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
     IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
@@ -85,7 +85,7 @@ contract ExampleRewardManagerTest is AllowListTest {
     assertEq(example.currentRewardAddress(), exampleAddress);
   }
 
-  function test_setupReceiveFees() public {
+  function step_setupReceiveFees() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
 
@@ -98,20 +98,20 @@ contract ExampleRewardManagerTest is AllowListTest {
     exampleBalance = exampleAddress.balance;
   }
 
-  function test_receiveFees() public {
+  function step_receiveFees() public {
     // used as a noop to test if the correct address receives fees
   }
 
-  function test_checkReceiveFees() public {
+  function step_checkReceiveFees() public {
     assertGt(address(exampleReceiveFees).balance, exampleBalance);
   }
 
-  function test_areFeeRecipientsAllowed() public {
+  function step_areFeeRecipientsAllowed() public {
     ExampleRewardManager example = new ExampleRewardManager();
     assertTrue(!example.areFeeRecipientsAllowed());
   }
 
-  function test_allowFeeRecipients() public {
+  function step_allowFeeRecipients() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
 
@@ -122,7 +122,7 @@ contract ExampleRewardManagerTest is AllowListTest {
     assertTrue(example.areFeeRecipientsAllowed());
   }
 
-  function test_disableRewardAddress() public {
+  function step_disableRewardAddress() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
 

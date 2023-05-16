@@ -26,25 +26,25 @@ describe("ExampleDeployerList", function () {
       .then(tx => tx.wait())
   })
 
-  test("precompile should see owner address has admin role", "test_verifySenderIsAdmin")
+  test("precompile should see owner address has admin role", "step_verifySenderIsAdmin")
 
-  test("precompile should see test address has no role", "test_newAddressHasNoRole")
+  test("precompile should see test address has no role", "step_newAddressHasNoRole")
 
-  test("contract should report test address has no admin role", "test_noRoleIsNotAdmin")
+  test("contract should report test address has no admin role", "step_noRoleIsNotAdmin")
 
-  test("contract should report owner address has admin role", "test_ownerIsAdmin")
+  test("contract should report owner address has admin role", "step_ownerIsAdmin")
 
   test("should not let test address deploy", {
-    method: "test_noRoleCannotDeploy",
+    method: "step_noRoleCannotDeploy",
     overrides: { from: OTHER_SIGNER },
     shouldFail: false,
   })
 
-  test("should allow admin to add contract as admin", "test_adminAddContractAsAdmin")
+  test("should allow admin to add contract as admin", "step_adminAddContractAsAdmin")
 
-  test("should allow admin to add deployer address as deployer through contract", "test_addDeployerThroughContract")
+  test("should allow admin to add deployer address as deployer through contract", "step_addDeployerThroughContract")
 
-  test("should let deployer address to deploy", "test_deployerCanDeploy")
+  test("should let deployer address to deploy", "step_deployerCanDeploy")
 
-  test("should let admin revoke deployer", "test_adminCanRevokeDeployer")
+  test("should let admin revoke deployer", "step_adminCanRevokeDeployer")
 })
