@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./AllowList.sol";
 import "./IAllowList.sol";
-import "./AllowListTest.sol";
+import "./test/AllowList.sol";
 
 // Precompiled Allow List Contract Address
 address constant TX_ALLOW_LIST = 0x0200000000000000000000000000000000000002;

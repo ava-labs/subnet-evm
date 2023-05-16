@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./AllowList.sol";
 import "./INativeMinter.sol";
-import "./AllowListTest.sol";
+import "./test/AllowList.sol";
 
 address constant MINTER_ADDRESS = 0x0200000000000000000000000000000000000001;
 address constant BLACKHOLE_ADDRESS = 0x0100000000000000000000000000000000000000;

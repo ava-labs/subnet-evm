@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./AllowListTest.sol";
+import "./test/AllowList.sol";
 import "./AllowList.sol";
 import "./IFeeManager.sol";
 

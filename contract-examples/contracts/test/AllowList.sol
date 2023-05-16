@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./AllowList.sol";
+import "../AllowList.sol";
 import "ds-test/src/test.sol";
 
 contract AllowListTest is DSTest {

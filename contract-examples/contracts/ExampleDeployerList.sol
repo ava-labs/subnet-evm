@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IAllowList.sol";
 import "./AllowList.sol";
-import "./AllowListTest.sol";
+import "./test/AllowList.sol";
 
 address constant DEPLOYER_LIST = 0x0200000000000000000000000000000000000000;
 address constant OTHER_ADDRESS = 0x0Fa8EA536Be85F32724D57A37758761B86416123;
