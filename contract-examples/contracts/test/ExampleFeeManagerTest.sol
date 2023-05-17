@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 
 import "../ExampleFeeManager.sol";
-import "./AllowList.sol";
+import "./AllowListTest.sol";
 import "../AllowList.sol";
 import "../IFeeManager.sol";
 

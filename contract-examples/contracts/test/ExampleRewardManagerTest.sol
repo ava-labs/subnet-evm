@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../ExampleRewardManager.sol";
 import "../IRewardManager.sol";
-import "./AllowList.sol";
+import "./AllowListTest.sol";
 
 contract ExampleRewardManagerTest is AllowListTest {
   uint blackholeBalance;

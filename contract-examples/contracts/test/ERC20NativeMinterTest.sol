@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "../ERC20NativeMinter.sol";
 import "../INativeMinter.sol";
-import "./AllowList.sol";
+import "./AllowListTest.sol";
 
 // TODO:
 // this contract adds another (unwanted) layer of indirection
