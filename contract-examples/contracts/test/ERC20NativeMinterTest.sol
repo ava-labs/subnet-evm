@@ -26,6 +26,8 @@ contract Minter {
 }
 
 contract ERC20NativeMinterTest is AllowListTest {
+  INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
+
   function setUp() public {
     // noop
   }
@@ -33,8 +35,6 @@ contract ERC20NativeMinterTest is AllowListTest {
   function step_mintdrawFailure() public {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
-
-    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
 
     assertRole(nativeMinter.readAllowList(tokenAddress), AllowList.Role.None);
 
@@ -47,7 +47,6 @@ contract ERC20NativeMinterTest is AllowListTest {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
 
-    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
 
     assertRole(nativeMinter.readAllowList(tokenAddress), AllowList.Role.None);
 
@@ -62,7 +61,6 @@ contract ERC20NativeMinterTest is AllowListTest {
 
     address testAddress = address(this);
 
-    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
     nativeMinter.setEnabled(tokenAddress);
 
     uint initialTokenBalance = token.balanceOf(testAddress);
@@ -83,7 +81,6 @@ contract ERC20NativeMinterTest is AllowListTest {
     Minter minter = new Minter(tokenAddress);
     address minterAddress = address(minter);
 
-    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
     nativeMinter.setEnabled(tokenAddress);
 
     uint initialTokenBalance = token.balanceOf(minterAddress);
@@ -106,7 +103,6 @@ contract ERC20NativeMinterTest is AllowListTest {
     Minter minter = new Minter(tokenAddress);
     address minterAddress = address(minter);
 
-    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
     nativeMinter.setEnabled(tokenAddress);
 
     uint amount = 100;
@@ -129,7 +125,6 @@ contract ERC20NativeMinterTest is AllowListTest {
     Minter minter = new Minter(tokenAddress);
     address minterAddress = address(minter);
 
-    INativeMinter nativeMinter = INativeMinter(MINTER_ADDRESS);
     nativeMinter.setEnabled(tokenAddress);
 
     uint amount = 100;
