@@ -12,30 +12,26 @@ import "./AllowListTest.sol";
 // The transactions are put together as steps of a complete test in contract_deployer_allow_list.ts.
 // TODO: a bunch of these tests have repeated code that should be combined
 contract ExampleDeployerListTest is AllowListTest {
+  IAllowList allowList = IAllowList(DEPLOYER_LIST);
   ExampleDeployerList private example;
 
   function setUp() public {
     example = new ExampleDeployerList();
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
     allowList.setNone(OTHER_ADDRESS);
   }
 
   function step_verifySenderIsAdmin() public {
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
     assertRole(allowList.readAllowList(msg.sender), AllowList.Role.Admin);
   }
 
   function step_newAddressHasNoRole() public {
     address exampleAddress = address(example);
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
 
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
   }
 
   function step_noRoleIsNotAdmin() public {
     address exampleAddress = address(example);
-
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
 
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
     assertTrue(!example.isAdmin(exampleAddress));
@@ -44,15 +40,11 @@ contract ExampleDeployerListTest is AllowListTest {
   function step_ownerIsAdmin() public {
     address exampleAddress = address(example);
 
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
-
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
     assertTrue(example.isAdmin(address(this)));
   }
 
   function step_noRoleCannotDeploy() public {
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
-
     assertRole(allowList.readAllowList(tx.origin), AllowList.Role.None);
 
     try example.deployContract() {
@@ -62,8 +54,6 @@ contract ExampleDeployerListTest is AllowListTest {
 
   function step_adminAddContractAsAdmin() public {
     address exampleAddress = address(example);
-
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
 
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
 
@@ -78,8 +68,6 @@ contract ExampleDeployerListTest is AllowListTest {
     ExampleDeployerList other = new ExampleDeployerList();
     address exampleAddress = address(example);
     address otherAddress = address(other);
-
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
 
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
 
@@ -96,8 +84,6 @@ contract ExampleDeployerListTest is AllowListTest {
     ExampleDeployerList deployer = new ExampleDeployerList();
     address exampleAddress = address(example);
     address deployerAddress = address(deployer);
-
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
 
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
 
@@ -116,8 +102,6 @@ contract ExampleDeployerListTest is AllowListTest {
     ExampleDeployerList deployer = new ExampleDeployerList();
     address exampleAddress = address(example);
     address deployerAddress = address(deployer);
-
-    IAllowList allowList = IAllowList(DEPLOYER_LIST);
 
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
 

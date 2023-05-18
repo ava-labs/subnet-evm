@@ -6,9 +6,12 @@ import "../IRewardManager.sol";
 import "./AllowListTest.sol";
 
 contract ExampleRewardManagerTest is AllowListTest {
-  uint blackholeBalance;
+  IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
+
   ExampleRewardManager exampleReceiveFees;
   uint exampleBalance;
+
+  uint blackholeBalance;
 
   function setUp() public {
     blackholeBalance = BLACKHOLE_ADDRESS.balance;
@@ -25,7 +28,6 @@ contract ExampleRewardManagerTest is AllowListTest {
   function step_doesNotSetRewardAddressBeforeEnabled() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
-    IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
 
     assertRole(rewardManager.readAllowList(exampleAddress), AllowList.Role.None);
 
@@ -37,7 +39,6 @@ contract ExampleRewardManagerTest is AllowListTest {
   function step_setEnabled() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
-    IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
 
     assertRole(rewardManager.readAllowList(exampleAddress), AllowList.Role.None);
     rewardManager.setEnabled(exampleAddress);
@@ -47,7 +48,6 @@ contract ExampleRewardManagerTest is AllowListTest {
   function step_setRewardAddress() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
-    IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
 
     rewardManager.setEnabled(exampleAddress);
     example.setRewardAddress(exampleAddress);
@@ -58,8 +58,6 @@ contract ExampleRewardManagerTest is AllowListTest {
   function step_setupReceiveFees() public {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
-
-    IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
 
     rewardManager.setEnabled(exampleAddress);
     example.setRewardAddress(exampleAddress);
@@ -85,7 +83,6 @@ contract ExampleRewardManagerTest is AllowListTest {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
 
-    IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
     rewardManager.setEnabled(exampleAddress);
 
     example.allowFeeRecipients();
@@ -96,7 +93,6 @@ contract ExampleRewardManagerTest is AllowListTest {
     ExampleRewardManager example = new ExampleRewardManager();
     address exampleAddress = address(example);
 
-    IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
     rewardManager.setEnabled(exampleAddress);
 
     example.setRewardAddress(exampleAddress);

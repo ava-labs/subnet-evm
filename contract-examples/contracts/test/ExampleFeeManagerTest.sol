@@ -2,13 +2,14 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-
 import "../ExampleFeeManager.sol";
 import "./AllowListTest.sol";
 import "../AllowList.sol";
 import "../IFeeManager.sol";
 
 contract ExampleFeeManagerTest is AllowListTest {
+  IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
+
   uint256 testNumber;
 
   function setUp() public {
@@ -16,14 +17,12 @@ contract ExampleFeeManagerTest is AllowListTest {
   }
 
   function step_addContractDeployerAsOwner() public {
-    ExampleFeeManager manager = new ExampleFeeManager();
-    assertEq(address(this), manager.owner());
+    ExampleFeeManager example = new ExampleFeeManager();
+    assertEq(address(this), example.owner());
   }
 
   function step_enableWAGMIFeesFailure() public {
     ExampleFeeManager example = new ExampleFeeManager();
-
-    IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
 
     assertRole(manager.readAllowList(address(this)), AllowList.Role.Admin);
 
@@ -38,8 +37,6 @@ contract ExampleFeeManagerTest is AllowListTest {
     address exampleAddress = address(example);
     address thisAddress = address(this);
 
-    IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
-
     assertRole(manager.readAllowList(thisAddress), AllowList.Role.Admin);
     assertRole(manager.readAllowList(exampleAddress), AllowList.Role.None);
 
@@ -51,8 +48,6 @@ contract ExampleFeeManagerTest is AllowListTest {
   function step_changeFees() public {
     ExampleFeeManager example = new ExampleFeeManager();
     address exampleAddress = address(example);
-
-    IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
 
     manager.setEnabled(exampleAddress);
 
@@ -109,8 +104,6 @@ contract ExampleFeeManagerTest is AllowListTest {
     ExampleFeeManager example = new ExampleFeeManager();
     address exampleAddress = address(example);
 
-    IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
-
     manager.setEnabled(exampleAddress);
 
     FeeConfig memory config = example.getCurrentFeeConfig();
@@ -122,8 +115,6 @@ contract ExampleFeeManagerTest is AllowListTest {
   function step_lowerMinFeeByOne() public {
     ExampleFeeManager example = new ExampleFeeManager();
     address exampleAddress = address(example);
-
-    IFeeManager manager = IFeeManager(FEE_MANAGER_ADDRESS);
 
     manager.setEnabled(exampleAddress);
 

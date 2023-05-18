@@ -7,8 +7,9 @@ import "../IAllowList.sol";
 import "./AllowListTest.sol";
 
 contract ExampleTxAllowListTest is AllowListTest {
+  IAllowList allowList = IAllowList(TX_ALLOW_LIST);
+
   function setUp() public {
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
     allowList.setNone(OTHER_ADDRESS);
   }
 
@@ -18,13 +19,11 @@ contract ExampleTxAllowListTest is AllowListTest {
   }
 
   function step_precompileHasDeployerAsAdmin() public {
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
     assertRole(allowList.readAllowList(msg.sender), AllowList.Role.Admin);
   }
 
   function step_newAddressHasNoRole() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
     assertRole(allowList.readAllowList(address(example)), AllowList.Role.None);
   }
 
@@ -44,14 +43,12 @@ contract ExampleTxAllowListTest is AllowListTest {
   }
 
   function step_enableOther() public {
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
     assertRole(allowList.readAllowList(OTHER_ADDRESS), AllowList.Role.None);
     allowList.setEnabled(OTHER_ADDRESS);
   }
 
   function step_noRoleCannotEnableItself() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
 
     assertRole(allowList.readAllowList(address(example)), AllowList.Role.None);
 
@@ -63,8 +60,6 @@ contract ExampleTxAllowListTest is AllowListTest {
   function step_addContractAsAdmin() public {
     ExampleTxAllowList example = new ExampleTxAllowList();
     address exampleAddress = address(example);
-
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
 
     assertRole(allowList.readAllowList(exampleAddress), AllowList.Role.None);
 
@@ -80,8 +75,6 @@ contract ExampleTxAllowListTest is AllowListTest {
     ExampleTxAllowList other = new ExampleTxAllowList();
     address exampleAddress = address(example);
     address otherAddress = address(other);
-
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
 
     assertTrue(!example.isEnabled(exampleAddress));
     assertTrue(!example.isEnabled(otherAddress));
@@ -101,8 +94,6 @@ contract ExampleTxAllowListTest is AllowListTest {
     ExampleTxAllowList example = new ExampleTxAllowList();
     address exampleAddress = address(example);
 
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
-
     allowList.setEnabled(exampleAddress);
 
     example.deployContract();
@@ -113,8 +104,6 @@ contract ExampleTxAllowListTest is AllowListTest {
     ExampleTxAllowList other = new ExampleTxAllowList();
     address exampleAddress = address(example);
     address otherAddress = address(other);
-
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
 
     assertTrue(!example.isEnabled(exampleAddress));
     assertTrue(!example.isEnabled(otherAddress));
@@ -138,8 +127,6 @@ contract ExampleTxAllowListTest is AllowListTest {
     address exampleAddress = address(example);
     address otherAddress = address(other);
 
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
-
     assertTrue(!example.isEnabled(exampleAddress));
     assertTrue(!example.isEnabled(otherAddress));
 
@@ -162,8 +149,6 @@ contract ExampleTxAllowListTest is AllowListTest {
     ExampleTxAllowList other = new ExampleTxAllowList();
     address exampleAddress = address(example);
     address otherAddress = address(other);
-
-    IAllowList allowList = IAllowList(TX_ALLOW_LIST);
 
     assertTrue(!example.isEnabled(exampleAddress));
     assertTrue(!example.isEnabled(otherAddress));
