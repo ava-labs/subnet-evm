@@ -11,7 +11,7 @@ import (
 
 func TestAggregatedOrderBook(t *testing.T) {
 	t.Run("it aggregates long and short orders by price and returns aggregated data in json format with blockNumber", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		service := NewOrderBookAPI(db, &eth.EthAPIBackend{})
 
 		longOrder1 := getLongOrder()

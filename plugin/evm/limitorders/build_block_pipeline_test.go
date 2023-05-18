@@ -446,6 +446,7 @@ func getLongOrder() LimitOrder {
 func setupDependencies(t *testing.T) (*MockLimitOrderDatabase, *MockLimitOrderTxProcessor, *BuildBlockPipeline) {
 	db := NewMockLimitOrderDatabase()
 	lotp := NewMockLimitOrderTxProcessor()
-	pipeline := NewBuildBlockPipeline(db, lotp)
+	cs := NewMockConfigService()
+	pipeline := NewBuildBlockPipeline(db, lotp, cs)
 	return db, lotp, pipeline
 }

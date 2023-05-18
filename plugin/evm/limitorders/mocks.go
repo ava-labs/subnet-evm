@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/hubbleconfigmanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/mock"
 )
@@ -162,4 +163,32 @@ func (lotp *MockLimitOrderTxProcessor) HandleClearingHouseEvent(event *types.Log
 
 func (lotp *MockLimitOrderTxProcessor) GetUnderlyingPrice() (map[Market]*big.Int, error) {
 	return nil, nil
+}
+
+type MockConfigService struct {
+	mock.Mock
+}
+
+func (mcs *MockConfigService) getSpreadRatioThreshold() *big.Int {
+	return hubbleconfigmanager.DefaultSpreadRatioThreshold
+}
+
+func (mcs *MockConfigService) getMaxLiquidationRatio() *big.Int {
+	return hubbleconfigmanager.DefaultMaxLiquidationRatio
+}
+
+func (mcs *MockConfigService) getMinAllowableMargin() *big.Int {
+	return hubbleconfigmanager.DefaultMinAllowableMargin
+}
+
+func (mcs *MockConfigService) getMaintenanceMargin() *big.Int {
+	return hubbleconfigmanager.DefaultMaintenanceMargin
+}
+
+func (mcs *MockConfigService) getMinSizeRequirement() *big.Int {
+	return hubbleconfigmanager.DefaultMinSizeRequirement
+}
+
+func NewMockConfigService() *MockConfigService {
+	return &MockConfigService{}
 }

@@ -25,6 +25,10 @@
       "contractDeployerAllowListConfig": {
         "blockTimestamp": 0,
         "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC","0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
+      },
+      "hubbleConfigManagerConfig": {
+        "blockTimestamp": 0,
+        "adminAddresses": ["0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC","0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"]
       }
     },
     "alloc": {

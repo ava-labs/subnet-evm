@@ -18,7 +18,7 @@ var timestamp = big.NewInt(time.Now().Unix())
 func TestProcessEvents(t *testing.T) {
 	// this test is obsolete because we expect the events to automatically come in sorted order
 	t.Run("it sorts events by blockNumber and executes in order", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		orderBookABI := getABIfromJson(orderBookAbi)
 
@@ -67,7 +67,7 @@ func TestProcessEvents(t *testing.T) {
 
 	// t.Run("when event is removed it is not processed", func(t *testing.T) {
 	// 	traderAddress := common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
-	// 	db := NewInMemoryDatabase()
+	// 	db := getDatabase()
 	// 	collateral := HUSD
 	// 	originalMargin := multiplyBasePrecision(big.NewInt(100))
 	// 	trader := &Trader{
@@ -95,7 +95,7 @@ func TestProcessEvents(t *testing.T) {
 func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	traderAddress := common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 	blockNumber := uint64(12)
-	db := NewInMemoryDatabase()
+	db := getDatabase()
 	cep := newcep(t, db)
 	collateral := HUSD
 	openNotional := multiplyBasePrecision(big.NewInt(100))
@@ -191,7 +191,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 	orderBookABI := getABIfromJson(orderBookAbi)
 
 	t.Run("When event is orderPlaced", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		event := getEventFromABI(orderBookABI, "OrderPlaced")
 		topics := []common.Hash{event.ID, traderAddress.Hash(), getIdFromOrder(order)}
@@ -226,7 +226,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		})
 	})
 	t.Run("When event is OrderCancelled", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		event := getEventFromABI(orderBookABI, "OrderCancelled")
 		topics := []common.Hash{event.ID, traderAddress.Hash(), getIdFromOrder(order)}
@@ -260,7 +260,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		})
 	})
 	t.Run("When event is OrderMatched", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		event := getEventFromABI(orderBookABI, "OrdersMatched")
 		signature1 := []byte("longOrder")
@@ -311,7 +311,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		})
 	})
 	t.Run("When event is LiquidationOrderMatched", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		event := getEventFromABI(orderBookABI, "LiquidationOrderMatched")
 		signature := []byte("longOrder")
@@ -356,7 +356,7 @@ func TestHandleMarginAccountEvent(t *testing.T) {
 	marginAccountABI := getABIfromJson(marginAccountAbi)
 
 	t.Run("when event is MarginAdded", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		event := getEventFromABI(marginAccountABI, "MarginAdded")
 		topics := []common.Hash{event.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(collateral)))}
@@ -377,7 +377,7 @@ func TestHandleMarginAccountEvent(t *testing.T) {
 		})
 	})
 	t.Run("when event is MarginRemoved", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		event := getEventFromABI(marginAccountABI, "MarginRemoved")
 		topics := []common.Hash{event.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(collateral)))}
@@ -399,7 +399,7 @@ func TestHandleMarginAccountEvent(t *testing.T) {
 	t.Run("when event is PnLRealized", func(t *testing.T) {
 		event := getEventFromABI(marginAccountABI, "PnLRealized")
 		topics := []common.Hash{event.ID, traderAddress.Hash()}
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		t.Run("When event parsing fails", func(t *testing.T) {
 			pnlRealizedEventData := []byte{}
@@ -420,7 +420,7 @@ func TestHandleMarginAccountEvent(t *testing.T) {
 	t.Run("when event is MarginReserved", func(t *testing.T) {
 		event := getEventFromABI(marginAccountABI, "MarginReserved")
 		topics := []common.Hash{event.ID, traderAddress.Hash()}
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		t.Run("When event parsing fails", func(t *testing.T) {
 			marginReservedEventData := []byte{}
@@ -441,7 +441,7 @@ func TestHandleMarginAccountEvent(t *testing.T) {
 	t.Run("when event is MarginReleased", func(t *testing.T) {
 		event := getEventFromABI(marginAccountABI, "MarginReleased")
 		topics := []common.Hash{event.ID, traderAddress.Hash()}
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		t.Run("When event parsing fails", func(t *testing.T) {
 			marginReleasedEventData := []byte{}
@@ -473,7 +473,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 	t.Run("when event is FundingRateUpdated", func(t *testing.T) {
 		event := getEventFromABI(clearingHouseABI, "FundingRateUpdated")
 		topics := []common.Hash{event.ID, common.BigToHash(big.NewInt(int64(market)))}
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		position := &Position{
 			OpenNotional:         openNotional,
@@ -511,7 +511,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 	t.Run("When event is FundingPaid", func(t *testing.T) {
 		event := getEventFromABI(clearingHouseABI, "FundingPaid")
 		topics := []common.Hash{event.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(market)))}
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		position := &Position{
 			OpenNotional:         openNotional,
@@ -547,7 +547,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 	t.Run("When event is PositionModified", func(t *testing.T) {
 		event := getEventFromABI(clearingHouseABI, "PositionModified")
 		topics := []common.Hash{event.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(market)))}
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		position := &Position{
 			OpenNotional:         openNotional,
@@ -594,7 +594,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 	t.Run("When event is PositionLiquidated", func(t *testing.T) {
 		event := getEventFromABI(clearingHouseABI, "PositionLiquidated")
 		topics := []common.Hash{event.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(market)))}
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		cep := newcep(t, db)
 		position := &Position{
 			OpenNotional:         openNotional,
@@ -648,7 +648,7 @@ func TestRemovedEvents(t *testing.T) {
 	orderBookABI := getABIfromJson(orderBookAbi)
 	signature := []byte("longOrder")
 
-	db := NewInMemoryDatabase()
+	db := getDatabase()
 	cep := newcep(t, db)
 
 	orderPlacedEvent := getEventFromABI(orderBookABI, "OrderPlaced")

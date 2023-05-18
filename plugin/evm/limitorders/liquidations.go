@@ -129,19 +129,6 @@ func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 	return notionalPosition, uPnL, mf
 }
 
-func getAvailableMargin(trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int) *big.Int {
-	// log.Info("in getAvailableMargin", "trader", trader, "pendingFunding", pendingFunding, "oraclePrices", oraclePrices, "lastPrices", lastPrices)
-	margin := new(big.Int).Sub(getNormalisedMargin(trader), pendingFunding)
-	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices)
-	utilisedMargin := divideByBasePrecision(new(big.Int).Mul(notionalPosition, minAllowableMargin))
-	// print margin, notionalPosition, unrealizePnL, utilisedMargin
-	// log.Info("stats", "margin", margin, "notionalPosition", notionalPosition, "unrealizePnL", unrealizePnL, "utilisedMargin", utilisedMargin)
-	return new(big.Int).Sub(
-		new(big.Int).Add(margin, unrealizePnL),
-		new(big.Int).Add(utilisedMargin, trader.Margin.Reserved),
-	)
-}
-
 func multiplyBasePrecision(number *big.Int) *big.Int {
 	return big.NewInt(0).Mul(number, BASE_PRECISION)
 }

@@ -9,11 +9,10 @@ import (
 )
 
 func TestGetLiquidableTraders(t *testing.T) {
-	spreadRatioThreshold = big.NewInt(2e5) // this assumption has been made in the test cases
 	var market Market = AvaxPerp
 	collateral := HUSD
 	t.Run("When no trader exist", func(t *testing.T) {
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		oraclePrices := map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(110))}
 		liquidablePositions, _ := db.GetNaughtyTraders(oraclePrices)
 		assert.Equal(t, 0, len(liquidablePositions))
@@ -22,7 +21,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 	t.Run("When no trader has any positions", func(t *testing.T) {
 		longTraderAddress := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		margin := big.NewInt(10000000000)
-		db := NewInMemoryDatabase()
+		db := getDatabase()
 		db.TraderMap = map[common.Address]*Trader{
 			longTraderAddress: {
 				Margin: Margin{
@@ -45,18 +44,18 @@ func TestGetLiquidableTraders(t *testing.T) {
 		longEntryPrice := multiplyBasePrecision(big.NewInt(90))
 		openNotionalLong := dividePrecisionSize(big.NewInt(0).Mul(longEntryPrice, longSize))
 		pendingFundingLong := multiplyBasePrecision(big.NewInt(42))
-		longTrader := Trader{
-			Margin: Margin{
-				Reserved:  big.NewInt(0),
-				Deposited: map[Collateral]*big.Int{collateral: marginLong},
-			},
-			Positions: map[Market]*Position{
-				market: getPosition(market, openNotionalLong, longSize, pendingFundingLong, big.NewInt(0), big.NewInt(0)),
-			},
-		}
 		t.Run("is saved from liquidation zone by mark price", func(t *testing.T) {
 			// setup db
-			db := NewInMemoryDatabase()
+			db := getDatabase()
+			longTrader := Trader{
+				Margin: Margin{
+					Reserved:  big.NewInt(0),
+					Deposited: map[Collateral]*big.Int{collateral: marginLong},
+				},
+				Positions: map[Market]*Position{
+					market: getPosition(market, openNotionalLong, longSize, pendingFundingLong, big.NewInt(0), big.NewInt(0), db.configService.getMaxLiquidationRatio(), db.configService.getMinSizeRequirement()),
+				},
+			}
 			db.TraderMap = map[common.Address]*Trader{
 				longTraderAddress: &longTrader,
 			}
@@ -78,7 +77,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(490)), notionalPosition)
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(-410)), unrealizePnL)
 
-			availableMargin := getAvailableMargin(_trader, pendingFundingLong, oraclePrices, db.GetLastPrices())
+			availableMargin := getAvailableMargin(_trader, pendingFundingLong, oraclePrices, db.GetLastPrices(), db.configService.getMinAllowableMargin())
 			// availableMargin = 500 - 42 (pendingFundingLong) - 410 (uPnL) - 490/5 = -50
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(-50)), availableMargin)
 
@@ -96,7 +95,16 @@ func TestGetLiquidableTraders(t *testing.T) {
 
 		t.Run("is saved from liquidation zone by oracle price", func(t *testing.T) {
 			// setup db
-			db := NewInMemoryDatabase()
+			db := getDatabase()
+			longTrader := Trader{
+				Margin: Margin{
+					Reserved:  big.NewInt(0),
+					Deposited: map[Collateral]*big.Int{collateral: marginLong},
+				},
+				Positions: map[Market]*Position{
+					market: getPosition(market, openNotionalLong, longSize, pendingFundingLong, big.NewInt(0), big.NewInt(0), db.configService.getMaxLiquidationRatio(), db.configService.getMinSizeRequirement()),
+				},
+			}
 			db.TraderMap = map[common.Address]*Trader{
 				longTraderAddress: &longTrader,
 			}
@@ -118,7 +126,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(490)), notionalPosition)
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(-410)), unrealizePnL)
 
-			availableMargin := getAvailableMargin(_trader, pendingFundingLong, oraclePrices, db.GetLastPrices())
+			availableMargin := getAvailableMargin(_trader, pendingFundingLong, oraclePrices, db.GetLastPrices(), db.configService.getMinAllowableMargin())
 			// availableMargin = 500 - 42 (pendingFundingLong) - 410 (uPnL) - 490/5 = -50
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(-50)), availableMargin)
 
@@ -142,18 +150,18 @@ func TestGetLiquidableTraders(t *testing.T) {
 		shortEntryPrice := multiplyBasePrecision(big.NewInt(105))
 		openNotionalShort := dividePrecisionSize(big.NewInt(0).Abs(big.NewInt(0).Mul(shortEntryPrice, shortSize)))
 		pendingFundingShort := multiplyBasePrecision(big.NewInt(-37))
-		shortTrader := Trader{
-			Margin: Margin{
-				Reserved:  big.NewInt(0),
-				Deposited: map[Collateral]*big.Int{collateral: marginShort},
-			},
-			Positions: map[Market]*Position{
-				market: getPosition(market, openNotionalShort, shortSize, pendingFundingShort, big.NewInt(0), big.NewInt(0)),
-			},
-		}
 		t.Run("is saved from liquidation zone by mark price", func(t *testing.T) {
 			// setup db
-			db := NewInMemoryDatabase()
+			db := getDatabase()
+			shortTrader := Trader{
+				Margin: Margin{
+					Reserved:  big.NewInt(0),
+					Deposited: map[Collateral]*big.Int{collateral: marginShort},
+				},
+				Positions: map[Market]*Position{
+					market: getPosition(market, openNotionalShort, shortSize, pendingFundingShort, big.NewInt(0), big.NewInt(0), db.configService.getMaxLiquidationRatio(), db.configService.getMinSizeRequirement()),
+				},
+			}
 			db.TraderMap = map[common.Address]*Trader{
 				shortTraderAddress: &shortTrader,
 			}
@@ -174,7 +182,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(2860)), notionalPosition)
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(-760)), unrealizePnL)
 
-			availableMargin := getAvailableMargin(_trader, pendingFundingShort, oraclePrices, db.GetLastPrices())
+			availableMargin := getAvailableMargin(_trader, pendingFundingShort, oraclePrices, db.GetLastPrices(), db.configService.getMinAllowableMargin())
 			// availableMargin = 1000 + 37 (pendingFundingShort) -760 (uPnL) - 2860/5 = -295
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(-295)), availableMargin)
 
@@ -192,7 +200,16 @@ func TestGetLiquidableTraders(t *testing.T) {
 
 		t.Run("is saved from liquidation zone by oracle price", func(t *testing.T) {
 			// setup db
-			db := NewInMemoryDatabase()
+			db := getDatabase()
+			shortTrader := Trader{
+				Margin: Margin{
+					Reserved:  big.NewInt(0),
+					Deposited: map[Collateral]*big.Int{collateral: marginShort},
+				},
+				Positions: map[Market]*Position{
+					market: getPosition(market, openNotionalShort, shortSize, pendingFundingShort, big.NewInt(0), big.NewInt(0), db.configService.getMaxLiquidationRatio(), db.configService.getMinSizeRequirement()),
+				},
+			}
 			db.TraderMap = map[common.Address]*Trader{
 				shortTraderAddress: &shortTrader,
 			}
@@ -213,7 +230,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(2860)), notionalPosition)
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(-760)), unrealizePnL)
 
-			availableMargin := getAvailableMargin(_trader, pendingFundingShort, oraclePrices, db.GetLastPrices())
+			availableMargin := getAvailableMargin(_trader, pendingFundingShort, oraclePrices, db.GetLastPrices(), db.configService.getMinAllowableMargin())
 			// availableMargin = 1000 + 37 (pendingFundingShort) - 760 (uPnL) - 2860/5 = -295
 			assert.Equal(t, multiplyBasePrecision(big.NewInt(-295)), availableMargin)
 
@@ -326,9 +343,9 @@ func TestGetPositionMetadata(t *testing.T) {
 	})
 }
 
-func getPosition(market Market, openNotional *big.Int, size *big.Int, unrealizedFunding *big.Int, lastPremiumFraction *big.Int, liquidationThreshold *big.Int) *Position {
+func getPosition(market Market, openNotional *big.Int, size *big.Int, unrealizedFunding *big.Int, lastPremiumFraction *big.Int, liquidationThreshold *big.Int, maxLiquidationRatio *big.Int, minSizeRequirement *big.Int) *Position {
 	if liquidationThreshold.Sign() == 0 {
-		liquidationThreshold = getLiquidationThreshold(size)
+		liquidationThreshold = getLiquidationThreshold(maxLiquidationRatio, minSizeRequirement, size)
 	}
 	return &Position{
 		OpenNotional:         openNotional,
@@ -337,4 +354,9 @@ func getPosition(market Market, openNotional *big.Int, size *big.Int, unrealized
 		LastPremiumFraction:  lastPremiumFraction,
 		LiquidationThreshold: liquidationThreshold,
 	}
+}
+
+func getDatabase() *InMemoryDatabase {
+	configService := NewMockConfigService()
+	return NewInMemoryDatabase(configService)
 }

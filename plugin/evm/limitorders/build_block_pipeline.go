@@ -10,14 +10,16 @@ import (
 )
 
 type BuildBlockPipeline struct {
-	db   LimitOrderDatabase
-	lotp LimitOrderTxProcessor
+	db            LimitOrderDatabase
+	lotp          LimitOrderTxProcessor
+	configService IConfigService
 }
 
-func NewBuildBlockPipeline(db LimitOrderDatabase, lotp LimitOrderTxProcessor) *BuildBlockPipeline {
+func NewBuildBlockPipeline(db LimitOrderDatabase, lotp LimitOrderTxProcessor, configService IConfigService) *BuildBlockPipeline {
 	return &BuildBlockPipeline{
-		db:   db,
-		lotp: lotp,
+		db:            db,
+		lotp:          lotp,
+		configService: configService,
 	}
 }
 
@@ -78,22 +80,15 @@ func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Ad
 }
 
 func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}) *Orders {
+	spreadRatioThreshold := pipeline.configService.getSpreadRatioThreshold()
 	// 1. Get long orders
-	longCutOffPrice := divideByBasePrecision(big.NewInt(0).Mul(
-		underlyingPrice,
-		big.NewInt(0).Add(_1e6, spreadRatioThreshold),
-	),
-	)
+	longCutOffPrice := divideByBasePrecision(big.NewInt(0).Mul(underlyingPrice, big.NewInt(0).Add(_1e6, spreadRatioThreshold)))
 	longOrders := pipeline.db.GetLongOrders(market, longCutOffPrice)
 
 	// 2. Get short orders
 	shortCutOffPrice := big.NewInt(0)
 	if _1e6.Cmp(spreadRatioThreshold) > 0 {
-		shortCutOffPrice = divideByBasePrecision(big.NewInt(0).Mul(
-			underlyingPrice,
-			big.NewInt(0).Sub(_1e6, spreadRatioThreshold),
-		),
-		)
+		shortCutOffPrice = divideByBasePrecision(big.NewInt(0).Mul(underlyingPrice, big.NewInt(0).Sub(_1e6, spreadRatioThreshold)))
 	}
 	shortOrders := pipeline.db.GetShortOrders(market, shortCutOffPrice)
 

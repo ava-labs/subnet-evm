@@ -18,14 +18,14 @@ var price = big.NewInt(20)
 var status Status = Placed
 var blockNumber = big.NewInt(2)
 
-func TestNewInMemoryDatabase(t *testing.T) {
-	inMemoryDatabase := NewInMemoryDatabase()
+func TestgetDatabase(t *testing.T) {
+	inMemoryDatabase := getDatabase()
 	assert.NotNil(t, inMemoryDatabase)
 }
 
 func TestAdd(t *testing.T) {
 	baseAssetQuantity := big.NewInt(-10)
-	inMemoryDatabase := NewInMemoryDatabase()
+	inMemoryDatabase := getDatabase()
 	signature := []byte("Here is a string....")
 	salt := big.NewInt(time.Now().Unix())
 	limitOrder, orderId := createLimitOrder(positionType, userAddress, baseAssetQuantity, price, status, signature, blockNumber, salt)
@@ -41,7 +41,7 @@ func TestAdd(t *testing.T) {
 
 func TestGetAllOrders(t *testing.T) {
 	baseAssetQuantity := big.NewInt(-10)
-	inMemoryDatabase := NewInMemoryDatabase()
+	inMemoryDatabase := getDatabase()
 	totalOrders := uint64(5)
 	for i := uint64(0); i < totalOrders; i++ {
 		signature := []byte("signature")
@@ -63,7 +63,7 @@ func TestGetAllOrders(t *testing.T) {
 
 func TestGetShortOrders(t *testing.T) {
 	baseAssetQuantity := big.NewInt(0).Mul(big.NewInt(-3), _1e18)
-	inMemoryDatabase := NewInMemoryDatabase()
+	inMemoryDatabase := getDatabase()
 	totalLongOrders := uint64(2)
 	longOrderPrice := big.NewInt(0).Add(price, big.NewInt(1))
 	longOrderBaseAssetQuantity := big.NewInt(0).Mul(big.NewInt(10), _1e18)
@@ -148,7 +148,7 @@ func TestGetShortOrders(t *testing.T) {
 
 func TestGetLongOrders(t *testing.T) {
 	baseAssetQuantity := big.NewInt(-10)
-	inMemoryDatabase := NewInMemoryDatabase()
+	inMemoryDatabase := getDatabase()
 	for i := uint64(0); i < 3; i++ {
 		signature := []byte("signature")
 		salt := big.NewInt(0).Add(big.NewInt(time.Now().Unix()), big.NewInt(int64(i)))
@@ -205,12 +205,12 @@ func TestGetLongOrders(t *testing.T) {
 
 func TestGetCancellableOrders(t *testing.T) {
 	// also tests getTotalNotionalPositionAndUnrealizedPnl
+	inMemoryDatabase := getDatabase()
 	getReservedMargin := func(order LimitOrder) *big.Int {
 		notional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.BaseAssetQuantity, order.Price), _1e18))
-		return divideByBasePrecision(big.NewInt(0).Mul(notional, minAllowableMargin))
+		return divideByBasePrecision(big.NewInt(0).Mul(notional, inMemoryDatabase.configService.getMinAllowableMargin()))
 	}
 
-	inMemoryDatabase := NewInMemoryDatabase()
 	id1 := uint64(1)
 	signature1 := []byte(fmt.Sprintf("Signature long order is %d", id1))
 	blockNumber1 := big.NewInt(2)
@@ -269,7 +269,7 @@ func TestGetCancellableOrders(t *testing.T) {
 	marginFraction := calcMarginFraction(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices())
 	assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(depositMargin /* uPnL = 0 */), notionalPosition), marginFraction)
 
-	availableMargin := getAvailableMargin(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices())
+	availableMargin := getAvailableMargin(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices(), inMemoryDatabase.configService.getMinAllowableMargin())
 	// availableMargin = 40 - 9 - (99 + (10+9+8) * 3)/5 = -5
 	assert.Equal(t, multiplyBasePrecision(big.NewInt(-5)), availableMargin)
 	_, ordersToCancel := inMemoryDatabase.GetNaughtyTraders(priceMap)
@@ -288,7 +288,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 	baseAssetQuantity := big.NewInt(-10)
 	t.Run("when filled quantity is not equal to baseAssetQuantity", func(t *testing.T) {
 		t.Run("When order type is short order", func(t *testing.T) {
-			inMemoryDatabase := NewInMemoryDatabase()
+			inMemoryDatabase := getDatabase()
 			signature := []byte("Here is a string....")
 			salt := big.NewInt(time.Now().Unix())
 			limitOrder, orderId := createLimitOrder(positionType, userAddress, baseAssetQuantity, price, status, signature, blockNumber, salt)
@@ -303,7 +303,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 			assert.Equal(t, updatedLimitOrder.FilledBaseAssetQuantity, filledQuantity.Mul(filledQuantity, big.NewInt(-1)))
 		})
 		t.Run("When order type is long order", func(t *testing.T) {
-			inMemoryDatabase := NewInMemoryDatabase()
+			inMemoryDatabase := getDatabase()
 			signature := []byte("Here is a string....")
 			positionType = LONG
 			baseAssetQuantity = big.NewInt(10)
@@ -320,7 +320,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 	})
 	t.Run("when filled quantity is equal to baseAssetQuantity", func(t *testing.T) {
 		t.Run("When order type is short order", func(t *testing.T) {
-			inMemoryDatabase := NewInMemoryDatabase()
+			inMemoryDatabase := getDatabase()
 			signature := []byte("Here is a string....")
 			salt := big.NewInt(time.Now().Unix())
 			limitOrder, orderId := createLimitOrder(positionType, userAddress, baseAssetQuantity, price, status, signature, blockNumber, salt)
@@ -337,7 +337,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 			assert.Equal(t, 0, len(allOrders))
 		})
 		t.Run("When order type is long order", func(t *testing.T) {
-			inMemoryDatabase := NewInMemoryDatabase()
+			inMemoryDatabase := getDatabase()
 			signature := []byte("Here is a string....")
 			positionType = LONG
 			baseAssetQuantity = big.NewInt(10)
@@ -361,7 +361,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 
 func TestUpdatePosition(t *testing.T) {
 	t.Run("When no positions exists for trader, it updates trader map with new positions", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var market Market = 1
 		size := big.NewInt(20.00)
@@ -372,7 +372,7 @@ func TestUpdatePosition(t *testing.T) {
 		assert.Equal(t, openNotional, position.OpenNotional)
 	})
 	t.Run("When positions exists for trader, it overwrites old positions with new data", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var market Market = 1
 		size := big.NewInt(20.00)
@@ -390,7 +390,7 @@ func TestUpdatePosition(t *testing.T) {
 
 func TestUpdateMargin(t *testing.T) {
 	t.Run("when adding margin for first time it updates margin in tradermap", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var collateral Collateral = 1
 		amount := big.NewInt(20.00)
@@ -399,7 +399,7 @@ func TestUpdateMargin(t *testing.T) {
 		assert.Equal(t, amount, margin)
 	})
 	t.Run("When more margin is added, it updates margin in tradermap", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var collateral Collateral = 1
 		amount := big.NewInt(20.00)
@@ -411,7 +411,7 @@ func TestUpdateMargin(t *testing.T) {
 		assert.Equal(t, big.NewInt(0).Add(amount, removedMargin), margin)
 	})
 	t.Run("When margin is removed, it updates margin in tradermap", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var collateral Collateral = 1
 		amount := big.NewInt(20.00)
@@ -426,7 +426,7 @@ func TestUpdateMargin(t *testing.T) {
 
 func TestAccept(t *testing.T) {
 	t.Run("Order is fulfilled, should be deleted when block is accepted", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		orderId1 := addLimitOrder(inMemoryDatabase)
 		orderId2 := addLimitOrder(inMemoryDatabase)
 
@@ -445,7 +445,7 @@ func TestAccept(t *testing.T) {
 	})
 
 	t.Run("Order is fulfilled, should be deleted when a future block is accepted", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
 		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, 51)
 		assert.Nil(t, err)
@@ -458,7 +458,7 @@ func TestAccept(t *testing.T) {
 	})
 
 	t.Run("Order is fulfilled, should not be deleted when a past block is accepted", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
 		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, 51)
 		assert.Nil(t, err)
@@ -471,7 +471,7 @@ func TestAccept(t *testing.T) {
 	})
 
 	t.Run("Order is placed, should not be deleted when a block is accepted", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
 		inMemoryDatabase.Accept(50)
 
@@ -482,7 +482,7 @@ func TestAccept(t *testing.T) {
 
 func TestRevertLastStatus(t *testing.T) {
 	t.Run("revert status for order that doesn't exist - expect error", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		orderId := common.BytesToHash([]byte("order id"))
 		err := inMemoryDatabase.RevertLastStatus(orderId)
 
@@ -490,7 +490,7 @@ func TestRevertLastStatus(t *testing.T) {
 	})
 
 	t.Run("revert status for placed order", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
 
 		err := inMemoryDatabase.RevertLastStatus(orderId)
@@ -500,7 +500,7 @@ func TestRevertLastStatus(t *testing.T) {
 	})
 
 	t.Run("revert status for fulfilled order", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
 		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, 3)
 		assert.Nil(t, err)
@@ -513,7 +513,7 @@ func TestRevertLastStatus(t *testing.T) {
 	})
 
 	t.Run("revert status for accepted + fulfilled order - expect error", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
 		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, 3)
 		assert.Nil(t, err)
@@ -526,7 +526,7 @@ func TestRevertLastStatus(t *testing.T) {
 
 func TestUpdateUnrealizedFunding(t *testing.T) {
 	t.Run("When trader has no positions, it does not update anything", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var market Market = 1
 		cumulativePremiumFraction := big.NewInt(2)
@@ -537,7 +537,7 @@ func TestUpdateUnrealizedFunding(t *testing.T) {
 	})
 	t.Run("When trader has positions", func(t *testing.T) {
 		t.Run("when unrealized funding is zero, it updates unrealized funding in trader's positions", func(t *testing.T) {
-			inMemoryDatabase := NewInMemoryDatabase()
+			inMemoryDatabase := getDatabase()
 			addresses := [2]common.Address{common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"), common.HexToAddress("0x710bf5F942331874dcBC7783319123679033b63b")}
 			var market Market = 1
 			openNotional := big.NewInt(200.00)
@@ -558,7 +558,7 @@ func TestUpdateUnrealizedFunding(t *testing.T) {
 			}
 		})
 		t.Run("when unrealized funding is not zero, it adds new funding to old unrealized funding in trader's positions", func(t *testing.T) {
-			inMemoryDatabase := NewInMemoryDatabase()
+			inMemoryDatabase := getDatabase()
 			address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 			var market Market = 1
 			openNotional := big.NewInt(200.00)
@@ -578,7 +578,7 @@ func TestUpdateUnrealizedFunding(t *testing.T) {
 
 func TestResetUnrealisedFunding(t *testing.T) {
 	t.Run("When trader has no positions, it does not update anything", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var market Market = 1
 		trader := inMemoryDatabase.TraderMap[address]
@@ -588,7 +588,7 @@ func TestResetUnrealisedFunding(t *testing.T) {
 		assert.Equal(t, trader, updatedTrader)
 	})
 	t.Run("When trader has positions, it resets unrealized funding to zero", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 		var market Market = 1
 		openNotional := big.NewInt(200)
@@ -602,7 +602,7 @@ func TestResetUnrealisedFunding(t *testing.T) {
 }
 
 func TestUpdateNextFundingTime(t *testing.T) {
-	inMemoryDatabase := NewInMemoryDatabase()
+	inMemoryDatabase := getDatabase()
 	nextFundingTime := uint64(time.Now().Unix())
 	inMemoryDatabase.UpdateNextFundingTime(nextFundingTime)
 	assert.Equal(t, nextFundingTime, inMemoryDatabase.NextFundingTime)
@@ -610,11 +610,11 @@ func TestUpdateNextFundingTime(t *testing.T) {
 
 func TestGetNextFundingTime(t *testing.T) {
 	t.Run("when funding time is not set", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		assert.Equal(t, uint64(0), inMemoryDatabase.GetNextFundingTime())
 	})
 	t.Run("when funding time is set", func(t *testing.T) {
-		inMemoryDatabase := NewInMemoryDatabase()
+		inMemoryDatabase := getDatabase()
 		nextFundingTime := uint64(time.Now().Unix())
 		inMemoryDatabase.UpdateNextFundingTime(nextFundingTime)
 		assert.Equal(t, nextFundingTime, inMemoryDatabase.GetNextFundingTime())
@@ -622,14 +622,14 @@ func TestGetNextFundingTime(t *testing.T) {
 }
 
 func TestUpdateLastPrice(t *testing.T) {
-	inMemoryDatabase := NewInMemoryDatabase()
+	inMemoryDatabase := getDatabase()
 	var market Market = 1
 	lastPrice := big.NewInt(20)
 	inMemoryDatabase.UpdateLastPrice(market, lastPrice)
 	assert.Equal(t, lastPrice, inMemoryDatabase.LastPrice[market])
 }
 func TestGetLastPrice(t *testing.T) {
-	inMemoryDatabase := NewInMemoryDatabase()
+	inMemoryDatabase := getDatabase()
 	var market Market = 1
 	lastPrice := big.NewInt(20)
 	inMemoryDatabase.UpdateLastPrice(market, lastPrice)
@@ -639,7 +639,7 @@ func TestGetLastPrice(t *testing.T) {
 func TestUpdateReservedMargin(t *testing.T) {
 	address := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 	amount := big.NewInt(20 * 1e6)
-	inMemoryDatabase := NewInMemoryDatabase()
+	inMemoryDatabase := getDatabase()
 	inMemoryDatabase.UpdateReservedMargin(address, amount)
 	assert.Equal(t, amount, inMemoryDatabase.TraderMap[address].Margin.Reserved)
 
