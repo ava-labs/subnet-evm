@@ -19,44 +19,44 @@ const (
 	firstNodeId        = "node-0"
 )
 
-func SpinupAvalancheNode() (error, string, func()) {
+func SpinupAvalancheNode() (string, func(), error) {
 	ctx := context.Background()
 
 	kurtosisCtx, err := kurtosis_context.NewKurtosisContextFromLocalEngine()
 	if err != nil {
-		return err, "", nil
+		return "", nil, err
 	}
 
 	enclaveId := fmt.Sprintf("%s-%d", enclaveIdPrefix, time.Now().Unix())
 	enclaveCtx, err := kurtosisCtx.CreateEnclave(ctx, enclaveId, isPartitioningEnabled)
 	if err != nil {
-		return err, "", nil
+		return "", nil, err
 	}
 
 	runResult, err := enclaveCtx.RunStarlarkRemotePackageBlocking(ctx, avalancheStarlarkPackage, forceExposeOn9650, false, defaultParallelism)
 	if err != nil {
-		return err, "", nil
+		return "", nil, err
 	}
 
 	if runResult.InterpretationError != nil {
-		return errors.New("error interpreting Starlark code"), "", nil
+		return "", nil, errors.New("error interpreting Starlark code")
 	}
 	if len(runResult.ValidationErrors) != 0 {
-		return errors.New("error validating Starlark code"), "", nil
+		return "", nil, errors.New("error validating Starlark code")
 	}
 	if runResult.ExecutionError != nil {
-		return errors.New("error executing Starlark code"), "", nil
+		return "", nil, errors.New("error executing Starlark code")
 	}
 
 	serviceCtx, err := enclaveCtx.GetServiceContext(firstNodeId)
 	if err != nil {
-		return nil, "", nil
+		return "", nil, err
 	}
 
 	publicRpcPorts := serviceCtx.GetPublicPorts()
 	rpcPortSpec, found := publicRpcPorts["rpc"]
 	if !found {
-		return fmt.Errorf("couldn't find RPC port in the node '%v' that was spun up", firstNodeId), "", nil
+		return "", nil, fmt.Errorf("couldn't find RPC port in the node '%v' that was spun up", firstNodeId)
 	}
 
 	rpcPortNumber := rpcPortSpec.GetNumber()
@@ -71,5 +71,5 @@ func SpinupAvalancheNode() (error, string, func()) {
 		}
 	}
 
-	return nil, fmt.Sprintf("http://127.0.0.1:%d", rpcPortNumber), tearDownFunction
+	return fmt.Sprintf("http://127.0.0.1:%d", rpcPortNumber), tearDownFunction, nil
 }
