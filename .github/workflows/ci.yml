@@ -65,7 +65,7 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: "1.19"
-      - name: Install & Restart Kurtosis
+      - name: Install & Start Kurtosis
         run: |
           echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
           sudo apt update
