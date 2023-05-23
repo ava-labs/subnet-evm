@@ -6,7 +6,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/kurtosis-tech/kurtosis/api/golang/engine/lib/kurtosis_context"
@@ -37,23 +36,9 @@ func SpinupAvalancheNode() (string, func(), error) {
 		return "", nil, err
 	}
 
-	runResult, err := enclaveCtx.RunStarlarkRemotePackageBlocking(ctx, avalancheStarlarkPackage, forceExposeOn9650, false, defaultParallelism)
+	_, err = enclaveCtx.RunStarlarkRemotePackageBlocking(ctx, avalancheStarlarkPackage, forceExposeOn9650, false, defaultParallelism)
 	if err != nil {
-		return "", nil, err
-	}
-
-	if runResult.InterpretationError != nil {
-		return "", nil, fmt.Errorf("error interpreting Starlark code: %v", runResult.InterpretationError.GetErrorMessage())
-	}
-	if len(runResult.ValidationErrors) != 0 {
-		var validationErrors []string
-		for _, validationError := range runResult.ValidationErrors {
-			validationErrors = append(validationErrors, validationError.GetErrorMessage())
-		}
-		return "", nil, fmt.Errorf("error validating Starlark code: %v", strings.Join(validationErrors, validationErrorDelimiter))
-	}
-	if runResult.ExecutionError != nil {
-		return "", nil, fmt.Errorf("error executing Starlark code: %v", runResult.ExecutionError.GetErrorMessage())
+		return "", nil, fmt.Errorf("an error occurred while running Starlark Package: %v", err)
 	}
 
 	serviceCtx, err := enclaveCtx.GetServiceContext(firstNodeId)
