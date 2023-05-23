@@ -85,7 +85,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     uint initialTokenBalance = token.balanceOf(minterAddress);
     uint initialNativeBalance = minterAddress.balance;
 
-    assertRole(nativeMinter.readAllowList(minterAddress), AllowList.Role.None);
+    assertEq(initialTokenBalance, 0);
 
     try minter.mintdraw(100) {
       assertTrue(false, "mintdraw should fail");
@@ -129,7 +129,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     uint amount = 100;
 
     uint initialNativeBalance = minterAddress.balance;
-    assertRole(initialNativeBalance, AllowList.Role.None);
+    assertEq(initialNativeBalance, 0);
 
     token.mint(minterAddress, amount);
 
@@ -138,7 +138,7 @@ contract ERC20NativeMinterTest is AllowListTest {
 
     minter.mintdraw(amount);
 
-    assertRole(token.balanceOf(minterAddress), AllowList.Role.None);
+    assertEq(token.balanceOf(minterAddress), 0);
     assertEq(minterAddress.balance, amount);
   }
 }
