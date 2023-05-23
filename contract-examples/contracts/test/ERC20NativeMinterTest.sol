@@ -47,7 +47,6 @@ contract ERC20NativeMinterTest is AllowListTest {
     ERC20NativeMinter token = new ERC20NativeMinter(1000);
     address tokenAddress = address(token);
 
-
     assertRole(nativeMinter.readAllowList(tokenAddress), AllowList.Role.None);
 
     nativeMinter.setEnabled(tokenAddress);
@@ -86,7 +85,7 @@ contract ERC20NativeMinterTest is AllowListTest {
     uint initialTokenBalance = token.balanceOf(minterAddress);
     uint initialNativeBalance = minterAddress.balance;
 
-    assertRole(initialTokenBalance, AllowList.Role.None);
+    assertRole(nativeMinter.readAllowList(minterAddress), AllowList.Role.None);
 
     try minter.mintdraw(100) {
       assertTrue(false, "mintdraw should fail");
