@@ -5,8 +5,8 @@ package utils
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kurtosis-tech/kurtosis/api/golang/engine/lib/kurtosis_context"
@@ -17,9 +17,10 @@ const (
 	enclaveIdPrefix          = "test"
 	avalancheStarlarkPackage = "github.com/kurtosis-tech/avalanche-package"
 	// forces the node to launch on 9650 instead of ephemeral ports
-	forceExposeOn9650  = `{"test_mode": true}`
-	defaultParallelism = 4
-	firstNodeId        = "node-0"
+	forceExposeOn9650        = `{"test_mode": true}`
+	defaultParallelism       = 4
+	firstNodeId              = "node-0"
+	validationErrorDelimiter = ", "
 )
 
 func SpinupAvalancheNode() (string, func(), error) {
@@ -42,13 +43,17 @@ func SpinupAvalancheNode() (string, func(), error) {
 	}
 
 	if runResult.InterpretationError != nil {
-		return "", nil, errors.New("error interpreting Starlark code")
+		return "", nil, fmt.Errorf("error interpreting Starlark code: %v", runResult.InterpretationError.GetErrorMessage())
 	}
 	if len(runResult.ValidationErrors) != 0 {
-		return "", nil, errors.New("error validating Starlark code")
+		var validationErrors []string
+		for _, validationError := range runResult.ValidationErrors {
+			validationErrors = append(validationErrors, validationError.GetErrorMessage())
+		}
+		return "", nil, fmt.Errorf("error validating Starlark code: %v", strings.Join(validationErrors, validationErrorDelimiter))
 	}
 	if runResult.ExecutionError != nil {
-		return "", nil, errors.New("error executing Starlark code")
+		return "", nil, fmt.Errorf("error executing Starlark code: %v", runResult.ExecutionError.GetErrorMessage())
 	}
 
 	serviceCtx, err := enclaveCtx.GetServiceContext(firstNodeId)
