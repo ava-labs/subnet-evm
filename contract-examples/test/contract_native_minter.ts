@@ -30,7 +30,7 @@ describe("ERC20NativeMinter", function () {
 
   test("admin should mintdraw", "step_adminMintdraw")
 
-  test("minter should not mintdraw ", "step_minterMintdrawFailure")
+  test("minter should not mintdraw", "step_minterMintdrawFailure")
   
   test("should deposit for minter", "step_minterDeposit")
 
