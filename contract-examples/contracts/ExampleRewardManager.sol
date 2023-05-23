@@ -5,7 +5,6 @@ import "./IRewardManager.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 address constant REWARD_MANAGER_ADDRESS = 0x0200000000000000000000000000000000000004;
-address constant BLACKHOLE_ADDRESS = 0x0100000000000000000000000000000000000000;
 
 // ExampleRewardManager is a sample wrapper contract for RewardManager precompile.
 contract ExampleRewardManager is Ownable {
