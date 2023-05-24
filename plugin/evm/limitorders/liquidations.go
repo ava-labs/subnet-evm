@@ -26,9 +26,9 @@ func (liq LiquidablePosition) GetUnfilledSize() *big.Int {
 }
 
 // returns the max(oracle_mf, last_mf); hence should only be used to determine the margin fraction for liquidation and not to increase leverage
-func calcMarginFraction(trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int) *big.Int {
+func calcMarginFraction(trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, markets []Market) *big.Int {
 	margin := new(big.Int).Sub(getNormalisedMargin(trader), pendingFunding)
-	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Maintenance_Margin, oraclePrices, lastPrices)
+	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Maintenance_Margin, oraclePrices, lastPrices, markets)
 	// log.Info("calcMarginFraction:M", "margin", margin, "notionalPosition", notionalPosition, "unrealizePnL", unrealizePnL)
 	if notionalPosition.Sign() == 0 {
 		return big.NewInt(math.MaxInt64)
@@ -50,9 +50,9 @@ func getNormalisedMargin(trader *Trader) *big.Int {
 	// @todo: Write for multi-collateral
 }
 
-func getTotalFunding(trader *Trader) *big.Int {
+func getTotalFunding(trader *Trader, markets []Market) *big.Int {
 	totalPendingFunding := big.NewInt(0)
-	for _, market := range GetActiveMarkets() {
+	for _, market := range markets {
 		if trader.Positions[market] != nil {
 			totalPendingFunding.Add(totalPendingFunding, trader.Positions[market].UnrealisedFunding)
 		}
@@ -71,10 +71,10 @@ const (
 	Min_Allowable_Margin
 )
 
-func getTotalNotionalPositionAndUnrealizedPnl(trader *Trader, margin *big.Int, marginMode MarginMode, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int) (*big.Int, *big.Int) {
+func getTotalNotionalPositionAndUnrealizedPnl(trader *Trader, margin *big.Int, marginMode MarginMode, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, markets []Market) (*big.Int, *big.Int) {
 	notionalPosition := big.NewInt(0)
 	unrealizedPnl := big.NewInt(0)
-	for _, market := range GetActiveMarkets() {
+	for _, market := range markets {
 		_notionalPosition, _unrealizedPnl := getOptimalPnl(market, oraclePrices[market], lastPrices[market], trader, margin, marginMode)
 		notionalPosition.Add(notionalPosition, _notionalPosition)
 		unrealizedPnl.Add(unrealizedPnl, _unrealizedPnl)

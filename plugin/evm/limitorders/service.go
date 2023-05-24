@@ -67,7 +67,7 @@ func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*O
 	if len(marketStr) > 0 {
 		var err error
 		_market, err := strconv.Atoi(marketStr)
-		if err != nil || _market < len(GetActiveMarkets())-1 {
+		if err != nil {
 			return nil, fmt.Errorf("invalid market")
 		}
 		market = &_market

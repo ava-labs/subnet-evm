@@ -212,6 +212,7 @@ func (lotp *limitOrderTxProcessor) GetUnderlyingPrice() (map[Market]*big.Int, er
 		Input:   (*hexutil.Bytes)(&data),
 		ChainID: (*hexutil.Big)(lotp.backend.ChainConfig().ChainID),
 	}
+	// this has to current head block
 	blockNumber := rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(lotp.backend.LastAcceptedBlock().Number().Int64()))
 	res, err := ethapi.DoCall(context.Background(), lotp.backend, args, blockNumber, nil, time.Minute, 5000000)
 	if err != nil {

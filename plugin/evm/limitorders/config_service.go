@@ -5,6 +5,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/hubblebibliophile"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/hubbleconfigmanager"
 )
 
@@ -14,6 +15,7 @@ type IConfigService interface {
 	getMinAllowableMargin() *big.Int
 	getMaintenanceMargin() *big.Int
 	getMinSizeRequirement() *big.Int
+	GetActiveMarketsCount() int64
 }
 
 type ConfigService struct {
@@ -49,4 +51,8 @@ func (cs *ConfigService) getMinSizeRequirement() *big.Int {
 func (cs *ConfigService) getStateAtCurrentBlock() *state.StateDB {
 	stateDB, _ := cs.blockChain.StateAt(cs.blockChain.CurrentBlock().Root())
 	return stateDB
+}
+
+func (cs *ConfigService) GetActiveMarketsCount() int64 {
+	return hubblebibliophile.GetActiveMarketsCount(cs.getStateAtCurrentBlock())
 }

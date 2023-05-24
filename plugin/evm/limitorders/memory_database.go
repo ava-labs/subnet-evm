@@ -18,16 +18,6 @@ import (
 var _1e18 = big.NewInt(1e18)
 var _1e6 = big.NewInt(1e6)
 
-type Market int
-
-const (
-	AvaxPerp Market = iota
-)
-
-func GetActiveMarkets() []Market {
-	return []Market{AvaxPerp}
-}
-
 type Collateral int
 
 const (
@@ -169,7 +159,7 @@ type LimitOrderDatabase interface {
 	Accept(blockNumber uint64)
 	SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
-	GetNaughtyTraders(oraclePrices map[Market]*big.Int) ([]LiquidablePosition, map[common.Address][]common.Hash)
+	GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]common.Hash)
 	GetOpenOrdersForTrader(trader common.Address) []LimitOrder
 }
 
@@ -184,7 +174,7 @@ type InMemoryDatabase struct {
 
 func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
 	orderMap := map[common.Hash]*LimitOrder{}
-	lastPrice := map[Market]*big.Int{AvaxPerp: big.NewInt(0)}
+	lastPrice := map[Market]*big.Int{}
 	traderMap := map[common.Address]*Trader{}
 
 	return &InMemoryDatabase{
@@ -457,11 +447,11 @@ func (db *InMemoryDatabase) GetOpenOrdersForTrader(trader common.Address) []Limi
 	return db.getTraderOrders(trader)
 }
 
-func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFraction *big.Int) LiquidablePosition {
+func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFraction *big.Int, markets []Market) LiquidablePosition {
 	liquidable := LiquidablePosition{}
 	// iterate through the markets and return the first one with an open position
 	// @todo when we introduce multiple markets, we will have to implement a more sophisticated liquidation strategy
-	for _, market := range GetActiveMarkets() {
+	for _, market := range markets {
 		position := trader.Positions[market]
 		if position == nil || position.Size.Sign() == 0 {
 			continue
@@ -482,7 +472,7 @@ func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFra
 	return liquidable
 }
 
-func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int) ([]LiquidablePosition, map[common.Address][]common.Hash) {
+func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]common.Hash) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -490,14 +480,14 @@ func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int) 
 	ordersToCancel := map[common.Address][]common.Hash{}
 
 	for addr, trader := range db.TraderMap {
-		pendingFunding := getTotalFunding(trader)
-		marginFraction := calcMarginFraction(trader, pendingFunding, oraclePrices, db.LastPrice)
+		pendingFunding := getTotalFunding(trader, markets)
+		marginFraction := calcMarginFraction(trader, pendingFunding, oraclePrices, db.LastPrice, markets)
 		if marginFraction.Cmp(db.configService.getMaintenanceMargin()) == -1 {
 			log.Info("below maintenanceMargin", "trader", addr.String(), "marginFraction", prettifyScaledBigInt(marginFraction, 6))
-			liquidablePositions = append(liquidablePositions, determinePositionToLiquidate(trader, addr, marginFraction))
+			liquidablePositions = append(liquidablePositions, determinePositionToLiquidate(trader, addr, marginFraction, markets))
 			continue // we do not check for their open orders yet. Maybe liquidating them first will make available margin positive
 		}
-		availableMargin := getAvailableMargin(trader, pendingFunding, oraclePrices, db.LastPrice, db.configService.getMinAllowableMargin())
+		availableMargin := getAvailableMargin(trader, pendingFunding, oraclePrices, db.LastPrice, db.configService.getMinAllowableMargin(), markets)
 		// log.Info("getAvailableMargin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
 		if availableMargin.Cmp(big.NewInt(0)) == -1 {
 			log.Info("negative available margin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
@@ -621,10 +611,10 @@ func getBlankTrader() *Trader {
 	}
 }
 
-func getAvailableMargin(trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, minAllowableMargin *big.Int) *big.Int {
+func getAvailableMargin(trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, minAllowableMargin *big.Int, markets []Market) *big.Int {
 	// log.Info("in getAvailableMargin", "trader", trader, "pendingFunding", pendingFunding, "oraclePrices", oraclePrices, "lastPrices", lastPrices)
 	margin := new(big.Int).Sub(getNormalisedMargin(trader), pendingFunding)
-	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices)
+	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices, markets)
 	utilisedMargin := divideByBasePrecision(new(big.Int).Mul(notionalPosition, minAllowableMargin))
 	// print margin, notionalPosition, unrealizePnL, utilisedMargin
 	// log.Info("stats", "margin", margin, "notionalPosition", notionalPosition, "unrealizePnL", unrealizePnL, "utilisedMargin", utilisedMargin)

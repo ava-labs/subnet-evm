@@ -18,6 +18,7 @@ import (
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/hubblebibliophile"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/hubbleconfigmanager"
 )
 

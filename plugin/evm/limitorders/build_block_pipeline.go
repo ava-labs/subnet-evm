@@ -24,6 +24,12 @@ func NewBuildBlockPipeline(db LimitOrderDatabase, lotp LimitOrderTxProcessor, co
 }
 
 func (pipeline *BuildBlockPipeline) Run() {
+	markets := pipeline.GetActiveMarkets()
+
+	if len(markets) == 0 {
+		return
+	}
+
 	pipeline.lotp.PurgeLocalTx()
 
 	if isFundingPaymentTime(pipeline.db.GetNextFundingTime()) {
@@ -44,14 +50,14 @@ func (pipeline *BuildBlockPipeline) Run() {
 	}
 
 	// build trader map
-	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(underlyingPrices)
+	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(underlyingPrices, markets)
 	cancellableOrderIds := pipeline.cancelOrders(ordersToCancel, underlyingPrices)
 	orderMap := make(map[Market]*Orders)
-	for _, market := range GetActiveMarkets() {
+	for _, market := range markets {
 		orderMap[market] = pipeline.fetchOrders(market, underlyingPrices[market], cancellableOrderIds)
 	}
 	pipeline.runLiquidations(liquidablePositions, orderMap)
-	for _, market := range GetActiveMarkets() {
+	for _, market := range markets {
 		pipeline.runMatchingEngine(pipeline.lotp, orderMap[market].longOrders, orderMap[market].shortOrders)
 	}
 }
@@ -59,6 +65,17 @@ func (pipeline *BuildBlockPipeline) Run() {
 type Orders struct {
 	longOrders  []LimitOrder
 	shortOrders []LimitOrder
+}
+
+type Market int64
+
+func (pipeline *BuildBlockPipeline) GetActiveMarkets() []Market {
+	count := pipeline.configService.GetActiveMarketsCount()
+	markets := make([]Market, count)
+	for i := int64(0); i < count; i++ {
+		markets[i] = Market(i)
+	}
+	return markets
 }
 
 func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Address][]common.Hash, oraclePrices map[Market]*big.Int) map[common.Hash]struct{} {
