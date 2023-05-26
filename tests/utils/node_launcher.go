@@ -16,10 +16,9 @@ const (
 	isPartitioningEnabled    = false
 	enclaveIdPrefix          = "test"
 	avalancheStarlarkPackage = "github.com/kurtosis-tech/avalanche-package"
-	// forces the node to launch on 9650 instead of ephemeral ports
-	defaultParallelism = 4
-	nodePrefix         = "node-"
-	testImageId        = "avaplatform/avalanchego:test"
+	defaultParallelism       = 4
+	nodePrefix               = "node-"
+	testImageId              = "avaplatform/avalanchego:test"
 )
 
 func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
