@@ -50,7 +50,7 @@ func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
 	var nodeRpcUris []string
 
 	for nodeIdx := 0; nodeIdx < nodeCount; nodeIdx++ {
-		nodeId := nodePrefix + string(nodeIdx)
+		nodeId := fmt.Sprintf("%v%v", nodePrefix, nodeIdx)
 		serviceCtx, err := enclaveCtx.GetServiceContext(nodeId)
 		if err != nil {
 			return nil, nil, err
