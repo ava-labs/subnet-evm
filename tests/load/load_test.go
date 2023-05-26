@@ -32,16 +32,18 @@ var _ = ginkgo.BeforeSuite(func() {
 	defer cancel()
 
 	log.Info("Starting AvalancheGo node")
-	nodeUrl, tearDownFunc, err := utils.SpinupAvalancheNode()
+	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(utils.DefaultNumberOfNodesToSpinUp)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(tearDownFunc).ShouldNot(gomega.BeNil())
+	gomega.Expect(nodeUris).ShouldNot(gomega.BeEmpty())
+	firstNodeUri := nodeUris[0]
 	tearDown = tearDownFunc
 
 	// confirm that Kurtosis started the node on the expected url
-	gomega.Expect(nodeUrl).Should(gomega.Equal(utils.DefaultLocalNodeURI))
+	gomega.Expect(firstNodeUri).Should(gomega.Equal(utils.DefaultLocalNodeURI))
 
 	// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
-	healthClient := health.NewClient(nodeUrl)
+	healthClient := health.NewClient(firstNodeUri)
 	healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(healthy).Should(gomega.BeTrue())

@@ -16,43 +16,52 @@ const (
 	enclaveIdPrefix          = "test"
 	avalancheStarlarkPackage = "github.com/kurtosis-tech/avalanche-package"
 	// forces the node to launch on 9650 instead of ephemeral ports
-	forceExposeOn9650        = `{"test_mode": true}`
-	defaultParallelism       = 4
-	firstNodeId              = "node-0"
-	validationErrorDelimiter = ", "
+	defaultParallelism = 4
+	nodePrefix         = "node-"
 )
 
-func SpinupAvalancheNode() (string, func(), error) {
+func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
 	ctx := context.Background()
+
+	packageArgumentsToStartNNodeTestNet := `{
+		"test_mode": true,
+		"nodeCount": ` + string(nodeCount) + `
+	}`
 
 	kurtosisCtx, err := kurtosis_context.NewKurtosisContextFromLocalEngine()
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 
 	enclaveId := fmt.Sprintf("%s-%d", enclaveIdPrefix, time.Now().Unix())
 	enclaveCtx, err := kurtosisCtx.CreateEnclave(ctx, enclaveId, isPartitioningEnabled)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 
-	_, err = enclaveCtx.RunStarlarkRemotePackageBlocking(ctx, avalancheStarlarkPackage, forceExposeOn9650, false, defaultParallelism)
+	_, err = enclaveCtx.RunStarlarkRemotePackageBlocking(ctx, avalancheStarlarkPackage, packageArgumentsToStartNNodeTestNet, false, defaultParallelism)
 	if err != nil {
-		return "", nil, fmt.Errorf("an error occurred while running Starlark Package: %v", err)
+		return nil, nil, fmt.Errorf("an error occurred while running Starlark Package: %v", err)
 	}
 
-	serviceCtx, err := enclaveCtx.GetServiceContext(firstNodeId)
-	if err != nil {
-		return "", nil, err
-	}
+	var nodeRpcUris []string
 
-	publicRpcPorts := serviceCtx.GetPublicPorts()
-	rpcPortSpec, found := publicRpcPorts["rpc"]
-	if !found {
-		return "", nil, fmt.Errorf("couldn't find RPC port in the node '%v' that was spun up", firstNodeId)
-	}
+	for nodeIdx := 0; nodeIdx < nodeCount; nodeIdx++ {
+		nodeId := nodePrefix + string(nodeIdx)
+		serviceCtx, err := enclaveCtx.GetServiceContext(nodeId)
+		if err != nil {
+			return nil, nil, err
+		}
 
-	rpcPortNumber := rpcPortSpec.GetNumber()
+		publicRpcPorts := serviceCtx.GetPublicPorts()
+		rpcPortSpec, found := publicRpcPorts["rpc"]
+		if !found {
+			return nil, nil, fmt.Errorf("couldn't find RPC port in the node '%v' that was spun up", nodeId)
+		}
+
+		rpcPortNumber := rpcPortSpec.GetNumber()
+		nodeRpcUris = append(nodeRpcUris, fmt.Sprintf("http://127.0.0.1:%d", rpcPortNumber))
+	}
 
 	tearDownFunction := func() {
 		fmt.Println(fmt.Printf("Destroying enclave with id '%v'", enclaveId))
@@ -64,5 +73,5 @@ func SpinupAvalancheNode() (string, func(), error) {
 		}
 	}
 
-	return fmt.Sprintf("http://127.0.0.1:%d", rpcPortNumber), tearDownFunction, nil
+	return nodeRpcUris, tearDownFunction, nil
 }
