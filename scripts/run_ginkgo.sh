@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-# This script assumes that an AvalancheGo and Subnet-EVM binaries are available in the standard location
-# within the $GOPATH
+# This script assumes that Kurtosis is installed and an engine is running
+# Head over to https://docs.kurtosis.com/install/#ii-install-the-cli
+# In case an engine isn't running use kurtosis engine restart
 
 # Load the versions
 SUBNET_EVM_PATH=$(
