@@ -21,7 +21,7 @@ const (
 	testImageId              = "avaplatform/avalanchego:test"
 )
 
-func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
+func SpinupAvalancheNodes(nodeCount int) ([]string, func() error, error) {
 	ctx := context.Background()
 
 	packageArgumentsToStartNNodeTestNet := `{
@@ -65,14 +65,15 @@ func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
 		nodeRpcUris = append(nodeRpcUris, fmt.Sprintf("http://127.0.0.1:%d", rpcPortNumber))
 	}
 
-	tearDownFunction := func() {
+	tearDownFunction := func() error {
 		fmt.Println(fmt.Printf("Destroying enclave with id '%v'", enclaveId))
 		if err = kurtosisCtx.StopEnclave(ctx, enclaveId); err != nil {
-			fmt.Printf("An error occurred while stopping the enclave with id '%v'\n", enclaveId)
+			return fmt.Errorf("an error occurred while stopping the enclave '%v': %v", enclaveId, err)
 		}
 		if err = kurtosisCtx.DestroyEnclave(ctx, enclaveId); err != nil {
-			fmt.Printf("An error occurred while cleaning up the enclave with id '%v'\n", enclaveId)
+			return fmt.Errorf("an error occurred while destroying the enclave '%v': %v", enclaveId, err)
 		}
+		return err
 	}
 
 	return nodeRpcUris, tearDownFunction, nil

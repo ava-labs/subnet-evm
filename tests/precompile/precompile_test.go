@@ -19,7 +19,7 @@ import (
 	_ "github.com/ava-labs/subnet-evm/tests/precompile/solidity"
 )
 
-var tearDown func()
+var tearDown func() error
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -52,7 +52,8 @@ var _ = ginkgo.BeforeSuite(func() {
 
 var _ = ginkgo.AfterSuite(func() {
 	gomega.Expect(tearDown).ShouldNot(gomega.BeNil())
-	tearDown()
+	err := tearDown()
+	gomega.Expect(err).Should(gomega.BeNil())
 	// TODO add a new node to bootstrap off of the existing node and ensure it can bootstrap all subnets
 	// created during the test
 })
