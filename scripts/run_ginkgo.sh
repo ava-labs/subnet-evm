@@ -4,6 +4,7 @@ set -e
 # This script assumes that Kurtosis is installed and an engine is running
 # Head over to https://docs.kurtosis.com/install/#ii-install-the-cli
 # In case an engine isn't running use kurtosis engine restart
+# This assumes that the
 
 # Load the versions
 SUBNET_EVM_PATH=$(

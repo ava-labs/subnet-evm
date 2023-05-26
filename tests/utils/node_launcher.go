@@ -27,7 +27,7 @@ func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
 	packageArgumentsToStartNNodeTestNet := `{
 		"test_mode": true,
 		"node_count": ` + strconv.Itoa(nodeCount) + `,
-		"image": "` + testImageId + `"
+		"avalanchego_image": "` + testImageId + `"
 	}`
 
 	kurtosisCtx, err := kurtosis_context.NewKurtosisContextFromLocalEngine()
