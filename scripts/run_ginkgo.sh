@@ -2,9 +2,9 @@
 set -e
 
 # This script assumes that Kurtosis is installed and an engine is running
-# Head over to https://docs.kurtosis.com/install/#ii-install-the-cli
+# Head over to https://docs.kurtosis.com/install/#ii-install-the-cli to see how to install Kurtosis
 # In case an engine isn't running use kurtosis engine restart
-# This assumes that the node image with tag :test exists
+# This assumes that the node image avaplatform/avalanchego with tag :test exists;
 # you can create it with BUILD_IMAGE_ID=test ./scripts/build_image.sh
 
 # Load the versions
