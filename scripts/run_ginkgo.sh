@@ -4,7 +4,8 @@ set -e
 # This script assumes that Kurtosis is installed and an engine is running
 # Head over to https://docs.kurtosis.com/install/#ii-install-the-cli
 # In case an engine isn't running use kurtosis engine restart
-# This assumes that the
+# This assumes that the node image with tag :test exists
+# you can create it with BUILD_IMAGE_ID=test ./scripts/build_image.sh
 
 # Load the versions
 SUBNET_EVM_PATH=$(
