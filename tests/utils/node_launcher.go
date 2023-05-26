@@ -27,7 +27,7 @@ func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
 
 	packageArgumentsToStartNNodeTestNet := `{
 		"test_mode": true,
-		"nodeCount": ` + strconv.Itoa(nodeCount) + `
+		"nodeCount": ` + strconv.Itoa(nodeCount) + `,
 		"image": ` + testImageId + `
 	}`
 
