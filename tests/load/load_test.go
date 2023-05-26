@@ -32,7 +32,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	defer cancel()
 
 	log.Info("Starting AvalancheGo node")
-	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(utils.DefaultNumberOfNodesToSpinUp)
+	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(5)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(tearDownFunc).ShouldNot(gomega.BeNil())
 	gomega.Expect(nodeUris).ShouldNot(gomega.BeEmpty())
@@ -58,7 +58,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		blockchainID := utils.CreateNewSubnet(ctx, "./tests/load/genesis/genesis.json")
 
 		rpcEndpoints := make([]string, 0, len(utils.NodeURIs))
-		for _, uri := range []string{utils.DefaultLocalNodeURI} { // TODO: use NodeURIs instead, hack until fixing multi node in a network behavior
+		for _, uri := range utils.NodeURIs {
 			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
