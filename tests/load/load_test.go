@@ -35,19 +35,17 @@ var _ = ginkgo.BeforeSuite(func() {
 	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(utils.NumNodesToSpinUpForMultiNodeTest)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(tearDownFunc).ShouldNot(gomega.BeNil())
-	gomega.Expect(nodeUris).ShouldNot(gomega.BeEmpty())
-	firstNodeUri := nodeUris[0]
 	tearDown = tearDownFunc
-
-	// confirm that Kurtosis started the node on the expected url
-	gomega.Expect(firstNodeUri).Should(gomega.Equal(utils.DefaultLocalNodeURI))
-
-	// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
-	healthClient := health.NewClient(firstNodeUri)
-	healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
-	gomega.Expect(err).Should(gomega.BeNil())
-	gomega.Expect(healthy).Should(gomega.BeTrue())
-	log.Info("AvalancheGo node is healthy")
+	gomega.Expect(nodeUris).Should(gomega.HaveLen(utils.NumNodesToSpinUpForMultiNodeTest))
+	for index, nodeUri := range nodeUris {
+		// confirm that Kurtosis started the node on the expected url
+		gomega.Expect(nodeUri).Should(gomega.Equal(utils.NodeURIs[index]))
+		healthClient := health.NewClient(nodeUri)
+		healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(healthy).Should(gomega.BeTrue())
+		log.Info("AvalancheGo node is healthy")
+	}
 })
 
 var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {

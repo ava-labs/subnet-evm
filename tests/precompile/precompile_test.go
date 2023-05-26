@@ -35,7 +35,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(utils.DefaultNumberOfNodesToSpinUp)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(tearDownFunc).ShouldNot(gomega.BeNil())
-	gomega.Expect(nodeUris).ShouldNot(gomega.BeEmpty())
+	gomega.Expect(nodeUris).Should(gomega.HaveLen(utils.DefaultNumberOfNodesToSpinUp))
 	firstNodeUri := nodeUris[0]
 	tearDown = tearDownFunc
 

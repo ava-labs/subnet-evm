@@ -24,12 +24,6 @@ const (
 func SpinupAvalancheNodes(nodeCount int) ([]string, func() error, error) {
 	ctx := context.Background()
 
-	packageArgumentsToStartNNodeTestNet := `{
-		"test_mode": true,
-		"node_count": ` + strconv.Itoa(nodeCount) + `,
-		"avalanchego_image": "` + testImageId + `"
-	}`
-
 	kurtosisCtx, err := kurtosis_context.NewKurtosisContextFromLocalEngine()
 	if err != nil {
 		return nil, nil, err
@@ -41,6 +35,11 @@ func SpinupAvalancheNodes(nodeCount int) ([]string, func() error, error) {
 		return nil, nil, err
 	}
 
+	packageArgumentsToStartNNodeTestNet := `{
+		"test_mode": true,
+		"node_count": ` + strconv.Itoa(nodeCount) + `,
+		"avalanchego_image": "` + testImageId + `"
+	}`
 	_, err = enclaveCtx.RunStarlarkRemotePackageBlocking(ctx, avalancheStarlarkPackage, packageArgumentsToStartNNodeTestNet, false, defaultParallelism)
 	if err != nil {
 		return nil, nil, fmt.Errorf("an error occurred while running Starlark Package: %v", err)
