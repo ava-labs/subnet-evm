@@ -18,6 +18,7 @@ const (
 	// forces the node to launch on 9650 instead of ephemeral ports
 	defaultParallelism = 4
 	nodePrefix         = "node-"
+	testImageId        = "avaplatform/avalanchego:test"
 )
 
 func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
@@ -26,6 +27,7 @@ func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
 	packageArgumentsToStartNNodeTestNet := `{
 		"test_mode": true,
 		"nodeCount": ` + string(nodeCount) + `
+		"image": ` + testImageId + `
 	}`
 
 	kurtosisCtx, err := kurtosis_context.NewKurtosisContextFromLocalEngine()
