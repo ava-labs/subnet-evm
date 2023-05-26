@@ -6,6 +6,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/kurtosis-tech/kurtosis/api/golang/engine/lib/kurtosis_context"
@@ -26,7 +27,7 @@ func SpinupAvalancheNodes(nodeCount int) ([]string, func(), error) {
 
 	packageArgumentsToStartNNodeTestNet := `{
 		"test_mode": true,
-		"nodeCount": ` + string(nodeCount) + `
+		"nodeCount": ` + strconv.Itoa(nodeCount) + `
 		"image": ` + testImageId + `
 	}`
 
