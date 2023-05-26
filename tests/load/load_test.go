@@ -32,7 +32,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	defer cancel()
 
 	log.Info("Starting AvalancheGo node")
-	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(5)
+	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(utils.NumNodesToSpinUpForMultiNodeTest)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(tearDownFunc).ShouldNot(gomega.BeNil())
 	gomega.Expect(nodeUris).ShouldNot(gomega.BeEmpty())

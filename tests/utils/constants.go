@@ -4,7 +4,8 @@
 package utils
 
 var (
-	DefaultNumberOfNodesToSpinUp = 1
-	DefaultLocalNodeURI          = "http://127.0.0.1:9650"
-	NodeURIs                     = []string{DefaultLocalNodeURI, "http://127.0.0.1:9652", "http://127.0.0.1:9654", "http://127.0.0.1:9656", "http://127.0.0.1:9658"}
+	DefaultNumberOfNodesToSpinUp     = 1
+	DefaultLocalNodeURI              = "http://127.0.0.1:9650"
+	NodeURIs                         = []string{DefaultLocalNodeURI, "http://127.0.0.1:9652", "http://127.0.0.1:9654", "http://127.0.0.1:9656", "http://127.0.0.1:9658"}
+	NumNodesToSpinUpForMultiNodeTest = len(NodeURIs)
 )
