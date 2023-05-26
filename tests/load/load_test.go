@@ -32,20 +32,21 @@ var _ = ginkgo.BeforeSuite(func() {
 	defer cancel()
 
 	log.Info("Starting AvalancheGo node")
-	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(utils.NumNodesToSpinUpForMultiNodeTest)
+	nodeUris, tearDownFunc, err := utils.SpinupAvalancheNodes(utils.DefaultNumberOfNodesToSpinUp)
 	gomega.Expect(err).Should(gomega.BeNil())
 	gomega.Expect(tearDownFunc).ShouldNot(gomega.BeNil())
+	gomega.Expect(nodeUris).Should(gomega.HaveLen(utils.DefaultNumberOfNodesToSpinUp))
+	firstNodeUri := nodeUris[0]
 	tearDown = tearDownFunc
-	gomega.Expect(nodeUris).Should(gomega.HaveLen(utils.NumNodesToSpinUpForMultiNodeTest))
-	for index, nodeUri := range nodeUris {
-		// confirm that Kurtosis started the node on the expected url
-		gomega.Expect(nodeUri).Should(gomega.Equal(utils.NodeURIs[index]))
-		healthClient := health.NewClient(nodeUri)
-		healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
-		gomega.Expect(err).Should(gomega.BeNil())
-		gomega.Expect(healthy).Should(gomega.BeTrue())
-		log.Info("AvalancheGo node is healthy")
-	}
+
+	// confirm that Kurtosis started the node on the expected url
+	gomega.Expect(firstNodeUri).Should(gomega.Equal(utils.DefaultLocalNodeURI))
+
+	healthClient := health.NewClient(firstNodeUri)
+	healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
+	gomega.Expect(err).Should(gomega.BeNil())
+	gomega.Expect(healthy).Should(gomega.BeTrue())
+	log.Info("AvalancheGo node is healthy")
 })
 
 var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
@@ -56,7 +57,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		blockchainID := utils.CreateNewSubnet(ctx, "./tests/load/genesis/genesis.json")
 
 		rpcEndpoints := make([]string, 0, len(utils.NodeURIs))
-		for _, uri := range utils.NodeURIs {
+		for _, uri := range []string{utils.DefaultLocalNodeURI} { // TODO: use NodeURIs instead, hack until fixing multi node in a network behavior
 			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")

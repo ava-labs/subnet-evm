@@ -42,7 +42,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	// confirm that Kurtosis started the node on the expected url
 	gomega.Expect(firstNodeUri).Should(gomega.Equal(utils.DefaultLocalNodeURI))
 
-	// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
 	healthClient := health.NewClient(firstNodeUri)
 	healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
 	gomega.Expect(err).Should(gomega.BeNil())
