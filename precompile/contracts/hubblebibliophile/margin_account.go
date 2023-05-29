@@ -11,7 +11,7 @@ import (
 
 const (
 	MARGIN_ACCOUNT_GENESIS_ADDRESS        = "0x0300000000000000000000000000000000000070"
-	VAR_MARGIN_MAPPING_STORAGE_SLOT int64 = 10
+	VAR_MARGIN_MAPPING_STORAGE_SLOT int64 = 11
 )
 
 func GetNormalizedMargin(stateDB contract.StateDB, trader common.Address) *big.Int {

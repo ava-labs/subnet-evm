@@ -32,9 +32,9 @@ func TestAggregatedOrderBook(t *testing.T) {
 		db.Add(getIdFromLimitOrder(shortOrder2), &shortOrder2)
 
 		ctx := context.TODO()
-		response := service.GetDepthForMarket(ctx, int(AvaxPerp))
+		response := service.GetDepthForMarket(ctx, int(Market(0)))
 		expectedAggregatedOrderBookState := MarketDepth{
-			Market: AvaxPerp,
+			Market: Market(0),
 			Longs: map[string]string{
 				longOrder1.Price.String(): longOrder1.BaseAssetQuantity.String(),
 				longOrder2.Price.String(): longOrder2.BaseAssetQuantity.String(),

@@ -41,13 +41,11 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
     /**
      * Execute matched orders
      * @param orders It is required that orders[0] is a LONG and orders[1] is a short
-     * @param signatures To verify authenticity of the order
      * @param fillAmount Amount to be filled for each order. This is to support partial fills.
      *        Should be > 0 and min(unfilled amount in both orders)
     */
     function executeMatchedOrders(
         Order[2] memory orders,
-        bytes[2] memory signatures,
         int256 fillAmount
     )   external
     {
@@ -56,22 +54,15 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         require(orders[1].baseAssetQuantity < 0, "OB_order_1_is_not_short");
         require(fillAmount > 0, "OB_fillAmount_is_neg");
         require(orders[0].price /* buy */ >= orders[1].price /* sell */, "OB_orders_do_not_match");
-        // (bytes32 orderHash0, uint blockPlaced0) = _verifyOrder(orders[0], signatures[0], fillAmount);
-        // (bytes32 orderHash1, uint blockPlaced1) = _verifyOrder(orders[1], signatures[1], -fillAmount);
-        (, bytes32 orderHash0) = verifySigner(orders[0], signatures[0]);
-        (, bytes32 orderHash1) = verifySigner(orders[1], signatures[1]);
-        // // @todo min fillAmount and min order.baseAsset check
 
+        bytes32 orderHash0 = getOrderHash(orders[0]);
+        bytes32 orderHash1 = getOrderHash(orders[1]);
         // // Effects
         _updateOrder(orderHash0, fillAmount, orders[0].baseAssetQuantity);
         _updateOrder(orderHash1, -fillAmount, orders[1].baseAssetQuantity);
 
         // // Interactions
-        uint fulfillPrice = orders[0].price; // if prices are equal or long blockPlaced <= short blockPlaced
-        // if (orders[0].price != orders[1].price && blockPlaced0 > blockPlaced1) {
-        //     fulfillPrice = orders[1].price;
-        // }
-
+        uint fulfillPrice = orders[0].price;
         _openPosition(orders[0], fillAmount, fulfillPrice);
         _openPosition(orders[1], -fillAmount, fulfillPrice);
 
@@ -102,17 +93,15 @@ contract OrderBook is IOrderBook, EIP712Upgradeable {
         lastPrices[ammIndex] = fulfillPrice;
     }
 
-    function placeOrder(Order memory order, bytes memory signature) external {
-        // require(msg.sender == order.trader, "OB_sender_is_not_trader");
-        // verifying signature here to avoid too many fake placeOrders
-        (, bytes32 orderHash) = verifySigner(order, signature);
+    function placeOrder(Order memory order) external {
+        bytes32 orderHash = getOrderHash(order);
         // order should not exist in the orderStatus map already
         // require(orderInfo[orderHash].status == OrderStatus.Invalid, "OB_Order_already_exists");
         orderInfo[orderHash] = OrderInfo(block.number, 0, OrderStatus.Placed);
         // @todo assert margin requirements for placing the order
         // @todo min size requirement while placing order
 
-        emit OrderPlaced(order.trader, orderHash, order, signature, block.timestamp);
+        emit OrderPlaced(order.trader, orderHash, order, block.timestamp);
     }
 
     function cancelOrder(Order memory order) external {

@@ -18,6 +18,8 @@ var price = big.NewInt(20)
 var status Status = Placed
 var blockNumber = big.NewInt(2)
 
+var market = Market(0)
+
 func TestgetDatabase(t *testing.T) {
 	inMemoryDatabase := getDatabase()
 	assert.NotNil(t, inMemoryDatabase)
@@ -110,7 +112,7 @@ func TestGetShortOrders(t *testing.T) {
 	shortOrder4.ReduceOnly = true
 	inMemoryDatabase.Add(orderId, &shortOrder4)
 
-	returnedShortOrders := inMemoryDatabase.GetShortOrders(AvaxPerp, nil)
+	returnedShortOrders := inMemoryDatabase.GetShortOrders(market, nil)
 	assert.Equal(t, 3, len(returnedShortOrders))
 
 	for _, returnedOrder := range returnedShortOrders {
@@ -131,9 +133,9 @@ func TestGetShortOrders(t *testing.T) {
 	// now test with one reduceOnly order when there's a long position
 
 	size := big.NewInt(0).Mul(big.NewInt(10), _1e18)
-	inMemoryDatabase.UpdatePosition(trader, AvaxPerp, size, big.NewInt(0).Mul(big.NewInt(100), _1e6), false)
+	inMemoryDatabase.UpdatePosition(trader, market, size, big.NewInt(0).Mul(big.NewInt(100), _1e6), false)
 
-	returnedShortOrders = inMemoryDatabase.GetShortOrders(AvaxPerp, nil)
+	returnedShortOrders = inMemoryDatabase.GetShortOrders(market, nil)
 	assert.Equal(t, 4, len(returnedShortOrders))
 
 	// at least one of the orders should be reduce only
@@ -184,7 +186,7 @@ func TestGetLongOrders(t *testing.T) {
 	longOrder3, orderId := createLimitOrder(LONG, userAddress, longOrderBaseAssetQuantity, price3, status, signature3, blockNumber3, salt3)
 	inMemoryDatabase.Add(orderId, &longOrder3)
 
-	returnedLongOrders := inMemoryDatabase.GetLongOrders(AvaxPerp, nil)
+	returnedLongOrders := inMemoryDatabase.GetLongOrders(market, nil)
 	assert.Equal(t, 3, len(returnedLongOrders))
 
 	//Test returnedLongOrders are sorted by price highest to lowest first and then block number from lowest to highest
@@ -242,37 +244,37 @@ func TestGetCancellableOrders(t *testing.T) {
 	// 1 fulfilled order at price = 10, size = 9
 	size := big.NewInt(0).Mul(big.NewInt(-9), _1e18)
 	fulfilPrice := multiplyBasePrecision(big.NewInt(10))
-	inMemoryDatabase.UpdatePosition(trader, AvaxPerp, size, dividePrecisionSize(new(big.Int).Mul(new(big.Int).Abs(size), fulfilPrice)), false)
-	inMemoryDatabase.UpdateLastPrice(AvaxPerp, fulfilPrice)
+	inMemoryDatabase.UpdatePosition(trader, market, size, dividePrecisionSize(new(big.Int).Mul(new(big.Int).Abs(size), fulfilPrice)), false)
+	inMemoryDatabase.UpdateLastPrice(market, fulfilPrice)
 
 	// price has moved from 10 to 11 now
 	priceMap := map[Market]*big.Int{
-		AvaxPerp: multiplyBasePrecision(big.NewInt(11)),
+		market: multiplyBasePrecision(big.NewInt(11)),
 	}
 	// Setup completed, assertions start here
 	_trader := inMemoryDatabase.TraderMap[trader]
-	assert.Equal(t, big.NewInt(0), getTotalFunding(_trader))
+	assert.Equal(t, big.NewInt(0), getTotalFunding(_trader, []Market{market}))
 	assert.Equal(t, depositMargin, getNormalisedMargin(_trader))
 
 	// last price based notional = 9 * 10 = 90, pnl = 0, mf = (40-0)/90 = 0.44
 	// oracle price based notional = 9 * 11 = 99, pnl = -9, mf = (40-9)/99 = 0.31
 	// for Min_Allowable_Margin we select the min of 2 hence, oracle based mf
-	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, Min_Allowable_Margin, priceMap, inMemoryDatabase.GetLastPrices())
+	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, Min_Allowable_Margin, priceMap, inMemoryDatabase.GetLastPrices(), []Market{market})
 	assert.Equal(t, multiplyBasePrecision(big.NewInt(99)), notionalPosition)
 	assert.Equal(t, multiplyBasePrecision(big.NewInt(-9)), unrealizePnL)
 
 	// for Maintenance_Margin we select the max of 2 hence, last price based mf
-	notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, Maintenance_Margin, priceMap, inMemoryDatabase.GetLastPrices())
+	notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, Maintenance_Margin, priceMap, inMemoryDatabase.GetLastPrices(), []Market{market})
 	assert.Equal(t, multiplyBasePrecision(big.NewInt(90)), notionalPosition)
 	assert.Equal(t, big.NewInt(0), unrealizePnL)
 
-	marginFraction := calcMarginFraction(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices())
+	marginFraction := calcMarginFraction(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices(), []Market{market})
 	assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(depositMargin /* uPnL = 0 */), notionalPosition), marginFraction)
 
-	availableMargin := getAvailableMargin(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices(), inMemoryDatabase.configService.getMinAllowableMargin())
+	availableMargin := getAvailableMargin(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices(), inMemoryDatabase.configService.getMinAllowableMargin(), []Market{market})
 	// availableMargin = 40 - 9 - (99 + (10+9+8) * 3)/5 = -5
 	assert.Equal(t, multiplyBasePrecision(big.NewInt(-5)), availableMargin)
-	_, ordersToCancel := inMemoryDatabase.GetNaughtyTraders(priceMap)
+	_, ordersToCancel := inMemoryDatabase.GetNaughtyTraders(priceMap, []Market{market})
 
 	// t.Log("####", "ordersToCancel", ordersToCancel)
 	assert.Equal(t, 1, len(ordersToCancel)) // only one trader
@@ -280,8 +282,8 @@ func TestGetCancellableOrders(t *testing.T) {
 	// orderId3 will free up 8*3/5 = 4.8
 	// orderId2 will free up 9*3/5 = 5.4
 	assert.Equal(t, 2, len(ordersToCancel[trader])) // 2 orders
-	assert.Equal(t, ordersToCancel[trader][0], orderId3)
-	assert.Equal(t, ordersToCancel[trader][1], orderId2)
+	assert.Equal(t, ordersToCancel[trader][0].Id, orderId3)
+	assert.Equal(t, ordersToCancel[trader][1].Id, orderId2)
 }
 
 func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
@@ -651,14 +653,13 @@ func TestUpdateReservedMargin(t *testing.T) {
 
 func createLimitOrder(positionType PositionType, userAddress string, baseAssetQuantity *big.Int, price *big.Int, status Status, signature []byte, blockNumber *big.Int, salt *big.Int) (LimitOrder, common.Hash) {
 	lo := LimitOrder{
-		Market:                  GetActiveMarkets()[0],
+		Market:                  market,
 		PositionType:            positionType,
 		UserAddress:             userAddress,
 		FilledBaseAssetQuantity: big.NewInt(0),
 		BaseAssetQuantity:       baseAssetQuantity,
 		Price:                   price,
 		Salt:                    salt,
-		Signature:               signature,
 		BlockNumber:             blockNumber,
 		ReduceOnly:              false,
 	}

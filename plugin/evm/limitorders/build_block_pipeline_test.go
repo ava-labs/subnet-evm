@@ -13,7 +13,7 @@ import (
 
 func TestRunLiquidations(t *testing.T) {
 	traderAddress := common.HexToAddress("0x710bf5f942331874dcbc7783319123679033b63b")
-	market := AvaxPerp
+	market := Market(0)
 
 	t.Run("when there are no liquidable positions", func(t *testing.T) {
 		_, lotp, pipeline := setupDependencies(t)
@@ -152,7 +152,6 @@ func TestRunMatchingEngine(t *testing.T) {
 					longOrder1 := getLongOrder()
 					longOrders = append(longOrders, longOrder1)
 					longOrder2 := getLongOrder()
-					longOrder2.Signature = []byte("Here is a 2nd long order")
 					longOrders = append(longOrders, longOrder2)
 
 					// Add 2 short orders
@@ -160,7 +159,6 @@ func TestRunMatchingEngine(t *testing.T) {
 					shortOrders := make([]LimitOrder, 0)
 					shortOrders = append(shortOrders, shortOrder1)
 					shortOrder2 := getShortOrder()
-					shortOrder2.Signature = []byte("Here is a 2nd short order")
 					shortOrders = append(shortOrders, shortOrder2)
 
 					fillAmount1 := longOrder1.BaseAssetQuantity
@@ -205,11 +203,9 @@ func TestRunMatchingEngine(t *testing.T) {
 				longOrder2 := getLongOrder()
 				longOrder2.BaseAssetQuantity = big.NewInt(40)
 				longOrder2.FilledBaseAssetQuantity = big.NewInt(0)
-				longOrder2.Signature = []byte("Here is a 2nd long order")
 				longOrder3 := getLongOrder()
 				longOrder3.BaseAssetQuantity = big.NewInt(10)
 				longOrder3.FilledBaseAssetQuantity = big.NewInt(3)
-				longOrder3.Signature = []byte("Here is a 3rd long order")
 				longOrders = append(longOrders, longOrder1, longOrder2, longOrder3)
 
 				// Add 2 short orders
@@ -220,11 +216,9 @@ func TestRunMatchingEngine(t *testing.T) {
 				shortOrder2 := getShortOrder()
 				shortOrder2.BaseAssetQuantity = big.NewInt(-50)
 				shortOrder2.FilledBaseAssetQuantity = big.NewInt(-20)
-				shortOrder2.Signature = []byte("Here is a 2nd short order")
 				shortOrder3 := getShortOrder()
 				shortOrder3.BaseAssetQuantity = big.NewInt(-20)
 				shortOrder3.FilledBaseAssetQuantity = big.NewInt(-10)
-				shortOrder3.Signature = []byte("Here is a 3rd short order")
 				shortOrders = append(shortOrders, shortOrder1, shortOrder2, shortOrder3)
 
 				lotp.On("ExecuteMatchedOrdersTx", mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(5)

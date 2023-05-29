@@ -26,7 +26,6 @@ func TestProcessEvents(t *testing.T) {
 		ammIndex := big.NewInt(0)
 		baseAssetQuantity := big.NewInt(5000000000000000000)
 		price := big.NewInt(1000000000)
-		longSignature := []byte("dummy-sig-long")
 		salt1 := big.NewInt(1675239557437)
 		longOrder := getOrder(ammIndex, traderAddress, baseAssetQuantity, price, salt1)
 		longOrderId := getIdFromOrder(longOrder)
@@ -38,12 +37,11 @@ func TestProcessEvents(t *testing.T) {
 		ordersPlacedBlockNumber := uint64(12)
 		orderPlacedEvent := getEventFromABI(orderBookABI, "OrderPlaced")
 		longOrderPlacedEventTopics := []common.Hash{orderPlacedEvent.ID, traderAddress.Hash(), longOrderId}
-		longOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, longSignature, timestamp)
+		longOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, timestamp)
 		longOrderPlacedEventLog := getEventLog(OrderBookContractAddress, longOrderPlacedEventTopics, longOrderPlacedEventData, ordersPlacedBlockNumber)
 
-		shortSignature := []byte("dummy-sig-short")
 		shortOrderPlacedEventTopics := []common.Hash{orderPlacedEvent.ID, traderAddress.Hash(), shortOrderId}
-		shortOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(shortOrder, shortSignature, timestamp)
+		shortOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(shortOrder, timestamp)
 		shortOrderPlacedEventLog := getEventLog(OrderBookContractAddress, shortOrderPlacedEventTopics, shortOrderPlacedEventData, ordersPlacedBlockNumber)
 
 		ordersMatchedBlockNumber := uint64(14)
@@ -103,7 +101,7 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	lastPremiumFraction := multiplyBasePrecision(big.NewInt(1))
 	liquidationThreshold := multiplyBasePrecision(big.NewInt(1))
 	unrealisedFunding := multiplyBasePrecision(big.NewInt(1))
-	market := AvaxPerp
+	market := Market(0)
 	position := &Position{
 		OpenNotional:         openNotional,
 		Size:                 size,
@@ -123,11 +121,10 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	baseAssetQuantity := big.NewInt(5000000000000000000)
 	price := big.NewInt(1000000000)
 	salt := big.NewInt(1675239557437)
-	signature := []byte("signature")
 	order := getOrder(ammIndex, traderAddress, baseAssetQuantity, price, salt)
 	orderBookABI := getABIfromJson(orderBookAbi)
 	orderBookEvent := getEventFromABI(orderBookABI, "OrderPlaced")
-	orderPlacedEventData, _ := orderBookEvent.Inputs.NonIndexed().Pack(order, signature, timestamp)
+	orderPlacedEventData, _ := orderBookEvent.Inputs.NonIndexed().Pack(order, timestamp)
 	orderBookEventTopics := []common.Hash{orderBookEvent.ID, traderAddress.Hash(), getIdFromOrder(order)}
 	orderBookLog := getEventLog(OrderBookContractAddress, orderBookEventTopics, orderPlacedEventData, blockNumber)
 
@@ -165,7 +162,6 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	assert.Equal(t, *baseAssetQuantity, *actualLimitOrder.BaseAssetQuantity)
 	assert.Equal(t, *price, *actualLimitOrder.Price)
 	assert.Equal(t, Placed, actualLimitOrder.getOrderStatus().Status)
-	assert.Equal(t, signature, actualLimitOrder.Signature)
 	assert.Equal(t, big.NewInt(int64(blockNumber)), actualLimitOrder.BlockNumber)
 	rawOrder := getOrderFromRawOrder(args["order"])
 	assert.Equal(t, rawOrder, actualLimitOrder.RawOrder)
@@ -186,7 +182,6 @@ func TestHandleOrderBookEvent(t *testing.T) {
 	baseAssetQuantity := big.NewInt(5000000000000000000)
 	price := big.NewInt(1000000000)
 	salt := big.NewInt(1675239557437)
-	signature := []byte("signature")
 	order := getOrder(ammIndex, traderAddress, baseAssetQuantity, price, salt)
 	blockNumber := uint64(12)
 	orderBookABI := getABIfromJson(orderBookAbi)
@@ -205,7 +200,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		})
 		t.Run("When data in log unpack succeeds", func(t *testing.T) {
 			orderId := crypto.Keccak256Hash([]byte(order.Trader.String() + order.Salt.String()))
-			orderPlacedEventData, err := event.Inputs.NonIndexed().Pack(order, signature, timestamp)
+			orderPlacedEventData, err := event.Inputs.NonIndexed().Pack(order, timestamp)
 			if err != nil {
 				t.Fatalf("%s", err)
 			}
@@ -221,7 +216,6 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			assert.Equal(t, *baseAssetQuantity, *actualLimitOrder.BaseAssetQuantity)
 			assert.Equal(t, *price, *actualLimitOrder.Price)
 			assert.Equal(t, Placed, actualLimitOrder.getOrderStatus().Status)
-			assert.Equal(t, signature, actualLimitOrder.Signature)
 			assert.Equal(t, big.NewInt(int64(blockNumber)), actualLimitOrder.BlockNumber)
 			rawOrder := getOrderFromRawOrder(args["order"])
 			assert.Equal(t, rawOrder, actualLimitOrder.RawOrder)
@@ -239,7 +233,6 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			UserAddress:       traderAddress.String(),
 			BaseAssetQuantity: baseAssetQuantity,
 			Price:             price,
-			Signature:         signature,
 			BlockNumber:       big.NewInt(1),
 			Salt:              salt,
 		}
@@ -265,15 +258,12 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		db := getDatabase()
 		cep := newcep(t, db)
 		event := getEventFromABI(orderBookABI, "OrdersMatched")
-		signature1 := []byte("longOrder")
-		signature2 := []byte("shortOrder")
 		longOrder := &LimitOrder{
 			Market:                  Market(ammIndex.Int64()),
 			PositionType:            LONG,
 			UserAddress:             traderAddress.String(),
 			BaseAssetQuantity:       baseAssetQuantity,
 			Price:                   price,
-			Signature:               signature1,
 			BlockNumber:             big.NewInt(1),
 			FilledBaseAssetQuantity: big.NewInt(0),
 			Salt:                    salt,
@@ -284,7 +274,6 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			UserAddress:             traderAddress.String(),
 			BaseAssetQuantity:       big.NewInt(0).Mul(baseAssetQuantity, big.NewInt(-1)),
 			Price:                   price,
-			Signature:               signature2,
 			BlockNumber:             big.NewInt(1),
 			FilledBaseAssetQuantity: big.NewInt(0),
 			Salt:                    big.NewInt(0).Add(salt, big.NewInt(1000)),
@@ -316,14 +305,12 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		db := getDatabase()
 		cep := newcep(t, db)
 		event := getEventFromABI(orderBookABI, "LiquidationOrderMatched")
-		signature := []byte("longOrder")
 		longOrder := &LimitOrder{
 			Market:                  Market(ammIndex.Int64()),
 			PositionType:            LONG,
 			UserAddress:             traderAddress.String(),
 			BaseAssetQuantity:       baseAssetQuantity,
 			Price:                   price,
-			Signature:               signature,
 			Salt:                    salt,
 			BlockNumber:             big.NewInt(1),
 			FilledBaseAssetQuantity: big.NewInt(0),
@@ -342,7 +329,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 		})
 		t.Run("When data in log unpack succeeds", func(t *testing.T) {
 			// order := getOrder(ammIndex, traderAddress, longOrder.BaseAssetQuantity, price, salt)
-			liquidationOrdersMatchedEventData, _ := event.Inputs.NonIndexed().Pack(signature, fillAmount, price, big.NewInt(0).Mul(fillAmount, price), relayer, timestamp)
+			liquidationOrdersMatchedEventData, _ := event.Inputs.NonIndexed().Pack(fillAmount, price, big.NewInt(0).Mul(fillAmount, price), relayer, timestamp)
 			log := getEventLog(OrderBookContractAddress, topics, liquidationOrdersMatchedEventData, blockNumber)
 			cep.ProcessEvents([]*types.Log{log})
 			assert.Equal(t, fillAmount, db.OrderMap[orderId].FilledBaseAssetQuantity)
@@ -465,7 +452,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 	traderAddress := common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 	blockNumber := uint64(12)
 	collateral := HUSD
-	market := AvaxPerp
+	market := Market(0)
 	clearingHouseABI := getABIfromJson(clearingHouseAbi)
 	openNotional := multiplyBasePrecision(big.NewInt(100))
 	size := multiplyPrecisionSize(big.NewInt(10))
@@ -568,7 +555,8 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 			positionModifiedEvent := []byte{}
 			log := getEventLog(ClearingHouseContractAddress, topics, positionModifiedEvent, blockNumber)
 			cep.ProcessAcceptedEvents([]*types.Log{log})
-			assert.Equal(t, big.NewInt(0), db.LastPrice[market])
+			assert.Nil(t, db.LastPrice[market])
+			// assert.Equal(t, big.NewInt(0), db.LastPrice[market])
 		})
 		t.Run("When event parsing succeeds", func(t *testing.T) {
 			baseAsset := multiplyPrecisionSize(big.NewInt(10))
@@ -579,7 +567,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 			size := multiplyPrecisionSize(big.NewInt(40))
 			price := multiplyBasePrecision(big.NewInt(100)) // baseAsset / quoteAsset
 
-			positionModifiedEvent, err := event.Inputs.NonIndexed().Pack(baseAsset, price, realizedPnl, size, openNotional, big.NewInt(0), timestamp)
+			positionModifiedEvent, err := event.Inputs.NonIndexed().Pack(baseAsset, price, realizedPnl, size, openNotional, big.NewInt(0), uint8(0), timestamp)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -615,7 +603,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 			positionLiquidatedEvent := []byte{}
 			log := getEventLog(ClearingHouseContractAddress, topics, positionLiquidatedEvent, blockNumber)
 			cep.ProcessAcceptedEvents([]*types.Log{log})
-			assert.Equal(t, big.NewInt(0), db.LastPrice[market])
+			assert.Nil(t, db.LastPrice[market])
 		})
 		t.Run("When event parsing succeeds", func(t *testing.T) {
 			baseAsset := multiplyPrecisionSize(big.NewInt(10))
@@ -648,7 +636,6 @@ func TestRemovedEvents(t *testing.T) {
 	salt1 := big.NewInt(1675239557437)
 	salt2 := big.NewInt(1675239557439)
 	orderBookABI := getABIfromJson(orderBookAbi)
-	signature := []byte("longOrder")
 
 	db := getDatabase()
 	cep := newcep(t, db)
@@ -657,12 +644,12 @@ func TestRemovedEvents(t *testing.T) {
 	longOrder := getOrder(ammIndex, traderAddress, baseAssetQuantity, price, salt1)
 	longOrderId := getIdFromOrder(longOrder)
 	longOrderPlacedEventTopics := []common.Hash{orderPlacedEvent.ID, traderAddress.Hash(), longOrderId}
-	longOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, signature, timestamp)
+	longOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, timestamp)
 
 	shortOrder := getOrder(ammIndex, traderAddress2, big.NewInt(0).Neg(baseAssetQuantity), price, salt2)
 	shortOrderId := getIdFromOrder(shortOrder)
 	shortOrderPlacedEventTopics := []common.Hash{orderPlacedEvent.ID, traderAddress2.Hash(), shortOrderId}
-	shortOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(shortOrder, signature, timestamp)
+	shortOrderPlacedEventData, _ := orderPlacedEvent.Inputs.NonIndexed().Pack(shortOrder, timestamp)
 
 	t.Run("delete order when OrderPlaced is removed", func(t *testing.T) {
 		longOrderPlacedEventLog := getEventLog(OrderBookContractAddress, longOrderPlacedEventTopics, longOrderPlacedEventData, blockNumber.Uint64())
@@ -731,7 +718,7 @@ func TestRemovedEvents(t *testing.T) {
 		longOrder.Salt.Add(longOrder.Salt, big.NewInt(10))
 		longOrderId = getIdFromOrder(longOrder)
 		longOrderPlacedEventTopics = []common.Hash{orderPlacedEvent.ID, traderAddress.Hash(), longOrderId}
-		longOrderPlacedEventData, _ = orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, signature, timestamp)
+		longOrderPlacedEventData, _ = orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, timestamp)
 		longOrderPlacedEventLog := getEventLog(OrderBookContractAddress, longOrderPlacedEventTopics, longOrderPlacedEventData, blockNumber.Uint64())
 		cep.ProcessEvents([]*types.Log{longOrderPlacedEventLog})
 
@@ -742,7 +729,7 @@ func TestRemovedEvents(t *testing.T) {
 		liquidationOrderMatchedEvent := getEventFromABI(orderBookABI, "LiquidationOrderMatched")
 		liquidationOrderMatchedEventTopics := []common.Hash{liquidationOrderMatchedEvent.ID, traderAddress.Hash(), longOrderId}
 		relayer := common.HexToAddress("0x710bf5F942331874dcBC7783319123679033b63b")
-		liquidationOrderMatchedEventData, _ := liquidationOrderMatchedEvent.Inputs.NonIndexed().Pack(signature, baseAssetQuantity, price, big.NewInt(0).Mul(baseAssetQuantity, price), relayer, timestamp)
+		liquidationOrderMatchedEventData, _ := liquidationOrderMatchedEvent.Inputs.NonIndexed().Pack(baseAssetQuantity, price, big.NewInt(0).Mul(baseAssetQuantity, price), relayer, timestamp)
 		liquidationOrderMatchedLog := getEventLog(OrderBookContractAddress, liquidationOrderMatchedEventTopics, liquidationOrderMatchedEventData, blockNumber.Uint64()+2)
 		cep.ProcessEvents([]*types.Log{liquidationOrderMatchedLog})
 
@@ -759,7 +746,7 @@ func TestRemovedEvents(t *testing.T) {
 		longOrder.Salt.Add(longOrder.Salt, big.NewInt(20))
 		longOrderId = getIdFromOrder(longOrder)
 		longOrderPlacedEventTopics = []common.Hash{orderPlacedEvent.ID, traderAddress.Hash(), longOrderId}
-		longOrderPlacedEventData, _ = orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, signature, timestamp)
+		longOrderPlacedEventData, _ = orderPlacedEvent.Inputs.NonIndexed().Pack(longOrder, timestamp)
 		longOrderPlacedEventLog := getEventLog(OrderBookContractAddress, longOrderPlacedEventTopics, longOrderPlacedEventData, blockNumber.Uint64())
 		cep.ProcessEvents([]*types.Log{longOrderPlacedEventLog})
 

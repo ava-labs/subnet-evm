@@ -3,7 +3,6 @@ package limitorders
 import (
 	"bytes"
 	"encoding/gob"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -62,7 +61,6 @@ type LimitOrder struct {
 	Price                   *big.Int
 	ReduceOnly              bool
 	LifecycleList           []Lifecycle
-	Signature               []byte
 	BlockNumber             *big.Int // block number order was placed on
 	RawOrder                Order    `json:"-"`
 }
@@ -91,7 +89,6 @@ func (order *LimitOrder) MarshalJSON() ([]byte, error) {
 		Salt:                    order.Salt,
 		Price:                   order.Price,
 		LifecycleList:           order.LifecycleList,
-		Signature:               hex.EncodeToString(order.Signature),
 		BlockNumber:             order.BlockNumber,
 		ReduceOnly:              order.ReduceOnly,
 	}
@@ -108,7 +105,7 @@ func (order LimitOrder) getOrderStatus() Lifecycle {
 }
 
 func (order LimitOrder) String() string {
-	return fmt.Sprintf("LimitOrder: Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, Signature: %v, BlockNumber: %s", order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, hex.EncodeToString(order.Signature), order.BlockNumber)
+	return fmt.Sprintf("LimitOrder: Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, BlockNumber: %s", order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.BlockNumber)
 }
 
 func (order LimitOrder) ToOrderMin() OrderMin {
@@ -163,7 +160,7 @@ type LimitOrderDatabase interface {
 	Accept(blockNumber uint64)
 	SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
-	GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]common.Hash)
+	GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]LimitOrder)
 	GetOpenOrdersForTrader(trader common.Address) []LimitOrder
 }
 
@@ -284,7 +281,6 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, ord
 	defer db.mu.Unlock()
 
 	limitOrder := db.OrderMap[orderId]
-
 	if limitOrder.PositionType == LONG {
 		limitOrder.FilledBaseAssetQuantity.Add(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
 	}
@@ -498,12 +494,12 @@ func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFra
 	return liquidable
 }
 
-func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]common.Hash) {
+func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]LimitOrder) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
 	liquidablePositions := []LiquidablePosition{}
-	ordersToCancel := map[common.Address][]common.Hash{}
+	ordersToCancel := map[common.Address][]LimitOrder{}
 
 	for addr, trader := range db.TraderMap {
 		pendingFunding := getTotalFunding(trader, markets)
@@ -527,7 +523,7 @@ func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, 
 }
 
 // assumes db.mu.RLock has been held by the caller
-func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader *Trader, availableMargin *big.Int, oraclePrices map[Market]*big.Int, ordersToCancel map[common.Address][]common.Hash) {
+func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader *Trader, availableMargin *big.Int, oraclePrices map[Market]*big.Int, ordersToCancel map[common.Address][]LimitOrder) {
 	traderOrders := db.getTraderOrders(addr)
 	sort.Slice(traderOrders, func(i, j int) bool {
 		// higher diff comes first
@@ -539,13 +535,13 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 	_availableMargin := new(big.Int).Set(availableMargin)
 	if len(traderOrders) > 0 {
 		// cancel orders until available margin is positive
-		ordersToCancel[addr] = []common.Hash{}
+		ordersToCancel[addr] = []LimitOrder{}
 		for _, order := range traderOrders {
 			// cannot cancel ReduceOnly orders because no margin is reserved for them
 			if order.ReduceOnly {
 				continue
 			}
-			ordersToCancel[addr] = append(ordersToCancel[addr], order.Id)
+			ordersToCancel[addr] = append(ordersToCancel[addr], order)
 			orderNotional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.GetUnFilledBaseAssetQuantity(), order.Price), _1e18)) // | size * current price |
 			marginReleased := divideByBasePrecision(big.NewInt(0).Mul(orderNotional, db.configService.getMinAllowableMargin()))
 			_availableMargin.Add(_availableMargin, marginReleased)
@@ -678,7 +674,6 @@ func deepCopyOrder(order LimitOrder) LimitOrder {
 		Price:                   big.NewInt(0).Set(order.Price),
 		ReduceOnly:              order.ReduceOnly,
 		LifecycleList:           *lifecycleList,
-		Signature:               order.Signature,
 		BlockNumber:             big.NewInt(0).Set(order.BlockNumber),
 		RawOrder:                order.RawOrder,
 	}
