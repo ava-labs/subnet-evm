@@ -1,7 +1,10 @@
 package evm
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -12,9 +15,15 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/limitorders"
 	"github.com/ava-labs/subnet-evm/utils"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+)
+
+const (
+	memoryDBSnapshotKey string = "memoryDBSnapshot"
+	snapshotInterval    uint64 = 1000 // save snapshot every 1000 blocks
 )
 
 type LimitOrderProcesser interface {
@@ -25,6 +34,7 @@ type LimitOrderProcesser interface {
 
 type limitOrderProcesser struct {
 	ctx                    *snow.Context
+	mu                     *sync.Mutex
 	txPool                 *core.TxPool
 	shutdownChan           <-chan struct{}
 	shutdownWg             *sync.WaitGroup
@@ -35,9 +45,10 @@ type limitOrderProcesser struct {
 	contractEventProcessor *limitorders.ContractEventsProcessor
 	buildBlockPipeline     *limitorders.BuildBlockPipeline
 	filterAPI              *filters.FilterAPI
+	hubbleDB               database.Database
 }
 
-func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain) LimitOrderProcesser {
+func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database) LimitOrderProcesser {
 	log.Info("**** NewLimitOrderProcesser")
 	configService := limitorders.NewConfigService(blockChain)
 	memoryDb := limitorders.NewInMemoryDatabase(configService)
@@ -48,11 +59,13 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan
 	filterAPI := filters.NewFilterAPI(filterSystem, true)
 	return &limitOrderProcesser{
 		ctx:                    ctx,
+		mu:                     &sync.Mutex{},
 		txPool:                 txPool,
 		shutdownChan:           shutdownChan,
 		shutdownWg:             shutdownWg,
 		backend:                backend,
 		memoryDb:               memoryDb,
+		hubbleDB:               hubbleDB,
 		blockChain:             blockChain,
 		limitOrderTxProcessor:  lotp,
 		contractEventProcessor: contractEventProcessor,
@@ -62,33 +75,42 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan
 }
 
 func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
+	lop.mu.Lock()
+
 	lastAccepted := lop.blockChain.LastAcceptedBlock().Number()
 	if lastAccepted.Sign() > 0 {
-		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAccepted)
-		ctx := context.Background()
+		fromBlock := big.NewInt(0)
 
-		var fromBlock, toBlock *big.Int
-		fromBlock = big.NewInt(0)
-		toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
-		for toBlock.Cmp(fromBlock) >= 0 {
-			logs, err := lop.filterAPI.GetLogs(ctx, filters.FilterCriteria{
-				FromBlock: fromBlock,
-				ToBlock:   toBlock, // check that this is inclusive...
-				Addresses: []common.Address{limitorders.OrderBookContractAddress, limitorders.ClearingHouseContractAddress, limitorders.MarginAccountContractAddress},
-			})
-			log.Info("ListenAndProcessTransactions", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs), "err", err)
-			if err != nil {
-				log.Error("ListenAndProcessTransactions - GetLogs failed", "err", err)
-				panic(err)
+		// first load the last snapshot containing finalised data till block x and query the logs of [x+1, latest]
+		acceptedBlockNumber, err := lop.loadMemoryDBSnapshot()
+		if err != nil {
+			log.Error("ListenAndProcessTransactions - error in loading snapshot", "err", err)
+		} else {
+			if acceptedBlockNumber > 0 {
+				fromBlock = big.NewInt(int64(acceptedBlockNumber) + 1)
+				log.Info("ListenAndProcessTransactions - memory DB snapshot loaded", "acceptedBlockNumber", acceptedBlockNumber)
+			} else {
+				// not an error, but unlikely after the blockchain is running for some time
+				log.Warn("ListenAndProcessTransactions - no snapshot found")
 			}
+		}
+
+		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAccepted)
+		toBlock := utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
+		for toBlock.Cmp(fromBlock) > 0 {
+			logs := lop.getLogs(fromBlock, toBlock)
+			log.Info("ListenAndProcessTransactions - fetched log chunk", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs), "err", err)
 			lop.contractEventProcessor.ProcessEvents(logs)
 			lop.contractEventProcessor.ProcessAcceptedEvents(logs)
 
 			fromBlock = fromBlock.Add(toBlock, big.NewInt(1))
 			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 		}
+
 		lop.memoryDb.Accept(lastAccepted.Uint64()) // will delete stale orders from the memorydb
 	}
+
+	lop.mu.Unlock()
 
 	lop.listenAndStoreLimitOrderTransactions()
 }
@@ -112,7 +134,11 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 		for {
 			select {
 			case logs := <-logsCh:
+				lop.mu.Lock()
+
 				lop.contractEventProcessor.ProcessEvents(logs)
+
+				lop.mu.Unlock()
 			case <-lop.shutdownChan:
 				return
 			}
@@ -129,7 +155,11 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 		for {
 			select {
 			case logs := <-acceptedLogsCh:
+				lop.mu.Lock()
+
 				lop.contractEventProcessor.ProcessAcceptedEvents(logs)
+
+				lop.mu.Unlock()
 			case <-lop.shutdownChan:
 				return
 			}
@@ -155,7 +185,115 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 }
 
 func (lop *limitOrderProcesser) handleChainAcceptedEvent(event core.ChainEvent) {
+	lop.mu.Lock()
+	defer lop.mu.Unlock()
+
 	block := event.Block
 	log.Info("#### received ChainAcceptedEvent", "number", block.NumberU64(), "hash", block.Hash().String())
 	lop.memoryDb.Accept(block.NumberU64())
+
+	if block.NumberU64()%snapshotInterval == 0 {
+		err := lop.saveMemoryDBSnapshot(block.Number())
+		if err != nil {
+			log.Error("Error in saving memory DB snapshot", "err", err)
+		}
+	}
+}
+
+func (lop *limitOrderProcesser) loadMemoryDBSnapshot() (acceptedBlockNumber uint64, err error) {
+	snapshotFound, err := lop.hubbleDB.Has([]byte(memoryDBSnapshotKey))
+	if err != nil {
+		return acceptedBlockNumber, fmt.Errorf("Error in checking snapshot in hubbleDB: err=%v", err)
+	}
+
+	if !snapshotFound {
+		return acceptedBlockNumber, nil
+	}
+
+	memorySnapshotBytes, err := lop.hubbleDB.Get([]byte(memoryDBSnapshotKey))
+	if err != nil {
+		return acceptedBlockNumber, fmt.Errorf("Error in fetching snapshot from hubbleDB; err=%v", err)
+	}
+
+	buf := bytes.NewBuffer(memorySnapshotBytes)
+	var snapshot limitorders.Snapshot
+	err = gob.NewDecoder(buf).Decode(&snapshot)
+	if err != nil {
+		return acceptedBlockNumber, fmt.Errorf("Error in snapshot parsing; err=%v", err)
+	}
+
+	if snapshot.AcceptedBlockNumber != nil && snapshot.AcceptedBlockNumber.Uint64() > 0 {
+		err = lop.memoryDb.LoadFromSnapshot(snapshot)
+		if err != nil {
+			return acceptedBlockNumber, fmt.Errorf("Error in loading from snapshot: err=%v", err)
+		}
+
+		return snapshot.AcceptedBlockNumber.Uint64(), nil
+	} else {
+		return acceptedBlockNumber, nil
+	}
+}
+
+// assumes that memory DB lock is held
+func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.Int) error {
+	currentHeadBlock := lop.blockChain.CurrentBlock()
+
+	memoryDBCopy := lop.memoryDb.GetOrderBookDataCopy()
+	if currentHeadBlock.Number().Cmp(acceptedBlockNumber) == 1 {
+		// if current head is ahead of the accepted block, then certain events(OrderBook)
+		// need to be removed from the saved state
+		logsToRemove := []*types.Log{}
+		for {
+			logs := lop.blockChain.GetLogs(currentHeadBlock.Hash(), currentHeadBlock.NumberU64())
+			flattenedLogs := types.FlattenLogs(logs)
+			logsToRemove = append(logsToRemove, flattenedLogs...)
+
+			currentHeadBlock = lop.blockChain.GetBlockByHash(currentHeadBlock.ParentHash())
+			if currentHeadBlock.Number().Cmp(acceptedBlockNumber) == 0 {
+				break
+			}
+		}
+
+		for i := 0; i < len(logsToRemove); i++ {
+			logsToRemove[i].Removed = true
+		}
+
+		cev := limitorders.NewContractEventsProcessor(memoryDBCopy)
+		cev.ProcessEvents(logsToRemove)
+	}
+
+	snapshot := limitorders.Snapshot{
+		Data:                memoryDBCopy,
+		AcceptedBlockNumber: acceptedBlockNumber,
+	}
+
+	var buf bytes.Buffer
+	err := gob.NewEncoder(&buf).Encode(&snapshot)
+	if err != nil {
+		return fmt.Errorf("error in gob encoding: err=%v", err)
+	}
+
+	err = lop.hubbleDB.Put([]byte(memoryDBSnapshotKey), buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("Error in saving to DB: err=%v", err)
+	}
+
+	log.Info("Saved memory DB snapshot successfully", "accepted block", acceptedBlockNumber, "head block number", currentHeadBlock.Number(), "head block hash", currentHeadBlock.Hash())
+
+	return nil
+}
+
+func (lop *limitOrderProcesser) getLogs(fromBlock, toBlock *big.Int) []*types.Log {
+	ctx := context.Background()
+	logs, err := lop.filterAPI.GetLogs(ctx, filters.FilterCriteria{
+		FromBlock: fromBlock,
+		ToBlock:   toBlock,
+		Addresses: []common.Address{limitorders.OrderBookContractAddress, limitorders.ClearingHouseContractAddress, limitorders.MarginAccountContractAddress},
+	})
+
+	if err != nil {
+		log.Error("ListenAndProcessTransactions - GetLogs failed", "err", err)
+		panic(err)
+	}
+	return logs
 }

@@ -167,7 +167,8 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	assert.Equal(t, Placed, actualLimitOrder.getOrderStatus().Status)
 	assert.Equal(t, signature, actualLimitOrder.Signature)
 	assert.Equal(t, big.NewInt(int64(blockNumber)), actualLimitOrder.BlockNumber)
-	assert.Equal(t, args["order"], actualLimitOrder.RawOrder)
+	rawOrder := getOrderFromRawOrder(args["order"])
+	assert.Equal(t, rawOrder, actualLimitOrder.RawOrder)
 
 	//ClearingHouse log - FundingRateUpdated
 	expectedUnrealisedFunding := dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, position.LastPremiumFraction), position.Size))
@@ -222,7 +223,8 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			assert.Equal(t, Placed, actualLimitOrder.getOrderStatus().Status)
 			assert.Equal(t, signature, actualLimitOrder.Signature)
 			assert.Equal(t, big.NewInt(int64(blockNumber)), actualLimitOrder.BlockNumber)
-			assert.Equal(t, args["order"], actualLimitOrder.RawOrder)
+			rawOrder := getOrderFromRawOrder(args["order"])
+			assert.Equal(t, rawOrder, actualLimitOrder.RawOrder)
 		})
 	})
 	t.Run("When event is OrderCancelled", func(t *testing.T) {
@@ -809,6 +811,7 @@ func getOrder(ammIndex *big.Int, traderAddress common.Address, baseAssetQuantity
 		BaseAssetQuantity: baseAssetQuantity,
 		Price:             price,
 		Salt:              salt,
+		ReduceOnly:        false,
 	}
 }
 

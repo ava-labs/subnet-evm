@@ -1,6 +1,8 @@
 package limitorders
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -61,8 +63,8 @@ type LimitOrder struct {
 	ReduceOnly              bool
 	LifecycleList           []Lifecycle
 	Signature               []byte
-	BlockNumber             *big.Int    // block number order was placed on
-	RawOrder                interface{} `json:"-"`
+	BlockNumber             *big.Int // block number order was placed on
+	RawOrder                Order    `json:"-"`
 }
 
 type LimitOrderJson struct {
@@ -138,6 +140,7 @@ type Trader struct {
 }
 
 type LimitOrderDatabase interface {
+	LoadFromSnapshot(snapshot Snapshot) error
 	GetAllOrders() []LimitOrder
 	Add(orderId common.Hash, order *LimitOrder)
 	Delete(orderId common.Hash)
@@ -156,6 +159,7 @@ type LimitOrderDatabase interface {
 	GetLastPrices() map[Market]*big.Int
 	GetAllTraders() map[common.Address]Trader
 	GetOrderBookData() InMemoryDatabase
+	GetOrderBookDataCopy() *InMemoryDatabase
 	Accept(blockNumber uint64)
 	SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
@@ -170,6 +174,11 @@ type InMemoryDatabase struct {
 	NextFundingTime uint64                      `json:"next_funding_time"`
 	LastPrice       map[Market]*big.Int         `json:"last_price"`
 	configService   IConfigService
+}
+
+type Snapshot struct {
+	Data                *InMemoryDatabase
+	AcceptedBlockNumber *big.Int // data includes this block number too
 }
 
 func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
@@ -187,6 +196,23 @@ func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
 	}
 }
 
+func (db *InMemoryDatabase) LoadFromSnapshot(snapshot Snapshot) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if snapshot.Data == nil || snapshot.Data.OrderMap == nil || snapshot.Data.TraderMap == nil || snapshot.Data.LastPrice == nil {
+		return fmt.Errorf("invalid snapshot; snapshot=%+v", snapshot)
+	}
+
+	db.OrderMap = snapshot.Data.OrderMap
+	db.TraderMap = snapshot.Data.TraderMap
+	db.LastPrice = snapshot.Data.LastPrice
+	db.NextFundingTime = snapshot.Data.NextFundingTime
+
+	return nil
+}
+
+// assumes that lock is held by the caller
 func (db *InMemoryDatabase) Accept(blockNumber uint64) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -590,6 +616,20 @@ func (db *InMemoryDatabase) GetOrderBookData() InMemoryDatabase {
 	defer db.mu.RUnlock()
 
 	return *db
+}
+
+func (db *InMemoryDatabase) GetOrderBookDataCopy() *InMemoryDatabase {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	var buf bytes.Buffer
+	gob.NewEncoder(&buf).Encode(db)
+
+	buf2 := bytes.NewBuffer(buf.Bytes())
+	var memoryDBCopy *InMemoryDatabase
+	gob.NewDecoder(buf2).Decode(&memoryDBCopy)
+	memoryDBCopy.mu = &sync.RWMutex{}
+	return memoryDBCopy
 }
 
 func getLiquidationThreshold(maxLiquidationRatio *big.Int, minSizeRequirement *big.Int, size *big.Int) *big.Int {

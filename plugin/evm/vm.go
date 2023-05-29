@@ -110,6 +110,7 @@ var (
 	acceptedPrefix  = []byte("snowman_accepted")
 	metadataPrefix  = []byte("metadata")
 	warpPrefix      = []byte("warp")
+	hubbleDBPrefix  = []byte("hubble")
 	ethDBPrefix     = []byte("ethdb")
 )
 
@@ -179,6 +180,10 @@ type VM struct {
 	// [warpDB] is used to store warp message signatures
 	// set to a prefixDB with the prefix [warpPrefix]
 	warpDB database.Database
+
+	// [hubbleDB] is used to store orderbook related data
+	// set to a prefixDB with the prefix [hubbleDBPrefix]
+	hubbleDB database.Database
 
 	toEngine chan<- commonEng.Message
 
@@ -273,6 +278,7 @@ func (vm *VM) Initialize(
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	vm.warpDB = prefixdb.New(warpPrefix, vm.db)
+	vm.hubbleDB = prefixdb.New(hubbleDBPrefix, vm.db)
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -981,5 +987,6 @@ func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
 		&vm.shutdownWg,
 		vm.eth.APIBackend,
 		vm.blockChain,
+		vm.hubbleDB,
 	)
 }

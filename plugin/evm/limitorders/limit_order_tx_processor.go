@@ -59,8 +59,8 @@ type limitOrderTxProcessor struct {
 
 // Order type is copy of Order struct defined in Orderbook contract
 type Order struct {
-	Trader            common.Address `json:"trader"`
 	AmmIndex          *big.Int       `json:"ammIndex"`
+	Trader            common.Address `json:"trader"`
 	BaseAssetQuantity *big.Int       `json:"baseAssetQuantity"`
 	Price             *big.Int       `json:"price"`
 	Salt              *big.Int       `json:"salt"`
