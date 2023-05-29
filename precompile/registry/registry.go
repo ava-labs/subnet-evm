@@ -19,7 +19,6 @@ import (
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/hubblebibliophile"
-	_ "github.com/ava-labs/subnet-evm/precompile/contracts/hubbleconfigmanager"
 )
 
 // This list is kept just for reference. The actual addresses defined in respective packages of precompiles.
@@ -40,5 +39,5 @@ import (
 // FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
 // RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
 // ADD YOUR PRECOMPILE HERE
-// HubbleConfigManagerAddress       = common.HexToAddress("0x0300000000000000000000000000000000000000")
+// HubbleBiblioPhile		        = common.HexToAddress("0x0300000000000000000000000000000000000001")
 // {YourPrecompile}Address          = common.HexToAddress("0x03000000000000000000000000000000000000??")

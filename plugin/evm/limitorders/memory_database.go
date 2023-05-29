@@ -399,7 +399,7 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 	db.TraderMap[trader].Positions[market].LastPremiumFraction = big.NewInt(0)
 
 	if !isLiquidation {
-		db.TraderMap[trader].Positions[market].LiquidationThreshold = getLiquidationThreshold(db.configService.getMaxLiquidationRatio(), db.configService.getMinSizeRequirement(), size)
+		db.TraderMap[trader].Positions[market].LiquidationThreshold = getLiquidationThreshold(db.configService.getMaxLiquidationRatio(market), db.configService.getMinSizeRequirement(market), size)
 	}
 
 	if db.TraderMap[trader].Positions[market].UnrealisedFunding == nil {

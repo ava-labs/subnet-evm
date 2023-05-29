@@ -13,6 +13,9 @@ const (
 	VAR_LAST_PRICE_SLOT             int64 = 1
 	VAR_POSITIONS_SLOT              int64 = 2
 	VAR_CUMULATIVE_PREMIUM_FRACTION int64 = 3
+	MAX_ORACLE_SPREAD_RATIO_SLOT    int64 = 4
+	MAX_LIQUIDATION_RATIO_SLOT      int64 = 5
+	MIN_SIZE_REQUIREMENT_SLOT       int64 = 6
 )
 
 // Reader
@@ -24,6 +27,24 @@ func getLastPrice(stateDB contract.StateDB, market common.Address) *big.Int {
 
 func getCumulativePremiumFraction(stateDB contract.StateDB, market common.Address) *big.Int {
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(VAR_CUMULATIVE_PREMIUM_FRACTION))).Bytes())
+}
+
+// GetMaxOracleSpreadRatioForMarket returns the maxOracleSpreadRatio for a given market
+func GetMaxOracleSpreadRatioForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
+	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MAX_ORACLE_SPREAD_RATIO_SLOT))).Bytes())
+}
+
+// GetMaxLiquidationRatioForMarket returns the maxLiquidationRatio for a given market
+func GetMaxLiquidationRatioForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
+	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MAX_LIQUIDATION_RATIO_SLOT))).Bytes())
+}
+
+// GetMinSizeRequirementForMarket returns the minSizeRequirement for a given market
+func GetMinSizeRequirementForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
+	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MIN_SIZE_REQUIREMENT_SLOT))).Bytes())
 }
 
 // Trader State
@@ -113,4 +134,11 @@ func divide1e6(number *big.Int) *big.Int {
 
 func multiply1e6(number *big.Int) *big.Int {
 	return new(big.Int).Div(number, big.NewInt(1e6))
+}
+
+// getMarketAddressFromMarketID returns the market address for a given marketID
+func getMarketAddressFromMarketID(marketID int64, stateDB contract.StateDB) common.Address {
+	baseStorageSlot := marketsStorageSlot()
+	amm := stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BigToHash(new(big.Int).Add(baseStorageSlot, big.NewInt(marketID))))
+	return common.BytesToAddress(amm.Bytes())
 }

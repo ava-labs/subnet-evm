@@ -12,6 +12,8 @@ import (
 const (
 	CLEARING_HOUSE_GENESIS_ADDRESS       = "0x0300000000000000000000000000000000000071"
 	AMMS_SLOT                      int64 = 12
+	MAINTENANCE_MARGIN_SLOT        int64 = 1
+	MIN_ALLOWABLE_MARGIN_SLOT      int64 = 2
 )
 
 type MarginMode uint8
@@ -81,4 +83,15 @@ func GetTotalFunding(stateDB contract.StateDB, trader *common.Address) *big.Int 
 		totalFunding.Add(totalFunding, getPendingFundingPayment(stateDB, market, trader))
 	}
 	return totalFunding
+}
+
+
+// GetMaintenanceMargin returns the maintenance margin for a trader
+func GetMaintenanceMargin(stateDB contract.StateDB) *big.Int {
+	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BytesToHash(common.LeftPadBytes(big.NewInt(MAINTENANCE_MARGIN_SLOT).Bytes(), 32))).Bytes())
+}
+
+// GetMinAllowableMargin returns the minimum allowable margin for a trader
+func GetMinAllowableMargin(stateDB contract.StateDB) *big.Int {
+	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BytesToHash(common.LeftPadBytes(big.NewInt(MIN_ALLOWABLE_MARGIN_SLOT).Bytes(), 32))).Bytes())
 }

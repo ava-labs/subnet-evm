@@ -97,7 +97,7 @@ func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Ad
 }
 
 func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}) *Orders {
-	spreadRatioThreshold := pipeline.configService.getSpreadRatioThreshold()
+	spreadRatioThreshold := pipeline.configService.getSpreadRatioThreshold(market)
 	// 1. Get long orders
 	longCutOffPrice := divideByBasePrecision(big.NewInt(0).Mul(underlyingPrice, big.NewInt(0).Add(_1e6, spreadRatioThreshold)))
 	longOrders := pipeline.db.GetLongOrders(market, longCutOffPrice)

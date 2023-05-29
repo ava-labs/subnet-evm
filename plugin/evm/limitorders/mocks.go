@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/hubbleconfigmanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/mock"
 )
@@ -178,23 +177,28 @@ type MockConfigService struct {
 }
 
 func (mcs *MockConfigService) getSpreadRatioThreshold() *big.Int {
-	return hubbleconfigmanager.DefaultSpreadRatioThreshold
+	args := mcs.Called()
+	return args.Get(0).(*big.Int)
 }
 
 func (mcs *MockConfigService) getMaxLiquidationRatio() *big.Int {
-	return hubbleconfigmanager.DefaultMaxLiquidationRatio
+	args := mcs.Called()
+	return args.Get(0).(*big.Int)
 }
 
 func (mcs *MockConfigService) getMinAllowableMargin() *big.Int {
-	return hubbleconfigmanager.DefaultMinAllowableMargin
+	args := mcs.Called()
+	return args.Get(0).(*big.Int)
 }
 
 func (mcs *MockConfigService) getMaintenanceMargin() *big.Int {
-	return hubbleconfigmanager.DefaultMaintenanceMargin
+	args := mcs.Called()
+	return args.Get(0).(*big.Int)
 }
 
 func (mcs *MockConfigService) getMinSizeRequirement() *big.Int {
-	return hubbleconfigmanager.DefaultMinSizeRequirement
+	args := mcs.Called()
+	return args.Get(0).(*big.Int)
 }
 
 func NewMockConfigService() *MockConfigService {
