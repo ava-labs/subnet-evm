@@ -272,12 +272,57 @@ var orderBookAbi = []byte(`{"abi": [
             "type": "bool"
           }
         ],
+        "internalType": "struct IOrderBook.Order",
+        "name": "order",
+        "type": "tuple"
+      }
+    ],
+    "name": "cancelOrder",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "ammIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "trader",
+            "type": "address"
+          },
+          {
+            "internalType": "int256",
+            "name": "baseAssetQuantity",
+            "type": "int256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "price",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "salt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "reduceOnly",
+            "type": "bool"
+          }
+        ],
         "internalType": "struct IOrderBook.Order[]",
         "name": "orders",
         "type": "tuple[]"
       }
     ],
-    "name": "cancelMultipleOrders",
+    "name": "cancelOrders",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1408,49 +1453,6 @@ var clearingHouseAbi = []byte(`{"abi": [
         "internalType": "int256",
         "name": "margin",
         "type": "int256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "ammIndex",
-        "type": "uint256"
-      }
-    ],
-    "name": "getPositionSize",
-    "outputs": [
-      {
-        "internalType": "int256",
-        "name": "posSizes",
-        "type": "int256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      }
-    ],
-    "name": "getPositionSizes",
-    "outputs": [
-      {
-        "internalType": "int256[]",
-        "name": "posSizes",
-        "type": "int256[]"
       }
     ],
     "stateMutability": "view",

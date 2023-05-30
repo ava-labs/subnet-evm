@@ -129,7 +129,7 @@ func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(longOrder LimitOrder, 
 
 func (lotp *limitOrderTxProcessor) ExecuteOrderCancel(orders []Order) error {
 	log.Info("ExecuteOrderCancel", "orderIds", orders)
-	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "cancelMultipleOrders", orders)
+	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "cancelOrders", orders)
 }
 
 func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contractABI abi.ABI, method string, args ...interface{}) error {

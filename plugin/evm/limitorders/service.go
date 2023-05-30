@@ -62,17 +62,10 @@ func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryD
 }
 
 func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*OrderBookResponse, error) {
-	// market is a string cuz it's an optional param
-	var market *int
-	if len(marketStr) > 0 {
-		var err error
-		_market, err := strconv.Atoi(marketStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid market")
-		}
-		market = &_market
+	market, err := parseMarket(marketStr)
+	if err != nil {
+		return nil, err
 	}
-
 	allOrders := api.db.GetAllOrders()
 	orders := []OrderMin{}
 	for _, order := range allOrders {
@@ -83,12 +76,28 @@ func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*O
 	return &OrderBookResponse{Orders: orders}, nil
 }
 
-func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenOrdersResponse {
+func parseMarket(marketStr string) (*int, error) {
+	var market *int
+	if len(marketStr) > 0 {
+		_market, err := strconv.Atoi(marketStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid market")
+		}
+		market = &_market
+	}
+	return market, nil
+}
+
+func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string, marketStr string) (*OpenOrdersResponse, error) {
+	market, err := parseMarket(marketStr)
+	if err != nil {
+		return nil, err
+	}
 	traderOrders := []OrderForOpenOrders{}
 	traderHash := common.HexToAddress(trader)
 	orders := api.db.GetOpenOrdersForTrader(traderHash)
 	for _, order := range orders {
-		if strings.EqualFold(order.UserAddress, trader) {
+		if strings.EqualFold(order.UserAddress, trader) && (market == nil || order.Market == Market(*market)) {
 			traderOrders = append(traderOrders, OrderForOpenOrders{
 				Market:     order.Market,
 				Price:      order.Price.String(),
@@ -100,8 +109,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string) OpenO
 			})
 		}
 	}
-
-	return OpenOrdersResponse{Orders: traderOrders}
+	return &OpenOrdersResponse{Orders: traderOrders}, nil
 }
 
 // NewOrderBookState send a notification each time a new (header) block is appended to the chain.

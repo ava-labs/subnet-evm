@@ -51,7 +51,7 @@ func (pipeline *BuildBlockPipeline) Run() {
 
 	// build trader map
 	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(underlyingPrices, markets)
-	cancellableOrderIds := pipeline.cancelOrders(ordersToCancel, underlyingPrices)
+	cancellableOrderIds := pipeline.cancelOrders(ordersToCancel)
 	orderMap := make(map[Market]*Orders)
 	for _, market := range markets {
 		orderMap[market] = pipeline.fetchOrders(market, underlyingPrices[market], cancellableOrderIds)
@@ -78,7 +78,7 @@ func (pipeline *BuildBlockPipeline) GetActiveMarkets() []Market {
 	return markets
 }
 
-func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Address][]LimitOrder, oraclePrices map[Market]*big.Int) map[common.Hash]struct{} {
+func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Address][]LimitOrder) map[common.Hash]struct{} {
 	cancellableOrderIds := map[common.Hash]struct{}{}
 	// @todo: if there are too many cancellable orders, they might not fit in a single block. Need to adjust for that.
 	for _, orders := range cancellableOrders {
