@@ -50,13 +50,11 @@ func RunCommand(bin string, args ...string) (*cmd.Cmd, error) {
 }
 
 func RegisterPingTest() {
-	ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
-		ginkgo.It("ping the network", ginkgo.Label("ping"), func() {
-			client := health.NewClient(DefaultLocalNodeURI)
-			healthy, err := client.Readiness(context.Background(), nil)
-			gomega.Expect(err).Should(gomega.BeNil())
-			gomega.Expect(healthy.Healthy).Should(gomega.BeTrue())
-		})
+	ginkgo.It("ping the network", ginkgo.Label("ping"), func() {
+		client := health.NewClient(DefaultLocalNodeURI)
+		healthy, err := client.Readiness(context.Background(), nil)
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(healthy.Healthy).Should(gomega.BeTrue())
 	})
 }
 
