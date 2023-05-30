@@ -22,7 +22,8 @@ const (
 	// You should set a gas cost for each function in your contract.
 	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
 	// There are some predefined gas costs in contract/utils.go that you can use.
-	GetNotionalPositionAndMarginGasCost uint64 = contract.ReadGasCostPerSlot // we cheat and use the same gas cost as a single read! Infinite scaling!
+	GetNotionalPositionAndMarginGasCost uint64 = 1000 // SET A GAS COST HERE
+	GetPositionSizesGasCost             uint64 = 1000 // SET A GAS COST HERE
 )
 
 // CUSTOM CODE STARTS HERE
@@ -102,6 +103,53 @@ func getNotionalPositionAndMargin(accessibleState contract.AccessibleState, call
 	return packedOutput, remainingGas, nil
 }
 
+// UnpackGetPositionSizesInput attempts to unpack [input] into the common.Address type argument
+// assumes that [input] does not include selector (omits first 4 func signature bytes)
+func UnpackGetPositionSizesInput(input []byte) (common.Address, error) {
+	res, err := HubbleBibliophileABI.UnpackInput("getPositionSizes", input)
+	if err != nil {
+		return common.Address{}, err
+	}
+	unpacked := *abi.ConvertType(res[0], new(common.Address)).(*common.Address)
+	return unpacked, nil
+}
+
+// PackGetPositionSizes packs [trader] of type common.Address into the appropriate arguments for getPositionSizes.
+// the packed bytes include selector (first 4 func signature bytes).
+// This function is mostly used for tests.
+func PackGetPositionSizes(trader common.Address) ([]byte, error) {
+	return HubbleBibliophileABI.Pack("getPositionSizes", trader)
+}
+
+// PackGetPositionSizesOutput attempts to pack given posSizes of type []*big.Int
+// to conform the ABI outputs.
+func PackGetPositionSizesOutput(posSizes []*big.Int) ([]byte, error) {
+	return HubbleBibliophileABI.PackOutput("getPositionSizes", posSizes)
+}
+
+func getPositionSizes(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	if remainingGas, err = contract.DeductGas(suppliedGas, GetPositionSizesGasCost); err != nil {
+		return nil, 0, err
+	}
+	// attempts to unpack [input] into the arguments to the GetPositionSizesInput.
+	// Assumes that [input] does not include selector
+	// You can use unpacked [inputStruct] variable in your code
+	inputStruct, err := UnpackGetPositionSizesInput(input)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// CUSTOM CODE STARTS HERE
+	output := getPosSizes(accessibleState.GetStateDB(), &inputStruct)
+	packedOutput, err := PackGetPositionSizesOutput(output)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// Return the packed output and the remaining gas
+	return packedOutput, remainingGas, nil
+}
+
 // createHubbleBibliophilePrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
 
 func createHubbleBibliophilePrecompile() contract.StatefulPrecompiledContract {
@@ -109,6 +157,7 @@ func createHubbleBibliophilePrecompile() contract.StatefulPrecompiledContract {
 
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		"getNotionalPositionAndMargin": getNotionalPositionAndMargin,
+		"getPositionSizes":             getPositionSizes,
 	}
 
 	for name, function := range abiFunctionMap {

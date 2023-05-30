@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	CLEARING_HOUSE_GENESIS_ADDRESS       = "0x0300000000000000000000000000000000000071"
+	CLEARING_HOUSE_GENESIS_ADDRESS       = "0x0300000000000000000000000000000000000002"
 	AMMS_SLOT                      int64 = 12
 	MAINTENANCE_MARGIN_SLOT        int64 = 1
 	MIN_ALLOWABLE_MARGIN_SLOT      int64 = 2
@@ -85,7 +85,6 @@ func GetTotalFunding(stateDB contract.StateDB, trader *common.Address) *big.Int 
 	return totalFunding
 }
 
-
 // GetMaintenanceMargin returns the maintenance margin for a trader
 func GetMaintenanceMargin(stateDB contract.StateDB) *big.Int {
 	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BytesToHash(common.LeftPadBytes(big.NewInt(MAINTENANCE_MARGIN_SLOT).Bytes(), 32))).Bytes())
@@ -94,4 +93,12 @@ func GetMaintenanceMargin(stateDB contract.StateDB) *big.Int {
 // GetMinAllowableMargin returns the minimum allowable margin for a trader
 func GetMinAllowableMargin(stateDB contract.StateDB) *big.Int {
 	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BytesToHash(common.LeftPadBytes(big.NewInt(MIN_ALLOWABLE_MARGIN_SLOT).Bytes(), 32))).Bytes())
+}
+
+func getPosSizes(stateDB contract.StateDB, trader *common.Address) []*big.Int {
+	positionSizes := make([]*big.Int, 0)
+	for _, market := range GetMarkets(stateDB) {
+		positionSizes = append(positionSizes, getSize(stateDB, market, trader))
+	}
+	return positionSizes
 }

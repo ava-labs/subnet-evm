@@ -23,9 +23,9 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var OrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000069")
-var MarginAccountContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000070")
-var ClearingHouseContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000071")
+var OrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000000")
+var MarginAccountContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000001")
+var ClearingHouseContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000002")
 
 type LimitOrderTxProcessor interface {
 	PurgeLocalTx()

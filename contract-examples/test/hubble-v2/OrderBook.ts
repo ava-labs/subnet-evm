@@ -5,7 +5,7 @@ import { BigNumber } from "ethers"
 
 // make sure this is always an admin for minter precompile
 const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-const GENESIS_ORDERBOOK_ADDRESS = '0x0300000000000000000000000000000000000069'
+const GENESIS_ORDERBOOK_ADDRESS = '0x0300000000000000000000000000000000000000'
 
 describe.only('Order Book', function () {
     let orderBook, alice, bob, longOrder, shortOrder, domain, orderType, signature
@@ -112,14 +112,14 @@ describe.only('Order Book', function () {
         const filter = orderBook.filters
         let events = await orderBook.queryFilter(filter)
         console.log({events});
-        
+
         let matchedOrderEvent = events[events.length -1]
         // expect(matchedOrderEvent.event).to.eq('OrderMatched')
     })
 
     it.skip('make lots of orders', async function() {
         const signers = await ethers.getSigners()
-        
+
       // long order with same price and baseAssetQuantity
         longOrder = {
             trader: _.sample(signers).address,

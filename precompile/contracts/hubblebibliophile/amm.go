@@ -10,19 +10,17 @@ import (
 )
 
 const (
-	VAR_LAST_PRICE_SLOT             int64 = 1
-	VAR_POSITIONS_SLOT              int64 = 2
-	VAR_CUMULATIVE_PREMIUM_FRACTION int64 = 3
-	MAX_ORACLE_SPREAD_RATIO_SLOT    int64 = 4
-	MAX_LIQUIDATION_RATIO_SLOT      int64 = 5
-	MIN_SIZE_REQUIREMENT_SLOT       int64 = 6
+	MARK_PRICE_TWAP_DATA_SLOT       int64 = 1
+	VAR_POSITIONS_SLOT              int64 = 5
+	VAR_CUMULATIVE_PREMIUM_FRACTION int64 = 6
+	MAX_ORACLE_SPREAD_RATIO_SLOT    int64 = 7
+	MAX_LIQUIDATION_RATIO_SLOT      int64 = 8
+	MIN_SIZE_REQUIREMENT_SLOT       int64 = 9
 )
-
-// Reader
 
 // AMM State
 func getLastPrice(stateDB contract.StateDB, market common.Address) *big.Int {
-	return stateDB.GetState(market, common.BigToHash(big.NewInt(VAR_LAST_PRICE_SLOT))).Big()
+	return stateDB.GetState(market, common.BigToHash(big.NewInt(MARK_PRICE_TWAP_DATA_SLOT))).Big()
 }
 
 func getCumulativePremiumFraction(stateDB contract.StateDB, market common.Address) *big.Int {

@@ -5,10 +5,10 @@ const axios = require('axios');
 const { expect } = require('chai');
 const { randomInt } = require('crypto');
 
-const OrderBookContractAddress = "0x0300000000000000000000000000000000000069"
-const MarginAccountContractAddress = "0x0300000000000000000000000000000000000070"
+const OrderBookContractAddress = "0x0300000000000000000000000000000000000000"
+const MarginAccountContractAddress = "0x0300000000000000000000000000000000000001"
 const MarginAccountHelperContractAddress = "0x610178dA211FEF7D417bC0e6FeD39F05609AD788"
-const ClearingHouseContractAddress = "0x0300000000000000000000000000000000000071"
+const ClearingHouseContractAddress = "0x0300000000000000000000000000000000000002"
 
 let provider, domain, orderType, orderBook, marginAccount, marginAccountHelper, clearingHouse
 let alice, bob, charlie, aliceAddress, bobAddress, charlieAddress
@@ -219,9 +219,9 @@ describe('Submit transaction and compare with EVM state', function () {
 
     it('Match order', async function () {
         const {tx} = await placeOrder(bob, bobOrderSize, bobOrderPrice, 201)
-        
+
         await sleep(2)
-        
+
         const expectedState = {
             "order_map": {},
             "trader_map": {
@@ -492,7 +492,7 @@ describe('Submit transaction and compare with EVM state', function () {
         await addMargin(bob, _1e6.mul(200))
 
         await orderBook.connect(alice).cancelOrder(alicePartialMatchedLongOrder.hash)
-        
+
         aliceMargin = aliceMargin + (_1e6 * 300)
         bobMargin = bobMargin + (_1e6 * 200)
         charlieMargin = _1e6 * 100
