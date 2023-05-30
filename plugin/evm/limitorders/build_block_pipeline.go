@@ -121,7 +121,9 @@ func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *
 }
 
 func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []LiquidablePosition, orderMap map[Market]*Orders) {
-	log.Info("liquidablePositions", "liquidablePositions", liquidablePositions)
+	if len(liquidablePositions) > 0 {
+		log.Info("found positions to liquidate", "liquidablePositions", liquidablePositions)
+	}
 
 	for i, liquidable := range liquidablePositions {
 		var oppositeOrders []LimitOrder
@@ -161,7 +163,6 @@ func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []Liquid
 
 func (pipeline *BuildBlockPipeline) runMatchingEngine(lotp LimitOrderTxProcessor, longOrders []LimitOrder, shortOrders []LimitOrder) {
 	if len(longOrders) == 0 || len(shortOrders) == 0 {
-		log.Info("BuildBlockPipeline - either no long or no short orders", "long", len(longOrders), "short", len(shortOrders))
 		return
 	}
 	for i := 0; i < len(longOrders); i++ {

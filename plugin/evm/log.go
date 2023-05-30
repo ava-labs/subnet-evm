@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -25,13 +26,16 @@ type SubnetEVMLogger struct {
 // InitLogger initializes logger with alias and sets the log level and format with the original [os.StdErr] interface
 // along with the context logger.
 func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (SubnetEVMLogger, error) {
-	logFormat := SubnetEVMTermFormat(alias)
+	// logFormat := SubnetEVMTermFormat(alias)
+	logFormat := log.LogfmtFormat()
 	if jsonFormat {
 		logFormat = SubnetEVMJSONFormat(alias)
 	}
 
 	// Create handler
 	logHandler := log.StreamHandler(writer, logFormat)
+	logHandler = log.CallerFileHandler(logHandler)
+	logHandler = HubbleTypeHandler(logHandler)
 	c := SubnetEVMLogger{Handler: logHandler}
 
 	if err := c.SetLogLevel(level); err != nil {
@@ -91,6 +95,21 @@ func SubnetEVMJSONFormat(alias string) log.Format {
 
 		b = append(b, '\n')
 		return b
+	})
+}
+
+func HubbleTypeHandler(h log.Handler) log.Handler {
+	return log.FuncHandler(func(r *log.Record) error {
+		var logType string
+		if strings.Contains(r.Call.Frame().File, "limit") { // works for evm/limit_order.go and evm/limitorders/*.go
+			logType = "hubble"
+		} else {
+			logType = "system"
+		}
+		// it's also possible to add type=hubble in logs originating from other files
+		// by setting logtype=hubble and checking for it in this function by iterating through r.Ctx
+		r.Ctx = append(r.Ctx, "type", logType)
+		return h.Log(r)
 	})
 }
 

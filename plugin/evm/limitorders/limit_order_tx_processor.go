@@ -121,6 +121,7 @@ func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
 
 func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(longOrder LimitOrder, shortOrder LimitOrder, fillAmount *big.Int) error {
 	log.Info("ExecuteMatchedOrdersTx", "LongOrder", longOrder, "ShortOrder", shortOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18))
+
 	orders := make([]Order, 2)
 	orders[0], orders[1] = getOrderFromRawOrder(longOrder.RawOrder), getOrderFromRawOrder(shortOrder.RawOrder)
 	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "executeMatchedOrders", orders, fillAmount)
@@ -165,7 +166,7 @@ func (lotp *limitOrderTxProcessor) getBaseFeeEstimate() *big.Int {
 	baseFeeEstimate, err := lotp.backend.EstimateBaseFee(context.TODO())
 	if err != nil {
 		baseFeeEstimate = big.NewInt(0).Abs(lotp.backend.CurrentBlock().BaseFee())
-		log.Info("Error in calculating updated bassFee, using last header's baseFee", "baseFeeEstimate", baseFeeEstimate)
+		log.Error("Error in calculating updated bassFee, using last header's baseFee", "baseFeeEstimate", baseFeeEstimate)
 	}
 	return baseFeeEstimate
 }
@@ -174,7 +175,7 @@ func (lotp *limitOrderTxProcessor) updateValidatorTxFeeConfig() {
 	currentBlockNumber := lotp.backend.CurrentBlock().NumberU64()
 	if lotp.validatorTxFeeConfig.blockNumber < currentBlockNumber {
 		baseFeeEstimate := lotp.getBaseFeeEstimate()
-		log.Info("inside lotp updating txFeeConfig", "blockNumber", currentBlockNumber, "baseFeeEstimate", baseFeeEstimate)
+		// log.Info("inside lotp updating txFeeConfig", "blockNumber", currentBlockNumber, "baseFeeEstimate", baseFeeEstimate)
 		lotp.validatorTxFeeConfig.baseFeeEstimate = baseFeeEstimate
 		lotp.validatorTxFeeConfig.blockNumber = currentBlockNumber
 	}
@@ -231,7 +232,7 @@ func (lotp *limitOrderTxProcessor) GetUnderlyingPrice() (map[Market]*big.Int, er
 			return underlyingPriceMap, nil
 		}
 	}
-	return nil, fmt.Errorf("Contracts have not yet initialized")
+	return nil, fmt.Errorf("contracts have not yet initialized")
 }
 
 func (lotp *limitOrderTxProcessor) CheckIfOrderBookContractCall(tx *types.Transaction) bool {

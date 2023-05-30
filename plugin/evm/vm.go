@@ -652,7 +652,6 @@ func (vm *VM) buildBlock(ctx context.Context) (snowman.Block, error) {
 }
 
 func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) (snowman.Block, error) {
-	log.Info("#### buildBlockWithContext called")
 	if proposerVMBlockCtx != nil {
 		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {

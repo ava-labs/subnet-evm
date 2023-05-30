@@ -230,7 +230,6 @@ func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, b
 		return errors.New(fmt.Sprintf("Invalid orderId %s", orderId.Hex()))
 	}
 	db.OrderMap[orderId].LifecycleList = append(db.OrderMap[orderId].LifecycleList, Lifecycle{blockNumber, status})
-	log.Info("SetOrderStatus", "orderId", orderId.String(), "status", status, "updated state", db.OrderMap[orderId].LifecycleList)
 	return nil
 }
 
@@ -363,7 +362,6 @@ func (db *InMemoryDatabase) UpdateMargin(trader common.Address, collateral Colla
 	}
 
 	db.TraderMap[trader].Margin.Deposited[collateral].Add(db.TraderMap[trader].Margin.Deposited[collateral], addAmount)
-	log.Info("UpdateMargin", "trader", trader.String(), "collateral", collateral, "updated margin", db.TraderMap[trader].Margin.Deposited[collateral].Uint64())
 }
 
 func (db *InMemoryDatabase) UpdateReservedMargin(trader common.Address, addAmount *big.Int) {
@@ -375,7 +373,6 @@ func (db *InMemoryDatabase) UpdateReservedMargin(trader common.Address, addAmoun
 	}
 
 	db.TraderMap[trader].Margin.Reserved.Add(db.TraderMap[trader].Margin.Reserved, addAmount)
-	log.Info("UpdateReservedMargin", "trader", trader.String(), "updated reserved margin", db.TraderMap[trader].Margin.Reserved.Uint64())
 }
 
 func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
@@ -545,7 +542,7 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 			orderNotional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.GetUnFilledBaseAssetQuantity(), order.Price), _1e18)) // | size * current price |
 			marginReleased := divideByBasePrecision(big.NewInt(0).Mul(orderNotional, db.configService.getMinAllowableMargin()))
 			_availableMargin.Add(_availableMargin, marginReleased)
-			log.Info("in determineOrdersToCancel loop", "availableMargin", prettifyScaledBigInt(_availableMargin, 6), "marginReleased", prettifyScaledBigInt(marginReleased, 6), "orderNotional", prettifyScaledBigInt(orderNotional, 6))
+			// log.Info("in determineOrdersToCancel loop", "availableMargin", prettifyScaledBigInt(_availableMargin, 6), "marginReleased", prettifyScaledBigInt(marginReleased, 6), "orderNotional", prettifyScaledBigInt(orderNotional, 6))
 			if _availableMargin.Cmp(big.NewInt(0)) >= 0 {
 				break
 			}
