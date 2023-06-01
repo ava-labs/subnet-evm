@@ -93,6 +93,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	defer func() {
 		metrics.Enabled = true
 	}()
+	createValidatorPrivateKeyIfNotExists()
 	if err := vm.Initialize(
 		context.Background(), vm.ctx, dbManager, []byte(genesisJSONSubnetEVM), upgradeBytesJSON, []byte{}, issuer, []*commonEng.Fx{}, appSender,
 	); err != nil {
@@ -203,6 +204,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	}
 
 	// VM should not start again without proper upgrade bytes.
+	createValidatorPrivateKeyIfNotExists()
 	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), []byte{}, []byte{}, issuer, []*commonEng.Fx{}, appSender)
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 

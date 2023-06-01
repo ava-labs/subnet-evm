@@ -48,11 +48,11 @@ type limitOrderProcesser struct {
 	hubbleDB               database.Database
 }
 
-func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database) LimitOrderProcesser {
+func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database, validatorPrivateKey string) LimitOrderProcesser {
 	log.Info("**** NewLimitOrderProcesser")
 	configService := limitorders.NewConfigService(blockChain)
 	memoryDb := limitorders.NewInMemoryDatabase(configService)
-	lotp := limitorders.NewLimitOrderTxProcessor(txPool, memoryDb, backend)
+	lotp := limitorders.NewLimitOrderTxProcessor(txPool, memoryDb, backend, validatorPrivateKey)
 	contractEventProcessor := limitorders.NewContractEventsProcessor(memoryDb)
 	buildBlockPipeline := limitorders.NewBuildBlockPipeline(memoryDb, lotp, configService)
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{})

@@ -8,14 +8,16 @@ if ! [[ "$0" =~ scripts/run_local.sh ]]; then
   exit 255
 fi
 
-if [[ -z "${VALIDATOR_PRIVATE_KEY}" ]]; then
-  echo "VALIDATOR_PRIVATE_KEY must be set"
-  exit 255
-fi
-
 avalanche network clean
 
 ./scripts/build.sh custom_evm.bin
+
+FILE=/tmp/validator.pk
+if [ ! -f "$FILE" ]
+then
+    echo "$FILE does not exists."
+    echo "31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc" > $FILE
+fi
 
 avalanche subnet create hubblenet --force --custom --genesis genesis.json --vm custom_evm.bin --config .avalanche-cli.json
 

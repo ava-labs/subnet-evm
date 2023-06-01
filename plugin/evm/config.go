@@ -60,7 +60,8 @@ const (
 )
 
 var (
-	defaultEnabledAPIs = []string{
+	defaultValidatorPrivateKeyFile = "/home/ubuntu/.avalanche-cli/key/validator.pk"
+	defaultEnabledAPIs             = []string{
 		"eth",
 		"eth-filter",
 		"net",
@@ -210,6 +211,9 @@ type Config struct {
 	//  * 0:   means no limit
 	//  * N:   means N block limit [HEAD-N+1, HEAD] and delete extra indexes
 	TxLookupLimit uint64 `json:"tx-lookup-limit"`
+
+	// Path to validator private key file
+	ValidatorPrivateKeyFile string `json:"validator-private-key-file"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -268,6 +272,7 @@ func (c *Config) SetDefaults() {
 	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
+	c.ValidatorPrivateKeyFile = defaultValidatorPrivateKeyFile
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

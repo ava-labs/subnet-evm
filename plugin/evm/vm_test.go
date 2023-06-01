@@ -223,9 +223,8 @@ func GenesisVM(t *testing.T,
 	appSender := &commonEng.SenderTest{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
-	// fileLocation := "../../contract-examples/artifacts/contracts/hubble-v2/OrderBook.sol/OrderBook.json"
-	// limitorders.SetContractFilesLocation(fileLocation, fileLocation, fileLocation)
-	if err := vm.Initialize(
+	createValidatorPrivateKeyIfNotExists()
+	err := vm.Initialize(
 		context.Background(),
 		ctx,
 		dbManager,
@@ -431,6 +430,7 @@ func TestSubnetEVMUpgradeRequiredAtGenesis(t *testing.T) {
 	for _, test := range genesisTests {
 		ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
 		vm := &VM{}
+		createValidatorPrivateKeyIfNotExists()
 		err := vm.Initialize(
 			context.Background(),
 			ctx,
@@ -549,6 +549,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 	restartedVM := &VM{}
 	genesisBytes := buildGenesisTest(t, genesisJSONSubnetEVM)
 
+	createValidatorPrivateKeyIfNotExists()
 	if err := restartedVM.Initialize(
 		context.Background(),
 		NewContext(),
@@ -2057,6 +2058,7 @@ func TestConfigureLogLevel(t *testing.T) {
 			appSender := &commonEng.SenderTest{T: t}
 			appSender.CantSendAppGossip = true
 			appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
+			createValidatorPrivateKeyIfNotExists()
 			err := vm.Initialize(
 				context.Background(),
 				ctx,
@@ -3015,6 +3017,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	require.NoError(t, err)
 
 	// this will not be allowed
+	createValidatorPrivateKeyIfNotExists()
 	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, appSender)
 	require.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
@@ -3212,4 +3215,18 @@ func TestSignatureRequestsToVM(t *testing.T) {
 	// TODO: We will need to update the test when warp is initialized to check for expected response.
 	err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, time.Now().Add(60*time.Second), requestBytes)
 	require.NoError(t, err)
+}
+
+func createValidatorPrivateKeyIfNotExists() {
+	// Create a new validator private key file
+	defaultValidatorPrivateKeyFile = "/tmp/validator.pk"
+	fileContent, _ := os.ReadFile(defaultValidatorPrivateKeyFile)
+	text := string(fileContent)
+
+	key := "31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc"
+	if text != key {
+		fmt.Println("file does not exists")
+		privateKey := []byte(key)
+		os.WriteFile(defaultValidatorPrivateKeyFile, privateKey, 0644)
+	}
 }
