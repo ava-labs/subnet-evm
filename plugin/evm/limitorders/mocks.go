@@ -205,6 +205,10 @@ func (cs *MockConfigService) GetActiveMarketsCount() int64 {
 	return int64(1)
 }
 
+func (cs *MockConfigService) GetUnderlyingPrices() []*big.Int {
+	return []*big.Int{}
+}
+
 func NewMockConfigService() *MockConfigService {
 	return &MockConfigService{}
 }

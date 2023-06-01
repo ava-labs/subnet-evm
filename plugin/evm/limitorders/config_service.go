@@ -15,6 +15,7 @@ type IConfigService interface {
 	getMaintenanceMargin() *big.Int
 	getMinSizeRequirement(market Market) *big.Int
 	GetActiveMarketsCount() int64
+	GetUnderlyingPrices() []*big.Int
 }
 
 type ConfigService struct {
@@ -54,4 +55,8 @@ func (cs *ConfigService) getStateAtCurrentBlock() *state.StateDB {
 
 func (cs *ConfigService) GetActiveMarketsCount() int64 {
 	return hubblebibliophile.GetActiveMarketsCount(cs.getStateAtCurrentBlock())
+}
+
+func (cs *ConfigService) GetUnderlyingPrices() []*big.Int {
+	return hubblebibliophile.GetUnderlyingPrices(cs.getStateAtCurrentBlock())
 }

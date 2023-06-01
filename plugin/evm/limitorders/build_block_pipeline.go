@@ -43,11 +43,7 @@ func (pipeline *BuildBlockPipeline) Run() {
 	}
 
 	// fetch the underlying price and run the matching engine
-	underlyingPrices, err := pipeline.lotp.GetUnderlyingPrice()
-	if err != nil {
-		log.Error("could not fetch underlying price", "err", err)
-		return
-	}
+	underlyingPrices := pipeline.GetUnderlyingPrices()
 
 	// build trader map
 	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(underlyingPrices, markets)
@@ -76,6 +72,16 @@ func (pipeline *BuildBlockPipeline) GetActiveMarkets() []Market {
 		markets[i] = Market(i)
 	}
 	return markets
+}
+
+func (pipeline *BuildBlockPipeline) GetUnderlyingPrices() map[Market]*big.Int {
+	prices := pipeline.configService.GetUnderlyingPrices()
+	log.Info("GetUnderlyingPrices", "prices", prices)
+	underlyingPrices := make(map[Market]*big.Int)
+	for market, price := range prices {
+		underlyingPrices[Market(market)] = price
+	}
+	return underlyingPrices
 }
 
 func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Address][]LimitOrder) map[common.Hash]struct{} {

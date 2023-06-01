@@ -3,21 +3,16 @@ package limitorders
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
-	"github.com/ava-labs/subnet-evm/internal/ethapi"
-	"github.com/ava-labs/subnet-evm/rpc"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -33,7 +28,6 @@ type LimitOrderTxProcessor interface {
 	ExecuteFundingPaymentTx() error
 	ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error
 	ExecuteOrderCancel(orderIds []Order) error
-	GetUnderlyingPrice() (map[Market]*big.Int, error)
 }
 
 type ValidatorTxFeeConfig struct {
@@ -192,45 +186,6 @@ func (lotp *limitOrderTxProcessor) PurgeLocalTx() {
 		}
 	}
 	lotp.txPool.PurgeOrderBookTxs()
-}
-
-func (lotp *limitOrderTxProcessor) GetUnderlyingPrice() (map[Market]*big.Int, error) {
-	data, err := lotp.clearingHouseABI.Pack("getUnderlyingPrice")
-	if err != nil {
-		log.Error("abi.Pack failed", "method", "getUnderlyingPrice", "err", err)
-		return nil, err
-	}
-	args := ethapi.TransactionArgs{
-		To:      &lotp.clearingHouseContractAddress,
-		Input:   (*hexutil.Bytes)(&data),
-		ChainID: (*hexutil.Big)(lotp.backend.ChainConfig().ChainID),
-	}
-	// this has to current head block
-	blockNumber := rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(lotp.backend.LastAcceptedBlock().Number().Int64()))
-	res, err := ethapi.DoCall(context.Background(), lotp.backend, args, blockNumber, nil, time.Minute, 5000000)
-	if err != nil {
-		return nil, err
-	}
-	rawData, err := hexutil.Decode("0x" + hex.EncodeToString(res.ReturnData))
-	if err != nil {
-		return nil, err
-	}
-	uintArray, err := lotp.clearingHouseABI.Unpack("getUnderlyingPrice", rawData)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(uintArray) != 0 {
-		underlyingPrices := uintArray[0].([]*big.Int)
-		if len(underlyingPrices) != 0 {
-			underlyingPriceMap := map[Market]*big.Int{}
-			for i, underlyingPrice := range underlyingPrices {
-				underlyingPriceMap[Market(i)] = underlyingPrice
-			}
-			return underlyingPriceMap, nil
-		}
-	}
-	return nil, fmt.Errorf("contracts have not yet initialized")
 }
 
 func (lotp *limitOrderTxProcessor) CheckIfOrderBookContractCall(tx *types.Transaction) bool {

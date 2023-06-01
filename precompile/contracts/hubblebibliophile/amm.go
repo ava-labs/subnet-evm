@@ -16,6 +16,12 @@ const (
 	MAX_ORACLE_SPREAD_RATIO_SLOT    int64 = 7
 	MAX_LIQUIDATION_RATIO_SLOT      int64 = 8
 	MIN_SIZE_REQUIREMENT_SLOT       int64 = 9
+	ORACLE_SLOT                     int64 = 10
+	UNDERLYING_ASSET_SLOT           int64 = 11
+)
+
+const (
+	TEST_ORACLE_PRICES_MAPPING_SLOT int64 = 53
 )
 
 // AMM State
@@ -45,6 +51,21 @@ func GetMinSizeRequirementForMarket(stateDB contract.StateDB, marketID int64) *b
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MIN_SIZE_REQUIREMENT_SLOT))).Bytes())
 }
 
+func getOracleAddress(stateDB contract.StateDB, market common.Address) common.Address {
+	return common.BytesToAddress(stateDB.GetState(market, common.BigToHash(big.NewInt(ORACLE_SLOT))).Bytes())
+}
+
+func getUnderlyingAssetAddress(stateDB contract.StateDB, market common.Address) common.Address {
+	return common.BytesToAddress(stateDB.GetState(market, common.BigToHash(big.NewInt(UNDERLYING_ASSET_SLOT))).Bytes())
+}
+
+func getUnderlyingPrice(stateDB contract.StateDB, market common.Address) *big.Int {
+	oracle := getOracleAddress(stateDB, market)
+	underlying := getUnderlyingAssetAddress(stateDB, market)
+	slot := crypto.Keccak256(append(common.LeftPadBytes(underlying.Bytes(), 32), common.LeftPadBytes(big.NewInt(TEST_ORACLE_PRICES_MAPPING_SLOT).Bytes(), 32)...))
+	return fromTwosComplement(stateDB.GetState(oracle, common.BytesToHash(slot)).Bytes())
+}
+
 // Trader State
 
 func positionsStorageSlot(trader *common.Address) *big.Int {
@@ -55,14 +76,6 @@ func getSize(stateDB contract.StateDB, market common.Address, trader *common.Add
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(positionsStorageSlot(trader))).Bytes())
 }
 
-func fromTwosComplement(b []byte) *big.Int {
-	t := new(big.Int).SetBytes(b)
-	if b[0]&0x80 != 0 {
-		t.Sub(t, new(big.Int).Lsh(big.NewInt(1), uint(len(b)*8)))
-	}
-	return t
-}
-
 func getOpenNotional(stateDB contract.StateDB, market common.Address, trader *common.Address) *big.Int {
 	return stateDB.GetState(market, common.BigToHash(new(big.Int).Add(positionsStorageSlot(trader), big.NewInt(1)))).Big()
 }
@@ -71,7 +84,7 @@ func getLastPremiumFraction(stateDB contract.StateDB, market common.Address, tra
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(new(big.Int).Add(positionsStorageSlot(trader), big.NewInt(2)))).Bytes())
 }
 
-// utilities
+// Utils
 
 func getPendingFundingPayment(stateDB contract.StateDB, market common.Address, trader *common.Address) *big.Int {
 	cumulativePremiumFraction := getCumulativePremiumFraction(stateDB, market)
@@ -122,6 +135,8 @@ func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 	return notionalPos, uPnl, marginFraction
 }
 
+// Common Utils
+
 func divide1e18(number *big.Int) *big.Int {
 	return big.NewInt(0).Div(number, big.NewInt(1e18))
 }
@@ -134,9 +149,10 @@ func multiply1e6(number *big.Int) *big.Int {
 	return new(big.Int).Div(number, big.NewInt(1e6))
 }
 
-// getMarketAddressFromMarketID returns the market address for a given marketID
-func getMarketAddressFromMarketID(marketID int64, stateDB contract.StateDB) common.Address {
-	baseStorageSlot := marketsStorageSlot()
-	amm := stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BigToHash(new(big.Int).Add(baseStorageSlot, big.NewInt(marketID))))
-	return common.BytesToAddress(amm.Bytes())
+func fromTwosComplement(b []byte) *big.Int {
+	t := new(big.Int).SetBytes(b)
+	if b[0]&0x80 != 0 {
+		t.Sub(t, new(big.Int).Lsh(big.NewInt(1), uint(len(b)*8)))
+	}
+	return t
 }

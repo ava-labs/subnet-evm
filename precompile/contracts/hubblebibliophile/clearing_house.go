@@ -68,8 +68,7 @@ func GetTotalNotionalPositionAndUnrealizedPnl(stateDB contract.StateDB, trader *
 	unrealizedPnl := big.NewInt(0)
 	for _, market := range GetMarkets(stateDB) {
 		lastPrice := getLastPrice(stateDB, market)
-		// oraclePrice := getUnderlyingPrice(stateDB, market) // TODO
-		oraclePrice := multiply1e6(big.NewInt(1800))
+		oraclePrice := getUnderlyingPrice(stateDB, market)
 		_notionalPosition, _unrealizedPnl := getOptimalPnl(stateDB, market, oraclePrice, lastPrice, trader, margin, marginMode)
 		notionalPosition.Add(notionalPosition, _notionalPosition)
 		unrealizedPnl.Add(unrealizedPnl, _unrealizedPnl)
@@ -95,10 +94,25 @@ func GetMinAllowableMargin(stateDB contract.StateDB) *big.Int {
 	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BytesToHash(common.LeftPadBytes(big.NewInt(MIN_ALLOWABLE_MARGIN_SLOT).Bytes(), 32))).Bytes())
 }
 
+func GetUnderlyingPrices(stateDB contract.StateDB) []*big.Int {
+	underlyingPrices := make([]*big.Int, 0)
+	for _, market := range GetMarkets(stateDB) {
+		underlyingPrices = append(underlyingPrices, getUnderlyingPrice(stateDB, market))
+	}
+	return underlyingPrices
+}
+
 func getPosSizes(stateDB contract.StateDB, trader *common.Address) []*big.Int {
 	positionSizes := make([]*big.Int, 0)
 	for _, market := range GetMarkets(stateDB) {
 		positionSizes = append(positionSizes, getSize(stateDB, market, trader))
 	}
 	return positionSizes
+}
+
+// getMarketAddressFromMarketID returns the market address for a given marketID
+func getMarketAddressFromMarketID(marketID int64, stateDB contract.StateDB) common.Address {
+	baseStorageSlot := marketsStorageSlot()
+	amm := stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BigToHash(new(big.Int).Add(baseStorageSlot, big.NewInt(marketID))))
+	return common.BytesToAddress(amm.Bytes())
 }
