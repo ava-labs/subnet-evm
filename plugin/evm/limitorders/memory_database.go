@@ -254,7 +254,7 @@ func (db *InMemoryDatabase) GetAllOrders() []LimitOrder {
 
 	allOrders := []LimitOrder{}
 	for _, order := range db.OrderMap {
-		allOrders = append(allOrders, deepCopyOrder(*order))
+		allOrders = append(allOrders, deepCopyOrder(order))
 	}
 	return allOrders
 }
@@ -320,10 +320,14 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []Limi
 		if order.PositionType == LONG &&
 			order.Market == market &&
 			order.getOrderStatus().Status == Placed &&
-			(cutoff == nil || order.Price.Cmp(cutoff) <= 0) &&
-			// this will filter orders that are reduce only but with size > current position size (basically no partial fills) - @todo: think if this is correct
-			(!order.ReduceOnly || db.willReducePosition(order)) {
-			longOrders = append(longOrders, deepCopyOrder(*order))
+			(cutoff == nil || order.Price.Cmp(cutoff) <= 0) {
+			if order.ReduceOnly {
+				if reduceOnlyOrder := db.getReduceOnlyOrderDisplay(order); reduceOnlyOrder != nil {
+					longOrders = append(longOrders, *reduceOnlyOrder)
+				}
+			} else {
+				longOrders = append(longOrders, deepCopyOrder(order))
+			}
 		}
 	}
 	sortLongOrders(longOrders)
@@ -339,10 +343,14 @@ func (db *InMemoryDatabase) GetShortOrders(market Market, cutoff *big.Int) []Lim
 		if order.PositionType == SHORT &&
 			order.Market == market &&
 			order.getOrderStatus().Status == Placed &&
-			(cutoff == nil || order.Price.Cmp(cutoff) >= 0) &&
-			// this will filter orders that are reduce only but with size > current position size (basically no partial fills) - @todo: think if this is correct
-			(!order.ReduceOnly || db.willReducePosition(order)) {
-			shortOrders = append(shortOrders, deepCopyOrder(*order))
+			(cutoff == nil || order.Price.Cmp(cutoff) >= 0) {
+			if order.ReduceOnly {
+				if reduceOnlyOrder := db.getReduceOnlyOrderDisplay(order); reduceOnlyOrder != nil {
+					shortOrders = append(shortOrders, *reduceOnlyOrder)
+				}
+			} else {
+				shortOrders = append(shortOrders, deepCopyOrder(order))
+			}
 		}
 	}
 	sortShortOrders(shortOrders)
@@ -554,23 +562,36 @@ func (db *InMemoryDatabase) getTraderOrders(trader common.Address) []LimitOrder 
 	traderOrders := []LimitOrder{}
 	for _, order := range db.OrderMap {
 		if strings.EqualFold(order.UserAddress, trader.String()) {
-			traderOrders = append(traderOrders, deepCopyOrder(*order))
+			traderOrders = append(traderOrders, deepCopyOrder(order))
 		}
 	}
 	return traderOrders
 }
 
-func (db *InMemoryDatabase) willReducePosition(order *LimitOrder) bool {
+func (db *InMemoryDatabase) getReduceOnlyOrderDisplay(order *LimitOrder) *LimitOrder {
 	trader := common.HexToAddress(order.UserAddress)
 	if db.TraderMap[trader] == nil {
-		return false
+		return nil
 	}
 	positions := db.TraderMap[trader].Positions
 	if position, ok := positions[order.Market]; ok {
 		// position.Size, order.BaseAssetQuantity need to be of opposite sign and abs(position.Size) >= abs(order.BaseAssetQuantity)
-		return position.Size.Sign() != order.BaseAssetQuantity.Sign() && big.NewInt(0).Abs(position.Size).Cmp(big.NewInt(0).Abs(order.BaseAssetQuantity)) != -1
+		if position.Size.Sign() == 0 || position.Size.Sign() == order.BaseAssetQuantity.Sign() {
+			return nil
+		}
+		if position.Size.CmpAbs(order.GetUnFilledBaseAssetQuantity()) >= 0 {
+			// position is bigger than unfilled order size
+			orderCopy := deepCopyOrder(order)
+			return &orderCopy
+		} else {
+			// position is smaller than unfilled order
+			// increase the filled quantity so that unfilled amount is equal to position size
+			orderCopy := deepCopyOrder(order)
+			orderCopy.FilledBaseAssetQuantity = big.NewInt(0).Add(orderCopy.BaseAssetQuantity, position.Size) // both have opposite sign, therefore we add
+			return &orderCopy
+		}
 	} else {
-		return false
+		return nil
 	}
 }
 
@@ -658,7 +679,7 @@ func getAvailableMargin(trader *Trader, pendingFunding *big.Int, oraclePrices ma
 }
 
 // deepCopyOrder deep copies the LimitOrder struct
-func deepCopyOrder(order LimitOrder) LimitOrder {
+func deepCopyOrder(order *LimitOrder) LimitOrder {
 	lifecycleList := &order.LifecycleList
 	return LimitOrder{
 		Id:                      order.Id,

@@ -102,7 +102,7 @@ func TestGetShortOrders(t *testing.T) {
 	shortOrder3, orderId := createLimitOrder(SHORT, userAddress, baseAssetQuantity, price3, status, signature3, blockNumber3, salt3)
 	inMemoryDatabase.Add(orderId, &shortOrder3)
 
-	//Short order with price 9.01 and blockNumber 3
+	//Reduce only short order with price 9 and blockNumber 4
 	id4 := uint64(4)
 	signature4 := []byte(fmt.Sprintf("Signature short order is %d", id4))
 	price4 := big.NewInt(9)
@@ -132,20 +132,22 @@ func TestGetShortOrders(t *testing.T) {
 
 	// now test with one reduceOnly order when there's a long position
 
-	size := big.NewInt(0).Mul(big.NewInt(10), _1e18)
+	size := big.NewInt(0).Mul(big.NewInt(2), _1e18)
 	inMemoryDatabase.UpdatePosition(trader, market, size, big.NewInt(0).Mul(big.NewInt(100), _1e6), false)
 
 	returnedShortOrders = inMemoryDatabase.GetShortOrders(market, nil)
 	assert.Equal(t, 4, len(returnedShortOrders))
 
 	// at least one of the orders should be reduce only
-	reduceOnlyOrderCount := 0
+	reduceOnlyOrder := LimitOrder{}
 	for _, order := range returnedShortOrders {
 		if order.ReduceOnly {
-			reduceOnlyOrderCount += 1
+			reduceOnlyOrder = order
 		}
 	}
-	assert.Equal(t, 1, reduceOnlyOrderCount)
+	assert.Equal(t, reduceOnlyOrder.Salt, salt4)
+	assert.Equal(t, reduceOnlyOrder.BaseAssetQuantity, baseAssetQuantity)
+	assert.Equal(t, reduceOnlyOrder.FilledBaseAssetQuantity, big.NewInt(0).Neg(_1e18))
 }
 
 func TestGetLongOrders(t *testing.T) {
