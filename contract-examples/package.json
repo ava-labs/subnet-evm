@@ -22,7 +22,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ava-labs/subnet-evm/contract-examples.git",
+    "url": "https://github.com/ava-labs/subnet-evm.git",
     "directory": "contract-examples"
   },
   "license": "BSD-3-Clause",
