@@ -48,7 +48,7 @@ For more information about precompiles see [subnet-evm precompiles](https://gith
 
 Hardhat uses `hardhat.config.js` as the configuration file. You can define tasks, networks, compilers and more in that file. For more information see [here](https://hardhat.org/config/).
 
-In Subnet-EVM, we provide a pre-configured file [hardhat.config.ts](https://github.com/ava-labs/avalanche-smart-contract-quickstart/blob/main/hardhat.config.ts).
+In Subnet-EVM, we provide a pre-configured file [hardhat.config.ts](https://github.com/ava-labs/subnet-evm/blob/master/contract-examples/hardhat.config.ts).
 
 The HardHat config file includes a single network configuration: `local`. `local` defaults to using the following values for the RPC URL and the Chain ID:
 

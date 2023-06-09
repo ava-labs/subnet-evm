@@ -1,4 +1,5 @@
 import "@nomiclabs/hardhat-waffle"
+import "@nomiclabs/hardhat-ethers"
 import "./tasks"
 
 // HardHat users must populate these environment variables in order to connect to their subnet-evm instance
