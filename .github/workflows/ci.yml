@@ -69,8 +69,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18.x"
-      - name: NPM install
-        run: npm install
+      - name: NPM Clean Install
+        run: npm ci
         working-directory: ./contract-examples
       - name: Install AvalancheGo Release
         shell: bash
