@@ -6,16 +6,20 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/hubblebibliophile"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type IConfigService interface {
-	getSpreadRatioThreshold(market Market) *big.Int
+	getOracleSpreadThreshold(market Market) *big.Int
 	getMaxLiquidationRatio(market Market) *big.Int
+	getLiquidationSpreadThreshold(market Market) *big.Int
 	getMinAllowableMargin() *big.Int
 	getMaintenanceMargin() *big.Int
 	getMinSizeRequirement(market Market) *big.Int
 	GetActiveMarketsCount() int64
 	GetUnderlyingPrices() []*big.Int
+	GetLastPremiumFraction(market Market, trader *common.Address) *big.Int
+	GetCumulativePremiumFraction(market Market) *big.Int
 }
 
 type ConfigService struct {
@@ -28,8 +32,12 @@ func NewConfigService(blockChain *core.BlockChain) IConfigService {
 	}
 }
 
-func (cs *ConfigService) getSpreadRatioThreshold(market Market) *big.Int {
+func (cs *ConfigService) getOracleSpreadThreshold(market Market) *big.Int {
 	return hubblebibliophile.GetMaxOracleSpreadRatioForMarket(cs.getStateAtCurrentBlock(), int64(market))
+}
+
+func (cs *ConfigService) getLiquidationSpreadThreshold(market Market) *big.Int {
+	return hubblebibliophile.GetMaxLiquidationPriceSpreadForMarket(cs.getStateAtCurrentBlock(), int64(market))
 }
 
 func (cs *ConfigService) getMaxLiquidationRatio(market Market) *big.Int {
@@ -59,4 +67,14 @@ func (cs *ConfigService) GetActiveMarketsCount() int64 {
 
 func (cs *ConfigService) GetUnderlyingPrices() []*big.Int {
 	return hubblebibliophile.GetUnderlyingPrices(cs.getStateAtCurrentBlock())
+}
+
+func (cs *ConfigService) GetLastPremiumFraction(market Market, trader *common.Address) *big.Int {
+	markets := hubblebibliophile.GetMarkets(cs.getStateAtCurrentBlock())
+	return hubblebibliophile.GetLastPremiumFraction(cs.getStateAtCurrentBlock(), markets[market], trader)
+}
+
+func (cs *ConfigService) GetCumulativePremiumFraction(market Market) *big.Int {
+	markets := hubblebibliophile.GetMarkets(cs.getStateAtCurrentBlock())
+	return hubblebibliophile.GetCumulativePremiumFraction(cs.getStateAtCurrentBlock(), markets[market])
 }

@@ -51,25 +51,25 @@ func GetMarkets(stateDB contract.StateDB) []common.Address {
 	return markets
 }
 
-func GetNotionalPositionAndMargin(stateDB contract.StateDB, input *GetNotionalPositionAndMarginInput) GetNotionalPositionAndMarginOutput {
+func GetNotionalPositionAndMargin(stateDB contract.StateDB, input *GetNotionalPositionAndMarginInput, blockTimestamp *big.Int) GetNotionalPositionAndMarginOutput {
 	margin := GetNormalizedMargin(stateDB, input.Trader)
 	if input.IncludeFundingPayments {
 		margin.Sub(margin, GetTotalFunding(stateDB, &input.Trader))
 	}
-	notionalPosition, unrealizedPnl := GetTotalNotionalPositionAndUnrealizedPnl(stateDB, &input.Trader, margin, GetMarginMode(input.Mode))
+	notionalPosition, unrealizedPnl := GetTotalNotionalPositionAndUnrealizedPnl(stateDB, &input.Trader, margin, GetMarginMode(input.Mode), blockTimestamp)
 	return GetNotionalPositionAndMarginOutput{
 		NotionalPosition: notionalPosition,
 		Margin:           new(big.Int).Add(margin, unrealizedPnl),
 	}
 }
 
-func GetTotalNotionalPositionAndUnrealizedPnl(stateDB contract.StateDB, trader *common.Address, margin *big.Int, marginMode MarginMode) (*big.Int, *big.Int) {
+func GetTotalNotionalPositionAndUnrealizedPnl(stateDB contract.StateDB, trader *common.Address, margin *big.Int, marginMode MarginMode, blockTimeStamp *big.Int) (*big.Int, *big.Int) {
 	notionalPosition := big.NewInt(0)
 	unrealizedPnl := big.NewInt(0)
 	for _, market := range GetMarkets(stateDB) {
 		lastPrice := getLastPrice(stateDB, market)
 		oraclePrice := getUnderlyingPrice(stateDB, market)
-		_notionalPosition, _unrealizedPnl := getOptimalPnl(stateDB, market, oraclePrice, lastPrice, trader, margin, marginMode)
+		_notionalPosition, _unrealizedPnl := getOptimalPnl(stateDB, market, oraclePrice, lastPrice, trader, margin, marginMode, blockTimeStamp)
 		notionalPosition.Add(notionalPosition, _notionalPosition)
 		unrealizedPnl.Add(unrealizedPnl, _unrealizedPnl)
 	}

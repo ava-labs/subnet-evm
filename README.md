@@ -1,8 +1,8 @@
 # Hubble v2
 
-To run a fresh local network - run `VALIDATOR_PRIVATE_KEY=31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc  ./scripts/run_local.sh`
+To run a fresh local network - run `./scripts/run_local.sh`
 To run on the same network with updated evm code(it preserves all evm state) - run `./scripts/upgrade_local.sh`
-To kill network - run `avalanche network clean`
+To kill network - run `avalanche network stop && avalanche network clean`
 
 To see logs - run `./scripts/show_logs.sh`
 

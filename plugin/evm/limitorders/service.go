@@ -19,14 +19,16 @@ import (
 )
 
 type OrderBookAPI struct {
-	db      LimitOrderDatabase
-	backend *eth.EthAPIBackend
+	db            LimitOrderDatabase
+	backend       *eth.EthAPIBackend
+	configService IConfigService
 }
 
-func NewOrderBookAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend) *OrderBookAPI {
+func NewOrderBookAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService) *OrderBookAPI {
 	return &OrderBookAPI{
-		db:      database,
-		backend: backend,
+		db:            database,
+		backend:       backend,
+		configService: configService,
 	}
 }
 
@@ -55,6 +57,75 @@ type OrderForOpenOrders struct {
 	Salt       string
 	OrderId    string
 	ReduceOnly bool
+}
+
+type GetDebugDataResponse struct {
+	MarginFraction   map[common.Address]*big.Int
+	AvailableMargin  map[common.Address]*big.Int
+	PendingFunding   map[common.Address]*big.Int
+	Margin           map[common.Address]*big.Int
+	UtilisedMargin   map[common.Address]*big.Int
+	ReservedMargin   map[common.Address]*big.Int
+	NotionalPosition map[common.Address]*big.Int
+	UnrealizePnL     map[common.Address]*big.Int
+	LastPrice        map[Market]*big.Int
+	OraclePrice      map[Market]*big.Int
+}
+
+func (api *OrderBookAPI) GetDebugData(ctx context.Context, trader string) GetDebugDataResponse {
+	traderHash := common.HexToAddress(trader)
+	response := GetDebugDataResponse{
+		MarginFraction:   map[common.Address]*big.Int{},
+		AvailableMargin:  map[common.Address]*big.Int{},
+		PendingFunding:   map[common.Address]*big.Int{},
+		Margin:           map[common.Address]*big.Int{},
+		NotionalPosition: map[common.Address]*big.Int{},
+		UnrealizePnL:     map[common.Address]*big.Int{},
+		UtilisedMargin:   map[common.Address]*big.Int{},
+		ReservedMargin:   map[common.Address]*big.Int{},
+		LastPrice:        map[Market]*big.Int{},
+		OraclePrice:      map[Market]*big.Int{},
+	}
+
+	traderMap := api.db.GetAllTraders()
+	if trader != "" {
+		traderMap = map[common.Address]Trader{
+			traderHash: traderMap[traderHash],
+		}
+	}
+
+	minAllowableMargin := api.configService.getMinAllowableMargin()
+	prices := api.configService.GetUnderlyingPrices()
+	lastPrices := api.db.GetLastPrices()
+	oraclePrices := map[Market]*big.Int{}
+	count := api.configService.GetActiveMarketsCount()
+	markets := make([]Market, count)
+	for i := int64(0); i < count; i++ {
+		markets[i] = Market(i)
+		oraclePrices[Market(i)] = prices[Market(i)]
+	}
+
+	for addr, trader := range traderMap {
+		pendingFunding := getTotalFunding(&trader, markets)
+		margin := new(big.Int).Sub(getNormalisedMargin(&trader), pendingFunding)
+		notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(&trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices, markets)
+		marginFraction := calcMarginFraction(&trader, pendingFunding, oraclePrices, lastPrices, markets)
+		availableMargin := getAvailableMargin(&trader, pendingFunding, oraclePrices, lastPrices, api.configService.getMinAllowableMargin(), markets)
+		utilisedMargin := divideByBasePrecision(new(big.Int).Mul(notionalPosition, minAllowableMargin))
+
+		response.MarginFraction[addr] = marginFraction
+		response.AvailableMargin[addr] = availableMargin
+		response.PendingFunding[addr] = pendingFunding
+		response.Margin[addr] = getNormalisedMargin(&trader)
+		response.UtilisedMargin[addr] = utilisedMargin
+		response.NotionalPosition[addr] = notionalPosition
+		response.UnrealizePnL[addr] = unrealizePnL
+		response.ReservedMargin[addr] = trader.Margin.Reserved
+	}
+
+	response.LastPrice = lastPrices
+	response.OraclePrice = oraclePrices
+	return response
 }
 
 func (api *OrderBookAPI) GetDetailedOrderBookData(ctx context.Context) InMemoryDatabase {
@@ -103,7 +174,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string, marke
 				Price:      order.Price.String(),
 				Size:       order.BaseAssetQuantity.String(),
 				FilledSize: order.FilledBaseAssetQuantity.String(),
-				Salt:       getOrderFromRawOrder(order.RawOrder).Salt.String(),
+				Salt:       order.RawOrder.Salt.String(),
 				OrderId:    order.Id.String(),
 				ReduceOnly: order.ReduceOnly,
 			})

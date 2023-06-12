@@ -46,6 +46,15 @@ var (
 	HubbleBibliophilePrecompile = createHubbleBibliophilePrecompile()
 )
 
+// Some changes to hubble config manager will require us to keep old as well new version of logic
+// Some logic changes may result in usedGas which will result in error during replay of blocks while syncing.
+// Some logic changes may result in different state wihch will result in error in state during replay of blocks while syncing.
+// We should track these logic change which can cause changes specified above; as releases in comments below
+
+// Release 1
+// in amm.go multiply1e6 is diving by 1e6(v1). Change was to fix this to multiply by 1e6(v2).
+// This caused different marginFration and thus different output which cause issue while replay of blocks.
+
 type GetNotionalPositionAndMarginInput struct {
 	Trader                 common.Address
 	IncludeFundingPayments bool
@@ -93,7 +102,7 @@ func getNotionalPositionAndMargin(accessibleState contract.AccessibleState, call
 	}
 
 	// CUSTOM CODE STARTS HERE
-	output := GetNotionalPositionAndMargin(accessibleState.GetStateDB(), &inputStruct)
+	output := GetNotionalPositionAndMargin(accessibleState.GetStateDB(), &inputStruct, accessibleState.GetBlockContext().Timestamp())
 	packedOutput, err := PackGetNotionalPositionAndMarginOutput(output)
 	if err != nil {
 		return nil, remainingGas, err

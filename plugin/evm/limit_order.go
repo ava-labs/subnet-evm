@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -46,6 +47,7 @@ type limitOrderProcesser struct {
 	buildBlockPipeline     *limitorders.BuildBlockPipeline
 	filterAPI              *filters.FilterAPI
 	hubbleDB               database.Database
+	configService          limitorders.IConfigService
 }
 
 func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database, validatorPrivateKey string) LimitOrderProcesser {
@@ -71,6 +73,7 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan
 		contractEventProcessor: contractEventProcessor,
 		buildBlockPipeline:     buildBlockPipeline,
 		filterAPI:              filterAPI,
+		configService:          configService,
 	}
 }
 
@@ -106,8 +109,8 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 			fromBlock = fromBlock.Add(toBlock, big.NewInt(1))
 			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 		}
-
 		lop.memoryDb.Accept(lastAccepted.Uint64()) // will delete stale orders from the memorydb
+		// lop.FixBuggySnapshot() // not required any more
 	}
 
 	lop.mu.Unlock()
@@ -120,7 +123,7 @@ func (lop *limitOrderProcesser) RunBuildBlockPipeline() {
 }
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *limitorders.OrderBookAPI {
-	return limitorders.NewOrderBookAPI(lop.memoryDb, lop.backend)
+	return limitorders.NewOrderBookAPI(lop.memoryDb, lop.backend, lop.configService)
 }
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
@@ -296,4 +299,22 @@ func (lop *limitOrderProcesser) getLogs(fromBlock, toBlock *big.Int) []*types.Lo
 		panic(err)
 	}
 	return logs
+}
+
+func (lop *limitOrderProcesser) FixBuggySnapshot() {
+	// This is to fix the bug that was causing the LastPremiumFraction to be set to 0 in the snapshot whenever a trader's position was updated
+
+	// updateLastPremiumFraction
+	traderMap := lop.memoryDb.GetOrderBookData().TraderMap
+	count := 0
+	start := time.Now()
+	for traderAddr, trader := range traderMap {
+		for market := range trader.Positions {
+			lastPremiumFraction := lop.configService.GetLastPremiumFraction(market, &traderAddr)
+			cumulativePremiumFraction := lop.configService.GetCumulativePremiumFraction(market)
+			lop.memoryDb.UpdateLastPremiumFraction(market, traderAddr, lastPremiumFraction, cumulativePremiumFraction)
+			count++
+		}
+	}
+	log.Info("@@@@ updateLastPremiumFraction - update complete", "count", count, "time taken", time.Since(start))
 }

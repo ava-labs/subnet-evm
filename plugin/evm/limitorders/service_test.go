@@ -12,7 +12,7 @@ import (
 func TestAggregatedOrderBook(t *testing.T) {
 	t.Run("it aggregates long and short orders by price and returns aggregated data in json format with blockNumber", func(t *testing.T) {
 		db := getDatabase()
-		service := NewOrderBookAPI(db, &eth.EthAPIBackend{})
+		service := NewOrderBookAPI(db, &eth.EthAPIBackend{}, db.configService)
 
 		longOrder1 := getLongOrder()
 		db.Add(getIdFromLimitOrder(longOrder1), &longOrder1)

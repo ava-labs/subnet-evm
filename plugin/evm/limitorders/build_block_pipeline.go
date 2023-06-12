@@ -52,7 +52,7 @@ func (pipeline *BuildBlockPipeline) Run() {
 	for _, market := range markets {
 		orderMap[market] = pipeline.fetchOrders(market, underlyingPrices[market], cancellableOrderIds)
 	}
-	pipeline.runLiquidations(liquidablePositions, orderMap)
+	pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
 	for _, market := range markets {
 		pipeline.runMatchingEngine(pipeline.lotp, orderMap[market].longOrders, orderMap[market].shortOrders)
 	}
@@ -107,7 +107,7 @@ func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Ad
 }
 
 func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}) *Orders {
-	spreadRatioThreshold := pipeline.configService.getSpreadRatioThreshold(market)
+	spreadRatioThreshold := pipeline.configService.getOracleSpreadThreshold(market)
 	// 1. Get long orders
 	longCutOffPrice := divideByBasePrecision(big.NewInt(0).Mul(underlyingPrice, big.NewInt(0).Add(_1e6, spreadRatioThreshold)))
 	longOrders := pipeline.db.GetLongOrders(market, longCutOffPrice)
@@ -126,7 +126,7 @@ func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *
 	return &Orders{longOrders, shortOrders}
 }
 
-func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []LiquidablePosition, orderMap map[Market]*Orders) {
+func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []LiquidablePosition, orderMap map[Market]*Orders, underlyingPrices map[Market]*big.Int) {
 	if len(liquidablePositions) > 0 {
 		log.Info("found positions to liquidate", "liquidablePositions", liquidablePositions)
 	}
@@ -147,12 +147,24 @@ func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []Liquid
 			if liquidable.GetUnfilledSize().Sign() == 0 {
 				break
 			}
-			// @todo: add a restriction on the price range that liquidation will occur on.
-			// An illiquid market can be very adverse for trader being liquidated.
+			fulfillPrice := oppositeOrder.Price
+			spreadLimit := pipeline.configService.getLiquidationSpreadThreshold(liquidable.Market)
+			upperbound := divideByBasePrecision(new(big.Int).Mul(underlyingPrices[liquidable.Market], new(big.Int).Add(_1e6, spreadLimit)))
+			lowerbound := big.NewInt(0)
+			if spreadLimit.Cmp(_1e6) == -1 {
+				lowerbound = divideByBasePrecision(new(big.Int).Mul(underlyingPrices[liquidable.Market], new(big.Int).Sub(_1e6, spreadLimit)))
+			}
+
+			if fulfillPrice.Cmp(upperbound) == 1 || fulfillPrice.Cmp(lowerbound) == -1 {
+				// log.Error("liquidation price out of bound", "fulfillPrice", fulfillPrice, "upperbound", upperbound, "lowerbound", lowerbound)
+				continue
+			}
+
 			fillAmount := utils.BigIntMinAbs(liquidable.GetUnfilledSize(), oppositeOrder.GetUnFilledBaseAssetQuantity())
 			if fillAmount.Sign() == 0 {
 				continue
 			}
+
 			pipeline.lotp.ExecuteLiquidation(liquidable.Address, oppositeOrder, fillAmount)
 
 			switch liquidable.PositionType {

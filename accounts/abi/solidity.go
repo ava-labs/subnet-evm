@@ -2,6 +2,7 @@ package abi
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -59,7 +60,7 @@ func FromSolidityJson(abiJsonInput string) (ABI, error) {
 		inputs := []Argument{}
 		for _, input := range method.Inputs {
 			components := []ArgumentMarshaling{}
-			if input.Type == "tuple" || input.Type == "tuple[2]" {
+			if strings.HasPrefix(input.Type, "tuple") { // covers "tuple", "tuple[2]", "tuple[]"
 				for _, component := range input.Components {
 					components = append(components, ArgumentMarshaling{
 						Name:         component.Name,

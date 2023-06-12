@@ -294,7 +294,6 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		log.Info("FundingPaid", "trader", trader, "market", market, "cumulativePremiumFraction", cumulativePremiumFraction)
 		cep.database.ResetUnrealisedFunding(market, trader, cumulativePremiumFraction)
 
-	// both PositionModified and PositionLiquidated have the exact same signature
 	case cep.clearingHouseABI.Events["PositionModified"].ID:
 		err := cep.clearingHouseABI.UnpackIntoMap(args, "PositionModified", event.Data)
 		if err != nil {

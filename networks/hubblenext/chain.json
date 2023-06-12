@@ -1,10 +1,12 @@
 {
+  "state-sync-enabled": true,
   "snowman-api-enabled": true,
   "local-txs-enabled": true,
   "priority-regossip-frequency": "1s",
   "tx-regossip-max-size": 32,
   "priority-regossip-max-txs": 32,
   "priority-regossip-txs-per-address": 20,
-  "priority-regossip-addresses": ["0x1FFBa255f4e7fC2E82eeCb9E346cA586079Cd2d6"],
-  "feeRecipient": "0x7baf9e291a0E676a3FC92b684c7198123e9e23e8"
+  "priority-regossip-addresses": ["0xeAA6AE79bD3d042644D91edD786E4ed3d783Ca2d"],
+  "validator-private-key-file": "/home/ubuntu/validator.pk",
+  "feeRecipient": "0x393bd9ac9dbBe75e84db739Bb15d22cA86D26696"
 }
