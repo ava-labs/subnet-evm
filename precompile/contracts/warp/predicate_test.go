@@ -73,7 +73,7 @@ func newTestValidator() *testValidator {
 		sk:     sk,
 		vdr: &avalancheWarp.Validator{
 			PublicKey:      pk,
-			PublicKeyBytes: bls.PublicKeyToBytes(pk),
+			PublicKeyBytes: pk.Serialize(),
 			Weight:         3,
 			NodeIDs:        []ids.NodeID{nodeID},
 		},
