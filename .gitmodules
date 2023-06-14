@@ -1,0 +1,3 @@
+[submodule "contract-examples"]
+	path = contract-examples
+	url = git@github.com:ava-labs/subnet-evm-contract-examples.git
