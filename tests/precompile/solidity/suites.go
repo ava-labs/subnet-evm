@@ -63,8 +63,8 @@ var _ = ginkgo.Describe("[Precompiles]", ginkgo.Ordered, func() {
 			// Specify the name shared by the genesis file in ./tests/precompile/genesis/{your_precompile}.json
 			// and the test file in ./contracts/tests/{your_precompile}.ts
 			// If you want to use a different test command and genesis path than the defaults, you can
-			// use the utils.RunTestCMD. See runHardhatTests for an example.
-			runHardhatTests(ctx, "your_precompile")
+			// use the utils.RunTestCMD. See utils.RunDefaultHardhatTests for an example.
+			utils.RunDefaultHardhatTests(ctx, "your_precompile")
 		})
 	*/
 })
