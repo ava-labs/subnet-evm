@@ -23,7 +23,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func RunHardhatTests(test string, rpcURI string) {
+func RunTestCMD(testCMD *exec.Cmd, rpcURI string) {
 	log.Info("Sleeping to wait for test ping", "rpcURI", rpcURI)
 	client, err := NewEvmClient(rpcURI, 225, 2)
 	gomega.Expect(err).Should(gomega.BeNil())
@@ -34,11 +34,9 @@ func RunHardhatTests(test string, rpcURI string) {
 
 	err = os.Setenv("RPC_URI", rpcURI)
 	gomega.Expect(err).Should(gomega.BeNil())
-	cmd := exec.Command("npx", "hardhat", "test", fmt.Sprintf("./test/%s.ts", test), "--network", "local")
-	cmd.Dir = "./contract-examples"
-	log.Info("Running hardhat command", "cmd", cmd.String())
+	log.Info("Running test command", "cmd", testCMD.String())
 
-	out, err := cmd.CombinedOutput()
+	out, err := testCMD.CombinedOutput()
 	fmt.Printf("\nCombined output:\n\n%s\n", string(out))
 	if err != nil {
 		fmt.Printf("\nErr: %s\n", err.Error())
@@ -97,14 +95,6 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 	return createChainTxID.String()
 }
 
-func ExecuteHardHatTestOnNewBlockchain(ctx context.Context, test string) {
-	log.Info("Executing HardHat tests on a new blockchain", "test", test)
-
-	genesisFilePath := fmt.Sprintf("./tests/precompile/genesis/%s.json", test)
-
-	blockchainID := CreateNewSubnet(ctx, genesisFilePath)
-	chainURI := fmt.Sprintf("%s/ext/bc/%s/rpc", DefaultLocalNodeURI, blockchainID)
-
-	log.Info("Created subnet successfully", "ChainURI", chainURI)
-	RunHardhatTests(test, chainURI)
+func GetDefaultChainURI(blockchainID string) string {
+	return fmt.Sprintf("%s/ext/bc/%s/rpc", DefaultLocalNodeURI, blockchainID)
 }
