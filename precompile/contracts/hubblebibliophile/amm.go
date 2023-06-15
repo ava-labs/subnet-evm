@@ -39,26 +39,26 @@ func GetCumulativePremiumFraction(stateDB contract.StateDB, market common.Addres
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(VAR_CUMULATIVE_PREMIUM_FRACTION))).Bytes())
 }
 
-// GetMaxOracleSpreadRatioForMarket returns the maxOracleSpreadRatio for a given market
-func GetMaxOracleSpreadRatioForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
+// GetMaxOraclePriceSpread returns the maxOracleSpreadRatio for a given market
+func GetMaxOraclePriceSpread(stateDB contract.StateDB, marketID int64) *big.Int {
 	market := getMarketAddressFromMarketID(marketID, stateDB)
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MAX_ORACLE_SPREAD_RATIO_SLOT))).Bytes())
 }
 
-// GetMaxOracleSpreadRatioForMarket returns the maxOracleSpreadRatio for a given market
-func GetMaxLiquidationPriceSpreadForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
+// GetMaxLiquidationPriceSpread returns the maxOracleSpreadRatio for a given market
+func GetMaxLiquidationPriceSpread(stateDB contract.StateDB, marketID int64) *big.Int {
 	market := getMarketAddressFromMarketID(marketID, stateDB)
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MAX_LIQUIDATION_PRICE_SPREAD))).Bytes())
 }
 
-// GetMaxLiquidationRatioForMarket returns the maxLiquidationRatio for a given market
-func GetMaxLiquidationRatioForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
+// GetMaxLiquidationRatio returns the maxLiquidationPriceSpread for a given market
+func GetMaxLiquidationRatio(stateDB contract.StateDB, marketID int64) *big.Int {
 	market := getMarketAddressFromMarketID(marketID, stateDB)
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MAX_LIQUIDATION_RATIO_SLOT))).Bytes())
 }
 
-// GetMinSizeRequirementForMarket returns the minSizeRequirement for a given market
-func GetMinSizeRequirementForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
+// GetMinSizeRequirement returns the minSizeRequirement for a given market
+func GetMinSizeRequirement(stateDB contract.StateDB, marketID int64) *big.Int {
 	market := getMarketAddressFromMarketID(marketID, stateDB)
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MIN_SIZE_REQUIREMENT_SLOT))).Bytes())
 }
@@ -69,6 +69,11 @@ func getOracleAddress(stateDB contract.StateDB, market common.Address) common.Ad
 
 func getUnderlyingAssetAddress(stateDB contract.StateDB, market common.Address) common.Address {
 	return common.BytesToAddress(stateDB.GetState(market, common.BigToHash(big.NewInt(UNDERLYING_ASSET_SLOT))).Bytes())
+}
+
+func getUnderlyingPriceForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
+	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return getUnderlyingPrice(stateDB, market)
 }
 
 func getUnderlyingPrice(stateDB contract.StateDB, market common.Address) *big.Int {
@@ -145,19 +150,26 @@ func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 	} else {
 		uPnl = new(big.Int).Sub(openNotional, notionalPos)
 	}
-	marginFraction = new(big.Int).Div(multiply1e6(new(big.Int).Add(margin, uPnl), blockTimestamp), notionalPos)
+	marginFraction = new(big.Int).Div(_multiply1e6(new(big.Int).Add(margin, uPnl), blockTimestamp), notionalPos)
 	return notionalPos, uPnl, marginFraction
 }
 
 // Common Utils
 
+var _1e18 = big.NewInt(1e18)
+var _1e6 = big.NewInt(1e6)
+
 func divide1e18(number *big.Int) *big.Int {
-	return big.NewInt(0).Div(number, big.NewInt(1e18))
+	return big.NewInt(0).Div(number, _1e18)
 }
 
-func multiply1e6(number *big.Int, blockTimestamp *big.Int) *big.Int {
+func divide1e6(number *big.Int) *big.Int {
+	return big.NewInt(0).Div(number, _1e6)
+}
+
+func _multiply1e6(number *big.Int, blockTimestamp *big.Int) *big.Int {
 	if blockTimestamp.Cmp(V2ActivationDate) == 1 {
-		return multiply1e6v2(number)
+		return multiply1e6(number)
 	}
 	return multiply1e6v1(number)
 }
@@ -168,8 +180,7 @@ func multiply1e6v1(number *big.Int) *big.Int {
 
 }
 
-// multiple1e6 v2
-func multiply1e6v2(number *big.Int) *big.Int {
+func multiply1e6(number *big.Int) *big.Int {
 	return new(big.Int).Mul(number, big.NewInt(1e6))
 }
 

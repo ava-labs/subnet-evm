@@ -142,8 +142,8 @@ type LimitOrderDatabase interface {
 	Add(orderId common.Hash, order *LimitOrder)
 	Delete(orderId common.Hash)
 	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64)
-	GetLongOrders(market Market, cutoff *big.Int) []LimitOrder
-	GetShortOrders(market Market, cutoff *big.Int) []LimitOrder
+	GetLongOrders(market Market, lowerbound *big.Int) []LimitOrder
+	GetShortOrders(market Market, upperbound *big.Int) []LimitOrder
 	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool)
 	UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int)
 	UpdateReservedMargin(trader common.Address, addAmount *big.Int)
@@ -312,7 +312,7 @@ func (db *InMemoryDatabase) UpdateNextFundingTime(nextFundingTime uint64) {
 	db.NextFundingTime = nextFundingTime
 }
 
-func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []LimitOrder {
+func (db *InMemoryDatabase) GetLongOrders(market Market, lowerbound *big.Int) []LimitOrder {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -320,8 +320,8 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []Limi
 	for _, order := range db.OrderMap {
 		if order.PositionType == LONG &&
 			order.Market == market &&
-			order.getOrderStatus().Status == Placed &&
-			(cutoff == nil || order.Price.Cmp(cutoff) <= 0) {
+			order.getOrderStatus().Status == Placed && // note that Execution_Failed orders are being ignored atm however, it's possible that they could be executed
+			(lowerbound == nil || order.Price.Cmp(lowerbound) >= 0) {
 			if order.ReduceOnly {
 				if reduceOnlyOrder := db.getReduceOnlyOrderDisplay(order); reduceOnlyOrder != nil {
 					longOrders = append(longOrders, *reduceOnlyOrder)
@@ -335,7 +335,7 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, cutoff *big.Int) []Limi
 	return longOrders
 }
 
-func (db *InMemoryDatabase) GetShortOrders(market Market, cutoff *big.Int) []LimitOrder {
+func (db *InMemoryDatabase) GetShortOrders(market Market, upperbound *big.Int) []LimitOrder {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -344,7 +344,7 @@ func (db *InMemoryDatabase) GetShortOrders(market Market, cutoff *big.Int) []Lim
 		if order.PositionType == SHORT &&
 			order.Market == market &&
 			order.getOrderStatus().Status == Placed &&
-			(cutoff == nil || order.Price.Cmp(cutoff) >= 0) {
+			(upperbound == nil || order.Price.Cmp(upperbound) <= 0) {
 			if order.ReduceOnly {
 				if reduceOnlyOrder := db.getReduceOnlyOrderDisplay(order); reduceOnlyOrder != nil {
 					shortOrders = append(shortOrders, *reduceOnlyOrder)

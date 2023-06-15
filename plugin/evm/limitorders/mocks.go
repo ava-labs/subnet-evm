@@ -1,7 +1,6 @@
 package limitorders
 
 import (
-	// "fmt"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -180,10 +179,20 @@ type MockConfigService struct {
 	mock.Mock
 }
 
-func (mcs *MockConfigService) getOracleSpreadThreshold(market Market) *big.Int {
+func (mcs *MockConfigService) GetAcceptableBounds(market Market) (*big.Int, *big.Int) {
 	args := mcs.Called()
-	return args.Get(0).(*big.Int)
+	return args.Get(0).(*big.Int), args.Get(1).(*big.Int)
 }
+
+func (mcs *MockConfigService) GetAcceptableBoundsForLiquidation(market Market) (*big.Int, *big.Int) {
+	args := mcs.Called(market)
+	return args.Get(0).(*big.Int), args.Get(1).(*big.Int)
+}
+
+// func (mcs *MockConfigService) getOracleSpreadThreshold(market Market) *big.Int {
+// 	args := mcs.Called()
+// 	return args.Get(0).(*big.Int)
+// }
 
 func (mcs *MockConfigService) getLiquidationSpreadThreshold(market Market) *big.Int {
 	return big.NewInt(1e4)

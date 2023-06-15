@@ -10,7 +10,6 @@ import (
 )
 
 type IConfigService interface {
-	getOracleSpreadThreshold(market Market) *big.Int
 	getMaxLiquidationRatio(market Market) *big.Int
 	getLiquidationSpreadThreshold(market Market) *big.Int
 	getMinAllowableMargin() *big.Int
@@ -20,6 +19,8 @@ type IConfigService interface {
 	GetUnderlyingPrices() []*big.Int
 	GetLastPremiumFraction(market Market, trader *common.Address) *big.Int
 	GetCumulativePremiumFraction(market Market) *big.Int
+	GetAcceptableBounds(market Market) (*big.Int, *big.Int)
+	GetAcceptableBoundsForLiquidation(market Market) (*big.Int, *big.Int)
 }
 
 type ConfigService struct {
@@ -32,16 +33,20 @@ func NewConfigService(blockChain *core.BlockChain) IConfigService {
 	}
 }
 
-func (cs *ConfigService) getOracleSpreadThreshold(market Market) *big.Int {
-	return hubblebibliophile.GetMaxOracleSpreadRatioForMarket(cs.getStateAtCurrentBlock(), int64(market))
+func (cs *ConfigService) GetAcceptableBounds(market Market) (*big.Int, *big.Int) {
+	return hubblebibliophile.GetAcceptableBounds(cs.getStateAtCurrentBlock(), int64(market))
+}
+
+func (cs *ConfigService) GetAcceptableBoundsForLiquidation(market Market) (*big.Int, *big.Int) {
+	return hubblebibliophile.GetAcceptableBoundsForLiquidation(cs.getStateAtCurrentBlock(), int64(market))
 }
 
 func (cs *ConfigService) getLiquidationSpreadThreshold(market Market) *big.Int {
-	return hubblebibliophile.GetMaxLiquidationPriceSpreadForMarket(cs.getStateAtCurrentBlock(), int64(market))
+	return hubblebibliophile.GetMaxLiquidationPriceSpread(cs.getStateAtCurrentBlock(), int64(market))
 }
 
 func (cs *ConfigService) getMaxLiquidationRatio(market Market) *big.Int {
-	return hubblebibliophile.GetMaxLiquidationRatioForMarket(cs.getStateAtCurrentBlock(), int64(market))
+	return hubblebibliophile.GetMaxLiquidationRatio(cs.getStateAtCurrentBlock(), int64(market))
 }
 
 func (cs *ConfigService) getMinAllowableMargin() *big.Int {
@@ -53,7 +58,7 @@ func (cs *ConfigService) getMaintenanceMargin() *big.Int {
 }
 
 func (cs *ConfigService) getMinSizeRequirement(market Market) *big.Int {
-	return hubblebibliophile.GetMinSizeRequirementForMarket(cs.getStateAtCurrentBlock(), int64(market))
+	return hubblebibliophile.GetMinSizeRequirement(cs.getStateAtCurrentBlock(), int64(market))
 }
 
 func (cs *ConfigService) getStateAtCurrentBlock() *state.StateDB {

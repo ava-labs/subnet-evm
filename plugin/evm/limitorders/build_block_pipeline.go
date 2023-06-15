@@ -34,12 +34,10 @@ func (pipeline *BuildBlockPipeline) Run() {
 
 	if isFundingPaymentTime(pipeline.db.GetNextFundingTime()) {
 		log.Info("BuildBlockPipeline:isFundingPaymentTime")
-		// just execute the funding payment and skip running the matching engine
 		err := executeFundingPayment(pipeline.lotp)
 		if err != nil {
 			log.Error("Funding payment job failed", "err", err)
 		}
-		return
 	}
 
 	// fetch the underlying price and run the matching engine
@@ -54,6 +52,7 @@ func (pipeline *BuildBlockPipeline) Run() {
 	}
 	pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
 	for _, market := range markets {
+		// @todo should we prioritize matching in any particular market?
 		pipeline.runMatchingEngine(pipeline.lotp, orderMap[market].longOrders, orderMap[market].shortOrders)
 	}
 }
@@ -107,74 +106,82 @@ func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Ad
 }
 
 func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}) *Orders {
-	spreadRatioThreshold := pipeline.configService.getOracleSpreadThreshold(market)
-	// 1. Get long orders
-	longCutOffPrice := divideByBasePrecision(big.NewInt(0).Mul(underlyingPrice, big.NewInt(0).Add(_1e6, spreadRatioThreshold)))
-	longOrders := pipeline.db.GetLongOrders(market, longCutOffPrice)
+	_, lowerbound := pipeline.configService.GetAcceptableBounds(market)
 
-	// 2. Get short orders
-	shortCutOffPrice := big.NewInt(0)
-	if _1e6.Cmp(spreadRatioThreshold) > 0 {
-		shortCutOffPrice = divideByBasePrecision(big.NewInt(0).Mul(underlyingPrice, big.NewInt(0).Sub(_1e6, spreadRatioThreshold)))
+	// any long orders below the permissible lowerbound are irrelevant, because they won't be matched no matter what.
+	// this assumes that all above cancelOrder transactions got executed successfully
+	longOrders := removeOrdersWithIds(pipeline.db.GetLongOrders(market, lowerbound), cancellableOrderIds)
+
+	var shortOrders []LimitOrder
+	// all short orders above price of the highest long order are irrelevant
+	if len(longOrders) > 0 {
+		shortOrders = removeOrdersWithIds(pipeline.db.GetShortOrders(market, longOrders[0].Price /* upperbound */), cancellableOrderIds)
 	}
-	shortOrders := pipeline.db.GetShortOrders(market, shortCutOffPrice)
-
-	// 3. Remove orders that were just cancelled
-	longOrders = removeOrdersWithIds(longOrders, cancellableOrderIds)
-	shortOrders = removeOrdersWithIds(shortOrders, cancellableOrderIds)
-
 	return &Orders{longOrders, shortOrders}
 }
 
 func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []LiquidablePosition, orderMap map[Market]*Orders, underlyingPrices map[Market]*big.Int) {
-	if len(liquidablePositions) > 0 {
-		log.Info("found positions to liquidate", "liquidablePositions", liquidablePositions)
+	if len(liquidablePositions) == 0 {
+		return
 	}
 
-	for i, liquidable := range liquidablePositions {
-		var oppositeOrders []LimitOrder
+	log.Info("found positions to liquidate", "num", len(liquidablePositions))
+
+	// we need to retreive permissible bounds for liquidations in each market
+	markets := pipeline.GetActiveMarkets()
+	type S struct {
+		Upperbound *big.Int
+		Lowerbound *big.Int
+	}
+	liquidationBounds := make([]S, len(markets))
+	for _, market := range markets {
+		upperbound, lowerbound := pipeline.configService.GetAcceptableBoundsForLiquidation(market)
+		liquidationBounds[market] = S{Upperbound: upperbound, Lowerbound: lowerbound}
+	}
+
+	for _, liquidable := range liquidablePositions {
+		market := liquidable.Market
+		numOrdersExhausted := 0
 		switch liquidable.PositionType {
 		case LONG:
-			oppositeOrders = orderMap[liquidable.Market].longOrders
+			for _, order := range orderMap[market].longOrders {
+				if order.Price.Cmp(liquidationBounds[market].Lowerbound) == -1 {
+					// further orders are not not eligible to liquidate with
+					break
+				}
+				fillAmount := utils.BigIntMinAbs(liquidable.GetUnfilledSize(), order.GetUnFilledBaseAssetQuantity())
+				pipeline.lotp.ExecuteLiquidation(liquidable.Address, order, fillAmount)
+				order.FilledBaseAssetQuantity.Add(order.FilledBaseAssetQuantity, fillAmount)
+				liquidable.FilledSize.Add(liquidable.FilledSize, fillAmount)
+				if order.GetUnFilledBaseAssetQuantity().Sign() == 0 {
+					numOrdersExhausted++
+				}
+				if liquidable.GetUnfilledSize().Sign() == 0 {
+					break // partial/full liquidation for this position slated for this run is complete
+				}
+			}
+			orderMap[market].longOrders = orderMap[market].longOrders[numOrdersExhausted:]
 		case SHORT:
-			oppositeOrders = orderMap[liquidable.Market].shortOrders
+			for _, order := range orderMap[market].shortOrders {
+				if order.Price.Cmp(liquidationBounds[market].Upperbound) == 1 {
+					// further orders are not not eligible to liquidate with
+					break
+				}
+				fillAmount := utils.BigIntMinAbs(liquidable.GetUnfilledSize(), order.GetUnFilledBaseAssetQuantity())
+				pipeline.lotp.ExecuteLiquidation(liquidable.Address, order, fillAmount)
+				order.FilledBaseAssetQuantity.Sub(order.FilledBaseAssetQuantity, fillAmount)
+				liquidable.FilledSize.Sub(liquidable.FilledSize, fillAmount)
+				if order.GetUnFilledBaseAssetQuantity().Sign() == 0 {
+					numOrdersExhausted++
+				}
+				if liquidable.GetUnfilledSize().Sign() == 0 {
+					break // partial/full liquidation for this position slated for this run is complete
+				}
+			}
+			orderMap[market].shortOrders = orderMap[market].shortOrders[numOrdersExhausted:]
 		}
-		if len(oppositeOrders) == 0 {
-			log.Error("no matching order found for liquidation", "trader", liquidable.Address.String(), "size", liquidable.Size)
-			continue // so that all other liquidable positions get logged
-		}
-		for j, oppositeOrder := range oppositeOrders {
-			if liquidable.GetUnfilledSize().Sign() == 0 {
-				break
-			}
-			fulfillPrice := oppositeOrder.Price
-			spreadLimit := pipeline.configService.getLiquidationSpreadThreshold(liquidable.Market)
-			upperbound := divideByBasePrecision(new(big.Int).Mul(underlyingPrices[liquidable.Market], new(big.Int).Add(_1e6, spreadLimit)))
-			lowerbound := big.NewInt(0)
-			if spreadLimit.Cmp(_1e6) == -1 {
-				lowerbound = divideByBasePrecision(new(big.Int).Mul(underlyingPrices[liquidable.Market], new(big.Int).Sub(_1e6, spreadLimit)))
-			}
-
-			if fulfillPrice.Cmp(upperbound) == 1 || fulfillPrice.Cmp(lowerbound) == -1 {
-				// log.Error("liquidation price out of bound", "fulfillPrice", fulfillPrice, "upperbound", upperbound, "lowerbound", lowerbound)
-				continue
-			}
-
-			fillAmount := utils.BigIntMinAbs(liquidable.GetUnfilledSize(), oppositeOrder.GetUnFilledBaseAssetQuantity())
-			if fillAmount.Sign() == 0 {
-				continue
-			}
-
-			pipeline.lotp.ExecuteLiquidation(liquidable.Address, oppositeOrder, fillAmount)
-
-			switch liquidable.PositionType {
-			case LONG:
-				oppositeOrders[j].FilledBaseAssetQuantity.Add(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
-				liquidablePositions[i].FilledSize.Add(liquidablePositions[i].FilledSize, fillAmount)
-			case SHORT:
-				oppositeOrders[j].FilledBaseAssetQuantity.Sub(oppositeOrders[j].FilledBaseAssetQuantity, fillAmount)
-				liquidablePositions[i].FilledSize.Sub(liquidablePositions[i].FilledSize, fillAmount)
-			}
+		if liquidable.GetUnfilledSize().Sign() != 0 {
+			log.Info("unquenched liquidation", "liquidable", liquidable)
 		}
 	}
 }
@@ -183,37 +190,43 @@ func (pipeline *BuildBlockPipeline) runMatchingEngine(lotp LimitOrderTxProcessor
 	if len(longOrders) == 0 || len(shortOrders) == 0 {
 		return
 	}
+
+	matchingComplete := false
 	for i := 0; i < len(longOrders); i++ {
+		numOrdersExhausted := 0
 		for j := 0; j < len(shortOrders); j++ {
-			if longOrders[i].GetUnFilledBaseAssetQuantity().Sign() == 0 {
-				break
-			}
-			if shortOrders[j].GetUnFilledBaseAssetQuantity().Sign() == 0 {
-				continue
-			}
 			var ordersMatched bool
 			longOrders[i], shortOrders[j], ordersMatched = matchLongAndShortOrder(lotp, longOrders[i], shortOrders[j])
 			if !ordersMatched {
-				i = len(longOrders)
+				matchingComplete = true
+				break
+
+			}
+			if shortOrders[j].GetUnFilledBaseAssetQuantity().Sign() == 0 {
+				numOrdersExhausted++
+			}
+			if longOrders[i].GetUnFilledBaseAssetQuantity().Sign() == 0 {
 				break
 			}
 		}
+		if matchingComplete {
+			break
+		}
+		shortOrders = shortOrders[numOrdersExhausted:]
 	}
 }
 
-func matchLongAndShortOrder(lotp LimitOrderTxProcessor, longOrder LimitOrder, shortOrder LimitOrder) (LimitOrder, LimitOrder, bool) {
-	if longOrder.Price.Cmp(shortOrder.Price) >= 0 { // longOrder.Price >= shortOrder.Price
-		fillAmount := utils.BigIntMinAbs(longOrder.GetUnFilledBaseAssetQuantity(), shortOrder.GetUnFilledBaseAssetQuantity())
-		if fillAmount.Sign() != 0 {
-			err := lotp.ExecuteMatchedOrdersTx(longOrder, shortOrder, fillAmount)
-			if err == nil {
-				longOrder.FilledBaseAssetQuantity = big.NewInt(0).Add(longOrder.FilledBaseAssetQuantity, fillAmount)
-				shortOrder.FilledBaseAssetQuantity = big.NewInt(0).Sub(shortOrder.FilledBaseAssetQuantity, fillAmount)
-				return longOrder, shortOrder, true
-			}
-		}
+func matchLongAndShortOrder(lotp LimitOrderTxProcessor, longOrder, shortOrder LimitOrder) (LimitOrder, LimitOrder, bool) {
+	fillAmount := utils.BigIntMinAbs(longOrder.GetUnFilledBaseAssetQuantity(), shortOrder.GetUnFilledBaseAssetQuantity())
+	if longOrder.Price.Cmp(shortOrder.Price) == -1 || fillAmount.Sign() == 0 {
+		return longOrder, shortOrder, false
 	}
-	return longOrder, shortOrder, false
+	if err := lotp.ExecuteMatchedOrdersTx(longOrder, shortOrder, fillAmount); err != nil {
+		return longOrder, shortOrder, false
+	}
+	longOrder.FilledBaseAssetQuantity = big.NewInt(0).Add(longOrder.FilledBaseAssetQuantity, fillAmount)
+	shortOrder.FilledBaseAssetQuantity = big.NewInt(0).Sub(shortOrder.FilledBaseAssetQuantity, fillAmount)
+	return longOrder, shortOrder, true
 }
 
 func isFundingPaymentTime(nextFundingTime uint64) bool {

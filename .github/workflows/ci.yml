@@ -40,6 +40,8 @@ jobs:
         shell: bash
       - run: ./scripts/build_test.sh -race
         shell: bash
+      - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/hubblebibliophile
+        shell: bash
       - run: ./scripts/coverage.sh
         shell: bash
 
@@ -52,7 +54,7 @@ jobs:
         shell: bash
       - run: CURRENT_BRANCH=${{ github.head_ref || github.ref_name }} PUSH_DOCKER_IMAGE=true ./scripts/build_image.sh
         shell: bash
-      
+
   e2e_test:
     name: e2e tests
     runs-on: ubuntu-latest
