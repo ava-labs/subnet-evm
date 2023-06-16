@@ -1,6 +1,6 @@
 import { ethers } from "hardhat"
 import { CallOverrides } from "ethers"
-const assert = require("assert")
+import assert from "assert"
 
 /*
  *
@@ -16,7 +16,7 @@ const assert = require("assert")
  * ```
  * Many contract functions can be called as a part of the same test:
  * ```ts
- * test("<test_name>", ["<test_fn1>", "<test_fn2>", "<test_fn3>"])
+ * test("<test_name>", ["<step_fn1>", "<step_fn2>", "<step_fn3>"])
  * ```
  * Individual test functions can describe their own overrides with the `overrides` property.
  * If an object is passed in as the third argument to `test`, it will be used as the default overrides for all test
@@ -69,12 +69,12 @@ const buildTestFn = (fnNameOrObject: FnNameOrObject, overrides = {}, debug = fal
     return fnNameOrObject as MethodWithDebugAndOverrides
   })
 
-  // only `test_` prefixed functions can be called on the `DSTest` contracts to clearly separate tests and helpers
-  assert(fnObjects.every(({ method }) => method.startsWith('test_')), "Solidity test functions must be prefixed with 'test_'")
+  // only `step_` prefixed functions can be called on the `DSTest` contracts to clearly separate tests and helpers
+  assert(fnObjects.every(({ method }) => method.startsWith('step_')), "Solidity test functions must be prefixed with 'step_'")
 
   // return the test function that will be used by `it`
   // this function must be defined with the `function` keyword so that `this` is bound to the Mocha context
-  return async function() {
+  return async function () {
     // `Array.prototype.reduce` is used here to ensure that the test functions are called in order.
     // Each test function waits for its predecessor to complete before starting
     return fnObjects.reduce((p: Promise<undefined>, fn) => p.then(async () => {

@@ -1,12 +1,13 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IRewardManager.sol";
+import "./interfaces/IRewardManager.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+address constant REWARD_MANAGER_ADDRESS = 0x0200000000000000000000000000000000000004;
 
 // ExampleRewardManager is a sample wrapper contract for RewardManager precompile.
 contract ExampleRewardManager is Ownable {
-  address constant REWARD_MANAGER_ADDRESS = 0x0200000000000000000000000000000000000004;
   IRewardManager rewardManager = IRewardManager(REWARD_MANAGER_ADDRESS);
 
   constructor() Ownable() {}
