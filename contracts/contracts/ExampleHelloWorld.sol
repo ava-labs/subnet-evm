@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IHelloWorld.sol";
+import "./interfaces/IHelloWorld.sol";
 
 // ExampleHelloWorld shows how the HelloWorld precompile can be used in a smart contract.
 contract ExampleHelloWorld {

@@ -1,71 +1,34 @@
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-import { expect } from "chai";
-import { ethers } from "hardhat";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Contract, ContractFactory } from "ethers";
+import { ethers } from "hardhat"
+import { test } from "@avalabs/subnet-evm-contracts"
 
-// make sure this is always an admin for the precompile
-const adminAddress: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
-const HELLO_WORLD_ADDRESS = "0x0300000000000000000000000000000000000000";
+// make sure this is always an admin for hello world precompile
+const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
+const HELLO_WORLD_ADDRESS = "0x0300000000000000000000000000000000000000"
 
-describe("ExampleHelloWorld", function () {
-  let helloWorldContract: Contract;
-  let adminSigner: SignerWithAddress;
-  let adminSignerPrecompile: Contract;
+describe("ExampleHelloWorldTest", function () {
+  this.timeout("30s")
 
-  before(async function () {
-    // Deploy Hello World Contract
-    const ContractF: ContractFactory = await ethers.getContractFactory(
-      "ExampleHelloWorld"
-    );
-    helloWorldContract = await ContractF.deploy();
-    await helloWorldContract.deployed();
-    const helloWorldContractAddress: string = helloWorldContract.address;
-    console.log(`Contract deployed to: ${helloWorldContractAddress}`);
+  beforeEach('Setup DS-Test contract', async function () {
+    const signer = await ethers.getSigner(ADMIN_ADDRESS)
+    const helloWorldPromise = ethers.getContractAt("IHelloWorld", HELLO_WORLD_ADDRESS, signer)
 
-    adminSigner = await ethers.getSigner(adminAddress);
-    adminSignerPrecompile = await ethers.getContractAt("IHelloWorld", HELLO_WORLD_ADDRESS, adminSigner);
-  });
-
-  it("should getHello properly", async function () {
-    let result = await helloWorldContract.callStatic.getHello();
-    expect(result).to.equal("Hello World!");
-  });
-
-  it("contract should not be able to set greeting without enabled", async function () {
-    const modifiedGreeting = "What's up";
-    let contractRole = await adminSignerPrecompile.readAllowList(helloWorldContract.address);
-    expect(contractRole).to.be.equal(0); // 0 = NONE
-    try {
-      let tx = await helloWorldContract.setGreeting(modifiedGreeting)
-      await tx.wait()
-    }
-    catch (err) {
-      return
-    }
-    expect.fail("should have errored")
+    return ethers.getContractFactory("ExampleHelloWorldTest", { signer })
+      .then(factory => factory.deploy())
+      .then(contract => {
+        this.testContract = contract
+        return contract.deployed().then(() => contract)
+      })
+      .then(() => Promise.all([helloWorldPromise]))
+      .then(([helloWorld]) => helloWorld.setAdmin(this.testContract.address))
+      .then(tx => tx.wait())
   })
 
-  it("should be add contract to enabled list", async function () {
-    let contractRole = await adminSignerPrecompile.readAllowList(helloWorldContract.address);
-    expect(contractRole).to.be.equal(0)
+  test("should gets default hello world", ["step_getDefaultHelloWorld"])
 
-    let enableTx = await adminSignerPrecompile.setEnabled(helloWorldContract.address);
-    await enableTx.wait()
-    contractRole = await adminSignerPrecompile.readAllowList(helloWorldContract.address);
-    expect(contractRole).to.be.equal(1) // 1 = ENABLED
-  });
+  test("should not set greeting before enabled", "step_doesNotSetGreetingBeforeEnabled")
 
-
-  it("should setGreeting and getHello", async function () {
-    const modifiedGreeting = "What's up";
-    let tx = await helloWorldContract.setGreeting(modifiedGreeting);
-    await tx.wait();
-
-    expect(await helloWorldContract.callStatic.getHello()).to.be.equal(
-      modifiedGreeting
-    );
-  });
+  test("should set and get greeting with enabled account", "step_setAndGetGreeting")
 });
