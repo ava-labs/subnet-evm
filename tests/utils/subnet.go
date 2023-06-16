@@ -23,6 +23,8 @@ import (
 	"github.com/onsi/gomega"
 )
 
+// RunTestCMD runs a given test command with the given rpcURI
+// It also waits for the test ping to succeed before running the test command
 func RunTestCMD(testCMD *exec.Cmd, rpcURI string) {
 	log.Info("Sleeping to wait for test ping", "rpcURI", rpcURI)
 	client, err := NewEvmClient(rpcURI, 225, 2)
@@ -44,6 +46,8 @@ func RunTestCMD(testCMD *exec.Cmd, rpcURI string) {
 	gomega.Expect(err).Should(gomega.BeNil())
 }
 
+// CreateNewSubnet creates a new subnet and Subnet-EVM blockchain with the given genesis file.
+// returns the ID of the new created blockchain.
 func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 	kc := secp256k1fx.NewKeychain(genesis.EWOQKey)
 
@@ -95,6 +99,7 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 	return createChainTxID.String()
 }
 
+// GetDefaultChainURI returns the default chain URI for a given blockchainID
 func GetDefaultChainURI(blockchainID string) string {
 	return fmt.Sprintf("%s/ext/bc/%s/rpc", DefaultLocalNodeURI, blockchainID)
 }
