@@ -16,7 +16,8 @@ Modifying code outside of these areas should be done with caution and with a dee
 7- Add your contract unit tests under generated package contract_test.go
 8- Additionally you can add a full-fledged VM test for your precompile under plugin/vm/vm_test.go. See existing precompile tests for examples.
 9- Add your solidity interface and test contract to contracts/contracts
-10- Write solidity tests for your precompile in contracts/test
-11- Create your genesis with your precompile enabled in tests/precompile/genesis/
-12- Create e2e test for your solidity test in tests/precompile/solidity/suites.go
-13- Run your e2e precompile Solidity tests with './scripts/run_ginkgo.sh`
+10- Write solidity contract tests for your precompile in contracts/contracts/test
+11- Write TypeScript DS-Test counterparts for your solidity tests in contracts/test
+12- Create your genesis with your precompile enabled in tests/precompile/genesis/
+13- Create e2e test for your solidity test in tests/precompile/solidity/suites.go
+14- Run your e2e precompile Solidity tests with './scripts/run_ginkgo.sh`
