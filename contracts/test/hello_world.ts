@@ -2,7 +2,7 @@
 // See the file LICENSE for licensing terms.
 
 import { ethers } from "hardhat"
-import { test } from "@avalabs/subnet-evm-contracts"
+import { test } from "./utils"
 
 // make sure this is always an admin for hello world precompile
 const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
