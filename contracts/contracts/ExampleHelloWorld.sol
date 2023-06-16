@@ -8,7 +8,7 @@ contract ExampleHelloWorld {
   address constant HELLO_WORLD_ADDRESS = 0x0300000000000000000000000000000000000000;
   IHelloWorld helloWorld = IHelloWorld(HELLO_WORLD_ADDRESS);
 
-  function getHello() public view returns (string memory) {
+  function sayHello() public view returns (string memory) {
     return helloWorld.sayHello();
   }
 
