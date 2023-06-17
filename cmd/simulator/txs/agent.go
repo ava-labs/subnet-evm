@@ -8,20 +8,28 @@ import (
 	"fmt"
 )
 
+// TxSequence provides an interface to return a channel of transactions.
+// The sequence is responsible for closing the channel when there are no further
+// transactions.
 type TxSequence[T any] interface {
 	Chan() <-chan T
 }
 
+// Worker defines the interface for issuance and confirmation of transactions.
+// The caller is responsible for calling Close to cleanup resources used by the
+// worker at the end of the simulation.
 type Worker[T any] interface {
 	IssueTx(ctx context.Context, tx T) error
 	ConfirmTx(ctx context.Context, tx T) error
 	Close(ctx context.Context) error
 }
 
+// Execute the work of the given agent.
 type Agent[T any] interface {
 	Execute(ctx context.Context) error
 }
 
+// issueAllAgent provides a tx issuing agent that will issue all transactions immediately and then confirm them afterwards
 type issueAllAgent[T any] struct {
 	sequence TxSequence[T]
 	worker   Worker[T]
@@ -54,6 +62,7 @@ func (a issueAllAgent[T]) Execute(ctx context.Context) error {
 	return a.worker.Close(ctx)
 }
 
+// issueNAgent issues and confirms a batch of N transactions at a time.
 type issueNAgent[T any] struct {
 	sequence TxSequence[T]
 	worker   Worker[T]
