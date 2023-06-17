@@ -304,7 +304,7 @@ func (vm *VM) Initialize(
 	vm.syntacticBlockValidator = NewBlockValidator()
 
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
-		log.Warn("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
+		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 
@@ -369,7 +369,7 @@ func (vm *VM) Initialize(
 		log.Info("Setting fee recipient", "address", address)
 		vm.ethConfig.Miner.Etherbase = address
 	} else {
-		log.Warn("Config has not specified any coinbase address. Defaulting to the blackhole address.")
+		log.Info("Config has not specified any coinbase address. Defaulting to the blackhole address.")
 		vm.ethConfig.Miner.Etherbase = constants.BlackholeAddr
 	}
 
@@ -505,15 +505,16 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 				BlockParser:      vm,
 			},
 		),
-		enabled:            vm.config.StateSyncEnabled,
-		skipResume:         vm.config.StateSyncSkipResume,
-		stateSyncMinBlocks: vm.config.StateSyncMinBlocks,
-		lastAcceptedHeight: lastAcceptedHeight, // TODO clean up how this is passed around
-		chaindb:            vm.chaindb,
-		metadataDB:         vm.metadataDB,
-		acceptedBlockDB:    vm.acceptedBlockDB,
-		db:                 vm.db,
-		toEngine:           vm.toEngine,
+		enabled:              vm.config.StateSyncEnabled,
+		skipResume:           vm.config.StateSyncSkipResume,
+		stateSyncMinBlocks:   vm.config.StateSyncMinBlocks,
+		stateSyncRequestSize: vm.config.StateSyncRequestSize,
+		lastAcceptedHeight:   lastAcceptedHeight, // TODO clean up how this is passed around
+		chaindb:              vm.chaindb,
+		metadataDB:           vm.metadataDB,
+		acceptedBlockDB:      vm.acceptedBlockDB,
+		db:                   vm.db,
+		toEngine:             vm.toEngine,
 	})
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
@@ -629,7 +630,9 @@ func (vm *VM) Shutdown(context.Context) error {
 	}
 	close(vm.shutdownChan)
 	vm.eth.Stop()
+	log.Info("Ethereum backend stop completed")
 	vm.shutdownWg.Wait()
+	log.Info("Subnet-EVM Shutdown completed")
 	return nil
 }
 

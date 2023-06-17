@@ -24,7 +24,7 @@ jobs:
         with:
           version: v1.51
           working-directory: .
-          args: --timeout 3m
+          args: --timeout 10m
 
   unit_test:
     name: Golang Unit Tests
@@ -52,7 +52,7 @@ jobs:
         shell: bash
       - run: CURRENT_BRANCH=${{ github.head_ref || github.ref_name }} PUSH_DOCKER_IMAGE=true ./scripts/build_image.sh
         shell: bash
-      
+
   e2e_test:
     name: e2e tests
     runs-on: ubuntu-latest
@@ -68,10 +68,10 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "14.x"
-      - name: Yarn install
-        run: yarn
-        working-directory: ./contract-examples
+          node-version: "18.x"
+      - name: NPM Clean Install
+        run: npm ci
+        working-directory: ./contracts
       - name: Install AvalancheGo Release
         shell: bash
         run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh

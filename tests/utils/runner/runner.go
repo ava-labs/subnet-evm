@@ -17,6 +17,8 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 )
 
 // Subnet provides the basic details of a created subnet
@@ -322,4 +324,54 @@ func (n *NetworkManager) GetSubnet(subnetID ids.ID) (*Subnet, bool) {
 		}
 	}
 	return nil, false
+}
+
+func RegisterFiveNodeSubnetRun() func() *Subnet {
+	var (
+		config   = NewDefaultANRConfig()
+		manager  = NewNetworkManager(config)
+		numNodes = 5
+	)
+
+	_ = ginkgo.BeforeSuite(func() {
+		// Name 10 new validators (which should have BLS key registered)
+		subnetA := make([]string, 0)
+		for i := 1; i <= numNodes; i++ {
+			subnetA = append(subnetA, fmt.Sprintf("node%d-bls", i))
+		}
+
+		ctx := context.Background()
+		var err error
+		_, err = manager.StartDefaultNetwork(ctx)
+		gomega.Expect(err).Should(gomega.BeNil())
+		err = manager.SetupNetwork(
+			ctx,
+			config.AvalancheGoExecPath,
+			[]*rpcpb.BlockchainSpec{
+				{
+					VmName:       evm.IDStr,
+					Genesis:      "./tests/load/genesis/genesis.json",
+					ChainConfig:  "",
+					SubnetConfig: "",
+					Participants: subnetA,
+				},
+			},
+		)
+		gomega.Expect(err).Should(gomega.BeNil())
+	})
+
+	var _ = ginkgo.AfterSuite(func() {
+		gomega.Expect(manager).ShouldNot(gomega.BeNil())
+		gomega.Expect(manager.TeardownNetwork()).Should(gomega.BeNil())
+		// TODO: bootstrap an additional node to ensure that we can bootstrap the test data correctly
+	})
+
+	return func() *Subnet {
+		subnetIDs := manager.GetSubnets()
+		gomega.Expect(len(subnetIDs)).Should(gomega.Equal(1))
+		subnetID := subnetIDs[0]
+		subnetDetails, ok := manager.GetSubnet(subnetID)
+		gomega.Expect(ok).Should(gomega.BeTrue())
+		return subnetDetails
+	}
 }

@@ -1356,9 +1356,9 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds()) // Storage updates are complete, we can mark them
 	accountHashTimer.Inc(statedb.AccountHashes.Milliseconds())    // Account hashes are complete, we can mark them
 	storageHashTimer.Inc(statedb.StorageHashes.Milliseconds())    // Storage hashes are complete, we can mark them
-	additionalTrieProc := statedb.AccountHashes + statedb.StorageHashes + statedb.AccountUpdates + statedb.StorageUpdates - trieproc
-	blockStateValidationTimer.Inc((time.Since(substart) - additionalTrieProc).Milliseconds())
-	blockTrieOpsTimer.Inc((trieproc + additionalTrieProc).Milliseconds())
+	validationTrieProcTime := statedb.AccountHashes + statedb.StorageHashes + statedb.AccountUpdates + statedb.StorageUpdates - trieproc
+	blockStateValidationTimer.Inc((time.Since(substart) - validationTrieProcTime).Milliseconds())
+	blockTrieOpsTimer.Inc((trieproc + validationTrieProcTime).Milliseconds())
 
 	// If [writes] are disabled, skip [writeBlockWithState] so that we do not write the block
 	// or the state trie to disk.
@@ -1508,7 +1508,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		logFn(msg, "number", commonBlock.Number(), "hash", commonBlock.Hash(),
 			"drop", len(oldChain), "dropfrom", oldChain[0].Hash(), "add", len(newChain), "addfrom", newChain[0].Hash())
 	} else {
-		log.Warn("Unlikely preference change (rewind to ancestor) occurred", "oldnum", oldHead.Number(), "oldhash", oldHead.Hash(), "newnum", newHead.Number(), "newhash", newHead.Hash())
+		log.Debug("Preference change (rewind to ancestor) occurred", "oldnum", oldHead.Number(), "oldhash", oldHead.Hash(), "newnum", newHead.Number(), "newhash", newHead.Hash())
 	}
 	// Insert the new chain(except the head block(reverse order)),
 	// taking care of the proper incremental order.
