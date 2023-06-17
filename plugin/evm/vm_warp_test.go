@@ -26,15 +26,16 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/rpc"
+	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	warpTransaction "github.com/ava-labs/subnet-evm/warp/transaction"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
 
-// Test that sending a valid signed warp message results in successful delivery.
-func TestWarpPrecompileE2E(t *testing.T) {
-	// Setup chain params
+// construct the basis for stress testing the warp implementation
+
+func TestSendWarpMessage(t *testing.T) {
 	genesis := &core.Genesis{}
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
@@ -133,8 +134,51 @@ func TestWarpPrecompileE2E(t *testing.T) {
 
 	// Verify the produced signature is valid
 	require.True(t, bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
+}
 
-	// TODO: break out a function that takes in a set of BLS Signatures and their expected indices
+func TestReceiveWarpMessage(t *testing.T) {
+	genesis := &core.Genesis{}
+	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
+		t.Fatal(err)
+	}
+	genesis.Config.GenesisPrecompiles = params.Precompiles{
+		warp.ConfigKey: warp.NewDefaultConfig(big.NewInt(0)),
+	}
+	genesisJSON, err := genesis.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+
+	defer func() {
+		if err := vm.Shutdown(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+	reorgSub := vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+	defer reorgSub.Unsubscribe()
+
+	acceptedLogsChan := make(chan []*types.Log, 10)
+	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
+	defer logsSub.Unsubscribe()
+
+	payload := utils.RandomBytes(100)
+
+	addressedPayload, err := warpPayload.NewAddressedPayload(
+		ids.ID(testEthAddrs[0].Hash()),
+		ids.ID(testEthAddrs[1].Hash()),
+		payload,
+	)
+	require.NoError(t, err)
+	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+		vm.ctx.ChainID,
+		vm.ctx.CChainID,
+		addressedPayload.Bytes(),
+	)
+	require.NoError(t, err)
+
 	nodeID1 := ids.GenerateTestNodeID()
 	blsSecretKey1, err := bls.NewSecretKey()
 	require.NoError(t, err)
@@ -192,7 +236,7 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	signedTx1, err := types.SignTx(
 		warpTransaction.NewWarpTx(
 			vm.chainConfig.ChainID,
-			1,
+			0,
 			&warp.Module.Address,
 			1_000_000,
 			big.NewInt(225*params.GWei),
@@ -206,13 +250,14 @@ func TestWarpPrecompileE2E(t *testing.T) {
 		testKeys[0],
 	)
 	require.NoError(t, err)
-	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
+	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
 	for i, err := range errs {
 		if err != nil {
 			t.Fatalf("Failed to add tx at index %d: %s", i, err)
 		}
 	}
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
+	<-issuer
 
 	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
 		Message: warp.WarpMessage{
@@ -250,8 +295,6 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, executionRes.Err)
 	require.Equal(t, expectedOutput, executionRes.ReturnData)
-
-	<-issuer
 
 	// Build, verify, and accept block with valid proposer context.
 	validProposerCtx := &block.Context{
