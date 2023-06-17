@@ -44,10 +44,21 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/gasprice"
 	"github.com/ava-labs/subnet-evm/ethdb"
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
+)
+
+var (
+	fetchStateAndHeaderDepthHistogram0      = metrics.NewRegisteredCounter("fetchdepth/0", nil)
+	fetchStateAndHeaderDepthHistogram10     = metrics.NewRegisteredCounter("fetchdepth/10", nil)
+	fetchStateAndHeaderDepthHistogram100    = metrics.NewRegisteredCounter("fetchdepth/100", nil)
+	fetchStateAndHeaderDepthHistogram1000   = metrics.NewRegisteredCounter("fetchdepth/1000", nil)
+	fetchStateAndHeaderDepthHistogram10000  = metrics.NewRegisteredCounter("fetchdepth/10000", nil)
+	fetchStateAndHeaderDepthHistogram100000 = metrics.NewRegisteredCounter("fetchdepth/100000", nil)
+	fetchStateAndHeaderDepthHistogramMax    = metrics.NewRegisteredCounter("fetchdepth/1000000", nil)
 )
 
 var ErrUnfinalizedData = errors.New("cannot query unfinalized data")
@@ -219,8 +230,32 @@ func (b *EthAPIBackend) StateAndHeaderByNumber(ctx context.Context, number rpc.B
 	if header == nil {
 		return nil, nil, errors.New("header not found")
 	}
+
+	lastAccepted := b.LastAcceptedBlock()
+
+	requestDepth := lastAccepted.NumberU64() - header.Number.Uint64()
+	updateDepthCounters(int64(requestDepth))
 	stateDb, err := b.eth.BlockChain().StateAt(header.Root)
 	return stateDb, header, err
+}
+
+func updateDepthCounters(depth int64) {
+	switch {
+	case depth == 0:
+		fetchStateAndHeaderDepthHistogram0.Inc(1)
+	case depth < 10:
+		fetchStateAndHeaderDepthHistogram10.Inc(1)
+	case depth < 100:
+		fetchStateAndHeaderDepthHistogram100.Inc(1)
+	case depth < 1000:
+		fetchStateAndHeaderDepthHistogram1000.Inc(1)
+	case depth < 10_000:
+		fetchStateAndHeaderDepthHistogram10000.Inc(1)
+	case depth < 100_000:
+		fetchStateAndHeaderDepthHistogram100000.Inc(1)
+	default:
+		fetchStateAndHeaderDepthHistogramMax.Inc(1)
+	}
 }
 
 func (b *EthAPIBackend) StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *types.Header, error) {
