@@ -5,6 +5,7 @@ package evm
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -267,6 +268,24 @@ func TestWarpPrecompileE2E(t *testing.T) {
 	require.NoError(t, block2VerifyWithCtx.VerifyWithContext(context.Background(), validProposerCtx))
 	require.Equal(t, choices.Processing, block2.Status())
 	require.NoError(t, vm.SetPreference(context.Background(), block2.ID()))
+
+	// Verify the block with another valid context
+	require.NoError(t, block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
+		PChainHeight: 11,
+	}))
+	require.Equal(t, choices.Processing, block2.Status())
+
+	// Verify the block with a different context and modified ValidatorState so that it should fail verification
+	testErr := errors.New("test error")
+	vm.ctx.ValidatorState.(*validators.TestState).GetValidatorSetF = func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+		return nil, testErr
+	}
+	require.ErrorIs(t, block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
+		PChainHeight: 9,
+	}), testErr)
+	require.Equal(t, choices.Processing, block2.Status())
+
+	// Accept the block after performing multiple VerifyWithContext operations
 	require.NoError(t, block2.Accept(context.Background()))
 
 	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
