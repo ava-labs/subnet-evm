@@ -36,7 +36,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		nodeURIs := subnetDetails.ValidatorURIs
 		rpcEndpoints := make([]string, 0, len(nodeURIs))
 		for _, uri := range nodeURIs {
-			rpcEndpoints = append(rpcEndpoints, utils.ToRPCURI(uri, blockchainID.String()))
+			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
 		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
