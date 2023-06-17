@@ -17,7 +17,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
 
@@ -218,9 +218,8 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	if err := n.init(); err != nil {
 		return err
 	}
-	sresp, err := n.anrClient.CreateSpecificBlockchains(
+	sresp, err := n.anrClient.CreateBlockchains(
 		ctx,
-		execPath,
 		blockchainSpecs,
 	)
 	if err != nil {
@@ -253,8 +252,8 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	}
 	nodeInfos := status.GetClusterInfo().GetNodeInfos()
 
-	for i, chainSpec := range blockchainSpecs {
-		blockchainIDStr := sresp.Chains[i]
+	for _, chainSpec := range blockchainSpecs {
+		blockchainIDStr := sresp.ChainIds[0]
 		blockchainID, err := ids.FromString(blockchainIDStr)
 		if err != nil {
 			panic(err)
@@ -268,7 +267,7 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 			SubnetID:     subnetID,
 			BlockchainID: blockchainID,
 		}
-		for _, nodeName := range chainSpec.Participants {
+		for _, nodeName := range chainSpec.SubnetSpec.Participants {
 			subnet.ValidatorURIs = append(subnet.ValidatorURIs, nodeInfos[nodeName].Uri)
 		}
 		n.subnets = append(n.subnets, subnet)
@@ -349,11 +348,12 @@ func RegisterFiveNodeSubnetRun() func() *Subnet {
 			config.AvalancheGoExecPath,
 			[]*rpcpb.BlockchainSpec{
 				{
-					VmName:       evm.IDStr,
-					Genesis:      "./tests/load/genesis/genesis.json",
-					ChainConfig:  "",
-					SubnetConfig: "",
-					Participants: subnetA,
+					VmName:      evm.IDStr,
+					Genesis:     "./tests/load/genesis/genesis.json",
+					ChainConfig: "",
+					SubnetSpec: &rpcpb.SubnetSpec{
+						Participants: subnetA,
+					},
 				},
 			},
 		)

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	"github.com/ethereum/go-ethereum/log"
 	ginkgo "github.com/onsi/ginkgo/v2"
