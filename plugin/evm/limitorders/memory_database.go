@@ -510,7 +510,7 @@ func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFra
 		liquidable = LiquidablePosition{
 			Address:        addr,
 			Market:         market,
-			Size:           position.LiquidationThreshold,
+			Size:           new(big.Int).Abs(position.LiquidationThreshold), // position.LiquidationThreshold is a pointer, to want to avoid unintentional mutation if/when we mutate liquidable.Size
 			MarginFraction: marginFraction,
 			FilledSize:     big.NewInt(0),
 		}
@@ -520,6 +520,7 @@ func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFra
 		liquidable.Size.Mul(liquidable.Size, minSizes[i])
 		if position.Size.Sign() == -1 {
 			liquidable.PositionType = SHORT
+			liquidable.Size.Neg(liquidable.Size)
 		} else {
 			liquidable.PositionType = LONG
 		}
