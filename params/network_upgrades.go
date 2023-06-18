@@ -35,20 +35,20 @@ type MandatoryNetworkUpgrades struct {
 	DUpgradeTimestamp  *big.Int `json:"dUpgradeTimestamp,omitempty"`  // A placeholder for the latest avalanche forks (nil = no fork, 0 = already activated)
 }
 
-func (n *MandatoryNetworkUpgrades) CheckMandatoryCompatible(newcfg *MandatoryNetworkUpgrades, headTimestamp *big.Int) *ConfigCompatError {
-	if isForkIncompatible(n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, headTimestamp) {
-		return newCompatError("SubnetEVM fork block timestamp", n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
+func (m *MandatoryNetworkUpgrades) CheckMandatoryCompatible(newcfg *MandatoryNetworkUpgrades, headTimestamp *big.Int) *ConfigCompatError {
+	if isForkIncompatible(m.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, headTimestamp) {
+		return newCompatError("SubnetEVM fork block timestamp", m.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
-	if isForkIncompatible(n.DUpgradeTimestamp, newcfg.DUpgradeTimestamp, headTimestamp) {
-		return newCompatError("DUpgrade fork block timestamp", n.DUpgradeTimestamp, newcfg.DUpgradeTimestamp)
+	if isForkIncompatible(m.DUpgradeTimestamp, newcfg.DUpgradeTimestamp, headTimestamp) {
+		return newCompatError("DUpgrade fork block timestamp", m.DUpgradeTimestamp, newcfg.DUpgradeTimestamp)
 	}
 	return nil
 }
 
-func (n *MandatoryNetworkUpgrades) MandatoryForkOrder() []fork {
+func (m *MandatoryNetworkUpgrades) MandatoryForkOrder() []fork {
 	return []fork{
-		{name: "subnetEVMTimestamp", block: n.SubnetEVMTimestamp},
-		{name: "dUpgradeTimestamp", block: n.DUpgradeTimestamp},
+		{name: "subnetEVMTimestamp", block: m.SubnetEVMTimestamp},
+		{name: "dUpgradeTimestamp", block: m.DUpgradeTimestamp},
 	}
 }
 
