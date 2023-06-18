@@ -10,41 +10,49 @@ import (
 )
 
 var (
-	LocalNetworkUpgrades = NetworkUpgrades{
+	LocalNetworkUpgrades = MandatoryNetworkUpgrades{
 		SubnetEVMTimestamp: big.NewInt(0),
 		DUpgradeTimestamp:  big.NewInt(0),
 	}
 
-	FujiNetworkUpgrades = NetworkUpgrades{
+	FujiNetworkUpgrades = MandatoryNetworkUpgrades{
 		SubnetEVMTimestamp: big.NewInt(0),
 		//	DUpgradeTimestamp:           big.NewInt(0), // TODO: Uncomment and set this to the correct value
 	}
 
-	MainnetNetworkUpgrades = NetworkUpgrades{
+	MainnetNetworkUpgrades = MandatoryNetworkUpgrades{
 		SubnetEVMTimestamp: big.NewInt(0),
 		//	DUpgradeTimestamp:           big.NewInt(0), // TODO: Uncomment and set this to the correct value
 	}
 )
 
-// NetworkUpgrades contains timestamps that enable avalanche network upgrades.
-type NetworkUpgrades struct {
+// MandatoryNetworkUpgrades contains timestamps that enable mandatory network upgrades.
+// These upgrades are mandatory, meaning that if a node does not upgrade by the
+// specified timestamp, it will be unable to participate in consensus.
+// Avalanche specific network upgrades are also included here.
+type MandatoryNetworkUpgrades struct {
 	SubnetEVMTimestamp *big.Int `json:"subnetEVMTimestamp,omitempty"` // initial subnet-evm upgrade (nil = no fork, 0 = already activated)
 	DUpgradeTimestamp  *big.Int `json:"dUpgradeTimestamp,omitempty"`  // A placeholder for the latest avalanche forks (nil = no fork, 0 = already activated)
 }
 
-func (n *NetworkUpgrades) CheckCompatible(newcfg NetworkUpgrades, headTimestamp *big.Int) *ConfigCompatError {
-	// Check subnet-evm specific activations
+func (n *MandatoryNetworkUpgrades) CheckMandatoryCompatible(newcfg *MandatoryNetworkUpgrades, headTimestamp *big.Int) *ConfigCompatError {
 	if isForkIncompatible(n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, headTimestamp) {
 		return newCompatError("SubnetEVM fork block timestamp", n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
 	if isForkIncompatible(n.DUpgradeTimestamp, newcfg.DUpgradeTimestamp, headTimestamp) {
 		return newCompatError("DUpgrade fork block timestamp", n.DUpgradeTimestamp, newcfg.DUpgradeTimestamp)
 	}
-
 	return nil
 }
 
-func GetNetworkUpgrades(networkID uint32) NetworkUpgrades {
+func (n *MandatoryNetworkUpgrades) MandatoryForkOrder() []fork {
+	return []fork{
+		{name: "subnetEVMTimestamp", block: n.SubnetEVMTimestamp},
+		{name: "dUpgradeTimestamp", block: n.DUpgradeTimestamp},
+	}
+}
+
+func GetMandatoryNetworkUpgrades(networkID uint32) MandatoryNetworkUpgrades {
 	switch networkID {
 	case constants.FujiID:
 		return FujiNetworkUpgrades
@@ -53,4 +61,18 @@ func GetNetworkUpgrades(networkID uint32) NetworkUpgrades {
 	default:
 		return LocalNetworkUpgrades
 	}
+}
+
+// OptionalNetworkUpgrades includes overridable and optional Subnet-EVM network upgrades.
+// These can be specified in genesis and upgrade configs.
+// Timestamps can be different for each subnet network.
+type OptionalNetworkUpgrades struct {
+}
+
+func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, headTimestamp *big.Int) *ConfigCompatError {
+	return nil
+}
+
+func (n *OptionalNetworkUpgrades) OptionalForkOrder() []fork {
+	return []fork{}
 }

@@ -313,7 +313,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			NetworkUpgrades: params.NetworkUpgrades{
+			MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
 				SubnetEVMTimestamp: big.NewInt(0),
 			},
 			GenesisPrecompiles: params.Precompiles{

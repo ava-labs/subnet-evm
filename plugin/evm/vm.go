@@ -291,7 +291,7 @@ func (vm *VM) Initialize(
 
 	// We enforce network upgrades here, regardless of the chain config
 	// provided in the genesis file.
-	g.Config.NetworkUpgrades = params.GetNetworkUpgrades(chainCtx.NetworkID)
+	g.Config.MandatoryNetworkUpgrades = params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
