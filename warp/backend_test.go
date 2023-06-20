@@ -4,12 +4,17 @@
 package warp
 
 import (
+	//"fmt"
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/memdb"
-	"github.com/ava-labs/avalanchego/database/prefixdb"
+
+	//"github.com/ava-labs/avalanchego/database/prefixdb"
+	"github.com/ava-labs/avalanchego/database/versiondb"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
@@ -24,11 +29,6 @@ var (
 	payload            = []byte("test")
 )
 
-var (
-	testWarpBackendConfig = warpBackendConfig{
-		MaxDbSize: 5,
-	}
-)
 
 func TestAddAndGetValidMessage(t *testing.T) {
 	db := memdb.New()
@@ -97,19 +97,39 @@ func TestZeroSizedCache(t *testing.T) {
 
 func TestDatabase(t *testing.T) {
 
-	db := memdb.New()
-	test := prefixdb.New([]byte("hello"), db)
+	db := versiondb.New(memdb.New())
 
-	test.Put([]byte("test"), []byte("test"))
-	x, err := test.Get([]byte("tes"))
-	t.Log(x)
-	t.Log(fmt.Printf("%T", err))
+	db.Put([]byte("test"), []byte("test"))
+	db.Commit()
+	db.Delete([]byte("test"))
+
+
+
+	iter := db.NewIterator()
+
+	for iter.Next() {
+		t.Log(iter.Key())
+	}
 	t.Error()
 	
 }
 
-//potential update to testaddandgetvalidmessage
-func TestPruneEntry(t *testing.T) {
+func GetRandomValues(n int) ([][]byte, error) {
+	values := [][]byte{}
+	for i := 0; i < n; i++ {
+		msg := make([]byte, rand.Intn(100))
+		_, err := rand.Read(msg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate random values: %w", err)
+		}
+
+		values = append(values, msg)
+	}
+	return values, nil
+}
+
+//test that duplicate messages are added again correctly
+func TestPruneDuplicate(t * testing.T) {
 	db := memdb.New()
 	snowCtx := snow.DefaultContextTest()
 	sk, err := bls.NewSecretKey()
@@ -117,33 +137,59 @@ func TestPruneEntry(t *testing.T) {
 	snowCtx.WarpSigner = avalancheWarp.NewSigner(sk, sourceChainID)
 
 	maxDbSize := 5
-	backendConfig := warpBackendConfig{MaxDbSize: uint64(maxDbSize)}
+	backend := NewWarpBackend(snowCtx, db, 0).(*warpBackend)
+	backenddb := backend.warpdb.(*warpDb)
+	backenddb.size = uint64(maxDbSize)
 
-	backend := NewWarpBackend(snowCtx, db, 500).(*warpBackend)
-	backend.config = backendConfig
+	msg := []byte("test")
+	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, msg)
+	backend.AddMessage(unsignedMsg)
+	backend.AddMessage(unsignedMsg)
+
+	_, err = backenddb.countdb.Get([]byte(database.PackUInt64(1)))
+	require.NoError(t, err)
+
+	_, err = backenddb.countdb.Get([]byte(database.PackUInt64(0)))
+	require.Error(t, database.ErrNotFound)
+	require.EqualValues(t, backenddb.count, 1)
+
+}
+
+//potential update to testaddandgetvalidmessage
+func TestEntryAdditionNoPruning(t *testing.T) {
+	db := memdb.New()
+	snowCtx := snow.DefaultContextTest()
+	sk, err := bls.NewSecretKey()
+	require.NoError(t, err)
+	snowCtx.WarpSigner = avalancheWarp.NewSigner(sk, sourceChainID)
+
+	maxDbSize := 10
+	backend := NewWarpBackend(snowCtx, db, 0).(*warpBackend)
+	backenddb := backend.warpdb.(*warpDb)
+	backenddb.size = uint64(maxDbSize)
+
+	values, err := GetRandomValues(maxDbSize)
+	require.NoError(t, err)
 
 	// Create a new unsigned message and add it to the warp backend.
 
 	for i := 0; i < maxDbSize; i++ {
-		msg := append(payload, database.PackUInt64(uint64(i))...) //results in test0, test1 etc.
-		unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, msg)
+		unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, values[i])
 		require.NoError(t, err)
 		
 		err = backend.AddMessage(unsignedMsg)
 		require.NoError(t, err)
-		require.EqualValues(t, backend.msgCount, i+1)
+		require.EqualValues(t, backenddb.count, i+1)
 
 		//Go back through all messages that were added, ensure nothing was deleted
 		for j := 0; j <= i; j++ {
-			msgCountBytes := database.PackUInt64(uint64(j))
-			prevMsg := append(payload, msgCountBytes...)
-			prevUnsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, prevMsg)
-			require.NoError(t, err)
-
-			messageIDBytes, err := backend.countdb.Get(msgCountBytes)
+			countBytes := database.PackUInt64(uint64(j))
+			messageIDBytes, err := backenddb.countdb.Get(countBytes)
 			require.NoError(t, err)
 
 			messageID, err := ids.ToID(messageIDBytes)
+
+			prevUnsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, values[j])
 			require.NoError(t, err)
 
 			expectedMessageIDBytes := hashing.ComputeHash256(prevUnsignedMsg.Bytes())
@@ -151,7 +197,7 @@ func TestPruneEntry(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, messageID, expectedMessageID)
 
-			signature, err := backend.GetSignature(messageID)
+			signature, err := backend.GetSignature(expectedMessageID)
 			require.NoError(t, err)
 
 			expectedSig, err := snowCtx.WarpSigner.Sign(prevUnsignedMsg)
@@ -161,14 +207,14 @@ func TestPruneEntry(t *testing.T) {
 	}
 
 	//ensure that there are exactly maxDbSize values
-	countIter := backend.countdb.NewIterator()
+	countIter := backenddb.countdb.NewIterator()
 	entries := 0
 	for countIter.Next() {
 		entries++
 	}
 	require.EqualValues(t, entries, maxDbSize)
 
-	msgIter := backend.msgdb.NewIterator()
+	msgIter := backenddb.msgdb.NewIterator()
 	entries = 0
 	for msgIter.Next() {
 		entries++
@@ -176,7 +222,7 @@ func TestPruneEntry(t *testing.T) {
 	require.EqualValues(t, entries, maxDbSize)
 }
 
-func TestPruneEntry2(t *testing.T) {
+func TestEntryAdditionPruning(t *testing.T) {
 	db := memdb.New()
 
 	snowCtx := snow.DefaultContextTest()
@@ -184,31 +230,32 @@ func TestPruneEntry2(t *testing.T) {
 	require.NoError(t, err)
 	snowCtx.WarpSigner = avalancheWarp.NewSigner(sk, sourceChainID)
 
-	maxDbSize := 5
-	backendConfig := warpBackendConfig{MaxDbSize: uint64(maxDbSize)}
+	maxDbSize := 20
 
-	backend := NewWarpBackend(snowCtx, db, 500).(*warpBackend)
-	backend.config = backendConfig
+	backend := NewWarpBackend(snowCtx, db, 0).(*warpBackend)
+	backenddb := backend.warpdb.(*warpDb)
+	backenddb.size = uint64(maxDbSize)
+
+	values, err := GetRandomValues(maxDbSize*2)
+	require.NoError(t, err)
+
 
 	// Add twice the max db to the db, ensuring that some should get pruned
 	for i := 0; i < maxDbSize*2; i++ {
-		msg := append(payload, database.PackUInt64(uint64(i))...) //results in test0, test1 etc.
-		unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, msg)
+		unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, values[i])
 		require.NoError(t, err)
 		
 		err = backend.AddMessage(unsignedMsg)
 		require.NoError(t, err)
-		require.EqualValues(t, backend.msgCount, i+1)
 	}
 
 	//Go back through all messages that should stay in the db and ensure their presence
 	for i := maxDbSize+1; i < maxDbSize*2; i++ {
-		msgCountBytes := database.PackUInt64(uint64(i))
-		prevMsg := append(payload, msgCountBytes...)
-		prevUnsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, prevMsg)
+		countBytes := database.PackUInt64(uint64(i))
+		prevUnsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, values[i])
 		require.NoError(t, err)
 
-		messageIDBytes, err := backend.countdb.Get(msgCountBytes)
+		messageIDBytes, err := backenddb.countdb.Get(countBytes)
 		require.NoError(t, err)
 
 		messageID, err := ids.ToID(messageIDBytes)
@@ -228,13 +275,12 @@ func TestPruneEntry2(t *testing.T) {
 	}
 
 	//Go back through messages that should have been deleted, ensure they are not present
-	for i := maxDbSize+1; i <= maxDbSize; i++ {
-		msgCountBytes := database.PackUInt64(uint64(i))
-		prevMsg := append(payload, msgCountBytes...)
-		prevUnsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, prevMsg)
+	for i := 0; i < maxDbSize; i++ {
+		countBytes := database.PackUInt64(uint64(i))
+		prevUnsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, values[i])
 		require.NoError(t, err)
 
-		_, err = backend.countdb.Get(msgCountBytes)
+		_, err = backenddb.countdb.Get(countBytes)
 		require.ErrorIs(t, err, database.ErrNotFound)
 
 		messageIDBytes := hashing.ComputeHash256(prevUnsignedMsg.Bytes())
@@ -246,17 +292,18 @@ func TestPruneEntry2(t *testing.T) {
 	}
 
 	//ensure that there are exactly maxDbSize values
-	countIter := backend.countdb.NewIterator()
+	countIter := backenddb.countdb.NewIterator()
 	entries := 0
 	for countIter.Next() {
 		entries++
 	}
 	require.EqualValues(t, entries, maxDbSize)
 
-	msgIter := backend.msgdb.NewIterator()
+	msgIter := backenddb.msgdb.NewIterator()
 	entries = 0
 	for msgIter.Next() {
 		entries++
 	}
 	require.EqualValues(t, entries, maxDbSize)
+	require.EqualValues(t, backenddb.count, entries)
 }
