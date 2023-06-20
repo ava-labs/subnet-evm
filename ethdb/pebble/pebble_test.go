@@ -31,8 +31,8 @@ package pebble
 import (
 	"testing"
 
-	"github.com/ava-labs/coreth/ethdb"
-	"github.com/ava-labs/coreth/ethdb/dbtest"
+	"github.com/ava-labs/subnet-evm/ethdb"
+	"github.com/ava-labs/subnet-evm/ethdb/dbtest"
 	"github.com/cockroachdb/pebble"
 	"github.com/cockroachdb/pebble/vfs"
 )

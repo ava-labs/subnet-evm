@@ -32,7 +32,7 @@ import (
 	"math/big"
 	"sync/atomic"
 
-	"github.com/ava-labs/coreth/vmerrs"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/tracers"

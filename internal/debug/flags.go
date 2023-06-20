@@ -34,7 +34,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/ava-labs/coreth/internal/flags"
+	"github.com/ava-labs/subnet-evm/internal/flags"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/fjl/memsize/memsizeui"
 	"github.com/mattn/go-colorable"
