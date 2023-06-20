@@ -398,7 +398,7 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Int {
 	for i, tx := range block.Transactions() {
 		var minerFee *big.Int
 		if baseFee := block.BaseFee(); baseFee != nil {
-			// Note in coreth the coinbase payment is (baseFee + effectiveGasTip) * gasUsed
+			// Note in subnet-evm the coinbase payment is (baseFee + effectiveGasTip) * gasUsed
 			minerFee = new(big.Int).Add(baseFee, tx.EffectiveGasTipValue(baseFee))
 		} else {
 			// Prior to activation of EIP-1559, the coinbase payment was gasPrice * gasUsed

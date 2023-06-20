@@ -36,7 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 )
 
-const ourPath = "github.com/ava-labs/coreth" // Path to our module
+const ourPath = "github.com/ava-labs/subnet-evm" // Path to our module
 
 // These variables are set at build-time by the linker when the build is
 // done by build/ci.go.
