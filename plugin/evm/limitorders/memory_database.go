@@ -74,7 +74,7 @@ type LimitOrderJson struct {
 	Salt                    string      `json:"salt"`
 	Price                   string      `json:"price"`
 	LifecycleList           []Lifecycle `json:"lifecycle_list"`
-	BlockNumber             string      `json:"block_number"` // block number order was placed on
+	BlockNumber             uint64      `json:"block_number"` // block number order was placed on
 	ReduceOnly              bool        `json:"reduce_only"`
 }
 
@@ -82,13 +82,13 @@ func (order *LimitOrder) MarshalJSON() ([]byte, error) {
 	limitOrderJson := LimitOrderJson{
 		Market:                  order.Market,
 		PositionType:            order.PositionType.String(),
-		UserAddress:             strings.ToLower(order.UserAddress),
+		UserAddress:             order.UserAddress,
 		BaseAssetQuantity:       order.BaseAssetQuantity.String(),
 		FilledBaseAssetQuantity: order.FilledBaseAssetQuantity.String(),
 		Salt:                    order.Salt.String(),
 		Price:                   order.Price.String(),
 		LifecycleList:           order.LifecycleList,
-		BlockNumber:             order.BlockNumber.String(),
+		BlockNumber:             uint64(order.BlockNumber.Int64()),
 		ReduceOnly:              order.ReduceOnly,
 	}
 	return json.Marshal(limitOrderJson)
