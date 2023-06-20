@@ -103,7 +103,6 @@ func PruneEntries(w *warpDb) error {
 		}
 		w.count--
 	}
-
 	return nil
 }
 

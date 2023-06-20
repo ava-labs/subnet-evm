@@ -4,16 +4,12 @@
 package warp
 
 import (
-	//"fmt"
 	"fmt"
 	"math/rand"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/memdb"
-
-	//"github.com/ava-labs/avalanchego/database/prefixdb"
-	"github.com/ava-labs/avalanchego/database/versiondb"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
@@ -95,25 +91,6 @@ func TestZeroSizedCache(t *testing.T) {
 	require.Equal(t, expectedSig, signature[:])
 }
 
-func TestDatabase(t *testing.T) {
-
-	db := versiondb.New(memdb.New())
-
-	db.Put([]byte("test"), []byte("test"))
-	db.Commit()
-	db.Delete([]byte("test"))
-
-
-
-	iter := db.NewIterator()
-
-	for iter.Next() {
-		t.Log(iter.Key())
-	}
-	t.Error()
-	
-}
-
 func GetRandomValues(n int) ([][]byte, error) {
 	values := [][]byte{}
 	for i := 0; i < n; i++ {
@@ -153,6 +130,10 @@ func TestPruneDuplicate(t * testing.T) {
 	require.Error(t, database.ErrNotFound)
 	require.EqualValues(t, backenddb.count, 1)
 
+}
+
+func FuzzTestDb(f *testing.F) {
+	f.Add()
 }
 
 //potential update to testaddandgetvalidmessage
@@ -238,7 +219,6 @@ func TestEntryAdditionPruning(t *testing.T) {
 
 	values, err := GetRandomValues(maxDbSize*2)
 	require.NoError(t, err)
-
 
 	// Add twice the max db to the db, ensuring that some should get pruned
 	for i := 0; i < maxDbSize*2; i++ {
