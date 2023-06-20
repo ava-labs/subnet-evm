@@ -127,6 +127,14 @@ func (db *MockLimitOrderDatabase) GetOpenOrdersForTrader(trader common.Address) 
 func (db *MockLimitOrderDatabase) UpdateLastPremiumFraction(market Market, trader common.Address, lastPremiumFraction *big.Int, cumulativePremiumFraction *big.Int) {
 }
 
+func (db *MockLimitOrderDatabase) GetOrderById(id common.Hash) *LimitOrder {
+	return nil
+}
+
+func (db *MockLimitOrderDatabase) GetTraderInfo(trader common.Address) *Trader {
+	return &Trader{}
+}
+
 type MockLimitOrderTxProcessor struct {
 	mock.Mock
 }

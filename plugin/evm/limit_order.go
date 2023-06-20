@@ -31,6 +31,7 @@ type LimitOrderProcesser interface {
 	ListenAndProcessTransactions()
 	RunBuildBlockPipeline()
 	GetOrderBookAPI() *limitorders.OrderBookAPI
+	GetTradingAPI() *limitorders.TradingAPI
 }
 
 type limitOrderProcesser struct {
@@ -124,6 +125,10 @@ func (lop *limitOrderProcesser) RunBuildBlockPipeline() {
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *limitorders.OrderBookAPI {
 	return limitorders.NewOrderBookAPI(lop.memoryDb, lop.backend, lop.configService)
+}
+
+func (lop *limitOrderProcesser) GetTradingAPI() *limitorders.TradingAPI {
+	return limitorders.NewTradingAPI(lop.memoryDb, lop.backend, lop.configService)
 }
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
