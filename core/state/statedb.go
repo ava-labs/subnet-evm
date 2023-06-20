@@ -1138,14 +1138,14 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 // Prepare handles the preparatory steps for executing a state transition with.
 // This method must be invoked before state transition.
 //
-// Berlin fork (aka ApricotPhase2):
+// Berlin fork:
 // - Add sender to access list (2929)
 // - Add destination to access list (2929)
 // - Add precompiles to access list (2929)
 // - Add the contents of the optional tx access list (2930)
 //
 // Potential EIPs:
-// - Reset access list (Berlin/ApricotPhase2)
+// - Reset access list (Berlin)
 // - Add coinbase to access list (EIP-3651/DUpgrade)
 // - Reset transient storage (EIP-1153)
 func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {

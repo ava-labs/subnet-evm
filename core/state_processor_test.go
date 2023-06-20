@@ -343,14 +343,13 @@ func TestStateProcessorErrors(t *testing.T) {
 		}{
 			{ // ErrMaxInitCodeSizeExceeded
 				txs: []*types.Transaction{
-
-					mkDynamicCreationTx(0, 500000, common.Big0, big.NewInt(params.ApricotPhase3InitialBaseFee), tooBigInitCode[:]),
+					mkDynamicCreationTx(0, 500000, common.Big0, big.NewInt(params.TestInitialBaseFee), tooBigInitCode[:]),
 				},
 				want: "could not apply tx 0 [0x18a05f40f29ff16d5287f6f88b21c9f3c7fbc268f707251144996294552c4cd6]: max initcode size exceeded: code size 49153 limit 49152",
 			},
 			{ // ErrIntrinsicGas: Not enough gas to cover init code
 				txs: []*types.Transaction{
-					mkDynamicCreationTx(0, 54299, common.Big0, big.NewInt(params.ApricotPhase3InitialBaseFee), smallInitCode[:]),
+					mkDynamicCreationTx(0, 54299, common.Big0, big.NewInt(params.TestInitialBaseFee), smallInitCode[:]),
 				},
 				want: "could not apply tx 0 [0x849278f616d51ab56bba399551317213ce7a10e4d9cbc3d14bb663e50cb7ab99]: intrinsic gas too low: have 54299, want 54300",
 			},
