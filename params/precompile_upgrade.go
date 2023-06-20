@@ -170,8 +170,8 @@ func (c *ChainConfig) verifyStateUpgrades() error {
 
 // getActivePrecompileConfig returns the most recent precompile config corresponding to [address].
 // If none have occurred, returns nil.
-func (c *ChainConfig) getActivePrecompileConfig(address common.Address, blockTimestamp *big.Int) precompileconfig.Config {
-	configs := c.GetActivatingPrecompileConfigs(address, nil, blockTimestamp, c.PrecompileUpgrades)
+func (c *ChainConfig) getActivePrecompileConfig(address common.Address, timestamp uint64) precompileconfig.Config {
+	configs := c.GetActivatingPrecompileConfigs(address, nil, timestamp, c.PrecompileUpgrades)
 	if len(configs) == 0 {
 		return nil
 	}
@@ -180,7 +180,7 @@ func (c *ChainConfig) getActivePrecompileConfig(address common.Address, blockTim
 
 // GetActivatingPrecompileConfigs returns all precompile upgrades configured to activate during the
 // state transition from a block with timestamp [from] to a block with timestamp [to].
-func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *big.Int, to *big.Int, upgrades []PrecompileUpgrade) []precompileconfig.Config {
+func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, from *uint64, to uint64, upgrades []PrecompileUpgrade) []precompileconfig.Config {
 	// Get key from address.
 	module, ok := modules.GetPrecompileModuleByAddress(address)
 	if !ok {

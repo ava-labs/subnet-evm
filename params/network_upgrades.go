@@ -9,13 +9,13 @@ import (
 
 // NetworkUpgrades contains timestamps that enable avalanche network upgrades.
 type NetworkUpgrades struct {
-	SubnetEVMTimestamp *big.Int `json:"subnetEVMTimestamp,omitempty"` // A placeholder for the latest avalanche forks (nil = no fork, 0 = already activated)
+	SubnetEVMTimestamp *uint64 `json:"subnetEVMTimestamp,omitempty"` // A placeholder for the latest avalanche forks (nil = no fork, 0 = already activated)
 }
 
 func (n *NetworkUpgrades) CheckCompatible(newcfg *NetworkUpgrades, headTimestamp *big.Int) *ConfigCompatError {
 	// Check subnet-evm specific activations
-	if isForkIncompatible(n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, headTimestamp) {
-		return newCompatError("SubnetEVM fork block timestamp", n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
+	if isForkTimestampIncompatible(n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, headTimestamp) {
+		return newTimestampCompatError("SubnetEVM fork block timestamp", n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
 
 	return nil

@@ -18,6 +18,6 @@ var (
 
 type Factory struct{}
 
-func (f *Factory) New(logging.Logger) (interface{}, error) {
+func (*Factory) New(logging.Logger) (interface{}, error) {
 	return &VM{}, nil
 }
