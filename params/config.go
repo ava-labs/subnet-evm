@@ -89,6 +89,7 @@ var (
 		GenesisPrecompiles:  Precompiles{},
 		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(0),
+			// TODO Add DUpgrade timestamp
 		},
 	}
 
@@ -107,11 +108,12 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades:     NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
+		NetworkUpgrades: NetworkUpgrades{
+			SubnetEVMTimestamp:     utils.NewUint64(0),
+			DUpgradeBlockTimestamp: utils.NewUint64(0),
 		},
-		GenesisPrecompiles:  Precompiles{},
-		UpgradeConfig:       UpgradeConfig{},
+		GenesisPrecompiles: Precompiles{},
+		UpgradeConfig:      UpgradeConfig{},
 	}
 
 	TestPreSubnetEVMConfig = &ChainConfig{
@@ -325,7 +327,13 @@ func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 
 // IsSubnetEVM returns whether [time] is either equal to the SubnetEVM fork block timestamp or greater.
 func (c *ChainConfig) IsSubnetEVM(time uint64) bool {
-	return utils.IsTimestampForked(c.getNetworkUpgrades().SubnetEVMTimestamp, blockTimestamp)
+	return utils.IsTimestampForked(c.getNetworkUpgrades().SubnetEVMTimestamp, time)
+}
+
+// IsDUpgrade returns whether [time] represents a block
+// with a timestamp after the DUpgrade upgrade time.
+func (c *ChainConfig) IsDUpgrade(time uint64) bool {
+	return utils.IsTimestampForked(c.getNetworkUpgrades().DUpgradeBlockTimestamp, time)
 }
 
 func (r *Rules) PredicatesExist() bool {
@@ -444,6 +452,7 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 	lastFork = fork{}
 	for _, cur := range []fork{
 		{name: "subnetEVMTimestamp", timestamp: c.SubnetEVMTimestamp},
+		{name: "dUpgradeBlockTimestamp", timestamp: c.DUpgradeBlockTimestamp},
 	} {
 		if lastFork.name != "" {
 			// Next one must be higher number
@@ -653,6 +662,7 @@ type Rules struct {
 
 	// Rules for Avalanche releases
 	IsSubnetEVM bool
+	IsDUpgrade  bool
 
 	// ActivePrecompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
@@ -701,6 +711,7 @@ func (c *ChainConfig) AvalancheRules(blockNum *big.Int, timestamp uint64) Rules 
 	rules := c.rules(blockNum)
 
 	rules.IsSubnetEVM = c.IsSubnetEVM(timestamp)
+	rules.IsDUpgrade = c.IsDUpgrade(timestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)

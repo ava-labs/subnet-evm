@@ -32,6 +32,7 @@ import (
 	"sort"
 
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 // Forks table defines supported forks and their chain config.
@@ -153,6 +154,22 @@ var Forks = map[string]*params.ChainConfig{
 		IstanbulBlock:       big.NewInt(0),
 		NetworkUpgrades: params.NetworkUpgrades{
 			SubnetEVMTimestamp: big.NewInt(0),
+		},
+	},
+
+	"DUpgrade": {
+		ChainID:             big.NewInt(1),
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		NetworkUpgrades: params.NetworkUpgrades{
+			SubnetEVMTimestamp:     big.NewInt(0),
+			DUpgradeBlockTimestamp: utils.NewUint64(0),
 		},
 	},
 }

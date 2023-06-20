@@ -1530,6 +1530,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	isSubnetEVM := pool.chainconfig.IsSubnetEVM(newHead.Time)
 	pool.eip2718 = isSubnetEVM
 	pool.eip1559 = isSubnetEVM
+	pool.eip3860 = pool.chainconfig.IsDUpgrade(newHead.Time)
 }
 
 // promoteExecutables moves transactions that have become processable from the
