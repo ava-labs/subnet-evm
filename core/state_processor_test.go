@@ -409,9 +409,9 @@ func TestBadTxAllowListBlock(t *testing.T) {
 
 			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 		}
-		genesis       = gspec.MustCommit(db)
-		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec.Config, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{})
+		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 	)
+	defer blockchain.Stop()
 
 	mkDynamicTx := func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {
 		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{
