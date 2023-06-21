@@ -16,7 +16,7 @@ func NewMockLimitOrderDatabase() *MockLimitOrderDatabase {
 	return &MockLimitOrderDatabase{}
 }
 
-func (db *MockLimitOrderDatabase) SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error {
+func (db *MockLimitOrderDatabase) SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error {
 	return nil
 }
 
@@ -41,12 +41,12 @@ func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.In
 func (db *MockLimitOrderDatabase) Delete(id common.Hash) {
 }
 
-func (db *MockLimitOrderDatabase) GetLongOrders(market Market, cutOff *big.Int) []LimitOrder {
+func (db *MockLimitOrderDatabase) GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []LimitOrder {
 	args := db.Called()
 	return args.Get(0).([]LimitOrder)
 }
 
-func (db *MockLimitOrderDatabase) GetShortOrders(market Market, cutOff *big.Int) []LimitOrder {
+func (db *MockLimitOrderDatabase) GetShortOrders(market Market, upperbound *big.Int, blockNumber *big.Int) []LimitOrder {
 	args := db.Called()
 	return args.Get(0).([]LimitOrder)
 }

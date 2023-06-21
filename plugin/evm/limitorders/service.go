@@ -281,8 +281,13 @@ func getUpdateInDepth(newMarketDepth *MarketDepth, oldMarketDepth *MarketDepth) 
 }
 
 func getDepthForMarket(db LimitOrderDatabase, market Market) *MarketDepth {
-	longOrders := db.GetLongOrders(market, nil)
-	shortOrders := db.GetShortOrders(market, nil)
+	// currentBlock number only needs to be passed in for the retry logic for failed orders.
+	// There are some orders in the book that could have been marked failed,
+	// but because of our retry logic they might be retried every 100 blocks
+	// So, one could argue that is this not a super accurate representation of the order book
+	// BUT for the argument sake, we could also say that these retry orders can be treated as "fresh" orders
+	longOrders := db.GetLongOrders(market, nil /* lowerbound */, nil /* currentBlock */)
+	shortOrders := db.GetShortOrders(market, nil /* upperbound */, nil /* currentBlock */)
 	return &MarketDepth{
 		Market: market,
 		Longs:  aggregateOrdersByPrice(longOrders),

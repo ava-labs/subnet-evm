@@ -120,7 +120,7 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 }
 
 func (lop *limitOrderProcesser) RunBuildBlockPipeline() {
-	lop.buildBlockPipeline.Run()
+	lop.buildBlockPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number(), big.NewInt(1)))
 }
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *limitorders.OrderBookAPI {

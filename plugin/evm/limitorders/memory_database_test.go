@@ -112,7 +112,7 @@ func TestGetShortOrders(t *testing.T) {
 	shortOrder4.ReduceOnly = true
 	inMemoryDatabase.Add(orderId, &shortOrder4)
 
-	returnedShortOrders := inMemoryDatabase.GetShortOrders(market, nil)
+	returnedShortOrders := inMemoryDatabase.GetShortOrders(market, nil, nil)
 	assert.Equal(t, 3, len(returnedShortOrders))
 
 	for _, returnedOrder := range returnedShortOrders {
@@ -135,7 +135,7 @@ func TestGetShortOrders(t *testing.T) {
 	size := big.NewInt(0).Mul(big.NewInt(2), _1e18)
 	inMemoryDatabase.UpdatePosition(trader, market, size, big.NewInt(0).Mul(big.NewInt(100), _1e6), false)
 
-	returnedShortOrders = inMemoryDatabase.GetShortOrders(market, nil)
+	returnedShortOrders = inMemoryDatabase.GetShortOrders(market, nil, nil)
 	assert.Equal(t, 4, len(returnedShortOrders))
 
 	// at least one of the orders should be reduce only
@@ -188,7 +188,7 @@ func TestGetLongOrders(t *testing.T) {
 	longOrder3, orderId := createLimitOrder(LONG, userAddress, longOrderBaseAssetQuantity, price3, status, signature3, blockNumber3, salt3)
 	inMemoryDatabase.Add(orderId, &longOrder3)
 
-	returnedLongOrders := inMemoryDatabase.GetLongOrders(market, nil)
+	returnedLongOrders := inMemoryDatabase.GetLongOrders(market, nil, nil)
 	assert.Equal(t, 3, len(returnedLongOrders))
 
 	//Test returnedLongOrders are sorted by price highest to lowest first and then block number from lowest to highest
@@ -434,7 +434,7 @@ func TestAccept(t *testing.T) {
 		orderId1 := addLimitOrder(inMemoryDatabase)
 		orderId2 := addLimitOrder(inMemoryDatabase)
 
-		err := inMemoryDatabase.SetOrderStatus(orderId1, FulFilled, 51)
+		err := inMemoryDatabase.SetOrderStatus(orderId1, FulFilled, "", 51)
 		assert.Nil(t, err)
 		assert.Equal(t, inMemoryDatabase.OrderMap[orderId1].getOrderStatus().Status, FulFilled)
 
@@ -451,7 +451,7 @@ func TestAccept(t *testing.T) {
 	t.Run("Order is fulfilled, should be deleted when a future block is accepted", func(t *testing.T) {
 		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
-		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, 51)
+		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, "", 51)
 		assert.Nil(t, err)
 		assert.Equal(t, inMemoryDatabase.OrderMap[orderId].getOrderStatus().Status, FulFilled)
 
@@ -464,7 +464,7 @@ func TestAccept(t *testing.T) {
 	t.Run("Order is fulfilled, should not be deleted when a past block is accepted", func(t *testing.T) {
 		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
-		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, 51)
+		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, "", 51)
 		assert.Nil(t, err)
 		assert.Equal(t, inMemoryDatabase.OrderMap[orderId].getOrderStatus().Status, FulFilled)
 
@@ -506,7 +506,7 @@ func TestRevertLastStatus(t *testing.T) {
 	t.Run("revert status for fulfilled order", func(t *testing.T) {
 		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
-		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, 3)
+		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, "", 3)
 		assert.Nil(t, err)
 
 		err = inMemoryDatabase.RevertLastStatus(orderId)
@@ -519,7 +519,7 @@ func TestRevertLastStatus(t *testing.T) {
 	t.Run("revert status for accepted + fulfilled order - expect error", func(t *testing.T) {
 		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
-		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, 3)
+		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, "", 3)
 		assert.Nil(t, err)
 
 		inMemoryDatabase.Accept(3)

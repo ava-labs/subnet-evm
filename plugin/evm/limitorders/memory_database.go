@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -16,8 +15,38 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var _1e18 = big.NewInt(1e18)
-var _1e6 = big.NewInt(1e6)
+type InMemoryDatabase struct {
+	mu              *sync.RWMutex               `json:"-"`
+	OrderMap        map[common.Hash]*LimitOrder `json:"order_map"`  // ID => order
+	TraderMap       map[common.Address]*Trader  `json:"trader_map"` // address => trader info
+	NextFundingTime uint64                      `json:"next_funding_time"`
+	LastPrice       map[Market]*big.Int         `json:"last_price"`
+	configService   IConfigService
+}
+
+func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
+	orderMap := map[common.Hash]*LimitOrder{}
+	lastPrice := map[Market]*big.Int{}
+	traderMap := map[common.Address]*Trader{}
+
+	return &InMemoryDatabase{
+		OrderMap:        orderMap,
+		TraderMap:       traderMap,
+		NextFundingTime: 0,
+		LastPrice:       lastPrice,
+		mu:              &sync.RWMutex{},
+		configService:   configService,
+	}
+}
+
+var (
+	_1e18 = big.NewInt(1e18)
+	_1e6  = big.NewInt(1e6)
+)
+
+const (
+	RETRY_AFTER_BLOCKS = 10
+)
 
 type Collateral int
 
@@ -48,6 +77,7 @@ const (
 type Lifecycle struct {
 	BlockNumber uint64
 	Status      Status
+	Info        string
 }
 
 type LimitOrder struct {
@@ -65,21 +95,19 @@ type LimitOrder struct {
 	RawOrder                Order    `json:"-"`
 }
 
-type LimitOrderJson struct {
-	Market                  Market      `json:"market"`
-	PositionType            string      `json:"position_type"`
-	UserAddress             string      `json:"user_address"`
-	BaseAssetQuantity       string      `json:"base_asset_quantity"`
-	FilledBaseAssetQuantity string      `json:"filled_base_asset_quantity"`
-	Salt                    string      `json:"salt"`
-	Price                   string      `json:"price"`
-	LifecycleList           []Lifecycle `json:"lifecycle_list"`
-	BlockNumber             uint64      `json:"block_number"` // block number order was placed on
-	ReduceOnly              bool        `json:"reduce_only"`
-}
-
 func (order *LimitOrder) MarshalJSON() ([]byte, error) {
-	limitOrderJson := LimitOrderJson{
+	return json.Marshal(&struct {
+		Market                  Market      `json:"market"`
+		PositionType            string      `json:"position_type"`
+		UserAddress             string      `json:"user_address"`
+		BaseAssetQuantity       string      `json:"base_asset_quantity"`
+		FilledBaseAssetQuantity string      `json:"filled_base_asset_quantity"`
+		Salt                    string      `json:"salt"`
+		Price                   string      `json:"price"`
+		LifecycleList           []Lifecycle `json:"lifecycle_list"`
+		BlockNumber             uint64      `json:"block_number"` // block number order was placed on
+		ReduceOnly              bool        `json:"reduce_only"`
+	}{
 		Market:                  order.Market,
 		PositionType:            order.PositionType.String(),
 		UserAddress:             order.UserAddress,
@@ -88,10 +116,9 @@ func (order *LimitOrder) MarshalJSON() ([]byte, error) {
 		Salt:                    order.Salt.String(),
 		Price:                   order.Price.String(),
 		LifecycleList:           order.LifecycleList,
-		BlockNumber:             uint64(order.BlockNumber.Int64()),
+		BlockNumber:             order.BlockNumber.Uint64(),
 		ReduceOnly:              order.ReduceOnly,
-	}
-	return json.Marshal(limitOrderJson)
+	})
 }
 
 func (order LimitOrder) GetUnFilledBaseAssetQuantity() *big.Int {
@@ -157,8 +184,8 @@ type LimitOrderDatabase interface {
 	Add(orderId common.Hash, order *LimitOrder)
 	Delete(orderId common.Hash)
 	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64)
-	GetLongOrders(market Market, lowerbound *big.Int) []LimitOrder
-	GetShortOrders(market Market, upperbound *big.Int) []LimitOrder
+	GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []LimitOrder
+	GetShortOrders(market Market, upperbound *big.Int, blockNumber *big.Int) []LimitOrder
 	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool)
 	UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int)
 	UpdateReservedMargin(trader common.Address, addAmount *big.Int)
@@ -173,7 +200,7 @@ type LimitOrderDatabase interface {
 	GetOrderBookData() InMemoryDatabase
 	GetOrderBookDataCopy() *InMemoryDatabase
 	Accept(blockNumber uint64)
-	SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error
+	SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
 	GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]LimitOrder)
 	GetOpenOrdersForTrader(trader common.Address) []LimitOrder
@@ -182,33 +209,9 @@ type LimitOrderDatabase interface {
 	GetTraderInfo(trader common.Address) *Trader
 }
 
-type InMemoryDatabase struct {
-	mu              *sync.RWMutex               `json:"-"`
-	OrderMap        map[common.Hash]*LimitOrder `json:"order_map"`  // ID => order
-	TraderMap       map[common.Address]*Trader  `json:"trader_map"` // address => trader info
-	NextFundingTime uint64                      `json:"next_funding_time"`
-	LastPrice       map[Market]*big.Int         `json:"last_price"`
-	configService   IConfigService
-}
-
 type Snapshot struct {
 	Data                *InMemoryDatabase
 	AcceptedBlockNumber *big.Int // data includes this block number too
-}
-
-func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
-	orderMap := map[common.Hash]*LimitOrder{}
-	lastPrice := map[Market]*big.Int{}
-	traderMap := map[common.Address]*Trader{}
-
-	return &InMemoryDatabase{
-		OrderMap:        orderMap,
-		TraderMap:       traderMap,
-		NextFundingTime: 0,
-		LastPrice:       lastPrice,
-		mu:              &sync.RWMutex{},
-		configService:   configService,
-	}
 }
 
 func (db *InMemoryDatabase) LoadFromSnapshot(snapshot Snapshot) error {
@@ -240,14 +243,14 @@ func (db *InMemoryDatabase) Accept(blockNumber uint64) {
 	}
 }
 
-func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, blockNumber uint64) error {
+func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
 	if db.OrderMap[orderId] == nil {
-		return errors.New(fmt.Sprintf("Invalid orderId %s", orderId.Hex()))
+		return fmt.Errorf("nvalid orderId %s", orderId.Hex())
 	}
-	db.OrderMap[orderId].LifecycleList = append(db.OrderMap[orderId].LifecycleList, Lifecycle{blockNumber, status})
+	db.OrderMap[orderId].LifecycleList = append(db.OrderMap[orderId].LifecycleList, Lifecycle{blockNumber, status, info})
 	return nil
 }
 
@@ -256,7 +259,7 @@ func (db *InMemoryDatabase) RevertLastStatus(orderId common.Hash) error {
 	defer db.mu.Unlock()
 
 	if db.OrderMap[orderId] == nil {
-		return errors.New(fmt.Sprintf("Invalid orderId %s", orderId.Hex()))
+		return fmt.Errorf("Invalid orderId %s", orderId.Hex())
 	}
 
 	lifeCycleList := db.OrderMap[orderId].LifecycleList
@@ -282,7 +285,7 @@ func (db *InMemoryDatabase) Add(orderId common.Hash, order *LimitOrder) {
 	defer db.mu.Unlock()
 
 	order.Id = orderId
-	order.LifecycleList = append(order.LifecycleList, Lifecycle{order.BlockNumber.Uint64(), Placed})
+	order.LifecycleList = append(order.LifecycleList, Lifecycle{order.BlockNumber.Uint64(), Placed, ""})
 	db.OrderMap[orderId] = order
 }
 
@@ -306,7 +309,7 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, ord
 	}
 
 	if limitOrder.BaseAssetQuantity.Cmp(limitOrder.FilledBaseAssetQuantity) == 0 {
-		limitOrder.LifecycleList = append(limitOrder.LifecycleList, Lifecycle{blockNumber, FulFilled})
+		limitOrder.LifecycleList = append(limitOrder.LifecycleList, Lifecycle{blockNumber, FulFilled, ""})
 	}
 
 	if quantity.Cmp(big.NewInt(0)) == -1 && limitOrder.getOrderStatus().Status == FulFilled {
@@ -329,22 +332,15 @@ func (db *InMemoryDatabase) UpdateNextFundingTime(nextFundingTime uint64) {
 	db.NextFundingTime = nextFundingTime
 }
 
-func (db *InMemoryDatabase) GetLongOrders(market Market, lowerbound *big.Int) []LimitOrder {
+func (db *InMemoryDatabase) GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []LimitOrder {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
 	var longOrders []LimitOrder
 	for _, order := range db.OrderMap {
-		if order.PositionType == LONG &&
-			order.Market == market &&
-			order.getOrderStatus().Status == Placed && // note that Execution_Failed orders are being ignored atm however, it's possible that they could be executed
-			(lowerbound == nil || order.Price.Cmp(lowerbound) >= 0) {
-			if order.ReduceOnly {
-				if reduceOnlyOrder := db.getReduceOnlyOrderDisplay(order); reduceOnlyOrder != nil {
-					longOrders = append(longOrders, *reduceOnlyOrder)
-				}
-			} else {
-				longOrders = append(longOrders, deepCopyOrder(order))
+		if order.PositionType == LONG && order.Market == market && (lowerbound == nil || order.Price.Cmp(lowerbound) >= 0) {
+			if _order := db.getCleanOrder(order, blockNumber); _order != nil {
+				longOrders = append(longOrders, *_order)
 			}
 		}
 	}
@@ -352,27 +348,57 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, lowerbound *big.Int) []
 	return longOrders
 }
 
-func (db *InMemoryDatabase) GetShortOrders(market Market, upperbound *big.Int) []LimitOrder {
+func (db *InMemoryDatabase) GetShortOrders(market Market, upperbound *big.Int, blockNumber *big.Int) []LimitOrder {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
 	var shortOrders []LimitOrder
 	for _, order := range db.OrderMap {
-		if order.PositionType == SHORT &&
-			order.Market == market &&
-			order.getOrderStatus().Status == Placed &&
-			(upperbound == nil || order.Price.Cmp(upperbound) <= 0) {
-			if order.ReduceOnly {
-				if reduceOnlyOrder := db.getReduceOnlyOrderDisplay(order); reduceOnlyOrder != nil {
-					shortOrders = append(shortOrders, *reduceOnlyOrder)
-				}
-			} else {
-				shortOrders = append(shortOrders, deepCopyOrder(order))
+		if order.PositionType == SHORT && order.Market == market && (upperbound == nil || order.Price.Cmp(upperbound) <= 0) {
+			if _order := db.getCleanOrder(order, blockNumber); _order != nil {
+				shortOrders = append(shortOrders, *_order)
 			}
 		}
 	}
 	sortShortOrders(shortOrders)
 	return shortOrders
+}
+
+func (db *InMemoryDatabase) getCleanOrder(order *LimitOrder, blockNumber *big.Int) *LimitOrder {
+	eligibleForExecution := false
+	orderStatus := order.getOrderStatus()
+	switch orderStatus.Status {
+	case Placed:
+		eligibleForExecution = true
+	case Execution_Failed:
+		// ideally these orders should have been auto-cancelled (by the validator) at the same time that they were fulfilling the criteria to fail
+		// However, there are several reasons why this might not have happened
+		// 1. A particular cancellation strategy is not implemented yet for e.g. reduce only orders with order.BaseAssetQuantity > position.size are not being auto-cancelled as of Jun 20, 23. This is a @todo
+		// 2. There might be a scenarios that the order was not deemed cancellable at the time of checking and was hence used for matching; but then eventually failed execution
+		//		a. a tx before the order in the same block, changed their PnL which caused them to have insufficient margin to execute the order
+		//		b. specially true in multi-collateral, where the price of 1 collateral dipped but recovered again after the order was taken for matching (but failed execution)
+		// 3. There might be a bug in the cancellation logic in either of EVM or smart contract code
+		// 4. We might have made margin requirements for order fulfillment more liberal at a later stage
+		// Hence, in view of the above and to serve as a catch-all we retry failed orders after every 100 blocks
+		// Note at if an order is failing multiple times and it is also not being caught in the auto-cancel logic, then something/somewhere definitely needs fixing
+		if blockNumber != nil && orderStatus.BlockNumber+RETRY_AFTER_BLOCKS <= blockNumber.Uint64() {
+			eligibleForExecution = true
+		} else {
+			if blockNumber.Uint64()%10 == 0 {
+				// to not make the log too noisy
+				log.Warn("eligible order is in Execution_Failed state", "orderId", order.String(), "retryInBlocks", orderStatus.BlockNumber+RETRY_AFTER_BLOCKS-blockNumber.Uint64())
+			}
+		}
+	}
+
+	if eligibleForExecution {
+		if order.ReduceOnly {
+			return db.getReduceOnlyOrderDisplay(order)
+		}
+		_order := deepCopyOrder(order)
+		return &_order
+	}
+	return nil
 }
 
 func (db *InMemoryDatabase) UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int) {
@@ -554,7 +580,7 @@ func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFra
 			Address:        addr,
 			Market:         market,
 			Size:           new(big.Int).Abs(position.LiquidationThreshold), // position.LiquidationThreshold is a pointer, to want to avoid unintentional mutation if/when we mutate liquidable.Size
-			MarginFraction: marginFraction,
+			MarginFraction: new(big.Int).Set(marginFraction),
 			FilledSize:     big.NewInt(0),
 		}
 		// while setting liquidation threshold of a position, we do not ensure whether it is a multiple of minSize.
@@ -600,7 +626,6 @@ func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, 
 		}
 		// has orders that might be cancellable
 		availableMargin := getAvailableMargin(trader, pendingFunding, oraclePrices, db.LastPrice, db.configService.getMinAllowableMargin(), markets)
-		// log.Info("getAvailableMargin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
 		if availableMargin.Cmp(big.NewInt(0)) == -1 {
 			foundCancellableOrders := db.determineOrdersToCancel(addr, trader, availableMargin, oraclePrices, ordersToCancel)
 			if foundCancellableOrders {
@@ -643,7 +668,7 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 			marginReleased := divideByBasePrecision(big.NewInt(0).Mul(orderNotional, db.configService.getMinAllowableMargin()))
 			_availableMargin.Add(_availableMargin, marginReleased)
 			// log.Info("in determineOrdersToCancel loop", "availableMargin", prettifyScaledBigInt(_availableMargin, 6), "marginReleased", prettifyScaledBigInt(marginReleased, 6), "orderNotional", prettifyScaledBigInt(orderNotional, 6))
-			if _availableMargin.Cmp(big.NewInt(0)) >= 0 {
+			if _availableMargin.Sign() >= 0 {
 				break
 			}
 		}
@@ -654,8 +679,9 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 
 func (db *InMemoryDatabase) getTraderOrders(trader common.Address) []LimitOrder {
 	traderOrders := []LimitOrder{}
+	_trader := trader.String()
 	for _, order := range db.OrderMap {
-		if strings.EqualFold(order.UserAddress, trader.String()) {
+		if strings.EqualFold(order.UserAddress, _trader) {
 			traderOrders = append(traderOrders, deepCopyOrder(order))
 		}
 	}

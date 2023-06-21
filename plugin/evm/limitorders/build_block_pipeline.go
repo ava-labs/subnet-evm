@@ -23,7 +23,7 @@ func NewBuildBlockPipeline(db LimitOrderDatabase, lotp LimitOrderTxProcessor, co
 	}
 }
 
-func (pipeline *BuildBlockPipeline) Run() {
+func (pipeline *BuildBlockPipeline) Run(blockNumber *big.Int) {
 	markets := pipeline.GetActiveMarkets()
 
 	if len(markets) == 0 {
@@ -48,7 +48,7 @@ func (pipeline *BuildBlockPipeline) Run() {
 	cancellableOrderIds := pipeline.cancelOrders(ordersToCancel)
 	orderMap := make(map[Market]*Orders)
 	for _, market := range markets {
-		orderMap[market] = pipeline.fetchOrders(market, underlyingPrices[market], cancellableOrderIds)
+		orderMap[market] = pipeline.fetchOrders(market, underlyingPrices[market], cancellableOrderIds, blockNumber)
 	}
 	pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
 	for _, market := range markets {
@@ -105,18 +105,18 @@ func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Ad
 	return cancellableOrderIds
 }
 
-func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}) *Orders {
-	_, lowerbound := pipeline.configService.GetAcceptableBounds(market)
-
+func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}, blockNumber *big.Int) *Orders {
+	_, lowerBoundForLongs := pipeline.configService.GetAcceptableBounds(market)
 	// any long orders below the permissible lowerbound are irrelevant, because they won't be matched no matter what.
-	// this assumes that all above cancelOrder transactions got executed successfully
-	longOrders := removeOrdersWithIds(pipeline.db.GetLongOrders(market, lowerbound), cancellableOrderIds)
+	// this assumes that all above cancelOrder transactions got executed successfully (or atleast they are not meant to be executed anyway if they passed the cancellation criteria)
+	longOrders := removeOrdersWithIds(pipeline.db.GetLongOrders(market, lowerBoundForLongs, blockNumber), cancellableOrderIds)
 
-	var shortOrders []LimitOrder
-	// all short orders above price of the highest long order are irrelevant
+	upperBoundforShorts, _ := pipeline.configService.GetAcceptableBoundsForLiquidation(market)
 	if len(longOrders) > 0 {
-		shortOrders = removeOrdersWithIds(pipeline.db.GetShortOrders(market, longOrders[0].Price /* upperbound */), cancellableOrderIds)
+		upperBoundforShorts = utils.BigIntMax(longOrders[0].Price, upperBoundforShorts)
 	}
+	// while longOrders[0].Price would have been enough for the matching engine alone, but we include orders within the allowable liqupperbound, to allow for liquidations to happen
+	shortOrders := removeOrdersWithIds(pipeline.db.GetShortOrders(market, upperBoundforShorts, blockNumber), cancellableOrderIds)
 	return &Orders{longOrders, shortOrders}
 }
 

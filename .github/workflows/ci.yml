@@ -40,8 +40,6 @@ jobs:
         shell: bash
       - run: ./scripts/build_test.sh -race
         shell: bash
-      - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/hubblebibliophile
-        shell: bash
       - run: ./scripts/coverage.sh
         shell: bash
 

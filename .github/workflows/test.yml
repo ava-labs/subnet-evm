@@ -26,3 +26,5 @@ jobs:
         shell: bash
       - run:  go test ./plugin/evm/... -test.v
         shell: bash
+      - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile
+        shell: bash
