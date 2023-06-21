@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("test")
+uint(20)
+uint(2)

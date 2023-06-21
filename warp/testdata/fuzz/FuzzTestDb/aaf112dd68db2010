@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("\xf7")
+uint(0)
+uint(76)

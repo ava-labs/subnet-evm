@@ -54,9 +54,7 @@ func NewWarpDb(
 		size:			size,
 	}
 	w.basedb		= versiondb.New(db)
-
 	w.msgdb			= prefixdb.New(messageIDPrefix, w.basedb)
-
 	w.countdb 		= prefixdb.New(countPrefix, w.basedb)
 	return &w
 }
@@ -103,6 +101,7 @@ func PruneEntries(w *warpDb) error {
 		}
 		w.count--
 	}
+	iter.Release()
 	return nil
 }
 
@@ -128,7 +127,7 @@ func (w* warpDb) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) erro
 
 	sInc, sCount := TakeSnapshot(w) //revert to these values in case of a failure
 
-	defer w.basedb.Abort()
+	w.basedb.Abort()
 
 	has, err := w.msgdb.Has(messageID[:]) 
 	if err != nil {
@@ -136,8 +135,8 @@ func (w* warpDb) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) erro
 		return fmt.Errorf("failed to check if message in db: %w", err)
 	}
 
-	switch has {
-	case true:	//if this message has already appeared, simply put it in the new countdb with a higher increment
+	if has {
+	//if this message has already appeared, simply put it in the new countdb with a higher increment
 		increment, _, err := w.GetUnsignedMessage(messageID)
 		if err != nil {
 			RevertToSnapshot(w, sInc, sCount)
@@ -147,32 +146,28 @@ func (w* warpDb) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) erro
 			RevertToSnapshot(w, sInc, sCount)
 			return fmt.Errorf("failed to delete item from countdb: %w", err)
 		}
-		if err := w.countdb.Put(countbytes, messageID[:]); err != nil {
-			RevertToSnapshot(w, sInc, sCount)
-			return fmt.Errorf("failed to put item into countdb: %w", err)
-		}
+		w.count--
+	}
 		
-	case false:
-		msgEntry := prependIncrement(countbytes, unsignedMessage.Bytes())
-		if err := w.msgdb.Put(messageID[:], msgEntry); err != nil {
-			RevertToSnapshot(w, sInc, sCount)
-			return fmt.Errorf("failed to put warp signature in db: %w", err)
-		}
-	
-		if err := w.countdb.Put(countbytes, messageID[:]); err != nil {
-			RevertToSnapshot(w, sInc, sCount)
-			return fmt.Errorf("failed to put timestamp signature in db: %w", err)
-		}
-
-		w.count++
-		if w.count > w.size {
-			if err := PruneEntries(w); err != nil {
-				RevertToSnapshot(w, sInc, sCount)
-				return fmt.Errorf("failed to prune old entries in db: %w", err)
-			}
-		}
+	msgEntry := prependIncrement(countbytes, unsignedMessage.Bytes())
+	if err := w.msgdb.Put(messageID[:], msgEntry); err != nil {
+		RevertToSnapshot(w, sInc, sCount)
+		return fmt.Errorf("failed to put warp signature in db: %w", err)
 	}
 
+	if err := w.countdb.Put(countbytes, messageID[:]); err != nil {
+		RevertToSnapshot(w, sInc, sCount)
+		return fmt.Errorf("failed to put timestamp signature in db: %w", err)
+	}
+
+	w.count++
+	if !has && w.count > w.size {
+		if err := PruneEntries(w); err != nil {
+			RevertToSnapshot(w, sInc, sCount)
+			return fmt.Errorf("failed to prune old entries in db: %w", err)
+		}
+	}
+	
 	if err := w.basedb.Commit(); err != nil {
 		RevertToSnapshot(w, sInc, sCount)
 		return fmt.Errorf("failed to commit changes to db")
