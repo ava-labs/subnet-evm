@@ -11,8 +11,6 @@ const tmplSourcePrecompileConfigGo = `
 package {{.Package}}
 
 import (
-	"math/big"
-
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	{{- if .Contract.AllowList}}
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
