@@ -153,7 +153,7 @@ var Forks = map[string]*params.ChainConfig{
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		NetworkUpgrades: params.NetworkUpgrades{
-			SubnetEVMTimestamp: big.NewInt(0),
+			SubnetEVMTimestamp: utils.NewUint64(0),
 		},
 	},
 
@@ -168,7 +168,7 @@ var Forks = map[string]*params.ChainConfig{
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		NetworkUpgrades: params.NetworkUpgrades{
-			SubnetEVMTimestamp:     big.NewInt(0),
+			SubnetEVMTimestamp:     utils.NewUint64(0),
 			DUpgradeBlockTimestamp: utils.NewUint64(0),
 		},
 	},

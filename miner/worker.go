@@ -45,6 +45,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -153,7 +154,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 
 	if w.chainConfig.IsSubnetEVM(timestamp) {
 		var err error
-		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, feeConfig, parent.Header(), timestamp)
+		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, feeConfig, parent, timestamp)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 		}
@@ -164,7 +165,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 	}
 	header.Coinbase = w.coinbase
 
-	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAt(parent.Header())
+	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAt(parent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get configured coinbase: %w", err)
 	}
@@ -186,7 +187,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
 	// Configure any upgrades that should go into effect during this block.
-	err = core.ApplyUpgrades(w.chainConfig, new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
+	err = core.ApplyUpgrades(w.chainConfig, utils.NewUint64(parent.Time), types.NewBlockWithHeader(header), env.state)
 	if err != nil {
 		log.Error("failed to configure precompiles mining new block", "parent", parent.Hash(), "number", header.Number, "timestamp", header.Time, "err", err)
 		return nil, err
@@ -195,7 +196,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 	// Get the pending txs from TxPool
 	pending := w.eth.TxPool().Pending(true)
 	// Filter out transactions that don't satisfy predicateContext and remove them from TxPool
-	rules := w.chainConfig.AvalancheRules(header.Number, new(big.Int).SetUint64(header.Time))
+	rules := w.chainConfig.AvalancheRules(header.Number, header.Time)
 	pending = w.enforcePredicates(rules, predicateContext, pending)
 
 	// Split the pending transactions into locals and remotes

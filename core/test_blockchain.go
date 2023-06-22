@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
@@ -1460,7 +1461,7 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 }
 
 // TestStatefulPrecompiles provides a testing framework to ensure that processing transactions interacting with the stateful precompiles work as expected.
-func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error)) {
+func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error)) {
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
@@ -1477,8 +1478,8 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	config := *params.TestChainConfig
 	// Set all of the required config parameters
 	config.GenesisPrecompiles = params.Precompiles{
-		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(big.NewInt(0), []common.Address{addr1}, nil),
-		feemanager.ConfigKey:        feemanager.NewConfig(big.NewInt(0), []common.Address{addr1}, nil, nil),
+		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr1}, nil),
+		feemanager.ConfigKey:        feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr1}, nil, nil),
 	}
 	gspec := &Genesis{
 		Config: &config,
@@ -1487,7 +1488,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, chainC
 	genesis := gspec.MustCommit(genDB)
 	_ = gspec.MustCommit(chainDB)
 
-	blockchain, err := create(chainDB, gspec.Config, common.Hash{})
+	blockchain, err := create(chainDB, gspec, common.Hash{})
 	if err != nil {
 		t.Fatal(err)
 	}

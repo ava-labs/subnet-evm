@@ -176,7 +176,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 // to apply the necessary state transitions for the upgrade.
 // This function is called within genesis setup to configure the starting state for precompiles enabled at genesis.
 // In block processing and building, ApplyUpgrades is called instead which also applies state upgrades.
-func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
+func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	blockTimestamp := blockContext.Timestamp()
 	// Note: RegisteredModules returns precompiles sorted by module addresses.
 	// This ensures that the order we call Configure for each precompile is consistent.
@@ -220,7 +220,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *big.Int,
 // applyStateUpgrades checks if any of the state upgrades specified by the chain config are activated by the block
 // transition from [parentTimestamp] to the timestamp set in [header]. If this is the case, it calls [Configure]
 // to apply the necessary state transitions for the upgrade.
-func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
+func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	// Apply state upgrades
 	for _, upgrade := range c.GetActivatingStateUpgrades(parentTimestamp, blockContext.Timestamp(), c.StateUpgrades) {
 		log.Info("Applying state upgrade", "blockNumber", blockContext.Number(), "upgrade", upgrade)
@@ -237,7 +237,7 @@ func applyStateUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockCo
 // This function is called:
 // - in block processing to update the state when processing a block.
 // - in the miner to apply the state upgrades when producing a block.
-func ApplyUpgrades(c *params.ChainConfig, parentTimestamp *big.Int, blockContext contract.BlockContext, statedb *state.StateDB) error {
+func ApplyUpgrades(c *params.ChainConfig, parentTimestamp *uint64, blockContext contract.BlockContext, statedb *state.StateDB) error {
 	if err := ApplyPrecompileActivations(c, parentTimestamp, blockContext, statedb); err != nil {
 		return err
 	}

@@ -191,7 +191,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
 				config.GenesisPrecompiles = params.Precompiles{
-					deployerallowlist.ConfigKey: deployerallowlist.NewConfig(big.NewInt(0), []common.Address{addr}, nil),
+					deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil),
 				}
 				return &config
 			},
@@ -214,10 +214,10 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 
 			db := rawdb.NewMemoryDatabase()
 
-			genesisBlock := genesis.ToBlock(nil)
+			genesisBlock := genesis.ToBlock()
 			genesisRoot := genesisBlock.Root()
 
-			_, err := SetupGenesisBlock(db, genesis, genesisBlock.Hash(), false)
+			_, _, err := setupGenesisBlock(db, trie.NewDatabase(db), genesis, genesisBlock.Hash())
 			if err != nil {
 				t.Fatal(err)
 			}

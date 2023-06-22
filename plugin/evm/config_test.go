@@ -69,7 +69,7 @@ func TestUnmarshalConfig(t *testing.T) {
 		{
 			"state sync enabled",
 			[]byte(`{"state-sync-enabled":true}`),
-			Config{StateSyncEnabled: newTrue()},
+			Config{StateSyncEnabled: true},
 			false,
 		},
 		{

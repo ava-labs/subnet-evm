@@ -116,27 +116,27 @@ func TestCheckCompatible(t *testing.T) {
 			},
 		},
 		{
-			stored:         TestChainConfig,
-			new:            TestPreSubnetEVMConfig,
-			headBlock:    0,
+			stored:        TestChainConfig,
+			new:           TestPreSubnetEVMConfig,
+			headBlock:     0,
 			headTimestamp: 0,
 			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
-				StoredTime: big.NewInt(0),
-				NewTime:    nil,
-				RewindTo:     0,
+				StoredTime:   utils.NewUint64(0),
+				NewTime:      nil,
+				RewindToTime: 0,
 			},
 		},
 		{
-			stored:         TestChainConfig,
-			new:            TestPreSubnetEVMConfig,
-			headBlock:    10,
+			stored:        TestChainConfig,
+			new:           TestPreSubnetEVMConfig,
+			headBlock:     10,
 			headTimestamp: 100,
 			wantErr: &ConfigCompatError{
 				What:         "SubnetEVM fork block timestamp",
-				StoredTime: big.NewInt(0),
-				NewTime:    nil,
-				RewindTo:     0,
+				StoredTime:   utils.NewUint64(0),
+				NewTime:      nil,
+				RewindToTime: 0,
 			},
 		},
 	}
@@ -174,7 +174,7 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 	require := require.New(t)
 
 	testRewardManagerConfig := rewardmanager.NewConfig(
-		big.NewInt(1671542573),
+		utils.NewUint64(1671542573),
 		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
 		nil,
 		&rewardmanager.InitialRewardConfig{
@@ -182,7 +182,7 @@ func TestConfigUnmarshalJSON(t *testing.T) {
 		})
 
 	testContractNativeMinterConfig := nativeminter.NewConfig(
-		big.NewInt(0),
+		utils.NewUint64(0),
 		[]common.Address{common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")},
 		nil,
 		nil,
@@ -239,19 +239,19 @@ func TestActivePrecompiles(t *testing.T) {
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{
 				{
-					nativeminter.NewConfig(common.Big0, nil, nil, nil), // enable at genesis
+					nativeminter.NewConfig(utils.NewUint64(0), nil, nil, nil), // enable at genesis
 				},
 				{
-					nativeminter.NewDisableConfig(common.Big1), // disable at timestamp 1
+					nativeminter.NewDisableConfig(utils.NewUint64(1)), // disable at timestamp 1
 				},
 			},
 		},
 	}
 
-	rules0 := config.AvalancheRules(common.Big0, common.Big0)
+	rules0 := config.AvalancheRules(common.Big0, 0)
 	require.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
 
-	rules1 := config.AvalancheRules(common.Big0, common.Big1)
+	rules1 := config.AvalancheRules(common.Big0, 1)
 	require.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
 }
 
@@ -271,13 +271,13 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			NetworkUpgrades:     NetworkUpgrades{big.NewInt(0)},
+			NetworkUpgrades:     NetworkUpgrades{utils.NewUint64(0), utils.NewUint64(0)},
 			GenesisPrecompiles:  Precompiles{},
 		},
 		UpgradeConfig: UpgradeConfig{
 			PrecompileUpgrades: []PrecompileUpgrade{
 				{
-					Config: txallowlist.NewConfig(big.NewInt(100), nil, nil),
+					Config: txallowlist.NewConfig(utils.NewUint64(100), nil, nil),
 				},
 			},
 		},

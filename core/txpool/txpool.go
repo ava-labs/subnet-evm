@@ -698,7 +698,7 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 	// Ensure the transaction adheres to nonce ordering
 	if currentNonce := pool.currentState.GetNonce(from); currentNonce > txNonce {
 		return fmt.Errorf("%w: address %s current nonce (%d) > tx nonce (%d)",
-		core.ErrNonceTooLow, from.Hex(), currentNonce, txNonce)
+			core.ErrNonceTooLow, from.Hex(), currentNonce, txNonce)
 	}
 
 	// cost == V + GP * GL
@@ -1382,7 +1382,7 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	// because of another transaction (e.g. higher gas price).
 	if reset != nil {
 		pool.demoteUnexecutables()
-		if reset.newHead != nil && pool.chainconfig.IsSubnetEVM(new(big.Int).SetUint64(reset.newHead.Time)) {
+		if reset.newHead != nil && pool.chainconfig.IsSubnetEVM(reset.newHead.Time) {
 			if err := pool.updateBaseFeeAt(reset.newHead); err != nil {
 				log.Error("error at updating base fee in tx pool", "error", err)
 			}
@@ -1509,7 +1509,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// when we reset txPool we should explicitly check if fee struct for min base fee has changed
 	// so that we can correctly drop txs with < minBaseFee from tx pool.
-	if pool.chainconfig.IsPrecompileEnabled(feemanager.ContractAddress, new(big.Int).SetUint64(newHead.Time)) {
+	if pool.chainconfig.IsPrecompileEnabled(feemanager.ContractAddress, newHead.Time) {
 		feeConfig, _, err := pool.chain.GetFeeConfigAt(newHead)
 		if err != nil {
 			log.Error("Failed to get fee config state", "err", err, "root", newHead.Root)

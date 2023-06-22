@@ -388,10 +388,10 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
 			NetworkUpgrades: params.NetworkUpgrades{
-				SubnetEVMTimestamp: big.NewInt(0),
+				SubnetEVMTimestamp: utils.NewUint64(0),
 			},
 			GenesisPrecompiles: params.Precompiles{
-				txallowlist.ConfigKey: txallowlist.NewConfig(big.NewInt(0), nil, nil),
+				txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), nil, nil),
 			},
 		}
 		signer     = types.LatestSigner(config)
@@ -436,7 +436,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			want: "could not apply tx 0 [0xc5725e8baac950b2925dd4fea446ccddead1cc0affdae18b31a7d910629d9225]: cannot issue transaction from non-allow listed address: 0x71562b71999873DB5b286dF957af199Ec94617F7",
 		},
 	} {
-		block := GenerateBadBlock(genesis, dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
+		block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
 		_, err := blockchain.InsertChain(types.Blocks{block})
 		if err == nil {
 			t.Fatal("block imported without errors")
@@ -467,7 +467,7 @@ func GenerateBadBlock(parent *types.Block, engine consensus.Engine, txs types.Tr
 		UncleHash: types.EmptyUncleHash,
 	}
 
-	if config.IsSubnetEVM(new(big.Int).SetUint64(header.Time)) {
+	if config.IsSubnetEVM(header.Time) {
 		header.Extra, header.BaseFee, _ = dummy.CalcBaseFee(config, config.FeeConfig, parent.Header(), header.Time)
 		header.BlockGasCost = big.NewInt(0)
 	}

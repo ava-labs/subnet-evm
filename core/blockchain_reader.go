@@ -27,7 +27,6 @@
 package core
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -353,18 +352,13 @@ func (bc *BlockChain) SubscribeAcceptedTransactionEvent(ch chan<- NewTxsEvent) e
 // Assumes that a valid configuration is stored when the precompile is activated.
 func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	config := bc.Config()
-	bigTime := new(big.Int).SetUint64(parent.Time)
-	if !config.IsPrecompileEnabled(feemanager.ContractAddress, bigTime) {
+	if !config.IsPrecompileEnabled(feemanager.ContractAddress, parent.Time) {
 		return config.FeeConfig, common.Big0, nil
 	}
 
 	// try to return it from the cache
 	if cached, hit := bc.feeConfigCache.Get(parent.Root); hit {
-		cachedFeeConfig, ok := cached.(*cacheableFeeConfig)
-		if !ok {
-			return commontype.EmptyFeeConfig, nil, fmt.Errorf("expected type cacheableFeeConfig, got %T", cached)
-		}
-		return cachedFeeConfig.feeConfig, cachedFeeConfig.lastChangedAt, nil
+		return cached.feeConfig, cached.lastChangedAt, nil
 	}
 
 	stateDB, err := bc.StateAt(parent.Root)
@@ -392,13 +386,11 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 // If fee recipients are allowed, returns true in the second return value.
 func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
 	config := bc.Config()
-	bigTime := new(big.Int).SetUint64(parent.Time)
-
-	if !config.IsSubnetEVM(bigTime) {
+	if !config.IsSubnetEVM(parent.Time) {
 		return constants.BlackholeAddr, false, nil
 	}
 
-	if !config.IsPrecompileEnabled(rewardmanager.ContractAddress, bigTime) {
+	if !config.IsPrecompileEnabled(rewardmanager.ContractAddress, parent.Time) {
 		if bc.chainConfig.AllowFeeRecipients {
 			return common.Address{}, true, nil
 		} else {
@@ -408,11 +400,7 @@ func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool,
 
 	// try to return it from the cache
 	if cached, hit := bc.coinbaseConfigCache.Get(parent.Root); hit {
-		cachedCoinbaseConfig, ok := cached.(*cacheableCoinbaseConfig)
-		if !ok {
-			return common.Address{}, false, fmt.Errorf("expected type cachedCoinbaseConfig, got %T", cached)
-		}
-		return cachedCoinbaseConfig.coinbaseAddress, cachedCoinbaseConfig.allowFeeRecipients, nil
+		return cached.coinbaseAddress, cached.allowFeeRecipients, nil
 	}
 
 	stateDB, err := bc.StateAt(parent.Root)

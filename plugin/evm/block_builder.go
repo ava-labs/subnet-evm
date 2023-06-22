@@ -159,7 +159,6 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 				if b.gossiper != nil && len(ethTxsEvent.Txs) > 0 {
 					// Give time for this node to build a block before attempting to
 					// gossip
-					time.Sleep(waitBlockTime)
 					// [GossipTxs] will block unless [gossiper.txsToGossipChan] (an
 					// unbuffered channel) is listened on
 					if err := b.gossiper.GossipTxs(ethTxsEvent.Txs); err != nil {

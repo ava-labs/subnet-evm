@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -35,7 +36,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
-				Config: txallowlist.NewConfig(big.NewInt(enableAllowListTimestamp.Unix()), testEthAddrs[0:1], nil),
+				Config: txallowlist.NewConfig(utils.TimeToNewUint64(enableAllowListTimestamp), testEthAddrs[0:1], nil),
 			},
 		},
 	}
@@ -78,7 +79,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	upgradeConfig.PrecompileUpgrades = append(
 		upgradeConfig.PrecompileUpgrades,
 		params.PrecompileUpgrade{
-			Config: txallowlist.NewDisableConfig(big.NewInt(disableAllowListTimestamp.Unix())),
+			Config: txallowlist.NewDisableConfig(utils.TimeToNewUint64(disableAllowListTimestamp)),
 		},
 	)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
@@ -135,7 +136,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	assert.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
-	assert.True(t, block.Timestamp().Cmp(big.NewInt(disableAllowListTimestamp.Unix())) >= 0)
+	assert.Greater(t, block.Timestamp(), big.NewInt(disableAllowListTimestamp.Unix()))
 
 	<-newTxPoolHeadChan // wait for new head in tx pool
 
@@ -169,7 +170,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	subnetEVMTimestamp := time.Unix(10, 0)
 	upgradeConfig := &params.UpgradeConfig{
 		NetworkUpgrades: &params.NetworkUpgrades{
-			SubnetEVMTimestamp: big.NewInt(subnetEVMTimestamp.Unix()),
+			SubnetEVMTimestamp: utils.TimeToNewUint64(subnetEVMTimestamp),
 		},
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
@@ -183,7 +184,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	vm.clock.Set(subnetEVMTimestamp)
 
 	// verify upgrade is applied
-	if !vm.chainConfig.IsSubnetEVM(big.NewInt(subnetEVMTimestamp.Unix())) {
+	if !vm.chainConfig.IsSubnetEVM(*utils.TimeToNewUint64(subnetEVMTimestamp)) {
 		t.Fatal("expected subnet-evm network upgrade to have been enabled")
 	}
 
@@ -207,7 +208,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
 	// VM should not start if fork is moved back
-	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(2)
+	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = utils.NewUint64(2)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
@@ -216,7 +217,7 @@ func TestVMUpgradeBytesNetworkUpgrades(t *testing.T) {
 	assert.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
 	// VM should not start if fork is moved forward
-	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = big.NewInt(30)
+	upgradeConfig.NetworkUpgrades.SubnetEVMTimestamp = utils.NewUint64(30)
 	upgradeBytesJSON, err = json.Marshal(upgradeConfig)
 	if err != nil {
 		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
@@ -231,8 +232,8 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	if err := json.Unmarshal([]byte(genesisJSONPreSubnetEVM), &genesis); err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
 	}
-	genesisSubnetEVMTimestamp := big.NewInt(5)
-	genesis.Config.SubnetEVMTimestamp = genesisSubnetEVMTimestamp
+	genesisSubnetEVMTimestamp := uint64(5)
+	genesis.Config.SubnetEVMTimestamp = utils.NewUint64(genesisSubnetEVMTimestamp)
 	genesisBytes, err := json.Marshal(&genesis)
 	if err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
@@ -243,7 +244,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	subnetEVMTimestamp := time.Unix(10, 0)
 	upgradeConfig := &params.UpgradeConfig{
 		NetworkUpgrades: &params.NetworkUpgrades{
-			SubnetEVMTimestamp: big.NewInt(subnetEVMTimestamp.Unix()),
+			SubnetEVMTimestamp: utils.TimeToNewUint64(subnetEVMTimestamp),
 		},
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
@@ -257,7 +258,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 
 	// verify upgrade is rescheduled
 	assert.False(t, vm.chainConfig.IsSubnetEVM(genesisSubnetEVMTimestamp))
-	assert.True(t, vm.chainConfig.IsSubnetEVM(big.NewInt(subnetEVMTimestamp.Unix())))
+	assert.True(t, vm.chainConfig.IsSubnetEVM(*utils.TimeToNewUint64(subnetEVMTimestamp)))
 
 	if err := vm.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
@@ -275,7 +276,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 
 	// verify upgrade is aborted
 	assert.False(t, vm.chainConfig.IsSubnetEVM(genesisSubnetEVMTimestamp))
-	assert.False(t, vm.chainConfig.IsSubnetEVM(big.NewInt(subnetEVMTimestamp.Unix())))
+	assert.False(t, vm.chainConfig.IsSubnetEVM(*utils.TimeToNewUint64(subnetEVMTimestamp)))
 
 	if err := vm.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)

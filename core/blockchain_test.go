@@ -641,14 +641,14 @@ func TestTransactionIndices(t *testing.T) {
 		}
 		signer = types.LatestSigner(gspec.Config)
 	)
-	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewDummyEngine(&TestCallbacks), 128, 10, func(i int, block *BlockGen) {
+	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewFaker(), 128, 10, func(i int, block *BlockGen) {
 		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		require.NoError(err)
 		block.AddTx(tx)
 	})
 	require.NoError(err)
 
-	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewDummyEngine(&TestCallbacks), genDb, 10, 10, nil)
+	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewFaker(), genDb, 10, 10, nil)
 	require.NoError(err)
 
 	check := func(tail *uint64, chain *BlockChain) {
@@ -782,7 +782,7 @@ func TestCanonicalHashMarker(t *testing.T) {
 				Alloc:   GenesisAlloc{},
 				BaseFee: big.NewInt(params.TestInitialBaseFee),
 			}
-			engine  = dummy.NewCoinbaseFaker()
+			engine = dummy.NewCoinbaseFaker()
 		)
 		_, forkA, _, err := GenerateChainWithGenesis(gspec, engine, c.forkA, 10, func(i int, gen *BlockGen) {})
 		if err != nil {

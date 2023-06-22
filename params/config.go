@@ -135,6 +135,8 @@ var (
 		GenesisPrecompiles:  Precompiles{},
 		UpgradeConfig:       UpgradeConfig{},
 	}
+
+	TestRules = TestChainConfig.AvalancheRules(new(big.Int), 0)
 )
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -317,7 +319,7 @@ func (c *ChainConfig) IsMuirGlacier(num *big.Int) bool {
 // - equal to or greater than the PetersburgBlock fork block,
 // - OR is nil, and Constantinople is active
 func (c *ChainConfig) IsPetersburg(num *big.Int) bool {
-	return utils.IsBlockForked(c.PetersburgBlock, num) || c.PetersburgBlock == nil && utils.IsForked(c.ConstantinopleBlock, num)
+	return utils.IsBlockForked(c.PetersburgBlock, num) || c.PetersburgBlock == nil && utils.IsBlockForked(c.ConstantinopleBlock, num)
 }
 
 // IsIstanbul returns whether num is either equal to the Istanbul fork block or greater.
@@ -350,14 +352,14 @@ func (r *Rules) PredicateExists(addr common.Address) bool {
 }
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
-func (c *ChainConfig) IsPrecompileEnabled(address common.Address, blockTimestamp *big.Int) bool {
-	config := c.getActivePrecompileConfig(address, blockTimestamp)
+func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
+	config := c.getActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
 // with a mismatching chain configuration.
-func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, timestamp uint64) *ConfigCompatError {
+func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, time uint64) *ConfigCompatError {
 	var (
 		bhead = new(big.Int).SetUint64(height)
 		btime = time
@@ -478,7 +480,7 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 // checkCompatible confirms that [newcfg] is backwards compatible with [c] to upgrade with the given head block height and timestamp.
 // This confirms that all Ethereum and Avalanche upgrades are backwards compatible as well as that the precompile config is backwards
 // compatible.
-func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, lastHeight *big.Int, lastTimestamp *big.Int) *ConfigCompatError {
+func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, height *big.Int, time uint64) *ConfigCompatError {
 	if isForkBlockIncompatible(c.HomesteadBlock, newcfg.HomesteadBlock, height) {
 		return newBlockCompatError("Homestead fork block", c.HomesteadBlock, newcfg.HomesteadBlock)
 	}
@@ -522,17 +524,17 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, lastHeight *big.Int, 
 		// upgrades (ie., treated as the user intends to cancel scheduled forks)
 		newNetworkUpgrades = &NetworkUpgrades{}
 	}
-	if err := c.getNetworkUpgrades().CheckCompatible(newNetworkUpgrades, lastTimestamp); err != nil {
+	if err := c.getNetworkUpgrades().CheckCompatible(newNetworkUpgrades, time); err != nil {
 		return err
 	}
 
 	// Check that the precompiles on the new config are compatible with the existing precompile config.
-	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, lastTimestamp); err != nil {
+	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, time); err != nil {
 		return err
 	}
 
 	// Check that the state upgrades on the new config are compatible with the existing state upgrade config.
-	if err := c.CheckStateUpgradesCompatible(newcfg.StateUpgrades, lastTimestamp); err != nil {
+	if err := c.CheckStateUpgradesCompatible(newcfg.StateUpgrades, time); err != nil {
 		return err
 	}
 

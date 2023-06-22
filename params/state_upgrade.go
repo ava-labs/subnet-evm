@@ -4,7 +4,6 @@
 package params
 
 import (
-	"math/big"
 	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -15,7 +14,7 @@ import (
 // StateUpgrade describes the modifications to be made to the state during
 // a state upgrade.
 type StateUpgrade struct {
-	BlockTimestamp *big.Int `json:"blockTimestamp,omitempty"`
+	BlockTimestamp *uint64 `json:"blockTimestamp,omitempty"`
 
 	// map from account address to the modification to be made to the account.
 	StateUpgradeAccounts map[common.Address]StateUpgradeAccount `json:"accounts"`

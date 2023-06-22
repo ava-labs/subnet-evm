@@ -76,9 +76,6 @@ type pushGossiper struct {
 // createGossiper constructs and returns a pushGossiper or noopGossiper
 // based on whether vm.chainConfig.SubnetEVMTimestamp is set
 func (vm *VM) createGossiper(stats GossipStats) Gossiper {
-	if vm.chainConfig.SubnetEVMTimestamp == nil {
-		return &noopGossiper{}
-	}
 	net := &pushGossiper{
 		ctx:             vm.ctx,
 		config:          vm.config,
@@ -216,7 +213,7 @@ func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 
 	// Add best transactions to be gossiped
 	tip := n.blockchain.CurrentBlock()
-	state, err := n.blockchain.StateAt(tip.Root())
+	state, err := n.blockchain.StateAt(tip.Root)
 	if err != nil || state == nil {
 		log.Debug(
 			"could not get state at tip",
@@ -226,7 +223,7 @@ func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 		return nil
 	}
 	return n.queueExecutableTxs(
-		state, tip.BaseFee(), priorityTxs,
+		state, tip.BaseFee, priorityTxs,
 		n.config.PriorityRegossipFrequency,
 		n.config.PriorityRegossipMaxTxs,
 		n.config.PriorityRegossipTxsPerAddress,
@@ -401,7 +398,7 @@ func (n *pushGossiper) GossipTxs(txs []*types.Transaction) error {
 // GossipHandler handles incoming gossip messages
 type GossipHandler struct {
 	vm     *VM
-	txPool        *txpool.TxPool
+	txPool *txpool.TxPool
 	stats  GossipReceivedStats
 }
 

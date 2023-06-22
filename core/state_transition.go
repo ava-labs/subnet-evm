@@ -37,6 +37,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+
+	cmath "github.com/ethereum/go-ethereum/common/math"
 )
 
 // ExecutionResult includes all output after executing given evm

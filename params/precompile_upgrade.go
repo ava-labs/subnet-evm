@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -72,7 +71,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 	// Store this struct to keep track of the last upgrade for each precompile key.
 	// Required for timestamp and disabled checks.
 	type lastUpgradeData struct {
-		blockTimestamp *big.Int
+		blockTimestamp uint64
 		disabled       bool
 	}
 
@@ -90,13 +89,13 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		// check the genesis chain config for any enabled upgrade
 		lastPrecompileUpgrades[key] = lastUpgradeData{
 			disabled:       false,
-			blockTimestamp: config.Timestamp(),
+			blockTimestamp: *config.Timestamp(),
 		}
 	}
 
 	// next range over upgrades to verify correct use of disabled and blockTimestamps.
 	// previousUpgradeTimestamp is used to verify monotonically increasing timestamps.
-	var previousUpgradeTimestamp *big.Int
+	var previousUpgradeTimestamp *uint64
 	for i, upgrade := range c.PrecompileUpgrades {
 		key := upgrade.Key()
 
@@ -104,14 +103,14 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		lastUpgradeByKey, ok := lastPrecompileUpgrades[key]
 		var (
 			disabled      bool
-			lastTimestamp *big.Int
+			lastTimestamp *uint64
 		)
 		if !ok {
 			disabled = true
 			lastTimestamp = nil
 		} else {
 			disabled = lastUpgradeByKey.disabled
-			lastTimestamp = lastUpgradeByKey.blockTimestamp
+			lastTimestamp = utils.NewUint64(lastUpgradeByKey.blockTimestamp)
 		}
 		upgradeTimestamp := upgrade.Timestamp()
 
@@ -120,8 +119,8 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		}
 		// Verify specified timestamps are monotonically increasing across all precompile keys.
 		// Note: It is OK for multiple configs of DIFFERENT keys to specify the same timestamp.
-		if previousUpgradeTimestamp != nil && upgradeTimestamp.Cmp(previousUpgradeTimestamp) < 0 {
-			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: config block timestamp (%v) < previous timestamp (%v)", key, i, upgradeTimestamp, previousUpgradeTimestamp)
+		if previousUpgradeTimestamp != nil && *upgradeTimestamp < *previousUpgradeTimestamp {
+			return fmt.Errorf("PrecompileUpgrade* (%s) at [%d]: config block timestamp (%v) < previous timestamp (%v)", key, i, upgradeTimestamp, previousUpgradeTimestamp)
 		}
 
 		if disabled == upgrade.IsDisabled() {
@@ -129,7 +128,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		}
 		// Verify specified timestamps are monotonically increasing across same precompile keys.
 		// Note: It is NOT OK for multiple configs of the SAME key to specify the same timestamp.
-		if lastTimestamp != nil && (upgradeTimestamp.Cmp(lastTimestamp) <= 0) {
+		if lastTimestamp != nil && *upgradeTimestamp <= *lastTimestamp {
 			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: config block timestamp (%v) <= previous timestamp (%v) of same key", key, i, upgradeTimestamp, lastTimestamp)
 		}
 
@@ -139,7 +138,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 
 		lastPrecompileUpgrades[key] = lastUpgradeData{
 			disabled:       upgrade.IsDisabled(),
-			blockTimestamp: upgradeTimestamp,
+			blockTimestamp: *upgradeTimestamp,
 		}
 
 		previousUpgradeTimestamp = upgradeTimestamp
@@ -151,16 +150,19 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 // verifyStateUpgrades checks [c.StateUpgrades] is well formed:
 // - the specified blockTimestamps must monotonically increase
 func (c *ChainConfig) verifyStateUpgrades() error {
-	var previousUpgradeTimestamp *big.Int
+	var previousUpgradeTimestamp *uint64
 	for i, upgrade := range c.StateUpgrades {
 		upgradeTimestamp := upgrade.BlockTimestamp
-		// Verify the upgrade's timestamp is greater than 0 (to avoid confusion with genesis).
-		if upgradeTimestamp.Cmp(common.Big0) <= 0 {
+		if upgradeTimestamp == nil {
+			return fmt.Errorf("StateUpgrade[%d]: config block timestamp cannot be nil ", i)
+		}
+		// Verify the upgrade's timestamp is equal 0 (to avoid confusion with genesis).
+		if *upgradeTimestamp == 0 {
 			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) must be greater than 0", i, upgradeTimestamp)
 		}
 
 		// Verify specified timestamps are strictly monotonically increasing.
-		if previousUpgradeTimestamp != nil && upgradeTimestamp.Cmp(previousUpgradeTimestamp) <= 0 {
+		if previousUpgradeTimestamp != nil && *upgradeTimestamp <= *previousUpgradeTimestamp {
 			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) <= previous timestamp (%v)", i, upgradeTimestamp, previousUpgradeTimestamp)
 		}
 		previousUpgradeTimestamp = upgradeTimestamp
@@ -209,7 +211,7 @@ func (c *ChainConfig) GetActivatingPrecompileConfigs(address common.Address, fro
 
 // GetActivatingStateUpgrades returns all state upgrades configured to activate during the
 // state transition from a block with timestamp [from] to a block with timestamp [to].
-func (c *ChainConfig) GetActivatingStateUpgrades(from *big.Int, to *big.Int, upgrades []StateUpgrade) []StateUpgrade {
+func (c *ChainConfig) GetActivatingStateUpgrades(from *uint64, to uint64, upgrades []StateUpgrade) []StateUpgrade {
 	activating := make([]StateUpgrade, 0)
 	for _, upgrade := range upgrades {
 		if utils.IsForkTransition(upgrade.BlockTimestamp, from, to) {
@@ -226,9 +228,9 @@ func (c *ChainConfig) GetActivatingStateUpgrades(from *big.Int, to *big.Int, upg
 // Assumes given timestamp is the last accepted block timestamp.
 // This ensures that as long as the node has not accepted a block with a different rule set it will allow a
 // new upgrade to be applied as long as it activates after the last accepted block.
-func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
+func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
 	for _, module := range modules.RegisteredModules() {
-		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, lastTimestamp); err != nil {
+		if err := c.checkPrecompileCompatible(module.Address, precompileUpgrades, time); err != nil {
 			return err
 		}
 	}
@@ -240,16 +242,16 @@ func (c *ChainConfig) CheckPrecompilesCompatible(precompileUpgrades []Precompile
 // and [precompileUpgrades] at [headTimestamp].
 // Returns an error if upgrades already activated at [headTimestamp] are missing from [precompileUpgrades].
 // Upgrades that have already gone into effect cannot be modified or absent from [precompileUpgrades].
-func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompileUpgrades []PrecompileUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
+func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompileUpgrades []PrecompileUpgrade, time uint64) *ConfigCompatError {
 	// All active upgrades (from nil to [lastTimestamp]) must match.
-	activeUpgrades := c.GetActivatingPrecompileConfigs(address, nil, lastTimestamp, c.PrecompileUpgrades)
-	newUpgrades := c.GetActivatingPrecompileConfigs(address, nil, lastTimestamp, precompileUpgrades)
+	activeUpgrades := c.GetActivatingPrecompileConfigs(address, nil, time, c.PrecompileUpgrades)
+	newUpgrades := c.GetActivatingPrecompileConfigs(address, nil, time, precompileUpgrades)
 
 	// Check activated upgrades are still present.
 	for i, upgrade := range activeUpgrades {
 		if len(newUpgrades) <= i {
 			// missing upgrade
-			return newCompatError(
+			return newTimestampCompatError(
 				fmt.Sprintf("missing PrecompileUpgrade[%d]", i),
 				upgrade.Timestamp(),
 				nil,
@@ -257,7 +259,7 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 		}
 		// All upgrades that have activated must be identical.
 		if !upgrade.Equal(newUpgrades[i]) {
-			return newCompatError(
+			return newTimestampCompatError(
 				fmt.Sprintf("PrecompileUpgrade[%d]", i),
 				upgrade.Timestamp(),
 				newUpgrades[i].Timestamp(),
@@ -267,7 +269,7 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 	// then, make sure newUpgrades does not have additional upgrades
 	// that are already activated. (cannot perform retroactive upgrade)
 	if len(newUpgrades) > len(activeUpgrades) {
-		return newCompatError(
+		return newTimestampCompatError(
 			fmt.Sprintf("cannot retroactively enable PrecompileUpgrade[%d]", len(activeUpgrades)),
 			nil,
 			newUpgrades[len(activeUpgrades)].Timestamp(), // this indexes to the first element in newUpgrades after the end of activeUpgrades
@@ -278,7 +280,7 @@ func (c *ChainConfig) checkPrecompileCompatible(address common.Address, precompi
 }
 
 // CheckStateUpgradesCompatible checks if [stateUpgrades] are compatible with [c] at [headTimestamp].
-func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade, lastTimestamp *big.Int) *ConfigCompatError {
+func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade, lastTimestamp uint64) *ConfigCompatError {
 	// All active upgrades (from nil to [lastTimestamp]) must match.
 	activeUpgrades := c.GetActivatingStateUpgrades(nil, lastTimestamp, c.StateUpgrades)
 	newUpgrades := c.GetActivatingStateUpgrades(nil, lastTimestamp, stateUpgrades)
@@ -287,7 +289,7 @@ func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade,
 	for i, upgrade := range activeUpgrades {
 		if len(newUpgrades) <= i {
 			// missing upgrade
-			return newCompatError(
+			return newTimestampCompatError(
 				fmt.Sprintf("missing StateUpgrade[%d]", i),
 				upgrade.BlockTimestamp,
 				nil,
@@ -295,7 +297,7 @@ func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade,
 		}
 		// All upgrades that have activated must be identical.
 		if !upgrade.Equal(&newUpgrades[i]) {
-			return newCompatError(
+			return newTimestampCompatError(
 				fmt.Sprintf("StateUpgrade[%d]", i),
 				upgrade.BlockTimestamp,
 				newUpgrades[i].BlockTimestamp,
@@ -305,7 +307,7 @@ func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade,
 	// then, make sure newUpgrades does not have additional upgrades
 	// that are already activated. (cannot perform retroactive upgrade)
 	if len(newUpgrades) > len(activeUpgrades) {
-		return newCompatError(
+		return newTimestampCompatError(
 			fmt.Sprintf("cannot retroactively enable StateUpgrade[%d]", len(activeUpgrades)),
 			nil,
 			newUpgrades[len(activeUpgrades)].BlockTimestamp, // this indexes to the first element in newUpgrades after the end of activeUpgrades
@@ -316,7 +318,7 @@ func (c *ChainConfig) CheckStateUpgradesCompatible(stateUpgrades []StateUpgrade,
 }
 
 // EnabledStatefulPrecompiles returns current stateful precompile configs that are enabled at [blockTimestamp].
-func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp *big.Int) Precompiles {
+func (c *ChainConfig) EnabledStatefulPrecompiles(blockTimestamp uint64) Precompiles {
 	statefulPrecompileConfigs := make(Precompiles)
 	for _, module := range modules.RegisteredModules() {
 		if config := c.getActivePrecompileConfig(module.Address, blockTimestamp); config != nil && !config.IsDisabled() {

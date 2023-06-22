@@ -380,7 +380,7 @@ func (vm *VM) Initialize(
 	// TODO: remove SkipSubnetEVMUpgradeCheck after next network upgrade
 	if !vm.config.SkipSubnetEVMUpgradeCheck {
 		// check that subnetEVM upgrade is enabled from genesis before upgradeBytes
-		if !vm.chainConfig.IsSubnetEVM(common.Big0) {
+		if !vm.chainConfig.IsSubnetEVM(0) {
 			return errSubnetEVMUpgradeNotEnabled
 		}
 	}
@@ -608,7 +608,7 @@ func (vm *VM) setAppRequestHandlers() {
 		},
 	)
 
-	networkHandler := newNetworkHandler(vm.blockChain, evmTrieDB, vm.networkCodec)
+	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.networkCodec)
 	vm.Network.SetRequestHandler(networkHandler)
 }
 

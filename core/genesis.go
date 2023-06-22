@@ -334,7 +334,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 	if g.Difficulty == nil {
 		head.Difficulty = params.GenesisDifficulty
 	}
-	if g.Config != nil && g.Config.IsSubnetEVM(common.Big0) {
+	if g.Config != nil && g.Config.IsSubnetEVM(0) {
 		if g.BaseFee != nil {
 			head.BaseFee = g.BaseFee
 		} else {
