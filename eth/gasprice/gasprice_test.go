@@ -309,13 +309,21 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 					Data:      []byte{},
 				})
 				tx, err = types.SignTx(tx, signer, key)
-				if err != nil {
-					t.Fatalf("failed to create tx: %s", err)
-				}
+				require.NoError(t, err, "failed to create tx")
 				b.AddTx(tx)
 			}
 		},
+		// NOTE: small tips do not bias estimate
 		expectedTip: big.NewInt(643_500_643),
+	}, defaultOracleConfig())
+}
+
+func TestSuggestTipCapExtDataUsage(t *testing.T) {
+	applyGasPriceTest(t, suggestTipCapTest{
+		chainConfig: params.TestChainConfig,
+		numBlocks:   3,
+		genBlock:    testGenBlock(t, 55, 370),
+		expectedTip: big.NewInt(5_706_726_649),
 	}, defaultOracleConfig())
 }
 
@@ -351,23 +359,17 @@ func TestSuggestGasPriceSubnetEVM(t *testing.T) {
 				Data:     []byte{},
 			})
 			tx, err := types.SignTx(tx, signer, key)
-			if err != nil {
-				t.Fatalf("failed to create tx: %s", err)
-			}
+			require.NoError(t, err, "failed to create tx")
 			b.AddTx(tx)
 		}
 	})
 	defer backend.teardown()
 
 	oracle, err := NewOracle(backend, config)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	_, err = oracle.SuggestPrice(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 }
 
 func TestSuggestTipCapMaxBlocksLookback(t *testing.T) {

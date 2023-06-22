@@ -219,7 +219,7 @@ func TestBlockSubscription(t *testing.T) {
 		db           = rawdb.NewMemoryDatabase()
 		backend, sys = newTestFilterSystem(t, db, Config{})
 		api          = NewFilterAPI(sys)
-		genesis        = &core.Genesis{
+		genesis      = &core.Genesis{
 			Config:  params.TestChainConfig,
 			BaseFee: big.NewInt(1),
 		}

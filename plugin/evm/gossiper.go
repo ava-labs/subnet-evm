@@ -313,6 +313,7 @@ func (n *pushGossiper) sendTxs(txs []*types.Transaction) error {
 	if err != nil {
 		return err
 	}
+
 	log.Trace(
 		"gossiping eth txs",
 		"len(txs)", len(txs),

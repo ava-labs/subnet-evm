@@ -54,7 +54,6 @@ type ScopeContext struct {
 	Contract *Contract
 }
 
-
 // EVMInterpreter represents an EVM interpreter
 type EVMInterpreter struct {
 	evm   *EVM

@@ -85,11 +85,9 @@ func waitForAccounts(wantAccounts []accounts.Account, ks *KeyStore) error {
 			default:
 				return fmt.Errorf("wasn't notified of new accounts")
 			}
-
 			return nil
 		}
 	}
-
 	return fmt.Errorf("\ngot  %v\nwant %v", list, wantAccounts)
 }
 

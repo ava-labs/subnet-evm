@@ -70,6 +70,7 @@ type Config struct {
 	Cachedir  string // The directory of state clean cache
 	BloomSize uint64 // The Megabytes of memory allocated to bloom-filter
 }
+
 // Pruner is an offline tool to prune the stale state with the
 // help of the snapshot. The workflow of pruner is very simple:
 //

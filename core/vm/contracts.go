@@ -43,7 +43,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/blake2b"
 	"github.com/ethereum/go-ethereum/crypto/bls12381"
 	"github.com/ethereum/go-ethereum/crypto/bn256"
-
 	big2 "github.com/holiman/big"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -303,8 +302,6 @@ var (
 )
 
 // modexpMultComplexity implements bigModexp multComplexity formula, as defined in EIP-198
-//
-// def mult_complexity(x):
 //
 //	def mult_complexity(x):
 //		if x <= 64: return x ** 2

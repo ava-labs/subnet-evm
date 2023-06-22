@@ -235,7 +235,6 @@ func BindHelper(types []string, abis []string, bytecodes []string, fsigs []map[s
 		if evmABI.HasReceive() {
 			receive = &TmplMethod{Original: evmABI.Receive}
 		}
-
 		contracts[types[i]] = &TmplContract{
 			Type:        capitalise(types[i]),
 			InputABI:    strings.ReplaceAll(strippedABI, "\"", "\\\""),

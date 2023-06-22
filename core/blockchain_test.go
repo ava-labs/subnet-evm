@@ -355,11 +355,6 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			return blockchain, nil
 		}
 
-		targetRoot := blockchain.LastAcceptedBlock().Root()
-		if targetRoot == blockchain.Genesis().Root() {
-			return blockchain, nil
-		}
-
 		tempDir := t.TempDir()
 		if err := blockchain.CleanBlockRootsAboveLastAccepted(); err != nil {
 			return nil, err
@@ -376,6 +371,7 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			return nil, fmt.Errorf("offline pruning failed (%s, %d): %w", tempDir, 256, err)
 		}
 
+		targetRoot := blockchain.LastAcceptedBlock().Root()
 		if err := pruner.Prune(targetRoot); err != nil {
 			return nil, fmt.Errorf("failed to prune blockchain with target root: %s due to: %w", targetRoot, err)
 		}
@@ -383,8 +379,8 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 		return createBlockChain(db, pruningConfig, gspec, lastAcceptedHash)
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.Name, func(t *testing.T) {
+			tt := tt
 			t.Parallel()
 			tt.testFunc(t, create)
 		})

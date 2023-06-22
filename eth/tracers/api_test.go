@@ -67,7 +67,6 @@ type testBackend struct {
 	chaindb     ethdb.Database
 	chain       *core.BlockChain
 
-
 	refHook func() // Hook is invoked when the requested state is referenced
 	relHook func() // Hook is invoked when the requested state is released
 }

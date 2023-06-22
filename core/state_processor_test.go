@@ -86,7 +86,7 @@ func u64(val uint64) *uint64 { return &val }
 // blockchain imports bad blocks, meaning blocks which have valid headers but
 // contain invalid transactions
 func TestStateProcessorErrors(t *testing.T) {
-	config.FeeConfig.MinBaseFee = params.TestMaxBaseFee
+	config.FeeConfig.MinBaseFee = big.NewInt(params.TestMaxBaseFee)
 	{ // Tests against a 'recent' chain definition
 		var (
 			db    = rawdb.NewMemoryDatabase()

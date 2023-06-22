@@ -232,4 +232,3 @@ func accountTrieNodeKey(path []byte) []byte {
 func storageTrieNodeKey(accountHash common.Hash, path []byte) []byte {
 	return append(append(trieNodeStoragePrefix, accountHash.Bytes()...), path...)
 }
-

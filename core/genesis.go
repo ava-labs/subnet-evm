@@ -233,7 +233,6 @@ func SetupGenesisBlock(
 	storedData, _ := json.Marshal(storedcfg)
 	// Check config compatibility and write the config. Compatibility errors
 	// are returned to the caller unless we're already at block zero.
-
 	// we use last accepted block for cfg compatibility check. Note this allows
 	// the node to continue if it previously halted due to attempting to process blocks with
 	// an incorrect chain config.
@@ -244,7 +243,6 @@ func SetupGenesisBlock(
 	if lastBlock == nil {
 		return newcfg, common.Hash{}, fmt.Errorf("missing last accepted block")
 	}
-
 	height := lastBlock.NumberU64()
 	timestamp := lastBlock.Time()
 	if skipChainConfigCheckCompatible {
@@ -342,7 +340,6 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 		}
 	}
 	statedb.Commit(false, false)
-
 	// Commit newly generated states into disk if it's not empty.
 	if root != types.EmptyRootHash {
 		if err := triedb.Commit(root, true); err != nil {
@@ -396,7 +393,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	g := Genesis{
 		Config:  params.TestChainConfig,
 		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: new(big.Int).Set(params.TestMaxBaseFee),
+		BaseFee: big.NewInt(params.TestMaxBaseFee),
 	}
 	return g.MustCommit(db)
 }

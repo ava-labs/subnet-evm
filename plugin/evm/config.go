@@ -177,9 +177,6 @@ type Config struct {
 	MaxOutboundActiveRequests           int64 `json:"max-outbound-active-requests"`
 	MaxOutboundActiveCrossChainRequests int64 `json:"max-outbound-active-cross-chain-requests"`
 
-	// Database Settings
-	InspectDatabase bool `json:"inspect-database"` // Inspects the database on startup if enabled.
-
 	// Sync settings
 	StateSyncEnabled         bool   `json:"state-sync-enabled"`
 	StateSyncSkipResume      bool   `json:"state-sync-skip-resume"` // Forces state sync to use the highest available summary block
@@ -188,6 +185,9 @@ type Config struct {
 	StateSyncCommitInterval  uint64 `json:"state-sync-commit-interval"`
 	StateSyncMinBlocks       uint64 `json:"state-sync-min-blocks"`
 	StateSyncRequestSize     uint16 `json:"state-sync-request-size"`
+
+	// Database Settings
+	InspectDatabase bool `json:"inspect-database"` // Inspects the database on startup if enabled.
 
 	// SkipUpgradeCheck disables checking that upgrades must take place before the last
 	// accepted block. Skipping this check is useful when a node operator does not update
@@ -301,10 +301,10 @@ func (c *Config) Validate() error {
 	if !c.Pruning && c.OfflinePruning {
 		return fmt.Errorf("cannot run offline pruning while pruning is disabled")
 	}
-
 	// If pruning is enabled, the commit interval must be non-zero so the node commits state tries every CommitInterval blocks.
 	if c.Pruning && c.CommitInterval == 0 {
 		return fmt.Errorf("cannot use commit interval of 0 with pruning enabled")
 	}
+
 	return nil
 }

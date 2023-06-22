@@ -308,6 +308,7 @@ func NewBlockChain(
 	if cacheConfig == nil {
 		return nil, errCacheConfigNotSpecified
 	}
+
 	// Open trie database with provided config
 	triedb := trie.NewDatabaseWithConfig(db, &trie.Config{
 		Cache:       cacheConfig.TrieCleanLimit,
@@ -315,7 +316,6 @@ func NewBlockChain(
 		Preimages:   cacheConfig.Preimages,
 		StatsPrefix: trieCleanCacheStatsNamespace,
 	})
-
 	// Setup the genesis block, commit the provided genesis specification
 	// to database if the genesis block is not present yet, or load the
 	// stored one from database.
@@ -1370,9 +1370,9 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	storageUpdateTimer.Inc(statedb.StorageUpdates.Milliseconds()) // Storage updates are complete, we can mark them
 	accountHashTimer.Inc(statedb.AccountHashes.Milliseconds())    // Account hashes are complete, we can mark them
 	storageHashTimer.Inc(statedb.StorageHashes.Milliseconds())    // Storage hashes are complete, we can mark them
-	validationTrieProcTime := statedb.AccountHashes + statedb.StorageHashes + statedb.AccountUpdates + statedb.StorageUpdates - trieproc
-	blockStateValidationTimer.Inc((time.Since(substart) - validationTrieProcTime).Milliseconds())
-	blockTrieOpsTimer.Inc((trieproc + validationTrieProcTime).Milliseconds())
+	additionalTrieProc := statedb.AccountHashes + statedb.StorageHashes + statedb.AccountUpdates + statedb.StorageUpdates - trieproc
+	blockStateValidationTimer.Inc((time.Since(substart) - additionalTrieProc).Milliseconds())
+	blockTrieOpsTimer.Inc((trieproc + additionalTrieProc).Milliseconds())
 
 	// If [writes] are disabled, skip [writeBlockWithState] so that we do not write the block
 	// or the state trie to disk.
