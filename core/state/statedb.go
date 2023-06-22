@@ -1174,6 +1174,7 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 			al.AddAddress(coinbase)
 		}
 	}
+	s.preparePredicateStorageSlots(rules, list)
 	// Reset transient storage at the beginning of transaction execution
 	s.transientStorage = newTransientStorage()
 }
