@@ -1,6 +1,7 @@
 package limitorders
 
 import (
+	"math"
 	"math/big"
 	"time"
 
@@ -93,7 +94,8 @@ func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Ad
 				rawOrders[i] = order.RawOrder
 			}
 			log.Info("orders to cancel", "num", len(orders))
-			err := pipeline.lotp.ExecuteOrderCancel(rawOrders[0:30]) // change this if the tx gas limit (1.5m) is changed
+			// cancel max of 30 orders
+			err := pipeline.lotp.ExecuteOrderCancel(rawOrders[0:int(math.Min(float64(len(rawOrders)), 30))]) // change this if the tx gas limit (1.5m) is changed
 			if err != nil {
 				log.Error("Error in ExecuteOrderCancel", "orders", orders, "err", err)
 			} else {

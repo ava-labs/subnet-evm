@@ -2,13 +2,10 @@ package bibliophile
 
 import (
 	"math/big"
-	"strings"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -97,9 +94,10 @@ func getUnderlyingPrice(stateDB contract.StateDB, market common.Address) *big.In
 		if feedId.Big().Sign() != 0 {
 			// redstone oracle is configured for this market
 			redstonePrice := getRedStonePrice(stateDB, redStoneAdapter, feedId)
-			log.Info("redstone-price", "amm", market, "price", redstonePrice)
+			// log.Info("redstone-price", "amm", market, "price", redstonePrice)
 			return redstonePrice
-		} else {
+		}
+		/* else {
 			// just log the red stone price, for testing before deployment
 			var feedId common.Hash
 			if strings.EqualFold(market.String(), "0xa72b463C21dA61cCc86069cFab82e9e8491152a0") { // eth amm
@@ -107,9 +105,9 @@ func getUnderlyingPrice(stateDB contract.StateDB, market common.Address) *big.In
 			} else if strings.EqualFold(market.String(), "0xd80e57dB448b0692C396B890eE9c791D7386dAdC") { // avax amm
 				feedId = common.HexToHash("0x4156415800000000000000000000000000000000000000000000000000000000")
 			}
-			redstonePrice := getRedStonePrice(stateDB, redStoneAdapter, feedId)
-			log.Info("log-only-redstone-price", "amm", market, "price", redstonePrice)
-		}
+			// redstonePrice := getRedStonePrice(stateDB, redStoneAdapter, feedId)
+			// log.Info("log-only-redstone-price", "amm", market, "price", redstonePrice)
+		} */
 	}
 	// red stone oracle is not enabled for this market, we use the default TestOracle
 	oracle := getOracleAddress(stateDB, market)

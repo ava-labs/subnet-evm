@@ -381,10 +381,10 @@ func (db *InMemoryDatabase) getCleanOrder(order *LimitOrder, blockNumber *big.In
 		// 4. We might have made margin requirements for order fulfillment more liberal at a later stage
 		// Hence, in view of the above and to serve as a catch-all we retry failed orders after every 100 blocks
 		// Note at if an order is failing multiple times and it is also not being caught in the auto-cancel logic, then something/somewhere definitely needs fixing
-		if blockNumber != nil && orderStatus.BlockNumber+RETRY_AFTER_BLOCKS <= blockNumber.Uint64() {
-			eligibleForExecution = true
-		} else {
-			if blockNumber.Uint64()%10 == 0 {
+		if blockNumber != nil {
+			if orderStatus.BlockNumber+RETRY_AFTER_BLOCKS <= blockNumber.Uint64() {
+				eligibleForExecution = true
+			} else if blockNumber.Uint64()%10 == 0 {
 				// to not make the log too noisy
 				log.Warn("eligible order is in Execution_Failed state", "orderId", order.String(), "retryInBlocks", orderStatus.BlockNumber+RETRY_AFTER_BLOCKS-blockNumber.Uint64())
 			}
