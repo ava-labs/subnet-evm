@@ -193,7 +193,7 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 // modified from consensus.go
 func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, uncle bool) error {
 	var (
-		config    = chain.Config()
+		config = chain.Config()
 	)
 	// Ensure that we do not verify an uncle
 	if uncle {

@@ -93,8 +93,8 @@ var (
 	trieNodeAccountPrefix = []byte("A") // trieNodeAccountPrefix + hexPath -> trie node
 	trieNodeStoragePrefix = []byte("O") // trieNodeStoragePrefix + accountHash + hexPath -> trie node
 
-	PreimagePrefix = []byte("secure-key-")      // PreimagePrefix + hash -> preimage
-	configPrefix   = []byte("ethereum-config-") // config prefix for the db
+	PreimagePrefix      = []byte("secure-key-")      // PreimagePrefix + hash -> preimage
+	configPrefix        = []byte("ethereum-config-") // config prefix for the db
 	upgradeConfigPrefix = []byte("upgrade-config-")  // upgrade bytes passed to the chain are stored with this prefix
 
 	// BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
