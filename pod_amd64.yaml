@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: subnet-evm
+spec:
+  restartPolicy: Never
+  hostNetwork: true
+  containers:
+  - name: subnet-evm
+    image: dansoveravax/subnet-evm-container:v0.0.1-amd64
+    resources:
+      requests:
+        memory: 600Mi
+        cpu: 300m
+    env:
+      - name: "AVALANCHE_VM_RUNTIME_ENGINE_ADDR"
+        value: "127.0.0.1:9650"
+
