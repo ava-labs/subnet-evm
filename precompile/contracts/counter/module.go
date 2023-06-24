@@ -26,7 +26,7 @@ var ContractAddress = common.HexToAddress("0x03000000000000000000000000000000000
 var Module = modules.Module{
 	ConfigKey:    ConfigKey,
 	Address:      ContractAddress,
-	Contract:     CounterPrecompile,
+	Contract:     ICounter,
 	Configurator: &configurator{},
 }
 
@@ -53,9 +53,6 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompilec
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
 	}
-	
-	// sets dafault counter state
-	StoreGreeting(state, defaultCounter)
 
 	// AllowList is activated for this precompile. Configuring allowlist addresses here.
 	return config.AllowListConfig.Configure(state, ContractAddress)

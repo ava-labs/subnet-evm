@@ -6,7 +6,7 @@
 pragma solidity >=0.8.0;
 import "./IAllowList.sol";
 
-interface ICounterPrecompile is IAllowList {
+interface ICounter is IAllowList {
 
     //state changing functions
     function IncrementByOne() external;
