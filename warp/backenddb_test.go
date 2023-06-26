@@ -93,6 +93,12 @@ func FuzzTestWarpDb(f *testing.F) {
 		warpDb := NewWarpDb(db, threshold, config)
 		mockWarpDb := NewMockWarpDb()
 
+		//require.Equal(t, 1, 2)
+
+		if true {
+			panic("this is a panic!")
+		}
+
 		for i := uint(0) ; i < numOps; i++ {
 			op := op(rand.Intn(int(opMax)))
 
