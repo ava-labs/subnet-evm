@@ -1,4 +1,0 @@
-go test fuzz v1
-[]byte("t")
-uint(74)
-uint(104)

@@ -1,4 +1,0 @@
-go test fuzz v1
-[]byte("21")
-uint(56)
-uint(3)

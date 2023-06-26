@@ -50,3 +50,4 @@ cmd/simulator/simulator
 
 # goreleaser
 dist/
+*.testdata/fuzz/

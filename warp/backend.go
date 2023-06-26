@@ -26,6 +26,8 @@ type WarpBackend interface {
 
 	// GetSignature returns the signature of the requested message hash.
 	GetSignature(messageHash ids.ID) ([bls.SignatureLen]byte, error)
+
+	PruneEntries() (int, prunedMap, error)
 }
 
 // warpBackend implements WarpBackend, keeps track of warp messages, and generates message signatures.
@@ -43,7 +45,7 @@ func NewWarpBackend(
 ) WarpBackend {
 	w := &warpBackend {
 		snowCtx: 			snowCtx,
-		warpdb:				NewWarpDb(db, uint64(DefaultMaxDbSize)),
+		warpdb:				NewWarpDb(db, Day*7, GetDefaultWarpDbConfig()),
 		signatureCache: 	&cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: signatureCacheSize},
 	}
 
@@ -51,7 +53,8 @@ func NewWarpBackend(
 }
 
 func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
-	if err := w.warpdb.AddMessage(unsignedMessage); err != nil {
+	_, _, err :=  w.warpdb.AddMessage(unsignedMessage);
+	if err != nil {
 		return fmt.Errorf("failed to add message to warpdb: %w", err)
 	}
 	messageID := hashing.ComputeHash256Array(unsignedMessage.Bytes())
@@ -91,4 +94,8 @@ func (w *warpBackend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, er
 	copy(signature[:], sig)
 	w.signatureCache.Put(messageID, signature)
 	return signature, nil
+}
+
+func (w *warpBackend) PruneEntries() (int, prunedMap, error) {
+	return 5, nil, nil
 }
