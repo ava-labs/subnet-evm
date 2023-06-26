@@ -2415,7 +2415,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
 	// verify the issued block is after the network upgrade
-	require.GreaterOrEqual(t, block.Timestamp(), disableAllowListTimestamp.Unix())
+	require.GreaterOrEqual(t, int64(block.Timestamp()), disableAllowListTimestamp.Unix())
 
 	<-newTxPoolHeadChan // wait for new head in tx pool
 
@@ -2496,7 +2496,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	feeConfig, lastChangedAt, err := vm.blockChain.GetFeeConfigAt(vm.blockChain.Genesis().Header())
 	require.NoError(t, err)
 	require.EqualValues(t, feeConfig, testLowFeeConfig)
-	require.EqualValues(t, vm.blockChain.CurrentBlock().Number, lastChangedAt)
+	require.Zero(t, vm.blockChain.CurrentBlock().Number.Cmp(lastChangedAt))
 
 	// set a different fee config now
 	testHighFeeConfig := testLowFeeConfig
@@ -2794,7 +2794,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	// to determine the coinbase for this block before full deactivation in the
 	// next block.
 	require.Equal(t, testAddr, ethBlock.Coinbase())
-	require.Greater(t, ethBlock.Timestamp, disableTime.Unix())
+	require.GreaterOrEqual(t, int64(ethBlock.Timestamp()), disableTime.Unix())
 
 	vm.clock.Set(vm.clock.Time().Add(3 * time.Hour)) // let time pass to decrease gas price
 	// issue another block to verify that the reward manager is disabled
@@ -2814,7 +2814,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	// reward manager was disabled at previous block
 	// so this block should revert back to enabling fee recipients
 	require.Equal(t, etherBase, ethBlock.Coinbase())
-	require.Greater(t, ethBlock.Timestamp, disableTime.Unix())
+	require.Greater(t, int64(ethBlock.Timestamp()), disableTime.Unix())
 
 	// Verify that Blackhole has received fees
 	blkState, err = vm.blockChain.StateAt(ethBlock.Root())
@@ -2928,7 +2928,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	require.Equal(t, etherBase, ethBlock.Coinbase()) // reward address was activated at previous block
-	require.Greater(t, ethBlock.Timestamp, disableTime.Unix)
+	require.GreaterOrEqual(t, int64(ethBlock.Timestamp()), disableTime.Unix())
 
 	vm.clock.Set(vm.clock.Time().Add(3 * time.Hour)) // let time pass so that gas price is reduced
 	tx2 = types.NewTransaction(uint64(2), testEthAddrs[0], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
@@ -2945,7 +2945,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	ethBlock = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	require.Equal(t, constants.BlackholeAddr, ethBlock.Coinbase()) // reward address was activated at previous block
-	require.Greater(t, ethBlock.Timestamp, disableTime.Unix())
+	require.Greater(t, int64(ethBlock.Timestamp()), disableTime.Unix())
 
 	// Verify that Blackhole has received fees
 	blkState, err = vm.blockChain.StateAt(ethBlock.Root())

@@ -38,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
+	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
@@ -55,6 +56,7 @@ var (
 )
 
 type testBackend struct {
+	db            ethdb.Database
 	chain         *core.BlockChain
 	acceptedEvent chan<- core.ChainEvent
 }
@@ -127,8 +129,9 @@ func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBloc
 // after use, otherwise the blockchain instance will mem-leak via goroutines.
 func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
 	var gspec = &core.Genesis{
-		Config: config,
-		Alloc:  core.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
+		Config:   config,
+		Alloc:    core.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
+		GasLimit: config.FeeConfig.GasLimit.Uint64(),
 	}
 
 	engine := dummy.NewFaker()
@@ -139,14 +142,15 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 		t.Fatal(err)
 	}
 	// Construct testing chain
-	chain, err := core.NewBlockChain(rawdb.NewMemoryDatabase(), core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	db := rawdb.NewMemoryDatabase()
+	chain, err := core.NewBlockChain(db, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
 	if _, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("Failed to insert chain, %v", err)
 	}
-	return &testBackend{chain: chain}
+	return &testBackend{chain: chain, db: db}
 }
 
 func (b *testBackend) MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error) {
@@ -415,6 +419,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	// before issuing the block changing the fee into the chain, the fee estimation should
 	// follow the fee config in genesis.
 	backend := newTestBackend(t, &chainConfig, 0, func(i int, b *core.BlockGen) {})
+	defer backend.teardown()
 	oracle, err := NewOracle(backend, config)
 	require.NoError(err)
 	got, err := oracle.SuggestPrice(context.Background())
@@ -424,7 +429,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	// issue the block with tx that changes the fee
 	genesis := backend.chain.Genesis()
 	engine := backend.chain.Engine()
-	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, rawdb.NewMemoryDatabase(), 1, 0, func(i int, b *core.BlockGen) {
+	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, backend.db, 1, 0, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
 		// admin issues tx to change fee config to higher MinBaseFee

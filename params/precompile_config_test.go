@@ -273,7 +273,7 @@ func TestGetPrecompileConfig(t *testing.T) {
 	deployerConfig := config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 0)
 	require.Nil(deployerConfig)
 
-	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 0)
+	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 10)
 	require.NotNil(deployerConfig)
 
 	deployerConfig = config.getActivePrecompileConfig(deployerallowlist.ContractAddress, 11)

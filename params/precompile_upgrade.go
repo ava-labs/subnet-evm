@@ -120,7 +120,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		// Verify specified timestamps are monotonically increasing across all precompile keys.
 		// Note: It is OK for multiple configs of DIFFERENT keys to specify the same timestamp.
 		if previousUpgradeTimestamp != nil && *upgradeTimestamp < *previousUpgradeTimestamp {
-			return fmt.Errorf("PrecompileUpgrade* (%s) at [%d]: config block timestamp (%v) < previous timestamp (%v)", key, i, upgradeTimestamp, previousUpgradeTimestamp)
+			return fmt.Errorf("PrecompileUpgrade* (%s) at [%d]: config block timestamp (%v) < previous timestamp (%v)", key, i, *upgradeTimestamp, *previousUpgradeTimestamp)
 		}
 
 		if disabled == upgrade.IsDisabled() {
@@ -129,7 +129,7 @@ func (c *ChainConfig) verifyPrecompileUpgrades() error {
 		// Verify specified timestamps are monotonically increasing across same precompile keys.
 		// Note: It is NOT OK for multiple configs of the SAME key to specify the same timestamp.
 		if lastTimestamp != nil && *upgradeTimestamp <= *lastTimestamp {
-			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: config block timestamp (%v) <= previous timestamp (%v) of same key", key, i, upgradeTimestamp, lastTimestamp)
+			return fmt.Errorf("PrecompileUpgrade (%s) at [%d]: config block timestamp (%v) <= previous timestamp (%v) of same key", key, i, *upgradeTimestamp, *lastTimestamp)
 		}
 
 		if err := upgrade.Verify(); err != nil {
@@ -158,12 +158,12 @@ func (c *ChainConfig) verifyStateUpgrades() error {
 		}
 		// Verify the upgrade's timestamp is equal 0 (to avoid confusion with genesis).
 		if *upgradeTimestamp == 0 {
-			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) must be greater than 0", i, upgradeTimestamp)
+			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) must be greater than 0", i, *upgradeTimestamp)
 		}
 
 		// Verify specified timestamps are strictly monotonically increasing.
 		if previousUpgradeTimestamp != nil && *upgradeTimestamp <= *previousUpgradeTimestamp {
-			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) <= previous timestamp (%v)", i, upgradeTimestamp, previousUpgradeTimestamp)
+			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) <= previous timestamp (%v)", i, *upgradeTimestamp, *previousUpgradeTimestamp)
 		}
 		previousUpgradeTimestamp = upgradeTimestamp
 	}
