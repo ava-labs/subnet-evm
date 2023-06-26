@@ -45,6 +45,7 @@ import (
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
@@ -718,6 +719,14 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 		if balance.Cmp(sum) < 0 {
 			log.Trace("Replacing transactions would overdraft", "sender", from, "balance", pool.currentState.GetBalance(from), "required", sum)
 			return ErrOverdraft
+		}
+	}
+
+	// If the tx allow list is enabled, return an error if the from address is not allow listed.
+	if pool.chainconfig.IsPrecompileEnabled(txallowlist.ContractAddress, pool.currentHead.Time) {
+		txAllowListRole := txallowlist.GetTxAllowListStatus(pool.currentState, from)
+		if !txAllowListRole.IsEnabled() {
+			return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, from)
 		}
 	}
 
