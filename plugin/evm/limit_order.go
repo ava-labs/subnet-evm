@@ -111,7 +111,7 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 		}
 		lop.memoryDb.Accept(lastAccepted.Uint64()) // will delete stale orders from the memorydb
-		// lop.FixBuggySnapshot() // not required any more
+		// lop.FixBuggySnapshot()                     // not required any more
 	}
 
 	lop.mu.Unlock()
@@ -308,8 +308,6 @@ func (lop *limitOrderProcesser) getLogs(fromBlock, toBlock *big.Int) []*types.Lo
 
 func (lop *limitOrderProcesser) FixBuggySnapshot() {
 	// This is to fix the bug that was causing the LastPremiumFraction to be set to 0 in the snapshot whenever a trader's position was updated
-
-	// updateLastPremiumFraction
 	traderMap := lop.memoryDb.GetOrderBookData().TraderMap
 	count := 0
 	start := time.Now()
