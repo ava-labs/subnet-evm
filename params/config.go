@@ -485,7 +485,6 @@ func checkForks(forks []fork, heightFork bool) error {
 			lastFork = cur
 		}
 	}
-
 	return nil
 }
 
