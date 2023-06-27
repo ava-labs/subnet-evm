@@ -38,12 +38,12 @@ Once you've built AvalancheGo, open the AvalancheGo directory in a separate term
 ./build/avalanchego --staking-enabled=false --network-id=local
 ```
 
-:::warning
+WARNING:
+
 The staking-enabled flag is only for local testing. Disabling staking serves two functions explicitly for testing purposes:
 
 1. Ignore stake weight on the P-Chain and count each connected peer as having a stake weight of 1
 2. Automatically opts in to validate every Subnet
-   :::
 
 Once you have AvalancheGo running locally, it will be running an HTTP Server on the default port `9650`. This means that the RPC Endpoint for the C-Chain will be http://127.0.0.1:9650/ext/bc/C/rpc and ws://127.0.0.1:9650/ext/bc/C/ws for WebSocket connections.
 
