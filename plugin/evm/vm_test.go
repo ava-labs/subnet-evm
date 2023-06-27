@@ -2965,9 +2965,16 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 }
 
 func TestMandatoryUpgrades(t *testing.T) {
+	modifiedSubnetEVMGenesis := &core.Genesis{}
+	err := json.Unmarshal([]byte(genesisJSONSubnetEVM), &modifiedSubnetEVMGenesis)
+	require.NoError(t, err)
+	modifiedSubnetEVMGenesis.Config.SubnetEVMTimestamp = big.NewInt(1)
+	modifiedSubnetEVMGenesisBytes, err := json.Marshal(modifiedSubnetEVMGenesis)
+	modifiedSubnetEVMGenesisString := string(modifiedSubnetEVMGenesisBytes)
+	require.NoError(t, err)
+	require.Contains(t, modifiedSubnetEVMGenesisString, `"subnetEVMTimestamp":1`)
 	// use modified genesis to set SubnetEVM timestamp to 1
-	genesisJsonModifiedSubnetEVM := strings.Replace(genesisJSONSubnetEVM, "\"subnetEVMTimestamp\":0", "\"subnetEVMTimestamp\":1", 1)
-	_, vm, _, _ := GenesisVM(t, true, genesisJsonModifiedSubnetEVM, "", "")
+	_, vm, _, _ := GenesisVM(t, true, modifiedSubnetEVMGenesisString, "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
