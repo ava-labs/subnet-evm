@@ -45,7 +45,7 @@ func (m *MandatoryNetworkUpgrades) CheckMandatoryCompatible(newcfg *MandatoryNet
 	return nil
 }
 
-func (m *MandatoryNetworkUpgrades) MandatoryForkOrder() []fork {
+func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
 	return []fork{
 		{name: "subnetEVMTimestamp", block: m.SubnetEVMTimestamp},
 		{name: "dUpgradeTimestamp", block: m.DUpgradeTimestamp},
@@ -66,13 +66,12 @@ func GetMandatoryNetworkUpgrades(networkID uint32) MandatoryNetworkUpgrades {
 // OptionalNetworkUpgrades includes overridable and optional Subnet-EVM network upgrades.
 // These can be specified in genesis and upgrade configs.
 // Timestamps can be different for each subnet network.
-type OptionalNetworkUpgrades struct {
-}
+type OptionalNetworkUpgrades struct{}
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, headTimestamp *big.Int) *ConfigCompatError {
 	return nil
 }
 
-func (n *OptionalNetworkUpgrades) OptionalForkOrder() []fork {
+func (n *OptionalNetworkUpgrades) optionalForkOrder() []fork {
 	return []fork{}
 }

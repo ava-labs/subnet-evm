@@ -449,12 +449,12 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 	// Note: we do not add the optional stateful precompile configs in here because they are optional
 	// and independent, such that the ordering they are enabled does not impact the correctness of the
 	// chain config.
-	if err := checkForks(c.MandatoryForkOrder(), false); err != nil {
+	if err := checkForks(c.mandatoryForkOrder(), false); err != nil {
 		return err
 	}
 
 	// Check optional forks are enabled in order
-	if err := checkForks(c.OptionalForkOrder(), false); err != nil {
+	if err := checkForks(c.optionalForkOrder(), false); err != nil {
 		return err
 	}
 
