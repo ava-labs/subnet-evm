@@ -313,10 +313,11 @@ func (vm *VM) Initialize(
 
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
-	// NetworkID of EVM is equal to the ChainID
-	// But this is different than Avalanche's NetworkID
-	// which represents the Avalanche network the EVM is running on
+	// NetworkID here is different than Avalanche's NetworkID.
+	// Avalanche's NetworkID represents the Avalanche network is running on
 	// like Fuji, Mainnet, Local, etc.
+	// The NetworkId here is kept same as ChainID to be compatible with
+	// Ethereum tooling.
 	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
 
 	// Set minimum price for mining and default gas price oracle value to the min
