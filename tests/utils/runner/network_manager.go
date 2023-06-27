@@ -53,6 +53,12 @@ type NetworkManager struct {
 	serverCtxCancel context.CancelFunc
 }
 
+// NewDefaultANRConfig returns a default config for launching the avalanche-network-runner manager
+// with both a server and client.
+// By default, it expands $GOPATH/src/github.com/ava-labs/avalanchego/build/ directory to extract
+// the AvalancheGoExecPath and PluginDir arguments.
+// If the AVALANCHEGO_BUILD_PATH environment variable is set, it overrides the default location for
+// the AvalancheGoExecPath and PluginDir arguments.
 func NewDefaultANRConfig() ANRConfig {
 	defaultConfig := ANRConfig{
 		LogLevel:            "info",
@@ -60,14 +66,7 @@ func NewDefaultANRConfig() ANRConfig {
 		PluginDir:           os.ExpandEnv("$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins"),
 		GlobalNodeConfig: `{
 			"log-display-level":"info",
-			"proposervm-use-current-height":true,
-			"throttler-inbound-validator-alloc-size":"107374182",
-			"throttler-inbound-node-max-processing-msgs":"100000",
-			"throttler-inbound-bandwidth-refill-rate":"1073741824",
-			"throttler-inbound-bandwidth-max-burst-size":"1073741824",
-			"throttler-inbound-cpu-validator-alloc":"100000",
-			"throttler-inbound-disk-validator-alloc":"10737418240000",
-			"throttler-outbound-validator-alloc-size":"107374182"
+			"proposervm-use-current-height":true
 		}`,
 	}
 	// If AVALANCHEGO_BUILD_PATH is populated, override location set by GOPATH
@@ -236,10 +235,6 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue
-		}
-		// TODO: clean this up
-		if err != nil {
-			return fmt.Errorf("failed to ping ANR health: %w", err)
 		}
 		break
 	}
