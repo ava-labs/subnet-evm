@@ -37,6 +37,7 @@ type issueNAgent[T any] struct {
 	n        uint64
 }
 
+// NewIssueNAgent creates a new issueNAgent
 func NewIssueNAgent[T any](sequence TxSequence[T], worker Worker[T], n uint64) Agent[T] {
 	return &issueNAgent[T]{
 		sequence: sequence,
@@ -45,6 +46,7 @@ func NewIssueNAgent[T any](sequence TxSequence[T], worker Worker[T], n uint64) A
 	}
 }
 
+// Execute issues txs in batches of N and waits for them to confirm
 func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	if a.n == 0 {
 		return errors.New("batch size n cannot be equal to 0")
