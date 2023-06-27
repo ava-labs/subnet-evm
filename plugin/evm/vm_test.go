@@ -26,7 +26,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/api/keystore"
 	"github.com/ava-labs/avalanchego/chains/atomic"
-	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/ids"
@@ -38,7 +37,6 @@ import (
 	avalancheConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/formatting"
-	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
@@ -3205,84 +3203,4 @@ func TestSignatureRequestsToVM(t *testing.T) {
 	// TODO: We will need to update the test when warp is initialized to check for expected response.
 	err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, time.Now().Add(60*time.Second), requestBytes)
 	require.NoError(t, err)
-}
-
-// Test that the PruneWarpDB config flag applies as expected
-func TestPruneWarpDB(t *testing.T) {
-	// Because the chain is being reinitialized, metrics need to be disabled and upgrades skipped to allow initialization
-	t.Skip("no skipable upgrades")
-	metrics.Enabled = false
-	defer func() { metrics.Enabled = true }()
-
-	var (
-		destinationChainID = ids.GenerateTestID()
-		messageIDs         = []ids.ID{}
-	)
-
-	// Multiple payloads to test that all values are deleted successfully
-	payloads := [][]byte{[]byte("test1"), []byte("test2"), []byte("test3"), []byte("test4"), []byte("test5")}
-
-	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, "", "")
-	isShutDown := false // in the event that the vm does not initialize or shut down properly, keep track for ease of use
-	defer func() {
-		if !isShutDown {
-			if err := vm.Shutdown(context.Background()); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}()
-
-	// Add payloads to warpdb
-	for _, payload := range payloads {
-		unsignedMsg, err := avalancheWarp.NewUnsignedMessage(vm.ctx.ChainID, destinationChainID, payload)
-		require.NoError(t, err)
-		messageID := hashing.ComputeHash256Array(unsignedMsg.Bytes())
-		messageIDs = append(messageIDs, messageID)
-
-		err = vm.warpBackend.AddMessage(unsignedMsg)
-		require.NoError(t, err)
-	}
-
-	err := vm.Shutdown(context.Background())
-	require.NoError(t, err)
-	isShutDown = true
-
-	// reinitialize, and check that they have stayed (PruneWarpDB should be false by default)
-	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), []byte{}, []byte{},
-		issuer,
-		[]*commonEng.Fx{},
-		appSender,
-	)
-	require.NoError(t, err)
-	isShutDown = false
-
-	for _, messageID := range messageIDs {
-		_, err := vm.warpBackend.GetSignature(messageID)
-		require.NoError(t, err)
-	}
-
-	err = vm.Shutdown(context.Background())
-	require.NoError(t, err)
-	isShutDown = true
-
-	// reinitialize, this time with PruneWarpDB set to true
-	c := Config{}
-	c.SetDefaults()
-	c.PruneWarpDB = true
-	configJSON, err := json.Marshal(c)
-	require.NoError(t, err)
-
-	err = vm.Initialize(context.Background(), vm.ctx, dbManager, []byte(genesisJSONPreSubnetEVM), []byte{}, configJSON,
-		issuer,
-		[]*commonEng.Fx{},
-		appSender,
-	)
-	require.NoError(t, err)
-	isShutDown = false
-
-	// check that these messages do not exist
-	for _, messageID := range messageIDs {
-		_, err := vm.warpBackend.GetSignature(messageID)
-		require.ErrorIs(t, err, database.ErrNotFound)
-	}
 }

@@ -420,7 +420,7 @@ func (vm *VM) Initialize(
 	if vm.config.PruneWarpDB {
 		err := vm.warpBackend.Clear()
 		if err != nil {
-			return fmt.Errorf("failed to prune warpDb: %w", err)
+			return fmt.Errorf("failed to prune warpDB: %w", err)
 		}
 	}
 

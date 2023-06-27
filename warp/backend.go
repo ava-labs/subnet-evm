@@ -47,10 +47,7 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, signatureCacheS
 }
 
 func (w *warpBackend) Clear() error {
-	if err := database.Clear(w.db, w.db); err != nil {
-		return err
-	}
-	return nil
+	return database.Clear(w.db, w.db)
 }
 
 func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
