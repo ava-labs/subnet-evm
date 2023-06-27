@@ -21,7 +21,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// CreateLoader creates a WorkerGroup from [config] to perform the specified simulation.
+// ExecuteLoader creates txSequences from [config] and has txAgents execute the specified simulation.
 func ExecuteLoader(ctx context.Context, config config.Config) error {
 	if config.Timeout > 0 {
 		var cancel context.CancelFunc
@@ -112,7 +112,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	log.Info("Constructing tx agents...", "numAgents", config.Workers)
 	agents := make([]txs.Agent[*types.Transaction], 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		agents = append(agents, txs.NewIssueAllAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i])))
+		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize))
 	}
 
 	log.Info("Starting tx agents...")
