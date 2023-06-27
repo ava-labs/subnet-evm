@@ -272,13 +272,6 @@ func (vm *VM) Initialize(
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	vm.warpDB = prefixdb.New(warpPrefix, vm.db)
 
-	if vm.config.PruneWarpDB {
-		err := database.ClearPrefix(vm.db, vm.db, warpPrefix)
-		if err != nil {
-			return fmt.Errorf("failed to prune warpDb")
-		}
-	}
-
 	if vm.config.InspectDatabase {
 		start := time.Now()
 		log.Info("Starting database inspection")
@@ -422,6 +415,14 @@ func (vm *VM) Initialize(
 
 	// initialize warp backend
 	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
+
+	// clear warpdb on initialization if config enabled
+	if vm.config.PruneWarpDB {
+		err := vm.warpBackend.Clear()
+		if err != nil {
+			return fmt.Errorf("failed to prune warpDb: %w", err)
+		}
+	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
