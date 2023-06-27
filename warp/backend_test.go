@@ -21,7 +21,7 @@ var (
 	payload            = []byte("test")
 )
 
-func TestClearDb(t *testing.T) {
+func TestClearDB(t *testing.T) {
 	db := memdb.New()
 
 	snowCtx := snow.DefaultContextTest()
@@ -42,17 +42,15 @@ func TestClearDb(t *testing.T) {
 		messageIDs = append(messageIDs, messageID)
 		err = backend.AddMessage(unsignedMsg)
 		require.NoError(t, err)
-		//ensure that the message was added
+		// ensure that the message was added
 		_, err = backend.GetSignature(messageID)
 		require.NoError(t, err)
 	}
 
-	//flush the cache, as it may store messages that can be retrieved by GetSignature
-	backend.(*warpBackend).signatureCache.Flush()
 	err = backend.Clear()
 	require.NoError(t, err)
 
-	//ensure all messages have been deleted
+	// ensure all messages have been deleted
 	for _, messageID := range messageIDs {
 		_, err := backend.GetSignature(messageID)
 		require.ErrorContains(t, err, "failed to get warp message")

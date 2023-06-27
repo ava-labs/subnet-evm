@@ -47,6 +47,7 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, signatureCacheS
 }
 
 func (w *warpBackend) Clear() error {
+	w.signatureCache.Flush()
 	return database.Clear(w.db, w.db)
 }
 
