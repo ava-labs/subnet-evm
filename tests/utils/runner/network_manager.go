@@ -214,6 +214,8 @@ func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct
 // Uses [execPath] as the AvalancheGo binary execution path for any started nodes.
 // Note: this assumes that the default network has already been constructed.
 func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, blockchainSpecs []*rpcpb.BlockchainSpec) error {
+	cctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
 	if err := n.init(); err != nil {
 		return err
 	}
@@ -235,13 +237,13 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue
+		} else if ctx.Err() != nil {
+			return fmt.Errorf("failed to await healthy network: %w", ctx.Err())
 		}
 		break
 	}
 
-	cctx, ccancel := context.WithTimeout(ctx, 2*time.Minute)
 	status, err := n.anrClient.Status(cctx)
-	ccancel()
 	if err != nil {
 		return fmt.Errorf("failed to get ANR status: %w", err)
 	}
