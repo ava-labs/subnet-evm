@@ -272,6 +272,13 @@ func (vm *VM) Initialize(
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	vm.warpDB = prefixdb.New(warpPrefix, vm.db)
 
+	if vm.config.PruneWarpDB {
+		err := database.ClearPrefix(vm.db, vm.db, warpPrefix)
+		if err != nil {
+			return fmt.Errorf("failed to prune warpDb")
+		}
+	}
+
 	if vm.config.InspectDatabase {
 		start := time.Now()
 		log.Info("Starting database inspection")
