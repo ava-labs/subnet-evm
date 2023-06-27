@@ -25,7 +25,7 @@ type WarpBackend interface {
 
 	// GetSignature returns the signature of the requested message hash.
 	GetSignature(messageHash ids.ID) ([bls.SignatureLen]byte, error)
-	
+
 	// Clear clears the entire db
 	Clear() error
 }
