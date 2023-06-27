@@ -38,7 +38,7 @@ require (
 	github.com/stretchr/testify v1.8.3
 	github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a
 	github.com/tyler-smith/go-bip39 v1.1.0
-	github.com/urfave/cli/v2 v2.17.2-0.20221006022127-8f469abc00aa
+	github.com/urfave/cli/v2 v2.25.7
 	golang.org/x/crypto v0.1.0
 	golang.org/x/sync v0.2.0
 	golang.org/x/sys v0.8.0
@@ -48,7 +48,6 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.0 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
