@@ -66,6 +66,7 @@ func GetMandatoryNetworkUpgrades(networkID uint32) MandatoryNetworkUpgrades {
 // OptionalNetworkUpgrades includes overridable and optional Subnet-EVM network upgrades.
 // These can be specified in genesis and upgrade configs.
 // Timestamps can be different for each subnet network.
+// TODO: once we add the first optional upgrade here, we should uncomment TestVMUpgradeBytesOptionalNetworkUpgrades
 type OptionalNetworkUpgrades struct{}
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, headTimestamp *big.Int) *ConfigCompatError {
