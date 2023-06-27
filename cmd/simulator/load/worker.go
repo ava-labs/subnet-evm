@@ -25,8 +25,7 @@ type singleAddressTxWorker struct {
 	newHeads chan *types.Header
 }
 
-// what do we want
-// ongoing goroutine that updates the nonce and sends/drops an event if there is any listener
+// NewSingleAddressTxWorker creates and returns a singleAddressTxWorker
 func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, address common.Address) *singleAddressTxWorker {
 	newHeads := make(chan *types.Header)
 	tw := &singleAddressTxWorker{

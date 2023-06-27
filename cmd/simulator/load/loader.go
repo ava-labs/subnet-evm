@@ -104,7 +104,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		}
 		return tx, nil
 	}
-	txSequences, err := GenerateTxSequences(ctx, txGenerator, clients[0], pks, config.TxsPerWorker)
+	txSequences, err := txs.GenerateTxSequences(ctx, txGenerator, clients[0], pks, config.TxsPerWorker)
 	if err != nil {
 		return err
 	}
