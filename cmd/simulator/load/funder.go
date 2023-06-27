@@ -100,12 +100,14 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 		i++
 		return tx, nil
 	}
-	txSequence, err := GenerateTxSequence(ctx, txGenerator, client, maxFundsKey.PrivKey, uint64(len(needFundsAddrs)))
+
+	numTxs := uint64(len(needFundsAddrs))
+	txSequence, err := txs.GenerateTxSequence(ctx, txGenerator, client, maxFundsKey.PrivKey, numTxs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate fund distribution sequence from %s of length %d", maxFundsKey.Address, len(needFundsAddrs))
 	}
 	worker := NewSingleAddressTxWorker(ctx, client, maxFundsKey.Address)
-	txFunderAgent := txs.NewIssueAllAgent[*types.Transaction](txSequence, worker)
+	txFunderAgent := txs.NewIssueNAgent[*types.Transaction](txSequence, worker, numTxs)
 
 	if err := txFunderAgent.Execute(ctx); err != nil {
 		return nil, err
