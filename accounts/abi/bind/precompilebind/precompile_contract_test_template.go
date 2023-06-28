@@ -128,7 +128,7 @@ import (
 func Test{{.Contract.Type}}Run(t *testing.T) {
 	{{- if .Contract.AllowList}}
 	// Run tests with allowlist tests.
-	// This adds allowlist run tests to your custom tests
+	// This adds allowlist tests to your custom tests
 	// and runs them all together.
 	// Even if you don't add any custom tests, keep this. This will still
 	// run the default allowlist tests.
@@ -146,7 +146,7 @@ func Test{{.Contract.Type}}Run(t *testing.T) {
 func Benchmark{{.Contract.Type}}(b *testing.B) {
 	{{- if .Contract.AllowList}}
 	// Benchmark tests with allowlist tests.
-	// This adds allowlist run tests to your custom tests
+	// This adds allowlist tests to your custom tests
 	// and benchmarks them all together.
 	// Even if you don't add any custom tests, keep this. This will still
 	// run the default allowlist tests.
