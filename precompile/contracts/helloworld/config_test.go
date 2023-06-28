@@ -1,4 +1,4 @@
-// (c) 2022 Ava Labs, Inc. All rights reserved.
+// (c) 2019-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 // Code generated
@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -45,6 +46,7 @@ func TestVerify(t *testing.T) {
 	allowlist.VerifyPrecompileWithAllowListTests(t, Module, tests)
 }
 
+// TestEqual tests the equality of Config with other precompile configs.
 func TestEqual(t *testing.T) {
 	admins := []common.Address{allowlist.TestAdminAddr}
 	enableds := []common.Address{allowlist.TestEnabledAddr}
