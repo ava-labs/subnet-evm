@@ -19,15 +19,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestRun tests the Run function of the precompile contract.
 // These tests are run against the precompile contract directly with
 // the given input and expected output. They're just a guide to
 // help you write your own tests. These tests are for general cases like
 // allowlist, readOnly behaviour, and gas cost. You should write your own
 // tests for specific cases.
-func TestRun(t *testing.T) {
-	testGreeting := "test"
-	tests := map[string]testutils.PrecompileTest{
+const testGreeting = "test"
+
+var (
+	tests = map[string]testutils.PrecompileTest{
 		"calling sayHello from NoRole should succeed": {
 			Caller:     allowlist.TestNoRoleAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -43,7 +43,9 @@ func TestRun(t *testing.T) {
 				// the module since Config is empty.
 				// This means we don't apply default greeting to the state.
 				res, err := PackSayHelloOutput("")
-				require.NoError(t, err)
+				if err != nil {
+					panic(err)
+				}
 				return res
 			}(),
 			SuppliedGas: SayHelloGasCost,
@@ -65,7 +67,9 @@ func TestRun(t *testing.T) {
 				// the module since Config is empty.
 				// This means we don't apply default greeting to the state.
 				res, err := PackSayHelloOutput("")
-				require.NoError(t, err)
+				if err != nil {
+					panic(err)
+				}
 				return res
 			}(),
 			SuppliedGas: SayHelloGasCost,
@@ -87,7 +91,9 @@ func TestRun(t *testing.T) {
 				// the module since Config is empty.
 				// This means we don't apply default greeting to the state.
 				res, err := PackSayHelloOutput("")
-				require.NoError(t, err)
+				if err != nil {
+					panic(err)
+				}
 				return res
 			}(),
 			SuppliedGas: SayHelloGasCost,
@@ -107,7 +113,9 @@ func TestRun(t *testing.T) {
 			// CUSTOM CODE STARTS HERE
 			ExpectedRes: func() []byte {
 				res, err := PackSayHelloOutput(defaultGreeting)
-				require.NoError(t, err)
+				if err != nil {
+					panic(err)
+				}
 				return res
 			}(),
 			SuppliedGas: SayHelloGasCost,
@@ -219,14 +227,15 @@ func TestRun(t *testing.T) {
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSayHello()
 				require.NoError(t, err)
-
 				return input
 			},
 			SuppliedGas: SayHelloGasCost,
 			ReadOnly:    true,
 			ExpectedRes: func() []byte {
 				res, err := PackSayHelloOutput(testGreeting)
-				require.NoError(t, err)
+				if err != nil {
+					panic(err)
+				}
 				return res
 			}(),
 		},
@@ -245,10 +254,23 @@ func TestRun(t *testing.T) {
 			ExpectedErr: ErrInputExceedsLimit.Error(),
 		},
 	}
+)
+
+// TestHelloWorldRun tests the Run function of the precompile contract.
+func TestHelloWorldRun(t *testing.T) {
 	// Run tests with allowlist tests.
 	// This adds allowlist run tests to your custom tests
 	// and runs them all together.
 	// Even if you don't add any custom tests, keep this. This will still
 	// run the default allowlist tests.
 	allowlist.RunPrecompileWithAllowListTests(t, Module, state.NewTestStateDB, tests)
+}
+
+func BenchmarkHelloWorld(b *testing.B) {
+	// Benchmark tests with allowlist tests.
+	// This adds allowlist run tests to your custom tests
+	// and benchmarks them all together.
+	// Even if you don't add any custom tests, keep this. This will still
+	// run the default allowlist tests.
+	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
 }
