@@ -7,6 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -90,7 +93,27 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			if confirmedCount == totalTxs {
 				totalTime := time.Since(start).Seconds()
 				log.Info("Execution complete", "totalTxs", totalTxs, "totalTime", totalTime, "TPS", float64(totalTxs)/totalTime)
+				logOtherMetrics()
 			}
 		}
 	}
+}
+
+func logOtherMetrics() error {
+	resp, err := http.Get("http://127.0.0.1:9650/ext/metrics")
+	if err != nil {
+		return fmt.Errorf("failed getting metrics: %w", err)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed reading response body of metrics: %w", err)
+	}
+
+	bodyString := string(body)
+	re := regexp.MustCompile(".*avalanche_C_vm_metervm_build_block_sum.*")
+	matches := re.FindAllStringSubmatch(bodyString, -1)
+
+	log.Info("Metrics", "results", matches[len(matches)-1])
+	return nil
 }
