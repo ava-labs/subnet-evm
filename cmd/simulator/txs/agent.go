@@ -61,6 +61,11 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	txChan := a.sequence.Chan()
 	totalTxs := len(txChan)
 	confirmedCount := 0
+
+	// Start the issuedTime and cofirmedTime at the zero time
+	issuedTime := time.Time{}
+	confirmedTime := time.Time{}
+
 	start := time.Now()
 
 	for {
@@ -69,6 +74,8 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			tx  T
 			ok  bool
 		)
+		// Start issuance batch
+		issuedStart := time.Now()
 		for i := uint64(0); i < a.n; i++ {
 			select {
 			case tx, ok = <-txChan:
@@ -84,18 +91,40 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			}
 			txs = append(txs, tx)
 		}
+		issuedEnd := time.Now()
+		// Add the issuance batch time to the total issuedTime
+		issuedDuration := issuedEnd.Sub(issuedStart)
+		issuedTime = issuedTime.Add(issuedDuration)
 
+		// Start confirmation batch
+		confirmedStart := time.Now()
 		for i, tx := range txs {
 			if err := a.worker.ConfirmTx(ctx, tx); err != nil {
 				return fmt.Errorf("failed to await transaction %d: %w", i, err)
 			}
 			confirmedCount++
 			if confirmedCount == totalTxs {
+				// Mark the final ending time
+				confirmedEnd := time.Now()
 				totalTime := time.Since(start).Seconds()
-				log.Info("Execution complete", "totalTxs", totalTxs, "totalTime", totalTime, "TPS", float64(totalTxs)/totalTime)
+				// Get the last confirmed batch time and add it to the total confirmedTime
+				confirmedDuration := confirmedEnd.Sub(confirmedStart)
+				confirmedTime = confirmedTime.Add(confirmedDuration)
+				// Get the final duration by comparing it to the zero time
+				issuedFinalDuration := issuedTime.Sub(time.Time{})
+				confirmedFinalDuration := confirmedTime.Sub(time.Time{})
+
+				log.Info("Execution complete", "totalTxs", totalTxs, "totalTime", totalTime, "TPS", float64(totalTxs)/totalTime,
+					"issuanceTime", issuedFinalDuration.Seconds(), "confirmedTime", confirmedFinalDuration.Seconds())
 				logOtherMetrics()
 			}
 		}
+
+		confirmedEnd := time.Now()
+		// Add the confirmed batch time to the total confirmedTime
+		confirmedDuration := confirmedEnd.Sub(confirmedStart)
+		confirmedTime = confirmedTime.Add(confirmedDuration)
+
 	}
 }
 
@@ -113,7 +142,15 @@ func logOtherMetrics() error {
 	bodyString := string(body)
 	re := regexp.MustCompile(".*avalanche_C_vm_metervm_build_block_sum.*")
 	matches := re.FindAllStringSubmatch(bodyString, -1)
+	log.Info("Sum of time (in ns) of a build_block", "time", matches[len(matches)-1])
 
-	log.Info("Metrics", "results", matches[len(matches)-1])
+	re = regexp.MustCompile(".*avalanche_C_blks_accepted_sum.*")
+	matches = re.FindAllStringSubmatch(bodyString, -1)
+	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", matches[len(matches)-1])
+
+	re = regexp.MustCompile(".*avalanche_C_vm_metervm_verify_sum.*")
+	matches = re.FindAllStringSubmatch(bodyString, -1)
+	log.Info("Sum of time (in ns) of a verify", "time", matches[len(matches)-1])
+
 	return nil
 }
