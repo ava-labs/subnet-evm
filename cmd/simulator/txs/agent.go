@@ -97,13 +97,12 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				txs = append(txs, tx)
 			}
 		}
-		issuedEnd := time.Now()
-		issuedDuration := issuedEnd.Sub(issuedStart)
+		// Get the batch's issuance time and add it to totalIssuedTime
+		issuedDuration := time.Since(issuedStart)
 		log.Info("Issuance Batch Done", "batch", batchI, "time", issuedDuration.Seconds())
-		// Add the issuance batch time to the total issuedTime
 		totalIssuedTime += issuedDuration
 
-		// Start confirmation batch
+		// Wait for txs in this batch to confirm
 		confirmedStart := time.Now()
 		for i, tx := range txs {
 			if err := a.worker.ConfirmTx(ctx, tx); err != nil {
@@ -111,10 +110,8 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			}
 			confirmedCount++
 		}
-		// Mark the final ending time
-		confirmedEnd := time.Now()
-		// Get the last confirmed batch time and add it to the total confirmedTime
-		confirmedDuration := confirmedEnd.Sub(confirmedStart)
+		// Get the batch's confirmation time and add it to totalConfirmedTime
+		confirmedDuration := time.Since(confirmedStart)
 		log.Info("Confirmed Batch Done", "batch", batchI, "time", confirmedDuration.Seconds())
 		totalConfirmedTime += confirmedDuration
 
