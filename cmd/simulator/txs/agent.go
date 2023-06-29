@@ -111,7 +111,9 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				totalTime := time.Since(start).Seconds()
 				// Get the last confirmed batch time and add it to the total confirmedTime
 				confirmedDuration := confirmedEnd.Sub(confirmedStart)
+				log.Info("Confirmed Batch Done", "batch", batchI, "time", confirmedDuration.Seconds())
 				confirmedTime = confirmedTime.Add(confirmedDuration)
+
 				// Get the final duration by comparing it to the zero time
 				issuedFinalDuration := issuedTime.Sub(time.Time{})
 				confirmedFinalDuration := confirmedTime.Sub(time.Time{})
@@ -119,14 +121,15 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				log.Info("Execution complete", "totalTxs", totalTxs, "totalTime", totalTime, "TPS", float64(totalTxs)/totalTime,
 					"issuanceTime", issuedFinalDuration.Seconds(), "confirmedTime", confirmedFinalDuration.Seconds())
 				logOtherMetrics()
+				return nil
 			}
 		}
 
 		confirmedEnd := time.Now()
 		confirmedDuration := confirmedEnd.Sub(confirmedStart)
+		log.Info("Confirmed Batch Done", "batch", batchI, "time", confirmedDuration.Seconds())
 		// Add the confirmed batch time to the total confirmedTime
 		confirmedTime = confirmedTime.Add(confirmedDuration)
-		log.Info("Confirmed Batch Done", "batch", batchI, "time", confirmedDuration.Seconds())
 		batchI++
 	}
 }
