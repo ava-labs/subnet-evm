@@ -35,10 +35,9 @@ type Agent[T any] interface {
 
 // issueNAgent issues and confirms a batch of N transactions at a time.
 type issueNAgent[T any] struct {
-	sequence        TxSequence[T]
-	worker          Worker[T]
-	n               uint64
-	blockchainIDStr string
+	sequence TxSequence[T]
+	worker   Worker[T]
+	n        uint64
 }
 
 // NewIssueNAgent creates a new issueNAgent
