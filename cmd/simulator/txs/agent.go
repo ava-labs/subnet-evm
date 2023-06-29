@@ -135,7 +135,12 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 }
 
 func logOtherMetrics() error {
+	getCallStart := time.Now()
 	resp, err := http.Get("http://127.0.0.1:9650/ext/metrics")
+	getCallEnd := time.Now()
+	getCallDuration := getCallEnd.Sub(getCallStart)
+
+	log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
 	if err != nil {
 		return fmt.Errorf("failed getting metrics: %w", err)
 	}
