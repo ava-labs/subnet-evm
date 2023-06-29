@@ -7,8 +7,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"net/http"
 	"regexp"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
@@ -121,7 +124,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	log.Info("Constructing tx agents...", "numAgents", config.Workers)
 	agents := make([]txs.Agent[*types.Transaction], 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize, blockchainIDStr))
+		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize))
 	}
 
 	log.Info("Starting tx agents...")
@@ -138,5 +141,39 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		return err
 	}
 	log.Info("Tx agents completed successfully.")
+
+	logOtherMetrics(blockchainIDStr)
+	return nil
+}
+
+func logOtherMetrics(blockchainIDStr string) error {
+	getCallStart := time.Now()
+	resp, err := http.Get("http://127.0.0.1:9650/ext/metrics")
+	getCallEnd := time.Now()
+	getCallDuration := getCallEnd.Sub(getCallStart)
+
+	log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
+	if err != nil {
+		return fmt.Errorf("failed getting metrics: %w", err)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed reading response body of metrics: %w", err)
+	}
+
+	bodyString := string(body)
+	re := regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
+	matches := re.FindAllStringSubmatch(bodyString, -1)
+	log.Info("Sum of time (in ns) of a build_block", "time", matches[len(matches)-1])
+
+	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
+	matches = re.FindAllStringSubmatch(bodyString, -1)
+	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", matches[len(matches)-1])
+
+	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
+	matches = re.FindAllStringSubmatch(bodyString, -1)
+	log.Info("Sum of time (in ns) of a verify", "time", matches[len(matches)-1])
+
 	return nil
 }

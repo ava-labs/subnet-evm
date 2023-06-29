@@ -7,9 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"regexp"
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -45,12 +42,11 @@ type issueNAgent[T any] struct {
 }
 
 // NewIssueNAgent creates a new issueNAgent
-func NewIssueNAgent[T any](sequence TxSequence[T], worker Worker[T], n uint64, blockchainIDStr string) Agent[T] {
+func NewIssueNAgent[T any](sequence TxSequence[T], worker Worker[T], n uint64) Agent[T] {
 	return &issueNAgent[T]{
-		sequence:        sequence,
-		worker:          worker,
-		n:               n,
-		blockchainIDStr: blockchainIDStr,
+		sequence: sequence,
+		worker:   worker,
+		n:        n,
 	}
 }
 
@@ -122,42 +118,9 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			totalTime := time.Since(start).Seconds()
 			log.Info("Execution complete", "totalTxs", confirmedCount, "totalTime", totalTime, "TPS", float64(confirmedCount)/totalTime,
 				"issuanceTime", totalIssuedTime.Seconds(), "confirmedTime", totalConfirmedTime.Seconds())
-			logOtherMetrics(a.blockchainIDStr)
 			return nil
 		}
 
 		batchI++
 	}
-}
-
-func logOtherMetrics(blockchainIDStr string) error {
-	getCallStart := time.Now()
-	resp, err := http.Get("http://127.0.0.1:9650/ext/metrics")
-	getCallEnd := time.Now()
-	getCallDuration := getCallEnd.Sub(getCallStart)
-
-	log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
-	if err != nil {
-		return fmt.Errorf("failed getting metrics: %w", err)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed reading response body of metrics: %w", err)
-	}
-
-	bodyString := string(body)
-	re := regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
-	matches := re.FindAllStringSubmatch(bodyString, -1)
-	log.Info("Sum of time (in ns) of a build_block", "time", matches[len(matches)-1])
-
-	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
-	matches = re.FindAllStringSubmatch(bodyString, -1)
-	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", matches[len(matches)-1])
-
-	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
-	matches = re.FindAllStringSubmatch(bodyString, -1)
-	log.Info("Sum of time (in ns) of a verify", "time", matches[len(matches)-1])
-
-	return nil
 }

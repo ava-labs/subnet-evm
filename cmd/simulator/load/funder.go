@@ -108,7 +108,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 	}
 	worker := NewSingleAddressTxWorker(ctx, client, maxFundsKey.Address)
 
-	txFunderAgent := txs.NewIssueNAgent[*types.Transaction](txSequence, worker, numTxs, blockchainID)
+	txFunderAgent := txs.NewIssueNAgent[*types.Transaction](txSequence, worker, numTxs)
 
 	if err := txFunderAgent.Execute(ctx); err != nil {
 		return nil, err
