@@ -61,6 +61,7 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	txChan := a.sequence.Chan()
 	totalTxs := len(txChan)
 	confirmedCount := 0
+	batchI := 1
 
 	// Start the issuedTime and cofirmedTime at the zero time
 	issuedTime := time.Time{}
@@ -92,8 +93,9 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			txs = append(txs, tx)
 		}
 		issuedEnd := time.Now()
-		// Add the issuance batch time to the total issuedTime
 		issuedDuration := issuedEnd.Sub(issuedStart)
+		log.Info("Issuance Batch Done", "batch", batchI, "time", issuedDuration.Seconds())
+		// Add the issuance batch time to the total issuedTime
 		issuedTime = issuedTime.Add(issuedDuration)
 
 		// Start confirmation batch
@@ -121,10 +123,11 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 		}
 
 		confirmedEnd := time.Now()
-		// Add the confirmed batch time to the total confirmedTime
 		confirmedDuration := confirmedEnd.Sub(confirmedStart)
+		// Add the confirmed batch time to the total confirmedTime
 		confirmedTime = confirmedTime.Add(confirmedDuration)
-
+		log.Info("Confirmed Batch Done", "batch", batchI, "time", confirmedDuration.Seconds())
+		batchI++
 	}
 }
 
