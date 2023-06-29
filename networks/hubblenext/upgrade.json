@@ -4,6 +4,12 @@
       "bibliophileConfig": {
         "blockTimestamp": 1686936600
       }
+    },
+    {
+      "hubbleBibliophileConfig": {
+        "blockTimestamp": 1688029200,
+        "disable": true
+      }
     }
   ]
 }

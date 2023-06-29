@@ -26,6 +26,7 @@ const (
 	GetPositionSizesGasCost                              uint64 = 1000 /* SET A GAS COST HERE */
 	ValidateLiquidationOrderAndDetermineFillPriceGasCost uint64 = 1000 /* SET A GAS COST HERE */
 	ValidateOrdersAndDetermineFillPriceGasCost           uint64 = 1000 /* SET A GAS COST HERE */
+	GetPositionSizesAndUpperBoundsForMarketsGasCost      uint64 = 1000 /* SET A GAS COST HERE */
 )
 
 // CUSTOM CODE STARTS HERE
@@ -296,6 +297,7 @@ func createHubbleBibliophilePrecompile() contract.StatefulPrecompiledContract {
 		"getPositionSizes":                              getPositionSizes,
 		"validateLiquidationOrderAndDetermineFillPrice": validateLiquidationOrderAndDetermineFillPrice,
 		"validateOrdersAndDetermineFillPrice":           validateOrdersAndDetermineFillPrice,
+		"getPositionSizesAndUpperBoundsForMarkets":      getPositionSizesAndUpperBoundsForMarkets,
 	}
 
 	for name, function := range abiFunctionMap {
@@ -311,4 +313,59 @@ func createHubbleBibliophilePrecompile() contract.StatefulPrecompiledContract {
 		panic(err)
 	}
 	return statefulContract
+}
+
+type GetPositionSizesAndUpperBoundsForMarketsOutput struct {
+	PosSizes    []*big.Int
+	UpperBounds []*big.Int
+}
+
+// UnpackGetPositionSizesAndUpperBoundsForMarketsInput attempts to unpack [input] into the common.Address type argument
+// assumes that [input] does not include selector (omits first 4 func signature bytes)
+func UnpackGetPositionSizesAndUpperBoundsForMarketsInput(input []byte) (common.Address, error) {
+	res, err := HubbleBibliophileABI.UnpackInput("getPositionSizesAndUpperBoundsForMarkets", input)
+	if err != nil {
+		return common.Address{}, err
+	}
+	unpacked := *abi.ConvertType(res[0], new(common.Address)).(*common.Address)
+	return unpacked, nil
+}
+
+// PackGetPositionSizesAndUpperBoundsForMarkets packs [trader] of type common.Address into the appropriate arguments for getPositionSizesAndUpperBoundsForMarkets.
+// the packed bytes include selector (first 4 func signature bytes).
+// This function is mostly used for tests.
+func PackGetPositionSizesAndUpperBoundsForMarkets(trader common.Address) ([]byte, error) {
+	return HubbleBibliophileABI.Pack("getPositionSizesAndUpperBoundsForMarkets", trader)
+}
+
+// PackGetPositionSizesAndUpperBoundsForMarketsOutput attempts to pack given [outputStruct] of type GetPositionSizesAndUpperBoundsForMarketsOutput
+// to conform the ABI outputs.
+func PackGetPositionSizesAndUpperBoundsForMarketsOutput(outputStruct GetPositionSizesAndUpperBoundsForMarketsOutput) ([]byte, error) {
+	return HubbleBibliophileABI.PackOutput("getPositionSizesAndUpperBoundsForMarkets",
+		outputStruct.PosSizes,
+		outputStruct.UpperBounds,
+	)
+}
+
+func getPositionSizesAndUpperBoundsForMarkets(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	if remainingGas, err = contract.DeductGas(suppliedGas, GetPositionSizesAndUpperBoundsForMarketsGasCost); err != nil {
+		return nil, 0, err
+	}
+	// attempts to unpack [input] into the arguments to the GetPositionSizesAndUpperBoundsForMarketsInput.
+	// Assumes that [input] does not include selector
+	// You can use unpacked [inputStruct] variable in your code
+	inputStruct, err := UnpackGetPositionSizesAndUpperBoundsForMarketsInput(input)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// CUSTOM CODE STARTS HERE
+	output := _getPositionSizesAndUpperBoundsForMarkets(accessibleState.GetStateDB(), &inputStruct) // CUSTOM CODE FOR AN OUTPUT
+	packedOutput, err := PackGetPositionSizesAndUpperBoundsForMarketsOutput(output)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// Return the packed output and the remaining gas
+	return packedOutput, remainingGas, nil
 }
