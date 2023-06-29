@@ -59,13 +59,14 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	}
 
 	txChan := a.sequence.Chan()
-	totalTxs := len(txChan)
 	confirmedCount := 0
 	batchI := 1
 
-	// Start the issuedTime and confirmedTime at the zero time
-	issuedTime := time.Time{}
-	confirmedTime := time.Time{}
+	// Tracks the total amount of time waiting for issuing and confirming txs
+	var (
+		totalIssuedTime    time.Duration
+		totalConfirmedTime time.Duration
+	)
 
 	defer func() error {
 		return a.worker.Close(ctx)
@@ -75,16 +76,21 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	start := time.Now()
 	for {
 		var (
-			txs = make([]T, 0, a.n)
-			tx  T
+			txs     = make([]T, 0, a.n)
+			tx      T
+			moreTxs bool
 		)
 		// Start issuance batch
 		issuedStart := time.Now()
+	L:
 		for i := uint64(0); i < a.n; i++ {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-			case tx = <-txChan:
+			case tx, moreTxs = <-txChan:
+				if !moreTxs {
+					break L
+				}
 				if err := a.worker.IssueTx(ctx, tx); err != nil {
 					return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
 				}
@@ -95,7 +101,7 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 		issuedDuration := issuedEnd.Sub(issuedStart)
 		log.Info("Issuance Batch Done", "batch", batchI, "time", issuedDuration.Seconds())
 		// Add the issuance batch time to the total issuedTime
-		issuedTime = issuedTime.Add(issuedDuration)
+		totalIssuedTime += issuedDuration
 
 		// Start confirmation batch
 		confirmedStart := time.Now()
@@ -104,32 +110,23 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				return fmt.Errorf("failed to await transaction %d: %w", i, err)
 			}
 			confirmedCount++
-			// We want the exact moment when all the txs have been confirmed
-			if confirmedCount == totalTxs {
-				// Mark the final ending time
-				confirmedEnd := time.Now()
-				totalTime := time.Since(start).Seconds()
-				// Get the last confirmed batch time and add it to the total confirmedTime
-				confirmedDuration := confirmedEnd.Sub(confirmedStart)
-				log.Info("Confirmed Batch Done", "batch", batchI, "time", confirmedDuration.Seconds())
-				confirmedTime = confirmedTime.Add(confirmedDuration)
-
-				// Get the final duration by comparing it to the zero time
-				issuedFinalDuration := issuedTime.Sub(time.Time{})
-				confirmedFinalDuration := confirmedTime.Sub(time.Time{})
-
-				log.Info("Execution complete", "totalTxs", totalTxs, "totalTime", totalTime, "TPS", float64(totalTxs)/totalTime,
-					"issuanceTime", issuedFinalDuration.Seconds(), "confirmedTime", confirmedFinalDuration.Seconds())
-				logOtherMetrics()
-				return nil
-			}
 		}
-
+		// Mark the final ending time
 		confirmedEnd := time.Now()
+		// Get the last confirmed batch time and add it to the total confirmedTime
 		confirmedDuration := confirmedEnd.Sub(confirmedStart)
 		log.Info("Confirmed Batch Done", "batch", batchI, "time", confirmedDuration.Seconds())
-		// Add the confirmed batch time to the total confirmedTime
-		confirmedTime = confirmedTime.Add(confirmedDuration)
+		totalConfirmedTime += confirmedDuration
+
+		// Check if this is the last batch, if so write the final log and return
+		if !moreTxs {
+			totalTime := time.Since(start).Seconds()
+			log.Info("Execution complete", "totalTxs", confirmedCount, "totalTime", totalTime, "TPS", float64(confirmedCount)/totalTime,
+				"issuanceTime", totalIssuedTime.Seconds(), "confirmedTime", totalConfirmedTime.Seconds())
+			logOtherMetrics()
+			return nil
+		}
+
 		batchI++
 	}
 }
