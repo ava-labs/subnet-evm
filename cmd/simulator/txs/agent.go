@@ -63,34 +63,33 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	confirmedCount := 0
 	batchI := 1
 
-	// Start the issuedTime and cofirmedTime at the zero time
+	// Start the issuedTime and confirmedTime at the zero time
 	issuedTime := time.Time{}
 	confirmedTime := time.Time{}
 
-	start := time.Now()
+	defer func() error {
+		return a.worker.Close(ctx)
+	}()
 
+	// Start time for execution
+	start := time.Now()
 	for {
 		var (
 			txs = make([]T, 0, a.n)
 			tx  T
-			ok  bool
 		)
 		// Start issuance batch
 		issuedStart := time.Now()
 		for i := uint64(0); i < a.n; i++ {
 			select {
-			case tx, ok = <-txChan:
-				if !ok {
-					return a.worker.Close(ctx)
-				}
 			case <-ctx.Done():
 				return ctx.Err()
+			case tx = <-txChan:
+				if err := a.worker.IssueTx(ctx, tx); err != nil {
+					return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
+				}
+				txs = append(txs, tx)
 			}
-
-			if err := a.worker.IssueTx(ctx, tx); err != nil {
-				return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
-			}
-			txs = append(txs, tx)
 		}
 		issuedEnd := time.Now()
 		issuedDuration := issuedEnd.Sub(issuedStart)
@@ -105,6 +104,7 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				return fmt.Errorf("failed to await transaction %d: %w", i, err)
 			}
 			confirmedCount++
+			// We want the exact moment when all the txs have been confirmed
 			if confirmedCount == totalTxs {
 				// Mark the final ending time
 				confirmedEnd := time.Now()
