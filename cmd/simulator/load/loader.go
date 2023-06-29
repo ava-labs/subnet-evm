@@ -8,6 +8,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"regexp"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
@@ -31,6 +32,14 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
+	// Extract blockchainStrID from the clientURI
+	re := regexp.MustCompile(`bc\/(.*)\/ws`)
+	matches := re.FindStringSubmatch(config.Endpoints[0])
+	if len(matches) < 1 {
+		return fmt.Errorf("failed to get blockchainStrID from the clientURI %s", config.Endpoints[0])
+	}
+	// Get the last element in matches
+	blockchainIDStr := matches[len(matches)-1]
 	for i := 0; i < config.Workers; i++ {
 		clientURI := config.Endpoints[i%len(config.Endpoints)]
 		client, err := ethclient.Dial(clientURI)
@@ -63,7 +72,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	maxFeeCap := new(big.Int).Mul(big.NewInt(params.GWei), big.NewInt(config.MaxFeeCap))
 	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*params.TxGas)))
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
-	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr)
+	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr, blockchainIDStr)
 	if err != nil {
 		return err
 	}
@@ -112,7 +121,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	log.Info("Constructing tx agents...", "numAgents", config.Workers)
 	agents := make([]txs.Agent[*types.Transaction], 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize))
+		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize, blockchainIDStr))
 	}
 
 	log.Info("Starting tx agents...")
