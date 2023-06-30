@@ -28,6 +28,7 @@ const (
 	TimeoutKey         = "timeout"
 	BatchSizeKey       = "batch-size"
 	BlockchainIDStrKey = "blockchain-id-str"
+	MetricsKey         = "metrics"
 )
 
 var (
@@ -46,6 +47,7 @@ type Config struct {
 	Timeout         time.Duration `json:"timeout"`
 	BatchSize       uint64        `json:"batch-size"`
 	BlockchainIDStr string        `json:"blockchainIDStr"`
+	Metrics         string        `json:"metrics"`
 }
 
 func BuildConfig(v *viper.Viper) (Config, error) {
@@ -59,6 +61,7 @@ func BuildConfig(v *viper.Viper) (Config, error) {
 		Timeout:         v.GetDuration(TimeoutKey),
 		BatchSize:       v.GetUint64(BatchSizeKey),
 		BlockchainIDStr: v.GetString(BlockchainIDStrKey),
+		Metrics:         v.GetString(MetricsKey),
 	}
 	if len(c.Endpoints) == 0 {
 		return c, ErrNoEndpoints
@@ -122,4 +125,5 @@ func addSimulatorFlags(fs *pflag.FlagSet) {
 	fs.String(LogLevelKey, "info", "Specify the log level to use in the simulator")
 	fs.Uint64(BatchSizeKey, 100, "Specify the batchsize for the worker to issue and confirm txs")
 	fs.String(BlockchainIDStrKey, "C", "Specify the blockchainIDStr for the chain you are executing the simulation on. Ex: C, X, P, pUSPHTrvs8ASVfPjrf9xdQ6SwDFhSmCZ3EKuCUMASHky2Wvr")
+	fs.String(MetricsKey, "http://127.0.0.1:9650/ext/metrics", "Specify the metrics endpoint for extra logging at the end of the simulation")
 }
