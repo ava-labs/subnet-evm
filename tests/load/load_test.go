@@ -53,7 +53,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		err = os.Setenv("BLOCKCHAIN_ID", blockchainID.String())
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		log.Info("Sleeping with network running", "rpcEndpoints", commaSeparatedRPCEndpoints, commaSeparatedRPCEndpoints, blockchainID.String())
+		log.Info("Sleeping with network running", "rpcEndpoints", commaSeparatedRPCEndpoints, "metricsEndpoints", commaSeparatedMetricsEndpoints, "blockchainIDStr", blockchainID.String())
 		cmd := exec.Command("./scripts/run_simulator.sh")
 		log.Info("Running load simulator script", "cmd", cmd.String())
 
