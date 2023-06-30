@@ -142,12 +142,12 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 
 func logExtraMetrics(metricsEndpoints []string, blockchainIDStr string) error {
 	if len(metricsEndpoints) == 0 {
-		log.Info("unable to get metrics: metricEndpoints is empty")
+		log.Info("failed getting metrics: metricEndpoints is empty")
 		return nil
 	}
 
 	if blockchainIDStr == "" {
-		log.Info("unable to get metrics: blockchainIDStr is empty")
+		log.Info("failed getting metrics: blockchainIDStr is empty")
 		return nil
 	}
 
@@ -158,34 +158,32 @@ func logExtraMetrics(metricsEndpoints []string, blockchainIDStr string) error {
 
 		log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
 		if err != nil {
-			return fmt.Errorf("failed getting metrics: %w", err)
+			log.Info("failed getting metrics", "err", err)
+			return nil
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("failed reading response body of metrics: %w", err)
+			log.Info("failed reading response body of metrics", "err", err)
+			return nil
 		}
 
 		bodyString := string(body)
-
 		buildBlockTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
 		if err != nil {
 			log.Info("No buildBlock metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
-			return nil
 		}
 		log.Info("Sum of time (in ns) of a build_block", "time", buildBlockTime)
 
 		issuedToAcceptedTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
 		if err != nil {
 			log.Info("No issuedToAccepted metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
-			return nil
 		}
 		log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", issuedToAcceptedTime)
 
 		verifyTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
 		if err != nil {
 			log.Info("No verify metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
-			return nil
 		}
 		log.Info("Sum of time (in ns) of a verify", "time", verifyTime)
 	}

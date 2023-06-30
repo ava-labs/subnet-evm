@@ -57,7 +57,7 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 
 	txChan := a.sequence.Chan()
 	confirmedCount := 0
-	batchI := 1
+	batchI := 0
 
 	// Tracks the total amount of time waiting for issuing and confirming txs
 	var (
@@ -66,7 +66,7 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	)
 
 	defer func() {
-		a.worker.Close(ctx)
+		_ = a.worker.Close(ctx)
 	}()
 
 	// Start time for execution
