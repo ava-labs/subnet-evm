@@ -46,7 +46,7 @@ func executeSignatureAggregationTest(t testing.TB, test signatureAggregationTest
 		&res.Message.UnsignedMessage,
 		test.job.state,
 		pChainHeight,
-		test.job.quorumNum,
+		test.job.minValidQuorumNum,
 		test.job.quorumDen,
 	))
 }
