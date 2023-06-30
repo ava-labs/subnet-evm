@@ -36,18 +36,9 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
-	// Extract blockchainIDStr from the clientURI
-	re := regexp.MustCompile(`bc\/(.*)\/`)
-	matches := re.FindStringSubmatch(config.Endpoints[0])
-	if len(matches) < 1 {
-		return fmt.Errorf("failed to get blockchainIDStr from the clientURI %s", config.Endpoints[0])
-	}
-	// Get the last element in matches
-	blockchainIDStr := matches[len(matches)-1]
-	log.Info("Extracted blockchainIDStr from the clientURI", "blockchainIDStr", blockchainIDStr)
 
-	re = regexp.MustCompile(`127.0.0.1:(.*)/ext/bc`)
-	matches = re.FindStringSubmatch(config.Endpoints[0])
+	re := regexp.MustCompile(`127.0.0.1:(.*)/ext/bc`)
+	matches := re.FindStringSubmatch(config.Endpoints[0])
 	if len(matches) < 1 {
 		return fmt.Errorf("failed to get endpoint from the clientURI %s", config.Endpoints[0])
 	}
@@ -154,7 +145,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	}
 	log.Info("Tx agents completed successfully.")
 
-	logOtherMetrics(blockchainIDStr, endpoint)
+	logOtherMetrics(config.BlockchainIDStr, endpoint)
 	return nil
 }
 

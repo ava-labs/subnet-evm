@@ -36,7 +36,8 @@ run_simulator() {
         --timeout=30s \
         --workers=1 \
         --max-fee-cap=300 \
-        --max-tip-cap=100
+        --max-tip-cap=100 \
+        --blockchain-id-str=$BLOCKCHAIN_ID
 }
 
 run_simulator
