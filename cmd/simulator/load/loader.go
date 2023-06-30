@@ -35,14 +35,16 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
-	// Extract blockchainStrID from the clientURI
+	// Extract blockchainIDStr from the clientURI
 	re := regexp.MustCompile(`bc\/(.*)\/`)
 	matches := re.FindStringSubmatch(config.Endpoints[0])
 	if len(matches) < 1 {
-		return fmt.Errorf("failed to get blockchainStrID from the clientURI %s", config.Endpoints[0])
+		return fmt.Errorf("failed to get blockchainIDStr from the clientURI %s", config.Endpoints[0])
 	}
 	// Get the last element in matches
 	blockchainIDStr := matches[len(matches)-1]
+	log.Info("Extracted blockchainIDStr from the clientURI", "blockchainIDStr", blockchainIDStr)
+
 	for i := 0; i < config.Workers; i++ {
 		clientURI := config.Endpoints[i%len(config.Endpoints)]
 		client, err := ethclient.Dial(clientURI)
@@ -164,14 +166,26 @@ func logOtherMetrics(blockchainIDStr string) error {
 	bodyString := string(body)
 	re := regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
 	matches := re.FindAllStringSubmatch(bodyString, -1)
+	if len(matches) < 1 {
+		log.Info("No build_block metrics found from metrics API for blockchainIDStr %s", blockchainIDStr)
+		return nil
+	}
 	log.Info("Sum of time (in ns) of a build_block", "time", matches[len(matches)-1])
 
 	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
 	matches = re.FindAllStringSubmatch(bodyString, -1)
+	if len(matches) < 1 {
+		log.Info("No accepted_block metrics found from metrics API for blockchainIDStr %s", blockchainIDStr)
+		return nil
+	}
 	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", matches[len(matches)-1])
 
 	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
 	matches = re.FindAllStringSubmatch(bodyString, -1)
+	if len(matches) < 1 {
+		log.Info("No verify metrics found from metrics API for blockchainIDStr %s", blockchainIDStr)
+		return nil
+	}
 	log.Info("Sum of time (in ns) of a verify", "time", matches[len(matches)-1])
 
 	return nil
