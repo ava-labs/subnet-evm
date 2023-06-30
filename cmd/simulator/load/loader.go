@@ -149,8 +149,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 func logOtherMetrics(blockchainIDStr string) error {
 	getCallStart := time.Now()
 	resp, err := http.Get("http://127.0.0.1:9650/ext/metrics")
-	getCallEnd := time.Now()
-	getCallDuration := getCallEnd.Sub(getCallStart)
+	getCallDuration := time.Since(getCallStart)
 
 	log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
 	if err != nil {
