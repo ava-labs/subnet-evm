@@ -6,6 +6,7 @@ package load
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -174,29 +175,36 @@ func logOtherMetrics(blockchainIDStr string, endpoint string) error {
 	}
 
 	bodyString := string(body)
-	re := regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
-	matches := re.FindAllStringSubmatch(bodyString, -1)
-	if len(matches) < 1 {
-		log.Info("No build_block metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
+
+	buildBlockTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
+	if err != nil {
+		log.Info("No buildBlock metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
 		return nil
 	}
-	log.Info("Sum of time (in ns) of a build_block", "time", matches[len(matches)-1])
+	log.Info("Sum of time (in ns) of a build_block", "time", buildBlockTime)
 
-	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
-	matches = re.FindAllStringSubmatch(bodyString, -1)
-	if len(matches) < 1 {
-		log.Info("No accepted_block metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
+	issuedToAcceptedTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
+	if err != nil {
+		log.Info("No buildBlock metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
 		return nil
 	}
-	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", matches[len(matches)-1])
+	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", issuedToAcceptedTime)
 
-	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
-	matches = re.FindAllStringSubmatch(bodyString, -1)
-	if len(matches) < 1 {
+	verifyTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
+	if err != nil {
 		log.Info("No verify metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
 		return nil
 	}
-	log.Info("Sum of time (in ns) of a verify", "time", matches[len(matches)-1])
-
+	log.Info("Sum of time (in ns) of a verify", "time", verifyTime)
 	return nil
+}
+
+func findMatchFromString(fullString string, regex string) (string, error) {
+	re := regexp.MustCompile(regex)
+	matches := re.FindAllStringSubmatch(fullString, -1)
+	if len(matches) < 1 && len(matches[0]) < 1 {
+		return "", errors.New("could not find any matches for the given string")
+	}
+
+	return matches[len(matches)-1][len(matches[0])-1], nil
 }
