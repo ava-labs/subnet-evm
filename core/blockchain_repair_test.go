@@ -519,8 +519,9 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	// Initialize a fresh chain
 	var (
 		gspec = &Genesis{
-			BaseFee: big.NewInt(params.TestInitialBaseFee),
-			Config:  params.TestChainConfig,
+			BaseFee:  big.NewInt(params.TestInitialBaseFee),
+			Config:   params.TestChainConfig,
+			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 		}
 		engine = dummy.NewFullFaker()
 		config = &CacheConfig{

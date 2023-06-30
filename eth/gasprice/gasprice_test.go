@@ -102,8 +102,9 @@ func (b *testBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 
 func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
 	var gspec = &core.Genesis{
-		Config: config,
-		Alloc:  core.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
+		Config:   config,
+		Alloc:    core.GenesisAlloc{addr: core.GenesisAccount{Balance: bal}},
+		GasLimit: config.FeeConfig.GasLimit.Uint64(),
 	}
 
 	engine := dummy.NewETHFaker()
@@ -319,15 +320,6 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 		},
 		// NOTE: small tips do not bias estimate
 		expectedTip: big.NewInt(643_500_643),
-	}, defaultOracleConfig())
-}
-
-func TestSuggestTipCapExtDataUsage(t *testing.T) {
-	applyGasPriceTest(t, suggestTipCapTest{
-		chainConfig: params.TestChainConfig,
-		numBlocks:   3,
-		genBlock:    testGenBlock(t, 55, 370),
-		expectedTip: big.NewInt(5_706_726_649),
 	}, defaultOracleConfig())
 }
 

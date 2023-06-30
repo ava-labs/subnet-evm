@@ -109,6 +109,7 @@ type SimulatedBackend struct {
 func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
 	cpcfg := params.TestChainConfig
 	cpcfg.ChainID = big.NewInt(1337)
+	cpcfg.FeeConfig.GasLimit = new(big.Int).SetUint64(gasLimit)
 	genesis := core.Genesis{
 		Config:   cpcfg,
 		GasLimit: gasLimit,

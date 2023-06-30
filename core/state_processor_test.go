@@ -323,6 +323,7 @@ func TestStateProcessorErrors(t *testing.T) {
 						SubnetEVMTimestamp:     utils.NewUint64(0),
 						DUpgradeBlockTimestamp: utils.NewUint64(0),
 					},
+					FeeConfig: params.DefaultFeeConfig,
 				},
 				Alloc: GenesisAlloc{
 					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): GenesisAccount{
@@ -332,7 +333,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				},
 				GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
 			}
-			blockchain, _  = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewFaker(), vm.Config{}, common.Hash{}, false)
+			blockchain, _  = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 			tooBigInitCode = [params.MaxInitCodeSize + 1]byte{}
 			smallInitCode  = [320]byte{}
 		)
@@ -354,7 +355,7 @@ func TestStateProcessorErrors(t *testing.T) {
 				want: "could not apply tx 0 [0x849278f616d51ab56bba399551317213ce7a10e4d9cbc3d14bb663e50cb7ab99]: intrinsic gas too low: have 54299, want 54300",
 			},
 		} {
-			block := GenerateBadBlock(gspec.ToBlock(), dummy.NewFaker(), tt.txs, gspec.Config)
+			block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
 			_, err := blockchain.InsertChain(types.Blocks{block})
 			if err == nil {
 				t.Fatal("block imported without errors")
@@ -405,7 +406,6 @@ func TestBadTxAllowListBlock(t *testing.T) {
 					Nonce:   0,
 				},
 			},
-
 			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 		}
 		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
