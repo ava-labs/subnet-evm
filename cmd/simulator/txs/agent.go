@@ -65,8 +65,8 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 		totalConfirmedTime time.Duration
 	)
 
-	defer func() error {
-		return a.worker.Close(ctx)
+	defer func() {
+		a.worker.Close(ctx)
 	}()
 
 	// Start time for execution
