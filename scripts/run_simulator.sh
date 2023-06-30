@@ -38,7 +38,7 @@ run_simulator() {
         --max-fee-cap=300 \
         --max-tip-cap=100 \
         --blockchain-id-str=$BLOCKCHAIN_ID
-        --metrics = $METRICS
+        --metrics=$METRICS_ENDPOINT
 }
 
 run_simulator

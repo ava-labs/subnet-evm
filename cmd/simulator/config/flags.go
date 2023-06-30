@@ -16,19 +16,19 @@ import (
 const Version = "v0.1.0"
 
 const (
-	ConfigFilePathKey  = "config-file"
-	LogLevelKey        = "log-level"
-	EndpointsKey       = "endpoints"
-	MaxFeeCapKey       = "max-fee-cap"
-	MaxTipCapKey       = "max-tip-cap"
-	WorkersKey         = "workers"
-	TxsPerWorkerKey    = "txs-per-worker"
-	KeyDirKey          = "key-dir"
-	VersionKey         = "version"
-	TimeoutKey         = "timeout"
-	BatchSizeKey       = "batch-size"
-	BlockchainIDStrKey = "blockchain-id-str"
-	MetricsKey         = "metrics"
+	ConfigFilePathKey   = "config-file"
+	LogLevelKey         = "log-level"
+	EndpointsKey        = "endpoints"
+	MaxFeeCapKey        = "max-fee-cap"
+	MaxTipCapKey        = "max-tip-cap"
+	WorkersKey          = "workers"
+	TxsPerWorkerKey     = "txs-per-worker"
+	KeyDirKey           = "key-dir"
+	VersionKey          = "version"
+	TimeoutKey          = "timeout"
+	BatchSizeKey        = "batch-size"
+	BlockchainIDStrKey  = "blockchain-id-str"
+	MetricsEndpointsKey = "metrics-endpoints"
 )
 
 var (
@@ -38,30 +38,30 @@ var (
 )
 
 type Config struct {
-	Endpoints       []string      `json:"endpoints"`
-	MaxFeeCap       int64         `json:"max-fee-cap"`
-	MaxTipCap       int64         `json:"max-tip-cap"`
-	Workers         int           `json:"workers"`
-	TxsPerWorker    uint64        `json:"txs-per-worker"`
-	KeyDir          string        `json:"key-dir"`
-	Timeout         time.Duration `json:"timeout"`
-	BatchSize       uint64        `json:"batch-size"`
-	BlockchainIDStr string        `json:"blockchainIDStr"`
-	Metrics         string        `json:"metrics"`
+	Endpoints        []string      `json:"endpoints"`
+	MaxFeeCap        int64         `json:"max-fee-cap"`
+	MaxTipCap        int64         `json:"max-tip-cap"`
+	Workers          int           `json:"workers"`
+	TxsPerWorker     uint64        `json:"txs-per-worker"`
+	KeyDir           string        `json:"key-dir"`
+	Timeout          time.Duration `json:"timeout"`
+	BatchSize        uint64        `json:"batch-size"`
+	BlockchainIDStr  string        `json:"blockchainIDStr"`
+	MetricsEndpoints []string      `json:"metrics-endpoints"`
 }
 
 func BuildConfig(v *viper.Viper) (Config, error) {
 	c := Config{
-		Endpoints:       v.GetStringSlice(EndpointsKey),
-		MaxFeeCap:       v.GetInt64(MaxFeeCapKey),
-		MaxTipCap:       v.GetInt64(MaxTipCapKey),
-		Workers:         v.GetInt(WorkersKey),
-		TxsPerWorker:    v.GetUint64(TxsPerWorkerKey),
-		KeyDir:          v.GetString(KeyDirKey),
-		Timeout:         v.GetDuration(TimeoutKey),
-		BatchSize:       v.GetUint64(BatchSizeKey),
-		BlockchainIDStr: v.GetString(BlockchainIDStrKey),
-		Metrics:         v.GetString(MetricsKey),
+		Endpoints:        v.GetStringSlice(EndpointsKey),
+		MaxFeeCap:        v.GetInt64(MaxFeeCapKey),
+		MaxTipCap:        v.GetInt64(MaxTipCapKey),
+		Workers:          v.GetInt(WorkersKey),
+		TxsPerWorker:     v.GetUint64(TxsPerWorkerKey),
+		KeyDir:           v.GetString(KeyDirKey),
+		Timeout:          v.GetDuration(TimeoutKey),
+		BatchSize:        v.GetUint64(BatchSizeKey),
+		BlockchainIDStr:  v.GetString(BlockchainIDStrKey),
+		MetricsEndpoints: v.GetStringSlice(MetricsEndpointsKey),
 	}
 	if len(c.Endpoints) == 0 {
 		return c, ErrNoEndpoints
@@ -125,5 +125,5 @@ func addSimulatorFlags(fs *pflag.FlagSet) {
 	fs.String(LogLevelKey, "info", "Specify the log level to use in the simulator")
 	fs.Uint64(BatchSizeKey, 100, "Specify the batchsize for the worker to issue and confirm txs")
 	fs.String(BlockchainIDStrKey, "C", "Specify the blockchainIDStr for the chain you are executing the simulation on. Ex: C, X, P, pUSPHTrvs8ASVfPjrf9xdQ6SwDFhSmCZ3EKuCUMASHky2Wvr")
-	fs.String(MetricsKey, "http://127.0.0.1:9650/ext/metrics", "Specify the metrics endpoint for extra logging at the end of the simulation")
+	fs.StringSlice(MetricsEndpointsKey, []string{"http://127.0.0.1:9650/ext/metrics"}, "Specify a comma separated list of metric endpoints for extra logging at the end of the simulation (minimum of 1 endpoint)")
 }

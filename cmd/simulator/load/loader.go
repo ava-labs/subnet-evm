@@ -136,13 +136,13 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	}
 	log.Info("Tx agents completed successfully.")
 
-	logOtherMetrics(config.Metrics, config.BlockchainIDStr)
+	logExtraMetrics(config.MetricsEndpoints, config.BlockchainIDStr)
 	return nil
 }
 
-func logOtherMetrics(metrics string, blockchainIDStr string) error {
-	if metrics == "" {
-		log.Info("unable to get metrics: metrics is empty")
+func logExtraMetrics(metricsEndpoints []string, blockchainIDStr string) error {
+	if len(metricsEndpoints) == 0 {
+		log.Info("unable to get metrics: metricEndpoints is empty")
 		return nil
 	}
 
@@ -151,42 +151,44 @@ func logOtherMetrics(metrics string, blockchainIDStr string) error {
 		return nil
 	}
 
-	getCallStart := time.Now()
-	resp, err := http.Get(metrics)
-	getCallDuration := time.Since(getCallStart)
+	for i := 0; i < len(metricsEndpoints); i++ {
+		getCallStart := time.Now()
+		resp, err := http.Get(metricsEndpoints[i])
+		getCallDuration := time.Since(getCallStart)
 
-	log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
-	if err != nil {
-		return fmt.Errorf("failed getting metrics: %w", err)
+		log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
+		if err != nil {
+			return fmt.Errorf("failed getting metrics: %w", err)
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed reading response body of metrics: %w", err)
+		}
+
+		bodyString := string(body)
+
+		buildBlockTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
+		if err != nil {
+			log.Info("No buildBlock metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
+			return nil
+		}
+		log.Info("Sum of time (in ns) of a build_block", "time", buildBlockTime)
+
+		issuedToAcceptedTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
+		if err != nil {
+			log.Info("No issuedToAccepted metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
+			return nil
+		}
+		log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", issuedToAcceptedTime)
+
+		verifyTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
+		if err != nil {
+			log.Info("No verify metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
+			return nil
+		}
+		log.Info("Sum of time (in ns) of a verify", "time", verifyTime)
 	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed reading response body of metrics: %w", err)
-	}
-
-	bodyString := string(body)
-
-	buildBlockTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
-	if err != nil {
-		log.Info("No buildBlock metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metric", metrics)
-		return nil
-	}
-	log.Info("Sum of time (in ns) of a build_block", "time", buildBlockTime)
-
-	issuedToAcceptedTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
-	if err != nil {
-		log.Info("No issuedToAccepted metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metrics", metrics)
-		return nil
-	}
-	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", issuedToAcceptedTime)
-
-	verifyTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
-	if err != nil {
-		log.Info("No verify metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "smetricsAPI", metrics)
-		return nil
-	}
-	log.Info("Sum of time (in ns) of a verify", "time", verifyTime)
 	return nil
 }
 
