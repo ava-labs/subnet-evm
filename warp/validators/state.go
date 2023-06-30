@@ -9,6 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/validators"
+	"github.com/ava-labs/avalanchego/utils/constants"
 )
 
 var _ validators.State = (*State)(nil)
@@ -40,7 +41,7 @@ func (s *State) GetValidatorSet(
 ) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 	// If the subnetID is anything other than the Primary Network, this is a direct
 	// passthrough
-	if subnetID != ids.Empty {
+	if subnetID != constants.PrimaryNetworkID {
 		return s.State.GetValidatorSet(ctx, height, subnetID)
 	}
 
