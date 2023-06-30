@@ -36,7 +36,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
 	// Extract blockchainStrID from the clientURI
-	re := regexp.MustCompile(`bc\/(.*)\/ws`)
+	re := regexp.MustCompile(`bc\/(.*)\/`)
 	matches := re.FindStringSubmatch(config.Endpoints[0])
 	if len(matches) < 1 {
 		return fmt.Errorf("failed to get blockchainStrID from the clientURI %s", config.Endpoints[0])
