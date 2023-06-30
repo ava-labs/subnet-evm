@@ -22,19 +22,35 @@ var (
 )
 
 type mockPredicater struct {
-	predicateFunc func(*precompileconfig.PrecompilePredicateContext, []byte) error
+	predicateFunc    func(*precompileconfig.PrecompilePredicateContext, []byte) error
+	predicateGasFunc func([]byte) (uint64, error)
 }
 
 func (m *mockPredicater) VerifyPredicate(predicateContext *precompileconfig.PrecompilePredicateContext, b []byte) error {
 	return m.predicateFunc(predicateContext, b)
 }
 
+func (m *mockPredicater) PredicateGas(b []byte) (uint64, error) {
+	if m.predicateGasFunc == nil {
+		return 0, nil
+	}
+	return m.predicateGasFunc(b)
+}
+
 type mockProposerPredicater struct {
-	predicateFunc func(*precompileconfig.ProposerPredicateContext, []byte) error
+	predicateFunc    func(*precompileconfig.ProposerPredicateContext, []byte) error
+	predicateGasFunc func([]byte) (uint64, error)
 }
 
 func (m *mockProposerPredicater) VerifyPredicate(predicateContext *precompileconfig.ProposerPredicateContext, b []byte) error {
 	return m.predicateFunc(predicateContext, b)
+}
+
+func (m *mockProposerPredicater) PredicateGas(b []byte) (uint64, error) {
+	if m.predicateGasFunc == nil {
+		return 0, nil
+	}
+	return m.predicateGasFunc(b)
 }
 
 type predicateCheckTest struct {
