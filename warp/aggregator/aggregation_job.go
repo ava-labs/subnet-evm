@@ -23,11 +23,15 @@ type signatureAggregationJob struct {
 	height   uint64
 	subnetID ids.ID
 
-	quorumNum       uint64 // Minimum threshold at which to bother returning the resulting signature
-	cancelQuorumNum uint64 // Threshold at which to cancel further signature fetching
-	quorumDen       uint64 // Denominator to use when checking if we've reached the threshold
-	state           validators.State
-	msg             *avalancheWarp.UnsignedMessage
+	// Minimum threshold at which to return the resulting aggregate signature. If this threshold is not reached,
+	// return an error instead of aggregating the signatures that were fetched.
+	minValidQuorumNum uint64
+	// Threshold at which to cancel fetching further signatures
+	maxNeededQuorumNum uint64
+	// Denominator to use when checking if we've reached the threshold
+	quorumDen uint64
+	state     validators.State
+	msg       *avalancheWarp.UnsignedMessage
 }
 
 type AggregateSignatureResult struct {
@@ -40,21 +44,21 @@ func NewSignatureAggregationJob(
 	client SignatureBackend,
 	height uint64,
 	subnetID ids.ID,
-	quorumNum uint64,
-	cancelQuorumNum uint64,
+	minValidQuorumNum uint64,
+	maxNeededQuorumNum uint64,
 	quorumDen uint64,
 	state validators.State,
 	msg *avalancheWarp.UnsignedMessage,
 ) *signatureAggregationJob {
 	return &signatureAggregationJob{
-		client:          client,
-		height:          height,
-		subnetID:        subnetID,
-		quorumNum:       quorumNum,
-		cancelQuorumNum: cancelQuorumNum,
-		quorumDen:       quorumDen,
-		state:           state,
-		msg:             msg,
+		client:             client,
+		height:             height,
+		subnetID:           subnetID,
+		minValidQuorumNum:  minValidQuorumNum,
+		maxNeededQuorumNum: maxNeededQuorumNum,
+		quorumDen:          quorumDen,
+		state:              state,
+		msg:                msg,
 	}
 }
 
@@ -75,7 +79,7 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 	bitSet := set.NewBits()
 	signatureWeight := uint64(0)
 
-	// Create a child context to cancel signature fetching if we reach [cancelQuorumNum] threshold
+	// Create a child context to cancel signature fetching if we reach [maxNeededQuorumNum] threshold
 	signatureFetchCtx, signatureFetchCancel := context.WithCancel(ctx)
 	defer signatureFetchCancel()
 
@@ -102,8 +106,8 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 			log.Info("Updated weight", "totalWeight", signatureWeight+signatureJob.weight, "addedWeight", signatureJob.weight)
 			signatureWeight += signatureJob.weight
 			// If the signature weight meets the requested threshold, cancel signature fetching
-			if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, a.cancelQuorumNum, a.quorumDen); err == nil {
-				log.Info("Verify weight passed, exiting aggregation early", "cancelQuorumNum", a.cancelQuorumNum, "totalWeight", totalWeight, "signatureWeight", signatureWeight)
+			if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, a.maxNeededQuorumNum, a.quorumDen); err == nil {
+				log.Info("Verify weight passed, exiting aggregation early", "maxNeededQuorumNum", a.maxNeededQuorumNum, "totalWeight", totalWeight, "signatureWeight", signatureWeight)
 				signatureFetchCancel()
 			}
 		}()
@@ -111,7 +115,7 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 	wg.Wait()
 
 	// If I failed to fetch sufficient signature stake, return an error
-	if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, a.quorumNum, a.quorumDen); err != nil {
+	if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, a.minValidQuorumNum, a.quorumDen); err != nil {
 		return nil, fmt.Errorf("failed to aggregate signature: %w", err)
 	}
 	// Otherwise, return the aggregate signature

@@ -20,14 +20,15 @@ type NetworkClient interface {
 	SendAppRequest(nodeID ids.NodeID, message []byte) ([]byte, error)
 }
 
-// networkSigner fetches warp signatures on behalf of the aggregator using VM App-Specific Messaging
+// NetworkSigner fetches warp signatures on behalf of the aggregator using VM App-Specific Messaging
 type NetworkSigner struct {
 	Client NetworkClient
 }
 
 // FetchWarpSignature attempts to fetch a BLS Signature of [unsignedWarpMessage] from [nodeID] until it succeeds or receives an invalid response
 //
-// Note: the caller should ensure that [ctx] is properly cancelled once the result is no longer needed from this call.
+// Note: this function will continue attempting to fetch the signature from [nodeID] until it receives an invalid value or [ctx] is cancelled.
+// The caller is responsible to cancel [ctx] if it no longer needs to fetch this signature.
 func (s *NetworkSigner) FetchWarpSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 	signatureReq := message.SignatureRequest{
 		MessageID: unsignedWarpMessage.ID(),
@@ -43,7 +44,11 @@ func (s *NetworkSigner) FetchWarpSignature(ctx context.Context, nodeID ids.NodeI
 		// If the client fails to retrieve a response perform an exponential backoff.
 		// Note: it is up to the caller to ensure that [ctx] is eventually cancelled
 		if err != nil {
-			time.Sleep(delay)
+			select {
+			case <-ctx.Done():
+				break
+			case <-time.After(delay):
+			}
 			delay *= 2
 			continue
 		}
