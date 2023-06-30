@@ -75,7 +75,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	maxFeeCap := new(big.Int).Mul(big.NewInt(params.GWei), big.NewInt(config.MaxFeeCap))
 	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*params.TxGas)))
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
-	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr, blockchainIDStr)
+	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr)
 	if err != nil {
 		return err
 	}
