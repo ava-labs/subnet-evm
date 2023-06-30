@@ -5,15 +5,12 @@ package warp
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/warp/aggregator"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
-
-var errNoAggregator = errors.New("no aggregator to fetch signatures")
 
 // WarpAPI introduces snowman specific functionality to the evm
 type WarpAPI struct {
@@ -39,10 +36,6 @@ func (api *WarpAPI) GetSignature(ctx context.Context, messageID ids.ID) (hexutil
 
 // GetAggregateSignature fetches the aggregate signature for the requested [messageID]
 func (api *WarpAPI) GetAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) (signedMessageBytes hexutil.Bytes, err error) {
-	// TODO: remove when updating vm.go so that the aggregator is always present
-	if api.aggregator == nil {
-		return nil, errNoAggregator
-	}
 	unsignedMessage, err := api.backend.GetMessage(messageID)
 	if err != nil {
 		return nil, err
