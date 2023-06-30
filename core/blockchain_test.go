@@ -355,6 +355,11 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			return blockchain, nil
 		}
 
+		targetRoot := blockchain.LastAcceptedBlock().Root()
+		if targetRoot == blockchain.Genesis().Root() {
+			return blockchain, nil
+		}
+
 		tempDir := t.TempDir()
 		if err := blockchain.CleanBlockRootsAboveLastAccepted(); err != nil {
 			return nil, err
@@ -371,7 +376,6 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			return nil, fmt.Errorf("offline pruning failed (%s, %d): %w", tempDir, 256, err)
 		}
 
-		targetRoot := blockchain.LastAcceptedBlock().Root()
 		if err := pruner.Prune(targetRoot); err != nil {
 			return nil, fmt.Errorf("failed to prune blockchain with target root: %s due to: %w", targetRoot, err)
 		}
@@ -774,9 +778,10 @@ func TestCanonicalHashMarker(t *testing.T) {
 	for _, c := range cases {
 		var (
 			gspec = &Genesis{
-				Config:  params.TestChainConfig,
-				Alloc:   GenesisAlloc{},
-				BaseFee: big.NewInt(params.TestInitialBaseFee),
+				Config:   params.TestChainConfig,
+				Alloc:    GenesisAlloc{},
+				BaseFee:  big.NewInt(params.TestInitialBaseFee),
+				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 			}
 			engine = dummy.NewCoinbaseFaker()
 		)
@@ -917,6 +922,7 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 		Alloc: GenesisAlloc{
 			address: {Balance: funds},
 		},
+		GasLimit: config.FeeConfig.GasLimit.Uint64(),
 	}
 	nonce := uint64(0)
 	signer := types.HomesteadSigner{}
@@ -1004,6 +1010,7 @@ func TestTransientStorageReset(t *testing.T) {
 		Alloc: GenesisAlloc{
 			address: {Balance: funds},
 		},
+		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	nonce := uint64(0)
 	signer := types.HomesteadSigner{}
@@ -1057,7 +1064,7 @@ func TestEIP3651(t *testing.T) {
 	var (
 		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
 		bb     = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
-		engine = dummy.NewFaker()
+		engine = dummy.NewCoinbaseFaker()
 
 		// A sender who makes transactions, has some funds
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -1066,7 +1073,8 @@ func TestEIP3651(t *testing.T) {
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
 		funds   = new(big.Int).Mul(common.Big1, big.NewInt(params.Ether))
 		gspec   = &Genesis{
-			Config: params.TestChainConfig,
+			Config:   params.TestChainConfig,
+			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 			Alloc: GenesisAlloc{
 				addr1: {Balance: funds},
 				addr2: {Balance: funds},
