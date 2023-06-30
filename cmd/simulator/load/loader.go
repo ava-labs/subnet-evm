@@ -176,7 +176,7 @@ func logOtherMetrics(blockchainIDStr string, endpoint string) error {
 
 	issuedToAcceptedTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
 	if err != nil {
-		log.Info("No buildBlock metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
+		log.Info("No issuedToAccepted metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
 		return nil
 	}
 	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", issuedToAcceptedTime)
