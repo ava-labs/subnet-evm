@@ -1067,7 +1067,7 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	return nil
 }
 
-// TotalFees computes total consumed fees in ETH. Block transactions and receipts have to have the same order.
+// TotalFees computes total consumed fees in wei. Block transactions and receipts have to have the same order.
 func TotalFees(block *types.Block, receipts []*types.Receipt) (*big.Int, error) {
 	baseFee := block.BaseFee()
 	feesWei := new(big.Int)
@@ -1087,6 +1087,7 @@ func TotalFees(block *types.Block, receipts []*types.Receipt) (*big.Int, error) 
 	return feesWei, nil
 }
 
+// TotalFees computes total consumed fees in ether. Block transactions and receipts have to have the same order.
 func TotalFeesFloat(block *types.Block, receipts []*types.Receipt) (*big.Float, error) {
 	total, err := TotalFees(block, receipts)
 	if err != nil {
