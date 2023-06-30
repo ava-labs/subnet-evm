@@ -25,8 +25,12 @@ type WarpBackend interface {
 
 	// GetSignature returns the signature of the requested message hash.
 	GetSignature(messageHash ids.ID) ([bls.SignatureLen]byte, error)
+
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
+
+	// Clear clears the entire db
+	Clear() error
 }
 
 // warpBackend implements WarpBackend, keeps track of warp messages, and generates message signatures.
@@ -45,6 +49,11 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, cacheSize int) 
 		signatureCache: &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
 		messageCache:   &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: cacheSize},
 	}
+}
+
+func (w *warpBackend) Clear() error {
+	w.signatureCache.Flush()
+	return database.Clear(w.db, w.db)
 }
 
 func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
