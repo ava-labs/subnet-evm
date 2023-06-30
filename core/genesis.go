@@ -184,15 +184,17 @@ func SetupGenesisBlock(
 		return nil, common.Hash{}, errGenesisNoConfig
 	}
 	// Make sure genesis gas limit is consistent in SubnetEVM fork
-	gasLimitConfig := genesis.Config.FeeConfig.GasLimit.Uint64()
-	if gasLimitConfig != genesis.GasLimit {
-		return nil, common.Hash{}, fmt.Errorf("gas limit in fee config (%d) does not match gas limit in header (%d)", gasLimitConfig, genesis.GasLimit)
+	if genesis.Config.IsSubnetEVM(genesis.Timestamp) {
+		gasLimitConfig := genesis.Config.FeeConfig.GasLimit.Uint64()
+		if gasLimitConfig != genesis.GasLimit {
+			return nil, common.Hash{}, fmt.Errorf("gas limit in fee config (%d) does not match gas limit in header (%d)", gasLimitConfig, genesis.GasLimit)
+		}
+		// Verify config
+		if err := genesis.Config.Verify(); err != nil {
+			return nil, common.Hash{}, err
+		}
 	}
 
-	// Verify config
-	if err := genesis.Config.Verify(); err != nil {
-		return nil, common.Hash{}, err
-	}
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
