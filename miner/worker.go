@@ -370,12 +370,14 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 		}
 		logs = append(logs, receipt.Logs...)
 	}
-	fees := totalFees(block, receipts)
-	feesInEther := new(big.Float).Quo(new(big.Float).SetInt(fees), big.NewFloat(params.Ether))
-	log.Info("Commit new mining work", "number", block.Number(), "hash", hash,
-		"uncles", 0, "txs", env.tcount,
-		"gas", block.GasUsed(), "fees", feesInEther,
-		"elapsed", common.PrettyDuration(time.Since(env.start)))
+
+	totalFees, err := core.TotalFeesFloat(block, receipts)
+	if err != nil {
+		log.Error("TotalFeesFloat error: %s", err)
+	}
+
+	log.Info("Commit new mining work", "number", block.Number(), "hash", hash, "timestamp", block.Time(), "uncles", 0, "txs", env.tcount,
+		"gas", block.GasUsed(), "fees", totalFees, "elapsed", common.PrettyDuration(time.Since(env.start)))
 
 	// Note: the miner no longer emits a NewMinedBlock event. Instead the caller
 	// is responsible for running any additional verification and then inserting
@@ -391,23 +393,6 @@ func copyReceipts(receipts []*types.Receipt) []*types.Receipt {
 		result[i] = &cpy
 	}
 	return result
-}
-
-// totalFees computes total consumed miner fees in Wei. Block transactions and receipts have to have the same order.
-func totalFees(block *types.Block, receipts []*types.Receipt) *big.Int {
-	feesWei := new(big.Int)
-	for i, tx := range block.Transactions() {
-		var minerFee *big.Int
-		if baseFee := block.BaseFee(); baseFee != nil {
-			// Note in subnet-evm the coinbase payment is (baseFee + effectiveGasTip) * gasUsed
-			minerFee = new(big.Int).Add(baseFee, tx.EffectiveGasTipValue(baseFee))
-		} else {
-			// Prior to activation of EIP-1559, the coinbase payment was gasPrice * gasUsed
-			minerFee = tx.GasPrice()
-		}
-		feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), minerFee))
-	}
-	return feesWei
 }
 
 // enforcePredicates takes a set of pending transactions (grouped by sender, and ordered by nonce)
