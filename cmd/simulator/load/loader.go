@@ -45,6 +45,15 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	blockchainIDStr := matches[len(matches)-1]
 	log.Info("Extracted blockchainIDStr from the clientURI", "blockchainIDStr", blockchainIDStr)
 
+	re = regexp.MustCompile(`127.0.0.1:(.*)/ext/bc`)
+	matches = re.FindStringSubmatch(config.Endpoints[0])
+	if len(matches) < 1 {
+		return fmt.Errorf("failed to get endpoint from the clientURI %s", config.Endpoints[0])
+	}
+	// Get the last element in matches
+	endpoint := matches[len(matches)-1]
+	log.Info("Extracted endpoint from the clientURI", "endpoint", endpoint)
+
 	for i := 0; i < config.Workers; i++ {
 		clientURI := config.Endpoints[i%len(config.Endpoints)]
 		client, err := ethclient.Dial(clientURI)
@@ -144,13 +153,14 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	}
 	log.Info("Tx agents completed successfully.")
 
-	logOtherMetrics(blockchainIDStr)
+	logOtherMetrics(blockchainIDStr, endpoint)
 	return nil
 }
 
-func logOtherMetrics(blockchainIDStr string) error {
+func logOtherMetrics(blockchainIDStr string, endpoint string) error {
 	getCallStart := time.Now()
-	resp, err := http.Get("http://127.0.0.1:9650/ext/metrics")
+	metricsAPI := fmt.Sprintf("http://127.0.0.1:%s/ext/metrics", endpoint)
+	resp, err := http.Get(metricsAPI)
 	getCallDuration := time.Since(getCallStart)
 
 	log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
@@ -167,7 +177,7 @@ func logOtherMetrics(blockchainIDStr string) error {
 	re := regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
 	matches := re.FindAllStringSubmatch(bodyString, -1)
 	if len(matches) < 1 {
-		log.Info("No build_block metrics found from metrics API for blockchainIDStr %s", blockchainIDStr)
+		log.Info("No build_block metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
 		return nil
 	}
 	log.Info("Sum of time (in ns) of a build_block", "time", matches[len(matches)-1])
@@ -175,7 +185,7 @@ func logOtherMetrics(blockchainIDStr string) error {
 	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
 	matches = re.FindAllStringSubmatch(bodyString, -1)
 	if len(matches) < 1 {
-		log.Info("No accepted_block metrics found from metrics API for blockchainIDStr %s", blockchainIDStr)
+		log.Info("No accepted_block metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
 		return nil
 	}
 	log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", matches[len(matches)-1])
@@ -183,7 +193,7 @@ func logOtherMetrics(blockchainIDStr string) error {
 	re = regexp.MustCompile(fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
 	matches = re.FindAllStringSubmatch(bodyString, -1)
 	if len(matches) < 1 {
-		log.Info("No verify metrics found from metrics API for blockchainIDStr %s", blockchainIDStr)
+		log.Info("No verify metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsAPI", metricsAPI)
 		return nil
 	}
 	log.Info("Sum of time (in ns) of a verify", "time", matches[len(matches)-1])
