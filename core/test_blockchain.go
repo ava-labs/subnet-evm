@@ -1003,17 +1003,20 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, chainConfig 
 	checkBlockChainState(t, blockchain, gspec, chainDB, create, checkState)
 }
 
-//nolint:goimports
 // Insert two different chains that result in the identical state root.
 // Once we accept one of the chains, we insert and accept A3 on top of the shared
 // state root
-//   G   (genesis)
-//  / \
+//
+//	 G   (genesis)
+//	/ \
+//
 // A1  B1
 // |   |
 // A2  B2 (A2 and B2 represent two different paths to the identical state trie)
 // |
 // A3
+//
+//nolint:goimports
 func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error)) {
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -1150,18 +1153,21 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 	checkBlockChainState(t, blockchain, gspec, chainDB, create, checkState)
 }
 
-//nolint:goimports
 // Insert two different chains that result in the identical state root.
 // Once we insert both of the chains, we restart, insert both the chains again,
 // and then we accept one of the chains and accept A3 on top of the shared state
 // root
-//   G   (genesis)
-//  / \
+//
+//	 G   (genesis)
+//	/ \
+//
 // A1  B1
 // |   |
 // A2  B2 (A2 and B2 represent two different paths to the identical state trie)
 // |
 // A3
+//
+//nolint:goimports
 func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Database, chainConfig *params.ChainConfig, lastAcceptedHash common.Hash) (*BlockChain, error)) {
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -1187,6 +1193,16 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 	if err != nil {
 		t.Fatal(err)
 	}
+	blockchainToStop := blockchain
+	alreadyStoped := false
+	blockchainStopOnlyOnce := func() {
+		if alreadyStoped {
+			return
+		}
+		alreadyStoped = true
+		blockchainToStop.Stop()
+	}
+	defer blockchainStopOnlyOnce()
 
 	signer := types.HomesteadSigner{}
 	// Generate chain of blocks using [genDB] instead of [chainDB] to avoid writing
@@ -1238,7 +1254,8 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.NumberU64())
 	}
 
-	blockchain.Stop()
+	// stopping now prevent stopping from the defer
+	blockchainStopOnlyOnce()
 
 	blockchain, err = create(chainDB, gspec.Config, common.Hash{})
 	if err != nil {
