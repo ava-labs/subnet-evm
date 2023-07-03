@@ -22,6 +22,7 @@ type SignatureBackend interface {
 	FetchWarpSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error)
 }
 
+// signatureJob fetches a single signature using the injected dependency SignatureBackend and returns a verified signature of the requested message.
 type signatureJob struct {
 	backend SignatureBackend
 	msg     *avalancheWarp.UnsignedMessage
@@ -39,7 +40,7 @@ func newSignatureJob(backend SignatureBackend, validator *avalancheWarp.Validato
 	return &signatureJob{
 		backend:   backend,
 		msg:       msg,
-		nodeID:    validator.NodeIDs[0], // XXX: should we attempt to fetch from all nodeIDs and use the first valid response?
+		nodeID:    validator.NodeIDs[0], // TODO: update from a single nodeID to the original slice and use extra nodeIDs as backup.
 		publicKey: validator.PublicKey,
 		weight:    validator.Weight,
 	}
