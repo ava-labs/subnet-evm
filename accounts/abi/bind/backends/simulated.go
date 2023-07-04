@@ -107,11 +107,8 @@ type SimulatedBackend struct {
 // and uses a simulated blockchain for testing purposes.
 // A simulated backend always uses chainID 1337.
 func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
-	cpcfg := params.TestChainConfig
-	cpcfg.ChainID = big.NewInt(1337)
-	cpcfg.FeeConfig.GasLimit = new(big.Int).SetUint64(gasLimit)
 	genesis := core.Genesis{
-		Config:   cpcfg,
+		Config:   params.SimulatedTestChainConfig,
 		GasLimit: gasLimit,
 		Alloc:    alloc,
 	}
@@ -609,7 +606,6 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call interfaces.Call
 	for lo+1 < hi {
 		mid := (hi + lo) / 2
 		failed, _, err := executable(mid)
-
 		// If the error is not nil(consensus error), it means the provided message
 		// call or transaction will never be accepted no matter how much gas it is
 		// assigned. Return the error directly, don't struggle any more

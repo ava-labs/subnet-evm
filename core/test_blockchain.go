@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -1139,6 +1140,8 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 	if err != nil {
 		t.Fatal(err)
 	}
+	var stopOnce sync.Once
+	defer stopOnce.Do(blockchain.Stop)
 
 	signer := types.HomesteadSigner{}
 	_, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(i int, gen *BlockGen) {
@@ -1188,7 +1191,7 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
 	}
 
-	blockchain.Stop()
+	stopOnce.Do(blockchain.Stop)
 
 	chainDB = rawdb.NewMemoryDatabase()
 	blockchain, err = create(chainDB, gspec, common.Hash{})

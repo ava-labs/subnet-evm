@@ -115,14 +115,13 @@ var (
 )
 
 var (
-	errEmptyBlock                 = errors.New("empty block")
-	errUnsupportedFXs             = errors.New("unsupported feature extensions")
-	errInvalidBlock               = errors.New("invalid block")
-	errInvalidNonce               = errors.New("invalid nonce")
-	errUnclesUnsupported          = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM        = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM   = errors.New("nil blockGasCost is invalid after subnetEVM")
-	errSubnetEVMUpgradeNotEnabled = errors.New("SubnetEVM upgrade is not enabled in genesis")
+	errEmptyBlock               = errors.New("empty block")
+	errUnsupportedFXs           = errors.New("unsupported feature extensions")
+	errInvalidBlock             = errors.New("invalid block")
+	errInvalidNonce             = errors.New("invalid nonce")
+	errUnclesUnsupported        = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM      = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM = errors.New("nil blockGasCost is invalid after subnetEVM")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -291,6 +290,10 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
+	// We enforce network upgrades here, regardless of the chain config
+	// provided in the genesis file.
+	g.Config.MandatoryNetworkUpgrades = params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
+
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
 		g.AirdropData, err = os.ReadFile(vm.config.AirdropFile)
@@ -311,6 +314,11 @@ func (vm *VM) Initialize(
 
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
+	// NetworkID here is different than Avalanche's NetworkID.
+	// Avalanche's NetworkID represents the Avalanche network is running on
+	// like Fuji, Mainnet, Local, etc.
+	// The NetworkId here is kept same as ChainID to be compatible with
+	// Ethereum tooling.
 	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
 
 	// Set minimum price for mining and default gas price oracle value to the min
@@ -377,14 +385,6 @@ func (vm *VM) Initialize(
 	vm.chainConfig = g.Config
 	vm.networkID = vm.ethConfig.NetworkId
 
-	// TODO: remove SkipSubnetEVMUpgradeCheck after next network upgrade
-	if !vm.config.SkipSubnetEVMUpgradeCheck {
-		// check that subnetEVM upgrade is enabled from genesis before upgradeBytes
-		if !vm.chainConfig.IsSubnetEVM(0) {
-			return errSubnetEVMUpgradeNotEnabled
-		}
-	}
-
 	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
 	// Initializing the chain will verify upgradeBytes are compatible with existing values.
 	if len(upgradeBytes) > 0 {
@@ -415,6 +415,13 @@ func (vm *VM) Initialize(
 
 	// initialize warp backend
 	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
+
+	// clear warpdb on initialization if config enabled
+	if vm.config.PruneWarpDB {
+		if err := vm.warpBackend.Clear(); err != nil {
+			return fmt.Errorf("failed to prune warpDB: %w", err)
+		}
+	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
