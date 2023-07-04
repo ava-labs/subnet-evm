@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
@@ -44,16 +45,31 @@ func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, addr
 	return tw
 }
 
-func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, tx *types.Transaction) error {
-	return tw.client.SendTransaction(ctx, tx)
+func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, timeTx txs.TimeTx) error {
+	start := time.Now()
+	err := tw.client.SendTransaction(ctx, timeTx.Tx)
+	issuanceDuration := time.Since(start)
+	if err != nil {
+		return err
+	}
+
+	timeTx.IssuanceStart = start
+	timeTx.IssuanceDuration = issuanceDuration
+	return nil
 }
 
-func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transaction) error {
+func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, timeTx txs.TimeTx) error {
+	tx := timeTx.Tx
 	txNonce := tx.Nonce()
 
+	start := time.Now()
 	for {
 		// If the is less than what has already been accepted, the transaction is confirmed
 		if txNonce < tw.acceptedNonce {
+			confirmationEnd := time.Now()
+			timeTx.ConfirmationDuration = start.Sub(confirmationEnd)
+			timeTx.IssuanceToConfirmationDuration = timeTx.IssuanceStart.Sub(confirmationEnd)
+			log.Info("Individual Tx Time", "Issuance to Confirmation", timeTx.IssuanceToConfirmationDuration)
 			return nil
 		}
 
