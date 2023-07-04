@@ -320,9 +320,9 @@ func TestStateProcessorErrors(t *testing.T) {
 					PetersburgBlock:     big.NewInt(0),
 					IstanbulBlock:       big.NewInt(0),
 					MuirGlacierBlock:    big.NewInt(0),
-					NetworkUpgrades: params.NetworkUpgrades{
-						SubnetEVMTimestamp:     utils.NewUint64(0),
-						DUpgradeBlockTimestamp: utils.NewUint64(0),
+					MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
+						SubnetEVMTimestamp: utils.NewUint64(0),
+						DUpgradeTimestamp:  utils.NewUint64(0),
 					},
 					FeeConfig: params.DefaultFeeConfig,
 				},

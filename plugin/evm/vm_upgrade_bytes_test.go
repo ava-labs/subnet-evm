@@ -248,7 +248,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	_, vm, _, _ := GenesisVM(t, true, string(genesisBytes), "", "")
 
 	// verify upgrade is rescheduled
-	require.True(t, vm.chainConfig.IsSubnetEVM(big.NewInt(0)))
+	require.True(t, vm.chainConfig.IsSubnetEVM(*utils.NewUint64(0)))
 
 	if err := vm.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)

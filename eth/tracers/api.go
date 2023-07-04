@@ -1067,8 +1067,8 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 		copy.SubnetEVMTimestamp = timestamp
 		canon = false
 	}
-	if timestamp := override.DUpgradeBlockTimestamp; timestamp != nil {
-		copy.DUpgradeBlockTimestamp = timestamp
+	if timestamp := override.DUpgradeTimestamp; timestamp != nil {
+		copy.DUpgradeTimestamp = timestamp
 		canon = false
 	}
 

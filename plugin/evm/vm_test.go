@@ -2970,7 +2970,7 @@ func TestMandatoryUpgrades(t *testing.T) {
 	modifiedSubnetEVMGenesis := &core.Genesis{}
 	err := json.Unmarshal([]byte(genesisJSONSubnetEVM), &modifiedSubnetEVMGenesis)
 	require.NoError(t, err)
-	modifiedSubnetEVMGenesis.Config.SubnetEVMTimestamp = big.NewInt(1)
+	modifiedSubnetEVMGenesis.Config.SubnetEVMTimestamp = utils.NewUint64(1)
 	modifiedSubnetEVMGenesisBytes, err := json.Marshal(modifiedSubnetEVMGenesis)
 	modifiedSubnetEVMGenesisString := string(modifiedSubnetEVMGenesisBytes)
 	require.NoError(t, err)
