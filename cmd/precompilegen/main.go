@@ -70,7 +70,6 @@ var (
 
 var app = flags.NewApp("subnet-evm precompile generator tool")
 
-
 func init() {
 	app.Name = "precompilegen"
 	app.Flags = []cli.Flag{
