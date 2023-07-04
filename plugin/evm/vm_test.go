@@ -2985,7 +2985,7 @@ func TestMandatoryUpgrades(t *testing.T) {
 	}()
 
 	// modification to genesis for mandatory upgrades should have no effect on the VM
-	require.Equal(t, vm.chainConfig.SubnetEVMTimestamp, big.NewInt(0))
+	require.Equal(t, *vm.chainConfig.SubnetEVMTimestamp, uint64(0))
 }
 
 func TestCrossChainMessagestoVM(t *testing.T) {
