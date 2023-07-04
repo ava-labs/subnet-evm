@@ -405,8 +405,6 @@ func (vm *VM) Initialize(
 	vm.ethConfig.Preimages = vm.config.Preimages
 	vm.ethConfig.Pruning = vm.config.Pruning
 	vm.ethConfig.TrieCleanCache = vm.config.TrieCleanCache
-	vm.ethConfig.TrieCleanJournal = vm.config.TrieCleanJournal
-	vm.ethConfig.TrieCleanRejournal = vm.config.TrieCleanRejournal.Duration
 	vm.ethConfig.TrieDirtyCache = vm.config.TrieDirtyCache
 	vm.ethConfig.TrieDirtyCommitTarget = vm.config.TrieDirtyCommitTarget
 	vm.ethConfig.TriePrefetcherParallelism = vm.config.TriePrefetcherParallelism

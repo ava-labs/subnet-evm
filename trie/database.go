@@ -18,7 +18,6 @@ package trie
 
 import (
 	"errors"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
 	"github.com/ava-labs/subnet-evm/trie/triedb/pathdb"
@@ -36,7 +35,6 @@ const (
 // Config defines all necessary options for database.
 type Config struct {
 	Cache       int            // Memory allowance (MB) to use for caching trie nodes in memory
-	Journal     string         // Journal of clean cache to survive node restarts
 	Preimages   bool           // Flag whether the preimage of trie key is recorded
 	StatsPrefix string         // Prefix for cache stats (disabled if empty)
 	PathDB      *pathdb.Config // Configs for experimental path-based scheme, not used yet.
@@ -118,7 +116,7 @@ func NewDatabase(diskdb ethdb.Database) *Database {
 func NewDatabaseWithConfig(diskdb ethdb.Database, config *Config) *Database {
 	var cleans cache
 	if config != nil && config.Cache != 0 {
-		cleans = utils.NewMeteredCache(config.Cache*1024*1024, config.Journal, config.StatsPrefix, cacheStatsUpdateFrequency)
+		cleans = utils.NewMeteredCache(config.Cache*1024*1024, "", config.StatsPrefix, cacheStatsUpdateFrequency)
 	}
 	db := prepare(diskdb, config)
 	db.backend = hashdb.New(diskdb, cleans, mptResolver{})
@@ -212,14 +210,6 @@ func (db *Database) Close() error {
 func (db *Database) WritePreimages() {
 	if db.preimages != nil {
 		db.preimages.commit(true)
-	}
-}
-
-// SaveCachePeriodically atomically saves fast cache data to the given dir with
-// the specified interval. All dump operation will only use a single CPU core.
-func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, stopCh <-chan struct{}) {
-	if hdb, ok := db.backend.(*hashdb.Database); ok {
-		hdb.SaveCachePeriodically(dir, interval, stopCh)
 	}
 }
 

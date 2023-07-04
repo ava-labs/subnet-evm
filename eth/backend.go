@@ -148,7 +148,7 @@ func New(
 	// Since RecoverPruning will only continue a pruning run that already began, we do not need to ensure that
 	// reprocessState has already been called and completed successfully. To ensure this, we must maintain
 	// that Prune is only run after reprocessState has finished successfully.
-	if err := pruner.RecoverPruning(config.OfflinePruningDataDirectory, chainDb, config.TrieCleanJournal); err != nil {
+	if err := pruner.RecoverPruning(config.OfflinePruningDataDirectory, chainDb); err != nil {
 		log.Error("Failed to recover state", "error", err)
 	}
 
@@ -188,8 +188,6 @@ func New(
 		}
 		cacheConfig = &core.CacheConfig{
 			TrieCleanLimit:                  config.TrieCleanCache,
-			TrieCleanJournal:                config.TrieCleanJournal,
-			TrieCleanRejournal:              config.TrieCleanRejournal,
 			TrieDirtyLimit:                  config.TrieDirtyCache,
 			TrieDirtyCommitTarget:           config.TrieDirtyCommitTarget,
 			TriePrefetcherParallelism:       config.TriePrefetcherParallelism,
@@ -450,7 +448,6 @@ func (s *Ethereum) handleOfflinePruning(cacheConfig *core.CacheConfig, gspec *co
 	log.Info("Starting offline pruning", "dataDir", s.config.OfflinePruningDataDirectory, "bloomFilterSize", s.config.OfflinePruningBloomFilterSize)
 	prunerConfig := pruner.Config{
 		BloomSize: s.config.OfflinePruningBloomFilterSize,
-		Cachedir:  s.config.TrieCleanJournal,
 		Datadir:   s.config.OfflinePruningDataDirectory,
 	}
 
