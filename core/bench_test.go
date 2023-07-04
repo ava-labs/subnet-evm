@@ -41,6 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
@@ -166,7 +167,8 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	chainman, _ := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+	chainman, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+	require.NoError(b, err)
 	defer chainman.Stop()
 	b.ReportAllocs()
 	b.ResetTimer()

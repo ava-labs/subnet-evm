@@ -81,7 +81,11 @@ func ExampleGenerateChain() {
 	}
 
 	// Import the chain. This runs all block validation rules.
-	blockchain, _ := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+	blockchain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+	if err != nil {
+		fmt.Printf("could not create blockchain: %v\n", err)
+		return
+	}
 	defer blockchain.Stop()
 
 	if i, err := blockchain.InsertChain(chain); err != nil {

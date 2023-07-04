@@ -18,6 +18,7 @@ import (
 // 1. NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
 // 2. EnabledRole - allowed to call the precompile
 // 3. Admin - allowed to both modify the allowlist and call the precompile
+// 4. Manager
 
 const (
 	SetAdminFuncKey      = "setAdmin"

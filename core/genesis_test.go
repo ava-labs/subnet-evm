@@ -126,7 +126,8 @@ func TestSetupGenesis(t *testing.T) {
 				// Advance to block #4, past the SubnetEVM transition block of customg.
 				genesis := oldcustomg.MustCommit(db)
 
-				bc, _ := NewBlockChain(db, DefaultCacheConfig, &oldcustomg, dummy.NewFullFaker(), vm.Config{}, genesis.Hash(), false)
+				bc, err := NewBlockChain(db, DefaultCacheConfig, &oldcustomg, dummy.NewFullFaker(), vm.Config{}, genesis.Hash(), false)
+				require.NoError(t, err)
 				defer bc.Stop()
 
 				blocks, _, _ := GenerateChain(oldcustomg.Config, genesis, dummy.NewFullFaker(), db, 4, 25, nil)
@@ -245,14 +246,15 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 		},
 		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
-	bc, _ := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
+	bc, err := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
+	require.NoError(t, err)
 	defer bc.Stop()
 
 	// Advance header to block #4, past the ContractDeployerAllowListConfig.
 	_, blocks, _, _ := GenerateChainWithGenesis(&customg, dummy.NewFullFaker(), 4, 25, nil)
 
 	require := require.New(t)
-	_, err := bc.InsertChain(blocks)
+	_, err = bc.InsertChain(blocks)
 	require.NoError(err)
 
 	// accept up to block #2
