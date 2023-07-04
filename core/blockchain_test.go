@@ -361,10 +361,12 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			return blockchain, nil
 		}
 
-		tempDir := t.TempDir()
 		if err := blockchain.CleanBlockRootsAboveLastAccepted(); err != nil {
 			return nil, err
 		}
+		blockchain.Stop()
+
+		tempDir := t.TempDir()
 		pruner, err := pruner.NewPruner(db, tempDir, 256)
 		if err != nil {
 			return nil, fmt.Errorf("offline pruning failed (%s, %d): %w", tempDir, 256, err)
@@ -471,6 +473,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	blockchain.Stop()
 
 	for _, block := range chain {
 		if !blockchain.HasState(block.Root()) {
@@ -698,6 +701,8 @@ func TestCanonicalHashMarker(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create tester chain: %v", err)
 		}
+		defer chain.Stop()
+
 		// Insert forkA and forkB, the canonical should on forkA still
 		if n, err := chain.InsertChain(forkA); err != nil {
 			t.Fatalf("block %d: failed to insert into chain: %v", n, err)

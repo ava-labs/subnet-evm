@@ -136,7 +136,7 @@ func (bc *testBlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeCo
 }
 
 func (bc *testBlockChain) SenderCacher() *TxSenderCacher {
-	return newTxSenderCacher(1)
+	return &TxSenderCacher{}
 }
 
 func transaction(nonce uint64, gaslimit uint64, key *ecdsa.PrivateKey) *types.Transaction {
