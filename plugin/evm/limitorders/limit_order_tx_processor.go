@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
+	"github.com/ava-labs/subnet-evm/metrics"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -28,6 +29,7 @@ type LimitOrderTxProcessor interface {
 	ExecuteFundingPaymentTx() error
 	ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error
 	ExecuteOrderCancel(orderIds []Order) error
+	UpdateMetrics(block *types.Block)
 }
 
 type ValidatorTxFeeConfig struct {
@@ -102,56 +104,62 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error {
-	log.Info("ExecuteLiquidation", "trader", trader, "matchedOrder", matchedOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18))
-	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "liquidateAndExecuteOrder", trader, matchedOrder.RawOrder, fillAmount)
+	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "liquidateAndExecuteOrder", trader, matchedOrder.RawOrder, fillAmount)
+	log.Info("ExecuteLiquidation", "trader", trader, "matchedOrder", matchedOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18), "txHash", txHash.String())
+	return err
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
-	log.Info("ExecuteFundingPaymentTx")
-	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "settleFunding")
+	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "settleFunding")
+	log.Info("ExecuteFundingPaymentTx", "txHash", txHash.String())
+	return err
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(longOrder LimitOrder, shortOrder LimitOrder, fillAmount *big.Int) error {
-	log.Info("ExecuteMatchedOrdersTx", "LongOrder", longOrder, "ShortOrder", shortOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18))
-
 	orders := make([]Order, 2)
 	orders[0], orders[1] = longOrder.RawOrder, shortOrder.RawOrder
-	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "executeMatchedOrders", orders, fillAmount)
+	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "executeMatchedOrders", orders, fillAmount)
+	log.Info("ExecuteMatchedOrdersTx", "LongOrder", longOrder, "ShortOrder", shortOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18), "txHash", txHash.String())
+	return err
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteOrderCancel(orders []Order) error {
-	log.Info("ExecuteOrderCancel", "orders", orders)
-	return lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "cancelOrders", orders)
+	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "cancelOrders", orders)
+	log.Info("ExecuteOrderCancel", "orders", orders, "txHash", txHash.String())
+	return err
 }
 
-func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contractABI abi.ABI, method string, args ...interface{}) error {
+func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contractABI abi.ABI, method string, args ...interface{}) (common.Hash, error) {
+	var txHash common.Hash
 	lotp.updateValidatorTxFeeConfig()
 	nonce := lotp.txPool.GetOrderBookTxNonce(common.HexToAddress(lotp.validatorAddress.Hex())) // admin address
 
 	data, err := contractABI.Pack(method, args...)
 	if err != nil {
 		log.Error("abi.Pack failed", "method", method, "args", args, "err", err)
-		return err
+		return txHash, err
 	}
 	key, err := crypto.HexToECDSA(lotp.validatorPrivateKey) // admin private key
 	if err != nil {
 		log.Error("HexToECDSA failed", "err", err)
-		return err
+		return txHash, err
 	}
 	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 1500000, lotp.validatorTxFeeConfig.baseFeeEstimate, data)
 	signer := types.NewLondonSigner(lotp.backend.ChainConfig().ChainID)
 	signedTx, err := types.SignTx(tx, signer, key)
 	if err != nil {
 		log.Error("types.SignTx failed", "err", err)
+		return txHash, err
 	}
+	txHash = signedTx.Hash()
 	err = lotp.txPool.AddOrderBookTx(signedTx)
 	if err != nil {
 		log.Error("lop.txPool.AddOrderBookTx failed", "err", err, "tx", signedTx.Hash().String(), "nonce", nonce)
-		return err
+		return txHash, err
 	}
-	log.Info("executeLocalTx - AddOrderBookTx success", "tx", signedTx.Hash().String(), "nonce", nonce)
+	// log.Info("executeLocalTx - AddOrderBookTx success", "tx", signedTx.Hash().String(), "nonce", nonce)
 
-	return nil
+	return txHash, nil
 }
 
 func (lotp *limitOrderTxProcessor) getBaseFeeEstimate() *big.Int {
@@ -233,7 +241,77 @@ func getAddressFromPrivateKey(key string) (common.Address, error) {
 	return address, nil
 }
 
-func isValidPrivateKey(key string) bool {
-	_, err := getAddressFromPrivateKey(key)
-	return err == nil
+func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
+	// defer func(start time.Time) { log.Info("limitOrderTxProcessor.UpdateMetrics", "time", time.Since(start)) }(time.Now())
+
+	transactionsPerBlockHistogram.Update(int64(len(block.Transactions())))
+	gasUsedPerBlockHistogram.Update(int64(block.GasUsed()))
+	blockGasCostPerBlockHistogram.Update(block.BlockGasCost().Int64())
+
+	ctx := context.Background()
+	txs := block.Transactions()
+
+	receipts, err := lotp.backend.GetReceipts(ctx, block.Hash())
+	if err != nil {
+		log.Error("UpdateMetrics - lotp.backend.GetReceipts failed", "err", err)
+		return
+	}
+
+	bigblock := new(big.Int).SetUint64(block.NumberU64())
+	timestamp := new(big.Int).SetUint64(block.Header().Time)
+	signer := types.MakeSigner(lotp.backend.ChainConfig(), bigblock, timestamp)
+
+	for i := 0; i < len(txs); i++ {
+		tx := txs[i]
+		receipt := receipts[i]
+		from, _ := types.Sender(signer, tx)
+		contractAddress := tx.To()
+		input := tx.Data()
+		if contractAddress == nil || len(input) < 4 {
+			continue
+		}
+		method_ := input[:4]
+		method, _ := lotp.orderBookABI.MethodById(method_)
+
+		if method == nil {
+			continue
+		}
+
+		if from == lotp.validatorAddress {
+			if receipt.Status == 0 {
+				orderBookTransactionsFailureTotalCounter.Inc(1)
+			} else if receipt.Status == 1 {
+				orderBookTransactionsSuccessTotalCounter.Inc(1)
+			}
+
+			if contractAddress != nil && lotp.orderBookContractAddress == *contractAddress {
+				note := "success"
+				if receipt.Status == 0 {
+					note = "failure"
+				}
+				counterName := fmt.Sprintf("orderbooktxs/%s/%s", method.Name, note)
+				metrics.GetOrRegisterCounter(counterName, nil).Inc(1)
+			}
+
+		}
+
+		// measure the gas usage irrespective of whether the tx is from this validator or not
+		if contractAddress != nil {
+			var contractName string
+			switch *contractAddress {
+			case lotp.orderBookContractAddress:
+				contractName = "OrderBook"
+			case lotp.clearingHouseContractAddress:
+				contractName = "ClearingHouse"
+			case lotp.marginAccountContractAddress:
+				contractName = "MarginAccount"
+			default:
+				continue
+			}
+
+			gasUsageMetric := fmt.Sprintf("orderbooktxs/%s/%s/gas", contractName, method.Name)
+			sampler := metrics.ResettingSample(metrics.NewExpDecaySample(1028, 0.015))
+			metrics.GetOrRegisterHistogram(gasUsageMetric, nil, sampler).Update(int64(receipt.GasUsed))
+		}
+	}
 }

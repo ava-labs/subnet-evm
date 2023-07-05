@@ -105,7 +105,7 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 			logs := lop.getLogs(fromBlock, toBlock)
 			log.Info("ListenAndProcessTransactions - fetched log chunk", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs), "err", err)
 			lop.contractEventProcessor.ProcessEvents(logs)
-			lop.contractEventProcessor.ProcessAcceptedEvents(logs)
+			lop.contractEventProcessor.ProcessAcceptedEvents(logs, true)
 
 			fromBlock = fromBlock.Add(toBlock, big.NewInt(1))
 			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
@@ -165,7 +165,7 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 			case logs := <-acceptedLogsCh:
 				lop.mu.Lock()
 
-				lop.contractEventProcessor.ProcessAcceptedEvents(logs)
+				lop.contractEventProcessor.ProcessAcceptedEvents(logs, false)
 
 				lop.mu.Unlock()
 			case <-lop.shutdownChan:
@@ -200,6 +200,8 @@ func (lop *limitOrderProcesser) handleChainAcceptedEvent(event core.ChainEvent) 
 	log.Info("#### received ChainAcceptedEvent", "number", block.NumberU64(), "hash", block.Hash().String())
 	lop.memoryDb.Accept(block.NumberU64())
 
+	// update metrics asynchronously
+	go lop.limitOrderTxProcessor.UpdateMetrics(block)
 	if block.NumberU64()%snapshotInterval == 0 {
 		err := lop.saveMemoryDBSnapshot(block.Number())
 		if err != nil {

@@ -2,6 +2,7 @@ package limitorders
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -15,21 +16,24 @@ func TestAggregatedOrderBook(t *testing.T) {
 		service := NewOrderBookAPI(db, &eth.EthAPIBackend{}, db.configService)
 
 		longOrder1 := getLongOrder()
-		db.Add(getIdFromLimitOrder(longOrder1), &longOrder1)
+		db.Add(&longOrder1)
 
 		longOrder2 := getLongOrder()
 		longOrder2.Salt.Add(longOrder2.Salt, big.NewInt(100))
 		longOrder2.Price.Mul(longOrder2.Price, big.NewInt(2))
-		db.Add(getIdFromLimitOrder(longOrder2), &longOrder2)
+		longOrder2.Id = getIdFromLimitOrder(longOrder2)
+		db.Add(&longOrder2)
 
 		shortOrder1 := getShortOrder()
 		shortOrder1.Salt.Add(shortOrder1.Salt, big.NewInt(200))
-		db.Add(getIdFromLimitOrder(shortOrder1), &shortOrder1)
+		shortOrder1.Id = getIdFromLimitOrder(shortOrder1)
+		db.Add(&shortOrder1)
 
 		shortOrder2 := getShortOrder()
 		shortOrder2.Salt.Add(shortOrder1.Salt, big.NewInt(300))
 		shortOrder2.Price.Mul(shortOrder2.Price, big.NewInt(2))
-		db.Add(getIdFromLimitOrder(shortOrder2), &shortOrder2)
+		shortOrder2.Id = getIdFromLimitOrder(shortOrder2)
+		db.Add(&shortOrder2)
 
 		ctx := context.TODO()
 		response := service.GetDepthForMarket(ctx, int(Market(0)))
@@ -44,6 +48,7 @@ func TestAggregatedOrderBook(t *testing.T) {
 				shortOrder2.Price.String(): shortOrder2.BaseAssetQuantity.String(),
 			},
 		}
+		fmt.Println(response)
 		assert.Equal(t, expectedAggregatedOrderBookState, *response)
 
 		orderbook, _ := service.GetOrderBook(ctx, "0")

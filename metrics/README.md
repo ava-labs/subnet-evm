@@ -3,6 +3,8 @@ go-metrics
 
 ![travis build status](https://travis-ci.org/rcrowley/go-metrics.svg?branch=master)
 
+Read more about what different metric types mean - https://metrics.dropwizard.io/4.2.0/getting-started.html
+
 Go port of Coda Hale's Metrics library: <https://github.com/dropwizard/metrics>.
 
 Documentation: <https://godoc.org/github.com/rcrowley/go-metrics>.

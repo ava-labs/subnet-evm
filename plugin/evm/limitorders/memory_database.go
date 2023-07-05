@@ -181,7 +181,7 @@ type Trader struct {
 type LimitOrderDatabase interface {
 	LoadFromSnapshot(snapshot Snapshot) error
 	GetAllOrders() []LimitOrder
-	Add(orderId common.Hash, order *LimitOrder)
+	Add(order *LimitOrder)
 	Delete(orderId common.Hash)
 	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64)
 	GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []LimitOrder
@@ -280,13 +280,12 @@ func (db *InMemoryDatabase) GetAllOrders() []LimitOrder {
 	return allOrders
 }
 
-func (db *InMemoryDatabase) Add(orderId common.Hash, order *LimitOrder) {
+func (db *InMemoryDatabase) Add(order *LimitOrder) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	order.Id = orderId
 	order.LifecycleList = append(order.LifecycleList, Lifecycle{order.BlockNumber.Uint64(), Placed, ""})
-	db.OrderMap[orderId] = order
+	db.OrderMap[order.Id] = order
 }
 
 func (db *InMemoryDatabase) Delete(orderId common.Hash) {

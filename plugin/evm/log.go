@@ -16,7 +16,7 @@ import (
 
 const (
 	errorKey   = "LOG15_ERROR"
-	timeFormat = "2006-01-02T15:04:05-0700"
+	timeFormat = "2006-01-02T15:04:05.000-0700"
 )
 
 type SubnetEVMLogger struct {
@@ -27,7 +27,7 @@ type SubnetEVMLogger struct {
 // along with the context logger.
 func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (SubnetEVMLogger, error) {
 	// logFormat := SubnetEVMTermFormat(alias)
-	logFormat := log.LogfmtFormat()
+	logFormat := LogfmtFormat()
 	if jsonFormat {
 		logFormat = SubnetEVMJSONFormat(alias)
 	}

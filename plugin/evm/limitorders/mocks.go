@@ -32,7 +32,7 @@ func (db *MockLimitOrderDatabase) GetAllOrders() []LimitOrder {
 	return args.Get(0).([]LimitOrder)
 }
 
-func (db *MockLimitOrderDatabase) Add(orderId common.Hash, order *LimitOrder) {
+func (db *MockLimitOrderDatabase) Add(order *LimitOrder) {
 }
 
 func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64) {
@@ -181,6 +181,10 @@ func (lotp *MockLimitOrderTxProcessor) HandleClearingHouseEvent(event *types.Log
 
 func (lotp *MockLimitOrderTxProcessor) GetUnderlyingPrice() (map[Market]*big.Int, error) {
 	return nil, nil
+}
+
+func (lotp *MockLimitOrderTxProcessor) UpdateMetrics(block *types.Block) {
+	lotp.Called()
 }
 
 type MockConfigService struct {
