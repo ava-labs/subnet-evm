@@ -165,7 +165,7 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		gas += z * params.TxDataZeroGas
 	}
 	if accessList != nil {
-		accessListGas, err := AccessListGas(rules, accessList)
+		accessListGas, err := accessListGas(rules, accessList)
 		if err != nil {
 			return 0, err
 		}
@@ -179,7 +179,7 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 	return gas, nil
 }
 
-func AccessListGas(rules params.Rules, accessList types.AccessList) (uint64, error) {
+func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, error) {
 	var gas uint64
 	if !rules.PredicatesExist() {
 		gas += uint64(len(accessList)) * params.TxAccessListAddressGas
@@ -190,7 +190,12 @@ func AccessListGas(rules params.Rules, accessList types.AccessList) (uint64, err
 	for i, accessTuple := range accessList {
 		address := accessTuple.Address
 		if !rules.PredicateExists(address) {
-			totalGas, overflow := commonMath.SafeAdd(gas, params.TxAccessListAddressGas+uint64(len(accessTuple.StorageKeys))*params.TxAccessListStorageKeyGas)
+			// Previous access list gas calculation does not use safemath because an overflow would not be possible with
+			// the size of access lists that could be included in a block and standard access list gas costs.
+			// Therefore, we only check for overflow when adding to [totalGas], which could include the sum of values
+			// returned by a predicate.
+			accessTupleGas := params.TxAccessListAddressGas + uint64(len(accessTuple.StorageKeys))*params.TxAccessListStorageKeyGas
+			totalGas, overflow := commonMath.SafeAdd(gas, accessTupleGas)
 			if overflow {
 				return 0, fmt.Errorf("overflow adding storage slot gas at index %d", i)
 			}
@@ -216,11 +221,11 @@ func ApplyPredicateGas(rules params.Rules, accessTuple types.AccessTuple) (uint6
 	if ok {
 		return predicate.PredicateGas(utils.HashSliceToBytes(accessTuple.StorageKeys))
 	}
-	proposerPredicates, ok := rules.ProposerPredicates[accessTuple.Address]
+	proposerPredicate, ok := rules.ProposerPredicates[accessTuple.Address]
 	if !ok {
 		return 0, nil
 	}
-	return proposerPredicates.PredicateGas(utils.HashSliceToBytes(accessTuple.StorageKeys))
+	return proposerPredicate.PredicateGas(utils.HashSliceToBytes(accessTuple.StorageKeys))
 }
 
 // NewStateTransition initialises and returns a new state transition object.

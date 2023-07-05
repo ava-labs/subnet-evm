@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// PredicateTest defines a unit test/benchmark for verifying a precompile predicate.
 type PredicateTest struct {
 	Config precompileconfig.Config
 
@@ -23,6 +24,8 @@ type PredicateTest struct {
 
 func (test PredicateTest) Run(t testing.TB) {
 	t.Helper()
+	require := require.New(t)
+
 	var (
 		gas                  uint64
 		gasErr, predicateErr error
@@ -31,18 +34,20 @@ func (test PredicateTest) Run(t testing.TB) {
 
 	gas, gasErr = predicate.PredicateGas(test.StorageSlots)
 	if test.GasErr != nil {
-		require.ErrorIs(t, gasErr, test.GasErr)
-		return // If PredicateGas returns an error, the predicate is invalidated and no further checks are needed
+		// If PredicateGas returns an error, the predicate fails verification and we will
+		// never call VerifyPredicate.
+		require.ErrorIs(gasErr, test.GasErr)
+		return
 	} else {
-		require.NoError(t, gasErr)
+		require.NoError(gasErr)
 	}
-	require.Equal(t, test.Gas, gas)
+	require.Equal(test.Gas, gas)
 
 	predicateErr = predicate.VerifyPredicate(test.ProposerPredicateContext, test.StorageSlots)
 	if test.PredicateErr == nil {
-		require.NoError(t, predicateErr)
+		require.NoError(predicateErr)
 	} else {
-		require.ErrorIs(t, predicateErr, test.PredicateErr)
+		require.ErrorIs(predicateErr, test.PredicateErr)
 	}
 }
 
