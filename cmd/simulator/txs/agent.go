@@ -26,6 +26,7 @@ type Worker[T any] interface {
 	IssueTx(ctx context.Context, tx T) error
 	ConfirmTx(ctx context.Context, tx T) error
 	Close(ctx context.Context) error
+	CollectMetrics(ctx context.Context) error
 }
 
 // Execute the work of the given agent.
@@ -117,6 +118,9 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			totalTime := time.Since(start).Seconds()
 			log.Info("Execution complete", "totalTxs", confirmedCount, "totalTime", totalTime, "TPS", float64(confirmedCount)/totalTime,
 				"issuanceTime", totalIssuedTime.Seconds(), "confirmedTime", totalConfirmedTime.Seconds())
+			if err := a.worker.CollectMetrics(ctx); err != nil {
+				return fmt.Errorf("failed collect metrics: %w", err)
+			}
 			return nil
 		}
 
