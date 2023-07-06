@@ -124,6 +124,6 @@ func addSimulatorFlags(fs *pflag.FlagSet) {
 	fs.Duration(TimeoutKey, 5*time.Minute, "Specify the timeout for the simulator to complete (0 indicates no timeout)")
 	fs.String(LogLevelKey, "info", "Specify the log level to use in the simulator")
 	fs.Uint64(BatchSizeKey, 100, "Specify the batchsize for the worker to issue and confirm txs")
-	fs.String(BlockchainIDStrKey, "C", "Specify the blockchainIDStr for the chain you are executing the simulation on. Ex: C, X, P, pUSPHTrvs8ASVfPjrf9xdQ6SwDFhSmCZ3EKuCUMASHky2Wvr")
+	fs.String(BlockchainIDStrKey, "C", "Specify the blockchainIDStr for the chain you are executing the simulation on. Ex: C, X, P, pUSPHTrvs8ASVfPjrf9xdQ6SwDFhSmCZ3EKuCUMASHky2Wvr (full 32 byte hash blockchainID)")
 	fs.StringSlice(MetricsEndpointsKey, []string{"http://127.0.0.1:9650/ext/metrics"}, "Specify a comma separated list of metric endpoints for extra logging at the end of the simulation (minimum of 1 endpoint)")
 }

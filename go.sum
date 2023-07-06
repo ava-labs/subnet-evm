@@ -69,6 +69,8 @@ github.com/ava-labs/avalanchego v1.10.2 h1:kDM2xfQDaewueUCxJUujPlbNQ91gtJfXY9Z0C
 github.com/ava-labs/avalanchego v1.10.2/go.mod h1:PsNLfOc9FnsnoJ8CjauclvFy6BCSVZmT05I4c9rm4a4=
 github.com/ava-labs/coreth v0.12.2-rc.0 h1:nGhGN4bYqid5EgqH/GFky2ybY8bGRxto6Bo7nes1V+Y=
 github.com/ava-labs/coreth v0.12.2-rc.0/go.mod h1:/5x54QlIKjlPebkdzTA5ic9wXdejbWOnQosztkv9jxo=
+github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e h1:dSeuFcs4WAJJnswS8vXy7YY1+fdlbVPuEVmDAfqvFOQ=
+github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e/go.mod h1:uh71c5Vc3VNIplXOFXsnDy21T1BepgT32c5X/YPrOyc=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
