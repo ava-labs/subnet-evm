@@ -1,4 +1,4 @@
-// (c) 2019-2021, Ava Labs, Inc.
+// (c) 2023, Ava Labs, Inc.
 //
 // This file is a derived work, based on the go-ethereum library whose original
 // notices appear below.
@@ -8,7 +8,7 @@
 //
 // Much love to the original authors for their work.
 // **********
-// Copyright 2021 The go-ethereum Authors
+// Copyright 2022 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -26,15 +26,40 @@
 
 package state
 
-import "github.com/ava-labs/subnet-evm/metrics"
-
-var (
-	accountUpdatedMeter      = metrics.NewRegisteredMeter("state/update/account", nil)
-	storageUpdatedMeter      = metrics.NewRegisteredMeter("state/update/storage", nil)
-	accountDeletedMeter      = metrics.NewRegisteredMeter("state/delete/account", nil)
-	storageDeletedMeter      = metrics.NewRegisteredMeter("state/delete/storage", nil)
-	accountTrieUpdatedMeter  = metrics.NewRegisteredMeter("state/update/accountnodes", nil)
-	storageTriesUpdatedMeter = metrics.NewRegisteredMeter("state/update/storagenodes", nil)
-	accountTrieDeletedMeter  = metrics.NewRegisteredMeter("state/delete/accountnodes", nil)
-	storageTriesDeletedMeter = metrics.NewRegisteredMeter("state/delete/storagenodes", nil)
+import (
+	"github.com/ethereum/go-ethereum/common"
 )
+
+// transientStorage is a representation of EIP-1153 "Transient Storage".
+type transientStorage map[common.Address]Storage
+
+// newTransientStorage creates a new instance of a transientStorage.
+func newTransientStorage() transientStorage {
+	return make(transientStorage)
+}
+
+// Set sets the transient-storage `value` for `key` at the given `addr`.
+func (t transientStorage) Set(addr common.Address, key, value common.Hash) {
+	if _, ok := t[addr]; !ok {
+		t[addr] = make(Storage)
+	}
+	t[addr][key] = value
+}
+
+// Get gets the transient storage for `key` at the given `addr`.
+func (t transientStorage) Get(addr common.Address, key common.Hash) common.Hash {
+	val, ok := t[addr]
+	if !ok {
+		return common.Hash{}
+	}
+	return val[key]
+}
+
+// Copy does a deep copy of the transientStorage
+func (t transientStorage) Copy() transientStorage {
+	storage := make(transientStorage)
+	for key, value := range t {
+		storage[key] = value.Copy()
+	}
+	return storage
+}
