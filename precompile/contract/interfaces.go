@@ -66,7 +66,7 @@ type AccessibleState interface {
 // to initialize its state.
 type BlockContext interface {
 	Number() *big.Int
-	Timestamp() *big.Int
+	Timestamp() uint64
 }
 
 type Configurator interface {

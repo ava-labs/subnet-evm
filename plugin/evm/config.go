@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cast"
@@ -24,7 +24,7 @@ const (
 	defaultTrieDirtyCommitTarget                      = 20
 	defaultSnapshotCache                              = 256
 	defaultSyncableCommitInterval                     = defaultCommitInterval * 4
-	defaultSnapshotAsync                              = true
+	defaultSnapshotWait                               = false
 	defaultRpcGasCap                                  = 50_000_000 // Default to 50M Gas Limit
 	defaultRpcTxFeeCap                                = 100        // 100 AVAX
 	defaultMetricsExpensiveEnabled                    = true
@@ -113,7 +113,7 @@ type Config struct {
 
 	// Eth Settings
 	Preimages      bool `json:"preimages-enabled"`
-	SnapshotAsync  bool `json:"snapshot-async"`
+	SnapshotWait   bool `json:"snapshot-wait"`
 	SnapshotVerify bool `json:"snapshot-verification-enabled"`
 
 	// Pruning Settings
@@ -183,7 +183,7 @@ type Config struct {
 	InspectDatabase bool `json:"inspect-database"` // Inspects the database on startup if enabled.
 
 	// Sync settings
-	StateSyncEnabled         bool   `json:"state-sync-enabled"`
+	StateSyncEnabled         *bool  `json:"state-sync-enabled"`     // Pointer distinguishes false (no state sync) and not set (state sync only at genesis).
 	StateSyncSkipResume      bool   `json:"state-sync-skip-resume"` // Forces state sync to use the highest available summary block
 	StateSyncServerTrieCache int    `json:"state-sync-server-trie-cache"`
 	StateSyncIDs             string `json:"state-sync-ids"`
@@ -226,14 +226,14 @@ func (c *Config) SetDefaults() {
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
 
-	c.TxPoolJournal = core.DefaultTxPoolConfig.Journal
-	c.TxPoolRejournal = Duration{core.DefaultTxPoolConfig.Rejournal}
-	c.TxPoolPriceLimit = core.DefaultTxPoolConfig.PriceLimit
-	c.TxPoolPriceBump = core.DefaultTxPoolConfig.PriceBump
-	c.TxPoolAccountSlots = core.DefaultTxPoolConfig.AccountSlots
-	c.TxPoolGlobalSlots = core.DefaultTxPoolConfig.GlobalSlots
-	c.TxPoolAccountQueue = core.DefaultTxPoolConfig.AccountQueue
-	c.TxPoolGlobalQueue = core.DefaultTxPoolConfig.GlobalQueue
+	c.TxPoolJournal = txpool.DefaultConfig.Journal
+	c.TxPoolRejournal = Duration{txpool.DefaultConfig.Rejournal}
+	c.TxPoolPriceLimit = txpool.DefaultConfig.PriceLimit
+	c.TxPoolPriceBump = txpool.DefaultConfig.PriceBump
+	c.TxPoolAccountSlots = txpool.DefaultConfig.AccountSlots
+	c.TxPoolGlobalSlots = txpool.DefaultConfig.GlobalSlots
+	c.TxPoolAccountQueue = txpool.DefaultConfig.AccountQueue
+	c.TxPoolGlobalQueue = txpool.DefaultConfig.GlobalQueue
 
 	c.APIMaxDuration.Duration = defaultApiMaxDuration
 	c.WSCPURefillRate.Duration = defaultWsCpuRefillRate
@@ -248,7 +248,7 @@ func (c *Config) SetDefaults() {
 	c.SnapshotCache = defaultSnapshotCache
 	c.AcceptorQueueLimit = defaultAcceptorQueueLimit
 	c.CommitInterval = defaultCommitInterval
-	c.SnapshotAsync = defaultSnapshotAsync
+	c.SnapshotWait = defaultSnapshotWait
 	c.RegossipFrequency.Duration = defaultRegossipFrequency
 	c.RegossipMaxTxs = defaultRegossipMaxTxs
 	c.RegossipTxsPerAddress = defaultRegossipTxsPerAddress

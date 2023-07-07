@@ -4,7 +4,6 @@
 package allowlist
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -25,9 +24,9 @@ type dummyConfig struct {
 	AllowListConfig
 }
 
-func (d *dummyConfig) Key() string         { return "dummy" }
-func (d *dummyConfig) Timestamp() *big.Int { return common.Big0 }
-func (d *dummyConfig) IsDisabled() bool    { return false }
+func (d *dummyConfig) Key() string        { return "dummy" }
+func (d *dummyConfig) Timestamp() *uint64 { return new(uint64) }
+func (d *dummyConfig) IsDisabled() bool   { return false }
 func (d *dummyConfig) Equal(cfg precompileconfig.Config) bool {
 	other, ok := (cfg).(*dummyConfig)
 	if !ok {
