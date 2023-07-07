@@ -19,6 +19,7 @@ import (
 
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/hubblebibliophile"
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/juror"
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
 )
@@ -46,4 +47,5 @@ import (
 // ClearingHouse		   = common.HexToAddress("0x0300000000000000000000000000000000000002")
 // HubbleBiblioPhile       = common.HexToAddress("0x0300000000000000000000000000000000000003")
 // bibliophile       = common.HexToAddress("0x0300000000000000000000000000000000000004")
+// juror       = common.HexToAddress("0x0300000000000000000000000000000000000005")
 // {YourPrecompile}Address = common.HexToAddress("0x03000000000000000000000000000000000000??")

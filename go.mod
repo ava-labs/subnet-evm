@@ -47,6 +47,11 @@ require (
 )
 
 require (
+	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/tools v0.4.0 // indirect
+)
+
+require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -131,4 +136,5 @@ require (
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gotest.tools v2.2.0+incompatible
 )

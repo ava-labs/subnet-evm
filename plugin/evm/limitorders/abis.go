@@ -174,7 +174,7 @@ var orderBookAbi = []byte(`{"abi": [
           }
         ],
         "indexed": false,
-        "internalType": "struct IOrderBook.Order",
+        "internalType": "struct ILimitOrderBook.Order",
         "name": "order",
         "type": "tuple"
       },
@@ -272,7 +272,7 @@ var orderBookAbi = []byte(`{"abi": [
             "type": "bool"
           }
         ],
-        "internalType": "struct IOrderBook.Order",
+        "internalType": "struct ILimitOrderBook.Order",
         "name": "order",
         "type": "tuple"
       }
@@ -317,12 +317,30 @@ var orderBookAbi = []byte(`{"abi": [
             "type": "bool"
           }
         ],
-        "internalType": "struct IOrderBook.Order[]",
+        "internalType": "struct ILimitOrderBook.Order[]",
         "name": "orders",
         "type": "tuple[]"
       }
     ],
     "name": "cancelOrders",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes[2]",
+        "name": "orders",
+        "type": "bytes[2]"
+      },
+      {
+        "internalType": "int256",
+        "name": "fillAmount",
+        "type": "int256"
+      }
+    ],
+    "name": "executeMatchedOrders",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -362,29 +380,17 @@ var orderBookAbi = []byte(`{"abi": [
             "type": "bool"
           }
         ],
-        "internalType": "struct IOrderBook.Order[2]",
-        "name": "orders",
-        "type": "tuple[2]"
-      },
-      {
-        "internalType": "int256",
-        "name": "fillAmount",
-        "type": "int256"
+        "internalType": "struct ILimitOrderBook.Order",
+        "name": "order",
+        "type": "tuple"
       }
     ],
-    "name": "executeMatchedOrders",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getLastTradePrices",
+    "name": "getOrderHash",
     "outputs": [
       {
-        "internalType": "uint256[]",
-        "name": "lastTradePrices",
-        "type": "uint256[]"
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
     "stateMutability": "view",
@@ -407,9 +413,111 @@ var orderBookAbi = []byte(`{"abi": [
     "inputs": [
       {
         "internalType": "address",
+        "name": "signer",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "trader",
+        "type": "address"
+      }
+    ],
+    "name": "isTradingAuthority",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "validator",
+        "type": "address"
+      }
+    ],
+    "name": "isValidator",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "trader",
         "type": "address"
       },
+      {
+        "internalType": "bytes",
+        "name": "order",
+        "type": "bytes"
+      },
+      {
+        "internalType": "uint256",
+        "name": "toLiquidate",
+        "type": "uint256"
+      }
+    ],
+    "name": "liquidateAndExecuteOrder",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "orderHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "orderStatus",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "blockPlaced",
+            "type": "uint256"
+          },
+          {
+            "internalType": "int256",
+            "name": "filledAmount",
+            "type": "int256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "reservedMargin",
+            "type": "uint256"
+          },
+          {
+            "internalType": "enum IOrderHandler.OrderStatus",
+            "name": "status",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct ILimitOrderBook.OrderInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
         "components": [
           {
@@ -443,17 +551,57 @@ var orderBookAbi = []byte(`{"abi": [
             "type": "bool"
           }
         ],
-        "internalType": "struct IOrderBook.Order",
+        "internalType": "struct ILimitOrderBook.Order",
         "name": "order",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "toLiquidate",
-        "type": "uint256"
       }
     ],
-    "name": "liquidateAndExecuteOrder",
+    "name": "placeOrder",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "ammIndex",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "trader",
+            "type": "address"
+          },
+          {
+            "internalType": "int256",
+            "name": "baseAssetQuantity",
+            "type": "int256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "price",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "salt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "reduceOnly",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct ILimitOrderBook.Order[]",
+        "name": "orders",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "placeOrders",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -461,6 +609,24 @@ var orderBookAbi = []byte(`{"abi": [
   {
     "inputs": [],
     "name": "settleFunding",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      },
+      {
+        "internalType": "bytes",
+        "name": "metadata",
+        "type": "bytes"
+      }
+    ],
+    "name": "updateOrder",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

@@ -104,7 +104,12 @@ func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, 
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error {
-	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "liquidateAndExecuteOrder", trader, matchedOrder.RawOrder, fillAmount)
+	orderBytes, err := EncodeLimitOrder(matchedOrder.RawOrder)
+	if err != nil {
+		log.Error("EncodeLimitOrder failed in ExecuteLiquidation", "order", matchedOrder, "err", err)
+		return err
+	}
+	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "liquidateAndExecuteOrder", trader, orderBytes, fillAmount)
 	log.Info("ExecuteLiquidation", "trader", trader, "matchedOrder", matchedOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18), "txHash", txHash.String())
 	return err
 }
@@ -116,8 +121,19 @@ func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(longOrder LimitOrder, shortOrder LimitOrder, fillAmount *big.Int) error {
-	orders := make([]Order, 2)
-	orders[0], orders[1] = longOrder.RawOrder, shortOrder.RawOrder
+	var err error
+	orders := make([][]byte, 2)
+	orders[0], err = EncodeLimitOrder(longOrder.RawOrder)
+	if err != nil {
+		log.Error("EncodeLimitOrder failed for longOrder", "order", longOrder, "err", err)
+		return err
+	}
+	orders[1], err = EncodeLimitOrder(shortOrder.RawOrder)
+	if err != nil {
+		log.Error("EncodeLimitOrder failed for shortOrder", "order", shortOrder, "err", err)
+		return err
+	}
+
 	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "executeMatchedOrders", orders, fillAmount)
 	log.Info("ExecuteMatchedOrdersTx", "LongOrder", longOrder, "ShortOrder", shortOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18), "txHash", txHash.String())
 	return err
@@ -314,4 +330,29 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 			metrics.GetOrRegisterHistogram(gasUsageMetric, nil, sampler).Update(int64(receipt.GasUsed))
 		}
 	}
+}
+
+func EncodeLimitOrder(order Order) ([]byte, error) {
+	limitOrderType, _ := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
+		{Name: "ammIndex", Type: "uint256"},
+		{Name: "trader", Type: "address"},
+		{Name: "baseAssetQuantity", Type: "int256"},
+		{Name: "price", Type: "uint256"},
+		{Name: "salt", Type: "uint256"},
+		{Name: "reduceOnly", Type: "bool"},
+	})
+
+	encodedLimitOrder, err := abi.Arguments{{Type: limitOrderType}}.Pack(order)
+	if err != nil {
+		return nil, fmt.Errorf("limit order packing failed: %w", err)
+	}
+
+	orderType, _ := abi.NewType("uint8", "uint8", nil)
+	orderBytesType, _ := abi.NewType("bytes", "bytes", nil)
+	encodedOrder, err := abi.Arguments{{Type: orderType}, {Type: orderBytesType}}.Pack(uint8(0), encodedLimitOrder)
+	if err != nil {
+		return nil, fmt.Errorf("order encoding failed: %w", err)
+	}
+
+	return encodedOrder, nil
 }

@@ -28,3 +28,5 @@ jobs:
         shell: bash
       - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile
         shell: bash
+      - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/juror
+        shell: bash
