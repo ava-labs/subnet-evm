@@ -53,7 +53,7 @@ func executeSignatureAggregationTest(t testing.TB, test signatureAggregationTest
 
 func TestSingleSignatureAggregator(t *testing.T) {
 	ctx := context.Background()
-	aggregationJob := NewSignatureAggregationJob(
+	aggregationJob := newSignatureAggregationJob(
 		&mockFetcher{
 			fetch: func(context.Context, ids.NodeID, *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 				return blsSignatures[0], nil
@@ -100,7 +100,7 @@ func TestSingleSignatureAggregator(t *testing.T) {
 
 func TestAggregateAllSignatures(t *testing.T) {
 	ctx := context.Background()
-	aggregationJob := NewSignatureAggregationJob(
+	aggregationJob := newSignatureAggregationJob(
 		&mockFetcher{
 			fetch: func(_ context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 				for i, matchingNodeID := range nodeIDs {
@@ -156,7 +156,7 @@ func TestAggregateAllSignatures(t *testing.T) {
 
 func TestAggregateThresholdSignatures(t *testing.T) {
 	ctx := context.Background()
-	aggregationJob := NewSignatureAggregationJob(
+	aggregationJob := newSignatureAggregationJob(
 		&mockFetcher{
 			fetch: func(_ context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 				for i, matchingNodeID := range nodeIDs[:3] {
@@ -212,7 +212,7 @@ func TestAggregateThresholdSignatures(t *testing.T) {
 
 func TestAggregateThresholdSignaturesInsufficientWeight(t *testing.T) {
 	ctx := context.Background()
-	aggregationJob := NewSignatureAggregationJob(
+	aggregationJob := newSignatureAggregationJob(
 		&mockFetcher{
 			fetch: func(_ context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 				for i, matchingNodeID := range nodeIDs[:3] {
@@ -255,7 +255,7 @@ func TestAggregateThresholdSignaturesInsufficientWeight(t *testing.T) {
 
 func TestAggregateThresholdSignaturesBlockingRequests(t *testing.T) {
 	ctx := context.Background()
-	aggregationJob := NewSignatureAggregationJob(
+	aggregationJob := newSignatureAggregationJob(
 		&mockFetcher{
 			fetch: func(ctx context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 				for i, matchingNodeID := range nodeIDs[:3] {
@@ -315,7 +315,7 @@ func TestAggregateThresholdSignaturesBlockingRequests(t *testing.T) {
 func TestAggregateThresholdSignaturesParentCtxCancels(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	aggregationJob := NewSignatureAggregationJob(
+	aggregationJob := newSignatureAggregationJob(
 		&mockFetcher{
 			fetch: func(ctx context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 				// Block until the context is cancelled and return the error if not available

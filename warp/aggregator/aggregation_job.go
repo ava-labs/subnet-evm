@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+// signatureAggregationJob fetches signatures for a single unsigned warp message.
 type signatureAggregationJob struct {
 	// SignatureBackend is assumed to be thread-safe and may be used by multiple signature aggregation jobs concurrently
 	client   SignatureBackend
@@ -40,7 +41,7 @@ type AggregateSignatureResult struct {
 	Message         *avalancheWarp.Message
 }
 
-func NewSignatureAggregationJob(
+func newSignatureAggregationJob(
 	client SignatureBackend,
 	height uint64,
 	subnetID ids.ID,

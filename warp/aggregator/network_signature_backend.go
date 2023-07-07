@@ -14,6 +14,11 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 )
 
+const (
+	initialRetryFetchSignatureDelay = 100 * time.Millisecond
+	retryBackoffFactor              = 2
+)
+
 var _ SignatureBackend = (*NetworkSigner)(nil)
 
 type NetworkClient interface {
@@ -38,7 +43,7 @@ func (s *NetworkSigner) FetchWarpSignature(ctx context.Context, nodeID ids.NodeI
 		return nil, fmt.Errorf("failed to marshal signature request: %w", err)
 	}
 
-	delay := 100 * time.Millisecond
+	delay := initialRetryFetchSignatureDelay
 	for ctx.Err() == nil {
 		signatureRes, err := s.Client.SendAppRequest(nodeID, signatureReqBytes)
 		// If the client fails to retrieve a response perform an exponential backoff.
@@ -49,7 +54,7 @@ func (s *NetworkSigner) FetchWarpSignature(ctx context.Context, nodeID ids.NodeI
 				break
 			case <-time.After(delay):
 			}
-			delay *= 2
+			delay *= retryBackoffFactor
 			continue
 		}
 

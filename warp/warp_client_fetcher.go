@@ -22,7 +22,7 @@ func NewWarpAPIFetcher(clients map[ids.NodeID]WarpClient) *warpAPIFetcher {
 	}
 }
 
-func (f warpAPIFetcher) FetchWarpSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+func (f *warpAPIFetcher) FetchWarpSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 	client, ok := f.clients[nodeID]
 	if !ok {
 		return nil, fmt.Errorf("no warp client for nodeID: %s", nodeID)

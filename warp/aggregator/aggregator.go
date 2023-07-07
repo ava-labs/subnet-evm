@@ -36,7 +36,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 	if err != nil {
 		return nil, err
 	}
-	job := NewSignatureAggregationJob(
+	job := newSignatureAggregationJob(
 		a.client,
 		pChainHeight,
 		a.subnetID,
