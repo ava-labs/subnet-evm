@@ -47,7 +47,6 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
@@ -620,11 +619,14 @@ func (api *BlockChainAPI) ChainId() *hexutil.Big {
 
 // GetActivePrecompilesAt returns the active precompile configs at the given block timestamp.
 func (s *BlockChainAPI) GetActivePrecompilesAt(ctx context.Context, blockTimestamp *uint64) params.Precompiles {
+	var timestamp uint64
 	if blockTimestamp == nil {
-		blockTimestamp = utils.NewUint64(s.b.CurrentHeader().Time)
+		timestamp = s.b.CurrentHeader().Time
+	} else {
+		timestamp = *blockTimestamp
 	}
 
-	return s.b.ChainConfig().EnabledStatefulPrecompiles(*blockTimestamp)
+	return s.b.ChainConfig().EnabledStatefulPrecompiles(timestamp)
 }
 
 type FeeConfigResult struct {
@@ -1441,7 +1443,7 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 
 // NewRPCTransaction returns a pending transaction that will serialize to the RPC representation
 // Note: in go-ethereum this function is called NewRPCPendingTransaction.
-// In coreth, we have renamed it to NewRPCTransaction as it is used for accepted transactions as well.
+// In subnet-evm, we have renamed it to NewRPCTransaction as it is used for accepted transactions as well.
 func NewRPCTransaction(tx *types.Transaction, current *types.Header, baseFee *big.Int, config *params.ChainConfig) *RPCTransaction {
 	blockNumber := uint64(0)
 	blockTimestamp := uint64(0)
@@ -1759,7 +1761,7 @@ func (s *TransactionAPI) GetTransactionReceipt(ctx context.Context, hash common.
 	if err != nil {
 		return nil, err
 	}
-	if uint64(len(receipts)) <= index {
+	if len(receipts) <= int(index) {
 		return nil, nil
 	}
 	receipt := receipts[index]

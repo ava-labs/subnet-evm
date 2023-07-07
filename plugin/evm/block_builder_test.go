@@ -36,6 +36,7 @@ func TestBlockBuilderShutsDown(t *testing.T) {
 	shutdownChan := make(chan struct{})
 	wg := &sync.WaitGroup{}
 	config := *params.TestChainConfig
+
 	config.SubnetEVMTimestamp = utils.TimeToNewUint64(time.Now().Add(time.Hour))
 
 	builder := &blockBuilder{

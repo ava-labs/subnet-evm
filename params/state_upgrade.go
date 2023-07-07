@@ -40,8 +40,11 @@ func (c *ChainConfig) verifyStateUpgrades() error {
 	var previousUpgradeTimestamp *uint64
 	for i, upgrade := range c.StateUpgrades {
 		upgradeTimestamp := upgrade.BlockTimestamp
-		// Verify the upgrade's timestamp is greater than 0 (to avoid confusion with genesis).
-		if *upgradeTimestamp <= 0 {
+		if upgradeTimestamp == nil {
+			return fmt.Errorf("StateUpgrade[%d]: config block timestamp cannot be nil ", i)
+		}
+		// Verify the upgrade's timestamp is equal 0 (to avoid confusion with genesis).
+		if *upgradeTimestamp == 0 {
 			return fmt.Errorf("StateUpgrade[%d]: config block timestamp (%v) must be greater than 0", i, *upgradeTimestamp)
 		}
 

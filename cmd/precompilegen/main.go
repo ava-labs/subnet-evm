@@ -44,8 +44,6 @@ import (
 )
 
 var (
-	app *cli.App
-
 	//go:embed template-readme.md
 	readme string
 )
@@ -70,8 +68,9 @@ var (
 	}
 )
 
+var app = flags.NewApp("subnet-evm precompile generator tool")
+
 func init() {
-	app = flags.NewApp("subnet-evm precompile generator tool")
 	app.Name = "precompilegen"
 	app.Flags = []cli.Flag{
 		abiFlag,

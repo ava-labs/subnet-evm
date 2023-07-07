@@ -16,12 +16,12 @@ var (
 
 	FujiNetworkUpgrades = MandatoryNetworkUpgrades{
 		SubnetEVMTimestamp: utils.NewUint64(0),
-		//	DUpgradeTimestamp:           utils.NewUint64(0), // TODO: Uncomment and set this to the correct value
+		// DUpgradeTimestamp: utils.NewUint64(0), // TODO: Uncomment and set this to the correct value
 	}
 
 	MainnetNetworkUpgrades = MandatoryNetworkUpgrades{
 		SubnetEVMTimestamp: utils.NewUint64(0),
-		//	DUpgradeTimestamp:           utils.NewUint64(0), // TODO: Uncomment and set this to the correct value
+		// DUpgradeTimestamp: utils.NewUint64(0), // TODO: Uncomment and set this to the correct value
 	}
 )
 
@@ -30,15 +30,17 @@ var (
 // specified timestamp, it will be unable to participate in consensus.
 // Avalanche specific network upgrades are also included here.
 type MandatoryNetworkUpgrades struct {
-	SubnetEVMTimestamp *uint64 `json:"subnetEVMTimestamp,omitempty"` // initial subnet-evm upgrade (nil = no fork, 0 = already activated)
-	DUpgradeTimestamp  *uint64 `json:"dUpgradeTimestamp,omitempty"`  // A placeholder for the latest avalanche forks (nil = no fork, 0 = already activated)
+	// SubnetEVMTimestamp is a placeholder that activates Avalanche Upgrades prior to ApricotPhase6 (nil = no fork, 0 = already activated)
+	SubnetEVMTimestamp *uint64 `json:"subnetEVMTimestamp,omitempty"`
+	// DUpgrade activates the Shanghai upgrade from Ethereum. (nil = no fork, 0 = already activated)
+	DUpgradeTimestamp *uint64 `json:"dUpgradeTimestamp,omitempty"`
 }
 
-func (m *MandatoryNetworkUpgrades) CheckMandatoryCompatible(newcfg *MandatoryNetworkUpgrades, headTimestamp uint64) *ConfigCompatError {
-	if isForkTimestampIncompatible(m.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, headTimestamp) {
+func (m *MandatoryNetworkUpgrades) CheckMandatoryCompatible(newcfg *MandatoryNetworkUpgrades, time uint64) *ConfigCompatError {
+	if isForkTimestampIncompatible(m.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, time) {
 		return newTimestampCompatError("SubnetEVM fork block timestamp", m.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
-	if isForkTimestampIncompatible(m.DUpgradeTimestamp, newcfg.DUpgradeTimestamp, headTimestamp) {
+	if isForkTimestampIncompatible(m.DUpgradeTimestamp, newcfg.DUpgradeTimestamp, time) {
 		return newTimestampCompatError("DUpgrade fork block timestamp", m.DUpgradeTimestamp, newcfg.DUpgradeTimestamp)
 	}
 	return nil
@@ -68,7 +70,7 @@ func GetMandatoryNetworkUpgrades(networkID uint32) MandatoryNetworkUpgrades {
 // TODO: once we add the first optional upgrade here, we should uncomment TestVMUpgradeBytesOptionalNetworkUpgrades
 type OptionalNetworkUpgrades struct{}
 
-func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, headTimestamp uint64) *ConfigCompatError {
+func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
 	return nil
 }
 

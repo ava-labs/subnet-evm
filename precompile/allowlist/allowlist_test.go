@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -25,7 +26,7 @@ type dummyConfig struct {
 }
 
 func (d *dummyConfig) Key() string        { return "dummy" }
-func (d *dummyConfig) Timestamp() *uint64 { return new(uint64) }
+func (d *dummyConfig) Timestamp() *uint64 { return utils.NewUint64(0) }
 func (d *dummyConfig) IsDisabled() bool   { return false }
 func (d *dummyConfig) Equal(cfg precompileconfig.Config) bool {
 	other, ok := (cfg).(*dummyConfig)

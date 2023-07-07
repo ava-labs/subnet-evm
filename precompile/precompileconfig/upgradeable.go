@@ -3,6 +3,8 @@
 
 package precompileconfig
 
+import "github.com/ava-labs/subnet-evm/utils"
+
 // Upgrade contains the timestamp for the upgrade along with
 // a boolean [Disable]. If [Disable] is set, the upgrade deactivates
 // the precompile and clears its storage.
@@ -27,6 +29,5 @@ func (u *Upgrade) Equal(other *Upgrade) bool {
 	if other == nil {
 		return false
 	}
-	return u.Disable == other.Disable && (u.BlockTimestamp == nil && other.BlockTimestamp == nil ||
-		*u.BlockTimestamp == *other.BlockTimestamp)
+	return u.Disable == other.Disable && utils.Uint64PtrEqual(u.BlockTimestamp, other.BlockTimestamp)
 }

@@ -117,9 +117,8 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 	cacheConfig := &core.CacheConfig{}
 	blockchain, err := core.NewBlockChain(database, cacheConfig, &genesis, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("failed to create simulated blockchain: %v", err))
 	}
-
 	backend := &SimulatedBackend{
 		database:   database,
 		blockchain: blockchain,

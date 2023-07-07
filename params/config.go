@@ -385,9 +385,9 @@ func (r *Rules) PredicateExists(addr common.Address) bool {
 	return proposerPredicateExists
 }
 
-// IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
-func (c *ChainConfig) IsPrecompileEnabled(address common.Address, blockTimestamp uint64) bool {
-	config := c.getActivePrecompileConfig(address, blockTimestamp)
+// IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
+func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
+	config := c.getActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
 }
 
@@ -398,7 +398,6 @@ func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, time u
 		bhead = new(big.Int).SetUint64(height)
 		btime = time
 	)
-
 	// Iterate checkCompatible to find the lowest conflict.
 	var lasterr *ConfigCompatError
 	for {
@@ -407,7 +406,12 @@ func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, time u
 			break
 		}
 		lasterr = err
-		bhead.SetUint64(err.RewindToBlock)
+
+		if err.RewindToTime > 0 {
+			btime = err.RewindToTime
+		} else {
+			bhead.SetUint64(err.RewindToBlock)
+		}
 	}
 	return lasterr
 }
@@ -435,7 +439,7 @@ type fork struct {
 	name      string
 	block     *big.Int // some go-ethereum forks use block numbers
 	timestamp *uint64  // Avalanche forks use timestamps
-	optional  bool     // if true, the fork may be nil and next fork is still allowed}
+	optional  bool     // if true, the fork may be nil and next fork is still allowed
 }
 
 // CheckConfigForkOrder checks that we don't "skip" any forks, geth isn't pluggable enough
@@ -478,27 +482,29 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 	return nil
 }
 
-func checkForks(forks []fork, heightFork bool) error {
+// checkForks checks that forks are enabled in order and returns an error if not
+// [blockFork] is true if the fork is a block number fork, false if it is a timestamp fork
+func checkForks(forks []fork, blockFork bool) error {
 	lastFork := fork{}
 	for _, cur := range forks {
-		if heightFork && cur.block != nil && common.Big0.Cmp(cur.block) != 0 {
+		if blockFork && cur.block != nil && common.Big0.Cmp(cur.block) != 0 {
 			return errNonGenesisForkByHeight
 		}
 		if lastFork.name != "" {
 			// Next one must be higher number
-			if lastFork.block == nil && cur.block != nil {
+			if lastFork.timestamp == nil && cur.timestamp != nil {
 				return fmt.Errorf("unsupported fork ordering: %v not enabled, but %v enabled at %v",
-					lastFork.name, cur.name, cur.block)
+					lastFork.name, cur.name, cur.timestamp)
 			}
-			if lastFork.block != nil && cur.block != nil {
-				if lastFork.block.Cmp(cur.block) > 0 {
+			if lastFork.timestamp != nil && cur.timestamp != nil {
+				if *lastFork.timestamp > *cur.timestamp {
 					return fmt.Errorf("unsupported fork ordering: %v enabled at %v, but %v enabled at %v",
-						lastFork.name, lastFork.block, cur.name, cur.block)
+						lastFork.name, lastFork.timestamp, cur.name, cur.timestamp)
 				}
 			}
 		}
 		// If it was optional and not set, then ignore it
-		if !cur.optional || cur.block != nil {
+		if !cur.optional || cur.timestamp != nil {
 			lastFork = cur
 		}
 	}
@@ -508,44 +514,44 @@ func checkForks(forks []fork, heightFork bool) error {
 // checkCompatible confirms that [newcfg] is backwards compatible with [c] to upgrade with the given head block height and timestamp.
 // This confirms that all Ethereum and Avalanche upgrades are backwards compatible as well as that the precompile config is backwards
 // compatible.
-func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, lastHeight *big.Int, lastTimestamp uint64) *ConfigCompatError {
-	if isForkBlockIncompatible(c.HomesteadBlock, newcfg.HomesteadBlock, lastHeight) {
+func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, height *big.Int, time uint64) *ConfigCompatError {
+	if isForkBlockIncompatible(c.HomesteadBlock, newcfg.HomesteadBlock, height) {
 		return newBlockCompatError("Homestead fork block", c.HomesteadBlock, newcfg.HomesteadBlock)
 	}
-	if isForkBlockIncompatible(c.EIP150Block, newcfg.EIP150Block, lastHeight) {
+	if isForkBlockIncompatible(c.EIP150Block, newcfg.EIP150Block, height) {
 		return newBlockCompatError("EIP150 fork block", c.EIP150Block, newcfg.EIP150Block)
 	}
-	if isForkBlockIncompatible(c.EIP155Block, newcfg.EIP155Block, lastHeight) {
+	if isForkBlockIncompatible(c.EIP155Block, newcfg.EIP155Block, height) {
 		return newBlockCompatError("EIP155 fork block", c.EIP155Block, newcfg.EIP155Block)
 	}
-	if isForkBlockIncompatible(c.EIP158Block, newcfg.EIP158Block, lastHeight) {
+	if isForkBlockIncompatible(c.EIP158Block, newcfg.EIP158Block, height) {
 		return newBlockCompatError("EIP158 fork block", c.EIP158Block, newcfg.EIP158Block)
 	}
-	if c.IsEIP158(lastHeight) && !utils.BigNumEqual(c.ChainID, newcfg.ChainID) {
+	if c.IsEIP158(height) && !utils.BigNumEqual(c.ChainID, newcfg.ChainID) {
 		return newBlockCompatError("EIP158 chain ID", c.EIP158Block, newcfg.EIP158Block)
 	}
-	if isForkBlockIncompatible(c.ByzantiumBlock, newcfg.ByzantiumBlock, lastHeight) {
+	if isForkBlockIncompatible(c.ByzantiumBlock, newcfg.ByzantiumBlock, height) {
 		return newBlockCompatError("Byzantium fork block", c.ByzantiumBlock, newcfg.ByzantiumBlock)
 	}
-	if isForkBlockIncompatible(c.ConstantinopleBlock, newcfg.ConstantinopleBlock, lastHeight) {
+	if isForkBlockIncompatible(c.ConstantinopleBlock, newcfg.ConstantinopleBlock, height) {
 		return newBlockCompatError("Constantinople fork block", c.ConstantinopleBlock, newcfg.ConstantinopleBlock)
 	}
-	if isForkBlockIncompatible(c.PetersburgBlock, newcfg.PetersburgBlock, lastHeight) {
+	if isForkBlockIncompatible(c.PetersburgBlock, newcfg.PetersburgBlock, height) {
 		// the only case where we allow Petersburg to be set in the past is if it is equal to Constantinople
 		// mainly to satisfy fork ordering requirements which state that Petersburg fork be set if Constantinople fork is set
-		if isForkBlockIncompatible(c.ConstantinopleBlock, newcfg.PetersburgBlock, lastHeight) {
+		if isForkBlockIncompatible(c.ConstantinopleBlock, newcfg.PetersburgBlock, height) {
 			return newBlockCompatError("Petersburg fork block", c.PetersburgBlock, newcfg.PetersburgBlock)
 		}
 	}
-	if isForkBlockIncompatible(c.IstanbulBlock, newcfg.IstanbulBlock, lastHeight) {
+	if isForkBlockIncompatible(c.IstanbulBlock, newcfg.IstanbulBlock, height) {
 		return newBlockCompatError("Istanbul fork block", c.IstanbulBlock, newcfg.IstanbulBlock)
 	}
-	if isForkBlockIncompatible(c.MuirGlacierBlock, newcfg.MuirGlacierBlock, lastHeight) {
+	if isForkBlockIncompatible(c.MuirGlacierBlock, newcfg.MuirGlacierBlock, height) {
 		return newBlockCompatError("Muir Glacier fork block", c.MuirGlacierBlock, newcfg.MuirGlacierBlock)
 	}
 
 	// Check avalanhe network upgrades
-	if err := c.CheckMandatoryCompatible(&newcfg.MandatoryNetworkUpgrades, lastTimestamp); err != nil {
+	if err := c.CheckMandatoryCompatible(&newcfg.MandatoryNetworkUpgrades, time); err != nil {
 		return err
 	}
 
@@ -557,17 +563,17 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, lastHeight *big.Int, 
 		// upgrades (ie., treated as the user intends to cancel scheduled forks)
 		newOptionalNetworkUpgrades = &OptionalNetworkUpgrades{}
 	}
-	if err := c.getOptionalNetworkUpgrades().CheckOptionalCompatible(newOptionalNetworkUpgrades, lastTimestamp); err != nil {
+	if err := c.getOptionalNetworkUpgrades().CheckOptionalCompatible(newOptionalNetworkUpgrades, time); err != nil {
 		return err
 	}
 
 	// Check that the precompiles on the new config are compatible with the existing precompile config.
-	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, lastTimestamp); err != nil {
+	if err := c.CheckPrecompilesCompatible(newcfg.PrecompileUpgrades, time); err != nil {
 		return err
 	}
 
 	// Check that the state upgrades on the new config are compatible with the existing state upgrade config.
-	if err := c.CheckStateUpgradesCompatible(newcfg.StateUpgrades, lastTimestamp); err != nil {
+	if err := c.CheckStateUpgradesCompatible(newcfg.StateUpgrades, time); err != nil {
 		return err
 	}
 
@@ -696,7 +702,8 @@ type Rules struct {
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
 
 	// Rules for Avalanche releases
-	IsSubnetEVM, IsDUpgrade bool
+	IsSubnetEVM bool
+	IsDUpgrade  bool
 
 	// ActivePrecompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.

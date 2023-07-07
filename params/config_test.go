@@ -32,6 +32,7 @@ import (
 	"math/big"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
@@ -50,7 +51,8 @@ func TestCheckCompatible(t *testing.T) {
 	}
 	tests := []test{
 		{stored: TestChainConfig, new: TestChainConfig, headBlock: 0, headTimestamp: 0, wantErr: nil},
-		{stored: TestChainConfig, new: TestChainConfig, headBlock: 100, headTimestamp: 1000, wantErr: nil},
+		{stored: TestChainConfig, new: TestChainConfig, headBlock: 0, headTimestamp: uint64(time.Now().Unix()), wantErr: nil},
+		{stored: TestChainConfig, new: TestChainConfig, headBlock: 100, wantErr: nil},
 		{
 			stored:        &ChainConfig{EIP150Block: big.NewInt(10)},
 			new:           &ChainConfig{EIP150Block: big.NewInt(20)},
@@ -119,10 +121,10 @@ func TestCheckCompatible(t *testing.T) {
 			headBlock:     0,
 			headTimestamp: 0,
 			wantErr: &ConfigCompatError{
-				What:          "SubnetEVM fork block timestamp",
-				StoredTime:    utils.NewUint64(0),
-				NewTime:       nil,
-				RewindToBlock: 0,
+				What:         "SubnetEVM fork block timestamp",
+				StoredTime:   utils.NewUint64(0),
+				NewTime:      nil,
+				RewindToTime: 0,
 			},
 		},
 		{
@@ -131,10 +133,10 @@ func TestCheckCompatible(t *testing.T) {
 			headBlock:     10,
 			headTimestamp: 100,
 			wantErr: &ConfigCompatError{
-				What:          "SubnetEVM fork block timestamp",
-				StoredTime:    utils.NewUint64(0),
-				NewTime:       nil,
-				RewindToBlock: 0,
+				What:         "SubnetEVM fork block timestamp",
+				StoredTime:   utils.NewUint64(0),
+				NewTime:      nil,
+				RewindToTime: 0,
 			},
 		},
 	}
@@ -150,20 +152,21 @@ func TestCheckCompatible(t *testing.T) {
 func TestConfigRules(t *testing.T) {
 	c := &ChainConfig{
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
-			DUpgradeTimestamp: utils.NewUint64(500),
+			SubnetEVMTimestamp: utils.NewUint64(500),
 		},
 	}
+
 	var stamp uint64
-	if r := c.AvalancheRules(big.NewInt(0), stamp); r.IsDUpgrade {
-		t.Errorf("expected %v to not be dUpgrade", stamp)
+	if r := c.AvalancheRules(big.NewInt(0), stamp); r.IsSubnetEVM {
+		t.Errorf("expected %v to not be subnet-evm", stamp)
 	}
 	stamp = 500
-	if r := c.AvalancheRules(big.NewInt(0), stamp); !r.IsDUpgrade {
-		t.Errorf("expected %v to be dUpgrade", stamp)
+	if r := c.AvalancheRules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 	stamp = math.MaxInt64
-	if r := c.AvalancheRules(big.NewInt(0), stamp); !r.IsDUpgrade {
-		t.Errorf("expected %v to be dUpgrade", stamp)
+	if r := c.AvalancheRules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 }
 

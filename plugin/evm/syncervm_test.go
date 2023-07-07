@@ -129,7 +129,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		context.Background(),
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDBManager,
-		[]byte(genesisJSONLatest),
+		[]byte(genesisJSONSubnetEVM),
 		nil,
 		[]byte(stateSyncDisabledConfigJSON),
 		vmSetup.syncerVM.toEngine,

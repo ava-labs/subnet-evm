@@ -26,7 +26,7 @@ func (n *noopStatefulPrecompileConfig) Address() common.Address {
 }
 
 func (n *noopStatefulPrecompileConfig) Timestamp() *uint64 {
-	return new(uint64)
+	return nil
 }
 
 func (n *noopStatefulPrecompileConfig) IsDisabled() bool {
