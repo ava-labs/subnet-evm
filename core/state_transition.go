@@ -171,7 +171,7 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		}
 		totalGas, overflow := commonMath.SafeAdd(gas, accessListGas)
 		if overflow {
-			return 0, fmt.Errorf("overflow adding access list gas")
+			return 0, ErrGasUintOverflow
 		}
 		gas = totalGas
 	}
@@ -187,7 +187,7 @@ func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, err
 		return gas, nil
 	}
 
-	for i, accessTuple := range accessList {
+	for _, accessTuple := range accessList {
 		address := accessTuple.Address
 		if !rules.PredicateExists(address) {
 			// Previous access list gas calculation does not use safemath because an overflow would not be possible with
@@ -197,17 +197,17 @@ func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, err
 			accessTupleGas := params.TxAccessListAddressGas + uint64(len(accessTuple.StorageKeys))*params.TxAccessListStorageKeyGas
 			totalGas, overflow := commonMath.SafeAdd(gas, accessTupleGas)
 			if overflow {
-				return 0, fmt.Errorf("overflow adding storage slot gas at index %d", i)
+				return 0, ErrGasUintOverflow
 			}
 			gas = totalGas
 		} else {
-			predicateGas, err := ApplyPredicateGas(rules, accessTuple)
+			predicateGas, err := applyPredicateGas(rules, accessTuple)
 			if err != nil {
 				return 0, err
 			}
 			totalGas, overflow := commonMath.SafeAdd(gas, predicateGas)
 			if overflow {
-				return 0, fmt.Errorf("overflow adding predicate gas at index %d", i)
+				return 0, ErrGasUintOverflow
 			}
 			gas = totalGas
 		}
@@ -216,7 +216,7 @@ func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, err
 	return gas, nil
 }
 
-func ApplyPredicateGas(rules params.Rules, accessTuple types.AccessTuple) (uint64, error) {
+func applyPredicateGas(rules params.Rules, accessTuple types.AccessTuple) (uint64, error) {
 	predicate, ok := rules.PredicatePrecompiles[accessTuple.Address]
 	if ok {
 		return predicate.PredicateGas(utils.HashSliceToBytes(accessTuple.StorageKeys))

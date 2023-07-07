@@ -15,6 +15,8 @@ import (
 
 // CheckPredicates checks that all precompile predicates are satisfied within the current [predicateContext] for [tx]
 func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.ProposerPredicateContext, tx *types.Transaction) error {
+	// Check that the transaction can cover its IntrinsicGas (including the gas required by the predicate) before
+	// verifying the predicate.
 	intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, rules)
 	if err != nil {
 		return err

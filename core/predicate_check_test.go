@@ -98,11 +98,10 @@ func TestCheckPredicate(t *testing.T) {
 			gas:     53000,
 			predicater: &mockPredicater{
 				predicateFunc: func(_ *precompileconfig.PrecompilePredicateContext, b []byte) error {
-					if bytes.Equal(b, common.Hash{1}.Bytes()) {
-						return nil
-					} else {
+					if !bytes.Equal(b, common.Hash{1}.Bytes()) {
 						return fmt.Errorf("unexpected bytes: 0x%x", b)
 					}
+					return nil
 				},
 			},
 			accessList: types.AccessList([]types.AccessTuple{
@@ -120,11 +119,10 @@ func TestCheckPredicate(t *testing.T) {
 			gas:     153000,
 			predicater: &mockPredicater{
 				predicateFunc: func(_ *precompileconfig.PrecompilePredicateContext, b []byte) error {
-					if bytes.Equal(b, common.Hash{1}.Bytes()) {
-						return nil
-					} else {
+					if !bytes.Equal(b, common.Hash{1}.Bytes()) {
 						return fmt.Errorf("unexpected bytes: 0x%x", b)
 					}
+					return nil
 				},
 				predicateGasFunc: func(b []byte) (uint64, error) {
 					return 100_000, nil
@@ -145,11 +143,10 @@ func TestCheckPredicate(t *testing.T) {
 			gas:     53000,
 			proposerPredicater: &mockProposerPredicater{
 				predicateFunc: func(_ *precompileconfig.ProposerPredicateContext, b []byte) error {
-					if bytes.Equal(b, common.Hash{1}.Bytes()) {
-						return nil
-					} else {
+					if !bytes.Equal(b, common.Hash{1}.Bytes()) {
 						return fmt.Errorf("unexpected bytes: 0x%x", b)
 					}
+					return nil
 				},
 			},
 			accessList: types.AccessList([]types.AccessTuple{
@@ -167,11 +164,10 @@ func TestCheckPredicate(t *testing.T) {
 			gas:     153000,
 			proposerPredicater: &mockProposerPredicater{
 				predicateFunc: func(_ *precompileconfig.ProposerPredicateContext, b []byte) error {
-					if bytes.Equal(b, common.Hash{1}.Bytes()) {
-						return nil
-					} else {
+					if !bytes.Equal(b, common.Hash{1}.Bytes()) {
 						return fmt.Errorf("unexpected bytes: 0x%x", b)
 					}
+					return nil
 				},
 				predicateGasFunc: func(b []byte) (uint64, error) {
 					return 100_000, nil
@@ -192,11 +188,10 @@ func TestCheckPredicate(t *testing.T) {
 			gas:     53000,
 			predicater: &mockPredicater{
 				predicateFunc: func(_ *precompileconfig.PrecompilePredicateContext, b []byte) error {
-					if bytes.Equal(b, common.Hash{1}.Bytes()) {
-						return nil
-					} else {
+					if !bytes.Equal(b, common.Hash{1}.Bytes()) {
 						return fmt.Errorf("unexpected bytes: 0x%x", b)
 					}
+					return nil
 				},
 			},
 			accessList: types.AccessList([]types.AccessTuple{
@@ -214,11 +209,10 @@ func TestCheckPredicate(t *testing.T) {
 			gas:     53000,
 			proposerPredicater: &mockProposerPredicater{
 				predicateFunc: func(_ *precompileconfig.ProposerPredicateContext, b []byte) error {
-					if bytes.Equal(b, common.Hash{1}.Bytes()) {
-						return nil
-					} else {
+					if !bytes.Equal(b, common.Hash{1}.Bytes()) {
 						return fmt.Errorf("unexpected bytes: 0x%x", b)
 					}
+					return nil
 				},
 			},
 			accessList: types.AccessList([]types.AccessTuple{
