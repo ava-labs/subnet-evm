@@ -730,6 +730,7 @@ func (pool *TxPool) checkTxState(from common.Address, tx *types.Transaction) err
 			return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, from)
 		}
 	}
+
 	return nil
 }
 

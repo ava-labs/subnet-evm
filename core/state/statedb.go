@@ -107,6 +107,10 @@ type StateDB struct {
 
 	// Per-transaction access list
 	accessList *accessList
+
+	// Transient storage
+	transientStorage transientStorage
+
 	// Ordered storage slots to be used in predicate verification as set in the tx access list.
 	// Only set in PrepareAccessList, and un-modified through execution.
 	predicateStorageSlots map[common.Address][]byte

@@ -41,6 +41,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
@@ -160,7 +161,7 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	gspec := &Genesis{
 		Config:   params.TestChainConfig,
 		Alloc:    GenesisAlloc{benchRootAddr: {Balance: benchRootFunds}},
-		Coinbase: constants.BlackholeAddr,
+		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	_, chain, _, _ := GenerateChainWithGenesis(gspec, dummy.NewFaker(), b.N, 10, func(i int, bg *BlockGen) {
 		bg.SetCoinbase(constants.BlackholeAddr)

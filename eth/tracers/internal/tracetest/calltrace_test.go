@@ -46,9 +46,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-
-	// Force-load native, to trigger registration
-	_ "github.com/ava-labs/subnet-evm/eth/tracers/native"
 )
 
 type callContext struct {

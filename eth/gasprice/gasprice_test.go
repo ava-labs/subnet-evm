@@ -90,6 +90,10 @@ func (b *testBackend) SubscribeChainAcceptedEvent(ch chan<- core.ChainEvent) eve
 	return nil
 }
 
+func (b *testBackend) teardown() {
+	b.chain.Stop()
+}
+
 func (b *testBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return b.chain.GetFeeConfigAt(parent)
 }
@@ -311,12 +315,11 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 					Data:      []byte{},
 				})
 				tx, err = types.SignTx(tx, signer, key)
-				if err != nil {
-					t.Fatalf("failed to create tx: %s", err)
-				}
+				require.NoError(t, err, "failed to create tx")
 				b.AddTx(tx)
 			}
 		},
+		// NOTE: small tips do not bias estimate
 		expectedTip: big.NewInt(643_500_643),
 	}, defaultOracleConfig())
 }
@@ -330,50 +333,10 @@ func TestSuggestTipCapMinGas(t *testing.T) {
 	}, defaultOracleConfig())
 }
 
-// Regression test to ensure that SuggestPrice does not panic prior to activation of Subnet EVM
+// Regression test to ensure that SuggestPrice does not panic with activation of Subnet EVM
 // Note: support for gas estimation without activated hard forks has been deprecated, but we still
 // ensure that the call does not panic.
-func TestSuggestGasPricePreSubnetEVM(t *testing.T) {
-	config := Config{
-		Blocks:     20,
-		Percentile: 60,
-	}
-
-	backend := newTestBackend(t, params.TestPreSubnetEVMConfig, 3, func(i int, b *core.BlockGen) {
-		b.SetCoinbase(common.Address{1})
-
-		signer := types.LatestSigner(params.TestPreSubnetEVMConfig)
-		gasPrice := big.NewInt(params.MinGasPrice)
-		for j := 0; j < 50; j++ {
-			tx := types.NewTx(&types.LegacyTx{
-				Nonce:    b.TxNonce(addr),
-				To:       &common.Address{},
-				Gas:      params.TxGas,
-				GasPrice: gasPrice,
-				Data:     []byte{},
-			})
-			tx, err := types.SignTx(tx, signer, key)
-			if err != nil {
-				t.Fatalf("failed to create tx: %s", err)
-			}
-			b.AddTx(tx)
-		}
-	})
-	oracle, err := NewOracle(backend, config)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = oracle.SuggestPrice(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// Regression test to ensure that SuggestPrice does not panic prior to activation of SubnetEVM
-// Note: support for gas estimation without activated hard forks has been deprecated, but we still
-// ensure that the call does not panic.
-func TestSuggestGasPricePreAP3(t *testing.T) {
+func TestSuggestGasPriceSubnetEVM(t *testing.T) {
 	config := Config{
 		Blocks:     20,
 		Percentile: 60,
@@ -393,23 +356,17 @@ func TestSuggestGasPricePreAP3(t *testing.T) {
 				Data:     []byte{},
 			})
 			tx, err := types.SignTx(tx, signer, key)
-			if err != nil {
-				t.Fatalf("failed to create tx: %s", err)
-			}
+			require.NoError(t, err, "failed to create tx")
 			b.AddTx(tx)
 		}
 	})
 	defer backend.teardown()
 
 	oracle, err := NewOracle(backend, config)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	_, err = oracle.SuggestPrice(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 }
 
 func TestSuggestTipCapMaxBlocksLookback(t *testing.T) {
@@ -455,6 +412,7 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	// before issuing the block changing the fee into the chain, the fee estimation should
 	// follow the fee config in genesis.
 	backend := newTestBackend(t, &chainConfig, 0, func(i int, b *core.BlockGen) {})
+	defer backend.teardown()
 	oracle, err := NewOracle(backend, config)
 	require.NoError(err)
 	got, err := oracle.SuggestPrice(context.Background())
