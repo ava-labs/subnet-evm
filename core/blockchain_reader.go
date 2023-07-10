@@ -357,8 +357,8 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 	}
 
 	// try to return it from the cache
-	if cachedFeeConfig, hit := bc.feeConfigCache.Get(parent.Root); hit {
-		return cachedFeeConfig.feeConfig, cachedFeeConfig.lastChangedAt, nil
+	if cached, hit := bc.feeConfigCache.Get(parent.Root); hit {
+		return cached.feeConfig, cached.lastChangedAt, nil
 	}
 
 	stateDB, err := bc.StateAt(parent.Root)
@@ -386,7 +386,6 @@ func (bc *BlockChain) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig
 // If fee recipients are allowed, returns true in the second return value.
 func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
 	config := bc.Config()
-
 	if !config.IsSubnetEVM(parent.Time) {
 		return constants.BlackholeAddr, false, nil
 	}
@@ -400,8 +399,8 @@ func (bc *BlockChain) GetCoinbaseAt(parent *types.Header) (common.Address, bool,
 	}
 
 	// try to return it from the cache
-	if cachedCoinbaseConfig, hit := bc.coinbaseConfigCache.Get(parent.Root); hit {
-		return cachedCoinbaseConfig.coinbaseAddress, cachedCoinbaseConfig.allowFeeRecipients, nil
+	if cached, hit := bc.coinbaseConfigCache.Get(parent.Root); hit {
+		return cached.coinbaseAddress, cached.allowFeeRecipients, nil
 	}
 
 	stateDB, err := bc.StateAt(parent.Root)

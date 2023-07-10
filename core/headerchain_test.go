@@ -39,7 +39,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 )
 
 func verifyUnbrokenCanonchain(bc *BlockChain) error {
@@ -91,12 +90,10 @@ func TestHeaderInsertion(t *testing.T) {
 	chainA, _, _ := GenerateChain(params.TestChainConfig, types.NewBlockWithHeader(genesis.Header()), dummy.NewCoinbaseFaker(), db, 128, 10, func(i int, b *BlockGen) {
 		b.SetCoinbase(common.Address{0: byte(10), 19: byte(i)})
 	})
-	require.NoError(t, err)
 	// chain B: G->A1->B2...B128
 	chainB, _, _ := GenerateChain(params.TestChainConfig, types.NewBlockWithHeader(chainA[0].Header()), dummy.NewCoinbaseFaker(), db, 128, 10, func(i int, b *BlockGen) {
 		b.SetCoinbase(common.Address{0: byte(10), 19: byte(i)})
 	})
-	require.NoError(t, err)
 
 	// Inserting 64 headers on an empty chain
 	testInsert(t, chain, chainA[:64], nil)

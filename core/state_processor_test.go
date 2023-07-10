@@ -408,11 +408,11 @@ func TestBadTxAllowListBlock(t *testing.T) {
 					Nonce:   0,
 				},
 			},
-
 			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 		}
 		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 	)
+	defer blockchain.Stop()
 
 	mkDynamicTx := func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {
 		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{
@@ -438,7 +438,7 @@ func TestBadTxAllowListBlock(t *testing.T) {
 			want: "could not apply tx 0 [0xc5725e8baac950b2925dd4fea446ccddead1cc0affdae18b31a7d910629d9225]: cannot issue transaction from non-allow listed address: 0x71562b71999873DB5b286dF957af199Ec94617F7",
 		},
 	} {
-		block := GenerateBadBlock(gspec.ToBlock(), dummy.NewFaker(), tt.txs, gspec.Config)
+		block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
 		_, err := blockchain.InsertChain(types.Blocks{block})
 		if err == nil {
 			t.Fatal("block imported without errors")
