@@ -74,7 +74,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	// Construct the network using the avalanche-network-runner
 	_, err = manager.StartDefaultNetwork(ctx)
 	gomega.Expect(err).Should(gomega.BeNil())
-
 	err = manager.SetupNetwork(
 		ctx,
 		config.AvalancheGoExecPath,
@@ -303,7 +302,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		ctx := context.Background()
 
 		blsSignatures := make([]*bls.Signature, 0, len(chainAURIs))
-
 		for i, uri := range chainAURIs {
 			warpClient, err := warpBackend.NewWarpClient(uri, blockchainIDA.String())
 			gomega.Expect(err).Should(gomega.BeNil())
@@ -343,7 +341,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 			unsignedWarpMsg,
 			warpSignature,
 		)
-
 		gomega.Expect(err).Should(gomega.BeNil())
 		signedWarpMsg = warpMsg
 	})
@@ -438,7 +435,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 			BlockHash: &blockHash,
 			Addresses: []common.Address{warp.Module.Address},
 		})
-
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(len(logs)).Should(gomega.Equal(0))
 		receipt, err := chainBWSClient.TransactionReceipt(ctx, signedTx.Hash())

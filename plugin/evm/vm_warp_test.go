@@ -249,7 +249,6 @@ func TestReceiveWarpMessage(t *testing.T) {
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
 		testKeys[0],
 	)
-
 	require.NoError(t, err)
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
 	for i, err := range errs {
