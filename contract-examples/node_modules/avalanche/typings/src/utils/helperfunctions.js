@@ -1,0 +1,108 @@
+"use strict";
+/**
+ * @packageDocumentation
+ * @module Utils-HelperFunctions
+ */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.costExportTx = exports.calcBytesCost = exports.costImportTx = exports.NodeIDStringToBuffer = exports.bufferToNodeIDString = exports.privateKeyStringToBuffer = exports.bufferToPrivateKeyString = exports.UnixNow = exports.MaxWeightFormula = exports.getPreferredHRP = void 0;
+const constants_1 = require("./constants");
+const bn_js_1 = __importDefault(require("bn.js"));
+const bintools_1 = __importDefault(require("../utils/bintools"));
+const errors_1 = require("../utils/errors");
+/**
+ * @ignore
+ */
+const bintools = bintools_1.default.getInstance();
+function getPreferredHRP(networkID = undefined) {
+    if (networkID in constants_1.NetworkIDToHRP) {
+        return constants_1.NetworkIDToHRP[`${networkID}`];
+    }
+    else if (typeof networkID === "undefined") {
+        return constants_1.NetworkIDToHRP[`${constants_1.DefaultNetworkID}`];
+    }
+    return constants_1.FallbackHRP;
+}
+exports.getPreferredHRP = getPreferredHRP;
+function MaxWeightFormula(staked, cap) {
+    return bn_js_1.default.min(staked.mul(new bn_js_1.default(5)), cap);
+}
+exports.MaxWeightFormula = MaxWeightFormula;
+/**
+ * Function providing the current UNIX time using a {@link https://github.com/indutny/bn.js/|BN}.
+ */
+function UnixNow() {
+    return new bn_js_1.default(Math.round(new Date().getTime() / 1000));
+}
+exports.UnixNow = UnixNow;
+/**
+ * Takes a private key buffer and produces a private key string with prefix.
+ *
+ * @param pk A {@link https://github.com/feross/buffer|Buffer} for the private key.
+ */
+function bufferToPrivateKeyString(pk) {
+    return `PrivateKey-${bintools.cb58Encode(pk)}`;
+}
+exports.bufferToPrivateKeyString = bufferToPrivateKeyString;
+/**
+ * Takes a private key string and produces a private key {@link https://github.com/feross/buffer|Buffer}.
+ *
+ * @param pk A string for the private key.
+ */
+function privateKeyStringToBuffer(pk) {
+    if (!pk.startsWith("PrivateKey-")) {
+        throw new errors_1.PrivateKeyError("Error - privateKeyStringToBuffer: private keys must start with 'PrivateKey-'");
+    }
+    const pksplit = pk.split("-");
+    return bintools.cb58Decode(pksplit[pksplit.length - 1]);
+}
+exports.privateKeyStringToBuffer = privateKeyStringToBuffer;
+/**
+ * Takes a nodeID buffer and produces a nodeID string with prefix.
+ *
+ * @param pk A {@link https://github.com/feross/buffer|Buffer} for the nodeID.
+ */
+function bufferToNodeIDString(pk) {
+    return `NodeID-${bintools.cb58Encode(pk)}`;
+}
+exports.bufferToNodeIDString = bufferToNodeIDString;
+/**
+ * Takes a nodeID string and produces a nodeID {@link https://github.com/feross/buffer|Buffer}.
+ *
+ * @param pk A string for the nodeID.
+ */
+function NodeIDStringToBuffer(pk) {
+    if (!pk.startsWith("NodeID-")) {
+        throw new errors_1.NodeIdError("Error - privateNodeIDToBuffer: nodeID must start with 'NodeID-'");
+    }
+    const pksplit = pk.split("-");
+    return bintools.cb58Decode(pksplit[pksplit.length - 1]);
+}
+exports.NodeIDStringToBuffer = NodeIDStringToBuffer;
+function costImportTx(tx) {
+    let bytesCost = calcBytesCost(tx.toBuffer().byteLength);
+    const importTx = tx.getTransaction();
+    importTx.getImportInputs().forEach((input) => {
+        const inCost = input.getCost();
+        bytesCost += inCost;
+    });
+    const fixedFee = 10000;
+    return bytesCost + fixedFee;
+}
+exports.costImportTx = costImportTx;
+function calcBytesCost(len) {
+    return len * constants_1.Defaults.network[1].C.txBytesGas;
+}
+exports.calcBytesCost = calcBytesCost;
+function costExportTx(tx) {
+    const bytesCost = calcBytesCost(tx.toBuffer().byteLength);
+    const exportTx = tx.getTransaction();
+    const numSigs = exportTx.getInputs().length;
+    const sigCost = numSigs * constants_1.Defaults.network[1].C.costPerSignature;
+    const fixedFee = 10000;
+    return bytesCost + sigCost + fixedFee;
+}
+exports.costExportTx = costExportTx;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaGVscGVyZnVuY3Rpb25zLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vc3JjL3V0aWxzL2hlbHBlcmZ1bmN0aW9ucy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUE7OztHQUdHOzs7Ozs7QUFFSCwyQ0FLb0I7QUFDcEIsa0RBQXNCO0FBRXRCLGlFQUF3QztBQUN4Qyw0Q0FBOEQ7QUFHOUQ7O0dBRUc7QUFDSCxNQUFNLFFBQVEsR0FBYSxrQkFBUSxDQUFDLFdBQVcsRUFBRSxDQUFBO0FBRWpELFNBQWdCLGVBQWUsQ0FBQyxZQUFvQixTQUFTO0lBQzNELElBQUksU0FBUyxJQUFJLDBCQUFjLEVBQUU7UUFDL0IsT0FBTywwQkFBYyxDQUFDLEdBQUcsU0FBUyxFQUFFLENBQUMsQ0FBQTtLQUN0QztTQUFNLElBQUksT0FBTyxTQUFTLEtBQUssV0FBVyxFQUFFO1FBQzNDLE9BQU8sMEJBQWMsQ0FBQyxHQUFHLDRCQUFnQixFQUFFLENBQUMsQ0FBQTtLQUM3QztJQUNELE9BQU8sdUJBQVcsQ0FBQTtBQUNwQixDQUFDO0FBUEQsMENBT0M7QUFFRCxTQUFnQixnQkFBZ0IsQ0FBQyxNQUFVLEVBQUUsR0FBTztJQUNsRCxPQUFPLGVBQUUsQ0FBQyxHQUFHLENBQUMsTUFBTSxDQUFDLEdBQUcsQ0FBQyxJQUFJLGVBQUUsQ0FBQyxDQUFDLENBQUMsQ0FBQyxFQUFFLEdBQUcsQ0FBQyxDQUFBO0FBQzNDLENBQUM7QUFGRCw0Q0FFQztBQUVEOztHQUVHO0FBQ0gsU0FBZ0IsT0FBTztJQUNyQixPQUFPLElBQUksZUFBRSxDQUFDLElBQUksQ0FBQyxLQUFLLENBQUMsSUFBSSxJQUFJLEVBQUUsQ0FBQyxPQUFPLEVBQUUsR0FBRyxJQUFJLENBQUMsQ0FBQyxDQUFBO0FBQ3hELENBQUM7QUFGRCwwQkFFQztBQUVEOzs7O0dBSUc7QUFDSCxTQUFnQix3QkFBd0IsQ0FBQyxFQUFVO0lBQ2pELE9BQU8sY0FBYyxRQUFRLENBQUMsVUFBVSxDQUFDLEVBQUUsQ0FBQyxFQUFFLENBQUE7QUFDaEQsQ0FBQztBQUZELDREQUVDO0FBRUQ7Ozs7R0FJRztBQUNILFNBQWdCLHdCQUF3QixDQUFDLEVBQVU7SUFDakQsSUFBSSxDQUFDLEVBQUUsQ0FBQyxVQUFVLENBQUMsYUFBYSxDQUFDLEVBQUU7UUFDakMsTUFBTSxJQUFJLHdCQUFlLENBQ3ZCLDhFQUE4RSxDQUMvRSxDQUFBO0tBQ0Y7SUFDRCxNQUFNLE9BQU8sR0FBYSxFQUFFLENBQUMsS0FBSyxDQUFDLEdBQUcsQ0FBQyxDQUFBO0lBQ3ZDLE9BQU8sUUFBUSxDQUFDLFVBQVUsQ0FBQyxPQUFPLENBQUMsT0FBTyxDQUFDLE1BQU0sR0FBRyxDQUFDLENBQUMsQ0FBQyxDQUFBO0FBQ3pELENBQUM7QUFSRCw0REFRQztBQUVEOzs7O0dBSUc7QUFDSCxTQUFnQixvQkFBb0IsQ0FBQyxFQUFVO0lBQzdDLE9BQU8sVUFBVSxRQUFRLENBQUMsVUFBVSxDQUFDLEVBQUUsQ0FBQyxFQUFFLENBQUE7QUFDNUMsQ0FBQztBQUZELG9EQUVDO0FBRUQ7Ozs7R0FJRztBQUNILFNBQWdCLG9CQUFvQixDQUFDLEVBQVU7SUFDN0MsSUFBSSxDQUFDLEVBQUUsQ0FBQyxVQUFVLENBQUMsU0FBUyxDQUFDLEVBQUU7UUFDN0IsTUFBTSxJQUFJLG9CQUFXLENBQ25CLGlFQUFpRSxDQUNsRSxDQUFBO0tBQ0Y7SUFDRCxNQUFNLE9BQU8sR0FBYSxFQUFFLENBQUMsS0FBSyxDQUFDLEdBQUcsQ0FBQyxDQUFBO0lBQ3ZDLE9BQU8sUUFBUSxDQUFDLFVBQVUsQ0FBQyxPQUFPLENBQUMsT0FBTyxDQUFDLE1BQU0sR0FBRyxDQUFDLENBQUMsQ0FBQyxDQUFBO0FBQ3pELENBQUM7QUFSRCxvREFRQztBQUVELFNBQWdCLFlBQVksQ0FBQyxFQUFjO0lBQ3pDLElBQUksU0FBUyxHQUFXLGFBQWEsQ0FBQyxFQUFFLENBQUMsUUFBUSxFQUFFLENBQUMsVUFBVSxDQUFDLENBQUE7SUFDL0QsTUFBTSxRQUFRLEdBQUcsRUFBRSxDQUFDLGNBQWMsRUFBYyxDQUFBO0lBQ2hELFFBQVEsQ0FBQyxlQUFlLEVBQUUsQ0FBQyxPQUFPLENBQUMsQ0FBQyxLQUF3QixFQUFRLEVBQUU7UUFDcEUsTUFBTSxNQUFNLEdBQVcsS0FBSyxDQUFDLE9BQU8sRUFBRSxDQUFBO1FBQ3RDLFNBQVMsSUFBSSxNQUFNLENBQUE7SUFDckIsQ0FBQyxDQUFDLENBQUE7SUFDRixNQUFNLFFBQVEsR0FBVyxLQUFLLENBQUE7SUFDOUIsT0FBTyxTQUFTLEdBQUcsUUFBUSxDQUFBO0FBQzdCLENBQUM7QUFURCxvQ0FTQztBQUVELFNBQWdCLGFBQWEsQ0FBQyxHQUFXO0lBQ3ZDLE9BQU8sR0FBRyxHQUFHLG9CQUFRLENBQUMsT0FBTyxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FBQyxVQUFVLENBQUE7QUFDL0MsQ0FBQztBQUZELHNDQUVDO0FBRUQsU0FBZ0IsWUFBWSxDQUFDLEVBQWM7SUFDekMsTUFBTSxTQUFTLEdBQVcsYUFBYSxDQUFDLEVBQUUsQ0FBQyxRQUFRLEVBQUUsQ0FBQyxVQUFVLENBQUMsQ0FBQTtJQUNqRSxNQUFNLFFBQVEsR0FBRyxFQUFFLENBQUMsY0FBYyxFQUFjLENBQUE7SUFDaEQsTUFBTSxPQUFPLEdBQVcsUUFBUSxDQUFDLFNBQVMsRUFBRSxDQUFDLE1BQU0sQ0FBQTtJQUNuRCxNQUFNLE9BQU8sR0FBVyxPQUFPLEdBQUcsb0JBQVEsQ0FBQyxPQUFPLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FBQyxDQUFDLGdCQUFnQixDQUFBO0lBQ3hFLE1BQU0sUUFBUSxHQUFXLEtBQUssQ0FBQTtJQUM5QixPQUFPLFNBQVMsR0FBRyxPQUFPLEdBQUcsUUFBUSxDQUFBO0FBQ3ZDLENBQUM7QUFQRCxvQ0FPQyIsInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogQHBhY2thZ2VEb2N1bWVudGF0aW9uXG4gKiBAbW9kdWxlIFV0aWxzLUhlbHBlckZ1bmN0aW9uc1xuICovXG5cbmltcG9ydCB7XG4gIE5ldHdvcmtJRFRvSFJQLFxuICBEZWZhdWx0TmV0d29ya0lELFxuICBGYWxsYmFja0hSUCxcbiAgRGVmYXVsdHNcbn0gZnJvbSBcIi4vY29uc3RhbnRzXCJcbmltcG9ydCBCTiBmcm9tIFwiYm4uanNcIlxuaW1wb3J0IHsgQnVmZmVyIH0gZnJvbSBcImJ1ZmZlci9cIlxuaW1wb3J0IEJpblRvb2xzIGZyb20gXCIuLi91dGlscy9iaW50b29sc1wiXG5pbXBvcnQgeyBQcml2YXRlS2V5RXJyb3IsIE5vZGVJZEVycm9yIH0gZnJvbSBcIi4uL3V0aWxzL2Vycm9yc1wiXG5pbXBvcnQgeyBFeHBvcnRUeCwgSW1wb3J0VHgsIFRyYW5zZmVyYWJsZUlucHV0LCBVbnNpZ25lZFR4IH0gZnJvbSBcIi4uL2FwaXMvZXZtXCJcblxuLyoqXG4gKiBAaWdub3JlXG4gKi9cbmNvbnN0IGJpbnRvb2xzOiBCaW5Ub29scyA9IEJpblRvb2xzLmdldEluc3RhbmNlKClcblxuZXhwb3J0IGZ1bmN0aW9uIGdldFByZWZlcnJlZEhSUChuZXR3b3JrSUQ6IG51bWJlciA9IHVuZGVmaW5lZCk6IHN0cmluZyB7XG4gIGlmIChuZXR3b3JrSUQgaW4gTmV0d29ya0lEVG9IUlApIHtcbiAgICByZXR1cm4gTmV0d29ya0lEVG9IUlBbYCR7bmV0d29ya0lEfWBdXG4gIH0gZWxzZSBpZiAodHlwZW9mIG5ldHdvcmtJRCA9PT0gXCJ1bmRlZmluZWRcIikge1xuICAgIHJldHVybiBOZXR3b3JrSURUb0hSUFtgJHtEZWZhdWx0TmV0d29ya0lEfWBdXG4gIH1cbiAgcmV0dXJuIEZhbGxiYWNrSFJQXG59XG5cbmV4cG9ydCBmdW5jdGlvbiBNYXhXZWlnaHRGb3JtdWxhKHN0YWtlZDogQk4sIGNhcDogQk4pOiBCTiB7XG4gIHJldHVybiBCTi5taW4oc3Rha2VkLm11bChuZXcgQk4oNSkpLCBjYXApXG59XG5cbi8qKlxuICogRnVuY3Rpb24gcHJvdmlkaW5nIHRoZSBjdXJyZW50IFVOSVggdGltZSB1c2luZyBhIHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vaW5kdXRueS9ibi5qcy98Qk59LlxuICovXG5leHBvcnQgZnVuY3Rpb24gVW5peE5vdygpOiBCTiB7XG4gIHJldHVybiBuZXcgQk4oTWF0aC5yb3VuZChuZXcgRGF0ZSgpLmdldFRpbWUoKSAvIDEwMDApKVxufVxuXG4vKipcbiAqIFRha2VzIGEgcHJpdmF0ZSBrZXkgYnVmZmVyIGFuZCBwcm9kdWNlcyBhIHByaXZhdGUga2V5IHN0cmluZyB3aXRoIHByZWZpeC5cbiAqXG4gKiBAcGFyYW0gcGsgQSB7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL2Zlcm9zcy9idWZmZXJ8QnVmZmVyfSBmb3IgdGhlIHByaXZhdGUga2V5LlxuICovXG5leHBvcnQgZnVuY3Rpb24gYnVmZmVyVG9Qcml2YXRlS2V5U3RyaW5nKHBrOiBCdWZmZXIpOiBzdHJpbmcge1xuICByZXR1cm4gYFByaXZhdGVLZXktJHtiaW50b29scy5jYjU4RW5jb2RlKHBrKX1gXG59XG5cbi8qKlxuICogVGFrZXMgYSBwcml2YXRlIGtleSBzdHJpbmcgYW5kIHByb2R1Y2VzIGEgcHJpdmF0ZSBrZXkge0BsaW5rIGh0dHBzOi8vZ2l0aHViLmNvbS9mZXJvc3MvYnVmZmVyfEJ1ZmZlcn0uXG4gKlxuICogQHBhcmFtIHBrIEEgc3RyaW5nIGZvciB0aGUgcHJpdmF0ZSBrZXkuXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBwcml2YXRlS2V5U3RyaW5nVG9CdWZmZXIocGs6IHN0cmluZyk6IEJ1ZmZlciB7XG4gIGlmICghcGsuc3RhcnRzV2l0aChcIlByaXZhdGVLZXktXCIpKSB7XG4gICAgdGhyb3cgbmV3IFByaXZhdGVLZXlFcnJvcihcbiAgICAgIFwiRXJyb3IgLSBwcml2YXRlS2V5U3RyaW5nVG9CdWZmZXI6IHByaXZhdGUga2V5cyBtdXN0IHN0YXJ0IHdpdGggJ1ByaXZhdGVLZXktJ1wiXG4gICAgKVxuICB9XG4gIGNvbnN0IHBrc3BsaXQ6IHN0cmluZ1tdID0gcGsuc3BsaXQoXCItXCIpXG4gIHJldHVybiBiaW50b29scy5jYjU4RGVjb2RlKHBrc3BsaXRbcGtzcGxpdC5sZW5ndGggLSAxXSlcbn1cblxuLyoqXG4gKiBUYWtlcyBhIG5vZGVJRCBidWZmZXIgYW5kIHByb2R1Y2VzIGEgbm9kZUlEIHN0cmluZyB3aXRoIHByZWZpeC5cbiAqXG4gKiBAcGFyYW0gcGsgQSB7QGxpbmsgaHR0cHM6Ly9naXRodWIuY29tL2Zlcm9zcy9idWZmZXJ8QnVmZmVyfSBmb3IgdGhlIG5vZGVJRC5cbiAqL1xuZXhwb3J0IGZ1bmN0aW9uIGJ1ZmZlclRvTm9kZUlEU3RyaW5nKHBrOiBCdWZmZXIpOiBzdHJpbmcge1xuICByZXR1cm4gYE5vZGVJRC0ke2JpbnRvb2xzLmNiNThFbmNvZGUocGspfWBcbn1cblxuLyoqXG4gKiBUYWtlcyBhIG5vZGVJRCBzdHJpbmcgYW5kIHByb2R1Y2VzIGEgbm9kZUlEIHtAbGluayBodHRwczovL2dpdGh1Yi5jb20vZmVyb3NzL2J1ZmZlcnxCdWZmZXJ9LlxuICpcbiAqIEBwYXJhbSBwayBBIHN0cmluZyBmb3IgdGhlIG5vZGVJRC5cbiAqL1xuZXhwb3J0IGZ1bmN0aW9uIE5vZGVJRFN0cmluZ1RvQnVmZmVyKHBrOiBzdHJpbmcpOiBCdWZmZXIge1xuICBpZiAoIXBrLnN0YXJ0c1dpdGgoXCJOb2RlSUQtXCIpKSB7XG4gICAgdGhyb3cgbmV3IE5vZGVJZEVycm9yKFxuICAgICAgXCJFcnJvciAtIHByaXZhdGVOb2RlSURUb0J1ZmZlcjogbm9kZUlEIG11c3Qgc3RhcnQgd2l0aCAnTm9kZUlELSdcIlxuICAgIClcbiAgfVxuICBjb25zdCBwa3NwbGl0OiBzdHJpbmdbXSA9IHBrLnNwbGl0KFwiLVwiKVxuICByZXR1cm4gYmludG9vbHMuY2I1OERlY29kZShwa3NwbGl0W3Brc3BsaXQubGVuZ3RoIC0gMV0pXG59XG5cbmV4cG9ydCBmdW5jdGlvbiBjb3N0SW1wb3J0VHgodHg6IFVuc2lnbmVkVHgpOiBudW1iZXIge1xuICBsZXQgYnl0ZXNDb3N0OiBudW1iZXIgPSBjYWxjQnl0ZXNDb3N0KHR4LnRvQnVmZmVyKCkuYnl0ZUxlbmd0aClcbiAgY29uc3QgaW1wb3J0VHggPSB0eC5nZXRUcmFuc2FjdGlvbigpIGFzIEltcG9ydFR4XG4gIGltcG9ydFR4LmdldEltcG9ydElucHV0cygpLmZvckVhY2goKGlucHV0OiBUcmFuc2ZlcmFibGVJbnB1dCk6IHZvaWQgPT4ge1xuICAgIGNvbnN0IGluQ29zdDogbnVtYmVyID0gaW5wdXQuZ2V0Q29zdCgpXG4gICAgYnl0ZXNDb3N0ICs9IGluQ29zdFxuICB9KVxuICBjb25zdCBmaXhlZEZlZTogbnVtYmVyID0gMTAwMDBcbiAgcmV0dXJuIGJ5dGVzQ29zdCArIGZpeGVkRmVlXG59XG5cbmV4cG9ydCBmdW5jdGlvbiBjYWxjQnl0ZXNDb3N0KGxlbjogbnVtYmVyKTogbnVtYmVyIHtcbiAgcmV0dXJuIGxlbiAqIERlZmF1bHRzLm5ldHdvcmtbMV0uQy50eEJ5dGVzR2FzXG59XG5cbmV4cG9ydCBmdW5jdGlvbiBjb3N0RXhwb3J0VHgodHg6IFVuc2lnbmVkVHgpOiBudW1iZXIge1xuICBjb25zdCBieXRlc0Nvc3Q6IG51bWJlciA9IGNhbGNCeXRlc0Nvc3QodHgudG9CdWZmZXIoKS5ieXRlTGVuZ3RoKVxuICBjb25zdCBleHBvcnRUeCA9IHR4LmdldFRyYW5zYWN0aW9uKCkgYXMgRXhwb3J0VHhcbiAgY29uc3QgbnVtU2lnczogbnVtYmVyID0gZXhwb3J0VHguZ2V0SW5wdXRzKCkubGVuZ3RoXG4gIGNvbnN0IHNpZ0Nvc3Q6IG51bWJlciA9IG51bVNpZ3MgKiBEZWZhdWx0cy5uZXR3b3JrWzFdLkMuY29zdFBlclNpZ25hdHVyZVxuICBjb25zdCBmaXhlZEZlZTogbnVtYmVyID0gMTAwMDBcbiAgcmV0dXJuIGJ5dGVzQ29zdCArIHNpZ0Nvc3QgKyBmaXhlZEZlZVxufVxuIl19

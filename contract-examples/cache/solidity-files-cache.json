@@ -1,0 +1,925 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/AllowList.sol": {
+      "lastModificationDate": 1687957182686,
+      "contentHash": "ea0280e250a64108e54f0a8c6afe564b",
+      "sourceName": "contracts/AllowList.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IAllowList.sol",
+        "@openzeppelin/contracts/access/Ownable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "AllowList"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/IAllowList.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "32f50c3879c1a6632180cd301c761e49",
+      "sourceName": "contracts/IAllowList.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IAllowList"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
+      "lastModificationDate": 1688055199473,
+      "contentHash": "e436cea06129be2c73cda4b1acc848b5",
+      "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Ownable"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/node_modules/@openzeppelin/contracts/utils/Context.sol": {
+      "lastModificationDate": 1688055199492,
+      "contentHash": "5f2c5c4b6af2dd4551027144797bc8be",
+      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Context"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/test/ExampleTxAllowListTest.sol": {
+      "lastModificationDate": 1687957182688,
+      "contentHash": "e64a0ede324faaa0d9e1d61c5b717274",
+      "sourceName": "contracts/test/ExampleTxAllowListTest.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../ExampleTxAllowList.sol",
+        "../AllowList.sol",
+        "../IAllowList.sol",
+        "./AllowListTest.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ExampleTxAllowListTest"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/ExampleTxAllowList.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "2c5689680a704034cb0c13620f85494f",
+      "sourceName": "contracts/ExampleTxAllowList.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./AllowList.sol",
+        "./IAllowList.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Example",
+        "ExampleTxAllowList"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/test/AllowListTest.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "f05b30c671a08ee040a71ce53ca75314",
+      "sourceName": "contracts/test/AllowListTest.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../AllowList.sol",
+        "ds-test/src/test.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "AllowListTest"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/node_modules/ds-test/src/test.sol": {
+      "lastModificationDate": 1688055199723,
+      "contentHash": "9febff9d09f18af5306669dc276c4c43",
+      "sourceName": "ds-test/src/test.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.5.0"
+      ],
+      "artifacts": [
+        "DSTest"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/test/ExampleRewardManagerTest.sol": {
+      "lastModificationDate": 1687957182688,
+      "contentHash": "27774ec832db7b675e49e5954d9ba5af",
+      "sourceName": "contracts/test/ExampleRewardManagerTest.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../ExampleRewardManager.sol",
+        "../IRewardManager.sol",
+        "./AllowListTest.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ExampleRewardManagerTest"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/ExampleRewardManager.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "99416111feba0ee29589bd5a5bb2a09c",
+      "sourceName": "contracts/ExampleRewardManager.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IRewardManager.sol",
+        "@openzeppelin/contracts/access/Ownable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ExampleRewardManager"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/IRewardManager.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "abf8f2afebf7d582d553bfcb99b869b3",
+      "sourceName": "contracts/IRewardManager.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IAllowList.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IRewardManager"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/test/ExampleDeployerListTest.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "7faed8b5899d53414bdc01fe98031098",
+      "sourceName": "contracts/test/ExampleDeployerListTest.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../ExampleDeployerList.sol",
+        "../IAllowList.sol",
+        "../AllowList.sol",
+        "./AllowListTest.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ExampleDeployerListTest"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/ExampleDeployerList.sol": {
+      "lastModificationDate": 1687957182686,
+      "contentHash": "3cbc92210f538a123cbe91ee8708f843",
+      "sourceName": "contracts/ExampleDeployerList.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "./IAllowList.sol",
+        "./AllowList.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Example",
+        "ExampleDeployerList"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/ExampleFeeManager.sol": {
+      "lastModificationDate": 1687957182686,
+      "contentHash": "56c687277b1b740ec563e3c63bd22c46",
+      "sourceName": "contracts/ExampleFeeManager.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "./AllowList.sol",
+        "./IFeeManager.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ExampleFeeManager"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/IFeeManager.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "59b5e59fe9fd708393aa5da7a9cba9da",
+      "sourceName": "contracts/IFeeManager.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IAllowList.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IFeeManager"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/test/ExampleFeeManagerTest.sol": {
+      "lastModificationDate": 1687957182688,
+      "contentHash": "b5d7b580fcf6425bb0f64d13d3b2ecf4",
+      "sourceName": "contracts/test/ExampleFeeManagerTest.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../ExampleFeeManager.sol",
+        "./AllowListTest.sol",
+        "../AllowList.sol",
+        "../IFeeManager.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ExampleFeeManagerTest"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
+      "lastModificationDate": 1688055200580,
+      "contentHash": "af7bd64e1cfefbf6cb07f2adc1a25392",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC20.sol",
+        "./extensions/IERC20Metadata.sol",
+        "../../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ERC20"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+      "lastModificationDate": 1688055200580,
+      "contentHash": "ad7c2d0af148c8f9f097d65deeb4da6b",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC20"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+      "lastModificationDate": 1688055201119,
+      "contentHash": "909ab67fc5c25033fe6cd364f8c056f9",
+      "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../IERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IERC20Metadata"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/ERC20NativeMinter.sol": {
+      "lastModificationDate": 1687957182686,
+      "contentHash": "edf99ec5f0dd583335011f4b091027a8",
+      "sourceName": "contracts/ERC20NativeMinter.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol",
+        "./AllowList.sol",
+        "./INativeMinter.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ERC20NativeMinter"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/INativeMinter.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "f3de7d08505f6ed695ae7fad2244b21b",
+      "sourceName": "contracts/INativeMinter.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IAllowList.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "INativeMinter"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/test/ERC20NativeMinterTest.sol": {
+      "lastModificationDate": 1687957182687,
+      "contentHash": "92384b8da7dd432edfdf6c5e90dd347b",
+      "sourceName": "contracts/test/ERC20NativeMinterTest.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../ERC20NativeMinter.sol",
+        "../INativeMinter.sol",
+        "./AllowListTest.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ERC20NativeMinterTest",
+        "Minter"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/ExampleWarp.sol": {
+      "lastModificationDate": 1688394788768,
+      "contentHash": "019a66b92134eeade5644c03062bc665",
+      "sourceName": "contracts/ExampleWarp.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IWarpMessenger.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ExampleWarp"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/IWarpMessenger.sol": {
+      "lastModificationDate": 1688394788768,
+      "contentHash": "e442e41c32826d11e54efc64048b46c5",
+      "sourceName": "contracts/IWarpMessenger.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "IWarpMessenger"
+      ]
+    },
+    "/Users/johnmorrisett/Documents/subnet-evm/contract-examples/contracts/test/ExampleWarpTest.sol": {
+      "lastModificationDate": 1688406916770,
+      "contentHash": "8e36114cc2055b38bcec266220e05b27",
+      "sourceName": "contracts/test/ExampleWarpTest.sol",
+      "solcConfig": {
+        "version": "0.8.0",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./AllowListTest.sol",
+        "../IWarpMessenger.sol",
+        "../ExampleWarp.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "ExampleWarpTest"
+      ]
+    }
+  }
+}

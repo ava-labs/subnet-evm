@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Example",
+  "sourceName": "contracts/ExampleTxAllowList.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea2646970667358221220fdd7e8350c527b1f156f13f30cb40003f68ccf39a4eca38301bd71e0c178f76764736f6c63430008000033",
+  "deployedBytecode": "0x6080604052600080fdfea2646970667358221220fdd7e8350c527b1f156f13f30cb40003f68ccf39a4eca38301bd71e0c178f76764736f6c63430008000033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

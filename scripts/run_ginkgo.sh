@@ -15,6 +15,9 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
+echo "compiling Warp contracts"
+solc --evm-version paris "./tests/warp/contracts/ExampleWarp.sol"  --abi --bin -o "./tests/warp/contracts/" --overwrite
+
 # Build ginkgo
 echo "building precompile.test"
 # to install the ginkgo binary (required for test build and run)
@@ -27,11 +30,13 @@ ACK_GINKGO_RC=true ginkgo build ./tests/precompile ./tests/load ./tests/warp
 # Use "--ginkgo.focus" to select tests.
 ./tests/precompile/precompile.test \
   --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}\
+  --ginkgo.focus="none"
 
 ./tests/load/load.test \
   --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}\
+  --ginkgo.focus="none"
 
 ./tests/warp/warp.test \
   --ginkgo.vv \

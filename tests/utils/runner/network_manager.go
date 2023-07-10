@@ -219,10 +219,12 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	if err := n.init(); err != nil {
 		return err
 	}
+
 	sresp, err := n.anrClient.CreateBlockchains(
 		ctx,
 		blockchainSpecs,
 	)
+
 	if err != nil {
 		return fmt.Errorf("failed to create blockchains: %w", err)
 	}
@@ -249,8 +251,8 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	}
 	nodeInfos := status.GetClusterInfo().GetNodeInfos()
 
-	for _, chainSpec := range blockchainSpecs {
-		blockchainIDStr := sresp.ChainIds[0]
+	for i, chainSpec := range blockchainSpecs {
+		blockchainIDStr := sresp.ChainIds[i]
 		blockchainID, err := ids.FromString(blockchainIDStr)
 		if err != nil {
 			panic(err)
