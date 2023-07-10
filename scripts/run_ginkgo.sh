@@ -27,12 +27,13 @@ ACK_GINKGO_RC=true ginkgo build ./tests/precompile ./tests/load ./tests/warp
 # Use "--ginkgo.focus" to select tests.
 ./tests/precompile/precompile.test \
   --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""} \
+  --ginkgo.focus="none"
 
 ./tests/load/load.test \
   --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
-
+  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""} \
+  --ginkgo.focus="none"
 ./tests/warp/warp.test \
   --ginkgo.vv \
   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}

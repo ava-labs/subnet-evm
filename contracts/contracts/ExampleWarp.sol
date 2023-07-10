@@ -17,7 +17,6 @@ contract ExampleWarp {
         warp.sendWarpMessage(destinationChainID, destinationAddress, payload);
     }
 
-
     // validateWarpMessage retrieves the warp message attached to the transaction and verifies all of its attributes.
     function validateWarpMessage(
         bytes32 originChainID,
@@ -36,7 +35,7 @@ contract ExampleWarp {
     }
 
     // validateGetBlockchainID checks that the blockchainID returned by warp matches the argument
-    function validateGetBlockchainID(blockchainID bytes32) external {
+    function validateGetBlockchainID(bytes32 blockchainID) external view {
         require(blockchainID == warp.getBlockchainID());
     }
 }
