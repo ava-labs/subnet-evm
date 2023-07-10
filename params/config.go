@@ -50,7 +50,7 @@ var (
 	// For legacy tests
 	MinGasPrice        int64 = 225_000_000_000
 	TestInitialBaseFee int64 = 225_000_000_000
-	TestMaxBaseFee     int64 = 225_000_000_000
+	TestMaxBaseFee           = big.NewInt(225_000_000_000)
 
 	ExtraDataSize        = 80
 	RollupWindow  uint64 = 10

@@ -229,7 +229,9 @@ func SetupGenesisBlock(
 		return newcfg, common.Hash{}, err
 	}
 	storedcfg := rawdb.ReadChainConfig(db, stored)
+	// If there is no previously stored chain config, write the chain config to disk.
 	if storedcfg == nil {
+		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
@@ -247,6 +249,7 @@ func SetupGenesisBlock(
 	if lastBlock == nil {
 		return newcfg, common.Hash{}, fmt.Errorf("missing last accepted block")
 	}
+
 	height := lastBlock.NumberU64()
 	timestamp := lastBlock.Time()
 	if skipChainConfigCheckCompatible {
@@ -350,6 +353,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 			panic(fmt.Sprintf("unable to commit genesis block: %v", err))
 		}
 	}
+
 	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil))
 }
 
@@ -397,7 +401,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	g := Genesis{
 		Config:  params.TestChainConfig,
 		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: big.NewInt(params.TestMaxBaseFee),
+		BaseFee: new(big.Int).Set(params.TestMaxBaseFee),
 	}
 	return g.MustCommit(db)
 }

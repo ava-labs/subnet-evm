@@ -87,7 +87,7 @@ func u64(val uint64) *uint64 { return &val }
 // blockchain imports bad blocks, meaning blocks which have valid headers but
 // contain invalid transactions
 func TestStateProcessorErrors(t *testing.T) {
-	config.FeeConfig.MinBaseFee = big.NewInt(params.TestMaxBaseFee)
+	config.FeeConfig.MinBaseFee = params.TestMaxBaseFee
 	{ // Tests against a 'recent' chain definition
 		var (
 			db    = rawdb.NewMemoryDatabase()
@@ -408,11 +408,11 @@ func TestBadTxAllowListBlock(t *testing.T) {
 					Nonce:   0,
 				},
 			},
+
 			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 		}
 		blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 	)
-	defer blockchain.Stop()
 
 	mkDynamicTx := func(nonce uint64, to common.Address, gasLimit uint64, gasTipCap, gasFeeCap *big.Int) *types.Transaction {
 		tx, _ := types.SignTx(types.NewTx(&types.DynamicFeeTx{

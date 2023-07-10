@@ -103,13 +103,6 @@ func validate(jt JumpTable) JumpTable {
 	return jt
 }
 
-func newDUpgradeInstructionSet() JumpTable {
-	instructionSet := newSubnetEVMInstructionSet()
-	enable3855(&instructionSet) // PUSH0 instruction
-	enable3860(&instructionSet) // Limit and meter initcode
-	return validate(instructionSet)
-}
-
 // newIstanbulInstructionSet returns the frontier,
 // homestead, byzantium, contantinople and petersburg instructions.
 func newIstanbulInstructionSet() JumpTable {

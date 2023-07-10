@@ -251,7 +251,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	_, blocks, _, _ := GenerateChainWithGenesis(&customg, dummy.NewFullFaker(), 4, 25, nil)
 
 	require := require.New(t)
-	_, err = bc.InsertChain(blocks)
+	_, err := bc.InsertChain(blocks)
 	require.NoError(err)
 
 	// accept up to block #2
