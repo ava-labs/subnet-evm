@@ -11,7 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/plugin/evm/limitorders"
+	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -820,7 +820,7 @@ func init() {
 func createPlaceOrderTx(t *testing.T, vm *VM, trader common.Address, privateKey *ecdsa.PrivateKey, size *big.Int, price *big.Int, salt *big.Int) common.Hash {
 	nonce := vm.txPool.Nonce(trader)
 
-	order := limitorders.Order{
+	order := orderbook.LimitOrder{
 		Trader:            trader,
 		AmmIndex:          big.NewInt(0),
 		BaseAssetQuantity: big.NewInt(0).Mul(size, _1e18),
@@ -1020,7 +1020,7 @@ func accept(t *testing.T, blocks ...snowman.Block) {
 	}
 }
 
-func filterOrderMapBySalt(orderMap map[common.Hash]*limitorders.LimitOrder, salt *big.Int) *limitorders.LimitOrder {
+func filterOrderMapBySalt(orderMap map[common.Hash]*orderbook.Order, salt *big.Int) *orderbook.Order {
 	for _, order := range orderMap {
 		if order.Salt.Cmp(salt) == 0 {
 			return order

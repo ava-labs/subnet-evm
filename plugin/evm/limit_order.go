@@ -13,7 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/filters"
-	"github.com/ava-labs/subnet-evm/plugin/evm/limitorders"
+	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
 	"github.com/ava-labs/subnet-evm/utils"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -30,8 +30,8 @@ const (
 type LimitOrderProcesser interface {
 	ListenAndProcessTransactions()
 	RunBuildBlockPipeline()
-	GetOrderBookAPI() *limitorders.OrderBookAPI
-	GetTradingAPI() *limitorders.TradingAPI
+	GetOrderBookAPI() *orderbook.OrderBookAPI
+	GetTradingAPI() *orderbook.TradingAPI
 }
 
 type limitOrderProcesser struct {
@@ -42,22 +42,22 @@ type limitOrderProcesser struct {
 	shutdownWg             *sync.WaitGroup
 	backend                *eth.EthAPIBackend
 	blockChain             *core.BlockChain
-	memoryDb               limitorders.LimitOrderDatabase
-	limitOrderTxProcessor  limitorders.LimitOrderTxProcessor
-	contractEventProcessor *limitorders.ContractEventsProcessor
-	buildBlockPipeline     *limitorders.BuildBlockPipeline
+	memoryDb               orderbook.LimitOrderDatabase
+	limitOrderTxProcessor  orderbook.LimitOrderTxProcessor
+	contractEventProcessor *orderbook.ContractEventsProcessor
+	buildBlockPipeline     *orderbook.BuildBlockPipeline
 	filterAPI              *filters.FilterAPI
 	hubbleDB               database.Database
-	configService          limitorders.IConfigService
+	configService          orderbook.IConfigService
 }
 
 func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database, validatorPrivateKey string) LimitOrderProcesser {
 	log.Info("**** NewLimitOrderProcesser")
-	configService := limitorders.NewConfigService(blockChain)
-	memoryDb := limitorders.NewInMemoryDatabase(configService)
-	lotp := limitorders.NewLimitOrderTxProcessor(txPool, memoryDb, backend, validatorPrivateKey)
-	contractEventProcessor := limitorders.NewContractEventsProcessor(memoryDb)
-	buildBlockPipeline := limitorders.NewBuildBlockPipeline(memoryDb, lotp, configService)
+	configService := orderbook.NewConfigService(blockChain)
+	memoryDb := orderbook.NewInMemoryDatabase(configService)
+	lotp := orderbook.NewLimitOrderTxProcessor(txPool, memoryDb, backend, validatorPrivateKey)
+	contractEventProcessor := orderbook.NewContractEventsProcessor(memoryDb)
+	buildBlockPipeline := orderbook.NewBuildBlockPipeline(memoryDb, lotp, configService)
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{})
 	filterAPI := filters.NewFilterAPI(filterSystem, true)
 	return &limitOrderProcesser{
@@ -81,8 +81,9 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan
 func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 	lop.mu.Lock()
 
-	lastAccepted := lop.blockChain.LastAcceptedBlock().Number()
-	if lastAccepted.Sign() > 0 {
+	lastAccepted := lop.blockChain.LastAcceptedBlock()
+	lastAcceptedBlockNumber := lastAccepted.Number()
+	if lastAcceptedBlockNumber.Sign() > 0 {
 		fromBlock := big.NewInt(0)
 
 		// first load the last snapshot containing finalised data till block x and query the logs of [x+1, latest]
@@ -99,8 +100,8 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 			}
 		}
 
-		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAccepted)
-		toBlock := utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
+		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAcceptedBlockNumber)
+		toBlock := utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 		for toBlock.Cmp(fromBlock) > 0 {
 			logs := lop.getLogs(fromBlock, toBlock)
 			log.Info("ListenAndProcessTransactions - fetched log chunk", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs), "err", err)
@@ -108,9 +109,9 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 			lop.contractEventProcessor.ProcessAcceptedEvents(logs, true)
 
 			fromBlock = fromBlock.Add(toBlock, big.NewInt(1))
-			toBlock = utils.BigIntMin(lastAccepted, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
+			toBlock = utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
 		}
-		lop.memoryDb.Accept(lastAccepted.Uint64()) // will delete stale orders from the memorydb
+		lop.memoryDb.Accept(lastAcceptedBlockNumber.Uint64(), lastAccepted.Time()) // will delete stale orders from the memorydb
 		// lop.FixBuggySnapshot()                     // not required any more
 	}
 
@@ -123,12 +124,12 @@ func (lop *limitOrderProcesser) RunBuildBlockPipeline() {
 	lop.buildBlockPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number(), big.NewInt(1)))
 }
 
-func (lop *limitOrderProcesser) GetOrderBookAPI() *limitorders.OrderBookAPI {
-	return limitorders.NewOrderBookAPI(lop.memoryDb, lop.backend, lop.configService)
+func (lop *limitOrderProcesser) GetOrderBookAPI() *orderbook.OrderBookAPI {
+	return orderbook.NewOrderBookAPI(lop.memoryDb, lop.backend, lop.configService)
 }
 
-func (lop *limitOrderProcesser) GetTradingAPI() *limitorders.TradingAPI {
-	return limitorders.NewTradingAPI(lop.memoryDb, lop.backend, lop.configService)
+func (lop *limitOrderProcesser) GetTradingAPI() *orderbook.TradingAPI {
+	return orderbook.NewTradingAPI(lop.memoryDb, lop.backend, lop.configService)
 }
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
@@ -198,7 +199,7 @@ func (lop *limitOrderProcesser) handleChainAcceptedEvent(event core.ChainEvent) 
 
 	block := event.Block
 	log.Info("#### received ChainAcceptedEvent", "number", block.NumberU64(), "hash", block.Hash().String())
-	lop.memoryDb.Accept(block.NumberU64())
+	lop.memoryDb.Accept(block.NumberU64(), block.Time())
 
 	// update metrics asynchronously
 	go lop.limitOrderTxProcessor.UpdateMetrics(block)
@@ -226,7 +227,7 @@ func (lop *limitOrderProcesser) loadMemoryDBSnapshot() (acceptedBlockNumber uint
 	}
 
 	buf := bytes.NewBuffer(memorySnapshotBytes)
-	var snapshot limitorders.Snapshot
+	var snapshot orderbook.Snapshot
 	err = gob.NewDecoder(buf).Decode(&snapshot)
 	if err != nil {
 		return acceptedBlockNumber, fmt.Errorf("Error in snapshot parsing; err=%v", err)
@@ -268,11 +269,11 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 			logsToRemove[i].Removed = true
 		}
 
-		cev := limitorders.NewContractEventsProcessor(memoryDBCopy)
+		cev := orderbook.NewContractEventsProcessor(memoryDBCopy)
 		cev.ProcessEvents(logsToRemove)
 	}
 
-	snapshot := limitorders.Snapshot{
+	snapshot := orderbook.Snapshot{
 		Data:                memoryDBCopy,
 		AcceptedBlockNumber: acceptedBlockNumber,
 	}
@@ -298,7 +299,7 @@ func (lop *limitOrderProcesser) getLogs(fromBlock, toBlock *big.Int) []*types.Lo
 	logs, err := lop.filterAPI.GetLogs(ctx, filters.FilterCriteria{
 		FromBlock: fromBlock,
 		ToBlock:   toBlock,
-		Addresses: []common.Address{limitorders.OrderBookContractAddress, limitorders.ClearingHouseContractAddress, limitorders.MarginAccountContractAddress},
+		Addresses: []common.Address{orderbook.OrderBookContractAddress, orderbook.ClearingHouseContractAddress, orderbook.MarginAccountContractAddress},
 	})
 
 	if err != nil {

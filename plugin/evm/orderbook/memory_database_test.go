@@ -1,4 +1,4 @@
-package limitorders
+package orderbook
 
 import (
 	"math/big"
@@ -127,7 +127,7 @@ func TestGetShortOrders(t *testing.T) {
 	assert.Equal(t, 4, len(returnedShortOrders))
 
 	// at least one of the orders should be reduce only
-	reduceOnlyOrder := LimitOrder{}
+	reduceOnlyOrder := Order{}
 	for _, order := range returnedShortOrders {
 		if order.ReduceOnly {
 			reduceOnlyOrder = order
@@ -191,7 +191,7 @@ func TestGetLongOrders(t *testing.T) {
 func TestGetCancellableOrders(t *testing.T) {
 	// also tests getTotalNotionalPositionAndUnrealizedPnl
 	inMemoryDatabase := getDatabase()
-	getReservedMargin := func(order LimitOrder) *big.Int {
+	getReservedMargin := func(order Order) *big.Int {
 		notional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.BaseAssetQuantity, order.Price), _1e18))
 		return divideByBasePrecision(big.NewInt(0).Mul(notional, inMemoryDatabase.configService.getMinAllowableMargin()))
 	}
@@ -312,7 +312,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 
 			allOrders := inMemoryDatabase.GetAllOrders()
 			assert.Equal(t, 1, len(allOrders))
-			inMemoryDatabase.Accept(70)
+			inMemoryDatabase.Accept(70, 70)
 			allOrders = inMemoryDatabase.GetAllOrders()
 			assert.Equal(t, 0, len(allOrders))
 		})
@@ -331,7 +331,7 @@ func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 
 			allOrders := inMemoryDatabase.GetAllOrders()
 			assert.Equal(t, 1, len(allOrders))
-			inMemoryDatabase.Accept(420)
+			inMemoryDatabase.Accept(420, 420)
 			allOrders = inMemoryDatabase.GetAllOrders()
 			assert.Equal(t, 0, len(allOrders))
 		})
@@ -413,7 +413,7 @@ func TestAccept(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, inMemoryDatabase.OrderMap[orderId1].getOrderStatus().Status, FulFilled)
 
-		inMemoryDatabase.Accept(51)
+		inMemoryDatabase.Accept(51, 51)
 
 		// fulfilled order is deleted
 		_, ok := inMemoryDatabase.OrderMap[orderId1]
@@ -430,7 +430,7 @@ func TestAccept(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, inMemoryDatabase.OrderMap[orderId].getOrderStatus().Status, FulFilled)
 
-		inMemoryDatabase.Accept(52)
+		inMemoryDatabase.Accept(52, 52)
 
 		_, ok := inMemoryDatabase.OrderMap[orderId]
 		assert.False(t, ok)
@@ -443,7 +443,7 @@ func TestAccept(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, inMemoryDatabase.OrderMap[orderId].getOrderStatus().Status, FulFilled)
 
-		inMemoryDatabase.Accept(50)
+		inMemoryDatabase.Accept(50, 50)
 
 		_, ok := inMemoryDatabase.OrderMap[orderId]
 		assert.True(t, ok)
@@ -452,7 +452,7 @@ func TestAccept(t *testing.T) {
 	t.Run("Order is placed, should not be deleted when a block is accepted", func(t *testing.T) {
 		inMemoryDatabase := getDatabase()
 		orderId := addLimitOrder(inMemoryDatabase)
-		inMemoryDatabase.Accept(50)
+		inMemoryDatabase.Accept(50, 50)
 
 		_, ok := inMemoryDatabase.OrderMap[orderId]
 		assert.True(t, ok)
@@ -497,7 +497,7 @@ func TestRevertLastStatus(t *testing.T) {
 		err := inMemoryDatabase.SetOrderStatus(orderId, FulFilled, "", 3)
 		assert.Nil(t, err)
 
-		inMemoryDatabase.Accept(3)
+		inMemoryDatabase.Accept(3, 3)
 		err = inMemoryDatabase.RevertLastStatus(orderId)
 		assert.Error(t, err)
 	})
@@ -628,8 +628,8 @@ func TestUpdateReservedMargin(t *testing.T) {
 	assert.Equal(t, big.NewInt(15*1e6), inMemoryDatabase.TraderMap[address].Margin.Reserved)
 }
 
-func createLimitOrder(positionType PositionType, userAddress string, baseAssetQuantity *big.Int, price *big.Int, status Status, blockNumber *big.Int, salt *big.Int) LimitOrder {
-	lo := LimitOrder{
+func createLimitOrder(positionType PositionType, userAddress string, baseAssetQuantity *big.Int, price *big.Int, status Status, blockNumber *big.Int, salt *big.Int) Order {
+	lo := Order{
 		Market:                  market,
 		PositionType:            positionType,
 		UserAddress:             userAddress,

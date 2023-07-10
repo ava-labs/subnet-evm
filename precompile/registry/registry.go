@@ -48,4 +48,5 @@ import (
 // HubbleBiblioPhile       = common.HexToAddress("0x0300000000000000000000000000000000000003")
 // bibliophile       = common.HexToAddress("0x0300000000000000000000000000000000000004")
 // juror       = common.HexToAddress("0x0300000000000000000000000000000000000005")
+// iocOrderBook       = common.HexToAddress("0x0300000000000000000000000000000000000006")
 // {YourPrecompile}Address = common.HexToAddress("0x03000000000000000000000000000000000000??")

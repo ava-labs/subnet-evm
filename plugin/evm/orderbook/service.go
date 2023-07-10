@@ -1,7 +1,7 @@
 // (c) 2019-2020, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package limitorders
+package orderbook
 
 import (
 	"context"
@@ -174,7 +174,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string, marke
 				Price:      order.Price.String(),
 				Size:       order.BaseAssetQuantity.String(),
 				FilledSize: order.FilledBaseAssetQuantity.String(),
-				Salt:       order.RawOrder.Salt.String(),
+				Salt:       order.Salt.String(),
 				OrderId:    order.Id.String(),
 				ReduceOnly: order.ReduceOnly,
 			})
@@ -295,7 +295,7 @@ func getDepthForMarket(db LimitOrderDatabase, market Market) *MarketDepth {
 	}
 }
 
-func aggregateOrdersByPrice(orders []LimitOrder) map[string]string {
+func aggregateOrdersByPrice(orders []Order) map[string]string {
 	aggregatedOrders := map[string]string{}
 	for _, order := range orders {
 		aggregatedBaseAssetQuantity, ok := aggregatedOrders[order.Price.String()]

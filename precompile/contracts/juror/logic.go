@@ -6,7 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/plugin/evm/limitorders"
+	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
 	b "github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -24,7 +24,7 @@ type DecodeStep struct {
 	EncodedOrder []byte
 }
 
-type LimitOrder limitorders.Order
+type LimitOrder orderbook.LimitOrder
 
 type IOCOrder struct {
 	LimitOrder

@@ -1,4 +1,4 @@
-package limitorders
+package orderbook
 
 import (
 	"math/big"
@@ -21,8 +21,8 @@ func TestRunLiquidations(t *testing.T) {
 
 	t.Run("when there are no liquidable positions", func(t *testing.T) {
 		_, lotp, pipeline, underlyingPrices, _ := setupDependencies(t)
-		longOrders := []LimitOrder{getLongOrder()}
-		shortOrders := []LimitOrder{getShortOrder()}
+		longOrders := []Order{getLongOrder()}
+		shortOrders := []Order{getShortOrder()}
 
 		orderMap := map[Market]*Orders{market: {longOrders, shortOrders}}
 		pipeline.runLiquidations([]LiquidablePosition{}, orderMap, underlyingPrices)
@@ -34,8 +34,8 @@ func TestRunLiquidations(t *testing.T) {
 	t.Run("when liquidable position is long", func(t *testing.T) {
 		t.Run("when no long orders are present in database for matching", func(t *testing.T) {
 			_, lotp, pipeline, underlyingPrices, cs := setupDependencies(t)
-			longOrders := []LimitOrder{}
-			shortOrders := []LimitOrder{getShortOrder()}
+			longOrders := []Order{}
+			shortOrders := []Order{getShortOrder()}
 
 			orderMap := map[Market]*Orders{market: {longOrders, shortOrders}}
 
@@ -55,7 +55,7 @@ func TestRunLiquidations(t *testing.T) {
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
 			lotp.On("ExecuteLiquidation", traderAddress, longOrder, expectedFillAmount).Return(nil)
 
-			orderMap := map[Market]*Orders{market: {[]LimitOrder{longOrder}, []LimitOrder{shortOrder}}}
+			orderMap := map[Market]*Orders{market: {[]Order{longOrder}, []Order{shortOrder}}}
 
 			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
 
@@ -77,7 +77,7 @@ func TestRunLiquidations(t *testing.T) {
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
 			lotp.On("ExecuteLiquidation", traderAddress, longOrder, expectedFillAmount).Return(nil)
 
-			orderMap := map[Market]*Orders{market: {[]LimitOrder{longOrder, longOrder2}, []LimitOrder{}}}
+			orderMap := map[Market]*Orders{market: {[]Order{longOrder, longOrder2}, []Order{}}}
 
 			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
 
@@ -96,7 +96,7 @@ func TestRunLiquidations(t *testing.T) {
 
 			shortOrder0 := buildShortOrder(19, -9)
 			shortOrder1 := buildShortOrder(liqLowerBound.Int64()-1, -8)
-			orderMap := map[Market]*Orders{market: {[]LimitOrder{longOrder0, longOrder1}, []LimitOrder{shortOrder0, shortOrder1}}}
+			orderMap := map[Market]*Orders{market: {[]Order{longOrder0, longOrder1}, []Order{shortOrder0, shortOrder1}}}
 
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
 			lotp.On("ExecuteLiquidation", traderAddress, orderMap[market].longOrders[0], big.NewInt(5)).Return(nil)
@@ -138,8 +138,8 @@ func TestRunLiquidations(t *testing.T) {
 		}}
 		t.Run("when no short orders are present in database for matching", func(t *testing.T) {
 			_, lotp, pipeline, underlyingPrices, cs := setupDependencies(t)
-			shortOrders := []LimitOrder{}
-			longOrders := []LimitOrder{getLongOrder()}
+			shortOrders := []Order{}
+			longOrders := []Order{getLongOrder()}
 
 			orderMap := map[Market]*Orders{market: {longOrders, shortOrders}}
 
@@ -158,7 +158,7 @@ func TestRunLiquidations(t *testing.T) {
 			lotp.On("ExecuteLiquidation", traderAddress, shortOrder, expectedFillAmount).Return(nil)
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
 
-			orderMap := map[Market]*Orders{market: {[]LimitOrder{longOrder}, []LimitOrder{shortOrder}}}
+			orderMap := map[Market]*Orders{market: {[]Order{longOrder}, []Order{shortOrder}}}
 			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
 
 			lotp.AssertCalled(t, "ExecuteLiquidation", traderAddress, shortOrder, expectedFillAmount)
@@ -174,22 +174,22 @@ func TestRunMatchingEngine(t *testing.T) {
 	t.Run("when either long or short orders are not present in memorydb", func(t *testing.T) {
 		t.Run("when no short and long orders are present", func(t *testing.T) {
 			_, lotp, pipeline, _, _ := setupDependencies(t)
-			longOrders := make([]LimitOrder, 0)
-			shortOrders := make([]LimitOrder, 0)
+			longOrders := make([]Order, 0)
+			shortOrders := make([]Order, 0)
 			pipeline.runMatchingEngine(lotp, longOrders, shortOrders)
 			lotp.AssertNotCalled(t, "ExecuteMatchedOrdersTx", mock.Anything, mock.Anything, mock.Anything)
 		})
 		t.Run("when longOrders are not present but short orders are present", func(t *testing.T) {
 			_, lotp, pipeline, _, _ := setupDependencies(t)
-			longOrders := make([]LimitOrder, 0)
-			shortOrders := []LimitOrder{getShortOrder()}
+			longOrders := make([]Order, 0)
+			shortOrders := []Order{getShortOrder()}
 			pipeline.runMatchingEngine(lotp, longOrders, shortOrders)
 			lotp.AssertNotCalled(t, "ExecuteMatchedOrdersTx", mock.Anything, mock.Anything, mock.Anything)
 		})
 		t.Run("when short orders are not present but long orders are present", func(t *testing.T) {
 			db, lotp, pipeline, _, _ := setupDependencies(t)
-			longOrders := make([]LimitOrder, 0)
-			shortOrders := make([]LimitOrder, 0)
+			longOrders := make([]Order, 0)
+			shortOrders := make([]Order, 0)
 			longOrder := getLongOrder()
 			longOrders = append(longOrders, longOrder)
 			db.On("GetLongOrders").Return(longOrders)
@@ -206,7 +206,7 @@ func TestRunMatchingEngine(t *testing.T) {
 			longOrder := getLongOrder()
 			longOrder.Price.Sub(shortOrder.Price, big.NewInt(1))
 
-			pipeline.runMatchingEngine(lotp, []LimitOrder{longOrder}, []LimitOrder{shortOrder})
+			pipeline.runMatchingEngine(lotp, []Order{longOrder}, []Order{shortOrder})
 			lotp.AssertNotCalled(t, "ExecuteMatchedOrdersTx", mock.Anything, mock.Anything, mock.Anything)
 		})
 		t.Run("When longOrder.Price >= shortOrder.Price same", func(t *testing.T) {
@@ -214,7 +214,7 @@ func TestRunMatchingEngine(t *testing.T) {
 				t.Run("When long order and short order's base asset quantity is same", func(t *testing.T) {
 					//Add 2 long orders
 					_, lotp, pipeline, _, _ := setupDependencies(t)
-					longOrders := make([]LimitOrder, 0)
+					longOrders := make([]Order, 0)
 					longOrder1 := getLongOrder()
 					longOrders = append(longOrders, longOrder1)
 					longOrder2 := getLongOrder()
@@ -222,7 +222,7 @@ func TestRunMatchingEngine(t *testing.T) {
 
 					// Add 2 short orders
 					shortOrder1 := getShortOrder()
-					shortOrders := make([]LimitOrder, 0)
+					shortOrders := make([]Order, 0)
 					shortOrders = append(shortOrders, shortOrder1)
 					shortOrder2 := getShortOrder()
 					shortOrders = append(shortOrders, shortOrder2)
@@ -238,7 +238,7 @@ func TestRunMatchingEngine(t *testing.T) {
 				t.Run("When long order and short order's base asset quantity is different", func(t *testing.T) {
 					db, lotp, pipeline, _, _ := setupDependencies(t)
 					//Add 2 long orders with half base asset quantity of short order
-					longOrders := make([]LimitOrder, 0)
+					longOrders := make([]Order, 0)
 					longOrder := getLongOrder()
 					longOrder.BaseAssetQuantity = big.NewInt(20)
 					longOrder.FilledBaseAssetQuantity = big.NewInt(5)
@@ -248,7 +248,7 @@ func TestRunMatchingEngine(t *testing.T) {
 					shortOrder := getShortOrder()
 					shortOrder.BaseAssetQuantity = big.NewInt(-30)
 					shortOrder.FilledBaseAssetQuantity = big.NewInt(-15)
-					shortOrders := make([]LimitOrder, 0)
+					shortOrders := make([]Order, 0)
 					shortOrders = append(shortOrders, shortOrder)
 
 					fillAmount := big.NewInt(0).Sub(longOrder.BaseAssetQuantity, longOrder.FilledBaseAssetQuantity)
@@ -262,7 +262,7 @@ func TestRunMatchingEngine(t *testing.T) {
 			})
 			t.Run("When long order and short order's unfulfilled quantity is not same", func(t *testing.T) {
 				db, lotp, pipeline, _, _ := setupDependencies(t)
-				longOrders := make([]LimitOrder, 0)
+				longOrders := make([]Order, 0)
 				longOrder1 := getLongOrder()
 				longOrder1.BaseAssetQuantity = big.NewInt(20)
 				longOrder1.FilledBaseAssetQuantity = big.NewInt(5)
@@ -275,7 +275,7 @@ func TestRunMatchingEngine(t *testing.T) {
 				longOrders = append(longOrders, longOrder1, longOrder2, longOrder3)
 
 				// Add 2 short orders
-				shortOrders := make([]LimitOrder, 0)
+				shortOrders := make([]Order, 0)
 				shortOrder1 := getShortOrder()
 				shortOrder1.BaseAssetQuantity = big.NewInt(-30)
 				shortOrder1.FilledBaseAssetQuantity = big.NewInt(-2)
@@ -491,25 +491,25 @@ func TestMatchLongAndShortOrder(t *testing.T) {
 	})
 }
 
-func getShortOrder() LimitOrder {
+func getShortOrder() Order {
 	salt := big.NewInt(time.Now().Unix())
 	shortOrder := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-10), big.NewInt(20.0), Placed, big.NewInt(2), salt)
 	return shortOrder
 }
 
-func getLongOrder() LimitOrder {
+func getLongOrder() Order {
 	salt := big.NewInt(time.Now().Unix())
 	longOrder := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(10), big.NewInt(20.0), Placed, big.NewInt(2), salt)
 	return longOrder
 }
 
-func buildLongOrder(price, q int64) LimitOrder {
+func buildLongOrder(price, q int64) Order {
 	salt := big.NewInt(time.Now().Unix())
 	longOrder := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(q), big.NewInt(price), Placed, big.NewInt(2), salt)
 	return longOrder
 }
 
-func buildShortOrder(price, q int64) LimitOrder {
+func buildShortOrder(price, q int64) Order {
 	salt := big.NewInt(time.Now().Unix())
 	order := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(q), big.NewInt(price), Placed, big.NewInt(2), salt)
 	return order

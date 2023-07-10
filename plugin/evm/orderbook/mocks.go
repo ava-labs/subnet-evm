@@ -1,4 +1,4 @@
-package limitorders
+package orderbook
 
 import (
 	"math/big"
@@ -24,15 +24,15 @@ func (db *MockLimitOrderDatabase) RevertLastStatus(orderId common.Hash) error {
 	return nil
 }
 
-func (db *MockLimitOrderDatabase) Accept(blockNumber uint64) {
+func (db *MockLimitOrderDatabase) Accept(blockNumber uint64, blockTimestamp uint64) {
 }
 
-func (db *MockLimitOrderDatabase) GetAllOrders() []LimitOrder {
+func (db *MockLimitOrderDatabase) GetAllOrders() []Order {
 	args := db.Called()
-	return args.Get(0).([]LimitOrder)
+	return args.Get(0).([]Order)
 }
 
-func (db *MockLimitOrderDatabase) Add(order *LimitOrder) {
+func (db *MockLimitOrderDatabase) Add(order *Order) {
 }
 
 func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64) {
@@ -41,14 +41,14 @@ func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.In
 func (db *MockLimitOrderDatabase) Delete(id common.Hash) {
 }
 
-func (db *MockLimitOrderDatabase) GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []LimitOrder {
+func (db *MockLimitOrderDatabase) GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []Order {
 	args := db.Called()
-	return args.Get(0).([]LimitOrder)
+	return args.Get(0).([]Order)
 }
 
-func (db *MockLimitOrderDatabase) GetShortOrders(market Market, upperbound *big.Int, blockNumber *big.Int) []LimitOrder {
+func (db *MockLimitOrderDatabase) GetShortOrders(market Market, upperbound *big.Int, blockNumber *big.Int) []Order {
 	args := db.Called()
-	return args.Get(0).([]LimitOrder)
+	return args.Get(0).([]Order)
 }
 
 func (db *MockLimitOrderDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
@@ -104,12 +104,12 @@ func (db *MockLimitOrderDatabase) GetLastPrices() map[Market]*big.Int {
 	return map[Market]*big.Int{}
 }
 
-func (db *MockLimitOrderDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]LimitOrder) {
-	return []LiquidablePosition{}, map[common.Address][]LimitOrder{}
+func (db *MockLimitOrderDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]Order) {
+	return []LiquidablePosition{}, map[common.Address][]Order{}
 }
 
 func (db *MockLimitOrderDatabase) GetOrderBookData() InMemoryDatabase {
-	return *&InMemoryDatabase{}
+	return InMemoryDatabase{}
 }
 
 func (db *MockLimitOrderDatabase) GetOrderBookDataCopy() *InMemoryDatabase {
@@ -120,14 +120,14 @@ func (db *MockLimitOrderDatabase) LoadFromSnapshot(snapshot Snapshot) error {
 	return nil
 }
 
-func (db *MockLimitOrderDatabase) GetOpenOrdersForTrader(trader common.Address) []LimitOrder {
+func (db *MockLimitOrderDatabase) GetOpenOrdersForTrader(trader common.Address) []Order {
 	return nil
 }
 
 func (db *MockLimitOrderDatabase) UpdateLastPremiumFraction(market Market, trader common.Address, lastPremiumFraction *big.Int, cumulativePremiumFraction *big.Int) {
 }
 
-func (db *MockLimitOrderDatabase) GetOrderById(id common.Hash) *LimitOrder {
+func (db *MockLimitOrderDatabase) GetOrderById(id common.Hash) *Order {
 	return nil
 }
 
@@ -143,7 +143,7 @@ func NewMockLimitOrderTxProcessor() *MockLimitOrderTxProcessor {
 	return &MockLimitOrderTxProcessor{}
 }
 
-func (lotp *MockLimitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder LimitOrder, matchedOrder LimitOrder, fillAmount *big.Int) error {
+func (lotp *MockLimitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder Order, matchedOrder Order, fillAmount *big.Int) error {
 	args := lotp.Called(incomingOrder, matchedOrder, fillAmount)
 	return args.Error(0)
 }
@@ -160,12 +160,12 @@ func (lotp *MockLimitOrderTxProcessor) ExecuteFundingPaymentTx() error {
 	return nil
 }
 
-func (lotp *MockLimitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder LimitOrder, fillAmount *big.Int) error {
+func (lotp *MockLimitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder Order, fillAmount *big.Int) error {
 	args := lotp.Called(trader, matchedOrder, fillAmount)
 	return args.Error(0)
 }
 
-func (lotp *MockLimitOrderTxProcessor) ExecuteOrderCancel(orderIds []Order) error {
+func (lotp *MockLimitOrderTxProcessor) ExecuteLimitOrderCancel(orderIds []LimitOrder) error {
 	args := lotp.Called(orderIds)
 	return args.Error(0)
 }

@@ -1,4 +1,4 @@
-package limitorders
+package orderbook
 
 import (
 	"github.com/ava-labs/subnet-evm/metrics"

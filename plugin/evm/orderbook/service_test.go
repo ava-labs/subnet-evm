@@ -1,4 +1,4 @@
-package limitorders
+package orderbook
 
 import (
 	"context"

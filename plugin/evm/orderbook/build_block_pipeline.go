@@ -1,4 +1,4 @@
-package limitorders
+package orderbook
 
 import (
 	"math"
@@ -46,7 +46,7 @@ func (pipeline *BuildBlockPipeline) Run(blockNumber *big.Int) {
 
 	// build trader map
 	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(underlyingPrices, markets)
-	cancellableOrderIds := pipeline.cancelOrders(ordersToCancel)
+	cancellableOrderIds := pipeline.cancelLimitOrders(ordersToCancel)
 	orderMap := make(map[Market]*Orders)
 	for _, market := range markets {
 		orderMap[market] = pipeline.fetchOrders(market, underlyingPrices[market], cancellableOrderIds, blockNumber)
@@ -59,8 +59,8 @@ func (pipeline *BuildBlockPipeline) Run(blockNumber *big.Int) {
 }
 
 type Orders struct {
-	longOrders  []LimitOrder
-	shortOrders []LimitOrder
+	longOrders  []Order
+	shortOrders []Order
 }
 
 type Market int64
@@ -84,18 +84,19 @@ func (pipeline *BuildBlockPipeline) GetUnderlyingPrices() map[Market]*big.Int {
 	return underlyingPrices
 }
 
-func (pipeline *BuildBlockPipeline) cancelOrders(cancellableOrders map[common.Address][]LimitOrder) map[common.Hash]struct{} {
+func (pipeline *BuildBlockPipeline) cancelLimitOrders(cancellableOrders map[common.Address][]Order) map[common.Hash]struct{} {
 	cancellableOrderIds := map[common.Hash]struct{}{}
 	// @todo: if there are too many cancellable orders, they might not fit in a single block. Need to adjust for that.
 	for _, orders := range cancellableOrders {
 		if len(orders) > 0 {
-			rawOrders := make([]Order, len(orders))
+			rawOrders := make([]LimitOrder, len(orders))
 			for i, order := range orders {
-				rawOrders[i] = order.RawOrder
+				rawOrder := order.RawOrder.(*LimitOrder)
+				rawOrders[i] = *rawOrder // @todo: make sure only limit orders reach here
 			}
 			log.Info("orders to cancel", "num", len(orders))
 			// cancel max of 30 orders
-			err := pipeline.lotp.ExecuteOrderCancel(rawOrders[0:int(math.Min(float64(len(rawOrders)), 30))]) // change this if the tx gas limit (1.5m) is changed
+			err := pipeline.lotp.ExecuteLimitOrderCancel(rawOrders[0:int(math.Min(float64(len(rawOrders)), 30))]) // change this if the tx gas limit (1.5m) is changed
 			if err != nil {
 				log.Error("Error in ExecuteOrderCancel", "orders", orders, "err", err)
 			} else {
@@ -194,7 +195,7 @@ func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []Liquid
 	}
 }
 
-func (pipeline *BuildBlockPipeline) runMatchingEngine(lotp LimitOrderTxProcessor, longOrders []LimitOrder, shortOrders []LimitOrder) {
+func (pipeline *BuildBlockPipeline) runMatchingEngine(lotp LimitOrderTxProcessor, longOrders []Order, shortOrders []Order) {
 	if len(longOrders) == 0 || len(shortOrders) == 0 {
 		return
 	}
@@ -224,7 +225,7 @@ func (pipeline *BuildBlockPipeline) runMatchingEngine(lotp LimitOrderTxProcessor
 	}
 }
 
-func matchLongAndShortOrder(lotp LimitOrderTxProcessor, longOrder, shortOrder LimitOrder) (LimitOrder, LimitOrder, bool) {
+func matchLongAndShortOrder(lotp LimitOrderTxProcessor, longOrder, shortOrder Order) (Order, Order, bool) {
 	fillAmount := utils.BigIntMinAbs(longOrder.GetUnFilledBaseAssetQuantity(), shortOrder.GetUnFilledBaseAssetQuantity())
 	if longOrder.Price.Cmp(shortOrder.Price) == -1 || fillAmount.Sign() == 0 {
 		return longOrder, shortOrder, false
@@ -252,8 +253,8 @@ func executeFundingPayment(lotp LimitOrderTxProcessor) error {
 	return lotp.ExecuteFundingPaymentTx()
 }
 
-func removeOrdersWithIds(orders []LimitOrder, orderIds map[common.Hash]struct{}) []LimitOrder {
-	var filteredOrders []LimitOrder
+func removeOrdersWithIds(orders []Order, orderIds map[common.Hash]struct{}) []Order {
+	var filteredOrders []Order
 	for _, order := range orders {
 		if _, ok := orderIds[order.Id]; !ok {
 			filteredOrders = append(filteredOrders, order)
