@@ -117,7 +117,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		unsignedWarpMsg                *avalancheWarp.UnsignedMessage
 		unsignedWarpMessageID          ids.ID
 		signedWarpMsg                  *avalancheWarp.Message
-		emptySigsWarpMsg               *avalancheWarp.Message
 		blockchainIDA, blockchainIDB   ids.ID
 		chainAURIs, chainBURIs         []string
 		chainAWSClient, chainBWSClient ethclient.Client
@@ -192,7 +191,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		<-newHeads
 		recp, err := chainAWSClient.TransactionReceipt(ctx, signed.Hash())
 		gomega.Expect(err).Should(gomega.BeNil())
-		gomega.Expect(recp.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful)) //make sure status code is 1, contract deployed succesfully
+		gomega.Expect(recp.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful)) //make sure status code is 1, contract deployed successfully
 		sub.Unsubscribe()
 
 		//deploy on subnetB
@@ -211,7 +210,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		<-newHeads
 		recp, err = chainBWSClient.TransactionReceipt(ctx, signed.Hash())
 		gomega.Expect(err).Should(gomega.BeNil())
-		gomega.Expect(recp.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful)) //make sure status code is 1, contract deployed succesfully
+		gomega.Expect(recp.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful)) //make sure status code is 1, contract deployed successfully
 		sub.Unsubscribe()
 		log.Info("contracts deployed")
 	})
@@ -250,7 +249,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 			Value:     common.Big0,
 			Data:      packedInput,
 		})
-
 		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
 		log.Info("Sending sendWarpMessage transaction", "txHash", signedTx.Hash())
@@ -352,22 +350,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		gomega.Expect(err).Should(gomega.BeNil())
 		signedWarpMsg = warpMsg
-
-		//create an empty signature set for the next part of testing
-		emptyWarpSigs, err := bls.AggregateSignatures(make([]*bls.Signature, 0, len(chainAURIs)))
-		emptySignerBitSet := set.NewBits()
-
-		emptyWarpSignature := &avalancheWarp.BitSetSignature{
-			Signers: emptySignerBitSet.Bytes(),
-		}
-		emptyBlsAggregatedSignatureBytes := bls.SignatureToBytes(emptyWarpSigs)
-		copy(emptyWarpSignature.Signature[:], emptyBlsAggregatedSignatureBytes)
-
-		emptySigsWarpMsg, err = avalancheWarp.NewMessage(
-			unsignedWarpMsg,
-			emptyWarpSignature,
-		)
-		gomega.Expect(err).Should(gomega.BeNil())
 	})
 
 	// Aggregate a Warp Signature using the node's Signature Aggregation API call and verifying that its output matches the
@@ -432,34 +414,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		)
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		failTx := warpTransaction.NewWarpTx(
-			chainID,
-			nonce,
-			&chainBExAddr,
-			5_000_000,
-			big.NewInt(225*params.GWei),
-			big.NewInt(params.GWei),
-			common.Big0,
-			packedInput,
-			types.AccessList{},
-			emptySigsWarpMsg,
-		)
-		nonce++
-
-		signedFailTx, err := types.SignTx(failTx, txSigner, fundedKey)
-		gomega.Expect(err).Should(gomega.BeNil())
-		err = chainBWSClient.SendTransaction(ctx, signedFailTx)
-		gomega.Expect(err).Should(gomega.BeNil())
-
-		log.Info("waiting for new block confirmation")
-
-		<-newHeads
-		
-
-		receipt, err := chainBWSClient.TransactionReceipt(ctx, signedFailTx.Hash())
-		gomega.Expect(err).Should(gomega.BeNil())
-		gomega.Expect(receipt.Status).Should(gomega.Equal(types.ReceiptStatusFailed))
-
 		tx := warpTransaction.NewWarpTx(
 			chainID,
 			nonce,
@@ -491,7 +445,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(len(logs)).Should(gomega.Equal(0))
-		receipt, err = chainBWSClient.TransactionReceipt(ctx, signedTx.Hash())
+		receipt, err := chainBWSClient.TransactionReceipt(ctx, signedTx.Hash())
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(receipt.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful))
 	})

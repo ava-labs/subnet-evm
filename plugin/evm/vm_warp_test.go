@@ -250,7 +250,6 @@ func TestReceiveWarpMessage(t *testing.T) {
 		testKeys[0],
 	)
 
-	
 	require.NoError(t, err)
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
 	for i, err := range errs {
