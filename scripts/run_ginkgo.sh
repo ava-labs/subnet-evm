@@ -15,9 +15,6 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
-echo "compiling Warp contracts"
-solc --evm-version paris "./tests/warp/contracts/ExampleWarp.sol"  --abi --bin -o "./tests/warp/contracts/" --overwrite
-
 # Build ginkgo
 echo "building precompile.test"
 # to install the ginkgo binary (required for test build and run)
