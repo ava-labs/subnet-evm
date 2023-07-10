@@ -414,21 +414,21 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		accessList := types.AccessList{types.AccessTuple{
 			Address:     warp.ContractAddress,
 			StorageKeys: byteUtils.BytesToHashSlice(byteUtils.PackPredicate(signedWarpMsg.Bytes())),
-			},
+		},
 		}
-		
+
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:    chainID,
 			Nonce:      nonce,
 			To:         &chainBExAddr,
 			Gas:        5_000_000,
-			GasFeeCap:  big.NewInt(225*params.GWei),
+			GasFeeCap:  big.NewInt(225 * params.GWei),
 			GasTipCap:  big.NewInt(params.GWei),
 			Value:      common.Big0,
 			Data:       packedInput,
 			AccessList: accessList,
 		})
-	
+
 		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
 		txBytes, err := signedTx.MarshalBinary()
