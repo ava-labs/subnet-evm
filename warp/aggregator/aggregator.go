@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	warpPrecompile "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
+	warpPrecompile "github.com/ava-labs/subnet-evm/x/warp"
 )
 
 // Aggregator fulfills requests to aggregate signatures of a subnet's validator set for Avalanche Warp Messages.

@@ -1,5 +1,11 @@
 # Avalanche Warp Messaging
 
+:::warning
+Avalanche Warp Messaging is currently in experimental mode to be used only on ephemeral test networks.
+
+Breaking changes to Avalanche Warp Messaging integration into Subnet-EVM may still be made.
+:::
+
 Avalanche Warp Messaging offers a basic primitive to enable Cross-Subnet communication on the Avalanche Network.
 
 It is intended to allow communication between arbitrary Custom Virtual Machines (including, but not limited to Subnet-EVM).
