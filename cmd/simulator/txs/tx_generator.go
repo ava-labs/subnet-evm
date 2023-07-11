@@ -19,11 +19,9 @@ var _ TxSequence[TimedTx] = (*txSequence)(nil)
 type CreateTx func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error)
 
 type TimedTx struct {
-	Tx                             *types.Transaction
-	IssuanceDuration               time.Duration
-	ConfirmationDuration           time.Duration
-	IssuanceStart                  time.Time
-	IssuanceToConfirmationDuration time.Duration
+	Tx                   *types.Transaction
+	IssuanceDuration     time.Duration
+	ConfirmationDuration time.Duration
 }
 
 // GenerateTxSequence fetches the current nonce of key and calls [generator] [numTxs] times sequentially to generate a sequence of transactions.

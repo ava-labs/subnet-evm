@@ -59,7 +59,6 @@ func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, timedTx txs.TimedT
 	}
 	issuanceDuration := time.Since(start)
 
-	timedTx.IssuanceStart = start
 	timedTx.IssuanceDuration = issuanceDuration
 	tw.issuanceHistogram = append(tw.issuanceHistogram, timedTx.IssuanceDuration.Seconds())
 	return nil
@@ -75,8 +74,8 @@ func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, timedTx txs.Time
 		if txNonce < tw.acceptedNonce {
 			confirmationEnd := time.Now()
 			timedTx.ConfirmationDuration = confirmationEnd.Sub(start)
-			timedTx.IssuanceToConfirmationDuration = confirmationEnd.Sub(timedTx.IssuanceStart)
-			tw.issuanceToConfirmationHistogram = append(tw.issuanceToConfirmationHistogram, timedTx.IssuanceToConfirmationDuration.Seconds())
+			issuanceToConfirmationDuration := timedTx.IssuanceDuration + timedTx.ConfirmationDuration
+			tw.issuanceToConfirmationHistogram = append(tw.issuanceToConfirmationHistogram, issuanceToConfirmationDuration.Seconds())
 			tw.confirmationHistogram = append(tw.confirmationHistogram, timedTx.ConfirmationDuration.Seconds())
 
 			return nil
