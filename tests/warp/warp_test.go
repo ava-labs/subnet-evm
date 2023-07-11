@@ -220,16 +220,15 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		// TODO: switch to using SubscribeFilterLogs to retrieve the warp log
 		log.Info("Subscribing to new heads")
 		newHeads := make(chan *types.Header, 10)
 		sub, err := chainAWSClient.SubscribeNewHead(ctx, newHeads)
 		gomega.Expect(err).Should(gomega.BeNil())
 		defer sub.Unsubscribe()
 
-		key2, err := crypto.GenerateKey()
+		toKey, err := crypto.GenerateKey()
 		gomega.Expect(err).Should(gomega.BeNil())
-		sendToAddress = crypto.PubkeyToAddress(key2.PublicKey)
+		sendToAddress = crypto.PubkeyToAddress(toKey.PublicKey)
 
 		packedInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
 			DestinationChainID: blockchainIDB,
