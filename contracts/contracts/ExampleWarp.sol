@@ -36,7 +36,7 @@ contract ExampleWarp {
     }
 
     // validateGetBlockchainID checks that the blockchainID returned by warp matches the argument
-    function validateGetBlockchainID(blockchainID bytes32) external {
+    function validateGetBlockchainID(bytes32 blockchainID) external view {
         require(blockchainID == warp.getBlockchainID());
     }
 }
