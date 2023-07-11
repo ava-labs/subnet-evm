@@ -38,7 +38,6 @@ import (
 var (
 	config              = runner.NewDefaultANRConfig()
 	manager             = runner.NewNetworkManager(config)
-	tempDir             string
 	warpChainConfigPath string
 )
 
