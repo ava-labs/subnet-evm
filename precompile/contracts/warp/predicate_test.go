@@ -510,58 +510,59 @@ func initWarpPredicateTests() {
 		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(totalNodes), predicateBytes)
 	}
 
+	numSigners := 10
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
-		testName := fmt.Sprintf("%d signers (heavily weighted)/%d validators", 10, totalNodes)
+		testName := fmt.Sprintf("%d signers (heavily weighted)/%d validators", numSigners, totalNodes)
 
-		predicateBytes := createPredicate(10)
+		predicateBytes := createPredicate(numSigners)
 		snowCtx := createSnowCtx([]validatorRange{
 			{
 				start:     0,
-				end:       10,
+				end:       numSigners,
 				weight:    10_000_000,
 				publicKey: true,
 			},
 			{
-				start:     10,
+				start:     numSigners,
 				end:       totalNodes,
 				weight:    20,
 				publicKey: true,
 			},
 		})
-		predicateTests[testName] = createValidPredicateTest(snowCtx, 10, predicateBytes)
+		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), predicateBytes)
 	}
 
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
-		testName := fmt.Sprintf("%d signers (heavily weighted)/%d validators (non-signers without registered PublicKey)", 10, totalNodes)
+		testName := fmt.Sprintf("%d signers (heavily weighted)/%d validators (non-signers without registered PublicKey)", numSigners, totalNodes)
 
-		predicateBytes := createPredicate(10)
+		predicateBytes := createPredicate(numSigners)
 		snowCtx := createSnowCtx([]validatorRange{
 			{
 				start:     0,
-				end:       10,
+				end:       numSigners,
 				weight:    10_000_000,
 				publicKey: true,
 			},
 			{
-				start:     10,
+				start:     numSigners,
 				end:       totalNodes,
 				weight:    20,
 				publicKey: false,
 			},
 		})
-		predicateTests[testName] = createValidPredicateTest(snowCtx, 10, predicateBytes)
+		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), predicateBytes)
 	}
 
 	for _, totalNodes := range []int{100, 1_000, 10_000} {
-		testName := fmt.Sprintf("%d validators w/ 10 repeated PublicKeys", totalNodes)
+		testName := fmt.Sprintf("%d validators w/ %d signers/repeated PublicKeys", totalNodes, numSigners)
 
-		predicateBytes := createPredicate(10)
+		predicateBytes := createPredicate(numSigners)
 		getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
 		for i := 0; i < totalNodes; i++ {
 			getValidatorsOutput[testVdrs[i].nodeID] = &validators.GetValidatorOutput{
 				NodeID:    testVdrs[i].nodeID,
 				Weight:    20,
-				PublicKey: testVdrs[i%10].vdr.PublicKey,
+				PublicKey: testVdrs[i%numSigners].vdr.PublicKey,
 			}
 		}
 
@@ -576,7 +577,7 @@ func initWarpPredicateTests() {
 		}
 		snowCtx.ValidatorState = state
 
-		predicateTests[testName] = createValidPredicateTest(snowCtx, 10, predicateBytes)
+		predicateTests[testName] = createValidPredicateTest(snowCtx, uint64(numSigners), predicateBytes)
 	}
 }
 
