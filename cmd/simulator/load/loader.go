@@ -193,8 +193,11 @@ func logExtraMetrics(metricsEndpoints []string, blockchainIDStr string) error {
 func findMatchFromString(fullString string, regex string) (string, error) {
 	re := regexp.MustCompile(regex)
 	matches := re.FindAllStringSubmatch(fullString, -1)
-	if len(matches) > 0 && len(matches[0]) > 0 {
-		return matches[len(matches)-1][len(matches[0])-1], nil
+	if len(matches) > 0 && len(matches[len(matches)-1]) > 0 {
+		// This is hardcoded for the metrics API.
+		// We know the exact metric we want will always be the last item in the
+		// 2D slice which only has one item.
+		return matches[len(matches)-1][0], nil
 	}
 
 	return "", errors.New("could not find any matches for the given string")
