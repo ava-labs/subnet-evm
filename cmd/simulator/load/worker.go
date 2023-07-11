@@ -51,22 +51,22 @@ func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, addr
 	return tw
 }
 
-func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, timeTx txs.TimeTx) error {
+func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, timedTx txs.TimedTx) error {
 	start := time.Now()
-	err := tw.client.SendTransaction(ctx, timeTx.Tx)
-	issuanceDuration := time.Since(start)
+	err := tw.client.SendTransaction(ctx, timedTx.Tx)
 	if err != nil {
 		return err
 	}
+	issuanceDuration := time.Since(start)
 
-	timeTx.IssuanceStart = start
-	timeTx.IssuanceDuration = issuanceDuration
-	tw.issuanceHistogram = append(tw.issuanceHistogram, timeTx.IssuanceDuration.Seconds())
+	timedTx.IssuanceStart = start
+	timedTx.IssuanceDuration = issuanceDuration
+	tw.issuanceHistogram = append(tw.issuanceHistogram, timedTx.IssuanceDuration.Seconds())
 	return nil
 }
 
-func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, timeTx txs.TimeTx) error {
-	tx := timeTx.Tx
+func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, timedTx txs.TimedTx) error {
+	tx := timedTx.Tx
 	txNonce := tx.Nonce()
 
 	start := time.Now()
@@ -74,10 +74,10 @@ func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, timeTx txs.TimeT
 		// If the is less than what has already been accepted, the transaction is confirmed
 		if txNonce < tw.acceptedNonce {
 			confirmationEnd := time.Now()
-			timeTx.ConfirmationDuration = confirmationEnd.Sub(start)
-			timeTx.IssuanceToConfirmationDuration = confirmationEnd.Sub(timeTx.IssuanceStart)
-			tw.issuanceToConfirmationHistogram = append(tw.issuanceToConfirmationHistogram, timeTx.IssuanceToConfirmationDuration.Seconds())
-			tw.confirmationHistogram = append(tw.confirmationHistogram, timeTx.ConfirmationDuration.Seconds())
+			timedTx.ConfirmationDuration = confirmationEnd.Sub(start)
+			timedTx.IssuanceToConfirmationDuration = confirmationEnd.Sub(timedTx.IssuanceStart)
+			tw.issuanceToConfirmationHistogram = append(tw.issuanceToConfirmationHistogram, timedTx.IssuanceToConfirmationDuration.Seconds())
+			tw.confirmationHistogram = append(tw.confirmationHistogram, timedTx.ConfirmationDuration.Seconds())
 
 			return nil
 		}
