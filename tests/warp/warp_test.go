@@ -9,6 +9,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 
@@ -35,8 +36,10 @@ import (
 )
 
 var (
-	config  = runner.NewDefaultANRConfig()
-	manager = runner.NewNetworkManager(config)
+	config              = runner.NewDefaultANRConfig()
+	manager             = runner.NewNetworkManager(config)
+	tempDir             string
+	warpChainConfigPath string
 )
 
 func TestE2E(t *testing.T) {
@@ -66,6 +69,11 @@ var _ = ginkgo.BeforeSuite(func() {
 			subnetBNodeNames = append(subnetBNodeNames, n)
 		}
 	}
+	f, err := os.CreateTemp(os.TempDir(), "config.json")
+	gomega.Expect(err).Should(gomega.BeNil())
+	_, err = f.Write([]byte(`{"warp-api-enabled": true}`))
+	gomega.Expect(err).Should(gomega.BeNil())
+	warpChainConfigPath = f.Name()
 
 	// Construct the network using the avalanche-network-runner
 	_, err = manager.StartDefaultNetwork(ctx)
@@ -77,7 +85,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			{
 				VmName:      evm.IDStr,
 				Genesis:     "./tests/precompile/genesis/warp.json",
-				ChainConfig: "",
+				ChainConfig: warpChainConfigPath,
 				SubnetSpec: &rpcpb.SubnetSpec{
 					SubnetConfig: "",
 					Participants: subnetANodeNames,
@@ -86,7 +94,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			{
 				VmName:      evm.IDStr,
 				Genesis:     "./tests/precompile/genesis/warp.json",
-				ChainConfig: "",
+				ChainConfig: warpChainConfigPath,
 				SubnetSpec: &rpcpb.SubnetSpec{
 					SubnetConfig: "",
 					Participants: subnetBNodeNames,
@@ -100,6 +108,7 @@ var _ = ginkgo.BeforeSuite(func() {
 var _ = ginkgo.AfterSuite(func() {
 	gomega.Expect(manager).ShouldNot(gomega.BeNil())
 	gomega.Expect(manager.TeardownNetwork()).Should(gomega.BeNil())
+	gomega.Expect(os.Remove(warpChainConfigPath)).Should(gomega.BeNil())
 	// TODO: bootstrap an additional node to ensure that we can bootstrap the test data correctly
 })
 
