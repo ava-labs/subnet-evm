@@ -53,21 +53,21 @@ func FuzzPackPredicate(f *testing.F) {
 	})
 }
 
-func FuzzUnpackInvalidPredicate(f *testing.F) {
-	// Seed the fuzzer with non-zero length padding of zeroes or non-zeroes.
+func TestUnpackInvalidPredicate(t *testing.T) {
+	require := require.New(t)
+	paddingCases := make([][]byte, 0, 200)
 	for i := 1; i < 100; i++ {
-		f.Add(utils.RandomBytes(i))
-		f.Add(make([]byte, i))
+		paddingCases = append(paddingCases, bytes.Repeat([]byte{0xee}, i))
+		paddingCases = append(paddingCases, make([]byte, i))
 	}
 
-	f.Fuzz(func(t *testing.T, b []byte) {
-		// Ensure that adding the invalid padding to any length correctly packed predicate
-		// results in failing to unpack it.
-		for _, l := range []int{0, 1, 31, 32, 33, 63, 64, 65} {
-			validPredicate := PackPredicate(utils.RandomBytes(l))
-			invalidPredicate := append(validPredicate, b...)
+	for _, l := range []int{0, 1, 31, 32, 33, 63, 64, 65} {
+		validPredicate := PackPredicate(utils.RandomBytes(l))
+
+		for _, padding := range paddingCases {
+			invalidPredicate := append(validPredicate, padding...)
 			_, err := UnpackPredicate(invalidPredicate)
-			require.Error(t, err)
+			require.Error(err, "Predicate length %d, Padding length %d (0x%x)", len(validPredicate), len(padding), invalidPredicate)
 		}
-	})
+	}
 }
