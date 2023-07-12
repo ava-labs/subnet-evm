@@ -63,7 +63,7 @@ func TestHandlePrecompileAccept(t *testing.T) {
 	rawdb.WriteBlock(db, ethBlock)
 	rawdb.WriteReceipts(db, ethBlock.Hash(), ethBlock.NumberU64(), []*types.Receipt{receipt})
 
-	// acceptCtx, txHash, logIndex, topics, logData interface{}
+	// Set up the mock with the expected calls to Accept
 	txIndex := 0
 	mockAccepter := precompileconfig.NewMockAccepter(ctrl)
 	gomock.InOrder(
@@ -83,6 +83,7 @@ func TestHandlePrecompileAccept(t *testing.T) {
 		),
 	)
 
+	// Call handlePrecompileAccept
 	blk := vm.newBlock(ethBlock)
 	rules := &params.Rules{
 		AccepterPrecompiles: map[common.Address]precompileconfig.Accepter{
