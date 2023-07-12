@@ -1,8 +1,8 @@
 # ref. https://goreleaser.com/customization/build/
 builds:
-  - id: subnet-evm
+  - id: hubblenet
     main: ./plugin
-    binary: subnet-evm
+    binary: hubblenet-{{.Version}}
     flags:
       - -v
     ldflags: -X github.com/ava-labs/subnet-evm/plugin/evm.Version=v{{.Version}}
@@ -33,5 +33,5 @@ release:
   # Repo in which the release will be created.
   # Default is extracted from the origin remote URL or empty if its private hosted.
   github:
-    owner: ava-labs
-    name: subnet-evm
+    owner: hubble-exchange
+    name: hubblenet
