@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"math/big"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/filters"
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
 	"github.com/ava-labs/subnet-evm/utils"
 
@@ -121,7 +123,9 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 }
 
 func (lop *limitOrderProcesser) RunBuildBlockPipeline() {
-	lop.buildBlockPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number(), big.NewInt(1)))
+	executeFuncAndRecoverPanic(func() {
+		lop.buildBlockPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number(), big.NewInt(1)))
+	}, orderbook.RunBuildBlockPipelinePanicMessage, orderbook.RunBuildBlockPipelinePanicsCounter)
 }
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *orderbook.OrderBookAPI {
@@ -136,67 +140,67 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 	logsCh := make(chan []*types.Log)
 	logsSubscription := lop.backend.SubscribeHubbleLogsEvent(logsCh)
 	lop.shutdownWg.Add(1)
-	go lop.ctx.Log.RecoverAndPanic(func() {
+	go func() {
 		defer lop.shutdownWg.Done()
 		defer logsSubscription.Unsubscribe()
-
 		for {
 			select {
 			case logs := <-logsCh:
-				lop.mu.Lock()
-
-				lop.contractEventProcessor.ProcessEvents(logs)
-
-				lop.mu.Unlock()
+				executeFuncAndRecoverPanic(func() {
+					lop.mu.Lock()
+					defer lop.mu.Unlock()
+					lop.contractEventProcessor.ProcessEvents(logs)
+				}, orderbook.HandleHubbleFeedLogsPanicMessage, orderbook.HandleHubbleFeedLogsPanicsCounter)
 			case <-lop.shutdownChan:
 				return
 			}
 		}
-	})
+	}()
 
 	acceptedLogsCh := make(chan []*types.Log)
 	acceptedLogsSubscription := lop.backend.SubscribeAcceptedLogsEvent(acceptedLogsCh)
 	lop.shutdownWg.Add(1)
-	go lop.ctx.Log.RecoverAndPanic(func() {
+	go func() {
 		defer lop.shutdownWg.Done()
 		defer acceptedLogsSubscription.Unsubscribe()
 
 		for {
 			select {
 			case logs := <-acceptedLogsCh:
-				lop.mu.Lock()
-
-				lop.contractEventProcessor.ProcessAcceptedEvents(logs, false)
-
-				lop.mu.Unlock()
+				executeFuncAndRecoverPanic(func() {
+					lop.mu.Lock()
+					defer lop.mu.Unlock()
+					lop.contractEventProcessor.ProcessAcceptedEvents(logs, false)
+				}, orderbook.HandleChainAcceptedLogsPanicMessage, orderbook.HandleChainAcceptedLogsPanicsCounter)
 			case <-lop.shutdownChan:
 				return
 			}
 		}
-	})
+	}()
 
 	chainAcceptedEventCh := make(chan core.ChainEvent)
 	chainAcceptedEventSubscription := lop.backend.SubscribeChainAcceptedEvent(chainAcceptedEventCh)
 	lop.shutdownWg.Add(1)
-	go lop.ctx.Log.RecoverAndPanic(func() {
+	go func() {
 		defer lop.shutdownWg.Done()
 		defer chainAcceptedEventSubscription.Unsubscribe()
 
 		for {
 			select {
 			case chainAcceptedEvent := <-chainAcceptedEventCh:
-				lop.handleChainAcceptedEvent(chainAcceptedEvent)
+				executeFuncAndRecoverPanic(func() {
+					lop.handleChainAcceptedEvent(chainAcceptedEvent)
+				}, orderbook.HandleChainAcceptedEventPanicMessage, orderbook.HandleChainAcceptedEventPanicsCounter)
 			case <-lop.shutdownChan:
 				return
 			}
 		}
-	})
+	}()
 }
 
 func (lop *limitOrderProcesser) handleChainAcceptedEvent(event core.ChainEvent) {
 	lop.mu.Lock()
 	defer lop.mu.Unlock()
-
 	block := event.Block
 	log.Info("#### received ChainAcceptedEvent", "number", block.NumberU64(), "hash", block.Hash().String())
 	lop.memoryDb.Accept(block.NumberU64(), block.Time())
@@ -323,4 +327,14 @@ func (lop *limitOrderProcesser) FixBuggySnapshot() {
 		}
 	}
 	log.Info("@@@@ updateLastPremiumFraction - update complete", "count", count, "time taken", time.Since(start))
+}
+
+func executeFuncAndRecoverPanic(fn func(), panicMessage string, panicCounter metrics.Counter) {
+	defer func() {
+		if panicInfo := recover(); panicInfo != nil {
+			log.Error(panicMessage, panicInfo.(string), string(debug.Stack()))
+			panicCounter.Inc(1)
+		}
+	}()
+	fn()
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -269,6 +270,17 @@ func TestGetCancellableOrders(t *testing.T) {
 
 func TestUpdateFulfilledBaseAssetQuantityLimitOrder(t *testing.T) {
 	baseAssetQuantity := big.NewInt(-10)
+	t.Run("when order id does not exist", func(t *testing.T) {
+		inMemoryDatabase := getDatabase()
+		filledQuantity := big.NewInt(1)
+		randomOrderID := common.BigToHash(big.NewInt(1))
+		counter := metrics.GetOrRegisterCounter("update_filled_base_asset_quantity_order_id_not_found", nil)
+		assert.Equal(t, counter.Count(), int64(0))
+
+		inMemoryDatabase.UpdateFilledBaseAssetQuantity(filledQuantity, randomOrderID, 69)
+		counter = metrics.GetOrRegisterCounter("update_filled_base_asset_quantity_order_id_not_found", nil)
+		assert.Equal(t, counter.Count(), int64(1))
+	})
 	t.Run("when filled quantity is not equal to baseAssetQuantity", func(t *testing.T) {
 		t.Run("When order type is short order", func(t *testing.T) {
 			inMemoryDatabase := getDatabase()

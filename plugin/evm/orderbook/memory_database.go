@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -275,7 +276,7 @@ func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, i
 	defer db.mu.Unlock()
 
 	if db.OrderMap[orderId] == nil {
-		return fmt.Errorf("nvalid orderId %s", orderId.Hex())
+		return fmt.Errorf("invalid orderId %s", orderId.Hex())
 	}
 	db.OrderMap[orderId].LifecycleList = append(db.OrderMap[orderId].LifecycleList, Lifecycle{blockNumber, status, info})
 	return nil
@@ -327,6 +328,11 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, ord
 	defer db.mu.Unlock()
 
 	limitOrder := db.OrderMap[orderId]
+	if limitOrder == nil {
+		log.Error("In UpdateFilledBaseAssetQuantity - orderId does not exist in the database", "orderId", orderId.Hex())
+		metrics.GetOrRegisterCounter("update_filled_base_asset_quantity_order_id_not_found", nil).Inc(1)
+		return
+	}
 	if limitOrder.PositionType == LONG {
 		limitOrder.FilledBaseAssetQuantity.Add(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
 	}
