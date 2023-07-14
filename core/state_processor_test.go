@@ -211,71 +211,6 @@ func TestStateProcessorErrors(t *testing.T) {
 		}
 	}
 
-	// ErrMaxInitCodeSizeExceeded, for this we need extra Shanghai (DUpgrade/EIP-3860) enabled.
-	{
-		var (
-			db    = rawdb.NewMemoryDatabase()
-			gspec = &Genesis{
-				Config: &params.ChainConfig{
-					ChainID:             big.NewInt(1),
-					HomesteadBlock:      big.NewInt(0),
-					EIP150Block:         big.NewInt(0),
-					EIP150Hash:          common.HexToHash("0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0"),
-					EIP155Block:         big.NewInt(0),
-					EIP158Block:         big.NewInt(0),
-					ByzantiumBlock:      big.NewInt(0),
-					ConstantinopleBlock: big.NewInt(0),
-					PetersburgBlock:     big.NewInt(0),
-					IstanbulBlock:       big.NewInt(0),
-					MuirGlacierBlock:    big.NewInt(0),
-					MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
-						SubnetEVMTimestamp: utils.NewUint64(0),
-						DUpgradeTimestamp:  utils.NewUint64(0),
-					},
-					FeeConfig: params.DefaultFeeConfig,
-				},
-				Alloc: GenesisAlloc{
-					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): GenesisAccount{
-						Balance: big.NewInt(1000000000000000000), // 1 ether
-						Nonce:   0,
-					},
-				},
-				GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
-			}
-			blockchain, _  = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
-			tooBigInitCode = [params.MaxInitCodeSize + 1]byte{}
-			smallInitCode  = [320]byte{}
-		)
-		defer blockchain.Stop()
-		for i, tt := range []struct {
-			txs  []*types.Transaction
-			want string
-		}{
-			{ // ErrMaxInitCodeSizeExceeded
-				txs: []*types.Transaction{
-
-					mkDynamicCreationTx(0, 500000, common.Big0, big.NewInt(params.TestInitialBaseFee), tooBigInitCode[:]),
-				},
-				want: "could not apply tx 0 [0x18a05f40f29ff16d5287f6f88b21c9f3c7fbc268f707251144996294552c4cd6]: max initcode size exceeded: code size 49153 limit 49152",
-			},
-			{ // ErrIntrinsicGas: Not enough gas to cover init code
-				txs: []*types.Transaction{
-					mkDynamicCreationTx(0, 54299, common.Big0, big.NewInt(params.TestInitialBaseFee), smallInitCode[:]),
-				},
-				want: "could not apply tx 0 [0x849278f616d51ab56bba399551317213ce7a10e4d9cbc3d14bb663e50cb7ab99]: intrinsic gas too low: have 54299, want 54300",
-			},
-		} {
-			block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
-			_, err := blockchain.InsertChain(types.Blocks{block})
-			if err == nil {
-				t.Fatal("block imported without errors")
-			}
-			if have, want := err.Error(), tt.want; have != want {
-				t.Errorf("test %d:\nhave \"%v\"\nwant \"%v\"\n", i, have, want)
-			}
-		}
-	}
-
 	// ErrTxTypeNotSupported, For this, we need an older chain
 	{
 		var (
@@ -355,6 +290,69 @@ func TestStateProcessorErrors(t *testing.T) {
 					mkDynamicTx(0, common.Address{}, params.TxGas-1000, big.NewInt(0), big.NewInt(0)),
 				},
 				want: "could not apply tx 0 [0x88626ac0d53cb65308f2416103c62bb1f18b805573d4f96a3640bbbfff13c14f]: sender not an eoa: address 0x71562b71999873DB5b286dF957af199Ec94617F7, codehash: 0x9280914443471259d4570a8661015ae4a5b80186dbc619658fb494bebc3da3d1",
+			},
+		} {
+			block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)
+			_, err := blockchain.InsertChain(types.Blocks{block})
+			if err == nil {
+				t.Fatal("block imported without errors")
+			}
+			if have, want := err.Error(), tt.want; have != want {
+				t.Errorf("test %d:\nhave \"%v\"\nwant \"%v\"\n", i, have, want)
+			}
+		}
+	}
+	// ErrMaxInitCodeSizeExceeded, for this we need extra Shanghai (DUpgrade/EIP-3860) enabled.
+	{
+		var (
+			db    = rawdb.NewMemoryDatabase()
+			gspec = &Genesis{
+				Config: &params.ChainConfig{
+					ChainID:             big.NewInt(1),
+					HomesteadBlock:      big.NewInt(0),
+					EIP150Block:         big.NewInt(0),
+					EIP150Hash:          common.HexToHash("0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0"),
+					EIP155Block:         big.NewInt(0),
+					EIP158Block:         big.NewInt(0),
+					ByzantiumBlock:      big.NewInt(0),
+					ConstantinopleBlock: big.NewInt(0),
+					PetersburgBlock:     big.NewInt(0),
+					IstanbulBlock:       big.NewInt(0),
+					MuirGlacierBlock:    big.NewInt(0),
+					MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
+						SubnetEVMTimestamp: utils.NewUint64(0),
+						DUpgradeTimestamp:  utils.NewUint64(0),
+					},
+					FeeConfig: params.DefaultFeeConfig,
+				},
+				Alloc: GenesisAlloc{
+					common.HexToAddress("0x71562b71999873DB5b286dF957af199Ec94617F7"): GenesisAccount{
+						Balance: big.NewInt(1000000000000000000), // 1 ether
+						Nonce:   0,
+					},
+				},
+				GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+			}
+			blockchain, _  = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+			tooBigInitCode = [params.MaxInitCodeSize + 1]byte{}
+			smallInitCode  = [320]byte{}
+		)
+		defer blockchain.Stop()
+		for i, tt := range []struct {
+			txs  []*types.Transaction
+			want string
+		}{
+			{ // ErrMaxInitCodeSizeExceeded
+				txs: []*types.Transaction{
+					mkDynamicCreationTx(0, 500000, common.Big0, big.NewInt(params.TestInitialBaseFee), tooBigInitCode[:]),
+				},
+				want: "could not apply tx 0 [0x18a05f40f29ff16d5287f6f88b21c9f3c7fbc268f707251144996294552c4cd6]: max initcode size exceeded: code size 49153 limit 49152",
+			},
+			{ // ErrIntrinsicGas: Not enough gas to cover init code
+				txs: []*types.Transaction{
+					mkDynamicCreationTx(0, 54299, common.Big0, big.NewInt(params.TestInitialBaseFee), smallInitCode[:]),
+				},
+				want: "could not apply tx 0 [0x849278f616d51ab56bba399551317213ce7a10e4d9cbc3d14bb663e50cb7ab99]: intrinsic gas too low: have 54299, want 54300",
 			},
 		} {
 			block := GenerateBadBlock(gspec.ToBlock(), dummy.NewCoinbaseFaker(), tt.txs, gspec.Config)

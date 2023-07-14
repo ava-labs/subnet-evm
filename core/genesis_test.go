@@ -217,7 +217,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 			genesisBlock := genesis.ToBlock()
 			genesisRoot := genesisBlock.Root()
 
-			_, _, err := SetupGenesisBlock(db, trie.NewDatabase(db), genesis, genesisBlock.Hash(), false)
+			_, _, err := setupGenesisBlock(db, trie.NewDatabase(db), genesis, genesisBlock.Hash())
 			if err != nil {
 				t.Fatal(err)
 			}

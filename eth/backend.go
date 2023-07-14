@@ -138,9 +138,6 @@ func New(
 		"snapshot clean", common.StorageSize(config.SnapshotCache)*1024*1024,
 	)
 
-	// Free airdrop data to save memory usage
-	config.Genesis.AirdropData = nil
-
 	// Note: RecoverPruning must be called to handle the case that we are midway through offline pruning.
 	// If the data directory is changed in between runs preventing RecoverPruning from performing its job correctly,
 	// it may cause DB corruption.
@@ -175,7 +172,7 @@ func New(
 
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
-			return nil, fmt.Errorf("database version is v%d, Subnet EVM %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
+			return nil, fmt.Errorf("database version is v%d, Subnet-EVM %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
 		} else if bcVersion == nil || *bcVersion < core.BlockChainVersion {
 			log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
 			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
@@ -218,6 +215,11 @@ func New(
 	if err != nil {
 		return nil, err
 	}
+
+	// Free airdrop data to save memory usage
+	defer func() {
+		config.Genesis.AirdropData = nil
+	}()
 
 	if err := eth.handleOfflinePruning(cacheConfig, config.Genesis, vmConfig, lastAcceptedHash); err != nil {
 		return nil, err
