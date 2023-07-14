@@ -302,6 +302,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			}
 		}
 	}
+
 	// ErrMaxInitCodeSizeExceeded, for this we need extra Shanghai (DUpgrade/EIP-3860) enabled.
 	{
 		var (
