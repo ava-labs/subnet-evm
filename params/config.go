@@ -306,7 +306,7 @@ func (c *ChainConfig) Description() string {
 	if c.MuirGlacierBlock != nil {
 		banner += fmt.Sprintf(" - Muir Glacier:                #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/muir-glacier.md)\n", c.MuirGlacierBlock)
 	}
-	banner += "Mandatory Upgades:\n"
+	banner += "Mandatory Upgrades:\n"
 	banner += fmt.Sprintf(" - SubnetEVM Timestamp:             #%-8v (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)\n", c.SubnetEVMTimestamp)
 	banner += fmt.Sprintf(" - DUpgrade Timestamp:              #%-8v (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", c.DUpgradeTimestamp)
 	banner += "\n"
