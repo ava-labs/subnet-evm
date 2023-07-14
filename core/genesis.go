@@ -249,7 +249,6 @@ func SetupGenesisBlock(
 	if lastBlock == nil {
 		return newcfg, common.Hash{}, fmt.Errorf("missing last accepted block")
 	}
-
 	height := lastBlock.NumberU64()
 	timestamp := lastBlock.Time()
 	if skipChainConfigCheckCompatible {
@@ -353,7 +352,6 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 			panic(fmt.Sprintf("unable to commit genesis block: %v", err))
 		}
 	}
-
 	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil))
 }
 
@@ -401,7 +399,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	g := Genesis{
 		Config:  params.TestChainConfig,
 		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: new(big.Int).Set(params.TestMaxBaseFee),
+		BaseFee: big.NewInt(params.TestMaxBaseFee),
 	}
 	return g.MustCommit(db)
 }

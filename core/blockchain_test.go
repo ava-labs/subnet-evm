@@ -387,8 +387,8 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 		return createBlockChain(db, pruningConfig, gspec, lastAcceptedHash)
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.Name, func(t *testing.T) {
+			tt := tt
 			t.Parallel()
 			tt.testFunc(t, create)
 		})
@@ -888,10 +888,11 @@ func TestTxLookupBlockChain(t *testing.T) {
 		})
 	}
 }
+
 func TestCreateThenDeletePreByzantium(t *testing.T) {
 	// We want to use pre-byzantium rules where we have intermediate state roots
 	// between transactions.
-	config := *params.TestChainConfig
+	config := *params.TestPreSubnetEVMConfig
 	config.ByzantiumBlock = nil
 	config.ConstantinopleBlock = nil
 	config.PetersburgBlock = nil
