@@ -178,6 +178,20 @@ func (mr *MockBibliophileClientMockRecorder) IOC_GetBlockPlaced(orderHash interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IOC_GetBlockPlaced", reflect.TypeOf((*MockBibliophileClient)(nil).IOC_GetBlockPlaced), orderHash)
 }
 
+// IOC_GetExpirationCap mocks base method.
+func (m *MockBibliophileClient) IOC_GetExpirationCap() *big.Int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IOC_GetExpirationCap")
+	ret0, _ := ret[0].(*big.Int)
+	return ret0
+}
+
+// IOC_GetExpirationCap indicates an expected call of IOC_GetExpirationCap.
+func (mr *MockBibliophileClientMockRecorder) IOC_GetExpirationCap() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IOC_GetExpirationCap", reflect.TypeOf((*MockBibliophileClient)(nil).IOC_GetExpirationCap))
+}
+
 // IOC_GetOrderFilledAmount mocks base method.
 func (m *MockBibliophileClient) IOC_GetOrderFilledAmount(orderHash [32]byte) *big.Int {
 	m.ctrl.T.Helper()
@@ -204,4 +218,18 @@ func (m *MockBibliophileClient) IOC_GetOrderStatus(orderHash [32]byte) int64 {
 func (mr *MockBibliophileClientMockRecorder) IOC_GetOrderStatus(orderHash interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IOC_GetOrderStatus", reflect.TypeOf((*MockBibliophileClient)(nil).IOC_GetOrderStatus), orderHash)
+}
+
+// IsTradingAuthority mocks base method.
+func (m *MockBibliophileClient) IsTradingAuthority(senderOrSigner, trader common.Address) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsTradingAuthority", senderOrSigner, trader)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsTradingAuthority indicates an expected call of IsTradingAuthority.
+func (mr *MockBibliophileClientMockRecorder) IsTradingAuthority(senderOrSigner, trader interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTradingAuthority", reflect.TypeOf((*MockBibliophileClient)(nil).IsTradingAuthority), senderOrSigner, trader)
 }

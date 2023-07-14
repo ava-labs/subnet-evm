@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	IOC_ORDERBOOK_ADDRESS       = "0x0300000000000000000000000000000000000006"
-	IOC_ORDER_INFO_SLOT   int64 = 1
+	IOC_ORDERBOOK_ADDRESS         = "0x0300000000000000000000000000000000000006"
+	IOC_ORDER_INFO_SLOT     int64 = 53
+	IOC_EXPIRATION_CAP_SLOT int64 = 54
 )
 
 // State Reader
@@ -32,4 +33,8 @@ func iocGetOrderStatus(stateDB contract.StateDB, orderHash [32]byte) int64 {
 
 func iocOrderInfoMappingStorageSlot(orderHash [32]byte) *big.Int {
 	return new(big.Int).SetBytes(crypto.Keccak256(append(orderHash[:], common.LeftPadBytes(big.NewInt(IOC_ORDER_INFO_SLOT).Bytes(), 32)...)))
+}
+
+func iocGetExpirationCap(stateDB contract.StateDB) *big.Int {
+	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(IOC_ORDERBOOK_ADDRESS), common.BigToHash(big.NewInt(IOC_EXPIRATION_CAP_SLOT))).Bytes())
 }

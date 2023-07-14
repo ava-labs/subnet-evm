@@ -26,28 +26,17 @@ type LimitOrder struct {
 
 // IOCOrder type is copy of IOCOrder struct defined in Orderbook contract
 type IOCOrder struct {
-	OrderType         uint8          `json:"orderType"`
-	ExpireAt          *big.Int       `json:"expireAt"`
-	AmmIndex          *big.Int       `json:"ammIndex"`
-	Trader            common.Address `json:"trader"`
-	BaseAssetQuantity *big.Int       `json:"baseAssetQuantity"`
-	Price             *big.Int       `json:"price"`
-	Salt              *big.Int       `json:"salt"`
-	ReduceOnly        bool           `json:"reduceOnly"`
+	LimitOrder
+	OrderType uint8    `json:"orderType"`
+	ExpireAt  *big.Int `json:"expireAt"`
 }
 
 // LimitOrder
-
 func (order *LimitOrder) EncodeToABI() ([]byte, error) {
-	limitOrderType, _ := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
-		{Name: "ammIndex", Type: "uint256"},
-		{Name: "trader", Type: "address"},
-		{Name: "baseAssetQuantity", Type: "int256"},
-		{Name: "price", Type: "uint256"},
-		{Name: "salt", Type: "uint256"},
-		{Name: "reduceOnly", Type: "bool"},
-	})
-
+	limitOrderType, err := getOrderType("limit")
+	if err != nil {
+		return nil, fmt.Errorf("failed getting abi type: %w", err)
+	}
 	encodedLimitOrder, err := abi.Arguments{{Type: limitOrderType}}.Pack(order)
 	if err != nil {
 		return nil, fmt.Errorf("limit order packing failed: %w", err)
@@ -69,22 +58,28 @@ func (order *LimitOrder) DecodeFromRawOrder(rawOrder interface{}) {
 	json.Unmarshal(marshalledOrder, &order)
 }
 
-// ----------------------------------------------------------------------------
+func DecodeLimitOrder(encodedOrder []byte) (*LimitOrder, error) {
+	limitOrderType, err := getOrderType("limit")
+	if err != nil {
+		return nil, fmt.Errorf("failed getting abi type: %w", err)
+	}
+	order, err := abi.Arguments{{Type: limitOrderType}}.Unpack(encodedOrder)
+	if err != nil {
+		return nil, err
+	}
+	limitOrder := &LimitOrder{}
+	limitOrder.DecodeFromRawOrder(order[0])
+	return limitOrder, nil
+}
 
+// ----------------------------------------------------------------------------
 // IOCOrder
 
 func (order *IOCOrder) EncodeToABI() ([]byte, error) {
-	iocOrderType, _ := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
-		{Name: "orderType", Type: "uint8"},
-		{Name: "expireAt", Type: "uint256"},
-		{Name: "ammIndex", Type: "uint256"},
-		{Name: "trader", Type: "address"},
-		{Name: "baseAssetQuantity", Type: "int256"},
-		{Name: "price", Type: "uint256"},
-		{Name: "salt", Type: "uint256"},
-		{Name: "reduceOnly", Type: "bool"},
-	})
-
+	iocOrderType, err := getOrderType("ioc")
+	if err != nil {
+		return nil, fmt.Errorf("failed getting abi type: %w", err)
+	}
 	encodedIOCOrder, err := abi.Arguments{{Type: iocOrderType}}.Pack(order)
 	if err != nil {
 		return nil, fmt.Errorf("limit order packing failed: %w", err)
@@ -104,4 +99,46 @@ func (order *IOCOrder) EncodeToABI() ([]byte, error) {
 func (order *IOCOrder) DecodeFromRawOrder(rawOrder interface{}) {
 	marshalledOrder, _ := json.Marshal(rawOrder)
 	json.Unmarshal(marshalledOrder, &order)
+}
+
+func DecodeIOCOrder(encodedOrder []byte) (*IOCOrder, error) {
+	iocOrderType, err := getOrderType("ioc")
+	if err != nil {
+		return nil, fmt.Errorf("failed getting abi type: %w", err)
+	}
+	order, err := abi.Arguments{{Type: iocOrderType}}.Unpack(encodedOrder)
+	if err != nil {
+		return nil, err
+	}
+	iocOrder := &IOCOrder{}
+	iocOrder.DecodeFromRawOrder(order[0])
+	return iocOrder, nil
+}
+
+// ----------------------------------------------------------------------------
+// Helper functions
+func getOrderType(orderType string) (abi.Type, error) {
+	if orderType == "limit" {
+		return abi.NewType("tuple", "", []abi.ArgumentMarshaling{
+			{Name: "ammIndex", Type: "uint256"},
+			{Name: "trader", Type: "address"},
+			{Name: "baseAssetQuantity", Type: "int256"},
+			{Name: "price", Type: "uint256"},
+			{Name: "salt", Type: "uint256"},
+			{Name: "reduceOnly", Type: "bool"},
+		})
+	}
+	if orderType == "ioc" {
+		return abi.NewType("tuple", "", []abi.ArgumentMarshaling{
+			{Name: "orderType", Type: "uint8"},
+			{Name: "expireAt", Type: "uint256"},
+			{Name: "ammIndex", Type: "uint256"},
+			{Name: "trader", Type: "address"},
+			{Name: "baseAssetQuantity", Type: "int256"},
+			{Name: "price", Type: "uint256"},
+			{Name: "salt", Type: "uint256"},
+			{Name: "reduceOnly", Type: "bool"},
+		})
+	}
+	return abi.Type{}, fmt.Errorf("invalid order type")
 }

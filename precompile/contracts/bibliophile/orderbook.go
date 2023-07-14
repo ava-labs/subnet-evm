@@ -14,6 +14,7 @@ import (
 const (
 	ORDERBOOK_GENESIS_ADDRESS       = "0x0300000000000000000000000000000000000000"
 	ORDER_INFO_SLOT           int64 = 53
+	IS_TRADING_AUTHORITY_SLOT int64 = 61
 )
 
 var (
@@ -45,6 +46,12 @@ func getOrderStatus(stateDB contract.StateDB, orderHash [32]byte) int64 {
 
 func orderInfoMappingStorageSlot(orderHash [32]byte) *big.Int {
 	return new(big.Int).SetBytes(crypto.Keccak256(append(orderHash[:], common.LeftPadBytes(big.NewInt(ORDER_INFO_SLOT).Bytes(), 32)...)))
+}
+
+func IsTradingAuthority(stateDB contract.StateDB, trader, senderOrSigner common.Address) bool {
+	tradingAuthorityMappingSlot := crypto.Keccak256(append(common.LeftPadBytes(trader.Bytes(), 32), common.LeftPadBytes(big.NewInt(IS_TRADING_AUTHORITY_SLOT).Bytes(), 32)...))
+	tradingAuthorityMappingSlot = crypto.Keccak256(append(common.LeftPadBytes(senderOrSigner.Bytes(), 32), tradingAuthorityMappingSlot...))
+	return stateDB.GetState(common.HexToAddress(ORDERBOOK_GENESIS_ADDRESS), common.BytesToHash(tradingAuthorityMappingSlot)).Big().Cmp(big.NewInt(1)) == 0
 }
 
 // Business Logic

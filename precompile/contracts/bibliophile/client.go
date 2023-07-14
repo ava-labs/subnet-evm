@@ -14,13 +14,19 @@ type BibliophileClient interface {
 	DetermineFillPrice(marketId int64, longOrderPrice, shortOrderPrice, blockPlaced0, blockPlaced1 *big.Int) (*ValidateOrdersAndDetermineFillPriceOutput, error)
 	DetermineLiquidationFillPrice(marketId int64, baseAssetQuantity, price *big.Int) (*big.Int, error)
 
+	// Misc
+	IsTradingAuthority(senderOrSigner, trader common.Address) bool
+
+	// Limit Order
 	GetBlockPlaced(orderHash [32]byte) *big.Int
 	GetOrderFilledAmount(orderHash [32]byte) *big.Int
 	GetOrderStatus(orderHash [32]byte) int64
 
+	// IOC Order
 	IOC_GetBlockPlaced(orderHash [32]byte) *big.Int
 	IOC_GetOrderFilledAmount(orderHash [32]byte) *big.Int
 	IOC_GetOrderStatus(orderHash [32]byte) int64
+	IOC_GetExpirationCap() *big.Int
 
 	GetAccessibleState() contract.AccessibleState
 }
@@ -82,4 +88,12 @@ func (b *bibliophileClient) IOC_GetOrderFilledAmount(orderHash [32]byte) *big.In
 
 func (b *bibliophileClient) IOC_GetOrderStatus(orderHash [32]byte) int64 {
 	return iocGetOrderStatus(b.accessibleState.GetStateDB(), orderHash)
+}
+
+func (b *bibliophileClient) IsTradingAuthority(trader, senderOrSigner common.Address) bool {
+	return IsTradingAuthority(b.accessibleState.GetStateDB(), trader, senderOrSigner)
+}
+
+func (b *bibliophileClient) IOC_GetExpirationCap() *big.Int {
+	return iocGetExpirationCap(b.accessibleState.GetStateDB())
 }
