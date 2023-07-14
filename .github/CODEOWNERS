@@ -6,11 +6,11 @@
 
 # review whenever someone opens a pull request.
 
-* @ceyonur @darioush @aaronbuchwald
+* @ceyonur @aaronbuchwald
 
 # Specific directories:
 
-peer/ @anusha-ctrl @ceyonur @darioush @aaronbuchwald
-contracts/ @anusha-ctrl @ceyonur @darioush @aaronbuchwald
-scripts/ @anusha-ctrl @ceyonur @darioush @aaronbuchwald
+peer/ @anusha-ctrl @ceyonur @aaronbuchwald
+contracts/ @anusha-ctrl @ceyonur @aaronbuchwald
+scripts/ @anusha-ctrl @ceyonur @aaronbuchwald
 
