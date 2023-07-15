@@ -16,7 +16,7 @@ import (
 // StatefulPrecompiledContract is the interface for executing a precompiled contract
 type StatefulPrecompiledContract interface {
 	// Run executes the precompiled contract.
-	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
+	Run(accessibleState PrecompileAccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, value *big.Int, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
 
 // ChainContext defines an interface that provides information to a stateful precompile
