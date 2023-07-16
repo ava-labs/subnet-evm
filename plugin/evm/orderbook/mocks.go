@@ -112,8 +112,8 @@ func (db *MockLimitOrderDatabase) GetOrderBookData() InMemoryDatabase {
 	return InMemoryDatabase{}
 }
 
-func (db *MockLimitOrderDatabase) GetOrderBookDataCopy() *InMemoryDatabase {
-	return &InMemoryDatabase{}
+func (db *MockLimitOrderDatabase) GetOrderBookDataCopy() (*InMemoryDatabase, error) {
+	return &InMemoryDatabase{}, nil
 }
 
 func (db *MockLimitOrderDatabase) LoadFromSnapshot(snapshot Snapshot) error {

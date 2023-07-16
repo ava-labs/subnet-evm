@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"math/big"
+	"runtime"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -62,6 +63,10 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan
 	buildBlockPipeline := orderbook.NewBuildBlockPipeline(memoryDb, lotp, configService)
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{})
 	filterAPI := filters.NewFilterAPI(filterSystem, true)
+
+	// need to register the types for gob encoding because memory DB has an interface field(ContractOrder)
+	gob.Register(&orderbook.LimitOrder{})
+	gob.Register(&orderbook.IOCOrder{})
 	return &limitOrderProcesser{
 		ctx:                    ctx,
 		mu:                     &sync.Mutex{},
@@ -103,18 +108,22 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 		}
 
 		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAcceptedBlockNumber)
-		toBlock := utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
+		JUMP := big.NewInt(3999)
+		toBlock := utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, JUMP))
 		for toBlock.Cmp(fromBlock) > 0 {
 			logs := lop.getLogs(fromBlock, toBlock)
-			log.Info("ListenAndProcessTransactions - fetched log chunk", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs), "err", err)
+			log.Info("ListenAndProcessTransactions - fetched log chunk", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs))
 			lop.contractEventProcessor.ProcessEvents(logs)
 			lop.contractEventProcessor.ProcessAcceptedEvents(logs, true)
+			lop.memoryDb.Accept(toBlock.Uint64(), 0) // will delete stale orders from the memorydb
 
 			fromBlock = fromBlock.Add(toBlock, big.NewInt(1))
-			toBlock = utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, big.NewInt(10000)))
+			toBlock = utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, JUMP))
 		}
 		lop.memoryDb.Accept(lastAcceptedBlockNumber.Uint64(), lastAccepted.Time()) // will delete stale orders from the memorydb
-		// lop.FixBuggySnapshot()                     // not required any more
+
+		// needs to be run everytime as long as the db.UpdatePosition uses configService.GetCumulativePremiumFraction
+		lop.FixBuggySnapshot()
 	}
 
 	lop.mu.Unlock()
@@ -253,7 +262,10 @@ func (lop *limitOrderProcesser) loadMemoryDBSnapshot() (acceptedBlockNumber uint
 func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.Int) error {
 	currentHeadBlock := lop.blockChain.CurrentBlock()
 
-	memoryDBCopy := lop.memoryDb.GetOrderBookDataCopy()
+	memoryDBCopy, err := lop.memoryDb.GetOrderBookDataCopy()
+	if err != nil {
+		return fmt.Errorf("Error in getting memory DB copy: err=%v", err)
+	}
 	if currentHeadBlock.Number().Cmp(acceptedBlockNumber) == 1 {
 		// if current head is ahead of the accepted block, then certain events(OrderBook)
 		// need to be removed from the saved state
@@ -283,7 +295,7 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 	}
 
 	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(&snapshot)
+	err = gob.NewEncoder(&buf).Encode(&snapshot)
 	if err != nil {
 		return fmt.Errorf("error in gob encoding: err=%v", err)
 	}
@@ -332,7 +344,19 @@ func (lop *limitOrderProcesser) FixBuggySnapshot() {
 func executeFuncAndRecoverPanic(fn func(), panicMessage string, panicCounter metrics.Counter) {
 	defer func() {
 		if panicInfo := recover(); panicInfo != nil {
-			log.Error(panicMessage, panicInfo.(string), string(debug.Stack()))
+			var errorMessage string
+			switch panicInfo := panicInfo.(type) {
+			case string:
+				errorMessage = fmt.Sprintf("recovered (string) panic: %s", panicInfo)
+			case runtime.Error:
+				errorMessage = fmt.Sprintf("recovered (runtime.Error) panic: %s", panicInfo.Error())
+			case error:
+				errorMessage = fmt.Sprintf("recovered (error) panic: %s", panicInfo.Error())
+			default:
+				errorMessage = fmt.Sprintf("recovered (default) panic: %v", panicInfo)
+			}
+
+			log.Error(panicMessage, "errorMessage", errorMessage, "stack_trace", string(debug.Stack()))
 			panicCounter.Inc(1)
 		}
 	}()

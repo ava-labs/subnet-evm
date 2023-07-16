@@ -7,8 +7,13 @@
     },
     {
       "hubbleBibliophileConfig": {
-        "blockTimestamp": 1688029200,
+        "blockTimestamp": 1689425100,
         "disable": true
+      }
+    },
+    {
+      "jurorConfig": {
+        "blockTimestamp": 1689425100
       }
     }
   ]

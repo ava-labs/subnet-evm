@@ -53,6 +53,7 @@ const (
 )
 
 var (
+	ErrTwoOrders         = errors.New("need 2 orders")
 	ErrInvalidFillAmount = errors.New("invalid fillAmount")
 	ErrNotLongOrder      = errors.New("not long")
 	ErrNotShortOrder     = errors.New("not short")
@@ -69,6 +70,10 @@ var (
 
 // Business Logic
 func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputStruct *ValidateOrdersAndDetermineFillPriceInput) (*ValidateOrdersAndDetermineFillPriceOutput, error) {
+	if len(inputStruct.Data) != 2 {
+		return nil, ErrTwoOrders
+	}
+
 	if inputStruct.FillAmount.Sign() <= 0 {
 		return nil, ErrInvalidFillAmount
 	}

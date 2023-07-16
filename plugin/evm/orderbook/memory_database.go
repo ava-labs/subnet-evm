@@ -220,7 +220,7 @@ type LimitOrderDatabase interface {
 	GetLastPrices() map[Market]*big.Int
 	GetAllTraders() map[common.Address]Trader
 	GetOrderBookData() InMemoryDatabase
-	GetOrderBookDataCopy() *InMemoryDatabase
+	GetOrderBookDataCopy() (*InMemoryDatabase, error)
 	Accept(blockNumber uint64, blockTimestamp uint64)
 	SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
@@ -787,18 +787,25 @@ func (db *InMemoryDatabase) GetOrderBookData() InMemoryDatabase {
 	return *db
 }
 
-func (db *InMemoryDatabase) GetOrderBookDataCopy() *InMemoryDatabase {
+func (db *InMemoryDatabase) GetOrderBookDataCopy() (*InMemoryDatabase, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
 	var buf bytes.Buffer
-	gob.NewEncoder(&buf).Encode(db)
+	err := gob.NewEncoder(&buf).Encode(db)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding database: %v", err)
+	}
 
 	buf2 := bytes.NewBuffer(buf.Bytes())
 	var memoryDBCopy *InMemoryDatabase
-	gob.NewDecoder(buf2).Decode(&memoryDBCopy)
+	err = gob.NewDecoder(buf2).Decode(&memoryDBCopy)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding database: %v", err)
+	}
+
 	memoryDBCopy.mu = &sync.RWMutex{}
-	return memoryDBCopy
+	return memoryDBCopy, nil
 }
 
 func getLiquidationThreshold(maxLiquidationRatio *big.Int, minSizeRequirement *big.Int, size *big.Int) *big.Int {

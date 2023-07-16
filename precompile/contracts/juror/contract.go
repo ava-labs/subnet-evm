@@ -5,6 +5,7 @@
 package juror
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -193,7 +194,10 @@ func validateOrdersAndDetermineFillPrice(accessibleState contract.AccessibleStat
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
 	output, err := ValidateOrdersAndDetermineFillPrice(bibliophile, &inputStruct)
 	if err != nil {
-		log.Error("validateOrdersAndDetermineFillPrice", "error", err, "inputStruct", inputStruct, "block", accessibleState.GetBlockContext().Number())
+		log.Error("validateOrdersAndDetermineFillPrice", "error", err, "block", accessibleState.GetBlockContext().Number())
+		if !errors.Is(err, ErrTwoOrders) {
+			log.Error("debug-info", "order0", hex.EncodeToString(inputStruct.Data[0]), "order1", hex.EncodeToString(inputStruct.Data[1]), "fillAmount", inputStruct.FillAmount)
+		}
 		return nil, remainingGas, err
 	}
 	packedOutput, err := PackValidateOrdersAndDetermineFillPriceOutput(*output)
