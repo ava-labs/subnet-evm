@@ -56,8 +56,7 @@ func ExampleGenerateChain() {
 			HomesteadBlock: new(big.Int),
 			FeeConfig:      params.DefaultFeeConfig,
 		},
-		Alloc:    GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Alloc: GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
 	}
 
 	// This call generates a chain of 3 blocks. The function runs for
