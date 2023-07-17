@@ -493,7 +493,7 @@ func TestTracingWithOverrides(t *testing.T) {
 				},
 			},
 		},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		GasLimit: params.TestSubnetEVMConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}

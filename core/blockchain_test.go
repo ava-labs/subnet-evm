@@ -143,10 +143,7 @@ func TestTrieCleanJournal(t *testing.T) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-			FeeConfig:      params.DefaultFeeConfig,
-		},
+		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
 		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
 		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
 	}
@@ -407,10 +404,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-			FeeConfig:      params.DefaultFeeConfig,
-		},
+		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
 		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
 		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
 	}
@@ -521,10 +515,7 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-			FeeConfig:      params.DefaultFeeConfig,
-		},
+		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
 		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
 		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
 	}
@@ -648,10 +639,7 @@ func TestTransactionIndices(t *testing.T) {
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
 		funds   = big.NewInt(10000000000000)
 		gspec   = &Genesis{
-			Config: &params.ChainConfig{
-				HomesteadBlock: new(big.Int),
-				FeeConfig:      params.DefaultFeeConfig,
-			},
+			Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
 			Alloc:    GenesisAlloc{addr1: {Balance: funds}},
 			GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
 		}
