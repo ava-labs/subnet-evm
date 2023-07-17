@@ -62,10 +62,9 @@ func BenchmarkFilters(b *testing.B) {
 		addr4   = common.BytesToAddress([]byte("random addresses please"))
 
 		gspec = &core.Genesis{
-			Config:   params.TestChainConfig,
-			Alloc:    core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
-			BaseFee:  big.NewInt(1),
-			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			Config:  params.TestChainConfig,
+			Alloc:   core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
+			BaseFee: big.NewInt(1),
 		}
 	)
 	defer db.Close()
@@ -126,10 +125,9 @@ func TestFilters(t *testing.T) {
 		hash4 = common.BytesToHash([]byte("topic4"))
 
 		gspec = &core.Genesis{
-			Config:   params.TestChainConfig,
-			Alloc:    core.GenesisAlloc{addr: {Balance: big.NewInt(1000000)}},
-			BaseFee:  big.NewInt(1),
-			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			Config:  params.TestChainConfig,
+			Alloc:   core.GenesisAlloc{addr: {Balance: big.NewInt(1000000)}},
+			BaseFee: big.NewInt(1),
 		}
 	)
 	defer db.Close()
