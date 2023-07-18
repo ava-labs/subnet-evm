@@ -155,7 +155,7 @@ func Benchmark{{.Contract.Type}}(b *testing.B) {
 	// Benchmark tests.
 	for name, test := range tests {
 		b.Run(name, func(b *testing.B) {
-			test.Bench(b, Module, state.NewStateDB(b))
+			test.Bench(b, Module, state.NewTestStateDB(b))
 		})
 	}
 	{{- end}}
