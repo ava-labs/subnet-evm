@@ -50,7 +50,7 @@ var (
 	// For legacy tests
 	MinGasPrice        int64 = 225_000_000_000
 	TestInitialBaseFee int64 = 225_000_000_000
-	TestMaxBaseFee           = big.NewInt(225_000_000_000)
+	TestMaxBaseFee     int64 = 225_000_000_000
 
 	ExtraDataSize        = 80
 	RollupWindow  uint64 = 10
@@ -154,29 +154,6 @@ var (
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{},
 		GenesisPrecompiles:       Precompiles{},
 		UpgradeConfig:            UpgradeConfig{},
-	}
-
-	SimulatedTestChainConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
-		ChainID:             big.NewInt(1337),
-		FeeConfig:           DefaultFeeConfig,
-		AllowFeeRecipients:  false,
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.Hash{},
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DUpgradeTimestamp:  utils.NewUint64(0),
-		},
-		GenesisPrecompiles: Precompiles{},
-		UpgradeConfig:      UpgradeConfig{},
 	}
 
 	TestRules = TestChainConfig.AvalancheRules(new(big.Int), 0)
@@ -306,7 +283,7 @@ func (c *ChainConfig) Description() string {
 	if c.MuirGlacierBlock != nil {
 		banner += fmt.Sprintf(" - Muir Glacier:                #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/muir-glacier.md)\n", c.MuirGlacierBlock)
 	}
-	banner += "Mandatory Upgades:\n"
+	banner += "Mandatory Upgrades:\n"
 	banner += fmt.Sprintf(" - SubnetEVM Timestamp:             #%-8v (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)\n", c.SubnetEVMTimestamp)
 	banner += fmt.Sprintf(" - DUpgrade Timestamp:              #%-8v (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", c.DUpgradeTimestamp)
 	banner += "\n"

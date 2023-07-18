@@ -431,8 +431,6 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, gs
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
-		// We use two separate databases since GenerateChain commits the state roots to its underlying
-		// database.
 		chainDB = rawdb.NewMemoryDatabase()
 	)
 
@@ -845,7 +843,6 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 func TestEmptyBlocks(t *testing.T, create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error)) {
 	chainDB := rawdb.NewMemoryDatabase()
 
-	// Ensure that key1 has some funds in the genesis block.
 	gspec := &Genesis{
 		Config: &params.ChainConfig{
 			HomesteadBlock: new(big.Int),
@@ -994,7 +991,6 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, gspec *Genes
 //	A3
 //
 //nolint:goimports
-//nolint:goimports
 func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error)) {
 	var (
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -1141,7 +1137,6 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 //	|
 //	A3
 //
-//nolint:goimports
 //nolint:goimports
 func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error)) {
 	var (
@@ -1375,7 +1370,8 @@ func TestInsertChainInvalidBlockFee(t *testing.T, create func(db ethdb.Database,
 
 	// This call generates a chain of 3 blocks.
 	signer := types.LatestSigner(params.TestChainConfig)
-	_, chain, _, err := GenerateChainWithGenesis(gspec, dummy.NewETHFaker(), 3, 0, func(i int, gen *BlockGen) {
+	eng := dummy.NewFakerWithMode(dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true})
+	_, chain, _, err := GenerateChainWithGenesis(gspec, eng, 3, 0, func(i int, gen *BlockGen) {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   params.TestChainConfig.ChainID,
 			Nonce:     gen.TxNonce(addr1),
@@ -1503,8 +1499,6 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
-		// We use two separate databases since GenerateChain commits the state roots to its underlying
-		// database.
 		chainDB = rawdb.NewMemoryDatabase()
 	)
 

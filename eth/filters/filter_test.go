@@ -62,10 +62,9 @@ func BenchmarkFilters(b *testing.B) {
 		addr4   = common.BytesToAddress([]byte("random addresses please"))
 
 		gspec = &core.Genesis{
-			Config:   params.TestChainConfig,
-			Alloc:    core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
-			BaseFee:  big.NewInt(1),
-			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			Config:  params.TestChainConfig,
+			Alloc:   core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
+			BaseFee: big.NewInt(1),
 		}
 	)
 	defer db.Close()
@@ -126,13 +125,13 @@ func TestFilters(t *testing.T) {
 		hash4 = common.BytesToHash([]byte("topic4"))
 
 		gspec = &core.Genesis{
-			Config:   params.TestChainConfig,
-			Alloc:    core.GenesisAlloc{addr: {Balance: big.NewInt(1000000)}},
-			BaseFee:  big.NewInt(1),
-			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			Config:  params.TestChainConfig,
+			Alloc:   core.GenesisAlloc{addr: {Balance: big.NewInt(1000000)}},
+			BaseFee: big.NewInt(1),
 		}
 	)
 	defer db.Close()
+
 	_, chain, receipts, err := core.GenerateChainWithGenesis(gspec, dummy.NewFaker(), 1000, 10, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 1:
@@ -241,8 +240,7 @@ func TestFilters(t *testing.T) {
 			mustNewRangeFilter(t, sys, -1, -4, nil, nil), []common.Hash{hash4},
 		},
 	} {
-		logs, err := tc.f.Logs(context.Background())
-		require.NoError(t, err)
+		logs, _ := tc.f.Logs(context.Background())
 		var haveHashes []common.Hash
 		for _, l := range logs {
 			haveHashes = append(haveHashes, l.Topics[0])

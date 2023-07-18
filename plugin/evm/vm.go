@@ -321,26 +321,6 @@ func (vm *VM) Initialize(
 	// Ethereum tooling.
 	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
 
-	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
-	// Initializing the chain will verify upgradeBytes are compatible with existing values.
-	vm.chainConfig = g.Config
-	vm.networkID = vm.ethConfig.NetworkId
-	if len(upgradeBytes) > 0 {
-		var upgradeConfig params.UpgradeConfig
-		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
-			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
-		}
-		vm.chainConfig.UpgradeConfig = upgradeConfig
-	}
-	// create genesisHash after applying upgradeBytes in case
-	// upgradeBytes modifies genesis.
-	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.readLastAccepted]
-	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
-	if err != nil {
-		return err
-	}
-	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
-
 	// Set minimum price for mining and default gas price oracle value to the min
 	// gas price to prevent so transactions and blocks all use the correct fees
 	vm.ethConfig.RPCGasCap = vm.config.RPCGasCap
@@ -373,7 +353,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
 	vm.ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
 	vm.ethConfig.AllowMissingTries = vm.config.AllowMissingTries
-	vm.ethConfig.SnapshotDelayInit = vm.stateSyncEnabled(lastAcceptedHeight)
+	vm.ethConfig.SnapshotDelayInit = vm.config.StateSyncEnabled
 	vm.ethConfig.SnapshotWait = vm.config.SnapshotWait
 	vm.ethConfig.SnapshotVerify = vm.config.SnapshotVerify
 	vm.ethConfig.OfflinePruning = vm.config.OfflinePruning
@@ -404,6 +384,25 @@ func (vm *VM) Initialize(
 
 	vm.chainConfig = g.Config
 	vm.networkID = vm.ethConfig.NetworkId
+
+	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
+	// Initializing the chain will verify upgradeBytes are compatible with existing values.
+	if len(upgradeBytes) > 0 {
+		var upgradeConfig params.UpgradeConfig
+		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
+			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
+		}
+		vm.chainConfig.UpgradeConfig = upgradeConfig
+	}
+
+	// create genesisHash after applying upgradeBytes in case
+	// upgradeBytes modifies genesis.
+	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.readLastAccepted]
+	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
+	if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
 
 	if err := vm.initializeMetrics(); err != nil {
 		return err
@@ -487,10 +486,9 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 // If state sync is disabled, this function will wipe any ongoing summary from
 // disk to ensure that we do not continue syncing from an invalid snapshot.
 func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
-	stateSyncEnabled := vm.stateSyncEnabled(lastAcceptedHeight)
 	// parse nodeIDs from state sync IDs in vm config
 	var stateSyncIDs []ids.NodeID
-	if stateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
+	if vm.config.StateSyncEnabled && len(vm.config.StateSyncIDs) > 0 {
 		nodeIDs := strings.Split(vm.config.StateSyncIDs, ",")
 		stateSyncIDs = make([]ids.NodeID, len(nodeIDs))
 		for i, nodeIDString := range nodeIDs {
@@ -514,7 +512,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 				BlockParser:      vm,
 			},
 		),
-		enabled:              stateSyncEnabled,
+		enabled:              vm.config.StateSyncEnabled,
 		skipResume:           vm.config.StateSyncSkipResume,
 		stateSyncMinBlocks:   vm.config.StateSyncMinBlocks,
 		stateSyncRequestSize: vm.config.StateSyncRequestSize,
@@ -528,7 +526,7 @@ func (vm *VM) initializeStateSyncClient(lastAcceptedHeight uint64) error {
 
 	// If StateSync is disabled, clear any ongoing summary so that we will not attempt to resume
 	// sync using a snapshot that has been modified by the node running normal operations.
-	if !stateSyncEnabled {
+	if !vm.config.StateSyncEnabled {
 		return vm.StateSyncClient.StateSyncClearOngoingSummary()
 	}
 
@@ -968,14 +966,4 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	}
 
 	return nil
-}
-
-func (vm *VM) stateSyncEnabled(lastAcceptedHeight uint64) bool {
-	if vm.config.StateSyncEnabled != nil {
-		// if the config is set, use that
-		return *vm.config.StateSyncEnabled
-	}
-
-	// enable state sync by default if the chain is empty.
-	return lastAcceptedHeight == 0
 }

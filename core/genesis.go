@@ -184,19 +184,21 @@ func SetupGenesisBlock(
 		return nil, common.Hash{}, errGenesisNoConfig
 	}
 	// Make sure genesis gas limit is consistent in SubnetEVM fork
-	gasLimitConfig := genesis.Config.FeeConfig.GasLimit.Uint64()
-	if gasLimitConfig != genesis.GasLimit {
-		return nil, common.Hash{}, fmt.Errorf(
-			"gas limit in fee config (%d) does not match gas limit in header (%d)",
-			gasLimitConfig,
-			genesis.GasLimit,
-		)
+	if genesis.Config.IsSubnetEVM(genesis.Timestamp) {
+		gasLimitConfig := genesis.Config.FeeConfig.GasLimit.Uint64()
+		if gasLimitConfig != genesis.GasLimit {
+			return nil, common.Hash{}, fmt.Errorf(
+				"gas limit in fee config (%d) does not match gas limit in header (%d)",
+				gasLimitConfig,
+				genesis.GasLimit,
+			)
+		}
+		// Verify config
+		if err := genesis.Config.Verify(); err != nil {
+			return nil, common.Hash{}, err
+		}
 	}
 
-	// Verify config
-	if err := genesis.Config.Verify(); err != nil {
-		return nil, common.Hash{}, err
-	}
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
@@ -249,7 +251,6 @@ func SetupGenesisBlock(
 	if lastBlock == nil {
 		return newcfg, common.Hash{}, fmt.Errorf("missing last accepted block")
 	}
-
 	height := lastBlock.NumberU64()
 	timestamp := lastBlock.Time()
 	if skipChainConfigCheckCompatible {
@@ -353,7 +354,6 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 			panic(fmt.Sprintf("unable to commit genesis block: %v", err))
 		}
 	}
-
 	return types.NewBlock(head, nil, nil, nil, trie.NewStackTrie(nil))
 }
 
@@ -401,7 +401,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	g := Genesis{
 		Config:  params.TestChainConfig,
 		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: new(big.Int).Set(params.TestMaxBaseFee),
+		BaseFee: big.NewInt(params.TestMaxBaseFee),
 	}
 	return g.MustCommit(db)
 }

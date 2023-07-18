@@ -1063,8 +1063,6 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 	*copy = *original
 	canon := true
 
-	// Apply network upgrades (after Berlin) to the copy.
-	// Note in coreth, SubnetEVM is the "equivalent" to Berlin.
 	if timestamp := override.SubnetEVMTimestamp; timestamp != nil {
 		copy.SubnetEVMTimestamp = timestamp
 		canon = false

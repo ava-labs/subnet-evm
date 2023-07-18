@@ -107,7 +107,8 @@ type SimulatedBackend struct {
 // and uses a simulated blockchain for testing purposes.
 // A simulated backend always uses chainID 1337.
 func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
-	copyConfig := *params.SimulatedTestChainConfig
+	copyConfig := *params.TestChainConfig
+	copyConfig.ChainID = big.NewInt(1337)
 	copyConfig.FeeConfig.GasLimit = big.NewInt(int64(gasLimit))
 	genesis := core.Genesis{
 		Config:   &copyConfig,

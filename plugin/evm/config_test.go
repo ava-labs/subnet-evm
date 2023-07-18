@@ -13,12 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// newTrue returns a pointer to a bool that is true
-func newTrue() *bool {
-	b := true
-	return &b
-}
-
 func TestUnmarshalConfig(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -69,7 +63,7 @@ func TestUnmarshalConfig(t *testing.T) {
 		{
 			"state sync enabled",
 			[]byte(`{"state-sync-enabled":true}`),
-			Config{StateSyncEnabled: newTrue()},
+			Config{StateSyncEnabled: true},
 			false,
 		},
 		{
