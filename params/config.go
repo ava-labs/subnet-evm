@@ -284,8 +284,40 @@ func (c *ChainConfig) Description() string {
 		banner += fmt.Sprintf(" - Muir Glacier:                #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/muir-glacier.md)\n", c.MuirGlacierBlock)
 	}
 	banner += "Mandatory Upgrades:\n"
-	banner += fmt.Sprintf(" - SubnetEVM Timestamp:             #%-8v (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)\n", c.SubnetEVMTimestamp)
-	banner += fmt.Sprintf(" - DUpgrade Timestamp:              #%-8v (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", c.DUpgradeTimestamp)
+	banner += fmt.Sprintf(" - SubnetEVM Timestamp:             #%-8d (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)\n", c.SubnetEVMTimestamp)
+	banner += fmt.Sprintf(" - DUpgrade Timestamp:              #%-8d (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", c.DUpgradeTimestamp)
+	banner += "\n"
+
+	// Add Subnet-EVM custom fields
+	optionalNetworkUpgradeBytes, err := json.Marshal(c.OptionalNetworkUpgrades)
+	if err != nil {
+		optionalNetworkUpgradeBytes = []byte("cannot marshal OptionalNetworkUpgrades")
+	}
+	banner += fmt.Sprintf("Optional Network Upgrades: %s", string(optionalNetworkUpgradeBytes))
+	banner += "\n"
+
+	precompileUpgradeBytes, err := json.Marshal(c.GenesisPrecompiles)
+	if err != nil {
+		precompileUpgradeBytes = []byte("cannot marshal PrecompileUpgrade")
+	}
+	banner += fmt.Sprintf("Precompile Upgrades: %s", string(precompileUpgradeBytes))
+	banner += "\n"
+
+	upgradeConfigBytes, err := json.Marshal(c.UpgradeConfig)
+	if err != nil {
+		upgradeConfigBytes = []byte("cannot marshal UpgradeConfig")
+	}
+	banner += fmt.Sprintf("Upgrade Config: %s", string(upgradeConfigBytes))
+	banner += "\n"
+
+	feeBytes, err := json.Marshal(c.FeeConfig)
+	if err != nil {
+		feeBytes = []byte("cannot marshal FeeConfig")
+	}
+	banner += fmt.Sprintf("Fee Config: %s", string(feeBytes))
+	banner += "\n"
+
+	banner += fmt.Sprintf("Allow Fee Recipients: %v", c.AllowFeeRecipients)
 	banner += "\n"
 	return banner
 }
