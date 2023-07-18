@@ -64,13 +64,12 @@ func TestSetupGenesis(t *testing.T) {
 	preSubnetConfig := *params.TestPreSubnetEVMConfig
 	preSubnetConfig.SubnetEVMTimestamp = utils.NewUint64(100)
 	var (
-		customghash = common.HexToHash("0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66")
+		customghash = common.HexToHash("0x89c99d90b79719238d2645c7642f2c9295246e80775b38cfd162b696817fbd50")
 		customg     = Genesis{
 			Config: &preSubnetConfig,
 			Alloc: GenesisAlloc{
 				{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 			},
-			GasLimit: preSubnetConfig.FeeConfig.GasLimit.Uint64(),
 		}
 		oldcustomg = customg
 	)
