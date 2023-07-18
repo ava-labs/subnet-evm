@@ -9,12 +9,21 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/utils"
+	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 // CheckPredicates checks that all precompile predicates are satisfied within the current [predicateContext] for [tx]
 func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.ProposerPredicateContext, tx *types.Transaction) error {
+	// Check that the transaction can cover its IntrinsicGas (including the gas required by the predicate) before
+	// verifying the predicate.
+	intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, rules)
+	if err != nil {
+		return err
+	}
+	if tx.Gas() < intrinsicGas {
+		return fmt.Errorf("insufficient gas for predicate verification (%d) < intrinsic gas (%d)", tx.Gas(), intrinsicGas)
+	}
 	if err := checkPrecompilePredicates(rules, &predicateContext.PrecompilePredicateContext, tx); err != nil {
 		return err
 	}
@@ -40,7 +49,7 @@ func checkPrecompilePredicates(rules params.Rules, predicateContext *precompilec
 			return fmt.Errorf("predicate %s failed verification for tx %s: specified %s in access list multiple times", address, tx.Hash(), address)
 		}
 		precompileAddressChecks[address] = struct{}{}
-		predicateBytes := utils.HashSliceToBytes(accessTuple.StorageKeys)
+		predicateBytes := predicateutils.HashSliceToBytes(accessTuple.StorageKeys)
 		if err := predicater.VerifyPredicate(predicateContext, predicateBytes); err != nil {
 			return fmt.Errorf("predicate %s failed verification for tx %s: %w", address, tx.Hash(), err)
 		}
@@ -68,7 +77,7 @@ func checkProposerPrecompilePredicates(rules params.Rules, predicateContext *pre
 			return fmt.Errorf("predicate %s failed verification for tx %s: specified %s in access list multiple times", address, tx.Hash(), address)
 		}
 		precompileAddressChecks[address] = struct{}{}
-		predicateBytes := utils.HashSliceToBytes(accessTuple.StorageKeys)
+		predicateBytes := predicateutils.HashSliceToBytes(accessTuple.StorageKeys)
 		if err := predicater.VerifyPredicate(predicateContext, predicateBytes); err != nil {
 			return fmt.Errorf("predicate %s failed verification for tx %s: %w", address, tx.Hash(), err)
 		}

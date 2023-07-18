@@ -40,7 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/utils"
+	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -252,6 +252,18 @@ func (s *StateDB) Logs() []*types.Log {
 		logs = append(logs, lgs...)
 	}
 	return logs
+}
+
+// GetLogData returns the underlying data from each log included in the StateDB
+// Test helper function.
+func (s *StateDB) GetLogData() [][]byte {
+	var logData [][]byte
+	for _, lgs := range s.logs {
+		for _, log := range lgs {
+			logData = append(logData, common.CopyBytes(log.Data))
+		}
+	}
+	return logData
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
@@ -1097,7 +1109,7 @@ func (s *StateDB) preparePredicateStorageSlots(rules params.Rules, list types.Ac
 		if !rules.PredicateExists(el.Address) {
 			continue
 		}
-		s.predicateStorageSlots[el.Address] = utils.HashSliceToBytes(el.StorageKeys)
+		s.predicateStorageSlots[el.Address] = predicateutils.HashSliceToBytes(el.StorageKeys)
 	}
 }
 
@@ -1144,4 +1156,9 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 func (s *StateDB) GetPredicateStorageSlots(address common.Address) ([]byte, bool) {
 	storageSlots, exists := s.predicateStorageSlots[address]
 	return storageSlots, exists
+}
+
+// SetPredicateStorageSlots sets the predicate storage slots for the given address
+func (s *StateDB) SetPredicateStorageSlots(address common.Address, predicate []byte) {
+	s.predicateStorageSlots[address] = predicate
 }

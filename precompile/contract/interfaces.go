@@ -44,7 +44,9 @@ type StateDB interface {
 	Exist(common.Address) bool
 
 	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
+	GetLogData() [][]byte
 	GetPredicateStorageSlots(address common.Address) ([]byte, bool)
+	SetPredicateStorageSlots(address common.Address, predicate []byte)
 
 	Suicide(common.Address) bool
 	Finalise(deleteEmptyObjects bool)
@@ -61,9 +63,8 @@ type AccessibleState interface {
 	CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error)
 }
 
-// BlockContext defines an interface that provides information to a stateful precompile
-// about the block that activates the upgrade. The precompile can access this information
-// to initialize its state.
+// BlockContext defines an interface that provides information to a stateful precompile about the
+// current block. The BlockContext may be provided during both precompile activation and execution.
 type BlockContext interface {
 	Number() *big.Int
 	Timestamp() *big.Int
