@@ -45,18 +45,14 @@ func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, addr
 }
 
 func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, tx *types.Transaction) error {
-	err := tw.client.SendTransaction(ctx, tx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tw.client.SendTransaction(ctx, tx)
 }
 
 func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transaction) error {
 	txNonce := tx.Nonce()
 
 	for {
+		// If the is less than what has already been accepted, the transaction is confirmed
 		if txNonce < tw.acceptedNonce {
 			return nil
 		}
