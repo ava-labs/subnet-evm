@@ -18,7 +18,7 @@ var _ TxSequence[*types.Transaction] = (*txSequence)(nil)
 type CreateTx func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error)
 
 // GenerateTxSequence fetches the current nonce of key and calls [generator] [numTxs] times sequentially to generate a sequence of transactions.
-func GenerateTxSequence(ctx context.Context, generator CreateTx, client ethclient.Client, key *ecdsa.PrivateKey, numTxs uint64) (TxSequence[TimedTx], error) {
+func GenerateTxSequence(ctx context.Context, generator CreateTx, client ethclient.Client, key *ecdsa.PrivateKey, numTxs uint64) (TxSequence[*types.Transaction], error) {
 	address := ethcrypto.PubkeyToAddress(key.PublicKey)
 	startingNonce, err := client.NonceAt(ctx, address, nil)
 	if err != nil {
@@ -36,7 +36,7 @@ func GenerateTxSequence(ctx context.Context, generator CreateTx, client ethclien
 	return ConvertTxSliceToSequence(txs), nil
 }
 
-func GenerateTxSequences(ctx context.Context, generator CreateTx, client ethclient.Client, keys []*ecdsa.PrivateKey, txsPerKey uint64) ([]TxSequence[TimedTx], error) {
+func GenerateTxSequences(ctx context.Context, generator CreateTx, client ethclient.Client, keys []*ecdsa.PrivateKey, txsPerKey uint64) ([]TxSequence[*types.Transaction], error) {
 	txSequences := make([]TxSequence[*types.Transaction], len(keys))
 	for i, key := range keys {
 		txs, err := GenerateTxSequence(ctx, generator, client, key, txsPerKey)

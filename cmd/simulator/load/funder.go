@@ -109,7 +109,7 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 		return nil, fmt.Errorf("failed to generate fund distribution sequence from %s of length %d", maxFundsKey.Address, len(needFundsAddrs))
 	}
 	worker := NewSingleAddressTxWorker(ctx, client, maxFundsKey.Address)
-	txFunderAgent := txs.NewIssueNAgent[txs.TimedTx](txSequence, worker, numTxs)
+	txFunderAgent := txs.NewIssueNAgent[*types.Transaction](txSequence, worker, numTxs)
 
 	reg := prometheus.NewRegistry()
 	m := metrics.NewMetrics(reg)

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
@@ -45,8 +44,8 @@ func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, addr
 	return tw
 }
 
-func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, timedTx txs.TimedTx) error {
-	err := tw.client.SendTransaction(ctx, timedTx.Tx)
+func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, tx *types.Transaction) error {
+	err := tw.client.SendTransaction(ctx, tx)
 	if err != nil {
 		return err
 	}
@@ -54,8 +53,7 @@ func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, timedTx txs.TimedT
 	return nil
 }
 
-func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, timedTx txs.TimedTx) error {
-	tx := timedTx.Tx
+func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transaction) error {
 	txNonce := tx.Nonce()
 
 	for {
