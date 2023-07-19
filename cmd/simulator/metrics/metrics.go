@@ -4,16 +4,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type metrics struct {
+type Metrics struct {
 	// Summary of the quantiles of Individual Confirmation Tx Times
 	ConfirmationTxTimes prometheus.Summary
 	// Summary of the quantiles of Individual Issuance Tx Times
 	IssuanceTxTimes prometheus.Summary
 }
 
-// NewMetrics creates and returns a metrics and registers it with a Collector
-func NewMetrics(reg prometheus.Registerer) *metrics {
-	m := &metrics{
+// NewMetrics creates and returns a Metrics and registers it with a Collector
+func NewMetrics(reg prometheus.Registerer) *Metrics {
+	m := &Metrics{
 		ConfirmationTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
 			Name:       "confirmation_tx_times",
 			Help:       "Individual Tx Confirmation Times for a Load Test",

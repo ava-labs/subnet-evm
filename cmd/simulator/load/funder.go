@@ -10,12 +10,14 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds
@@ -109,7 +111,10 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 	worker := NewSingleAddressTxWorker(ctx, client, maxFundsKey.Address)
 	txFunderAgent := txs.NewIssueNAgent[txs.TimedTx](txSequence, worker, numTxs)
 
-	if err := txFunderAgent.Execute(ctx); err != nil {
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
+
+	if err := txFunderAgent.Execute(ctx, m); err != nil {
 		return nil, err
 	}
 	for _, addr := range needFundsAddrs {

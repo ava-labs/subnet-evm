@@ -6,16 +6,13 @@ package load
 import (
 	"context"
 	"crypto/ecdsa"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net/http"
-	"regexp"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
@@ -23,6 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -121,12 +120,15 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		agents = append(agents, txs.NewIssueNAgent[txs.TimedTx](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize))
 	}
 
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
+
 	log.Info("Starting tx agents...")
 	eg := errgroup.Group{}
 	for _, agent := range agents {
 		agent := agent
 		eg.Go(func() error {
-			return agent.Execute(ctx)
+			return agent.Execute(ctx, m)
 		})
 	}
 
@@ -136,69 +138,9 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	}
 	log.Info("Tx agents completed successfully.")
 
-	logExtraMetrics(config.MetricsEndpoints, config.BlockchainIDStr)
+	// Start a prometheus server to expose individual tx metrics
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+	log.Info("localhost:8082/metrics")
+	http.ListenAndServe(":8082", nil)
 	return nil
-}
-
-func logExtraMetrics(metricsEndpoints []string, blockchainIDStr string) error {
-	if len(metricsEndpoints) == 0 {
-		log.Info("failed getting metrics: metricEndpoints is empty")
-		return nil
-	}
-
-	if blockchainIDStr == "" {
-		log.Info("failed getting metrics: blockchainIDStr is empty")
-		return nil
-	}
-
-	for i := 0; i < len(metricsEndpoints); i++ {
-		getCallStart := time.Now()
-		resp, err := http.Get(metricsEndpoints[i])
-		getCallDuration := time.Since(getCallStart)
-
-		log.Info("GET Metrics API Data", "time", getCallDuration.Seconds())
-		if err != nil {
-			log.Info("failed getting metrics", "err", err)
-			return nil
-		}
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Info("failed reading response body of metrics", "err", err)
-			return nil
-		}
-
-		bodyString := string(body)
-		buildBlockTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_build_block_sum.*", blockchainIDStr))
-		if err != nil {
-			log.Info("No buildBlock metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
-		}
-		log.Info("Sum of time (in ns) of a build_block", "time", buildBlockTime)
-
-		issuedToAcceptedTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_blks_accepted_sum.*", blockchainIDStr))
-		if err != nil {
-			log.Info("No issuedToAccepted metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
-		}
-		log.Info("Sum of time (in ns) from issuance of a block(s) to its acceptance", "time", issuedToAcceptedTime)
-
-		verifyTime, err := findMatchFromString(bodyString, fmt.Sprintf(".*avalanche_%s_vm_metervm_verify_sum.*", blockchainIDStr))
-		if err != nil {
-			log.Info("No verify metrics found from metrics API for blockchainIDStr", "blockchainIDStr", blockchainIDStr, "metricsEndpoint", metricsEndpoints[i])
-		}
-		log.Info("Sum of time (in ns) of a verify", "time", verifyTime)
-	}
-	return nil
-}
-
-func findMatchFromString(fullString string, regex string) (string, error) {
-	re := regexp.MustCompile(regex)
-	matches := re.FindAllStringSubmatch(fullString, -1)
-	if len(matches) > 0 && len(matches[len(matches)-1]) > 0 {
-		// This is hardcoded for the metrics API.
-		// We know the exact metric we want will always be the last item in the
-		// 2D slice which only has one item.
-		return matches[len(matches)-1][0], nil
-	}
-
-	return "", errors.New("could not find any matches for the given string")
 }

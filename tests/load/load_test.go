@@ -36,23 +36,14 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		nodeURIsLen := len(nodeURIs)
 
 		rpcEndpoints := make([]string, 0, nodeURIsLen)
-		metricsEndpoints := make([]string, 0, nodeURIsLen)
 		for _, uri := range nodeURIs {
 			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
-			metricsEndpoints = append(metricsEndpoints, fmt.Sprintf("%s/ext/metrics", uri))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
 		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		commaSeparatedMetricsEndpoints := strings.Join(metricsEndpoints, ",")
-		err = os.Setenv("METRICS_ENDPOINTS", commaSeparatedMetricsEndpoints)
-		gomega.Expect(err).Should(gomega.BeNil())
-
-		err = os.Setenv("BLOCKCHAIN_ID", blockchainID.String())
-		gomega.Expect(err).Should(gomega.BeNil())
-
-		log.Info("Running load simulator...", "rpcEndpoints", commaSeparatedRPCEndpoints, "metricsEndpoints", commaSeparatedMetricsEndpoints, "blockchainIDStr", blockchainID.String())
+		log.Info("Running load simulator...", "rpcEndpoints", commaSeparatedRPCEndpoints)
 		cmd := exec.Command("./scripts/run_simulator.sh")
 		log.Info("Running load simulator script", "cmd", cmd.String())
 

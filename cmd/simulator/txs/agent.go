@@ -7,13 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // TxSequence provides an interface to return a channel of transactions.
@@ -34,7 +31,7 @@ type Worker[T any] interface {
 
 // Execute the work of the given agent.
 type Agent[T any] interface {
-	Execute(ctx context.Context) error
+	Execute(ctx context.Context, m *metrics.Metrics) error
 }
 
 // issueNAgent issues and confirms a batch of N transactions at a time.
@@ -54,7 +51,7 @@ func NewIssueNAgent[T any](sequence TxSequence[T], worker Worker[T], n uint64) A
 }
 
 // Execute issues txs in batches of N and waits for them to confirm
-func (a issueNAgent[T]) Execute(ctx context.Context) error {
+func (a issueNAgent[T]) Execute(ctx context.Context, m *metrics.Metrics) error {
 	if a.n == 0 {
 		return errors.New("batch size n cannot be equal to 0")
 	}
@@ -62,9 +59,6 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	txChan := a.sequence.Chan()
 	confirmedCount := 0
 	batchI := 0
-
-	reg := prometheus.NewRegistry()
-	m := metrics.NewMetrics(reg)
 
 	// Tracks the total amount of time waiting for issuing and confirming txs
 	var (
@@ -133,9 +127,7 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			log.Info("Execution complete", "totalTxs", confirmedCount, "totalTime", totalTime, "TPS", float64(confirmedCount)/totalTime,
 				"issuanceTime", totalIssuedTime.Seconds(), "confirmedTime", totalConfirmedTime.Seconds())
 
-			// Start a prometheus server to expose individual tx metrics
-			http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
-			log.Error("Listen", "err", http.ListenAndServe(":8082", nil))
+			return nil
 		}
 
 		batchI++
