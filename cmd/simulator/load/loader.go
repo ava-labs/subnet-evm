@@ -139,9 +139,11 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	}
 	log.Info("Tx agents completed successfully.")
 
-	// Start a prometheus server to expose individual tx metrics
-	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
-	log.Info("localhost:8082/metrics")
-	http.ListenAndServe(":8082", nil)
+	if config.ExposeMetrics {
+		// Start a prometheus server to expose individual tx metrics
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+		log.Info("localhost:8082/metrics")
+		http.ListenAndServe(":8082", nil)
+	}
 	return nil
 }
