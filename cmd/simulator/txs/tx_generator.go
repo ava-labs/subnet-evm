@@ -30,7 +30,6 @@ func GenerateTxSequence(ctx context.Context, generator CreateTx, client ethclien
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign tx at index %d: %w", i, err)
 		}
-
 		txs = append(txs, tx)
 	}
 	return ConvertTxSliceToSequence(txs), nil
