@@ -275,10 +275,11 @@ type TxPool struct {
 	signer      types.Signer
 	mu          sync.RWMutex
 
-	istanbul bool // Fork indicator whether we are in the istanbul stage.
-	eip2718  bool // Fork indicator whether we are using EIP-2718 type transactions.
-	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
-	eip3860  bool // Fork indicator whether EIP-3860 is activated. (activated in Shanghai Upgrade in Ethereum)
+	// mu lock must be held to access rules
+	rules   params.Rules // Rules for the currentHead
+	eip2718 bool         // Fork indicator whether we are using EIP-2718 type transactions.
+	eip1559 bool         // Fork indicator whether we are using EIP-1559 type transactions.
+	eip3860 bool         // Fork indicator whether EIP-3860 is activated. (activated in Shanghai Upgrade in Ethereum)
 
 	currentHead *types.Header
 	// [currentState] is the state of the blockchain head. It is reset whenever
@@ -792,7 +793,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return err
 	}
 	// Ensure the transaction has more gas than the basic tx fee.
-	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, true, pool.istanbul, pool.eip3860)
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, pool.rules)
 	if err != nil {
 		return err
 	}
@@ -1534,12 +1535,12 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// Update all fork indicator by next pending block number.
 	next := new(big.Int).Add(newHead.Number, big.NewInt(1))
-	pool.istanbul = pool.chainconfig.IsIstanbul(next)
+	pool.rules = pool.chainconfig.AvalancheRules(next, newHead.Time)
 
-	isSubnetEVM := pool.chainconfig.IsSubnetEVM(newHead.Time)
+	isSubnetEVM := pool.rules.IsSubnetEVM
 	pool.eip2718 = isSubnetEVM
 	pool.eip1559 = isSubnetEVM
-	pool.eip3860 = pool.chainconfig.IsDUpgrade(newHead.Time)
+	pool.eip3860 = pool.rules.IsDUpgrade
 }
 
 // promoteExecutables moves transactions that have become processable from the
