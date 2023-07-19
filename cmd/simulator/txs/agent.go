@@ -7,9 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // TxSequence provides an interface to return a channel of transactions.
@@ -26,7 +30,6 @@ type Worker[T any] interface {
 	IssueTx(ctx context.Context, tx T) error
 	ConfirmTx(ctx context.Context, tx T) error
 	Close(ctx context.Context) error
-	CollectMetrics(ctx context.Context) error
 }
 
 // Execute the work of the given agent.
@@ -60,6 +63,9 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	confirmedCount := 0
 	batchI := 0
 
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
+
 	// Tracks the total amount of time waiting for issuing and confirming txs
 	var (
 		totalIssuedTime    time.Duration
@@ -67,7 +73,9 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	)
 
 	defer func() {
-		_ = a.worker.Close(ctx)
+		if err := a.worker.Close(ctx); err != nil {
+			log.Error("error trying to close worker: %w", "err", err)
+		}
 	}()
 
 	// Start time for execution
@@ -89,9 +97,12 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				if !moreTxs {
 					break L
 				}
+				start := time.Now()
 				if err := a.worker.IssueTx(ctx, tx); err != nil {
 					return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
 				}
+				issuanceTime := time.Since(start)
+				m.IssuanceTxTimes.Observe(issuanceTime.Seconds())
 				txs = append(txs, tx)
 			}
 		}
@@ -103,9 +114,12 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 		// Wait for txs in this batch to confirm
 		confirmedStart := time.Now()
 		for i, tx := range txs {
+			start := time.Now()
 			if err := a.worker.ConfirmTx(ctx, tx); err != nil {
 				return fmt.Errorf("failed to await transaction %d: %w", i, err)
 			}
+			confirmationTime := time.Since(start)
+			m.ConfirmationTxTimes.Observe(confirmationTime.Seconds())
 			confirmedCount++
 		}
 		// Get the batch's confirmation time and add it to totalConfirmedTime
@@ -118,10 +132,10 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			totalTime := time.Since(start).Seconds()
 			log.Info("Execution complete", "totalTxs", confirmedCount, "totalTime", totalTime, "TPS", float64(confirmedCount)/totalTime,
 				"issuanceTime", totalIssuedTime.Seconds(), "confirmedTime", totalConfirmedTime.Seconds())
-			if err := a.worker.CollectMetrics(ctx); err != nil {
-				return fmt.Errorf("failed collect metrics: %w", err)
-			}
-			return nil
+
+			// Start a prometheus server to expose individual tx metrics
+			http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+			log.Error("Listen", "err", http.ListenAndServe(":8082", nil))
 		}
 
 		batchI++
