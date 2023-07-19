@@ -1,3 +1,6 @@
+// (c) 2023, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package metrics
 
 import (
@@ -15,12 +18,12 @@ type Metrics struct {
 func NewMetrics(reg prometheus.Registerer) *Metrics {
 	m := &Metrics{
 		ConfirmationTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
-			Name:       "confirmation_tx_times",
+			Name:       "tx_confirmation_time",
 			Help:       "Individual Tx Confirmation Times for a Load Test",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}),
 		IssuanceTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
-			Name:       "issuance_tx_times",
+			Name:       "tx_issuance_time",
 			Help:       "Individual Tx Issuance Times for a Load Test",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		}),

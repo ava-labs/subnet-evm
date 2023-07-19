@@ -17,13 +17,12 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds
 // from the key with the highest starting balance.
 // This function returns a set of at least [numKeys] keys, each having a minimum balance [minFundsPerAddr].
-func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.Key, numKeys int, minFundsPerAddr *big.Int) ([]*key.Key, error) {
+func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.Key, numKeys int, minFundsPerAddr *big.Int, m *metrics.Metrics) ([]*key.Key, error) {
 	if len(keys) < numKeys {
 		return nil, fmt.Errorf("insufficient number of keys %d < %d", len(keys), numKeys)
 	}
@@ -109,12 +108,9 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 		return nil, fmt.Errorf("failed to generate fund distribution sequence from %s of length %d", maxFundsKey.Address, len(needFundsAddrs))
 	}
 	worker := NewSingleAddressTxWorker(ctx, client, maxFundsKey.Address)
-	txFunderAgent := txs.NewIssueNAgent[*types.Transaction](txSequence, worker, numTxs)
+	txFunderAgent := txs.NewIssueNAgent[*types.Transaction](txSequence, worker, numTxs, m)
 
-	reg := prometheus.NewRegistry()
-	m := metrics.NewMetrics(reg)
-
-	if err := txFunderAgent.Execute(ctx, m); err != nil {
+	if err := txFunderAgent.Execute(ctx); err != nil {
 		return nil, err
 	}
 	for _, addr := range needFundsAddrs {

@@ -31,7 +31,7 @@ type Worker[T any] interface {
 
 // Execute the work of the given agent.
 type Agent[T any] interface {
-	Execute(ctx context.Context, m *metrics.Metrics) error
+	Execute(ctx context.Context) error
 }
 
 // issueNAgent issues and confirms a batch of N transactions at a time.
@@ -39,19 +39,21 @@ type issueNAgent[T any] struct {
 	sequence TxSequence[T]
 	worker   Worker[T]
 	n        uint64
+	metrics  *metrics.Metrics
 }
 
 // NewIssueNAgent creates a new issueNAgent
-func NewIssueNAgent[T any](sequence TxSequence[T], worker Worker[T], n uint64) Agent[T] {
+func NewIssueNAgent[T any](sequence TxSequence[T], worker Worker[T], n uint64, metrics *metrics.Metrics) Agent[T] {
 	return &issueNAgent[T]{
 		sequence: sequence,
 		worker:   worker,
 		n:        n,
+		metrics:  metrics,
 	}
 }
 
 // Execute issues txs in batches of N and waits for them to confirm
-func (a issueNAgent[T]) Execute(ctx context.Context, m *metrics.Metrics) error {
+func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	if a.n == 0 {
 		return errors.New("batch size n cannot be equal to 0")
 	}
@@ -59,6 +61,7 @@ func (a issueNAgent[T]) Execute(ctx context.Context, m *metrics.Metrics) error {
 	txChan := a.sequence.Chan()
 	confirmedCount := 0
 	batchI := 0
+	m := a.metrics
 
 	// Tracks the total amount of time waiting for issuing and confirming txs
 	var (

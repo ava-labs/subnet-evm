@@ -66,8 +66,13 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	// to fund gas for all of their transactions.
 	maxFeeCap := new(big.Int).Mul(big.NewInt(params.GWei), big.NewInt(config.MaxFeeCap))
 	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*params.TxGas)))
+
+	// Create metrics
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
+
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
-	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr)
+	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr, m)
 	if err != nil {
 		return err
 	}
@@ -116,18 +121,15 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	log.Info("Constructing tx agents...", "numAgents", config.Workers)
 	agents := make([]txs.Agent[*types.Transaction], 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize))
+		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize, m))
 	}
-
-	reg := prometheus.NewRegistry()
-	m := metrics.NewMetrics(reg)
 
 	log.Info("Starting tx agents...")
 	eg := errgroup.Group{}
 	for _, agent := range agents {
 		agent := agent
 		eg.Go(func() error {
-			return agent.Execute(ctx, m)
+			return agent.Execute(ctx)
 		})
 	}
 
