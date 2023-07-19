@@ -91,12 +91,12 @@ func (a issueNAgent[T]) Execute(ctx context.Context, m *metrics.Metrics) error {
 				if !moreTxs {
 					break L
 				}
-				start := time.Now()
+				issuanceIndividualStart := time.Now()
 				if err := a.worker.IssueTx(ctx, tx); err != nil {
 					return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
 				}
-				issuanceTime := time.Since(start)
-				m.IssuanceTxTimes.Observe(issuanceTime.Seconds())
+				issuanceIndividualTime := time.Since(issuanceIndividualStart)
+				m.IssuanceTxTimes.Observe(issuanceIndividualTime.Seconds())
 				txs = append(txs, tx)
 			}
 		}
@@ -108,12 +108,12 @@ func (a issueNAgent[T]) Execute(ctx context.Context, m *metrics.Metrics) error {
 		// Wait for txs in this batch to confirm
 		confirmedStart := time.Now()
 		for i, tx := range txs {
-			start := time.Now()
+			confirmedIndividualStart := time.Now()
 			if err := a.worker.ConfirmTx(ctx, tx); err != nil {
 				return fmt.Errorf("failed to await transaction %d: %w", i, err)
 			}
-			confirmationTime := time.Since(start)
-			m.ConfirmationTxTimes.Observe(confirmationTime.Seconds())
+			confirmationIndividualTime := time.Since(confirmedIndividualStart)
+			m.ConfirmationTxTimes.Observe(confirmationIndividualTime.Seconds())
 			confirmedCount++
 		}
 		// Get the batch's confirmation time and add it to totalConfirmedTime
