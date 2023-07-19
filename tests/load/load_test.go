@@ -33,7 +33,6 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		blockchainID := subnetDetails.BlockchainID
 
 		nodeURIs := subnetDetails.ValidatorURIs
-
 		rpcEndpoints := make([]string, 0, len(nodeURIs))
 		for _, uri := range nodeURIs {
 			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
