@@ -35,7 +35,6 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
-
 	for i := 0; i < config.Workers; i++ {
 		clientURI := config.Endpoints[i%len(config.Endpoints)]
 		client, err := ethclient.Dial(clientURI)
