@@ -10,32 +10,37 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
+
+type THash interface {
+	Hash() common.Hash
+}
 
 // TxSequence provides an interface to return a channel of transactions.
 // The sequence is responsible for closing the channel when there are no further
 // transactions.
-type TxSequence[T any] interface {
+type TxSequence[T THash] interface {
 	Chan() <-chan T
 }
 
 // Worker defines the interface for issuance and confirmation of transactions.
 // The caller is responsible for calling Close to cleanup resources used by the
 // worker at the end of the simulation.
-type Worker[T any] interface {
+type Worker[T THash] interface {
 	IssueTx(ctx context.Context, tx T) error
 	ConfirmTx(ctx context.Context, tx T) error
 	Close(ctx context.Context) error
 }
 
 // Execute the work of the given agent.
-type Agent[T any] interface {
+type Agent[T THash] interface {
 	Execute(ctx context.Context) error
 }
 
 // issueNAgent issues and confirms a batch of N transactions at a time.
-type issueNAgent[T any] struct {
+type issueNAgent[T THash] struct {
 	sequence TxSequence[T]
 	worker   Worker[T]
 	n        uint64
@@ -43,7 +48,7 @@ type issueNAgent[T any] struct {
 }
 
 // NewIssueNAgent creates a new issueNAgent
-func NewIssueNAgent[T any](sequence TxSequence[T], worker Worker[T], n uint64, metrics *metrics.Metrics) Agent[T] {
+func NewIssueNAgent[T THash](sequence TxSequence[T], worker Worker[T], n uint64, metrics *metrics.Metrics) Agent[T] {
 	return &issueNAgent[T]{
 		sequence: sequence,
 		worker:   worker,
@@ -62,6 +67,7 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 	confirmedCount := 0
 	batchI := 0
 	m := a.metrics
+	txMap := make(map[common.Hash]time.Time)
 
 	// Tracks the total amount of time waiting for issuing and confirming txs
 	var (
@@ -95,11 +101,12 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 					break L
 				}
 				issuanceIndividualStart := time.Now()
+				txMap[tx.Hash()] = issuanceIndividualStart
 				if err := a.worker.IssueTx(ctx, tx); err != nil {
 					return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
 				}
-				issuanceIndividualTime := time.Since(issuanceIndividualStart)
-				m.IssuanceTxTimes.Observe(issuanceIndividualTime.Seconds())
+				issuanceIndividualDuration := time.Since(issuanceIndividualStart)
+				m.IssuanceTxTimes.Observe(issuanceIndividualDuration.Seconds())
 				txs = append(txs, tx)
 			}
 		}
@@ -115,8 +122,11 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			if err := a.worker.ConfirmTx(ctx, tx); err != nil {
 				return fmt.Errorf("failed to await transaction %d: %w", i, err)
 			}
-			confirmationIndividualTime := time.Since(confirmedIndividualStart)
-			m.ConfirmationTxTimes.Observe(confirmationIndividualTime.Seconds())
+			confirmationIndividualDuration := time.Since(confirmedIndividualStart)
+			issuanceToConfirmationIndividualDuration := time.Since(txMap[tx.Hash()])
+			m.ConfirmationTxTimes.Observe(confirmationIndividualDuration.Seconds())
+			m.IssuanceToConfirmationTxTimes.Observe(issuanceToConfirmationIndividualDuration.Seconds())
+			delete(txMap, tx.Hash())
 			confirmedCount++
 		}
 		// Get the batch's confirmation time and add it to totalConfirmedTime
