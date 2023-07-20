@@ -52,6 +52,7 @@ var (
 			},
 			SuppliedGas: SetTestGasCost,
 			ReadOnly:    false,
+			ExpectedRes: []byte{},
 		},
 	}
 )
