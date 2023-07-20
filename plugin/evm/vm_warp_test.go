@@ -1,7 +1,6 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-
 package evm
 
 import (
@@ -96,6 +95,7 @@ func TestSendWarpMessage(t *testing.T) {
 
 	require.NoError(vm.SetPreference(context.Background(), blk.ID()))
 	require.NoError(blk.Accept(context.Background()))
+	vm.blockChain.DrainAcceptorQueue()
 	rawSignatureBytes, err := vm.warpBackend.GetSignature(unsignedMessageID)
 	require.NoError(err)
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
@@ -202,7 +202,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	getWarpMsgInput, err := warp.PackGetVerifiedWarpMessage()
 	require.NoError(err)
-	signedTx1, err := types.SignTx(
+	getVerifiedWarpMessageTx, err := types.SignTx(
 		predicateutils.NewPredicateTx(
 			vm.chainConfig.ChainID,
 			0,
@@ -220,12 +220,10 @@ func TestReceiveWarpMessage(t *testing.T) {
 		testKeys[0],
 	)
 	require.NoError(err)
-	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
+	errs := vm.txPool.AddRemotesSync([]*types.Transaction{getVerifiedWarpMessageTx})
 	for i, err := range errs {
 		require.NoError(err, "failed to add tx at index %d", i)
 	}
-	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
-	<-issuer
 
 	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
 		Message: warp.WarpMessage{
@@ -240,9 +238,9 @@ func TestReceiveWarpMessage(t *testing.T) {
 	require.NoError(err)
 
 	// Assert that DoCall returns the expected output
-	hexGetWarpMsgInput := hexutil.Bytes(signedTx1.Data())
-	hexGasLimit := hexutil.Uint64(signedTx1.Gas())
-	accessList := signedTx1.AccessList()
+	hexGetWarpMsgInput := hexutil.Bytes(getVerifiedWarpMessageTx.Data())
+	hexGasLimit := hexutil.Uint64(getVerifiedWarpMessageTx.Gas())
+	accessList := getVerifiedWarpMessageTx.AccessList()
 	blockNum := new(rpc.BlockNumber)
 	*blockNum = rpc.LatestBlockNumber
 
@@ -250,7 +248,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 		context.Background(),
 		vm.eth.APIBackend,
 		ethapi.TransactionArgs{
-			To:         signedTx1.To(),
+			To:         getVerifiedWarpMessageTx.To(),
 			Input:      &hexGetWarpMsgInput,
 			AccessList: &accessList,
 			Gas:        &hexGasLimit,
@@ -268,6 +266,9 @@ func TestReceiveWarpMessage(t *testing.T) {
 	validProposerCtx := &block.Context{
 		PChainHeight: 10,
 	}
+	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
+	<-issuer
+
 	block2, err := vm.BuildBlockWithContext(context.Background(), validProposerCtx)
 	require.NoError(err)
 
@@ -298,6 +299,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	// Accept the block after performing multiple VerifyWithContext operations
 	require.NoError(block2.Accept(context.Background()))
+	vm.blockChain.DrainAcceptorQueue()
 
 	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	verifiedMessageReceipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
