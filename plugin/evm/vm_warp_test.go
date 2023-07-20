@@ -1,4 +1,6 @@
+// (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
+
 
 package evm
 
@@ -46,10 +48,6 @@ func TestSendWarpMessage(t *testing.T) {
 	defer func() {
 		require.NoError(vm.Shutdown(context.Background()))
 	}()
-
-	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	reorgSub := vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
-	defer reorgSub.Unsubscribe()
 
 	acceptedLogsChan := make(chan []*types.Log, 10)
 	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
@@ -130,10 +128,6 @@ func TestReceiveWarpMessage(t *testing.T) {
 	defer func() {
 		require.NoError(vm.Shutdown(context.Background()))
 	}()
-
-	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	reorgSub := vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
-	defer reorgSub.Unsubscribe()
 
 	acceptedLogsChan := make(chan []*types.Log, 10)
 	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
