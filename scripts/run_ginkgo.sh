@@ -16,7 +16,6 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
 # Build ginkgo
-echo "building precompile.test"
 # to install the ginkgo binary (required for test build and run)
 go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 
