@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	warpPrecompile "github.com/ava-labs/subnet-evm/x/warp"
+	"github.com/ava-labs/subnet-evm/params"
 )
 
 // Aggregator fulfills requests to aggregate signatures of a subnet's validator set for Avalanche Warp Messages.
@@ -42,7 +42,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 		a.subnetID,
 		quorumNum,
 		quorumNum,
-		warpPrecompile.QuorumDenominator,
+		params.WarpQuorumDenominator,
 		a.state,
 		unsignedMessage,
 	)

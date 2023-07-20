@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
@@ -415,16 +416,16 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 	})
 
 	tests := make(map[string]testutils.PredicateTest)
-	for _, numSigners := range []int{1, int(DefaultQuorumNumerator) - 1, int(DefaultQuorumNumerator), int(DefaultQuorumNumerator) + 1, 99, 100, 101} {
+	for _, numSigners := range []int{1, int(params.WarpDefaultQuorumNumerator) - 1, int(params.WarpQuorumDenominator), int(params.WarpDefaultQuorumNumerator) + 1, 99, 100, 101} {
 		var (
 			predicateBytes       = createPredicate(numSigners)
 			expectedPredicateErr error
 		)
-		// If the number of signers is less than the DefaultQuorumNumerator (67)
-		if numSigners < int(DefaultQuorumNumerator) {
+		// If the number of signers is less than the params.WarpDefaultQuorumNumerator (67)
+		if numSigners < int(params.WarpDefaultQuorumNumerator) {
 			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
 		}
-		if numSigners > int(QuorumDenominator) {
+		if numSigners > int(params.WarpQuorumDenominator) {
 			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
 		}
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
@@ -459,7 +460,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 	tests := make(map[string]testutils.PredicateTest)
 	nonDefaultQuorumNumerator := 50
 	// Ensure this test fails if the DefaultQuroumNumerator is changed to an unexpected value during development
-	require.NotEqual(t, nonDefaultQuorumNumerator, int(DefaultQuorumNumerator))
+	require.NotEqual(t, nonDefaultQuorumNumerator, int(params.WarpDefaultQuorumNumerator))
 	// Add cases with default quorum
 	for _, numSigners := range []int{nonDefaultQuorumNumerator, nonDefaultQuorumNumerator + 1, 99, 100, 101} {
 		var (
@@ -470,7 +471,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 		if numSigners < nonDefaultQuorumNumerator {
 			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
 		}
-		if numSigners > int(QuorumDenominator) {
+		if numSigners > int(params.WarpQuorumDenominator) {
 			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
 		}
 		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)

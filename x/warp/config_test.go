@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/stretchr/testify/require"
 )
@@ -20,13 +21,13 @@ func TestVerifyWarpconfig(t *testing.T) {
 	}{
 		{
 			name:          "quorum numerator less than minimum",
-			config:        NewConfig(big.NewInt(3), MinQuorumNumerator-1),
-			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", MinQuorumNumerator-1, MinQuorumNumerator),
+			config:        NewConfig(big.NewInt(3), params.WarpQuorumNumeratorMinimum-1),
+			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", params.WarpDefaultQuorumNumerator-1, params.WarpDefaultQuorumNumerator),
 		},
 		{
 			name:          "quorum numerator > quorum denominator",
-			config:        NewConfig(big.NewInt(3), QuorumDenominator+1),
-			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) > quorum denominator (%d)", QuorumDenominator+1, QuorumDenominator),
+			config:        NewConfig(big.NewInt(3), params.WarpQuorumDenominator+1),
+			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) > quorum denominator (%d)", params.WarpQuorumDenominator+1, params.WarpQuorumDenominator),
 		},
 		{
 			name:   "default quorum numerator",
@@ -34,11 +35,11 @@ func TestVerifyWarpconfig(t *testing.T) {
 		},
 		{
 			name:   "valid quorum numerator 1 less than denominator",
-			config: NewConfig(big.NewInt(3), QuorumDenominator-1),
+			config: NewConfig(big.NewInt(3), params.WarpQuorumDenominator-1),
 		},
 		{
 			name:   "valid quorum numerator 1 more than minimum",
-			config: NewConfig(big.NewInt(3), MinQuorumNumerator+1),
+			config: NewConfig(big.NewInt(3), params.WarpQuorumNumeratorMinimum+1),
 		},
 	}
 	for _, tt := range tests {
@@ -82,8 +83,8 @@ func TestEqualWarpConfig(t *testing.T) {
 		},
 		{
 			name:     "different quorum numerator",
-			config:   NewConfig(big.NewInt(3), MinQuorumNumerator+1),
-			other:    NewConfig(big.NewInt(3), MinQuorumNumerator+2),
+			config:   NewConfig(big.NewInt(3), params.WarpQuorumNumeratorMinimum+1),
+			other:    NewConfig(big.NewInt(3), params.WarpQuorumNumeratorMinimum+2),
 			expected: false,
 		},
 		{
@@ -94,8 +95,8 @@ func TestEqualWarpConfig(t *testing.T) {
 		},
 		{
 			name:     "same non-default config",
-			config:   NewConfig(big.NewInt(3), MinQuorumNumerator+5),
-			other:    NewConfig(big.NewInt(3), MinQuorumNumerator+5),
+			config:   NewConfig(big.NewInt(3), params.WarpQuorumNumeratorMinimum+5),
+			other:    NewConfig(big.NewInt(3), params.WarpQuorumNumeratorMinimum+5),
 			expected: true,
 		},
 	}
