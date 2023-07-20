@@ -25,7 +25,7 @@ func NewAddressedPayload(sourceAddress ids.ID, destinationAddress ids.ID, payloa
 		DestinationAddress: destinationAddress,
 		Payload:            payload,
 	}
-	return ap, ap.Initialize()
+	return ap, ap.initialize()
 }
 
 // ParseAddressedPayload converts a slice of bytes into an initialized
@@ -44,7 +44,7 @@ func ParseAddressedPayload(b []byte) (*AddressedPayload, error) {
 }
 
 // Initialize recalculates the result of Bytes().
-func (a *AddressedPayload) Initialize() error {
+func (a *AddressedPayload) initialize() error {
 	aIntf := any(a)
 	bytes, err := c.Marshal(codecVersion, &aIntf)
 	if err != nil {

@@ -98,7 +98,7 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	return packedOutput, remainingGas, nil
 }
 
-// PackGetVerifiedWarpMessage packs the include selector (first 4 func signature bytes).
+// PackGetVerifiedWarpMessage packs the calldata for the getVerifiedWarpMessage function
 // This function is mostly used for tests.
 func PackGetVerifiedWarpMessage() ([]byte, error) {
 	return WarpABI.Pack("getVerifiedWarpMessage")

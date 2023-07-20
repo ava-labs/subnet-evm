@@ -53,45 +53,6 @@ var (
 	predicateTests = make(map[string]testutils.PredicateTest)
 )
 
-type testValidator struct {
-	nodeID ids.NodeID
-	sk     *bls.SecretKey
-	vdr    *avalancheWarp.Validator
-}
-
-func (v *testValidator) Less(o *testValidator) bool {
-	return v.vdr.Less(o.vdr)
-}
-
-func newTestValidator() *testValidator {
-	sk, err := bls.NewSecretKey()
-	if err != nil {
-		panic(err)
-	}
-
-	nodeID := ids.GenerateTestNodeID()
-	pk := bls.PublicFromSecretKey(sk)
-	return &testValidator{
-		nodeID: nodeID,
-		sk:     sk,
-		vdr: &avalancheWarp.Validator{
-			PublicKey:      pk,
-			PublicKeyBytes: pk.Serialize(),
-			Weight:         3,
-			NodeIDs:        []ids.NodeID{nodeID},
-		},
-	}
-}
-
-type signatureTest struct {
-	name      string
-	stateF    func(*gomock.Controller) validators.State
-	quorumNum uint64
-	quorumDen uint64
-	msgF      func(*require.Assertions) *avalancheWarp.Message
-	err       error
-}
-
 func init() {
 	testVdrs = make([]*testValidator, 0, numTestVdrs)
 	for i := 0; i < numTestVdrs; i++ {
@@ -134,6 +95,45 @@ func init() {
 	}
 
 	initWarpPredicateTests()
+}
+
+type testValidator struct {
+	nodeID ids.NodeID
+	sk     *bls.SecretKey
+	vdr    *avalancheWarp.Validator
+}
+
+func (v *testValidator) Less(o *testValidator) bool {
+	return v.vdr.Less(o.vdr)
+}
+
+func newTestValidator() *testValidator {
+	sk, err := bls.NewSecretKey()
+	if err != nil {
+		panic(err)
+	}
+
+	nodeID := ids.GenerateTestNodeID()
+	pk := bls.PublicFromSecretKey(sk)
+	return &testValidator{
+		nodeID: nodeID,
+		sk:     sk,
+		vdr: &avalancheWarp.Validator{
+			PublicKey:      pk,
+			PublicKeyBytes: pk.Serialize(),
+			Weight:         3,
+			NodeIDs:        []ids.NodeID{nodeID},
+		},
+	}
+}
+
+type signatureTest struct {
+	name      string
+	stateF    func(*gomock.Controller) validators.State
+	quorumNum uint64
+	quorumDen uint64
+	msgF      func(*require.Assertions) *avalancheWarp.Message
+	err       error
 }
 
 // createWarpMessage constructs a signed warp message using the global variable [unsignedMsg]
@@ -244,7 +244,7 @@ func TestWarpNilProposerCtx(t *testing.T) {
 		StorageSlots: predicateBytes,
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:       nil,
-		PredicateErr: errNoProposerPredicate,
+		PredicateErr: errNoProposerCtxPredicate,
 	}
 
 	test.Run(t)
@@ -398,7 +398,7 @@ func TestInvalidBitSet(t *testing.T) {
 		},
 		StorageSlots: predicateBytes,
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:       errCannotNumSigners,
+		GasErr:       errCannotGetNumSigners,
 		PredicateErr: nil, // Won't be reached
 	}
 

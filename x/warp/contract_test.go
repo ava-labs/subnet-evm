@@ -119,8 +119,7 @@ func TestSendWarpMessage(t *testing.T) {
 		"send warp message invalid input": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
-				mutatedSendWarpMessageInput := common.CopyBytes(sendWarpMessageInput)
-				return mutatedSendWarpMessageInput[:4] // Include only the function selector, so that the input is invalid
+				return sendWarpMessageInput[:4] // Include only the function selector, so that the input is invalid
 			},
 			SuppliedGas: SendWarpMessageGasCost,
 			ReadOnly:    false,

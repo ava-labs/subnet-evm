@@ -52,7 +52,7 @@ func toWebsocketURI(uri string, blockchainID string) string {
 
 // BeforeSuite starts the default network and adds 10 new nodes as validators with BLS keys
 // registered on the P-Chain.
-// Adds two disjoin sets of 5 of the new validator nodes to validate two new subnets with a
+// Adds two disjoint sets of 5 of the new validator nodes to validate two new subnets with a
 // a single Subnet-EVM blockchain.
 var _ = ginkgo.BeforeSuite(func() {
 	ctx := context.Background()

@@ -28,11 +28,11 @@ var (
 
 var (
 	errOverflowSignersGasCost  = errors.New("overflow calculating warp signers gas cost")
-	errNoProposerPredicate     = errors.New("cannot verify warp predicate without proposer context")
+	errNoProposerCtxPredicate  = errors.New("cannot verify warp predicate without proposer context")
 	errInvalidPredicateBytes   = errors.New("cannot unpack predicate bytes")
 	errInvalidWarpMsg          = errors.New("cannot unpack warp message")
 	errInvalidAddressedPayload = errors.New("cannot unpack addressed payload")
-	errCannotNumSigners        = errors.New("cannot fetch num signers from warp message")
+	errCannotGetNumSigners     = errors.New("cannot fetch num signers from warp message")
 )
 
 // Config implements the precompileconfig.Config interface and
@@ -160,7 +160,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 
 	numSigners, err := warpMessage.Signature.NumSigners()
 	if err != nil {
-		return 0, fmt.Errorf("%w: %s", errCannotNumSigners, err)
+		return 0, fmt.Errorf("%w: %s", errCannotGetNumSigners, err)
 	}
 	signerGas, overflow := math.SafeMul(uint64(numSigners), GasCostPerWarpSigner)
 	if overflow {
@@ -196,7 +196,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 // VerifyPredicate verifies the predicate represents a valid signed and properly formatted Avalanche Warp Message.
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.ProposerPredicateContext, predicateBytes []byte) error {
 	if predicateContext.ProposerVMBlockCtx == nil {
-		return errNoProposerPredicate
+		return errNoProposerCtxPredicate
 	}
 	// Note: PredicateGas should be called before VerifyPredicate, so we should never reach an error case here.
 	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
