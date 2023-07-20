@@ -171,6 +171,5 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		return err
 	}
 	log.Info("Tx agents completed successfully.")
-
 	return nil
 }
