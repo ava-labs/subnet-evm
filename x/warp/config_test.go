@@ -22,7 +22,7 @@ func TestVerifyWarpconfig(t *testing.T) {
 		{
 			name:          "quorum numerator less than minimum",
 			config:        NewConfig(big.NewInt(3), params.WarpQuorumNumeratorMinimum-1),
-			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", params.WarpDefaultQuorumNumerator-1, params.WarpDefaultQuorumNumerator),
+			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", params.WarpQuorumNumeratorMinimum-1, params.WarpQuorumNumeratorMinimum),
 		},
 		{
 			name:          "quorum numerator > quorum denominator",

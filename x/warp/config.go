@@ -79,7 +79,7 @@ func (c *Config) Verify() error {
 	}
 	// If a non-default quorum numerator is specified and it is less than the minimum, return an error
 	if c.QuorumNumerator != 0 && c.QuorumNumerator < params.WarpQuorumNumeratorMinimum {
-		return fmt.Errorf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", c.QuorumNumerator, params.WarpDefaultQuorumNumerator)
+		return fmt.Errorf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", c.QuorumNumerator, params.WarpQuorumNumeratorMinimum)
 	}
 	return nil
 }
