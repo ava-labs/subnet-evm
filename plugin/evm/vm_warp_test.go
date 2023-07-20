@@ -1,4 +1,3 @@
-// (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
 package evm
@@ -34,23 +33,18 @@ import (
 )
 
 func TestSendWarpMessage(t *testing.T) {
+	require := require.New(t)
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		warp.ConfigKey: warp.NewDefaultConfig(big.NewInt(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
 
 	defer func() {
-		if err := vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(vm.Shutdown(context.Background()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -68,90 +62,73 @@ func TestSendWarpMessage(t *testing.T) {
 		DestinationAddress: testEthAddrs[1].Hash(),
 		Payload:            payload,
 	})
-	require.NoError(t, err)
+	require.NoError(err)
 
 	// Submit a transaction to trigger sending a warp message
 	tx0 := types.NewTransaction(uint64(0), warp.ContractAddress, big.NewInt(1), 100_000, big.NewInt(testMinGasPrice), warpSendMessageInput)
 	signedTx0, err := types.SignTx(tx0, types.LatestSignerForChainID(vm.chainConfig.ChainID), testKeys[0])
-	require.NoError(t, err)
+	require.NoError(err)
 
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
+	require.NoError(errs[0])
 
 	<-issuer
 	blk, err := vm.BuildBlock(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 
-	if err := blk.Verify(context.Background()); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(blk.Verify(context.Background()))
 
-	if status := blk.Status(); status != choices.Processing {
-		t.Fatalf("Expected status of built block to be %s, but found %s", choices.Processing, status)
-	}
+	require.Equal(choices.Processing, blk.Status())
 
 	// Verify that the constructed block contains the expected log with an unsigned warp message in the log data
 	ethBlock1 := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	require.Len(t, ethBlock1.Transactions(), 1)
+	require.Len(ethBlock1.Transactions(), 1)
 	receipts := rawdb.ReadReceipts(vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), vm.chainConfig)
-	require.NotNil(t, receipts)
-	require.Len(t, receipts, 1)
+	require.Len(receipts, 1)
 
+	require.Len(receipts[0].Logs, 1)
 	logData := receipts[0].Logs[0].Data
 	unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(logData)
-	require.NoError(t, err)
+	require.NoError(err)
 	unsignedMessageID := unsignedMessage.ID()
 
 	// Verify the signature cannot be fetched before the block is accepted
 	_, err = vm.warpBackend.GetSignature(unsignedMessageID)
-	require.Error(t, err)
+	require.Error(err)
 
-	if err := vm.SetPreference(context.Background(), blk.ID()); err != nil {
-		t.Fatal(err)
-	}
-	if err := blk.Accept(context.Background()); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(vm.SetPreference(context.Background(), blk.ID()))
+	require.NoError(blk.Accept(context.Background()))
 	rawSignatureBytes, err := vm.warpBackend.GetSignature(unsignedMessageID)
-	require.NoError(t, err)
+	require.NoError(err)
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
-	require.NoError(t, err)
+	require.NoError(err)
 
 	select {
 	case acceptedLogs := <-acceptedLogsChan:
-		require.Len(t, acceptedLogs, 1, "unexpected length of accepted logs")
-		require.Equal(t, acceptedLogs[0], receipts[0].Logs[0])
+		require.Len(acceptedLogs, 1, "unexpected length of accepted logs")
+		require.Equal(acceptedLogs[0], receipts[0].Logs[0])
 	case <-time.After(time.Second):
-		t.Fatal("Failed to read accepted logs from subscription")
+		require.Fail("Failed to read accepted logs from subscription")
 	}
 	logsSub.Unsubscribe()
 
 	// Verify the produced signature is valid
-	require.True(t, bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
+	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
 }
 
 func TestReceiveWarpMessage(t *testing.T) {
+	require := require.New(t)
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		warp.ConfigKey: warp.NewDefaultConfig(big.NewInt(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(err)
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
 
 	defer func() {
-		if err := vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(vm.Shutdown(context.Background()))
 	}()
 
 	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
@@ -169,28 +146,28 @@ func TestReceiveWarpMessage(t *testing.T) {
 		ids.ID(testEthAddrs[1].Hash()),
 		payload,
 	)
-	require.NoError(t, err)
+	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
 		vm.ctx.ChainID,
 		vm.ctx.CChainID,
 		addressedPayload.Bytes(),
 	)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	nodeID1 := ids.GenerateTestNodeID()
 	blsSecretKey1, err := bls.NewSecretKey()
-	require.NoError(t, err)
+	require.NoError(err)
 	blsPublicKey1 := bls.PublicFromSecretKey(blsSecretKey1)
 	blsSignature1 := bls.Sign(blsSecretKey1, unsignedMessage.Bytes())
 
 	nodeID2 := ids.GenerateTestNodeID()
 	blsSecretKey2, err := bls.NewSecretKey()
-	require.NoError(t, err)
+	require.NoError(err)
 	blsPublicKey2 := bls.PublicFromSecretKey(blsSecretKey2)
 	blsSignature2 := bls.Sign(blsSecretKey2, unsignedMessage.Bytes())
 
 	blsAggregatedSignature, err := bls.AggregateSignatures([]*bls.Signature{blsSignature1, blsSignature2})
-	require.NoError(t, err)
+	require.NoError(err)
 
 	vm.ctx.ValidatorState = &validators.TestState{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
@@ -227,10 +204,10 @@ func TestReceiveWarpMessage(t *testing.T) {
 		unsignedMessage,
 		warpSignature,
 	)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	getWarpMsgInput, err := warp.PackGetVerifiedWarpMessage()
-	require.NoError(t, err)
+	require.NoError(err)
 	signedTx1, err := types.SignTx(
 		predicateutils.NewPredicateTx(
 			vm.chainConfig.ChainID,
@@ -248,12 +225,10 @@ func TestReceiveWarpMessage(t *testing.T) {
 		types.LatestSignerForChainID(vm.chainConfig.ChainID),
 		testKeys[0],
 	)
-	require.NoError(t, err)
+	require.NoError(err)
 	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx1})
 	for i, err := range errs {
-		if err != nil {
-			t.Fatalf("Failed to add tx at index %d: %s", i, err)
-		}
+		require.NoError(err, "failed to add tx at index %d", i)
 	}
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
 	<-issuer
@@ -268,7 +243,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 		},
 		Exists: true,
 	})
-	require.NoError(t, err)
+	require.NoError(err)
 
 	// Assert that DoCall returns the expected output
 	hexGetWarpMsgInput := hexutil.Bytes(signedTx1.Data())
@@ -291,48 +266,48 @@ func TestReceiveWarpMessage(t *testing.T) {
 		time.Second,
 		10_000_000,
 	)
-	require.NoError(t, err)
-	require.NoError(t, executionRes.Err)
-	require.Equal(t, expectedOutput, executionRes.ReturnData)
+	require.NoError(err)
+	require.NoError(executionRes.Err)
+	require.Equal(expectedOutput, executionRes.ReturnData)
 
 	// Build, verify, and accept block with valid proposer context.
 	validProposerCtx := &block.Context{
 		PChainHeight: 10,
 	}
 	block2, err := vm.BuildBlockWithContext(context.Background(), validProposerCtx)
-	require.NoError(t, err)
+	require.NoError(err)
 
 	block2VerifyWithCtx, ok := block2.(block.WithVerifyContext)
-	require.True(t, ok)
+	require.True(ok)
 	shouldVerifyWithCtx, err := block2VerifyWithCtx.ShouldVerifyWithContext(context.Background())
-	require.NoError(t, err)
-	require.True(t, shouldVerifyWithCtx)
-	require.NoError(t, block2VerifyWithCtx.VerifyWithContext(context.Background(), validProposerCtx))
-	require.Equal(t, choices.Processing, block2.Status())
-	require.NoError(t, vm.SetPreference(context.Background(), block2.ID()))
+	require.NoError(err)
+	require.True(shouldVerifyWithCtx)
+	require.NoError(block2VerifyWithCtx.VerifyWithContext(context.Background(), validProposerCtx))
+	require.Equal(choices.Processing, block2.Status())
+	require.NoError(vm.SetPreference(context.Background(), block2.ID()))
 
 	// Verify the block with another valid context
-	require.NoError(t, block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
+	require.NoError(block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
 		PChainHeight: 11,
 	}))
-	require.Equal(t, choices.Processing, block2.Status())
+	require.Equal(choices.Processing, block2.Status())
 
 	// Verify the block with a different context and modified ValidatorState so that it should fail verification
 	testErr := errors.New("test error")
 	vm.ctx.ValidatorState.(*validators.TestState).GetValidatorSetF = func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 		return nil, testErr
 	}
-	require.ErrorIs(t, block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
+	require.ErrorIs(block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
 		PChainHeight: 9,
 	}), testErr)
-	require.Equal(t, choices.Processing, block2.Status())
+	require.Equal(choices.Processing, block2.Status())
 
 	// Accept the block after performing multiple VerifyWithContext operations
-	require.NoError(t, block2.Accept(context.Background()))
+	require.NoError(block2.Accept(context.Background()))
 
 	ethBlock := block2.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	verifiedMessageReceipts := vm.blockChain.GetReceiptsByHash(ethBlock.Hash())
-	require.Len(t, verifiedMessageReceipts, 1)
+	require.Len(verifiedMessageReceipts, 1)
 	verifiedMessageTxReceipt := verifiedMessageReceipts[0]
-	require.Equal(t, types.ReceiptStatusSuccessful, verifiedMessageTxReceipt.Status)
+	require.Equal(types.ReceiptStatusSuccessful, verifiedMessageTxReceipt.Status)
 }
