@@ -1,0 +1,1 @@
+[{"inputs":[],"name":"getTest","outputs":[{"internalType":"uint8","name":"test1","type":"uint8"},{"internalType":"uint16","name":"test2","type":"uint16"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint8","name":"test1","type":"uint8"}],"name":"setTest","outputs":[],"stateMutability":"nonpayable","type":"function"}]
