@@ -164,7 +164,6 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			log.Error("Metrics server error: %v", err)
 		}
-
 	}(ctx)
 
 	log.Info("Waiting for tx agents...")

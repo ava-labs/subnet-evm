@@ -27,7 +27,6 @@ const (
 	VersionKey        = "version"
 	TimeoutKey        = "timeout"
 	BatchSizeKey      = "batch-size"
-	ExposeMetricsKey  = "expose-metrics"
 )
 
 var (
@@ -37,28 +36,26 @@ var (
 )
 
 type Config struct {
-	Endpoints     []string      `json:"endpoints"`
-	MaxFeeCap     int64         `json:"max-fee-cap"`
-	MaxTipCap     int64         `json:"max-tip-cap"`
-	Workers       int           `json:"workers"`
-	TxsPerWorker  uint64        `json:"txs-per-worker"`
-	KeyDir        string        `json:"key-dir"`
-	Timeout       time.Duration `json:"timeout"`
-	BatchSize     uint64        `json:"batch-size"`
-	ExposeMetrics bool          `json:"expose-metrics"`
+	Endpoints    []string      `json:"endpoints"`
+	MaxFeeCap    int64         `json:"max-fee-cap"`
+	MaxTipCap    int64         `json:"max-tip-cap"`
+	Workers      int           `json:"workers"`
+	TxsPerWorker uint64        `json:"txs-per-worker"`
+	KeyDir       string        `json:"key-dir"`
+	Timeout      time.Duration `json:"timeout"`
+	BatchSize    uint64        `json:"batch-size"`
 }
 
 func BuildConfig(v *viper.Viper) (Config, error) {
 	c := Config{
-		Endpoints:     v.GetStringSlice(EndpointsKey),
-		MaxFeeCap:     v.GetInt64(MaxFeeCapKey),
-		MaxTipCap:     v.GetInt64(MaxTipCapKey),
-		Workers:       v.GetInt(WorkersKey),
-		TxsPerWorker:  v.GetUint64(TxsPerWorkerKey),
-		KeyDir:        v.GetString(KeyDirKey),
-		Timeout:       v.GetDuration(TimeoutKey),
-		BatchSize:     v.GetUint64(BatchSizeKey),
-		ExposeMetrics: v.GetBool(ExposeMetricsKey),
+		Endpoints:    v.GetStringSlice(EndpointsKey),
+		MaxFeeCap:    v.GetInt64(MaxFeeCapKey),
+		MaxTipCap:    v.GetInt64(MaxTipCapKey),
+		Workers:      v.GetInt(WorkersKey),
+		TxsPerWorker: v.GetUint64(TxsPerWorkerKey),
+		KeyDir:       v.GetString(KeyDirKey),
+		Timeout:      v.GetDuration(TimeoutKey),
+		BatchSize:    v.GetUint64(BatchSizeKey),
 	}
 	if len(c.Endpoints) == 0 {
 		return c, ErrNoEndpoints
@@ -121,5 +118,4 @@ func addSimulatorFlags(fs *pflag.FlagSet) {
 	fs.Duration(TimeoutKey, 5*time.Minute, "Specify the timeout for the simulator to complete (0 indicates no timeout)")
 	fs.String(LogLevelKey, "info", "Specify the log level to use in the simulator")
 	fs.Uint64(BatchSizeKey, 100, "Specify the batchsize for the worker to issue and confirm txs")
-	fs.Bool(ExposeMetricsKey, false, "Specify if we want to expose the metrics from the load test to a prometheus server")
 }
