@@ -6,9 +6,13 @@ package load
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
@@ -23,6 +27,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
+)
+
+const (
+	MetricsPort = ":8082" // Port for the Prometheus Metrics Server
 )
 
 // ExecuteLoader creates txSequences from [config] and has txAgents execute the specified simulation.
@@ -133,17 +141,37 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		})
 	}
 
+	go func(ctx context.Context) {
+		// Start a prometheus server to expose individual tx metrics
+		server := &http.Server{
+			Addr: MetricsPort,
+		}
+
+		go func() {
+			defer func() {
+				if err := server.Shutdown(ctx); err != nil {
+					log.Error("Metrics server error: %v", err)
+				}
+				log.Info("Received a SIGINT signal: Gracefully shutting down metrics server")
+			}()
+			sigChan := make(chan os.Signal, 1)
+			signal.Notify(sigChan, syscall.SIGINT)
+			<-sigChan
+		}()
+
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+		log.Info("Metrics Server: localhost:8082/metrics")
+		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			log.Error("Metrics server error: %v", err)
+		}
+
+	}(ctx)
+
 	log.Info("Waiting for tx agents...")
 	if err := eg.Wait(); err != nil {
 		return err
 	}
 	log.Info("Tx agents completed successfully.")
 
-	if config.ExposeMetrics {
-		// Start a prometheus server to expose individual tx metrics
-		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
-		log.Info("localhost:8082/metrics")
-		http.ListenAndServe(":8082", nil)
-	}
 	return nil
 }
