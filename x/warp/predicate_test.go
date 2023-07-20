@@ -416,7 +416,7 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 	})
 
 	tests := make(map[string]testutils.PredicateTest)
-	for _, numSigners := range []int{1, int(params.WarpDefaultQuorumNumerator) - 1, int(params.WarpQuorumDenominator), int(params.WarpDefaultQuorumNumerator) + 1, 99, 100, 101} {
+	for _, numSigners := range []int{1, int(params.WarpDefaultQuorumNumerator) - 1, int(params.WarpDefaultQuorumNumerator), int(params.WarpDefaultQuorumNumerator) + 1, 99, 100, 101} {
 		var (
 			predicateBytes       = createPredicate(numSigners)
 			expectedPredicateErr error
