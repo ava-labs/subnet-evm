@@ -332,16 +332,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		newHead := <-newHeads
 		log.Info("Transaction triggered new block", "blockHash", newHead.Hash())
-
-		nonce++
-		// Try building another block to see if that one ends up as a PostForkBlock
-		triggerTx2, err := types.SignTx(types.NewTransaction(nonce, fundedAddress, common.Big1, 21_000, big.NewInt(225*params.GWei), nil), txSigner, fundedKey)
-		gomega.Expect(err).Should(gomega.BeNil())
-
-		err = chainBWSClient.SendTransaction(ctx, triggerTx2)
-		gomega.Expect(err).Should(gomega.BeNil())
-		newHead = <-newHeads
-		log.Info("Transaction2 triggered new block", "blockHash", newHead.Hash())
 		nonce++
 
 		packedInput, err := warp.PackGetVerifiedWarpMessage()
