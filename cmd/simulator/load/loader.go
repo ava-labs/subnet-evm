@@ -160,7 +160,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		}()
 
 		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
-		log.Info("Metrics Server: localhost:8082/metrics")
+		log.Info(fmt.Sprintf("Metrics Server: localhost%s/metrics", MetricsPort))
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			log.Error("Metrics server error: %v", err)
 		}
