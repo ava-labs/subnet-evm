@@ -84,6 +84,13 @@ func TestSendWarpMessage(t *testing.T) {
 	require.Len(receipts, 1)
 
 	require.Len(receipts[0].Logs, 1)
+	expectedTopics := []common.Hash{
+		warp.WarpABI.Events["SendWarpMessage"].ID,
+		common.Hash(vm.ctx.CChainID),
+		testEthAddrs[1].Hash(),
+		testEthAddrs[0].Hash(),
+	}
+	require.Equal(expectedTopics, receipts[0].Logs[0].Topics)
 	logData := receipts[0].Logs[0].Data
 	unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(logData)
 	require.NoError(err)
