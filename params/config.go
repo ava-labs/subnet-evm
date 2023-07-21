@@ -427,8 +427,12 @@ func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64, time u
 
 // Verify verifies chain config and returns error
 func (c *ChainConfig) Verify() error {
-	if err := c.FeeConfig.Verify(); err != nil {
-		return err
+	if c.FeeConfig != commontype.EmptyFeeConfig {
+		// FeeConfig will always be set in vm.Initialize if it was empty.
+		// However in tests, we may not call vm.Initialize.
+		if err := c.FeeConfig.Verify(); err != nil {
+			return err
+		}
 	}
 
 	// Verify the precompile upgrades are internally consistent given the existing chainConfig.

@@ -193,10 +193,10 @@ func SetupGenesisBlock(
 				genesis.GasLimit,
 			)
 		}
-		// Verify config
-		if err := genesis.Config.Verify(); err != nil {
-			return nil, common.Hash{}, err
-		}
+	}
+	// Verify config
+	if err := genesis.Config.Verify(); err != nil {
+		return nil, common.Hash{}, err
 	}
 
 	// Just commit the new block if there is no stored genesis block.
