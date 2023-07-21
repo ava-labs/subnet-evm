@@ -156,22 +156,6 @@ func newConstantinopleInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// newSubnetEVMInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg, subnet-evm instructions.
-func newSubnetEVMInstructionSet() JumpTable {
-	instructionSet := newIstanbulInstructionSet()
-	enable2929(&instructionSet)
-	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
-	return validate(instructionSet)
-}
-
-func newDUpgradeInstructionSet() JumpTable {
-	instructionSet := newSubnetEVMInstructionSet()
-	enable3855(&instructionSet) // PUSH0 instruction
-	enable3860(&instructionSet) // Limit and meter initcode
-	return validate(instructionSet)
-}
-
 // newByzantiumInstructionSet returns the frontier, homestead and
 // byzantium instructions.
 func newByzantiumInstructionSet() JumpTable {
