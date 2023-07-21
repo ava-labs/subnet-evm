@@ -69,22 +69,6 @@ var (
 // JumpTable contains the EVM opcodes supported at a given fork.
 type JumpTable [256]*operation
 
-// newSubnetEVMInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg, subnet-evm instructions.
-func newSubnetEVMInstructionSet() JumpTable {
-	instructionSet := newIstanbulInstructionSet()
-	enable2929(&instructionSet)
-	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
-	return validate(instructionSet)
-}
-
-func newDUpgradeInstructionSet() JumpTable {
-	instructionSet := newSubnetEVMInstructionSet()
-	enable3855(&instructionSet) // PUSH0 instruction
-	enable3860(&instructionSet) // Limit and meter initcode
-	return validate(instructionSet)
-}
-
 func validate(jt JumpTable) JumpTable {
 	for i, op := range jt {
 		if op == nil {
@@ -151,6 +135,22 @@ func newConstantinopleInstructionSet() JumpTable {
 		maxStack:    maxStack(4, 1),
 		memorySize:  memoryCreate2,
 	}
+	return validate(instructionSet)
+}
+
+// newSubnetEVMInstructionSet returns the frontier, homestead, byzantium,
+// contantinople, istanbul, petersburg, subnet-evm instructions.
+func newSubnetEVMInstructionSet() JumpTable {
+	instructionSet := newIstanbulInstructionSet()
+	enable2929(&instructionSet)
+	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
+	return validate(instructionSet)
+}
+
+func newDUpgradeInstructionSet() JumpTable {
+	instructionSet := newSubnetEVMInstructionSet()
+	enable3855(&instructionSet) // PUSH0 instruction
+	enable3860(&instructionSet) // Limit and meter initcode
 	return validate(instructionSet)
 }
 
