@@ -122,7 +122,6 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	// Ignore input since there are no arguments
 	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	// If there is no such value, return false to the caller.
-	// Note: decoding errors will return an error instead.
 	if !exists {
 		packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 			Exists: false,
@@ -140,6 +139,8 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
 		return nil, 0, err
 	}
+	// Note: since the predicate is verified in advance of execution, the precompile should not
+	// hit an error during execution.
 	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)

@@ -43,7 +43,7 @@ func ParseAddressedPayload(b []byte) (*AddressedPayload, error) {
 	return payload, nil
 }
 
-// Initialize recalculates the result of Bytes().
+// initialize recalculates the result of Bytes().
 func (a *AddressedPayload) initialize() error {
 	aIntf := any(a)
 	bytes, err := c.Marshal(codecVersion, &aIntf)

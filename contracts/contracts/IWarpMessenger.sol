@@ -24,8 +24,8 @@ interface WarpMessenger {
     // sendWarpMessage emits a request for the subnet to send a warp message from [msg.sender]
     // with the specified parameters.
     // This emits a SendWarpMessage log from the precompile. When the corresponding block is accepted
-    // the Accept hook of the Warp precompile is invoked with any logs coming from the Warp
-    // precompile address (assuming they were not reverted).
+    // the Accept hook of the Warp precompile is invoked with all accepted logs emitted by the Warp
+    // precompile.
     // Each validator then adds the UnsignedWarpMessage encoded in the log to the set of messages
     // it is willing to sign for an off-chain relayer to aggregate Warp signatures.
     function sendWarpMessage(
