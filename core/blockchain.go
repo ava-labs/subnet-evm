@@ -310,7 +310,6 @@ func NewBlockChain(
 	if cacheConfig == nil {
 		return nil, errCacheConfigNotSpecified
 	}
-
 	// Open trie database with provided config
 	triedb := trie.NewDatabaseWithConfig(db, &trie.Config{
 		Cache:       cacheConfig.TrieCleanLimit,

@@ -114,6 +114,28 @@ var (
 		UpgradeConfig:      UpgradeConfig{},
 	}
 
+	TestSubnetEVMConfig = &ChainConfig{
+		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
+		ChainID:             big.NewInt(1),
+		FeeConfig:           DefaultFeeConfig,
+		AllowFeeRecipients:  false,
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP150Hash:          common.Hash{},
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		MuirGlacierBlock:    big.NewInt(0),
+		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(0),
+		},
+		GenesisPrecompiles: Precompiles{},
+		UpgradeConfig:      UpgradeConfig{},
+	}
+
 	TestPreSubnetEVMConfig = &ChainConfig{
 		AvalancheContext:         AvalancheContext{snow.DefaultContextTest()},
 		ChainID:                  big.NewInt(1),
@@ -132,29 +154,6 @@ var (
 		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{},
 		GenesisPrecompiles:       Precompiles{},
 		UpgradeConfig:            UpgradeConfig{},
-	}
-
-	SimulatedTestChainConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
-		ChainID:             big.NewInt(1337),
-		FeeConfig:           DefaultFeeConfig,
-		AllowFeeRecipients:  false,
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.Hash{},
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DUpgradeTimestamp:  utils.NewUint64(0),
-		},
-		GenesisPrecompiles: Precompiles{},
-		UpgradeConfig:      UpgradeConfig{},
 	}
 
 	TestRules = TestChainConfig.AvalancheRules(new(big.Int), 0)
@@ -264,48 +263,63 @@ func (c ChainConfig) MarshalJSON() ([]byte, error) {
 
 // Description returns a human-readable description of ChainConfig.
 func (c *ChainConfig) Description() string {
-	// convert nested data structures to json
-	feeBytes, err := json.Marshal(c.FeeConfig)
-	if err != nil {
-		feeBytes = []byte("cannot marshal FeeConfig")
+	var banner string
+
+	banner += fmt.Sprintf("Chain ID:  %v\n", c.ChainID)
+	banner += "Consensus: Dummy Consensus Engine\n\n"
+
+	// Create a list of forks with a short description of them. Forks that only
+	// makes sense for mainnet should be optional at printing to avoid bloating
+	// the output for testnets and private networks.
+	banner += "Hard Forks:\n"
+	banner += fmt.Sprintf(" - Homestead:                   #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/homestead.md)\n", c.HomesteadBlock)
+	banner += fmt.Sprintf(" - Tangerine Whistle (EIP 150): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/tangerine-whistle.md)\n", c.EIP150Block)
+	banner += fmt.Sprintf(" - Spurious Dragon/1 (EIP 155): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/spurious-dragon.md)\n", c.EIP155Block)
+	banner += fmt.Sprintf(" - Spurious Dragon/2 (EIP 158): #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/spurious-dragon.md)\n", c.EIP155Block)
+	banner += fmt.Sprintf(" - Byzantium:                   #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/byzantium.md)\n", c.ByzantiumBlock)
+	banner += fmt.Sprintf(" - Constantinople:              #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/constantinople.md)\n", c.ConstantinopleBlock)
+	banner += fmt.Sprintf(" - Petersburg:                  #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/petersburg.md)\n", c.PetersburgBlock)
+	banner += fmt.Sprintf(" - Istanbul:                    #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/istanbul.md)\n", c.IstanbulBlock)
+	if c.MuirGlacierBlock != nil {
+		banner += fmt.Sprintf(" - Muir Glacier:                #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/muir-glacier.md)\n", c.MuirGlacierBlock)
 	}
-	networkUpgradesBytes, err := json.Marshal(c.MandatoryNetworkUpgrades)
-	if err != nil {
-		networkUpgradesBytes = []byte("cannot marshal MandatoryNetworkUpgrades")
-	}
+	banner += "Mandatory Upgrades:\n"
+	banner += fmt.Sprintf(" - SubnetEVM Timestamp:             #%-8d (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)\n", c.SubnetEVMTimestamp)
+	banner += fmt.Sprintf(" - DUpgrade Timestamp:              #%-8d (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", c.DUpgradeTimestamp)
+	banner += "\n"
+
+	// Add Subnet-EVM custom fields
 	optionalNetworkUpgradeBytes, err := json.Marshal(c.OptionalNetworkUpgrades)
 	if err != nil {
 		optionalNetworkUpgradeBytes = []byte("cannot marshal OptionalNetworkUpgrades")
 	}
+	banner += fmt.Sprintf("Optional Network Upgrades: %s", string(optionalNetworkUpgradeBytes))
+	banner += "\n"
+
 	precompileUpgradeBytes, err := json.Marshal(c.GenesisPrecompiles)
 	if err != nil {
 		precompileUpgradeBytes = []byte("cannot marshal PrecompileUpgrade")
 	}
+	banner += fmt.Sprintf("Precompile Upgrades: %s", string(precompileUpgradeBytes))
+	banner += "\n"
+
 	upgradeConfigBytes, err := json.Marshal(c.UpgradeConfig)
 	if err != nil {
 		upgradeConfigBytes = []byte("cannot marshal UpgradeConfig")
 	}
+	banner += fmt.Sprintf("Upgrade Config: %s", string(upgradeConfigBytes))
+	banner += "\n"
 
-	return fmt.Sprintf("{ChainID: %v Homestead: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Subnet EVM: %v, DUpgrade: %v, FeeConfig: %v, AllowFeeRecipients: %v, MandatoryNetworkUpgrades: %v, OptionalNetworkUprades: %v, PrecompileUpgrade: %v, UpgradeConfig: %v, Engine: Dummy Consensus Engine}",
-		c.ChainID,
-		c.HomesteadBlock,
-		c.EIP150Block,
-		c.EIP155Block,
-		c.EIP158Block,
-		c.ByzantiumBlock,
-		c.ConstantinopleBlock,
-		c.PetersburgBlock,
-		c.IstanbulBlock,
-		c.MuirGlacierBlock,
-		c.SubnetEVMTimestamp,
-		c.DUpgradeTimestamp,
-		string(feeBytes),
-		c.AllowFeeRecipients,
-		string(networkUpgradesBytes),
-		string(optionalNetworkUpgradeBytes),
-		string(precompileUpgradeBytes),
-		string(upgradeConfigBytes),
-	)
+	feeBytes, err := json.Marshal(c.FeeConfig)
+	if err != nil {
+		feeBytes = []byte("cannot marshal FeeConfig")
+	}
+	banner += fmt.Sprintf("Fee Config: %s", string(feeBytes))
+	banner += "\n"
+
+	banner += fmt.Sprintf("Allow Fee Recipients: %v", c.AllowFeeRecipients)
+	banner += "\n"
+	return banner
 }
 
 // IsHomestead returns whether num is either equal to the homestead block or greater.
@@ -355,12 +369,14 @@ func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 	return utils.IsBlockForked(c.IstanbulBlock, num)
 }
 
-// IsSubnetEVM returns whether [time] is either equal to the SubnetEVM fork block timestamp or greater.
+// IsSubnetEVM returns whether [time] represents a block
+// with a timestamp after the SubnetEVM upgrade time.
 func (c *ChainConfig) IsSubnetEVM(time uint64) bool {
 	return utils.IsTimestampForked(c.SubnetEVMTimestamp, time)
 }
 
-// IsDUpgrade returns whether [time] is either equal to the DUpgrade fork block timestamp or greater.
+// IsDUpgrade returns whether [time] represents a block
+// with a timestamp after the DUpgrade upgrade time.
 func (c *ChainConfig) IsDUpgrade(time uint64) bool {
 	return utils.IsTimestampForked(c.DUpgradeTimestamp, time)
 }
@@ -378,7 +394,7 @@ func (r *Rules) PredicateExists(addr common.Address) bool {
 	return proposerPredicateExists
 }
 
-// IsPrecompileEnabled returns whether precompile with [address] is enabled at [blockTimestamp].
+// IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
 func (c *ChainConfig) IsPrecompileEnabled(address common.Address, timestamp uint64) bool {
 	config := c.getActivePrecompileConfig(address, timestamp)
 	return config != nil && !config.IsDisabled()
@@ -520,7 +536,7 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, height *big.Int, time
 	if isForkBlockIncompatible(c.EIP158Block, newcfg.EIP158Block, height) {
 		return newBlockCompatError("EIP158 fork block", c.EIP158Block, newcfg.EIP158Block)
 	}
-	if c.IsEIP158(height) && !configBlockEqual(c.ChainID, newcfg.ChainID) {
+	if c.IsEIP158(height) && !utils.BigNumEqual(c.ChainID, newcfg.ChainID) {
 		return newBlockCompatError("EIP158 chain ID", c.EIP158Block, newcfg.EIP158Block)
 	}
 	if isForkBlockIncompatible(c.ByzantiumBlock, newcfg.ByzantiumBlock, height) {

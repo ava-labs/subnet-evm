@@ -143,9 +143,8 @@ func TestTrieCleanJournal(t *testing.T) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -639,9 +638,8 @@ func TestTransactionIndices(t *testing.T) {
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
 		funds   = big.NewInt(10000000000000)
 		gspec   = &Genesis{
-			Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-			Alloc:    GenesisAlloc{addr1: {Balance: funds}},
-			GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+			Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+			Alloc:  GenesisAlloc{addr1: {Balance: funds}},
 		}
 		signer = types.LatestSigner(gspec.Config)
 	)
@@ -1077,8 +1075,7 @@ func TestEIP3651(t *testing.T) {
 		addr2   = crypto.PubkeyToAddress(key2.PublicKey)
 		funds   = new(big.Int).Mul(common.Big1, big.NewInt(params.Ether))
 		gspec   = &Genesis{
-			Config:   params.TestChainConfig,
-			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			Config: params.TestChainConfig,
 			Alloc: GenesisAlloc{
 				addr1: {Balance: funds},
 				addr2: {Balance: funds},
@@ -1110,6 +1107,7 @@ func TestEIP3651(t *testing.T) {
 					Balance: big.NewInt(0),
 				},
 			},
+			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 		}
 	)
 

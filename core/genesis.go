@@ -187,7 +187,11 @@ func SetupGenesisBlock(
 	if genesis.Config.IsSubnetEVM(genesis.Timestamp) {
 		gasLimitConfig := genesis.Config.FeeConfig.GasLimit.Uint64()
 		if gasLimitConfig != genesis.GasLimit {
-			return nil, common.Hash{}, fmt.Errorf("gas limit in fee config (%d) does not match gas limit in header (%d)", gasLimitConfig, genesis.GasLimit)
+			return nil, common.Hash{}, fmt.Errorf(
+				"gas limit in fee config (%d) does not match gas limit in header (%d)",
+				gasLimitConfig,
+				genesis.GasLimit,
+			)
 		}
 		// Verify config
 		if err := genesis.Config.Verify(); err != nil {
@@ -227,7 +231,9 @@ func SetupGenesisBlock(
 		return newcfg, common.Hash{}, err
 	}
 	storedcfg := rawdb.ReadChainConfig(db, stored)
+	// If there is no previously stored chain config, write the chain config to disk.
 	if storedcfg == nil {
+		// Note: this can happen since we did not previously write the genesis block and chain config in the same batch.
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil

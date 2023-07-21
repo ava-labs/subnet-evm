@@ -45,7 +45,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -187,7 +186,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
 	// Configure any upgrades that should go into effect during this block.
-	err = core.ApplyUpgrades(w.chainConfig, utils.NewUint64(parent.Time), types.NewBlockWithHeader(header), env.state)
+	err = core.ApplyUpgrades(w.chainConfig, &parent.Time, types.NewBlockWithHeader(header), env.state)
 	if err != nil {
 		log.Error("failed to configure precompiles mining new block", "parent", parent.Hash(), "number", header.Number, "timestamp", header.Time, "err", err)
 		return nil, err
@@ -371,13 +370,14 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 		logs = append(logs, receipt.Logs...)
 	}
 
-	totalFees, err := core.TotalFeesFloat(block, receipts)
+	feesInEther, err := core.TotalFeesFloat(block, receipts)
 	if err != nil {
 		log.Error("TotalFeesFloat error: %s", err)
 	}
-
-	log.Info("Commit new mining work", "number", block.Number(), "hash", hash, "timestamp", block.Time(), "uncles", 0, "txs", env.tcount,
-		"gas", block.GasUsed(), "fees", totalFees, "elapsed", common.PrettyDuration(time.Since(env.start)))
+	log.Info("Commit new mining work", "number", block.Number(), "hash", hash,
+		"uncles", 0, "txs", env.tcount,
+		"gas", block.GasUsed(), "fees", feesInEther,
+		"elapsed", common.PrettyDuration(time.Since(env.start)))
 
 	// Note: the miner no longer emits a NewMinedBlock event. Instead the caller
 	// is responsible for running any additional verification and then inserting

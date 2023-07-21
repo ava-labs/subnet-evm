@@ -38,7 +38,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
@@ -56,7 +55,6 @@ var (
 )
 
 type testBackend struct {
-	db            ethdb.Database
 	chain         *core.BlockChain
 	acceptedEvent chan<- core.ChainEvent
 }
@@ -92,12 +90,12 @@ func (b *testBackend) SubscribeChainAcceptedEvent(ch chan<- core.ChainEvent) eve
 	return nil
 }
 
-func (b *testBackend) teardown() {
-	b.chain.Stop()
-}
-
 func (b *testBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
 	return b.chain.GetFeeConfigAt(parent)
+}
+
+func (b *testBackend) teardown() {
+	b.chain.Stop()
 }
 
 func newTestBackendFakerEngine(t *testing.T, config *params.ChainConfig, numBlocks int, genBlocks func(i int, b *core.BlockGen)) *testBackend {
@@ -143,15 +141,14 @@ func newTestBackend(t *testing.T, config *params.ChainConfig, numBlocks int, gen
 		t.Fatal(err)
 	}
 	// Construct testing chain
-	db := rawdb.NewMemoryDatabase()
-	chain, err := core.NewBlockChain(db, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := core.NewBlockChain(rawdb.NewMemoryDatabase(), core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
 	if _, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("Failed to insert chain, %v", err)
 	}
-	return &testBackend{chain: chain, db: db}
+	return &testBackend{chain: chain}
 }
 
 func (b *testBackend) MinRequiredTip(ctx context.Context, header *types.Header) (*big.Int, error) {
@@ -314,11 +311,12 @@ func TestSuggestTipCapSmallTips(t *testing.T) {
 					Data:      []byte{},
 				})
 				tx, err = types.SignTx(tx, signer, key)
-				require.NoError(t, err, "failed to create tx")
+				if err != nil {
+					t.Fatalf("failed to create tx: %s", err)
+				}
 				b.AddTx(tx)
 			}
 		},
-		// NOTE: small tips do not bias estimate
 		expectedTip: big.NewInt(643_500_643),
 	}, defaultOracleConfig())
 }
@@ -421,7 +419,8 @@ func TestSuggestGasPriceAfterFeeConfigUpdate(t *testing.T) {
 	// issue the block with tx that changes the fee
 	genesis := backend.chain.Genesis()
 	engine := backend.chain.Engine()
-	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, backend.db, 1, 0, func(i int, b *core.BlockGen) {
+	db := backend.chain.StateCache().DiskDB()
+	blocks, _, err := core.GenerateChain(&chainConfig, genesis, engine, db, 1, 0, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
 		// admin issues tx to change fee config to higher MinBaseFee

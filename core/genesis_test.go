@@ -126,8 +126,7 @@ func TestSetupGenesis(t *testing.T) {
 				// Advance to block #4, past the SubnetEVM transition block of customg.
 				genesis := oldcustomg.MustCommit(db)
 
-				bc, err := NewBlockChain(db, DefaultCacheConfig, &oldcustomg, dummy.NewFullFaker(), vm.Config{}, genesis.Hash(), false)
-				require.NoError(t, err)
+				bc, _ := NewBlockChain(db, DefaultCacheConfig, &oldcustomg, dummy.NewFullFaker(), vm.Config{}, genesis.Hash(), false)
 				defer bc.Stop()
 
 				blocks, _, _ := GenerateChain(oldcustomg.Config, genesis, dummy.NewFullFaker(), db, 4, 25, nil)
@@ -238,23 +237,21 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 // regression test for precompile activation after header block
 func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	copyCfg := *params.TestChainConfig
 	customg := Genesis{
-		Config: &copyCfg,
+		Config: params.TestChainConfig,
 		Alloc: GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
 		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
-	bc, err := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
-	require.NoError(t, err)
+	bc, _ := NewBlockChain(db, DefaultCacheConfig, &customg, dummy.NewFullFaker(), vm.Config{}, common.Hash{}, false)
 	defer bc.Stop()
 
 	// Advance header to block #4, past the ContractDeployerAllowListConfig.
 	_, blocks, _, _ := GenerateChainWithGenesis(&customg, dummy.NewFullFaker(), 4, 25, nil)
 
 	require := require.New(t)
-	_, err = bc.InsertChain(blocks)
+	_, err := bc.InsertChain(blocks)
 	require.NoError(err)
 
 	// accept up to block #2
@@ -267,24 +264,24 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	// header must be bigger than last accepted
 	require.Greater(block.Time, bc.lastAccepted.Time())
 
-	activatedGenesis := customg
-	contractDeployerTimestamp := utils.NewUint64(51)
-	contractDeployerConfig := deployerallowlist.NewConfig(contractDeployerTimestamp, nil, nil)
-	activatedGenesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
+	activatedGenesisConfig := *customg.Config
+	contractDeployerConfig := deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil)
+	activatedGenesisConfig.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			Config: contractDeployerConfig,
 		},
 	}
+	customg.Config = &activatedGenesisConfig
 
 	// assert block is after the activation block
-	require.Greater(block.Time, *contractDeployerTimestamp)
+	require.Greater(block.Time, *contractDeployerConfig.Timestamp())
 	// assert last accepted block is before the activation block
-	require.Less(bc.lastAccepted.Time(), *contractDeployerTimestamp)
+	require.Less(bc.lastAccepted.Time(), *contractDeployerConfig.Timestamp())
 
 	// This should not return any error since the last accepted block is before the activation block.
-	config, _, err := setupGenesisBlock(db, trie.NewDatabase(db), &activatedGenesis, bc.lastAccepted.Hash())
+	config, _, err := setupGenesisBlock(db, trie.NewDatabase(db), &customg, bc.lastAccepted.Hash())
 	require.NoError(err)
-	if !reflect.DeepEqual(config, activatedGenesis.Config) {
-		t.Errorf("returned %v\nwant     %v", config, activatedGenesis.Config)
+	if !reflect.DeepEqual(config, customg.Config) {
+		t.Errorf("returned %v\nwant     %v", config, customg.Config)
 	}
 }

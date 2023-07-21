@@ -38,7 +38,6 @@ import (
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
-
 	cmath "github.com/ethereum/go-ethereum/common/math"
 )
 
@@ -353,6 +352,7 @@ func (st *StateTransition) preCheck() error {
 			}
 		}
 	}
+
 	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
 	if st.evm.ChainConfig().IsSubnetEVM(st.evm.Context.Time) {
 		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
@@ -406,7 +406,6 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if err := st.preCheck(); err != nil {
 		return nil, err
 	}
-
 	if st.evm.Config.Debug {
 		st.evm.Config.Tracer.CaptureTxStart(st.initialGas)
 		defer func() {

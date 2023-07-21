@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -198,9 +197,10 @@ func TestInsertChainAcceptSingleBlock(t *testing.T, create func(db ethdb.Databas
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{
+			HomesteadBlock: new(big.Int),
+		},
+		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 	blockchain, err := create(chainDB, gspec, common.Hash{})
 	if err != nil {
@@ -268,9 +268,10 @@ func TestInsertLongForkedChain(t *testing.T, create func(db ethdb.Database, gspe
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{
+			HomesteadBlock: new(big.Int),
+		},
+		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -432,9 +433,10 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, gs
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{
+			HomesteadBlock: new(big.Int),
+		},
+		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -540,9 +542,10 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, gspec 
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{
+			HomesteadBlock: new(big.Int),
+		},
+		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -673,12 +676,13 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
+		Config: &params.ChainConfig{
+			HomesteadBlock: new(big.Int),
+		},
 		Alloc: GenesisAlloc{
 			addr1: {Balance: genesisBalance},
 			addr3: {Balance: genesisBalance},
 		},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -830,9 +834,10 @@ func TestEmptyBlocks(t *testing.T, create func(db ethdb.Database, gspec *Genesis
 	chainDB := rawdb.NewMemoryDatabase()
 
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{
+			HomesteadBlock: new(big.Int),
+		},
+		Alloc: GenesisAlloc{},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -880,9 +885,8 @@ func TestReorgReInsert(t *testing.T, create func(db ethdb.Database, gspec *Genes
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 	genesis := gspec.ToBlock()
 
@@ -987,9 +991,10 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{
+			HomesteadBlock: new(big.Int),
+		},
+		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -1131,17 +1136,16 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{
+			HomesteadBlock: new(big.Int),
+		},
+		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	var stopOnce sync.Once
-	defer stopOnce.Do(blockchain.Stop)
 
 	signer := types.HomesteadSigner{}
 	_, chain1, _, err := GenerateChainWithGenesis(gspec, blockchain.engine, 3, 10, func(i int, gen *BlockGen) {
@@ -1191,7 +1195,7 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 		t.Fatalf("Expected current block to be %s:%d, but found %s%d", expectedCurrentBlock.Hash().Hex(), expectedCurrentBlock.NumberU64(), currentBlock.Hash().Hex(), currentBlock.Number.Uint64())
 	}
 
-	stopOnce.Do(blockchain.Stop)
+	blockchain.Stop()
 
 	chainDB = rawdb.NewMemoryDatabase()
 	blockchain, err = create(chainDB, gspec, common.Hash{})

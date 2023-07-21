@@ -167,7 +167,8 @@ var Forks = map[string]*params.ChainConfig{
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
-			DUpgradeTimestamp: utils.NewUint64(0),
+			SubnetEVMTimestamp: utils.NewUint64(0),
+			DUpgradeTimestamp:  utils.NewUint64(0),
 		},
 	},
 }

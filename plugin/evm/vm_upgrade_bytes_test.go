@@ -237,8 +237,8 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	if err := json.Unmarshal([]byte(genesisJSONPreSubnetEVM), &genesis); err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
 	}
-	genesisSubnetEVMTimestamp := uint64(5)
-	genesis.Config.SubnetEVMTimestamp = utils.NewUint64(genesisSubnetEVMTimestamp)
+	genesisSubnetEVMTimestamp := utils.NewUint64(5)
+	genesis.Config.SubnetEVMTimestamp = genesisSubnetEVMTimestamp
 	genesisBytes, err := json.Marshal(&genesis)
 	if err != nil {
 		t.Fatalf("could not unmarshal genesis bytes: %s", err)
@@ -248,7 +248,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	_, vm, _, _ := GenesisVM(t, true, string(genesisBytes), "", "")
 
 	// verify upgrade is rescheduled
-	require.True(t, vm.chainConfig.IsSubnetEVM(*utils.NewUint64(0)))
+	require.True(t, vm.chainConfig.IsSubnetEVM(0))
 
 	if err := vm.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
