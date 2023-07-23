@@ -662,6 +662,8 @@ func convertToNil(input abi.Type) string {
 		return "false"
 	case abi.AddressTy:
 		return "common.Address{}"
+	case abi.HashTy:
+		return "common.Hash{}"
 	case abi.FixedBytesTy:
 		return fmt.Sprintf("[%d]byte{}", input.Size)
 	case abi.BytesTy:
