@@ -310,7 +310,6 @@ func BindHelper(types []string, abis []string, bytecodes []string, fsigs []map[s
 		"namedtype":     namedType[lang],
 		"capitalise":    capitalise,
 		"decapitalise":  decapitalise,
-		"convertToNil":  convertToNil,
 		"mkList":        mkList,
 	}
 
@@ -644,35 +643,6 @@ func decapitalise(input string) string {
 
 	goForm := abi.ToCamelCase(input)
 	return strings.ToLower(goForm[:1]) + goForm[1:]
-}
-
-// convertToNil converts any type to its proper nil form.
-func convertToNil(input abi.Type) string {
-	switch input.T {
-	case abi.IntTy, abi.UintTy:
-		parts := regexp.MustCompile(`(u)?int([0-9]*)`).FindStringSubmatch(input.String())
-		switch parts[2] {
-		case "8", "16", "32", "64":
-			return "0"
-		}
-		return "big.NewInt(0)"
-	case abi.StringTy:
-		return "\"\""
-	case abi.BoolTy:
-		return "false"
-	case abi.AddressTy:
-		return "common.Address{}"
-	case abi.HashTy:
-		return "common.Hash{}"
-	case abi.FixedBytesTy:
-		return fmt.Sprintf("[%d]byte{}", input.Size)
-	case abi.BytesTy:
-		return "[]byte{}"
-	case abi.FunctionTy:
-		return "[24]byte{}"
-	default:
-		return "nil"
-	}
 }
 
 // structured checks whether a list of ABI data types has enough information to
