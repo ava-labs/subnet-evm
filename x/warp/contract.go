@@ -22,11 +22,13 @@ import (
 )
 
 const (
-	GetBlockchainIDGasCost uint64 = 2 // Based on GasQuickStep used in existing EVM instructions
+	GetBlockchainIDGasCost uint64 = 2      // Based on GasQuickStep used in existing EVM instructions
+	AddWarpMessageGasCost  uint64 = 20_000 // Cost of producing and serving a BLS Signature
 	// Sum of base log gas cost, cost of producing 4 topics, and producing + serving a BLS Signature (sign + trie write)
 	// Note: using trie write for the gas cost results in a conservative overestimate since the message is stored in a
 	// flat database that can be cleaned up after a period of time instead of the EVM trie.
-	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + 20_000 + contract.WriteGasCostPerSlot
+
+	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + AddWarpMessageGasCost + contract.WriteGasCostPerSlot
 	// SendWarpMessageGasCostPerByte cost accounts for producing a signed message of a given size
 	SendWarpMessageGasCostPerByte uint64 = params.LogDataGas
 

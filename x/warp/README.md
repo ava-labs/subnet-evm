@@ -32,7 +32,7 @@ First, Blockchain A produces a BLS Multisignature of a message to send to Blockc
 1. A transaction is issued on Blockchain A to send a message to Subnet B
 2. The transaction is accepted on Blockchain A (must wait for acceptance)
 3. The VM powering Blockchain A (ex: Subnet-EVM) should either
-    a) be willing to sign the message to allow an off-chain relayer to aggregate signaures from the Subnet's validator set (existing implementation)
+    a) be willing to sign the message to allow an off-chain relayer to aggregate signatures from the Subnet's validator set (existing implementation)
     b) aggregate signatures from the validator set of Subnet A to produce its own aggregate signature
 
 The signature of Subnet A's validator set attests to the message being sent by Blockchain A.
@@ -78,7 +78,7 @@ However, when Subnet B receives a message from the C-Chain, it changes the seman
 6. Aggregate the BLS Public Keys of the claimed signers into an aggregated BLS Public Key
 7. Validate the aggregate signature matches the claimed aggregate BLS Public Key
 
-This means that if Subnet B has 10 validators, then C-Chain to Subnet communication only requires a threshold of those 10 validators rather than the entire Primary Network.
+This means that if Subnet B has 10 equally weighted validators, then C-Chain to Subnet communication only requires a threshold of stake from those 10 validators rather than a threshold of the stake of the Primary Network.
 
 Since the security of Subnet B depends on the validators of Subnet B already, changing the requirements of verifying the message from verifying a signature from the entire Primary Network to only Subnet B's validator set does not change the security of Subnet B!
 
@@ -94,11 +94,11 @@ The Warp Precompile is broken down into three functions defined in the Solidity 
 - `SourceAddress` - `msg.sender` encoded as a 32 byte value that calls `sendWarpMessage`
 - `DestinationChainID` - `bytes32` argument specifies the blockchainID on the Avalanche P-Chain that should receive the message
 - `DestinationAddress` - 32 byte value that represents the destination address that should receive the message (on the EVM this is the 20 byte address left zero extended)
-- `Payload` - `payload` argument specified in the call to `sendWarpMessage`
+- `Payload` - `payload` argument specified in the call to `sendWarpMessage` emitted as the unindexed data of the resulting log
 
 Calling this function will issue a `SendWarpMessage` event from the Warp Precompile. Since the EVM limits the number of topics to 4 including the EventID, this message includes only the topics that would be expected to help filter messages emitted from the Warp Precompile the most.
 
-Specifically, the `payload` is not emitted because this would need to be a hash and it would not be expected to be helpful to determine whether or not the log is of any interest to anyone parsing the chain.
+Specifically, the `payload` is not emitted as a topic because each topic must be encoded as a hash. It could include the warp `messageID` as a topic, but that would not add more information. Therefore, we opt to take advantage of each possible topic to maximize the possible filtering for emitted Warp Messages.
 
 Additionally, the `SourceChainID` is excluded because anyone parsing the chain can be expected to already know the blockchainID. Therefore, the `SendWarpMessage` event includes the indexable attributes:
 
