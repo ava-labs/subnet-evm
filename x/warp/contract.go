@@ -42,7 +42,6 @@ var (
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
-
 	// WarpRawABI contains the raw ABI of Warp contract.
 	//go:embed contract.abi
 	WarpRawABI string

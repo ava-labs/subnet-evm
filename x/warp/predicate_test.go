@@ -207,7 +207,7 @@ func createSnowCtx(validatorRanges []validatorRange) *snow.Context {
 
 func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicateBytes []byte) testutils.PredicateTest {
 	return testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -234,7 +234,7 @@ func TestWarpNilProposerCtx(t *testing.T) {
 	})
 	predicateBytes := createPredicate(numKeys)
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -263,7 +263,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 	predicateBytes = append(predicateBytes, byte(0x01)) // Invalidate the predicate byte packing
 
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -296,7 +296,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -342,7 +342,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -387,7 +387,7 @@ func TestInvalidBitSet(t *testing.T) {
 	})
 	predicateBytes := predicateutils.PackPredicate(msg.Bytes())
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -416,7 +416,15 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 	})
 
 	tests := make(map[string]testutils.PredicateTest)
-	for _, numSigners := range []int{1, int(params.WarpDefaultQuorumNumerator) - 1, int(params.WarpDefaultQuorumNumerator), int(params.WarpDefaultQuorumNumerator) + 1, 99, 100, 101} {
+	for _, numSigners := range []int{
+		1,
+		int(params.WarpDefaultQuorumNumerator) - 1,
+		int(params.WarpDefaultQuorumNumerator),
+		int(params.WarpDefaultQuorumNumerator) + 1,
+		int(params.WarpQuorumDenominator) - 1,
+		int(params.WarpQuorumDenominator),
+		int(params.WarpQuorumDenominator) + 1,
+	} {
 		var (
 			predicateBytes       = createPredicate(numSigners)
 			expectedPredicateErr error
@@ -429,7 +437,7 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
 		}
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
-			Config: NewConfig(big.NewInt(0), 0),
+			Config: NewDefaultConfig(big.NewInt(0)),
 			ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 				PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 					SnowCtx: snowCtx,
@@ -558,7 +566,7 @@ func initWarpPredicateTests() {
 		testName := fmt.Sprintf("%d validators w/ %d signers/repeated PublicKeys", totalNodes, numSigners)
 
 		predicateBytes := createPredicate(numSigners)
-		getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+		getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput, totalNodes)
 		for i := 0; i < totalNodes; i++ {
 			getValidatorsOutput[testVdrs[i].nodeID] = &validators.GetValidatorOutput{
 				NodeID:    testVdrs[i].nodeID,

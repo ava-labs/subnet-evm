@@ -110,7 +110,7 @@ func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, txHash common
 // verifyWarpMessage checks that [warpMsg] can be parsed as an addressed payload and verifies the Warp Message Signature
 // within [predicateContext].
 func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPredicateContext, warpMsg *warp.Message) error {
-	// Use default quourum numerator unless config specifies a non-default option
+	// Use default quorum numerator unless config specifies a non-default option
 	quorumNumerator := params.WarpDefaultQuorumNumerator
 	if c.QuorumNumerator != 0 {
 		quorumNumerator = c.QuorumNumerator
@@ -122,7 +122,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 		return fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
 	}
 
-	log.Info("verifyingWarpMessage", "warpMsg", warpMsg, "quorumNum", quorumNumerator, "quorumDenom", params.WarpQuorumDenominator)
+	log.Debug("verifying warp message", "warpMsg", warpMsg, "quorumNum", quorumNumerator, "quorumDenom", params.WarpQuorumDenominator)
 	if err := warpMsg.Signature.Verify(
 		context.Background(),
 		&warpMsg.UnsignedMessage,

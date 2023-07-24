@@ -32,7 +32,7 @@ First, Blockchain A produces a BLS Multisignature of a message to send to Blockc
 1. A transaction is issued on Blockchain A to send a message to Subnet B
 2. The transaction is accepted on Blockchain A (must wait for acceptance)
 3. The VM powering Blockchain A (ex: Subnet-EVM) should either
-    a) be willing to sign the message to allow a signature aggregator to aggregate signaures from the Subnet's validator set (existing implementation)
+    a) be willing to sign the message to allow an off-chain relayer to aggregate signaures from the Subnet's validator set (existing implementation)
     b) aggregate signatures from the validator set of Subnet A to produce its own aggregate signature
 
 The signature of Subnet A's validator set attests to the message being sent by Blockchain A.
@@ -158,7 +158,7 @@ Therefore, we need a heuristic to ensure that the network can correctly re-proce
 
 As a result, we require that the block itself provides a deterministic hint which determines which Avalanche Warp Messages were considered valid/invalid during the block's execution. This ensures that we can always re-process blocks and use the hint to decide whether an Avalanche Warp Message should be treated as valid/invalid even after the P-Chain state that was used at the original execution time may no longer support fast lookups.
 
-To provide that thint, we've explored two designs:
+To provide that hint, we've explored two designs:
 
 1. Include a predicate in the transaction to ensure any referenced message is valid
 2. Append the results of checking whether a Warp Message is valid/invalid to the block data itself
@@ -183,8 +183,10 @@ The Warp Precompile itself provides ONLY the following ability:
 
 send a verified message from a caller on blockchain A to a destination address on blockchain B
 
+#### Explicitly Not Provided / Built on Top
+
 The Warp Precompile itself does not provide any guarantees of:
 
-- Eventual message delivery (may require re-send on blockchain A)
+- Eventual message delivery (may require re-send on blockchain A and additional assumptions about off-chain relayers and chain progress)
 - Ordering of messages (requires ordering provided a layer above)
 - Replay protection (requires replay protection provided a layer above)

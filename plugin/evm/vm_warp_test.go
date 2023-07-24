@@ -115,7 +115,6 @@ func TestSendWarpMessage(t *testing.T) {
 	case <-time.After(time.Second):
 		require.Fail("Failed to read accepted logs from subscription")
 	}
-	logsSub.Unsubscribe()
 
 	// Verify the produced signature is valid
 	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
