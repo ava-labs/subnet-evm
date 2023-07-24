@@ -197,10 +197,8 @@ func TestInsertChainAcceptSingleBlock(t *testing.T, create func(db ethdb.Databas
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-		},
-		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 	blockchain, err := create(chainDB, gspec, common.Hash{})
 	if err != nil {
@@ -268,10 +266,8 @@ func TestInsertLongForkedChain(t *testing.T, create func(db ethdb.Database, gspe
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-		},
-		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -433,10 +429,8 @@ func TestAcceptNonCanonicalBlock(t *testing.T, create func(db ethdb.Database, gs
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-		},
-		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -542,10 +536,8 @@ func TestSetPreferenceRewind(t *testing.T, create func(db ethdb.Database, gspec 
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-		},
-		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -676,9 +668,7 @@ func TestBuildOnVariousStages(t *testing.T, create func(db ethdb.Database, gspec
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-		},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc: GenesisAlloc{
 			addr1: {Balance: genesisBalance},
 			addr3: {Balance: genesisBalance},
@@ -834,10 +824,8 @@ func TestEmptyBlocks(t *testing.T, create func(db ethdb.Database, gspec *Genesis
 	chainDB := rawdb.NewMemoryDatabase()
 
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-		},
-		Alloc: GenesisAlloc{},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -991,10 +979,8 @@ func TestAcceptBlockIdenticalStateRoot(t *testing.T, create func(db ethdb.Databa
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-		},
-		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -1136,10 +1122,8 @@ func TestReprocessAcceptBlockIdenticalStateRoot(t *testing.T, create func(db eth
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{
-			HomesteadBlock: new(big.Int),
-		},
-		Alloc: GenesisAlloc{addr1: {Balance: genesisBalance}},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
