@@ -314,6 +314,10 @@ func (vm *VM) Initialize(
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 
+	if err := g.Verify(); err != nil {
+		return fmt.Errorf("failed to verify genesis: %w", err)
+	}
+
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
 	// NetworkID here is different than Avalanche's NetworkID.
