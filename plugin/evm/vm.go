@@ -312,6 +312,7 @@ func (vm *VM) Initialize(
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
 		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
 		g.Config.FeeConfig = params.DefaultFeeConfig
+		g.Config.FeeConfig.GasLimit = new(big.Int).SetUint64(g.GasLimit)
 	}
 
 	if err := g.Verify(); err != nil {
