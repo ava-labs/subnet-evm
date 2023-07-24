@@ -382,7 +382,7 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 }
 
 func (g *Genesis) Verify() error {
-	// Make sure genesis gas limit is consistent in SubnetEVM fork
+	// Make sure genesis gas limit is consistent
 	gasLimitConfig := g.Config.FeeConfig.GasLimit.Uint64()
 	if gasLimitConfig != g.GasLimit {
 		return fmt.Errorf(
