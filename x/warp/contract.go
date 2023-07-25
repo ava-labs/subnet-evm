@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	GetBlockchainIDGasCost uint64 = 2      // Based on GasQuickStep used in existing EVM instructions
-	AddWarpMessageGasCost  uint64 = 20_000 // Cost of producing and serving a BLS Signature
+	GetVerifiedWarpMessageBaseCost uint64 = 2      // Base cost of entering getVerifiedWarpMessage
+	GetBlockchainIDGasCost         uint64 = 2      // Based on GasQuickStep used in existing EVM instructions
+	AddWarpMessageGasCost          uint64 = 20_000 // Cost of producing and serving a BLS Signature
 	// Sum of base log gas cost, cost of producing 4 topics, and producing + serving a BLS Signature (sign + trie write)
 	// Note: using trie write for the gas cost results in a conservative overestimate since the message is stored in a
 	// flat database that can be cleaned up after a period of time instead of the EVM trie.
@@ -117,9 +118,10 @@ func PackGetVerifiedWarpMessageOutput(outputStruct GetVerifiedWarpMessageOutput)
 // getVerifiedWarpMessage retrieves the pre-verified warp message from the predicate storage slots and returns
 // the expected ABI encoding of the message to the caller.
 func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	remainingGas = suppliedGas
-	// XXX Note: there is no base cost for retrieving a verified warp message. Instead, we charge for each piece of gas,
-	// prior to each execution step.
+	remainingGas, err = contract.DeductGas(suppliedGas, GetVerifiedWarpMessageBaseCost)
+	if err != nil {
+		return nil, remainingGas, err
+	}
 	// Ignore input since there are no arguments
 	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	// If there is no such value, return false to the caller.
