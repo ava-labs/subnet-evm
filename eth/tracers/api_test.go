@@ -217,7 +217,6 @@ func TestTraceCall(t *testing.T) {
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
 		},
-		GasLimit: params.TestSubnetEVMConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
@@ -352,7 +351,6 @@ func TestTraceTransaction(t *testing.T) {
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
 		},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	target := common.Hash{}
 	signer := types.HomesteadSigner{}
@@ -403,7 +401,6 @@ func TestTraceBlock(t *testing.T) {
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
 		},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
@@ -493,7 +490,6 @@ func TestTracingWithOverrides(t *testing.T) {
 				},
 			},
 		},
-		GasLimit: params.TestSubnetEVMConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
@@ -855,7 +851,6 @@ func TestTraceChain(t *testing.T) {
 			accounts[1].addr: {Balance: big.NewInt(5 * params.Ether)},
 			accounts[2].addr: {Balance: big.NewInt(5 * params.Ether)},
 		},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	genBlocks := 50
 	signer := types.HomesteadSigner{}

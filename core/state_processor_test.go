@@ -218,6 +218,7 @@ func TestStateProcessorErrors(t *testing.T) {
 			gspec = &Genesis{
 				Config: &params.ChainConfig{
 					ChainID:             big.NewInt(1),
+					FeeConfig:           params.DefaultFeeConfig,
 					HomesteadBlock:      big.NewInt(0),
 					EIP150Block:         big.NewInt(0),
 					EIP150Hash:          common.Hash{},
@@ -235,6 +236,7 @@ func TestStateProcessorErrors(t *testing.T) {
 						Nonce:   0,
 					},
 				},
+				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 			}
 			blockchain, _ = NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 		)

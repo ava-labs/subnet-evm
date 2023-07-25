@@ -40,10 +40,9 @@ func TestEmitLogsCorrectness(t *testing.T) {
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
 		funds   = new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether))
 		gspec   = &Genesis{
-			Config:   params.TestChainConfig,
-			Alloc:    GenesisAlloc{addr1: {Balance: funds}},
-			BaseFee:  big.NewInt(params.TestInitialBaseFee),
-			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+			Config:  params.TestChainConfig,
+			Alloc:   GenesisAlloc{addr1: {Balance: funds}},
+			BaseFee: big.NewInt(params.TestInitialBaseFee),
 		}
 		contractAddress = crypto.CreateAddress(addr1, 0)
 		signer          = types.LatestSigner(gspec.Config)

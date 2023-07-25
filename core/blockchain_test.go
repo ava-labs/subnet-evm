@@ -403,9 +403,8 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := createBlockChain(chainDB, pruningConfig, gspec, common.Hash{})
@@ -514,9 +513,8 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config:   &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.DefaultFeeConfig.GasLimit.Uint64(),
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -780,10 +778,9 @@ func TestCanonicalHashMarker(t *testing.T) {
 	for _, c := range cases {
 		var (
 			gspec = &Genesis{
-				Config:   params.TestChainConfig,
-				Alloc:    GenesisAlloc{},
-				BaseFee:  big.NewInt(params.TestInitialBaseFee),
-				GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+				Config:  params.TestChainConfig,
+				Alloc:   GenesisAlloc{},
+				BaseFee: big.NewInt(params.TestInitialBaseFee),
 			}
 			engine = dummy.NewCoinbaseFaker()
 		)
@@ -924,7 +921,6 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 		Alloc: GenesisAlloc{
 			address: {Balance: funds},
 		},
-		GasLimit: config.FeeConfig.GasLimit.Uint64(),
 	}
 	nonce := uint64(0)
 	signer := types.HomesteadSigner{}
@@ -1012,7 +1008,6 @@ func TestTransientStorageReset(t *testing.T) {
 		Alloc: GenesisAlloc{
 			address: {Balance: funds},
 		},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 	}
 	nonce := uint64(0)
 	signer := types.HomesteadSigner{}
@@ -1107,7 +1102,6 @@ func TestEIP3651(t *testing.T) {
 					Balance: big.NewInt(0),
 				},
 			},
-			GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
 		}
 	)
 
