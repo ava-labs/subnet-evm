@@ -1291,9 +1291,8 @@ func TestGenerateChainInvalidBlockFee(t *testing.T, create func(db ethdb.Databas
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
-		Config:   params.TestChainConfig,
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		Config: params.TestChainConfig,
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -1341,9 +1340,8 @@ func TestInsertChainInvalidBlockFee(t *testing.T, create func(db ethdb.Database,
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
-		Config:   params.TestChainConfig,
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		Config: params.TestChainConfig,
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -1398,9 +1396,8 @@ func TestInsertChainValidBlockFee(t *testing.T, create func(db ethdb.Database, g
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Ether))
 	gspec := &Genesis{
-		Config:   params.TestChainConfig,
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		Config: params.TestChainConfig,
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})
@@ -1495,9 +1492,8 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 		feemanager.ConfigKey:        feemanager.NewConfig(utils.NewUint64(0), []common.Address{addr1}, nil, nil),
 	}
 	gspec := &Genesis{
-		Config:   &config,
-		Alloc:    GenesisAlloc{addr1: {Balance: genesisBalance}},
-		GasLimit: config.FeeConfig.GasLimit.Uint64(),
+		Config: &config,
+		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
 	blockchain, err := create(chainDB, gspec, common.Hash{})

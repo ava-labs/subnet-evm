@@ -166,9 +166,8 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	// Generate a chain of b.N blocks using the supplied block
 	// generator function.
 	gspec := &Genesis{
-		Config:   params.TestChainConfig,
-		Alloc:    GenesisAlloc{benchRootAddr: {Balance: benchRootFunds}},
-		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
+		Config: params.TestChainConfig,
+		Alloc:  GenesisAlloc{benchRootAddr: {Balance: benchRootFunds}},
 	}
 	_, chain, _, _ := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), b.N, 10, gen)
 
