@@ -183,21 +183,6 @@ func SetupGenesisBlock(
 	if genesis.Config == nil {
 		return nil, common.Hash{}, errGenesisNoConfig
 	}
-	// Make sure genesis gas limit is consistent in SubnetEVM fork
-	if genesis.Config.IsSubnetEVM(genesis.Timestamp) {
-		gasLimitConfig := genesis.Config.FeeConfig.GasLimit.Uint64()
-		if gasLimitConfig != genesis.GasLimit {
-			return nil, common.Hash{}, fmt.Errorf(
-				"gas limit in fee config (%d) does not match gas limit in header (%d)",
-				gasLimitConfig,
-				genesis.GasLimit,
-			)
-		}
-		// Verify config
-		if err := genesis.Config.Verify(); err != nil {
-			return nil, common.Hash{}, err
-		}
-	}
 
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
@@ -394,6 +379,23 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 		panic(err)
 	}
 	return block
+}
+
+func (g *Genesis) Verify() error {
+	// Make sure genesis gas limit is consistent
+	gasLimitConfig := g.Config.FeeConfig.GasLimit.Uint64()
+	if gasLimitConfig != g.GasLimit {
+		return fmt.Errorf(
+			"gas limit in fee config (%d) does not match gas limit in header (%d)",
+			gasLimitConfig,
+			g.GasLimit,
+		)
+	}
+	// Verify config
+	if err := g.Config.Verify(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
