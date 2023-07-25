@@ -6,11 +6,17 @@ package load
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
@@ -18,7 +24,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
+)
+
+const (
+	MetricsPort = ":8082" // Port for the Prometheus Metrics Server
 )
 
 // ExecuteLoader creates txSequences from [config] and has txAgents execute the specified simulation.
@@ -62,8 +74,13 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	// to fund gas for all of their transactions.
 	maxFeeCap := new(big.Int).Mul(big.NewInt(params.GWei), big.NewInt(config.MaxFeeCap))
 	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*params.TxGas)))
+
+	// Create metrics
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
+
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
-	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr)
+	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr, m)
 	if err != nil {
 		return err
 	}
@@ -112,7 +129,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	log.Info("Constructing tx agents...", "numAgents", config.Workers)
 	agents := make([]txs.Agent[*types.Transaction], 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize))
+		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize, m))
 	}
 
 	log.Info("Starting tx agents...")
@@ -123,6 +140,31 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 			return agent.Execute(ctx)
 		})
 	}
+
+	go func(ctx context.Context) {
+		// Start a prometheus server to expose individual tx metrics
+		server := &http.Server{
+			Addr: MetricsPort,
+		}
+
+		go func() {
+			defer func() {
+				if err := server.Shutdown(ctx); err != nil {
+					log.Error("Metrics server error: %v", err)
+				}
+				log.Info("Received a SIGINT signal: Gracefully shutting down metrics server")
+			}()
+			sigChan := make(chan os.Signal, 1)
+			signal.Notify(sigChan, syscall.SIGINT)
+			<-sigChan
+		}()
+
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+		log.Info(fmt.Sprintf("Metrics Server: localhost%s/metrics", MetricsPort))
+		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			log.Error("Metrics server error: %v", err)
+		}
+	}(ctx)
 
 	log.Info("Waiting for tx agents...")
 	if err := eg.Wait(); err != nil {
