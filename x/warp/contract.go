@@ -55,10 +55,10 @@ var (
 
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
 type WarpMessage struct {
-	OriginChainID       [32]byte
-	OriginSenderAddress [32]byte
-	DestinationChainID  [32]byte
-	DestinationAddress  [32]byte
+	OriginChainID       common.Hash
+	OriginSenderAddress common.Hash
+	DestinationChainID  common.Hash
+	DestinationAddress  common.Hash
 	Payload             []byte
 }
 
@@ -68,8 +68,8 @@ type GetVerifiedWarpMessageOutput struct {
 }
 
 type SendWarpMessageInput struct {
-	DestinationChainID [32]byte
-	DestinationAddress [32]byte
+	DestinationChainID common.Hash
+	DestinationAddress common.Hash
 	Payload            []byte
 }
 
@@ -79,9 +79,9 @@ func PackGetBlockchainID() ([]byte, error) {
 	return WarpABI.Pack("getBlockchainID")
 }
 
-// PackGetBlockchainIDOutput attempts to pack given blockchainID of type [32]byte
+// PackGetBlockchainIDOutput attempts to pack given blockchainID of type common.Hash
 // to conform the ABI outputs.
-func PackGetBlockchainIDOutput(blockchainID [32]byte) ([]byte, error) {
+func PackGetBlockchainIDOutput(blockchainID common.Hash) ([]byte, error) {
 	return WarpABI.PackOutput("getBlockchainID", blockchainID)
 }
 
@@ -90,7 +90,7 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetBlockchainIDGasCost); err != nil {
 		return nil, 0, err
 	}
-	packedOutput, err := PackGetBlockchainIDOutput(accessibleState.GetSnowContext().ChainID)
+	packedOutput, err := PackGetBlockchainIDOutput(common.Hash(accessibleState.GetSnowContext().ChainID))
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -159,10 +159,10 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	}
 	packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 		Message: WarpMessage{
-			OriginChainID:       warpMessage.SourceChainID,
-			OriginSenderAddress: addressedPayload.SourceAddress,
-			DestinationChainID:  warpMessage.DestinationChainID,
-			DestinationAddress:  addressedPayload.DestinationAddress,
+			OriginChainID:       common.Hash(warpMessage.SourceChainID),
+			OriginSenderAddress: common.Hash(addressedPayload.SourceAddress),
+			DestinationChainID:  common.Hash(warpMessage.DestinationChainID),
+			DestinationAddress:  common.Hash(addressedPayload.DestinationAddress),
 			Payload:             addressedPayload.Payload,
 		},
 		Exists: true,
@@ -223,7 +223,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 
 	addressedPayload, err := warpPayload.NewAddressedPayload(
 		ids.ID(sourceAddress),
-		destinationAddress,
+		ids.ID(destinationAddress),
 		payload,
 	)
 	if err != nil {
@@ -231,7 +231,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	}
 	unsignedWarpMessage, err := warp.NewUnsignedMessage(
 		sourceChainID,
-		destinationChainID,
+		ids.ID(destinationChainID),
 		addressedPayload.Bytes(),
 	)
 	if err != nil {

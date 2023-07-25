@@ -178,7 +178,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		defer sub.Unsubscribe()
 
 		packedInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
-			DestinationChainID: blockchainIDB,
+			DestinationChainID: common.Hash(blockchainIDB),
 			DestinationAddress: fundedAddress.Hash(),
 			Payload:            payload,
 		})

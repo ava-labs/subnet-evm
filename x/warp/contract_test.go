@@ -38,7 +38,7 @@ func TestGetBlockchainID(t *testing.T) {
 			SuppliedGas: GetBlockchainIDGasCost,
 			ReadOnly:    false,
 			ExpectedRes: func() []byte {
-				expectedOutput, err := PackGetBlockchainIDOutput(blockchainID)
+				expectedOutput, err := PackGetBlockchainIDOutput(common.Hash(blockchainID))
 				require.NoError(t, err)
 
 				return expectedOutput
@@ -55,7 +55,7 @@ func TestGetBlockchainID(t *testing.T) {
 			SuppliedGas: GetBlockchainIDGasCost,
 			ReadOnly:    true,
 			ExpectedRes: func() []byte {
-				expectedOutput, err := PackGetBlockchainIDOutput(blockchainID)
+				expectedOutput, err := PackGetBlockchainIDOutput(common.Hash(blockchainID))
 				require.NoError(t, err)
 
 				return expectedOutput
@@ -88,7 +88,7 @@ func TestSendWarpMessage(t *testing.T) {
 	sendWarpMessagePayload := utils.RandomBytes(100)
 
 	sendWarpMessageInput, err := PackSendWarpMessage(SendWarpMessageInput{
-		DestinationChainID: destinationChainID,
+		DestinationChainID: common.Hash(destinationChainID),
 		DestinationAddress: receiverAddr.Hash(),
 		Payload:            sendWarpMessagePayload,
 	})
@@ -142,7 +142,7 @@ func TestSendWarpMessage(t *testing.T) {
 				require.NoError(t, err)
 
 				require.Equal(t, unsignedWarpMsg.DestinationChainID, destinationChainID)
-				require.Equal(t, unsignedWarpMsg.SourceChainID, blockchainID)
+				require.Equal(t, unsignedWarpMsg.SourceChainID, common.Hash(blockchainID))
 				require.Equal(t, addressedPayload.DestinationAddress, ids.ID(receiverAddr.Hash()))
 				require.Equal(t, addressedPayload.SourceAddress, ids.ID(callerAddr.Hash()))
 				require.Equal(t, addressedPayload.Payload, sendWarpMessagePayload)
@@ -185,9 +185,9 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ExpectedRes: func() []byte {
 				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 					Message: WarpMessage{
-						OriginChainID:       sourceChainID,
+						OriginChainID:       common.Hash(sourceChainID),
 						OriginSenderAddress: sourceAddress.Hash(),
-						DestinationChainID:  destinationChainID,
+						DestinationChainID:  common.Hash(destinationChainID),
 						DestinationAddress:  destinationAddress.Hash(),
 						Payload:             packagedPayloadBytes,
 					},
@@ -223,9 +223,9 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ExpectedRes: func() []byte {
 				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 					Message: WarpMessage{
-						OriginChainID:       sourceChainID,
+						OriginChainID:       common.Hash(sourceChainID),
 						OriginSenderAddress: sourceAddress.Hash(),
-						DestinationChainID:  destinationChainID,
+						DestinationChainID:  common.Hash(destinationChainID),
 						DestinationAddress:  destinationAddress.Hash(),
 						Payload:             packagedPayloadBytes,
 					},
