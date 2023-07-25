@@ -142,7 +142,7 @@ func TestSendWarpMessage(t *testing.T) {
 				require.NoError(t, err)
 
 				require.Equal(t, unsignedWarpMsg.DestinationChainID, destinationChainID)
-				require.Equal(t, unsignedWarpMsg.SourceChainID, common.Hash(blockchainID))
+				require.Equal(t, unsignedWarpMsg.SourceChainID, blockchainID)
 				require.Equal(t, addressedPayload.DestinationAddress, ids.ID(receiverAddr.Hash()))
 				require.Equal(t, addressedPayload.SourceAddress, ids.ID(callerAddr.Hash()))
 				require.Equal(t, addressedPayload.Payload, sendWarpMessagePayload)
