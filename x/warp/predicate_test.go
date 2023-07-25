@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
@@ -51,45 +52,6 @@ var (
 
 	predicateTests = make(map[string]testutils.PredicateTest)
 )
-
-type testValidator struct {
-	nodeID ids.NodeID
-	sk     *bls.SecretKey
-	vdr    *avalancheWarp.Validator
-}
-
-func (v *testValidator) Less(o *testValidator) bool {
-	return v.vdr.Less(o.vdr)
-}
-
-func newTestValidator() *testValidator {
-	sk, err := bls.NewSecretKey()
-	if err != nil {
-		panic(err)
-	}
-
-	nodeID := ids.GenerateTestNodeID()
-	pk := bls.PublicFromSecretKey(sk)
-	return &testValidator{
-		nodeID: nodeID,
-		sk:     sk,
-		vdr: &avalancheWarp.Validator{
-			PublicKey:      pk,
-			PublicKeyBytes: pk.Serialize(),
-			Weight:         3,
-			NodeIDs:        []ids.NodeID{nodeID},
-		},
-	}
-}
-
-type signatureTest struct {
-	name      string
-	stateF    func(*gomock.Controller) validators.State
-	quorumNum uint64
-	quorumDen uint64
-	msgF      func(*require.Assertions) *avalancheWarp.Message
-	err       error
-}
 
 func init() {
 	testVdrs = make([]*testValidator, 0, numTestVdrs)
@@ -133,6 +95,45 @@ func init() {
 	}
 
 	initWarpPredicateTests()
+}
+
+type testValidator struct {
+	nodeID ids.NodeID
+	sk     *bls.SecretKey
+	vdr    *avalancheWarp.Validator
+}
+
+func (v *testValidator) Less(o *testValidator) bool {
+	return v.vdr.Less(o.vdr)
+}
+
+func newTestValidator() *testValidator {
+	sk, err := bls.NewSecretKey()
+	if err != nil {
+		panic(err)
+	}
+
+	nodeID := ids.GenerateTestNodeID()
+	pk := bls.PublicFromSecretKey(sk)
+	return &testValidator{
+		nodeID: nodeID,
+		sk:     sk,
+		vdr: &avalancheWarp.Validator{
+			PublicKey:      pk,
+			PublicKeyBytes: pk.Serialize(),
+			Weight:         3,
+			NodeIDs:        []ids.NodeID{nodeID},
+		},
+	}
+}
+
+type signatureTest struct {
+	name      string
+	stateF    func(*gomock.Controller) validators.State
+	quorumNum uint64
+	quorumDen uint64
+	msgF      func(*require.Assertions) *avalancheWarp.Message
+	err       error
 }
 
 // createWarpMessage constructs a signed warp message using the global variable [unsignedMsg]
@@ -206,7 +207,7 @@ func createSnowCtx(validatorRanges []validatorRange) *snow.Context {
 
 func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicateBytes []byte) testutils.PredicateTest {
 	return testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -233,7 +234,7 @@ func TestWarpNilProposerCtx(t *testing.T) {
 	})
 	predicateBytes := createPredicate(numKeys)
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -243,7 +244,7 @@ func TestWarpNilProposerCtx(t *testing.T) {
 		StorageSlots: predicateBytes,
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:       nil,
-		PredicateErr: errNoProposerPredicate,
+		PredicateErr: errNoProposerCtxPredicate,
 	}
 
 	test.Run(t)
@@ -262,7 +263,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 	predicateBytes = append(predicateBytes, byte(0x01)) // Invalidate the predicate byte packing
 
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -295,7 +296,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -341,7 +342,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -386,7 +387,7 @@ func TestInvalidBitSet(t *testing.T) {
 	})
 	predicateBytes := predicateutils.PackPredicate(msg.Bytes())
 	test := testutils.PredicateTest{
-		Config: NewConfig(big.NewInt(0), 0),
+		Config: NewDefaultConfig(big.NewInt(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -397,7 +398,7 @@ func TestInvalidBitSet(t *testing.T) {
 		},
 		StorageSlots: predicateBytes,
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:       errCannotNumSigners,
+		GasErr:       errCannotGetNumSigners,
 		PredicateErr: nil, // Won't be reached
 	}
 
@@ -415,20 +416,28 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 	})
 
 	tests := make(map[string]testutils.PredicateTest)
-	for _, numSigners := range []int{1, int(DefaultQuorumNumerator) - 1, int(DefaultQuorumNumerator), int(DefaultQuorumNumerator) + 1, 99, 100, 101} {
+	for _, numSigners := range []int{
+		1,
+		int(params.WarpDefaultQuorumNumerator) - 1,
+		int(params.WarpDefaultQuorumNumerator),
+		int(params.WarpDefaultQuorumNumerator) + 1,
+		int(params.WarpQuorumDenominator) - 1,
+		int(params.WarpQuorumDenominator),
+		int(params.WarpQuorumDenominator) + 1,
+	} {
 		var (
 			predicateBytes       = createPredicate(numSigners)
 			expectedPredicateErr error
 		)
-		// If the number of signers is less than the DefaultQuorumNumerator (67)
-		if numSigners < int(DefaultQuorumNumerator) {
+		// If the number of signers is less than the params.WarpDefaultQuorumNumerator (67)
+		if numSigners < int(params.WarpDefaultQuorumNumerator) {
 			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
 		}
-		if numSigners > int(QuorumDenominator) {
+		if numSigners > int(params.WarpQuorumDenominator) {
 			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
 		}
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
-			Config: NewConfig(big.NewInt(0), 0),
+			Config: NewDefaultConfig(big.NewInt(0)),
 			ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 				PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 					SnowCtx: snowCtx,
@@ -459,7 +468,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 	tests := make(map[string]testutils.PredicateTest)
 	nonDefaultQuorumNumerator := 50
 	// Ensure this test fails if the DefaultQuroumNumerator is changed to an unexpected value during development
-	require.NotEqual(t, nonDefaultQuorumNumerator, int(DefaultQuorumNumerator))
+	require.NotEqual(t, nonDefaultQuorumNumerator, int(params.WarpDefaultQuorumNumerator))
 	// Add cases with default quorum
 	for _, numSigners := range []int{nonDefaultQuorumNumerator, nonDefaultQuorumNumerator + 1, 99, 100, 101} {
 		var (
@@ -470,7 +479,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 		if numSigners < nonDefaultQuorumNumerator {
 			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
 		}
-		if numSigners > int(QuorumDenominator) {
+		if numSigners > int(params.WarpQuorumDenominator) {
 			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
 		}
 		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)
@@ -557,7 +566,7 @@ func initWarpPredicateTests() {
 		testName := fmt.Sprintf("%d validators w/ %d signers/repeated PublicKeys", totalNodes, numSigners)
 
 		predicateBytes := createPredicate(numSigners)
-		getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+		getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput, totalNodes)
 		for i := 0; i < totalNodes; i++ {
 			getValidatorsOutput[testVdrs[i].nodeID] = &validators.GetValidatorOutput{
 				NodeID:    testVdrs[i].nodeID,

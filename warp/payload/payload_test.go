@@ -41,7 +41,7 @@ func TestParseAddressedPayload(t *testing.T) {
 		Payload:            []byte{7, 8, 9},
 	}
 
-	require.NoError(t, payload.Initialize())
+	require.NoError(t, payload.initialize())
 
 	require.Equal(t, base64Payload, base64.StdEncoding.EncodeToString(payload.Bytes()))
 

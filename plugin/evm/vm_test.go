@@ -3164,7 +3164,7 @@ func TestSignatureRequestsToVM(t *testing.T) {
 	warpMessage, err := avalancheWarp.NewUnsignedMessage(vm.ctx.ChainID, ids.GenerateTestID(), []byte{1, 2, 3})
 	require.NoError(t, err)
 
-	// Get the signature of the known message
+	// Add the known message and get its signature to confirm.
 	err = vm.warpBackend.AddMessage(warpMessage)
 	require.NoError(t, err)
 	signature, err := vm.warpBackend.GetSignature(warpMessage.ID())
@@ -3174,7 +3174,7 @@ func TestSignatureRequestsToVM(t *testing.T) {
 		messageID        ids.ID
 		expectedResponse [bls.SignatureLen]byte
 	}{
-		"normal": {
+		"known": {
 			messageID:        warpMessage.ID(),
 			expectedResponse: signature,
 		},
@@ -3204,7 +3204,8 @@ func TestSignatureRequestsToVM(t *testing.T) {
 			require.NoError(t, err)
 
 			// Send the app request and make sure we called SendAppResponseFn
-			err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, time.Now().Add(60*time.Second), requestBytes)
+			deadline := time.Now().Add(60 * time.Second)
+			err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, deadline, requestBytes)
 			require.NoError(t, err)
 			require.True(t, calledSendAppResponseFn)
 		})

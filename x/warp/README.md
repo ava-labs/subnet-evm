@@ -25,19 +25,19 @@ We can build a generic Avalanche Warp Messaging Protocol. :point_down:
 
 The validator set of Subnet A can send a message on behalf of any blockchain on its Subnet.
 
-For example, let's say that there are two Subnets Subnet A and Subnet B each with a single Blockchain we'll call Blockchain A and Blockchain B.
+For example, let's say that there are two Subnets: Subnet A and Subnet B each with a single Blockchain we'll call Blockchain A and Blockchain B.
 
 First, Blockchain A produces a BLS Multisignature of a message to send to Blockchain B:
 
 1. A transaction is issued on Blockchain A to send a message to Subnet B
 2. The transaction is accepted on Blockchain A (must wait for acceptance)
 3. The VM powering Blockchain A (ex: Subnet-EVM) should either
-    a) be willing to sign the message to allow a signature aggregator to aggregate signaures from the Subnet's validator set
+    a) be willing to sign the message to allow an off-chain relayer to aggregate signatures from the Subnet's validator set (existing implementation)
     b) aggregate signatures from the validator set of Subnet A to produce its own aggregate signature
 
 The signature of Subnet A's validator set attests to the message being sent by Blockchain A.
 
-To receive the message, Blockchain B must be running a Snowman VM that is wrapped in the Snowman++ ProposerVM. The ProposerVM provides the P-Chain Context which a block on Blockchain B was issued in. See (here)[https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm#snowman-block-extension] for more details on the ProposerVM block wrapper.
+To receive the message, Blockchain B must be running a Snowman VM that is wrapped in the Snowman++ ProposerVM. The ProposerVM provides the P-Chain Context which a block on Blockchain B was issued in. See (here)[https://github.com/ava-labs/avalanchego/tree/v1.10.4/vms/proposervm#snowman-block-extension] for more details on the ProposerVM block wrapper. The ProposerVM header includes a P-Chain height at which the block was validated. This P-Chain height determines the canonical state of the P-Chain to use for verification of all Avalanche Warp Messages.
 
 To validate and deliver the message, an off-chain component delivers the signed message from Blockchain A to Blockchain B (this is out of scope for Avalanche Warp Messaging itself).
 
@@ -45,10 +45,10 @@ When Blockchain B receives the message, it validates and delivers/executes the m
 
 1. Read the SourceChainID of the signed message (Blockchain A)
 2. Look up the SubnetID that validates Blockchain A: Subnet A
-3. Look up the validator set of Subnet A and the registered BLS Public Keys of Subnet A
+3. Look up the validator set of Subnet A and the registered BLS Public Keys of Subnet A at the P-Chain height specified by the ProposerVM header
 4. Filter the validators of Subnet A to include only the validators that the signed message claims as signers
-5. Aggregate the BLS Public Keys of the claimed signers into an aggregated BLS Public Key
-6. Verify the validator set with the claimed BLS Public Keys has sufficient stake to verify the message
+5. Verify the claimed included validators represent a sufficient quorum of stake to verify the message
+6. Aggregate the BLS Public Keys of the claimed signers into an aggregated BLS Public Key
 7. Validate the aggregate signature matches the claimed aggregate BLS Public Key
 
 After verifying the message, Blockchain B can define its own semantics of how to deliver or execute the message.
@@ -72,12 +72,13 @@ However, when Subnet B receives a message from the C-Chain, it changes the seman
 
 1. Read the SourceChainID of the signed message (C-Chain)
 2. Look up the SubnetID that validates C-Chain: Primary Network
-3. Look up the validator set of Subnet B (instead of the Primary Network) and the registered BLS Public Keys of Subnet B
+3. Look up the validator set of Subnet B (instead of the Primary Network) and the registered BLS Public Keys of Subnet B at the P-Chain height specified by the ProposerVM header
 4. Filter the validators of Subnet B to include only the validators that the signed message claims as signers
-5. Aggregate the BLS Public Keys of the claimed signers into an aggregated BLS Public Key
-6. Validate the actual BLS Multisignature against the aggregate BLS Public Key
+5. Verify the claimed included validators represent a sufficient quorum of stake to verify the message
+6. Aggregate the BLS Public Keys of the claimed signers into an aggregated BLS Public Key
+7. Validate the aggregate signature matches the claimed aggregate BLS Public Key
 
-This means that if Subnet B has 10 validators, then C-Chain to Subnet communication only requires a threshold of those 10 validators rather than the entire Primary Network.
+This means that if Subnet B has 10 equally weighted validators, then C-Chain to Subnet communication only requires a threshold of stake from those 10 validators rather than a threshold of the stake of the Primary Network.
 
 Since the security of Subnet B depends on the validators of Subnet B already, changing the requirements of verifying the message from verifying a signature from the entire Primary Network to only Subnet B's validator set does not change the security of Subnet B!
 
@@ -93,11 +94,11 @@ The Warp Precompile is broken down into three functions defined in the Solidity 
 - `SourceAddress` - `msg.sender` encoded as a 32 byte value that calls `sendWarpMessage`
 - `DestinationChainID` - `bytes32` argument specifies the blockchainID on the Avalanche P-Chain that should receive the message
 - `DestinationAddress` - 32 byte value that represents the destination address that should receive the message (on the EVM this is the 20 byte address left zero extended)
-- `Payload` - `payload` argument specified in the call to `sendWarpMessage`
+- `Payload` - `payload` argument specified in the call to `sendWarpMessage` emitted as the unindexed data of the resulting log
 
 Calling this function will issue a `SendWarpMessage` event from the Warp Precompile. Since the EVM limits the number of topics to 4 including the EventID, this message includes only the topics that would be expected to help filter messages emitted from the Warp Precompile the most.
 
-Specifically, the `payload` is not emitted because this would need to be a hash and it would not be expected to be helpful to determine whether or not the log is of any interest to anyone parsing the chain.
+Specifically, the `payload` is not emitted as a topic because each topic must be encoded as a hash. It could include the warp `messageID` as a topic, but that would not add more information. Therefore, we opt to take advantage of each possible topic to maximize the possible filtering for emitted Warp Messages.
 
 Additionally, the `SourceChainID` is excluded because anyone parsing the chain can be expected to already know the blockchainID. Therefore, the `SendWarpMessage` event includes the indexable attributes:
 
@@ -112,30 +113,30 @@ The actual `message` is the entire [Avalanche Warp Unsigned Message](https://git
 
 `getVerifiedMessage` is used to read the contents of the delivered Avalanche Warp Message into the expected format.
 
-It returns the message if present and a boolean indicating whether or not there is an Avalanche Warp Message included in the transaction and pre-verified in the block.
+It returns the message if present and a boolean indicating if a message is present.
 
-To use this function, the transaction must include the signed Avalanche Warp Message encoded in the [predicate](#predicate-encoding) of the transaction. Prior to the block's execution, every transaction predicate is pre-verified.
+To use this function, the transaction must include the signed Avalanche Warp Message encoded in the [predicate](#predicate-encoding) of the transaction. Prior to executing a block, the VM iterates through transactions and pre-verifies all predicates. If a transaction's predicate is invalid, then it is considered invalid to include in the block and dropped.
 
 This gives the following properties:
 
 1. The EVM execution does not need to verify the Warp Message at runtime (no signature verification or external calls to the P-Chain)
-2. The EVM can deterministically re-execute and re-verify blocks assuming the predicate was verified by the network
+2. The EVM can deterministically re-execute and re-verify blocks assuming the predicate was verified by the network (eg., in bootstrapping)
 
 This pre-verification is performed using the ProposerVM Block header during [block verification](../../../plugin/evm/block.go#L220) and [block building](../../../miner/worker.go#L200).
 
-Note: in order to support the notion of an `AnycastID` for the `DestinationChainID`, `getVerifiedMessage` and the predicate DO NOT require that the `DestinationChainID` matches the `blockchainID` currently running. Instead, callers of `getVerifiedMessage` should use `getBlockchainID()` to decide how they should interpret the message ie. Am I the recipient chain or is this an Anycast message?
+Note: in order to support the notion of an `AnycastID` for the `DestinationChainID`, `getVerifiedMessage` and the predicate DO NOT require that the `DestinationChainID` matches the `blockchainID` currently running. Instead, callers of `getVerifiedMessage` should use `getBlockchainID()` to decide how they should interpret the message. In other words, does the `destinationChainID` match either the local `blockchainID` or the `AnycastID`.
 
 ### getBlockchainID
 
 `getBlockchainID` returns the blockchainID of the blockchain that Subnet-EVM is running on.
 
-This is different from the conventional Eth ChainID registered to https://chainlist.org/.
+This is different from the conventional Ethereum ChainID registered to https://chainlist.org/.
 
 The `blockchainID` in Avalanche refers to the txID that created the blockchain on the Avalanche P-Chain ([docs](https://docs.avax.network/specs/platform-transaction-serialization#unsigned-create-chain-tx)).
 
 ### Predicate Encoding
 
-Avalanche Warp Messages are encoded as a signed Avalanche [Warp Message](https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/warp/message.go#L7) where the [UnsignedMessage](https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/warp/unsigned_message.go#L14)'s payload includes an [AddressedPayload](../../../warp/payload/payload.go).
+Avalanche Warp Messages are encoded as a signed Avalanche [Warp Message](https://github.com/ava-labs/avalanchego/blob/v1.10.4/vms/platformvm/warp/message.go#L7) where the [UnsignedMessage](https://github.com/ava-labs/avalanchego/blob/v1.10.4/vms/platformvm/warp/unsigned_message.go#L14)'s payload includes an [AddressedPayload](../../../warp/payload/payload.go).
 
 Since the predicate is encoded into the [Transaction Access List](https://eips.ethereum.org/EIPS/eip-2930), it is packed into 32 byte hashes intended to declare storage slots that should be pre-warmed into the cache prior to transaction execution.
 
@@ -157,7 +158,7 @@ Therefore, we need a heuristic to ensure that the network can correctly re-proce
 
 As a result, we require that the block itself provides a deterministic hint which determines which Avalanche Warp Messages were considered valid/invalid during the block's execution. This ensures that we can always re-process blocks and use the hint to decide whether an Avalanche Warp Message should be treated as valid/invalid even after the P-Chain state that was used at the original execution time may no longer support fast lookups.
 
-To provide that thint, we've explored two designs:
+To provide that hint, we've explored two designs:
 
 1. Include a predicate in the transaction to ensure any referenced message is valid
 2. Append the results of checking whether a Warp Message is valid/invalid to the block data itself
@@ -182,8 +183,10 @@ The Warp Precompile itself provides ONLY the following ability:
 
 send a verified message from a caller on blockchain A to a destination address on blockchain B
 
+#### Explicitly Not Provided / Built on Top
+
 The Warp Precompile itself does not provide any guarantees of:
 
-- Eventual message delivery (may require re-send on blockchain A)
+- Eventual message delivery (may require re-send on blockchain A and additional assumptions about off-chain relayers and chain progress)
 - Ordering of messages (requires ordering provided a layer above)
 - Replay protection (requires replay protection provided a layer above)

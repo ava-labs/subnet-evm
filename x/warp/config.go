@@ -10,6 +10,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
@@ -17,12 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
-)
-
-const (
-	QuorumDenominator      uint64 = 100
-	DefaultQuorumNumerator uint64 = 67
-	MinQuorumNumerator     uint64 = 33
 )
 
 var (
@@ -33,11 +28,11 @@ var (
 
 var (
 	errOverflowSignersGasCost  = errors.New("overflow calculating warp signers gas cost")
-	errNoProposerPredicate     = errors.New("cannot verify warp predicate without proposer context")
+	errNoProposerCtxPredicate  = errors.New("cannot verify warp predicate without proposer context")
 	errInvalidPredicateBytes   = errors.New("cannot unpack predicate bytes")
 	errInvalidWarpMsg          = errors.New("cannot unpack warp message")
 	errInvalidAddressedPayload = errors.New("cannot unpack addressed payload")
-	errCannotNumSigners        = errors.New("cannot fetch num signers from warp message")
+	errCannotGetNumSigners     = errors.New("cannot fetch num signers from warp message")
 )
 
 // Config implements the precompileconfig.Config interface and
@@ -79,12 +74,12 @@ func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify() error {
-	if c.QuorumNumerator > QuorumDenominator {
-		return fmt.Errorf("cannot specify quorum numerator (%d) > quorum denominator (%d)", c.QuorumNumerator, QuorumDenominator)
+	if c.QuorumNumerator > params.WarpQuorumDenominator {
+		return fmt.Errorf("cannot specify quorum numerator (%d) > quorum denominator (%d)", c.QuorumNumerator, params.WarpQuorumDenominator)
 	}
 	// If a non-default quorum numerator is specified and it is less than the minimum, return an error
-	if c.QuorumNumerator != 0 && c.QuorumNumerator < MinQuorumNumerator {
-		return fmt.Errorf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", c.QuorumNumerator, MinQuorumNumerator)
+	if c.QuorumNumerator != 0 && c.QuorumNumerator < params.WarpQuorumNumeratorMinimum {
+		return fmt.Errorf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", c.QuorumNumerator, params.WarpQuorumNumeratorMinimum)
 	}
 	return nil
 }
@@ -115,8 +110,8 @@ func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, txHash common
 // verifyWarpMessage checks that [warpMsg] can be parsed as an addressed payload and verifies the Warp Message Signature
 // within [predicateContext].
 func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPredicateContext, warpMsg *warp.Message) error {
-	// Use default quourum numerator unless config specifies a non-default option
-	quorumNumerator := DefaultQuorumNumerator
+	// Use default quorum numerator unless config specifies a non-default option
+	quorumNumerator := params.WarpDefaultQuorumNumerator
 	if c.QuorumNumerator != 0 {
 		quorumNumerator = c.QuorumNumerator
 	}
@@ -127,14 +122,14 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 		return fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
 	}
 
-	log.Info("verifyingWarpMessage", "warpMsg", warpMsg, "quorumNum", quorumNumerator, "quorumDenom", QuorumDenominator)
+	log.Debug("verifying warp message", "warpMsg", warpMsg, "quorumNum", quorumNumerator, "quorumDenom", params.WarpQuorumDenominator)
 	if err := warpMsg.Signature.Verify(
 		context.Background(),
 		&warpMsg.UnsignedMessage,
 		warpValidators.NewState(predicateContext.SnowCtx), // Wrap validators.State on the chain snow context to special case the Primary Network
 		predicateContext.ProposerVMBlockCtx.PChainHeight,
 		quorumNumerator,
-		QuorumDenominator,
+		params.WarpQuorumDenominator,
 	); err != nil {
 		return fmt.Errorf("warp signature verification failed: %w", err)
 	}
@@ -165,7 +160,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 
 	numSigners, err := warpMessage.Signature.NumSigners()
 	if err != nil {
-		return 0, fmt.Errorf("%w: %s", errCannotNumSigners, err)
+		return 0, fmt.Errorf("%w: %s", errCannotGetNumSigners, err)
 	}
 	signerGas, overflow := math.SafeMul(uint64(numSigners), GasCostPerWarpSigner)
 	if overflow {
@@ -201,7 +196,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 // VerifyPredicate verifies the predicate represents a valid signed and properly formatted Avalanche Warp Message.
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.ProposerPredicateContext, predicateBytes []byte) error {
 	if predicateContext.ProposerVMBlockCtx == nil {
-		return errNoProposerPredicate
+		return errNoProposerCtxPredicate
 	}
 	// Note: PredicateGas should be called before VerifyPredicate, so we should never reach an error case here.
 	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)

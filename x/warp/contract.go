@@ -22,11 +22,13 @@ import (
 )
 
 const (
-	GetBlockchainIDGasCost uint64 = 2 // Based on GasQuickStep used in existing EVM instructions
+	GetBlockchainIDGasCost uint64 = 2      // Based on GasQuickStep used in existing EVM instructions
+	AddWarpMessageGasCost  uint64 = 20_000 // Cost of producing and serving a BLS Signature
 	// Sum of base log gas cost, cost of producing 4 topics, and producing + serving a BLS Signature (sign + trie write)
 	// Note: using trie write for the gas cost results in a conservative overestimate since the message is stored in a
 	// flat database that can be cleaned up after a period of time instead of the EVM trie.
-	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + 20_000 + contract.WriteGasCostPerSlot
+
+	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + AddWarpMessageGasCost + contract.WriteGasCostPerSlot
 	// SendWarpMessageGasCostPerByte cost accounts for producing a signed message of a given size
 	SendWarpMessageGasCostPerByte uint64 = params.LogDataGas
 
@@ -42,7 +44,6 @@ var (
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
-
 	// WarpRawABI contains the raw ABI of Warp contract.
 	//go:embed contract.abi
 	WarpRawABI string
@@ -98,7 +99,7 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	return packedOutput, remainingGas, nil
 }
 
-// PackGetVerifiedWarpMessage packs the include selector (first 4 func signature bytes).
+// PackGetVerifiedWarpMessage packs the calldata for the getVerifiedWarpMessage function
 // This function is mostly used for tests.
 func PackGetVerifiedWarpMessage() ([]byte, error) {
 	return WarpABI.Pack("getVerifiedWarpMessage")
@@ -122,7 +123,6 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	// Ignore input since there are no arguments
 	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	// If there is no such value, return false to the caller.
-	// Note: decoding errors will return an error instead.
 	if !exists {
 		packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 			Exists: false,
@@ -140,6 +140,8 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
 		return nil, 0, err
 	}
+	// Note: since the predicate is verified in advance of execution, the precompile should not
+	// hit an error during execution.
 	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)

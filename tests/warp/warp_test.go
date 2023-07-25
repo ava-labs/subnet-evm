@@ -2,7 +2,7 @@
 // See the file LICENSE for licensing terms.
 
 // Implements solidity tests.
-package solidity
+package warp
 
 import (
 	"context"
@@ -52,7 +52,7 @@ func toWebsocketURI(uri string, blockchainID string) string {
 
 // BeforeSuite starts the default network and adds 10 new nodes as validators with BLS keys
 // registered on the P-Chain.
-// Adds two disjoin sets of 5 of the new validator nodes to validate two new subnets with a
+// Adds two disjoint sets of 5 of the new validator nodes to validate two new subnets with a
 // a single Subnet-EVM blockchain.
 var _ = ginkgo.BeforeSuite(func() {
 	ctx := context.Background()
@@ -124,9 +124,9 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		fundedAddress                  common.Address
 		payload                        = []byte{1, 2, 3}
 		txSigner                       = types.LatestSignerForChainID(chainID)
+		err                            error
 	)
 
-	var err error
 	fundedKey, err = crypto.HexToECDSA("56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027")
 	if err != nil {
 		panic(err)
@@ -151,7 +151,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(len(subnetBDetails.ValidatorURIs)).Should(gomega.Equal(5))
 		chainBURIs = append(chainBURIs, subnetBDetails.ValidatorURIs...)
 
-		log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA.String(), "blockchainIDB", blockchainIDB)
+		log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA, "blockchainIDB", blockchainIDB)
 
 		chainAWSURI := toWebsocketURI(chainAURIs[0], blockchainIDA.String())
 		log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
@@ -302,7 +302,8 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		warpClient, err := warpBackend.NewWarpClient(chainAURIs[0], blockchainIDA.String())
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		signedWarpMessageBytes, err := warpClient.GetAggregateSignature(ctx, unsignedWarpMessageID, 100)
+		// Specify WarpQuorumDenominator to retrieve signatures from every validator
+		signedWarpMessageBytes, err := warpClient.GetAggregateSignature(ctx, unsignedWarpMessageID, params.WarpQuorumDenominator)
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(signedWarpMessageBytes).Should(gomega.Equal(signedWarpMsg.Bytes()))
 	})
@@ -332,16 +333,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		newHead := <-newHeads
 		log.Info("Transaction triggered new block", "blockHash", newHead.Hash())
-
-		nonce++
-		// Try building another block to see if that one ends up as a PostForkBlock
-		triggerTx2, err := types.SignTx(types.NewTransaction(nonce, fundedAddress, common.Big1, 21_000, big.NewInt(225*params.GWei), nil), txSigner, fundedKey)
-		gomega.Expect(err).Should(gomega.BeNil())
-
-		err = chainBWSClient.SendTransaction(ctx, triggerTx2)
-		gomega.Expect(err).Should(gomega.BeNil())
-		newHead = <-newHeads
-		log.Info("Transaction2 triggered new block", "blockHash", newHead.Hash())
 		nonce++
 
 		packedInput, err := warp.PackGetVerifiedWarpMessage()

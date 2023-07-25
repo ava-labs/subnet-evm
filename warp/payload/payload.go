@@ -9,7 +9,8 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 )
 
-// AddressedPayload defines an optional format for the bytes payload of a Warp message.
+// AddressedPayload defines the format for delivering a point to point message across VMs
+// ie. (ChainA, AddressA) -> (ChainB, AddressB)
 type AddressedPayload struct {
 	SourceAddress      ids.ID `serialize:"true"`
 	DestinationAddress ids.ID `serialize:"true"`
@@ -25,7 +26,7 @@ func NewAddressedPayload(sourceAddress ids.ID, destinationAddress ids.ID, payloa
 		DestinationAddress: destinationAddress,
 		Payload:            payload,
 	}
-	return ap, ap.Initialize()
+	return ap, ap.initialize()
 }
 
 // ParseAddressedPayload converts a slice of bytes into an initialized
@@ -43,8 +44,8 @@ func ParseAddressedPayload(b []byte) (*AddressedPayload, error) {
 	return payload, nil
 }
 
-// Initialize recalculates the result of Bytes().
-func (a *AddressedPayload) Initialize() error {
+// initialize recalculates the result of Bytes().
+func (a *AddressedPayload) initialize() error {
 	aIntf := any(a)
 	bytes, err := c.Marshal(codecVersion, &aIntf)
 	if err != nil {
@@ -55,8 +56,7 @@ func (a *AddressedPayload) Initialize() error {
 }
 
 // Bytes returns the binary representation of this payload. It assumes that the
-// payload is initialized from either NewAddressedPayload, ParseAddressedPayload, or an explicit call to
-// Initialize.
+// payload is initialized from either NewAddressedPayload or ParseAddressedPayload.
 func (a *AddressedPayload) Bytes() []byte {
 	return a.bytes
 }
