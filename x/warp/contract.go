@@ -133,6 +133,8 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return packedOutput, remainingGas, nil
 	}
 
+	// Note: we charge for the size of the message during both predicate verification and each time the message is read during
+	// EVM execution because each execution incurs an additional read cost.
 	msgBytesGas, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
 	if overflow {
 		return nil, remainingGas, vmerrs.ErrOutOfGas
