@@ -141,30 +141,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		})
 	}
 
-	go func(ctx context.Context) {
-		// Start a prometheus server to expose individual tx metrics
-		server := &http.Server{
-			Addr: MetricsPort,
-		}
-
-		go func() {
-			defer func() {
-				if err := server.Shutdown(ctx); err != nil {
-					log.Error("Metrics server error: %v", err)
-				}
-				log.Info("Received a SIGINT signal: Gracefully shutting down metrics server")
-			}()
-			sigChan := make(chan os.Signal, 1)
-			signal.Notify(sigChan, syscall.SIGINT)
-			<-sigChan
-		}()
-
-		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
-		log.Info(fmt.Sprintf("Metrics Server: localhost%s/metrics", MetricsPort))
-		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			log.Error("Metrics server error: %v", err)
-		}
-	}(ctx)
+	go startMetricsServer(ctx, reg)
 
 	log.Info("Waiting for tx agents...")
 	if err := eg.Wait(); err != nil {
@@ -172,4 +149,33 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	}
 	log.Info("Tx agents completed successfully.")
 	return nil
+}
+
+func startMetricsServer(ctx context.Context, reg *prometheus.Registry) {
+	// Start a prometheus server to expose individual tx metrics
+	server := &http.Server{
+		Addr: MetricsPort,
+	}
+	// Create buffered sigChan to send SIGINT notifications
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT)
+
+	// Start up go routine to listen for SIGINT notifications to gracefully shut down server
+	go func() {
+		defer func() {
+			if err := server.Shutdown(ctx); err != nil {
+				log.Error("Metrics server error: %v", err)
+			}
+			log.Info("Received a SIGINT signal: Gracefully shutting down metrics server")
+		}()
+		// Blocks until signal is received
+		<-sigChan
+	}()
+
+	// Start metrics server
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+	log.Info(fmt.Sprintf("Metrics Server: localhost%s/metrics", MetricsPort))
+	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		log.Error("Metrics server error: %v", err)
+	}
 }
