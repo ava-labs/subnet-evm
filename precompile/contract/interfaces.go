@@ -60,14 +60,13 @@ type AccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
 	GetSnowContext() *snow.Context
-	CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error)
 }
 
 // BlockContext defines an interface that provides information to a stateful precompile about the
 // current block. The BlockContext may be provided during both precompile activation and execution.
 type BlockContext interface {
 	Number() *big.Int
-	Timestamp() *big.Int
+	Timestamp() uint64
 }
 
 type Configurator interface {
