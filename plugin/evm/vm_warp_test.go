@@ -25,6 +25,7 @@ import (
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
+	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
@@ -38,7 +39,7 @@ func TestSendWarpMessage(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(big.NewInt(0)),
+		warp.ConfigKey: warp.NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -125,7 +126,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(big.NewInt(0)),
+		warp.ConfigKey: warp.NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -143,13 +144,14 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	addressedPayload, err := warpPayload.NewAddressedPayload(
 		ids.ID(testEthAddrs[0].Hash()),
+		vm.ctx.CChainID,
 		ids.ID(testEthAddrs[1].Hash()),
 		payload,
 	)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+		vm.ctx.NetworkID,
 		vm.ctx.ChainID,
-		vm.ctx.CChainID,
 		addressedPayload.Bytes(),
 	)
 	require.NoError(err)

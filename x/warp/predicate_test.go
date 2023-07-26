@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -21,6 +20,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/golang/mock/gomock"
@@ -33,6 +33,7 @@ var (
 	_ utils.Sortable[*testValidator] = (*testValidator)(nil)
 
 	errTest            = errors.New("non-nil error")
+	networkID          = uint32(54321)
 	sourceChainID      = ids.GenerateTestID()
 	sourceSubnetID     = ids.GenerateTestID()
 	destinationChainID = ids.GenerateTestID()
@@ -79,12 +80,12 @@ func init() {
 	}
 
 	var err error
-	addressedPayload, err = warpPayload.NewAddressedPayload(ids.GenerateTestID(), ids.GenerateTestID(), []byte{1, 2, 3})
+	addressedPayload, err = warpPayload.NewAddressedPayload(ids.GenerateTestID(), destinationChainID, ids.GenerateTestID(), []byte{1, 2, 3})
 	if err != nil {
 		panic(err)
 	}
 	addressedPayloadBytes = addressedPayload.Bytes()
-	unsignedMsg, err = avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, addressedPayload.Bytes())
+	unsignedMsg, err = avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, addressedPayload.Bytes())
 	if err != nil {
 		panic(err)
 	}
@@ -202,12 +203,13 @@ func createSnowCtx(validatorRanges []validatorRange) *snow.Context {
 		},
 	}
 	snowCtx.ValidatorState = state
+	snowCtx.NetworkID = networkID
 	return snowCtx
 }
 
 func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicateBytes []byte) testutils.PredicateTest {
 	return testutils.PredicateTest{
-		Config: NewDefaultConfig(big.NewInt(0)),
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -234,7 +236,7 @@ func TestWarpNilProposerCtx(t *testing.T) {
 	})
 	predicateBytes := createPredicate(numKeys)
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(big.NewInt(0)),
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -263,7 +265,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 	predicateBytes = append(predicateBytes, byte(0x01)) // Invalidate the predicate byte packing
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(big.NewInt(0)),
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -296,7 +298,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(big.NewInt(0)),
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -334,7 +336,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	}
 	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
 	// Create an unsigned message with an invalid addressed payload
-	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, []byte{1, 2, 3})
+	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3})
 	require.NoError(t, err)
 	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
 	require.NoError(t, err)
@@ -342,7 +344,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(big.NewInt(0)),
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -362,8 +364,8 @@ func TestInvalidAddressedPayload(t *testing.T) {
 
 func TestInvalidBitSet(t *testing.T) {
 	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+		networkID,
 		sourceChainID,
-		ids.Empty,
 		[]byte{1, 2, 3},
 	)
 	require.NoError(t, err)
@@ -387,7 +389,7 @@ func TestInvalidBitSet(t *testing.T) {
 	})
 	predicateBytes := predicateutils.PackPredicate(msg.Bytes())
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(big.NewInt(0)),
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -437,7 +439,7 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
 		}
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
-			Config: NewDefaultConfig(big.NewInt(0)),
+			Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 			ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 				PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 					SnowCtx: snowCtx,
@@ -484,7 +486,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 		}
 		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)
 		tests[name] = testutils.PredicateTest{
-			Config: NewConfig(big.NewInt(0), uint64(nonDefaultQuorumNumerator)),
+			Config: NewConfig(subnetEVMUtils.NewUint64(0), uint64(nonDefaultQuorumNumerator)),
 			ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 				PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 					SnowCtx: snowCtx,
@@ -576,6 +578,7 @@ func initWarpPredicateTests() {
 		}
 
 		snowCtx := snow.DefaultContextTest()
+		snowCtx.NetworkID = networkID
 		state := &validators.TestState{
 			GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
 				return sourceSubnetID, nil

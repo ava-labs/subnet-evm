@@ -18,6 +18,7 @@ func TestAddressedPayload(t *testing.T) {
 	addressedPayload, err := NewAddressedPayload(
 		ids.GenerateTestID(),
 		ids.GenerateTestID(),
+		ids.GenerateTestID(),
 		[]byte("payload"),
 	)
 	require.NoError(err)
@@ -34,11 +35,12 @@ func TestParseAddressedPayloadJunk(t *testing.T) {
 }
 
 func TestParseAddressedPayload(t *testing.T) {
-	base64Payload := "AAAAAAAAAQIDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMHCAk="
+	base64Payload := "AAAAAAAAAQIDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcICQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwoLDA=="
 	payload := &AddressedPayload{
 		SourceAddress:      ids.ID{1, 2, 3},
-		DestinationAddress: ids.ID{4, 5, 6},
-		Payload:            []byte{7, 8, 9},
+		DestinationChainID: ids.ID{4, 5, 6},
+		DestinationAddress: ids.ID{7, 8, 9},
+		Payload:            []byte{10, 11, 12},
 	}
 
 	require.NoError(t, payload.initialize())

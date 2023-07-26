@@ -32,8 +32,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -59,8 +59,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -97,8 +97,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -126,8 +126,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -156,8 +156,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -189,8 +189,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 1,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -233,8 +233,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -267,8 +267,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -302,8 +302,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 5,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -346,8 +346,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 5,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -386,8 +386,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 5,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -431,8 +431,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 2,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -475,8 +475,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 3,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -535,8 +535,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 3,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -596,8 +596,8 @@ func TestSignatureVerification(t *testing.T) {
 			quorumDen: 3,
 			msgF: func(require *require.Assertions) *avalancheWarp.Message {
 				unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+					networkID,
 					sourceChainID,
-					ids.Empty,
 					addressedPayloadBytes,
 				)
 				require.NoError(err)
@@ -641,6 +641,7 @@ func TestSignatureVerification(t *testing.T) {
 			err := msg.Signature.Verify(
 				context.Background(),
 				&msg.UnsignedMessage,
+				networkID,
 				pChainState,
 				pChainHeight,
 				tt.quorumNum,

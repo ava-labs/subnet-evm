@@ -13,6 +13,7 @@ import (
 // ie. (ChainA, AddressA) -> (ChainB, AddressB)
 type AddressedPayload struct {
 	SourceAddress      ids.ID `serialize:"true"`
+	DestinationChainID ids.ID `serialize:"true"`
 	DestinationAddress ids.ID `serialize:"true"`
 	Payload            []byte `serialize:"true"`
 
@@ -20,9 +21,10 @@ type AddressedPayload struct {
 }
 
 // NewAddressedPayload creates a new *AddressedPayload and initializes it.
-func NewAddressedPayload(sourceAddress ids.ID, destinationAddress ids.ID, payload []byte) (*AddressedPayload, error) {
+func NewAddressedPayload(sourceAddress ids.ID, destinationChainID ids.ID, destinationAddress ids.ID, payload []byte) (*AddressedPayload, error) {
 	ap := &AddressedPayload{
 		SourceAddress:      sourceAddress,
+		DestinationChainID: destinationChainID,
 		DestinationAddress: destinationAddress,
 		Payload:            payload,
 	}

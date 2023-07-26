@@ -163,7 +163,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		Message: WarpMessage{
 			OriginChainID:       common.Hash(warpMessage.SourceChainID),
 			OriginSenderAddress: common.Hash(addressedPayload.SourceAddress),
-			DestinationChainID:  common.Hash(warpMessage.DestinationChainID),
+			DestinationChainID:  common.Hash(addressedPayload.DestinationChainID),
 			DestinationAddress:  common.Hash(addressedPayload.DestinationAddress),
 			Payload:             addressedPayload.Payload,
 		},
@@ -225,6 +225,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 
 	addressedPayload, err := warpPayload.NewAddressedPayload(
 		ids.ID(sourceAddress),
+		ids.ID(destinationChainID),
 		ids.ID(destinationAddress),
 		payload,
 	)
@@ -232,8 +233,8 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		return nil, remainingGas, err
 	}
 	unsignedWarpMessage, err := warp.NewUnsignedMessage(
+		accessibleState.GetSnowContext().NetworkID,
 		sourceChainID,
-		ids.ID(destinationChainID),
 		addressedPayload.Bytes(),
 	)
 	if err != nil {

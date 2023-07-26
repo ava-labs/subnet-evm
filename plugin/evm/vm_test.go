@@ -3164,7 +3164,7 @@ func TestSignatureRequestsToVM(t *testing.T) {
 	}()
 
 	// Generate a new warp unsigned message and add to warp backend
-	warpMessage, err := avalancheWarp.NewUnsignedMessage(vm.ctx.ChainID, ids.GenerateTestID(), []byte{1, 2, 3})
+	warpMessage, err := avalancheWarp.NewUnsignedMessage(vm.ctx.NetworkID, vm.ctx.ChainID, []byte{1, 2, 3})
 	require.NoError(t, err)
 
 	// Add the known message and get its signature to confirm.
