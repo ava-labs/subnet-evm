@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
-	github.com/ava-labs/avalanche-network-runner v1.6.1-0.20230616215223-ce1c18985fc9
+	github.com/ava-labs/avalanche-network-runner v1.7.1
 	github.com/ava-labs/avalanchego v1.10.5
 	github.com/cespare/cp v0.1.0
 	github.com/cockroachdb/pebble v0.0.0-20230209160836-829675f94811
@@ -31,7 +31,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo/v2 v2.8.1
 	github.com/onsi/gomega v1.26.0
-	github.com/prometheus/client_golang v1.15.1
+	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/client_model v0.3.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/spf13/cast v1.5.0
@@ -111,7 +111,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
-	github.com/prometheus/procfs v0.9.0 // indirect
+	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
