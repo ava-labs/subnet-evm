@@ -89,7 +89,7 @@ func TestSendWarpMessage(t *testing.T) {
 
 	sendWarpMessageInput, err := PackSendWarpMessage(SendWarpMessageInput{
 		DestinationChainID: common.Hash(destinationChainID),
-		DestinationAddress: receiverAddr.Hash(),
+		DestinationAddress: receiverAddr,
 		Payload:            sendWarpMessagePayload,
 	})
 	require.NoError(t, err)
@@ -143,8 +143,8 @@ func TestSendWarpMessage(t *testing.T) {
 
 				// require.Equal(t, unsignedWarpMsg.DestinationChainID, destinationChainID)
 				require.Equal(t, unsignedWarpMsg.SourceChainID, blockchainID)
-				require.Equal(t, addressedPayload.DestinationAddress, ids.ID(receiverAddr.Hash()))
-				require.Equal(t, addressedPayload.SourceAddress, ids.ID(callerAddr.Hash()))
+				require.Equal(t, addressedPayload.DestinationAddress, receiverAddr)
+				require.Equal(t, addressedPayload.SourceAddress, callerAddr)
 				require.Equal(t, addressedPayload.Payload, sendWarpMessagePayload)
 			},
 		},
@@ -161,9 +161,9 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	packagedPayloadBytes := []byte("mcsorley")
 	addressedPayload, err := warpPayload.NewAddressedPayload(
-		ids.ID(sourceAddress.Hash()),
-		destinationChainID,
-		ids.ID(destinationAddress.Hash()),
+		sourceAddress,
+		common.Hash(destinationChainID),
+		destinationAddress,
 		packagedPayloadBytes,
 	)
 	require.NoError(t, err)
@@ -188,9 +188,9 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 					Message: WarpMessage{
 						OriginChainID:       common.Hash(sourceChainID),
-						OriginSenderAddress: sourceAddress.Hash(),
+						OriginSenderAddress: sourceAddress,
 						DestinationChainID:  common.Hash(destinationChainID),
-						DestinationAddress:  destinationAddress.Hash(),
+						DestinationAddress:  destinationAddress,
 						Payload:             packagedPayloadBytes,
 					},
 					Exists: true,
@@ -226,9 +226,9 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 					Message: WarpMessage{
 						OriginChainID:       common.Hash(sourceChainID),
-						OriginSenderAddress: sourceAddress.Hash(),
+						OriginSenderAddress: sourceAddress,
 						DestinationChainID:  common.Hash(destinationChainID),
-						DestinationAddress:  destinationAddress.Hash(),
+						DestinationAddress:  destinationAddress,
 						Payload:             packagedPayloadBytes,
 					},
 					Exists: true,

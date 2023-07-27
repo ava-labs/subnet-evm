@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,9 +17,9 @@ func TestAddressedPayload(t *testing.T) {
 	require := require.New(t)
 
 	addressedPayload, err := NewAddressedPayload(
-		ids.GenerateTestID(),
-		ids.GenerateTestID(),
-		ids.GenerateTestID(),
+		common.Address(ids.GenerateTestShortID()),
+		common.Hash(ids.GenerateTestID()),
+		common.Address(ids.GenerateTestShortID()),
 		[]byte("payload"),
 	)
 	require.NoError(err)
@@ -35,11 +36,11 @@ func TestParseAddressedPayloadJunk(t *testing.T) {
 }
 
 func TestParseAddressedPayload(t *testing.T) {
-	base64Payload := "AAAAAAAAAQIDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcICQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwoLDA=="
+	base64Payload := "AAAAAAAAAQIDAAAAAAAAAAAAAAAAAAAAAAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcICQAAAAAAAAAAAAAAAAAAAAAAAAAAAwoLDA=="
 	payload := &AddressedPayload{
-		SourceAddress:      ids.ID{1, 2, 3},
-		DestinationChainID: ids.ID{4, 5, 6},
-		DestinationAddress: ids.ID{7, 8, 9},
+		SourceAddress:      common.Address{1, 2, 3},
+		DestinationChainID: common.Hash{4, 5, 6},
+		DestinationAddress: common.Address{7, 8, 9},
 		Payload:            []byte{10, 11, 12},
 	}
 

@@ -7,17 +7,17 @@ pragma solidity ^0.8.0;
 
 struct WarpMessage {
     bytes32 originChainID;
-    bytes32 originSenderAddress;
+    address originSenderAddress;
     bytes32 destinationChainID;
-    bytes32 destinationAddress;
+    address destinationAddress;
     bytes payload;
 }
 
 interface WarpMessenger {
     event SendWarpMessage(
         bytes32 indexed destinationChainID,
-        bytes32 indexed destinationAddress,
-        bytes32 indexed sender,
+        address indexed destinationAddress,
+        address indexed sender,
         bytes message
     );
 
@@ -30,7 +30,7 @@ interface WarpMessenger {
     // it is willing to sign for an off-chain relayer to aggregate Warp signatures.
     function sendWarpMessage(
         bytes32 destinationChainID,
-        bytes32 destinationAddress,
+        address destinationAddress,
         bytes calldata payload
     ) external;
 

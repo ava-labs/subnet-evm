@@ -57,7 +57,7 @@ func TestSendWarpMessage(t *testing.T) {
 
 	warpSendMessageInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
 		DestinationChainID: common.Hash(vm.ctx.CChainID),
-		DestinationAddress: testEthAddrs[1].Hash(),
+		DestinationAddress: testEthAddrs[1],
 		Payload:            payload,
 	})
 	require.NoError(err)
@@ -143,9 +143,9 @@ func TestReceiveWarpMessage(t *testing.T) {
 	payload := utils.RandomBytes(100)
 
 	addressedPayload, err := warpPayload.NewAddressedPayload(
-		ids.ID(testEthAddrs[0].Hash()),
-		vm.ctx.CChainID,
-		ids.ID(testEthAddrs[1].Hash()),
+		testEthAddrs[0],
+		common.Hash(vm.ctx.CChainID),
+		testEthAddrs[1],
 		payload,
 	)
 	require.NoError(err)
@@ -236,9 +236,9 @@ func TestReceiveWarpMessage(t *testing.T) {
 	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
 		Message: warp.WarpMessage{
 			OriginChainID:       common.Hash(vm.ctx.ChainID),
-			OriginSenderAddress: testEthAddrs[0].Hash(),
+			OriginSenderAddress: testEthAddrs[0],
 			DestinationChainID:  common.Hash(vm.ctx.CChainID),
-			DestinationAddress:  testEthAddrs[1].Hash(),
+			DestinationAddress:  testEthAddrs[1],
 			Payload:             payload,
 		},
 		Exists: true,

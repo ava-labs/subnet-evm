@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -57,9 +56,9 @@ var (
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
 type WarpMessage struct {
 	OriginChainID       common.Hash
-	OriginSenderAddress common.Hash
+	OriginSenderAddress common.Address
 	DestinationChainID  common.Hash
-	DestinationAddress  common.Hash
+	DestinationAddress  common.Address
 	Payload             []byte
 }
 
@@ -70,7 +69,7 @@ type GetVerifiedWarpMessageOutput struct {
 
 type SendWarpMessageInput struct {
 	DestinationChainID common.Hash
-	DestinationAddress common.Hash
+	DestinationAddress common.Address
 	Payload            []byte
 }
 
@@ -162,9 +161,9 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 		Message: WarpMessage{
 			OriginChainID:       common.Hash(warpMessage.SourceChainID),
-			OriginSenderAddress: common.Hash(addressedPayload.SourceAddress),
-			DestinationChainID:  common.Hash(addressedPayload.DestinationChainID),
-			DestinationAddress:  common.Hash(addressedPayload.DestinationAddress),
+			OriginSenderAddress: addressedPayload.SourceAddress,
+			DestinationChainID:  addressedPayload.DestinationChainID,
+			DestinationAddress:  addressedPayload.DestinationAddress,
 			Payload:             addressedPayload.Payload,
 		},
 		Exists: true,
@@ -218,15 +217,15 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	var (
 		sourceChainID      = accessibleState.GetSnowContext().ChainID
 		destinationChainID = inputStruct.DestinationChainID
-		sourceAddress      = caller.Hash()
+		sourceAddress      = caller
 		destinationAddress = inputStruct.DestinationAddress
 		payload            = inputStruct.Payload
 	)
 
 	addressedPayload, err := warpPayload.NewAddressedPayload(
-		ids.ID(sourceAddress),
-		ids.ID(destinationChainID),
-		ids.ID(destinationAddress),
+		sourceAddress,
+		destinationChainID,
+		destinationAddress,
 		payload,
 	)
 	if err != nil {
@@ -247,8 +246,8 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		[]common.Hash{
 			WarpABI.Events["SendWarpMessage"].ID,
 			destinationChainID,
-			destinationAddress,
-			sourceAddress,
+			destinationAddress.Hash(),
+			sourceAddress.Hash(),
 		},
 		unsignedWarpMessage.Bytes(),
 		accessibleState.GetBlockContext().Number().Uint64(),

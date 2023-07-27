@@ -23,6 +23,7 @@ import (
 	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -80,7 +81,12 @@ func init() {
 	}
 
 	var err error
-	addressedPayload, err = warpPayload.NewAddressedPayload(ids.GenerateTestID(), destinationChainID, ids.GenerateTestID(), []byte{1, 2, 3})
+	addressedPayload, err = warpPayload.NewAddressedPayload(
+		common.Address(ids.GenerateTestShortID()),
+		common.Hash(destinationChainID),
+		common.Address(ids.GenerateTestShortID()),
+		[]byte{1, 2, 3},
+	)
 	if err != nil {
 		panic(err)
 	}
