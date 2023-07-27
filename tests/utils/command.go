@@ -18,13 +18,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-const (
-	// Timeout to boot the AvalancheGo node
-	bootAvalancheNodeTimeout = 5 * time.Minute
-
-	// Timeout for the health API to check the AvalancheGo is ready
-	healthCheckTimeout = 5 * time.Second
-)
+const ()
 
 // RunCommand starts the command [bin] with the given [args] and returns the command to the caller
 // TODO cmd package mentions we can do this more efficiently with cmd.NewCmdOptions rather than looping
@@ -85,7 +79,7 @@ func RegisterNodeRun() {
 
 		// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
 		healthClient := health.NewClient(DefaultLocalNodeURI)
-		healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
+		healthy, err := health.AwaitReady(ctx, healthClient, HealthCheckTimeout, nil)
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(healthy).Should(gomega.BeTrue())
 		log.Info("AvalancheGo node is healthy")

@@ -51,7 +51,7 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 	// can run in parallel without any issue.
 	//
 	var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
-		ctx, cancel := context.WithTimeout(context.Background(), bootAvalancheNodeTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), BootAvalancheNodeTimeout)
 		defer cancel()
 
 		wd, err := os.Getwd()
@@ -63,7 +63,7 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 
 		// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
 		healthClient := health.NewClient(DefaultLocalNodeURI)
-		healthy, err := health.AwaitReady(ctx, healthClient, healthCheckTimeout, nil)
+		healthy, err := health.AwaitReady(ctx, healthClient, HealthCheckTimeout, nil)
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(healthy).Should(gomega.BeTrue())
 		log.Info("AvalancheGo node is healthy")
