@@ -53,7 +53,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	go func() {
 		// Blocks until we receive a SIGNINT notification
 		<-sigChan
-		// Cancel the context and end all processes
+		// Cancel the context and end all shared processes
 		cancel()
 	}()
 
