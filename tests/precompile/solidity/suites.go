@@ -25,7 +25,7 @@ func RegisterAsyncTests() {
 	if len(genesisFiles) == 0 {
 		ginkgo.AbortSuite("No genesis files found")
 	}
-	utils.CreateSubnetsSynchronized(genesisFiles)
+	subnetsSuite := utils.CreateSubnetsSuite(genesisFiles)
 
 	var _ = ginkgo.Describe("[Asynchronized Precompile Tests]", func() {
 		// Register the ping test first
@@ -36,36 +36,35 @@ func RegisterAsyncTests() {
 		ginkgo.It("contract native minter", ginkgo.Label("Precompile"), ginkgo.Label("ContractNativeMinter"), func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
-
-			utils.RunAsyncHardhatTests(ctx, "contract_native_minter")
+			subnetsSuite.RunHardhatTests(ctx, "contract_native_minter")
 		})
 
 		ginkgo.It("tx allow list", ginkgo.Label("Precompile"), ginkgo.Label("TxAllowList"), func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
-			utils.RunAsyncHardhatTests(ctx, "tx_allow_list")
+			subnetsSuite.RunHardhatTests(ctx, "tx_allow_list")
 		})
 
 		ginkgo.It("contract deployer allow list", ginkgo.Label("Precompile"), ginkgo.Label("ContractDeployerAllowList"), func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
-			utils.RunAsyncHardhatTests(ctx, "contract_deployer_allow_list")
+			subnetsSuite.RunHardhatTests(ctx, "contract_deployer_allow_list")
 		})
 
 		ginkgo.It("fee manager", ginkgo.Label("Precompile"), ginkgo.Label("FeeManager"), func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
-			utils.RunAsyncHardhatTests(ctx, "fee_manager")
+			subnetsSuite.RunHardhatTests(ctx, "fee_manager")
 		})
 
 		ginkgo.It("reward manager", ginkgo.Label("Precompile"), ginkgo.Label("RewardManager"), func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 
-			utils.RunAsyncHardhatTests(ctx, "reward_manager")
+			subnetsSuite.RunHardhatTests(ctx, "reward_manager")
 		})
 
 		// ADD YOUR PRECOMPILE HERE
@@ -78,7 +77,7 @@ func RegisterAsyncTests() {
 				// and the test file in ./contracts/tests/{your_precompile}.ts
 				// If you want to use a different test command and genesis path than the defaults, you can
 				// use the utils.RunTestCMD. See utils.RunDefaultHardhatTests for an example.
-				utils.RunAsyncHardhatTests(ctx, "your_precompile")
+				subnetsSuite.RunHardhatTests(ctx, "your_precompile")
 			})
 		*/
 	})
