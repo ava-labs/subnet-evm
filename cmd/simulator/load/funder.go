@@ -23,12 +23,6 @@ import (
 // from the key with the highest starting balance.
 // This function returns a set of at least [numKeys] keys, each having a minimum balance [minFundsPerAddr].
 func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.Key, numKeys int, minFundsPerAddr *big.Int, m *metrics.Metrics) ([]*key.Key, error) {
-	go func() {
-		<-ctx.Done()
-		// Gracefully close the client
-		client.Close()
-	}()
-
 	if len(keys) < numKeys {
 		return nil, fmt.Errorf("insufficient number of keys %d < %d", len(keys), numKeys)
 	}
