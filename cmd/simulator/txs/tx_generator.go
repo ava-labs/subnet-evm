@@ -36,12 +36,6 @@ func GenerateTxSequence(ctx context.Context, generator CreateTx, client ethclien
 }
 
 func GenerateTxSequences(ctx context.Context, generator CreateTx, client ethclient.Client, keys []*ecdsa.PrivateKey, txsPerKey uint64) ([]TxSequence[*types.Transaction], error) {
-	go func() {
-		<-ctx.Done()
-		// Gracefully close the client
-		client.Close()
-	}()
-
 	txSequences := make([]TxSequence[*types.Transaction], len(keys))
 	for i, key := range keys {
 		txs, err := GenerateTxSequence(ctx, generator, client, key, txsPerKey)
