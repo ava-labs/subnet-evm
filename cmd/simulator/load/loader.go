@@ -197,17 +197,19 @@ func startMetricsServer(ctx context.Context, reg *prometheus.Registry) {
 }
 
 func getOutputFromMetricsServer() {
+	// Get response from server
 	resp, err := http.Get(fmt.Sprintf("http://localhost%s/metrics", MetricsPort))
 	if err != nil {
 		log.Error("cannot get response from metrics servers", "err", err)
 		return
 	}
+	// Read response body
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("cannot read response body", "err", err)
 		return
 	}
-
+	// Print out formatted individual metrics
 	parts := strings.Split(string(respBody), "\n")
 	for _, s := range parts {
 		fmt.Printf("       \t\t\t%s\n", s)

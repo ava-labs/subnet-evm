@@ -87,8 +87,6 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 	}
 	signer := types.LatestSignerForChainID(chainID)
 
-	client.Close()
-
 	// Generate a sequence of transactions to distribute the required funds.
 	log.Info("Generating distribution transactions...")
 	i := 0
