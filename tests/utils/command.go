@@ -27,13 +27,10 @@ const (
 	healthCheckTimeout = 5 * time.Second
 )
 
-// At boot time subnets are created, one for each test suite. This global
-// variable has all the subnets IDs that can be used.
-//
-// One process creates the AvalancheGo node and all the subnets, and these
-// subnets IDs are passed to all other processes and stored in this global
-// variable
-var BlockchainIDs map[string]string
+// GetSynchronizedBlockchainID is a function that returns the blockchain ID for a given alias.
+// This function is set by CreateSubnetsSynchronized() and is used by the tests to get the blockchain ID
+// for a given test case.
+var GetSynchronizedBlockchainID func(alias string) string
 
 // RunCommand starts the command [bin] with the given [args] and returns the command to the caller
 // TODO cmd package mentions we can do this more efficiently with cmd.NewCmdOptions rather than looping
@@ -76,7 +73,41 @@ func RegisterPingTest() {
 	})
 }
 
+// RegisterNodeRun registers a before suite that starts an AvalancheGo process to use for the e2e tests
+// and an after suite that stops the AvalancheGo process
 func RegisterNodeRun() {
+	// BeforeSuite starts an AvalancheGo process to use for the e2e tests
+	var startCmd *cmd.Cmd
+	_ = ginkgo.BeforeSuite(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+
+		wd, err := os.Getwd()
+		gomega.Expect(err).Should(gomega.BeNil())
+		log.Info("Starting AvalancheGo node", "wd", wd)
+		cmd, err := RunCommand("./scripts/run.sh")
+		startCmd = cmd
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
+		healthClient := health.NewClient(DefaultLocalNodeURI)
+		healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(healthy).Should(gomega.BeTrue())
+		log.Info("AvalancheGo node is healthy")
+	})
+
+	ginkgo.AfterSuite(func() {
+		gomega.Expect(startCmd).ShouldNot(gomega.BeNil())
+		gomega.Expect(startCmd.Stop()).Should(gomega.BeNil())
+		// TODO add a new node to bootstrap off of the existing node and ensure it can bootstrap all subnets
+		// created during the test
+	})
+}
+
+// CreateSubnetsSynchronized creates subnets for given [genesisFiles], and registers a before suite that starts an AvalancheGo process to use for the e2e tests.
+// genesisFiles is a map of test aliases to genesis file paths.
+func CreateSubnetsSynchronized(genesisFiles map[string]string) {
 	// Keep track of the AvalancheGo external bash script, it is null for most
 	// processes except the first process that starts AvalancheGo
 	var startCmd *cmd.Cmd
@@ -89,7 +120,6 @@ func RegisterNodeRun() {
 	// each test case. Each test case has its own subnet, therefore all tests
 	// can run in parallel without any issue.
 	//
-	// This function also compiles all the solidity contracts
 	var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		ctx, cancel := context.WithTimeout(context.Background(), bootAvalancheNodeTimeout)
 		defer cancel()
@@ -108,22 +138,22 @@ func RegisterNodeRun() {
 		gomega.Expect(healthy).Should(gomega.BeTrue())
 		log.Info("AvalancheGo node is healthy")
 
-		blockchainIds := make(map[string]string)
-		files, err := filepath.Glob("./tests/precompile/genesis/*.json")
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-		for _, file := range files {
-			basename := filepath.Base(file)
-			index := basename[:len(basename)-5]
-			blockchainIds[index] = CreateNewSubnet(ctx, file)
+		blockchainIDs := make(map[string]string)
+		for alias, file := range genesisFiles {
+			blockchainIDs[alias] = CreateNewSubnet(ctx, file)
 		}
 
-		blockchainIDsBytes, err := json.Marshal(blockchainIds)
+		blockchainIDsBytes, err := json.Marshal(blockchainIDs)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		return blockchainIDsBytes
-	}, func(data []byte) {
-		err := json.Unmarshal(data, &BlockchainIDs)
+	}, func(ctx ginkgo.SpecContext, data []byte) {
+		blockchainIDs := make(map[string]string)
+		err := json.Unmarshal(data, &blockchainIDs)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		GetSynchronizedBlockchainID = func(alias string) string {
+			return blockchainIDs[alias]
+		}
 	})
 
 	// SynchronizedAfterSuite() takes two functions, the first runs after each test suite is done and the second
@@ -133,4 +163,18 @@ func RegisterNodeRun() {
 		gomega.Expect(startCmd).ShouldNot(gomega.BeNil())
 		gomega.Expect(startCmd.Stop()).Should(gomega.BeNil())
 	})
+}
+
+// GetFilesAndAliases returns a map of aliases to file paths in given [dir].
+func GetFilesAndAliases(dir string) (map[string]string, error) {
+	files, err := filepath.Glob(dir)
+	if err != nil {
+		return nil, err
+	}
+	aliasesToFiles := make(map[string]string)
+	for _, file := range files {
+		alias := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
+		aliasesToFiles[alias] = file
+	}
+	return aliasesToFiles, nil
 }

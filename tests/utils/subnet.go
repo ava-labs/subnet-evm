@@ -109,10 +109,16 @@ func GetDefaultChainURI(blockchainID string) string {
 // 1. Hardhat contract environment is located at ./contracts
 // 2. Hardhat test file is located at ./contracts/test/<test>.ts
 // 3. npx is available in the ./contracts directory
-func RunDefaultHardhatTests(ctx context.Context, blockchainID string, test string) {
+// 4. CreateSubnetsSynchronized() called before this function and with the [test] aliased to genesis file
+func RunAsyncHardhatTests(ctx context.Context, test string) {
+	blockchainID := GetSynchronizedBlockchainID(test)
+	runHardhatTests(ctx, blockchainID, test)
+}
+
+func runHardhatTests(ctx context.Context, blockchainID string, test string) {
 	chainURI := GetDefaultChainURI(blockchainID)
 	log.Info(
-		"Executing HardHat tests on a new blockchain",
+		"Executing HardHat tests on blockchain",
 		"blockchainID", blockchainID,
 		"test", test,
 		"ChainURI", chainURI,
@@ -125,4 +131,22 @@ func RunDefaultHardhatTests(ctx context.Context, blockchainID string, test strin
 	cmd.Dir = cmdPath
 
 	RunTestCMD(cmd, chainURI)
+}
+
+// CreateAndRunHardhatTests creates a subnet and blockchain and then
+// runs the hardhat tests on the new blockchain with default parameters.
+//
+//	Default parameters are:
+//
+// 1. Genesis file is located at ./tests/precompile/genesis/<test>.json
+// 2. Hardhat contract environment is located at ./contracts
+// 3. Hardhat test file is located at ./contracts/test/<test>.ts
+// 4. npx is available in the ./contracts directory
+func CreateAndRunHardhatTests(ctx context.Context, test string) {
+	genesisFilePath := fmt.Sprintf("./tests/precompile/genesis/%s.json", test)
+
+	blockchainID := CreateNewSubnet(ctx, genesisFilePath)
+	log.Info("Created subnet successfully", "blockchainID", blockchainID)
+
+	runHardhatTests(ctx, blockchainID, test)
 }
