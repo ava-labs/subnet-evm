@@ -41,6 +41,20 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		defer cancel()
 	}
 
+	// Create buffered sigChan to send SIGINT notifications
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT)
+
+	// Create context with cancel
+	ctx, cancel := context.WithCancel(ctx)
+
+	go func() {
+		// Blocks until we receive a SIGNINT notification
+		<-sigChan
+		// Cancel the context and end all processes
+		cancel()
+	}()
+
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
 	for i := 0; i < config.Workers; i++ {
@@ -152,13 +166,10 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 }
 
 func startMetricsServer(ctx context.Context, reg *prometheus.Registry) {
-	// Start a prometheus server to expose individual tx metrics
+	// Create a prometheus server to expose individual tx metrics
 	server := &http.Server{
 		Addr: MetricsPort,
 	}
-	// Create buffered sigChan to send SIGINT notifications
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT)
 
 	// Start up go routine to listen for SIGINT notifications to gracefully shut down server
 	go func() {
@@ -168,8 +179,9 @@ func startMetricsServer(ctx context.Context, reg *prometheus.Registry) {
 			}
 			log.Info("Received a SIGINT signal: Gracefully shutting down metrics server")
 		}()
+
 		// Blocks until signal is received
-		<-sigChan
+		<-ctx.Done()
 	}()
 
 	// Start metrics server

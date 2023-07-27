@@ -27,6 +27,12 @@ type singleAddressTxWorker struct {
 
 // NewSingleAddressTxWorker creates and returns a singleAddressTxWorker
 func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, address common.Address) *singleAddressTxWorker {
+	go func() {
+		<-ctx.Done()
+		// Gracefully close the client
+		client.Close()
+	}()
+
 	newHeads := make(chan *types.Header)
 	tw := &singleAddressTxWorker{
 		client:   client,
