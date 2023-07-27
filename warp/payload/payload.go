@@ -6,23 +6,25 @@ package payload
 import (
 	"fmt"
 
-	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // AddressedPayload defines the format for delivering a point to point message across VMs
 // ie. (ChainA, AddressA) -> (ChainB, AddressB)
 type AddressedPayload struct {
-	SourceAddress      ids.ID `serialize:"true"`
-	DestinationAddress ids.ID `serialize:"true"`
-	Payload            []byte `serialize:"true"`
+	SourceAddress      common.Address `serialize:"true"`
+	DestinationChainID common.Hash    `serialize:"true"`
+	DestinationAddress common.Address `serialize:"true"`
+	Payload            []byte         `serialize:"true"`
 
 	bytes []byte
 }
 
 // NewAddressedPayload creates a new *AddressedPayload and initializes it.
-func NewAddressedPayload(sourceAddress ids.ID, destinationAddress ids.ID, payload []byte) (*AddressedPayload, error) {
+func NewAddressedPayload(sourceAddress common.Address, destinationChainID common.Hash, destinationAddress common.Address, payload []byte) (*AddressedPayload, error) {
 	ap := &AddressedPayload{
 		SourceAddress:      sourceAddress,
+		DestinationChainID: destinationChainID,
 		DestinationAddress: destinationAddress,
 		Payload:            payload,
 	}

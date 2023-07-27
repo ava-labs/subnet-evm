@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/params"
@@ -44,7 +43,7 @@ type Config struct {
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // Warp with the given quorum numerator.
-func NewConfig(blockTimestamp *big.Int, quorumNumerator uint64) *Config {
+func NewConfig(blockTimestamp *uint64, quorumNumerator uint64) *Config {
 	return &Config{
 		Upgrade:         precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		QuorumNumerator: quorumNumerator,
@@ -53,13 +52,13 @@ func NewConfig(blockTimestamp *big.Int, quorumNumerator uint64) *Config {
 
 // NewDefaultConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // Warp with the default quorum numerator (0 denotes using the default).
-func NewDefaultConfig(blockTimestamp *big.Int) *Config {
+func NewDefaultConfig(blockTimestamp *uint64) *Config {
 	return NewConfig(blockTimestamp, 0)
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables Warp.
-func NewDisableConfig(blockTimestamp *big.Int) *Config {
+func NewDisableConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
@@ -126,6 +125,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 	if err := warpMsg.Signature.Verify(
 		context.Background(),
 		&warpMsg.UnsignedMessage,
+		predicateContext.SnowCtx.NetworkID,
 		warpValidators.NewState(predicateContext.SnowCtx), // Wrap validators.State on the chain snow context to special case the Primary Network
 		predicateContext.ProposerVMBlockCtx.PChainHeight,
 		quorumNumerator,
@@ -138,6 +138,11 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.ProposerPr
 }
 
 // PredicateGas returns the amount of gas necessary to verify the predicate
+// PredicateGas charges for:
+// 1. Base cost of the message
+// 2. Size of the message
+// 3. Number of signers
+// 4. TODO: Lookup of the validator set
 func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	totalGas := GasCostPerSignatureVerification
 	bytesGasCost, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))

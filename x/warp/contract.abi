@@ -10,15 +10,15 @@
       },
       {
         "indexed": true,
-        "internalType": "bytes32",
+        "internalType": "address",
         "name": "destinationAddress",
-        "type": "bytes32"
+        "type": "address"
       },
       {
         "indexed": true,
-        "internalType": "bytes32",
+        "internalType": "address",
         "name": "sender",
-        "type": "bytes32"
+        "type": "address"
       },
       {
         "indexed": false,
@@ -55,9 +55,9 @@
             "type": "bytes32"
           },
           {
-            "internalType": "bytes32",
+            "internalType": "address",
             "name": "originSenderAddress",
-            "type": "bytes32"
+            "type": "address"
           },
           {
             "internalType": "bytes32",
@@ -65,9 +65,9 @@
             "type": "bytes32"
           },
           {
-            "internalType": "bytes32",
+            "internalType": "address",
             "name": "destinationAddress",
-            "type": "bytes32"
+            "type": "address"
           },
           {
             "internalType": "bytes",
@@ -96,9 +96,9 @@
         "type": "bytes32"
       },
       {
-        "internalType": "bytes32",
+        "internalType": "address",
         "name": "destinationAddress",
-        "type": "bytes32"
+        "type": "address"
       },
       {
         "internalType": "bytes",

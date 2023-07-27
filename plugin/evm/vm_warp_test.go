@@ -25,6 +25,7 @@ import (
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
+	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
@@ -38,7 +39,7 @@ func TestSendWarpMessage(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(big.NewInt(0)),
+		warp.ConfigKey: warp.NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -55,8 +56,8 @@ func TestSendWarpMessage(t *testing.T) {
 	payload := utils.RandomBytes(100)
 
 	warpSendMessageInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
-		DestinationChainID: vm.ctx.CChainID,
-		DestinationAddress: testEthAddrs[1].Hash(),
+		DestinationChainID: common.Hash(vm.ctx.CChainID),
+		DestinationAddress: testEthAddrs[1],
 		Payload:            payload,
 	})
 	require.NoError(err)
@@ -125,7 +126,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	genesis := &core.Genesis{}
 	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(big.NewInt(0)),
+		warp.ConfigKey: warp.NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -142,14 +143,15 @@ func TestReceiveWarpMessage(t *testing.T) {
 	payload := utils.RandomBytes(100)
 
 	addressedPayload, err := warpPayload.NewAddressedPayload(
-		ids.ID(testEthAddrs[0].Hash()),
-		ids.ID(testEthAddrs[1].Hash()),
+		testEthAddrs[0],
+		common.Hash(vm.ctx.CChainID),
+		testEthAddrs[1],
 		payload,
 	)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+		vm.ctx.NetworkID,
 		vm.ctx.ChainID,
-		vm.ctx.CChainID,
 		addressedPayload.Bytes(),
 	)
 	require.NoError(err)
@@ -233,10 +235,10 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
 		Message: warp.WarpMessage{
-			OriginChainID:       vm.ctx.ChainID,
-			OriginSenderAddress: testEthAddrs[0].Hash(),
-			DestinationChainID:  vm.ctx.CChainID,
-			DestinationAddress:  testEthAddrs[1].Hash(),
+			OriginChainID:       common.Hash(vm.ctx.ChainID),
+			OriginSenderAddress: testEthAddrs[0],
+			DestinationChainID:  common.Hash(vm.ctx.CChainID),
+			DestinationAddress:  testEthAddrs[1],
 			Payload:             payload,
 		},
 		Exists: true,
