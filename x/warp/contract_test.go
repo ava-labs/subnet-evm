@@ -141,10 +141,10 @@ func TestSendWarpMessage(t *testing.T) {
 				addressedPayload, err := warpPayload.ParseAddressedPayload(unsignedWarpMsg.Payload)
 				require.NoError(t, err)
 
-				// require.Equal(t, unsignedWarpMsg.DestinationChainID, destinationChainID)
-				require.Equal(t, unsignedWarpMsg.SourceChainID, blockchainID)
-				require.Equal(t, addressedPayload.DestinationAddress, receiverAddr)
 				require.Equal(t, addressedPayload.SourceAddress, callerAddr)
+				require.Equal(t, unsignedWarpMsg.SourceChainID, blockchainID)
+				require.Equal(t, addressedPayload.DestinationChainID, common.Hash(destinationChainID))
+				require.Equal(t, addressedPayload.DestinationAddress, receiverAddr)
 				require.Equal(t, addressedPayload.Payload, sendWarpMessagePayload)
 			},
 		},
