@@ -8,10 +8,12 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
@@ -162,6 +164,8 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		return err
 	}
 	log.Info("Tx agents completed successfully.")
+
+	getOutputFromMetricsServer()
 	return nil
 }
 
@@ -189,5 +193,23 @@ func startMetricsServer(ctx context.Context, reg *prometheus.Registry) {
 	log.Info(fmt.Sprintf("Metrics Server: localhost%s/metrics", MetricsPort))
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Error("Metrics server error: %v", err)
+	}
+}
+
+func getOutputFromMetricsServer() {
+	resp, err := http.Get(fmt.Sprintf("http://localhost%s/metrics", MetricsPort))
+	if err != nil {
+		log.Error("cannot get response from metrics servers", "err", err)
+		return
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("cannot read response body", "err", err)
+		return
+	}
+
+	parts := strings.Split(string(respBody), "\n")
+	for _, s := range parts {
+		fmt.Printf("       \t\t\t%s\n", s)
 	}
 }
