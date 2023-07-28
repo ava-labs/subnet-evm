@@ -8,9 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/api/health"
@@ -28,12 +28,21 @@ import (
 )
 
 type SubnetSuite struct {
-	GetBlockchainID func(alias string) string
+	blockchainIDs map[string]string
+	lock          sync.RWMutex
 }
 
-// TODO: find a better way rather than using a global variable
-// This is used to pass the blockchain IDs from the SynchronizedBeforeSuite() to the tests
-var globalSuite SubnetSuite
+func (s *SubnetSuite) GetBlockchainID(alias string) string {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.blockchainIDs[alias]
+}
+
+func (s *SubnetSuite) SetBlockchainIDs(blockchainIDs map[string]string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.blockchainIDs = blockchainIDs
+}
 
 // CreateSubnetsSuite creates subnets for given [genesisFiles], and registers a before suite that starts an AvalancheGo process to use for the e2e tests.
 // genesisFiles is a map of test aliases to genesis file paths.
@@ -41,6 +50,10 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 	// Keep track of the AvalancheGo external bash script, it is null for most
 	// processes except the first process that starts AvalancheGo
 	var startCmd *cmd.Cmd
+
+	// TODO: find a better way rather than using a global variable
+	// This is used to pass the blockchain IDs from the SynchronizedBeforeSuite() to the tests
+	var globalSuite SubnetSuite
 
 	// Our test suite runs in separate processes, ginkgo has
 	// SynchronizedBeforeSuite() which runs once, and its return value is passed
@@ -81,9 +94,8 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 		blockchainIDs := make(map[string]string)
 		err := json.Unmarshal(data, &blockchainIDs)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		globalSuite.GetBlockchainID = func(alias string) string {
-			return blockchainIDs[alias]
-		}
+
+		globalSuite.SetBlockchainIDs(blockchainIDs)
 	})
 
 	// SynchronizedAfterSuite() takes two functions, the first runs after each test suite is done and the second
@@ -95,17 +107,6 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 	})
 
 	return &globalSuite
-}
-
-// RunDefaultHardhatTests runs the hardhat tests on a given blockchain ID
-// with default parameters. Default parameters are:
-// 1. Hardhat contract environment is located at ./contracts
-// 2. Hardhat test file is located at ./contracts/test/<test>.ts
-// 3. npx is available in the ./contracts directory
-// 4. CreateSubnetsSynchronized() called before this function and with the [test] aliased to genesis file
-func (s *SubnetSuite) RunHardhatTests(ctx context.Context, test string) {
-	blockchainID := s.GetBlockchainID(test)
-	runHardhatTests(ctx, blockchainID, test)
 }
 
 // CreateNewSubnet creates a new subnet and Subnet-EVM blockchain with the given genesis file.
@@ -166,24 +167,6 @@ func GetDefaultChainURI(blockchainID string) string {
 	return fmt.Sprintf("%s/ext/bc/%s/rpc", DefaultLocalNodeURI, blockchainID)
 }
 
-// CreateAndRunHardhatTests creates a subnet and blockchain and then
-// runs the hardhat tests on the new blockchain with default parameters.
-//
-//	Default parameters are:
-//
-// 1. Genesis file is located at ./tests/precompile/genesis/<test>.json
-// 2. Hardhat contract environment is located at ./contracts
-// 3. Hardhat test file is located at ./contracts/test/<test>.ts
-// 4. npx is available in the ./contracts directory
-func CreateAndRunHardhatTests(ctx context.Context, test string) {
-	genesisFilePath := fmt.Sprintf("./tests/precompile/genesis/%s.json", test)
-
-	blockchainID := CreateNewSubnet(ctx, genesisFilePath)
-	log.Info("Created subnet successfully", "blockchainID", blockchainID)
-
-	runHardhatTests(ctx, blockchainID, test)
-}
-
 // GetFilesAndAliases returns a map of aliases to file paths in given [dir].
 func GetFilesAndAliases(dir string) (map[string]string, error) {
 	files, err := filepath.Glob(dir)
@@ -196,22 +179,4 @@ func GetFilesAndAliases(dir string) (map[string]string, error) {
 		aliasesToFiles[alias] = file
 	}
 	return aliasesToFiles, nil
-}
-
-func runHardhatTests(ctx context.Context, blockchainID string, test string) {
-	chainURI := GetDefaultChainURI(blockchainID)
-	log.Info(
-		"Executing HardHat tests on blockchain",
-		"blockchainID", blockchainID,
-		"test", test,
-		"ChainURI", chainURI,
-	)
-
-	cmdPath := "./contracts"
-	// test path is relative to the cmd path
-	testPath := fmt.Sprintf("./test/%s.ts", test)
-	cmd := exec.Command("npx", "hardhat", "test", testPath, "--network", "local")
-	cmd.Dir = cmdPath
-
-	RunTestCMD(cmd, chainURI)
 }

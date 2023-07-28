@@ -18,8 +18,6 @@ import (
 	"github.com/onsi/gomega"
 )
 
-const ()
-
 // RunCommand starts the command [bin] with the given [args] and returns the command to the caller
 // TODO cmd package mentions we can do this more efficiently with cmd.NewCmdOptions rather than looping
 // and calling Status().
@@ -93,19 +91,24 @@ func RegisterNodeRun() {
 	})
 }
 
-// RunTestCMD runs a given test command with the given rpcURI
-// It also waits for the test ping to succeed before running the test command
-func RunTestCMD(testCMD *exec.Cmd, rpcURI string) {
-	log.Info("Sleeping to wait for test ping", "rpcURI", rpcURI)
+func RunHardhatTests(ctx context.Context, blockchainID string, execPath string, testPath string) {
+	chainURI := GetDefaultChainURI(blockchainID)
+	log.Info(
+		"Executing HardHat tests on blockchain",
+		"blockchainID", blockchainID,
+		"testPath", testPath,
+		"ChainURI", chainURI,
+	)
 
-	err := os.Setenv("RPC_URI", rpcURI)
+	cmd := exec.Command("npx", "hardhat", "test", testPath, "--network", "local")
+	cmd.Dir = execPath
+
+	log.Info("Sleeping to wait for test ping", "rpcURI", chainURI)
+	err := os.Setenv("RPC_URI", chainURI)
 	gomega.Expect(err).Should(gomega.BeNil())
-	log.Info("Running test command", "cmd", testCMD.String())
+	log.Info("Running test command", "cmd", cmd.String())
 
-	out, err := testCMD.CombinedOutput()
+	out, err := cmd.CombinedOutput()
 	fmt.Printf("\nCombined output:\n\n%s\n", string(out))
-	if err != nil {
-		fmt.Printf("\nErr: %s\n", err.Error())
-	}
 	gomega.Expect(err).Should(gomega.BeNil())
 }
