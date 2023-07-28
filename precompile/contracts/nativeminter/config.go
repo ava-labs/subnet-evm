@@ -19,9 +19,9 @@ var _ precompileconfig.Config = &Config{}
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // ContractNativeMinter specific precompile config.
 type Config struct {
-	allowlist.AllowListConfig
-	precompileconfig.Upgrade
-	InitialMint map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty"` // addresses to receive the initial mint mapped to the amount to mint
+	allowlist.AllowListConfig `serialize:"true"`
+	precompileconfig.Upgrade  `serialize:"true"`
+	InitialMint               map[common.Address]*math.HexOrDecimal256 `json:"initialMint,omitempty" serialize:"true"` // addresses to receive the initial mint mapped to the amount to mint
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables

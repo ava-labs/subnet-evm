@@ -9,8 +9,8 @@ import "github.com/ava-labs/subnet-evm/utils"
 // a boolean [Disable]. If [Disable] is set, the upgrade deactivates
 // the precompile and clears its storage.
 type Upgrade struct {
-	BlockTimestamp *uint64 `json:"blockTimestamp"`
-	Disable        bool    `json:"disable,omitempty"`
+	BlockTimestamp *uint64 `json:"blockTimestamp" serialize:"true"`
+	Disable        bool    `json:"disable,omitempty" serialize:"true"`
 }
 
 // Timestamp returns the timestamp this network upgrade goes into effect.

@@ -16,18 +16,18 @@ import (
 // StateUpgrade describes the modifications to be made to the state during
 // a state upgrade.
 type StateUpgrade struct {
-	BlockTimestamp *uint64 `json:"blockTimestamp,omitempty"`
+	BlockTimestamp *uint64 `json:"blockTimestamp,omitempty" serialize:"true"`
 
 	// map from account address to the modification to be made to the account.
-	StateUpgradeAccounts map[common.Address]StateUpgradeAccount `json:"accounts"`
+	StateUpgradeAccounts map[common.Address]StateUpgradeAccount `json:"accounts" serialize:"true"`
 }
 
 // StateUpgradeAccount describes the modifications to be made to an account during
 // a state upgrade.
 type StateUpgradeAccount struct {
-	Code          hexutil.Bytes               `json:"code,omitempty"`
-	Storage       map[common.Hash]common.Hash `json:"storage,omitempty"`
-	BalanceChange *math.HexOrDecimal256       `json:"balanceChange,omitempty"`
+	Code          hexutil.Bytes               `json:"code,omitempty" serialize:"true"`
+	Storage       map[common.Hash]common.Hash `json:"storage,omitempty" serialize:"true"`
+	BalanceChange *math.HexOrDecimal256       `json:"balanceChange,omitempty" serialize:"true"`
 }
 
 func (s *StateUpgrade) Equal(other *StateUpgrade) bool {

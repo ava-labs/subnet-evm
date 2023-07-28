@@ -16,8 +16,8 @@ import (
 var _ precompileconfig.Config = &Config{}
 
 type InitialRewardConfig struct {
-	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
-	RewardAddress      common.Address `json:"rewardAddress,omitempty"`
+	AllowFeeRecipients bool           `json:"allowFeeRecipients" serialize:"true"`
+	RewardAddress      common.Address `json:"rewardAddress,omitempty" serialize:"true"`
 }
 
 func (i *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {

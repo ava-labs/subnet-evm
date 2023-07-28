@@ -17,7 +17,7 @@ var _ precompileconfig.Config = &Config{}
 type Config struct {
 	allowlist.AllowListConfig // Config for the fee config manager allow list
 	precompileconfig.Upgrade
-	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty"` // initial fee config to be immediately activated
+	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty" serialize:"true"` // initial fee config to be immediately activated
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables

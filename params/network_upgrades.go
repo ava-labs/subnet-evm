@@ -50,23 +50,21 @@ func (m *MandatoryNetworkUpgrades) CheckMandatoryCompatible(newcfg *MandatoryNet
 	return nil
 }
 
-func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
-	return []fork{
+func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []Fork {
+	return []Fork{
 		{name: "subnetEVMTimestamp", timestamp: m.SubnetEVMTimestamp},
 		{name: "dUpgradeTimestamp", timestamp: m.DUpgradeTimestamp},
 	}
 }
 
-// OptionalNetworkUpgrades includes overridable and optional Subnet-EVM network upgrades.
-// These can be specified in genesis and upgrade configs.
-// Timestamps can be different for each subnet network.
-// TODO: once we add the first optional upgrade here, we should uncomment TestVMUpgradeBytesOptionalNetworkUpgrades
-type OptionalNetworkUpgrades struct{}
+type OptionalNetworkUpgrades struct {
+	Updates []Fork `json:"serialize,omitempty" serialize:"true"`
+}
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
 	return nil
 }
 
-func (n *OptionalNetworkUpgrades) optionalForkOrder() []fork {
-	return []fork{}
+func (n *OptionalNetworkUpgrades) optionalForkOrder() []Fork {
+	return n.Updates
 }

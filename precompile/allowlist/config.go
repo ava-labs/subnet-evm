@@ -15,9 +15,9 @@ var ErrCannotAddManagersBeforeDUpgrade = fmt.Errorf("cannot add managers before 
 
 // AllowListConfig specifies the initial set of addresses with Admin or Enabled roles.
 type AllowListConfig struct {
-	AdminAddresses   []common.Address `json:"adminAddresses,omitempty"`   // initial admin addresses
-	ManagerAddresses []common.Address `json:"managerAddresses,omitempty"` // initial manager addresses
-	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
+	AdminAddresses   []common.Address `json:"adminAddresses,omitempty" serialize:"true"`   // initial admin addresses
+	ManagerAddresses []common.Address `json:"managerAddresses,omitempty" serialize:"true"` // initial manager addresses
+	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty" serialize:"true"` // initial enabled addresses
 }
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
