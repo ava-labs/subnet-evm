@@ -112,3 +112,74 @@ There are two options when using the Avalanche-CLI:
 
 1. Use an official Subnet-EVM release: https://docs.avax.network/subnets/build-first-subnet
 2. Build and deploy a locally built (and optionally modified) version of Subnet-EVM: https://docs.avax.network/subnets/create-custom-subnet
+
+### Run subnet-evm on AWS
+
+[avalanche-ops](https://github.com/ava-labs/avalanche-ops) is a suite of tools to automate deploying a custom subnet on AWS. Launching a subnet, and a chain running subnet-evm, is straightforward using avalanche-ops. 
+
+1. Clone [avalanche-ops](https://github.com/ava-labs/avalanche-ops) and build the project (using `--release`), or download the `avalancheup-aws` binary for your specific platform from the releases page. Using a release version is recommended.
+2. Login to AWS locally, via the `aws` CLI tool. See [this doc](https://github.com/ava-labs/avalanche-ops#permissions) to login if using an authentication provider. In particular, your AWS session should have a "profile name", which is then passed directly to avalanche-ops.
+3. Navigate to the `avalancheup-aws` binary, which is either in the local installation directory or `avalanche-ops/target/release` if you build the project locally.
+4. Run the following command to generate a spec (a template for the cloud resources that will be created for you by `avalanche-ops`)
+```bash
+$ avalancheup-aws default-spec \
+--arch-type amd64 \
+--os-type ubuntu20.04 \
+--anchor-nodes 1 \
+--non-anchor-nodes 1 \
+--regions us-west-2 \
+--instance-mode=on-demand \
+--instance-size=2xlarge \
+--ip-mode=elastic \
+--ingress-ipv4-cidr 0.0.0.0/0 \
+--network-name custom \
+--keys-to-generate 10 \
+--profile-name <YOUR AWS PROFILE NAME>
+```
+You can modify this spec as you like by selecting regions, node types, etc.
+
+5. Once the spec is ready, run the `apply` command to spin up a subnet. 
+```bash
+$ avalancheup-aws apply \
+--spec-file-path <SPEC FILE PATH>
+```
+
+6. Once the subnet has successfully installed, create a new chain using the subnet-evm.
+
+First, generate the necessary subnet-evm config files locally:
+```bash
+$ avalancheup-aws subnet-evm chain-config -s /tmp/subnet-evm-genesis.json
+``` 
+```bash
+$ avalancheup-aws subnet-evm genesis -s /tmp/subnet-evm-genesis.json
+```
+You can modify these files as well per the desired subnet-evm configuration. 
+
+7. Install the chain via the following command. Substitute the required parameters as needed. This command is also outputted at the end of the `apply` command, so copy/paste if possible.
+
+The only required fields to update are the `profile-name` and the `vm-binary-local-path`. The VM binary local path is the path to the local subnet-evm binary. The subnet-evm binary must be compiled for linux amd64. Do not rename the subnet-evm binary (use the original hash name).
+```yaml
+$ avalancheup-aws install-subnet-chain \
+--log-level info \
+--profile-name <AWS PROFILE NAME> 
+--s3-region us-west-2 \
+--s3-bucket avalanche-ops-202307-4lw5xroxbc-us-west-2 \
+--s3-key-prefix aops-custom-202307-2fpVNd/install-subnet-chain \
+--chain-rpc-url http://54.203.8.171:9650 \
+--key 0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027 \
+--primary-network-validate-period-in-days 16 \
+--subnet-validate-period-in-days 14 \
+--subnet-config-local-path /tmp/subnet-config.json \
+--subnet-config-remote-dir /data/avalanche-configs/subnets \
+--vm-binary-local-path <PATH TO LOCAL SUBNET-EVM COMPILED FOR linux-amd64> \
+--vm-binary-remote-dir /data/avalanche-plugins \
+--chain-name subnetevm \
+--chain-genesis-path /tmp/subnet-evm-genesis.json \
+--chain-config-local-path /tmp/subnet-evm-chain-config.json \
+--chain-config-remote-dir /data/avalanche-configs/chains \
+--avalanchego-config-remote-path /data/avalanche-configs/config.json \
+--staking-amount-in-avax 2000 \
+--ssm-docs '{"us-west-2":"aops-custom-202307-2fpVNd-ssm-install-subnet-chain"}' \
+--target-nodes '{"NodeID-6RCgWDrGDWt8vPFb8iTw2qp9287ae2XjD":{"region":"us-west-2","machine_id":"i-058653a153723d60a"},"NodeID-2bVWnx4sFGfzCTi8ntTHcdTKc7KJbGUKi":{"region":"us-west-2","machine_id":"i-08417d553a2f18491"}}'
+```
+8. Once the `install-subnet-chain` commands returns successfully, log in to the AWS console and you should be able to see the cloud resources that were created. You can use the JSON-RPC APIs and query nodes as expected.
