@@ -27,9 +27,9 @@ type ChainConfig interface {
 	GetFeeConfig() commontype.FeeConfig
 	// AllowedFeeRecipients returns true if fee recipients are allowed in the genesis.
 	AllowedFeeRecipients() bool
-	// IsDUpgrade returns true if the block timestamp is after the DUpgrade.
+	// IsDUpgrade returns true if the time is after the DUpgrade.
 	// TODO: Should we get a more general function like "AvalancheRules"?
-	IsDUpgrade(blockTimestamp *big.Int) bool
+	IsDUpgrade(time uint64) bool
 }
 
 // StateDB is the interface for accessing EVM state

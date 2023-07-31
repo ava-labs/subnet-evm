@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -171,7 +172,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set manager from no role after activation": {
 			Caller:      TestNoRoleAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* nil means no activation*/),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* nil means no activation*/),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, ManagerRole)
 				require.NoError(t, err)
@@ -199,7 +200,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set manager from enabled after activation": {
 			Caller:      TestNoRoleAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* nil means no activation*/),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* nil means no activation*/),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, ManagerRole)
 				require.NoError(t, err)
@@ -234,7 +235,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 				return input
 			},
 			ExpectedRes: []byte{},
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -259,7 +260,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set no role to enabled from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, EnabledRole)
 				require.NoError(t, err)
@@ -278,7 +279,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set no role to manager from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, ManagerRole)
@@ -293,7 +294,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set no role to admin from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, AdminRole)
 				require.NoError(t, err)
@@ -307,7 +308,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set enabled role to admin from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, AdminRole)
@@ -322,7 +323,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set enabled role to manager from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, ManagerRole)
@@ -337,7 +338,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set enabled role to no role from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, NoRole)
@@ -356,7 +357,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set admin to no role from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestAdminAddr, NoRole)
 				require.NoError(t, err)
@@ -370,7 +371,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set admin role to enabled from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestAdminAddr, EnabledRole)
@@ -385,7 +386,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set admin to manager from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestAdminAddr, ManagerRole)
@@ -400,7 +401,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 		"set manager role to no role from manager after activation": {
 			Caller:      TestManagerAddr,
 			BeforeHook:  SetDefaultRoles(contractAddress),
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0 /* activated */),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0) /* activated */),
 
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestManagerAddr, NoRole)

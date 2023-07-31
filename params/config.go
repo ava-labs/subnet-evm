@@ -381,11 +381,6 @@ func (c *ChainConfig) IsDUpgrade(time uint64) bool {
 	return utils.IsTimestampForked(c.DUpgradeTimestamp, time)
 }
 
-// IsDUpgrade returns whether [blockTimestamp] is either equal to the DUpgrade fork block timestamp or greater.
-func (c *ChainConfig) IsDUpgrade(blockTimestamp *big.Int) bool {
-	return utils.IsForked(c.DUpgradeTimestamp, blockTimestamp)
-}
-
 func (r *Rules) PredicatesExist() bool {
 	return len(r.PredicatePrecompiles) > 0 || len(r.ProposerPredicates) > 0
 }

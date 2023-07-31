@@ -8,6 +8,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 // TODO: replace with gomock library
@@ -59,19 +60,16 @@ func (m *mockAccessibleState) GetChainConfig() ChainConfig { return m.chainConfi
 type mockChainConfig struct {
 	feeConfig            commontype.FeeConfig
 	allowedFeeRecipients bool
-	dUpgradeTimestamp    *big.Int
+	dUpgradeTimestamp    *uint64
 }
 
 func (m *mockChainConfig) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
 func (m *mockChainConfig) AllowedFeeRecipients() bool         { return m.allowedFeeRecipients }
-func (m *mockChainConfig) IsDUpgrade(timestamp *big.Int) bool {
-	if m.dUpgradeTimestamp == nil {
-		return false
-	}
-	return m.dUpgradeTimestamp.Cmp(timestamp) <= 0
+func (m *mockChainConfig) IsDUpgrade(time uint64) bool {
+	return utils.IsTimestampForked(m.dUpgradeTimestamp, time)
 }
 
-func NewMockChainConfig(feeConfig commontype.FeeConfig, allowedFeeRecipients bool, dUpgradeTimestamp *big.Int) *mockChainConfig {
+func NewMockChainConfig(feeConfig commontype.FeeConfig, allowedFeeRecipients bool, dUpgradeTimestamp *uint64) *mockChainConfig {
 	return &mockChainConfig{
 		feeConfig:            feeConfig,
 		allowedFeeRecipients: allowedFeeRecipients,

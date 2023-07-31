@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
@@ -90,7 +91,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	chainConfig := test.ChainConfig
 	if chainConfig == nil {
 		// DUpgrade is activated by default
-		chainConfig = contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, common.Big0)
+		chainConfig = contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0))
 	}
 
 	accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest(), chainConfig)
