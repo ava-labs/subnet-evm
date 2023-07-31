@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -32,7 +33,7 @@ import (
 )
 
 const (
-	MetricsPort = ":8082" // Port for the Prometheus Metrics Server
+	MetricsEndpoint = "/metrics" // Endpoint for the Prometheus Metrics Server
 )
 
 // ExecuteLoader creates txSequences from [config] and has txAgents execute the specified simulation.
@@ -43,7 +44,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		defer cancel()
 	}
 
-	// Create buffered sigChan to send SIGINT notifications
+	// Create buffered sigChan to receive SIGINT notifications
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT)
 
@@ -51,7 +52,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	ctx, cancel := context.WithCancel(ctx)
 
 	go func() {
-		// Blocks until we receive a SIGNINT notification
+		// Blocks until we receive a SIGINT notification
 		<-sigChan
 		// Cancel the context and end all shared processes
 		cancel()
@@ -94,6 +95,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	// Create metrics
 	reg := prometheus.NewRegistry()
 	m := metrics.NewMetrics(reg)
+	metricsPort := strconv.Itoa(int(config.MetricsPort))
 
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
 	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr, m)
@@ -157,7 +159,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		})
 	}
 
-	go startMetricsServer(ctx, reg)
+	go startMetricsServer(ctx, metricsPort, reg)
 
 	log.Info("Waiting for tx agents...")
 	if err := eg.Wait(); err != nil {
@@ -165,40 +167,38 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	}
 	log.Info("Tx agents completed successfully.")
 
-	getOutputFromMetricsServer()
+	getOutputFromMetricsServer(metricsPort)
 	return nil
 }
 
-func startMetricsServer(ctx context.Context, reg *prometheus.Registry) {
+func startMetricsServer(ctx context.Context, metricsPort string, reg *prometheus.Registry) {
 	// Create a prometheus server to expose individual tx metrics
 	server := &http.Server{
-		Addr: MetricsPort,
+		Addr: metricsPort,
 	}
 
 	// Start up go routine to listen for SIGINT notifications to gracefully shut down server
 	go func() {
-		defer func() {
-			if err := server.Shutdown(ctx); err != nil {
-				log.Error("Metrics server error: %v", err)
-			}
-			log.Info("Received a SIGINT signal: Gracefully shutting down metrics server")
-		}()
-
 		// Blocks until signal is received
 		<-ctx.Done()
+
+		if err := server.Shutdown(ctx); err != nil {
+			log.Error("Metrics server error: %v", err)
+		}
+		log.Info("Received a SIGINT signal: Gracefully shutting down metrics server")
 	}()
 
 	// Start metrics server
-	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
-	log.Info(fmt.Sprintf("Metrics Server: localhost%s/metrics", MetricsPort))
+	http.Handle(MetricsEndpoint, promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+	log.Info(fmt.Sprintf("Metrics Server: localhost:%s%s", metricsPort, MetricsEndpoint))
 	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Error("Metrics server error: %v", err)
 	}
 }
 
-func getOutputFromMetricsServer() {
+func getOutputFromMetricsServer(metricsPort string) {
 	// Get response from server
-	resp, err := http.Get(fmt.Sprintf("http://localhost%s/metrics", MetricsPort))
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%s%s", metricsPort, MetricsEndpoint))
 	if err != nil {
 		log.Error("cannot get response from metrics servers", "err", err)
 		return
