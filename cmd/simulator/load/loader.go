@@ -178,7 +178,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 func startMetricsServer(ctx context.Context, metricsPort string, reg *prometheus.Registry) {
 	// Create a prometheus server to expose individual tx metrics
 	server := &http.Server{
-		Addr: metricsPort,
+		Addr: fmt.Sprintf(":%s", metricsPort),
 	}
 
 	// Start up go routine to listen for SIGINT notifications to gracefully shut down server
