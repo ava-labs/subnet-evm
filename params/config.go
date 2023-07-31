@@ -358,6 +358,11 @@ func (c *ChainConfig) IsSubnetEVM(blockTimestamp *big.Int) bool {
 	return utils.IsForked(c.SubnetEVMTimestamp, blockTimestamp)
 }
 
+// IsDUpgrade returns whether [blockTimestamp] is either equal to the DUpgrade fork block timestamp or greater.
+func (c *ChainConfig) IsDUpgrade(blockTimestamp *big.Int) bool {
+	return utils.IsForked(c.DUpgradeTimestamp, blockTimestamp)
+}
+
 func (r *Rules) PredicatesExist() bool {
 	return len(r.PredicatePrecompiles) > 0 || len(r.ProposerPredicates) > 0
 }

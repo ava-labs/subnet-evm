@@ -36,13 +36,15 @@ type mockAccessibleState struct {
 	state        StateDB
 	blockContext *mockBlockContext
 	snowContext  *snow.Context
+	chainConfig  ChainConfig
 }
 
-func NewMockAccessibleState(state StateDB, blockContext *mockBlockContext, snowContext *snow.Context) *mockAccessibleState {
+func NewMockAccessibleState(state StateDB, blockContext *mockBlockContext, snowContext *snow.Context, chainConfig ChainConfig) *mockAccessibleState {
 	return &mockAccessibleState{
 		state:        state,
 		blockContext: blockContext,
 		snowContext:  snowContext,
+		chainConfig:  chainConfig,
 	}
 }
 
@@ -52,17 +54,27 @@ func (m *mockAccessibleState) GetBlockContext() BlockContext { return m.blockCon
 
 func (m *mockAccessibleState) GetSnowContext() *snow.Context { return m.snowContext }
 
-type mockChainState struct {
+func (m *mockAccessibleState) GetChainConfig() ChainConfig { return m.chainConfig }
+
+type mockChainConfig struct {
 	feeConfig            commontype.FeeConfig
 	allowedFeeRecipients bool
+	dUpgradeTimestamp    *big.Int
 }
 
-func (m *mockChainState) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
-func (m *mockChainState) AllowedFeeRecipients() bool         { return m.allowedFeeRecipients }
+func (m *mockChainConfig) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
+func (m *mockChainConfig) AllowedFeeRecipients() bool         { return m.allowedFeeRecipients }
+func (m *mockChainConfig) IsDUpgrade(timestamp *big.Int) bool {
+	if m.dUpgradeTimestamp == nil {
+		return false
+	}
+	return m.dUpgradeTimestamp.Cmp(timestamp) <= 0
+}
 
-func NewMockChainState(feeConfig commontype.FeeConfig, allowedFeeRecipients bool) *mockChainState {
-	return &mockChainState{
+func NewMockChainConfig(feeConfig commontype.FeeConfig, allowedFeeRecipients bool, dUpgradeTimestamp *big.Int) *mockChainConfig {
+	return &mockChainConfig{
 		feeConfig:            feeConfig,
 		allowedFeeRecipients: allowedFeeRecipients,
+		dUpgradeTimestamp:    dUpgradeTimestamp,
 	}
 }

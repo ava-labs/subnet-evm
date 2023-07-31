@@ -13,6 +13,7 @@ import (
 // AllowListConfig specifies the initial set of addresses with Admin or Enabled roles.
 type AllowListConfig struct {
 	AdminAddresses   []common.Address `json:"adminAddresses,omitempty"`   // initial admin addresses
+	ManagerAddresses []common.Address `json:"managerAddresses,omitempty"` // initial manager addresses
 	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
 }
 
@@ -25,6 +26,9 @@ func (c *AllowListConfig) Configure(state contract.StateDB, precompileAddr commo
 	for _, adminAddr := range c.AdminAddresses {
 		SetAllowListRole(state, precompileAddr, adminAddr, AdminRole)
 	}
+	for _, managerAddr := range c.ManagerAddresses {
+		SetAllowListRole(state, precompileAddr, managerAddr, ManagerRole)
+	}
 	return nil
 }
 
@@ -35,6 +39,7 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 	}
 
 	return areEqualAddressLists(c.AdminAddresses, other.AdminAddresses) &&
+		areEqualAddressLists(c.ManagerAddresses, other.ManagerAddresses) &&
 		areEqualAddressLists(c.EnabledAddresses, other.EnabledAddresses)
 }
 
@@ -73,6 +78,21 @@ func (c *AllowListConfig) Verify() error {
 			}
 		}
 		addressMap[adminAddr] = AdminRole
+	}
+
+	// check for overlap between admin and manager lists or duplicates in manager list
+	for _, managerAddr := range c.ManagerAddresses {
+		if role, ok := addressMap[managerAddr]; ok {
+			switch role {
+			case ManagerRole:
+				return fmt.Errorf("duplicate address in manager list: %s", managerAddr)
+			case AdminRole:
+				return fmt.Errorf("cannot set address as both admin and manager: %s", managerAddr)
+			case EnabledRole:
+				return fmt.Errorf("cannot set address as both enabled and manager: %s", managerAddr)
+			}
+		}
+		addressMap[managerAddr] = ManagerRole
 	}
 
 	return nil

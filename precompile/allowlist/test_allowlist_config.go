@@ -33,27 +33,76 @@ func mkConfigWithAllowList(module modules.Module, cfg *AllowListConfig) precompi
 func AllowListConfigVerifyTests(module modules.Module) map[string]testutils.ConfigVerifyTest {
 	return map[string]testutils.ConfigVerifyTest{
 		"invalid allow list config with duplicate admins in allowlist": {
-			Config:        mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr, TestAdminAddr}, nil}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr, TestAdminAddr},
+				ManagerAddresses: nil,
+				EnabledAddresses: nil,
+			}),
 			ExpectedError: "duplicate address in admin list",
 		},
 		"invalid allow list config with duplicate enableds in allowlist": {
-			Config:        mkConfigWithAllowList(module, &AllowListConfig{nil, []common.Address{TestEnabledAddr, TestEnabledAddr}}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   nil,
+				ManagerAddresses: nil,
+				EnabledAddresses: []common.Address{TestEnabledAddr, TestEnabledAddr},
+			}),
 			ExpectedError: "duplicate address in enabled list",
 		},
+		"invalid allow list config with duplicate managers in allowlist": {
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   nil,
+				ManagerAddresses: []common.Address{TestManagerAddr, TestManagerAddr},
+				EnabledAddresses: nil,
+			}),
+			ExpectedError: "duplicate address in manager list",
+		},
 		"invalid allow list config with same admin and enabled in allowlist": {
-			Config:        mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestAdminAddr}}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: nil,
+				EnabledAddresses: []common.Address{TestAdminAddr},
+			}),
 			ExpectedError: "cannot set address as both admin and enabled",
 		},
+		"invalid allow list config with same admin and manager in allowlist": {
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestAdminAddr},
+				EnabledAddresses: nil,
+			}),
+			ExpectedError: "cannot set address as both admin and manager",
+		},
+		// this is because we don't allow the manager to have enabled permissions
+		"invalid allow list config with same manager and enabled in allowlist": {
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   nil,
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestManagerAddr},
+			}),
+			ExpectedError: "cannot set address as both enabled and manager",
+		},
 		"nil member allow list config in allowlist": {
-			Config:        mkConfigWithAllowList(module, &AllowListConfig{nil, nil}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   nil,
+				ManagerAddresses: nil,
+				EnabledAddresses: nil,
+			}),
 			ExpectedError: "",
 		},
 		"empty member allow list config in allowlist": {
-			Config:        mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{}, []common.Address{}}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{},
+				ManagerAddresses: []common.Address{},
+				EnabledAddresses: []common.Address{},
+			}),
 			ExpectedError: "",
 		},
 		"valid allow list config in allowlist": {
-			Config:        mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
 			ExpectedError: "",
 		},
 	}
@@ -62,23 +111,63 @@ func AllowListConfigVerifyTests(module modules.Module) map[string]testutils.Conf
 func AllowListConfigEqualTests(module modules.Module) map[string]testutils.ConfigEqualTest {
 	return map[string]testutils.ConfigEqualTest{
 		"allowlist non-nil config and nil other": {
-			Config:   mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
 			Other:    nil,
 			Expected: false,
 		},
 		"allowlist different admin": {
-			Config:   mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
-			Other:    mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{{3}}, []common.Address{TestEnabledAddr}}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
+			Other: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{{3}},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
+			Expected: false,
+		},
+		"allowlist different manager": {
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
+			Other: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{{3}},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
 			Expected: false,
 		},
 		"allowlist different enabled": {
-			Config:   mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
-			Other:    mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{module.Address}, []common.Address{{3}}}),
-			Expected: false,
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
+			Other: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{{3}},
+			}), Expected: false,
 		},
 		"allowlist same config": {
-			Config:   mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
-			Other:    mkConfigWithAllowList(module, &AllowListConfig{[]common.Address{TestAdminAddr}, []common.Address{TestEnabledAddr}}),
+			Config: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
+			Other: mkConfigWithAllowList(module, &AllowListConfig{
+				AdminAddresses:   []common.Address{TestAdminAddr},
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: []common.Address{TestEnabledAddr},
+			}),
 			Expected: true,
 		},
 	}
