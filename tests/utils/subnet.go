@@ -51,7 +51,6 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 	// processes except the first process that starts AvalancheGo
 	var startCmd *cmd.Cmd
 
-	// TODO: find a better way rather than using a global variable
 	// This is used to pass the blockchain IDs from the SynchronizedBeforeSuite() to the tests
 	var globalSuite SubnetSuite
 
