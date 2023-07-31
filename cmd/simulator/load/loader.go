@@ -171,7 +171,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	}
 	log.Info("Tx agents completed successfully.")
 
-	getOutputFromMetricsServer(metricsPort)
+	printOutputFromMetricsServer(metricsPort)
 	return nil
 }
 
@@ -200,7 +200,7 @@ func startMetricsServer(ctx context.Context, metricsPort string, reg *prometheus
 	}
 }
 
-func getOutputFromMetricsServer(metricsPort string) {
+func printOutputFromMetricsServer(metricsPort string) {
 	// Get response from server
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%s%s", metricsPort, MetricsEndpoint))
 	if err != nil {
