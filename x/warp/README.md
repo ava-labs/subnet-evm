@@ -37,7 +37,7 @@ First, Blockchain A produces a BLS Multisignature of a message to send to Blockc
 
 The signature of Subnet A's validator set attests to the message being sent by Blockchain A.
 
-To receive the message, Blockchain B must be running a Snowman VM that is wrapped in the Snowman++ ProposerVM. The ProposerVM provides the P-Chain Context which a block on Blockchain B was issued in. See (here)[https://github.com/ava-labs/avalanchego/tree/v1.10.4/vms/proposervm#snowman-block-extension] for more details on the ProposerVM block wrapper. The ProposerVM header includes a P-Chain height at which the block was validated. This P-Chain height determines the canonical state of the P-Chain to use for verification of all Avalanche Warp Messages.
+To receive the message, Blockchain B must be running a Snowman VM that is wrapped in the Snowman++ ProposerVM. The ProposerVM provides the P-Chain Context which a block on Blockchain B was issued in. See [here](https://github.com/ava-labs/avalanchego/tree/v1.10.4/vms/proposervm#snowman-block-extension) for more details on the ProposerVM block wrapper. The ProposerVM header includes a P-Chain height at which the block was validated. This P-Chain height determines the canonical state of the P-Chain to use for verification of all Avalanche Warp Messages.
 
 To validate and deliver the message, an off-chain component delivers the signed message from Blockchain A to Blockchain B (this is out of scope for Avalanche Warp Messaging itself).
 
@@ -84,7 +84,7 @@ Since the security of Subnet B depends on the validators of Subnet B already, ch
 
 ## Warp Precompile
 
-The Warp Precompile is broken down into three functions defined in the Solidity interface file [here](../../../contract-examples/contracts/IWarpMessenger.sol).
+The Warp Precompile is broken down into three functions defined in the Solidity interface file [here](../../../contracts/contracts/interfaces/IWarpMessenger.sol).
 
 ### sendWarpMessage
 
