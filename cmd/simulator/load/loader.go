@@ -52,9 +52,13 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	ctx, cancel := context.WithCancel(ctx)
 
 	go func() {
-		// Blocks until we receive a SIGINT notification
-		<-sigChan
-		// Cancel the context and end all shared processes
+		// Blocks until we receive a SIGINT notification or if parent context is done
+		select {
+		case <-sigChan:
+		case <-ctx.Done():
+		}
+
+		// Cancel the child context and end all processes
 		cancel()
 	}()
 
