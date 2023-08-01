@@ -37,7 +37,3 @@ ACK_GINKGO_RC=true ginkgo build ./tests/load ./tests/warp
 ./tests/warp/warp.test \
   --ginkgo.vv \
   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
-
-./tests/warp/warp.test \
-  --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
