@@ -13,18 +13,22 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
-var _ TxSequence[*types.Transaction] = (*txSequence)(nil)
+var _ TxSequence[*types.Transaction] = (*txSequence[*types.Transaction])(nil)
 
-type CreateTx func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error)
+type CreateTx[T any] func(key *ecdsa.PrivateKey, nonce uint64) (T, error)
 
-// GenerateTxSequence fetches the current nonce of key and calls [generator] [numTxs] times sequentially to generate a sequence of transactions.
-func GenerateTxSequence(ctx context.Context, generator CreateTx, client ethclient.Client, key *ecdsa.PrivateKey, numTxs uint64) (TxSequence[*types.Transaction], error) {
+// GenerateTxSequence fetches the current nonce of key and calls [generator]
+// [numTxs] times sequentially to generate a sequence of transactions.
+func GenerateTxSequence[T any](
+	ctx context.Context, generator CreateTx[T],
+	client ethclient.Client, key *ecdsa.PrivateKey, numTxs uint64,
+) (TxSequence[T], error) {
 	address := ethcrypto.PubkeyToAddress(key.PublicKey)
 	startingNonce, err := client.NonceAt(ctx, address, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch nonce for address %s: %w", address, err)
 	}
-	txs := make([]*types.Transaction, 0, numTxs)
+	txs := make([]T, numTxs)
 	for i := uint64(0); i < numTxs; i++ {
 		tx, err := generator(key, startingNonce+i)
 		if err != nil {
@@ -35,8 +39,11 @@ func GenerateTxSequence(ctx context.Context, generator CreateTx, client ethclien
 	return ConvertTxSliceToSequence(txs), nil
 }
 
-func GenerateTxSequences(ctx context.Context, generator CreateTx, client ethclient.Client, keys []*ecdsa.PrivateKey, txsPerKey uint64) ([]TxSequence[*types.Transaction], error) {
-	txSequences := make([]TxSequence[*types.Transaction], len(keys))
+func GenerateTxSequences[T any](
+	ctx context.Context, generator CreateTx[T],
+	client ethclient.Client, keys []*ecdsa.PrivateKey, txsPerKey uint64,
+) ([]TxSequence[T], error) {
+	txSequences := make([]TxSequence[T], len(keys))
 	for i, key := range keys {
 		txs, err := GenerateTxSequence(ctx, generator, client, key, txsPerKey)
 		if err != nil {
@@ -47,22 +54,22 @@ func GenerateTxSequences(ctx context.Context, generator CreateTx, client ethclie
 	return txSequences, nil
 }
 
-type txSequence struct {
-	txChan chan *types.Transaction
+type txSequence[T any] struct {
+	txChan chan T
 }
 
-func ConvertTxSliceToSequence(txs []*types.Transaction) TxSequence[*types.Transaction] {
-	txChan := make(chan *types.Transaction, len(txs))
+func ConvertTxSliceToSequence[T any](txs []T) TxSequence[T] {
+	txChan := make(chan T, len(txs))
 	for _, tx := range txs {
 		txChan <- tx
 	}
 	close(txChan)
 
-	return &txSequence{
+	return &txSequence[T]{
 		txChan: txChan,
 	}
 }
 
-func (t *txSequence) Chan() <-chan *types.Transaction {
+func (t *txSequence[T]) Chan() <-chan T {
 	return t.txChan
 }

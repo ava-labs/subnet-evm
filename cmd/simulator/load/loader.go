@@ -21,11 +21,9 @@ import (
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -114,44 +112,23 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		pks = append(pks, key.PrivKey)
 		senders = append(senders, key.Address)
 	}
-
-	bigGwei := big.NewInt(params.GWei)
-	gasTipCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxTipCap))
-	gasFeeCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxFeeCap))
 	client := clients[0]
 	chainID, err := client.ChainID(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to fetch chainID: %w", err)
 	}
-	signer := types.LatestSignerForChainID(chainID)
-
-	log.Info("Creating transaction sequences...")
-	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
-		addr := ethcrypto.PubkeyToAddress(key.PublicKey)
-		tx, err := types.SignNewTx(key, signer, &types.DynamicFeeTx{
-			ChainID:   chainID,
-			Nonce:     nonce,
-			GasTipCap: gasTipCap,
-			GasFeeCap: gasFeeCap,
-			Gas:       params.TxGas,
-			To:        &addr,
-			Data:      nil,
-			Value:     common.Big0,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return tx, nil
-	}
-	txSequences, err := txs.GenerateTxSequences(ctx, txGenerator, clients[0], pks, config.TxsPerWorker)
+	log.Info("Constructing tx agents...", "numAgents", config.Workers)
+	agentBuilder, err := NewTransferTxAgentBuilder(ctx, config, chainID, pks, client, m)
 	if err != nil {
 		return err
 	}
-
-	log.Info("Constructing tx agents...", "numAgents", config.Workers)
-	agents := make([]txs.Agent[*types.Transaction], 0, config.Workers)
+	agents := make([]txs.Agent, 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize, m))
+		agent, err := agentBuilder.NewAgent(ctx, i, clients[i], senders[i])
+		if err != nil {
+			return err
+		}
+		agents = append(agents, agent)
 	}
 
 	log.Info("Starting tx agents...")
