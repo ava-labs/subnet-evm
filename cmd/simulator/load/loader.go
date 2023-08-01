@@ -35,10 +35,10 @@ const (
 )
 
 // ExecuteLoader creates txSequences from [config] and has txAgents execute the specified simulation.
-func ExecuteLoader(ctx context.Context, config config.Config) error {
-	if config.Timeout > 0 {
+func ExecuteLoader(ctx context.Context, cfg config.Config) error {
+	if cfg.Timeout > 0 {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, config.Timeout)
+		ctx, cancel = context.WithTimeout(ctx, cfg.Timeout)
 		defer cancel()
 	}
 
@@ -60,6 +60,49 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		cancel()
 	}()
 
+	// Create metrics
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics("", reg)
+	mB := metrics.NewMetrics("subnet_b_", reg)
+	mWarp := metrics.NewMetrics("warp_", reg)
+	timeTracker := newTimeTracker(mWarp.IssuanceToConfirmationTxTimes.Observe)
+	metricsPort := strconv.Itoa(int(cfg.MetricsPort))
+	go startMetricsServer(ctx, metricsPort, reg)
+
+	warpSenderAgentBuilder := func(
+		ctx context.Context, config config.Config, chainID *big.Int,
+		pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+	) (AgentBuilder, error) {
+		return NewWarpSendTxAgentBuilder(ctx, config, chainID, pks, client, metrics, timeTracker)
+	}
+	warpReceiveTxAgentBuilder := func(
+		ctx context.Context, config config.Config, chainID *big.Int,
+		pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+	) (AgentBuilder, error) {
+		return NewWarpReceiveTxAgentBuilder(ctx, config, chainID, pks, client, metrics, timeTracker)
+	}
+
+	var eg errgroup.Group
+	eg.Go(func() error {
+		return executeLoaderImpl(ctx, cfg, warpSenderAgentBuilder, m)
+	})
+	eg.Go(func() error {
+		// TODO: should get these values properly
+		cfg := cfg
+		endpointsStr := os.Getenv("RPC_ENDPOINTS_SUBNET_B")
+		cfg.Endpoints = strings.Split(endpointsStr, ",")
+		return executeLoaderImpl(ctx, cfg, warpReceiveTxAgentBuilder, mB)
+	})
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	printOutputFromMetricsServer(metricsPort)
+	return nil
+}
+
+func executeLoaderImpl(
+	ctx context.Context, config config.Config, mkAgentBuilder mkAgentBuilder, m *metrics.Metrics,
+) error {
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
 	for i := 0; i < config.Workers; i++ {
@@ -94,11 +137,6 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	maxFeeCap := new(big.Int).Mul(big.NewInt(params.GWei), big.NewInt(config.MaxFeeCap))
 	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*params.TxGas)))
 
-	// Create metrics
-	reg := prometheus.NewRegistry()
-	m := metrics.NewMetrics(reg)
-	metricsPort := strconv.Itoa(int(config.MetricsPort))
-
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
 	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr, m)
 	if err != nil {
@@ -118,7 +156,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		return fmt.Errorf("failed to fetch chainID: %w", err)
 	}
 	log.Info("Constructing tx agents...", "numAgents", config.Workers)
-	agentBuilder, err := NewTransferTxAgentBuilder(ctx, config, chainID, pks, client, m)
+	agentBuilder, err := mkAgentBuilder(ctx, config, chainID, pks, client, m)
 	if err != nil {
 		return err
 	}
@@ -140,15 +178,11 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		})
 	}
 
-	go startMetricsServer(ctx, metricsPort, reg)
-
 	log.Info("Waiting for tx agents...")
 	if err := eg.Wait(); err != nil {
 		return err
 	}
 	log.Info("Tx agents completed successfully.")
-
-	printOutputFromMetricsServer(metricsPort)
 	return nil
 }
 

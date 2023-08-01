@@ -19,6 +19,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+type mkAgentBuilder func(
+	ctx context.Context, config config.Config, chainID *big.Int,
+	pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+) (AgentBuilder, error)
+
 type AgentBuilder interface {
 	NewAgent(ctx context.Context, idx int, client ethclient.Client, sender common.Address) (txs.Agent, error)
 }
