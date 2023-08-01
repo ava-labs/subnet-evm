@@ -27,7 +27,7 @@ The Avalanche Warp Precompile enables this flow to send a message from blockchai
 2. Warp Precompile emits an event / log containing the `UnsignedMessage` specified by the caller of `sendWarpMessage`
 3. Network accepts the block containing the `UnsignedMessage` in the log, so that validators are willing to sign the message
 4. An off-chain relayer queries the validators for their signatures of the message and aggregate the signatures to create a `SignedMessage`
-5. The off-chain relayer encodes the `SignedMessage` as the [predicate](#predicate-encoding) in of a transaction to deliver on blockchain B
+5. The off-chain relayer encodes the `SignedMessage` as the [predicate](#predicate-encoding) in the AccessList of a transaction to deliver on blockchain B
 6. The transaction is delivered on blockchain B, the signature is verified prior to executing the block, and the message is accessible via the Warp Precompile's `getVerifiedWarpMessage` during the execution of that transaction
 
 ### Warp Precompile
@@ -154,7 +154,7 @@ The Warp Precompile was designed with the intention of minimizing the trusted co
 
 The Warp Precompile itself provides ONLY the following ability:
 
-- Send a verifiable message from a caller on blockchain A to a destination address on blockchain B
+- Emit a verifiable message from (Address A, Blockchain A) to (Address B, Blockchain B) that can be verified by the destination chain
 
 #### Explicitly Not Provided / Built on Top
 
