@@ -21,22 +21,21 @@ import (
 
 type mkAgentBuilder func(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 ) (AgentBuilder, error)
 
 type AgentBuilder interface {
-	NewAgent(ctx context.Context, idx int, client ethclient.Client, sender common.Address) (txs.Agent, error)
+	NewAgent(ctx context.Context, idx int, client ethclient.Client, sender common.Address, m *metrics.Metrics) (txs.Agent, error)
 }
 
 type transferTxAgentBuilder struct {
 	txSequences []txs.TxSequence[*types.Transaction]
 	batchSize   uint64
-	metrics     *metrics.Metrics
 }
 
 func NewTransferTxAgentBuilder(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 ) (AgentBuilder, error) {
 	log.Info("Creating transaction sequences...")
 	bigGwei := big.NewInt(params.GWei)
@@ -70,29 +69,27 @@ func NewTransferTxAgentBuilder(
 	return &transferTxAgentBuilder{
 		txSequences: txSequences,
 		batchSize:   config.BatchSize,
-		metrics:     metrics,
 	}, nil
 }
 
 func (t *transferTxAgentBuilder) NewAgent(
-	ctx context.Context, idx int, client ethclient.Client, sender common.Address,
+	ctx context.Context, idx int, client ethclient.Client,
+	sender common.Address, m *metrics.Metrics,
 ) (txs.Agent, error) {
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
 	return txs.NewIssueNAgent[*types.Transaction](
-		t.txSequences[idx], worker, t.batchSize, t.metrics), nil
+		t.txSequences[idx], worker, t.batchSize, m), nil
 }
 
 type warpSendTxAgentBuilder struct {
 	txSequences []txs.TxSequence[*AwmTx]
 	batchSize   uint64
-	metrics     *metrics.Metrics
 	timeTracker *timeTracker
 }
 
 func NewWarpSendTxAgentBuilder(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
-	timeTracker *timeTracker,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64, timeTracker *timeTracker,
 ) (AgentBuilder, error) {
 	log.Info("Creating warp transaction sequences...")
 	txSequences, err := GetWarpSendTxSequences(ctx, config, chainID, pks, startingNonces)
@@ -102,13 +99,13 @@ func NewWarpSendTxAgentBuilder(
 	return &warpSendTxAgentBuilder{
 		txSequences: txSequences,
 		batchSize:   config.BatchSize,
-		metrics:     metrics,
 		timeTracker: timeTracker,
 	}, nil
 }
 
 func (w *warpSendTxAgentBuilder) NewAgent(
-	ctx context.Context, idx int, client ethclient.Client, sender common.Address,
+	ctx context.Context, idx int, client ethclient.Client,
+	sender common.Address, m *metrics.Metrics,
 ) (txs.Agent, error) {
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
 	awmWorker := &awmWorker{
@@ -116,20 +113,18 @@ func (w *warpSendTxAgentBuilder) NewAgent(
 		onIssued: w.timeTracker.IssueTx,
 	}
 	return txs.NewIssueNAgent[*AwmTx](
-		w.txSequences[idx], awmWorker, w.batchSize, w.metrics), nil
+		w.txSequences[idx], awmWorker, w.batchSize, m), nil
 }
 
 type warpReceiveTxAgentBuilder struct {
 	txSequences []txs.TxSequence[*AwmTx]
 	batchSize   uint64
-	metrics     *metrics.Metrics
 	timeTracker *timeTracker
 }
 
 func NewWarpReceiveTxAgentBuilder(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
-	timeTracker *timeTracker,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64, timeTracker *timeTracker,
 ) (AgentBuilder, error) {
 	log.Info("Creating warp transaction sequences...")
 	txSequences, err := GetWarpReceiveTxSequences(
@@ -140,13 +135,13 @@ func NewWarpReceiveTxAgentBuilder(
 	return &warpReceiveTxAgentBuilder{
 		txSequences: txSequences,
 		batchSize:   config.BatchSize,
-		metrics:     metrics,
 		timeTracker: timeTracker,
 	}, nil
 }
 
 func (w *warpReceiveTxAgentBuilder) NewAgent(
-	ctx context.Context, idx int, client ethclient.Client, sender common.Address,
+	ctx context.Context, idx int, client ethclient.Client,
+	sender common.Address, m *metrics.Metrics,
 ) (txs.Agent, error) {
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
 	awmWorker := &awmWorker{
@@ -154,5 +149,5 @@ func (w *warpReceiveTxAgentBuilder) NewAgent(
 		onConfirmed: w.timeTracker.ConfirmTx,
 	}
 	return txs.NewIssueNAgent[*AwmTx](
-		w.txSequences[idx], awmWorker, w.batchSize, w.metrics), nil
+		w.txSequences[idx], awmWorker, w.batchSize, m), nil
 }

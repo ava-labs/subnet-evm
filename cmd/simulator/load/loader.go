@@ -72,15 +72,15 @@ func ExecuteLoader(ctx context.Context, cfg config.Config) error {
 
 	warpSenderAgentBuilder := func(
 		ctx context.Context, config config.Config, chainID *big.Int,
-		pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
+		pks []*ecdsa.PrivateKey, startingNonces []uint64,
 	) (AgentBuilder, error) {
-		return NewWarpSendTxAgentBuilder(ctx, config, chainID, pks, startingNonces, metrics, timeTracker)
+		return NewWarpSendTxAgentBuilder(ctx, config, chainID, pks, startingNonces, timeTracker)
 	}
 	warpReceiveTxAgentBuilder := func(
 		ctx context.Context, config config.Config, chainID *big.Int,
-		pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
+		pks []*ecdsa.PrivateKey, startingNonces []uint64,
 	) (AgentBuilder, error) {
-		return NewWarpReceiveTxAgentBuilder(ctx, config, chainID, pks, startingNonces, metrics, timeTracker)
+		return NewWarpReceiveTxAgentBuilder(ctx, config, chainID, pks, startingNonces, timeTracker)
 	}
 
 	var eg errgroup.Group
@@ -161,13 +161,13 @@ func executeLoaderImpl(
 	if err != nil {
 		return err
 	}
-	agentBuilder, err := mkAgentBuilder(ctx, config, chainID, pks, startingNonces, m)
+	agentBuilder, err := mkAgentBuilder(ctx, config, chainID, pks, startingNonces)
 	if err != nil {
 		return err
 	}
 	agents := make([]txs.Agent, 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		agent, err := agentBuilder.NewAgent(ctx, i, clients[i], senders[i])
+		agent, err := agentBuilder.NewAgent(ctx, i, clients[i], senders[i], m)
 		if err != nil {
 			return err
 		}
