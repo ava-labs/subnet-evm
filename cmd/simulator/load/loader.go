@@ -8,7 +8,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"os"
@@ -24,6 +24,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -71,15 +72,15 @@ func ExecuteLoader(ctx context.Context, cfg config.Config) error {
 
 	warpSenderAgentBuilder := func(
 		ctx context.Context, config config.Config, chainID *big.Int,
-		pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+		pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
 	) (AgentBuilder, error) {
-		return NewWarpSendTxAgentBuilder(ctx, config, chainID, pks, client, metrics, timeTracker)
+		return NewWarpSendTxAgentBuilder(ctx, config, chainID, pks, startingNonces, metrics, timeTracker)
 	}
 	warpReceiveTxAgentBuilder := func(
 		ctx context.Context, config config.Config, chainID *big.Int,
-		pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+		pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
 	) (AgentBuilder, error) {
-		return NewWarpReceiveTxAgentBuilder(ctx, config, chainID, pks, client, metrics, timeTracker)
+		return NewWarpReceiveTxAgentBuilder(ctx, config, chainID, pks, startingNonces, metrics, timeTracker)
 	}
 
 	var eg errgroup.Group
@@ -156,7 +157,11 @@ func executeLoaderImpl(
 		return fmt.Errorf("failed to fetch chainID: %w", err)
 	}
 	log.Info("Constructing tx agents...", "numAgents", config.Workers)
-	agentBuilder, err := mkAgentBuilder(ctx, config, chainID, pks, client, m)
+	startingNonces, err := getStartingNonces(ctx, client, pks)
+	if err != nil {
+		return err
+	}
+	agentBuilder, err := mkAgentBuilder(ctx, config, chainID, pks, startingNonces, m)
 	if err != nil {
 		return err
 	}
@@ -219,7 +224,7 @@ func printOutputFromMetricsServer(metricsPort string) {
 		return
 	}
 	// Read response body
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("cannot read response body", "err", err)
 		return
@@ -229,4 +234,17 @@ func printOutputFromMetricsServer(metricsPort string) {
 	for _, s := range parts {
 		fmt.Printf("       \t\t\t%s\n", s)
 	}
+}
+
+func getStartingNonces(ctx context.Context, client ethclient.Client, pks []*ecdsa.PrivateKey) ([]uint64, error) {
+	startingNonces := make([]uint64, len(pks))
+	for i, pk := range pks {
+		addr := ethcrypto.PubkeyToAddress(pk.PublicKey)
+		nonce, err := client.NonceAt(ctx, addr, nil)
+		if err != nil {
+			return nil, err
+		}
+		startingNonces[i] = nonce
+	}
+	return startingNonces, nil
 }

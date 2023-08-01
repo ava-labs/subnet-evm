@@ -9,8 +9,6 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethclient"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 var _ TxSequence[*types.Transaction] = (*txSequence[*types.Transaction])(nil)
@@ -21,13 +19,8 @@ type CreateTx[T any] func(key *ecdsa.PrivateKey, nonce uint64) (T, error)
 // [numTxs] times sequentially to generate a sequence of transactions.
 func GenerateTxSequence[T any](
 	ctx context.Context, generator CreateTx[T],
-	client ethclient.Client, key *ecdsa.PrivateKey, numTxs uint64,
+	key *ecdsa.PrivateKey, startingNonce uint64, numTxs uint64,
 ) (TxSequence[T], error) {
-	address := ethcrypto.PubkeyToAddress(key.PublicKey)
-	startingNonce, err := client.NonceAt(ctx, address, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch nonce for address %s: %w", address, err)
-	}
 	txs := make([]T, numTxs)
 	for i := uint64(0); i < numTxs; i++ {
 		tx, err := generator(key, startingNonce+i)
@@ -41,11 +34,11 @@ func GenerateTxSequence[T any](
 
 func GenerateTxSequences[T any](
 	ctx context.Context, generator CreateTx[T],
-	client ethclient.Client, keys []*ecdsa.PrivateKey, txsPerKey uint64,
+	keys []*ecdsa.PrivateKey, startingNonces []uint64, txsPerKey uint64,
 ) ([]TxSequence[T], error) {
 	txSequences := make([]TxSequence[T], len(keys))
 	for i, key := range keys {
-		txs, err := GenerateTxSequence(ctx, generator, client, key, txsPerKey)
+		txs, err := GenerateTxSequence(ctx, generator, key, startingNonces[i], txsPerKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate tx sequence at index %d: %w", i, err)
 		}

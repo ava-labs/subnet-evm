@@ -22,7 +22,10 @@ import (
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds
 // from the key with the highest starting balance.
 // This function returns a set of at least [numKeys] keys, each having a minimum balance [minFundsPerAddr].
-func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.Key, numKeys int, minFundsPerAddr *big.Int, m *metrics.Metrics) ([]*key.Key, error) {
+func DistributeFunds(
+	ctx context.Context, client ethclient.Client, keys []*key.Key, numKeys int,
+	minFundsPerAddr *big.Int, m *metrics.Metrics,
+) ([]*key.Key, error) {
 	if len(keys) < numKeys {
 		return nil, fmt.Errorf("insufficient number of keys %d < %d", len(keys), numKeys)
 	}
@@ -103,7 +106,12 @@ func DistributeFunds(ctx context.Context, client ethclient.Client, keys []*key.K
 	}
 
 	numTxs := uint64(len(needFundsAddrs))
-	txSequence, err := txs.GenerateTxSequence(ctx, txGenerator, client, maxFundsKey.PrivKey, numTxs)
+	startingNonce, err := client.NonceAt(ctx, maxFundsKey.Address, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch nonce for addr %s: %w", maxFundsKey.Address, err)
+	}
+	txSequence, err := txs.GenerateTxSequence(
+		ctx, txGenerator, maxFundsKey.PrivKey, startingNonce, numTxs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate fund distribution sequence from %s of length %d", maxFundsKey.Address, len(needFundsAddrs))
 	}

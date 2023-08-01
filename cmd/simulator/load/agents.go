@@ -21,7 +21,7 @@ import (
 
 type mkAgentBuilder func(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
 ) (AgentBuilder, error)
 
 type AgentBuilder interface {
@@ -36,7 +36,7 @@ type transferTxAgentBuilder struct {
 
 func NewTransferTxAgentBuilder(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
 ) (AgentBuilder, error) {
 	log.Info("Creating transaction sequences...")
 	bigGwei := big.NewInt(params.GWei)
@@ -61,7 +61,8 @@ func NewTransferTxAgentBuilder(
 		}
 		return tx, nil
 	}
-	txSequences, err := txs.GenerateTxSequences(ctx, txGenerator, client, pks, config.TxsPerWorker)
+	txSequences, err := txs.GenerateTxSequences(
+		ctx, txGenerator, pks, startingNonces, config.TxsPerWorker)
 	if err != nil {
 		return nil, err
 	}
@@ -90,11 +91,11 @@ type warpSendTxAgentBuilder struct {
 
 func NewWarpSendTxAgentBuilder(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
 	timeTracker *timeTracker,
 ) (AgentBuilder, error) {
 	log.Info("Creating warp transaction sequences...")
-	txSequences, err := GetWarpSendTxSequences(ctx, config, chainID, pks, client)
+	txSequences, err := GetWarpSendTxSequences(ctx, config, chainID, pks, startingNonces)
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +128,12 @@ type warpReceiveTxAgentBuilder struct {
 
 func NewWarpReceiveTxAgentBuilder(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, client ethclient.Client, metrics *metrics.Metrics,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64, metrics *metrics.Metrics,
 	timeTracker *timeTracker,
 ) (AgentBuilder, error) {
 	log.Info("Creating warp transaction sequences...")
-	txSequences, err := GetWarpReceiveTxSequences(ctx, config, chainID, pks, client)
+	txSequences, err := GetWarpReceiveTxSequences(
+		ctx, config, chainID, pks, startingNonces)
 	if err != nil {
 		return nil, err
 	}

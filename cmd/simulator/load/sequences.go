@@ -18,7 +18,6 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/warp"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 type TxSequenceGetter func(
@@ -59,7 +58,7 @@ type TxSequenceGetter func(
 
 func GetWarpSendTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, client ethclient.Client,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 ) ([]txs.TxSequence[*AwmTx], error) {
 	// TODO: pass through beginning nonces instead of client here.
 	bigGwei := big.NewInt(params.GWei)
@@ -72,26 +71,14 @@ func GetWarpSendTxSequences(
 		return nil, err
 	}
 	txGenerator := MkSendWarpTxGenerator(chainID, subnetB, gasFeeCap, gasTipCap)
-	return txs.GenerateTxSequences(ctx, txGenerator, client, pks, config.TxsPerWorker)
+	return txs.GenerateTxSequences(ctx, txGenerator, pks, startingNonces, config.TxsPerWorker)
 }
 
 func GetWarpReceiveTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, client ethclient.Client,
+	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 ) ([]txs.TxSequence[*AwmTx], error) {
-	// Get the starting nonces
-	startingNonces := make([]uint64, config.Workers)
-	for i := 0; i < config.Workers; i++ {
-		addr := ethcrypto.PubkeyToAddress(pks[i].PublicKey)
-		nonce, err := client.NonceAt(ctx, addr, nil)
-		if err != nil {
-			return nil, err
-		}
-		startingNonces[i] = nonce
-	}
-
 	ch := make(chan warpSignature) // channel for incoming signatures
-
 	// We will need to aggregate signatures for messages that are sent on
 	// subnet A. So we will subscribe to the subnet A's accepted logs.
 	// TODO: fix how we get ethclients for subnet A here.
