@@ -70,29 +70,19 @@ func ExecuteLoader(ctx context.Context, cfg config.Config) error {
 	metricsPort := strconv.Itoa(int(cfg.MetricsPort))
 	go startMetricsServer(ctx, metricsPort, reg)
 
-	warpSenderAgentBuilder := func(
-		ctx context.Context, config config.Config, chainID *big.Int,
-		pks []*ecdsa.PrivateKey, startingNonces []uint64,
-	) (AgentBuilder, error) {
-		return NewWarpSendTxAgentBuilder(ctx, config, chainID, pks, startingNonces, timeTracker)
-	}
-	warpReceiveTxAgentBuilder := func(
-		ctx context.Context, config config.Config, chainID *big.Int,
-		pks []*ecdsa.PrivateKey, startingNonces []uint64,
-	) (AgentBuilder, error) {
-		return NewWarpReceiveTxAgentBuilder(ctx, config, chainID, pks, startingNonces, timeTracker)
-	}
-
 	var eg errgroup.Group
 	eg.Go(func() error {
-		return executeLoaderImpl(ctx, cfg, warpSenderAgentBuilder, m)
+		agentBuilder := &warpSendTxAgentBuilder{timeTracker: timeTracker}
+		return executeLoaderImpl(ctx, cfg, agentBuilder, m)
 	})
 	eg.Go(func() error {
 		// TODO: should get these values properly
 		cfg := cfg
 		endpointsStr := os.Getenv("RPC_ENDPOINTS_SUBNET_B")
 		cfg.Endpoints = strings.Split(endpointsStr, ",")
-		return executeLoaderImpl(ctx, cfg, warpReceiveTxAgentBuilder, mB)
+		cfg.BatchSize = 1 // No need to batch receive warp txs
+		agentBuilder := &warpReceiveTxAgentBuilder{timeTracker: timeTracker}
+		return executeLoaderImpl(ctx, cfg, agentBuilder, mB)
 	})
 	if err := eg.Wait(); err != nil {
 		return err
@@ -102,7 +92,7 @@ func ExecuteLoader(ctx context.Context, cfg config.Config) error {
 }
 
 func executeLoaderImpl(
-	ctx context.Context, config config.Config, mkAgentBuilder mkAgentBuilder, m *metrics.Metrics,
+	ctx context.Context, config config.Config, agentBuilder AgentBuilder, m *metrics.Metrics,
 ) error {
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
@@ -161,13 +151,13 @@ func executeLoaderImpl(
 	if err != nil {
 		return err
 	}
-	agentBuilder, err := mkAgentBuilder(ctx, config, chainID, pks, startingNonces)
+	err = agentBuilder.GenerateTxSequences(ctx, config, chainID, pks, startingNonces)
 	if err != nil {
 		return err
 	}
 	agents := make([]txs.Agent, 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		agent, err := agentBuilder.NewAgent(ctx, i, clients[i], senders[i], m)
+		agent, err := agentBuilder.NewAgent(ctx, config, i, clients[i], senders[i], m)
 		if err != nil {
 			return err
 		}
