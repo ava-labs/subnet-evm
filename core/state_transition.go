@@ -344,10 +344,12 @@ func (st *StateTransition) preCheck() error {
 			return fmt.Errorf("%w: address %v", vmerrs.ErrAddrProhibited, msg.From)
 		}
 
+		rules := st.evm.ChainConfig().AvalancheRules(st.evm.Context.BlockNumber, st.evm.Context.Time)
+
 		// Check that the sender is on the tx allow list if enabled
-		if st.evm.ChainConfig().IsPrecompileEnabled(txallowlist.ContractAddress, st.evm.Context.Time) {
+		if rules.IsPrecompileEnabled(txallowlist.ContractAddress) {
 			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, msg.From)
-			if !txAllowListRole.IsEnabled() {
+			if !txAllowListRole.IsEnabled(rules.IsDUpgrade) {
 				return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, msg.From)
 			}
 		}

@@ -46,10 +46,12 @@ func (r Role) IsAdmin() bool {
 }
 
 // IsEnabled returns true if [s] indicates that it has permission to access the resource.
-func (r Role) IsEnabled() bool {
+func (r Role) IsEnabled(isManagerActivated bool) bool {
 	switch r {
 	case AdminRole, EnabledRole:
 		return true
+	case ManagerRole:
+		return isManagerActivated
 	default:
 		return false
 	}

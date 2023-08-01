@@ -6,11 +6,13 @@ package rewardmanager
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -91,6 +93,104 @@ var (
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.Equal(t, testAddr, address)
 				require.False(t, isFeeRecipients)
+			},
+		},
+		"set allow fee recipients from enabled succeeds after activation": {
+			Caller:      allowlist.TestManagerAddr,
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackAllowFeeRecipients()
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: AllowFeeRecipientsGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				_, isFeeRecipients := GetStoredRewardAddress(state)
+				require.True(t, isFeeRecipients)
+			},
+		},
+		"set allow fee recipients from manager fails before activation": {
+			Caller:      allowlist.TestManagerAddr,
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackAllowFeeRecipients()
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: AllowFeeRecipientsGasCost,
+			ReadOnly:    false,
+			ExpectedErr: ErrCannotAllowFeeRecipients.Error(),
+		},
+		"set reward address from manager fails before activation": {
+			Caller:      allowlist.TestManagerAddr,
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackSetRewardAddress(testAddr)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: SetRewardAddressGasCost,
+			ReadOnly:    false,
+			ExpectedErr: ErrCannotSetRewardAddress.Error(),
+		},
+		"set reward address from manager succeeds after activation": {
+			Caller:      allowlist.TestManagerAddr,
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackSetRewardAddress(testAddr)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: SetRewardAddressGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				address, isFeeRecipients := GetStoredRewardAddress(state)
+				require.Equal(t, testAddr, address)
+				require.False(t, isFeeRecipients)
+			},
+		},
+		"disable rewards from manager fails before activation": {
+			Caller:      allowlist.TestManagerAddr,
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackDisableRewards()
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: DisableRewardsGasCost,
+			ReadOnly:    false,
+			ExpectedErr: ErrCannotDisableRewards.Error(),
+		},
+		"disable rewards from manager succeeds after activation": {
+			Caller:      allowlist.TestManagerAddr,
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackDisableRewards()
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: DisableRewardsGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				address, isFeeRecipients := GetStoredRewardAddress(state)
+				require.False(t, isFeeRecipients)
+				require.Equal(t, constants.BlackholeAddr, address)
 			},
 		},
 		"disable rewards from enabled succeeds": {

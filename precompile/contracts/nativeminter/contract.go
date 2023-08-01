@@ -85,7 +85,7 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
-	if !callerStatus.IsEnabled() {
+	if !callerStatus.IsEnabled(allowlist.IsManagerRoleActivated(accessibleState)) {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
 

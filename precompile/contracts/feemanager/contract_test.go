@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -48,6 +49,38 @@ var (
 		"set config from enabled address": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackSetFeeConfig(testFeeConfig)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				feeConfig := GetStoredFeeConfig(state)
+				require.Equal(t, testFeeConfig, feeConfig)
+			},
+		},
+		"set config from manager fails before activation": {
+			Caller:      allowlist.TestManagerAddr,
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackSetFeeConfig(testFeeConfig)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    false,
+			ExpectedErr: ErrCannotChangeFee.Error(),
+		},
+		"set config from manager succeeds after activation": {
+			Caller:      allowlist.TestManagerAddr,
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
