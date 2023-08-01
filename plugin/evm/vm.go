@@ -72,6 +72,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/perms"
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
@@ -90,9 +91,9 @@ const (
 	// and fail verification
 	maxFutureBlockTime = 10 * time.Second
 
-	decidedCacheSize       = 100
-	missingCacheSize       = 50
-	unverifiedCacheSize    = 50
+	decidedCacheSize       = 10 * units.MiB
+	missingCacheSize       = 5 * units.MiB
+	unverifiedCacheSize    = 5 * units.MiB
 	warpSignatureCacheSize = 500
 
 	// Prefixes for metrics gatherers
