@@ -92,8 +92,9 @@ const (
 	maxFutureBlockTime = 10 * time.Second
 
 	decidedCacheSize       = 10 * units.MiB
-	missingCacheSize       = 5 * units.MiB
+	missingCacheSize       = 50
 	unverifiedCacheSize    = 5 * units.MiB
+	bytesToIDCacheSize     = 5 * units.MiB
 	warpSignatureCacheSize = 500
 
 	// Prefixes for metrics gatherers
@@ -559,6 +560,7 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 		DecidedCacheSize:      decidedCacheSize,
 		MissingCacheSize:      missingCacheSize,
 		UnverifiedCacheSize:   unverifiedCacheSize,
+		BytesToIDCacheSize:    bytesToIDCacheSize,
 		GetBlockIDAtHeight:    vm.GetBlockIDAtHeight,
 		GetBlock:              vm.getBlock,
 		UnmarshalBlock:        vm.parseBlock,
