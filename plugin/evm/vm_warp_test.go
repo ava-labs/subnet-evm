@@ -43,7 +43,7 @@ func TestSendWarpMessage(t *testing.T) {
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
-	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), "", "")
 
 	defer func() {
 		require.NoError(vm.Shutdown(context.Background()))
@@ -130,7 +130,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
-	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), "", "")
 
 	defer func() {
 		require.NoError(vm.Shutdown(context.Background()))

@@ -290,7 +290,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
 	}()
 
 	// configure [serverVM]
-	_, serverVM, _, serverAppSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	_, serverVM, _, serverAppSender:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 	generateAndAcceptBlocks(t, serverVM, parentsToGet, func(i int, gen *core.BlockGen) {
 		tx := types.NewTransaction(gen.TxNonce(testEthAddrs[0]), testEthAddrs[1], common.Big1, params.TxGas, big.NewInt(testMinGasPrice), nil)
 		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), testKeys[0])
@@ -325,7 +325,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
 
 	// initialise [syncerVM] with blank genesis state
 	stateSyncEnabledJSON := fmt.Sprintf("{\"state-sync-enabled\":true, \"state-sync-min-blocks\": %d}", test.stateSyncMinBlocks)
-	syncerEngineChan, syncerVM, syncerDBManager, syncerAppSender := GenesisVM(t, false, genesisJSONSubnetEVM, stateSyncEnabledJSON, "")
+	syncerEngineChan, syncerVM, syncerDBManager, syncerAppSender:= GenesisVM(t, false, genesisJSONSubnetEVM, stateSyncEnabledJSON, "")
 	if err := syncerVM.SetState(context.Background(), snow.StateSyncing); err != nil {
 		t.Fatal(err)
 	}
