@@ -89,7 +89,7 @@ func TestMempoolTxsAddedTxsGossipedAfterActivation(t *testing.T) {
 	cfgJson, err := fundAddressByGenesis([]common.Address{addr})
 	assert.NoError(err)
 
-	_, vm, _, sender:= GenesisVM(t, true, cfgJson, "", "")
+	_, vm, _, sender := GenesisVM(t, true, cfgJson, "", "")
 	defer func() {
 		err := vm.Shutdown(context.Background())
 		assert.NoError(err)
@@ -178,7 +178,7 @@ func TestMempoolTxsAddedTxsGossipedAfterActivationChunking(t *testing.T) {
 	cfgJson, err := fundAddressByGenesis([]common.Address{addr})
 	assert.NoError(err)
 
-	_, vm, _, sender:= GenesisVM(t, true, cfgJson, "", "")
+	_, vm, _, sender := GenesisVM(t, true, cfgJson, "", "")
 	defer func() {
 		err := vm.Shutdown(context.Background())
 		assert.NoError(err)
@@ -240,7 +240,7 @@ func TestMempoolTxsAppGossipHandling(t *testing.T) {
 	cfgJson, err := fundAddressByGenesis([]common.Address{addr})
 	assert.NoError(err)
 
-	_, vm, _, sender:= GenesisVM(t, true, cfgJson, "", "")
+	_, vm, _, sender := GenesisVM(t, true, cfgJson, "", "")
 	defer func() {
 		err := vm.Shutdown(context.Background())
 		assert.NoError(err)
@@ -295,7 +295,7 @@ func TestMempoolTxsRegossipSingleAccount(t *testing.T) {
 	cfgJson, err := fundAddressByGenesis([]common.Address{addr})
 	assert.NoError(err)
 
-	_, vm, _, _:= GenesisVM(t, true, cfgJson, `{"local-txs-enabled":true}`, "")
+	_, vm, _, _ := GenesisVM(t, true, cfgJson, `{"local-txs-enabled":true}`, "")
 	defer func() {
 		err := vm.Shutdown(context.Background())
 		assert.NoError(err)
@@ -335,7 +335,7 @@ func TestMempoolTxsRegossip(t *testing.T) {
 	cfgJson, err := fundAddressByGenesis(addrs)
 	assert.NoError(err)
 
-	_, vm, _, _:= GenesisVM(t, true, cfgJson, `{"local-txs-enabled":true}`, "")
+	_, vm, _, _ := GenesisVM(t, true, cfgJson, `{"local-txs-enabled":true}`, "")
 	defer func() {
 		err := vm.Shutdown(context.Background())
 		assert.NoError(err)
@@ -398,7 +398,7 @@ func TestMempoolTxsPriorityRegossip(t *testing.T) {
 	assert.NoError(err)
 
 	cfg := fmt.Sprintf(`{"local-txs-enabled":true,"priority-regossip-addresses":["%s"]}`, addr)
-	_, vm, _, _:= GenesisVM(t, true, cfgJson, cfg, "")
+	_, vm, _, _ := GenesisVM(t, true, cfgJson, cfg, "")
 	defer func() {
 		err := vm.Shutdown(context.Background())
 		assert.NoError(err)

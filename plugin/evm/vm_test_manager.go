@@ -48,7 +48,7 @@ var (
 )
 
 type VmTestManagerConfig struct {
-	IsE2E bool `json:"IsE2E"`
+	IsE2E      bool `json:"IsE2E"`
 	maxWorkers int
 }
 
@@ -59,14 +59,14 @@ type GenesisVMConfig struct {
 	UpgradeJSON         string `json:"UpgradeJSON"`
 }
 
-type testVector struct {
-	test func(t *testing.T, c VmTestManager)
+type TestVector struct {
+	test           func(t *testing.T, c VmTestManager)
 	expectedResult error
 }
 
 type VmTestManager interface {
-	RunVectors(vecs []testVector) error
-	Create(t *testing.T, config GenesisVMConfig,) (VMWorker, error)
+	RunVectors(t *testing.T, vecs []TestVector) error
+	Create(t *testing.T, config GenesisVMConfig) (VMWorker, error)
 }
 
 type vmTestManager struct {
@@ -107,7 +107,10 @@ func (v *vmTestManager) Create(t *testing.T, config GenesisVMConfig) (VMWorker, 
 	return worker, nil
 }
 
-func (v *vmTestManager) RunVectors(vecs []testVector) error {
+func (v *vmTestManager) RunVectors(t *testing.T, vecs []TestVector) error {
+	for _, test := range vecs {
+		test.test(t, v)
+	}
 	return nil
 }
 
@@ -120,7 +123,7 @@ type VMWorker interface {
 
 type vmWorker struct {
 	workerConfig GenesisVMConfig
-	isE2E bool
+	isE2E        bool
 
 	//only e2e
 
@@ -134,7 +137,7 @@ type vmWorker struct {
 func (v *vmWorker) GetVMConfig() (Config, error) {
 	var (
 		config Config
-		err error = nil
+		err    error = nil
 	)
 	if v.isE2E {
 	} else {
@@ -154,7 +157,7 @@ func (v *vmWorker) ConfirmTxs(txs []*types.Transaction) error {
 	if v.isE2E {
 
 	} else {
-			
+
 	}
 	return nil
 }
@@ -162,7 +165,7 @@ func (v *vmWorker) Shutdown(ctx context.Context) error {
 	if v.isE2E {
 
 	} else {
-			
+
 	}
 	return nil
 }

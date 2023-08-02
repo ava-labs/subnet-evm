@@ -46,7 +46,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	}
 
 	// initialize the VM with these upgrade bytes
-	issuer, vm, dbManager, appSender:= GenesisVM(t, true, genesisJSONSubnetEVM, "", string(upgradeBytesJSON))
+	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", string(upgradeBytesJSON))
 
 	// Submit a successful transaction
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
@@ -245,7 +245,7 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	}
 
 	// initialize the VM with these upgrade bytes
-	_, vm, _, _:= GenesisVM(t, true, string(genesisBytes), "", "")
+	_, vm, _, _ := GenesisVM(t, true, string(genesisBytes), "", "")
 
 	// verify upgrade is rescheduled
 	require.True(t, vm.chainConfig.IsSubnetEVM(0))
@@ -317,7 +317,7 @@ func TestVMStateUpgrade(t *testing.T) {
 	require.Contains(t, upgradeBytesJSON, upgradedCodeStr)
 
 	// initialize the VM with these upgrade bytes
-	issuer, vm, _, _:= GenesisVM(t, true, genesisStr, "", upgradeBytesJSON)
+	issuer, vm, _, _ := GenesisVM(t, true, genesisStr, "", upgradeBytesJSON)
 	defer func() { require.NoError(t, vm.Shutdown(context.Background())) }()
 
 	// Verify the new account doesn't exist yet

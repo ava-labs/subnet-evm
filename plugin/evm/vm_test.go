@@ -58,9 +58,8 @@ import (
 )
 
 var (
-
-	testKeys        []*ecdsa.PrivateKey
-	testEthAddrs    []common.Address // testEthAddrs[i] corresponds to testKeys[i]
+	testKeys     []*ecdsa.PrivateKey
+	testEthAddrs []common.Address // testEthAddrs[i] corresponds to testKeys[i]
 
 	// Use chainId: 43111, so that it does not overlap with any Avalanche ChainIDs, which may have their
 	// config overridden in vm.Initialize.
@@ -81,14 +80,31 @@ func init() {
 	genesisBalance = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*1000))
 }
 
+func TestRunUnits(t *testing.T) {
+	config := VmTestManagerConfig{
+		IsE2E:      false,
+		maxWorkers: 1,
+	}
+
+	vecs := []TestVector{
+		TestVector{
+			testVMConfig,
+			nil,
+		},
+	}
+
+	manager, err := NewVmTestManager(config)
+	require.NoError(t, err)
+	manager.RunVectors(t, vecs)
+}
+
 func testVMConfig(t *testing.T, c VmTestManager) {
 	require := require.New(t)
 	txFeeCap := float64(11)
 	enabledEthAPIs := []string{"debug"}
 	configJSON := fmt.Sprintf("{\"rpc-tx-fee-cap\": %g,\"eth-apis\": %s}", txFeeCap, fmt.Sprintf("[%q]", enabledEthAPIs[0]))
 
-	workerConfig := GenesisVMConfig{false, "",configJSON, "",
-	}
+	workerConfig := GenesisVMConfig{false, "", configJSON, ""}
 	vmb, err := c.Create(t, workerConfig)
 	require.NoError(err)
 	defer func() {
@@ -105,7 +121,7 @@ func TestVMConfig(t *testing.T) {
 	txFeeCap := float64(11)
 	enabledEthAPIs := []string{"debug"}
 	configJSON := fmt.Sprintf("{\"rpc-tx-fee-cap\": %g,\"eth-apis\": %s}", txFeeCap, fmt.Sprintf("[%q]", enabledEthAPIs[0]))
-	_, vm, _, _:= GenesisVM(t, false, "", configJSON, "")
+	_, vm, _, _ := GenesisVM(t, false, "", configJSON, "")
 	require.Equal(t, vm.config.RPCTxFeeCap, txFeeCap, "Tx Fee Cap should be set")
 	require.Equal(t, vm.config.EthAPIs(), enabledEthAPIs, "EnabledEthAPIs should be set")
 	require.NoError(t, vm.Shutdown(context.Background()))
@@ -115,7 +131,7 @@ func TestVMConfigDefaults(t *testing.T) {
 	txFeeCap := float64(11)
 	enabledEthAPIs := []string{"debug"}
 	configJSON := fmt.Sprintf("{\"rpc-tx-fee-cap\": %g,\"eth-apis\": %s}", txFeeCap, fmt.Sprintf("[%q]", enabledEthAPIs[0]))
-	_, vm, _, _:= GenesisVM(t, false, "", configJSON, "")
+	_, vm, _, _ := GenesisVM(t, false, "", configJSON, "")
 
 	var vmConfig Config
 	vmConfig.SetDefaults()
@@ -126,7 +142,7 @@ func TestVMConfigDefaults(t *testing.T) {
 }
 
 func TestVMNilConfig(t *testing.T) {
-	_, vm, _, _:= GenesisVM(t, false, "", "", "")
+	_, vm, _, _ := GenesisVM(t, false, "", "", "")
 
 	// VM Config should match defaults if no config is passed in
 	var vmConfig Config
@@ -139,7 +155,7 @@ func TestVMContinuousProfiler(t *testing.T) {
 	profilerDir := t.TempDir()
 	profilerFrequency := 500 * time.Millisecond
 	configJSON := fmt.Sprintf("{\"continuous-profiler-dir\": %q,\"continuous-profiler-frequency\": \"500ms\"}", profilerDir)
-	_, vm, _, _:= GenesisVM(t, false, "", configJSON, "")
+	_, vm, _, _ := GenesisVM(t, false, "", configJSON, "")
 	require.Equal(t, vm.config.ContinuousProfilerDir, profilerDir, "profiler dir should be set")
 	require.Equal(t, vm.config.ContinuousProfilerFrequency.Duration, profilerFrequency, "profiler frequency should be set")
 
@@ -168,7 +184,7 @@ func TestVMUpgrades(t *testing.T) {
 	}
 	for _, test := range genesisTests {
 		t.Run(test.name, func(t *testing.T) {
-			_, vm, _, _:= GenesisVM(t, true, test.genesis, "", "")
+			_, vm, _, _ := GenesisVM(t, true, test.genesis, "", "")
 
 			if gasPrice := vm.txPool.GasPrice(); gasPrice.Cmp(test.expectedGasPrice) != 0 {
 				t.Fatalf("Expected pool gas price to be %d but found %d", test.expectedGasPrice, gasPrice)
@@ -253,7 +269,7 @@ func issueAndAccept(t *testing.T, issuer <-chan commonEng.Message, vm *VM) snowm
 
 func TestBuildEthTxBlock(t *testing.T) {
 	// reduce block gas cost
-	issuer, vm, dbManager, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
+	issuer, vm, dbManager, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -392,8 +408,8 @@ func TestBuildEthTxBlock(t *testing.T) {
 func TestSetPreferenceRace(t *testing.T) {
 	// Create two VMs which will agree on block A and then
 	// build the two distinct preferred chains above
-	issuer1, vm1, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
-	issuer2, vm2, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
+	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
+	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
 
 	defer func() {
 		if err := vm1.Shutdown(context.Background()); err != nil {
@@ -643,8 +659,8 @@ func TestSetPreferenceRace(t *testing.T) {
 // accept block C, which should be an orphaned block at this point and
 // get rejected.
 func TestReorgProtection(t *testing.T) {
-	issuer1, vm1, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":false}", "")
-	issuer2, vm2, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":false}", "")
+	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":false}", "")
+	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":false}", "")
 
 	defer func() {
 		if err := vm1.Shutdown(context.Background()); err != nil {
@@ -821,8 +837,8 @@ func TestReorgProtection(t *testing.T) {
 //	 / \
 //	B   C
 func TestNonCanonicalAccept(t *testing.T) {
-	issuer1, vm1, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
-	issuer2, vm2, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		if err := vm1.Shutdown(context.Background()); err != nil {
@@ -992,8 +1008,8 @@ func TestNonCanonicalAccept(t *testing.T) {
 //	    |
 //	    D
 func TestStickyPreference(t *testing.T) {
-	issuer1, vm1, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
-	issuer2, vm2, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		if err := vm1.Shutdown(context.Background()); err != nil {
@@ -1262,8 +1278,8 @@ func TestStickyPreference(t *testing.T) {
 //	    |
 //	    D
 func TestUncleBlock(t *testing.T) {
-	issuer1, vm1, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
-	issuer2, vm2, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		if err := vm1.Shutdown(context.Background()); err != nil {
@@ -1451,7 +1467,7 @@ func TestUncleBlock(t *testing.T) {
 // Regression test to ensure that a VM that is not able to parse a block that
 // contains no transactions.
 func TestEmptyBlock(t *testing.T) {
-	issuer, vm, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer, vm, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -1509,8 +1525,8 @@ func TestEmptyBlock(t *testing.T) {
 //	    |
 //	    D
 func TestAcceptReorg(t *testing.T) {
-	issuer1, vm1, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
-	issuer2, vm2, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer1, vm1, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer2, vm2, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		if err := vm1.Shutdown(context.Background()); err != nil {
@@ -1715,7 +1731,7 @@ func TestAcceptReorg(t *testing.T) {
 }
 
 func TestFutureBlock(t *testing.T) {
-	issuer, vm, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer, vm, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -1769,7 +1785,7 @@ func TestFutureBlock(t *testing.T) {
 }
 
 func TestLastAcceptedBlockNumberAllow(t *testing.T) {
-	issuer, vm, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer, vm, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -1909,7 +1925,7 @@ func TestConfigureLogLevel(t *testing.T) {
 // Regression test to ensure we can build blocks if we are starting with the
 // Subnet EVM ruleset in genesis.
 func TestBuildSubnetEVMBlock(t *testing.T) {
-	issuer, vm, _, _:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer, vm, _, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2005,7 +2021,7 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), "", "")
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2070,7 +2086,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), "", "")
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2165,7 +2181,7 @@ func TestTxAllowListDisablePrecompile(t *testing.T) {
 	}
 	`, disableAllowListTimestamp.Unix())
 
-	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), "", upgradeConfig)
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", upgradeConfig)
 
 	vm.clock.Set(disableAllowListTimestamp) // upgrade takes effect after a block is issued, so we can set vm's clock here.
 
@@ -2278,7 +2294,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), "", "")
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2383,7 +2399,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), "", "")
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
 
 	vm.miner.SetEtherbase(common.HexToAddress("0x0123456789")) // set non-blackhole address by force
 	defer func() {
@@ -2452,7 +2468,7 @@ func TestAllowFeeRecipientEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), string(configJSON), "")
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), string(configJSON), "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2529,7 +2545,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 		}
 		`, disableTime.Unix())
 
-	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), string(configJSON), upgradeConfig)
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), string(configJSON), upgradeConfig)
 
 	defer func() {
 		err := vm.Shutdown(context.Background())
@@ -2669,7 +2685,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 			]
 		}
 		`, disableTime.Unix())
-	issuer, vm, _, _:= GenesisVM(t, true, string(genesisJSON), string(configJSON), upgradeConfig)
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), string(configJSON), upgradeConfig)
 
 	defer func() {
 		require.NoError(t, vm.Shutdown(context.Background()))
@@ -2775,7 +2791,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	metrics.Enabled = false
 	defer func() { metrics.Enabled = true }()
 
-	issuer, vm, dbManager, appSender:= GenesisVM(t, true, genesisJSONPreSubnetEVM, "{\"pruning-enabled\":true}", "")
+	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, "{\"pruning-enabled\":true}", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2839,7 +2855,7 @@ func TestMandatoryUpgrades(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, modifiedSubnetEVMGenesisString, `"subnetEVMTimestamp":1`)
 	// use modified genesis to set SubnetEVM timestamp to 1
-	_, vm, _, _:= GenesisVM(t, true, modifiedSubnetEVMGenesisString, "", "")
+	_, vm, _, _ := GenesisVM(t, true, modifiedSubnetEVMGenesisString, "", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2873,7 +2889,7 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	require.NoErrorf(err, "could not parse abi: %v")
 
 	calledSendCrossChainAppResponseFn := false
-	issuer, vm, _, appSender:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	issuer, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		err := vm.Shutdown(context.Background())
@@ -3018,7 +3034,7 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 }
 
 func TestSignatureRequestsToVM(t *testing.T) {
-	_, vm, _, appSender:= GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	_, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 
 	defer func() {
 		err := vm.Shutdown(context.Background())
