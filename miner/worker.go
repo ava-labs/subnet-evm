@@ -244,6 +244,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 	)
 
 	if err := core.CheckPredicates(env.rules, env.predicateContext, tx); err != nil {
+		log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
 		return nil, err
 	}
 	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, &coinbase, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
