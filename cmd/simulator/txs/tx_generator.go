@@ -21,7 +21,7 @@ func GenerateTxSequence[T any](
 	ctx context.Context, generator CreateTx[T],
 	key *ecdsa.PrivateKey, startingNonce uint64, numTxs uint64,
 ) (TxSequence[T], error) {
-	txs := make([]T, numTxs)
+	txs := make([]T, 0, numTxs)
 	for i := uint64(0); i < numTxs; i++ {
 		tx, err := generator(key, startingNonce+i)
 		if err != nil {

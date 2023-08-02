@@ -11,12 +11,13 @@ import (
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var _ txs.Worker[*AwmTx] = &awmWorker{}
 
 type AwmTx struct {
-	AwmID common.Hash // next I need to build this hash
+	AwmID common.Hash // a hash of the payload used to uniquely identify this awm message
 	Tx    *types.Transaction
 }
 
@@ -34,10 +35,12 @@ func (aw *awmWorker) IssueTx(ctx context.Context, tx *AwmTx) error {
 	if aw.onIssued != nil {
 		aw.onIssued(tx.AwmID)
 	}
+	log.Info("awm worker issuing tx", "hash", tx.Tx.Hash())
 	return aw.worker.IssueTx(ctx, tx.Tx)
 }
 
 func (aw *awmWorker) ConfirmTx(ctx context.Context, tx *AwmTx) error {
+	log.Info("awm worker confirming tx", "hash", tx.Tx.Hash())
 	if err := aw.worker.ConfirmTx(ctx, tx.Tx); err != nil {
 		return err
 	}
@@ -69,6 +72,7 @@ func (tt *timeTracker) IssueTx(id common.Hash) {
 	defer tt.lock.Unlock()
 
 	tt.issued[id] = time.Now()
+	log.Info("awm time tracker issued tx", "id", id)
 }
 
 func (tt *timeTracker) ConfirmTx(id common.Hash) {
@@ -80,5 +84,7 @@ func (tt *timeTracker) ConfirmTx(id common.Hash) {
 		panic("unexpected confirm " + id.Hex())
 	}
 	delete(tt.issued, id)
-	tt.observer(time.Since(start).Seconds())
+	duration := time.Since(start)
+	tt.observer(duration.Seconds())
+	log.Info("awm time tracker confirmed tx", "id", id, "duration", duration)
 }

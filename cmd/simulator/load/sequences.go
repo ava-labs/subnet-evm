@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/warp"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 type TxSequenceGetter func(
@@ -74,6 +75,10 @@ func GetWarpSendTxSequences(
 	return txs.GenerateTxSequences(ctx, txGenerator, pks, startingNonces, config.TxsPerWorker)
 }
 
+func toWebsocketURI(uri string, blockchainID string) string {
+	return fmt.Sprintf("ws://%s/ext/bc/%s/ws", strings.TrimPrefix(uri, "http://"), blockchainID)
+}
+
 func GetWarpReceiveTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
@@ -85,19 +90,20 @@ func GetWarpReceiveTxSequences(
 	endpointsStr := os.Getenv("RPC_ENDPOINTS_SUBNET_A")
 	endpoints := strings.Split(endpointsStr, ",")
 	clients := make([]ethclient.Client, len(endpoints))
-	for i, clientURI := range endpoints {
+	for i, endpoint := range endpoints {
+		// TODO: remove this hack
+		// endpoint is formatted as %s/ext/bc/%s/rpc
+		split := strings.Split(endpoint, "/")
+		chain := split[len(split)-2]
+		uri := strings.Join(split[:len(split)-4], "/")
+
+		clientURI := toWebsocketURI(uri, chain)
 		client, err := ethclient.Dial(clientURI)
 		if err != nil {
 			return nil, fmt.Errorf("failed to dial client at %s: %w", clientURI, err)
 		}
 		clients[i] = client
-	}
-	for i, client := range clients {
-		// TODO: remove this hack
-		endpoint := endpoints[i] // %s/ext/bc/%s/rpc
-		split := strings.Split(endpoint, "/")
-		chain := split[len(split)-2]
-		uri := strings.Join(split[:len(split)-4], "/")
+		log.Info("Connected to client", "client", clientURI, "idx", i)
 
 		warpClient, err := warp.NewWarpClient(uri, chain)
 		if err != nil {
@@ -108,7 +114,7 @@ func GetWarpReceiveTxSequences(
 		_ = NewWarpRelayClient(ctx, client, warpClient, ch, i)
 	}
 
-	threshold := uint64(4) // TODO: should not be hardcoded
+	threshold := uint64(5) // TODO: should not be hardcoded
 	// TODO: should not be hardcoded like this
 	expectedMessages := int(config.TxsPerWorker) * config.Workers
 	warpRelay := NewWarpRelay(ctx, threshold, ch, expectedMessages)

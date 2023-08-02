@@ -6,6 +6,7 @@ package warp
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -49,11 +50,16 @@ var _ = ginkgo.Describe("[AWM Load Simulator]", ginkgo.Ordered, func() {
 			"rpcEndpointsSubnetB", commaSeparatedRPCEndpointsB,
 		)
 		cmd := exec.Command("./scripts/run_simulator.sh")
-		cmd.Env = append(cmd.Env, "SUBNET_B="+subnetB.String())
-		cmd.Env = append(cmd.Env, "RPC_ENDPOINTS="+commaSeparatedRPCEndpointsA)
-		cmd.Env = append(cmd.Env, "RPC_ENDPOINTS_SUBNET_A="+commaSeparatedRPCEndpointsA)
-		cmd.Env = append(cmd.Env, "RPC_ENDPOINTS_SUBNET_B="+commaSeparatedRPCEndpointsB)
-		log.Info("Running load simulator script", "env", cmd.Env, "cmd", cmd.String())
+		additionalEnv := []string{
+			"SUBNET_B=" + subnetB.String(),
+			"RPC_ENDPOINTS=" + commaSeparatedRPCEndpointsA,
+			"RPC_ENDPOINTS_SUBNET_A=" + commaSeparatedRPCEndpointsA,
+			"RPC_ENDPOINTS_SUBNET_B=" + commaSeparatedRPCEndpointsB,
+		}
+
+		cmd.Env = os.Environ() // Inherit environment variables from parent
+		cmd.Env = append(cmd.Env, additionalEnv...)
+		log.Info("Running load simulator script", "env", additionalEnv, "cmd", cmd.String())
 
 		out, err := cmd.CombinedOutput()
 		fmt.Printf("\nCombined output:\n\n%s\n", string(out))

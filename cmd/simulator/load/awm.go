@@ -8,6 +8,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
@@ -64,6 +65,7 @@ func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTi
 			Tx:    tx,
 			AwmID: ethcrypto.Keccak256Hash(input.Payload),
 		}
+		log.Info("Generated warp message", "awmID", awmTx.AwmID, "tx", tx.Hash())
 		return awmTx, nil
 	}
 	return txGenerator
@@ -73,7 +75,7 @@ func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTi
 // We use this in tests to verify the warp message was sent correctly.
 func getTestWarpPayload(dstChainID ids.ID, addr common.Address, nonce uint64) []byte {
 	length := len(ids.Empty) + common.AddressLength + wrappers.LongLen
-	p := wrappers.Packer{Bytes: make([]byte, 0, length)}
+	p := wrappers.Packer{Bytes: make([]byte, length)}
 	p.PackFixedBytes(dstChainID[:])
 	p.PackFixedBytes(addr.Bytes())
 	p.PackLong(nonce)
@@ -100,7 +102,12 @@ func NewWarpRelayClient(
 		aggregator: aggregator,
 		index:      index,
 	}
-	go wr.doLoop(ctx)
+	go func() {
+		err := wr.doLoop(ctx)
+		if err != nil {
+			log.Error("warp relay client failed", "err", err, "idx", wr.index)
+		}
+	}()
 	return wr
 }
 
@@ -126,19 +133,33 @@ func (wr *warpRelayClient) doLoop(ctx context.Context) error {
 			return ctx.Err()
 		case txLog, ok := <-logsCh:
 			if !ok {
+				log.Info("logsCh closed")
 				return nil
 			}
-			log.Info("Parsing logData as unsigned warp message", "logData", common.Bytes2Hex(txLog.Data))
+			log.Info("Parsing logData as unsigned warp message", "logData", common.Bytes2Hex(txLog.Data), "idx", wr.index)
 			unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
 			if err != nil {
 				return err
 			}
 			unsignedWarpMessageID := unsignedMsg.ID()
-			log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID)
+			log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "idx", wr.index)
 
-			signature, err := wr.warpClient.GetSignature(ctx, unsignedWarpMessageID)
-			if err != nil {
-				return err
+			var signature []byte
+			for i := 0; ; i++ {
+				var err error
+				signature, err = wr.warpClient.GetSignature(ctx, unsignedWarpMessageID)
+				if err != nil {
+					time.Sleep(1 * time.Millisecond)
+					log.Warn(
+						"failed to get signature",
+						"err", err,
+						"unsignedWarpMessageID", unsignedWarpMessageID,
+						"idx", wr.index,
+						"retries", i,
+					)
+					continue
+				}
+				break
 			}
 
 			blsSignature, err := bls.SignatureFromBytes(signature)
@@ -190,7 +211,12 @@ func NewWarpRelay(
 		signedMessages:   make(chan *avalancheWarp.Message),
 		expectedMessages: expectedMessages,
 	}
-	go wr.doLoop(ctx)
+	go func() {
+		err := wr.doLoop(ctx)
+		if err != nil {
+			log.Error("warp relay failed", "err", err)
+		}
+	}()
 	return wr
 }
 
@@ -240,6 +266,7 @@ func (wr *warpRelay) doLoop(ctx context.Context) error {
 			}
 
 			// Send the message on the result channel and mark it as sent
+			log.Info("Signatures aggregated", "messageID", messageID, "expectedMessages", wr.expectedMessages)
 			wr.signedMessages <- msg
 			message.sent = true
 			wr.expectedMessages--
@@ -273,7 +300,12 @@ func NewWarpRelayTxSequence(
 		nonce:    startingNonce,
 		txs:      make(chan *AwmTx, 1),
 	}
-	go wr.doLoop(ctx)
+	go func() {
+		err := wr.doLoop(ctx)
+		if err != nil {
+			log.Error("warp relay tx sequence failed", "err", err)
+		}
+	}()
 	return wr
 }
 

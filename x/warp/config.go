@@ -99,7 +99,11 @@ func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, txHash common
 	if err != nil {
 		return fmt.Errorf("failed to parse warp log data into unsigned message (TxHash: %s, LogIndex: %d): %w", txHash, logIndex, err)
 	}
-	log.Info("Accepted warp unsigned message", "txHash", txHash, "logIndex", logIndex, "logData", common.Bytes2Hex(logData))
+	log.Info(
+		"Accepted warp unsigned message",
+		"txHash", txHash, "logIndex", logIndex, "logData", common.Bytes2Hex(logData),
+		"messageID", unsignedMessage.ID(),
+	)
 	if err := acceptCtx.Warp.AddMessage(unsignedMessage); err != nil {
 		return fmt.Errorf("failed to add warp message during accept (TxHash: %s, LogIndex: %d): %w", txHash, logIndex, err)
 	}

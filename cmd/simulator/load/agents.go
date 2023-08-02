@@ -74,6 +74,7 @@ func (t *transferTxAgentBuilder) GenerateTxSequences(
 	return nil
 }
 
+// nolint: unused
 func (t *transferTxAgentBuilder) NewAgent(
 	ctx context.Context, config config.Config, idx int, client ethclient.Client,
 	sender common.Address, m *metrics.Metrics,

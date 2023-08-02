@@ -21,6 +21,7 @@ import (
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
@@ -80,7 +81,6 @@ func ExecuteLoader(ctx context.Context, cfg config.Config) error {
 		cfg := cfg
 		endpointsStr := os.Getenv("RPC_ENDPOINTS_SUBNET_B")
 		cfg.Endpoints = strings.Split(endpointsStr, ",")
-		cfg.BatchSize = 1 // No need to batch receive warp txs
 		agentBuilder := &warpReceiveTxAgentBuilder{timeTracker: timeTracker}
 		return executeLoaderImpl(ctx, cfg, agentBuilder, mB)
 	})
@@ -146,7 +146,16 @@ func executeLoaderImpl(
 	if err != nil {
 		return fmt.Errorf("failed to fetch chainID: %w", err)
 	}
-	log.Info("Constructing tx agents...", "numAgents", config.Workers)
+
+	// TODO: do this in a more robust way
+	// issue the "triggerTX"
+	for i := 0; i < 2; i++ {
+		if err := issueTriggerTx(ctx, chainID, keys[0], client); err != nil {
+			return err
+		}
+		log.Info("Trigger tx issued successfully", "attempt", i+1)
+	}
+
 	startingNonces, err := getStartingNonces(ctx, client, pks)
 	if err != nil {
 		return err
@@ -155,6 +164,7 @@ func executeLoaderImpl(
 	if err != nil {
 		return err
 	}
+	log.Info("Constructing tx agents...", "numAgents", config.Workers)
 	agents := make([]txs.Agent, 0, config.Workers)
 	for i := 0; i < config.Workers; i++ {
 		agent, err := agentBuilder.NewAgent(ctx, config, i, clients[i], senders[i], m)
@@ -184,7 +194,7 @@ func executeLoaderImpl(
 func startMetricsServer(ctx context.Context, metricsPort string, reg *prometheus.Registry) {
 	// Create a prometheus server to expose individual tx metrics
 	server := &http.Server{
-		Addr: fmt.Sprintf(":%s", metricsPort),
+		Addr: fmt.Sprintf("localhost:%s", metricsPort),
 	}
 
 	// Start up go routine to listen for SIGINT notifications to gracefully shut down server
@@ -237,4 +247,28 @@ func getStartingNonces(ctx context.Context, client ethclient.Client, pks []*ecds
 		startingNonces[i] = nonce
 	}
 	return startingNonces, nil
+}
+
+func issueTriggerTx(
+	ctx context.Context, chainID *big.Int,
+	fundedKey *key.Key, client ethclient.Client,
+) error {
+	addr := fundedKey.Address
+	nonce, err := client.NonceAt(ctx, addr, nil)
+	if err != nil {
+		return err
+	}
+
+	txSigner := types.LatestSignerForChainID(chainID)
+	tx := types.NewTransaction(nonce, addr, common.Big1, 21_000, big.NewInt(225*params.GWei), nil)
+	triggerTx, err := types.SignTx(tx, txSigner, fundedKey.PrivKey)
+	if err != nil {
+		return err
+	}
+	worker := NewSingleAddressTxWorker(ctx, client, addr)
+	defer worker.Close(ctx)
+	if err := worker.IssueTx(ctx, triggerTx); err != nil {
+		return err
+	}
+	return worker.ConfirmTx(ctx, triggerTx)
 }
