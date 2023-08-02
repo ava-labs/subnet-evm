@@ -7,10 +7,12 @@ import "../interfaces/IAllowList.sol";
 import "./AllowListTest.sol";
 
 contract ExampleTxAllowListTest is AllowListTest {
+  address constant ENABLED_ADDRESS = 0x0Fa8EA536Be85F32724D57A37758761B86416123;
+
   IAllowList allowList = IAllowList(TX_ALLOW_LIST);
 
   function setUp() public {
-    allowList.setNone(OTHER_ADDRESS);
+    allowList.setNone(ENABLED_ADDRESS);
   }
 
   function step_contractOwnerIsAdmin() public {
@@ -43,8 +45,8 @@ contract ExampleTxAllowListTest is AllowListTest {
   }
 
   function step_enableOther() public {
-    assertRole(allowList.readAllowList(OTHER_ADDRESS), AllowList.Role.None);
-    allowList.setEnabled(OTHER_ADDRESS);
+    assertRole(allowList.readAllowList(ENABLED_ADDRESS), AllowList.Role.None);
+    allowList.setEnabled(ENABLED_ADDRESS);
   }
 
   function step_noRoleCannotEnableItself() public {
@@ -161,5 +163,91 @@ contract ExampleTxAllowListTest is AllowListTest {
 
     example.revoke(otherAddress);
     assertTrue(!other.isEnabled(otherAddress));
+  }
+
+  function step_managerCanAllow() public {
+    ExampleTxAllowList example = new ExampleTxAllowList();
+    ExampleTxAllowList manager = new ExampleTxAllowList();
+    address exampleAddress = address(example);
+    address managerAddress = address(manager);
+
+    assertTrue(!example.isEnabled(exampleAddress));
+    assertTrue(!example.isEnabled(managerAddress));
+
+    allowList.setManager(managerAddress);
+
+    assertTrue(manager.isManager(managerAddress));
+
+    manager.setEnabled(exampleAddress);
+    assertTrue(example.isEnabled(exampleAddress));
+  }
+
+  function step_managerCanRevoke() public {
+    ExampleTxAllowList example = new ExampleTxAllowList();
+    ExampleTxAllowList manager = new ExampleTxAllowList();
+    address exampleAddress = address(example);
+    address managerAddress = address(manager);
+
+    assertTrue(!example.isEnabled(exampleAddress));
+    assertTrue(!example.isEnabled(managerAddress));
+
+    allowList.setEnabled(exampleAddress);
+    allowList.setManager(managerAddress);
+
+    assertTrue(example.isEnabled(exampleAddress));
+    assertTrue(manager.isManager(managerAddress));
+
+    manager.revoke(exampleAddress);
+    assertTrue(!example.isEnabled(exampleAddress));
+  }
+
+  function step_managerCannotRevokeAdmin() public {
+    ExampleTxAllowList example = new ExampleTxAllowList();
+    ExampleTxAllowList manager = new ExampleTxAllowList();
+    address exampleAddress = address(example);
+    address managerAddress = address(manager);
+
+    assertTrue(!example.isEnabled(exampleAddress));
+    assertTrue(!example.isEnabled(managerAddress));
+
+    allowList.setAdmin(exampleAddress);
+    allowList.setManager(managerAddress);
+
+    assertTrue(example.isAdmin(exampleAddress));
+    assertTrue(manager.isManager(managerAddress));
+
+    try manager.revoke(managerAddress) {
+      assertTrue(false, "revoke should fail");
+    } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
+
+    try manager.revoke(exampleAddress) {
+      assertTrue(false, "revoke should fail");
+    } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
+
+    // state should not have changed when revoke fails
+    assertTrue(example.isAdmin(exampleAddress));
+    assertTrue(manager.isManager(managerAddress));
+  }
+
+  function step_managerCannotGrantAdmin() public {
+    ExampleTxAllowList example = new ExampleTxAllowList();
+    ExampleTxAllowList manager = new ExampleTxAllowList();
+    address exampleAddress = address(example);
+    address managerAddress = address(manager);
+
+    assertTrue(!example.isEnabled(exampleAddress));
+    assertTrue(!example.isEnabled(managerAddress));
+
+    allowList.setManager(managerAddress);
+
+    assertTrue(manager.isManager(managerAddress));
+
+    try manager.setAdmin(exampleAddress) {
+      assertTrue(false, "setAdmin should fail");
+    } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
+
+    // state should not have changed when setAdmin fails
+    assertTrue(!example.isAdmin(exampleAddress));
+    assertTrue(manager.isManager(managerAddress));
   }
 }

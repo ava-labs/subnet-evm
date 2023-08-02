@@ -68,4 +68,14 @@ describe("ExampleTxAllowList", function () {
   test("should not let allowed to revoke admin", "step_onlyAdminCanRevoke")
 
   test("should let admin to revoke allowed", "step_adminCanRevoke")
+
+  test("should let manager to revoke allowed", "step_managerCanRevoke")
+
+  test("should let manager to add allowed", "step_managerCanAllow")
+
+  test("should not let manager to add admin", "step_managerCannotGrantAdmin")
+
+  test("should not let manager to revoke admin", "step_managerCannotRevokeAdmin")
+
+  test("should not let manager to grant admin", "step_managerCannotGrantAdmin")
 })
