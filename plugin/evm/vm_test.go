@@ -81,6 +81,24 @@ func init() {
 	genesisBalance = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*1000))
 }
 
+func TestRunUnits(t *testing.T) {
+	config := VmTestManagerConfig {
+		IsE2E: false,
+		maxWorkers: 1,
+	}
+
+	vecs := []TestVector{
+		TestVector{
+			testVMConfig,
+			nil,
+		},
+	}
+
+	manager, err := NewVmTestManager(config)
+	require.NoError(t, err)
+	manager.RunVectors(t, vecs)
+}
+
 func testVMConfig(t *testing.T, c VmTestManager) {
 	require := require.New(t)
 	txFeeCap := float64(11)

@@ -59,13 +59,13 @@ type GenesisVMConfig struct {
 	UpgradeJSON         string `json:"UpgradeJSON"`
 }
 
-type testVector struct {
+type TestVector struct {
 	test func(t *testing.T, c VmTestManager)
 	expectedResult error
 }
 
 type VmTestManager interface {
-	RunVectors(vecs []testVector) error
+	RunVectors(t *testing.T, vecs []TestVector) error
 	Create(t *testing.T, config GenesisVMConfig,) (VMWorker, error)
 }
 
@@ -107,7 +107,10 @@ func (v *vmTestManager) Create(t *testing.T, config GenesisVMConfig) (VMWorker, 
 	return worker, nil
 }
 
-func (v *vmTestManager) RunVectors(vecs []testVector) error {
+func (v *vmTestManager) RunVectors(t *testing.T, vecs []TestVector) error {
+	for _, test := range vecs {
+		test.test(t, v)
+	}
 	return nil
 }
 
