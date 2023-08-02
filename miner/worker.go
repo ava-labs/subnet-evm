@@ -68,6 +68,9 @@ type environment struct {
 	receipts []*types.Receipt
 	size     uint64
 
+	rules            params.Rules
+	predicateContext *precompileconfig.ProposerPredicateContext
+
 	start time.Time // Time that block building began
 }
 
@@ -181,7 +184,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 		return nil, fmt.Errorf("failed to prepare header for mining: %w", err)
 	}
 
-	env, err := w.createCurrentEnvironment(parent, header, tstart)
+	env, err := w.createCurrentEnvironment(predicateContext, parent, header, tstart)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
@@ -194,9 +197,6 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 
 	// Get the pending txs from TxPool
 	pending := w.eth.TxPool().Pending(true)
-	// Filter out transactions that don't satisfy predicateContext and remove them from TxPool
-	rules := w.chainConfig.AvalancheRules(header.Number, header.Time)
-	pending = w.enforcePredicates(rules, predicateContext, pending)
 
 	// Split the pending transactions into locals and remotes
 	localTxs := make(map[common.Address]types.Transactions)
@@ -219,19 +219,21 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 	return w.commit(env)
 }
 
-func (w *worker) createCurrentEnvironment(parent *types.Header, header *types.Header, tstart time.Time) (*environment, error) {
+func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.ProposerPredicateContext, parent *types.Header, header *types.Header, tstart time.Time) (*environment, error) {
 	state, err := w.chain.StateAt(parent.Root)
 	if err != nil {
 		return nil, err
 	}
 	return &environment{
-		signer:  types.MakeSigner(w.chainConfig, header.Number, header.Time),
-		state:   state,
-		parent:  parent,
-		header:  header,
-		tcount:  0,
-		gasPool: new(core.GasPool).AddGas(header.GasLimit),
-		start:   tstart,
+		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
+		state:            state,
+		parent:           parent,
+		header:           header,
+		tcount:           0,
+		gasPool:          new(core.GasPool).AddGas(header.GasLimit),
+		rules:            w.chainConfig.AvalancheRules(header.Number, header.Time),
+		predicateContext: predicateContext,
+		start:            tstart,
 	}, nil
 }
 
@@ -241,6 +243,9 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 		gp   = env.gasPool.Gas()
 	)
 
+	if err := core.CheckPredicates(env.rules, env.predicateContext, tx); err != nil {
+		return nil, err
+	}
 	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, &coinbase, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
 	if err != nil {
 		env.state.RevertToSnapshot(snap)
