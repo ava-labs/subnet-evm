@@ -64,11 +64,12 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
+	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
 var (
-	testNetworkID   uint32 = 10
+	testNetworkID   uint32 = avagoconstants.UnitTestID
 	testCChainID           = ids.ID{'c', 'c', 'h', 'a', 'i', 'n', 't', 'e', 's', 't'}
 	testXChainID           = ids.ID{'t', 'e', 's', 't', 'x'}
 	testMinGasPrice int64  = 225_000_000_000
@@ -84,20 +85,19 @@ var (
 	genesisJSONPreSubnetEVM = "{\"config\":{\"chainId\":43111,\"homesteadBlock\":0,\"eip150Block\":0,\"eip150Hash\":\"0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0\",\"eip155Block\":0,\"eip158Block\":0,\"byzantiumBlock\":0,\"constantinopleBlock\":0,\"petersburgBlock\":0,\"istanbulBlock\":0,\"muirGlacierBlock\":0},\"nonce\":\"0x0\",\"timestamp\":\"0x0\",\"extraData\":\"0x00\",\"gasLimit\":\"0x7A1200\",\"difficulty\":\"0x0\",\"mixHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"coinbase\":\"0x0000000000000000000000000000000000000000\",\"alloc\":{\"0x71562b71999873DB5b286dF957af199Ec94617F7\": {\"balance\":\"0x4192927743b88000\"}, \"0x703c4b2bD70c169f5717101CaeE543299Fc946C7\": {\"balance\":\"0x4192927743b88000\"}},\"number\":\"0x0\",\"gasUsed\":\"0x0\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"}"
 	genesisJSONLatest       = genesisJSONDUpgrade
 
-	firstTxAmount  *big.Int
-	genesisBalance *big.Int
+	firstTxAmount  = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
+	genesisBalance = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*1000))
 )
 
 func init() {
 	key1, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	key2, _ := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-	testKeys = append(testKeys, key1, key2)
+	key3, _ := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7b")
+	testKeys = append(testKeys, key1, key2, key3)
 	addr1 := crypto.PubkeyToAddress(key1.PublicKey)
 	addr2 := crypto.PubkeyToAddress(key2.PublicKey)
-	testEthAddrs = append(testEthAddrs, addr1, addr2)
-
-	firstTxAmount = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*100))
-	genesisBalance = new(big.Int).Mul(big.NewInt(testMinGasPrice), big.NewInt(21000*1000))
+	addr3 := crypto.PubkeyToAddress(key3.PublicKey)
+	testEthAddrs = append(testEthAddrs, addr1, addr2, addr3)
 }
 
 // BuildGenesisTest returns the genesis bytes for Subnet EVM VM to be used in testing
@@ -107,6 +107,9 @@ func buildGenesisTest(t *testing.T, genesisJSON string) []byte {
 	genesis := &core.Genesis{}
 	if err := json.Unmarshal([]byte(genesisJSON), genesis); err != nil {
 		t.Fatalf("Problem unmarshaling genesis JSON: %s", err)
+	}
+	for _, testAddr := range testEthAddrs {
+		genesis.Alloc[testAddr] = core.GenesisAccount{Balance: genesisBalance}
 	}
 	args := &BuildGenesisArgs{GenesisData: genesis}
 	reply := &BuildGenesisReply{}
@@ -2202,8 +2205,10 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, nil),
+		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, testEthAddrs[2:3]),
 	}
+	dUpgradeTime := time.Now().Add(time.Hour * 5)
+	genesis.Config.DUpgradeTimestamp = utils.NewUint64(uint64(dUpgradeTime.Unix()))
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2233,6 +2238,10 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if role != allowlist.NoRole {
 		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
 	}
+	role = txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[2])
+	if role != allowlist.ManagerRole {
+		t.Fatalf("Expected allow list status to be set to manager: %s, but found: %s", allowlist.ManagerRole, role)
+	}
 
 	// Submit a successful transaction
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
@@ -2256,6 +2265,18 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
 	}
 
+	// Submit a rejected transaction, should throw an error because manager is not activated
+	tx2 := types.NewTransaction(uint64(0), testEthAddrs[2], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
+	if err := errs[0]; !errors.Is(err, vmerrs.ErrSenderAddressNotAllowListed) {
+		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
+	}
+
 	blk := issueAndAccept(t, issuer, vm)
 
 	// Verify that the constructed block only has the whitelisted tx
@@ -2268,6 +2289,56 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	}
 
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
+
+	vm.clock.Set(dUpgradeTime)
+
+	// Re-Submit a successful transaction
+	tx0 = types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx0, err = types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	require.NoError(t, err)
+
+	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
+	if err := errs[0]; err != nil {
+		t.Fatalf("Failed to add tx at index: %s", err)
+	}
+
+	// accept block to trigger upgrade
+	blk = issueAndAccept(t, issuer, vm)
+
+	// Verify that the constructed block only has the whitelisted tx
+	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+
+	txs = block.Transactions()
+
+	if txs.Len() != 1 {
+		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
+	}
+
+	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
+	<-newTxPoolHeadChan
+	// Submit a successful transaction, should not throw an error because manager is activated
+	tx3 := types.NewTransaction(uint64(0), testEthAddrs[2], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx3, err := types.SignTx(tx3, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[2])
+	require.NoError(t, err)
+
+	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
+	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx3})
+	if err := errs[0]; err != nil {
+		t.Fatalf("Failed to add tx at index: %s", err)
+	}
+
+	blk = issueAndAccept(t, issuer, vm)
+
+	// Verify that the constructed block only has the whitelisted tx
+	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+
+	txs = block.Transactions()
+
+	if txs.Len() != 1 {
+		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
+	}
+
+	require.Equal(t, signedTx3.Hash(), txs[0].Hash())
 }
 
 // Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
