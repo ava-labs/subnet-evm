@@ -57,6 +57,7 @@ type OrderForOpenOrders struct {
 	Salt       string
 	OrderId    string
 	ReduceOnly bool
+	OrderType  OrderType
 }
 
 type GetDebugDataResponse struct {
@@ -166,7 +167,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string, marke
 	}
 	traderOrders := []OrderForOpenOrders{}
 	traderHash := common.HexToAddress(trader)
-	orders := api.db.GetOpenOrdersForTrader(traderHash)
+	orders := api.db.GetOpenOrdersForTraderByType(traderHash, LimitOrderType)
 	for _, order := range orders {
 		if strings.EqualFold(order.UserAddress, trader) && (market == nil || order.Market == Market(*market)) {
 			traderOrders = append(traderOrders, OrderForOpenOrders{
@@ -177,6 +178,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string, marke
 				Salt:       order.Salt.String(),
 				OrderId:    order.Id.String(),
 				ReduceOnly: order.ReduceOnly,
+				OrderType:  order.OrderType,
 			})
 		}
 	}

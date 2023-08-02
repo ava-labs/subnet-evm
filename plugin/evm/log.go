@@ -16,7 +16,7 @@ import (
 
 const (
 	errorKey   = "LOG15_ERROR"
-	timeFormat = "2006-01-02T15:04:05.000-0700"
+	timeFormat = "2006-01-02T15:04:05.000000-0700"
 )
 
 type SubnetEVMLogger struct {
@@ -102,7 +102,8 @@ func SubnetEVMJSONFormat(alias string) log.Format {
 func HubbleTypeHandler(h log.Handler) log.Handler {
 	return log.FuncHandler(func(r *log.Record) error {
 		var logType string
-		if strings.Contains(r.Call.Frame().File, "orderbook") || strings.Contains(r.Call.Frame().File, "limit_order") { // works for evm/limit_order.go and evm/orderbook/*.go
+		// works for evm/limit_order.go, evm/orderbook/*.go, precompile/contracts/*
+		if containsAnySubstr(r.Call.Frame().File, []string{"orderbook", "limit_order", "contracts"}) {
 			logType = "hubble"
 		} else {
 			logType = "system"
@@ -150,4 +151,14 @@ func formatJSONValue(value interface{}) (result interface{}) {
 	default:
 		return v
 	}
+}
+
+// containsAnySubstr checks if the string contains any of the specified substrings
+func containsAnySubstr(s string, substrings []string) bool {
+	for _, substr := range substrings {
+		if strings.Contains(s, substr) {
+			return true
+		}
+	}
+	return false
 }

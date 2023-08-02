@@ -7,13 +7,17 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/event"
 )
+
+var traderFeed event.Feed
 
 type TradingAPI struct {
 	db            LimitOrderDatabase
@@ -250,4 +254,29 @@ func transformMarketDepth(depth *MarketDepth) TradingOrderBookDepthResponse {
 	}
 
 	return response
+}
+
+func (api *TradingAPI) StreamTraderUpdates(ctx context.Context, trader string, blockStatus string) (*rpc.Subscription, error) {
+	notifier, _ := rpc.NotifierFromContext(ctx)
+	rpcSub := notifier.CreateSubscription()
+	confirmationLevel := BlockConfirmationLevel(blockStatus)
+
+	traderFeedCh := make(chan TraderEvent)
+	acceptedLogsSubscription := traderFeed.Subscribe(traderFeedCh)
+	go func() {
+		defer acceptedLogsSubscription.Unsubscribe()
+
+		for {
+			select {
+			case event := <-traderFeedCh:
+				if strings.EqualFold(event.Trader.String(), trader) && event.BlockStatus == confirmationLevel {
+					notifier.Notify(rpcSub.ID, event)
+				}
+			case <-notifier.Closed():
+				return
+			}
+		}
+	}()
+
+	return rpcSub, nil
 }

@@ -2,9 +2,9 @@
 set -e
 source ./scripts/utils.sh
 
-avalanche network stop --snapshot-name snap1
-
 ./scripts/build.sh custom_evm.bin
+
+avalanche network stop --snapshot-name snap1
 
 avalanche subnet upgrade vm hubblenet --binary custom_evm.bin --local
 

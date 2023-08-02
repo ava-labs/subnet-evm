@@ -6,12 +6,14 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type ContractOrder interface {
 	EncodeToABI() ([]byte, error)
 	DecodeFromRawOrder(rawOrder interface{})
+	Map() map[string]interface{}
 }
 
 // LimitOrder type is copy of LimitOrder struct defined in Orderbook contract
@@ -58,6 +60,17 @@ func (order *LimitOrder) DecodeFromRawOrder(rawOrder interface{}) {
 	json.Unmarshal(marshalledOrder, &order)
 }
 
+func (order *LimitOrder) Map() map[string]interface{} {
+	return map[string]interface{}{
+		"ammIndex":          order.AmmIndex,
+		"trader":            order.Trader,
+		"baseAssetQuantity": utils.BigIntToFloat(order.BaseAssetQuantity, 18),
+		"price":             utils.BigIntToFloat(order.Price, 6),
+		"reduceOnly":        order.ReduceOnly,
+		"salt":              order.Salt,
+	}
+}
+
 func DecodeLimitOrder(encodedOrder []byte) (*LimitOrder, error) {
 	limitOrderType, err := getOrderType("limit")
 	if err != nil {
@@ -99,6 +112,19 @@ func (order *IOCOrder) EncodeToABI() ([]byte, error) {
 func (order *IOCOrder) DecodeFromRawOrder(rawOrder interface{}) {
 	marshalledOrder, _ := json.Marshal(rawOrder)
 	json.Unmarshal(marshalledOrder, &order)
+}
+
+func (order *IOCOrder) Map() map[string]interface{} {
+	return map[string]interface{}{
+		"ammIndex":          order.AmmIndex,
+		"trader":            order.Trader,
+		"baseAssetQuantity": utils.BigIntToFloat(order.BaseAssetQuantity, 18),
+		"price":             utils.BigIntToFloat(order.Price, 6),
+		"reduceOnly":        order.ReduceOnly,
+		"salt":              order.Salt,
+		"orderType":         order.OrderType,
+		"expireAt":          order.ExpireAt,
+	}
 }
 
 func DecodeIOCOrder(encodedOrder []byte) (*IOCOrder, error) {

@@ -153,7 +153,7 @@ func (order Order) getExpireAt() *big.Int {
 }
 
 func (order Order) String() string {
-	return fmt.Sprintf("LimitOrder: Id: %s, Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, BlockNumber: %s", order.Id, order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.BlockNumber)
+	return fmt.Sprintf("Order: Id: %s, OrderType: %s, Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, BlockNumber: %s", order.Id, order.OrderType, order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.BlockNumber)
 }
 
 func (order Order) ToOrderMin() OrderMin {
@@ -225,7 +225,8 @@ type LimitOrderDatabase interface {
 	SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
 	GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]Order)
-	GetOpenOrdersForTrader(trader common.Address) []Order
+	GetAllOpenOrdersForTrader(trader common.Address) []Order
+	GetOpenOrdersForTraderByType(trader common.Address, orderType OrderType) []Order
 	UpdateLastPremiumFraction(market Market, trader common.Address, lastPremiumFraction *big.Int, cumlastPremiumFraction *big.Int)
 	GetOrderById(orderId common.Hash) *Order
 	GetTraderInfo(trader common.Address) *Trader
@@ -571,11 +572,18 @@ func (db *InMemoryDatabase) GetAllTraders() map[common.Address]Trader {
 	return traderMap
 }
 
-func (db *InMemoryDatabase) GetOpenOrdersForTrader(trader common.Address) []Order {
+func (db *InMemoryDatabase) GetOpenOrdersForTraderByType(trader common.Address, orderType OrderType) []Order {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
-	return db.getTraderOrders(trader)
+	return db.getTraderOrders(trader, orderType)
+}
+
+func (db *InMemoryDatabase) GetAllOpenOrdersForTrader(trader common.Address) []Order {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	return db.getAllTraderOrders(trader)
 }
 
 func (db *InMemoryDatabase) GetOrderById(orderId common.Hash) *Order {
@@ -682,7 +690,7 @@ func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, 
 
 // assumes db.mu.RLock has been held by the caller
 func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader *Trader, availableMargin *big.Int, oraclePrices map[Market]*big.Int, ordersToCancel map[common.Address][]Order) bool {
-	traderOrders := db.getTraderOrders(addr)
+	traderOrders := db.getTraderOrders(addr, LimitOrderType)
 	sort.Slice(traderOrders, func(i, j int) bool {
 		// higher diff comes first
 		iDiff := big.NewInt(0).Abs(big.NewInt(0).Sub(traderOrders[i].Price, oraclePrices[traderOrders[i].Market]))
@@ -712,7 +720,18 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 	return false
 }
 
-func (db *InMemoryDatabase) getTraderOrders(trader common.Address) []Order {
+func (db *InMemoryDatabase) getTraderOrders(trader common.Address, orderType OrderType) []Order {
+	traderOrders := []Order{}
+	_trader := trader.String()
+	for _, order := range db.OrderMap {
+		if strings.EqualFold(order.UserAddress, _trader) && order.OrderType == orderType {
+			traderOrders = append(traderOrders, deepCopyOrder(order))
+		}
+	}
+	return traderOrders
+}
+
+func (db *InMemoryDatabase) getAllTraderOrders(trader common.Address) []Order {
 	traderOrders := []Order{}
 	_trader := trader.String()
 	for _, order := range db.OrderMap {

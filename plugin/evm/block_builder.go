@@ -29,10 +29,10 @@ const (
 
 	// Minimum amount of time to wait after building a block before attempting to build a block
 	// a second time without changing the contents of the mempool.
-	minBlockBuildingRetryDelay = 500 * time.Millisecond
+	minBlockBuildingRetryDelay = 50 * time.Millisecond
 
 	// ticker frequency for calling signalTxsReady
-	buildTickerDuration = 1 * time.Second
+	buildTickerDuration = 5 * time.Second
 )
 
 type blockBuilder struct {
@@ -132,6 +132,8 @@ func (b *blockBuilder) markBuilding() {
 
 	select {
 	case b.notifyBuildBlockChan <- commonEng.PendingTxs:
+		// signal is sent here, so the ticker should be reset
+		b.buildTicker.Reset(buildTickerDuration)
 		b.buildSent = true
 	default:
 		log.Error("Failed to push PendingTxs notification to the consensus engine.")
@@ -171,8 +173,6 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 			select {
 			case ethTxsEvent := <-txSubmitChan:
 				log.Trace("New tx detected, trying to generate a block")
-				// signalTxsReady is being called here, so the ticker should be reset
-				b.buildTicker.Reset(buildTickerDuration)
 				b.signalTxsReady()
 
 				if b.gossiper != nil && len(ethTxsEvent.Txs) > 0 {

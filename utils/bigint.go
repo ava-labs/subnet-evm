@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 )
 
@@ -50,4 +51,9 @@ func BigIntToDecimal(x *big.Int, scale int, decimals int) string {
 	str := fmt.Sprintf("%.*f", decimals, f)
 
 	return str
+}
+
+func BigIntToFloat(number *big.Int, scale int8) float64 {
+	float, _ := new(big.Float).Quo(new(big.Float).SetInt(number), big.NewFloat(math.Pow10(int(scale)))).Float64()
+	return float
 }

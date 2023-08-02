@@ -107,23 +107,28 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 			}
 		}
 
+		logHandler := log.Root().GetHandler()
 		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAcceptedBlockNumber)
 		JUMP := big.NewInt(3999)
 		toBlock := utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, JUMP))
 		for toBlock.Cmp(fromBlock) > 0 {
 			logs := lop.getLogs(fromBlock, toBlock)
-			log.Info("ListenAndProcessTransactions - fetched log chunk", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs))
+			// set the log handler to discard logs so that the ProcessEvents doesn't spam the logs
+			log.Root().SetHandler(log.DiscardHandler())
 			lop.contractEventProcessor.ProcessEvents(logs)
 			lop.contractEventProcessor.ProcessAcceptedEvents(logs, true)
 			lop.memoryDb.Accept(toBlock.Uint64(), 0) // will delete stale orders from the memorydb
+			log.Root().SetHandler(logHandler)
+			log.Info("ListenAndProcessTransactions - processed log chunk", "fromBlock", fromBlock.String(), "toBlock", toBlock.String(), "number of logs", len(logs))
 
 			fromBlock = fromBlock.Add(toBlock, big.NewInt(1))
 			toBlock = utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, JUMP))
 		}
 		lop.memoryDb.Accept(lastAcceptedBlockNumber.Uint64(), lastAccepted.Time()) // will delete stale orders from the memorydb
+		log.Root().SetHandler(logHandler)
 
 		// needs to be run everytime as long as the db.UpdatePosition uses configService.GetCumulativePremiumFraction
-		lop.FixBuggySnapshot()
+		lop.UpdateLastPremiumFractionFromStorage()
 	}
 
 	lop.mu.Unlock()
@@ -159,6 +164,7 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 					lop.mu.Lock()
 					defer lop.mu.Unlock()
 					lop.contractEventProcessor.ProcessEvents(logs)
+					go lop.contractEventProcessor.PushtoTraderFeed(logs, orderbook.ConfirmationLevelHead)
 				}, orderbook.HandleHubbleFeedLogsPanicMessage, orderbook.HandleHubbleFeedLogsPanicsCounter)
 			case <-lop.shutdownChan:
 				return
@@ -180,6 +186,7 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 					lop.mu.Lock()
 					defer lop.mu.Unlock()
 					lop.contractEventProcessor.ProcessAcceptedEvents(logs, false)
+					go lop.contractEventProcessor.PushtoTraderFeed(logs, orderbook.ConfirmationLevelAccepted)
 				}, orderbook.HandleChainAcceptedLogsPanicMessage, orderbook.HandleChainAcceptedLogsPanicsCounter)
 			case <-lop.shutdownChan:
 				return
@@ -325,7 +332,7 @@ func (lop *limitOrderProcesser) getLogs(fromBlock, toBlock *big.Int) []*types.Lo
 	return logs
 }
 
-func (lop *limitOrderProcesser) FixBuggySnapshot() {
+func (lop *limitOrderProcesser) UpdateLastPremiumFractionFromStorage() {
 	// This is to fix the bug that was causing the LastPremiumFraction to be set to 0 in the snapshot whenever a trader's position was updated
 	traderMap := lop.memoryDb.GetOrderBookData().TraderMap
 	count := 0
@@ -338,7 +345,7 @@ func (lop *limitOrderProcesser) FixBuggySnapshot() {
 			count++
 		}
 	}
-	log.Info("@@@@ updateLastPremiumFraction - update complete", "count", count, "time taken", time.Since(start))
+	log.Info("@@@@ UpdateLastPremiumFractionFromStorage - update complete", "count", count, "time taken", time.Since(start))
 }
 
 func executeFuncAndRecoverPanic(fn func(), panicMessage string, panicCounter metrics.Counter) {

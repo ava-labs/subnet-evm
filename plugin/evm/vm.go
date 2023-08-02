@@ -673,9 +673,9 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	}(time.Now())
 
 	if proposerVMBlockCtx != nil {
-		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
+		log.Info("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
 	} else {
-		log.Debug("Building block without context")
+		log.Info("Building block without context")
 	}
 	predicateCtx := &precompileconfig.ProposerPredicateContext{
 		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{

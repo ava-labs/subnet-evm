@@ -69,6 +69,50 @@ func (api *EthereumAPI) Coinbase() (common.Address, error) {
 	return api.Etherbase()
 }
 
+func (api *EthereumAPI) GetTransactionStatus(ctx context.Context, hash common.Hash) (map[string]interface{}, error) {
+	currentBlock := api.e.APIBackend.CurrentBlock()
+	accepted := api.e.APIBackend.LastAcceptedBlock()
+
+	// first check if the tx is accepted
+	lookup := api.e.blockchain.GetTransactionLookup(hash)
+	if lookup != nil {
+		return map[string]interface{}{
+			"status":      "ACCEPTED",
+			"blockNumber": lookup.BlockIndex,
+		}, nil
+	}
+
+	// iterate backwards from the current block to the accepted block and check if the tx is in any of the blocks
+	i := 0
+	for {
+		// limit backward lookup to 128 blocks
+		if currentBlock.Hash() == accepted.Hash() || i >= 128 {
+			return map[string]interface{}{
+				"status": "NOT_FOUND",
+			}, nil
+
+		}
+
+		for _, tx := range currentBlock.Transactions() {
+			if tx.Hash() == hash {
+				return map[string]interface{}{
+					"status":      "HEAD_BLOCK",
+					"blockNumber": currentBlock.NumberU64(),
+				}, nil
+			}
+		}
+		var err error
+		currentBlock, err = api.e.APIBackend.BlockByHash(ctx, currentBlock.ParentHash())
+		if err != nil {
+			return map[string]interface{}{
+				"status": "NOT_FOUND",
+			}, nil
+		}
+
+		i += 1
+	}
+}
+
 // AdminAPI is the collection of Ethereum full node related APIs for node
 // administration.
 type AdminAPI struct {
