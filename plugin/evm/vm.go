@@ -68,7 +68,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 	cjson "github.com/ava-labs/avalanchego/utils/json"
 	"github.com/ava-labs/avalanchego/utils/perms"
 	"github.com/ava-labs/avalanchego/utils/profiler"
@@ -295,10 +294,7 @@ func (vm *VM) Initialize(
 
 	// We enforce network upgrades here, regardless of the chain config
 	// provided in the genesis file.
-	// Skip if we are running unit tests.
-	if chainCtx.NetworkID != avagoconstants.UnitTestID {
-		g.Config.MandatoryNetworkUpgrades = params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
-	}
+	g.Config.MandatoryNetworkUpgrades = params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {

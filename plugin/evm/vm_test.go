@@ -92,12 +92,10 @@ var (
 func init() {
 	key1, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	key2, _ := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
-	key3, _ := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7b")
-	testKeys = append(testKeys, key1, key2, key3)
+	testKeys = append(testKeys, key1, key2)
 	addr1 := crypto.PubkeyToAddress(key1.PublicKey)
 	addr2 := crypto.PubkeyToAddress(key2.PublicKey)
-	addr3 := crypto.PubkeyToAddress(key3.PublicKey)
-	testEthAddrs = append(testEthAddrs, addr1, addr2, addr3)
+	testEthAddrs = append(testEthAddrs, addr1, addr2)
 }
 
 // BuildGenesisTest returns the genesis bytes for Subnet EVM VM to be used in testing
@@ -107,9 +105,6 @@ func buildGenesisTest(t *testing.T, genesisJSON string) []byte {
 	genesis := &core.Genesis{}
 	if err := json.Unmarshal([]byte(genesisJSON), genesis); err != nil {
 		t.Fatalf("Problem unmarshaling genesis JSON: %s", err)
-	}
-	for _, testAddr := range testEthAddrs {
-		genesis.Alloc[testAddr] = core.GenesisAccount{Balance: genesisBalance}
 	}
 	args := &BuildGenesisArgs{GenesisData: genesis}
 	reply := &BuildGenesisReply{}
@@ -2200,20 +2195,27 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 // Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
 func TestTxAllowListSuccessfulTx(t *testing.T) {
 	// Setup chain params
+	managerKey, err := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7b")
+	require.NoError(t, err)
+	managerAddress := crypto.PubkeyToAddress(managerKey.PublicKey)
 	genesis := &core.Genesis{}
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, testEthAddrs[2:3]),
+		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, []common.Address{managerAddress}),
 	}
 	dUpgradeTime := time.Now().Add(time.Hour * 5)
 	genesis.Config.DUpgradeTimestamp = utils.NewUint64(uint64(dUpgradeTime.Unix()))
+	genesis.Alloc[managerAddress] = core.GenesisAccount{
+		Balance: genesisBalance,
+	}
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+	vm.clock.Set(dUpgradeTime.Add(-time.Hour))
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2238,7 +2240,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if role != allowlist.NoRole {
 		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
 	}
-	role = txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[2])
+	role = txallowlist.GetTxAllowListStatus(genesisState, managerAddress)
 	if role != allowlist.ManagerRole {
 		t.Fatalf("Expected allow list status to be set to manager: %s, but found: %s", allowlist.ManagerRole, role)
 	}
@@ -2266,8 +2268,8 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	}
 
 	// Submit a rejected transaction, should throw an error because manager is not activated
-	tx2 := types.NewTransaction(uint64(0), testEthAddrs[2], big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[2])
+	tx2 := types.NewTransaction(uint64(0), managerAddress, big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), managerKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2317,8 +2319,8 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 	<-newTxPoolHeadChan
 	// Submit a successful transaction, should not throw an error because manager is activated
-	tx3 := types.NewTransaction(uint64(0), testEthAddrs[2], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx3, err := types.SignTx(tx3, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[2])
+	tx3 := types.NewTransaction(uint64(0), managerAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx3, err := types.SignTx(tx3, types.NewEIP155Signer(vm.chainConfig.ChainID), managerKey)
 	require.NoError(t, err)
 
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
@@ -3036,28 +3038,6 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, config, issuer, []*commonEng.Fx{}, appSender)
 	require.NoError(t, err)
 	require.NoError(t, reinitVM.Shutdown(context.Background()))
-}
-
-func TestMandatoryUpgrades(t *testing.T) {
-	modifiedSubnetEVMGenesis := &core.Genesis{}
-	err := json.Unmarshal([]byte(genesisJSONSubnetEVM), &modifiedSubnetEVMGenesis)
-	require.NoError(t, err)
-	modifiedSubnetEVMGenesis.Config.SubnetEVMTimestamp = utils.NewUint64(1)
-	modifiedSubnetEVMGenesisBytes, err := json.Marshal(modifiedSubnetEVMGenesis)
-	modifiedSubnetEVMGenesisString := string(modifiedSubnetEVMGenesisBytes)
-	require.NoError(t, err)
-	require.Contains(t, modifiedSubnetEVMGenesisString, `"subnetEVMTimestamp":1`)
-	// use modified genesis to set SubnetEVM timestamp to 1
-	_, vm, _, _ := GenesisVM(t, true, modifiedSubnetEVMGenesisString, "", "")
-
-	defer func() {
-		if err := vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	// modification to genesis for mandatory upgrades should have no effect on the VM
-	require.Equal(t, *vm.chainConfig.SubnetEVMTimestamp, uint64(0))
 }
 
 func TestCrossChainMessagestoVM(t *testing.T) {
