@@ -75,7 +75,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	warpChainConfigPath = f.Name()
 
 	// Construct the network using the avalanche-network-runner
-	_, err = manager.StartDefaultNetwork(ctx)
+	_, err = manager.StartSingleNodeNetwork(ctx)
 	gomega.Expect(err).Should(gomega.BeNil())
 	err = manager.SetupNetwork(
 		ctx,
