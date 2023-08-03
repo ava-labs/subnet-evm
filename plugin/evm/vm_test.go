@@ -2343,6 +2343,102 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.Equal(t, signedTx3.Hash(), txs[0].Hash())
 }
 
+func TestManagerConfig(t *testing.T) {
+	// Setup chain params
+	genesis := &core.Genesis{}
+	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
+		t.Fatal(err)
+	}
+	dUpgradeTime := time.Now().Add(time.Hour * 5)
+	genesis.Config.GenesisPrecompiles = params.Precompiles{
+		txallowlist.ConfigKey:       txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, testEthAddrs[1:2]),
+		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(uint64(dUpgradeTime.Add(time.Second).Unix())), testEthAddrs[0:1], nil, testEthAddrs[1:2]),
+	}
+	genesis.Config.DUpgradeTimestamp = utils.NewUint64(uint64(dUpgradeTime.Unix()))
+	genesisJSON, err := genesis.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+	vm.clock.Set(dUpgradeTime.Add(-time.Hour))
+
+	defer func() {
+		if err := vm.Shutdown(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
+	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
+
+	genesisState, err := vm.blockChain.StateAt(vm.blockChain.Genesis().Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that address 0 is whitelisted and address 1 is not
+	role := txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[0])
+	if role != allowlist.AdminRole {
+		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AdminRole, role)
+	}
+	// This is set as manager but should not be effectie until after the upgrade
+	role = txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[1])
+	if role != allowlist.NoRole {
+		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
+	}
+
+	// Submit a successful transaction
+	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	require.NoError(t, err)
+
+	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
+	if err := errs[0]; err != nil {
+		t.Fatalf("Failed to add tx at index: %s", err)
+	}
+
+	issueAndAccept(t, issuer, vm)
+
+	vm.clock.Set(dUpgradeTime.Add(time.Hour))
+
+	// Re-Submit a successful transaction
+	tx0 = types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+	signedTx0, err = types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
+	require.NoError(t, err)
+
+	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
+	if err := errs[0]; err != nil {
+		t.Fatalf("Failed to add tx at index: %s", err)
+	}
+
+	// accept block to trigger upgrade
+	blk := issueAndAccept(t, issuer, vm)
+
+	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
+	// Verify that etherBase has received fees
+	blkState, err := vm.blockChain.StateAt(ethBlock.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that address 0 is whitelisted and address 1 is not
+	role = deployerallowlist.GetContractDeployerAllowListStatus(blkState, testEthAddrs[0])
+	if role != allowlist.AdminRole {
+		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AdminRole, role)
+	}
+	// This is set as manager but should not be effectie until after the upgrade
+	role = deployerallowlist.GetContractDeployerAllowListStatus(blkState, testEthAddrs[1])
+	if role != allowlist.ManagerRole {
+		t.Fatalf("Expected allow list status to be set to manager role: %s, but found: %s", allowlist.ManagerRole, role)
+	}
+
+	// This should not be manager because we already configured it
+	role = txallowlist.GetTxAllowListStatus(blkState, testEthAddrs[1])
+	if role != allowlist.NoRole {
+		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.ManagerRole, role)
+	}
+}
+
 // Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
 // and the allowlist is removed after the precompile is disabled.
 func TestTxAllowListDisablePrecompile(t *testing.T) {
