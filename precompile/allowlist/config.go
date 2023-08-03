@@ -19,15 +19,17 @@ type AllowListConfig struct {
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
-func (c *AllowListConfig) Configure(state contract.StateDB, precompileAddr common.Address) error {
+func (c *AllowListConfig) Configure(chainConfig contract.ChainConfig, precompileAddr common.Address, state contract.StateDB, blockContext contract.BlockContext) error {
 	for _, enabledAddr := range c.EnabledAddresses {
 		SetAllowListRole(state, precompileAddr, enabledAddr, EnabledRole)
 	}
 	for _, adminAddr := range c.AdminAddresses {
 		SetAllowListRole(state, precompileAddr, adminAddr, AdminRole)
 	}
-	for _, managerAddr := range c.ManagerAddresses {
-		SetAllowListRole(state, precompileAddr, managerAddr, ManagerRole)
+	if chainConfig.IsDUpgrade(blockContext.Timestamp()) {
+		for _, managerAddr := range c.ManagerAddresses {
+			SetAllowListRole(state, precompileAddr, managerAddr, ManagerRole)
+		}
 	}
 	return nil
 }
