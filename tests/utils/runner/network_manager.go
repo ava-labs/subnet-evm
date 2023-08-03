@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/ava-labs/avalanche-network-runner/client"
 	runner_sdk "github.com/ava-labs/avalanche-network-runner/client"
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	runner_server "github.com/ava-labs/avalanche-network-runner/server"
@@ -191,23 +190,6 @@ func (n *NetworkManager) init() error {
 
 // StartDefaultNetwork constructs a default 5 node network.
 func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct{}, error) {
-	return n.startNetwork(ctx)
-}
-
-// StartSingleNodeNetwork constructs a single node network with sybil protection
-// disabled. This network is useful to test subnets, as running multiple nodes
-// only to process subnet transactions for local testing is not necessary.
-func (n *NetworkManager) StartSingleNodeNetwork(ctx context.Context) (<-chan struct{}, error) {
-	nodeCfgs := make(map[string]string)
-	nodeCfgs["node1"] = `{"sybil-protection-enabled": false}`
-	return n.startNetwork(
-		ctx,
-		runner_sdk.WithNumNodes(1),
-		runner_sdk.WithCustomNodeConfigs(nodeCfgs),
-	)
-}
-
-func (n *NetworkManager) startNetwork(ctx context.Context, additionalOpts ...client.OpOption) (<-chan struct{}, error) {
 	if err := n.init(); err != nil {
 		return nil, err
 	}
@@ -215,12 +197,12 @@ func (n *NetworkManager) startNetwork(ctx context.Context, additionalOpts ...cli
 	log.Info("Sending 'start'", "AvalancheGoExecPath", n.ANRConfig.AvalancheGoExecPath)
 
 	// Start cluster
-	opts := []client.OpOption{
+	resp, err := n.anrClient.Start(
+		ctx,
+		n.ANRConfig.AvalancheGoExecPath,
 		runner_sdk.WithPluginDir(n.ANRConfig.PluginDir),
 		runner_sdk.WithGlobalNodeConfig(n.ANRConfig.GlobalNodeConfig),
-	}
-	opts = append(opts, additionalOpts...)
-	resp, err := n.anrClient.Start(ctx, n.ANRConfig.AvalancheGoExecPath, opts...)
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start ANR network: %w", err)
 	}
