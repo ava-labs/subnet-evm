@@ -151,10 +151,27 @@ $ avalancheup-aws apply \
 
 First, generate the necessary subnet-evm config files locally:
 ```bash
-$ avalancheup-aws subnet-evm chain-config -s /tmp/subnet-evm-genesis.json
+avalancheup-aws subnet-evm chain-config \
+--log-level=info \
+--tx-pool-account-slots 1000000 \
+--tx-pool-global-slots 10000000000 \
+--tx-pool-account-queue 300000 \
+--tx-pool-global-queue 10000000 \
+--file-path /tmp/subnet-evm-chain-config.json
 ``` 
 ```bash
-$ avalancheup-aws subnet-evm genesis -s /tmp/subnet-evm-genesis.json
+avalancheup-aws subnet-evm genesis \
+--log-level=info \
+--seed-eth-addresses 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC,0x53C62F5d19f94556c4e9E9Ee97CeE274AB053399 \
+--gas-limit 300000000 \
+--target-block-rate 1 \
+--min-base-fee 10000000 \
+--target-gas 999999999999999999 \
+--base-fee-change-denominator 4800000 \
+--min-block-gas-cost 0 \
+--max-block-gas-cost 10000000 \
+--block-gas-cost-step 500000 \
+--file-path /tmp/subnet-evm-genesis.json
 ```
 You can modify these files as well per the desired subnet-evm configuration. 
 
@@ -169,7 +186,7 @@ $ avalancheup-aws install-subnet-chain \
 --s3-bucket avalanche-ops-202307-4lw5xroxbc-us-west-2 \
 --s3-key-prefix aops-custom-202307-2fpVNd/install-subnet-chain \
 --chain-rpc-url http://54.203.8.171:9650 \
---key 0x56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027 \
+--key [PRE-FUNDED TEST KEY] \
 --subnet-config-local-path /tmp/subnet-config.json \
 --subnet-config-remote-dir /data/avalanche-configs/subnets \
 --vm-binary-local-path <PATH TO LOCAL SUBNET-EVM COMPILED FOR linux-amd64> \
