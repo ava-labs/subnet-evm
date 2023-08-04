@@ -26,6 +26,7 @@ func (c *AllowListConfig) Configure(chainConfig contract.ChainConfig, precompile
 	for _, adminAddr := range c.AdminAddresses {
 		SetAllowListRole(state, precompileAddr, adminAddr, AdminRole)
 	}
+	// Don't set manager unless we are in DUpgrade, otherwise we will break backwards compatibility
 	if chainConfig.IsDUpgrade(blockContext.Timestamp()) {
 		for _, managerAddr := range c.ManagerAddresses {
 			SetAllowListRole(state, precompileAddr, managerAddr, ManagerRole)

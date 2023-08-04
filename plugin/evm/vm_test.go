@@ -2202,6 +2202,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
 	}
+	// this manager role should not be activated because DUpgradeTimestamp is in the future
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, []common.Address{managerAddress}),
 	}
@@ -2214,7 +2215,26 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
+
+	// prepare the new upgrade bytes to disable the TxAllowList
+	disableAllowListTimestamp := dUpgradeTime.Add(10 * time.Hour) // arbitrary choice
+	reenableAllowlistTimestamp := disableAllowListTimestamp.Add(10 * time.Hour)
+	upgradeConfig := &params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: txallowlist.NewDisableConfig(utils.TimeToNewUint64(disableAllowListTimestamp)),
+			},
+			// re-enable the tx allowlist after DUpgrade to set the manager role
+			{
+				Config: txallowlist.NewConfig(utils.TimeToNewUint64(reenableAllowlistTimestamp), testEthAddrs[0:1], nil, []common.Address{managerAddress}),
+			},
+		},
+	}
+	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
+	if err != nil {
+		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
+	}
+	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", string(upgradeBytesJSON))
 	vm.clock.Set(dUpgradeTime.Add(-time.Hour))
 
 	defer func() {
@@ -2240,9 +2260,10 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if role != allowlist.NoRole {
 		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
 	}
+	// Should not be a manager role because DUpgrade has not activated yet
 	role = txallowlist.GetTxAllowListStatus(genesisState, managerAddress)
-	if role != allowlist.ManagerRole {
-		t.Fatalf("Expected allow list status to be set to manager: %s, but found: %s", allowlist.ManagerRole, role)
+	if role != allowlist.NoRole {
+		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
 	}
 
 	// Submit a successful transaction
@@ -2292,7 +2313,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
-	vm.clock.Set(dUpgradeTime)
+	vm.clock.Set(reenableAllowlistTimestamp)
 
 	// Re-Submit a successful transaction
 	tx0 = types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
@@ -2334,6 +2355,23 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	// Verify that the constructed block only has the whitelisted tx
 	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 
+	// Verify that etherBase has received fees
+	blkState, err := vm.blockChain.StateAt(block.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check that address 0 is whitelisted and address 1 is not
+	role = txallowlist.GetTxAllowListStatus(blkState, testEthAddrs[0])
+	if role != allowlist.AdminRole {
+		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AdminRole, role)
+	}
+	// This is set as manager but should not be effectie until after the upgrade
+	role = txallowlist.GetTxAllowListStatus(blkState, managerAddress)
+	if role != allowlist.ManagerRole {
+		t.Fatalf("Expected allow list status to be set to manager role: %s, but found: %s", allowlist.ManagerRole, role)
+	}
+
 	txs = block.Transactions()
 
 	if txs.Len() != 1 {
@@ -2341,102 +2379,6 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	}
 
 	require.Equal(t, signedTx3.Hash(), txs[0].Hash())
-}
-
-func TestManagerConfig(t *testing.T) {
-	// Setup chain params
-	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
-		t.Fatal(err)
-	}
-	dUpgradeTime := time.Now().Add(time.Hour * 5)
-	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		txallowlist.ConfigKey:       txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, testEthAddrs[1:2]),
-		deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(uint64(dUpgradeTime.Add(time.Second).Unix())), testEthAddrs[0:1], nil, testEthAddrs[1:2]),
-	}
-	genesis.Config.DUpgradeTimestamp = utils.NewUint64(uint64(dUpgradeTime.Unix()))
-	genesisJSON, err := genesis.MarshalJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
-	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
-	vm.clock.Set(dUpgradeTime.Add(-time.Hour))
-
-	defer func() {
-		if err := vm.Shutdown(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	newTxPoolHeadChan := make(chan core.NewTxPoolReorgEvent, 1)
-	vm.txPool.SubscribeNewReorgEvent(newTxPoolHeadChan)
-
-	genesisState, err := vm.blockChain.StateAt(vm.blockChain.Genesis().Root())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Check that address 0 is whitelisted and address 1 is not
-	role := txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[0])
-	if role != allowlist.AdminRole {
-		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AdminRole, role)
-	}
-	// This is set as manager but should not be effectie until after the upgrade
-	role = txallowlist.GetTxAllowListStatus(genesisState, testEthAddrs[1])
-	if role != allowlist.NoRole {
-		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
-	}
-
-	// Submit a successful transaction
-	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err := types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
-	require.NoError(t, err)
-
-	errs := vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
-
-	issueAndAccept(t, issuer, vm)
-
-	vm.clock.Set(dUpgradeTime.Add(time.Hour))
-
-	// Re-Submit a successful transaction
-	tx0 = types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-	signedTx0, err = types.SignTx(tx0, types.NewEIP155Signer(vm.chainConfig.ChainID), testKeys[0])
-	require.NoError(t, err)
-
-	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
-
-	// accept block to trigger upgrade
-	blk := issueAndAccept(t, issuer, vm)
-
-	ethBlock := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-	// Verify that etherBase has received fees
-	blkState, err := vm.blockChain.StateAt(ethBlock.Root())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Check that address 0 is whitelisted and address 1 is not
-	role = deployerallowlist.GetContractDeployerAllowListStatus(blkState, testEthAddrs[0])
-	if role != allowlist.AdminRole {
-		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AdminRole, role)
-	}
-	// This is set as manager but should not be effectie until after the upgrade
-	role = deployerallowlist.GetContractDeployerAllowListStatus(blkState, testEthAddrs[1])
-	if role != allowlist.ManagerRole {
-		t.Fatalf("Expected allow list status to be set to manager role: %s, but found: %s", allowlist.ManagerRole, role)
-	}
-
-	// This should not be manager because we already configured it
-	role = txallowlist.GetTxAllowListStatus(blkState, testEthAddrs[1])
-	if role != allowlist.NoRole {
-		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.ManagerRole, role)
-	}
 }
 
 // Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
