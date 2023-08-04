@@ -345,7 +345,6 @@ func (st *StateTransition) preCheck() error {
 		}
 
 		rules := st.evm.ChainConfig().AvalancheRules(st.evm.Context.BlockNumber, st.evm.Context.Time)
-
 		// Check that the sender is on the tx allow list if enabled
 		if rules.IsPrecompileEnabled(txallowlist.ContractAddress) {
 			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, msg.From)
