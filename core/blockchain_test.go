@@ -744,7 +744,7 @@ func TestTransactionIndices(t *testing.T) {
 // TestCanonicalHashMarker tests all the canonical hash markers are updated/deleted
 // correctly in case reorg is called.
 func TestCanonicalHashMarker(t *testing.T) {
-	cases := []struct {
+	var cases = []struct {
 		forkA int
 		forkB int
 	}{
@@ -886,7 +886,6 @@ func TestCreateThenDeletePreByzantium(t *testing.T) {
 	config.MuirGlacierBlock = nil
 	testCreateThenDelete(t, &config)
 }
-
 func TestCreateThenDeletePostByzantium(t *testing.T) {
 	testCreateThenDelete(t, params.TestChainConfig)
 }
@@ -911,8 +910,7 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 		byte(vm.PUSH1), 0x1,
 		byte(vm.SSTORE),
 		// Get the runtime-code on the stack
-		byte(vm.PUSH32),
-	}
+		byte(vm.PUSH32)}
 	initCode = append(initCode, code...)
 	initCode = append(initCode, []byte{
 		byte(vm.PUSH1), 0x0, // offset
@@ -954,8 +952,8 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 	})
 	// Import the canonical chain
 	chain, err := NewBlockChain(rawdb.NewMemoryDatabase(), DefaultCacheConfig, gspec, engine, vm.Config{
-		// Debug:  true,
-		// Tracer: logger.NewJSONLogger(nil, os.Stdout),
+		//Debug:  true,
+		//Tracer: logger.NewJSONLogger(nil, os.Stdout),
 	}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
@@ -999,8 +997,7 @@ func TestTransientStorageReset(t *testing.T) {
 		byte(vm.TSTORE),
 
 		// Get the runtime-code on the stack
-		byte(vm.PUSH32),
-	}
+		byte(vm.PUSH32)}
 	initCode = append(initCode, code...)
 	initCode = append(initCode, []byte{
 		byte(vm.PUSH1), 0x0, // offset
