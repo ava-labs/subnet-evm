@@ -15,7 +15,10 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/state"
 	{{- if .Contract.AllowList}}
+	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/utils"
 	{{- end}}
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -68,6 +71,41 @@ import (
 				ReadOnly:    false,
 				ExpectedErr: {{if $fail}} ErrCannot{{$func.Normalized.Name}}.Error() {{- else}} "" {{- end}},
 			},
+			{{- end}}
+			{{- if not $func.Original.IsConstant}}
+			{{- range $isBefore := mkList true false}}
+			"calling {{decapitalise $func.Normalized.Name}} from Manager should {{- if $isBefore}} fail before activation {{- else}} succeed after activation{{- end}}":  {
+				Caller:     allowlist.TestManagerAddr,
+				ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, {{- if $isBefore}} nil {{- else}} utils.NewUint64(0) {{- end}}),
+				BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+				InputFn: func(t testing.TB) []byte {
+					{{- if len $func.Normalized.Inputs | lt 1}}
+					// CUSTOM CODE STARTS HERE
+					// populate test input here
+					testInput := {{capitalise $func.Normalized.Name}}Input{}
+					input, err := Pack{{$func.Normalized.Name}}(testInput)
+					{{- else if len $func.Normalized.Inputs | eq 1 }}
+					{{- $input := index $func.Normalized.Inputs 0}}
+					// CUSTOM CODE STARTS HERE
+					// set test input to a value here
+					var testInput {{bindtype $input.Type $structs}}
+					input, err := Pack{{$func.Normalized.Name}}(testInput)
+					{{- else}}
+					input, err := Pack{{$func.Normalized.Name}}()
+					{{- end}}
+					require.NoError(t, err)
+					return input
+				},
+				{{- if not $isBefore}}
+				// This test is for a successful call. You can set the expected output here.
+				// CUSTOM CODE STARTS HERE
+				ExpectedRes: []byte{},
+				{{- end}}
+				SuppliedGas: {{$func.Normalized.Name}}GasCost,
+				ReadOnly:    false,
+				ExpectedErr: {{if $isBefore}} ErrCannot{{$func.Normalized.Name}}.Error() {{- else}} "" {{- end}},
+			},
+			{{- end}}
 			{{- end}}
 			{{- end}}
 			{{- if not $func.Original.IsConstant}}

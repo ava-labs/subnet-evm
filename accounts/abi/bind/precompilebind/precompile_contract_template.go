@@ -231,7 +231,7 @@ func {{decapitalise .Normalized.Name}}(accessibleState contract.AccessibleState,
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
-	if !callerStatus.IsEnabled() {
+	if !callerStatus.IsEnabled(allowlist.IsManagerRoleActivated(accessibleState)) {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannot{{.Normalized.Name}}, caller)
 	}
 	// allow list code ends here.
@@ -282,7 +282,7 @@ func {{decapitalise $contract.Type}}Fallback (accessibleState contract.Accessibl
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := allowlist.GetAllowListStatus(stateDB, ContractAddress, caller)
-	if !callerStatus.IsEnabled() {
+	if !callerStatus.IsEnabled(allowlist.IsManagerRoleActivated(accessibleState)) {
 		return nil, remainingGas, fmt.Errorf("%w: %s", Err{{$contract.Type}}CannotFallback, caller)
 	}
 	// allow list code ends here.
