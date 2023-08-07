@@ -49,6 +49,8 @@ const (
 	RETRY_AFTER_BLOCKS = 10
 )
 
+type Market int64
+
 type Collateral int
 
 const (

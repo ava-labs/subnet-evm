@@ -27,8 +27,8 @@ var IOCOrderBookContractAddress = common.HexToAddress("0x635c5F96989a4226953FE63
 // var IOCOrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000006")
 
 type LimitOrderTxProcessor interface {
-	PurgeLocalTx()
-	CheckIfOrderBookContractCall(tx *types.Transaction) bool
+	GetOrderBookTxsCount() uint64
+	PurgeOrderBookTxs()
 	ExecuteMatchedOrdersTx(incomingOrder Order, matchedOrder Order, fillAmount *big.Int) error
 	ExecuteFundingPaymentTx() error
 	ExecuteLiquidation(trader common.Address, matchedOrder Order, fillAmount *big.Int) error
@@ -94,7 +94,6 @@ func NewLimitOrderTxProcessor(txPool *txpool.TxPool, memoryDb LimitOrderDatabase
 		validatorPrivateKey:          validatorPrivateKey,
 		validatorTxFeeConfig:         ValidatorTxFeeConfig{baseFeeEstimate: big.NewInt(0), blockNumber: 0},
 	}
-	lotp.updateValidatorTxFeeConfig()
 	return lotp
 }
 
@@ -143,7 +142,6 @@ func (lotp *limitOrderTxProcessor) ExecuteLimitOrderCancel(orders []LimitOrder) 
 
 func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contractABI abi.ABI, method string, args ...interface{}) (common.Hash, error) {
 	var txHash common.Hash
-	lotp.updateValidatorTxFeeConfig()
 	nonce := lotp.txPool.GetOrderBookTxNonce(common.HexToAddress(lotp.validatorAddress.Hex())) // admin address
 
 	data, err := contractABI.Pack(method, args...)
@@ -156,7 +154,8 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 		log.Error("HexToECDSA failed", "err", err)
 		return txHash, err
 	}
-	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 1500000, lotp.validatorTxFeeConfig.baseFeeEstimate, data)
+	txFee := lotp.getTransactionFee()
+	tx := types.NewTransaction(nonce, contract, big.NewInt(0), 1500000, txFee, data)
 	signer := types.NewLondonSigner(lotp.backend.ChainConfig().ChainID)
 	signedTx, err := types.SignTx(tx, signer, key)
 	if err != nil {
@@ -169,47 +168,56 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 		log.Error("lop.txPool.AddOrderBookTx failed", "err", err, "tx", signedTx.Hash().String(), "nonce", nonce)
 		return txHash, err
 	}
-	// log.Info("executeLocalTx - AddOrderBookTx success", "tx", signedTx.Hash().String(), "nonce", nonce)
 
 	return txHash, nil
 }
 
-func (lotp *limitOrderTxProcessor) getBaseFeeEstimate() *big.Int {
-	baseFeeEstimate, err := lotp.backend.EstimateBaseFee(context.TODO())
+func (lotp *limitOrderTxProcessor) getTransactionFee() *big.Int {
+	latest := lotp.backend.CurrentHeader()
+	latestBlockNumber := latest.Number.Uint64()
+
+	// if the fee is already calculated for this block, then return it
+	if lotp.validatorTxFeeConfig.blockNumber == latestBlockNumber {
+		return lotp.validatorTxFeeConfig.baseFeeEstimate
+	}
+
+	baseFeeEstimate, err := lotp.backend.SuggestPrice(context.Background())
 	if err != nil {
-		baseFeeEstimate = big.NewInt(0).Abs(lotp.backend.CurrentBlock().BaseFee)
-		log.Error("Error in calculating updated bassFee, using last header's baseFee", "baseFeeEstimate", baseFeeEstimate)
+		log.Error("getBaseFeeEstimate - SuggestPrice failed", "err", err)
+		return big.NewInt(65_000000000) // hardcoded to 65 gwei
 	}
-	return baseFeeEstimate
+	// add 10%
+	baseFeeEstimate.Add(baseFeeEstimate, big.NewInt(0).Div(baseFeeEstimate, big.NewInt(10)))
+
+	feeConfig, _, err := lotp.backend.GetFeeConfigAt(latest)
+	if err != nil {
+		log.Error("getBaseFeeEstimate - GetFeeConfigAt failed", "err", err)
+		// if feeConfig can't be obtained, then add another 10% to the baseFeeEstimate
+		baseFeeEstimate.Add(baseFeeEstimate, big.NewInt(0).Div(baseFeeEstimate, big.NewInt(10)))
+		return baseFeeEstimate
+	}
+	// assuming pessimistically that the block is being produced within a second of the latest block
+	// we calculate the block gas cost as the latest block gas cost + the block gas cost step
+	blockGasCost := big.NewInt(0).Add(latest.BlockGasCost, feeConfig.BlockGasCostStep)
+
+	// assuming a minimum gas usage of 200k for a tx, we calculate the tip such that the entire block has an effective tip above the threshold
+	// example calculation for blockGasCost = 10,000, baseFeeEstimate = 60 gwei, tx gas usage = 200,000
+	// tip = (10000 * 60 * 1e9) / 200000 = 3 gwei
+	tip := big.NewInt(0).Div(big.NewInt(0).Mul(blockGasCost, baseFeeEstimate), big.NewInt(200000))
+
+	totalFee := baseFeeEstimate.Add(baseFeeEstimate, tip)
+
+	lotp.validatorTxFeeConfig.baseFeeEstimate = totalFee
+	lotp.validatorTxFeeConfig.blockNumber = latestBlockNumber
+	return totalFee
 }
 
-func (lotp *limitOrderTxProcessor) updateValidatorTxFeeConfig() {
-	currentBlockNumber := lotp.backend.CurrentBlock().Number.Uint64()
-	if lotp.validatorTxFeeConfig.blockNumber < currentBlockNumber {
-		baseFeeEstimate := lotp.getBaseFeeEstimate()
-		// log.Info("inside lotp updating txFeeConfig", "blockNumber", currentBlockNumber, "baseFeeEstimate", baseFeeEstimate)
-		lotp.validatorTxFeeConfig.baseFeeEstimate = baseFeeEstimate
-		lotp.validatorTxFeeConfig.blockNumber = currentBlockNumber
-	}
-}
-
-func (lotp *limitOrderTxProcessor) PurgeLocalTx() {
-	pending := lotp.txPool.Pending(true)
-	for _, txs := range pending {
-		for _, tx := range txs {
-			method, err := getOrderBookContractCallMethod(tx, lotp.orderBookABI, lotp.orderBookContractAddress)
-			if err == nil {
-				if method.Name == "executeMatchedOrders" || method.Name == "settleFunding" || method.Name == "liquidateAndExecuteOrder" {
-					lotp.txPool.RemoveTx(tx.Hash())
-				}
-			}
-		}
-	}
+func (lotp *limitOrderTxProcessor) PurgeOrderBookTxs() {
 	lotp.txPool.PurgeOrderBookTxs()
 }
 
-func (lotp *limitOrderTxProcessor) CheckIfOrderBookContractCall(tx *types.Transaction) bool {
-	return checkIfOrderBookContractCall(tx, lotp.orderBookABI, lotp.orderBookContractAddress)
+func (lotp *limitOrderTxProcessor) GetOrderBookTxsCount() uint64 {
+	return lotp.txPool.GetOrderBookTxsCount()
 }
 
 func getPositionTypeBasedOnBaseAssetQuantity(baseAssetQuantity *big.Int) PositionType {

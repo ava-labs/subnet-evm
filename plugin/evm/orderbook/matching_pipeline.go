@@ -3,6 +3,7 @@ package orderbook
 import (
 	"math"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/utils"
@@ -10,31 +11,49 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-type BuildBlockPipeline struct {
-	db            LimitOrderDatabase
-	lotp          LimitOrderTxProcessor
-	configService IConfigService
+const (
+	// ticker frequency for calling signalTxsReady
+	matchingTickerDuration = 5 * time.Second
+)
+
+type MatchingPipeline struct {
+	mu             sync.Mutex
+	db             LimitOrderDatabase
+	lotp           LimitOrderTxProcessor
+	configService  IConfigService
+	MatchingTicker *time.Ticker
 }
 
-func NewBuildBlockPipeline(db LimitOrderDatabase, lotp LimitOrderTxProcessor, configService IConfigService) *BuildBlockPipeline {
-	return &BuildBlockPipeline{
-		db:            db,
-		lotp:          lotp,
-		configService: configService,
+func NewMatchingPipeline(
+	db LimitOrderDatabase,
+	lotp LimitOrderTxProcessor,
+	configService IConfigService) *MatchingPipeline {
+
+	return &MatchingPipeline{
+		db:             db,
+		lotp:           lotp,
+		configService:  configService,
+		MatchingTicker: time.NewTicker(matchingTickerDuration),
 	}
 }
 
-func (pipeline *BuildBlockPipeline) Run(blockNumber *big.Int) {
+func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
+	pipeline.mu.Lock()
+	defer pipeline.mu.Unlock()
+
+	// reset ticker
+	pipeline.MatchingTicker.Reset(matchingTickerDuration)
 	markets := pipeline.GetActiveMarkets()
 
 	if len(markets) == 0 {
-		return
+		return false
 	}
 
-	pipeline.lotp.PurgeLocalTx()
+	// start fresh and purge all local transactions
+	pipeline.lotp.PurgeOrderBookTxs()
 
 	if isFundingPaymentTime(pipeline.db.GetNextFundingTime()) {
-		log.Info("BuildBlockPipeline:isFundingPaymentTime")
+		log.Info("MatchingPipeline:isFundingPaymentTime")
 		err := executeFundingPayment(pipeline.lotp)
 		if err != nil {
 			log.Error("Funding payment job failed", "err", err)
@@ -56,6 +75,13 @@ func (pipeline *BuildBlockPipeline) Run(blockNumber *big.Int) {
 		// @todo should we prioritize matching in any particular market?
 		pipeline.runMatchingEngine(pipeline.lotp, orderMap[market].longOrders, orderMap[market].shortOrders)
 	}
+
+	orderBookTxsCount := pipeline.lotp.GetOrderBookTxsCount()
+	if orderBookTxsCount > 0 {
+		return true
+	}
+
+	return false
 }
 
 type Orders struct {
@@ -63,9 +89,7 @@ type Orders struct {
 	shortOrders []Order
 }
 
-type Market int64
-
-func (pipeline *BuildBlockPipeline) GetActiveMarkets() []Market {
+func (pipeline *MatchingPipeline) GetActiveMarkets() []Market {
 	count := pipeline.configService.GetActiveMarketsCount()
 	markets := make([]Market, count)
 	for i := int64(0); i < count; i++ {
@@ -74,7 +98,7 @@ func (pipeline *BuildBlockPipeline) GetActiveMarkets() []Market {
 	return markets
 }
 
-func (pipeline *BuildBlockPipeline) GetUnderlyingPrices() map[Market]*big.Int {
+func (pipeline *MatchingPipeline) GetUnderlyingPrices() map[Market]*big.Int {
 	prices := pipeline.configService.GetUnderlyingPrices()
 	log.Info("GetUnderlyingPrices", "prices", prices)
 	underlyingPrices := make(map[Market]*big.Int)
@@ -84,7 +108,7 @@ func (pipeline *BuildBlockPipeline) GetUnderlyingPrices() map[Market]*big.Int {
 	return underlyingPrices
 }
 
-func (pipeline *BuildBlockPipeline) cancelLimitOrders(cancellableOrders map[common.Address][]Order) map[common.Hash]struct{} {
+func (pipeline *MatchingPipeline) cancelLimitOrders(cancellableOrders map[common.Address][]Order) map[common.Hash]struct{} {
 	cancellableOrderIds := map[common.Hash]struct{}{}
 	// @todo: if there are too many cancellable orders, they might not fit in a single block. Need to adjust for that.
 	for _, orders := range cancellableOrders {
@@ -109,7 +133,7 @@ func (pipeline *BuildBlockPipeline) cancelLimitOrders(cancellableOrders map[comm
 	return cancellableOrderIds
 }
 
-func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}, blockNumber *big.Int) *Orders {
+func (pipeline *MatchingPipeline) fetchOrders(market Market, underlyingPrice *big.Int, cancellableOrderIds map[common.Hash]struct{}, blockNumber *big.Int) *Orders {
 	_, lowerBoundForLongs := pipeline.configService.GetAcceptableBounds(market)
 	// any long orders below the permissible lowerbound are irrelevant, because they won't be matched no matter what.
 	// this assumes that all above cancelOrder transactions got executed successfully (or atleast they are not meant to be executed anyway if they passed the cancellation criteria)
@@ -129,7 +153,7 @@ func (pipeline *BuildBlockPipeline) fetchOrders(market Market, underlyingPrice *
 	return &Orders{longOrders, shortOrders}
 }
 
-func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []LiquidablePosition, orderMap map[Market]*Orders, underlyingPrices map[Market]*big.Int) {
+func (pipeline *MatchingPipeline) runLiquidations(liquidablePositions []LiquidablePosition, orderMap map[Market]*Orders, underlyingPrices map[Market]*big.Int) {
 	if len(liquidablePositions) == 0 {
 		return
 	}
@@ -195,7 +219,7 @@ func (pipeline *BuildBlockPipeline) runLiquidations(liquidablePositions []Liquid
 	}
 }
 
-func (pipeline *BuildBlockPipeline) runMatchingEngine(lotp LimitOrderTxProcessor, longOrders []Order, shortOrders []Order) {
+func (pipeline *MatchingPipeline) runMatchingEngine(lotp LimitOrderTxProcessor, longOrders []Order, shortOrders []Order) {
 	if len(longOrders) == 0 || len(shortOrders) == 0 {
 		return
 	}

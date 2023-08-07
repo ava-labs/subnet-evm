@@ -525,11 +525,11 @@ func getLiquidablePos(address common.Address, posType PositionType, size int64) 
 	}
 }
 
-func setupDependencies(t *testing.T) (*MockLimitOrderDatabase, *MockLimitOrderTxProcessor, *BuildBlockPipeline, map[Market]*big.Int, *MockConfigService) {
+func setupDependencies(t *testing.T) (*MockLimitOrderDatabase, *MockLimitOrderTxProcessor, *MatchingPipeline, map[Market]*big.Int, *MockConfigService) {
 	db := NewMockLimitOrderDatabase()
 	lotp := NewMockLimitOrderTxProcessor()
 	cs := NewMockConfigService()
-	pipeline := NewBuildBlockPipeline(db, lotp, cs)
+	pipeline := NewMatchingPipeline(db, lotp, cs)
 	underlyingPrices := make(map[Market]*big.Int)
 	underlyingPrices[market] = big.NewInt(20.0)
 	return db, lotp, pipeline, underlyingPrices, cs

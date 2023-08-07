@@ -152,12 +152,13 @@ func (lotp *MockLimitOrderTxProcessor) ExecuteMatchedOrdersTx(incomingOrder Orde
 	return args.Error(0)
 }
 
-func (lotp *MockLimitOrderTxProcessor) PurgeLocalTx() {
+func (lotp *MockLimitOrderTxProcessor) PurgeOrderBookTxs() {
 	lotp.Called()
 }
 
-func (lotp *MockLimitOrderTxProcessor) CheckIfOrderBookContractCall(tx *types.Transaction) bool {
-	return true
+func (lotp *MockLimitOrderTxProcessor) GetOrderBookTxsCount() uint64 {
+	args := lotp.Called()
+	return uint64(args.Int(0))
 }
 
 func (lotp *MockLimitOrderTxProcessor) ExecuteFundingPaymentTx() error {

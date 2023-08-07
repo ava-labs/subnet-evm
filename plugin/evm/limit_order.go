@@ -32,8 +32,7 @@ const (
 )
 
 type LimitOrderProcesser interface {
-	ListenAndProcessTransactions()
-	RunBuildBlockPipeline()
+	ListenAndProcessTransactions(blockBuilder *blockBuilder)
 	GetOrderBookAPI() *orderbook.OrderBookAPI
 	GetTradingAPI() *orderbook.TradingAPI
 }
@@ -49,10 +48,11 @@ type limitOrderProcesser struct {
 	memoryDb               orderbook.LimitOrderDatabase
 	limitOrderTxProcessor  orderbook.LimitOrderTxProcessor
 	contractEventProcessor *orderbook.ContractEventsProcessor
-	buildBlockPipeline     *orderbook.BuildBlockPipeline
+	matchingPipeline       *orderbook.MatchingPipeline
 	filterAPI              *filters.FilterAPI
 	hubbleDB               database.Database
 	configService          orderbook.IConfigService
+	blockBuilder           *blockBuilder
 }
 
 func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database, validatorPrivateKey string) LimitOrderProcesser {
@@ -61,7 +61,7 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownCh
 	memoryDb := orderbook.NewInMemoryDatabase(configService)
 	lotp := orderbook.NewLimitOrderTxProcessor(txPool, memoryDb, backend, validatorPrivateKey)
 	contractEventProcessor := orderbook.NewContractEventsProcessor(memoryDb)
-	buildBlockPipeline := orderbook.NewBuildBlockPipeline(memoryDb, lotp, configService)
+	matchingPipeline := orderbook.NewMatchingPipeline(memoryDb, lotp, configService)
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{})
 	filterAPI := filters.NewFilterAPI(filterSystem)
 
@@ -80,13 +80,13 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownCh
 		blockChain:             blockChain,
 		limitOrderTxProcessor:  lotp,
 		contractEventProcessor: contractEventProcessor,
-		buildBlockPipeline:     buildBlockPipeline,
+		matchingPipeline:       matchingPipeline,
 		filterAPI:              filterAPI,
 		configService:          configService,
 	}
 }
 
-func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
+func (lop *limitOrderProcesser) ListenAndProcessTransactions(blockBuilder *blockBuilder) {
 	lop.mu.Lock()
 
 	lastAccepted := lop.blockChain.LastAcceptedBlock()
@@ -134,13 +134,18 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 
 	lop.mu.Unlock()
 
+	lop.blockBuilder = blockBuilder
+	lop.runMatchingTimer()
 	lop.listenAndStoreLimitOrderTransactions()
 }
 
-func (lop *limitOrderProcesser) RunBuildBlockPipeline() {
+func (lop *limitOrderProcesser) RunMatchingPipeline() {
 	executeFuncAndRecoverPanic(func() {
-		lop.buildBlockPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number, big.NewInt(1)))
-	}, orderbook.RunBuildBlockPipelinePanicMessage, orderbook.RunBuildBlockPipelinePanicsCounter)
+		matchesFound := lop.matchingPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number, big.NewInt(1)))
+		if matchesFound {
+			lop.blockBuilder.signalTxsReady()
+		}
+	}, orderbook.RunMatchingPipelinePanicMessage, orderbook.RunMatchingPipelinePanicsCounter)
 }
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *orderbook.OrderBookAPI {
@@ -167,6 +172,9 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 					lop.contractEventProcessor.ProcessEvents(logs)
 					go lop.contractEventProcessor.PushtoTraderFeed(logs, orderbook.ConfirmationLevelHead)
 				}, orderbook.HandleHubbleFeedLogsPanicMessage, orderbook.HandleHubbleFeedLogsPanicsCounter)
+
+				lop.RunMatchingPipeline()
+
 			case <-lop.shutdownChan:
 				return
 			}
@@ -215,11 +223,30 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 	}()
 }
 
+// executes the matching pipeline periodically
+func (lop *limitOrderProcesser) runMatchingTimer() {
+	lop.shutdownWg.Add(1)
+	go executeFuncAndRecoverPanic(func() {
+		defer lop.shutdownWg.Done()
+
+		for {
+			select {
+			case <-lop.matchingPipeline.MatchingTicker.C:
+				lop.RunMatchingPipeline()
+
+			case <-lop.shutdownChan:
+				lop.matchingPipeline.MatchingTicker.Stop()
+				return
+			}
+		}
+	}, orderbook.RunMatchingPipelinePanicMessage, orderbook.RunMatchingPipelinePanicsCounter)
+}
+
 func (lop *limitOrderProcesser) handleChainAcceptedEvent(event core.ChainEvent) {
 	lop.mu.Lock()
 	defer lop.mu.Unlock()
 	block := event.Block
-	log.Info("#### received ChainAcceptedEvent", "number", block.NumberU64(), "hash", block.Hash().String())
+	log.Info("received ChainAcceptedEvent", "number", block.NumberU64(), "hash", block.Hash().String())
 	lop.memoryDb.Accept(block.NumberU64(), block.Time())
 
 	// update metrics asynchronously

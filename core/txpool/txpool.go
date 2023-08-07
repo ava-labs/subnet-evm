@@ -1040,6 +1040,9 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 }
 
 func (pool *TxPool) GetOrderBookTxs() map[common.Address]types.Transactions {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
 	txs := map[common.Address]types.Transactions{}
 	for from, txList := range pool.OrderBookTxMap {
 		txs[from] = txList.Flatten()
@@ -1047,7 +1050,21 @@ func (pool *TxPool) GetOrderBookTxs() map[common.Address]types.Transactions {
 	return txs
 }
 
+func (pool *TxPool) GetOrderBookTxsCount() uint64 {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	count := 0
+	for _, txList := range pool.OrderBookTxMap {
+		count += txList.Len()
+	}
+	return uint64(count)
+}
+
 func (pool *TxPool) PurgeOrderBookTxs() {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
 	for from, _ := range pool.OrderBookTxMap {
 		delete(pool.OrderBookTxMap, from)
 	}

@@ -23,20 +23,28 @@ function showLogs() {
 
     source local_status.sh
     if [ -z "$1" ]; then
-        # tail -f $(echo $LOGS_PATH | sed -e 's/<i>/1/g')/$CHAIN_ID.log | sed 's/^/[node1]: /' &
-        # tail -f $(echo $LOGS_PATH | sed -e 's/<i>/2/g')/$CHAIN_ID.log | sed 's/^/[node2]: /' &
-        # tail -f $(echo $LOGS_PATH | sed -e 's/<i>/3/g')/$CHAIN_ID.log | sed 's/^/[node3]: /' &
-        # tail -f $(echo $LOGS_PATH | sed -e 's/<i>/4/g')/$CHAIN_ID.log | sed 's/^/[node4]: /' &
-        # tail -f $(echo $LOGS_PATH | sed -e 's/<i>/5/g')/$CHAIN_ID.log | sed 's/^/[node5]: /'
+        # Define colors and nodes
 
-        multitail -D -ci magenta --label "[node1]" $(echo $LOGS_PATH | sed -e 's/<i>/1/g')/$CHAIN_ID.log \
-            -ci green --label "[node2]" -I $(echo $LOGS_PATH | sed -e 's/<i>/2/g')/$CHAIN_ID.log \
-            -ci white --label "[node3]" -I $(echo $LOGS_PATH | sed -e 's/<i>/3/g')/$CHAIN_ID.log \
-            -ci yellow --label "[node4]" -I $(echo $LOGS_PATH | sed -e 's/<i>/4/g')/$CHAIN_ID.log \
-            -ci cyan --label "[node5]" -I $(echo $LOGS_PATH | sed -e 's/<i>/5/g')/$CHAIN_ID.log
+        colors=("magenta" "green" "white" "yellow" "cyan")
+        nodes=("1" "2" "3" "4" "5")
+
+        # Use for loop to iterate through nodes
+        for index in ${!nodes[*]}
+        do
+            node=${nodes[$index]}
+            color=${colors[$index]}
+            logs_path=$(echo $LOGS_PATH | sed -e "s/<i>/$node/g")
+            # Add multitail command for each node
+            cmd_part+=" -ci $color --label \"[node$node]\" -I ${logs_path}/$CHAIN_ID.log"
+        done
+
+        # Execute multitail with the generated command parts
+        eval "multitail -D $cmd_part"
+
     else
         if [ -z "$2" ]; then
-            tail -f "${LOGS_PATH/<i>/$1}/$CHAIN_ID.log"
+            # from the beginning
+            tail -f -n +1 "${LOGS_PATH/<i>/$1}/$CHAIN_ID.log"
         else
             grep --color=auto -i "$2" "${LOGS_PATH/<i>/$1}/$CHAIN_ID.log"
         fi

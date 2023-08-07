@@ -321,7 +321,7 @@ func (self *DummyEngine) verifyBlockFee(
 	// by [baseFee].
 	if blockGas.Cmp(requiredBlockGasCost) < 0 {
 		return fmt.Errorf(
-			"insufficient gas (%d) to cover the block cost (%d) at base fee (%d) (total block fee: %d)",
+			"BLOCK_GAS_TOO_LOW: insufficient gas (%d) to cover the block cost (%d) at base fee (%d) (total block fee: %d)",
 			blockGas, requiredBlockGasCost, baseFee, totalBlockFee,
 		)
 	}

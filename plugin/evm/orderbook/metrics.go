@@ -18,8 +18,11 @@ var (
 	orderBookTransactionsFailureTotalCounter = metrics.NewRegisteredCounter("orderbooktxs/total/failure", nil)
 
 	// panics are recovered but monitored
-	RunBuildBlockPipelinePanicsCounter    = metrics.NewRegisteredCounter("build_block_pipeline_panics", nil)
-	HandleHubbleFeedLogsPanicsCounter     = metrics.NewRegisteredCounter("handle_hubble_feed_logs_panics", nil)
-	HandleChainAcceptedLogsPanicsCounter  = metrics.NewRegisteredCounter("handle_chain_accepted_logs_panics", nil)
-	HandleChainAcceptedEventPanicsCounter = metrics.NewRegisteredCounter("handle_chain_accepted_event_panics", nil)
+	RunMatchingPipelinePanicsCounter         = metrics.NewRegisteredCounter("matching_pipeline_panics", nil)
+	HandleHubbleFeedLogsPanicsCounter        = metrics.NewRegisteredCounter("handle_hubble_feed_logs_panics", nil)
+	HandleChainAcceptedLogsPanicsCounter     = metrics.NewRegisteredCounter("handle_chain_accepted_logs_panics", nil)
+	HandleChainAcceptedEventPanicsCounter    = metrics.NewRegisteredCounter("handle_chain_accepted_event_panics", nil)
+	HandleMatchingPipelineTimerPanicsCounter = metrics.NewRegisteredCounter("handle_matching_pipeline_timer_panics", nil)
+
+	BuildBlockFailedWithLowBlockGasCounter = metrics.NewRegisteredCounter("build_block_failed_low_block_gas", nil)
 )

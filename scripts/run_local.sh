@@ -23,6 +23,8 @@ avalanche subnet create hubblenet --force --custom --genesis genesis.json --vm c
 
 # configure and add chain.json
 avalanche subnet configure hubblenet --chain-config chain.json --config .avalanche-cli.json
+avalanche subnet configure hubblenet --subnet-config subnet.json --config .avalanche-cli.json
+# avalanche subnet configure hubblenet --subnet-config 2TGBXcnwx5PqiXWiqxAKUaNSqDguXNh1mxnp82jui68hxJSZAx.json --config .avalanche-cli.json
 # avalanche subnet configure hubblenet --per-node-chain-config node_config.json --config .avalanche-cli.json
 
 # use the same avalanchego version as the one used in subnet-evm
