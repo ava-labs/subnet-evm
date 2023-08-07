@@ -129,7 +129,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			// Before the manager role, we never checked the status of the address we are trying to modify.
 			// So we should keep the same behaviour by special casing this.
 			modifyStatus := GetAllowListStatus(stateDB, precompileAddr, modifyAddress)
-			if !callerStatus.CanModify(modifyStatus, role) {
+			if !callerStatus.CanModify(IsManagerRoleActivated(evm), modifyStatus, role) {
 				return nil, remainingGas, fmt.Errorf("%w: modify address: %s, from role: %s, to role: %s", ErrManagerCannotModify, callerAddr, modifyStatus, role)
 			}
 		} else if !callerStatus.IsAdmin() {

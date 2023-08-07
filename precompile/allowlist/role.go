@@ -24,10 +24,12 @@ var (
 type Role common.Hash
 
 // IsNoRole returns true if [s] indicates no specific role.
-func (r Role) IsNoRole() bool {
+func (r Role) IsNoRole(isManagerActivated bool) bool {
 	switch r {
 	case NoRole:
 		return true
+	case ManagerRole:
+		return !isManagerActivated
 	default:
 		return false
 	}
@@ -57,21 +59,24 @@ func (r Role) IsEnabled(isManagerActivated bool) bool {
 
 // IsManager returns true if [s] indicates that it has permission to add and remove
 // addresses from the allow list.
-func (r Role) IsManager() bool {
+func (r Role) IsManager(isManagerActivated bool) bool {
 	switch r {
-	case AdminRole, ManagerRole:
+	case AdminRole:
 		return true
+	case ManagerRole:
+		return isManagerActivated
 	default:
 		return false
 	}
 }
 
-func (r Role) CanModify(from, target Role) bool {
+func (r Role) CanModify(isManagerActivated bool, from, target Role) bool {
 	switch r {
 	case AdminRole:
 		return true
 	case ManagerRole:
-		return (from == EnabledRole && target == NoRole) || (from == NoRole && target == EnabledRole)
+		return isManagerActivated &&
+			(from == EnabledRole && target == NoRole) || (from == NoRole && target == EnabledRole)
 	default:
 		return false
 	}
