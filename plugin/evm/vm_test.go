@@ -2366,7 +2366,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	if role != allowlist.AdminRole {
 		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AdminRole, role)
 	}
-	// This is set as manager but should not be effectie until after the upgrade
+	// This is set as manager but should not be effective until after the upgrade
 	role = txallowlist.GetTxAllowListStatus(blkState, managerAddress)
 	if role != allowlist.ManagerRole {
 		t.Fatalf("Expected allow list status to be set to manager role: %s, but found: %s", allowlist.ManagerRole, role)
