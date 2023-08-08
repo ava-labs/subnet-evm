@@ -60,7 +60,7 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, common.Big2, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
-	"mint funds from manager role role fails before activation": {
+	"mint funds from manager role fails before activation": {
 		Caller:      allowlist.TestManagerAddr,
 		BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
 		ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
