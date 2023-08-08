@@ -34,6 +34,7 @@ const (
 type LimitOrderProcesser interface {
 	ListenAndProcessTransactions(blockBuilder *blockBuilder)
 	GetOrderBookAPI() *orderbook.OrderBookAPI
+	GetTestingAPI() *orderbook.TestingAPI
 	GetTradingAPI() *orderbook.TradingAPI
 }
 
@@ -154,6 +155,10 @@ func (lop *limitOrderProcesser) GetOrderBookAPI() *orderbook.OrderBookAPI {
 
 func (lop *limitOrderProcesser) GetTradingAPI() *orderbook.TradingAPI {
 	return orderbook.NewTradingAPI(lop.memoryDb, lop.backend, lop.configService)
+}
+
+func (lop *limitOrderProcesser) GetTestingAPI() *orderbook.TestingAPI {
+	return orderbook.NewTestingAPI(lop.memoryDb, lop.backend, lop.configService)
 }
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {

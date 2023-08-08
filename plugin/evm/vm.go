@@ -873,6 +873,11 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	if err := handler.RegisterName("trading", vm.limitOrderProcesser.GetTradingAPI()); err != nil {
 		return nil, err
 	}
+	if vm.config.TestingApiEnabled {
+		if err := handler.RegisterName("testing", vm.limitOrderProcesser.GetTestingAPI()); err != nil {
+			return nil, err
+		}
+	}
 
 	if vm.config.WarpAPIEnabled {
 		warpAggregator := aggregator.NewAggregator(vm.ctx.SubnetID, warpValidators.NewState(vm.ctx), &aggregator.NetworkSigner{Client: vm.client})

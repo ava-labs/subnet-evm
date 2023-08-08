@@ -1,158 +1,158 @@
 [
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "name": "chainLinkAggregatorMap",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "chainLinkAggregatorMap",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "underlying",
-                "type": "address"
-            }
-        ],
-        "name": "getUnderlyingPrice",
-        "outputs": [
-            {
-                "internalType": "int256",
-                "name": "answer",
-                "type": "int256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "underlying",
+          "type": "address"
+        }
+      ],
+      "name": "getUnderlyingPrice",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "underlying",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "intervalInSeconds",
-                "type": "uint256"
-            }
-        ],
-        "name": "getUnderlyingTwapPrice",
-        "outputs": [
-            {
-                "internalType": "int256",
-                "name": "",
-                "type": "int256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "underlying",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "intervalInSeconds",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUnderlyingTwapPrice",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-        "inputs": [],
-        "name": "governance",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+      "inputs": [],
+      "name": "governance",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "_governance",
-                "type": "address"
-            }
-        ],
-        "name": "initialize",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_governance",
+          "type": "address"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "underlying",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "aggregator",
-                "type": "address"
-            }
-        ],
-        "name": "setAggregator",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "underlying",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "aggregator",
+          "type": "address"
+        }
+      ],
+      "name": "setAggregator",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "_governance",
-                "type": "address"
-            }
-        ],
-        "name": "setGovernace",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "__governance",
+          "type": "address"
+        }
+      ],
+      "name": "setGovernace",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "underlying",
-                "type": "address"
-            },
-            {
-                "internalType": "int256",
-                "name": "price",
-                "type": "int256"
-            }
-        ],
-        "name": "setStablePrice",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "underlying",
+          "type": "address"
+        },
+        {
+          "internalType": "int256",
+          "name": "price",
+          "type": "int256"
+        }
+      ],
+      "name": "setStablePrice",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "name": "stablePrice",
-        "outputs": [
-            {
-                "internalType": "int256",
-                "name": "",
-                "type": "int256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "stablePrice",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     }
 ]

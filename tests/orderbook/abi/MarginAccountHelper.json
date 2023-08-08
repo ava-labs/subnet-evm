@@ -1,56 +1,292 @@
 [
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "_marginAccount",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "_vusd",
-                "type": "address"
-            },
-            {
-                "internalType": "address",
-                "name": "_wavax",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "Paused",
+      "type": "event"
     },
     {
-        "inputs": [],
-        "name": "addMarginWithAvax",
-        "outputs": [],
-        "stateMutability": "payable",
-        "type": "function"
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "Unpaused",
+      "type": "event"
     },
     {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
-            }
-        ],
-        "name": "addVUSDMarginWithReserve",
-        "outputs": [],
-        "stateMutability": "payable",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        }
+      ],
+      "name": "addVUSDMarginWithReserve",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
     },
     {
-        "inputs": [],
-        "name": "wavax",
-        "outputs": [
-            {
-                "internalType": "contract IWAVAX",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        }
+      ],
+      "name": "depositToInsuranceFund",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governance",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "hgt",
+      "outputs": [
+        {
+          "internalType": "contract IHGT",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_governance",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_vusd",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_marginAccount",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_insuranceFund",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_hgt",
+          "type": "address"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "insuranceFund",
+      "outputs": [
+        {
+          "internalType": "contract IInsuranceFund",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "marginAccount",
+      "outputs": [
+        {
+          "internalType": "contract IMarginAccount",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pause",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "paused",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "removeMarginInUSD",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "__governance",
+          "type": "address"
+        }
+      ],
+      "name": "setGovernace",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_hgt",
+          "type": "address"
+        }
+      ],
+      "name": "setHGT",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_registry",
+          "type": "address"
+        }
+      ],
+      "name": "syncDeps",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "unpause",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "vusd",
+      "outputs": [
+        {
+          "internalType": "contract IVUSD",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdrawFromInsuranceFund",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenIdx",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint16",
+          "name": "directBridgeChainId",
+          "type": "uint16"
+        },
+        {
+          "internalType": "uint16",
+          "name": "dstChainId",
+          "type": "uint16"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountMin",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "dstPoolId",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdrawMarginToChain",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     }
 ]
