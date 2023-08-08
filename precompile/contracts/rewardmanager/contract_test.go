@@ -95,7 +95,7 @@ var (
 				require.False(t, isFeeRecipients)
 			},
 		},
-		"set allow fee recipients from enabled succeeds after activation": {
+		"set allow fee recipients from manager succeeds after activation": {
 			Caller:      allowlist.TestManagerAddr,
 			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
 			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
