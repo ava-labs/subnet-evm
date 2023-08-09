@@ -99,7 +99,7 @@ func PackReadAllowList(address common.Address) []byte {
 // This execution function is speciifc to [precompileAddr].
 func createAllowListRoleSetter(precompileAddr common.Address, role Role) contract.RunStatefulPrecompileFunc {
 	return func(evm contract.AccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-		// Return an error if the setManager is called before the DUpgrade.
+		// Return an error if setManager is called before the DUpgrade.
 		// This should be the first clause in the function. We should treat this
 		// as if we call an non-existing function. See precompile/contract/contract.go#Run() for more details.`
 		isManagerRoleActivated := IsManagerRoleActivated(evm)
