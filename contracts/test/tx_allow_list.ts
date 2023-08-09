@@ -76,6 +76,4 @@ describe("ExampleTxAllowList", function () {
   test("should not let manager to add admin", "step_managerCannotGrantAdmin")
 
   test("should not let manager to revoke admin", "step_managerCannotRevokeAdmin")
-
-  test("should not let manager to grant admin", "step_managerCannotGrantAdmin")
 })

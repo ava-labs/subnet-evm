@@ -2195,9 +2195,8 @@ func TestBuildAllowListActivationBlock(t *testing.T) {
 // Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses
 func TestTxAllowListSuccessfulTx(t *testing.T) {
 	// Setup chain params
-	managerKey, err := crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7b")
-	require.NoError(t, err)
-	managerAddress := crypto.PubkeyToAddress(managerKey.PublicKey)
+	managerKey := testKeys[1]
+	managerAddress := testEthAddrs[1]
 	genesis := &core.Genesis{}
 	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
 		t.Fatal(err)
@@ -2231,9 +2230,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 		},
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
-	if err != nil {
-		t.Fatalf("could not marshal upgradeConfig to json: %s", err)
-	}
+	require.NoError(t, err)
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", string(upgradeBytesJSON))
 	vm.clock.Set(dUpgradeTime.Add(-time.Hour))
 
@@ -2262,9 +2259,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	}
 	// Should not be a manager role because DUpgrade has not activated yet
 	role = txallowlist.GetTxAllowListStatus(genesisState, managerAddress)
-	if role != allowlist.NoRole {
-		t.Fatalf("Expected allow list status to be set to no role: %s, but found: %s", allowlist.NoRole, role)
-	}
+	require.Equal(t, allowlist.NoRole, role)
 
 	// Submit a successful transaction
 	tx0 := types.NewTransaction(uint64(0), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
@@ -2291,14 +2286,10 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	// Submit a rejected transaction, should throw an error because manager is not activated
 	tx2 := types.NewTransaction(uint64(0), managerAddress, big.NewInt(2), 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx2, err := types.SignTx(tx2, types.NewEIP155Signer(vm.chainConfig.ChainID), managerKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})
-	if err := errs[0]; !errors.Is(err, vmerrs.ErrSenderAddressNotAllowListed) {
-		t.Fatalf("expected ErrSenderAddressNotAllowListed, got: %s", err)
-	}
+	require.ErrorIs(t, errs[0], vmerrs.ErrSenderAddressNotAllowListed)
 
 	blk := issueAndAccept(t, issuer, vm)
 
@@ -2321,9 +2312,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.NoError(t, err)
 
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx0})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
+	require.NoError(t, errs[0])
 
 	// accept block to trigger upgrade
 	blk = issueAndAccept(t, issuer, vm)
@@ -2333,9 +2322,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	txs = block.Transactions()
 
-	if txs.Len() != 1 {
-		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
-	}
+	require.Len(t, txs, 1)
 
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 	<-newTxPoolHeadChan
@@ -2346,38 +2333,26 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
 	errs = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx3})
-	if err := errs[0]; err != nil {
-		t.Fatalf("Failed to add tx at index: %s", err)
-	}
+	require.NoError(t, errs[0])
 
 	blk = issueAndAccept(t, issuer, vm)
 
 	// Verify that the constructed block only has the whitelisted tx
 	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 
-	// Verify that etherBase has received fees
 	blkState, err := vm.blockChain.StateAt(block.Root())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// Check that address 0 is whitelisted and address 1 is not
 	role = txallowlist.GetTxAllowListStatus(blkState, testEthAddrs[0])
-	if role != allowlist.AdminRole {
-		t.Fatalf("Expected allow list status to be set to admin: %s, but found: %s", allowlist.AdminRole, role)
-	}
-	// This is set as manager but should not be effectie until after the upgrade
+	require.Equal(t, allowlist.AdminRole, role)
+	// This is set as manager but should not be effective until after the upgrade
 	role = txallowlist.GetTxAllowListStatus(blkState, managerAddress)
-	if role != allowlist.ManagerRole {
-		t.Fatalf("Expected allow list status to be set to manager role: %s, but found: %s", allowlist.ManagerRole, role)
-	}
+	require.Equal(t, allowlist.ManagerRole, role)
 
 	txs = block.Transactions()
 
-	if txs.Len() != 1 {
-		t.Fatalf("Expected number of txs to be %d, but found %d", 1, txs.Len())
-	}
-
+	require.Len(t, txs, 1)
 	require.Equal(t, signedTx3.Hash(), txs[0].Hash())
 }
 

@@ -18,6 +18,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var DefaultChainConfig = contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0))
+
 // PrecompileTest is a test case for a precompile
 type PrecompileTest struct {
 	// Caller is the address of the precompile caller
@@ -48,6 +50,7 @@ type PrecompileTest struct {
 	// BlockNumber is the block number to use for the precompile's block context
 	BlockNumber int64
 	// ChainConfig is the chain config to use for the precompile's block context
+	// If nil, the default chain config will be used.
 	ChainConfig contract.ChainConfig
 }
 
@@ -91,7 +94,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	chainConfig := test.ChainConfig
 	if chainConfig == nil {
 		// DUpgrade is activated by default
-		chainConfig = contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0))
+		chainConfig = DefaultChainConfig
 	}
 
 	accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest(), chainConfig)

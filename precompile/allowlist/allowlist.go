@@ -102,7 +102,8 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		// Return an error if the setManager is called before the DUpgrade.
 		// This should be the first clause in the function. We should treat this
 		// as if we call an non-existing function. See precompile/contract/contract.go#Run() for more details.`
-		if role == ManagerRole && !IsManagerRoleActivated(evm) {
+		isManagerRoleActivated := IsManagerRoleActivated(evm)
+		if role == ManagerRole && !isManagerRoleActivated {
 			return nil, 0, contract.InvalidFunctionErr(setManagerSignature)
 		}
 		if remainingGas, err = contract.DeductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
@@ -124,12 +125,12 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		// Verify that the caller is an admin with permission to modify the allow list
 		callerStatus := GetAllowListStatus(stateDB, precompileAddr, callerAddr)
 		// At this point we know that Manager role is activated.
-		if IsManagerRoleActivated(evm) && callerStatus == ManagerRole {
+		if role.IsManager(isManagerRoleActivated) {
 			// Get current status.
 			// Before the manager role, we never checked the status of the address we are trying to modify.
 			// So we should keep the same behaviour by special casing this.
 			modifyStatus := GetAllowListStatus(stateDB, precompileAddr, modifyAddress)
-			if !callerStatus.CanModify(IsManagerRoleActivated(evm), modifyStatus, role) {
+			if !callerStatus.CanModify(isManagerRoleActivated, modifyStatus, role) {
 				return nil, remainingGas, fmt.Errorf("%w: modify address: %s, from role: %s, to role: %s", ErrManagerCannotModify, callerAddr, modifyStatus, role)
 			}
 		} else if !callerStatus.IsAdmin() {
