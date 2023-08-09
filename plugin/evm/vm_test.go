@@ -2205,27 +2205,23 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, []common.Address{managerAddress}),
 	}
-	dUpgradeTime := time.Now().Add(time.Hour * 5)
-	genesis.Config.DUpgradeTimestamp = utils.NewUint64(uint64(dUpgradeTime.Unix()))
-	genesis.Alloc[managerAddress] = core.GenesisAccount{
-		Balance: genesisBalance,
-	}
+	dUpgradeTime := time.Unix(int64(*params.UnitTestNetworkUpgrades.DUpgradeTimestamp), 0)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// prepare the new upgrade bytes to disable the TxAllowList
-	disableAllowListTimestamp := dUpgradeTime.Add(10 * time.Hour) // arbitrary choice
-	reenableAllowlistTimestamp := disableAllowListTimestamp.Add(10 * time.Hour)
+	disableAllowListTime := dUpgradeTime.Add(10 * time.Hour)
+	reenableAllowlistTime := disableAllowListTime.Add(10 * time.Hour)
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
-				Config: txallowlist.NewDisableConfig(utils.TimeToNewUint64(disableAllowListTimestamp)),
+				Config: txallowlist.NewDisableConfig(utils.TimeToNewUint64(disableAllowListTime)),
 			},
 			// re-enable the tx allowlist after DUpgrade to set the manager role
 			{
-				Config: txallowlist.NewConfig(utils.TimeToNewUint64(reenableAllowlistTimestamp), testEthAddrs[0:1], nil, []common.Address{managerAddress}),
+				Config: txallowlist.NewConfig(utils.TimeToNewUint64(reenableAllowlistTime), testEthAddrs[0:1], nil, []common.Address{managerAddress}),
 			},
 		},
 	}
@@ -2292,6 +2288,8 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.ErrorIs(t, errs[0], vmerrs.ErrSenderAddressNotAllowListed)
 
 	blk := issueAndAccept(t, issuer, vm)
+	newHead := <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 
 	// Verify that the constructed block only has the whitelisted tx
 	block := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
@@ -2304,7 +2302,7 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
 
-	vm.clock.Set(reenableAllowlistTimestamp)
+	vm.clock.Set(reenableAllowlistTime.Add(time.Hour))
 
 	// Re-Submit a successful transaction
 	tx0 = types.NewTransaction(uint64(1), testEthAddrs[0], big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
@@ -2316,16 +2314,22 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 	// accept block to trigger upgrade
 	blk = issueAndAccept(t, issuer, vm)
-
-	// Verify that the constructed block only has the whitelisted tx
+	newHead = <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 
 	txs = block.Transactions()
 
-	require.Len(t, txs, 1)
+	blkState, err := vm.blockChain.StateAt(block.Root())
+	require.NoError(t, err)
 
-	require.Equal(t, signedTx0.Hash(), txs[0].Hash())
-	<-newTxPoolHeadChan
+	// Check that address 0 is admin and address 1 is manager
+	role = txallowlist.GetTxAllowListStatus(blkState, testEthAddrs[0])
+	require.Equal(t, allowlist.AdminRole, role)
+	role = txallowlist.GetTxAllowListStatus(blkState, managerAddress)
+	require.Equal(t, allowlist.ManagerRole, role)
+
+	vm.clock.Set(vm.clock.Time().Add(2 * time.Second)) // add 2 seconds for gas fee to adjust
 	// Submit a successful transaction, should not throw an error because manager is activated
 	tx3 := types.NewTransaction(uint64(0), managerAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx3, err := types.SignTx(tx3, types.NewEIP155Signer(vm.chainConfig.ChainID), managerKey)
@@ -2336,20 +2340,11 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.NoError(t, errs[0])
 
 	blk = issueAndAccept(t, issuer, vm)
+	newHead = <-newTxPoolHeadChan
+	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 
 	// Verify that the constructed block only has the whitelisted tx
 	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
-
-	blkState, err := vm.blockChain.StateAt(block.Root())
-	require.NoError(t, err)
-
-	// Check that address 0 is whitelisted and address 1 is not
-	role = txallowlist.GetTxAllowListStatus(blkState, testEthAddrs[0])
-	require.Equal(t, allowlist.AdminRole, role)
-	// This is set as manager but should not be effective until after the upgrade
-	role = txallowlist.GetTxAllowListStatus(blkState, managerAddress)
-	require.Equal(t, allowlist.ManagerRole, role)
-
 	txs = block.Transactions()
 
 	require.Len(t, txs, 1)

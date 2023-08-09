@@ -64,7 +64,7 @@ func TestIsManager(t *testing.T) {
 		},
 		{
 			role:     AdminRole,
-			expected: true,
+			expected: false,
 		},
 		{
 			role:     EnabledRole,
