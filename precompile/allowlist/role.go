@@ -57,12 +57,11 @@ func (r Role) IsEnabled(isManagerActivated bool) bool {
 	}
 }
 
-// IsManager returns true if [r] indicates that it has permission to add and remove
-// addresses from the allow list.
+// IsManager returns true if [r] is a manager and activated.
+// This is a helper function to check if the manager is activated. This should be used instead r == ManagerRole,
+// as the manager role is activated only after DUpgrade.
 func (r Role) IsManager(isManagerActivated bool) bool {
 	switch r {
-	case AdminRole:
-		return true
 	case ManagerRole:
 		return isManagerActivated
 	default:

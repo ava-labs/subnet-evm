@@ -155,7 +155,7 @@ func AllowListConfigEqualTests(module modules.Module) map[string]testutils.Confi
 				AdminAddresses:   []common.Address{TestAdminAddr},
 				ManagerAddresses: []common.Address{TestManagerAddr},
 				EnabledAddresses: []common.Address{{3}},
-			}), 
+			}),
 			Expected: false,
 		},
 		"allowlist same config": {

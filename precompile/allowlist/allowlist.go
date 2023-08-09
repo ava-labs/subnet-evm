@@ -124,8 +124,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 
 		// Verify that the caller is an admin with permission to modify the allow list
 		callerStatus := GetAllowListStatus(stateDB, precompileAddr, callerAddr)
-		// At this point we know that Manager role is activated.
-		if role.IsManager(isManagerRoleActivated) {
+		if callerStatus.IsManager(isManagerRoleActivated) {
 			// Get current status.
 			// Before the manager role, we never checked the status of the address we are trying to modify.
 			// So we should keep the same behaviour by special casing this.
