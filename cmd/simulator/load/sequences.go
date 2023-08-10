@@ -8,8 +8,6 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
-	"os"
-	"strings"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
@@ -61,22 +59,17 @@ func GetWarpSendTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 ) ([]txs.TxSequence[*AwmTx], error) {
-	// TODO: pass through beginning nonces instead of client here.
 	bigGwei := big.NewInt(params.GWei)
 	gasTipCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxTipCap))
 	gasFeeCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxFeeCap))
 
-	subnetBStr := os.Getenv("SUBNET_B") // TODO: pass properly through config
+	subnetBStr := config.Subnets[1].BlockchainID.String()
 	subnetB, err := ids.FromString(subnetBStr)
 	if err != nil {
 		return nil, err
 	}
 	txGenerator := MkSendWarpTxGenerator(chainID, subnetB, gasFeeCap, gasTipCap)
 	return txs.GenerateTxSequences(ctx, txGenerator, pks, startingNonces, config.TxsPerWorker)
-}
-
-func toWebsocketURI(uri string, blockchainID string) string {
-	return fmt.Sprintf("ws://%s/ext/bc/%s/ws", strings.TrimPrefix(uri, "http://"), blockchainID)
 }
 
 func GetWarpReceiveTxSequences(
@@ -86,26 +79,18 @@ func GetWarpReceiveTxSequences(
 	ch := make(chan warpSignature) // channel for incoming signatures
 	// We will need to aggregate signatures for messages that are sent on
 	// subnet A. So we will subscribe to the subnet A's accepted logs.
-	// TODO: fix how we get ethclients for subnet A here.
-	endpointsStr := os.Getenv("RPC_ENDPOINTS_SUBNET_A")
-	endpoints := strings.Split(endpointsStr, ",")
+	subnetA := config.Subnets[0]
+	endpoints := toWebsocketURIs(subnetA)
 	clients := make([]ethclient.Client, len(endpoints))
 	for i, endpoint := range endpoints {
-		// TODO: remove this hack
-		// endpoint is formatted as %s/ext/bc/%s/rpc
-		split := strings.Split(endpoint, "/")
-		chain := split[len(split)-2]
-		uri := strings.Join(split[:len(split)-4], "/")
-
-		clientURI := toWebsocketURI(uri, chain)
-		client, err := ethclient.Dial(clientURI)
+		client, err := ethclient.Dial(endpoint)
 		if err != nil {
-			return nil, fmt.Errorf("failed to dial client at %s: %w", clientURI, err)
+			return nil, fmt.Errorf("failed to dial client at %s: %w", endpoint, err)
 		}
 		clients[i] = client
-		log.Info("Connected to client", "client", clientURI, "idx", i)
+		log.Info("Connected to client", "client", endpoint, "idx", i)
 
-		warpClient, err := warp.NewWarpClient(uri, chain)
+		warpClient, err := warp.NewWarpClient(subnetA.ValidatorURIs[i], subnetA.BlockchainID.String())
 		if err != nil {
 			return nil, err
 		}

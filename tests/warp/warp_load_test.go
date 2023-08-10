@@ -5,10 +5,10 @@
 package warp
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	"github.com/ethereum/go-ethereum/log"
@@ -16,46 +16,35 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func rpcEndpoints(subnetDetails *runner.Subnet) []string {
-	nodeURIs := subnetDetails.ValidatorURIs
-	rpcEndpoints := make([]string, 0, len(nodeURIs))
-	for _, uri := range nodeURIs {
-		rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, subnetDetails.BlockchainID))
-	}
-	return rpcEndpoints
-}
-
 var _ = ginkgo.Describe("[AWM Load Simulator]", ginkgo.Ordered, func() {
 	ginkgo.It("Run AWM load simulator against local nodes", ginkgo.Label("Warp", "load"), func() {
 		subnetIDs := manager.GetSubnets()
 		gomega.Expect(len(subnetIDs)).Should(gomega.Equal(2))
 
-		subnetA := subnetIDs[0]
-		subnetADetails, ok := manager.GetSubnet(subnetA)
-		gomega.Expect(ok).Should(gomega.BeTrue())
-
-		subnetARPCEndpoints := rpcEndpoints(subnetADetails)
-		commaSeparatedRPCEndpointsA := strings.Join(subnetARPCEndpoints, ",")
-
-		subnetB := subnetIDs[1]
-		subnetBDetails, ok := manager.GetSubnet(subnetB)
-		gomega.Expect(ok).Should(gomega.BeTrue())
-
-		subnetBRPCEndpoints := rpcEndpoints(subnetBDetails)
-		commaSeparatedRPCEndpointsB := strings.Join(subnetBRPCEndpoints, ",")
+		// Create a temporary file to store the subnet information
+		// so that the load simulator can read it.
+		subnets := make([]*runner.Subnet, 0, len(subnetIDs))
+		for _, subnetID := range subnetIDs {
+			subnetDetails, ok := manager.GetSubnet(subnetID)
+			gomega.Expect(ok).Should(gomega.BeTrue())
+			subnets = append(subnets, subnetDetails)
+		}
+		jsonBytes, err := json.MarshalIndent(subnets, "", "  ")
+		gomega.Expect(err).Should(gomega.BeNil())
+		tmpFile, err := os.CreateTemp("", "subnet-info-*.json")
+		gomega.Expect(err).Should(gomega.BeNil())
+		tmpFileName := tmpFile.Name()
+		_, err = tmpFile.Write(jsonBytes)
+		gomega.Expect(err).Should(gomega.BeNil())
+		err = tmpFile.Close()
+		gomega.Expect(err).Should(gomega.BeNil())
 
 		log.Info(
 			"Running load simulator...",
-			"rpcEndpointsSubnetA", commaSeparatedRPCEndpointsA,
-			"rpcEndpointsSubnetB", commaSeparatedRPCEndpointsB,
+			"rpcEndpointsFile", tmpFileName,
 		)
 		cmd := exec.Command("./scripts/run_simulator.sh")
-		additionalEnv := []string{
-			"SUBNET_B=" + subnetB.String(),
-			"RPC_ENDPOINTS=" + commaSeparatedRPCEndpointsA,
-			"RPC_ENDPOINTS_SUBNET_A=" + commaSeparatedRPCEndpointsA,
-			"RPC_ENDPOINTS_SUBNET_B=" + commaSeparatedRPCEndpointsB,
-		}
+		additionalEnv := []string{"RPC_ENDPOINTS_FILE=" + tmpFileName}
 
 		cmd.Env = os.Environ() // Inherit environment variables from parent
 		cmd.Env = append(cmd.Env, additionalEnv...)

@@ -71,16 +71,20 @@ func ExecuteLoader(ctx context.Context, cfg config.Config) error {
 	metricsPort := strconv.Itoa(int(cfg.MetricsPort))
 	go startMetricsServer(ctx, metricsPort, reg)
 
+	if len(cfg.Subnets) != 2 {
+		return fmt.Errorf("expected 2 subnets, got %d", len(cfg.Subnets))
+	}
+
 	var eg errgroup.Group
 	eg.Go(func() error {
+		cfg := cfg // make a copy of the config for this goroutine
+		cfg.Endpoints = toWebsocketURIs(cfg.Subnets[0])
 		agentBuilder := &warpSendTxAgentBuilder{timeTracker: timeTracker}
 		return executeLoaderImpl(ctx, cfg, agentBuilder, m)
 	})
 	eg.Go(func() error {
-		// TODO: should get these values properly
-		cfg := cfg
-		endpointsStr := os.Getenv("RPC_ENDPOINTS_SUBNET_B")
-		cfg.Endpoints = strings.Split(endpointsStr, ",")
+		cfg := cfg // make a copy of the config for this goroutine
+		cfg.Endpoints = toWebsocketURIs(cfg.Subnets[1])
 		agentBuilder := &warpReceiveTxAgentBuilder{timeTracker: timeTracker}
 		return executeLoaderImpl(ctx, cfg, agentBuilder, mB)
 	})

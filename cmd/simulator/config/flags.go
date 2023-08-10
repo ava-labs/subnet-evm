@@ -4,11 +4,14 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -18,6 +21,7 @@ const Version = "v0.1.1"
 const (
 	ConfigFilePathKey = "config-file"
 	LogLevelKey       = "log-level"
+	EndpointsFileKey  = "endpoints-file"
 	EndpointsKey      = "endpoints"
 	MaxFeeCapKey      = "max-fee-cap"
 	MaxTipCapKey      = "max-tip-cap"
@@ -46,6 +50,8 @@ type Config struct {
 	Timeout      time.Duration `json:"timeout"`
 	BatchSize    uint64        `json:"batch-size"`
 	MetricsPort  uint64        `json:"metrics-port"`
+
+	Subnets []*runner.Subnet `json:"-"`
 }
 
 func BuildConfig(v *viper.Viper) (Config, error) {
@@ -59,6 +65,13 @@ func BuildConfig(v *viper.Viper) (Config, error) {
 		Timeout:      v.GetDuration(TimeoutKey),
 		BatchSize:    v.GetUint64(BatchSizeKey),
 		MetricsPort:  v.GetUint64(MetricsPortKey),
+	}
+	if endpointsFile := v.GetString(EndpointsFileKey); endpointsFile != "" {
+		subnets, err := readSubnetsFile(endpointsFile)
+		if err != nil {
+			return c, fmt.Errorf("could not read subnets file %s: %w", endpointsFile, err)
+		}
+		c.Subnets = subnets
 	}
 	if len(c.Endpoints) == 0 {
 		return c, ErrNoEndpoints
@@ -112,6 +125,7 @@ func BuildFlagSet() *pflag.FlagSet {
 func addSimulatorFlags(fs *pflag.FlagSet) {
 	fs.Bool(VersionKey, false, "Print the version and exit")
 	fs.String(ConfigFilePathKey, "", "Specify the config path to use to load a YAML config for the simulator")
+	fs.String(EndpointsFileKey, "", "Specify the path to a file containing a description of the avalanche network to connect to")
 	fs.StringSlice(EndpointsKey, []string{"ws://127.0.0.1:9650/ext/bc/C/ws"}, "Specify a comma separated list of RPC Websocket Endpoints (minimum of 1 endpoint)")
 	fs.Int64(MaxFeeCapKey, 50, "Specify the maximum fee cap to use for transactions denominated in GWei (must be > 0)")
 	fs.Int64(MaxTipCapKey, 1, "Specify the max tip cap for transactions denominated in GWei (must be >= 0)")
@@ -122,4 +136,17 @@ func addSimulatorFlags(fs *pflag.FlagSet) {
 	fs.String(LogLevelKey, "info", "Specify the log level to use in the simulator")
 	fs.Uint64(BatchSizeKey, 100, "Specify the batchsize for the worker to issue and confirm txs")
 	fs.Uint64(MetricsPortKey, 8082, "Specify the port to use for the metrics server")
+}
+
+func readSubnetsFile(path string) ([]*runner.Subnet, error) {
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var subnets []*runner.Subnet
+	if err := json.Unmarshal(bytes, &subnets); err != nil {
+		return nil, err
+	}
+	return subnets, nil
 }

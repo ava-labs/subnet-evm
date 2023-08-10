@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# This script runs a 30s load simulation using RPC_ENDPOINTS environment variable to specify
-# which RPC endpoints to hit.
+# This script runs a load simulation against endpoints specified either as:
+# - Comma separated list in the RPC_ENDPOINTS environment variable.
+# - In the file specified by the RPC_ENDPOINTS_FILE environment variable.
 
 set -e
 
@@ -21,6 +22,13 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 # Load the constants
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
+# Pass either --endpoints-file or --endpoints
+if [[ -n "$RPC_ENDPOINTS_FILE" ]]; then
+  ENDPOINT_OPTS="--endpoints-file=$RPC_ENDPOINTS_FILE"
+else 
+  ENDPOINT_OPTS="--endpoints=$RPC_ENDPOINTS"
+fi
+
 run_simulator() {
     #################################
     echo "building simulator"
@@ -31,7 +39,7 @@ run_simulator() {
     popd
     echo "running simulator from $PWD"
     ./cmd/simulator/simulator \
-        --endpoints=$RPC_ENDPOINTS \
+        ${ENDPOINT_OPTS} \
         --key-dir=./cmd/simulator/.simulator/keys \
         --timeout=30s \
         --workers=1 \

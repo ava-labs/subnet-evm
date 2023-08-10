@@ -30,6 +30,8 @@ type Subnet struct {
 	BlockchainID ids.ID
 	// ValidatorURIs is the base URIs for each participant of the Subnet
 	ValidatorURIs []string
+	// NodeIDs is the NodeID of each participant of the Subnet
+	NodeIDs []ids.NodeID
 }
 
 type ANRConfig struct {
@@ -265,7 +267,13 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 			BlockchainID: blockchainID,
 		}
 		for _, nodeName := range chainSpec.SubnetSpec.Participants {
-			subnet.ValidatorURIs = append(subnet.ValidatorURIs, nodeInfos[nodeName].Uri)
+			nodeInfo := nodeInfos[nodeName]
+			subnet.ValidatorURIs = append(subnet.ValidatorURIs, nodeInfo.Uri)
+			nodeID, err := ids.NodeIDFromString(nodeInfo.Id)
+			if err != nil {
+				panic(err)
+			}
+			subnet.NodeIDs = append(subnet.NodeIDs, nodeID)
 		}
 		n.subnets = append(n.subnets, subnet)
 	}
