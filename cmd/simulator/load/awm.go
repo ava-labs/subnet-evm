@@ -86,7 +86,7 @@ type warpRelayClient struct {
 	client     ethclient.Client
 	warpClient warpclient.WarpClient
 	aggregator chan<- warpSignature
-	index      int
+	nodeID     ids.NodeID
 }
 
 func NewWarpRelayClient(
@@ -94,25 +94,25 @@ func NewWarpRelayClient(
 	client ethclient.Client,
 	warpClient warpclient.WarpClient,
 	aggregator chan<- warpSignature,
-	index int,
+	nodeID ids.NodeID,
 ) *warpRelayClient {
 	wr := &warpRelayClient{
 		client:     client,
 		warpClient: warpClient,
 		aggregator: aggregator,
-		index:      index,
+		nodeID:     nodeID,
 	}
 	go func() {
 		err := wr.doLoop(ctx)
 		if err != nil {
-			log.Error("warp relay client failed", "err", err, "idx", wr.index)
+			log.Error("warp relay client failed", "err", err, "nodeID", wr.nodeID)
 		}
 	}()
 	return wr
 }
 
 func (wr *warpRelayClient) doLoop(ctx context.Context) error {
-	log.Info("starting warp relay client", "index", wr.index)
+	log.Info("starting warp relay client", "nodeID", wr.nodeID)
 
 	logsCh := make(chan types.Log, 1)
 	sub, err := wr.client.SubscribeFilterLogs(
@@ -136,13 +136,13 @@ func (wr *warpRelayClient) doLoop(ctx context.Context) error {
 				log.Info("logsCh closed")
 				return nil
 			}
-			log.Info("Parsing logData as unsigned warp message", "logData", common.Bytes2Hex(txLog.Data), "idx", wr.index)
+			log.Info("Parsing logData as unsigned warp message", "logData", common.Bytes2Hex(txLog.Data), "nodeID", wr.nodeID)
 			unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
 			if err != nil {
 				return err
 			}
 			unsignedWarpMessageID := unsignedMsg.ID()
-			log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "idx", wr.index)
+			log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "nodeID", wr.nodeID)
 
 			var signature []byte
 			for i := 0; ; i++ {
@@ -154,7 +154,7 @@ func (wr *warpRelayClient) doLoop(ctx context.Context) error {
 						"failed to get signature",
 						"err", err,
 						"unsignedWarpMessageID", unsignedWarpMessageID,
-						"idx", wr.index,
+						"nodeID", wr.nodeID,
 						"retries", i,
 					)
 					continue
@@ -169,7 +169,7 @@ func (wr *warpRelayClient) doLoop(ctx context.Context) error {
 
 			wr.aggregator <- warpSignature{
 				signature: blsSignature,
-				signer:    wr.index,
+				signer:    wr.nodeID,
 				message:   unsignedMsg,
 			}
 		}
@@ -179,7 +179,7 @@ func (wr *warpRelayClient) doLoop(ctx context.Context) error {
 type warpSignature struct {
 	message   *avalancheWarp.UnsignedMessage
 	signature *bls.Signature
-	signer    int
+	signer    ids.NodeID
 }
 
 type warpMessage struct {
@@ -192,6 +192,7 @@ type warpMessage struct {
 type warpRelay struct {
 	// TODO: should be an LRU to avoid getting larger forever
 	messages         map[ids.ID]*warpMessage     // map of messages to signed weight
+	validatorInfo    validatorInfo               // validator info needed to aggregate signatures
 	threshold        uint64                      // threshold for quorum
 	signatures       <-chan warpSignature        // channel of signatures
 	signedMessages   chan *avalancheWarp.Message // channel of signed messages
@@ -200,12 +201,14 @@ type warpRelay struct {
 
 func NewWarpRelay(
 	ctx context.Context,
+	validatorInfo validatorInfo,
 	threshold uint64,
 	signatures <-chan warpSignature,
 	expectedMessages int,
 ) *warpRelay {
 	wr := &warpRelay{
 		messages:         make(map[ids.ID]*warpMessage),
+		validatorInfo:    validatorInfo,
 		threshold:        threshold,
 		signatures:       signatures,
 		signedMessages:   make(chan *avalancheWarp.Message),
@@ -244,8 +247,18 @@ func (wr *warpRelay) doLoop(ctx context.Context) error {
 			if message.sent {
 				continue
 			}
-			message.signers.Add(signature.signer)
+			idx, ok := wr.validatorInfo[signature.signer]
+			if !ok {
+				return fmt.Errorf("received signature from unknown validator %s", signature.signer)
+			}
+			message.signers.Add(idx)
 			message.signatures = append(message.signatures, signature.signature)
+			log.Info(
+				"received warp signature",
+				"messageID", messageID,
+				"signer", signature.signer,
+				"index", idx,
+			)
 			message.weight += 1 // TODO: use actual weights
 			if message.weight < wr.threshold {
 				continue
@@ -266,7 +279,12 @@ func (wr *warpRelay) doLoop(ctx context.Context) error {
 			}
 
 			// Send the message on the result channel and mark it as sent
-			log.Info("Signatures aggregated", "messageID", messageID, "expectedMessages", wr.expectedMessages)
+			log.Info(
+				"Signatures aggregated",
+				"messageID", messageID,
+				"expectedMessages", wr.expectedMessages,
+				"signers", message.signers.Len(),
+			)
 			wr.signedMessages <- msg
 			message.sent = true
 			wr.expectedMessages--

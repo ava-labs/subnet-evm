@@ -10,14 +10,19 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils"
+	"github.com/ava-labs/avalanchego/utils/math"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
+	pwarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/warp"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"golang.org/x/exp/maps"
 )
 
 type TxSequenceGetter func(
@@ -101,17 +106,13 @@ func GetWarpReceiveTxSequences(
 			return nil, err
 		}
 		// TODO: properly shutdown warp clients
-		bitsetIndex, ok := validatorIndexes[subnetA.NodeIDs[i]]
-		if !ok {
-			return nil, fmt.Errorf("validator %s not found in validator set", subnetA.NodeIDs[i])
-		}
-		_ = NewWarpRelayClient(ctx, client, warpClient, ch, bitsetIndex)
+		_ = NewWarpRelayClient(ctx, client, warpClient, ch, subnetA.NodeIDs[i])
 	}
 
 	threshold := uint64(4) // TODO: should not be hardcoded
 	// TODO: should not be hardcoded like this
 	expectedMessages := int(config.TxsPerWorker) * config.Workers
-	warpRelay := NewWarpRelay(ctx, threshold, ch, expectedMessages)
+	warpRelay := NewWarpRelay(ctx, validatorIndexes, threshold, ch, expectedMessages)
 	// Each worker will listen for signed warp messages that are
 	// ready to be issued
 	txSequences := make([]txs.TxSequence[*AwmTx], config.Workers)
@@ -121,19 +122,64 @@ func GetWarpReceiveTxSequences(
 	return txSequences, nil
 }
 
-func getValidatorIndexes(ctx context.Context, nodeURI string, subnetID ids.ID) (map[ids.NodeID]int, error) {
+type validatorInfo map[ids.NodeID]int // nodeID -> index in bls validator set
+
+func getValidatorIndexes(ctx context.Context, nodeURI string, subnetID ids.ID) (validatorInfo, error) {
 	client := platformvm.NewClient(nodeURI)
-	vdrs, err := client.GetCurrentValidators(ctx, subnetID, nil)
+	height, err := client.GetHeight(ctx)
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Got validator set", "numValidators", len(vdrs), "subnetID", subnetID)
+	vdrSet, err := client.GetValidatorsAt(ctx, subnetID, height)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: should factor this code out in avalanchego
+	var (
+		vdrs        = make(map[string]*pwarp.Validator, len(vdrSet))
+		totalWeight uint64
+	)
+	for _, vdr := range vdrSet {
+		totalWeight, err = math.Add64(totalWeight, vdr.Weight)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", pwarp.ErrWeightOverflow, err)
+		}
 
-	indexMap := make(map[ids.NodeID]int, len(vdrs))
-	for i, vdr := range vdrs {
-		indexMap[vdr.NodeID] = i
-		log.Info("Validator", "nodeID", vdr.NodeID, "index", i)
+		if vdr.PublicKey == nil {
+			continue
+		}
+
+		pkBytes := vdr.PublicKey.Serialize()
+		uniqueVdr, ok := vdrs[string(pkBytes)]
+		if !ok {
+			uniqueVdr = &pwarp.Validator{
+				PublicKey:      vdr.PublicKey,
+				PublicKeyBytes: pkBytes,
+			}
+			vdrs[string(pkBytes)] = uniqueVdr
+		}
+
+		uniqueVdr.Weight += vdr.Weight // Impossible to overflow here
+		uniqueVdr.NodeIDs = append(uniqueVdr.NodeIDs, vdr.NodeID)
 	}
 
+	// Sort validators by public key
+	vdrList := maps.Values(vdrs)
+	utils.Sort(vdrList)
+	log.Info("Got validator set", "numValidators", len(vdrs), "subnetID", subnetID)
+
+	indexMap := make(map[ids.NodeID]int, len(vdrSet))
+	for i, vdr := range vdrList {
+		for _, nodeID := range vdr.NodeIDs {
+			indexMap[nodeID] = i
+			log.Info(
+				"validator bls info",
+				"nodeID", nodeID,
+				"index", i,
+				"weight", vdr.Weight,
+				"pk", common.Bytes2Hex(vdr.PublicKeyBytes[0:5]),
+			)
+		}
+	}
 	return indexMap, nil
 }
