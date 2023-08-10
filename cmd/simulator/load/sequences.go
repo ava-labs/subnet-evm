@@ -10,6 +10,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/vms/platformvm"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -76,30 +77,38 @@ func GetWarpReceiveTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 ) ([]txs.TxSequence[*AwmTx], error) {
+	subnetA := config.Subnets[0]
+	// We need the validator set of subnet A to determine the index of
+	// each validator in the bit set.
+	validatorIndexes, err := getValidatorIndexes(ctx, subnetA.ValidatorURIs[0], subnetA.SubnetID)
+	if err != nil {
+		return nil, err
+	}
+
 	ch := make(chan warpSignature) // channel for incoming signatures
 	// We will need to aggregate signatures for messages that are sent on
 	// subnet A. So we will subscribe to the subnet A's accepted logs.
-	subnetA := config.Subnets[0]
 	endpoints := toWebsocketURIs(subnetA)
-	clients := make([]ethclient.Client, len(endpoints))
 	for i, endpoint := range endpoints {
 		client, err := ethclient.Dial(endpoint)
 		if err != nil {
 			return nil, fmt.Errorf("failed to dial client at %s: %w", endpoint, err)
 		}
-		clients[i] = client
 		log.Info("Connected to client", "client", endpoint, "idx", i)
 
 		warpClient, err := warp.NewWarpClient(subnetA.ValidatorURIs[i], subnetA.BlockchainID.String())
 		if err != nil {
 			return nil, err
 		}
-		// TODO: this index should correspond to P-Chain validator index
 		// TODO: properly shutdown warp clients
-		_ = NewWarpRelayClient(ctx, client, warpClient, ch, i)
+		bitsetIndex, ok := validatorIndexes[subnetA.NodeIDs[i]]
+		if !ok {
+			return nil, fmt.Errorf("validator %s not found in validator set", subnetA.NodeIDs[i])
+		}
+		_ = NewWarpRelayClient(ctx, client, warpClient, ch, bitsetIndex)
 	}
 
-	threshold := uint64(5) // TODO: should not be hardcoded
+	threshold := uint64(4) // TODO: should not be hardcoded
 	// TODO: should not be hardcoded like this
 	expectedMessages := int(config.TxsPerWorker) * config.Workers
 	warpRelay := NewWarpRelay(ctx, threshold, ch, expectedMessages)
@@ -110,4 +119,21 @@ func GetWarpReceiveTxSequences(
 		txSequences[i] = NewWarpRelayTxSequence(ctx, warpRelay.signedMessages, chainID, pks[i], startingNonces[i])
 	}
 	return txSequences, nil
+}
+
+func getValidatorIndexes(ctx context.Context, nodeURI string, subnetID ids.ID) (map[ids.NodeID]int, error) {
+	client := platformvm.NewClient(nodeURI)
+	vdrs, err := client.GetCurrentValidators(ctx, subnetID, nil)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("Got validator set", "numValidators", len(vdrs), "subnetID", subnetID)
+
+	indexMap := make(map[ids.NodeID]int, len(vdrs))
+	for i, vdr := range vdrs {
+		indexMap[vdr.NodeID] = i
+		log.Info("Validator", "nodeID", vdr.NodeID, "index", i)
+	}
+
+	return indexMap, nil
 }
