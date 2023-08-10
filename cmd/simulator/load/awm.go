@@ -8,7 +8,6 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
@@ -144,22 +143,9 @@ func (wr *warpRelayClient) doLoop(ctx context.Context) error {
 			unsignedWarpMessageID := unsignedMsg.ID()
 			log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "nodeID", wr.nodeID)
 
-			var signature []byte
-			for i := 0; ; i++ {
-				var err error
-				signature, err = wr.warpClient.GetSignature(ctx, unsignedWarpMessageID)
-				if err != nil {
-					time.Sleep(1 * time.Millisecond)
-					log.Warn(
-						"failed to get signature",
-						"err", err,
-						"unsignedWarpMessageID", unsignedWarpMessageID,
-						"nodeID", wr.nodeID,
-						"retries", i,
-					)
-					continue
-				}
-				break
+			signature, err := wr.warpClient.GetSignature(ctx, unsignedWarpMessageID)
+			if err != nil {
+				return err
 			}
 
 			blsSignature, err := bls.SignatureFromBytes(signature)
