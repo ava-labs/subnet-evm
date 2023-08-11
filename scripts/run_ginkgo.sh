@@ -26,9 +26,10 @@ ACK_GINKGO_RC=true ginkgo build ./tests/load ./tests/warp
 # By default, it runs all e2e test cases!
 # Use "--ginkgo.skip" to skip tests.
 # Use "--ginkgo.focus" to select tests.
-TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" ginkgo run -procs=5 tests/precompile \
-  --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" ginkgo run -procs=5 \
+  --vv \
+  --label-filter=${GINKGO_LABEL_FILTER:-""} \
+  tests/precompile
 
 ./tests/load/load.test \
   --ginkgo.vv \
