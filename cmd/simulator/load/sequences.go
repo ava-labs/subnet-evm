@@ -17,10 +17,11 @@ import (
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/maps"
 )
+
+const WARP_THRESHOLD = 80 // % of weight to collect signatures from for warp messages
 
 func GetWarpSendTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
@@ -44,11 +45,9 @@ func GetWarpReceiveTxSequences(
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 ) ([]txs.TxSequence[*AwmTx], error) {
 	subnetA := config.Subnets[0]
-
-	threshold := uint64(4) // TODO: should not be hardcoded
 	// TODO: should not be hardcoded like this
 	expectedMessages := int(config.TxsPerWorker) * config.Workers
-	warpRelay, err := NewWarpRelay(ctx, subnetA, threshold, expectedMessages)
+	warpRelay, err := NewWarpRelay(ctx, subnetA, WARP_THRESHOLD, expectedMessages)
 	if err != nil {
 		return nil, err
 	}
@@ -68,17 +67,26 @@ func GetWarpReceiveTxSequences(
 	return txSequences, nil
 }
 
-type validatorInfo map[ids.NodeID]int // nodeID -> index in bls validator set
+type validatorInfo map[ids.NodeID]validator
 
-func getValidatorIndexes(ctx context.Context, nodeURI string, subnetID ids.ID) (validatorInfo, error) {
+type validator struct {
+	index  int
+	weight uint64
+}
+
+// getValidatorInfo returns a map of nodeID to validator index and the total
+// weight of the validator set
+func getValidatorInfo(
+	ctx context.Context, nodeURI string, subnetID ids.ID,
+) (validatorInfo, uint64, error) {
 	client := platformvm.NewClient(nodeURI)
 	height, err := client.GetHeight(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	vdrSet, err := client.GetValidatorsAt(ctx, subnetID, height)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	// TODO: should factor this code out in avalanchego
 	var (
@@ -88,7 +96,7 @@ func getValidatorIndexes(ctx context.Context, nodeURI string, subnetID ids.ID) (
 	for _, vdr := range vdrSet {
 		totalWeight, err = math.Add64(totalWeight, vdr.Weight)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %v", pwarp.ErrWeightOverflow, err)
+			return nil, 0, fmt.Errorf("%w: %v", pwarp.ErrWeightOverflow, err)
 		}
 
 		if vdr.PublicKey == nil {
@@ -114,18 +122,23 @@ func getValidatorIndexes(ctx context.Context, nodeURI string, subnetID ids.ID) (
 	utils.Sort(vdrList)
 	log.Info("Got validator set", "numValidators", len(vdrs), "subnetID", subnetID)
 
-	indexMap := make(map[ids.NodeID]int, len(vdrSet))
+	indexMap := make(validatorInfo, len(vdrList))
 	for i, vdr := range vdrList {
 		for _, nodeID := range vdr.NodeIDs {
-			indexMap[nodeID] = i
+			indexMap[nodeID] = validator{
+				index:  i,
+				weight: vdr.Weight,
+			}
 			log.Info(
 				"validator bls info",
 				"nodeID", nodeID,
 				"index", i,
 				"weight", vdr.Weight,
-				"pk", common.Bytes2Hex(vdr.PublicKeyBytes[0:5]),
 			)
+			// In case of duplicate BLS keys, the caller will use the first
+			// nodeID on the list with the weight of all the nodes on the list.
+			break
 		}
 	}
-	return indexMap, nil
+	return indexMap, totalWeight, nil
 }

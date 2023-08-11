@@ -187,12 +187,12 @@ type warpRelay struct {
 }
 
 func NewWarpRelay(
-	ctx context.Context, subnetA *runner.Subnet, threshold uint64,
+	ctx context.Context, subnetA *runner.Subnet, thresholdNominator int,
 	expectedMessages int,
 ) (*warpRelay, error) {
 	// We need the validator set of subnet A to determine the index of
 	// each validator in the bit set.
-	validatorInfo, err := getValidatorIndexes(ctx, subnetA.ValidatorURIs[0], subnetA.SubnetID)
+	validatorInfo, totalWeight, err := getValidatorInfo(ctx, subnetA.ValidatorURIs[0], subnetA.SubnetID)
 	if err != nil {
 		return nil, err
 	}
@@ -202,6 +202,13 @@ func NewWarpRelay(
 	// subnet A. So we will subscribe to the subnet A's accepted logs.
 	endpoints := toWebsocketURIs(subnetA)
 	for i, endpoint := range endpoints {
+		// Skip the node if its BLS key is not in the validator info map
+		// this means the node shares a BLS key with another node which
+		// is in the validator set instead.
+		if _, ok := validatorInfo[subnetA.NodeIDs[i]]; !ok {
+			continue
+		}
+
 		client, err := ethclient.Dial(endpoint)
 		if err != nil {
 			return nil, fmt.Errorf("failed to dial client at %s: %w", endpoint, err)
@@ -220,7 +227,7 @@ func NewWarpRelay(
 	return &warpRelay{
 		messages:         make(map[ids.ID]*warpMessage),
 		validatorInfo:    validatorInfo,
-		threshold:        threshold,
+		threshold:        totalWeight * uint64(thresholdNominator) / 100,
 		signatures:       signatures,
 		signedMessages:   make(chan *avalancheWarp.Message),
 		expectedMessages: expectedMessages,
@@ -251,19 +258,19 @@ func (wr *warpRelay) Run(ctx context.Context) error {
 			if message.sent {
 				continue
 			}
-			idx, ok := wr.validatorInfo[signature.signer]
+			vdr, ok := wr.validatorInfo[signature.signer]
 			if !ok {
 				return fmt.Errorf("received signature from unknown validator %s", signature.signer)
 			}
-			message.signers.Add(idx)
+			message.signers.Add(vdr.index)
 			message.signatures = append(message.signatures, signature.signature)
 			log.Info(
 				"received warp signature",
 				"messageID", messageID,
 				"signer", signature.signer,
-				"index", idx,
+				"index", vdr.index,
 			)
-			message.weight += 1 // TODO: use actual weights
+			message.weight += vdr.weight
 			if message.weight < wr.threshold {
 				continue
 			}
