@@ -54,9 +54,11 @@ type limitOrderProcesser struct {
 	hubbleDB               database.Database
 	configService          orderbook.IConfigService
 	blockBuilder           *blockBuilder
+	isValidator            bool
+	tradingAPIEnabled      bool
 }
 
-func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database, validatorPrivateKey string) LimitOrderProcesser {
+func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database, validatorPrivateKey string, isValidator bool, tradingAPIEnabled bool) LimitOrderProcesser {
 	log.Info("**** NewLimitOrderProcesser")
 	configService := orderbook.NewConfigService(blockChain)
 	memoryDb := orderbook.NewInMemoryDatabase(configService)
@@ -84,6 +86,8 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownCh
 		matchingPipeline:       matchingPipeline,
 		filterAPI:              filterAPI,
 		configService:          configService,
+		isValidator:            isValidator,
+		tradingAPIEnabled:      tradingAPIEnabled,
 	}
 }
 
@@ -141,6 +145,9 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions(blockBuilder *block
 }
 
 func (lop *limitOrderProcesser) RunMatchingPipeline() {
+	if !lop.isValidator {
+		return
+	}
 	executeFuncAndRecoverPanic(func() {
 		matchesFound := lop.matchingPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number, big.NewInt(1)))
 		if matchesFound {
@@ -175,7 +182,10 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 					lop.mu.Lock()
 					defer lop.mu.Unlock()
 					lop.contractEventProcessor.ProcessEvents(logs)
-					go lop.contractEventProcessor.PushtoTraderFeed(logs, orderbook.ConfirmationLevelHead)
+					if lop.tradingAPIEnabled {
+						go lop.contractEventProcessor.PushtoTraderFeed(logs, orderbook.ConfirmationLevelHead)
+						go lop.contractEventProcessor.PushToMarketFeed(logs, orderbook.ConfirmationLevelHead)
+					}
 				}, orderbook.HandleHubbleFeedLogsPanicMessage, orderbook.HandleHubbleFeedLogsPanicsCounter)
 
 				lop.RunMatchingPipeline()
@@ -200,7 +210,10 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 					lop.mu.Lock()
 					defer lop.mu.Unlock()
 					lop.contractEventProcessor.ProcessAcceptedEvents(logs, false)
-					go lop.contractEventProcessor.PushtoTraderFeed(logs, orderbook.ConfirmationLevelAccepted)
+					if lop.tradingAPIEnabled {
+						go lop.contractEventProcessor.PushtoTraderFeed(logs, orderbook.ConfirmationLevelAccepted)
+						go lop.contractEventProcessor.PushToMarketFeed(logs, orderbook.ConfirmationLevelAccepted)
+					}
 				}, orderbook.HandleChainAcceptedLogsPanicMessage, orderbook.HandleChainAcceptedLogsPanicsCounter)
 			case <-lop.shutdownChan:
 				return

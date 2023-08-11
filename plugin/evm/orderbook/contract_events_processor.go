@@ -388,15 +388,29 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 }
 
 type TraderEvent struct {
-	Trader      common.Address
-	OrderId     common.Hash
-	OrderType   string
-	Removed     bool
-	EventName   string
-	Args        map[string]interface{}
-	BlockNumber *big.Int
-	BlockStatus BlockConfirmationLevel
-	Timestamp   *big.Int
+	Trader          common.Address
+	OrderId         common.Hash
+	OrderType       string
+	Removed         bool
+	EventName       string
+	Args            map[string]interface{}
+	BlockNumber     *big.Int
+	BlockStatus     BlockConfirmationLevel
+	Timestamp       *big.Int
+	TransactionHash common.Hash
+}
+
+type MarketFeedEvent struct {
+	Trader          common.Address
+	Market          Market
+	Size            float64
+	Price           float64
+	Removed         bool
+	EventName       string
+	BlockNumber     *big.Int
+	BlockStatus     BlockConfirmationLevel
+	Timestamp       *big.Int
+	TransactionHash common.Hash
 }
 
 type BlockConfirmationLevel string
@@ -414,6 +428,7 @@ func (cep *ContractEventsProcessor) PushtoTraderFeed(events []*types.Log, blockS
 		var orderId common.Hash
 		var orderType string
 		var trader common.Address
+		txHash := event.TxHash
 		switch event.Address {
 		case OrderBookContractAddress:
 			orderType = "limit"
@@ -481,27 +496,59 @@ func (cep *ContractEventsProcessor) PushtoTraderFeed(events []*types.Log, blockS
 			continue
 		}
 
-		timestamp, _ := args["timestamp"]
+		timestamp := args["timestamp"]
 		timestampInt, _ := timestamp.(*big.Int)
 		traderEvent := TraderEvent{
-			Trader:      trader,
-			Removed:     removed,
-			EventName:   eventName,
-			Args:        args,
-			BlockNumber: big.NewInt(int64(event.BlockNumber)),
-			BlockStatus: blockStatus,
-			OrderId:     orderId,
-			OrderType:   orderType,
-			Timestamp:   timestampInt,
+			Trader:          trader,
+			Removed:         removed,
+			EventName:       eventName,
+			Args:            args,
+			BlockNumber:     big.NewInt(int64(event.BlockNumber)),
+			BlockStatus:     blockStatus,
+			OrderId:         orderId,
+			OrderType:       orderType,
+			Timestamp:       timestampInt,
+			TransactionHash: txHash,
 		}
 
 		traderFeed.Send(traderEvent)
 	}
 }
 
-func getAddressFromTopicHash(topicHash common.Hash) common.Address {
-	address32 := topicHash.String() // address in 32 bytes with 0 padding
-	return common.HexToAddress(address32[:2] + address32[26:])
+func (cep *ContractEventsProcessor) PushToMarketFeed(events []*types.Log, blockStatus BlockConfirmationLevel) {
+	for _, event := range events {
+		args := map[string]interface{}{}
+		switch event.Topics[0] {
+		case cep.clearingHouseABI.Events["PositionModified"].ID:
+			err := cep.clearingHouseABI.UnpackIntoMap(args, "PositionModified", event.Data)
+			if err != nil {
+				log.Error("error in clearingHouseABI.UnpackIntoMap", "method", "PositionModified", "err", err)
+				return
+			}
+
+			trader := getAddressFromTopicHash(event.Topics[1])
+			market := Market(int(event.Topics[2].Big().Int64()))
+			price := args["price"].(*big.Int)
+
+			size := args["baseAsset"].(*big.Int)
+
+			timestamp := args["timestamp"]
+			timestampInt, _ := timestamp.(*big.Int)
+			marketFeedEvent := MarketFeedEvent{
+				Trader:          trader,
+				Market:          market,
+				Size:            utils.BigIntToFloat(size, 18),
+				Price:           utils.BigIntToFloat(price, 6),
+				Removed:         event.Removed,
+				EventName:       "PositionModified",
+				BlockNumber:     big.NewInt(int64(event.BlockNumber)),
+				BlockStatus:     blockStatus,
+				Timestamp:       timestampInt,
+				TransactionHash: event.TxHash,
+			}
+			marketFeed.Send(marketFeedEvent)
+		}
+	}
 }
 
 func (cep *ContractEventsProcessor) updateMetrics(logs []*types.Log) {
@@ -541,4 +588,8 @@ func (cep *ContractEventsProcessor) updateMetrics(logs []*types.Log) {
 
 	ordersPlacedPerBlock.Update(orderPlacedCount)
 	ordersCancelledPerBlock.Update(orderCancelledCount)
+}
+
+func getAddressFromTopicHash(topicHash common.Hash) common.Address {
+	return common.BytesToAddress(topicHash.Bytes())
 }

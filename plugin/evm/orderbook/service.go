@@ -57,7 +57,7 @@ type OrderForOpenOrders struct {
 	Salt       string
 	OrderId    string
 	ReduceOnly bool
-	OrderType  OrderType
+	OrderType  string
 }
 
 type GetDebugDataResponse struct {
@@ -178,7 +178,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string, marke
 				Salt:       order.Salt.String(),
 				OrderId:    order.Id.String(),
 				ReduceOnly: order.ReduceOnly,
-				OrderType:  order.OrderType,
+				OrderType:  order.OrderType.String(),
 			})
 		}
 	}

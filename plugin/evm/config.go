@@ -58,6 +58,9 @@ const (
 	// - state sync time: ~6 hrs.
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
+
+	defaultIsValidator       = false
+	defaultTradingAPIEnabled = false
 )
 
 var (
@@ -217,6 +220,11 @@ type Config struct {
 
 	// Testing apis enabled
 	TestingApiEnabled bool `json:"testing-api-enabled"`
+	// IsValidator is true if this node is a validator
+	IsValidator bool `json:"is-validator"`
+
+	// TradingAPI is for the sdk
+	TradingAPIEnabled bool `json:"trading-api-enabled"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -277,6 +285,8 @@ func (c *Config) SetDefaults() {
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
 	c.ValidatorPrivateKeyFile = defaultValidatorPrivateKeyFile
 	c.TestingApiEnabled = defaultTestingApiEnabled
+	c.IsValidator = defaultIsValidator
+	c.TradingAPIEnabled = defaultTradingAPIEnabled
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

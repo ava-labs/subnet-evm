@@ -870,8 +870,10 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 		return nil, err
 	}
 
-	if err := handler.RegisterName("trading", vm.limitOrderProcesser.GetTradingAPI()); err != nil {
-		return nil, err
+	if vm.config.TradingAPIEnabled {
+		if err := handler.RegisterName("trading", vm.limitOrderProcesser.GetTradingAPI()); err != nil {
+			return nil, err
+		}
 	}
 	if vm.config.TestingApiEnabled {
 		if err := handler.RegisterName("testing", vm.limitOrderProcesser.GetTestingAPI()); err != nil {
@@ -1041,6 +1043,8 @@ func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
 		vm.blockChain,
 		vm.hubbleDB,
 		validatorPrivateKey,
+		vm.config.IsValidator,
+		vm.config.TradingAPIEnabled,
 	)
 }
 

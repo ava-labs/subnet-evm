@@ -8,5 +8,7 @@
   "priority-regossip-txs-per-address": 20,
   "priority-regossip-addresses": ["0xeAA6AE79bD3d042644D91edD786E4ed3d783Ca2d"],
   "validator-private-key-file": "/home/ubuntu/validator.pk",
-  "feeRecipient": "0x393bd9ac9dbBe75e84db739Bb15d22cA86D26696"
+  "feeRecipient": "0x393bd9ac9dbBe75e84db739Bb15d22cA86D26696",
+  "is-validator": true,
+  "trading-api-enabled": false
 }

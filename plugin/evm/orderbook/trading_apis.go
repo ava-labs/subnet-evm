@@ -18,6 +18,7 @@ import (
 )
 
 var traderFeed event.Feed
+var marketFeed event.Feed
 
 type TradingAPI struct {
 	db            LimitOrderDatabase
@@ -262,14 +263,39 @@ func (api *TradingAPI) StreamTraderUpdates(ctx context.Context, trader string, b
 	confirmationLevel := BlockConfirmationLevel(blockStatus)
 
 	traderFeedCh := make(chan TraderEvent)
-	acceptedLogsSubscription := traderFeed.Subscribe(traderFeedCh)
+	traderFeedSubscription := traderFeed.Subscribe(traderFeedCh)
 	go func() {
-		defer acceptedLogsSubscription.Unsubscribe()
+		defer traderFeedSubscription.Unsubscribe()
 
 		for {
 			select {
 			case event := <-traderFeedCh:
 				if strings.EqualFold(event.Trader.String(), trader) && event.BlockStatus == confirmationLevel {
+					notifier.Notify(rpcSub.ID, event)
+				}
+			case <-notifier.Closed():
+				return
+			}
+		}
+	}()
+
+	return rpcSub, nil
+}
+
+func (api *TradingAPI) StreamMarketTrades(ctx context.Context, market Market, blockStatus string) (*rpc.Subscription, error) {
+	notifier, _ := rpc.NotifierFromContext(ctx)
+	rpcSub := notifier.CreateSubscription()
+	confirmationLevel := BlockConfirmationLevel(blockStatus)
+
+	marketFeedCh := make(chan MarketFeedEvent)
+	acceptedLogsSubscription := marketFeed.Subscribe(marketFeedCh)
+	go func() {
+		defer acceptedLogsSubscription.Unsubscribe()
+
+		for {
+			select {
+			case event := <-marketFeedCh:
+				if event.Market == market && event.BlockStatus == confirmationLevel {
 					notifier.Notify(rpcSub.ID, event)
 				}
 			case <-notifier.Closed():

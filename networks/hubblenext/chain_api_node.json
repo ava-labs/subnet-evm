@@ -11,5 +11,8 @@
     "pruning-enabled": false,
     "eth-apis": ["public-eth","public-eth-filter","net","web3","internal-public-eth","internal-public-blockchain","internal-public-transaction-pool","internal-public-debug","internal-private-debug","internal-public-tx-pool","internal-public-account","debug-tracer"],
     "validator-private-key-file": "/home/ubuntu/validator.pk",
-    "feeRecipient": "0x93ec352b9eDe4e4515b24945E37186c462a2D583"
+    "feeRecipient": "0x93ec352b9eDe4e4515b24945E37186c462a2D583",
+    "is-validator": false,
+    "trading-api-enabled": true
+  
 }
