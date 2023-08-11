@@ -16,49 +16,11 @@ import (
 	pwarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/maps"
 )
-
-type TxSequenceGetter func(
-	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, client ethclient.Client,
-) ([]txs.TxSequence[*types.Transaction], error)
-
-// func GetEVMTxSequences(
-// 	ctx context.Context, config config.Config, chainID *big.Int,
-// 	pks []*ecdsa.PrivateKey, client ethclient.Client,
-//	tracker *awmTimeTracker,
-// ) ([]txs.TxSequence[TrackableTx], error) {
-// 	bigGwei := big.NewInt(params.GWei)
-// 	gasTipCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxTipCap))
-// 	gasFeeCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxFeeCap))
-//
-// 	// Normal EVM txs
-// 	signer := types.LatestSignerForChainID(chainID)
-// 	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
-// 		addr := ethcrypto.PubkeyToAddress(key.PublicKey)
-// 		tx, err := types.SignNewTx(key, signer, &types.DynamicFeeTx{
-// 			ChainID:   chainID,
-// 			Nonce:     nonce,
-// 			GasTipCap: gasTipCap,
-// 			GasFeeCap: gasFeeCap,
-// 			Gas:       params.TxGas,
-// 			To:        &addr,
-// 			Data:      nil,
-// 			Value:     common.Big0,
-// 		})
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		return tx, nil
-// 	}
-// 	return txs.GenerateTxSequences(ctx, txGenerator, client, pks, config.TxsPerWorker)
-// }
 
 func GetWarpSendTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
