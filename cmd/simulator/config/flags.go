@@ -32,6 +32,10 @@ const (
 	TimeoutKey        = "timeout"
 	BatchSizeKey      = "batch-size"
 	MetricsPortKey    = "metrics-port"
+	TestTypeKey       = "test-type"
+
+	WarpTest     = "warp"
+	TransferTest = "transfer"
 )
 
 var (
@@ -50,6 +54,7 @@ type Config struct {
 	Timeout      time.Duration `json:"timeout"`
 	BatchSize    uint64        `json:"batch-size"`
 	MetricsPort  uint64        `json:"metrics-port"`
+	TestType     string        `json:"test-type"`
 
 	Subnets []*runner.Subnet `json:"-"`
 }
@@ -65,6 +70,7 @@ func BuildConfig(v *viper.Viper) (Config, error) {
 		Timeout:      v.GetDuration(TimeoutKey),
 		BatchSize:    v.GetUint64(BatchSizeKey),
 		MetricsPort:  v.GetUint64(MetricsPortKey),
+		TestType:     v.GetString(TestTypeKey),
 	}
 	if endpointsFile := v.GetString(EndpointsFileKey); endpointsFile != "" {
 		subnets, err := readSubnetsFile(endpointsFile)
@@ -136,6 +142,7 @@ func addSimulatorFlags(fs *pflag.FlagSet) {
 	fs.String(LogLevelKey, "info", "Specify the log level to use in the simulator")
 	fs.Uint64(BatchSizeKey, 100, "Specify the batchsize for the worker to issue and confirm txs")
 	fs.Uint64(MetricsPortKey, 8082, "Specify the port to use for the metrics server")
+	fs.String(TestTypeKey, TransferTest, "Specify the type of test to run (warp or transfer)")
 }
 
 func readSubnetsFile(path string) ([]*runner.Subnet, error) {

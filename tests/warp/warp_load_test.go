@@ -39,16 +39,12 @@ var _ = ginkgo.Describe("[AWM Load Simulator]", ginkgo.Ordered, func() {
 		err = tmpFile.Close()
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		log.Info(
-			"Running load simulator...",
-			"rpcEndpointsFile", tmpFileName,
-		)
-		cmd := exec.Command("./scripts/run_simulator.sh")
-		additionalEnv := []string{"RPC_ENDPOINTS_FILE=" + tmpFileName}
-
-		cmd.Env = os.Environ() // Inherit environment variables from parent
-		cmd.Env = append(cmd.Env, additionalEnv...)
-		log.Info("Running load simulator script", "env", additionalEnv, "cmd", cmd.String())
+		args := []string{
+			"--test-type", "warp",
+			"--endpoints-file", tmpFileName,
+		}
+		cmd := exec.Command("./scripts/run_simulator.sh", args...)
+		log.Info("Running load simulator", "cmd", cmd.String())
 
 		out, err := cmd.CombinedOutput()
 		fmt.Printf("\nCombined output:\n\n%s\n", string(out))

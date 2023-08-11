@@ -62,18 +62,46 @@ func ExecuteLoader(ctx context.Context, cfg config.Config) error {
 		cancel()
 	}()
 
-	// Create metrics
 	reg := prometheus.NewRegistry()
+	metricsPort := strconv.Itoa(int(cfg.MetricsPort))
+	go startMetricsServer(ctx, metricsPort, reg)
+
+	switch cfg.TestType {
+	case config.TransferTest:
+		if err := transferTest(ctx, cfg, reg); err != nil {
+			return err
+		}
+	case config.WarpTest:
+		if err := warpTest(ctx, cfg, reg); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown test type %s", cfg.TestType)
+	}
+
+	printOutputFromMetricsServer(metricsPort)
+	return nil
+}
+
+func transferTest(ctx context.Context, cfg config.Config, reg *prometheus.Registry) error {
+	if len(cfg.Endpoints) == 0 {
+		// if no endpoints are specified, use the first subnet
+		cfg.Endpoints = toWebsocketURIs(cfg.Subnets[0])
+	}
+	m := metrics.NewMetrics("", reg)
+	agentBuilder := &transferTxAgentBuilder{}
+	return executeLoaderImpl(ctx, cfg, agentBuilder, m)
+}
+
+func warpTest(ctx context.Context, cfg config.Config, reg *prometheus.Registry) error {
+	if len(cfg.Subnets) != 2 {
+		return fmt.Errorf("expected 2 subnets, got %d", len(cfg.Subnets))
+	}
+
 	m := metrics.NewMetrics("", reg)
 	mB := metrics.NewMetrics("subnet_b_", reg)
 	mWarp := metrics.NewMetrics("warp_", reg)
 	timeTracker := newTimeTracker(mWarp.IssuanceToConfirmationTxTimes.Observe)
-	metricsPort := strconv.Itoa(int(cfg.MetricsPort))
-	go startMetricsServer(ctx, metricsPort, reg)
-
-	if len(cfg.Subnets) != 2 {
-		return fmt.Errorf("expected 2 subnets, got %d", len(cfg.Subnets))
-	}
 
 	var eg errgroup.Group
 	eg.Go(func() error {
@@ -88,11 +116,7 @@ func ExecuteLoader(ctx context.Context, cfg config.Config) error {
 		agentBuilder := &warpReceiveTxAgentBuilder{timeTracker: timeTracker}
 		return executeLoaderImpl(ctx, cfg, agentBuilder, mB)
 	})
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-	printOutputFromMetricsServer(metricsPort)
-	return nil
+	return eg.Wait()
 }
 
 func executeLoaderImpl(

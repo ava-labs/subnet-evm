@@ -5,7 +5,6 @@ package load
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -38,12 +37,13 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
-		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
-		gomega.Expect(err).Should(gomega.BeNil())
 
-		log.Info("Running load simulator...", "rpcEndpoints", commaSeparatedRPCEndpoints)
-		cmd := exec.Command("./scripts/run_simulator.sh")
-		log.Info("Running load simulator script", "cmd", cmd.String())
+		args := []string{
+			"--test-type", "transfer",
+			"--endpoints", commaSeparatedRPCEndpoints,
+		}
+		cmd := exec.Command("./scripts/run_simulator.sh", args...)
+		log.Info("Running load simulator", "cmd", cmd.String())
 
 		out, err := cmd.CombinedOutput()
 		fmt.Printf("\nCombined output:\n\n%s\n", string(out))

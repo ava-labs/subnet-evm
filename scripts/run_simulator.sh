@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# This script runs a load simulation against endpoints specified either as:
-# - Comma separated list in the RPC_ENDPOINTS environment variable.
-# - In the file specified by the RPC_ENDPOINTS_FILE environment variable.
+# This script runs a load simulation when the following options are provided:
+# --test-type (load or warp)
+# --endpoints (comma separated list of RPC endpoints) or --endpoints-file (path to file containing RPC endpoints)
 
 set -e
 
@@ -22,15 +22,7 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 # Load the constants
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
-# Pass either --endpoints-file or --endpoints
-if [[ -n "$RPC_ENDPOINTS_FILE" ]]; then
-  ENDPOINT_OPTS="--endpoints-file=$RPC_ENDPOINTS_FILE"
-else 
-  ENDPOINT_OPTS="--endpoints=$RPC_ENDPOINTS"
-fi
-
 run_simulator() {
-    #################################
     echo "building simulator"
     pushd ./cmd/simulator
     go build -o ./simulator main/*.go
@@ -39,7 +31,7 @@ run_simulator() {
     popd
     echo "running simulator from $PWD"
     ./cmd/simulator/simulator \
-        ${ENDPOINT_OPTS} \
+        "$@" \
         --key-dir=./cmd/simulator/.simulator/keys \
         --timeout=30s \
         --workers=1 \
@@ -47,4 +39,4 @@ run_simulator() {
         --max-tip-cap=100
 }
 
-run_simulator
+run_simulator "$@"
