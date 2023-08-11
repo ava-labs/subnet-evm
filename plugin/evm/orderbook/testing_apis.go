@@ -11,7 +11,6 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 type TestingAPI struct {
@@ -29,27 +28,26 @@ func NewTestingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, conf
 }
 
 func (api *TestingAPI) GetClearingHouseVars(ctx context.Context, trader common.Address) bibliophile.VariablesReadFromClearingHouseSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().NumberU64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
 	return bibliophile.GetClearingHouseVariables(stateDB, trader)
 }
 
 func (api *TestingAPI) GetMarginAccountVars(ctx context.Context, collateralIdx *big.Int, traderAddress string) bibliophile.VariablesReadFromMarginAccountSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().NumberU64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
 	return bibliophile.GetMarginAccountVariables(stateDB, collateralIdx, common.HexToAddress(traderAddress))
 }
 
 func (api *TestingAPI) GetAMMVars(ctx context.Context, ammAddress string, ammIndex int, traderAddress string) bibliophile.VariablesReadFromAMMSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().NumberU64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
 	return bibliophile.GetAMMVariables(stateDB, common.HexToAddress(ammAddress), int64(ammIndex), common.HexToAddress(traderAddress))
 }
 
 func (api *TestingAPI) GetIOCOrdersVars(ctx context.Context, orderHash common.Hash) bibliophile.VariablesReadFromIOCOrdersSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().NumberU64()))
-	log.Info("GetIOCOrdersVars", "orderHash", orderHash)
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
 	return bibliophile.GetIOCOrdersVariables(stateDB, orderHash)
 }
 
 func (api *TestingAPI) GetOrderBookVars(ctx context.Context, traderAddress string, senderAddress string, orderHash common.Hash) bibliophile.VariablesReadFromOrderbookSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().NumberU64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
 	return bibliophile.GetOrderBookVariables(stateDB, traderAddress, senderAddress, orderHash)
 }
