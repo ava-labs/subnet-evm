@@ -17,7 +17,7 @@ import (
 )
 
 var _ = ginkgo.Describe("[AWM Load Simulator]", ginkgo.Ordered, func() {
-	ginkgo.It("Run AWM load simulator against local nodes", ginkgo.Label("Warp", "load"), func() {
+	ginkgo.It("Run AWM load simulator against local nodes", ginkgo.Label("Warp", "load", "warp_load"), func() {
 		subnetIDs := manager.GetSubnets()
 		gomega.Expect(len(subnetIDs)).Should(gomega.Equal(2))
 
