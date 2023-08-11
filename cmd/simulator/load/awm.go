@@ -264,12 +264,6 @@ func (wr *warpRelay) Run(ctx context.Context) error {
 			}
 			message.signers.Add(vdr.index)
 			message.signatures = append(message.signatures, signature.signature)
-			log.Info(
-				"received warp signature",
-				"messageID", messageID,
-				"signer", signature.signer,
-				"index", vdr.index,
-			)
 			message.weight += vdr.weight
 			if message.weight < wr.threshold {
 				continue
