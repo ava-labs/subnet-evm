@@ -31,12 +31,10 @@ type AgentBuilder interface {
 	) (txs.Agent, error)
 }
 
-// nolint: unused
 type transferTxAgentBuilder struct {
 	txSequences []txs.TxSequence[*types.Transaction]
 }
 
-// nolint: unused
 func (t *transferTxAgentBuilder) GenerateTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
@@ -74,7 +72,6 @@ func (t *transferTxAgentBuilder) GenerateTxSequences(
 	return nil
 }
 
-// nolint: unused
 func (t *transferTxAgentBuilder) NewAgent(
 	ctx context.Context, config config.Config, idx int, client ethclient.Client,
 	sender common.Address, m *metrics.Metrics,
