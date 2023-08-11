@@ -19,7 +19,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/maps"
@@ -83,36 +82,21 @@ func GetWarpReceiveTxSequences(
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 ) ([]txs.TxSequence[*AwmTx], error) {
 	subnetA := config.Subnets[0]
-	// We need the validator set of subnet A to determine the index of
-	// each validator in the bit set.
-	validatorIndexes, err := getValidatorIndexes(ctx, subnetA.ValidatorURIs[0], subnetA.SubnetID)
-	if err != nil {
-		return nil, err
-	}
-
-	ch := make(chan warpSignature) // channel for incoming signatures
-	// We will need to aggregate signatures for messages that are sent on
-	// subnet A. So we will subscribe to the subnet A's accepted logs.
-	endpoints := toWebsocketURIs(subnetA)
-	for i, endpoint := range endpoints {
-		client, err := ethclient.Dial(endpoint)
-		if err != nil {
-			return nil, fmt.Errorf("failed to dial client at %s: %w", endpoint, err)
-		}
-		log.Info("Connected to client", "client", endpoint, "idx", i)
-
-		warpClient, err := warp.NewWarpClient(subnetA.ValidatorURIs[i], subnetA.BlockchainID.String())
-		if err != nil {
-			return nil, err
-		}
-		// TODO: properly shutdown warp clients
-		_ = NewWarpRelayClient(ctx, client, warpClient, ch, subnetA.NodeIDs[i])
-	}
 
 	threshold := uint64(4) // TODO: should not be hardcoded
 	// TODO: should not be hardcoded like this
 	expectedMessages := int(config.TxsPerWorker) * config.Workers
-	warpRelay := NewWarpRelay(ctx, validatorIndexes, threshold, ch, expectedMessages)
+	warpRelay, err := NewWarpRelay(ctx, subnetA, threshold, expectedMessages)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		err := warpRelay.Run(ctx)
+		if err != nil {
+			log.Error("warp relay failed", "err", err)
+		}
+	}()
+
 	// Each worker will listen for signed warp messages that are
 	// ready to be issued
 	txSequences := make([]txs.TxSequence[*AwmTx], config.Workers)

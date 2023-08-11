@@ -19,6 +19,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpclient "github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/payload"
@@ -186,30 +187,47 @@ type warpRelay struct {
 }
 
 func NewWarpRelay(
-	ctx context.Context,
-	validatorInfo validatorInfo,
-	threshold uint64,
-	signatures <-chan warpSignature,
+	ctx context.Context, subnetA *runner.Subnet, threshold uint64,
 	expectedMessages int,
-) *warpRelay {
-	wr := &warpRelay{
+) (*warpRelay, error) {
+	// We need the validator set of subnet A to determine the index of
+	// each validator in the bit set.
+	validatorInfo, err := getValidatorIndexes(ctx, subnetA.ValidatorURIs[0], subnetA.SubnetID)
+	if err != nil {
+		return nil, err
+	}
+
+	signatures := make(chan warpSignature) // channel for incoming signatures
+	// We will need to aggregate signatures for messages that are sent on
+	// subnet A. So we will subscribe to the subnet A's accepted logs.
+	endpoints := toWebsocketURIs(subnetA)
+	for i, endpoint := range endpoints {
+		client, err := ethclient.Dial(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to dial client at %s: %w", endpoint, err)
+		}
+		log.Info("Connected to client", "client", endpoint, "idx", i)
+
+		warpClient, err := warpclient.NewWarpClient(
+			subnetA.ValidatorURIs[i], subnetA.BlockchainID.String())
+		if err != nil {
+			return nil, err
+		}
+		// TODO: properly shutdown warp clients
+		_ = NewWarpRelayClient(ctx, client, warpClient, signatures, subnetA.NodeIDs[i])
+	}
+
+	return &warpRelay{
 		messages:         make(map[ids.ID]*warpMessage),
 		validatorInfo:    validatorInfo,
 		threshold:        threshold,
 		signatures:       signatures,
 		signedMessages:   make(chan *avalancheWarp.Message),
 		expectedMessages: expectedMessages,
-	}
-	go func() {
-		err := wr.doLoop(ctx)
-		if err != nil {
-			log.Error("warp relay failed", "err", err)
-		}
-	}()
-	return wr
+	}, nil
 }
 
-func (wr *warpRelay) doLoop(ctx context.Context) error {
+func (wr *warpRelay) Run(ctx context.Context) error {
 	defer close(wr.signedMessages)
 	for {
 		select {
