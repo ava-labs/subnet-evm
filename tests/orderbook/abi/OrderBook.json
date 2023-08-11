@@ -330,6 +330,44 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "trader",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "authority",
+          "type": "address"
+        }
+      ],
+      "name": "TradingAuthorityRevoked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "trader",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "authority",
+          "type": "address"
+        }
+      ],
+      "name": "TradingAuthorityWhitelisted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": false,
           "internalType": "address",
           "name": "account",

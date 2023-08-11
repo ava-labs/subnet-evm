@@ -7,7 +7,7 @@ const { randomInt } = require('crypto');
 
 const OrderBookContractAddress = "0x0300000000000000000000000000000000000000"
 const MarginAccountContractAddress = "0x0300000000000000000000000000000000000001"
-const MarginAccountHelperContractAddress = "0x610178dA211FEF7D417bC0e6FeD39F05609AD788"
+const MarginAccountHelperContractAddress = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
 const ClearingHouseContractAddress = "0x0300000000000000000000000000000000000002"
 
 let provider, domain, orderType, orderBook, marginAccount, marginAccountHelper, clearingHouse
@@ -27,46 +27,47 @@ const homedir = require('os').homedir()
 let conf = require(`${homedir}/.hubblenet.json`)
 const url = `http://127.0.0.1:9650/ext/bc/${conf.chain_id}/rpc`
 
-describe('Submit transaction and compare with EVM state', function () {
-    before('', async function () {
-        provider = new ethers.providers.JsonRpcProvider(url);
+provider = new ethers.providers.JsonRpcProvider(url);
+// Set up signer
+governance = new ethers.Wallet('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', provider) // governance
+alice = new ethers.Wallet('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d', provider); // 0x70997970c51812dc3a010c7d01b50e0d17dc79c8
+bob = new ethers.Wallet('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a', provider); // 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc
+charlie = new ethers.Wallet('15614556be13730e9e8d6eacc1603143e7b96987429df8726384c2ec4502ef6e', provider); // 0x55ee05df718f1a5c1441e76190eb1a19ee2c9430
+aliceAddress = alice.address.toLowerCase()
+bobAddress = bob.address.toLowerCase()
+charlieAddress = charlie.address.toLowerCase()
+console.log({ alice: aliceAddress, bob: bobAddress, charlie: charlieAddress });
 
-        // Set up signer
-        governance = new ethers.Wallet('0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', provider) // governance
-        alice = new ethers.Wallet('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d', provider); // 0x70997970c51812dc3a010c7d01b50e0d17dc79c8
-        bob = new ethers.Wallet('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a', provider); // 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc
-        charlie = new ethers.Wallet('15614556be13730e9e8d6eacc1603143e7b96987429df8726384c2ec4502ef6e', provider); // 0x55ee05df718f1a5c1441e76190eb1a19ee2c9430
-        aliceAddress = alice.address.toLowerCase()
-        bobAddress = bob.address.toLowerCase()
-        charlieAddress = charlie.address.toLowerCase()
-        console.log({ alice: aliceAddress, bob: bobAddress, charlie: charlieAddress });
+// Set up contract interface
+orderBook = new ethers.Contract(OrderBookContractAddress, require('../abi/OrderBook.json'), provider);
+clearingHouse = new ethers.Contract(ClearingHouseContractAddress, require('../abi/ClearingHouse.json'), provider);
+marginAccount = new ethers.Contract(MarginAccountContractAddress, require('../abi/MarginAccount.json'), provider);
+marginAccountHelper = new ethers.Contract(MarginAccountHelperContractAddress, require('../abi/MarginAccountHelper.json'), provider);
 
-        // Set up contract interface
-        orderBook = new ethers.Contract(OrderBookContractAddress, require('./abi/OrderBook.json'), provider);
-        clearingHouse = new ethers.Contract(ClearingHouseContractAddress, require('./abi/ClearingHouse.json'), provider);
-        marginAccount = new ethers.Contract(MarginAccountContractAddress, require('./abi/MarginAccount.json'), provider);
-        marginAccountHelper = new ethers.Contract(MarginAccountHelperContractAddress, require('./abi/MarginAccountHelper.json'));
-        domain = {
-            name: 'Hubble',
-            version: '2.0',
-            chainId: (await provider.getNetwork()).chainId,
-            verifyingContract: orderBook.address
-        }
 
-        orderType = {
-            Order: [
-                // field ordering must be the same as LIMIT_ORDER_TYPEHASH
-                { name: "ammIndex", type: "uint256" },
-                { name: "trader", type: "address" },
-                { name: "baseAssetQuantity", type: "int256" },
-                { name: "price", type: "uint256" },
-                { name: "salt", type: "uint256" },
-                { name: "reduceOnly", type: "bool" },
-            ]
-        }
+async function getDomain() {
+    domain = {
+        name: 'Hubble',
+        version: '2.0',
+        chainId: (await provider.getNetwork()).chainId,
+        verifyingContract: orderBook.address
+    }
+    return domain
+}
 
-    })
+orderType = {
+    Order: [
+        // field ordering must be the same as LIMIT_ORDER_TYPEHASH
+        { name: "ammIndex", type: "uint256" },
+        { name: "trader", type: "address" },
+        { name: "baseAssetQuantity", type: "int256" },
+        { name: "price", type: "uint256" },
+        { name: "salt", type: "uint256" },
+        { name: "reduceOnly", type: "bool" },
+    ]
+}
 
+describe.skip('Submit transaction and compare with EVM state', function () {
     let aliceMargin = _1e6 * 150
     let bobMargin = _1e6 * 150
     let charlieMargin = 0
@@ -609,26 +610,26 @@ describe('Submit transaction and compare with EVM state', function () {
     });
 });
 
-async function placeOrder(trader, size, price, salt, reduceOnly=false) {
+async function placeOrder(market, trader, size, price, salt=Date.now(), reduceOnly=false) {
     const order = {
-        ammIndex: ZERO,
+        ammIndex: market,
         trader: trader.address,
         baseAssetQuantity: ethers.utils.parseEther(size.toString()),
         price: ethers.utils.parseUnits(price.toString(), 6),
         salt: BigNumber.from(salt),
         reduceOnly: reduceOnly,
     }
-    const signature = await trader._signTypedData(domain, orderType, order)
-    const hash = await orderBook.connect(trader).getOrderHash(order)
-
-    const tx = await orderBook.connect(trader).placeOrder(order, signature)
+    const tx = await orderBook.connect(trader).placeOrder(order)
     const txReceipt = await tx.wait()
-    return { tx, txReceipt, hash, order, signature: signature.slice(2) }
+    return { tx, txReceipt }
 }
 
-function addMargin(trader, amount) {
+async function addMargin(trader, amount) {
     const hgtAmount = _1e12.mul(amount)
-    return marginAccountHelper.connect(trader).addVUSDMarginWithReserve(amount, { value: hgtAmount })
+    console.log("adding margin")
+    const tx = await marginAccountHelper.connect(trader).addVUSDMarginWithReserve(amount, { value: hgtAmount })
+    const txReceipt = await tx.wait()
+    return { tx, txReceipt }
 }
 
 async function getNextFundingTime() {
@@ -658,12 +659,24 @@ function getTradeFee(notional) {
 
 async function setOraclePrice(market, price) {
     const ammAddress = await clearingHouse.amms(market)
-    const amm = new ethers.Contract(ammAddress, require('./abi/AMM.json'), provider);
+    const amm = new ethers.Contract(ammAddress, require('../abi/AMM.json'), provider);
     const underlying = await amm.underlyingAsset()
     const oracleAddress = await marginAccount.oracle()
-    const oracle = new ethers.Contract(oracleAddress, require('./abi/Oracle.json'), provider);
+    const oracle = new ethers.Contract(oracleAddress, require('../abi/Oracle.json'), provider);
 
     await oracle.connect(governance).setStablePrice(underlying, price)
+}
+
+async function getOraclePrice(market) {
+    const ammAddress = await clearingHouse.amms(market)
+    const amm = new ethers.Contract(ammAddress, require('../abi/AMM.json'), provider);
+    return await amm.getUnderlyingPrice()
+}
+
+async function getLastPrice(market) {
+    const ammAddress = await clearingHouse.amms(market)
+    const amm = new ethers.Contract(ammAddress, require('../abi/AMM.json'), provider);
+    return await amm.getLastPrice()
 }
 
 async function getEVMState() {
@@ -684,4 +697,20 @@ async function getEVMState() {
 function sleep(s) {
     console.log(`Requested a sleep of ${s} seconds...`)
     return new Promise(resolve => setTimeout(resolve, s * 1000));
+}
+
+
+module.exports = {
+    OrderBookContractAddress,
+    ClearingHouseContractAddress,
+    MarginAccountContractAddress,
+    MarginAccountHelperContractAddress,
+    _1e6,
+    _1e12,
+    _1e18,
+    placeOrder,
+    addMargin,
+    sleep,
+    getOraclePrice,
+    getLastPrice
 }

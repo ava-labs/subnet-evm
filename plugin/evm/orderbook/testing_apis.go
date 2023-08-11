@@ -28,26 +28,30 @@ func NewTestingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, conf
 }
 
 func (api *TestingAPI) GetClearingHouseVars(ctx context.Context, trader common.Address) bibliophile.VariablesReadFromClearingHouseSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(getCurrentBlockNumber(api.backend)))
 	return bibliophile.GetClearingHouseVariables(stateDB, trader)
 }
 
 func (api *TestingAPI) GetMarginAccountVars(ctx context.Context, collateralIdx *big.Int, traderAddress string) bibliophile.VariablesReadFromMarginAccountSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(getCurrentBlockNumber(api.backend)))
 	return bibliophile.GetMarginAccountVariables(stateDB, collateralIdx, common.HexToAddress(traderAddress))
 }
 
 func (api *TestingAPI) GetAMMVars(ctx context.Context, ammAddress string, ammIndex int, traderAddress string) bibliophile.VariablesReadFromAMMSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(getCurrentBlockNumber(api.backend)))
 	return bibliophile.GetAMMVariables(stateDB, common.HexToAddress(ammAddress), int64(ammIndex), common.HexToAddress(traderAddress))
 }
 
 func (api *TestingAPI) GetIOCOrdersVars(ctx context.Context, orderHash common.Hash) bibliophile.VariablesReadFromIOCOrdersSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(getCurrentBlockNumber(api.backend)))
 	return bibliophile.GetIOCOrdersVariables(stateDB, orderHash)
 }
 
 func (api *TestingAPI) GetOrderBookVars(ctx context.Context, traderAddress string, senderAddress string, orderHash common.Hash) bibliophile.VariablesReadFromOrderbookSlots {
-	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(api.backend.CurrentBlock().Number.Uint64()))
+	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(getCurrentBlockNumber(api.backend)))
 	return bibliophile.GetOrderBookVariables(stateDB, traderAddress, senderAddress, orderHash)
+}
+
+func getCurrentBlockNumber(backend *eth.EthAPIBackend) uint64 {
+	return backend.CurrentHeader().Number.Uint64()
 }

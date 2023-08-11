@@ -257,7 +257,7 @@
       "inputs": [
         {
           "internalType": "uint256",
-          "name": "_intervalInSeconds",
+          "name": "intervalInSeconds",
           "type": "uint256"
         }
       ],

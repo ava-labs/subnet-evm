@@ -19,13 +19,15 @@ const OrderBookContractAddress = "0x0300000000000000000000000000000000000000"
 const MarginAccountContractAddress = "0x0300000000000000000000000000000000000001"
 const ClearingHouseContractAddress = "0x0300000000000000000000000000000000000002"
 const HubbleBibliophilePrecompileAddress = "0x0300000000000000000000000000000000000004"
+const JurorPrecompileAddress = "0x0300000000000000000000000000000000000005"
 const IOCContractAddress = "0x635c5F96989a4226953FE6361f12B96c5d50289b"
 
 orderBook = new ethers.Contract(OrderBookContractAddress, require('./abi/OrderBook.json'), provider);
 clearingHouse = new ethers.Contract(ClearingHouseContractAddress, require('./abi/ClearingHouse.json'), provider);
 marginAccount = new ethers.Contract(MarginAccountContractAddress, require('./abi/MarginAccount.json'), provider);
-hubblebibliophile = new ethers.Contract(HubbleBibliophilePrecompileAddress, require('./abi/MarginAccount.json'), provider)
+hubblebibliophile = new ethers.Contract(HubbleBibliophilePrecompileAddress, require('./abi/IHubbleBibliophile.json'), provider)
 ioc = new ethers.Contract(IOCContractAddress, require('./abi/IOC.json'), provider);
+juror = new ethers.Contract(JurorPrecompileAddress, require('./abi/Juror.json'), provider);
 
 orderType = {
     Order: [
@@ -81,28 +83,23 @@ async function getDomain() {
 }
 
 async function placeOrder(market, trader, size, price, salt=Date.now(), reduceOnly=false) {
-    const order = {
-        ammIndex: market,
-        trader: trader.address,
-        baseAssetQuantity: size,
-        price: price,
-        salt: salt,
-        reduceOnly: reduceOnly,
-    }
+    order = getOrder(market, trader.address, size, price, salt, reduceOnly)
+    return placeOrderFromLimitOrder(order, trader)
+}
+
+async function placeOrderFromLimitOrder(order, trader) {
     const tx = await orderBook.connect(trader).placeOrder(order)
     const txReceipt = await tx.wait()
     return { tx, txReceipt }
 }
 
-async function cancelOrder(market, trader, size, price, salt=Date.now(), reduceOnly=false) {
-    const order = {
-        ammIndex: market,
-        trader: trader.address,
-        baseAssetQuantity: size,
-        price: price,
-        salt: salt,
-        reduceOnly: reduceOnly,
-    }
+async function placeIOCOrder(order, trader) {
+    const tx = await ioc.connect(trader).placeOrders([order])
+    const txReceipt = await tx.wait()
+    return { tx, txReceipt }
+}
+
+async function cancelOrderFromLimitOrder(order, trader) {
     const tx = await orderBook.connect(trader).cancelOrder(order)
     const txReceipt = await tx.wait()
     return { tx, txReceipt }
@@ -138,7 +135,7 @@ async function removeMargin(trader, amount) {
 async function removeAllAvailableMargin(trader) {
     margin = await marginAccount.getAvailableMargin(trader.address)
     marginAccountHelper = await getMarginAccountHelper()
-    if (margin.toNumber() != 0) {
+    if (margin.toNumber() > 0) {
         const tx = await marginAccountHelper.connect(trader).removeMarginInUSD(margin.toNumber())
         await tx.wait()
     }
@@ -169,37 +166,41 @@ function encodeLimitOrder(order) {
             order.reduceOnly,
         ]
     )
+    return encodedOrder
+}
+
+function encodeLimitOrderWithType(order) {
+    encodedOrder = encodeLimitOrder(order)
     const typedEncodedOrder = ethers.utils.defaultAbiCoder.encode(['uint8', 'bytes'], [0, encodedOrder])
-    // console.log({ order, encodedOrder, typedEncodedOrder })
     return typedEncodedOrder
 }
 
-function encodeIOCOrder(order) {
-    const encodedOrder = ethers.utils.defaultAbiCoder.encode(
-        [
-          'uint8',
-          'uint256',
-          'uint256',
-          'address',
-          'int256',
-          'uint256',
-          'uint256',
-          'bool',
-        ],
-        [
-            order.orderType,
-            order.expireAt,
-            order.ammIndex,
-            order.trader,
-            order.baseAssetQuantity,
-            order.price,
-            order.salt,
-            order.reduceOnly,
-        ]
-    )
-    const typedEncodedOrder = ethers.utils.defaultAbiCoder.encode(['uint8', 'bytes'], [1, encodedOrder])
-    // console.log({ order, encodedOrder, typedEncodedOrder })
-    return typedEncodedOrder
+// async function cleanUpPositionsAndRemoveMargin(market, trader1, trader2) {
+//     position1 = await amm.positions(trader1.address)
+//     position2 = await amm.positions(trader2.address)
+//     if (position1.size.toString() != "0" && position2.size.toString() != "0") {
+//         if (position1.size.toString() != positionSize2.size.toString()) {
+//             console.log("Position sizes are not equal")
+//             return
+//         }
+//         price = BigNumber.from(position1.notionalPosition.toString()).div(BigNumber.from(position1.size.toString()))
+//         console.log("placing opposite orders to close positions")
+//         await placeOrder(market, trader1, positionSize1, price)
+//         await placeOrder(market, trader2, positionSize2, price)
+//         await sleep(10)
+//     }
+
+//     console.log("removing margin for both traders")
+//     await removeAllAvailableMargin(trader1)
+//     await removeAllAvailableMargin(trader2)
+// }
+
+function getRandomSalt() {
+    return BigNumber.from(Date.now())
+}
+
+async function waitForOrdersToMatch() {
+    await sleep(5)
 }
 
 async function enableValidatorMatching() {
@@ -212,6 +213,30 @@ async function disableValidatorMatching() {
     await tx.wait()
 }
 
+async function getAMMContract(market) {
+    const ammAddress = await clearingHouse.amms(market)
+    amm =  new ethers.Contract(ammAddress, require("./abi/AMM.json"), provider);
+    return amm
+}
+
+async function enableValidatorMatching() {
+    const tx = await orderBook.connect(governance).setValidatorStatus(ethers.utils.getAddress('0x4Cf2eD3665F6bFA95cE6A11CFDb7A2EF5FC1C7E4'), true)
+    await tx.wait()
+}
+
+async function disableValidatorMatching() {
+    const tx = await orderBook.connect(governance).setValidatorStatus(ethers.utils.getAddress('0x4Cf2eD3665F6bFA95cE6A11CFDb7A2EF5FC1C7E4'), false)
+    await tx.wait()
+}
+
+async function getMakerFee() {
+    return await clearingHouse.makerFee()
+}
+
+async function getTakerFee() {
+    return await clearingHouse.takerFee()
+}
+
 module.exports = {
     _1e6,
     _1e12,
@@ -219,20 +244,24 @@ module.exports = {
     addMargin,
     alice,
     bob,
-    cancelOrder,
     cancelOrderFromLimitOrder,
     charlie,
     clearingHouse,
-    encodeIOCOrder,
     disableValidatorMatching,
     enableValidatorMatching,
     encodeLimitOrder,
+    encodeLimitOrderWithType,
+    getAMMContract,
     getDomain,
-    getOrder,
     getIOCOrder,
+    getOrder,
+    getMakerFee,
+    getRandomSalt,
+    getTakerFee,
     governance,
     hubblebibliophile,
     ioc, 
+    juror,
     marginAccount,
     multiplySize,
     multiplyPrice,
@@ -240,8 +269,11 @@ module.exports = {
     orderType,
     provider,
     placeOrder,
+    placeOrderFromLimitOrder,
+    placeIOCOrder,
     removeAllAvailableMargin,
     removeMargin,
     sleep,
     url,
+    waitForOrdersToMatch,
 }

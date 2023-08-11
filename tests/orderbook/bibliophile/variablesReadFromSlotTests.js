@@ -21,10 +21,12 @@ const {
     multiplyPrice,
     multiplySize,
     orderBook,
+    placeOrderFromLimitOrder,
+    placeIOCOrder,
     provider,
     removeAllAvailableMargin,
-    sleep,
     url,
+    waitForOrdersToMatch
 } = utils;
 
 
@@ -87,8 +89,6 @@ describe('Testing variables read from slots by precompile', function () {
 
     context("Margin account contract variables", function () {
         it("should read the correct value from contracts", async function () {
-            await removeAllAvailableMargin(charlie)
-
             let charlieBalance = _1e6.mul(150)
             await addMargin(charlie, charlieBalance)
 
@@ -100,6 +100,8 @@ describe('Testing variables read from slots by precompile', function () {
             actualMargin = await marginAccount.getAvailableMargin(charlie.address)
             expect(response.body.result.margin).to.equal(charlieBalance.toNumber())
             expect(actualMargin.toNumber()).to.equal(charlieBalance.toNumber())
+            //cleanup
+            await removeAllAvailableMargin(charlie)
         })
     })
 
@@ -143,8 +145,6 @@ describe('Testing variables read from slots by precompile', function () {
 
 
             // creating positions
-            await removeAllAvailableMargin(charlie)
-            await removeAllAvailableMargin(alice)
             let charlieBalance = _1e6.mul(150)
             await addMargin(charlie, charlieBalance)
             await addMargin(alice, charlieBalance)
@@ -157,9 +157,9 @@ describe('Testing variables read from slots by precompile', function () {
 
             longOrder = getOrder(market, charlie.address, longOrderBaseAssetQuantity, orderPrice, salt, false)
             shortOrder = getOrder(market, alice.address, shortOrderBaseAssetQuantity, orderPrice, salt, false)
-            await orderBook.connect(charlie).placeOrders([longOrder])
-            await orderBook.connect(alice).placeOrders([shortOrder])
-            await sleep(10)
+            await placeOrderFromLimitOrder(longOrder, charlie)
+            await placeOrderFromLimitOrder(shortOrder, alice)
+            await waitForOrdersToMatch()
 
             //testing for charlie
             response = await makehttpCall(method, params)
@@ -182,7 +182,7 @@ describe('Testing variables read from slots by precompile', function () {
             shortOrder = getOrder(market, charlie.address, shortOrderBaseAssetQuantity, orderPrice, salt, false)
             await orderBook.connect(charlie).placeOrders([shortOrder])
             await orderBook.connect(alice).placeOrders([longOrder])
-            await sleep(10)
+            await waitForOrdersToMatch()
             await removeAllAvailableMargin(charlie)
             await removeAllAvailableMargin(alice)
         })
@@ -218,11 +218,10 @@ describe('Testing variables read from slots by precompile', function () {
             expect(result.order_details.order_status).to.eq(0)
 
             //placing order
-            const tx = await ioc.connect(charlie).placeOrders([IOCOrder])
-            const txReceipt = await tx.wait()
+            txDetails = await placeIOCOrder(IOCOrder, charlie) 
             result = (await makehttpCall(method, params)).body.result
 
-            actualBlockPlaced = txReceipt.blockNumber
+            actualBlockPlaced = txDetails.txReceipt.blockNumber
             expect(result.order_details.block_placed).to.eq(actualBlockPlaced)
             expect(result.order_details.filled_amount).to.eq(0)
             expect(result.order_details.order_status).to.eq(1)
@@ -233,8 +232,6 @@ describe('Testing variables read from slots by precompile', function () {
     })
     context("order book contract variables", function () {
         it("should read the correct value from contracts", async function () {
-
-            await removeAllAvailableMargin(charlie)
             let charlieBalance = _1e6.mul(150)
             await addMargin(charlie, charlieBalance)
 
@@ -262,11 +259,10 @@ describe('Testing variables read from slots by precompile', function () {
             expect(result.order_details.order_status).to.eq(0)
 
             //placing order
-            const tx = await orderBook.connect(charlie).placeOrders([order])
-            const txReceipt = await tx.wait()
+            txDetails = await placeOrderFromLimitOrder(order, charlie)
             result = (await makehttpCall(method, params)).body.result
 
-            actualBlockPlaced = txReceipt.blockNumber
+            actualBlockPlaced = txDetails.txReceipt.blockNumber
             expect(result.order_details.block_placed).to.eq(actualBlockPlaced)
             expect(result.order_details.filled_amount).to.eq(0)
             expect(result.order_details.order_status).to.eq(1)

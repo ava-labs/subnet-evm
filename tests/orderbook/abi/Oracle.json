@@ -46,6 +46,11 @@
         },
         {
           "internalType": "uint256",
+          "name": "periodStart",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
           "name": "intervalInSeconds",
           "type": "uint256"
         }

@@ -46,6 +46,29 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "approveToken",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "uint256",
           "name": "amount",
           "type": "uint256"
@@ -254,23 +277,23 @@
     {
       "inputs": [
         {
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
         },
         {
           "internalType": "uint256",
-          "name": "tokenIdx",
+          "name": "shares",
           "type": "uint256"
-        },
-        {
-          "internalType": "uint16",
-          "name": "directBridgeChainId",
-          "type": "uint16"
         },
         {
           "internalType": "uint16",
           "name": "dstChainId",
+          "type": "uint16"
+        },
+        {
+          "internalType": "uint16",
+          "name": "secondHopChainId",
           "type": "uint16"
         },
         {
@@ -282,11 +305,68 @@
           "internalType": "uint256",
           "name": "dstPoolId",
           "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "adapterParams",
+          "type": "bytes"
+        }
+      ],
+      "name": "withdrawFromInsuranceFundToChain",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenIdx",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint16",
+          "name": "dstChainId",
+          "type": "uint16"
+        },
+        {
+          "internalType": "uint16",
+          "name": "secondHopChainId",
+          "type": "uint16"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountMin",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "dstPoolId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "adapterParams",
+          "type": "bytes"
         }
       ],
       "name": "withdrawMarginToChain",
       "outputs": [],
-      "stateMutability": "nonpayable",
+      "stateMutability": "payable",
       "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
     }
 ]

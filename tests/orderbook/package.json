@@ -2,7 +2,6 @@
   "name": "orderbook",
   "version": "1.0.0",
   "description": "",
-  "main": "test.js",
   "scripts": {
     "test": "mocha ./**/*.js --timeout 120000"
   },
