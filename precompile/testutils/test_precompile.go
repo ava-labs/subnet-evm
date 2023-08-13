@@ -97,7 +97,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 		chainConfig = DefaultChainConfig
 	}
 
-	accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest(), chainConfig)
+	accessibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest(), chainConfig)
 
 	if test.Config != nil {
 		err := module.Configure(chainConfig, test.Config, state, blockContext)
@@ -110,7 +110,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	}
 
 	return PrecompileRunparams{
-		AccessibleState: accesibleState,
+		AccessibleState: accessibleState,
 		Caller:          test.Caller,
 		ContractAddress: contractAddress,
 		Input:           input,

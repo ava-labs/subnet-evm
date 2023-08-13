@@ -130,7 +130,7 @@ contract ExampleTxAllowListTest is AllowListTest {
     address otherAddress = address(other);
 
     assertTrue(!example.isEnabled(exampleAddress));
-    assertTrue(!example.isEnabled(otherAddress));
+    assertTrue(!example.isAdmin(otherAddress));
 
     allowList.setEnabled(exampleAddress);
     allowList.setAdmin(otherAddress);
@@ -152,8 +152,8 @@ contract ExampleTxAllowListTest is AllowListTest {
     address exampleAddress = address(example);
     address otherAddress = address(other);
 
-    assertTrue(!example.isEnabled(exampleAddress));
-    assertTrue(!example.isEnabled(otherAddress));
+    assertTrue(!example.isAdmin(exampleAddress));
+    assertTrue(!example.isAdmin(otherAddress));
 
     allowList.setAdmin(exampleAddress);
     allowList.setAdmin(otherAddress);
@@ -172,7 +172,7 @@ contract ExampleTxAllowListTest is AllowListTest {
     address managerAddress = address(manager);
 
     assertTrue(!example.isEnabled(exampleAddress));
-    assertTrue(!example.isEnabled(managerAddress));
+    assertTrue(!example.isManager(managerAddress));
 
     allowList.setManager(managerAddress);
 
@@ -188,8 +188,8 @@ contract ExampleTxAllowListTest is AllowListTest {
     address exampleAddress = address(example);
     address managerAddress = address(manager);
 
-    assertTrue(!example.isEnabled(exampleAddress));
-    assertTrue(!example.isEnabled(managerAddress));
+    assertTrue(!example.isAdmin(exampleAddress));
+    assertTrue(!example.isManager(managerAddress));
 
     allowList.setEnabled(exampleAddress);
     allowList.setManager(managerAddress);
@@ -207,8 +207,8 @@ contract ExampleTxAllowListTest is AllowListTest {
     address exampleAddress = address(example);
     address managerAddress = address(manager);
 
-    assertTrue(!example.isEnabled(exampleAddress));
-    assertTrue(!example.isEnabled(managerAddress));
+    assertTrue(!example.isAdmin(exampleAddress));
+    assertTrue(!example.isManager(managerAddress));
 
     allowList.setAdmin(exampleAddress);
     allowList.setManager(managerAddress);
@@ -235,8 +235,8 @@ contract ExampleTxAllowListTest is AllowListTest {
     address exampleAddress = address(example);
     address managerAddress = address(manager);
 
-    assertTrue(!example.isEnabled(exampleAddress));
-    assertTrue(!example.isEnabled(managerAddress));
+    assertTrue(!example.isAdmin(exampleAddress));
+    assertTrue(!example.isManager(managerAddress));
 
     allowList.setManager(managerAddress);
 
@@ -249,5 +249,55 @@ contract ExampleTxAllowListTest is AllowListTest {
     // state should not have changed when setAdmin fails
     assertTrue(!example.isAdmin(exampleAddress));
     assertTrue(manager.isManager(managerAddress));
+  }
+
+  function step_managerCannotGrantManager() public {
+    ExampleTxAllowList example = new ExampleTxAllowList();
+    ExampleTxAllowList manager = new ExampleTxAllowList();
+    address exampleAddress = address(example);
+    address managerAddress = address(manager);
+
+    allowList.setManager(managerAddress);
+
+    assertTrue(!example.isManager(exampleAddress));
+    assertTrue(manager.isManager(managerAddress));
+
+    try manager.setManager(exampleAddress) {
+      assertTrue(false, "setManager should fail");
+    } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
+
+    // state should not have changed when setManager fails
+    assertTrue(!example.isManager(exampleAddress));
+    assertTrue(manager.isManager(managerAddress));
+  }
+
+  function step_managerCannotRevokeManager() public {
+    ExampleTxAllowList example = new ExampleTxAllowList();
+    ExampleTxAllowList manager = new ExampleTxAllowList();
+    address exampleAddress = address(example);
+    address managerAddress = address(manager);
+
+    allowList.setManager(exampleAddress);
+    allowList.setManager(managerAddress);
+
+    assertTrue(example.isManager(exampleAddress));
+    assertTrue(manager.isManager(managerAddress));
+
+    try manager.revoke(exampleAddress) {
+      assertTrue(false, "revoke should fail");
+    } catch {} // TODO should match on an error to make sure that this is failing in the way that's expected
+
+    // state should not have changed when revoke fails
+    assertTrue(example.isManager(exampleAddress));
+    assertTrue(manager.isManager(managerAddress));
+  }
+
+  function step_managerCanDeploy() public {
+    ExampleTxAllowList manager = new ExampleTxAllowList();
+    address managerAddress = address(manager);
+
+    allowList.setManager(managerAddress);
+
+    manager.deployContract();
   }
 }

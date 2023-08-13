@@ -61,7 +61,7 @@ describe("ExampleTxAllowList", function () {
 
   test("should allow admin to add allowed address as allowed through contract", "step_enableThroughContract")
 
-  test("should let allowed address deploy", "step_canDeploy")
+  test("should let allowed address to send tx", "step_canDeploy")
 
   test("should not let allowed add another allowed", "step_onlyAdminCanEnable")
 
@@ -76,4 +76,10 @@ describe("ExampleTxAllowList", function () {
   test("should not let manager to add admin", "step_managerCannotGrantAdmin")
 
   test("should not let manager to revoke admin", "step_managerCannotRevokeAdmin")
+
+  test("should not let manager to revoke manager", "step_managerCannotRevokeManager")
+
+  test("should not let manager to add manager", "step_managerCannotGrantManager")
+
+  test("should let manager deploy", "step_managerCanDeploy")
 })
