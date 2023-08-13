@@ -43,10 +43,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var (
-	//go:embed template-readme.md
-	readme string
-)
+//go:embed template-readme.md
+var readme string
 
 var (
 	// Flags needed by abigen
@@ -204,18 +202,16 @@ func precompilegen(c *cli.Context) error {
 	}
 
 	// Write the test code to the output folder
-	if generateTests {
-		configTestCode := bindedFiles.ConfigTest
-		configTestCodeOut := filepath.Join(outFlagStr, "config_test.go")
-		if err := os.WriteFile(configTestCodeOut, []byte(configTestCode), 0o600); err != nil {
-			utils.Fatalf("Failed to write generated test code: %v", err)
-		}
+	configTestCode := bindedFiles.ConfigTest
+	configTestCodeOut := filepath.Join(outFlagStr, "config_test.go")
+	if err := os.WriteFile(configTestCodeOut, []byte(configTestCode), 0o600); err != nil {
+		utils.Fatalf("Failed to write generated test code: %v", err)
+	}
 
-		contractTestCode := bindedFiles.ContractTest
-		contractTestCodeOut := filepath.Join(outFlagStr, "contract_test.go")
-		if err := os.WriteFile(contractTestCodeOut, []byte(contractTestCode), 0o600); err != nil {
-			utils.Fatalf("Failed to write generated test code: %v", err)
-		}
+	contractTestCode := bindedFiles.ContractTest
+	contractTestCodeOut := filepath.Join(outFlagStr, "contract_test.go")
+	if err := os.WriteFile(contractTestCodeOut, []byte(contractTestCode), 0o600); err != nil {
+		utils.Fatalf("Failed to write generated test code: %v", err)
 	}
 
 	fmt.Println("Precompile files generated successfully at: ", outFlagStr)

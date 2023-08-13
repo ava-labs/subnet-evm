@@ -67,6 +67,8 @@ var (
 	_ = abi.JSON
 	_ = errors.New
 	_ = big.NewInt
+	_ = vmerrs.ErrOutOfGas
+	_ = common.Big0
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
