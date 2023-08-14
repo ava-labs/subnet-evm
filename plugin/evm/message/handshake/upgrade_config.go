@@ -111,6 +111,9 @@ func (r *UpgradeConfig) Bytes() []byte {
 	return r.bytes
 }
 
-func (r *UpgradeConfig) Hash() [32]byte {
-	return sha256.Sum256(r.bytes)
+func (r *UpgradeConfig) Hash() [8]byte {
+	hash := sha256.Sum256(r.bytes)
+	var firstBytes [8]byte
+	copy(firstBytes[:], hash[:8])
+	return firstBytes
 }
