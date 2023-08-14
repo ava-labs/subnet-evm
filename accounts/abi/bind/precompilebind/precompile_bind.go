@@ -33,7 +33,9 @@ package precompilebind
 import (
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 )
 
@@ -55,13 +57,30 @@ type BindedFiles struct {
 }
 
 // PrecompileBind generates a Go binding for a precompiled contract. It returns config binding and contract binding.
-func PrecompileBind(types []string, abis []string, bytecodes []string, fsigs []map[string]string, pkg string, lang bind.Lang, libs map[string]string, aliases map[string]string, abifilename string, generateTests bool) (BindedFiles, error) {
+func PrecompileBind(types []string, abiData string, bytecodes []string, fsigs []map[string]string, pkg string, lang bind.Lang, libs map[string]string, aliases map[string]string, abifilename string, generateTests bool) (BindedFiles, error) {
 	// create hooks
 	configHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigGo)
 	contractHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractGo)
 	moduleHook := createPrecompileHook(abifilename, tmplSourcePrecompileModuleGo)
 	configTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigTestGo)
 	contractTestHook := createPrecompileHook(abifilename, tmplSourcePrecompileContractTestGo)
+	// check abi first
+	evmABI, err := abi.JSON(strings.NewReader(abiData))
+	if err != nil {
+		return BindedFiles{}, err
+	}
+	if len(evmABI.Methods) == 0 {
+		return BindedFiles{}, errors.New("no ABI methods found")
+	}
+	for _, original := range evmABI.Methods {
+		for _, input := range original.Inputs {
+			if bind.IsKeyWord(input.Name) {
+				return BindedFiles{}, fmt.Errorf("input name %s is a keyword", input.Name)
+			}
+		}
+	}
+
+	abis := []string{abiData}
 
 	configBind, err := bind.BindHelper(types, abis, bytecodes, fsigs, pkg, lang, libs, aliases, configHook)
 	if err != nil {

@@ -279,5 +279,13 @@ func ToCamelCase(input string) string {
 			parts[i] = strings.ToUpper(s[:1]) + s[1:]
 		}
 	}
+	// preserve leading underscore
+	if input[0] == '_' {
+		parts = append([]string{"_"}, parts...)
+	}
+	// preserve trailing underscore
+	if input[len(input)-1] == '_' {
+		parts = append(parts, "_")
+	}
 	return strings.Join(parts, "")
 }

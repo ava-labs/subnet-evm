@@ -89,7 +89,6 @@ func precompilegen(c *cli.Context) error {
 	lang := bind.LangGo
 	// If the entire solidity code was specified, build and bind based on that
 	var (
-		abis    []string
 		bins    []string
 		types   []string
 		sigs    []map[string]string
@@ -114,7 +113,6 @@ func precompilegen(c *cli.Context) error {
 	if err != nil {
 		utils.Fatalf("Failed to read input ABI: %v", err)
 	}
-	abis = append(abis, string(abi))
 
 	bins = append(bins, "")
 
@@ -147,7 +145,7 @@ func precompilegen(c *cli.Context) error {
 	generateTests := !isOutStdout
 
 	// Generate the contract precompile
-	bindedFiles, err := precompilebind.PrecompileBind(types, abis, bins, sigs, pkg, lang, libs, aliases, abifilename, generateTests)
+	bindedFiles, err := precompilebind.PrecompileBind(types, string(abi), bins, sigs, pkg, lang, libs, aliases, abifilename, generateTests)
 	if err != nil {
 		utils.Fatalf("Failed to generate precompile: %v", err)
 	}
@@ -191,7 +189,7 @@ func precompilegen(c *cli.Context) error {
 	}
 
 	// Write the ABI to the output folder
-	if err := os.WriteFile(abipath, []byte(abis[0]), 0o600); err != nil {
+	if err := os.WriteFile(abipath, abi, 0o600); err != nil {
 		utils.Fatalf("Failed to write ABI: %v", err)
 	}
 

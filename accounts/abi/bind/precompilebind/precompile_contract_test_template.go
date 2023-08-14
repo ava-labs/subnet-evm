@@ -12,6 +12,7 @@ package {{.Package}}
 
 import (
 	"testing"
+	"math/big"
 
 	"github.com/ava-labs/subnet-evm/core/state"
 	{{- if .Contract.AllowList}}
@@ -25,6 +26,7 @@ import (
 
 var (
 	_ = vmerrs.ErrOutOfGas
+	_ = big.NewInt
 	_ = common.Big0
 	_ = require.New
 )
@@ -58,6 +60,7 @@ var(
 				// CUSTOM CODE STARTS HERE
 				// set test input to a value here
 				var testInput {{bindtype $input.Type $structs}}
+				testInput = {{bindtypenew $input.Type $structs}}
 				input, err := Pack{{$func.Normalized.Name}}(testInput)
 				{{- else}}
 				input, err := Pack{{$func.Normalized.Name}}()
@@ -78,6 +81,7 @@ var(
 				{{- else }}
 				{{$output := index $func.Normalized.Outputs 0}}
 				var output {{bindtype $output.Type $structs}} // CUSTOM CODE FOR AN OUTPUT
+				output = {{bindtypenew $output.Type $structs}} // CUSTOM CODE FOR AN OUTPUT
 				{{- end}}
 				packedOutput, err := Pack{{$func.Normalized.Name}}Output(output)
 				if err != nil {
@@ -107,6 +111,7 @@ var(
 				// CUSTOM CODE STARTS HERE
 				// set test input to a value here
 				var testInput {{bindtype $input.Type $structs}}
+				testInput = {{bindtypenew $input.Type $structs}}
 				input, err := Pack{{$func.Normalized.Name}}(testInput)
 				{{- else}}
 				input, err := Pack{{$func.Normalized.Name}}()
@@ -132,6 +137,7 @@ var(
 				// CUSTOM CODE STARTS HERE
 				// set test input to a value here
 				var testInput {{bindtype $input.Type $structs}}
+				testInput = {{bindtypenew $input.Type $structs}}
 				input, err := Pack{{$func.Normalized.Name}}(testInput)
 				{{- else}}
 				input, err := Pack{{$func.Normalized.Name}}()
@@ -142,6 +148,32 @@ var(
 			SuppliedGas: {{$func.Normalized.Name}}GasCost - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		{{- end}}
+		{{- if .Contract.Fallback}}
+		"insufficient gas for fallback should fail": {
+			Caller:	common.Address{1},
+			Input: []byte{},
+			SuppliedGas: {{.Contract.Type}}FallbackGasCost - 1,
+			ReadOnly:    false,
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
+		"readOnly fallback should fail": {
+			Caller:	common.Address{1},
+			Input: []byte{},
+			SuppliedGas: {{.Contract.Type}}FallbackGasCost,
+			ReadOnly:    true,
+			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
+		},
+		"fallback should succeed": {
+			Caller:	common.Address{1},
+			Input: []byte{},
+			SuppliedGas: {{.Contract.Type}}FallbackGasCost,
+			ReadOnly:    false,
+			ExpectedErr: "",
+			// CUSTOM CODE STARTS HERE
+			// set expected output here
+			ExpectedRes: []byte{},
 		},
 		{{- end}}
 	}
