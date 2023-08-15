@@ -37,7 +37,7 @@ var bindFailedTests = []struct {
 	name     string
 	contract string
 	bytecode []string
-	abi      []string
+	abi      string
 	errorMsg string
 	fsigs    []map[string]string
 	libs     map[string]string
@@ -47,11 +47,11 @@ var bindFailedTests = []struct {
 	{
 		`AnonOutputChecker`, ``,
 		[]string{``},
-		[]string{`
+		`
 			[
 				{"type":"function","name":"anonOutput","constant":true,"inputs":[],"outputs":[{"name":"","type":"string"}]}
 			]
-		`},
+		`,
 		"ABI outputs for anonOutput require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
 		nil,
 		nil,
@@ -62,11 +62,11 @@ var bindFailedTests = []struct {
 	{
 		`AnonOutputsChecker`, ``,
 		[]string{``},
-		[]string{`
+		`
 			[
 				{"type":"function","name":"anonOutputs","constant":true,"inputs":[],"outputs":[{"name":"","type":"string"},{"name":"","type":"string"}]}
 			]
-		`},
+		`,
 		"ABI outputs for anonOutputs require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
 		nil,
 		nil,
@@ -77,11 +77,11 @@ var bindFailedTests = []struct {
 	{
 		`MixedOutputsChecker`, ``,
 		[]string{``},
-		[]string{`
+		`
 			[
 				{"type":"function","name":"mixedOutputs","constant":true,"inputs":[],"outputs":[{"name":"","type":"string"},{"name":"str","type":"string"}]}
 			]
-		`},
+		`,
 		"ABI outputs for mixedOutputs require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs",
 		nil,
 		nil,
