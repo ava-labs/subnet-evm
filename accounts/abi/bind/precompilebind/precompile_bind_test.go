@@ -325,17 +325,48 @@ var bindTests = []struct {
 		`
 		interface Underscorer {
 			function UnderscoredOutput() external returns (int _int, string _string);
-			function LowerLowerCollision() external returns (int _res, int res, int res_);
-			function LowerUpperCollision() external returns (int _res, int Res);
-			function UpperLowerCollision() external returns (int _Res, int res);
-			function UpperUpperCollision() external returns (int _Res, int Res);
-			function _under_scored_func() external returns (int _int);
 		}
 		`,
-		`[{"inputs":[],"name":"LowerLowerCollision","outputs":[{"internalType":"int256","name":"_res","type":"int256"},{"internalType":"int256","name":"res","type":"int256"},{"internalType":"int256","name":"res_","type":"int256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"LowerUpperCollision","outputs":[{"internalType":"int256","name":"_res","type":"int256"},{"internalType":"int256","name":"Res","type":"int256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"UnderscoredOutput","outputs":[{"internalType":"int256","name":"_int","type":"int256"},{"internalType":"string","name":"_string","type":"string"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"UpperLowerCollision","outputs":[{"internalType":"int256","name":"_Res","type":"int256"},{"internalType":"int256","name":"res","type":"int256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"UpperUpperCollision","outputs":[{"internalType":"int256","name":"_Res","type":"int256"},{"internalType":"int256","name":"Res","type":"int256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"_under_scored_func","outputs":[{"internalType":"int256","name":"_int","type":"int256"}],"stateMutability":"nonpayable","type":"function"}]`,
-		``,
-		``,
+		`[{"inputs":[],"name":"UnderscoredOutput","outputs":[{"internalType":"int256","name":"_int","type":"int256"},{"internalType":"string","name":"_string","type":"string"}],"stateMutability":"nonpayable","type":"function"}]`,
+		`
+			"github.com/stretchr/testify/require"
+			"math/big"
+		`,
+		`
+			testOutput := UnderscoredOutputOutput{
+				Int: big.NewInt(5),
+				String: "hello",
+			}
+			packedOutput, err := PackUnderscoredOutputOutput(testOutput)
+			require.NoError(t, err)
+			unpackedInput, err := UnpackUnderscoredOutputOutput(packedOutput)
+			require.NoError(t, err)
+			require.Equal(t, testOutput, unpackedInput)
+		`,
 		"",
+	},
+	{
+		`OutputCollision`,
+		`
+		interface Collision {
+			function LowerLowerCollision() external returns (int _res, int res, int res_);
+		`,
+		`[{"inputs":[],"name":"LowerLowerCollision","outputs":[{"internalType":"int256","name":"_res","type":"int256"},{"internalType":"int256","name":"res","type":"int256"},{"internalType":"int256","name":"res_","type":"int256"}],"stateMutability":"nonpayable","type":"function"}]`,
+		"",
+		"",
+		"normalized output name is duplicated",
+	},
+
+	{
+		`InputCollision`,
+		`
+		interface Collision {
+			function LowerUpperCollision(int _res, int Res) external;
+		}
+		`,
+		`[{"inputs":[{"internalType":"int256","name":"_res","type":"int256"},{"internalType":"int256","name":"Res","type":"int256"}],"name":"LowerUpperCollision","outputs":[],"stateMutability":"nonpayable","type":"function"}]`, "",
+		"",
+		"normalized input name is duplicated",
 	},
 	{
 		`DeeplyNestedArray`,
