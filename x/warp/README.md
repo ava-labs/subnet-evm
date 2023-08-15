@@ -13,7 +13,7 @@ It is intended to allow communication between arbitrary Custom Virtual Machines 
 
 Avalanche Warp Messaging uses BLS Multi-Signatures with Public-Key Aggregation where every Avalanche validator registers a public key alongside its NodeID on the Avalanche P-Chain.
 
-Every Subnet needs read access to the Avalanche P-Chain to provide weighted sets of BLS Public Keys that correspond to the validator sets of each Subnet on the Avalanche Network. Avalanche Warp Messaging provides a basic primitive for signing messages with an aggregation of signatures from a source Subnet, and the ability for any Subnet to verify that message was signed by a threshold of validators from the source subent.
+Every node tracking a Subnet has read access to the Avalanche P-Chain. This provides weighted sets of BLS Public Keys that correspond to the validator sets of each Subnet on the Avalanche Network. Avalanche Warp Messaging provides a basic primitive for signing and verifying messages between Subnets: the receiving network can verify whether an aggregation of signatures from a set of source Subnet validators represents a threshold of stake large enough for the receiving network to process the message.
 
 For more details on Avalanche Warp Messaging, see the AvalancheGo [Warp README](https://github.com/ava-labs/avalanchego/blob/warp-readme/vms/platformvm/warp/README.md).
 
