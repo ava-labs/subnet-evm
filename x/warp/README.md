@@ -23,7 +23,7 @@ For more details on Avalanche Warp Messaging, see the AvalancheGo [Warp README](
 
 The Avalanche Warp Precompile enables this flow to send a message from blockchain A to blockchain B:
 
-1. Call the Warp Precompile `sendWarpMessage` function with the arguments for the UnsignedMessage
+1. Call the Warp Precompile `sendWarpMessage` function with the arguments for the `UnsignedMessage`
 2. Warp Precompile emits an event / log containing the `UnsignedMessage` specified by the caller of `sendWarpMessage`
 3. Network accepts the block containing the `UnsignedMessage` in the log, so that validators are willing to sign the message
 4. An off-chain relayer queries the validators for their signatures of the message and aggregate the signatures to create a `SignedMessage`
