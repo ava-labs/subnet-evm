@@ -98,7 +98,7 @@ To support C-Chain to Subnet communication, or more generally Primary Network to
 1. Every Subnet validator validates the C-Chain
 2. The Primary Network has the largest possible number of validators
 
-Since the Primary Network has the largest possible number of validators for any Subnet on Avalanche, it would also be the most expensive Subnet to verify Avalanche Warp Messages from (most signatures/public keys required to verify it). Luckily, we can do something much smarter.
+Since the Primary Network has the largest possible number of validators for any Subnet on Avalanche, it would also be the most expensive Subnet to receive and verify Avalanche Warp Messages from as it reaching a threshold of stake on the primary network would require many signatures. Luckily, we can do something much smarter.
 
 When a Subnet receives a message from a blockchain on the Primary Network, we use the validator set of the receiving Subnet instead of the entire network when validating the message. This means that the C-Chain sending a message can be the exact same as Subnet to Subnet communciation.
 
