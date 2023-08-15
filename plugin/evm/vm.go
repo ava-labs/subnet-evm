@@ -46,6 +46,7 @@ import (
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
 	// is added to a map of client-accessible tracers. In geth, this is done
 	// inside of cmd/geth.
+	_ "github.com/ava-labs/subnet-evm/eth/tracers/js"
 	_ "github.com/ava-labs/subnet-evm/eth/tracers/native"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -274,7 +275,10 @@ func (vm *VM) Initialize(
 	vm.db = versiondb.New(baseDB)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	vm.warpDB = prefixdb.New(warpPrefix, vm.db)
+	// Note warpDB is not part of versiondb because it is not necessary
+	// that warp signatures are committed to the database atomically with
+	// the last accepted block.
+	vm.warpDB = prefixdb.New(warpPrefix, baseDB)
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
