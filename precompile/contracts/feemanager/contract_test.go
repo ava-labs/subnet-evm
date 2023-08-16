@@ -63,10 +63,10 @@ var (
 				require.Equal(t, testFeeConfig, feeConfig)
 			},
 		},
-		"set config from manager fails before activation": {
+		"set config from manager succeeds before activation": {
 			Caller:      allowlist.TestManagerAddr,
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
 			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)
@@ -75,7 +75,11 @@ var (
 			},
 			SuppliedGas: SetFeeConfigGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrCannotChangeFee.Error(),
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				feeConfig := GetStoredFeeConfig(state)
+				require.Equal(t, testFeeConfig, feeConfig)
+			},
 		},
 		"set config from manager succeeds after activation": {
 			Caller:      allowlist.TestManagerAddr,

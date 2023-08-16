@@ -348,7 +348,7 @@ func (st *StateTransition) preCheck() error {
 		// Check that the sender is on the tx allow list if enabled
 		if rules.IsPrecompileEnabled(txallowlist.ContractAddress) {
 			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, msg.From)
-			if !txAllowListRole.IsEnabled(rules.IsDUpgrade) {
+			if !txAllowListRole.IsEnabled() {
 				return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, msg.From)
 			}
 		}

@@ -84,19 +84,12 @@ func TestIsManager(t *testing.T) {
 
 func TestIsEnabled(t *testing.T) {
 	tests := []struct {
-		role      Role
-		expected  bool
-		activated bool
+		role     Role
+		expected bool
 	}{
 		{
-			role:      ManagerRole,
-			expected:  true,
-			activated: true,
-		},
-		{
-			role:      ManagerRole,
-			expected:  false,
-			activated: false,
+			role:     ManagerRole,
+			expected: true,
 		},
 		{
 			role:     AdminRole,
@@ -113,60 +106,41 @@ func TestIsEnabled(t *testing.T) {
 	}
 
 	for index, test := range tests {
-		isEnabled := test.role.IsEnabled(test.activated)
+		isEnabled := test.role.IsEnabled()
 		require.Equal(t, test.expected, isEnabled, fmt.Sprintf("test index: %d", index))
 	}
 }
 
 func TestCanModify(t *testing.T) {
 	tests := []struct {
-		role      Role
-		expected  bool
-		activated bool
-		from      Role
-		target    Role
+		role     Role
+		expected bool
+		from     Role
+		target   Role
 	}{
 		{
-			role:      ManagerRole,
-			expected:  true,
-			activated: true,
-			from:      EnabledRole,
-			target:    NoRole,
+			role:     ManagerRole,
+			expected: true,
+			from:     EnabledRole,
+			target:   NoRole,
 		},
 		{
-			role:      ManagerRole,
-			expected:  false,
-			activated: false,
-			from:      EnabledRole,
-			target:    NoRole,
+			role:     ManagerRole,
+			expected: true,
+			from:     NoRole,
+			target:   EnabledRole,
 		},
 		{
-			role:      ManagerRole,
-			expected:  true,
-			activated: true,
-			from:      NoRole,
-			target:    EnabledRole,
+			role:     ManagerRole,
+			expected: false,
+			from:     ManagerRole,
+			target:   EnabledRole,
 		},
 		{
-			role:      ManagerRole,
-			expected:  false,
-			activated: false,
-			from:      NoRole,
-			target:    EnabledRole,
-		},
-		{
-			role:      ManagerRole,
-			expected:  false,
-			activated: true,
-			from:      ManagerRole,
-			target:    EnabledRole,
-		},
-		{
-			role:      ManagerRole,
-			expected:  false,
-			activated: true,
-			from:      AdminRole,
-			target:    EnabledRole,
+			role:     ManagerRole,
+			expected: false,
+			from:     AdminRole,
+			target:   EnabledRole,
 		},
 		{
 			role:     AdminRole,
@@ -188,7 +162,7 @@ func TestCanModify(t *testing.T) {
 		},
 	}
 	for index, test := range tests {
-		canModify := test.role.CanModify(test.activated, test.from, test.target)
+		canModify := test.role.CanModify(test.from, test.target)
 		require.Equal(t, test.expected, canModify, fmt.Sprintf("test index: %d", index))
 	}
 }

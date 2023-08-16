@@ -60,19 +60,22 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, common.Big2, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
-	"mint funds from manager role fails before activation": {
+	"mint funds from manager role succeeds before activation": {
 		Caller:      allowlist.TestManagerAddr,
 		BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
 		ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintInput(allowlist.TestNoRoleAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
 		},
 		SuppliedGas: MintGasCost,
 		ReadOnly:    false,
-		ExpectedErr: ErrCannotMint.Error(),
+		ExpectedRes: []byte{},
+		AfterHook: func(t testing.TB, state contract.StateDB) {
+			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
+		},
 	},
 	"mint funds from manager role succeeds after activation": {
 		Caller:      allowlist.TestManagerAddr,
