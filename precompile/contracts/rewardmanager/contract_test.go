@@ -95,6 +95,24 @@ var (
 				require.False(t, isFeeRecipients)
 			},
 		},
+		"set allow fee recipients from manager succeeds before activation": {
+			Caller:      allowlist.TestManagerAddr,
+			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
+			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackAllowFeeRecipients()
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: AllowFeeRecipientsGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				_, isFeeRecipients := GetStoredRewardAddress(state)
+				require.True(t, isFeeRecipients)
+			},
+		},
 		"set allow fee recipients from manager succeeds after activation": {
 			Caller:      allowlist.TestManagerAddr,
 			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
@@ -113,21 +131,7 @@ var (
 				require.True(t, isFeeRecipients)
 			},
 		},
-		"set allow fee recipients from manager fails before activation": {
-			Caller:      allowlist.TestManagerAddr,
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
-			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackAllowFeeRecipients()
-				require.NoError(t, err)
-
-				return input
-			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
-			ReadOnly:    false,
-			ExpectedErr: ErrCannotAllowFeeRecipients.Error(),
-		},
-		"set reward address from manager fails before activation": {
+		"set reward address from manager succeeds before activation": {
 			Caller:      allowlist.TestManagerAddr,
 			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
 			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
@@ -139,7 +143,12 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrCannotSetRewardAddress.Error(),
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				address, isFeeRecipients := GetStoredRewardAddress(state)
+				require.Equal(t, testAddr, address)
+				require.False(t, isFeeRecipients)
+			},
 		},
 		"set reward address from manager succeeds after activation": {
 			Caller:      allowlist.TestManagerAddr,
@@ -160,7 +169,7 @@ var (
 				require.False(t, isFeeRecipients)
 			},
 		},
-		"disable rewards from manager fails before activation": {
+		"disable rewards from manager succeeds before activation": {
 			Caller:      allowlist.TestManagerAddr,
 			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
 			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
@@ -172,7 +181,12 @@ var (
 			},
 			SuppliedGas: DisableRewardsGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrCannotDisableRewards.Error(),
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				address, isFeeRecipients := GetStoredRewardAddress(state)
+				require.False(t, isFeeRecipients)
+				require.Equal(t, constants.BlackholeAddr, address)
+			},
 		},
 		"disable rewards from manager succeeds after activation": {
 			Caller:      allowlist.TestManagerAddr,

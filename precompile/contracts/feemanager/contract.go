@@ -238,7 +238,7 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := GetFeeManagerStatus(stateDB, caller)
-	if !callerStatus.IsEnabled(allowlist.IsManagerRoleActivated(accessibleState)) {
+	if !callerStatus.IsEnabled() {
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
 

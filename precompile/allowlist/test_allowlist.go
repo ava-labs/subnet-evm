@@ -165,7 +165,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 
 				return input
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: 0,
 			ReadOnly:    false,
 			ExpectedErr: contract.InvalidFunctionErr(setManagerSignature).Error(),
 		},
@@ -193,7 +193,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 
 				return input
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: 0,
 			ReadOnly:    false,
 			ExpectedErr: contract.InvalidFunctionErr(setManagerSignature).Error(),
 		},
@@ -221,7 +221,7 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 				return input
 			},
 			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil /* nil means no activation*/),
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: 0,
 			ReadOnly:    false,
 			ExpectedErr: contract.InvalidFunctionErr(setManagerSignature).Error(),
 		},
@@ -242,20 +242,6 @@ func AllowListTests(module modules.Module) map[string]testutils.PrecompileTest {
 				res := GetAllowListStatus(state, contractAddress, TestNoRoleAddr)
 				require.Equal(t, ManagerRole, res)
 			},
-		},
-		"set no role to enabled from manager before activation": {
-			Caller:     TestManagerAddr,
-			BeforeHook: SetDefaultRoles(contractAddress),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackModifyAllowList(TestNoRoleAddr, EnabledRole)
-				require.NoError(t, err)
-
-				return input
-			},
-			ChainConfig: contract.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil /* nil means no activation*/),
-			SuppliedGas: ModifyAllowListGasCost,
-			ReadOnly:    false,
-			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set no role to enabled from manager after activation": {
 			Caller:      TestManagerAddr,

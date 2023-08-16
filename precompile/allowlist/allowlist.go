@@ -102,10 +102,6 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		// Return an error if setManager is called before the DUpgrade.
 		// This should be the first clause in the function. We should treat this
 		// as if we call an non-existing function. See precompile/contract/contract.go#Run() for more details.`
-		isManagerRoleActivated := IsManagerRoleActivated(evm)
-		if role == ManagerRole && !isManagerRoleActivated {
-			return nil, 0, contract.InvalidFunctionErr(setManagerSignature)
-		}
 		if remainingGas, err = contract.DeductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
 			return nil, 0, err
 		}
@@ -124,12 +120,12 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 
 		// Verify that the caller is an admin with permission to modify the allow list
 		callerStatus := GetAllowListStatus(stateDB, precompileAddr, callerAddr)
-		if callerStatus.IsManager(isManagerRoleActivated) {
+		if callerStatus == ManagerRole {
 			// Get current status.
 			// Before the manager role, we never checked the status of the address we are trying to modify.
 			// So we should keep the same behaviour by special casing this.
 			modifyStatus := GetAllowListStatus(stateDB, precompileAddr, modifyAddress)
-			if !callerStatus.CanModify(isManagerRoleActivated, modifyStatus, role) {
+			if !callerStatus.CanModify(modifyStatus, role) {
 				return nil, remainingGas, fmt.Errorf("%w: modify address: %s, from role: %s, to role: %s", ErrManagerCannotModify, callerAddr, modifyStatus, role)
 			}
 		} else if !callerStatus.IsAdmin() {
@@ -177,7 +173,7 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 
 func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
 	setAdmin := contract.NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AdminRole))
-	setManager := contract.NewStatefulPrecompileFunction(setManagerSignature, createAllowListRoleSetter(precompileAddr, ManagerRole))
+	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(precompileAddr, ManagerRole), IsManagerRoleActivated)
 	setEnabled := contract.NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, EnabledRole))
 	setNone := contract.NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, NoRole))
 	read := contract.NewStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
@@ -185,6 +181,6 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 	return []*contract.StatefulPrecompileFunction{setAdmin, setManager, setEnabled, setNone, read}
 }
 
-func IsManagerRoleActivated(evm contract.AccessibleState) bool {
-	return evm.GetChainConfig().IsDUpgrade(evm.GetBlockContext().Timestamp())
+func IsManagerRoleActivated(evm contract.AccessibleState) (bool, error) {
+	return evm.GetChainConfig().IsDUpgrade(evm.GetBlockContext().Timestamp()), nil
 }
