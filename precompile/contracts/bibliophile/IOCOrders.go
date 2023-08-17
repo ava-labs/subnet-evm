@@ -22,9 +22,13 @@ func iocGetBlockPlaced(stateDB contract.StateDB, orderHash [32]byte) *big.Int {
 	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(IOC_ORDERBOOK_ADDRESS), common.BigToHash(orderInfo)).Bytes())
 }
 
-func iocGetOrderFilledAmount(stateDB contract.StateDB, orderHash [32]byte) *big.Int {
+func iocGetOrderFilledAmount(stateDB contract.StateDB, orderHash [32]byte, blockTimestamp *big.Int) *big.Int {
 	orderInfo := iocOrderInfoMappingStorageSlot(orderHash)
-	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(IOC_ORDERBOOK_ADDRESS), common.BigToHash(new(big.Int).Add(orderInfo, big.NewInt(1)))).Bytes())
+	num := stateDB.GetState(common.HexToAddress(IOC_ORDERBOOK_ADDRESS), common.BigToHash(new(big.Int).Add(orderInfo, big.NewInt(1)))).Bytes()
+	if blockTimestamp != nil && blockTimestamp.Cmp(V3ActivationDate) == -1 {
+		return new(big.Int).SetBytes(num)
+	}
+	return fromTwosComplement(num)
 }
 
 func iocGetOrderStatus(stateDB contract.StateDB, orderHash [32]byte) int64 {

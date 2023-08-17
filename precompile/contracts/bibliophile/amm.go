@@ -27,8 +27,10 @@ const (
 )
 
 var (
-	// Date and time (GMT): riday, 9 June 2023 14:40:00
+	// Date and time (GMT): Friday, 9 June 2023 14:40:00
 	V2ActivationDate *big.Int = new(big.Int).SetInt64(1686321600)
+	// Date and time (GMT): Thursday, 17 August 2023 13:00:00
+	V3ActivationDate *big.Int = new(big.Int).SetInt64(1692277200)
 )
 
 // AMM State

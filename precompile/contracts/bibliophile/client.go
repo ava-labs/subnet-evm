@@ -71,7 +71,7 @@ func (b *bibliophileClient) GetBlockPlaced(orderHash [32]byte) *big.Int {
 }
 
 func (b *bibliophileClient) GetOrderFilledAmount(orderHash [32]byte) *big.Int {
-	return getOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash)
+	return getOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash, new(big.Int).SetUint64(b.accessibleState.GetBlockContext().Timestamp()))
 }
 
 func (b *bibliophileClient) GetOrderStatus(orderHash [32]byte) int64 {
@@ -83,7 +83,7 @@ func (b *bibliophileClient) IOC_GetBlockPlaced(orderHash [32]byte) *big.Int {
 }
 
 func (b *bibliophileClient) IOC_GetOrderFilledAmount(orderHash [32]byte) *big.Int {
-	return iocGetOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash)
+	return iocGetOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash, new(big.Int).SetUint64(b.accessibleState.GetBlockContext().Timestamp()))
 }
 
 func (b *bibliophileClient) IOC_GetOrderStatus(orderHash [32]byte) int64 {

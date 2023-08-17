@@ -131,7 +131,7 @@ type OrderDetails struct {
 
 func GetIOCOrdersVariables(stateDB contract.StateDB, orderHash common.Hash) VariablesReadFromIOCOrdersSlots {
 	blockPlaced := iocGetBlockPlaced(stateDB, orderHash)
-	filledAmount := iocGetOrderFilledAmount(stateDB, orderHash)
+	filledAmount := iocGetOrderFilledAmount(stateDB, orderHash, nil)
 	orderStatus := iocGetOrderStatus(stateDB, orderHash)
 
 	iocExpirationCap := iocGetExpirationCap(stateDB)
@@ -152,7 +152,7 @@ type VariablesReadFromOrderbookSlots struct {
 
 func GetOrderBookVariables(stateDB contract.StateDB, traderAddress string, senderAddress string, orderHash common.Hash) VariablesReadFromOrderbookSlots {
 	blockPlaced := getBlockPlaced(stateDB, orderHash)
-	filledAmount := getOrderFilledAmount(stateDB, orderHash)
+	filledAmount := getOrderFilledAmount(stateDB, orderHash, nil)
 	orderStatus := getOrderStatus(stateDB, orderHash)
 	isTradingAuthoriy := IsTradingAuthority(stateDB, common.HexToAddress(traderAddress), common.HexToAddress(senderAddress))
 	return VariablesReadFromOrderbookSlots{
