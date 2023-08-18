@@ -8,7 +8,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/utils"
 )
 
 // TODO: replace with gomock library
@@ -37,15 +36,13 @@ type mockAccessibleState struct {
 	state        StateDB
 	blockContext *mockBlockContext
 	snowContext  *snow.Context
-	chainConfig  ChainConfig
 }
 
-func NewMockAccessibleState(state StateDB, blockContext *mockBlockContext, snowContext *snow.Context, chainConfig ChainConfig) *mockAccessibleState {
+func NewMockAccessibleState(state StateDB, blockContext *mockBlockContext, snowContext *snow.Context) *mockAccessibleState {
 	return &mockAccessibleState{
 		state:        state,
 		blockContext: blockContext,
 		snowContext:  snowContext,
-		chainConfig:  chainConfig,
 	}
 }
 
@@ -55,24 +52,17 @@ func (m *mockAccessibleState) GetBlockContext() BlockContext { return m.blockCon
 
 func (m *mockAccessibleState) GetSnowContext() *snow.Context { return m.snowContext }
 
-func (m *mockAccessibleState) GetChainConfig() ChainConfig { return m.chainConfig }
-
-type mockChainConfig struct {
+type mockChainState struct {
 	feeConfig            commontype.FeeConfig
 	allowedFeeRecipients bool
-	dUpgradeTimestamp    *uint64
 }
 
-func (m *mockChainConfig) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
-func (m *mockChainConfig) AllowedFeeRecipients() bool         { return m.allowedFeeRecipients }
-func (m *mockChainConfig) IsDUpgrade(time uint64) bool {
-	return utils.IsTimestampForked(m.dUpgradeTimestamp, time)
-}
+func (m *mockChainState) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
+func (m *mockChainState) AllowedFeeRecipients() bool         { return m.allowedFeeRecipients }
 
-func NewMockChainConfig(feeConfig commontype.FeeConfig, allowedFeeRecipients bool, dUpgradeTimestamp *uint64) *mockChainConfig {
-	return &mockChainConfig{
+func NewMockChainState(feeConfig commontype.FeeConfig, allowedFeeRecipients bool) *mockChainState {
+	return &mockChainState{
 		feeConfig:            feeConfig,
 		allowedFeeRecipients: allowedFeeRecipients,
-		dUpgradeTimestamp:    dUpgradeTimestamp,
 	}
 }

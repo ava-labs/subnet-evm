@@ -19,7 +19,7 @@ type StatefulPrecompiledContract interface {
 	Run(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 }
 
-// ChainConfig defines an interface that provides information to a stateful precompile
+// ChainContext defines an interface that provides information to a stateful precompile
 // about the chain configuration. The precompile can access this information to initialize
 // its state.
 type ChainConfig interface {
@@ -27,8 +27,6 @@ type ChainConfig interface {
 	GetFeeConfig() commontype.FeeConfig
 	// AllowedFeeRecipients returns true if fee recipients are allowed in the genesis.
 	AllowedFeeRecipients() bool
-	// IsDUpgrade returns true if the time is after the DUpgrade.
-	IsDUpgrade(time uint64) bool
 }
 
 // StateDB is the interface for accessing EVM state
@@ -62,7 +60,6 @@ type AccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
 	GetSnowContext() *snow.Context
-	GetChainConfig() ChainConfig
 }
 
 // BlockContext defines an interface that provides information to a stateful precompile about the
