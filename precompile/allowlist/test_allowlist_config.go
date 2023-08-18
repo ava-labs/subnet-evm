@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -27,6 +29,20 @@ func mkConfigWithAllowList(module modules.Module, cfg *AllowListConfig) precompi
 		panic(err)
 	}
 
+	return moduleCfg
+}
+
+func mkConfigWithUpgradeAndAllowList(module modules.Module, cfg *AllowListConfig, update precompileconfig.Upgrade) precompileconfig.Config {
+	jsonUpgradeBytes, err := json.Marshal(update)
+	if err != nil {
+		panic(err)
+	}
+
+	moduleCfg := mkConfigWithAllowList(module, cfg)
+	err = json.Unmarshal(jsonUpgradeBytes, moduleCfg)
+	if err != nil {
+		panic(err)
+	}
 	return moduleCfg
 }
 
@@ -80,6 +96,17 @@ func AllowListConfigVerifyTests(module modules.Module) map[string]testutils.Conf
 				EnabledAddresses: []common.Address{TestManagerAddr},
 			}),
 			ExpectedError: "cannot set address as both enabled and manager",
+		},
+		"invalid allow list config with manager role before activation": {
+			Config: mkConfigWithUpgradeAndAllowList(module, &AllowListConfig{
+				AdminAddresses:   nil,
+				ManagerAddresses: []common.Address{TestManagerAddr},
+				EnabledAddresses: nil,
+			}, precompileconfig.Upgrade{
+				BlockTimestamp: utils.NewUint64(1),
+			}),
+			ChainConfig:   precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(2)),
+			ExpectedError: "cannot add managers before DUpgrade",
 		},
 		"nil member allow list config in allowlist": {
 			Config: mkConfigWithAllowList(module, &AllowListConfig{
