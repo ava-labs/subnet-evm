@@ -170,7 +170,7 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 
 func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
 	setAdmin := contract.NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AdminRole))
-	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(precompileAddr, ManagerRole), IsManagerRoleActivated)
+	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(precompileAddr, ManagerRole), isManagerRoleActivated)
 	setEnabled := contract.NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, EnabledRole))
 	setNone := contract.NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, NoRole))
 	read := contract.NewStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
@@ -178,6 +178,6 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 	return []*contract.StatefulPrecompileFunction{setAdmin, setManager, setEnabled, setNone, read}
 }
 
-func IsManagerRoleActivated(evm contract.AccessibleState) (bool, error) {
+func isManagerRoleActivated(evm contract.AccessibleState) (bool, error) {
 	return evm.GetChainConfig().IsDUpgrade(evm.GetBlockContext().Timestamp()), nil
 }

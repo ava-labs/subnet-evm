@@ -2389,6 +2389,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 		},
 	}
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
+	require.NoError(t, err)
 
 	vm = &VM{}
 	ctx, dbManager, genesisBytes, issuer, _ = setupGenesis(t, genesisJSONDUpgrade)
