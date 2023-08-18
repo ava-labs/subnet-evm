@@ -41,44 +41,8 @@ func TestIsNoRole(t *testing.T) {
 	}
 
 	for index, test := range tests {
-		isNoRole := test.role.IsNoRole(test.activated)
+		isNoRole := test.role.IsNoRole()
 		require.Equal(t, test.expected, isNoRole, fmt.Sprintf("test index: %d", index))
-	}
-}
-
-func TestIsManager(t *testing.T) {
-	tests := []struct {
-		role      Role
-		expected  bool
-		activated bool
-	}{
-		{
-			role:      ManagerRole,
-			expected:  true,
-			activated: true,
-		},
-		{
-			role:      ManagerRole,
-			expected:  false,
-			activated: false,
-		},
-		{
-			role:     AdminRole,
-			expected: false,
-		},
-		{
-			role:     EnabledRole,
-			expected: false,
-		},
-		{
-			role:     NoRole,
-			expected: false,
-		},
-	}
-
-	for index, test := range tests {
-		isManager := test.role.IsManager(test.activated)
-		require.Equal(t, test.expected, isManager, fmt.Sprintf("test index: %d", index))
 	}
 }
 

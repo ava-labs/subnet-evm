@@ -14,13 +14,11 @@ import (
 
 // AllowList is an abstraction that allows other precompiles to manage
 // which addresses can call the precompile by maintaining an allowlist
-// in the storage trie. Each account may have one of the following roles:
-// 1. NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
-// 2. EnabledRole - allowed to call the precompile
-// 3. Admin - allowed to both modify the allowlist and call the precompile
+// in the storage trie.
 
 const (
 	SetAdminFuncKey      = "setAdmin"
+	SetManagerFuncKey    = "setManager"
 	SetEnabledFuncKey    = "setEnabled"
 	SetNoneFuncKey       = "setNone"
 	ReadAllowListFuncKey = "readAllowList"
@@ -32,17 +30,15 @@ const (
 )
 
 var (
-	NoRole      = Role(common.BigToHash(common.Big0)) // NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
-	EnabledRole = Role(common.BigToHash(common.Big1)) // EnabledRole - allowed to call the precompile
-	AdminRole   = Role(common.BigToHash(common.Big2)) // Admin - allowed to both modify the allowlist and call the precompile
-
 	// AllowList function signatures
 	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
+	setManagerSignature    = contract.CalculateFunctionSelector("setManager(address)")
 	setEnabledSignature    = contract.CalculateFunctionSelector("setEnabled(address)")
 	setNoneSignature       = contract.CalculateFunctionSelector("setNone(address)")
 	readAllowListSignature = contract.CalculateFunctionSelector("readAllowList(address)")
 	// Error returned when an invalid write is attempted
 	ErrCannotModifyAllowList = errors.New("non-admin cannot modify allow list")
+	ErrManagerCannotModify   = errors.New("manager can only change enabled addresses")
 )
 
 // GetAllowListStatus returns the allow list role of [address] for the precompile
@@ -77,6 +73,8 @@ func PackModifyAllowList(address common.Address, role Role) ([]byte, error) {
 	switch role {
 	case AdminRole:
 		input = append(input, setAdminSignature...)
+	case ManagerRole:
+		input = append(input, setManagerSignature...)
 	case EnabledRole:
 		input = append(input, setEnabledSignature...)
 	case NoRole:
@@ -119,7 +117,15 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 
 		// Verify that the caller is an admin with permission to modify the allow list
 		callerStatus := GetAllowListStatus(stateDB, precompileAddr, callerAddr)
-		if !callerStatus.IsAdmin() {
+		if callerStatus == ManagerRole {
+			// Get current status.
+			// Before the manager role, we never checked the status of the address we are trying to modify.
+			// So we should keep the same behaviour by special casing this.
+			modifyStatus := GetAllowListStatus(stateDB, precompileAddr, modifyAddress)
+			if !callerStatus.CanModify(modifyStatus, role) {
+				return nil, remainingGas, fmt.Errorf("%w: modify address: %s, from role: %s, to role: %s", ErrManagerCannotModify, callerAddr, modifyStatus, role)
+			}
+		} else if !callerStatus.IsAdmin() {
 			return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotModifyAllowList, callerAddr)
 		}
 
@@ -164,9 +170,14 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 
 func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
 	setAdmin := contract.NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AdminRole))
+	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(precompileAddr, ManagerRole), IsManagerRoleActivated)
 	setEnabled := contract.NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, EnabledRole))
 	setNone := contract.NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, NoRole))
 	read := contract.NewStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
 
-	return []*contract.StatefulPrecompileFunction{setAdmin, setEnabled, setNone, read}
+	return []*contract.StatefulPrecompileFunction{setAdmin, setManager, setEnabled, setNone, read}
+}
+
+func IsManagerRoleActivated(evm contract.AccessibleState) (bool, error) {
+	return evm.GetChainConfig().IsDUpgrade(evm.GetBlockContext().Timestamp()), nil
 }

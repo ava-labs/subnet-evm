@@ -13,11 +13,12 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
-var DefaultChainConfig = precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false)
+var DefaultChainConfig = precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0))
 
 // PrecompileTest is a test case for a precompile
 type PrecompileTest struct {
@@ -92,6 +93,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	blockContext := contract.NewMockBlockContext(big.NewInt(test.BlockNumber), 0)
 	chainConfig := test.ChainConfig
 	if chainConfig == nil {
+		// DUpgrade is activated by default
 		chainConfig = DefaultChainConfig
 	}
 

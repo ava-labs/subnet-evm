@@ -6,6 +6,7 @@ package precompileconfig
 
 import (
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -47,14 +48,20 @@ func (n *noopStatefulPrecompileConfig) Verify(ChainConfig) error {
 type mockChainConfig struct {
 	feeConfig            commontype.FeeConfig
 	allowedFeeRecipients bool
+	dUpgradeTimestamp    *uint64
 }
 
 func (m *mockChainConfig) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
 func (m *mockChainConfig) AllowedFeeRecipients() bool         { return m.allowedFeeRecipients }
+func (m *mockChainConfig) IsDUpgrade(time uint64) bool {
+	return utils.IsTimestampForked(m.dUpgradeTimestamp, time)
+}
 
-func NewMockChainConfig(feeConfig commontype.FeeConfig, allowedFeeRecipients bool) *mockChainConfig {
+func NewMockChainConfig(feeConfig commontype.FeeConfig, allowedFeeRecipients bool, dUpgradeTimestamp *uint64) *mockChainConfig {
 	return &mockChainConfig{
 		feeConfig:            feeConfig,
 		allowedFeeRecipients: allowedFeeRecipients,
+		dUpgradeTimestamp:    dUpgradeTimestamp,
 	}
 }
+

@@ -26,11 +26,12 @@ type Config struct {
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
-func NewConfig(blockTimestamp *uint64, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *Config {
+func NewConfig(blockTimestamp *uint64, admins []common.Address, enableds []common.Address, managers []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *Config {
 	return &Config{
 		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
+			ManagerAddresses: managers,
 		},
 		Upgrade:     precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialMint: initialMint,
@@ -91,5 +92,5 @@ func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 			return fmt.Errorf("initial mint cannot contain invalid amount %v for address %s", bigIntAmount, addr)
 		}
 	}
-	return c.AllowListConfig.Verify(chainConfig)
+	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
 }

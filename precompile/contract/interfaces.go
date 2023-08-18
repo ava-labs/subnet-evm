@@ -49,6 +49,7 @@ type AccessibleState interface {
 	GetStateDB() StateDB
 	GetBlockContext() BlockContext
 	GetSnowContext() *snow.Context
+	GetChainConfig() precompileconfig.ChainConfig
 }
 
 // BlockContext defines an interface that provides information to a stateful precompile about the
