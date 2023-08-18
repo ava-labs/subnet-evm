@@ -12,19 +12,12 @@ import (
 
 func TestIsNoRole(t *testing.T) {
 	tests := []struct {
-		role      Role
-		expected  bool
-		activated bool
+		role     Role
+		expected bool
 	}{
 		{
-			role:      ManagerRole,
-			expected:  false,
-			activated: true,
-		},
-		{
-			role:      ManagerRole,
-			expected:  true,
-			activated: false,
+			role:     ManagerRole,
+			expected: false,
 		},
 		{
 			role:     AdminRole,
