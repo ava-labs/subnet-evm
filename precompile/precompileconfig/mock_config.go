@@ -64,4 +64,3 @@ func NewMockChainConfig(feeConfig commontype.FeeConfig, allowedFeeRecipients boo
 		dUpgradeTimestamp:    dUpgradeTimestamp,
 	}
 }
-
