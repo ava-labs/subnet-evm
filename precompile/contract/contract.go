@@ -16,7 +16,7 @@ const (
 type RunStatefulPrecompileFunc func(accessibleState AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error)
 
 // ActivationFunc defines a function that is used to determine if a function is active
-// The first return value is whether or not the function is active
+// The return value is whether or not the function is active
 type ActivationFunc func(AccessibleState) bool
 
 // StatefulPrecompileFunction defines a function implemented by a stateful precompile
