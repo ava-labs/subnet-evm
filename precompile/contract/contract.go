@@ -17,7 +17,7 @@ type RunStatefulPrecompileFunc func(accessibleState AccessibleState, caller comm
 
 // ActivationFunc defines a function that is used to determine if a function is active
 // The first return value is whether or not the function is active
-type ActivationFunc func(AccessibleState) (bool, error)
+type ActivationFunc func(AccessibleState) bool
 
 // StatefulPrecompileFunction defines a function implemented by a stateful precompile
 type StatefulPrecompileFunction struct {
@@ -30,9 +30,9 @@ type StatefulPrecompileFunction struct {
 	activation ActivationFunc
 }
 
-func (f *StatefulPrecompileFunction) IsActivated(accessibleState AccessibleState) (bool, error) {
+func (f *StatefulPrecompileFunction) IsActivated(accessibleState AccessibleState) bool {
 	if f.activation == nil {
-		return true, nil
+		return true
 	}
 	return f.activation(accessibleState)
 }
@@ -102,11 +102,7 @@ func (s *statefulPrecompileWithFunctionSelectors) Run(accessibleState Accessible
 	}
 
 	// Check if the function is activated
-	activated, err := function.IsActivated(accessibleState)
-	if err != nil {
-		return nil, suppliedGas, err
-	}
-	if !activated {
+	if !function.IsActivated(accessibleState) {
 		return nil, suppliedGas, InvalidFunctionErr(selector)
 	}
 
