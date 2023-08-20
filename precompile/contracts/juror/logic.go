@@ -375,3 +375,38 @@ func validateExecuteIOCOrder(bibliophile b.BibliophileClient, order *orderbook.I
 		OrderHash:         orderHash,
 	}, nil
 }
+
+func formatOrder(orderBytes []byte) interface{} {
+	decodeStep0, err := decodeTypeAndEncodedOrder(orderBytes)
+	if err != nil {
+		return orderBytes
+	}
+
+	if decodeStep0.OrderType == Limit {
+		order, err := orderbook.DecodeLimitOrder(decodeStep0.EncodedOrder)
+		if err != nil {
+			return decodeStep0
+		}
+		orderJson := order.Map()
+		orderHash, err := GetLimitOrderHash(order)
+		if err != nil {
+			return orderJson
+		}
+		orderJson["hash"] = orderHash.String()
+		return orderJson
+	}
+	if decodeStep0.OrderType == IOC {
+		order, err := orderbook.DecodeIOCOrder(decodeStep0.EncodedOrder)
+		if err != nil {
+			return decodeStep0
+		}
+		orderJson := order.Map()
+		orderHash, err := getIOCOrderHash(order)
+		if err != nil {
+			return orderJson
+		}
+		orderJson["hash"] = orderHash.String()
+		return orderJson
+	}
+	return nil
+}

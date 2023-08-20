@@ -5,7 +5,6 @@
 package juror
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -196,7 +195,7 @@ func validateOrdersAndDetermineFillPrice(accessibleState contract.AccessibleStat
 	if err != nil {
 		log.Error("validateOrdersAndDetermineFillPrice", "error", err, "block", accessibleState.GetBlockContext().Number())
 		if !errors.Is(err, ErrTwoOrders) {
-			log.Error("debug-info", "order0", hex.EncodeToString(inputStruct.Data[0]), "order1", hex.EncodeToString(inputStruct.Data[1]), "fillAmount", inputStruct.FillAmount)
+			log.Error("debug-info", "order0", formatOrder(inputStruct.Data[0]), "order1", formatOrder(inputStruct.Data[1]), "fillAmount", inputStruct.FillAmount, "err", err)
 		}
 		return nil, remainingGas, err
 	}
