@@ -4,9 +4,13 @@
 package orderbook
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
+	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ava-labs/subnet-evm/rpc"
@@ -17,13 +21,15 @@ type TestingAPI struct {
 	db            LimitOrderDatabase
 	backend       *eth.EthAPIBackend
 	configService IConfigService
+	hubbleDB      database.Database
 }
 
-func NewTestingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService) *TestingAPI {
+func NewTestingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService, hubbleDB database.Database) *TestingAPI {
 	return &TestingAPI{
 		db:            database,
 		backend:       backend,
 		configService: configService,
+		hubbleDB:      hubbleDB,
 	}
 }
 
@@ -50,6 +56,23 @@ func (api *TestingAPI) GetIOCOrdersVars(ctx context.Context, orderHash common.Ha
 func (api *TestingAPI) GetOrderBookVars(ctx context.Context, traderAddress string, senderAddress string, orderHash common.Hash) bibliophile.VariablesReadFromOrderbookSlots {
 	stateDB, _, _ := api.backend.StateAndHeaderByNumber(ctx, rpc.BlockNumber(getCurrentBlockNumber(api.backend)))
 	return bibliophile.GetOrderBookVariables(stateDB, traderAddress, senderAddress, orderHash)
+}
+
+func (api *TestingAPI) GetSnapshot(ctx context.Context) (Snapshot, error) {
+	var snapshot Snapshot
+	memoryDBSnapshotKey := "memoryDBSnapshot"
+	memorySnapshotBytes, err := api.hubbleDB.Get([]byte(memoryDBSnapshotKey))
+	if err != nil {
+		return snapshot, fmt.Errorf("Error in fetching snapshot from hubbleDB; err=%v", err)
+	}
+
+	buf := bytes.NewBuffer(memorySnapshotBytes)
+	err = gob.NewDecoder(buf).Decode(&snapshot)
+	if err != nil {
+		return snapshot, fmt.Errorf("Error in snapshot parsing; err=%v", err)
+	}
+
+	return snapshot, nil
 }
 
 func getCurrentBlockNumber(backend *eth.EthAPIBackend) uint64 {

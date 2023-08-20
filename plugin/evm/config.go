@@ -59,8 +59,9 @@ const (
 	defaultStateSyncMinBlocks   = 300_000
 	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
 
-	defaultIsValidator       = false
-	defaultTradingAPIEnabled = false
+	defaultIsValidator             = false
+	defaultTradingAPIEnabled       = false
+	defaultLoadFromSnapshotEnabled = true
 )
 
 var (
@@ -225,6 +226,9 @@ type Config struct {
 
 	// TradingAPI is for the sdk
 	TradingAPIEnabled bool `json:"trading-api-enabled"`
+
+	// LoadFromSnapshotEnabled = true if the node should load the memory db from a snapshot
+	LoadFromSnapshotEnabled bool `json:"load-from-snapshot-enabled"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -287,6 +291,7 @@ func (c *Config) SetDefaults() {
 	c.TestingApiEnabled = defaultTestingApiEnabled
 	c.IsValidator = defaultIsValidator
 	c.TradingAPIEnabled = defaultTradingAPIEnabled
+	c.LoadFromSnapshotEnabled = defaultLoadFromSnapshotEnabled
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

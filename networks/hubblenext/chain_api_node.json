@@ -13,6 +13,6 @@
     "validator-private-key-file": "/home/ubuntu/validator.pk",
     "feeRecipient": "0x93ec352b9eDe4e4515b24945E37186c462a2D583",
     "is-validator": false,
-    "trading-api-enabled": true
-  
+    "trading-api-enabled": true,
+    "load-from-snapshot-enabled": true
 }

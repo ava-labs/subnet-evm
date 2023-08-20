@@ -1043,8 +1043,7 @@ func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
 		vm.blockChain,
 		vm.hubbleDB,
 		validatorPrivateKey,
-		vm.config.IsValidator,
-		vm.config.TradingAPIEnabled,
+		vm.config,
 	)
 }
 

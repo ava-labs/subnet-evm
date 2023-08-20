@@ -420,7 +420,7 @@ const (
 	ConfirmationLevelAccepted BlockConfirmationLevel = "accepted"
 )
 
-func (cep *ContractEventsProcessor) PushtoTraderFeed(events []*types.Log, blockStatus BlockConfirmationLevel) {
+func (cep *ContractEventsProcessor) PushToTraderFeed(events []*types.Log, blockStatus BlockConfirmationLevel) {
 	for _, event := range events {
 		removed := event.Removed
 		args := map[string]interface{}{}

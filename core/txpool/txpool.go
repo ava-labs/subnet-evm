@@ -1080,6 +1080,9 @@ func (pool *TxPool) GetOrderBookTxNonce(address common.Address) uint64 {
 }
 
 func (pool *TxPool) AddOrderBookTx(tx *types.Transaction) error {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
 	if from, err := types.Sender(pool.signer, tx); err == nil {
 		val, ok := pool.OrderBookTxMap[from]
 		if !ok {
@@ -1090,6 +1093,8 @@ func (pool *TxPool) AddOrderBookTx(tx *types.Transaction) error {
 		if !ok {
 			return errors.New("error adding tx to orderbookQueue")
 		}
+	} else {
+		return fmt.Errorf("AddOrderBookTx: error getting sender: %w", err)
 	}
 	return nil
 }

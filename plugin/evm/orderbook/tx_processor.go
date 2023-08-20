@@ -313,7 +313,6 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 				counterName := fmt.Sprintf("orderbooktxs/%s/%s", method.Name, note)
 				metrics.GetOrRegisterCounter(counterName, nil).Inc(1)
 			}
-
 		}
 
 		// measure the gas usage irrespective of whether the tx is from this validator or not
