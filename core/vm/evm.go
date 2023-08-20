@@ -128,6 +128,10 @@ func (b *BlockContext) Timestamp() uint64 {
 	return b.Time
 }
 
+func (b *BlockContext) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
+	return nil
+}
+
 // TxContext provides the EVM with information about a transaction.
 // All fields can change between transactions.
 type TxContext struct {

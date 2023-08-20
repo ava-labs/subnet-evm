@@ -8,6 +8,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // TODO: replace with gomock library
@@ -31,6 +32,9 @@ func NewMockBlockContext(blockNumber *big.Int, timestamp uint64) *mockBlockConte
 
 func (mb *mockBlockContext) Number() *big.Int  { return mb.blockNumber }
 func (mb *mockBlockContext) Timestamp() uint64 { return mb.timestamp }
+func (mb *mockBlockContext) GetPredicateResults(txHash common.Hash, precompileAddress common.Address) []byte {
+	return nil
+}
 
 type mockAccessibleState struct {
 	state        StateDB
