@@ -1246,6 +1246,10 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 	return s.accessList.Contains(addr, slot)
 }
 
+func (s *StateDB) GetTxHash() common.Hash {
+	return s.thash
+}
+
 // GetPredicateStorageSlots returns the storage slots associated with a given address, and whether or not
 // that address was included in the optional access list of the transaction.
 // The storage slots are returned in the same order as they appeared in the transaction.

@@ -37,6 +37,8 @@ type StateDB interface {
 	GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool)
 	SetPredicateStorageSlots(address common.Address, predicates [][]byte)
 
+	GetTxHash() common.Hash
+
 	Suicide(common.Address) bool
 	Finalise(deleteEmptyObjects bool)
 

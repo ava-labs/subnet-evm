@@ -36,7 +36,7 @@ func TestParseAddressedPayloadJunk(t *testing.T) {
 }
 
 func TestParseAddressedPayload(t *testing.T) {
-	base64Payload := "AAAAAAAAAQIDAAAAAAAAAAAAAAAAAAAAAAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcICQAAAAAAAAAAAAAAAAAAAAAAAAAAAwoLDA=="
+	base64Payload := "AAABAgMAAAAAAAAAAAAAAAAAAAAAAAQFBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwgJAAAAAAAAAAAAAAAAAAAAAAAAAAADCgsM"
 	payload := &AddressedPayload{
 		SourceAddress:      common.Address{1, 2, 3},
 		DestinationChainID: common.Hash{4, 5, 6},
@@ -49,6 +49,38 @@ func TestParseAddressedPayload(t *testing.T) {
 	require.Equal(t, base64Payload, base64.StdEncoding.EncodeToString(payload.Bytes()))
 
 	parsedPayload, err := ParseAddressedPayload(payload.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, payload, parsedPayload)
+}
+
+func TestBlockHashPayload(t *testing.T) {
+	require := require.New(t)
+
+	blockHashPayload, err := NewBlockHashPayload(common.Hash(ids.GenerateTestID()))
+	require.NoError(err)
+
+	blockHashPayloadBytes := blockHashPayload.Bytes()
+	blockHashPayload2, err := ParseBlockHashPayload(blockHashPayloadBytes)
+	require.NoError(err)
+	require.Equal(blockHashPayload, blockHashPayload2)
+}
+
+func TestParseBlockHashPayloadJunk(t *testing.T) {
+	_, err := ParseBlockHashPayload(utils.RandomBytes(1024))
+	require.Error(t, err)
+}
+
+func TestParseBlockHashPayload(t *testing.T) {
+	base64Payload := "AAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+	payload := &BlockHashPayload{
+		BlockHash: common.Hash{4, 5, 6},
+	}
+
+	require.NoError(t, payload.initialize())
+
+	require.Equal(t, base64Payload, base64.StdEncoding.EncodeToString(payload.Bytes()))
+
+	parsedPayload, err := ParseBlockHashPayload(payload.Bytes())
 	require.NoError(t, err)
 	require.Equal(t, payload, parsedPayload)
 }

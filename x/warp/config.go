@@ -31,6 +31,7 @@ var (
 	errInvalidPredicateBytes   = errors.New("cannot unpack predicate bytes")
 	errInvalidWarpMsg          = errors.New("cannot unpack warp message")
 	errInvalidAddressedPayload = errors.New("cannot unpack addressed payload")
+	errInvalidBlockHashPayload = errors.New("cannot unpack block hash payload")
 	errCannotGetNumSigners     = errors.New("cannot fetch num signers from warp message")
 )
 

@@ -89,6 +89,9 @@ type StateDB interface {
 	GetLogData() [][]byte
 	GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool)
 	SetPredicateStorageSlots(address common.Address, predicates [][]byte)
+
+	GetTxHash() common.Hash
+
 	AddPreimage(common.Hash, []byte)
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) error
