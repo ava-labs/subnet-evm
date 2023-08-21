@@ -73,7 +73,8 @@ func getValidatorInfo(
 	if err != nil {
 		return nil, 0, err
 	}
-	// TODO: should factor this code out in avalanchego
+	// TODO: use the factored out code in avalanchego when the new version is
+	// released.
 	var (
 		vdrs        = make(map[string]*pwarp.Validator, len(vdrSet))
 		totalWeight uint64
