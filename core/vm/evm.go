@@ -37,6 +37,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/results"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -110,6 +111,8 @@ type BlockContext struct {
 	Transfer TransferFunc
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
+	// PredicateResults are the results of predicate verification available throughout the EVM's execution.
+	PredicateResults *results.PredicateResults
 
 	// Block information
 	Coinbase    common.Address // Provides information for COINBASE
@@ -129,7 +132,10 @@ func (b *BlockContext) Timestamp() uint64 {
 }
 
 func (b *BlockContext) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
-	return nil
+	if b.PredicateResults == nil {
+		return nil
+	}
+	return b.PredicateResults.GetPredicateResults(txHash, address)
 }
 
 // TxContext provides the EVM with information about a transaction.

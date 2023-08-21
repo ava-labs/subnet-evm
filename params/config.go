@@ -386,16 +386,12 @@ func (c *ChainConfig) IsDUpgrade(time uint64) bool {
 }
 
 func (r *Rules) PredicatesExist() bool {
-	return len(r.PredicatePrecompiles) > 0 || len(r.ProposerPredicates) > 0
+	return len(r.PredicatePrecompiles) > 0
 }
 
 func (r *Rules) PredicateExists(addr common.Address) bool {
 	_, predicateExists := r.PredicatePrecompiles[addr]
-	if predicateExists {
-		return true
-	}
-	_, proposerPredicateExists := r.ProposerPredicates[addr]
-	return proposerPredicateExists
+	return predicateExists
 }
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
@@ -725,10 +721,7 @@ type Rules struct {
 	ActivePrecompiles map[common.Address]precompileconfig.Config
 	// PrecompilePredicates maps addresses to stateful precompile predicate functions
 	// that are enabled for this rule set.
-	PredicatePrecompiles map[common.Address]precompileconfig.PrecompilePredicater
-	// ProposerPredicates maps addresses to stateful precompile predicate functions
-	// that are enabled for this rule set and require access to the ProposerVM wrapper.
-	ProposerPredicates map[common.Address]precompileconfig.ProposerPredicater
+	PredicatePrecompiles map[common.Address]precompileconfig.Predicater
 	// AccepterPrecompiles map addresses to stateful precompile accepter functions
 	// that are enabled for this rule set.
 	AccepterPrecompiles map[common.Address]precompileconfig.Accepter
@@ -769,17 +762,13 @@ func (c *ChainConfig) AvalancheRules(blockNum *big.Int, timestamp uint64) Rules 
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
-	rules.PredicatePrecompiles = make(map[common.Address]precompileconfig.PrecompilePredicater)
-	rules.ProposerPredicates = make(map[common.Address]precompileconfig.ProposerPredicater)
+	rules.PredicatePrecompiles = make(map[common.Address]precompileconfig.Predicater)
 	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
 	for _, module := range modules.RegisteredModules() {
 		if config := c.getActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config
-			if precompilePredicate, ok := config.(precompileconfig.PrecompilePredicater); ok {
+			if precompilePredicate, ok := config.(precompileconfig.Predicater); ok {
 				rules.PredicatePrecompiles[module.Address] = precompilePredicate
-			}
-			if proposerPredicate, ok := config.(precompileconfig.ProposerPredicater); ok {
-				rules.ProposerPredicates[module.Address] = proposerPredicate
 			}
 			if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
 				rules.AccepterPrecompiles[module.Address] = precompileAccepter

@@ -4,7 +4,9 @@
 package evm
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/results"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -171,17 +174,15 @@ func (b *Block) syntacticVerify() error {
 
 // Verify implements the snowman.Block interface
 func (b *Block) Verify(context.Context) error {
-	return b.verify(&precompileconfig.ProposerPredicateContext{
-		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
-			SnowCtx: b.vm.ctx,
-		},
+	return b.verify(&precompileconfig.PredicateContext{
+		SnowCtx:            b.vm.ctx,
 		ProposerVMBlockCtx: nil,
 	}, true)
 }
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	proposerPredicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).ProposerPredicates
+	proposerPredicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).PredicatePrecompiles
 	// Short circuit early if there are no proposer predicates to verify
 	if len(proposerPredicates) == 0 {
 		return false, nil
@@ -204,10 +205,8 @@ func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 
 // VerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) error {
-	return b.verify(&precompileconfig.ProposerPredicateContext{
-		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
-			SnowCtx: b.vm.ctx,
-		},
+	return b.verify(&precompileconfig.PredicateContext{
+		SnowCtx:            b.vm.ctx,
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}, true)
 }
@@ -215,7 +214,7 @@ func (b *Block) VerifyWithContext(ctx context.Context, proposerVMBlockCtx *block
 // Verify the block is valid.
 // Enforces that the predicates are valid within [predicateContext].
 // Writes the block details to disk and the state to the trie manager iff writes=true.
-func (b *Block) verify(predicateContext *precompileconfig.ProposerPredicateContext, writes bool) error {
+func (b *Block) verify(predicateContext *precompileconfig.PredicateContext, writes bool) error {
 	if predicateContext.ProposerVMBlockCtx != nil {
 		log.Debug("Verifying block with context", "block", b.ID(), "height", b.Height())
 	} else {
@@ -248,13 +247,31 @@ func (b *Block) verify(predicateContext *precompileconfig.ProposerPredicateConte
 }
 
 // verifyPredicates verifies the predicates in the block are valid according to predicateContext.
-func (b *Block) verifyPredicates(predicateContext *precompileconfig.ProposerPredicateContext) error {
+func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateContext) error {
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 
+	switch {
+	case !rules.IsDUpgrade && rules.PredicatesExist(): // XXX detect this earlier?
+		return errors.New("cannot enable predicates before DUpgrade activation")
+	case !rules.IsDUpgrade:
+		return nil
+	}
+
+	predicateResults := results.NewPredicateResults()
 	for _, tx := range b.ethBlock.Transactions() {
-		if err := core.CheckPredicates(rules, predicateContext, tx); err != nil {
+		results, err := core.CheckPredicates(rules, predicateContext, tx)
+		if err != nil {
 			return err
 		}
+		predicateResults.SetTxPredicateResults(tx.Hash(), results)
+	}
+	predicateResultsBytes, err := predicateResults.Bytes()
+	if err != nil {
+		return fmt.Errorf("failed to marshal predicate results: %w", err) // XXX what constraints are needed to ensure we don't error here?
+	}
+	headerPredicateResults := b.ethBlock.Extra()[params.MaximumExtraDataSize:]
+	if !bytes.Equal(headerPredicateResults, predicateResultsBytes) {
+		return fmt.Errorf("invalid header predicate results (remote: %x local: %x)", headerPredicateResults, predicateResultsBytes)
 	}
 	return nil
 }
