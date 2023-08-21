@@ -6,6 +6,7 @@ package load
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -62,7 +63,6 @@ func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTi
 			Tx:    tx,
 			AwmID: ethcrypto.Keccak256Hash(input.Payload),
 		}
-		log.Info("Generated warp message", "awmID", awmTx.AwmID, "tx", tx.Hash())
 		return awmTx, nil
 	}
 	return txGenerator
@@ -108,16 +108,13 @@ func (wr *warpRelayClient) doLoop(ctx context.Context) error {
 			return ctx.Err()
 		case txLog, ok := <-logsCh:
 			if !ok {
-				log.Info("logsCh closed")
 				return nil
 			}
-			log.Info("Parsing logData as unsigned warp message", "logData", common.Bytes2Hex(txLog.Data), "nodeID", wr.nodeID)
 			unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
 			if err != nil {
 				return err
 			}
 			unsignedWarpMessageID := unsignedMsg.ID()
-			log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "nodeID", wr.nodeID)
 
 			signature, err := wr.warpClient.GetSignature(ctx, unsignedWarpMessageID)
 			if err != nil {
@@ -228,7 +225,9 @@ func (wr *warpRelay) Run(ctx context.Context) error {
 	defer func() {
 		wr.cancelFn() // shutdown the warp relay clients
 		if err := wr.eg.Wait(); err != nil {
-			log.Error("warp relay client failed", "err", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Error("warp relay client failed", "err", err)
+			}
 		}
 		close(wr.signedMessages)
 	}()
