@@ -6,20 +6,19 @@ package load
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils"
-	"github.com/ava-labs/avalanchego/utils/math"
+	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
-	pwarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/log"
-	"golang.org/x/exp/maps"
 )
+
+var _ warp.ValidatorState = (*validatorState)(nil)
 
 func GetWarpSendTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
@@ -41,7 +40,7 @@ func GetWarpSendTxSequences(
 func GetWarpReceiveTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
-	signedMessages chan *pwarp.Message,
+	signedMessages chan *warp.Message,
 ) ([]txs.TxSequence[*AwmTx], error) {
 	// Each worker will listen for signed warp messages that are
 	// ready to be issued
@@ -50,6 +49,16 @@ func GetWarpReceiveTxSequences(
 		txSequences[i] = NewWarpRelayTxSequence(ctx, signedMessages, chainID, pks[i], startingNonces[i])
 	}
 	return txSequences, nil
+}
+
+type validatorState struct {
+	client platformvm.Client
+}
+
+func (v *validatorState) GetValidatorSet(
+	ctx context.Context, height uint64, subnetID ids.ID,
+) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+	return v.client.GetValidatorsAt(ctx, subnetID, height)
 }
 
 type validatorInfo map[ids.NodeID]validator
@@ -69,44 +78,16 @@ func getValidatorInfo(
 	if err != nil {
 		return nil, 0, err
 	}
-	vdrSet, err := client.GetValidatorsAt(ctx, subnetID, height)
+	vdrList, totalWeight, err := warp.GetCanonicalValidatorSet(
+		ctx, &validatorState{client: client}, height, subnetID)
 	if err != nil {
 		return nil, 0, err
 	}
-	// TODO: use the factored out code in avalanchego when the new version is
-	// released.
-	var (
-		vdrs        = make(map[string]*pwarp.Validator, len(vdrSet))
-		totalWeight uint64
+	log.Info(
+		"Got canonical validator set",
+		"numValidators", len(vdrList),
+		"subnetID", subnetID,
 	)
-	for _, vdr := range vdrSet {
-		totalWeight, err = math.Add64(totalWeight, vdr.Weight)
-		if err != nil {
-			return nil, 0, fmt.Errorf("%w: %v", pwarp.ErrWeightOverflow, err)
-		}
-
-		if vdr.PublicKey == nil {
-			continue
-		}
-
-		pkBytes := vdr.PublicKey.Serialize()
-		uniqueVdr, ok := vdrs[string(pkBytes)]
-		if !ok {
-			uniqueVdr = &pwarp.Validator{
-				PublicKey:      vdr.PublicKey,
-				PublicKeyBytes: pkBytes,
-			}
-			vdrs[string(pkBytes)] = uniqueVdr
-		}
-
-		uniqueVdr.Weight += vdr.Weight // Impossible to overflow here
-		uniqueVdr.NodeIDs = append(uniqueVdr.NodeIDs, vdr.NodeID)
-	}
-
-	// Sort validators by public key
-	vdrList := maps.Values(vdrs)
-	utils.Sort(vdrList)
-	log.Info("Got validator set", "numValidators", len(vdrs), "subnetID", subnetID)
 
 	indexMap := make(validatorInfo, len(vdrList))
 	for i, vdr := range vdrList {
