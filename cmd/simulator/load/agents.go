@@ -8,6 +8,7 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
@@ -83,7 +84,7 @@ func (t *transferTxAgentBuilder) NewAgent(
 
 type warpSendTxAgentBuilder struct {
 	txSequences []txs.TxSequence[*AwmTx]
-	timeTracker *timeTracker
+	txTracker   *txTracker
 }
 
 func (w *warpSendTxAgentBuilder) GenerateTxSequences(
@@ -107,15 +108,17 @@ func (w *warpSendTxAgentBuilder) NewAgent(
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
 	awmWorker := &awmWorker{
 		worker:   worker,
-		onIssued: w.timeTracker.IssueTx,
+		onIssued: w.txTracker.IssueTx,
+		onClosed: w.txTracker.Close,
 	}
 	return txs.NewIssueNAgent[*AwmTx](
 		w.txSequences[idx], awmWorker, config.BatchSize, m), nil
 }
 
 type warpReceiveTxAgentBuilder struct {
-	txSequences []txs.TxSequence[*AwmTx]
-	timeTracker *timeTracker
+	txSequences    []txs.TxSequence[*AwmTx]
+	txTracker      *txTracker
+	signedMessages chan *warp.Message
 }
 
 func (w *warpReceiveTxAgentBuilder) GenerateTxSequences(
@@ -124,7 +127,7 @@ func (w *warpReceiveTxAgentBuilder) GenerateTxSequences(
 ) error {
 	log.Info("Creating warp receive transaction sequences...")
 	txSequences, err := GetWarpReceiveTxSequences(
-		ctx, config, chainID, pks, startingNonces)
+		ctx, config, chainID, pks, startingNonces, w.signedMessages)
 	if err != nil {
 		return err
 	}
@@ -140,7 +143,7 @@ func (w *warpReceiveTxAgentBuilder) NewAgent(
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
 	awmWorker := &awmWorker{
 		worker:      worker,
-		onConfirmed: w.timeTracker.ConfirmTx,
+		onConfirmed: w.txTracker.ConfirmTx,
 	}
 	return txs.NewIssueNAgent[*AwmTx](
 		w.txSequences[idx], awmWorker, config.BatchSize, m), nil

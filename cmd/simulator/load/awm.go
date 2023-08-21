@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"golang.org/x/sync/errgroup"
 )
 
 func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTipCap *big.Int) txs.CreateTx[*AwmTx] {
@@ -57,10 +58,6 @@ func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTi
 		}
 
 		// Compute a unique ID to track this AWM message
-		// TODO: alternatively, we can pass some additional parameters
-		// here and compute the AWM message ID, or we can use the
-		// tx id on this side and track it via txHash which is available
-		// on accepted logs.
 		awmTx := &AwmTx{
 			Tx:    tx,
 			AwmID: ethcrypto.Keccak256Hash(input.Payload),
@@ -87,28 +84,6 @@ type warpRelayClient struct {
 	warpClient warpclient.WarpClient
 	aggregator chan<- warpSignature
 	nodeID     ids.NodeID
-}
-
-func NewWarpRelayClient(
-	ctx context.Context,
-	client ethclient.Client,
-	warpClient warpclient.WarpClient,
-	aggregator chan<- warpSignature,
-	nodeID ids.NodeID,
-) *warpRelayClient {
-	wr := &warpRelayClient{
-		client:     client,
-		warpClient: warpClient,
-		aggregator: aggregator,
-		nodeID:     nodeID,
-	}
-	go func() {
-		err := wr.doLoop(ctx)
-		if err != nil {
-			log.Error("warp relay client failed", "err", err, "nodeID", wr.nodeID)
-		}
-	}()
-	return wr
 }
 
 func (wr *warpRelayClient) doLoop(ctx context.Context) error {
@@ -178,17 +153,19 @@ type warpMessage struct {
 
 type warpRelay struct {
 	// TODO: should be an LRU to avoid getting larger forever
-	messages         map[ids.ID]*warpMessage     // map of messages to signed weight
-	validatorInfo    validatorInfo               // validator info needed to aggregate signatures
-	threshold        uint64                      // threshold for quorum
-	signatures       <-chan warpSignature        // channel of signatures
-	signedMessages   chan *avalancheWarp.Message // channel of signed messages
-	expectedMessages int                         // close signedMessages when this many messages are received
+	messages       map[ids.ID]*warpMessage     // map of messages to signed weight
+	validatorInfo  validatorInfo               // validator info needed to aggregate signatures
+	threshold      uint64                      // threshold for quorum
+	signatures     <-chan warpSignature        // channel of signatures
+	signedMessages chan *avalancheWarp.Message // channel of signed messages
+	eg             *errgroup.Group             // tracks warp relay clients
+	cancelFn       context.CancelFunc          // invoking this stops the warp relay clients
+	done           <-chan struct{}             // channel to signal shutdown
 }
 
 func NewWarpRelay(
 	ctx context.Context, subnetA *runner.Subnet, thresholdNominator int,
-	expectedMessages int,
+	done <-chan struct{},
 ) (*warpRelay, error) {
 	// We need the validator set of subnet A to determine the index of
 	// each validator in the bit set.
@@ -197,6 +174,8 @@ func NewWarpRelay(
 		return nil, err
 	}
 
+	var eg errgroup.Group
+	egCtx, cancel := context.WithCancel(ctx)
 	signatures := make(chan warpSignature) // channel for incoming signatures
 	// We will need to aggregate signatures for messages that are sent on
 	// subnet A. So we will subscribe to the subnet A's accepted logs.
@@ -211,6 +190,7 @@ func NewWarpRelay(
 
 		client, err := ethclient.Dial(endpoint)
 		if err != nil {
+			cancel() // shutdown any warp relay clients that have already been started
 			return nil, fmt.Errorf("failed to dial client at %s: %w", endpoint, err)
 		}
 		log.Info("Connected to client", "client", endpoint, "idx", i)
@@ -218,28 +198,48 @@ func NewWarpRelay(
 		warpClient, err := warpclient.NewWarpClient(
 			subnetA.ValidatorURIs[i], subnetA.BlockchainID.String())
 		if err != nil {
+			cancel() // shutdown any warp relay clients that have already been started
 			return nil, err
 		}
-		// TODO: properly shutdown warp clients
-		_ = NewWarpRelayClient(ctx, client, warpClient, signatures, subnetA.NodeIDs[i])
+		relayClient := &warpRelayClient{
+			client:     client,
+			warpClient: warpClient,
+			aggregator: signatures,
+			nodeID:     subnetA.NodeIDs[i],
+		}
+		eg.Go(func() error {
+			return relayClient.doLoop(egCtx)
+		})
 	}
 
 	return &warpRelay{
-		messages:         make(map[ids.ID]*warpMessage),
-		validatorInfo:    validatorInfo,
-		threshold:        totalWeight * uint64(thresholdNominator) / 100,
-		signatures:       signatures,
-		signedMessages:   make(chan *avalancheWarp.Message),
-		expectedMessages: expectedMessages,
+		messages:       make(map[ids.ID]*warpMessage),
+		validatorInfo:  validatorInfo,
+		threshold:      totalWeight * uint64(thresholdNominator) / 100,
+		signatures:     signatures,
+		signedMessages: make(chan *avalancheWarp.Message),
+		eg:             &eg,
+		cancelFn:       cancel,
+		done:           done,
 	}, nil
 }
 
 func (wr *warpRelay) Run(ctx context.Context) error {
-	defer close(wr.signedMessages)
+	defer func() {
+		wr.cancelFn() // shutdown the warp relay clients
+		if err := wr.eg.Wait(); err != nil {
+			log.Error("warp relay client failed", "err", err)
+		}
+		close(wr.signedMessages)
+	}()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-wr.done:
+			return nil
+
 		case signature, ok := <-wr.signatures:
 			if !ok {
 				return nil
@@ -287,15 +287,10 @@ func (wr *warpRelay) Run(ctx context.Context) error {
 			log.Info(
 				"Signatures aggregated",
 				"messageID", messageID,
-				"expectedMessages", wr.expectedMessages,
 				"signers", message.signers.Len(),
 			)
 			wr.signedMessages <- msg
 			message.sent = true
-			wr.expectedMessages--
-			if wr.expectedMessages == 0 {
-				return nil
-			}
 		}
 	}
 }

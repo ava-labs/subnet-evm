@@ -18,24 +18,29 @@ type Metrics struct {
 	IssuanceToConfirmationTxTimes prometheus.Summary
 }
 
+func NewSummary(name string, help string) prometheus.Summary {
+	return prometheus.NewSummary(prometheus.SummaryOpts{
+		Name:       name,
+		Help:       help,
+		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+	})
+}
+
 // NewMetrics creates and returns a Metrics and registers it with a Collector
 func NewMetrics(prefix string, reg prometheus.Registerer) *Metrics {
 	m := &Metrics{
-		IssuanceTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
-			Name:       fmt.Sprintf("%stx_issuance_time", prefix),
-			Help:       "Individual Tx Issuance Times for a Load Test",
-			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-		}),
-		ConfirmationTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
-			Name:       fmt.Sprintf("%stx_confirmation_time", prefix),
-			Help:       "Individual Tx Confirmation Times for a Load Test",
-			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-		}),
-		IssuanceToConfirmationTxTimes: prometheus.NewSummary(prometheus.SummaryOpts{
-			Name:       fmt.Sprintf("%stx_issuance_to_confirmation_time", prefix),
-			Help:       "Individual Tx Issuance To Confirmation Times for a Load Test",
-			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-		}),
+		IssuanceTxTimes: NewSummary(
+			fmt.Sprintf("%stx_issuance_time", prefix),
+			"Individual Tx Issuance Times for a Load Test",
+		),
+		ConfirmationTxTimes: NewSummary(
+			fmt.Sprintf("%stx_confirmation_time", prefix),
+			"Individual Tx Confirmation Times for a Load Test",
+		),
+		IssuanceToConfirmationTxTimes: NewSummary(
+			fmt.Sprintf("%stx_issuance_to_confirmation_time", prefix),
+			"Individual Tx Issuance To Confirmation Times for a Load Test",
+		),
 	}
 	reg.MustRegister(m.IssuanceTxTimes)
 	reg.MustRegister(m.ConfirmationTxTimes)

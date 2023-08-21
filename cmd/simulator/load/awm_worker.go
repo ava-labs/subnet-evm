@@ -29,6 +29,7 @@ type awmWorker struct {
 	worker      *singleAddressTxWorker
 	onIssued    func(common.Hash)
 	onConfirmed func(common.Hash)
+	onClosed    func()
 }
 
 func (aw *awmWorker) IssueTx(ctx context.Context, tx *AwmTx) error {
@@ -51,23 +52,30 @@ func (aw *awmWorker) ConfirmTx(ctx context.Context, tx *AwmTx) error {
 }
 
 func (aw *awmWorker) Close(ctx context.Context) error {
+	if aw.onClosed != nil {
+		aw.onClosed()
+	}
 	return aw.worker.Close(ctx)
 }
 
-type timeTracker struct {
-	lock     sync.Mutex
+type txTracker struct {
+	lock   sync.Mutex
+	closed bool
+	done   chan struct{}
+
 	issued   map[common.Hash]time.Time
 	observer func(float64)
 }
 
-func newTimeTracker(observer func(float64)) *timeTracker {
-	return &timeTracker{
+func newTxTracker(observer func(float64)) *txTracker {
+	return &txTracker{
 		issued:   make(map[common.Hash]time.Time),
 		observer: observer,
+		done:     make(chan struct{}),
 	}
 }
 
-func (tt *timeTracker) IssueTx(id common.Hash) {
+func (tt *txTracker) IssueTx(id common.Hash) {
 	tt.lock.Lock()
 	defer tt.lock.Unlock()
 
@@ -75,7 +83,7 @@ func (tt *timeTracker) IssueTx(id common.Hash) {
 	log.Info("awm time tracker issued tx", "id", id)
 }
 
-func (tt *timeTracker) ConfirmTx(id common.Hash) {
+func (tt *txTracker) ConfirmTx(id common.Hash) {
 	tt.lock.Lock()
 	defer tt.lock.Unlock()
 
@@ -83,8 +91,26 @@ func (tt *timeTracker) ConfirmTx(id common.Hash) {
 	if !ok {
 		panic("unexpected confirm " + id.Hex())
 	}
-	delete(tt.issued, id)
 	duration := time.Since(start)
 	tt.observer(duration.Seconds())
 	log.Info("awm time tracker confirmed tx", "id", id, "duration", duration)
+
+	delete(tt.issued, id)
+	tt.checkDone()
+}
+
+func (tt *txTracker) Close() {
+	tt.lock.Lock()
+	defer tt.lock.Unlock()
+
+	tt.closed = true
+	tt.checkDone()
+}
+
+// assumes lock is held
+func (tt *txTracker) checkDone() {
+	if !tt.closed || len(tt.issued) > 0 {
+		return
+	}
+	close(tt.done)
 }

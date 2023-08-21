@@ -21,8 +21,6 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-const WARP_THRESHOLD = 80 // % of weight to collect signatures from for warp messages
-
 func GetWarpSendTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
@@ -43,26 +41,13 @@ func GetWarpSendTxSequences(
 func GetWarpReceiveTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
+	signedMessages chan *pwarp.Message,
 ) ([]txs.TxSequence[*AwmTx], error) {
-	subnetA := config.Subnets[0]
-	// TODO: should not be hardcoded like this
-	expectedMessages := int(config.TxsPerWorker) * config.Workers
-	warpRelay, err := NewWarpRelay(ctx, subnetA, WARP_THRESHOLD, expectedMessages)
-	if err != nil {
-		return nil, err
-	}
-	go func() {
-		err := warpRelay.Run(ctx)
-		if err != nil {
-			log.Error("warp relay failed", "err", err)
-		}
-	}()
-
 	// Each worker will listen for signed warp messages that are
 	// ready to be issued
 	txSequences := make([]txs.TxSequence[*AwmTx], config.Workers)
 	for i := 0; i < config.Workers; i++ {
-		txSequences[i] = NewWarpRelayTxSequence(ctx, warpRelay.signedMessages, chainID, pks[i], startingNonces[i])
+		txSequences[i] = NewWarpRelayTxSequence(ctx, signedMessages, chainID, pks[i], startingNonces[i])
 	}
 	return txSequences, nil
 }

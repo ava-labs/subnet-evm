@@ -33,6 +33,7 @@ import (
 
 const (
 	MetricsEndpoint = "/metrics" // Endpoint for the Prometheus Metrics Server
+	WarpThreshold   = 80         // % of weight to collect signatures from for warp messages
 )
 
 // ExecuteLoader creates txSequences from [config] and has txAgents execute the specified simulation.
@@ -97,23 +98,38 @@ func warpTest(ctx context.Context, cfg config.Config, reg *prometheus.Registry) 
 		return fmt.Errorf("expected 2 subnets, got %d", len(cfg.Subnets))
 	}
 
-	m := metrics.NewMetrics("", reg)
-	mB := metrics.NewMetrics("subnet_b_", reg)
-	mWarp := metrics.NewMetrics("warp_", reg)
-	timeTracker := newTimeTracker(mWarp.IssuanceToConfirmationTxTimes.Observe)
+	metricsA := metrics.NewMetrics("", reg)
+	metricsB := metrics.NewMetrics("subnet_b_", reg)
+	warpIssuanceToConfirm := metrics.NewSummary(
+		"warp_tx_issuance_to_confirmation_time",
+		"Warp Message End-To-End Issuance To Confirmation Time",
+	)
+	reg.MustRegister(warpIssuanceToConfirm)
+	txTracker := newTxTracker(warpIssuanceToConfirm.Observe)
 
 	var eg errgroup.Group
+	subnetA := cfg.Subnets[0]
+	warpRelay, err := NewWarpRelay(ctx, subnetA, WarpThreshold, txTracker.done)
+	if err != nil {
+		return err
+	}
+	eg.Go(func() error {
+		return warpRelay.Run(ctx)
+	})
 	eg.Go(func() error {
 		cfg := cfg // make a copy of the config for this goroutine
 		cfg.Endpoints = toWebsocketURIs(cfg.Subnets[0])
-		agentBuilder := &warpSendTxAgentBuilder{timeTracker: timeTracker}
-		return executeLoaderImpl(ctx, cfg, agentBuilder, m)
+		agentBuilder := &warpSendTxAgentBuilder{txTracker: txTracker}
+		return executeLoaderImpl(ctx, cfg, agentBuilder, metricsA)
 	})
 	eg.Go(func() error {
 		cfg := cfg // make a copy of the config for this goroutine
 		cfg.Endpoints = toWebsocketURIs(cfg.Subnets[1])
-		agentBuilder := &warpReceiveTxAgentBuilder{timeTracker: timeTracker}
-		return executeLoaderImpl(ctx, cfg, agentBuilder, mB)
+		agentBuilder := &warpReceiveTxAgentBuilder{
+			txTracker:      txTracker,
+			signedMessages: warpRelay.signedMessages,
+		}
+		return executeLoaderImpl(ctx, cfg, agentBuilder, metricsB)
 	})
 	return eg.Wait()
 }
