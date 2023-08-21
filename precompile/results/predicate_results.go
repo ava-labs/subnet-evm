@@ -5,6 +5,7 @@ package results
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/ava-labs/avalanchego/codec"
@@ -39,12 +40,12 @@ func init() {
 type PredicateResults struct {
 	lock sync.RWMutex
 
-	results map[common.Hash]map[common.Address][]byte `serialize:"true"`
+	Results map[common.Hash]map[common.Address][]byte `serialize:"true"`
 }
 
 func NewPredicateResults() *PredicateResults {
 	return &PredicateResults{
-		results: make(map[common.Hash]map[common.Address][]byte),
+		Results: make(map[common.Hash]map[common.Address][]byte),
 	}
 }
 
@@ -64,7 +65,7 @@ func (p *PredicateResults) GetPredicateResults(txHash common.Hash, address commo
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	txResults, ok := p.results[txHash]
+	txResults, ok := p.Results[txHash]
 	if !ok {
 		return nil
 	}
@@ -80,16 +81,29 @@ func (p *PredicateResults) SetTxPredicateResults(txHash common.Hash, txResults m
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	p.results[txHash] = txResults
+	p.Results[txHash] = txResults
 }
 
 func (p *PredicateResults) DeleteTxPredicateResults(txHash common.Hash) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	delete(p.results, txHash)
+	delete(p.Results, txHash)
 }
 
 func (p *PredicateResults) Bytes() ([]byte, error) {
 	return Codec.Marshal(Version, p)
+}
+
+func (p *PredicateResults) String() string {
+	sb := strings.Builder{}
+
+	sb.WriteString(fmt.Sprintf("PredicateResults: (Size = %d)", len(p.Results)))
+	for txHash, results := range p.Results {
+		for address, result := range results {
+			sb.WriteString(fmt.Sprintf("\n%s    %s: %x", txHash, address, result))
+		}
+	}
+
+	return sb.String()
 }

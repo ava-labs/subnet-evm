@@ -265,6 +265,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 	if err != nil {
 		env.state.RevertToSnapshot(snap)
 		env.gasPool.SetGas(gp)
+		env.predicateResults.DeleteTxPredicateResults(tx.Hash())
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)

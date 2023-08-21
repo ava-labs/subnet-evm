@@ -344,7 +344,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Transaction triggered new block", "blockHash", newHead.Hash())
 		nonce++
 
-		packedInput, err := warp.PackGetVerifiedWarpMessage()
+		packedInput, err := warp.PackGetVerifiedWarpMessage(common.Big0)
 		gomega.Expect(err).Should(gomega.BeNil())
 		tx := predicateutils.NewPredicateTx(
 			chainID,

@@ -172,7 +172,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	warpMessage, err := avalancheWarp.NewMessage(unsignedWarpMsg, &avalancheWarp.BitSetSignature{}) // Create message with empty signature for testing
 	require.NoError(t, err)
 	warpMessagePredicateBytes := predicateutils.PackPredicate(warpMessage.Bytes())
-	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage()
+	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage(common.Big0)
 	require.NoError(t, err)
 
 	tests := map[string]testutils.PrecompileTest{
@@ -180,7 +180,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, warpMessagePredicateBytes)
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)),
 			ReadOnly:    false,
@@ -193,7 +193,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 						DestinationAddress:  destinationAddress,
 						Payload:             packagedPayloadBytes,
 					},
-					Exists: true,
+					Valid: true,
 				})
 				if err != nil {
 					panic(err)
@@ -207,7 +207,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,
 			ExpectedRes: func() []byte {
-				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Exists: false})
+				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
 				if err != nil {
 					panic(err)
 				}
@@ -218,7 +218,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, warpMessagePredicateBytes)
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)),
 			ReadOnly:    true,
@@ -231,7 +231,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 						DestinationAddress:  destinationAddress,
 						Payload:             packagedPayloadBytes,
 					},
-					Exists: true,
+					Valid: true,
 				})
 				if err != nil {
 					panic(err)
@@ -245,7 +245,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    true,
 			ExpectedRes: func() []byte {
-				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Exists: false})
+				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
 				if err != nil {
 					panic(err)
 				}
@@ -256,7 +256,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, warpMessagePredicateBytes)
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)) - 1,
 			ReadOnly:    false,
@@ -266,7 +266,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, warpMessage.Bytes())
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessage.Bytes()})
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessage.Bytes())),
 			ReadOnly:    false,
@@ -276,7 +276,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, predicateutils.PackPredicate([]byte{1, 2, 3}))
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicateutils.PackPredicate([]byte{1, 2, 3})})
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(32),
 			ReadOnly:    false,
@@ -291,7 +291,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				warpMessage, err := avalancheWarp.NewMessage(unsignedMessage, &avalancheWarp.BitSetSignature{})
 				require.NoError(t, err)
 
-				state.SetPredicateStorageSlots(ContractAddress, predicateutils.PackPredicate(warpMessage.Bytes()))
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicateutils.PackPredicate(warpMessage.Bytes())})
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(160),
 			ReadOnly:    false,

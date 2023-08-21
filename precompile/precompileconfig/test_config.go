@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	common "github.com/ethereum/go-ethereum/common"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockAccepter is a mock of Accepter interface.

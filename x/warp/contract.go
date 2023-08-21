@@ -6,8 +6,11 @@ package warp
 import (
 	"errors"
 	"fmt"
+	"math/big"
 
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
@@ -53,6 +56,17 @@ var (
 	WarpPrecompile = createWarpPrecompile()
 )
 
+// WarpBlockHash is an auto generated low-level Go binding around an user-defined struct.
+type WarpBlockHash struct {
+	OriginChainID common.Hash
+	BlockHash     common.Hash
+}
+
+type GetVerifiedWarpBlockHashOutput struct {
+	WarpBlockHash WarpBlockHash
+	Valid         bool
+}
+
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
 type WarpMessage struct {
 	OriginChainID       common.Hash
@@ -64,9 +78,8 @@ type WarpMessage struct {
 
 type GetVerifiedWarpMessageOutput struct {
 	Message WarpMessage
-	Exists  bool
+	Valid   bool
 }
-
 type SendWarpMessageInput struct {
 	DestinationChainID common.Hash
 	DestinationAddress common.Address
@@ -99,10 +112,83 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	return packedOutput, remainingGas, nil
 }
 
-// PackGetVerifiedWarpMessage packs the calldata for the getVerifiedWarpMessage function
+// UnpackGetVerifiedWarpBlockHashInput attempts to unpack [input] into the *big.Int type argument
+// assumes that [input] does not include selector (omits first 4 func signature bytes)
+func UnpackGetVerifiedWarpBlockHashInput(input []byte) (*big.Int, error) {
+	res, err := WarpABI.UnpackInput("getVerifiedWarpBlockHash", input)
+	if err != nil {
+		return new(big.Int), err
+	}
+	unpacked := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
+	return unpacked, nil
+}
+
+// PackGetVerifiedWarpBlockHash packs [index] of type *big.Int into the appropriate arguments for getVerifiedWarpBlockHash.
+// the packed bytes include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
-func PackGetVerifiedWarpMessage() ([]byte, error) {
-	return WarpABI.Pack("getVerifiedWarpMessage")
+func PackGetVerifiedWarpBlockHash(index *big.Int) ([]byte, error) {
+	return WarpABI.Pack("getVerifiedWarpBlockHash", index)
+}
+
+// PackGetVerifiedWarpBlockHashOutput attempts to pack given [outputStruct] of type GetVerifiedWarpBlockHashOutput
+// to conform the ABI outputs.
+func PackGetVerifiedWarpBlockHashOutput(outputStruct GetVerifiedWarpBlockHashOutput) ([]byte, error) {
+	return WarpABI.PackOutput("getVerifiedWarpBlockHash",
+		outputStruct.WarpBlockHash,
+		outputStruct.Valid,
+	)
+}
+
+// UnpackGetVerifiedWarpBlockHashOutput attempts to unpack [output] as GetVerifiedWarpBlockHashOutput
+// assumes that [output] does not include selector (omits first 4 func signature bytes)
+func UnpackGetVerifiedWarpBlockHashOutput(output []byte) (GetVerifiedWarpBlockHashOutput, error) {
+	outputStruct := GetVerifiedWarpBlockHashOutput{}
+	err := WarpABI.UnpackIntoInterface(&outputStruct, "getVerifiedWarpBlockHash", output)
+
+	return outputStruct, err
+}
+
+// TODO
+func getVerifiedWarpBlockHash(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	// if remainingGas, err = contract.DeductGas(suppliedGas, GetVerifiedWarpBlockHashGasCost); err != nil {
+	// 	return nil, 0, err
+	// }
+	// attempts to unpack [input] into the arguments to the GetVerifiedWarpBlockHashInput.
+	// Assumes that [input] does not include selector
+	// You can use unpacked [inputStruct] variable in your code
+	inputStruct, err := UnpackGetVerifiedWarpBlockHashInput(input)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// CUSTOM CODE STARTS HERE
+	_ = inputStruct                           // CUSTOM CODE OPERATES ON INPUT
+	var output GetVerifiedWarpBlockHashOutput // CUSTOM CODE FOR AN OUTPUT
+	packedOutput, err := PackGetVerifiedWarpBlockHashOutput(output)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	// Return the packed output and the remaining gas
+	return packedOutput, remainingGas, nil
+}
+
+// UnpackGetVerifiedWarpMessageInput attempts to unpack [input] into the *big.Int type argument
+// assumes that [input] does not include selector (omits first 4 func signature bytes)
+func UnpackGetVerifiedWarpMessageInput(input []byte) (*big.Int, error) {
+	res, err := WarpABI.UnpackInput("getVerifiedWarpMessage", input)
+	if err != nil {
+		return new(big.Int), err
+	}
+	unpacked := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
+	return unpacked, nil
+}
+
+// PackGetVerifiedWarpMessage packs [index] of type *big.Int into the appropriate arguments for getVerifiedWarpMessage.
+// the packed bytes include selector (first 4 func signature bytes).
+// This function is mostly used for tests.
+func PackGetVerifiedWarpMessage(index *big.Int) ([]byte, error) {
+	return WarpABI.Pack("getVerifiedWarpMessage", index)
 }
 
 // PackGetVerifiedWarpMessageOutput attempts to pack given [outputStruct] of type GetVerifiedWarpMessageOutput
@@ -110,23 +196,42 @@ func PackGetVerifiedWarpMessage() ([]byte, error) {
 func PackGetVerifiedWarpMessageOutput(outputStruct GetVerifiedWarpMessageOutput) ([]byte, error) {
 	return WarpABI.PackOutput("getVerifiedWarpMessage",
 		outputStruct.Message,
-		outputStruct.Exists,
+		outputStruct.Valid,
 	)
+}
+
+// UnpackGetVerifiedWarpMessageOutput attempts to unpack [output] as GetVerifiedWarpMessageOutput
+// assumes that [output] does not include selector (omits first 4 func signature bytes)
+func UnpackGetVerifiedWarpMessageOutput(output []byte) (GetVerifiedWarpMessageOutput, error) {
+	outputStruct := GetVerifiedWarpMessageOutput{}
+	err := WarpABI.UnpackIntoInterface(&outputStruct, "getVerifiedWarpMessage", output)
+
+	return outputStruct, err
 }
 
 // getVerifiedWarpMessage retrieves the pre-verified warp message from the predicate storage slots and returns
 // the expected ABI encoding of the message to the caller.
-func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	remainingGas, err = contract.DeductGas(suppliedGas, GetVerifiedWarpMessageBaseCost)
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	// Ignore input since there are no arguments
-	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
-	// If there is no such value, return false to the caller.
-	if !exists {
+	warpIndex, err := UnpackGetVerifiedWarpMessageInput(input)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	if !warpIndex.IsUint64() {
+		return nil, remainingGas, fmt.Errorf("invalid index: %v", warpIndex)
+	}
+	warpIndexInt := int(warpIndex.Uint64())
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress, warpIndexInt)
+	predicateResults := accessibleState.GetBlockContext().GetPredicateResults(common.Hash{}, ContractAddress) // TODO
+	accessibleState.GetBlockContext()
+	valid := set.BitsFromBytes(predicateResults).Contains(warpIndexInt)
+	// If there is no such value or it failed verification, return invalid
+	if !exists || !valid {
 		packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
-			Exists: false,
+			Valid: false,
 		})
 		if err != nil {
 			return nil, remainingGas, err
@@ -154,6 +259,8 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
 	}
 
+	// TODO: break the above into a function shared by warp message and warp block hash, so that the only difference
+	// is parsing and returning the correct payload.
 	addressedPayload, err := warpPayload.ParseAddressedPayload(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
@@ -166,7 +273,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 			DestinationAddress:  addressedPayload.DestinationAddress,
 			Payload:             addressedPayload.Payload,
 		},
-		Exists: true,
+		Valid: true,
 	})
 	if err != nil {
 		return nil, remainingGas, err
@@ -262,9 +369,10 @@ func createWarpPrecompile() contract.StatefulPrecompiledContract {
 	var functions []*contract.StatefulPrecompileFunction
 
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
-		"getBlockchainID":        getBlockchainID,
-		"getVerifiedWarpMessage": getVerifiedWarpMessage,
-		"sendWarpMessage":        sendWarpMessage,
+		"getBlockchainID":          getBlockchainID,
+		"getVerifiedWarpBlockHash": getVerifiedWarpBlockHash,
+		"getVerifiedWarpMessage":   getVerifiedWarpMessage,
+		"sendWarpMessage":          sendWarpMessage,
 	}
 
 	for name, function := range abiFunctionMap {

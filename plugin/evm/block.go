@@ -269,9 +269,13 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 	if err != nil {
 		return fmt.Errorf("failed to marshal predicate results: %w", err) // XXX what constraints are needed to ensure we don't error here?
 	}
-	headerPredicateResults := b.ethBlock.Extra()[params.MaximumExtraDataSize:]
-	if !bytes.Equal(headerPredicateResults, predicateResultsBytes) {
-		return fmt.Errorf("invalid header predicate results (remote: %x local: %x)", headerPredicateResults, predicateResultsBytes)
+	headerPredicateResultsBytes := b.ethBlock.Extra()[params.DynamicFeeExtraDataSize:]
+	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
+		parsedResults, err := results.ParsePredicateResults(headerPredicateResultsBytes)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("invalid header predicate results (remote: %x %v local: %x %v)", headerPredicateResultsBytes, parsedResults, predicateResultsBytes, predicateResults)
 	}
 	return nil
 }
