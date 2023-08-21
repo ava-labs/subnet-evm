@@ -43,13 +43,13 @@ func (d *dummyConfigurator) MakeConfig() precompileconfig.Config {
 }
 
 func (d *dummyConfigurator) Configure(
-	chainConfig contract.ChainConfig,
+	chainConfig precompileconfig.ChainConfig,
 	precompileConfig precompileconfig.Config,
 	state contract.StateDB,
 	blockContext contract.BlockContext,
 ) error {
 	cfg := precompileConfig.(*dummyConfig)
-	return cfg.Configure(state, dummyAddr)
+	return cfg.AllowListConfig.Configure(chainConfig, dummyAddr, state, blockContext)
 }
 
 func TestAllowListRun(t *testing.T) {
