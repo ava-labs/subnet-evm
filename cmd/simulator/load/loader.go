@@ -21,7 +21,6 @@ import (
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
@@ -174,16 +173,6 @@ func executeLoaderImpl(
 	if err != nil {
 		return fmt.Errorf("failed to fetch chainID: %w", err)
 	}
-
-	// TODO: do this in a more robust way
-	// issue the "triggerTX"
-	for i := 0; i < 2; i++ {
-		if err := issueTriggerTx(ctx, chainID, keys[0], client); err != nil {
-			return err
-		}
-		log.Info("Trigger tx issued successfully", "attempt", i+1)
-	}
-
 	startingNonces, err := getStartingNonces(ctx, client, pks)
 	if err != nil {
 		return err
@@ -275,28 +264,4 @@ func getStartingNonces(ctx context.Context, client ethclient.Client, pks []*ecds
 		startingNonces[i] = nonce
 	}
 	return startingNonces, nil
-}
-
-func issueTriggerTx(
-	ctx context.Context, chainID *big.Int,
-	fundedKey *key.Key, client ethclient.Client,
-) error {
-	addr := fundedKey.Address
-	nonce, err := client.NonceAt(ctx, addr, nil)
-	if err != nil {
-		return err
-	}
-
-	txSigner := types.LatestSignerForChainID(chainID)
-	tx := types.NewTransaction(nonce, addr, common.Big1, 21_000, big.NewInt(225*params.GWei), nil)
-	triggerTx, err := types.SignTx(tx, txSigner, fundedKey.PrivKey)
-	if err != nil {
-		return err
-	}
-	worker := NewSingleAddressTxWorker(ctx, client, addr)
-	defer worker.Close(ctx)
-	if err := worker.IssueTx(ctx, triggerTx); err != nil {
-		return err
-	}
-	return worker.ConfirmTx(ctx, triggerTx)
 }
