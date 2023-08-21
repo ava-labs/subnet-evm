@@ -118,6 +118,7 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 	wallet, err := wallet.MakeWallet(ctx, &wallet.WalletConfig{
 		URI:          DefaultLocalNodeURI,
 		AVAXKeychain: kc,
+		EthKeychain:  kc,
 	})
 	gomega.Expect(err).Should(gomega.BeNil())
 
