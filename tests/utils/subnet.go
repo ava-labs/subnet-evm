@@ -113,13 +113,9 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 	kc := secp256k1fx.NewKeychain(genesis.EWOQKey)
 
-	// MakeWallet fetches the available UTXOs owned by [kc] on the network
+	// NewWalletFromURI fetches the available UTXOs owned by [kc] on the network
 	// that [LocalAPIURI] is hosting.
-	wallet, err := wallet.MakeWallet(ctx, &wallet.WalletConfig{
-		URI:          DefaultLocalNodeURI,
-		AVAXKeychain: kc,
-		EthKeychain:  kc,
-	})
+	wallet, err := wallet.NewWalletFromURI(ctx, DefaultLocalNodeURI, kc)
 	gomega.Expect(err).Should(gomega.BeNil())
 
 	pWallet := wallet.P()
