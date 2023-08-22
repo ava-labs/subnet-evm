@@ -23,7 +23,7 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 		return nil, err
 	}
 	if tx.Gas() < intrinsicGas {
-		return nil, fmt.Errorf("insufficient gas for predicate verification (%d) < intrinsic gas (%d)", tx.Gas(), intrinsicGas)
+		return nil, fmt.Errorf("%w for predicate verification (%d) < intrinsic gas (%d)", ErrIntrinsicGas, tx.Gas(), intrinsicGas)
 	}
 	return checkPrecompilePredicates(rules, predicateContext, tx)
 }

@@ -212,6 +212,26 @@ func TestCheckPredicate(t *testing.T) {
 			expectedRes: make(map[common.Address][]byte),
 			expectedErr: nil,
 		},
+		"insufficient gas": {
+			gas: 53000,
+			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
+				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
+				arg := common.Hash{1}
+				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(1), nil)
+				return map[common.Address]precompileconfig.Predicater{
+					addr1: predicate,
+				}
+			},
+			accessList: types.AccessList([]types.AccessTuple{
+				{
+					Address: addr1,
+					StorageKeys: []common.Hash{
+						{1},
+					},
+				},
+			}),
+			expectedErr: ErrIntrinsicGas,
+		},
 	} {
 		test := test
 		t.Run(name, func(t *testing.T) {
