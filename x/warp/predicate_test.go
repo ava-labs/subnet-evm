@@ -445,6 +445,61 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 	testutils.RunPredicateTests(t, tests)
 }
 
+// multiple messages all correct, multiple messages all incorrect, mixed bag
+func TestWarpMultiplePredicates(t *testing.T) {
+	snowCtx := createSnowCtx([]validatorRange{
+		{
+			start:     0,
+			end:       100,
+			weight:    20,
+			publicKey: true,
+		},
+	})
+
+	tests := make(map[string]testutils.PredicateTest)
+	for _, validMessageIndices := range [][]bool{
+		{},
+		{true, false},
+		{false, true},
+		{false, false},
+		{true, true},
+	} {
+		var (
+			numSigners               = int(params.WarpQuorumDenominator)
+			invalidPredicateBytes    = createPredicate(1)
+			validPredicateBytes      = createPredicate(numSigners)
+			expectedPredicateResults = set.NewBits()
+		)
+		predicates := make([][]byte, len(validMessageIndices))
+		expectedGas := uint64(0)
+		for index, valid := range validMessageIndices {
+			if valid {
+				expectedPredicateResults.Add(index)
+				predicates[index] = common.CopyBytes(validPredicateBytes)
+				expectedGas += GasCostPerSignatureVerification + uint64(len(validPredicateBytes))*GasCostPerWarpMessageBytes + uint64(numSigners)*GasCostPerWarpSigner
+			} else {
+				expectedGas += GasCostPerSignatureVerification + uint64(len(invalidPredicateBytes))*GasCostPerWarpMessageBytes + uint64(1)*GasCostPerWarpSigner
+				predicates[index] = invalidPredicateBytes
+			}
+		}
+
+		tests[fmt.Sprintf("multiple predicates %v", validMessageIndices)] = testutils.PredicateTest{
+			Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+			ProposerPredicateContext: &precompileconfig.PredicateContext{
+				SnowCtx: snowCtx,
+				ProposerVMBlockCtx: &block.Context{
+					PChainHeight: 1,
+				},
+			},
+			StorageSlots: predicates,
+			Gas:          expectedGas,
+			GasErr:       nil,
+			PredicateRes: expectedPredicateResults.Bytes(),
+		}
+	}
+	testutils.RunPredicateTests(t, tests)
+}
+
 func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 	snowCtx := createSnowCtx([]validatorRange{
 		{
