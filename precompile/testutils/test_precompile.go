@@ -45,8 +45,8 @@ type PrecompileTest struct {
 	ExpectedRes []byte
 	// ExpectedErr is the expected error returned by the precompile
 	ExpectedErr string
-	// BlockNumber is the block number to use for the precompile's block context
-	BlockNumber int64
+	// SetupBlockContext sets the expected calls on MockBlockContext for the test execution.
+	SetupBlockContext func(*contract.MockBlockContext)
 	// ChainConfig is the chain config to use for the precompile's block context
 	// If nil, the default chain config will be used.
 	ChainConfig precompileconfig.ChainConfig
@@ -99,7 +99,11 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	}
 
 	blockContext := contract.NewMockBlockContext(ctrl)
-	blockContext.EXPECT().Number().Return(big.NewInt(test.BlockNumber)).AnyTimes()
+	if test.SetupBlockContext != nil {
+		test.SetupBlockContext(blockContext)
+	} else {
+		blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
+	}
 	snowContext := snow.DefaultContextTest()
 
 	accessibleState := contract.NewMockAccessibleState(ctrl)
