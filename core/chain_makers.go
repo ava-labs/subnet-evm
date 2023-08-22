@@ -81,6 +81,11 @@ func (b *BlockGen) SetExtra(data []byte) {
 	b.header.Extra = data
 }
 
+// AppendExtra appends data to the extra data field of the generated block.
+func (b *BlockGen) AppendExtra(data []byte) {
+	b.header.Extra = append(b.header.Extra, data...)
+}
+
 // SetNonce sets the nonce field of the generated block.
 func (b *BlockGen) SetNonce(nonce types.BlockNonce) {
 	b.header.Nonce = nonce
