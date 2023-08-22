@@ -15,9 +15,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
-
-var DefaultChainConfig = precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false)
 
 // PrecompileTest is a test case for a precompile
 type PrecompileTest struct {
@@ -92,7 +91,10 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	blockContext := contract.NewMockBlockContext(big.NewInt(test.BlockNumber), 0)
 	chainConfig := test.ChainConfig
 	if chainConfig == nil {
-		chainConfig = DefaultChainConfig
+		mockChainConfig := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+		mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
+		mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
+		chainConfig = mockChainConfig
 	}
 
 	accessibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest(), chainConfig)

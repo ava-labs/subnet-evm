@@ -13,6 +13,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 // TODO: re-write these tests with mocks and allow for multiple precompile addresses
@@ -35,21 +36,21 @@ func (m *mockPredicater) PredicateGas(b []byte) (uint64, error) {
 }
 
 type predicateCheckTest struct {
-	address     common.Address
-	predicater  precompileconfig.Predicater
-	accessList  types.AccessList
-	gas         uint64
-	expectedRes map[common.Address][]byte
-	expectedErr error
+	accessList       types.AccessList
+	gas              uint64
+	createPredicates func(t testing.TB) map[common.Address]precompileconfig.Predicater
+	expectedRes      map[common.Address][]byte
+	expectedErr      error
 }
 
 func TestCheckPredicate(t *testing.T) {
 	testErr := errors.New("test error")
-	addr1 := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
-	addr2 := common.HexToAddress("0xb94f5374fce5edbc8e2a8697c15331677e6ebf0b")
+	addr1 := common.HexToAddress("0xaa")
+	addr2 := common.HexToAddress("0xbb")
+	addr3 := common.HexToAddress("0xcc")
+	addr4 := common.HexToAddress("0xdd")
 	predicateResultBytes := []byte{1, 2, 3}
 	for name, test := range map[string]predicateCheckTest{
-		// TODO: add test for multiple precompile predicates checked
 		"no predicates, no access list passes": {
 			gas:         53000,
 			expectedRes: make(map[common.Address][]byte),
@@ -69,16 +70,27 @@ func TestCheckPredicate(t *testing.T) {
 			expectedErr: nil,
 		},
 		"predicate no access list passes": {
-			address:     addr1,
-			gas:         53000,
-			predicater:  &mockPredicater{predicateFunc: func(*precompileconfig.PredicateContext, [][]byte) []byte { return nil }},
+			gas: 53000,
+			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
+				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
+				return map[common.Address]precompileconfig.Predicater{
+					addr1: predicate,
+				}
+			},
 			expectedRes: make(map[common.Address][]byte),
 			expectedErr: nil,
 		},
-		"predicate valid access list passes": {
-			address:    addr1,
-			gas:        53000,
-			predicater: &mockPredicater{predicateFunc: func(*precompileconfig.PredicateContext, [][]byte) []byte { return nil }},
+		"predicate named by access list returns empty": {
+			gas: 53000,
+			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
+				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
+				arg := common.Hash{1}
+				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
+				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(nil)
+				return map[common.Address]precompileconfig.Predicater{
+					addr1: predicate,
+				}
+			},
 			accessList: types.AccessList([]types.AccessTuple{
 				{
 					Address: addr1,
@@ -92,25 +104,17 @@ func TestCheckPredicate(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
-		"predicate access list does not name precompile": {
-			address:    addr1,
-			gas:        57300,
-			predicater: &mockPredicater{predicateFunc: func(*precompileconfig.PredicateContext, [][]byte) []byte { return nil }},
-			accessList: types.AccessList([]types.AccessTuple{
-				{
-					Address: addr2,
-					StorageKeys: []common.Hash{
-						{1},
-					},
-				},
-			}),
-			expectedRes: make(map[common.Address][]byte),
-			expectedErr: nil,
-		},
-		"predicate valid access list returns non-empty passes": {
-			address:    addr1,
-			gas:        53000,
-			predicater: &mockPredicater{predicateFunc: func(*precompileconfig.PredicateContext, [][]byte) []byte { return predicateResultBytes }},
+		"predicate named by access list returns non-empty": {
+			gas: 53000,
+			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
+				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
+				arg := common.Hash{1}
+				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
+				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes)
+				return map[common.Address]precompileconfig.Predicater{
+					addr1: predicate,
+				}
+			},
 			accessList: types.AccessList([]types.AccessTuple{
 				{
 					Address: addr1,
@@ -119,17 +123,20 @@ func TestCheckPredicate(t *testing.T) {
 					},
 				},
 			}),
-			expectedErr: nil,
 			expectedRes: map[common.Address][]byte{
 				addr1: predicateResultBytes,
 			},
+			expectedErr: nil,
 		},
-		"predicate invalid access list gas err": {
-			address: addr1,
-			gas:     53000,
-			predicater: &mockPredicater{
-				predicateGasFunc: func(b []byte) (uint64, error) { return 0, testErr },
-				predicateFunc:    func(*precompileconfig.PredicateContext, [][]byte) []byte { return nil },
+		"predicate returns gas err": {
+			gas: 53000,
+			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
+				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
+				arg := common.Hash{1}
+				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(0), testErr)
+				return map[common.Address]precompileconfig.Predicater{
+					addr1: predicate,
+				}
 			},
 			accessList: types.AccessList([]types.AccessTuple{
 				{
@@ -141,14 +148,99 @@ func TestCheckPredicate(t *testing.T) {
 			}),
 			expectedErr: testErr,
 		},
+		"two predicates one named by access list returns non-empty": {
+			gas: 53000,
+			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
+				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
+				arg := common.Hash{1}
+				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
+				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes)
+				return map[common.Address]precompileconfig.Predicater{
+					addr1: predicate,
+					addr2: predicate,
+				}
+			},
+			accessList: types.AccessList([]types.AccessTuple{
+				{
+					Address: addr1,
+					StorageKeys: []common.Hash{
+						{1},
+					},
+				},
+			}),
+			expectedRes: map[common.Address][]byte{
+				addr1: predicateResultBytes,
+			},
+			expectedErr: nil,
+		},
+		"two predicates both named by access list returns non-empty": {
+			gas: 53000,
+			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
+				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
+				arg := common.Hash{1}
+				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(4)
+				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes).Times(2)
+				return map[common.Address]precompileconfig.Predicater{
+					addr1: predicate,
+					addr2: predicate,
+				}
+			},
+			accessList: types.AccessList([]types.AccessTuple{
+				{
+					Address: addr1,
+					StorageKeys: []common.Hash{
+						{1},
+					},
+				},
+				{
+					Address: addr2,
+					StorageKeys: []common.Hash{
+						{1},
+					},
+				},
+			}),
+			expectedRes: map[common.Address][]byte{
+				addr1: predicateResultBytes,
+				addr2: predicateResultBytes,
+			},
+			expectedErr: nil,
+		},
+		"two predicates niether named by access list": {
+			gas: 61600,
+			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
+				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
+				return map[common.Address]precompileconfig.Predicater{
+					addr1: predicate,
+					addr2: predicate,
+				}
+			},
+			accessList: types.AccessList([]types.AccessTuple{
+				{
+					Address: addr3,
+					StorageKeys: []common.Hash{
+						{1},
+					},
+				},
+				{
+					Address: addr4,
+					StorageKeys: []common.Hash{
+						{1},
+					},
+				},
+			}),
+			expectedRes: make(map[common.Address][]byte),
+			expectedErr: nil,
+		},
 	} {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
 			// Create the rules from TestChainConfig and update the predicates based on the test params
 			rules := params.TestChainConfig.AvalancheRules(common.Big0, 0)
-			if test.predicater != nil {
-				rules.PredicatePrecompiles[test.address] = test.predicater
+			if test.createPredicates != nil {
+				for address, predicater := range test.createPredicates(t) {
+					rules.PredicatePrecompiles[address] = predicater
+				}
 			}
 
 			// Specify only the access list, since this test should not depend on any other values
