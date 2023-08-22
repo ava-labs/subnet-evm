@@ -84,20 +84,28 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	t.Helper()
 	contractAddress := module.Address
 
+	ctrl := gomock.NewController(t)
+
 	if test.BeforeHook != nil {
 		test.BeforeHook(t, state)
 	}
 
-	blockContext := contract.NewMockBlockContext(big.NewInt(test.BlockNumber), 0)
 	chainConfig := test.ChainConfig
 	if chainConfig == nil {
-		mockChainConfig := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+		mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
 		mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
 		mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
 		chainConfig = mockChainConfig
 	}
 
-	accessibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest(), chainConfig)
+	blockContext := contract.NewMockBlockContext(ctrl)
+	blockContext.EXPECT().Number().Return(big.NewInt(test.BlockNumber)).AnyTimes()
+	snowContext := snow.DefaultContextTest()
+
+	accessibleState := contract.NewMockAccessibleState(ctrl)
+	accessibleState.EXPECT().GetStateDB().Return(state).AnyTimes()
+	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+	accessibleState.EXPECT().GetSnowContext().Return(snowContext).AnyTimes()
 
 	if test.Config != nil {
 		err := module.Configure(chainConfig, test.Config, state, blockContext)
