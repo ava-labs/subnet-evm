@@ -281,6 +281,9 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 	timestamp := block.Header().Time
 	signer := types.MakeSigner(lotp.backend.ChainConfig(), bigblock, timestamp)
 
+	currentBlock := lotp.backend.CurrentBlock() // head block
+	headBlockLagHistogram.Update(int64(currentBlock.Number.Uint64() - block.NumberU64()))
+
 	for i := 0; i < len(txs); i++ {
 		tx := txs[i]
 		receipt := receipts[i]

@@ -25,4 +25,7 @@ var (
 	HandleMatchingPipelineTimerPanicsCounter = metrics.NewRegisteredCounter("handle_matching_pipeline_timer_panics", nil)
 
 	BuildBlockFailedWithLowBlockGasCounter = metrics.NewRegisteredCounter("build_block_failed_low_block_gas", nil)
+
+	// lag between head and accepted block
+	headBlockLagHistogram = metrics.NewRegisteredHistogram("head_block_lag", nil, metrics.ResettingSample(metrics.NewExpDecaySample(1028, 0.015)))
 )
