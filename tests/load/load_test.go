@@ -33,15 +33,15 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		blockchainID := subnetDetails.BlockchainID
 
 		nodeURIs := subnetDetails.ValidatorURIs
-		rpcEndpoints := make([]string, 0, len(nodeURIs))
+		wsEndpoints := make([]string, 0, len(nodeURIs))
 		for _, uri := range nodeURIs {
-			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID))
+			wsEndpoints = append(wsEndpoints, fmt.Sprintf("ws://%s/ext/bc/%s/ws", uri, blockchainID))
 		}
-		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
-		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
+		commaSeparatedWSEndpoints := strings.Join(wsEndpoints, ",")
+		err := os.Setenv("WS_ENDPOINTS", commaSeparatedWSEndpoints)
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		log.Info("Running load simulator...", "rpcEndpoints", commaSeparatedRPCEndpoints)
+		log.Info("Running load simulator...", "wsEndpoints", commaSeparatedWSEndpoints)
 		cmd := exec.Command("./scripts/run_simulator.sh")
 		log.Info("Running load simulator script", "cmd", cmd.String())
 

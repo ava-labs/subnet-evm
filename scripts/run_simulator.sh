@@ -31,12 +31,14 @@ run_simulator() {
     popd
     echo "running simulator from $PWD"
     ./cmd/simulator/simulator \
-        --endpoints=$RPC_ENDPOINTS \
+        --endpoints=$WS_ENDPOINTS \
         --key-dir=./cmd/simulator/.simulator/keys \
         --timeout=30s \
         --workers=1 \
-        --max-fee-cap=300 \
-        --max-tip-cap=100
+        --max-fee-cap=1000000 \
+        --max-tip-cap=10000 \
+        --txs-per-worker=10000 \
+        --batch-size=10000
 }
 
 run_simulator
