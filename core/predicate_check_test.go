@@ -16,25 +16,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// TODO: re-write these tests with mocks and allow for multiple precompile addresses
-var _ precompileconfig.Predicater = (*mockPredicater)(nil)
-
-type mockPredicater struct {
-	predicateFunc    func(*precompileconfig.PredicateContext, [][]byte) []byte
-	predicateGasFunc func([]byte) (uint64, error)
-}
-
-func (m *mockPredicater) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, b [][]byte) []byte {
-	return m.predicateFunc(predicateContext, b)
-}
-
-func (m *mockPredicater) PredicateGas(b []byte) (uint64, error) {
-	if m.predicateGasFunc == nil {
-		return 0, nil
-	}
-	return m.predicateGasFunc(b)
-}
-
 type predicateCheckTest struct {
 	accessList       types.AccessList
 	gas              uint64
