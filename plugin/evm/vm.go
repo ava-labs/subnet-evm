@@ -710,7 +710,7 @@ func (vm *VM) parseBlock(_ context.Context, b []byte) (snowman.Block, error) {
 	if err := rlp.DecodeBytes(b, ethBlock); err != nil {
 		return nil, err
 	}
-
+	// test
 	// Note: the status of block is set by ChainState
 	block := vm.newBlock(ethBlock)
 	// Performing syntactic verification in ParseBlock allows for
