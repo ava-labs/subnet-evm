@@ -682,22 +682,6 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	// Note: the status of block is set by ChainState
 	blk := vm.newBlock(block)
 
-	// Verify is called on a non-wrapped block here, such that this
-	// does not add [blk] to the processing blocks map in ChainState.
-	//
-	// TODO cache verification since Verify() will be called by the
-	// consensus engine as well.
-	//
-	// Note: this is only called when building a new block, so caching
-	// verification will only be a significant optimization for nodes
-	// that produce a large number of blocks.
-	// We call verify without writes here to avoid generating a reference
-	// to the blk state root in the triedb when we are going to call verify
-	// again from the consensus engine with writes enabled.
-	if err := blk.verify(predicateCtx, false /*=writes*/); err != nil {
-		return nil, fmt.Errorf("block failed verification due to: %w", err)
-	}
-
 	log.Debug(fmt.Sprintf("Built block %s", blk.ID()))
 	// Marks the current transactions from the mempool as being successfully issued
 	// into a block.
