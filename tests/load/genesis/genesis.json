@@ -14,7 +14,7 @@
     "subnetEVMTimestamp": 0,
     "feeConfig": {
       "gasLimit": 25000000,
-      "minBaseFee": 1000000000,
+      "minBaseFee": 100,
       "targetGas": 300000000,
       "baseFeeChangeDenominator": 48,
       "minBlockGasCost": 0,
