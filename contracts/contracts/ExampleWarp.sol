@@ -17,22 +17,56 @@ contract ExampleWarp {
         warp.sendWarpMessage(destinationChainID, destinationAddress, payload);
     }
 
-
     // validateWarpMessage retrieves the warp message attached to the transaction and verifies all of its attributes.
     function validateWarpMessage(
+        uint256 index,
         bytes32 originChainID,
         address originSenderAddress,
         bytes32 destinationChainID,
         address destinationAddress,
         bytes calldata payload
     ) external view {
-        (WarpMessage memory message, bool exists) = warp.getVerifiedWarpMessage();
-        require(exists);
+        (WarpMessage memory message, bool valid) = warp.getVerifiedWarpMessage(index);
+        require(valid);
         require(message.originChainID == originChainID);
         require(message.originSenderAddress == originSenderAddress);
         require(message.destinationChainID == destinationChainID);
         require(message.destinationAddress == destinationAddress);
         require(keccak256(message.payload) == keccak256(payload));
+    }
+
+    function validateInvalidWarpMessage(
+        uint256 index
+    ) external view {
+        (WarpMessage memory message, bool valid) = warp.getVerifiedWarpMessage(index);
+        require(!valid);
+        require(message.originChainID == bytes32(0));
+        require(message.originSenderAddress == address(0));
+        require(message.destinationChainID == bytes32(0));
+        require(message.destinationAddress == address(0));
+        require(keccak256(message.payload) == keccak256(bytes("")));
+    }
+
+    // validateWarpBlockHash retrieves the warp block hash attached to the transaction and verifies it matches the
+    // expected block hash.
+    function validateWarpBlockHash(
+        uint256 index,
+        bytes32 sourceChainID,
+        bytes32 blockHash
+    ) external view {
+        (WarpBlockHash memory warpBlockHash, bool valid) = warp.getVerifiedWarpBlockHash(index);
+        require(valid);
+        require(warpBlockHash.originChainID == sourceChainID);
+        require(warpBlockHash.blockHash == blockHash);
+    }
+
+    function validateInvalidWarpBlockHash(
+        uint256 index
+    ) external view {
+        (WarpBlockHash memory warpBlockHash, bool valid) = warp.getVerifiedWarpBlockHash(index);
+        require(valid);
+        require(warpBlockHash.originChainID == bytes32(0));
+        require(warpBlockHash.blockHash == bytes32(0));
     }
 
     // validateGetBlockchainID checks that the blockchainID returned by warp matches the argument

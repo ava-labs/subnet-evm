@@ -13,6 +13,11 @@ struct WarpMessage {
     bytes payload;
 }
 
+struct WarpBlockHash {
+    bytes32 originChainID;
+    bytes32 blockHash;
+}
+
 interface WarpMessenger {
     event SendWarpMessage(
         bytes32 indexed destinationChainID,
@@ -36,18 +41,19 @@ interface WarpMessenger {
 
     // getVerifiedWarpMessage parses the pre-verified warp message in the
     // predicate storage slots as a WarpMessage and returns it to the caller.
-    // Returns false if no such predicate exists.
-    function getVerifiedWarpMessage()
+    // Returns false if no such predicate exists or the message at the index
+    // fails verification.
+    function getVerifiedWarpMessage(uint256 index)
         external view
-        returns (WarpMessage calldata message, bool exists);
+        returns (WarpMessage calldata message, bool valid);
 
-    // Note: getVerifiedWarpMessage takes no arguments because it returns a single verified
-    // message that is encoded in the predicate (inside the tx access list) of the transaction.
-    // The alternative design to this is to verify messages during the EVM's execution in which
-    // case there would be no predicate and the block would encode the hits/misses that occur
-    // throughout its execution.
-    // This would result in the following alternative function signature:
-    // function verifyMessage(bytes calldata signedWarpMsg) external returns (WarpMessage calldata message);
+    // getVerifiedWarpBlockHash parses the pre-verified WarpBlockHash message in the
+    // predicate storage slots as a WarpBlockHash message and returns it to the caller.
+    // Returns false if no such predicate exists or the message at the index fails
+    // verification.
+    function getVerifiedWarpBlockHash(uint256 index)
+        external view
+        returns (WarpBlockHash calldata warpBlockHash, bool valid);
 
     // getBlockchainID returns the snow.Context BlockchainID of this chain.
     // This blockchainID is the hash of the transaction that created this blockchain on the P-Chain
