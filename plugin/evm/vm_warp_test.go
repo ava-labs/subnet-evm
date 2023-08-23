@@ -5,6 +5,8 @@ package evm
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -21,15 +23,13 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/internal/ethapi"
+	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
 	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -170,11 +170,17 @@ func TestReceiveWarpMessage(t *testing.T) {
 	blsAggregatedSignature, err := bls.AggregateSignatures([]*bls.Signature{blsSignature1, blsSignature2})
 	require.NoError(err)
 
+	minimumValidPChainHeight := uint64(10)
+	getValidatorSetTestErr := errors.New("can't get validator set test error")
+
 	vm.ctx.ValidatorState = &validators.TestState{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
 			return ids.Empty, nil
 		},
 		GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			if height < minimumValidPChainHeight {
+				return nil, getValidatorSetTestErr
+			}
 			return map[ids.NodeID]*validators.GetValidatorOutput{
 				nodeID1: {
 					NodeID:    nodeID1,
@@ -232,48 +238,9 @@ func TestReceiveWarpMessage(t *testing.T) {
 		require.NoError(err, "failed to add tx at index %d", i)
 	}
 
-	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
-		Message: warp.WarpMessage{
-			OriginChainID:       common.Hash(vm.ctx.ChainID),
-			OriginSenderAddress: testEthAddrs[0],
-			DestinationChainID:  common.Hash(vm.ctx.CChainID),
-			DestinationAddress:  testEthAddrs[1],
-			Payload:             payload,
-		},
-		Valid: true,
-	})
-	require.NoError(err)
-	_ = expectedOutput // XXX
-
-	// Assert that DoCall returns the expected output
-	hexGetWarpMsgInput := hexutil.Bytes(getVerifiedWarpMessageTx.Data())
-	hexGasLimit := hexutil.Uint64(getVerifiedWarpMessageTx.Gas())
-	accessList := getVerifiedWarpMessageTx.AccessList()
-	blockNum := new(rpc.BlockNumber)
-	*blockNum = rpc.LatestBlockNumber
-
-	executionRes, err := ethapi.DoCall(
-		context.Background(),
-		vm.eth.APIBackend,
-		ethapi.TransactionArgs{
-			To:         getVerifiedWarpMessageTx.To(),
-			Input:      &hexGetWarpMsgInput,
-			AccessList: &accessList,
-			Gas:        &hexGasLimit,
-		},
-		rpc.BlockNumberOrHash{BlockNumber: blockNum},
-		nil,
-		time.Second,
-		10_000_000,
-	)
-	require.NoError(err)
-	_ = executionRes // This is not expected to work without overrides.
-	// require.NoError(executionRes.Err)
-	// require.Equal(expectedOutput, executionRes.ReturnData)
-
 	// Build, verify, and accept block with valid proposer context.
 	validProposerCtx := &block.Context{
-		PChainHeight: 10,
+		PChainHeight: minimumValidPChainHeight,
 	}
 	vm.clock.Set(vm.clock.Time().Add(2 * time.Second))
 	<-issuer
@@ -292,9 +259,15 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	// Verify the block with another valid context with identical predicate results
 	require.NoError(block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
-		PChainHeight: 11,
+		PChainHeight: minimumValidPChainHeight + 1,
 	}))
 	require.Equal(choices.Processing, block2.Status())
+
+	// Verify the block in a different context causing the warp message to fail verification changing
+	// the expected header predicate results.
+	require.ErrorIs(block2VerifyWithCtx.VerifyWithContext(context.Background(), &block.Context{
+		PChainHeight: minimumValidPChainHeight - 1,
+	}), errInvalidHeaderPredicateResults)
 
 	// Accept the block after performing multiple VerifyWithContext operations
 	require.NoError(block2.Accept(context.Background()))
@@ -305,4 +278,32 @@ func TestReceiveWarpMessage(t *testing.T) {
 	require.Len(verifiedMessageReceipts, 1)
 	verifiedMessageTxReceipt := verifiedMessageReceipts[0]
 	require.Equal(types.ReceiptStatusSuccessful, verifiedMessageTxReceipt.Status)
+
+	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
+		Message: warp.WarpMessage{
+			OriginChainID:       common.Hash(vm.ctx.ChainID),
+			OriginSenderAddress: testEthAddrs[0],
+			DestinationChainID:  common.Hash(vm.ctx.CChainID),
+			DestinationAddress:  testEthAddrs[1],
+			Payload:             payload,
+		},
+		Valid: true,
+	})
+	require.NoError(err)
+
+	tracerAPI := tracers.NewAPI(vm.eth.APIBackend)
+	txTraceResults, err := tracerAPI.TraceBlockByHash(context.Background(), ethBlock.Hash(), nil)
+	require.NoError(err)
+	require.Len(txTraceResults, 1)
+	blockTxTraceResultBytes, err := json.Marshal(txTraceResults[0].Result)
+	require.NoError(err)
+	unmarshalResults := make(map[string]interface{})
+	require.NoError(json.Unmarshal(blockTxTraceResultBytes, &unmarshalResults))
+	require.Equal(unmarshalResults["returnValue"], common.Bytes2Hex(expectedOutput))
+
+	txTraceResult, err := tracerAPI.TraceTransaction(context.Background(), getVerifiedWarpMessageTx.Hash(), nil)
+	require.NoError(err)
+	txTraceResultBytes, err := json.Marshal(txTraceResult)
+	require.NoError(err)
+	require.Equal(txTraceResultBytes, blockTxTraceResultBytes)
 }

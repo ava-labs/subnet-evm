@@ -293,7 +293,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		if err != nil {
 			return err
 		}
-		return fmt.Errorf("invalid header predicate results (remote: %x %v local: %x %v)", headerPredicateResultsBytes, parsedResults, predicateResultsBytes, predicateResults)
+		return fmt.Errorf("%w (remote: %x %v local: %x %v)", errInvalidHeaderPredicateResults, headerPredicateResultsBytes, parsedResults, predicateResultsBytes, predicateResults)
 	}
 	return nil
 }
