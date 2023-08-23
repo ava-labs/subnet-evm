@@ -66,7 +66,11 @@ func NewDefaultANRConfig() ANRConfig {
 		PluginDir:           os.ExpandEnv("$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins"),
 		GlobalNodeConfig: `{
 			"log-display-level":"info",
-			"proposervm-use-current-height":true
+			"proposervm-use-current-height":true,
+			"throttler-inbound-cpu-validator-alloc": 8, 
+			"throttler-inbound-disk-validator-alloc": 2000, 
+			"throttler-outbound-validator-alloc-size" : "67108864", 
+			"throttler-inbound-validator-alloc-size": "67108864"
 		}`,
 	}
 	// If AVALANCHEGO_BUILD_PATH is populated, override location set by GOPATH
