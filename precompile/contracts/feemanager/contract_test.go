@@ -98,7 +98,7 @@ var (
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().Number().Return(testBlockNumber)
+				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
 			},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
