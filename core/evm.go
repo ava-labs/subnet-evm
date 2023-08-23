@@ -51,7 +51,7 @@ type ChainContext interface {
 // NewEVMBlockContext creates a new context for use in the EVM.
 func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
 	var predicateResults *results.PredicateResults
-	if len(header.Extra) > int(params.DynamicFeeExtraDataSize) {
+	if len(header.Extra) > params.DynamicFeeExtraDataSize {
 		predicateResults, _ = results.ParsePredicateResults(header.Extra[params.DynamicFeeExtraDataSize:]) // TODO: better error handling
 	}
 
