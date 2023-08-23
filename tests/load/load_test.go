@@ -5,6 +5,7 @@ package load
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -35,7 +36,10 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		nodeURIs := subnetDetails.ValidatorURIs
 		wsEndpoints := make([]string, 0, len(nodeURIs))
 		for _, uri := range nodeURIs {
-			wsEndpoints = append(wsEndpoints, fmt.Sprintf("ws://%s/ext/bc/%s/ws", uri, blockchainID))
+			u, err := url.Parse(uri)
+			gomega.Expect(err).Should(gomega.BeNil())
+
+			wsEndpoints = append(wsEndpoints, fmt.Sprintf("ws://%s/ext/bc/%s/ws", u.Host, blockchainID))
 		}
 		commaSeparatedWSEndpoints := strings.Join(wsEndpoints, ",")
 		err := os.Setenv("WS_ENDPOINTS", commaSeparatedWSEndpoints)
