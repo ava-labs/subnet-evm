@@ -437,7 +437,7 @@ func (h *GossipHandler) HandleTxs(nodeID ids.NodeID, msg message.TxsGossip) erro
 		return nil
 	}
 	h.stats.IncEthTxsGossipReceived()
-	errs := h.txPool.AddRemotes(txs)
+	errs := h.txPool.AddRemotesSync(txs)
 	for i, err := range errs {
 		if err != nil {
 			log.Trace(
