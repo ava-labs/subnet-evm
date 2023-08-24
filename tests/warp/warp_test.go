@@ -315,10 +315,8 @@ func sendMessage(
 	gomega.Expect(err).Should(gomega.BeNil())
 	defer sub.Unsubscribe()
 
-
-
 	packedInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
-		DestinationChainID: 	common.BytesToHash(testCtx.blockchainIDB[:]),
+		DestinationChainID: common.BytesToHash(testCtx.blockchainIDB[:]),
 		DestinationAddress: destinationAddress,
 		Payload:            payload,
 	})
