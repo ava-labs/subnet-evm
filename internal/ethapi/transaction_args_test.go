@@ -35,6 +35,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -225,8 +226,8 @@ func newBackendMock() *backendMock {
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades: params.NetworkUpgrades{
-			SubnetEVMTimestamp: big.NewInt(1000),
+		MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
+			SubnetEVMTimestamp: utils.NewUint64(1000),
 		},
 	}
 	return &backendMock{

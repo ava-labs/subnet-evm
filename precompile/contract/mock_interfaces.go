@@ -7,8 +7,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
 // TODO: replace with gomock library
@@ -30,20 +29,22 @@ func NewMockBlockContext(blockNumber *big.Int, timestamp uint64) *mockBlockConte
 	}
 }
 
-func (mb *mockBlockContext) Number() *big.Int    { return mb.blockNumber }
-func (mb *mockBlockContext) Timestamp() *big.Int { return new(big.Int).SetUint64(mb.timestamp) }
+func (mb *mockBlockContext) Number() *big.Int  { return mb.blockNumber }
+func (mb *mockBlockContext) Timestamp() uint64 { return mb.timestamp }
 
 type mockAccessibleState struct {
 	state        StateDB
 	blockContext *mockBlockContext
 	snowContext  *snow.Context
+	chainConfig  precompileconfig.ChainConfig
 }
 
-func NewMockAccessibleState(state StateDB, blockContext *mockBlockContext, snowContext *snow.Context) *mockAccessibleState {
+func NewMockAccessibleState(state StateDB, blockContext *mockBlockContext, snowContext *snow.Context, chainConfig precompileconfig.ChainConfig) *mockAccessibleState {
 	return &mockAccessibleState{
 		state:        state,
 		blockContext: blockContext,
 		snowContext:  snowContext,
+		chainConfig:  chainConfig,
 	}
 }
 
@@ -53,21 +54,4 @@ func (m *mockAccessibleState) GetBlockContext() BlockContext { return m.blockCon
 
 func (m *mockAccessibleState) GetSnowContext() *snow.Context { return m.snowContext }
 
-func (m *mockAccessibleState) CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	return nil, 0, nil
-}
-
-type mockChainState struct {
-	feeConfig            commontype.FeeConfig
-	allowedFeeRecipients bool
-}
-
-func (m *mockChainState) GetFeeConfig() commontype.FeeConfig { return m.feeConfig }
-func (m *mockChainState) AllowedFeeRecipients() bool         { return m.allowedFeeRecipients }
-
-func NewMockChainState(feeConfig commontype.FeeConfig, allowedFeeRecipients bool) *mockChainState {
-	return &mockChainState{
-		feeConfig:            feeConfig,
-		allowedFeeRecipients: allowedFeeRecipients,
-	}
-}
+func (m *mockAccessibleState) GetChainConfig() precompileconfig.ChainConfig { return m.chainConfig }

@@ -124,13 +124,14 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		return nil
 	}
 	// Disable metrics to prevent duplicate registerer
+	stateSyncDisabledConfigJSON := `{"state-sync-enabled":false}`
 	if err := syncDisabledVM.Initialize(
 		context.Background(),
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDBManager,
 		[]byte(genesisJSONSubnetEVM),
 		nil,
-		nil,
+		[]byte(stateSyncDisabledConfigJSON),
 		vmSetup.syncerVM.toEngine,
 		[]*commonEng.Fx{},
 		appSender,
@@ -174,7 +175,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		}
 	}
 	// Verify the snapshot disk layer matches the last block root
-	lastRoot := syncDisabledVM.blockChain.CurrentBlock().Root()
+	lastRoot := syncDisabledVM.blockChain.CurrentBlock().Root
 	if err := syncDisabledVM.blockChain.Snapshots().Verify(lastRoot); err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +185,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	syncReEnabledVM := &VM{}
 	// Enable state sync in configJSON
 	configJSON := fmt.Sprintf(
-		"{\"state-sync-enabled\":true, \"state-sync-min-blocks\":%d}",
+		`{"state-sync-enabled":true, "state-sync-min-blocks":%d}`,
 		test.stateSyncMinBlocks,
 	)
 	if err := syncReEnabledVM.Initialize(
@@ -224,6 +225,40 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 	assert.True(t, enabled, "sync should be enabled")
 
 	vmSetup.syncerVM = syncReEnabledVM
+	testSyncerVM(t, vmSetup, test)
+}
+
+func TestVMShutdownWhileSyncing(t *testing.T) {
+	var (
+		lock    sync.Mutex
+		vmSetup *syncVMSetup
+	)
+	reqCount := 0
+	test := syncTest{
+		syncableInterval:   256,
+		stateSyncMinBlocks: 50, // must be less than [syncableInterval] to perform sync
+		syncMode:           block.StateSyncStatic,
+		responseIntercept: func(syncerVM *VM, nodeID ids.NodeID, requestID uint32, response []byte) {
+			lock.Lock()
+			defer lock.Unlock()
+
+			reqCount++
+			// Shutdown the VM after 50 requests to interrupt the sync
+			if reqCount == 50 {
+				// Note this verifies the VM shutdown does not time out while syncing.
+				require.NoError(t, vmSetup.syncerVM.Shutdown(context.Background()))
+			} else if reqCount < 50 {
+				syncerVM.AppResponse(context.Background(), nodeID, requestID, response)
+			}
+		},
+		expectedErr: context.Canceled,
+	}
+	vmSetup = createSyncServerAndClientVMs(t, test)
+	defer func() {
+		require.NoError(t, vmSetup.serverVM.Shutdown(context.Background()))
+	}()
+
+	// Perform sync resulting in early termination.
 	testSyncerVM(t, vmSetup, test)
 }
 

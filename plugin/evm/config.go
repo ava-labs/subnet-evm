@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/cast"
@@ -17,13 +17,14 @@ import (
 const (
 	defaultAcceptorQueueLimit                         = 64 // Provides 2 minutes of buffer (2s block target) for a commit delay
 	defaultPruningEnabled                             = true
+	defaultPruneWarpDB                                = false
 	defaultCommitInterval                             = 4096
 	defaultTrieCleanCache                             = 512
-	defaultTrieDirtyCache                             = 256
+	defaultTrieDirtyCache                             = 512
 	defaultTrieDirtyCommitTarget                      = 20
 	defaultSnapshotCache                              = 256
 	defaultSyncableCommitInterval                     = defaultCommitInterval * 4
-	defaultSnapshotAsync                              = true
+	defaultSnapshotWait                               = false
 	defaultRpcGasCap                                  = 50_000_000 // Default to 50M Gas Limit
 	defaultRpcTxFeeCap                                = 100        // 100 AVAX
 	defaultMetricsExpensiveEnabled                    = true
@@ -47,7 +48,6 @@ const (
 	defaultPopulateMissingTriesParallelism            = 1024
 	defaultStateSyncServerTrieCache                   = 64 // MB
 	defaultAcceptedCacheSize                          = 32 // blocks
-	defaultWarpAPIEnabled                             = true
 
 	// defaultStateSyncMinBlocks is the minimum number of blocks the blockchain
 	// should be ahead of local last accepted to perform state sync.
@@ -56,7 +56,8 @@ const (
 	// time assumptions:
 	// - normal bootstrap processing time: ~14 blocks / second
 	// - state sync time: ~6 hrs.
-	defaultStateSyncMinBlocks = 300_000
+	defaultStateSyncMinBlocks   = 300_000
+	defaultStateSyncRequestSize = 1024 // the number of key/values to ask peers for per request
 )
 
 var (
@@ -112,7 +113,7 @@ type Config struct {
 
 	// Eth Settings
 	Preimages      bool `json:"preimages-enabled"`
-	SnapshotAsync  bool `json:"snapshot-async"`
+	SnapshotWait   bool `json:"snapshot-wait"`
 	SnapshotVerify bool `json:"snapshot-verification-enabled"`
 
 	// Pruning Settings
@@ -122,6 +123,7 @@ type Config struct {
 	AllowMissingTries               bool    `json:"allow-missing-tries"`                // If enabled, warnings preventing an incomplete trie index are suppressed
 	PopulateMissingTries            *uint64 `json:"populate-missing-tries,omitempty"`   // Sets the starting point for re-populating missing tries. Disables re-generation if nil.
 	PopulateMissingTriesParallelism int     `json:"populate-missing-tries-parallelism"` // Number of concurrent readers to use when re-populating missing tries on startup.
+	PruneWarpDB                     bool    `json:"prune-warp-db-enabled"`              // Determines if the warpDB should be cleared on startup
 
 	// Metric Settings
 	MetricsExpensiveEnabled bool `json:"metrics-expensive-enabled"` // Debug-level metrics that might impact runtime performance
@@ -177,9 +179,6 @@ type Config struct {
 	MaxOutboundActiveRequests           int64 `json:"max-outbound-active-requests"`
 	MaxOutboundActiveCrossChainRequests int64 `json:"max-outbound-active-cross-chain-requests"`
 
-	// Database Settings
-	InspectDatabase bool `json:"inspect-database"` // Inspects the database on startup if enabled.
-
 	// Sync settings
 	StateSyncEnabled         bool   `json:"state-sync-enabled"`
 	StateSyncSkipResume      bool   `json:"state-sync-skip-resume"` // Forces state sync to use the highest available summary block
@@ -187,15 +186,16 @@ type Config struct {
 	StateSyncIDs             string `json:"state-sync-ids"`
 	StateSyncCommitInterval  uint64 `json:"state-sync-commit-interval"`
 	StateSyncMinBlocks       uint64 `json:"state-sync-min-blocks"`
+	StateSyncRequestSize     uint16 `json:"state-sync-request-size"`
+
+	// Database Settings
+	InspectDatabase bool `json:"inspect-database"` // Inspects the database on startup if enabled.
 
 	// SkipUpgradeCheck disables checking that upgrades must take place before the last
 	// accepted block. Skipping this check is useful when a node operator does not update
 	// their node before the network upgrade and their node accepts blocks that have
 	// identical state with the pre-upgrade ruleset.
 	SkipUpgradeCheck bool `json:"skip-upgrade-check"`
-
-	// SkipSubnetEVMUpgradeCheck disables checking that SubnetEVM Upgrade is enabled at genesis
-	SkipSubnetEVMUpgradeCheck bool `json:"skip-subnet-evm-upgrade-check"`
 
 	// AcceptedCacheSize is the depth to keep in the accepted headers cache and the
 	// accepted logs cache at the accepted tip.
@@ -225,16 +225,15 @@ func (c *Config) SetDefaults() {
 	c.RPCGasCap = defaultRpcGasCap
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
-	c.WarpAPIEnabled = defaultWarpAPIEnabled
 
-	c.TxPoolJournal = core.DefaultTxPoolConfig.Journal
-	c.TxPoolRejournal = Duration{core.DefaultTxPoolConfig.Rejournal}
-	c.TxPoolPriceLimit = core.DefaultTxPoolConfig.PriceLimit
-	c.TxPoolPriceBump = core.DefaultTxPoolConfig.PriceBump
-	c.TxPoolAccountSlots = core.DefaultTxPoolConfig.AccountSlots
-	c.TxPoolGlobalSlots = core.DefaultTxPoolConfig.GlobalSlots
-	c.TxPoolAccountQueue = core.DefaultTxPoolConfig.AccountQueue
-	c.TxPoolGlobalQueue = core.DefaultTxPoolConfig.GlobalQueue
+	c.TxPoolJournal = txpool.DefaultConfig.Journal
+	c.TxPoolRejournal = Duration{txpool.DefaultConfig.Rejournal}
+	c.TxPoolPriceLimit = txpool.DefaultConfig.PriceLimit
+	c.TxPoolPriceBump = txpool.DefaultConfig.PriceBump
+	c.TxPoolAccountSlots = txpool.DefaultConfig.AccountSlots
+	c.TxPoolGlobalSlots = txpool.DefaultConfig.GlobalSlots
+	c.TxPoolAccountQueue = txpool.DefaultConfig.AccountQueue
+	c.TxPoolGlobalQueue = txpool.DefaultConfig.GlobalQueue
 
 	c.APIMaxDuration.Duration = defaultApiMaxDuration
 	c.WSCPURefillRate.Duration = defaultWsCpuRefillRate
@@ -249,7 +248,7 @@ func (c *Config) SetDefaults() {
 	c.SnapshotCache = defaultSnapshotCache
 	c.AcceptorQueueLimit = defaultAcceptorQueueLimit
 	c.CommitInterval = defaultCommitInterval
-	c.SnapshotAsync = defaultSnapshotAsync
+	c.SnapshotWait = defaultSnapshotWait
 	c.RegossipFrequency.Duration = defaultRegossipFrequency
 	c.RegossipMaxTxs = defaultRegossipMaxTxs
 	c.RegossipTxsPerAddress = defaultRegossipTxsPerAddress
@@ -265,6 +264,7 @@ func (c *Config) SetDefaults() {
 	c.StateSyncServerTrieCache = defaultStateSyncServerTrieCache
 	c.StateSyncCommitInterval = defaultSyncableCommitInterval
 	c.StateSyncMinBlocks = defaultStateSyncMinBlocks
+	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
 }
@@ -300,10 +300,10 @@ func (c *Config) Validate() error {
 	if !c.Pruning && c.OfflinePruning {
 		return fmt.Errorf("cannot run offline pruning while pruning is disabled")
 	}
-
 	// If pruning is enabled, the commit interval must be non-zero so the node commits state tries every CommitInterval blocks.
 	if c.Pruning && c.CommitInterval == 0 {
 		return fmt.Errorf("cannot use commit interval of 0 with pruning enabled")
 	}
+
 	return nil
 }

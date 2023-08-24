@@ -187,11 +187,11 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 		return nil, nil, common.Hash{}, UnsupportedForkError{subtest.Fork}
 	}
 	vmconfig.ExtraEips = eips
-	block := t.genesis(config).ToBlock(nil)
+	block := t.genesis(config).ToBlock()
 	snaps, statedb := MakePreState(rawdb.NewMemoryDatabase(), t.json.Pre, snapshotter)
 
 	var baseFee *big.Int
-	if config.IsSubnetEVM(new(big.Int)) {
+	if config.IsSubnetEVM(0) {
 		baseFee = t.json.Env.BaseFee
 		if baseFee == nil {
 			// Retesteth uses `0x10` for genesis baseFee. Therefore, it defaults to
@@ -219,11 +219,11 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	}
 
 	// Prepare the EVM.
-	txContext := core.NewEVMTxContext(msg)
+	txContext := core.NewEVMTxContext(&msg)
 	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
-	if config.IsSubnetEVM(new(big.Int)) && t.json.Env.Random != nil {
+	if config.IsSubnetEVM(0) && t.json.Env.Random != nil {
 		context.Difficulty = big.NewInt(0)
 	}
 	evm := vm.NewEVM(context, txContext, statedb, config, vmconfig)
@@ -231,7 +231,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	snapshot := statedb.Snapshot()
 	gaspool := new(core.GasPool)
 	gaspool.AddGas(block.GasLimit())
-	if _, err := core.ApplyMessage(evm, msg, gaspool); err != nil {
+	if _, err := core.ApplyMessage(evm, &msg, gaspool); err != nil {
 		statedb.RevertToSnapshot(snapshot)
 	}
 	// Add 0-value mining reward. This only makes a difference in the cases
@@ -263,7 +263,13 @@ func MakePreState(db ethdb.Database, accounts core.GenesisAlloc, snapshotter boo
 
 	var snaps *snapshot.Tree
 	if snapshotter {
-		snaps, _ = snapshot.New(db, sdb.TrieDB(), 1, common.Hash{}, root, false, true, false)
+		snapconfig := snapshot.Config{
+			CacheSize:  1,
+			AsyncBuild: false,
+			NoBuild:    false,
+			SkipVerify: true,
+		}
+		snaps, _ = snapshot.New(snapconfig, db, sdb.TrieDB(), common.Hash{}, root)
 	}
 	statedb, _ = state.New(root, sdb, snaps)
 	return snaps, statedb
@@ -293,7 +299,7 @@ func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (core.Messa
 	if len(tx.PrivateKey) > 0 {
 		key, err := crypto.ToECDSA(tx.PrivateKey)
 		if err != nil {
-			return nil, fmt.Errorf("invalid private key: %v", err)
+			return core.Message{}, fmt.Errorf("invalid private key: %v", err)
 		}
 		from = crypto.PubkeyToAddress(key.PublicKey)
 	}
@@ -302,19 +308,19 @@ func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (core.Messa
 	if tx.To != "" {
 		to = new(common.Address)
 		if err := to.UnmarshalText([]byte(tx.To)); err != nil {
-			return nil, fmt.Errorf("invalid to address: %v", err)
+			return core.Message{}, fmt.Errorf("invalid to address: %v", err)
 		}
 	}
 
 	// Get values specific to this post state.
 	if ps.Indexes.Data > len(tx.Data) {
-		return nil, fmt.Errorf("tx data index %d out of bounds", ps.Indexes.Data)
+		return core.Message{}, fmt.Errorf("tx data index %d out of bounds", ps.Indexes.Data)
 	}
 	if ps.Indexes.Value > len(tx.Value) {
-		return nil, fmt.Errorf("tx value index %d out of bounds", ps.Indexes.Value)
+		return core.Message{}, fmt.Errorf("tx value index %d out of bounds", ps.Indexes.Value)
 	}
 	if ps.Indexes.Gas > len(tx.GasLimit) {
-		return nil, fmt.Errorf("tx gas limit index %d out of bounds", ps.Indexes.Gas)
+		return core.Message{}, fmt.Errorf("tx gas limit index %d out of bounds", ps.Indexes.Gas)
 	}
 	dataHex := tx.Data[ps.Indexes.Data]
 	valueHex := tx.Value[ps.Indexes.Value]
@@ -324,13 +330,13 @@ func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (core.Messa
 	if valueHex != "0x" {
 		v, ok := math.ParseBig256(valueHex)
 		if !ok {
-			return nil, fmt.Errorf("invalid tx value %q", valueHex)
+			return core.Message{}, fmt.Errorf("invalid tx value %q", valueHex)
 		}
 		value = v
 	}
 	data, err := hex.DecodeString(strings.TrimPrefix(dataHex, "0x"))
 	if err != nil {
-		return nil, fmt.Errorf("invalid tx data %q", dataHex)
+		return core.Message{}, fmt.Errorf("invalid tx data %q", dataHex)
 	}
 	var accessList types.AccessList
 	if tx.AccessLists != nil && tx.AccessLists[ps.Indexes.Data] != nil {
@@ -352,11 +358,21 @@ func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (core.Messa
 			tx.MaxFeePerGas)
 	}
 	if gasPrice == nil {
-		return nil, fmt.Errorf("no gas price provided")
+		return core.Message{}, fmt.Errorf("no gas price provided")
 	}
 
-	msg := types.NewMessage(from, to, tx.Nonce, value, gasLimit, gasPrice,
-		tx.MaxFeePerGas, tx.MaxPriorityFeePerGas, data, accessList, false)
+	msg := core.Message{
+		From:       from,
+		To:         to,
+		Nonce:      tx.Nonce,
+		Value:      value,
+		GasLimit:   gasLimit,
+		GasPrice:   gasPrice,
+		GasFeeCap:  tx.MaxFeePerGas,
+		GasTipCap:  tx.MaxPriorityFeePerGas,
+		Data:       data,
+		AccessList: accessList,
+	}
 	return msg, nil
 }
 

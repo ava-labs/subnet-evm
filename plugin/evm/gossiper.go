@@ -22,6 +22,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 )
@@ -34,6 +35,10 @@ const (
 	// [txsGossipInterval] is how often we attempt to gossip newly seen
 	// transactions to other nodes.
 	txsGossipInterval = 500 * time.Millisecond
+
+	// [minGossipBatchInterval] is the minimum amount of time that must pass
+	// before our last gossip to peers.
+	minGossipBatchInterval = 50 * time.Millisecond
 )
 
 // Gossiper handles outgoing gossip of transactions
@@ -44,13 +49,12 @@ type Gossiper interface {
 
 // pushGossiper is used to gossip transactions to the network
 type pushGossiper struct {
-	ctx                  *snow.Context
-	gossipActivationTime time.Time
-	config               Config
+	ctx    *snow.Context
+	config Config
 
 	client     peer.NetworkClient
 	blockchain *core.BlockChain
-	txPool     *core.TxPool
+	txPool     *txpool.TxPool
 
 	// We attempt to batch transactions we need to gossip to avoid runaway
 	// amplification of mempol chatter.
@@ -72,24 +76,20 @@ type pushGossiper struct {
 // createGossiper constructs and returns a pushGossiper or noopGossiper
 // based on whether vm.chainConfig.SubnetEVMTimestamp is set
 func (vm *VM) createGossiper(stats GossipStats) Gossiper {
-	if vm.chainConfig.SubnetEVMTimestamp == nil {
-		return &noopGossiper{}
-	}
 	net := &pushGossiper{
-		ctx:                  vm.ctx,
-		gossipActivationTime: time.Unix(vm.chainConfig.SubnetEVMTimestamp.Int64(), 0),
-		config:               vm.config,
-		client:               vm.client,
-		blockchain:           vm.blockChain,
-		txPool:               vm.txPool,
-		txsToGossipChan:      make(chan []*types.Transaction),
-		txsToGossip:          make(map[common.Hash]*types.Transaction),
-		shutdownChan:         vm.shutdownChan,
-		shutdownWg:           &vm.shutdownWg,
-		recentTxs:            &cache.LRU[common.Hash, interface{}]{Size: recentCacheSize},
-		codec:                vm.networkCodec,
-		signer:               types.LatestSigner(vm.blockChain.Config()),
-		stats:                stats,
+		ctx:             vm.ctx,
+		config:          vm.config,
+		client:          vm.client,
+		blockchain:      vm.blockChain,
+		txPool:          vm.txPool,
+		txsToGossipChan: make(chan []*types.Transaction),
+		txsToGossip:     make(map[common.Hash]*types.Transaction),
+		shutdownChan:    vm.shutdownChan,
+		shutdownWg:      &vm.shutdownWg,
+		recentTxs:       &cache.LRU[common.Hash, interface{}]{Size: recentCacheSize},
+		codec:           vm.networkCodec,
+		signer:          types.LatestSigner(vm.blockChain.Config()),
+		stats:           stats,
 	}
 	net.awaitEthTxGossip()
 	return net
@@ -177,7 +177,7 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 
 	// Add best transactions to be gossiped (preferring local txs)
 	tip := n.blockchain.CurrentBlock()
-	state, err := n.blockchain.StateAt(tip.Root())
+	state, err := n.blockchain.StateAt(tip.Root)
 	if err != nil || state == nil {
 		log.Debug(
 			"could not get state at tip",
@@ -189,14 +189,14 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 	rgFrequency := n.config.RegossipFrequency
 	rgMaxTxs := n.config.RegossipMaxTxs
 	rgTxsPerAddr := n.config.RegossipTxsPerAddress
-	localQueued := n.queueExecutableTxs(state, tip.BaseFee(), localTxs, rgFrequency, rgMaxTxs, rgTxsPerAddr)
+	localQueued := n.queueExecutableTxs(state, tip.BaseFee, localTxs, rgFrequency, rgMaxTxs, rgTxsPerAddr)
 	localCount := len(localQueued)
 	n.stats.IncEthTxsRegossipQueuedLocal(localCount)
 	if localCount >= rgMaxTxs {
 		n.stats.IncEthTxsRegossipQueued()
 		return localQueued
 	}
-	remoteQueued := n.queueExecutableTxs(state, tip.BaseFee(), remoteTxs, rgFrequency, rgMaxTxs-localCount, rgTxsPerAddr)
+	remoteQueued := n.queueExecutableTxs(state, tip.BaseFee, remoteTxs, rgFrequency, rgMaxTxs-localCount, rgTxsPerAddr)
 	n.stats.IncEthTxsRegossipQueuedRemote(len(remoteQueued))
 	if localCount+len(remoteQueued) > 0 {
 		// only increment the regossip stat when there are any txs queued
@@ -205,7 +205,7 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 	return append(localQueued, remoteQueued...)
 }
 
-// queueRegossipTxs finds the best priority transactions in the mempool and adds up to
+// queuePriorityRegossipTxs finds the best priority transactions in the mempool and adds up to
 // [PriorityRegossipMaxTxs] of them to [txsToGossip].
 func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 	// Fetch all pending transactions from the priority addresses
@@ -213,7 +213,7 @@ func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 
 	// Add best transactions to be gossiped
 	tip := n.blockchain.CurrentBlock()
-	state, err := n.blockchain.StateAt(tip.Root())
+	state, err := n.blockchain.StateAt(tip.Root)
 	if err != nil || state == nil {
 		log.Debug(
 			"could not get state at tip",
@@ -223,7 +223,7 @@ func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 		return nil
 	}
 	return n.queueExecutableTxs(
-		state, tip.BaseFee(), priorityTxs,
+		state, tip.BaseFee, priorityTxs,
 		n.config.PriorityRegossipFrequency,
 		n.config.PriorityRegossipMaxTxs,
 		n.config.PriorityRegossipTxsPerAddress,
@@ -313,6 +313,7 @@ func (n *pushGossiper) sendTxs(txs []*types.Transaction) error {
 	if err != nil {
 		return err
 	}
+
 	log.Trace(
 		"gossiping eth txs",
 		"len(txs)", len(txs),
@@ -323,21 +324,21 @@ func (n *pushGossiper) sendTxs(txs []*types.Transaction) error {
 }
 
 func (n *pushGossiper) gossipTxs(force bool) (int, error) {
-	if (!force && time.Since(n.lastGossiped) < txsGossipInterval) || len(n.txsToGossip) == 0 {
+	if (!force && time.Since(n.lastGossiped) < minGossipBatchInterval) || len(n.txsToGossip) == 0 {
 		return 0, nil
 	}
 	n.lastGossiped = time.Now()
 	txs := make([]*types.Transaction, 0, len(n.txsToGossip))
-	for _, tx := range n.txsToGossip {
+	for txHash, tx := range n.txsToGossip {
 		txs = append(txs, tx)
-		delete(n.txsToGossip, tx.Hash())
+		delete(n.txsToGossip, txHash)
 	}
 
 	selectedTxs := make([]*types.Transaction, 0)
 	for _, tx := range txs {
 		txHash := tx.Hash()
 		txStatus := n.txPool.Status([]common.Hash{txHash})[0]
-		if txStatus != core.TxStatusPending {
+		if txStatus != txpool.TxStatusPending {
 			continue
 		}
 
@@ -363,7 +364,7 @@ func (n *pushGossiper) gossipTxs(force bool) (int, error) {
 
 	// Attempt to gossip [selectedTxs]
 	msgTxs := make([]*types.Transaction, 0)
-	msgTxsSize := common.StorageSize(0)
+	msgTxsSize := uint64(0)
 	for _, tx := range selectedTxs {
 		size := tx.Size()
 		if msgTxsSize+size > message.TxMsgSoftCapSize {
@@ -388,14 +389,6 @@ func (n *pushGossiper) gossipTxs(force bool) (int, error) {
 // NOTE: We never return a non-nil error from this function but retain the
 // option to do so in case it becomes useful.
 func (n *pushGossiper) GossipTxs(txs []*types.Transaction) error {
-	if time.Now().Before(n.gossipActivationTime) {
-		log.Trace(
-			"not gossiping eth txs before the gossiping activation time",
-			"len(txs)", len(txs),
-		)
-		return nil
-	}
-
 	select {
 	case n.txsToGossipChan <- txs:
 	case <-n.shutdownChan:
@@ -406,7 +399,7 @@ func (n *pushGossiper) GossipTxs(txs []*types.Transaction) error {
 // GossipHandler handles incoming gossip messages
 type GossipHandler struct {
 	vm     *VM
-	txPool *core.TxPool
+	txPool *txpool.TxPool
 	stats  GossipReceivedStats
 }
 
@@ -452,19 +445,12 @@ func (h *GossipHandler) HandleTxs(nodeID ids.NodeID, msg message.TxsGossip) erro
 				"err", err,
 				"tx", txs[i].Hash(),
 			)
-			if err == core.ErrAlreadyKnown {
+			if err == txpool.ErrAlreadyKnown {
 				h.stats.IncEthTxsGossipReceivedKnown()
 			}
 			continue
 		}
 		h.stats.IncEthTxsGossipReceivedNew()
 	}
-	return nil
-}
-
-// noopGossiper should be used when gossip communication is not supported
-type noopGossiper struct{}
-
-func (n *noopGossiper) GossipTxs([]*types.Transaction) error {
 	return nil
 }

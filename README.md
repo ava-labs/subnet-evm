@@ -7,7 +7,7 @@
 Each blockchain is an instance of a Virtual Machine (VM), much like an object in an object-oriented language is an instance of a class.
 That is, the VM defines the behavior of the blockchain.
 
-Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/overview/getting-started/avalanche-platform/#virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
+Subnet EVM is the [Virtual Machine (VM)](https://docs.avax.network/learn/avalanche/virtual-machines) that defines the Subnet Contract Chains. Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
 
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
@@ -42,8 +42,13 @@ The Subnet EVM runs in a separate process from the main AvalancheGo process and 
 [v0.4.8] AvalancheGo@v1.9.6-v1.9.8 (Protocol Version: 22)
 [v0.4.9] AvalancheGo@v1.9.9 (Protocol Version: 23)
 [v0.4.10] AvalancheGo@v1.9.9 (Protocol Version: 23)
-[v0.4.11] AvalancheGo@v1.9.10 (Protocol Version: 24)
-[v0.4.12] AvalancheGo@v1.9.10 (Protocol Version: 24)
+[v0.4.11] AvalancheGo@v1.9.10-v1.9.16 (Protocol Version: 24)
+[v0.4.12] AvalancheGo@v1.9.10-v1.9.16 (Protocol Version: 24)
+[v0.5.0] AvalancheGo@v1.10.0 (Protocol Version: 25)
+[v0.5.1] AvalancheGo@v1.10.1-v1.10.4 (Protocol Version: 26)
+[v0.5.2] AvalancheGo@v1.10.1-v1.10.4 (Protocol Version: 26)
+[v0.5.3] AvalancheGo@v1.10.5-v1.10.6 (Protocol Version: 27)
+[v0.5.4] AvalancheGo@v1.10.5-v1.10.8 (Protocol Version: 27)
 ```
 
 ## API
@@ -82,7 +87,7 @@ To support these changes, there have been a number of changes to the SubnetEVM b
 
 ### Clone Subnet-evm
 
-First install Go 1.19.6 or later. Follow the instructions [here](https://golang.org/doc/install). You can verify by running `go version`.
+First install Go 1.19.12 or later. Follow the instructions [here](https://golang.org/doc/install). You can verify by running `go version`.
 
 Set `$GOPATH` environment variable properly for Go to look for Go Workspaces. Please read [this](https://go.dev/doc/gopath_code) for details. You can verify by running `echo $GOPATH`.
 

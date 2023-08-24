@@ -45,7 +45,7 @@ import (
 )
 {{$contract := .Contract}}
 const (
-	// Gas costs for each function. These are set to 0 by default.
+	// Gas costs for each function. These are set to 1 by default.
 	// You should set a gas cost for each function in your contract.
 	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
 	// There are some predefined gas costs in contract/utils.go that you can use.
@@ -54,10 +54,10 @@ const (
 	// You should also increase gas costs of functions that read from AllowList storage.
 	{{- end}}
 	{{- range .Contract.Funcs}}
-	{{.Normalized.Name}}GasCost uint64 = 0 {{if not .Original.IsConstant | and $contract.AllowList}} + allowlist.ReadAllowListGasCost {{end}}	// SET A GAS COST HERE
+	{{.Normalized.Name}}GasCost uint64 = 1 /* SET A GAS COST HERE */ {{if not .Original.IsConstant | and $contract.AllowList}} + allowlist.ReadAllowListGasCost {{end}}
 	{{- end}}
 	{{- if .Contract.Fallback}}
-	{{.Contract.Type}}FallbackGasCost uint64 = 0 // SET A GAS COST LESS THAN 2300 HERE
+	{{.Contract.Type}}FallbackGasCost uint64 = 1 // SET A GAS COST LESS THAN 2300 HERE
   {{- end}}
 )
 
@@ -67,6 +67,8 @@ var (
 	_ = abi.JSON
 	_ = errors.New
 	_ = big.NewInt
+	_ = vmerrs.ErrOutOfGas
+	_ = common.Big0
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -153,21 +155,22 @@ func Pack{{.Normalized.Name}}(inputStruct {{capitalise .Normalized.Name}}Input) 
 {{else if len .Normalized.Inputs | eq 1 }}
 {{$method := .}}
 {{$input := index $method.Normalized.Inputs 0}}
-// Unpack{{capitalise .Normalized.Name}}Input attempts to unpack [input] into the {{bindtype $input.Type $structs}} type argument
+{{$bindedType := bindtype $input.Type $structs}}
+// Unpack{{capitalise .Normalized.Name}}Input attempts to unpack [input] into the {{$bindedType}} type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func Unpack{{capitalise .Normalized.Name}}Input(input []byte)({{bindtype $input.Type $structs}}, error) {
+func Unpack{{capitalise .Normalized.Name}}Input(input []byte)({{$bindedType}}, error) {
 res, err := {{$contract.Type}}ABI.UnpackInput("{{$method.Original.Name}}", input)
 if err != nil {
-	return {{convertToNil $input.Type}}, err
+	return {{bindtypenew $input.Type $structs}}, err
 }
-unpacked := *abi.ConvertType(res[0], new({{bindtype $input.Type $structs}})).(*{{bindtype $input.Type $structs}})
+unpacked := *abi.ConvertType(res[0], new({{$bindedType}})).(*{{$bindedType}})
 return unpacked, nil
 }
 
-// Pack{{.Normalized.Name}} packs [{{decapitalise $input.Name}}] of type {{bindtype $input.Type $structs}} into the appropriate arguments for {{$method.Original.Name}}.
+// Pack{{.Normalized.Name}} packs [{{decapitalise $input.Name}}] of type {{$bindedType}} into the appropriate arguments for {{$method.Original.Name}}.
 // the packed bytes include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
-func Pack{{$method.Normalized.Name}}( {{decapitalise $input.Name}} {{bindtype $input.Type $structs}},) ([]byte, error) {
+func Pack{{$method.Normalized.Name}}( {{decapitalise $input.Name}} {{$bindedType}},) ([]byte, error) {
 	return {{$contract.Type}}ABI.Pack("{{$method.Original.Name}}", {{decapitalise $input.Name}},)
 }
 {{else}}
@@ -189,13 +192,34 @@ func Pack{{capitalise .Normalized.Name}}Output (outputStruct {{capitalise .Norma
 	)
 }
 
+// Unpack{{capitalise .Normalized.Name}}Output attempts to unpack [output] as {{capitalise .Normalized.Name}}Output
+// assumes that [output] does not include selector (omits first 4 func signature bytes)
+func Unpack{{capitalise .Normalized.Name}}Output(output []byte) ({{capitalise .Normalized.Name}}Output, error) {
+	outputStruct := {{capitalise .Normalized.Name}}Output{}
+	err := {{$contract.Type}}ABI.UnpackIntoInterface(&outputStruct, "{{.Original.Name}}", output)
+
+	return outputStruct, err
+}
+
 {{else if len .Normalized.Outputs | eq 1 }}
 {{$method := .}}
 {{$output := index $method.Normalized.Outputs 0}}
-// Pack{{capitalise .Normalized.Name}}Output attempts to pack given {{decapitalise $output.Name}} of type {{bindtype $output.Type $structs}}
+{{$bindedType := bindtype $output.Type $structs}}
+// Pack{{capitalise .Normalized.Name}}Output attempts to pack given {{decapitalise $output.Name}} of type {{$bindedType}}
 // to conform the ABI outputs.
-func Pack{{$method.Normalized.Name}}Output ({{decapitalise $output.Name}} {{bindtype $output.Type $structs}}) ([]byte, error) {
+func Pack{{$method.Normalized.Name}}Output ({{decapitalise $output.Name}} {{$bindedType}}) ([]byte, error) {
 	return {{$contract.Type}}ABI.PackOutput("{{$method.Original.Name}}", {{decapitalise $output.Name}})
+}
+
+// Unpack{{capitalise .Normalized.Name}}Output attempts to unpack given [output] into the {{$bindedType}} type output
+// assumes that [output] does not include selector (omits first 4 func signature bytes)
+func Unpack{{capitalise .Normalized.Name}}Output(output []byte)({{$bindedType}}, error) {
+	res, err := {{$contract.Type}}ABI.Unpack("{{$method.Original.Name}}", output)
+	if err != nil {
+		return {{bindtypenew $output.Type $structs}}, err
+	}
+	unpacked := *abi.ConvertType(res[0], new({{$bindedType}})).(*{{$bindedType}})
+	return unpacked, nil
 }
 {{end}}
 

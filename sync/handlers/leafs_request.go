@@ -31,6 +31,10 @@ const (
 	// in message.LeafsRequest if it is greater than this value
 	maxLeavesLimit = uint16(1024)
 
+	// Maximum percent of the time left to deadline to spend on optimistically
+	// reading the snapshot to find the response
+	maxSnapshotReadTimePercent = 75
+
 	segmentLen = 64                // divide data from snapshot to segments of this size
 	keyLength  = common.HashLength // length of the keys of the trie to sync
 )
@@ -86,7 +90,11 @@ func (lrh *LeafsRequestHandler) OnLeafsRequest(ctx context.Context, nodeID ids.N
 		return nil, nil
 	}
 
-	t, err := trie.New(leafsRequest.Account, leafsRequest.Root, lrh.trieDB)
+	// TODO: We should know the state root that accounts correspond to,
+	// as this information will be necessary to access storage tries when
+	// the trie is path based.
+	stateRoot := common.Hash{}
+	t, err := trie.New(trie.StorageTrieID(stateRoot, leafsRequest.Account, leafsRequest.Root), lrh.trieDB)
 	if err != nil {
 		log.Debug("error opening trie when processing request, dropping request", "nodeID", nodeID, "requestID", requestID, "root", leafsRequest.Root, "err", err)
 		lrh.stats.IncMissingRoot()
@@ -220,7 +228,19 @@ func (rb *responseBuilder) fillFromSnapshot(ctx context.Context) (bool, error) {
 	// modified since the requested root. If this assumption can be verified with
 	// range proofs and data from the trie, we can skip iterating the trie as
 	// an optimization.
-	snapKeys, snapVals, err := rb.readLeafsFromSnapshot(ctx)
+	// Since we are performing this read optimistically, we use a separate context
+	// with reduced timeout so there is enough time to read the trie if the snapshot
+	// read does not contain up-to-date data.
+	snapCtx := ctx
+	if deadline, ok := ctx.Deadline(); ok {
+		timeTillDeadline := time.Until(deadline)
+		bufferedDeadline := time.Now().Add(timeTillDeadline * maxSnapshotReadTimePercent / 100)
+
+		var cancel context.CancelFunc
+		snapCtx, cancel = context.WithDeadline(ctx, bufferedDeadline)
+		defer cancel()
+	}
+	snapKeys, snapVals, err := rb.readLeafsFromSnapshot(snapCtx)
 	// Update read snapshot time here, so that we include the case that an error occurred.
 	rb.stats.UpdateSnapshotReadTime(time.Since(snapshotReadStart))
 	if err != nil {

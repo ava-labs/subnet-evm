@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-go_version_minimum="1.19.6"
+go_version_minimum="1.19.12"
 
 go_version() {
     go version | sed -nE -e 's/[^0-9.]+([0-9.]+).+/\1/p'
@@ -49,5 +49,5 @@ else
 fi
 
 # Build Subnet EVM, which is run as a subprocess
-echo "Building Subnet EVM Version: $SUBNET_EVM_VERSION at $BINARY_PATH"
-go build -ldflags "-X github.com/ava-labs/subnet-evm/plugin/evm.GitCommit=$SUBNET_EVM_COMMIT -X github.com/ava-labs/subnet-evm/plugin/evm.Version=$SUBNET_EVM_VERSION $STATIC_LD_FLAGS" -o "$BINARY_PATH" "plugin/"*.go
+echo "Building Subnet EVM @ GitCommit: $SUBNET_EVM_COMMIT at $BINARY_PATH"
+go build -ldflags "-X github.com/ava-labs/subnet-evm/plugin/evm.GitCommit=$SUBNET_EVM_COMMIT $STATIC_LD_FLAGS" -o "$BINARY_PATH" "plugin/"*.go

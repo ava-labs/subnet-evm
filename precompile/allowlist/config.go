@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -18,7 +19,7 @@ type AllowListConfig struct {
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
-func (c *AllowListConfig) Configure(state contract.StateDB, precompileAddr common.Address) error {
+func (c *AllowListConfig) Configure(chainConfig precompileconfig.ChainConfig, precompileAddr common.Address, state contract.StateDB, blockContext contract.BlockContext) error {
 	for _, enabledAddr := range c.EnabledAddresses {
 		SetAllowListRole(state, precompileAddr, enabledAddr, EnabledRole)
 	}
@@ -52,13 +53,13 @@ func areEqualAddressLists(current []common.Address, other []common.Address) bool
 }
 
 // Verify returns an error if there is an overlapping address between admin and enabled roles
-func (c *AllowListConfig) Verify() error {
+func (c *AllowListConfig) Verify(precompileconfig.ChainConfig) error {
 	addressMap := make(map[common.Address]Role) // tracks which addresses we have seen and their role
 
 	// check for duplicates in enabled list
 	for _, enabledAddr := range c.EnabledAddresses {
 		if _, ok := addressMap[enabledAddr]; ok {
-			return fmt.Errorf("duplicate address %s in enabled list", enabledAddr)
+			return fmt.Errorf("duplicate address in enabled list: %s", enabledAddr)
 		}
 		addressMap[enabledAddr] = EnabledRole
 	}
@@ -67,9 +68,9 @@ func (c *AllowListConfig) Verify() error {
 	for _, adminAddr := range c.AdminAddresses {
 		if role, ok := addressMap[adminAddr]; ok {
 			if role == AdminRole {
-				return fmt.Errorf("duplicate address %s in admin list", adminAddr)
+				return fmt.Errorf("duplicate address in admin list: %s", adminAddr)
 			} else {
-				return fmt.Errorf("cannot set address %s as both admin and enabled", adminAddr)
+				return fmt.Errorf("cannot set address as both admin and enabled: %s", adminAddr)
 			}
 		}
 		addressMap[adminAddr] = AdminRole
