@@ -250,14 +250,14 @@ func Transition(ctx *cli.Context) error {
 		}
 	}
 	// We may have to sign the transactions.
-	signer := types.MakeSigner(chainConfig, big.NewInt(int64(prestate.Env.Number)), big.NewInt(int64(prestate.Env.Timestamp)))
+	signer := types.MakeSigner(chainConfig, big.NewInt(int64(prestate.Env.Number)), prestate.Env.Timestamp)
 
 	if txs, err = signUnsignedTransactions(txsWithKeys, signer); err != nil {
 		return NewError(ErrorJson, fmt.Errorf("failed signing transactions: %v", err))
 	}
 	// Sanity check, to not `panic` in state_transition
 	// NOTE: IsLondon replaced with IsSubnetEVM here
-	if chainConfig.IsSubnetEVM(big.NewInt(int64(prestate.Env.Timestamp))) {
+	if chainConfig.IsSubnetEVM(prestate.Env.Timestamp) {
 		if prestate.Env.BaseFee == nil {
 			return NewError(ErrorConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
 		}

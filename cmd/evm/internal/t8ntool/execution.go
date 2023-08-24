@@ -124,8 +124,9 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	}
 	var (
 		statedb     = MakePreState(rawdb.NewMemoryDatabase(), pre.Pre)
-		signer      = types.MakeSigner(chainConfig, new(big.Int).SetUint64(pre.Env.Number), new(big.Int).SetUint64(pre.Env.Timestamp))
+		signer      = types.MakeSigner(chainConfig, new(big.Int).SetUint64(pre.Env.Number), pre.Env.Timestamp)
 		gaspool     = new(core.GasPool)
+		blockNumber = uint64(0)
 		blockHash   = common.Hash{0x13, 0x37}
 		rejectedTxs []*rejectedTx
 		includedTxs types.Transactions
@@ -139,7 +140,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		Transfer:    core.Transfer,
 		Coinbase:    pre.Env.Coinbase,
 		BlockNumber: new(big.Int).SetUint64(pre.Env.Number),
-		Time:        new(big.Int).SetUint64(pre.Env.Timestamp),
+		Time:        pre.Env.Timestamp,
 		Difficulty:  pre.Env.Difficulty,
 		GasLimit:    pre.Env.GasLimit,
 		GetHash:     getHash,
@@ -163,7 +164,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	// }
 
 	for i, tx := range txs {
-		msg, err := tx.AsMessage(signer, pre.Env.BaseFee)
+		msg, err := core.TransactionToMessage(tx, signer, pre.Env.BaseFee)
 		if err != nil {
 			log.Warn("rejected tx", "index", i, "hash", tx.Hash(), "error", err)
 			rejectedTxs = append(rejectedTxs, &rejectedTx{i, err.Error()})
@@ -175,7 +176,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		}
 		vmConfig.Tracer = tracer
 		vmConfig.Debug = (tracer != nil)
-		statedb.Prepare(tx.Hash(), txIndex)
+		statedb.SetTxContext(tx.Hash(), txIndex)
 		txContext := core.NewEVMTxContext(msg)
 		snapshot := statedb.Snapshot()
 		evm := vm.NewEVM(vmContext, txContext, statedb, chainConfig, vmConfig)
@@ -184,7 +185,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		msgResult, err := core.ApplyMessage(evm, msg, gaspool)
 		if err != nil {
 			statedb.RevertToSnapshot(snapshot)
-			log.Info("rejected tx", "index", i, "hash", tx.Hash(), "from", msg.From(), "error", err)
+			log.Info("rejected tx", "index", i, "hash", tx.Hash(), "from", msg.From, "error", err)
 			rejectedTxs = append(rejectedTxs, &rejectedTx{i, err.Error()})
 			continue
 		}
@@ -215,12 +216,12 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 			receipt.GasUsed = msgResult.UsedGas
 
 			// If the transaction created a contract, store the creation address in the receipt.
-			if msg.To() == nil {
+			if msg.To == nil {
 				receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
 			}
 
 			// Set the receipt logs and create the bloom filter.
-			receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash)
+			receipt.Logs = statedb.GetLogs(tx.Hash(), blockNumber, blockHash)
 			receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 			// These three are non-consensus fields:
 			//receipt.BlockHash

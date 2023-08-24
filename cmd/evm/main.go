@@ -41,7 +41,7 @@ var (
 	gitCommit = "" // Git SHA1 commit hash of the release (set via linker flags)
 	gitDate   = ""
 
-	app = flags.NewApp(gitCommit, gitDate, "the evm command line interface")
+	app = flags.NewApp("the evm command line interface")
 )
 
 var (
