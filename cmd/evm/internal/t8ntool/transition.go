@@ -257,7 +257,6 @@ func Transition(ctx *cli.Context) error {
 	}
 	// Sanity check, to not `panic` in state_transition
 	// NOTE: IsLondon replaced with IsSubnetEVM here
-	log.Info("Running test", "isSubnetEVM", chainConfig.IsSubnetEVM(prestate.Env.Timestamp), "timestamp", prestate.Env.Timestamp)
 	if chainConfig.IsSubnetEVM(prestate.Env.Timestamp) {
 		if prestate.Env.BaseFee != nil {
 			// Already set, base fee has precedent over parent base fee.
@@ -279,7 +278,6 @@ func Transition(ctx *cli.Context) error {
 			if err != nil {
 				return NewError(ErrorConfig, fmt.Errorf("failed calculating base fee: %v", err))
 			}
-			log.Info("Using base fee from parent calc", "baseFee", prestate.Env.BaseFee)
 		} else {
 			return NewError(ErrorConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
 		}
