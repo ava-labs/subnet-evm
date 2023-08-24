@@ -29,15 +29,55 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool"
+	"github.com/ava-labs/subnet-evm/consensus/dummy"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/internal/cmdtest"
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/docker/docker/pkg/reexec"
+	"github.com/stretchr/testify/require"
 )
+
+func TestXXX(t *testing.T) {
+	currentTimestamp := uint64(1)
+	parent := &types.Header{
+		Number:   new(big.Int).SetUint64(0),
+		Time:     0,
+		BaseFee:  new(big.Int).SetUint64(0x500),
+		GasUsed:  0,
+		GasLimit: 0x750a163df65e8a,
+	}
+	forkString := "Merge"
+	chainConfig, _, err := tests.GetChainConfig(forkString)
+	require.NoError(t, err)
+
+	chainConfig.FeeConfig = params.DefaultFeeConfig
+	chainConfig.FeeConfig.MinBaseFee = new(big.Int)
+	_, baseFee, err := dummy.CalcBaseFee(chainConfig, chainConfig.FeeConfig, parent, 0)
+
+	require.NoError(t, err)
+	fmt.Printf("baseFee: %v\n", baseFee)
+
+	parent = &types.Header{
+		Number:   new(big.Int).SetUint64(1),
+		Time:     0,
+		BaseFee:  new(big.Int).SetUint64(0x500),
+		GasUsed:  0,
+		GasLimit: 0x750a163df65e8a,
+		Extra:    make([]byte, params.ExtraDataSize),
+	}
+	_, baseFee, err = dummy.CalcBaseFee(chainConfig, chainConfig.FeeConfig, parent, currentTimestamp)
+	require.NoError(t, err)
+	fmt.Printf("baseFee: %x\n", baseFee)
+
+}
 
 func TestMain(m *testing.M) {
 	// Run the app if we've been exec'd as "ethkey-test" in runEthkey.
@@ -240,7 +280,7 @@ func TestT8n(t *testing.T) {
 		{ // Test post-merge transition
 			base: "./testdata/24",
 			input: t8nInput{
-				"alloc.json", "txs.json", "env.json", "Merged", "",
+				"alloc.json", "txs.json", "env.json", "Merge", "",
 			},
 			output: t8nOutput{alloc: true, result: true},
 			expOut: "exp.json",
@@ -250,10 +290,31 @@ func TestT8n(t *testing.T) {
 		// { // Test post-merge transition where input is missing random
 		// 	base: "./testdata/24",
 		// 	input: t8nInput{
-		// 		"alloc.json", "txs.json", "env-missingrandom.json", "Merged", "",
+		// 		"alloc.json", "txs.json", "env-missingrandom.json", "Merge", "",
 		// 	},
 		// 	output:      t8nOutput{alloc: false, result: false},
 		// 	expExitCode: 3,
+		// },
+		// NOTE: this test was modified to test a non-trivial calculation
+		// of dynamic Subnet-EVM fees (instead of the original EIP-1559
+		// [misc.CalcBaseFee] calculation).
+		{ // Test base fee calculation
+			base: "./testdata/25",
+			input: t8nInput{
+				"alloc.json", "txs.json", "env.json", "Merge", "",
+			},
+			output: t8nOutput{alloc: true, result: true},
+			expOut: "exp.json",
+		},
+		// NOTE: we don't use this test because it is testing the behavior of a missing
+		// withrawals env for Shanghai.
+		// { // Test withdrawals transition
+		// 	base: "./testdata/26",
+		// 	input: t8nInput{
+		// 		"alloc.json", "txs.json", "env.json", "Shanghai", "",
+		// 	},
+		// 	output: t8nOutput{alloc: true, result: true},
+		// 	expOut: "exp.json",
 		// },
 	} {
 		args := []string{"t8n"}
@@ -271,7 +332,8 @@ func TestT8n(t *testing.T) {
 		tt.Run("evm-test", args...)
 		// Compare the expected output, if provided
 		if tc.expOut != "" {
-			want, err := os.ReadFile(fmt.Sprintf("%v/%v", tc.base, tc.expOut))
+			file := fmt.Sprintf("%v/%v", tc.base, tc.expOut)
+			want, err := os.ReadFile(file)
 			if err != nil {
 				t.Fatalf("test %d: could not read expected output: %v", i, err)
 			}
@@ -279,9 +341,9 @@ func TestT8n(t *testing.T) {
 			ok, err := cmpJson(have, want)
 			switch {
 			case err != nil:
-				t.Fatalf("test %d, json parsing failed: %v", i, err)
+				t.Fatalf("test %d, file %v: json parsing failed: %v", i, file, err)
 			case !ok:
-				t.Fatalf("test %d: output wrong, have \n%v\nwant\n%v\n", i, string(have), string(want))
+				t.Fatalf("test %d, file %v: output wrong, have \n%v\nwant\n%v\n", i, file, string(have), string(want))
 			}
 		}
 		tt.WaitExit()
@@ -395,13 +457,14 @@ func TestT9n(t *testing.T) {
 }
 
 type b11rInput struct {
-	inEnv       string
-	inOmmersRlp string
-	inTxsRlp    string
-	inClique    string
-	ethash      bool
-	ethashMode  string
-	ethashDir   string
+	inEnv         string
+	inOmmersRlp   string
+	inWithdrawals string
+	inTxsRlp      string
+	inClique      string
+	ethash        bool
+	ethashMode    string
+	ethashDir     string
 }
 
 func (args *b11rInput) get(base string) []string {
@@ -412,6 +475,10 @@ func (args *b11rInput) get(base string) []string {
 	}
 	if opt := args.inOmmersRlp; opt != "" {
 		out = append(out, "--input.ommers")
+		out = append(out, fmt.Sprintf("%v/%v", base, opt))
+	}
+	if opt := args.inWithdrawals; opt != "" {
+		out = append(out, "--input.withdrawals")
 		out = append(out, fmt.Sprintf("%v/%v", base, opt))
 	}
 	if opt := args.inTxsRlp; opt != "" {
@@ -486,6 +553,16 @@ func TestB11r(t *testing.T) {
 			},
 			expOut: "exp.json",
 		},
+		//{ // block with withdrawals
+		//	base: "./testdata/27",
+		//	input: b11rInput{
+		//		inEnv:         "header.json",
+		//		inOmmersRlp:   "ommers.json",
+		//		inWithdrawals: "withdrawals.json",
+		//		inTxsRlp:      "txs.rlp",
+		//	},
+		//	expOut: "exp.json",
+		//},
 	} {
 		args := []string{"b11r"}
 		args = append(args, tc.input.get(tc.base)...)

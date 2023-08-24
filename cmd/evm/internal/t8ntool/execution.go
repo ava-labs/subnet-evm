@@ -64,6 +64,7 @@ type ExecutionResult struct {
 	Rejected    []*rejectedTx         `json:"rejected,omitempty"`
 	Difficulty  *math.HexOrDecimal256 `json:"currentDifficulty" gencodec:"required"`
 	GasUsed     math.HexOrDecimal64   `json:"gasUsed"`
+	BaseFee     *math.HexOrDecimal256 `json:"currentBaseFee,omitempty"`
 }
 
 type ommer struct {
@@ -77,6 +78,10 @@ type stEnv struct {
 	Difficulty       *big.Int                            `json:"currentDifficulty"`
 	Random           *big.Int                            `json:"currentRandom"`
 	ParentDifficulty *big.Int                            `json:"parentDifficulty"`
+	ParentBaseFee    *big.Int                            `json:"parentBaseFee,omitempty"`
+	ParentGasUsed    uint64                              `json:"parentGasUsed,omitempty"`
+	ParentGasLimit   uint64                              `json:"parentGasLimit,omitempty"`
+	MinBaseFee       *big.Int                            `json:"minBaseFee,omitempty"`
 	GasLimit         uint64                              `json:"currentGasLimit"   gencodec:"required"`
 	Number           uint64                              `json:"currentNumber"     gencodec:"required"`
 	Timestamp        uint64                              `json:"currentTimestamp"  gencodec:"required"`
@@ -92,6 +97,10 @@ type stEnvMarshaling struct {
 	Difficulty       *math.HexOrDecimal256
 	Random           *math.HexOrDecimal256
 	ParentDifficulty *math.HexOrDecimal256
+	ParentBaseFee    *math.HexOrDecimal256
+	ParentGasUsed    math.HexOrDecimal64
+	ParentGasLimit   math.HexOrDecimal64
+	MinBaseFee       *math.HexOrDecimal256
 	GasLimit         math.HexOrDecimal64
 	Number           math.HexOrDecimal64
 	Timestamp        math.HexOrDecimal64
@@ -126,7 +135,6 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		statedb     = MakePreState(rawdb.NewMemoryDatabase(), pre.Pre)
 		signer      = types.MakeSigner(chainConfig, new(big.Int).SetUint64(pre.Env.Number), pre.Env.Timestamp)
 		gaspool     = new(core.GasPool)
-		blockNumber = uint64(0)
 		blockHash   = common.Hash{0x13, 0x37}
 		rejectedTxs []*rejectedTx
 		includedTxs types.Transactions
@@ -175,10 +183,13 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 			return nil, nil, err
 		}
 		vmConfig.Tracer = tracer
-		vmConfig.Debug = (tracer != nil)
 		statedb.SetTxContext(tx.Hash(), txIndex)
-		txContext := core.NewEVMTxContext(msg)
-		snapshot := statedb.Snapshot()
+
+		var (
+			txContext = core.NewEVMTxContext(msg)
+			snapshot  = statedb.Snapshot()
+			prevGas   = gaspool.Gas()
+		)
 		evm := vm.NewEVM(vmContext, txContext, statedb, chainConfig, vmConfig)
 
 		// (ret []byte, usedGas uint64, failed bool, err error)
@@ -187,6 +198,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 			statedb.RevertToSnapshot(snapshot)
 			log.Info("rejected tx", "index", i, "hash", tx.Hash(), "from", msg.From, "error", err)
 			rejectedTxs = append(rejectedTxs, &rejectedTx{i, err.Error()})
+			gaspool.SetGas(prevGas)
 			continue
 		}
 		includedTxs = append(includedTxs, tx)
@@ -221,7 +233,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 			}
 
 			// Set the receipt logs and create the bloom filter.
-			receipt.Logs = statedb.GetLogs(tx.Hash(), blockNumber, blockHash)
+			receipt.Logs = statedb.GetLogs(tx.Hash(), vmContext.BlockNumber.Uint64(), blockHash)
 			receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 			// These three are non-consensus fields:
 			//receipt.BlockHash
@@ -233,8 +245,8 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		txIndex++
 	}
 	statedb.IntermediateRoot(chainConfig.IsEIP158(vmContext.BlockNumber))
-	// Add mining reward?
-	if miningReward > 0 {
+	// Add mining reward? (-1 means rewards are disabled)
+	if miningReward >= 0 {
 		// Add mining reward. The mining reward may be `0`, which only makes a difference in the cases
 		// where
 		// - the coinbase suicided, or
@@ -273,13 +285,14 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		Rejected:    rejectedTxs,
 		Difficulty:  (*math.HexOrDecimal256)(vmContext.Difficulty),
 		GasUsed:     (math.HexOrDecimal64)(gasUsed),
+		BaseFee:     (*math.HexOrDecimal256)(vmContext.BaseFee),
 	}
 	return statedb, execRs, nil
 }
 
 func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB {
 	sdb := state.NewDatabaseWithConfig(db, &trie.Config{Preimages: true})
-	statedb, _ := state.New(common.Hash{}, sdb, nil)
+	statedb, _ := state.New(types.EmptyRootHash, sdb, nil)
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)
 		statedb.SetNonce(addr, a.Nonce)

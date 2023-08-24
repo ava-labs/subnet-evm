@@ -36,6 +36,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -189,7 +190,6 @@ func Transition(ctx *cli.Context) error {
 
 	vmConfig := vm.Config{
 		Tracer: tracer,
-		Debug:  (tracer != nil),
 	}
 	// Construct the chainconfig
 	var chainConfig *params.ChainConfig
@@ -257,8 +257,30 @@ func Transition(ctx *cli.Context) error {
 	}
 	// Sanity check, to not `panic` in state_transition
 	// NOTE: IsLondon replaced with IsSubnetEVM here
+	log.Info("Running test", "isSubnetEVM", chainConfig.IsSubnetEVM(prestate.Env.Timestamp), "timestamp", prestate.Env.Timestamp)
 	if chainConfig.IsSubnetEVM(prestate.Env.Timestamp) {
-		if prestate.Env.BaseFee == nil {
+		if prestate.Env.BaseFee != nil {
+			// Already set, base fee has precedent over parent base fee.
+		} else if prestate.Env.ParentBaseFee != nil && prestate.Env.Number != 0 {
+			parent := &types.Header{
+				Number:   new(big.Int).SetUint64(prestate.Env.Number - 1),
+				Time:     prestate.Env.ParentTimestamp,
+				BaseFee:  prestate.Env.ParentBaseFee,
+				GasUsed:  prestate.Env.ParentGasUsed,
+				GasLimit: prestate.Env.ParentGasLimit,
+				Extra:    make([]byte, params.ExtraDataSize), // TODO: consider passing extra through env
+			}
+			feeConfig := params.DefaultFeeConfig
+			if prestate.Env.MinBaseFee != nil {
+				// Override the default min base fee if it's set in the env
+				feeConfig.MinBaseFee = prestate.Env.MinBaseFee
+			}
+			_, prestate.Env.BaseFee, err = dummy.CalcBaseFee(chainConfig, feeConfig, parent, prestate.Env.Timestamp)
+			if err != nil {
+				return NewError(ErrorConfig, fmt.Errorf("failed calculating base fee: %v", err))
+			}
+			log.Info("Using base fee from parent calc", "baseFee", prestate.Env.BaseFee)
+		} else {
 			return NewError(ErrorConfig, errors.New("EIP-1559 config but missing 'currentBaseFee' in env section"))
 		}
 	}
@@ -394,7 +416,10 @@ type Alloc map[common.Address]core.GenesisAccount
 
 func (g Alloc) OnRoot(common.Hash) {}
 
-func (g Alloc) OnAccount(addr common.Address, dumpAccount state.DumpAccount) {
+func (g Alloc) OnAccount(addr *common.Address, dumpAccount state.DumpAccount) {
+	if addr == nil {
+		return
+	}
 	balance, _ := new(big.Int).SetString(dumpAccount.Balance, 10)
 	var storage map[common.Hash]common.Hash
 	if dumpAccount.Storage != nil {
@@ -409,10 +434,10 @@ func (g Alloc) OnAccount(addr common.Address, dumpAccount state.DumpAccount) {
 		Balance: balance,
 		Nonce:   dumpAccount.Nonce,
 	}
-	g[addr] = genesisAccount
+	g[*addr] = genesisAccount
 }
 
-// saveFile marshalls the object to the given file
+// saveFile marshals the object to the given file
 func saveFile(baseDir, filename string, data interface{}) error {
 	b, err := json.MarshalIndent(data, "", " ")
 	if err != nil {

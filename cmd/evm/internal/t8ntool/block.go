@@ -80,11 +80,9 @@ type bbInput struct {
 	TxRlp     string       `json:"txs,omitempty"`
 	Clique    *cliqueInput `json:"clique,omitempty"`
 
-	Ethash    bool                 `json:"-"`
-	EthashDir string               `json:"-"`
-	Txs       []*types.Transaction `json:"-"`
-	Ommers    []*types.Header      `json:"-"`
-	// PowMode   ethash.Mode          `json:"-"`
+	Ethash bool                 `json:"-"`
+	Txs    []*types.Transaction `json:"-"`
+	Ommers []*types.Header      `json:"-"`
 }
 
 type cliqueInput struct {
@@ -126,8 +124,8 @@ func (i *bbInput) ToBlock() *types.Block {
 		UncleHash:   types.EmptyUncleHash,
 		Coinbase:    common.Address{},
 		Root:        i.Header.Root,
-		TxHash:      types.EmptyRootHash,
-		ReceiptHash: types.EmptyRootHash,
+		TxHash:      types.EmptyTxsHash,
+		ReceiptHash: types.EmptyReceiptsHash,
 		Bloom:       i.Header.Bloom,
 		Difficulty:  common.Big0,
 		Number:      i.Header.Number,
@@ -167,19 +165,11 @@ func (i *bbInput) ToBlock() *types.Block {
 // SealBlock seals the given block using the configured engine.
 func (i *bbInput) SealBlock(block *types.Block) (*types.Block, error) {
 	switch {
-	case i.Ethash:
-		return i.sealEthash(block)
 	case i.Clique != nil:
 		return i.sealClique(block)
 	default:
 		return block, nil
 	}
-}
-
-// sealEthash seals the given block using ethash.
-func (i *bbInput) sealEthash(block *types.Block) (*types.Block, error) {
-	// NOTE: this has been removed
-	return block, nil
 }
 
 // sealClique seals the given block using clique.
@@ -217,17 +207,8 @@ func readInput(ctx *cli.Context) (*bbInput, error) {
 		ommersStr = ctx.String(InputOmmersFlag.Name)
 		txsStr    = ctx.String(InputTxsRlpFlag.Name)
 		cliqueStr = ctx.String(SealCliqueFlag.Name)
-		ethashOn  = ctx.Bool(SealEthashFlag.Name)
-		ethashDir = ctx.String(SealEthashDirFlag.Name)
 		inputData = &bbInput{}
 	)
-	if ethashOn && cliqueStr != "" {
-		return nil, NewError(ErrorConfig, fmt.Errorf("both ethash and clique sealing specified, only one may be chosen"))
-	}
-	if ethashOn {
-		inputData.Ethash = ethashOn
-		inputData.EthashDir = ethashDir
-	}
 	if headerStr == stdinSelector || ommersStr == stdinSelector || txsStr == stdinSelector || cliqueStr == stdinSelector {
 		decoder := json.NewDecoder(os.Stdin)
 		if err := decoder.Decode(inputData); err != nil {
@@ -294,15 +275,14 @@ func readInput(ctx *cli.Context) (*bbInput, error) {
 // files
 func dispatchBlock(ctx *cli.Context, baseDir string, block *types.Block) error {
 	raw, _ := rlp.EncodeToBytes(block)
-
 	type blockInfo struct {
 		Rlp  hexutil.Bytes `json:"rlp"`
 		Hash common.Hash   `json:"hash"`
 	}
-	var enc blockInfo
-	enc.Rlp = raw
-	enc.Hash = block.Hash()
-
+	enc := blockInfo{
+		Rlp:  raw,
+		Hash: block.Hash(),
+	}
 	b, err := json.MarshalIndent(enc, "", "  ")
 	if err != nil {
 		return NewError(ErrorJson, fmt.Errorf("failed marshalling output: %v", err))
