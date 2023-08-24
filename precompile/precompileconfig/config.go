@@ -40,7 +40,7 @@ type PredicateContext struct {
 	ProposerVMBlockCtx *block.Context
 }
 
-// PrecompilePredicater is an optional interface for StatefulPrecompileContracts to implement.
+// Predicater is an optional interface for StatefulPrecompileContracts to implement.
 // If implemented, the predicate will be enforced on every transaction in a block, prior to
 // the block's execution.
 // If VerifyPredicate returns an error, the block will fail verification with no further processing.
