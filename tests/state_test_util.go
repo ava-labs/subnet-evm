@@ -29,6 +29,7 @@ package tests
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -42,6 +43,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -162,11 +164,39 @@ func (t *StateTest) Subtests() []StateSubtest {
 	return sub
 }
 
+// checkError checks if the error returned by the state transition matches any expected error.
+// A failing expectation returns a wrapped version of the original error, if any,
+// or a new error detailing the failing expectation.
+// This function does not return or modify the original error, it only evaluates and returns expectations for the error.
+func (t *StateTest) checkError(subtest StateSubtest, err error) error {
+	expectedError := t.json.Post[subtest.Fork][subtest.Index].ExpectException
+	if err == nil && expectedError == "" {
+		return nil
+	}
+	if err == nil && expectedError != "" {
+		return fmt.Errorf("expected error %q, got no error", expectedError)
+	}
+	if err != nil && expectedError == "" {
+		return fmt.Errorf("unexpected error: %w", err)
+	}
+	if err != nil && expectedError != "" {
+		// Ignore expected errors (TODO MariusVanDerWijden check error string)
+		return nil
+	}
+	return nil
+}
+
 // Run executes a specific subtest and verifies the post-state and logs
 func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config, snapshotter bool) (*snapshot.Tree, *state.StateDB, error) {
 	snaps, statedb, root, err := t.RunNoVerify(subtest, vmconfig, snapshotter)
+	if checkedErr := t.checkError(subtest, err); checkedErr != nil {
+		return snaps, statedb, checkedErr
+	}
+	// The error has been checked; if it was unexpected, it's already returned.
 	if err != nil {
-		return snaps, statedb, err
+		// Here, an error exists but it was expected.
+		// We do not check the post state or logs.
+		return snaps, statedb, nil
 	}
 	post := t.json.Post[subtest.Fork][subtest.Index]
 	// N.B: We need to do this in a two-step process, because the first Commit takes care
@@ -219,7 +249,7 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	}
 
 	// Prepare the EVM.
-	txContext := core.NewEVMTxContext(&msg)
+	txContext := core.NewEVMTxContext(msg)
 	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
@@ -231,7 +261,8 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	snapshot := statedb.Snapshot()
 	gaspool := new(core.GasPool)
 	gaspool.AddGas(block.GasLimit())
-	if _, err := core.ApplyMessage(evm, &msg, gaspool); err != nil {
+	_, err = core.ApplyMessage(evm, msg, gaspool)
+	if err != nil {
 		statedb.RevertToSnapshot(snapshot)
 	}
 	// Add 0-value mining reward. This only makes a difference in the cases
@@ -244,12 +275,12 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	statedb.Commit(config.IsEIP158(block.Number()), false)
 	// And _now_ get the state root
 	root := statedb.IntermediateRoot(config.IsEIP158(block.Number()))
-	return snaps, statedb, root, nil
+	return snaps, statedb, root, err
 }
 
 func MakePreState(db ethdb.Database, accounts core.GenesisAlloc, snapshotter bool) (*snapshot.Tree, *state.StateDB) {
-	sdb := state.NewDatabase(db)
-	statedb, _ := state.New(common.Hash{}, sdb, nil)
+	sdb := state.NewDatabaseWithConfig(db, &trie.Config{Preimages: true})
+	statedb, _ := state.New(types.EmptyRootHash, sdb, nil)
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)
 		statedb.SetNonce(addr, a.Nonce)
@@ -265,8 +296,8 @@ func MakePreState(db ethdb.Database, accounts core.GenesisAlloc, snapshotter boo
 	if snapshotter {
 		snapconfig := snapshot.Config{
 			CacheSize:  1,
-			AsyncBuild: false,
 			NoBuild:    false,
+			AsyncBuild: false,
 			SkipVerify: true,
 		}
 		snaps, _ = snapshot.New(snapconfig, db, sdb.TrieDB(), common.Hash{}, root)
@@ -293,13 +324,13 @@ func (t *StateTest) genesis(config *params.ChainConfig) *core.Genesis {
 	return genesis
 }
 
-func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (core.Message, error) {
+func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (*core.Message, error) {
 	// Derive sender from private key if present.
 	var from common.Address
 	if len(tx.PrivateKey) > 0 {
 		key, err := crypto.ToECDSA(tx.PrivateKey)
 		if err != nil {
-			return core.Message{}, fmt.Errorf("invalid private key: %v", err)
+			return nil, fmt.Errorf("invalid private key: %v", err)
 		}
 		from = crypto.PubkeyToAddress(key.PublicKey)
 	}
@@ -308,19 +339,19 @@ func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (core.Messa
 	if tx.To != "" {
 		to = new(common.Address)
 		if err := to.UnmarshalText([]byte(tx.To)); err != nil {
-			return core.Message{}, fmt.Errorf("invalid to address: %v", err)
+			return nil, fmt.Errorf("invalid to address: %v", err)
 		}
 	}
 
 	// Get values specific to this post state.
 	if ps.Indexes.Data > len(tx.Data) {
-		return core.Message{}, fmt.Errorf("tx data index %d out of bounds", ps.Indexes.Data)
+		return nil, fmt.Errorf("tx data index %d out of bounds", ps.Indexes.Data)
 	}
 	if ps.Indexes.Value > len(tx.Value) {
-		return core.Message{}, fmt.Errorf("tx value index %d out of bounds", ps.Indexes.Value)
+		return nil, fmt.Errorf("tx value index %d out of bounds", ps.Indexes.Value)
 	}
 	if ps.Indexes.Gas > len(tx.GasLimit) {
-		return core.Message{}, fmt.Errorf("tx gas limit index %d out of bounds", ps.Indexes.Gas)
+		return nil, fmt.Errorf("tx gas limit index %d out of bounds", ps.Indexes.Gas)
 	}
 	dataHex := tx.Data[ps.Indexes.Data]
 	valueHex := tx.Value[ps.Indexes.Value]
@@ -330,13 +361,13 @@ func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (core.Messa
 	if valueHex != "0x" {
 		v, ok := math.ParseBig256(valueHex)
 		if !ok {
-			return core.Message{}, fmt.Errorf("invalid tx value %q", valueHex)
+			return nil, fmt.Errorf("invalid tx value %q", valueHex)
 		}
 		value = v
 	}
 	data, err := hex.DecodeString(strings.TrimPrefix(dataHex, "0x"))
 	if err != nil {
-		return core.Message{}, fmt.Errorf("invalid tx data %q", dataHex)
+		return nil, fmt.Errorf("invalid tx data %q", dataHex)
 	}
 	var accessList types.AccessList
 	if tx.AccessLists != nil && tx.AccessLists[ps.Indexes.Data] != nil {
@@ -358,10 +389,10 @@ func (tx *stTransaction) toMessage(ps stPostState, baseFee *big.Int) (core.Messa
 			tx.MaxFeePerGas)
 	}
 	if gasPrice == nil {
-		return core.Message{}, fmt.Errorf("no gas price provided")
+		return nil, errors.New("no gas price provided")
 	}
 
-	msg := core.Message{
+	msg := &core.Message{
 		From:       from,
 		To:         to,
 		Nonce:      tx.Nonce,
