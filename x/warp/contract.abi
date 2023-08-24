@@ -10,6 +10,7 @@
       },
       {
         "indexed": true,
+<<<<<<< HEAD
         "internalType": "bytes32",
         "name": "destinationAddress",
         "type": "bytes32"
@@ -19,6 +20,17 @@
         "internalType": "bytes32",
         "name": "sender",
         "type": "bytes32"
+=======
+        "internalType": "address",
+        "name": "destinationAddress",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
       },
       {
         "indexed": false,
@@ -55,9 +67,15 @@
             "type": "bytes32"
           },
           {
+<<<<<<< HEAD
             "internalType": "bytes32",
             "name": "originSenderAddress",
             "type": "bytes32"
+=======
+            "internalType": "address",
+            "name": "originSenderAddress",
+            "type": "address"
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
           },
           {
             "internalType": "bytes32",
@@ -65,9 +83,15 @@
             "type": "bytes32"
           },
           {
+<<<<<<< HEAD
             "internalType": "bytes32",
             "name": "destinationAddress",
             "type": "bytes32"
+=======
+            "internalType": "address",
+            "name": "destinationAddress",
+            "type": "address"
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
           },
           {
             "internalType": "bytes",
@@ -96,9 +120,15 @@
         "type": "bytes32"
       },
       {
+<<<<<<< HEAD
         "internalType": "bytes32",
         "name": "destinationAddress",
         "type": "bytes32"
+=======
+        "internalType": "address",
+        "name": "destinationAddress",
+        "type": "address"
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
       },
       {
         "internalType": "bytes",

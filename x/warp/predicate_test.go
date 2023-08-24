@@ -7,7 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+<<<<<<< HEAD
 	"math/big"
+=======
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -18,10 +21,20 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+<<<<<<< HEAD
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
+=======
+	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
+	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
+	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
+	"github.com/ethereum/go-ethereum/common"
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -32,6 +45,10 @@ var (
 	_ utils.Sortable[*testValidator] = (*testValidator)(nil)
 
 	errTest            = errors.New("non-nil error")
+<<<<<<< HEAD
+=======
+	networkID          = uint32(54321)
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	sourceChainID      = ids.GenerateTestID()
 	sourceSubnetID     = ids.GenerateTestID()
 	destinationChainID = ids.GenerateTestID()
@@ -52,6 +69,58 @@ var (
 	predicateTests = make(map[string]testutils.PredicateTest)
 )
 
+<<<<<<< HEAD
+=======
+func init() {
+	testVdrs = make([]*testValidator, 0, numTestVdrs)
+	for i := 0; i < numTestVdrs; i++ {
+		testVdrs = append(testVdrs, newTestValidator())
+	}
+	utils.Sort(testVdrs)
+
+	vdrs = map[ids.NodeID]*validators.GetValidatorOutput{
+		testVdrs[0].nodeID: {
+			NodeID:    testVdrs[0].nodeID,
+			PublicKey: testVdrs[0].vdr.PublicKey,
+			Weight:    testVdrs[0].vdr.Weight,
+		},
+		testVdrs[1].nodeID: {
+			NodeID:    testVdrs[1].nodeID,
+			PublicKey: testVdrs[1].vdr.PublicKey,
+			Weight:    testVdrs[1].vdr.Weight,
+		},
+		testVdrs[2].nodeID: {
+			NodeID:    testVdrs[2].nodeID,
+			PublicKey: testVdrs[2].vdr.PublicKey,
+			Weight:    testVdrs[2].vdr.Weight,
+		},
+	}
+
+	var err error
+	addressedPayload, err = warpPayload.NewAddressedPayload(
+		common.Address(ids.GenerateTestShortID()),
+		common.Hash(destinationChainID),
+		common.Address(ids.GenerateTestShortID()),
+		[]byte{1, 2, 3},
+	)
+	if err != nil {
+		panic(err)
+	}
+	addressedPayloadBytes = addressedPayload.Bytes()
+	unsignedMsg, err = avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, addressedPayload.Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	for _, testVdr := range testVdrs {
+		blsSignature := bls.Sign(testVdr.sk, unsignedMsg.Bytes())
+		blsSignatures = append(blsSignatures, blsSignature)
+	}
+
+	initWarpPredicateTests()
+}
+
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 type testValidator struct {
 	nodeID ids.NodeID
 	sk     *bls.SecretKey
@@ -91,6 +160,7 @@ type signatureTest struct {
 	err       error
 }
 
+<<<<<<< HEAD
 func init() {
 	testVdrs = make([]*testValidator, 0, numTestVdrs)
 	for i := 0; i < numTestVdrs; i++ {
@@ -135,6 +205,8 @@ func init() {
 	initWarpPredicateTests()
 }
 
+=======
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 // createWarpMessage constructs a signed warp message using the global variable [unsignedMsg]
 // and the first [numKeys] signatures from [blsSignatures]
 func createWarpMessage(numKeys int) *avalancheWarp.Message {
@@ -201,12 +273,20 @@ func createSnowCtx(validatorRanges []validatorRange) *snow.Context {
 		},
 	}
 	snowCtx.ValidatorState = state
+<<<<<<< HEAD
+=======
+	snowCtx.NetworkID = networkID
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	return snowCtx
 }
 
 func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicateBytes []byte) testutils.PredicateTest {
 	return testutils.PredicateTest{
+<<<<<<< HEAD
 		Config: NewConfig(big.NewInt(0), 0),
+=======
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -233,7 +313,11 @@ func TestWarpNilProposerCtx(t *testing.T) {
 	})
 	predicateBytes := createPredicate(numKeys)
 	test := testutils.PredicateTest{
+<<<<<<< HEAD
 		Config: NewConfig(big.NewInt(0), 0),
+=======
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -243,7 +327,11 @@ func TestWarpNilProposerCtx(t *testing.T) {
 		StorageSlots: predicateBytes,
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:       nil,
+<<<<<<< HEAD
 		PredicateErr: errNoProposerPredicate,
+=======
+		PredicateErr: errNoProposerCtxPredicate,
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	}
 
 	test.Run(t)
@@ -262,7 +350,11 @@ func TestInvalidPredicatePacking(t *testing.T) {
 	predicateBytes = append(predicateBytes, byte(0x01)) // Invalidate the predicate byte packing
 
 	test := testutils.PredicateTest{
+<<<<<<< HEAD
 		Config: NewConfig(big.NewInt(0), 0),
+=======
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -295,7 +387,11 @@ func TestInvalidWarpMessage(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
+<<<<<<< HEAD
 		Config: NewConfig(big.NewInt(0), 0),
+=======
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -333,7 +429,11 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	}
 	copy(warpSignature.Signature[:], bls.SignatureToBytes(aggregateSignature))
 	// Create an unsigned message with an invalid addressed payload
+<<<<<<< HEAD
 	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(sourceChainID, destinationChainID, []byte{1, 2, 3})
+=======
+	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, []byte{1, 2, 3})
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	require.NoError(t, err)
 	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
 	require.NoError(t, err)
@@ -341,7 +441,11 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
+<<<<<<< HEAD
 		Config: NewConfig(big.NewInt(0), 0),
+=======
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -361,8 +465,13 @@ func TestInvalidAddressedPayload(t *testing.T) {
 
 func TestInvalidBitSet(t *testing.T) {
 	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
+<<<<<<< HEAD
 		sourceChainID,
 		ids.Empty,
+=======
+		networkID,
+		sourceChainID,
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		[]byte{1, 2, 3},
 	)
 	require.NoError(t, err)
@@ -386,7 +495,11 @@ func TestInvalidBitSet(t *testing.T) {
 	})
 	predicateBytes := predicateutils.PackPredicate(msg.Bytes())
 	test := testutils.PredicateTest{
+<<<<<<< HEAD
 		Config: NewConfig(big.NewInt(0), 0),
+=======
+		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 			PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 				SnowCtx: snowCtx,
@@ -397,7 +510,11 @@ func TestInvalidBitSet(t *testing.T) {
 		},
 		StorageSlots: predicateBytes,
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
+<<<<<<< HEAD
 		GasErr:       errCannotNumSigners,
+=======
+		GasErr:       errCannotGetNumSigners,
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		PredicateErr: nil, // Won't be reached
 	}
 
@@ -415,11 +532,24 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 	})
 
 	tests := make(map[string]testutils.PredicateTest)
+<<<<<<< HEAD
 	for _, numSigners := range []int{1, int(DefaultQuorumNumerator) - 1, int(DefaultQuorumNumerator), int(DefaultQuorumNumerator) + 1, 99, 100, 101} {
+=======
+	for _, numSigners := range []int{
+		1,
+		int(params.WarpDefaultQuorumNumerator) - 1,
+		int(params.WarpDefaultQuorumNumerator),
+		int(params.WarpDefaultQuorumNumerator) + 1,
+		int(params.WarpQuorumDenominator) - 1,
+		int(params.WarpQuorumDenominator),
+		int(params.WarpQuorumDenominator) + 1,
+	} {
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		var (
 			predicateBytes       = createPredicate(numSigners)
 			expectedPredicateErr error
 		)
+<<<<<<< HEAD
 		// If the number of signers is less than the DefaultQuorumNumerator (67)
 		if numSigners < int(DefaultQuorumNumerator) {
 			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
@@ -429,6 +559,17 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 		}
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
 			Config: NewConfig(big.NewInt(0), 0),
+=======
+		// If the number of signers is less than the params.WarpDefaultQuorumNumerator (67)
+		if numSigners < int(params.WarpDefaultQuorumNumerator) {
+			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
+		}
+		if numSigners > int(params.WarpQuorumDenominator) {
+			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
+		}
+		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
+			Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 			ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 				PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 					SnowCtx: snowCtx,
@@ -459,7 +600,11 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 	tests := make(map[string]testutils.PredicateTest)
 	nonDefaultQuorumNumerator := 50
 	// Ensure this test fails if the DefaultQuroumNumerator is changed to an unexpected value during development
+<<<<<<< HEAD
 	require.NotEqual(t, nonDefaultQuorumNumerator, int(DefaultQuorumNumerator))
+=======
+	require.NotEqual(t, nonDefaultQuorumNumerator, int(params.WarpDefaultQuorumNumerator))
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	// Add cases with default quorum
 	for _, numSigners := range []int{nonDefaultQuorumNumerator, nonDefaultQuorumNumerator + 1, 99, 100, 101} {
 		var (
@@ -470,12 +615,20 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 		if numSigners < nonDefaultQuorumNumerator {
 			expectedPredicateErr = avalancheWarp.ErrInsufficientWeight
 		}
+<<<<<<< HEAD
 		if numSigners > int(QuorumDenominator) {
+=======
+		if numSigners > int(params.WarpQuorumDenominator) {
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 			expectedPredicateErr = avalancheWarp.ErrUnknownValidator
 		}
 		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)
 		tests[name] = testutils.PredicateTest{
+<<<<<<< HEAD
 			Config: NewConfig(big.NewInt(0), uint64(nonDefaultQuorumNumerator)),
+=======
+			Config: NewConfig(subnetEVMUtils.NewUint64(0), uint64(nonDefaultQuorumNumerator)),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 			ProposerPredicateContext: &precompileconfig.ProposerPredicateContext{
 				PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
 					SnowCtx: snowCtx,
@@ -557,7 +710,11 @@ func initWarpPredicateTests() {
 		testName := fmt.Sprintf("%d validators w/ %d signers/repeated PublicKeys", totalNodes, numSigners)
 
 		predicateBytes := createPredicate(numSigners)
+<<<<<<< HEAD
 		getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput)
+=======
+		getValidatorsOutput := make(map[ids.NodeID]*validators.GetValidatorOutput, totalNodes)
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		for i := 0; i < totalNodes; i++ {
 			getValidatorsOutput[testVdrs[i].nodeID] = &validators.GetValidatorOutput{
 				NodeID:    testVdrs[i].nodeID,
@@ -567,6 +724,10 @@ func initWarpPredicateTests() {
 		}
 
 		snowCtx := snow.DefaultContextTest()
+<<<<<<< HEAD
+=======
+		snowCtx.NetworkID = networkID
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		state := &validators.TestState{
 			GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
 				return sourceSubnetID, nil

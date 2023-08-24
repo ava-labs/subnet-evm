@@ -1,7 +1,7 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package predicateutils
+package predicate
 
 import (
 	"bytes"
@@ -55,6 +55,11 @@ func FuzzPackPredicate(f *testing.F) {
 
 func TestUnpackInvalidPredicate(t *testing.T) {
 	require := require.New(t)
+<<<<<<< HEAD
+=======
+	// Predicate encoding requires a 0xff delimiter byte followed by padding of all zeroes, so any other
+	// excess padding should invalidate the predicate.
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	paddingCases := make([][]byte, 0, 200)
 	for i := 1; i < 100; i++ {
 		paddingCases = append(paddingCases, bytes.Repeat([]byte{0xee}, i))

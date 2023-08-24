@@ -7,7 +7,10 @@ import (
 	"errors"
 	"fmt"
 
+<<<<<<< HEAD
 	"github.com/ava-labs/avalanchego/ids"
+=======
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -22,11 +25,22 @@ import (
 )
 
 const (
+<<<<<<< HEAD
 	GetBlockchainIDGasCost uint64 = 2 // Based on GasQuickStep used in existing EVM instructions
 	// Sum of base log gas cost, cost of producing 4 topics, and producing + serving a BLS Signature (sign + trie write)
 	// Note: using trie write for the gas cost results in a conservative overestimate since the message is stored in a
 	// flat database that can be cleaned up after a period of time instead of the EVM trie.
 	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + 20_000 + contract.WriteGasCostPerSlot
+=======
+	GetVerifiedWarpMessageBaseCost uint64 = 2      // Base cost of entering getVerifiedWarpMessage
+	GetBlockchainIDGasCost         uint64 = 2      // Based on GasQuickStep used in existing EVM instructions
+	AddWarpMessageGasCost          uint64 = 20_000 // Cost of producing and serving a BLS Signature
+	// Sum of base log gas cost, cost of producing 4 topics, and producing + serving a BLS Signature (sign + trie write)
+	// Note: using trie write for the gas cost results in a conservative overestimate since the message is stored in a
+	// flat database that can be cleaned up after a period of time instead of the EVM trie.
+
+	SendWarpMessageGasCost uint64 = params.LogGas + 4*params.LogTopicGas + AddWarpMessageGasCost + contract.WriteGasCostPerSlot
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	// SendWarpMessageGasCostPerByte cost accounts for producing a signed message of a given size
 	SendWarpMessageGasCostPerByte uint64 = params.LogDataGas
 
@@ -42,7 +56,10 @@ var (
 
 // Singleton StatefulPrecompiledContract and signatures.
 var (
+<<<<<<< HEAD
 
+=======
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	// WarpRawABI contains the raw ABI of Warp contract.
 	//go:embed contract.abi
 	WarpRawABI string
@@ -54,10 +71,17 @@ var (
 
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
 type WarpMessage struct {
+<<<<<<< HEAD
 	OriginChainID       [32]byte
 	OriginSenderAddress [32]byte
 	DestinationChainID  [32]byte
 	DestinationAddress  [32]byte
+=======
+	OriginChainID       common.Hash
+	OriginSenderAddress common.Address
+	DestinationChainID  common.Hash
+	DestinationAddress  common.Address
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	Payload             []byte
 }
 
@@ -67,8 +91,13 @@ type GetVerifiedWarpMessageOutput struct {
 }
 
 type SendWarpMessageInput struct {
+<<<<<<< HEAD
 	DestinationChainID [32]byte
 	DestinationAddress [32]byte
+=======
+	DestinationChainID common.Hash
+	DestinationAddress common.Address
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	Payload            []byte
 }
 
@@ -78,9 +107,15 @@ func PackGetBlockchainID() ([]byte, error) {
 	return WarpABI.Pack("getBlockchainID")
 }
 
+<<<<<<< HEAD
 // PackGetBlockchainIDOutput attempts to pack given blockchainID of type [32]byte
 // to conform the ABI outputs.
 func PackGetBlockchainIDOutput(blockchainID [32]byte) ([]byte, error) {
+=======
+// PackGetBlockchainIDOutput attempts to pack given blockchainID of type common.Hash
+// to conform the ABI outputs.
+func PackGetBlockchainIDOutput(blockchainID common.Hash) ([]byte, error) {
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	return WarpABI.PackOutput("getBlockchainID", blockchainID)
 }
 
@@ -89,7 +124,11 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	if remainingGas, err = contract.DeductGas(suppliedGas, GetBlockchainIDGasCost); err != nil {
 		return nil, 0, err
 	}
+<<<<<<< HEAD
 	packedOutput, err := PackGetBlockchainIDOutput(accessibleState.GetSnowContext().ChainID)
+=======
+	packedOutput, err := PackGetBlockchainIDOutput(common.Hash(accessibleState.GetSnowContext().ChainID))
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -98,7 +137,11 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	return packedOutput, remainingGas, nil
 }
 
+<<<<<<< HEAD
 // PackGetVerifiedWarpMessage packs the include selector (first 4 func signature bytes).
+=======
+// PackGetVerifiedWarpMessage packs the calldata for the getVerifiedWarpMessage function
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 // This function is mostly used for tests.
 func PackGetVerifiedWarpMessage() ([]byte, error) {
 	return WarpABI.Pack("getVerifiedWarpMessage")
@@ -116,6 +159,7 @@ func PackGetVerifiedWarpMessageOutput(outputStruct GetVerifiedWarpMessageOutput)
 // getVerifiedWarpMessage retrieves the pre-verified warp message from the predicate storage slots and returns
 // the expected ABI encoding of the message to the caller.
 func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, _ []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+<<<<<<< HEAD
 	remainingGas = suppliedGas
 	// XXX Note: there is no base cost for retrieving a verified warp message. Instead, we charge for each piece of gas,
 	// prior to each execution step.
@@ -123,6 +167,15 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
 	// If there is no such value, return false to the caller.
 	// Note: decoding errors will return an error instead.
+=======
+	remainingGas, err = contract.DeductGas(suppliedGas, GetVerifiedWarpMessageBaseCost)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	// Ignore input since there are no arguments
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
+	// If there is no such value, return false to the caller.
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	if !exists {
 		packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 			Exists: false,
@@ -133,6 +186,11 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 		return packedOutput, remainingGas, nil
 	}
 
+<<<<<<< HEAD
+=======
+	// Note: we charge for the size of the message during both predicate verification and each time the message is read during
+	// EVM execution because each execution incurs an additional read cost.
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	msgBytesGas, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
 	if overflow {
 		return nil, remainingGas, vmerrs.ErrOutOfGas
@@ -140,6 +198,11 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
 		return nil, 0, err
 	}
+<<<<<<< HEAD
+=======
+	// Note: since the predicate is verified in advance of execution, the precompile should not
+	// hit an error during execution.
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
@@ -155,9 +218,15 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	}
 	packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 		Message: WarpMessage{
+<<<<<<< HEAD
 			OriginChainID:       warpMessage.SourceChainID,
 			OriginSenderAddress: addressedPayload.SourceAddress,
 			DestinationChainID:  warpMessage.DestinationChainID,
+=======
+			OriginChainID:       common.Hash(warpMessage.SourceChainID),
+			OriginSenderAddress: addressedPayload.SourceAddress,
+			DestinationChainID:  addressedPayload.DestinationChainID,
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 			DestinationAddress:  addressedPayload.DestinationAddress,
 			Payload:             addressedPayload.Payload,
 		},
@@ -212,13 +281,22 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	var (
 		sourceChainID      = accessibleState.GetSnowContext().ChainID
 		destinationChainID = inputStruct.DestinationChainID
+<<<<<<< HEAD
 		sourceAddress      = caller.Hash()
+=======
+		sourceAddress      = caller
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		destinationAddress = inputStruct.DestinationAddress
 		payload            = inputStruct.Payload
 	)
 
 	addressedPayload, err := warpPayload.NewAddressedPayload(
+<<<<<<< HEAD
 		ids.ID(sourceAddress),
+=======
+		sourceAddress,
+		destinationChainID,
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		destinationAddress,
 		payload,
 	)
@@ -226,8 +304,13 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		return nil, remainingGas, err
 	}
 	unsignedWarpMessage, err := warp.NewUnsignedMessage(
+<<<<<<< HEAD
 		sourceChainID,
 		destinationChainID,
+=======
+		accessibleState.GetSnowContext().NetworkID,
+		sourceChainID,
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		addressedPayload.Bytes(),
 	)
 	if err != nil {
@@ -240,8 +323,13 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		[]common.Hash{
 			WarpABI.Events["SendWarpMessage"].ID,
 			destinationChainID,
+<<<<<<< HEAD
 			destinationAddress,
 			sourceAddress,
+=======
+			destinationAddress.Hash(),
+			sourceAddress.Hash(),
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 		},
 		unsignedWarpMessage.Bytes(),
 		accessibleState.GetBlockContext().Number().Uint64(),

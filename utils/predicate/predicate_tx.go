@@ -1,7 +1,11 @@
 // (c) 2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+<<<<<<< HEAD
 package predicateutils
+=======
+package predicate
+>>>>>>> c56d42d51da4d5423aa192d99e33a85c2b82747d
 
 import (
 	"math/big"

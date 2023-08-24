@@ -66,7 +66,10 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
-	size     common.StorageSize
+	size     uint64
+
+	rules            params.Rules
+	predicateContext *precompileconfig.ProposerPredicateContext
 
 	start time.Time // Time that block building began
 }
@@ -97,8 +100,9 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 		chainConfig: chainConfig,
 		engine:      engine,
 		eth:         eth,
-		mux:         mux,
 		chain:       eth.BlockChain(),
+		mux:         mux,
+		coinbase:    config.Etherbase,
 		clock:       clock,
 	}
 
@@ -123,38 +127,36 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 	// Note: in order to support asynchronous block production, blocks are allowed to have
 	// the same timestamp as their parent. This allows more than one block to be produced
 	// per second.
-	if parent.Time() >= timestamp {
-		timestamp = parent.Time()
+	if parent.Time >= timestamp {
+		timestamp = parent.Time
 	}
 
-	bigTimestamp := new(big.Int).SetUint64(timestamp)
 	var gasLimit uint64
 	// The fee manager relies on the state of the parent block to set the fee config
 	// because the fee config may be changed by the current block.
-	feeConfig, _, err := w.chain.GetFeeConfigAt(parent.Header())
+	feeConfig, _, err := w.chain.GetFeeConfigAt(parent)
 	if err != nil {
 		return nil, err
 	}
 	configuredGasLimit := feeConfig.GasLimit.Uint64()
-	if w.chainConfig.IsSubnetEVM(bigTimestamp) {
+	if w.chainConfig.IsSubnetEVM(timestamp) {
 		gasLimit = configuredGasLimit
 	} else {
 		// The gas limit is set in SubnetEVMGasLimit because the ceiling and floor were set to the same value
 		// such that the gas limit converged to it. Since this is hardbaked now, we remove the ability to configure it.
-		gasLimit = core.CalcGasLimit(parent.GasUsed(), parent.GasLimit(), configuredGasLimit, configuredGasLimit)
+		gasLimit = core.CalcGasLimit(parent.GasUsed, parent.GasLimit, configuredGasLimit, configuredGasLimit)
 	}
-	num := parent.Number()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
-		Number:     num.Add(num, common.Big1),
+		Number:     new(big.Int).Add(parent.Number, common.Big1),
 		GasLimit:   gasLimit,
 		Extra:      nil,
 		Time:       timestamp,
 	}
 
-	if w.chainConfig.IsSubnetEVM(bigTimestamp) {
+	if w.chainConfig.IsSubnetEVM(timestamp) {
 		var err error
-		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, feeConfig, parent.Header(), timestamp)
+		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(w.chainConfig, feeConfig, parent, timestamp)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate new base fee: %w", err)
 		}
@@ -165,7 +167,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 	}
 	header.Coinbase = w.coinbase
 
-	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAt(parent.Header())
+	configuredCoinbase, isAllowFeeRecipient, err := w.chain.GetCoinbaseAt(parent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get configured coinbase: %w", err)
 	}
@@ -182,12 +184,12 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 		return nil, fmt.Errorf("failed to prepare header for mining: %w", err)
 	}
 
-	env, err := w.createCurrentEnvironment(parent, header, tstart)
+	env, err := w.createCurrentEnvironment(predicateContext, parent, header, tstart)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
 	// Configure any upgrades that should go into effect during this block.
-	err = core.ApplyUpgrades(w.chainConfig, new(big.Int).SetUint64(parent.Time()), types.NewBlockWithHeader(header), env.state)
+	err = core.ApplyUpgrades(w.chainConfig, &parent.Time, types.NewBlockWithHeader(header), env.state)
 	if err != nil {
 		log.Error("failed to configure precompiles mining new block", "parent", parent.Hash(), "number", header.Number, "timestamp", header.Time, "err", err)
 		return nil, err
@@ -195,9 +197,6 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 
 	// Get the pending txs from TxPool
 	pending := w.eth.TxPool().Pending(true)
-	// Filter out transactions that don't satisfy predicateContext and remove them from TxPool
-	rules := w.chainConfig.AvalancheRules(header.Number, new(big.Int).SetUint64(header.Time))
-	pending = w.enforcePredicates(rules, predicateContext, pending)
 
 	// Split the pending transactions into locals and remotes
 	localTxs := make(map[common.Address]types.Transactions)
@@ -220,28 +219,38 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 	return w.commit(env)
 }
 
-func (w *worker) createCurrentEnvironment(parent *types.Block, header *types.Header, tstart time.Time) (*environment, error) {
-	state, err := w.chain.StateAt(parent.Root())
+func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.ProposerPredicateContext, parent *types.Header, header *types.Header, tstart time.Time) (*environment, error) {
+	state, err := w.chain.StateAt(parent.Root)
 	if err != nil {
 		return nil, err
 	}
 	return &environment{
-		signer:  types.MakeSigner(w.chainConfig, header.Number, new(big.Int).SetUint64(header.Time)),
-		state:   state,
-		parent:  parent.Header(),
-		header:  header,
-		tcount:  0,
-		gasPool: new(core.GasPool).AddGas(header.GasLimit),
-		start:   tstart,
+		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
+		state:            state,
+		parent:           parent,
+		header:           header,
+		tcount:           0,
+		gasPool:          new(core.GasPool).AddGas(header.GasLimit),
+		rules:            w.chainConfig.AvalancheRules(header.Number, header.Time),
+		predicateContext: predicateContext,
+		start:            tstart,
 	}, nil
 }
 
 func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
-	snap := env.state.Snapshot()
+	var (
+		snap = env.state.Snapshot()
+		gp   = env.gasPool.Gas()
+	)
 
+	if err := core.CheckPredicates(env.rules, env.predicateContext, tx); err != nil {
+		log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
+		return nil, err
+	}
 	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, &coinbase, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
 	if err != nil {
 		env.state.RevertToSnapshot(snap)
+		env.gasPool.SetGas(gp)
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)
@@ -253,12 +262,12 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 
 func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, coinbase common.Address) {
 	for {
-		// If we don't have enough gas for any further transactions then we're done
+		// If we don't have enough gas for any further transactions then we're done.
 		if env.gasPool.Gas() < params.TxGas {
 			log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
 			break
 		}
-		// Retrieve the next transaction and abort if all done
+		// Retrieve the next transaction and abort if all done.
 		tx := txs.Peek()
 		if tx == nil {
 			break
@@ -273,9 +282,8 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 		}
 		// Error may be ignored here. The error has already been checked
 		// during transaction acceptance is the transaction pool.
-		//
-		// We use the eip155 signer regardless of the current hf.
 		from, _ := types.Sender(env.signer, tx)
+
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
 		if tx.Protected() && !w.chainConfig.IsEIP155(env.header.Number) {
@@ -285,7 +293,7 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 			continue
 		}
 		// Start executing the transaction
-		env.state.Prepare(tx.Hash(), env.tcount)
+		env.state.SetTxContext(tx.Hash(), env.tcount)
 
 		_, err := w.commitTransaction(env, tx, coinbase)
 		switch {
@@ -308,7 +316,7 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 			env.tcount++
 			txs.Shift()
 
-		case errors.Is(err, core.ErrTxTypeNotSupported):
+		case errors.Is(err, types.ErrTxTypeNotSupported):
 			// Pop the unsupported transaction without shifting in the next from the account
 			log.Trace("Skipping unsupported transaction type", "sender", from, "type", tx.Type())
 			txs.Pop()
@@ -368,13 +376,14 @@ func (w *worker) handleResult(env *environment, block *types.Block, createdAt ti
 		logs = append(logs, receipt.Logs...)
 	}
 
-	totalFees, err := core.TotalFeesFloat(block, receipts)
+	feesInEther, err := core.TotalFeesFloat(block, receipts)
 	if err != nil {
 		log.Error("TotalFeesFloat error: %s", err)
 	}
-
-	log.Info("Commit new mining work", "number", block.Number(), "hash", hash, "timestamp", block.Time(), "uncles", 0, "txs", env.tcount,
-		"gas", block.GasUsed(), "fees", totalFees, "elapsed", common.PrettyDuration(time.Since(env.start)))
+	log.Info("Commit new mining work", "number", block.Number(), "hash", hash,
+		"uncles", 0, "txs", env.tcount,
+		"gas", block.GasUsed(), "fees", feesInEther,
+		"elapsed", common.PrettyDuration(time.Since(env.start)))
 
 	// Note: the miner no longer emits a NewMinedBlock event. Instead the caller
 	// is responsible for running any additional verification and then inserting
@@ -388,42 +397,6 @@ func copyReceipts(receipts []*types.Receipt) []*types.Receipt {
 	for i, l := range receipts {
 		cpy := *l
 		result[i] = &cpy
-	}
-	return result
-}
-
-// enforcePredicates takes a set of pending transactions (grouped by sender, and ordered by nonce)
-// and returns the subset of those transactions (following the same grouping) that satisfy predicateContext.
-// Any transaction that fails predicate verification will be removed from the tx pool and excluded
-// from the return value.
-// Transactions with a nonce that follows a removed transaction will be added back to the future
-// queue of the tx pool.
-func (w *worker) enforcePredicates(
-	rules params.Rules,
-	predicateContext *precompileconfig.ProposerPredicateContext,
-	pending map[common.Address]types.Transactions,
-) map[common.Address]types.Transactions {
-	// Short circuit early if there are no precompile predicates to verify and return the
-	// unmodified pending transactions.
-	if !rules.PredicatesExist() {
-		return pending
-	}
-	result := make(map[common.Address]types.Transactions, len(pending))
-	for addr, txs := range pending {
-		for i, tx := range txs {
-			if err := core.CheckPredicates(rules, predicateContext, tx); err != nil {
-				log.Debug("Transaction predicate failed verification in miner", "sender", addr, "err", err)
-				// If the transaction fails the predicate check, we remove the transaction from the mempool
-				// and move all transactions from the same address with a subsequent nonce back to the
-				// future queue of the transaction pool.
-				w.eth.TxPool().RemoveTx(tx.Hash())
-				txs = txs[:i] // Cut off any transactions past the failed predicate in the return value
-				break
-			}
-		}
-		if len(txs) > 0 {
-			result[addr] = txs
-		}
 	}
 	return result
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -76,7 +77,7 @@ func RegisterNodeRun() {
 
 		// Assumes that startCmd will launch a node with HTTP Port at [utils.DefaultLocalNodeURI]
 		healthClient := health.NewClient(DefaultLocalNodeURI)
-		healthy, err := health.AwaitReady(ctx, healthClient, 5*time.Second, nil)
+		healthy, err := health.AwaitReady(ctx, healthClient, HealthCheckTimeout, nil)
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(healthy).Should(gomega.BeTrue())
 		log.Info("AvalancheGo node is healthy")
@@ -88,4 +89,28 @@ func RegisterNodeRun() {
 		// TODO add a new node to bootstrap off of the existing node and ensure it can bootstrap all subnets
 		// created during the test
 	})
+}
+
+// RunDefaultHardhatTests runs the hardhat tests in the given [testPath] on the blockchain with [blockchainID]
+// [execPath] is the path where the test command is executed
+func RunHardhatTests(ctx context.Context, blockchainID string, execPath string, testPath string) {
+	chainURI := GetDefaultChainURI(blockchainID)
+	log.Info(
+		"Executing HardHat tests on blockchain",
+		"blockchainID", blockchainID,
+		"testPath", testPath,
+		"ChainURI", chainURI,
+	)
+
+	cmd := exec.Command("npx", "hardhat", "test", testPath, "--network", "local")
+	cmd.Dir = execPath
+
+	log.Info("Sleeping to wait for test ping", "rpcURI", chainURI)
+	err := os.Setenv("RPC_URI", chainURI)
+	gomega.Expect(err).Should(gomega.BeNil())
+	log.Info("Running test command", "cmd", cmd.String())
+
+	out, err := cmd.CombinedOutput()
+	fmt.Printf("\nCombined output:\n\n%s\n", string(out))
+	gomega.Expect(err).Should(gomega.BeNil())
 }
