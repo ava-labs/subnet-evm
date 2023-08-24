@@ -457,14 +457,13 @@ func TestT9n(t *testing.T) {
 }
 
 type b11rInput struct {
-	inEnv         string
-	inOmmersRlp   string
-	inWithdrawals string
-	inTxsRlp      string
-	inClique      string
-	ethash        bool
-	ethashMode    string
-	ethashDir     string
+	inEnv       string
+	inOmmersRlp string
+	inTxsRlp    string
+	inClique    string
+	ethash      bool
+	ethashMode  string
+	ethashDir   string
 }
 
 func (args *b11rInput) get(base string) []string {
@@ -475,10 +474,6 @@ func (args *b11rInput) get(base string) []string {
 	}
 	if opt := args.inOmmersRlp; opt != "" {
 		out = append(out, "--input.ommers")
-		out = append(out, fmt.Sprintf("%v/%v", base, opt))
-	}
-	if opt := args.inWithdrawals; opt != "" {
-		out = append(out, "--input.withdrawals")
 		out = append(out, fmt.Sprintf("%v/%v", base, opt))
 	}
 	if opt := args.inTxsRlp; opt != "" {
