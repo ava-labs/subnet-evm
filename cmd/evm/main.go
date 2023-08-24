@@ -224,7 +224,6 @@ func init() {
 		compileCommand,
 		disasmCommand,
 		runCommand,
-		blockTestCommand,
 		stateTestCommand,
 		stateTransitionCommand,
 		transactionCommand,
