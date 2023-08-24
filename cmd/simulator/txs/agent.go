@@ -21,21 +21,21 @@ type THash interface {
 // TxSequence provides an interface to return a channel of transactions.
 // The sequence is responsible for closing the channel when there are no further
 // transactions.
-type TxSequence[T THash] interface {
+type TxSequence[T any] interface {
 	Chan() <-chan T
 }
 
 // Worker defines the interface for issuance and confirmation of transactions.
 // The caller is responsible for calling Close to cleanup resources used by the
 // worker at the end of the simulation.
-type Worker[T THash] interface {
+type Worker[T any] interface {
 	IssueTx(ctx context.Context, tx T) error
 	ConfirmTx(ctx context.Context, tx T) error
 	Close(ctx context.Context) error
 }
 
 // Execute the work of the given agent.
-type Agent[T THash] interface {
+type Agent interface {
 	Execute(ctx context.Context) error
 }
 
@@ -48,7 +48,7 @@ type issueNAgent[T THash] struct {
 }
 
 // NewIssueNAgent creates a new issueNAgent
-func NewIssueNAgent[T THash](sequence TxSequence[T], worker Worker[T], n uint64, metrics *metrics.Metrics) Agent[T] {
+func NewIssueNAgent[T THash](sequence TxSequence[T], worker Worker[T], n uint64, metrics *metrics.Metrics) Agent {
 	return &issueNAgent[T]{
 		sequence: sequence,
 		worker:   worker,
