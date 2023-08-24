@@ -37,12 +37,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var (
-	gitCommit = "" // Git SHA1 commit hash of the release (set via linker flags)
-	gitDate   = ""
-
-	app = flags.NewApp("the evm command line interface")
-)
+var app = flags.NewApp("the evm command line interface")
 
 var (
 	DebugFlag = &cli.BoolFlag{
