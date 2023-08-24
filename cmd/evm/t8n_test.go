@@ -29,55 +29,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/internal/cmdtest"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/stretchr/testify/require"
 )
-
-func TestXXX(t *testing.T) {
-	currentTimestamp := uint64(1)
-	parent := &types.Header{
-		Number:   new(big.Int).SetUint64(0),
-		Time:     0,
-		BaseFee:  new(big.Int).SetUint64(0x500),
-		GasUsed:  0,
-		GasLimit: 0x750a163df65e8a,
-	}
-	forkString := "Merge"
-	chainConfig, _, err := tests.GetChainConfig(forkString)
-	require.NoError(t, err)
-
-	chainConfig.FeeConfig = params.DefaultFeeConfig
-	chainConfig.FeeConfig.MinBaseFee = new(big.Int)
-	_, baseFee, err := dummy.CalcBaseFee(chainConfig, chainConfig.FeeConfig, parent, 0)
-
-	require.NoError(t, err)
-	fmt.Printf("baseFee: %v\n", baseFee)
-
-	parent = &types.Header{
-		Number:   new(big.Int).SetUint64(1),
-		Time:     0,
-		BaseFee:  new(big.Int).SetUint64(0x500),
-		GasUsed:  0,
-		GasLimit: 0x750a163df65e8a,
-		Extra:    make([]byte, params.ExtraDataSize),
-	}
-	_, baseFee, err = dummy.CalcBaseFee(chainConfig, chainConfig.FeeConfig, parent, currentTimestamp)
-	require.NoError(t, err)
-	fmt.Printf("baseFee: %x\n", baseFee)
-
-}
 
 func TestMain(m *testing.M) {
 	// Run the app if we've been exec'd as "ethkey-test" in runEthkey.
