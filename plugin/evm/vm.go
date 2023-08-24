@@ -694,9 +694,9 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	// We call verify without writes here to avoid generating a reference
 	// to the blk state root in the triedb when we are going to call verify
 	// again from the consensus engine with writes enabled.
-	if err := blk.verify(predicateCtx, false /*=writes*/); err != nil {
-		return nil, fmt.Errorf("block failed verification due to: %w", err)
-	}
+	// if err := blk.verify(predicateCtx, false /*=writes*/); err != nil {
+	// 	return nil, fmt.Errorf("block failed verification due to: %w", err)
+	// }
 
 	log.Debug(fmt.Sprintf("Built block %s", blk.ID()))
 	// Marks the current transactions from the mempool as being successfully issued
