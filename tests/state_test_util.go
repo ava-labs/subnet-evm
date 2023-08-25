@@ -127,8 +127,8 @@ func GetChainConfig(forkString string) (baseConfig *params.ChainConfig, eips []i
 	// NOTE: this is added to support mapping geth fork names to
 	// subnet-evm fork names.
 	forkAliases := map[string]string{
+		"Berlin":       "Pre-SubnetEVM",
 		"London":       "SubnetEVM",
-		"Berlin":       "SubnetEVM",
 		"ArrowGlacier": "SubnetEVM",
 		"GrayGlacier":  "SubnetEVM",
 		"Merge":        "SubnetEVM",
