@@ -41,10 +41,11 @@ func IssueTxsToActivateProposerVMFork(
 	}
 	defer sub.Unsubscribe()
 
+	gasPrice := big.NewInt(params.MinGasPrice)
 	txSigner := types.LatestSignerForChainID(chainID)
 	for i := 0; i < numTriggerTxs; i++ {
 		tx := types.NewTransaction(
-			nonce, addr, common.Big1, 21_000, big.NewInt(225*params.GWei), nil)
+			nonce, addr, common.Big1, params.TxGas, gasPrice, nil)
 		triggerTx, err := types.SignTx(tx, txSigner, fundedKey)
 		if err != nil {
 			return err
