@@ -51,16 +51,11 @@ type AccessibleState interface {
 	GetSnowContext() *snow.Context
 }
 
-// ConfigurationBlockContext defines the interface required to configure a precompile.
-type ConfigurationBlockContext interface {
+// BlockContext defines an interface that provides information to a stateful precompile about the
+// current block. The BlockContext may be provided during both precompile activation and execution.
+type BlockContext interface {
 	Number() *big.Int
 	Timestamp() uint64
-}
-
-// BlockContext defines the interface to provide information about the block to a precompile
-// during the execution of the EVM.
-type BlockContext interface {
-	ConfigurationBlockContext
 }
 
 type Configurator interface {
@@ -69,6 +64,6 @@ type Configurator interface {
 		chainConfig precompileconfig.ChainConfig,
 		precompileconfig precompileconfig.Config,
 		state StateDB,
-		blockContext ConfigurationBlockContext,
+		blockContext BlockContext,
 	) error
 }
