@@ -46,6 +46,8 @@ type Predicater interface {
 
 // PredicateContext is the context passed in to the Predicater interface to verify
 // a precompile predicate within a specific ProposerVM header.
+// If the block is not verified within a ProposerVM header, then ProposerVMBlockCtx
+// may be nil.
 type PredicateContext struct {
 	SnowCtx *snow.Context
 	// ProposerVMBlockCtx defines the ProposerVM context the predicate is verified within
