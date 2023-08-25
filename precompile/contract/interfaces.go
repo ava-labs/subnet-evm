@@ -51,8 +51,7 @@ type AccessibleState interface {
 	GetSnowContext() *snow.Context
 }
 
-// BlockContext defines an interface that provides information to a stateful precompile about the
-// current block. The BlockContext may be provided during both precompile activation and execution.
+// BlockContext defines the interface required to configure a precompile.
 type BlockContext interface {
 	Number() *big.Int
 	Timestamp() uint64
