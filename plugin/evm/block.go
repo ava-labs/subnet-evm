@@ -179,9 +179,9 @@ func (b *Block) Verify(context.Context) error {
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	proposerPredicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Predicates
-	// Short circuit early if there are no proposer predicates to verify
-	if len(proposerPredicates) == 0 {
+	predicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Predicates
+	// Short circuit early if there are no predicates to verify
+	if len(predicates) == 0 {
 		return false, nil
 	}
 
@@ -189,7 +189,7 @@ func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
 	// the ProposerVMBlockCtx.
 	for _, tx := range b.ethBlock.Transactions() {
 		for _, accessTuple := range tx.AccessList() {
-			if _, ok := proposerPredicates[accessTuple.Address]; ok {
+			if _, ok := predicates[accessTuple.Address]; ok {
 				log.Debug("Block verification requires proposerVM context", "block", b.ID(), "height", b.Height())
 				return true, nil
 			}

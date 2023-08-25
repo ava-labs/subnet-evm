@@ -15,6 +15,11 @@ import (
 
 // CheckPredicates checks that all precompile predicates are satisfied within the current [predicateContext] for [tx]
 func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) error {
+	// Short circuit early if there are no precompile predicates to verify
+	if len(rules.Predicates) == 0 {
+		return nil
+	}
+
 	// Check that the transaction can cover its IntrinsicGas (including the gas required by the predicate) before
 	// verifying the predicate.
 	intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, rules)
@@ -24,20 +29,12 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 	if tx.Gas() < intrinsicGas {
 		return fmt.Errorf("insufficient gas for predicate verification (%d) < intrinsic gas (%d)", tx.Gas(), intrinsicGas)
 	}
-	return checkPrecompilePredicates(rules, predicateContext, tx)
-}
 
-func checkPrecompilePredicates(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) error {
-	// Short circuit early if there are no precompile predicates to verify
-	if len(rules.Predicates) == 0 {
-		return nil
-	}
-	precompilePredicates := rules.Predicates
 	// Track addresses that we've performed a predicate check for
 	precompileAddressChecks := make(map[common.Address]struct{})
 	for _, accessTuple := range tx.AccessList() {
 		address := accessTuple.Address
-		predicater, ok := precompilePredicates[address]
+		predicater, ok := rules.Predicates[address]
 		if !ok {
 			continue
 		}
