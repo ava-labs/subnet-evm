@@ -267,7 +267,7 @@ func Transition(ctx *cli.Context) error {
 				BaseFee:  prestate.Env.ParentBaseFee,
 				GasUsed:  prestate.Env.ParentGasUsed,
 				GasLimit: prestate.Env.ParentGasLimit,
-				Extra:    make([]byte, params.ExtraDataSize), // TODO: consider passing extra through env
+				Extra:    make([]byte, params.DynamicFeeExtraDataSize), // TODO: consider passing extra through env
 			}
 			feeConfig := params.DefaultFeeConfig
 			if prestate.Env.MinBaseFee != nil {
