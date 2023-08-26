@@ -243,6 +243,7 @@ func SetupGenesisBlock(
 	} else {
 		compatErr := storedcfg.CheckCompatible(newcfg, height, timestamp)
 		if compatErr != nil && ((height != 0 && compatErr.RewindToBlock != 0) || (timestamp != 0 && compatErr.RewindToTime != 0)) {
+			log.Error("found mismatch between config on database vs. new config", "storedConfig", storedcfg, "newConfig", newcfg)
 			return newcfg, stored, compatErr
 		}
 	}
