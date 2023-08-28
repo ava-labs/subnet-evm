@@ -386,11 +386,11 @@ func (c *ChainConfig) IsDUpgrade(time uint64) bool {
 }
 
 func (r *Rules) PredicatesExist() bool {
-	return len(r.PredicatePrecompiles) > 0
+	return len(r.Predicates) > 0
 }
 
 func (r *Rules) PredicateExists(addr common.Address) bool {
-	_, predicateExists := r.PredicatePrecompiles[addr]
+	_, predicateExists := r.Predicates[addr]
 	return predicateExists
 }
 
@@ -719,9 +719,9 @@ type Rules struct {
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
 	ActivePrecompiles map[common.Address]precompileconfig.Config
-	// PrecompilePredicates maps addresses to stateful precompile predicate functions
+	// Predicates maps addresses to stateful precompile predicate functions
 	// that are enabled for this rule set.
-	PredicatePrecompiles map[common.Address]precompileconfig.Predicater
+	Predicates map[common.Address]precompileconfig.Predicater
 	// AccepterPrecompiles map addresses to stateful precompile accepter functions
 	// that are enabled for this rule set.
 	AccepterPrecompiles map[common.Address]precompileconfig.Accepter
@@ -762,13 +762,13 @@ func (c *ChainConfig) AvalancheRules(blockNum *big.Int, timestamp uint64) Rules 
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)
-	rules.PredicatePrecompiles = make(map[common.Address]precompileconfig.Predicater)
+	rules.Predicates = make(map[common.Address]precompileconfig.Predicater)
 	rules.AccepterPrecompiles = make(map[common.Address]precompileconfig.Accepter)
 	for _, module := range modules.RegisteredModules() {
 		if config := c.getActivePrecompileConfig(module.Address, timestamp); config != nil && !config.IsDisabled() {
 			rules.ActivePrecompiles[module.Address] = config
-			if precompilePredicate, ok := config.(precompileconfig.Predicater); ok {
-				rules.PredicatePrecompiles[module.Address] = precompilePredicate
+			if predicate, ok := config.(precompileconfig.Predicater); ok {
+				rules.Predicates[module.Address] = predicate
 			}
 			if precompileAccepter, ok := config.(precompileconfig.Accepter); ok {
 				rules.AccepterPrecompiles[module.Address] = precompileAccepter

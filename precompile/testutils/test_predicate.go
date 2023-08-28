@@ -16,7 +16,7 @@ import (
 type PredicateTest struct {
 	Config precompileconfig.Config
 
-	ProposerPredicateContext *precompileconfig.PredicateContext
+	PredicateContext *precompileconfig.PredicateContext
 
 	StorageSlots [][]byte
 	Gas          uint64
@@ -58,7 +58,7 @@ func (test PredicateTest) Run(t testing.TB) {
 	}
 	require.Equal(test.Gas, gas)
 
-	predicateRes = predicate.VerifyPredicate(test.ProposerPredicateContext, test.StorageSlots)
+	predicateRes = predicate.VerifyPredicate(test.PredicateContext, test.StorageSlots)
 	require.Equal(test.PredicateRes, predicateRes)
 }
 

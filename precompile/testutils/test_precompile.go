@@ -39,14 +39,14 @@ type PrecompileTest struct {
 	Config precompileconfig.Config
 	// BeforeHook is called before the precompile is called.
 	BeforeHook func(t testing.TB, state contract.StateDB)
+	// SetupBlockContext sets the expected calls on MockBlockContext for the test execution.
+	SetupBlockContext func(*contract.MockBlockContext)
 	// AfterHook is called after the precompile is called.
 	AfterHook func(t testing.TB, state contract.StateDB)
 	// ExpectedRes is the expected raw byte result returned by the precompile
 	ExpectedRes []byte
 	// ExpectedErr is the expected error returned by the precompile
 	ExpectedErr string
-	// SetupBlockContext sets the expected calls on MockBlockContext for the test execution.
-	SetupBlockContext func(*contract.MockBlockContext)
 	// ChainConfig is the chain config to use for the precompile's block context
 	// If nil, the default chain config will be used.
 	ChainConfig precompileconfig.ChainConfig

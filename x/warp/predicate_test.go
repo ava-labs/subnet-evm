@@ -216,7 +216,7 @@ func createSnowCtx(validatorRanges []validatorRange) *snow.Context {
 func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicateBytes []byte) testutils.PredicateTest {
 	return testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
-		ProposerPredicateContext: &precompileconfig.PredicateContext{
+		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
 				PChainHeight: 1,
@@ -241,7 +241,7 @@ func TestWarpNilProposerCtx(t *testing.T) {
 	predicateBytes := createPredicate(numKeys)
 	test := testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
-		ProposerPredicateContext: &precompileconfig.PredicateContext{
+		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx:            snowCtx,
 			ProposerVMBlockCtx: nil,
 		},
@@ -268,7 +268,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 
 	test := testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
-		ProposerPredicateContext: &precompileconfig.PredicateContext{
+		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
 				PChainHeight: 1,
@@ -298,7 +298,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 
 	test := testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
-		ProposerPredicateContext: &precompileconfig.PredicateContext{
+		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
 				PChainHeight: 1,
@@ -342,7 +342,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 
 	test := testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
-		ProposerPredicateContext: &precompileconfig.PredicateContext{
+		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
 				PChainHeight: 1,
@@ -385,7 +385,7 @@ func TestInvalidBitSet(t *testing.T) {
 	predicateBytes := predicateutils.PackPredicate(msg.Bytes())
 	test := testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
-		ProposerPredicateContext: &precompileconfig.PredicateContext{
+		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
 				PChainHeight: 1,
@@ -430,7 +430,7 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 		}
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
 			Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
-			ProposerPredicateContext: &precompileconfig.PredicateContext{
+			PredicateContext: &precompileconfig.PredicateContext{
 				SnowCtx: snowCtx,
 				ProposerVMBlockCtx: &block.Context{
 					PChainHeight: 1,
@@ -485,7 +485,7 @@ func TestWarpMultiplePredicates(t *testing.T) {
 
 		tests[fmt.Sprintf("multiple predicates %v", validMessageIndices)] = testutils.PredicateTest{
 			Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
-			ProposerPredicateContext: &precompileconfig.PredicateContext{
+			PredicateContext: &precompileconfig.PredicateContext{
 				SnowCtx: snowCtx,
 				ProposerVMBlockCtx: &block.Context{
 					PChainHeight: 1,
@@ -528,7 +528,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)
 		tests[name] = testutils.PredicateTest{
 			Config: NewConfig(subnetEVMUtils.NewUint64(0), uint64(nonDefaultQuorumNumerator)),
-			ProposerPredicateContext: &precompileconfig.PredicateContext{
+			PredicateContext: &precompileconfig.PredicateContext{
 				SnowCtx: snowCtx,
 				ProposerVMBlockCtx: &block.Context{
 					PChainHeight: 1,

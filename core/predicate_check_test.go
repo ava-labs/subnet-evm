@@ -240,7 +240,7 @@ func TestCheckPredicate(t *testing.T) {
 			rules := params.TestChainConfig.AvalancheRules(common.Big0, 0)
 			if test.createPredicates != nil {
 				for address, predicater := range test.createPredicates(t) {
-					rules.PredicatePrecompiles[address] = predicater
+					rules.Predicates[address] = predicater
 				}
 			}
 
