@@ -35,6 +35,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/results"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 	//"github.com/ethereum/go-ethereum/log"
 )
 
@@ -50,9 +51,15 @@ type ChainContext interface {
 
 // NewEVMBlockContext creates a new context for use in the EVM.
 func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
-	var predicateResults *results.PredicateResults
+	var (
+		predicateResults *results.PredicateResults
+		err              error
+	)
 	if len(header.Extra) > params.DynamicFeeExtraDataSize {
-		predicateResults, _ = results.ParsePredicateResults(header.Extra[params.DynamicFeeExtraDataSize:]) // TODO: better error handling
+		predicateResults, err = results.ParsePredicateResults(header.Extra[params.DynamicFeeExtraDataSize:])
+		if err != nil {
+			log.Error("failed to parse predicate results creating new block context", "err", err, "extra", header.Extra)
+		}
 	}
 
 	return newEVMBlockContext(header, chain, author, predicateResults)

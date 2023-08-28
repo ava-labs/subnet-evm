@@ -299,7 +299,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	require.NoError(err)
 	unmarshalResults := make(map[string]interface{})
 	require.NoError(json.Unmarshal(blockTxTraceResultBytes, &unmarshalResults))
-	require.Equal(unmarshalResults["returnValue"], common.Bytes2Hex(expectedOutput))
+	require.Equal(common.Bytes2Hex(expectedOutput), unmarshalResults["returnValue"])
 
 	txTraceResult, err := tracerAPI.TraceTransaction(context.Background(), getVerifiedWarpMessageTx.Hash(), nil)
 	require.NoError(err)

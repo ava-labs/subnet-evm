@@ -25,10 +25,7 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 	if tx.Gas() < intrinsicGas {
 		return nil, fmt.Errorf("%w for predicate verification (%d) < intrinsic gas (%d)", ErrIntrinsicGas, tx.Gas(), intrinsicGas)
 	}
-	return checkPrecompilePredicates(rules, predicateContext, tx)
-}
 
-func checkPrecompilePredicates(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) (map[common.Address][]byte, error) {
 	predicateResults := make(map[common.Address][]byte)
 	// Short circuit early if there are no precompile predicates to verify
 	if len(rules.Predicates) == 0 {

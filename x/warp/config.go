@@ -74,6 +74,7 @@ func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify(precompileconfig.ChainConfig) error {
+	// TODO: return an error if Warp is enabled before DUpgrade
 	if c.QuorumNumerator > params.WarpQuorumDenominator {
 		return fmt.Errorf("cannot specify quorum numerator (%d) > quorum denominator (%d)", c.QuorumNumerator, params.WarpQuorumDenominator)
 	}
@@ -119,7 +120,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.PredicateC
 	// Verify the warp payload can be decoded to the expected type
 	_, err := warpPayload.ParseAddressedPayload(warpMsg.UnsignedMessage.Payload)
 	if err != nil {
-		// return fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
+		log.Debug("failed to parse addressed payload", "msgID", warpMsg.ID(), "payload", warpMsg.UnsignedMessage.Payload, "err", err)
 		return false
 	}
 
@@ -133,7 +134,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.PredicateC
 		quorumNumerator,
 		params.WarpQuorumDenominator,
 	); err != nil {
-		// return fmt.Errorf("warp signature verification failed: %w", err)
+		log.Debug("failed to verify warp signature", "msgID", warpMsg.ID(), "err", err)
 		return false
 	}
 

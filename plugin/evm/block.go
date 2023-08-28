@@ -269,7 +269,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 
 	switch {
-	case !rules.IsDUpgrade && rules.PredicatesExist(): // XXX detect this earlier?
+	case !rules.IsDUpgrade && rules.PredicatesExist():
 		return errors.New("cannot enable predicates before DUpgrade activation")
 	case !rules.IsDUpgrade:
 		return nil
@@ -283,9 +283,10 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		}
 		predicateResults.SetTxPredicateResults(tx.Hash(), results)
 	}
+	// TODO: document required gas constraints to ensure marshalling predicate results does not error
 	predicateResultsBytes, err := predicateResults.Bytes()
 	if err != nil {
-		return fmt.Errorf("failed to marshal predicate results: %w", err) // XXX what constraints are needed to ensure we don't error here?
+		return fmt.Errorf("failed to marshal predicate results: %w", err)
 	}
 	headerPredicateResultsBytes := b.ethBlock.Extra()[params.DynamicFeeExtraDataSize:]
 	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
