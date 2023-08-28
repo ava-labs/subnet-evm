@@ -14,7 +14,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/math"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	pwarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
@@ -24,36 +23,33 @@ import (
 
 func GetWarpSendTxSequences(
 	ctx context.Context,
-	config config.Config,
 	chainID *big.Int,
 	pks []*ecdsa.PrivateKey,
 	startingNonces []uint64,
+	maxTipCap *big.Int,
+	maxFeeCap *big.Int,
+	dstBlockchainID ids.ID,
+	txsPerWorker uint64,
 ) ([]txs.TxSequence[*types.Transaction], error) {
 	bigGwei := big.NewInt(params.GWei)
-	gasTipCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxTipCap))
-	gasFeeCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxFeeCap))
+	gasTipCap := new(big.Int).Mul(bigGwei, maxTipCap)
+	gasFeeCap := new(big.Int).Mul(bigGwei, maxFeeCap)
 
-	subnetBStr := config.Subnets[1].BlockchainID.String()
-	subnetB, err := ids.FromString(subnetBStr)
-	if err != nil {
-		return nil, err
-	}
-	txGenerator := MkSendWarpTxGenerator(chainID, subnetB, gasFeeCap, gasTipCap)
-	return txs.GenerateTxSequences(ctx, txGenerator, pks, startingNonces, config.TxsPerWorker)
+	txGenerator := MkSendWarpTxGenerator(chainID, dstBlockchainID, gasFeeCap, gasTipCap)
+	return txs.GenerateTxSequences(ctx, txGenerator, pks, startingNonces, txsPerWorker)
 }
 
 func GetWarpReceiveTxSequences(
 	ctx context.Context,
-	config config.Config,
 	chainID *big.Int,
 	pks []*ecdsa.PrivateKey,
 	startingNonces []uint64,
 	signedMessages chan *pwarp.Message,
+	workers int,
 ) ([]txs.TxSequence[*types.Transaction], error) {
-	// Each worker will listen for signed warp messages that are
-	// ready to be issued
-	txSequences := make([]txs.TxSequence[*types.Transaction], config.Workers)
-	for i := 0; i < config.Workers; i++ {
+	// Each worker listens for signed warp messages that are ready to be issued
+	txSequences := make([]txs.TxSequence[*types.Transaction], workers)
+	for i := 0; i < workers; i++ {
 		txSequences[i] = NewWarpRelayTxSequence(ctx, signedMessages, chainID, pks[i], startingNonces[i])
 	}
 	return txSequences, nil

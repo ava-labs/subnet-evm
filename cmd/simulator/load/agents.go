@@ -109,7 +109,19 @@ func (w *warpSendTxAgentBuilder) GenerateTxSequences(
 	startingNonces []uint64,
 ) error {
 	log.Info("Creating warp send transaction sequences...")
-	txSequences, err := GetWarpSendTxSequences(ctx, config, chainID, pks, startingNonces)
+
+	dstBlockchainID := config.Subnets[1].BlockchainID
+	txSequences, err := GetWarpSendTxSequences(
+		ctx,
+		chainID,
+		pks,
+		startingNonces,
+		big.NewInt(config.MaxTipCap),
+		big.NewInt(config.MaxFeeCap),
+		dstBlockchainID,
+		config.TxsPerWorker,
+	)
+
 	if err != nil {
 		return err
 	}
@@ -148,7 +160,7 @@ func (w *warpReceiveTxAgentBuilder) GenerateTxSequences(
 ) error {
 	log.Info("Creating warp receive transaction sequences...")
 	txSequences, err := GetWarpReceiveTxSequences(
-		ctx, config, chainID, pks, startingNonces, w.signedMessages)
+		ctx, chainID, pks, startingNonces, w.signedMessages, config.Workers)
 	if err != nil {
 		return err
 	}
