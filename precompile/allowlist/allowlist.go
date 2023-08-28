@@ -178,6 +178,6 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 	return []*contract.StatefulPrecompileFunction{setAdmin, setManager, setEnabled, setNone, read}
 }
 
-func isManagerRoleActivated(evm contract.AccessibleState) (bool, error) {
-	return evm.GetChainConfig().IsDUpgrade(evm.GetBlockContext().Timestamp()), nil
+func isManagerRoleActivated(evm contract.AccessibleState) bool {
+	return evm.GetChainConfig().IsDUpgrade(evm.GetBlockContext().Timestamp())
 }

@@ -307,7 +307,7 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 
 	genesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
-			Config: deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil),
+			Config: deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil),
 		},
 	}
 	_, _, err = SetupGenesisBlock(db, trieDB, genesis, genesisBlock.Hash(), false)

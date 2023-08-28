@@ -6,13 +6,10 @@ package nativeminter
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -61,27 +58,9 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, common.Big2, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
-	"mint funds from manager role succeeds before activation": {
+	"mint funds from manager role succeeds ": {
 		Caller:      allowlist.TestManagerAddr,
 		BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
-		ChainConfig: precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
-		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
-			require.NoError(t, err)
-
-			return input
-		},
-		SuppliedGas: MintGasCost,
-		ReadOnly:    false,
-		ExpectedRes: []byte{},
-		AfterHook: func(t testing.TB, state contract.StateDB) {
-			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
-		},
-	},
-	"mint funds from manager role succeeds after activation": {
-		Caller:      allowlist.TestManagerAddr,
-		BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
-		ChainConfig: precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
 		InputFn: func(t testing.TB) []byte {
 			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 			require.NoError(t, err)

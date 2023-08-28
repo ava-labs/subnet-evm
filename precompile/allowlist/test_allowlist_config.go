@@ -7,12 +7,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"go.uber.org/mock/gomock"
 )
 
 // mkConfigWithAllowList creates a new config with the correct type for [module]
@@ -46,7 +46,7 @@ func mkConfigWithUpgradeAndAllowList(module modules.Module, cfg *AllowListConfig
 	return moduleCfg
 }
 
-func AllowListConfigVerifyTests(module modules.Module) map[string]testutils.ConfigVerifyTest {
+func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]testutils.ConfigVerifyTest {
 	return map[string]testutils.ConfigVerifyTest{
 		"invalid allow list config with duplicate admins in allowlist": {
 			Config: mkConfigWithAllowList(module, &AllowListConfig{
@@ -105,7 +105,11 @@ func AllowListConfigVerifyTests(module modules.Module) map[string]testutils.Conf
 			}, precompileconfig.Upgrade{
 				BlockTimestamp: utils.NewUint64(1),
 			}),
-			ChainConfig:   precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(2)),
+			ChainConfig: func() precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false)
+				return config
+			}(),
 			ExpectedError: "cannot add managers before DUpgrade",
 		},
 		"nil member allow list config in allowlist": {
@@ -135,7 +139,7 @@ func AllowListConfigVerifyTests(module modules.Module) map[string]testutils.Conf
 	}
 }
 
-func AllowListConfigEqualTests(module modules.Module) map[string]testutils.ConfigEqualTest {
+func AllowListConfigEqualTests(t testing.TB, module modules.Module) map[string]testutils.ConfigEqualTest {
 	return map[string]testutils.ConfigEqualTest{
 		"allowlist non-nil config and nil other": {
 			Config: mkConfigWithAllowList(module, &AllowListConfig{
@@ -203,7 +207,7 @@ func AllowListConfigEqualTests(module modules.Module) map[string]testutils.Confi
 
 func VerifyPrecompileWithAllowListTests(t *testing.T, module modules.Module, verifyTests map[string]testutils.ConfigVerifyTest) {
 	t.Helper()
-	tests := AllowListConfigVerifyTests(module)
+	tests := AllowListConfigVerifyTests(t, module)
 	// Add the contract specific tests to the map of tests to run.
 	for name, test := range verifyTests {
 		if _, exists := tests[name]; exists {
@@ -217,7 +221,7 @@ func VerifyPrecompileWithAllowListTests(t *testing.T, module modules.Module, ver
 
 func EqualPrecompileWithAllowListTests(t *testing.T, module modules.Module, equalTests map[string]testutils.ConfigEqualTest) {
 	t.Helper()
-	tests := AllowListConfigEqualTests(module)
+	tests := AllowListConfigEqualTests(t, module)
 	// Add the contract specific tests to the map of tests to run.
 	for name, test := range equalTests {
 		if _, exists := tests[name]; exists {

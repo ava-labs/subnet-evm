@@ -6,14 +6,11 @@ package rewardmanager
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -96,9 +93,8 @@ var (
 				require.False(t, isFeeRecipients)
 			},
 		},
-		"set allow fee recipients from manager succeeds before activation": {
+		"set allow fee recipients from manager succeeds": {
 			Caller:      allowlist.TestManagerAddr,
-			ChainConfig: precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
 			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAllowFeeRecipients()
@@ -114,28 +110,9 @@ var (
 				require.True(t, isFeeRecipients)
 			},
 		},
-		"set allow fee recipients from manager succeeds after activation": {
-			Caller:      allowlist.TestManagerAddr,
-			ChainConfig: precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
-			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackAllowFeeRecipients()
-				require.NoError(t, err)
-
-				return input
-			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
-			ReadOnly:    false,
-			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, state contract.StateDB) {
-				_, isFeeRecipients := GetStoredRewardAddress(state)
-				require.True(t, isFeeRecipients)
-			},
-		},
-		"set reward address from manager succeeds before activation": {
-			Caller:      allowlist.TestManagerAddr,
-			ChainConfig: precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
-			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+		"set reward address from manager succeeds": {
+			Caller:     allowlist.TestManagerAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetRewardAddress(testAddr)
 				require.NoError(t, err)
@@ -151,48 +128,9 @@ var (
 				require.False(t, isFeeRecipients)
 			},
 		},
-		"set reward address from manager succeeds after activation": {
-			Caller:      allowlist.TestManagerAddr,
-			ChainConfig: precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
-			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackSetRewardAddress(testAddr)
-				require.NoError(t, err)
-
-				return input
-			},
-			SuppliedGas: SetRewardAddressGasCost,
-			ReadOnly:    false,
-			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, state contract.StateDB) {
-				address, isFeeRecipients := GetStoredRewardAddress(state)
-				require.Equal(t, testAddr, address)
-				require.False(t, isFeeRecipients)
-			},
-		},
-		"disable rewards from manager succeeds before activation": {
-			Caller:      allowlist.TestManagerAddr,
-			ChainConfig: precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, nil),
-			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackDisableRewards()
-				require.NoError(t, err)
-
-				return input
-			},
-			SuppliedGas: DisableRewardsGasCost,
-			ReadOnly:    false,
-			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, state contract.StateDB) {
-				address, isFeeRecipients := GetStoredRewardAddress(state)
-				require.False(t, isFeeRecipients)
-				require.Equal(t, constants.BlackholeAddr, address)
-			},
-		},
-		"disable rewards from manager succeeds after activation": {
-			Caller:      allowlist.TestManagerAddr,
-			ChainConfig: precompileconfig.NewMockChainConfig(commontype.ValidTestFeeConfig, false, utils.NewUint64(0)),
-			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+		"disable rewards from manager succeeds  ": {
+			Caller:     allowlist.TestManagerAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackDisableRewards()
 				require.NoError(t, err)
