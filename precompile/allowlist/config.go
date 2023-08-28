@@ -29,10 +29,8 @@ func (c *AllowListConfig) Configure(chainConfig precompileconfig.ChainConfig, pr
 	}
 	// Verify() should have been called before Configure()
 	// so we know manager role is activated
-	if chainConfig.IsDUpgrade(blockContext.Timestamp()) {
-		for _, managerAddr := range c.ManagerAddresses {
-			SetAllowListRole(state, precompileAddr, managerAddr, ManagerRole)
-		}
+	for _, managerAddr := range c.ManagerAddresses {
+		SetAllowListRole(state, precompileAddr, managerAddr, ManagerRole)
 	}
 	return nil
 }
@@ -85,8 +83,8 @@ func (c *AllowListConfig) Verify(chainConfig precompileconfig.ChainConfig, upgra
 		addressMap[adminAddr] = AdminRole
 	}
 
-	if len(c.ManagerAddresses) != 0 && !upgrade.Disable && upgrade.Timestamp() != nil {
-		// check that manager role activates at the timestamp
+	if len(c.ManagerAddresses) != 0 && upgrade.Timestamp() != nil {
+		// If the config attempts to activate a manager before the DUpgrade, fail verification
 		timestamp := *upgrade.Timestamp()
 		if !chainConfig.IsDUpgrade(timestamp) {
 			return fmt.Errorf("cannot add managers before DUpgrade timestamp: %d", timestamp)

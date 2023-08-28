@@ -15,7 +15,7 @@ var (
 
 	LocalNetworkUpgrades = MandatoryNetworkUpgrades{
 		SubnetEVMTimestamp: utils.NewUint64(0),
-		DUpgradeTimestamp:  utils.TimeToNewUint64(defaultActivationTime),
+		DUpgradeTimestamp:  utils.NewUint64(0),
 	}
 
 	FujiNetworkUpgrades = MandatoryNetworkUpgrades{

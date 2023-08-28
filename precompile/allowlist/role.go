@@ -58,7 +58,7 @@ func (r Role) CanModify(from, target Role) bool {
 	case AdminRole:
 		return true
 	case ManagerRole:
-		return (from == EnabledRole && target == NoRole) || (from == NoRole && target == EnabledRole)
+		return (from == EnabledRole || from == NoRole) && (target == EnabledRole || target == NoRole)
 	default:
 		return false
 	}

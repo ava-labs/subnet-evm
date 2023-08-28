@@ -6,7 +6,6 @@ package allowlist
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -161,7 +160,6 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().GetFeeConfig().Return(commontype.ValidTestFeeConfig)
 				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false)
 				return config
 			}(),
@@ -173,7 +171,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: 0,
 			ReadOnly:    false,
-			ExpectedErr: contract.InvalidFunctionErr(setManagerSignature).Error(),
+			ExpectedErr: "invalid non-activated function selector",
 		},
 		"set manager from no role after activation": {
 			Caller:     TestNoRoleAddr,
@@ -209,7 +207,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: 0,
 			ReadOnly:    false,
-			ExpectedErr: contract.InvalidFunctionErr(setManagerSignature).Error(),
+			ExpectedErr: "invalid non-activated function selector",
 		},
 		"set manager from enabled after activation": {
 			Caller:     TestNoRoleAddr,
@@ -245,7 +243,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			}(),
 			SuppliedGas: 0,
 			ReadOnly:    false,
-			ExpectedErr: contract.InvalidFunctionErr(setManagerSignature).Error(),
+			ExpectedErr: "invalid non-activated function selector",
 		},
 		"set manager from admin after activation": {
 			Caller:     TestAdminAddr,
@@ -269,14 +267,27 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Equal(t, ManagerRole, res)
 			},
 		},
+		"set no role to no role from manager after activation": {
+			Caller:     TestManagerAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackModifyAllowList(TestNoRoleAddr, NoRole)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: ModifyAllowListGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			ExpectedErr: "",
+			AfterHook: func(t testing.TB, state contract.StateDB) {
+				res := GetAllowListStatus(state, contractAddress, TestNoRoleAddr)
+				require.Equal(t, NoRole, res)
+			},
+		},
 		"set no role to enabled from manager after activation": {
 			Caller:     TestManagerAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
-			ChainConfig: func() precompileconfig.ChainConfig {
-				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
-				return config
-			}(),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, EnabledRole)
 				require.NoError(t, err)
@@ -313,11 +324,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 		"set no role to admin from manager after activation": {
 			Caller:     TestManagerAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
-			ChainConfig: func() precompileconfig.ChainConfig {
-				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
-				return config
-			}(), InputFn: func(t testing.TB) []byte {
+			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestNoRoleAddr, AdminRole)
 				require.NoError(t, err)
 
@@ -330,11 +337,6 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 		"set enabled role to admin from manager after activation": {
 			Caller:     TestManagerAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
-			ChainConfig: func() precompileconfig.ChainConfig {
-				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
-				return config
-			}(),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, AdminRole)
 				require.NoError(t, err)
@@ -366,11 +368,6 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 		"set enabled role to no role from manager after activation": {
 			Caller:     TestManagerAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
-			ChainConfig: func() precompileconfig.ChainConfig {
-				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
-				return config
-			}(),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestEnabledAddr, NoRole)
 				require.NoError(t, err)
@@ -388,11 +385,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 		"set admin to no role from manager after activation": {
 			Caller:     TestManagerAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
-			ChainConfig: func() precompileconfig.ChainConfig {
-				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
-				return config
-			}(), InputFn: func(t testing.TB) []byte {
+			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestAdminAddr, NoRole)
 				require.NoError(t, err)
 
@@ -405,11 +398,6 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 		"set admin role to enabled from manager after activation": {
 			Caller:     TestManagerAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
-			ChainConfig: func() precompileconfig.ChainConfig {
-				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
-				return config
-			}(),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestAdminAddr, EnabledRole)
 				require.NoError(t, err)
@@ -441,11 +429,6 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 		"set manager role to no role from manager after activation": {
 			Caller:     TestManagerAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
-			ChainConfig: func() precompileconfig.ChainConfig {
-				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
-				return config
-			}(),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackModifyAllowList(TestManagerAddr, NoRole)
 				require.NoError(t, err)

@@ -85,6 +85,24 @@ func TestCanModify(t *testing.T) {
 			role:     ManagerRole,
 			expected: true,
 			from:     NoRole,
+			target:   NoRole,
+		},
+		{
+			role:     ManagerRole,
+			expected: true,
+			from:     EnabledRole,
+			target:   EnabledRole,
+		},
+		{
+			role:     ManagerRole,
+			expected: false,
+			from:     ManagerRole,
+			target:   ManagerRole,
+		},
+		{
+			role:     ManagerRole,
+			expected: true,
+			from:     NoRole,
 			target:   EnabledRole,
 		},
 		{
@@ -103,6 +121,12 @@ func TestCanModify(t *testing.T) {
 			role:     AdminRole,
 			expected: true,
 			from:     EnabledRole,
+			target:   NoRole,
+		},
+		{
+			role:     AdminRole,
+			expected: true,
+			from:     AdminRole,
 			target:   NoRole,
 		},
 		{

@@ -98,7 +98,7 @@ func (s *statefulPrecompileWithFunctionSelectors) Run(accessibleState Accessible
 	functionInput := input[SelectorLen:]
 	function, ok := s.functions[string(selector)]
 	if !ok {
-		return nil, suppliedGas, InvalidFunctionErr(selector)
+		return nil, suppliedGas, fmt.Errorf("invalid function selector %#x", selector)
 	}
 
 	// Check if the function is activated

@@ -88,7 +88,3 @@ func ParseABI(rawABI string) abi.ABI {
 
 	return parsed
 }
-
-func InvalidFunctionErr(selector []byte) error {
-	return fmt.Errorf("invalid function selector %#x", selector)
-}
