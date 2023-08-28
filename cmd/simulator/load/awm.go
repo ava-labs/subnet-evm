@@ -47,7 +47,7 @@ func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTi
 			ChainID:   chainID,
 			Nonce:     nonce,
 			To:        &warp.Module.Address,
-			Gas:       200_000,
+			Gas:       200_000, // sufficient gas
 			GasFeeCap: gasFeeCap,
 			GasTipCap: gasTipCap,
 			Value:     common.Big0,
