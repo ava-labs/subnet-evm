@@ -4,6 +4,7 @@
 package load
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 type txTracker struct {
@@ -35,31 +35,32 @@ func newTxTracker(observer func(float64)) *txTracker {
 }
 
 // removeMethodID removes the first 4 bytes of data, which is the method id
-func removeMethodID(data []byte) []byte {
+func removeMethodID(data []byte) ([]byte, error) {
 	if len(data) < 4 {
-		log.Error("invalid warp message data", "data", common.Bytes2Hex(data))
-		panic("invalid warp message data")
+		return nil, fmt.Errorf("data is too short: %d", len(data))
 	}
-	return data[4:]
+	return data[4:], nil
 }
 
 // getSendTxAwmID returns a unique identifier for the awm message contained in
 // the transaction. This is calculated by hashing the payload of the warp
-// message. If the transaction is not a well formed warp message, this panics.
-func getSendTxAwmID(tx *types.Transaction) common.Hash {
-	input := removeMethodID(tx.Data())
+// message.
+func getSendTxAwmID(tx *types.Transaction) (common.Hash, error) {
+	input, err := removeMethodID(tx.Data())
+	if err != nil {
+		return common.Hash{}, err
+	}
 	parsedInput, err := warp.UnpackSendWarpMessageInput(input)
 	if err != nil {
-		log.Error("failed to parse warp message input", "err", err)
-		panic(err)
+		return common.Hash{}, err
 	}
-	return crypto.Keccak256Hash(parsedInput.Payload)
+	return crypto.Keccak256Hash(parsedInput.Payload), nil
 }
 
 // getReceiveTxAwmID returns a unique identifier for the awm message contained
 // in the transaction. This is calculated by hashing the payload of the warp
-// message. If the transaction is not a well formed warp message, this panics.
-func getReceiveTxAwmID(tx *types.Transaction) common.Hash {
+// message.
+func getReceiveTxAwmID(tx *types.Transaction) (common.Hash, error) {
 	storageSlots := make([]byte, 0)
 	for _, tuple := range tx.AccessList() {
 		if tuple.Address != warp.ContractAddress {
@@ -70,35 +71,39 @@ func getReceiveTxAwmID(tx *types.Transaction) common.Hash {
 	}
 	unpackedPredicateBytes, err := predicate.UnpackPredicate(storageSlots)
 	if err != nil {
-		log.Error("failed to unpack predicate bytes", "err", err)
-		panic(err)
+		return common.Hash{}, fmt.Errorf("failed to unpack predicate bytes: %w", err)
 	}
 	msg, err := pwarp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
-		log.Error("failed to parse warp message", "err", err)
-		panic(err)
+		return common.Hash{}, fmt.Errorf("failed to parse message: %w", err)
 	}
 	payload, err := payload.ParseAddressedPayload(msg.Payload)
 	if err != nil {
-		log.Error("failed to parse addressed payload", "err", err)
-		panic(err)
+		return common.Hash{}, fmt.Errorf("failed to parse payload: %w", err)
 	}
-	return crypto.Keccak256Hash(payload.Payload)
+	return crypto.Keccak256Hash(payload.Payload), nil
 }
 
-func (tt *txTracker) IssueTx(tx *types.Transaction) {
+func (tt *txTracker) IssueTx(tx *types.Transaction) error {
 	tt.lock.Lock()
 	defer tt.lock.Unlock()
 
-	id := getSendTxAwmID(tx)
+	id, err := getSendTxAwmID(tx)
+	if err != nil {
+		return err
+	}
 	tt.issued[id] = time.Now()
+	return nil
 }
 
-func (tt *txTracker) ConfirmTx(tx *types.Transaction) {
+func (tt *txTracker) ConfirmTx(tx *types.Transaction) error {
 	tt.lock.Lock()
 	defer tt.lock.Unlock()
 
-	id := getReceiveTxAwmID(tx)
+	id, err := getReceiveTxAwmID(tx)
+	if err != nil {
+		return err
+	}
 	start, ok := tt.issued[id]
 	if !ok {
 		panic("unexpected confirm " + id.Hex())
@@ -108,14 +113,16 @@ func (tt *txTracker) ConfirmTx(tx *types.Transaction) {
 
 	delete(tt.issued, id)
 	tt.checkDone()
+	return nil
 }
 
-func (tt *txTracker) Close() {
+func (tt *txTracker) Close() error {
 	tt.lock.Lock()
 	defer tt.lock.Unlock()
 
 	tt.closed = true
 	tt.checkDone()
+	return nil
 }
 
 // assumes lock is held

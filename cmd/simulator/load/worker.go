@@ -25,9 +25,9 @@ type singleAddressTxWorker struct {
 	newHeads chan *types.Header
 
 	// optional callbacks
-	onIssued    func(*types.Transaction)
-	onConfirmed func(*types.Transaction)
-	onClosed    func()
+	onIssued    func(*types.Transaction) error
+	onConfirmed func(*types.Transaction) error
+	onClosed    func() error
 }
 
 // NewSingleAddressTxWorker creates and returns a singleAddressTxWorker
@@ -51,7 +51,9 @@ func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, addr
 
 func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, tx *types.Transaction) error {
 	if tw.onIssued != nil {
-		tw.onIssued(tx)
+		if err := tw.onIssued(tx); err != nil {
+			return fmt.Errorf("error in onIssued callback: %w", err)
+		}
 	}
 	return tw.client.SendTransaction(ctx, tx)
 }
@@ -81,14 +83,18 @@ func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transa
 		tw.acceptedNonce = acceptedNonce
 	}
 	if tw.onConfirmed != nil {
-		tw.onConfirmed(tx)
+		if err := tw.onConfirmed(tx); err != nil {
+			return fmt.Errorf("error in onConfirmed callback: %w", err)
+		}
 	}
 	return nil
 }
 
 func (tw *singleAddressTxWorker) Close(ctx context.Context) error {
 	if tw.onClosed != nil {
-		tw.onClosed()
+		if err := tw.onClosed(); err != nil {
+			return fmt.Errorf("error in onClosed callback: %w", err)
+		}
 	}
 	if tw.sub != nil {
 		tw.sub.Unsubscribe()
