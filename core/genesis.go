@@ -245,6 +245,8 @@ func SetupGenesisBlock(
 			return newcfg, stored, compatErr
 		}
 	}
+	// Required to write the chain config to disk to ensure both the chain config and upgrade bytes are persisted to disk.
+	// Note: this intentionally removes an extra check from upstream.
 	rawdb.WriteChainConfig(db, stored, newcfg)
 	return newcfg, stored, nil
 }
