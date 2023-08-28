@@ -19,12 +19,17 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-// DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds
-// from the key with the highest starting balance.
-// This function returns a set of at least [numKeys] keys, each having a minimum balance [minFundsPerAddr].
+// DistributeFunds ensures that each address in keys has at least
+// [minFundsPerAddr] by sending funds from the key with the highest starting
+// balance. This function returns a set of at least [numKeys] keys, each having
+// a minimum balance [minFundsPerAddr].
 func DistributeFunds(
-	ctx context.Context, client ethclient.Client, keys []*key.Key, numKeys int,
-	minFundsPerAddr *big.Int, m *metrics.Metrics,
+	ctx context.Context,
+	client ethclient.Client,
+	keys []*key.Key,
+	numKeys int,
+	minFundsPerAddr *big.Int,
+	m *metrics.Metrics,
 ) ([]*key.Key, error) {
 	if len(keys) < numKeys {
 		return nil, fmt.Errorf("insufficient number of keys %d < %d", len(keys), numKeys)
