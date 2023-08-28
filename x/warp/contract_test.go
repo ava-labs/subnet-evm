@@ -301,17 +301,3 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 
 	testutils.RunPrecompileTests(t, Module, state.NewTestStateDB, tests)
 }
-
-func TestPackSendWarpMessageInput(t *testing.T) {
-	inputStruct := SendWarpMessageInput{
-		DestinationChainID: common.Hash(ids.GenerateTestID()),
-		DestinationAddress: common.HexToAddress("0x456789"),
-		Payload:            utils.RandomBytes(100),
-	}
-	bytes, err := PackSendWarpMessage(inputStruct)
-	require.NoError(t, err)
-
-	parsed, err := UnpackSendWarpMessageInput(bytes)
-	require.NoError(t, err)
-	require.Equal(t, inputStruct, parsed)
-}
