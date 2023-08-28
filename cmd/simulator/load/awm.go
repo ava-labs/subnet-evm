@@ -23,7 +23,6 @@ import (
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpclient "github.com/ava-labs/subnet-evm/warp"
-	"github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -31,8 +30,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTipCap *big.Int) txs.CreateTx[*AwmTx] {
-	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*AwmTx, error) {
+func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTipCap *big.Int) txs.CreateTx[*types.Transaction] {
+	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
 		addr := ethcrypto.PubkeyToAddress(key.PublicKey)
 		input := warp.SendWarpMessageInput{
 			DestinationChainID: common.Hash(dstChainID),
@@ -44,7 +43,7 @@ func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTi
 			return nil, err
 		}
 		signer := types.LatestSignerForChainID(chainID)
-		tx, err := types.SignNewTx(key, signer, &types.DynamicFeeTx{
+		return types.SignNewTx(key, signer, &types.DynamicFeeTx{
 			ChainID:   chainID,
 			Nonce:     nonce,
 			To:        &warp.Module.Address,
@@ -54,16 +53,6 @@ func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTi
 			Value:     common.Big0,
 			Data:      packedInput,
 		})
-		if err != nil {
-			return nil, err
-		}
-
-		// Compute a unique ID to track this AWM message
-		awmTx := &AwmTx{
-			Tx:    tx,
-			AwmID: ethcrypto.Keccak256Hash(input.Payload),
-		}
-		return awmTx, nil
 	}
 	return txGenerator
 }
@@ -300,7 +289,7 @@ type warpRelayTxSequence struct {
 	key      *ecdsa.PrivateKey
 	nonce    uint64
 
-	txs chan *AwmTx
+	txs chan *types.Transaction
 }
 
 func NewWarpRelayTxSequence(
@@ -309,13 +298,13 @@ func NewWarpRelayTxSequence(
 	chainID *big.Int,
 	key *ecdsa.PrivateKey,
 	startingNonce uint64,
-) txs.TxSequence[*AwmTx] {
+) txs.TxSequence[*types.Transaction] {
 	wr := &warpRelayTxSequence{
 		messages: messages,
 		chainID:  chainID,
 		key:      key,
 		nonce:    startingNonce,
-		txs:      make(chan *AwmTx, 1),
+		txs:      make(chan *types.Transaction, 1),
 	}
 	go func() {
 		err := wr.doLoop(ctx)
@@ -358,22 +347,12 @@ func (wr *warpRelayTxSequence) doLoop(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			// Recompute the unique ID used to track this AWM message aka
-			// the hash of the payload before wrapping in AddressedPayload.
-			payload, err := payload.ParseAddressedPayload(msg.Payload)
-			if err != nil {
-				return err
-			}
-			awmTx := &AwmTx{
-				Tx:    signedTx,
-				AwmID: ethcrypto.Keccak256Hash(payload.Payload),
-			}
 			wr.nonce++
-			wr.txs <- awmTx
+			wr.txs <- signedTx
 		}
 	}
 }
 
-func (wr *warpRelayTxSequence) Chan() <-chan *AwmTx {
+func (wr *warpRelayTxSequence) Chan() <-chan *types.Transaction {
 	return wr.txs
 }

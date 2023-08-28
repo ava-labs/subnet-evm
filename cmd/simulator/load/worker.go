@@ -23,6 +23,11 @@ type singleAddressTxWorker struct {
 
 	sub      interfaces.Subscription
 	newHeads chan *types.Header
+
+	// optional callbacks
+	onIssued    func(*types.Transaction)
+	onConfirmed func(*types.Transaction)
+	onClosed    func()
 }
 
 // NewSingleAddressTxWorker creates and returns a singleAddressTxWorker
@@ -45,6 +50,9 @@ func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, addr
 }
 
 func (tw *singleAddressTxWorker) IssueTx(ctx context.Context, tx *types.Transaction) error {
+	if tw.onIssued != nil {
+		tw.onIssued(tx)
+	}
 	return tw.client.SendTransaction(ctx, tx)
 }
 
@@ -54,7 +62,7 @@ func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transa
 	for {
 		// If the is less than what has already been accepted, the transaction is confirmed
 		if txNonce < tw.acceptedNonce {
-			return nil
+			break
 		}
 
 		select {
@@ -72,9 +80,16 @@ func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transa
 		}
 		tw.acceptedNonce = acceptedNonce
 	}
+	if tw.onConfirmed != nil {
+		tw.onConfirmed(tx)
+	}
+	return nil
 }
 
 func (tw *singleAddressTxWorker) Close(ctx context.Context) error {
+	if tw.onClosed != nil {
+		tw.onClosed()
+	}
 	if tw.sub != nil {
 		tw.sub.Unsubscribe()
 	}

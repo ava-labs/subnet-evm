@@ -83,7 +83,7 @@ func (t *transferTxAgentBuilder) NewAgent(
 }
 
 type warpSendTxAgentBuilder struct {
-	txSequences []txs.TxSequence[*AwmTx]
+	txSequences []txs.TxSequence[*types.Transaction]
 	txTracker   *txTracker
 }
 
@@ -106,17 +106,14 @@ func (w *warpSendTxAgentBuilder) NewAgent(
 	sender common.Address, m *metrics.Metrics,
 ) (txs.Agent, error) {
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
-	awmWorker := &awmWorker{
-		worker:   worker,
-		onIssued: w.txTracker.IssueTx,
-		onClosed: w.txTracker.Close,
-	}
-	return txs.NewIssueNAgent[*AwmTx](
-		w.txSequences[idx], awmWorker, config.BatchSize, m), nil
+	worker.onIssued = w.txTracker.IssueTx
+	worker.onClosed = w.txTracker.Close
+	return txs.NewIssueNAgent[*types.Transaction](
+		w.txSequences[idx], worker, config.BatchSize, m), nil
 }
 
 type warpReceiveTxAgentBuilder struct {
-	txSequences    []txs.TxSequence[*AwmTx]
+	txSequences    []txs.TxSequence[*types.Transaction]
 	txTracker      *txTracker
 	signedMessages chan *warp.Message
 }
@@ -141,10 +138,7 @@ func (w *warpReceiveTxAgentBuilder) NewAgent(
 	sender common.Address, m *metrics.Metrics,
 ) (txs.Agent, error) {
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
-	awmWorker := &awmWorker{
-		worker:      worker,
-		onConfirmed: w.txTracker.ConfirmTx,
-	}
-	return txs.NewIssueNAgent[*AwmTx](
-		w.txSequences[idx], awmWorker, config.BatchSize, m), nil
+	worker.onConfirmed = w.txTracker.ConfirmTx
+	return txs.NewIssueNAgent[*types.Transaction](
+		w.txSequences[idx], worker, config.BatchSize, m), nil
 }

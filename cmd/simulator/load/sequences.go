@@ -16,6 +16,7 @@ import (
 	pwarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/maps"
@@ -24,7 +25,7 @@ import (
 func GetWarpSendTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
-) ([]txs.TxSequence[*AwmTx], error) {
+) ([]txs.TxSequence[*types.Transaction], error) {
 	bigGwei := big.NewInt(params.GWei)
 	gasTipCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxTipCap))
 	gasFeeCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxFeeCap))
@@ -42,10 +43,10 @@ func GetWarpReceiveTxSequences(
 	ctx context.Context, config config.Config, chainID *big.Int,
 	pks []*ecdsa.PrivateKey, startingNonces []uint64,
 	signedMessages chan *pwarp.Message,
-) ([]txs.TxSequence[*AwmTx], error) {
+) ([]txs.TxSequence[*types.Transaction], error) {
 	// Each worker will listen for signed warp messages that are
 	// ready to be issued
-	txSequences := make([]txs.TxSequence[*AwmTx], config.Workers)
+	txSequences := make([]txs.TxSequence[*types.Transaction], config.Workers)
 	for i := 0; i < config.Workers; i++ {
 		txSequences[i] = NewWarpRelayTxSequence(ctx, signedMessages, chainID, pks[i], startingNonces[i])
 	}
