@@ -23,8 +23,11 @@ import (
 )
 
 func GetWarpSendTxSequences(
-	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64,
+	ctx context.Context,
+	config config.Config,
+	chainID *big.Int,
+	pks []*ecdsa.PrivateKey,
+	startingNonces []uint64,
 ) ([]txs.TxSequence[*types.Transaction], error) {
 	bigGwei := big.NewInt(params.GWei)
 	gasTipCap := new(big.Int).Mul(bigGwei, big.NewInt(config.MaxTipCap))
@@ -40,8 +43,11 @@ func GetWarpSendTxSequences(
 }
 
 func GetWarpReceiveTxSequences(
-	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64,
+	ctx context.Context,
+	config config.Config,
+	chainID *big.Int,
+	pks []*ecdsa.PrivateKey,
+	startingNonces []uint64,
 	signedMessages chan *pwarp.Message,
 ) ([]txs.TxSequence[*types.Transaction], error) {
 	// Each worker will listen for signed warp messages that are

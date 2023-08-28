@@ -30,7 +30,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTipCap *big.Int) txs.CreateTx[*types.Transaction] {
+func MkSendWarpTxGenerator(chainID *big.Int, dstChainID ids.ID, gasFeeCap, gasTipCap *big.Int) txs.CreateTx {
 	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
 		addr := ethcrypto.PubkeyToAddress(key.PublicKey)
 		input := warp.SendWarpMessageInput{
@@ -150,7 +150,9 @@ type warpRelay struct {
 }
 
 func NewWarpRelay(
-	ctx context.Context, subnetA *runner.Subnet, thresholdNominator int,
+	ctx context.Context,
+	subnetA *runner.Subnet,
+	thresholdNumerator int,
 	done <-chan struct{},
 ) (*warpRelay, error) {
 	// We need the validator set of subnet A to determine the index of
@@ -201,7 +203,7 @@ func NewWarpRelay(
 	return &warpRelay{
 		messages:       make(map[ids.ID]*warpMessage),
 		validatorInfo:  validatorInfo,
-		threshold:      totalWeight * uint64(thresholdNominator) / 100,
+		threshold:      totalWeight * uint64(thresholdNumerator) / 100,
 		signatures:     signatures,
 		signedMessages: make(chan *avalancheWarp.Message),
 		eg:             &eg,
