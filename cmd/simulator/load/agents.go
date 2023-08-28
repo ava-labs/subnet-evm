@@ -22,13 +22,20 @@ import (
 
 type AgentBuilder interface {
 	GenerateTxSequences(
-		ctx context.Context, config config.Config,
-		chainID *big.Int, pks []*ecdsa.PrivateKey, startingNonces []uint64,
+		ctx context.Context,
+		config config.Config,
+		chainID *big.Int,
+		pks []*ecdsa.PrivateKey,
+		startingNonces []uint64,
 	) error
 
 	NewAgent(
-		ctx context.Context, config config.Config, idx int,
-		client ethclient.Client, sender common.Address, m *metrics.Metrics,
+		ctx context.Context,
+		config config.Config,
+		idx int,
+		client ethclient.Client,
+		sender common.Address,
+		m *metrics.Metrics,
 	) (txs.Agent, error)
 }
 
@@ -37,8 +44,11 @@ type transferTxAgentBuilder struct {
 }
 
 func (t *transferTxAgentBuilder) GenerateTxSequences(
-	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64,
+	ctx context.Context,
+	config config.Config,
+	chainID *big.Int,
+	pks []*ecdsa.PrivateKey,
+	startingNonces []uint64,
 ) error {
 	log.Info("Creating transaction sequences...")
 	bigGwei := big.NewInt(params.GWei)
@@ -74,8 +84,12 @@ func (t *transferTxAgentBuilder) GenerateTxSequences(
 }
 
 func (t *transferTxAgentBuilder) NewAgent(
-	ctx context.Context, config config.Config, idx int, client ethclient.Client,
-	sender common.Address, m *metrics.Metrics,
+	ctx context.Context,
+	config config.Config,
+	idx int,
+	client ethclient.Client,
+	sender common.Address,
+	m *metrics.Metrics,
 ) (txs.Agent, error) {
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
 	return txs.NewIssueNAgent[*types.Transaction](
@@ -88,8 +102,11 @@ type warpSendTxAgentBuilder struct {
 }
 
 func (w *warpSendTxAgentBuilder) GenerateTxSequences(
-	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64,
+	ctx context.Context,
+	config config.Config,
+	chainID *big.Int,
+	pks []*ecdsa.PrivateKey,
+	startingNonces []uint64,
 ) error {
 	log.Info("Creating warp send transaction sequences...")
 	txSequences, err := GetWarpSendTxSequences(ctx, config, chainID, pks, startingNonces)
@@ -102,8 +119,12 @@ func (w *warpSendTxAgentBuilder) GenerateTxSequences(
 }
 
 func (w *warpSendTxAgentBuilder) NewAgent(
-	ctx context.Context, config config.Config, idx int, client ethclient.Client,
-	sender common.Address, m *metrics.Metrics,
+	ctx context.Context,
+	config config.Config,
+	idx int,
+	client ethclient.Client,
+	sender common.Address,
+	m *metrics.Metrics,
 ) (txs.Agent, error) {
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
 	worker.onIssued = w.txTracker.IssueTx
@@ -119,8 +140,11 @@ type warpReceiveTxAgentBuilder struct {
 }
 
 func (w *warpReceiveTxAgentBuilder) GenerateTxSequences(
-	ctx context.Context, config config.Config, chainID *big.Int,
-	pks []*ecdsa.PrivateKey, startingNonces []uint64,
+	ctx context.Context,
+	config config.Config,
+	chainID *big.Int,
+	pks []*ecdsa.PrivateKey,
+	startingNonces []uint64,
 ) error {
 	log.Info("Creating warp receive transaction sequences...")
 	txSequences, err := GetWarpReceiveTxSequences(
@@ -134,8 +158,12 @@ func (w *warpReceiveTxAgentBuilder) GenerateTxSequences(
 }
 
 func (w *warpReceiveTxAgentBuilder) NewAgent(
-	ctx context.Context, config config.Config, idx int, client ethclient.Client,
-	sender common.Address, m *metrics.Metrics,
+	ctx context.Context,
+	config config.Config,
+	idx int,
+	client ethclient.Client,
+	sender common.Address,
+	m *metrics.Metrics,
 ) (txs.Agent, error) {
 	worker := NewSingleAddressTxWorker(ctx, client, sender)
 	worker.onConfirmed = w.txTracker.ConfirmTx
