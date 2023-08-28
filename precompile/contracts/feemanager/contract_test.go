@@ -64,8 +64,8 @@ var (
 			},
 		},
 		"set config from manager succeeds": {
-			Caller:      allowlist.TestManagerAddr,
-			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			Caller:     allowlist.TestManagerAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackSetFeeConfig(testFeeConfig)
 				require.NoError(t, err)

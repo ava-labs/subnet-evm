@@ -94,8 +94,8 @@ var (
 			},
 		},
 		"set allow fee recipients from manager succeeds": {
-			Caller:      allowlist.TestManagerAddr,
-			BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+			Caller:     allowlist.TestManagerAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackAllowFeeRecipients()
 				require.NoError(t, err)

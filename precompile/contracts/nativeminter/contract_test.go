@@ -59,8 +59,8 @@ var tests = map[string]testutils.PrecompileTest{
 		},
 	},
 	"mint funds from manager role succeeds ": {
-		Caller:      allowlist.TestManagerAddr,
-		BeforeHook:  allowlist.SetDefaultRoles(Module.Address),
+		Caller:     allowlist.TestManagerAddr,
+		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
 			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 			require.NoError(t, err)
