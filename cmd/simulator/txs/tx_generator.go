@@ -11,17 +11,20 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 )
 
-var _ TxSequence[*types.Transaction] = (*txSequence[*types.Transaction])(nil)
+var _ TxSequence[*types.Transaction] = (*txSequence)(nil)
 
-type CreateTx[T any] func(key *ecdsa.PrivateKey, nonce uint64) (T, error)
+type CreateTx func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error)
 
 // GenerateTxSequence fetches the current nonce of key and calls [generator]
 // [numTxs] times sequentially to generate a sequence of transactions.
-func GenerateTxSequence[T any](
-	ctx context.Context, generator CreateTx[T],
-	key *ecdsa.PrivateKey, startingNonce uint64, numTxs uint64,
-) (TxSequence[T], error) {
-	txs := make([]T, 0, numTxs)
+func GenerateTxSequence(
+	ctx context.Context,
+	generator CreateTx,
+	key *ecdsa.PrivateKey,
+	startingNonce uint64,
+	numTxs uint64,
+) (TxSequence[*types.Transaction], error) {
+	txs := make([]*types.Transaction, 0, numTxs)
 	for i := uint64(0); i < numTxs; i++ {
 		tx, err := generator(key, startingNonce+i)
 		if err != nil {
@@ -32,11 +35,14 @@ func GenerateTxSequence[T any](
 	return ConvertTxSliceToSequence(txs), nil
 }
 
-func GenerateTxSequences[T any](
-	ctx context.Context, generator CreateTx[T],
-	keys []*ecdsa.PrivateKey, startingNonces []uint64, txsPerKey uint64,
-) ([]TxSequence[T], error) {
-	txSequences := make([]TxSequence[T], len(keys))
+func GenerateTxSequences(
+	ctx context.Context,
+	generator CreateTx,
+	keys []*ecdsa.PrivateKey,
+	startingNonces []uint64,
+	txsPerKey uint64,
+) ([]TxSequence[*types.Transaction], error) {
+	txSequences := make([]TxSequence[*types.Transaction], len(keys))
 	for i, key := range keys {
 		txs, err := GenerateTxSequence(ctx, generator, key, startingNonces[i], txsPerKey)
 		if err != nil {
@@ -47,22 +53,22 @@ func GenerateTxSequences[T any](
 	return txSequences, nil
 }
 
-type txSequence[T any] struct {
-	txChan chan T
+type txSequence struct {
+	txChan chan *types.Transaction
 }
 
-func ConvertTxSliceToSequence[T any](txs []T) TxSequence[T] {
-	txChan := make(chan T, len(txs))
+func ConvertTxSliceToSequence(txs []*types.Transaction) TxSequence[*types.Transaction] {
+	txChan := make(chan *types.Transaction, len(txs))
 	for _, tx := range txs {
 		txChan <- tx
 	}
 	close(txChan)
 
-	return &txSequence[T]{
+	return &txSequence{
 		txChan: txChan,
 	}
 }
 
-func (t *txSequence[T]) Chan() <-chan T {
+func (t *txSequence) Chan() <-chan *types.Transaction {
 	return t.txChan
 }
