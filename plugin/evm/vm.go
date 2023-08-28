@@ -83,7 +83,6 @@ import (
 
 var (
 	_ block.ChainVM                      = &VM{}
-	_ block.HeightIndexedChainVM         = &VM{}
 	_ block.BuildBlockWithContextChainVM = &VM{}
 )
 
@@ -667,10 +666,8 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	} else {
 		log.Debug("Building block without context")
 	}
-	predicateCtx := &precompileconfig.ProposerPredicateContext{
-		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
-			SnowCtx: vm.ctx,
-		},
+	predicateCtx := &precompileconfig.PredicateContext{
+		SnowCtx:            vm.ctx,
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}
 
@@ -763,8 +760,7 @@ func (vm *VM) VerifyHeightIndex(context.Context) error {
 	return nil
 }
 
-// GetBlockAtHeight implements the HeightIndexedChainVM interface and returns the
-// canonical block at [blkHeight].
+// GetBlockAtHeight returns the canonical block at [blkHeight].
 // If [blkHeight] is less than the height of the last accepted block, this will return
 // the block accepted at that height. Otherwise, it may return a blkID that has not yet
 // been accepted.

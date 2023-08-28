@@ -70,7 +70,7 @@ func TestEqual(t *testing.T) {
 		},
 		"different type": {
 			Config:   NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
-			Other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
+			Other:    precompileconfig.NewMockConfig(gomock.NewController(t)),
 			Expected: false,
 		},
 		"different timestamp": {
