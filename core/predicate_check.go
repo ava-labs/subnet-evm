@@ -43,6 +43,8 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 	}
 
 	for address, predicates := range predicateArguments {
+		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
+		// there's no need to check if the predicate exists here.
 		predicate := rules.Predicates[address]
 		res := predicate.VerifyPredicate(predicateContext, predicates)
 		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res)
