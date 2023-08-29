@@ -4,6 +4,8 @@
 package warp
 
 import (
+	"math"
+	"math/big"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -381,6 +383,47 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ReadOnly:    false,
 			ExpectedErr: errInvalidAddressedPayload.Error(),
 		},
+		"get message index maxint64": {
+			Caller: callerAddr,
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackGetVerifiedWarpMessage(new(big.Int).SetInt64(math.MaxInt64))
+				if err != nil {
+					t.Fatal(err)
+				}
+				return input
+			},
+			SetupBlockContext: func(mbc *contract.MockBlockContext) {
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost,
+			ReadOnly:    false,
+			ExpectedRes: func() []byte {
+				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
+				if err != nil {
+					panic(err)
+				}
+				return res
+			}(),
+		},
+		"get message index maxuint64": {
+			Caller: callerAddr,
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackGetVerifiedWarpMessage(new(big.Int).SetUint64(math.MaxUint64))
+				if err != nil {
+					t.Fatal(err)
+				}
+				return input
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost,
+			ReadOnly:    false,
+			ExpectedRes: func() []byte {
+				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
+				if err != nil {
+					panic(err)
+				}
+				return res
+			}(),
+		},
 	}
 
 	testutils.RunPrecompileTests(t, Module, state.NewTestStateDB, tests)
@@ -596,6 +639,47 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(160),
 			ReadOnly:    false,
 			ExpectedErr: errInvalidBlockHashPayload.Error(),
+		},
+		"get message index maxint64": {
+			Caller: callerAddr,
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackGetVerifiedWarpBlockHash(new(big.Int).SetInt64(math.MaxInt64))
+				if err != nil {
+					t.Fatal(err)
+				}
+				return input
+			},
+			SetupBlockContext: func(mbc *contract.MockBlockContext) {
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost,
+			ReadOnly:    false,
+			ExpectedRes: func() []byte {
+				res, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{Valid: false})
+				if err != nil {
+					panic(err)
+				}
+				return res
+			}(),
+		},
+		"get message index maxuint64": {
+			Caller: callerAddr,
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackGetVerifiedWarpBlockHash(new(big.Int).SetUint64(math.MaxUint64))
+				if err != nil {
+					t.Fatal(err)
+				}
+				return input
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost,
+			ReadOnly:    false,
+			ExpectedRes: func() []byte {
+				res, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{Valid: false})
+				if err != nil {
+					panic(err)
+				}
+				return res
+			}(),
 		},
 	}
 

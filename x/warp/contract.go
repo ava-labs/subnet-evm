@@ -153,10 +153,7 @@ func getVerifiedWarpBlockHash(accessibleState contract.AccessibleState, caller c
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	predicateBytes, valid, err := unpackWarpMessage(accessibleState, input)
-	if err != nil {
-		return nil, remainingGas, err
-	}
+	predicateBytes, valid := unpackWarpMessage(accessibleState, input)
 	// If there is no such value or it failed verification, return invalid
 	if !valid {
 		packedOutput, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{
@@ -243,20 +240,20 @@ func UnpackGetVerifiedWarpMessageOutput(output []byte) (GetVerifiedWarpMessageOu
 	return outputStruct, err
 }
 
-func unpackWarpMessage(accessibleState contract.AccessibleState, input []byte) ([]byte, bool, error) {
+func unpackWarpMessage(accessibleState contract.AccessibleState, input []byte) ([]byte, bool) {
 	warpIndex, err := UnpackGetVerifiedWarpMessageInput(input)
 	if err != nil {
-		return nil, false, err
+		return nil, false
 	}
-	if !warpIndex.IsUint64() {
-		return nil, false, fmt.Errorf("invalid index: %v", warpIndex)
+	if !warpIndex.IsInt64() {
+		return nil, false
 	}
-	warpIndexInt := int(warpIndex.Uint64())
+	warpIndexInt := int(warpIndex.Int64())
 	state := accessibleState.GetStateDB()
 	predicateBytes, exists := state.GetPredicateStorageSlots(ContractAddress, warpIndexInt)
 	predicateResults := accessibleState.GetBlockContext().GetPredicateResults(state.GetTxHash(), ContractAddress)
 	valid := set.BitsFromBytes(predicateResults).Contains(warpIndexInt)
-	return predicateBytes, exists && valid, nil
+	return predicateBytes, exists && valid
 }
 
 // getVerifiedWarpMessage retrieves the pre-verified warp message from the predicate storage slots and returns
@@ -266,10 +263,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	predicateBytes, valid, err := unpackWarpMessage(accessibleState, input)
-	if err != nil {
-		return nil, remainingGas, err
-	}
+	predicateBytes, valid := unpackWarpMessage(accessibleState, input)
 	// If there is no such value or it failed verification, return invalid
 	if !valid {
 		packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
