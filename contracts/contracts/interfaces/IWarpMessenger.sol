@@ -6,7 +6,7 @@
 pragma solidity ^0.8.0;
 
 struct WarpMessage {
-    bytes32 originChainID;
+    bytes32 sourceChainID;
     address originSenderAddress;
     bytes32 destinationChainID;
     address destinationAddress;
@@ -14,7 +14,7 @@ struct WarpMessage {
 }
 
 struct WarpBlockHash {
-    bytes32 originChainID;
+    bytes32 sourceChainID;
     bytes32 blockHash;
 }
 

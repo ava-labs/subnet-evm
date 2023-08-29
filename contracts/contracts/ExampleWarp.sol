@@ -20,7 +20,7 @@ contract ExampleWarp {
     // validateWarpMessage retrieves the warp message attached to the transaction and verifies all of its attributes.
     function validateWarpMessage(
         uint256 index,
-        bytes32 originChainID,
+        bytes32 sourceChainID,
         address originSenderAddress,
         bytes32 destinationChainID,
         address destinationAddress,
@@ -28,7 +28,7 @@ contract ExampleWarp {
     ) external view {
         (WarpMessage memory message, bool valid) = warp.getVerifiedWarpMessage(index);
         require(valid);
-        require(message.originChainID == originChainID);
+        require(message.sourceChainID == sourceChainID);
         require(message.originSenderAddress == originSenderAddress);
         require(message.destinationChainID == destinationChainID);
         require(message.destinationAddress == destinationAddress);
@@ -40,7 +40,7 @@ contract ExampleWarp {
     ) external view {
         (WarpMessage memory message, bool valid) = warp.getVerifiedWarpMessage(index);
         require(!valid);
-        require(message.originChainID == bytes32(0));
+        require(message.sourceChainID == bytes32(0));
         require(message.originSenderAddress == address(0));
         require(message.destinationChainID == bytes32(0));
         require(message.destinationAddress == address(0));
@@ -56,7 +56,7 @@ contract ExampleWarp {
     ) external view {
         (WarpBlockHash memory warpBlockHash, bool valid) = warp.getVerifiedWarpBlockHash(index);
         require(valid);
-        require(warpBlockHash.originChainID == sourceChainID);
+        require(warpBlockHash.sourceChainID == sourceChainID);
         require(warpBlockHash.blockHash == blockHash);
     }
 
@@ -65,7 +65,7 @@ contract ExampleWarp {
     ) external view {
         (WarpBlockHash memory warpBlockHash, bool valid) = warp.getVerifiedWarpBlockHash(index);
         require(valid);
-        require(warpBlockHash.originChainID == bytes32(0));
+        require(warpBlockHash.sourceChainID == bytes32(0));
         require(warpBlockHash.blockHash == bytes32(0));
     }
 

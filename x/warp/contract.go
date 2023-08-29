@@ -58,7 +58,7 @@ var (
 
 // WarpBlockHash is an auto generated low-level Go binding around an user-defined struct.
 type WarpBlockHash struct {
-	OriginChainID common.Hash
+	SourceChainID common.Hash
 	BlockHash     common.Hash
 }
 
@@ -69,7 +69,7 @@ type GetVerifiedWarpBlockHashOutput struct {
 
 // WarpMessage is an auto generated low-level Go binding around an user-defined struct.
 type WarpMessage struct {
-	OriginChainID       common.Hash
+	SourceChainID       common.Hash
 	OriginSenderAddress common.Address
 	DestinationChainID  common.Hash
 	DestinationAddress  common.Address
@@ -191,7 +191,7 @@ func getVerifiedWarpBlockHash(accessibleState contract.AccessibleState, caller c
 	}
 	packedOutput, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{
 		WarpBlockHash: WarpBlockHash{
-			OriginChainID: common.Hash(warpMessage.SourceChainID),
+			SourceChainID: common.Hash(warpMessage.SourceChainID),
 			BlockHash:     blockHashPayload.BlockHash,
 		},
 		Valid: true,
@@ -301,7 +301,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	}
 	packedOutput, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 		Message: WarpMessage{
-			OriginChainID:       common.Hash(warpMessage.SourceChainID),
+			SourceChainID:       common.Hash(warpMessage.SourceChainID),
 			OriginSenderAddress: addressedPayload.SourceAddress,
 			DestinationChainID:  addressedPayload.DestinationChainID,
 			DestinationAddress:  addressedPayload.DestinationAddress,

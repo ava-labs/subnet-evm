@@ -57,7 +57,7 @@
         "components": [
           {
             "internalType": "bytes32",
-            "name": "originChainID",
+            "name": "sourceChainID",
             "type": "bytes32"
           },
           {
@@ -93,7 +93,7 @@
         "components": [
           {
             "internalType": "bytes32",
-            "name": "originChainID",
+            "name": "sourceChainID",
             "type": "bytes32"
           },
           {

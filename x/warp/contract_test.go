@@ -193,7 +193,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ExpectedRes: func() []byte {
 				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 					Message: WarpMessage{
-						OriginChainID:       common.Hash(sourceChainID),
+						SourceChainID:       common.Hash(sourceChainID),
 						OriginSenderAddress: sourceAddress,
 						DestinationChainID:  common.Hash(destinationChainID),
 						DestinationAddress:  destinationAddress,
@@ -252,7 +252,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ExpectedRes: func() []byte {
 				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 					Message: WarpMessage{
-						OriginChainID:       common.Hash(sourceChainID),
+						SourceChainID:       common.Hash(sourceChainID),
 						OriginSenderAddress: sourceAddress,
 						DestinationChainID:  common.Hash(destinationChainID),
 						DestinationAddress:  destinationAddress,
@@ -296,7 +296,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ExpectedRes: func() []byte {
 				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 					Message: WarpMessage{
-						OriginChainID:       common.Hash(sourceChainID),
+						SourceChainID:       common.Hash(sourceChainID),
 						OriginSenderAddress: sourceAddress,
 						DestinationChainID:  common.Hash(destinationChainID),
 						DestinationAddress:  destinationAddress,
@@ -459,7 +459,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			ExpectedRes: func() []byte {
 				res, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{
 					WarpBlockHash: WarpBlockHash{
-						OriginChainID: common.Hash(sourceChainID),
+						SourceChainID: common.Hash(sourceChainID),
 						BlockHash:     blockHash,
 					},
 					Valid: true,
@@ -515,7 +515,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			ExpectedRes: func() []byte {
 				res, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{
 					WarpBlockHash: WarpBlockHash{
-						OriginChainID: common.Hash(sourceChainID),
+						SourceChainID: common.Hash(sourceChainID),
 						BlockHash:     blockHash,
 					},
 					Valid: true,
@@ -556,7 +556,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			ExpectedRes: func() []byte {
 				res, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{
 					WarpBlockHash: WarpBlockHash{
-						OriginChainID: common.Hash(sourceChainID),
+						SourceChainID: common.Hash(sourceChainID),
 						BlockHash:     blockHash,
 					},
 					Valid: true,

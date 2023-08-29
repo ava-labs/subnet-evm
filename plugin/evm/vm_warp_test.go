@@ -281,7 +281,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	expectedOutput, err := warp.PackGetVerifiedWarpMessageOutput(warp.GetVerifiedWarpMessageOutput{
 		Message: warp.WarpMessage{
-			OriginChainID:       common.Hash(vm.ctx.ChainID),
+			SourceChainID:       common.Hash(vm.ctx.ChainID),
 			OriginSenderAddress: testEthAddrs[0],
 			DestinationChainID:  common.Hash(vm.ctx.CChainID),
 			DestinationAddress:  testEthAddrs[1],
