@@ -6,7 +6,6 @@ package results
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/codec/linearcodec"
@@ -36,19 +35,29 @@ func init() {
 	}
 }
 
-// TODO: add testing and comments
-type PredicateResults struct {
-	lock sync.RWMutex
+// TxPredicateResults is a map of results for each precompile address to the resulting byte array.
+type TxPredicateResults map[common.Address][]byte
 
-	Results map[common.Hash]map[common.Address][]byte `serialize:"true"`
+// PredicateResults encodes the precompile predicate results included in a block on a per transaction basis.
+// PredicateResults is not thread-safe.
+type PredicateResults struct {
+	Results map[common.Hash]TxPredicateResults `serialize:"true"`
 }
 
+// NewPredicateResults returns an empty predicate results.
 func NewPredicateResults() *PredicateResults {
 	return &PredicateResults{
-		Results: make(map[common.Hash]map[common.Address][]byte),
+		Results: make(map[common.Hash]TxPredicateResults),
 	}
 }
 
+func NewPredicateResultsFromMap(results map[common.Hash]TxPredicateResults) *PredicateResults {
+	return &PredicateResults{
+		Results: results,
+	}
+}
+
+// ParsePredicateResults parses [b] into predicate results.
 func ParsePredicateResults(b []byte) (*PredicateResults, error) {
 	res := new(PredicateResults)
 	parsedVersion, err := Codec.Unmarshal(b, res)
@@ -61,10 +70,8 @@ func ParsePredicateResults(b []byte) (*PredicateResults, error) {
 	return res, nil
 }
 
+// GetPredicateResults returns the byte array results for [txHash] from precompile [address] if available.
 func (p *PredicateResults) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-
 	txResults, ok := p.Results[txHash]
 	if !ok {
 		return nil
@@ -72,25 +79,17 @@ func (p *PredicateResults) GetPredicateResults(txHash common.Hash, address commo
 	return txResults[address]
 }
 
-func (p *PredicateResults) SetTxPredicateResults(txHash common.Hash, txResults map[common.Address][]byte) {
-	// If there are no results to add, no need to grab the lock.
-	if len(txResults) == 0 {
-		return
-	}
-
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
+// SetTxPredicateResults sets the predicate results for the given [txHash]. Overrides results if present.
+func (p *PredicateResults) SetTxPredicateResults(txHash common.Hash, txResults TxPredicateResults) {
 	p.Results[txHash] = txResults
 }
 
+// DeleteTxPredicateResults deletes the predicate results for the given [txHash].
 func (p *PredicateResults) DeleteTxPredicateResults(txHash common.Hash) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	delete(p.Results, txHash)
 }
 
+// Bytes marshals the current state of predicate results
 func (p *PredicateResults) Bytes() ([]byte, error) {
 	return Codec.Marshal(Version, p)
 }
