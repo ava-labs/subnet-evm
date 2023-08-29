@@ -32,7 +32,7 @@ type Config interface {
 	Verify(ChainConfig) error
 }
 
-// PredicateContext is the context passed in to the ProposerPredicater interface to verify
+// PredicateContext is the context passed in to the Predicater interface to verify
 // a precompile predicate within a specific ProposerVM wrapper.
 type PredicateContext struct {
 	SnowCtx *snow.Context

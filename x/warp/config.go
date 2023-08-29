@@ -13,7 +13,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
-	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -115,13 +114,6 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.PredicateC
 	quorumNumerator := params.WarpDefaultQuorumNumerator
 	if c.QuorumNumerator != 0 {
 		quorumNumerator = c.QuorumNumerator
-	}
-
-	// Verify the warp payload can be decoded to the expected type
-	_, err := warpPayload.ParseAddressedPayload(warpMsg.UnsignedMessage.Payload)
-	if err != nil {
-		log.Debug("failed to parse addressed payload", "msgID", warpMsg.ID(), "payload", warpMsg.UnsignedMessage.Payload, "err", err)
-		return false
 	}
 
 	log.Debug("verifying warp message", "warpMsg", warpMsg, "quorumNum", quorumNumerator, "quorumDenom", params.WarpQuorumDenominator)

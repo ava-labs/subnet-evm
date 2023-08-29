@@ -424,7 +424,8 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 			predicateBytes           = createPredicate(numSigners)
 			expectedPredicateResults = set.NewBits()
 		)
-		// If the number of signers is less than the params.WarpDefaultQuorumNumerator (67)
+		// If the number of signers is greater than the required numerator and does not exceed the denominator, then
+		// mark the expected result as valid.
 		if numSigners >= int(params.WarpDefaultQuorumNumerator) && numSigners <= int(params.WarpQuorumDenominator) {
 			expectedPredicateResults.Add(0)
 		}

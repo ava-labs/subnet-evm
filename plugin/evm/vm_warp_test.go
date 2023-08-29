@@ -305,5 +305,5 @@ func TestReceiveWarpMessage(t *testing.T) {
 	require.NoError(err)
 	txTraceResultBytes, err := json.Marshal(txTraceResult)
 	require.NoError(err)
-	require.Equal(txTraceResultBytes, blockTxTraceResultBytes)
+	require.JSONEq(string(txTraceResultBytes), string(blockTxTraceResultBytes))
 }

@@ -288,7 +288,11 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 	if err != nil {
 		return fmt.Errorf("failed to marshal predicate results: %w", err)
 	}
-	headerPredicateResultsBytes := b.ethBlock.Extra()[params.DynamicFeeExtraDataSize:]
+	extraData := b.ethBlock.Extra()
+	if len(extraData) < params.DynamicFeeExtraDataSize {
+		return fmt.Errorf("header extra data too short for predicate verification found: %d, required: %d", len(extraData), params.DynamicFeeExtraDataSize)
+	}
+	headerPredicateResultsBytes := extraData[params.DynamicFeeExtraDataSize:]
 	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
 		parsedResults, err := results.ParsePredicateResults(headerPredicateResultsBytes)
 		if err != nil {

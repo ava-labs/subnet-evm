@@ -46,7 +46,7 @@ func (b *BlockHashPayload) initialize() error {
 }
 
 // Bytes returns the binary representation of this payload. It assumes that the
-// payload is initialize from eitehr NewBlockHashPayload or ParseBlockHashPayload.
+// payload is initialized from either NewBlockHashPayload or ParseBlockHashPayload.
 func (b *BlockHashPayload) Bytes() []byte {
 	return b.bytes
 }

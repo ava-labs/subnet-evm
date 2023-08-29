@@ -30,7 +30,8 @@ func TestCheckPredicate(t *testing.T) {
 	addr2 := common.HexToAddress("0xbb")
 	addr3 := common.HexToAddress("0xcc")
 	addr4 := common.HexToAddress("0xdd")
-	predicateResultBytes := []byte{1, 2, 3}
+	predicateResultBytes1 := []byte{1, 2, 3}
+	predicateResultBytes2 := []byte{3, 2, 1}
 	for name, test := range map[string]predicateCheckTest{
 		"no predicates, no access list passes": {
 			gas:         53000,
@@ -91,7 +92,7 @@ func TestCheckPredicate(t *testing.T) {
 				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
 				arg := common.Hash{1}
 				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
-				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes)
+				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes1)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicate,
 				}
@@ -105,7 +106,7 @@ func TestCheckPredicate(t *testing.T) {
 				},
 			}),
 			expectedRes: map[common.Address][]byte{
-				addr1: predicateResultBytes,
+				addr1: predicateResultBytes1,
 			},
 			expectedErr: nil,
 		},
@@ -135,7 +136,7 @@ func TestCheckPredicate(t *testing.T) {
 				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
 				arg := common.Hash{1}
 				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
-				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes)
+				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes1)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicate,
 					addr2: predicate,
@@ -150,20 +151,25 @@ func TestCheckPredicate(t *testing.T) {
 				},
 			}),
 			expectedRes: map[common.Address][]byte{
-				addr1: predicateResultBytes,
+				addr1: predicateResultBytes1,
 			},
 			expectedErr: nil,
 		},
 		"two predicates both named by access list returns non-empty": {
 			gas: 53000,
 			createPredicates: func(t testing.TB) map[common.Address]precompileconfig.Predicater {
-				predicate := precompileconfig.NewMockPredicater(gomock.NewController(t))
-				arg := common.Hash{1}
-				predicate.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(4)
-				predicate.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes).Times(2)
+				ctrl := gomock.NewController(t)
+				predicate1 := precompileconfig.NewMockPredicater(ctrl)
+				arg1 := common.Hash{1}
+				predicate1.EXPECT().PredicateGas(arg1[:]).Return(uint64(0), nil).Times(2)
+				predicate1.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg1[:]}).Return(predicateResultBytes1)
+				predicate2 := precompileconfig.NewMockPredicater(ctrl)
+				arg2 := common.Hash{2}
+				predicate2.EXPECT().PredicateGas(arg2[:]).Return(uint64(0), nil).Times(2)
+				predicate2.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg2[:]}).Return(predicateResultBytes2)
 				return map[common.Address]precompileconfig.Predicater{
-					addr1: predicate,
-					addr2: predicate,
+					addr1: predicate1,
+					addr2: predicate2,
 				}
 			},
 			accessList: types.AccessList([]types.AccessTuple{
@@ -176,13 +182,13 @@ func TestCheckPredicate(t *testing.T) {
 				{
 					Address: addr2,
 					StorageKeys: []common.Hash{
-						{1},
+						{2},
 					},
 				},
 			}),
 			expectedRes: map[common.Address][]byte{
-				addr1: predicateResultBytes,
-				addr2: predicateResultBytes,
+				addr1: predicateResultBytes1,
+				addr2: predicateResultBytes2,
 			},
 			expectedErr: nil,
 		},

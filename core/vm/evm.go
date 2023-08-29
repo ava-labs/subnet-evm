@@ -112,6 +112,7 @@ type BlockContext struct {
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
 	// PredicateResults are the results of predicate verification available throughout the EVM's execution.
+	// PredicateResults may be nil if it is not encoded in the block's header.
 	PredicateResults *results.PredicateResults
 
 	// Block information
