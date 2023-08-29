@@ -367,7 +367,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		openNotional := args["openNotional"].(*big.Int)
 		size := args["size"].(*big.Int)
 		log.Info("PositionModified", "trader", trader, "market", market, "args", args)
-		cep.database.UpdatePosition(trader, market, size, openNotional, false)
+		cep.database.UpdatePosition(trader, market, size, openNotional, false, event.BlockNumber)
 	case cep.clearingHouseABI.Events["PositionLiquidated"].ID:
 		err := cep.clearingHouseABI.UnpackIntoMap(args, "PositionLiquidated", event.Data)
 		if err != nil {
@@ -383,7 +383,7 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		openNotional := args["openNotional"].(*big.Int)
 		size := args["size"].(*big.Int)
 		log.Info("PositionLiquidated", "market", market, "trader", trader, "args", args)
-		cep.database.UpdatePosition(trader, market, size, openNotional, true)
+		cep.database.UpdatePosition(trader, market, size, openNotional, true, event.BlockNumber)
 	}
 }
 

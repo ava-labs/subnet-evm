@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -17,12 +18,13 @@ import (
 )
 
 type InMemoryDatabase struct {
-	mu              *sync.RWMutex              `json:"-"`
-	OrderMap        map[common.Hash]*Order     `json:"order_map"`  // ID => order
-	TraderMap       map[common.Address]*Trader `json:"trader_map"` // address => trader info
-	NextFundingTime uint64                     `json:"next_funding_time"`
-	LastPrice       map[Market]*big.Int        `json:"last_price"`
-	configService   IConfigService
+	mu                        *sync.RWMutex              `json:"-"`
+	OrderMap                  map[common.Hash]*Order     `json:"order_map"`  // ID => order
+	TraderMap                 map[common.Address]*Trader `json:"trader_map"` // address => trader info
+	NextFundingTime           uint64                     `json:"next_funding_time"`
+	LastPrice                 map[Market]*big.Int        `json:"last_price"`
+	CumulativePremiumFraction map[Market]*big.Int        `json:"cumulative_last_premium_fraction"`
+	configService             IConfigService
 }
 
 func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
@@ -31,12 +33,13 @@ func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
 	traderMap := map[common.Address]*Trader{}
 
 	return &InMemoryDatabase{
-		OrderMap:        orderMap,
-		TraderMap:       traderMap,
-		NextFundingTime: 0,
-		LastPrice:       lastPrice,
-		mu:              &sync.RWMutex{},
-		configService:   configService,
+		OrderMap:                  orderMap,
+		TraderMap:                 traderMap,
+		NextFundingTime:           0,
+		LastPrice:                 lastPrice,
+		CumulativePremiumFraction: map[Market]*big.Int{},
+		mu:                        &sync.RWMutex{},
+		configService:             configService,
 	}
 }
 
@@ -210,7 +213,7 @@ type LimitOrderDatabase interface {
 	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64)
 	GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []Order
 	GetShortOrders(market Market, upperbound *big.Int, blockNumber *big.Int) []Order
-	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool)
+	UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool, blockNumber uint64)
 	UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int)
 	UpdateReservedMargin(trader common.Address, addAmount *big.Int)
 	UpdateUnrealisedFunding(market Market, cumulativePremiumFraction *big.Int)
@@ -426,6 +429,11 @@ func (db *InMemoryDatabase) getCleanOrder(order *Order, blockNumber *big.Int) *O
 		}
 	}
 
+	expireAt := order.getExpireAt()
+	if expireAt.Sign() == 1 && expireAt.Int64() <= time.Now().Unix() {
+		eligibleForExecution = false
+	}
+
 	if eligibleForExecution {
 		if order.ReduceOnly {
 			return db.getReduceOnlyOrderDisplay(order)
@@ -462,7 +470,7 @@ func (db *InMemoryDatabase) UpdateReservedMargin(trader common.Address, addAmoun
 	db.TraderMap[trader].Margin.Reserved.Add(db.TraderMap[trader].Margin.Reserved, addAmount)
 }
 
-func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
+func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool, blockNumber uint64) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -474,9 +482,39 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 		db.TraderMap[trader].Positions[market] = &Position{}
 	}
 
-	previousSize := big.NewInt(0)
-	if db.TraderMap[trader].Positions[market].Size != nil {
-		previousSize.Set(db.TraderMap[trader].Positions[market].Size)
+	if db.CumulativePremiumFraction[market] == nil {
+		db.CumulativePremiumFraction[market] = big.NewInt(0)
+	}
+
+	previousSize := db.TraderMap[trader].Positions[market].Size
+	if previousSize == nil || previousSize.Sign() == 0 {
+		// this is also set in the AMM contract when a new position is opened, without emitting a FundingPaid event
+		db.TraderMap[trader].Positions[market].LastPremiumFraction = db.CumulativePremiumFraction[market]
+		db.TraderMap[trader].Positions[market].UnrealisedFunding = big.NewInt(0)
+	}
+
+	// before the rc9 release (completed at block 1530589) hubble-protocol, it was possible that the lastPremiumFraction for a trader was updated without emitting a corresponding event.
+	// This only happened in markets for which trader had a 0 position.
+	// Since we build the entire memory db state based on events alone, we miss these updates and hence "forcibly" set LastPremiumFraction = CumulativePremiumFraction for a trader in all markets
+	// note that in rc9 release this was changed and the "FundingPaid" event will always be emitted whenever the lastPremiumFraction is updated (EXCEPT for the case when trader opens a new position in the market - handled above)
+	// so while we still need this update for backwards compatibility, it can be removed when there is a fresh deployment of the entire system.
+	if blockNumber <= 1530589 {
+		for market, position := range db.TraderMap[trader].Positions {
+			if db.CumulativePremiumFraction[market] == nil {
+				db.CumulativePremiumFraction[market] = big.NewInt(0)
+			}
+			if position.LastPremiumFraction == nil {
+				position.LastPremiumFraction = big.NewInt(0)
+			}
+			if position.LastPremiumFraction.Cmp(db.CumulativePremiumFraction[market]) != 0 {
+				if position.Size == nil || position.Size.Sign() == 0 || calcPendingFunding(db.CumulativePremiumFraction[market], position.LastPremiumFraction, position.Size).Sign() == 0 {
+					// expected scenario
+					position.LastPremiumFraction = db.CumulativePremiumFraction[market]
+				} else {
+					log.Error("pendingFunding is not 0", "trader", trader.String(), "market", market, "position", position, "pendingFunding", calcPendingFunding(db.CumulativePremiumFraction[market], position.LastPremiumFraction, position.Size), "lastPremiumFraction", position.LastPremiumFraction, "cumulativePremiumFraction", db.CumulativePremiumFraction[market])
+				}
+			}
+		}
 	}
 
 	db.TraderMap[trader].Positions[market].Size = size
@@ -484,17 +522,6 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 
 	if !isLiquidation {
 		db.TraderMap[trader].Positions[market].LiquidationThreshold = getLiquidationThreshold(db.configService.getMaxLiquidationRatio(market), db.configService.getMinSizeRequirement(market), size)
-	}
-
-	// replace null values with 0
-	if db.TraderMap[trader].Positions[market].UnrealisedFunding == nil {
-		// no matter when they open the position, unrealised funding will be 0 because it is settled in the same tx
-		db.TraderMap[trader].Positions[market].UnrealisedFunding = big.NewInt(0)
-	}
-
-	if previousSize.Sign() == 0 {
-		// for a new position, this needs to be set properly
-		db.TraderMap[trader].Positions[market].LastPremiumFraction = db.configService.GetCumulativePremiumFraction(market)
 	}
 
 	// adjust the liquidation threshold if > resultant position size (for both isLiquidation = true/false)
@@ -506,12 +533,41 @@ func (db *InMemoryDatabase) UpdateUnrealisedFunding(market Market, cumulativePre
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
+	db.CumulativePremiumFraction[market] = cumulativePremiumFraction
 	for _, trader := range db.TraderMap {
 		position := trader.Positions[market]
 		if position != nil {
-			position.UnrealisedFunding = dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, position.LastPremiumFraction), position.Size))
+			position.UnrealisedFunding = calcPendingFunding(cumulativePremiumFraction, position.LastPremiumFraction, position.Size)
 		}
 	}
+}
+
+func calcPendingFunding(cumulativePremiumFraction, lastPremiumFraction, size *big.Int) *big.Int {
+	if size == nil || size.Sign() == 0 {
+		return big.NewInt(0)
+	}
+
+	if cumulativePremiumFraction == nil {
+		cumulativePremiumFraction = big.NewInt(0)
+	}
+
+	if lastPremiumFraction == nil {
+		lastPremiumFraction = big.NewInt(0)
+	}
+
+	// Calculate difference
+	diff := new(big.Int).Sub(cumulativePremiumFraction, lastPremiumFraction)
+
+	// Multiply by size
+	result := new(big.Int).Mul(diff, size)
+
+	// Handle negative rounding
+	if result.Sign() < 0 {
+		result.Add(result, big.NewInt(1e18-1))
+	}
+
+	// Divide by 1e18
+	return result.Div(result, SIZE_BASE_PRECISION)
 }
 
 func (db *InMemoryDatabase) ResetUnrealisedFunding(market Market, trader common.Address, cumulativePremiumFraction *big.Int) {

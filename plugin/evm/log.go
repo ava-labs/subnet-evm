@@ -127,6 +127,16 @@ func HubbleErrorHandler(h log.Handler) log.Handler {
 	})
 }
 
+func ErrorOnlyHandler(h log.Handler) log.Handler {
+	// ignores all logs except lvl=error
+	return log.FuncHandler(func(r *log.Record) error {
+		if r.Lvl == log.LvlError {
+			return h.Log(r)
+		}
+		return nil
+	})
+}
+
 func formatJSONValue(value interface{}) (result interface{}) {
 	defer func() {
 		if err := recover(); err != nil {

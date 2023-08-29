@@ -193,10 +193,7 @@ func validateOrdersAndDetermineFillPrice(accessibleState contract.AccessibleStat
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
 	output, err := ValidateOrdersAndDetermineFillPrice(bibliophile, &inputStruct)
 	if err != nil {
-		log.Error("validateOrdersAndDetermineFillPrice", "error", err, "block", accessibleState.GetBlockContext().Number())
-		if !errors.Is(err, ErrTwoOrders) {
-			log.Error("debug-info", "order0", formatOrder(inputStruct.Data[0]), "order1", formatOrder(inputStruct.Data[1]), "fillAmount", inputStruct.FillAmount, "err", err)
-		}
+		log.Error("validateOrdersAndDetermineFillPrice", "order0", formatOrder(inputStruct.Data[0]), "order1", formatOrder(inputStruct.Data[1]), "fillAmount", inputStruct.FillAmount, "err", err, "block", accessibleState.GetBlockContext().Number())
 		return nil, remainingGas, err
 	}
 	packedOutput, err := PackValidateOrdersAndDetermineFillPriceOutput(*output)

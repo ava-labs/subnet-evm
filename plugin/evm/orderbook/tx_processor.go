@@ -310,7 +310,10 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 			if contractAddress != nil && lotp.orderBookContractAddress == *contractAddress {
 				note := "success"
 				if receipt.Status == 0 {
-					log.Error("orderbook tx failed", "method", method.Name, "tx", tx.Hash().String(), "receipt", receipt)
+					log.Error("orderbook tx failed", "method", method.Name, "tx", tx.Hash().String(),
+						"receipt.Status", receipt.Status, "receipt.CumulativeGasUsed", receipt.CumulativeGasUsed,
+						"receipt.GasUsed", receipt.GasUsed, "receipt.EffectiveGasPrice", receipt.EffectiveGasPrice,
+						"receipt.BlockNumber", receipt.BlockNumber)
 					note = "failure"
 				}
 				counterName := fmt.Sprintf("orderbooktxs/%s/%s", method.Name, note)

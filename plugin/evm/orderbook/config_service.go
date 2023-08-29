@@ -66,6 +66,14 @@ func (cs *ConfigService) getStateAtCurrentBlock() *state.StateDB {
 	return stateDB
 }
 
+func (cs *ConfigService) getStateAtBlock(number uint64) *state.StateDB {
+	stateDB, err := cs.blockChain.StateAt(cs.blockChain.GetHeaderByNumber(number).Root)
+	if err != nil {
+		panic(err)
+	}
+	return stateDB
+}
+
 func (cs *ConfigService) GetActiveMarketsCount() int64 {
 	return bibliophile.GetActiveMarketsCount(cs.getStateAtCurrentBlock())
 }

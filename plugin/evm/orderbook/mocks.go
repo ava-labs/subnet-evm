@@ -51,7 +51,7 @@ func (db *MockLimitOrderDatabase) GetShortOrders(market Market, upperbound *big.
 	return args.Get(0).([]Order)
 }
 
-func (db *MockLimitOrderDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool) {
+func (db *MockLimitOrderDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool, blockNumber uint64) {
 }
 
 func (db *MockLimitOrderDatabase) UpdateMargin(trader common.Address, collateral Collateral, addAmount *big.Int) {
@@ -246,7 +246,15 @@ func (cs *MockConfigService) GetLastPremiumFraction(market Market, trader *commo
 	return big.NewInt(0)
 }
 
+func (cs *MockConfigService) GetLastPremiumFractionAtBlock(market Market, trader *common.Address, blockNumber uint64) *big.Int {
+	return big.NewInt(0)
+}
+
 func (cs *MockConfigService) GetCumulativePremiumFraction(market Market) *big.Int {
+	return big.NewInt(0)
+}
+
+func (cs *MockConfigService) GetCumulativePremiumFractionAtBlock(market Market, blockNumber uint64) *big.Int {
 	return big.NewInt(0)
 }
 

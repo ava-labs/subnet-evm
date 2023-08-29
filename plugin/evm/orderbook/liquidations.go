@@ -24,16 +24,6 @@ func (liq LiquidablePosition) GetUnfilledSize() *big.Int {
 	return big.NewInt(0).Sub(liq.Size, liq.FilledSize)
 }
 
-// returns the max(oracle_mf, last_mf); hence should only be used to determine the margin fraction for liquidation and not to increase leverage
-func calcMarginFractionWithDebugInfo(addr common.Address, trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, markets []Market) *big.Int {
-	// for debugging
-	// if strings.EqualFold(addr.String(), "917251b02D43372A083b75890dF33Bf6d2bD0e02") {
-	// 	log.Info("calcMarginFraction:M", "pendingFunding", pendingFunding, "margin", margin, "notionalPosition", notionalPosition, "unrealizePnL", unrealizePnL)
-	// }
-	// log.Info("calcMarginFraction", "margin", margin, "notionalPosition", notionalPosition)
-	return calcMarginFraction(trader, pendingFunding, oraclePrices, lastPrices, markets)
-}
-
 func calcMarginFraction(trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, markets []Market) *big.Int {
 	margin := new(big.Int).Sub(getNormalisedMargin(trader), pendingFunding)
 	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Maintenance_Margin, oraclePrices, lastPrices, markets)

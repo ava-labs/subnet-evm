@@ -110,7 +110,6 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions(blockBuilder *block
 			} else {
 				if acceptedBlockNumber > 0 {
 					fromBlock = big.NewInt(int64(acceptedBlockNumber) + 1)
-					lop.snapshotSavedBlockNumber = acceptedBlockNumber
 					log.Info("ListenAndProcessTransactions - memory DB snapshot loaded", "acceptedBlockNumber", acceptedBlockNumber)
 				} else {
 					// not an error, but unlikely after the blockchain is running for some time
@@ -122,13 +121,14 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions(blockBuilder *block
 		}
 
 		logHandler := log.Root().GetHandler()
+		errorOnlyHandler := ErrorOnlyHandler(logHandler)
 		log.Info("ListenAndProcessTransactions - beginning sync", " till block number", lastAcceptedBlockNumber)
 		JUMP := big.NewInt(3999)
 		toBlock := utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, JUMP))
 		for toBlock.Cmp(fromBlock) > 0 {
 			logs := lop.getLogs(fromBlock, toBlock)
 			// set the log handler to discard logs so that the ProcessEvents doesn't spam the logs
-			log.Root().SetHandler(log.DiscardHandler())
+			log.Root().SetHandler(errorOnlyHandler)
 			lop.contractEventProcessor.ProcessEvents(logs)
 			lop.contractEventProcessor.ProcessAcceptedEvents(logs, true)
 			lop.memoryDb.Accept(toBlock.Uint64(), 0) // will delete stale orders from the memorydb
@@ -139,10 +139,9 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions(blockBuilder *block
 			toBlock = utils.BigIntMin(lastAcceptedBlockNumber, big.NewInt(0).Add(fromBlock, JUMP))
 		}
 		lop.memoryDb.Accept(lastAcceptedBlockNumber.Uint64(), lastAccepted.Time()) // will delete stale orders from the memorydb
+		lop.snapshotSavedBlockNumber = lastAcceptedBlockNumber.Uint64()
+		log.Info("Set snapshotSavedBlockNumber", "snapshotSavedBlockNumber", lop.snapshotSavedBlockNumber)
 		log.Root().SetHandler(logHandler)
-
-		// needs to be run everytime as long as the db.UpdatePosition uses configService.GetCumulativePremiumFraction
-		lop.UpdateLastPremiumFractionFromStorage()
 	}
 
 	lop.mu.Unlock()
@@ -234,6 +233,7 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 
 					blockNumberFloor := ((blockNumber - 1) / snapshotInterval) * snapshotInterval
 					if blockNumberFloor > lop.snapshotSavedBlockNumber {
+						log.Info("Saving memory DB snapshot", "blockNumber", blockNumber, "blockNumberFloor", blockNumberFloor)
 						floorBlock := lop.blockChain.GetBlockByNumber(blockNumberFloor)
 						lop.memoryDb.Accept(blockNumberFloor, floorBlock.Timestamp())
 						err := lop.saveMemoryDBSnapshot(big.NewInt(int64(blockNumberFloor)))
@@ -419,7 +419,6 @@ func (lop *limitOrderProcesser) getLogs(fromBlock, toBlock *big.Int) []*types.Lo
 }
 
 func (lop *limitOrderProcesser) UpdateLastPremiumFractionFromStorage() {
-	// This is to fix the bug that was causing the LastPremiumFraction to be set to 0 in the snapshot whenever a trader's position was updated
 	traderMap := lop.memoryDb.GetOrderBookData().TraderMap
 	count := 0
 	start := time.Now()
