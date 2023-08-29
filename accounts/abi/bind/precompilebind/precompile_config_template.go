@@ -34,7 +34,7 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// {{.Contract.Type}} {{- if .Contract.AllowList}} with the given [admins] as members of the allowlist {{end}}.
+// {{.Contract.Type}} {{- if .Contract.AllowList}} with the given [admins], [enableds] and [managers] members of the allowlist {{end}}.
 func NewConfig(blockTimestamp *uint64{{if .Contract.AllowList}}, admins []common.Address, enableds []common.Address, managers []common.Address{{end}}) *Config {
 	return &Config{
 		{{- if .Contract.AllowList}}

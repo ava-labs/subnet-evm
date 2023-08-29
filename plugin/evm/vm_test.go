@@ -2318,8 +2318,6 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	require.Equal(t, newHead.Head.Hash(), common.Hash(blk.ID()))
 	block = blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 
-	txs = block.Transactions()
-
 	blkState, err := vm.blockChain.StateAt(block.Root())
 	require.NoError(t, err)
 
@@ -2376,13 +2374,12 @@ func TestVerifyManagerConfig(t *testing.T) {
 		[]*commonEng.Fx{},
 		nil,
 	)
-	require.ErrorContains(t, err, "cannot add managers before DUpgrade")
+	require.ErrorIs(t, err, allowlist.ErrCannotAddManagersBeforeDUpgrade)
 
-	// use an invalid upgrade now
+	// use an invalid upgrade now with managers set before DUpgrade
 	dUpgradeTime := time.Unix(int64(*params.UnitTestNetworkUpgrades.DUpgradeTimestamp), 0)
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
-			// re-enable the tx allowlist after DUpgrade to set the manager role
 			{
 				Config: txallowlist.NewConfig(utils.TimeToNewUint64(dUpgradeTime.Add(-time.Second)), nil, nil, []common.Address{testEthAddrs[1]}),
 			},
@@ -2404,7 +2401,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 		[]*commonEng.Fx{},
 		nil,
 	)
-	require.ErrorContains(t, err, "cannot add managers before DUpgrade")
+	require.ErrorIs(t, err, allowlist.ErrCannotAddManagersBeforeDUpgrade)
 }
 
 // Test that the tx allow list allows whitelisted transactions and blocks non-whitelisted addresses

@@ -88,7 +88,6 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 			}),
 			ExpectedError: "cannot set address as both admin and manager",
 		},
-		// this is because we don't allow the manager to have enabled permissions
 		"invalid allow list config with same manager and enabled in allowlist": {
 			Config: mkConfigWithAllowList(module, &AllowListConfig{
 				AdminAddresses:   nil,
@@ -110,7 +109,7 @@ func AllowListConfigVerifyTests(t testing.TB, module modules.Module) map[string]
 				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false)
 				return config
 			}(),
-			ExpectedError: "cannot add managers before DUpgrade",
+			ExpectedError: ErrCannotAddManagersBeforeDUpgrade.Error(),
 		},
 		"nil member allow list config in allowlist": {
 			Config: mkConfigWithAllowList(module, &AllowListConfig{

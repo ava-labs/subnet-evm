@@ -128,7 +128,7 @@ var (
 				require.False(t, isFeeRecipients)
 			},
 		},
-		"disable rewards from manager succeeds  ": {
+		"disable rewards from manager succeeds": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {

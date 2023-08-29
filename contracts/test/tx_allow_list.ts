@@ -81,5 +81,5 @@ describe("ExampleTxAllowList", function () {
 
   test("should not let manager to add manager", "step_managerCannotGrantManager")
 
-  test("should let manager to send tx", "step_managerCanDeploy")
+  test("should let manager to deploy", "step_managerCanDeploy")
 })

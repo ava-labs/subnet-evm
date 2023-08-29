@@ -11,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var ErrCannotAddManagersBeforeDUpgrade = fmt.Errorf("cannot add managers before DUpgrade")
+
 // AllowListConfig specifies the initial set of addresses with Admin or Enabled roles.
 type AllowListConfig struct {
 	AdminAddresses   []common.Address `json:"adminAddresses,omitempty"`   // initial admin addresses
@@ -87,7 +89,7 @@ func (c *AllowListConfig) Verify(chainConfig precompileconfig.ChainConfig, upgra
 		// If the config attempts to activate a manager before the DUpgrade, fail verification
 		timestamp := *upgrade.Timestamp()
 		if !chainConfig.IsDUpgrade(timestamp) {
-			return fmt.Errorf("cannot add managers before DUpgrade timestamp: %d", timestamp)
+			return ErrCannotAddManagersBeforeDUpgrade
 		}
 	}
 

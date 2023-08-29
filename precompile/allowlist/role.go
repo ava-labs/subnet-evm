@@ -10,14 +10,11 @@ import "github.com/ethereum/go-ethereum/common"
 // 3. Admin - allowed to both modify the allowlist and call the precompile
 // 4. Manager - allowed to add and remove only enabled addresses and also call the precompile. (only after DUpgrade)
 var (
-	// NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set.
-	NoRole = Role(common.BigToHash(common.Big0))
-	// EnabledRole - allowed to call the precompile.
+	NoRole      = Role(common.BigToHash(common.Big0))
 	EnabledRole = Role(common.BigToHash(common.Big1))
-	// Admin - allowed to both modify the allowlist and call the precompile.
-	AdminRole = Role(common.BigToHash(common.Big2))
-	// Manager - allowed to add and remove only enabled addresses, with being able to call the precompile (i.e enabled). Activated only after DUpgrade.
+	AdminRole   = Role(common.BigToHash(common.Big2))
 	ManagerRole = Role(common.BigToHash(common.Big3))
+	// Roles should be incremented and not changed.
 )
 
 // Enum constants for valid Role
