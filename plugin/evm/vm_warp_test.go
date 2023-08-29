@@ -123,7 +123,7 @@ func TestSendWarpMessage(t *testing.T) {
 func TestReceiveWarpMessage(t *testing.T) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
+	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDUpgrade)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		warp.ConfigKey: warp.NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 	}

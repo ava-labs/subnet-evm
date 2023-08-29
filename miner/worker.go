@@ -72,6 +72,10 @@ type environment struct {
 
 	rules            params.Rules
 	predicateContext *precompileconfig.PredicateContext
+	// predicateResults contains the results of checking the predicates for each transaction in the miner.
+	// The results are accumulated as transactions are executed by the miner and set on the BlockContext.
+	// If a transaction is dropped, its results must explicitly be removed from predicateResults in the same
+	// way that the gas pool and state is reset.
 	predicateResults *results.PredicateResults
 
 	start time.Time // Time that block building began
