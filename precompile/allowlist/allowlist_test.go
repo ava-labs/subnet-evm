@@ -70,6 +70,7 @@ func BenchmarkAllowList(b *testing.B) {
 		Address:      dummyAddr,
 		Contract:     CreateAllowListPrecompile(dummyAddr),
 		Configurator: &dummyConfigurator{},
+		ConfigKey:    "dummy",
 	}
 	BenchPrecompileWithAllowList(b, dummyModule, state.NewTestStateDB, nil)
 }

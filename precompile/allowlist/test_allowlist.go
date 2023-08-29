@@ -160,7 +160,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
 				return config
 			}(),
 			InputFn: func(t testing.TB) []byte {
@@ -178,7 +178,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			}(),
 			InputFn: func(t testing.TB) []byte {
@@ -196,7 +196,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
 				return config
 			}(),
 			InputFn: func(t testing.TB) []byte {
@@ -214,7 +214,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			}(),
 			InputFn: func(t testing.TB) []byte {
@@ -238,7 +238,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
 				return config
 			}(),
 			SuppliedGas: 0,
@@ -257,7 +257,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			ExpectedRes: []byte{},
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			}(),
 			SuppliedGas: ModifyAllowListGasCost,
@@ -308,7 +308,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			}(),
 			InputFn: func(t testing.TB) []byte {
@@ -352,7 +352,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			}(),
 			InputFn: func(t testing.TB) []byte {
@@ -413,7 +413,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			}(),
 			InputFn: func(t testing.TB) []byte {
