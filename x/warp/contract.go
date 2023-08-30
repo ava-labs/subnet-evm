@@ -36,9 +36,8 @@ const (
 	SendWarpMessageGasCostPerByte uint64 = params.LogDataGas
 
 	GasCostPerWarpSigner            uint64 = 500
-	GasCostPerWarpMessageBytes      uint64 = 100 // TODO: charge O(n) cost for decoding predicate of input size n
+	GasCostPerWarpMessageBytes      uint64 = 100
 	GasCostPerSignatureVerification uint64 = 200_000
-	// GasCostPerSourceSubnetValidator uint64 = 1 // TODO: charge O(n) cost for subnet validator set lookup
 )
 
 var (
