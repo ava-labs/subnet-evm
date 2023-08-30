@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/api/info"
@@ -124,6 +125,8 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	time.Sleep(5 * time.Hour)
+
 	gomega.Expect(manager).ShouldNot(gomega.BeNil())
 	gomega.Expect(manager.TeardownNetwork()).Should(gomega.BeNil())
 	gomega.Expect(os.Remove(warpChainConfigPath)).Should(gomega.BeNil())
@@ -209,7 +212,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 			ChainID:   chainID,
 			Nonce:     startingNonce,
 			To:        &warp.Module.Address,
-			Gas:       200_000,
+			Gas:       200_000, // sufficient gas
 			GasFeeCap: big.NewInt(225 * params.GWei),
 			GasTipCap: big.NewInt(params.GWei),
 			Value:     common.Big0,
