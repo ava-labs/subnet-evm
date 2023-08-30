@@ -208,6 +208,20 @@ func (mr *MockChainConfigMockRecorder) GetFeeConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeeConfig", reflect.TypeOf((*MockChainConfig)(nil).GetFeeConfig))
 }
 
+// IsDUpgrade mocks base method.
+func (m *MockChainConfig) IsDUpgrade(arg0 uint64) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsDUpgrade", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsDUpgrade indicates an expected call of IsDUpgrade.
+func (mr *MockChainConfigMockRecorder) IsDUpgrade(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDUpgrade", reflect.TypeOf((*MockChainConfig)(nil).IsDUpgrade), arg0)
+}
+
 // MockAccepter is a mock of Accepter interface.
 type MockAccepter struct {
 	ctrl     *gomock.Controller
