@@ -12,7 +12,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/api/info"
@@ -125,8 +124,6 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	time.Sleep(5 * time.Hour)
-
 	gomega.Expect(manager).ShouldNot(gomega.BeNil())
 	gomega.Expect(manager.TeardownNetwork()).Should(gomega.BeNil())
 	gomega.Expect(os.Remove(warpChainConfigPath)).Should(gomega.BeNil())
