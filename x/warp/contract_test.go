@@ -326,6 +326,16 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				return res
 			}(),
 		},
+		"get message out of gas for base cost": {
+			Caller:  callerAddr,
+			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
+			BeforeHook: func(t testing.TB, state contract.StateDB) {
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost - 1,
+			ReadOnly:    false,
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
 		"get message out of gas": {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
@@ -416,13 +426,20 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,
-			ExpectedRes: func() []byte {
-				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
+			ExpectedErr: errInvalidIndexInput.Error(),
+		},
+		"get message invalid index": {
+			Caller: callerAddr,
+			InputFn: func(t testing.TB) []byte {
+				res, err := PackGetVerifiedWarpMessage(common.Big1)
 				if err != nil {
-					panic(err)
+					t.Fatal(err)
 				}
-				return res
-			}(),
+				return res[:len(res)-2]
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost,
+			ReadOnly:    false,
+			ExpectedErr: errInvalidIndexInput.Error(),
 		},
 	}
 
@@ -583,6 +600,16 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				return res
 			}(),
 		},
+		"get message out of gas for base cost": {
+			Caller:  callerAddr,
+			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
+			BeforeHook: func(t testing.TB, state contract.StateDB) {
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost - 1,
+			ReadOnly:    false,
+			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
+		},
 		"get message out of gas": {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
@@ -673,13 +700,20 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,
-			ExpectedRes: func() []byte {
-				res, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{Valid: false})
+			ExpectedErr: errInvalidIndexInput.Error(),
+		},
+		"get message invalid index": {
+			Caller: callerAddr,
+			InputFn: func(t testing.TB) []byte {
+				res, err := PackGetVerifiedWarpBlockHash(common.Big1)
 				if err != nil {
-					panic(err)
+					t.Fatal(err)
 				}
-				return res
-			}(),
+				return res[:len(res)-2]
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost,
+			ReadOnly:    false,
+			ExpectedErr: errInvalidIndexInput.Error(),
 		},
 	}
 
