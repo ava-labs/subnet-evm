@@ -34,9 +34,13 @@ func NewAddressedPayload(sourceAddress common.Address, destinationChainID common
 // ParseAddressedPayload converts a slice of bytes into an initialized
 // AddressedPayload.
 func ParseAddressedPayload(b []byte) (*AddressedPayload, error) {
-	payload := new(AddressedPayload)
-	if _, err := c.Unmarshal(b, payload); err != nil {
+	var unmarshalledPayloadIntf any
+	if _, err := c.Unmarshal(b, &unmarshalledPayloadIntf); err != nil {
 		return nil, err
+	}
+	payload, ok := unmarshalledPayloadIntf.(*AddressedPayload)
+	if !ok {
+		return nil, fmt.Errorf("%w: %T", errWrongType, unmarshalledPayloadIntf)
 	}
 	payload.bytes = b
 	return payload, nil
@@ -44,7 +48,8 @@ func ParseAddressedPayload(b []byte) (*AddressedPayload, error) {
 
 // initialize recalculates the result of Bytes().
 func (a *AddressedPayload) initialize() error {
-	bytes, err := c.Marshal(codecVersion, a)
+	payloadIntf := any(a)
+	bytes, err := c.Marshal(codecVersion, &payloadIntf)
 	if err != nil {
 		return fmt.Errorf("couldn't marshal warp addressed payload: %w", err)
 	}

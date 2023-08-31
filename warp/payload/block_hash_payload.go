@@ -27,19 +27,24 @@ func NewBlockHashPayload(blockHash common.Hash) (*BlockHashPayload, error) {
 // ParseBlockHashPayload converts a slice of bytes into an initialized
 // BlockHashPayload
 func ParseBlockHashPayload(b []byte) (*BlockHashPayload, error) {
-	bhp := new(BlockHashPayload)
-	if _, err := c.Unmarshal(b, &bhp); err != nil {
+	var unmarshalledPayloadIntf any
+	if _, err := c.Unmarshal(b, &unmarshalledPayloadIntf); err != nil {
 		return nil, err
 	}
-	bhp.bytes = b
-	return bhp, nil
+	payload, ok := unmarshalledPayloadIntf.(*BlockHashPayload)
+	if !ok {
+		return nil, fmt.Errorf("%w: %T", errWrongType, unmarshalledPayloadIntf)
+	}
+	payload.bytes = b
+	return payload, nil
 }
 
 // initialize recalculates the result of Bytes().
 func (b *BlockHashPayload) initialize() error {
-	bytes, err := c.Marshal(codecVersion, b)
+	payloadIntf := any(b)
+	bytes, err := c.Marshal(codecVersion, &payloadIntf)
 	if err != nil {
-		return fmt.Errorf("couldn't marshal warp addressed payload: %w", err)
+		return fmt.Errorf("couldn't marshal block hash payload: %w", err)
 	}
 	b.bytes = bytes
 	return nil

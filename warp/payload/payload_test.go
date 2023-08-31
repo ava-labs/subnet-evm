@@ -20,7 +20,7 @@ func TestAddressedPayload(t *testing.T) {
 		common.Address(ids.GenerateTestShortID()),
 		common.Hash(ids.GenerateTestID()),
 		common.Address(ids.GenerateTestShortID()),
-		[]byte("payload"),
+		[]byte{1, 2, 3},
 	)
 	require.NoError(err)
 
@@ -36,7 +36,7 @@ func TestParseAddressedPayloadJunk(t *testing.T) {
 }
 
 func TestParseAddressedPayload(t *testing.T) {
-	base64Payload := "AAABAgMAAAAAAAAAAAAAAAAAAAAAAAQFBgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwgJAAAAAAAAAAAAAAAAAAAAAAAAAAADCgsM"
+	base64Payload := "AAAAAAAAAQIDAAAAAAAAAAAAAAAAAAAAAAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcICQAAAAAAAAAAAAAAAAAAAAAAAAAAAwoLDA=="
 	payload := &AddressedPayload{
 		SourceAddress:      common.Address{1, 2, 3},
 		DestinationChainID: common.Hash{4, 5, 6},
@@ -71,7 +71,7 @@ func TestParseBlockHashPayloadJunk(t *testing.T) {
 }
 
 func TestParseBlockHashPayload(t *testing.T) {
-	base64Payload := "AAAEBQYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+	base64Payload := "AAAAAAABBAUGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 	payload := &BlockHashPayload{
 		BlockHash: common.Hash{4, 5, 6},
 	}
@@ -83,4 +83,24 @@ func TestParseBlockHashPayload(t *testing.T) {
 	parsedPayload, err := ParseBlockHashPayload(payload.Bytes())
 	require.NoError(t, err)
 	require.Equal(t, payload, parsedPayload)
+}
+
+func TestParseWrongPayloadType(t *testing.T) {
+	require := require.New(t)
+	blockHashPayload, err := NewBlockHashPayload(common.Hash(ids.GenerateTestID()))
+	require.NoError(err)
+
+	addressedPayload, err := NewAddressedPayload(
+		common.Address(ids.GenerateTestShortID()),
+		common.Hash(ids.GenerateTestID()),
+		common.Address(ids.GenerateTestShortID()),
+		[]byte{1, 2, 3},
+	)
+	require.NoError(err)
+
+	_, err = ParseAddressedPayload(blockHashPayload.Bytes())
+	require.ErrorIs(err, errWrongType)
+
+	_, err = ParseBlockHashPayload(addressedPayload.Bytes())
+	require.ErrorIs(err, errWrongType)
 }
