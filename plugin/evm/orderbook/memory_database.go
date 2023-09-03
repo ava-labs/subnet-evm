@@ -24,6 +24,7 @@ type InMemoryDatabase struct {
 	NextFundingTime           uint64                     `json:"next_funding_time"`
 	LastPrice                 map[Market]*big.Int        `json:"last_price"`
 	CumulativePremiumFraction map[Market]*big.Int        `json:"cumulative_last_premium_fraction"`
+	NextSamplePITime          uint64                     `json:"next_sample_pi_time"`
 	configService             IConfigService
 }
 
@@ -157,8 +158,15 @@ func (order Order) getExpireAt() *big.Int {
 	return big.NewInt(0)
 }
 
+func (order Order) isPostOnly() bool {
+	if rawOrder, ok := order.RawOrder.(*LimitOrderV2); ok {
+		return rawOrder.PostOnly
+	}
+	return false
+}
+
 func (order Order) String() string {
-	return fmt.Sprintf("Order: Id: %s, OrderType: %s, Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, BlockNumber: %s", order.Id, order.OrderType, order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.BlockNumber)
+	return fmt.Sprintf("Order: Id: %s, OrderType: %s, Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, PostOnly: %v, BlockNumber: %s", order.Id, order.OrderType, order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.isPostOnly(), order.BlockNumber)
 }
 
 func (order Order) ToOrderMin() OrderMin {
@@ -220,6 +228,8 @@ type LimitOrderDatabase interface {
 	ResetUnrealisedFunding(market Market, trader common.Address, cumulativePremiumFraction *big.Int)
 	UpdateNextFundingTime(nextFundingTime uint64)
 	GetNextFundingTime() uint64
+	UpdateNextSamplePITime(nextSamplePITime uint64)
+	GetNextSamplePITime() uint64
 	UpdateLastPrice(market Market, lastPrice *big.Int)
 	GetLastPrice(market Market) *big.Int
 	GetLastPrices() map[Market]*big.Int
@@ -368,6 +378,20 @@ func (db *InMemoryDatabase) UpdateNextFundingTime(nextFundingTime uint64) {
 	defer db.mu.Unlock()
 
 	db.NextFundingTime = nextFundingTime
+}
+
+func (db *InMemoryDatabase) GetNextSamplePITime() uint64 {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	return db.NextSamplePITime
+}
+
+func (db *InMemoryDatabase) UpdateNextSamplePITime(nextSamplePITime uint64) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	db.NextSamplePITime = nextSamplePITime
 }
 
 func (db *InMemoryDatabase) GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []Order {

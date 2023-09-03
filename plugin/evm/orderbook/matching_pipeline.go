@@ -60,6 +60,15 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 		}
 	}
 
+	// check nextSamplePITime
+	if isSamplePITime(pipeline.db.GetNextSamplePITime()) {
+		log.Info("MatchingPipeline:isSamplePITime")
+		err := pipeline.lotp.ExecuteSamplePITx()
+		if err != nil {
+			log.Error("Sample PI job failed", "err", err)
+		}
+	}
+
 	// fetch the underlying price and run the matching engine
 	underlyingPrices := pipeline.GetUnderlyingPrices()
 
@@ -77,11 +86,7 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	}
 
 	orderBookTxsCount := pipeline.lotp.GetOrderBookTxsCount()
-	if orderBookTxsCount > 0 {
-		return true
-	}
-
-	return false
+	return orderBookTxsCount > 0
 }
 
 type Orders struct {
@@ -113,9 +118,9 @@ func (pipeline *MatchingPipeline) cancelLimitOrders(cancellableOrders map[common
 	// @todo: if there are too many cancellable orders, they might not fit in a single block. Need to adjust for that.
 	for _, orders := range cancellableOrders {
 		if len(orders) > 0 {
-			rawOrders := make([]LimitOrder, len(orders))
+			rawOrders := make([]LimitOrderV2, len(orders))
 			for i, order := range orders {
-				rawOrder := order.RawOrder.(*LimitOrder)
+				rawOrder := order.RawOrder.(*LimitOrderV2)
 				rawOrders[i] = *rawOrder // @todo: make sure only limit orders reach here
 			}
 			log.Info("orders to cancel", "num", len(orders))
@@ -254,6 +259,14 @@ func matchLongAndShortOrder(lotp LimitOrderTxProcessor, longOrder, shortOrder Or
 	if longOrder.Price.Cmp(shortOrder.Price) == -1 || fillAmount.Sign() == 0 {
 		return longOrder, shortOrder, false
 	}
+	if longOrder.BlockNumber.Cmp(shortOrder.BlockNumber) > 0 && longOrder.isPostOnly() {
+		log.Warn("post only long order matched with a resting order", "longOrder", longOrder, "shortOrder", shortOrder)
+		return longOrder, shortOrder, false
+	}
+	if shortOrder.BlockNumber.Cmp(longOrder.BlockNumber) > 0 && shortOrder.isPostOnly() {
+		log.Warn("post only short order matched with a resting order", "longOrder", longOrder, "shortOrder", shortOrder)
+		return longOrder, shortOrder, false
+	}
 	if err := lotp.ExecuteMatchedOrdersTx(longOrder, shortOrder, fillAmount); err != nil {
 		return longOrder, shortOrder, false
 	}
@@ -269,6 +282,15 @@ func isFundingPaymentTime(nextFundingTime uint64) bool {
 
 	now := uint64(time.Now().Unix())
 	return now >= nextFundingTime
+}
+
+func isSamplePITime(nextSamplePITime uint64) bool {
+	if nextSamplePITime == 0 {
+		return false
+	}
+
+	now := uint64(time.Now().Unix())
+	return now >= nextSamplePITime
 }
 
 func executeFundingPayment(lotp LimitOrderTxProcessor) error {

@@ -663,7 +663,7 @@ func createLimitOrder(positionType PositionType, userAddress string, baseAssetQu
 		BlockNumber:             blockNumber,
 		ReduceOnly:              false,
 	}
-	lo.Id = getIdFromLimitOrder(lo)
+	lo.Id = getIdFromOrder(lo)
 	return lo
 }
 
@@ -695,7 +695,7 @@ func createIOCOrder(positionType PositionType, userAddress string, baseAssetQuan
 		}}
 
 	// it's incorrect but should not affect the test results
-	ioc.Id = getIdFromLimitOrder(ioc)
+	ioc.Id = getIdFromOrder(ioc)
 	return ioc
 }
 

@@ -95,6 +95,12 @@ func (db *MockLimitOrderDatabase) GetLastPrice(market Market) *big.Int {
 	return args.Get(0).(*big.Int)
 }
 
+func (db *MockLimitOrderDatabase) UpdateNextSamplePITime(nextSamplePITime uint64) {}
+
+func (db *MockLimitOrderDatabase) GetNextSamplePITime() uint64 {
+	return 0
+}
+
 func (db *MockLimitOrderDatabase) GetOrdersToCancel(oraclePrice map[Market]*big.Int) map[common.Address][]common.Hash {
 	args := db.Called()
 	return args.Get(0).(map[common.Address][]common.Hash)
@@ -165,12 +171,16 @@ func (lotp *MockLimitOrderTxProcessor) ExecuteFundingPaymentTx() error {
 	return nil
 }
 
+func (lotp *MockLimitOrderTxProcessor) ExecuteSamplePITx() error {
+	return nil
+}
+
 func (lotp *MockLimitOrderTxProcessor) ExecuteLiquidation(trader common.Address, matchedOrder Order, fillAmount *big.Int) error {
 	args := lotp.Called(trader, matchedOrder, fillAmount)
 	return args.Error(0)
 }
 
-func (lotp *MockLimitOrderTxProcessor) ExecuteLimitOrderCancel(orderIds []LimitOrder) error {
+func (lotp *MockLimitOrderTxProcessor) ExecuteLimitOrderCancel(orderIds []LimitOrderV2) error {
 	args := lotp.Called(orderIds)
 	return args.Error(0)
 }

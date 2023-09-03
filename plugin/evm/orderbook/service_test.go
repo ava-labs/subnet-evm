@@ -21,18 +21,18 @@ func TestAggregatedOrderBook(t *testing.T) {
 		longOrder2 := getLongOrder()
 		longOrder2.Salt.Add(longOrder2.Salt, big.NewInt(100))
 		longOrder2.Price.Mul(longOrder2.Price, big.NewInt(2))
-		longOrder2.Id = getIdFromLimitOrder(longOrder2)
+		longOrder2.Id = getIdFromOrder(longOrder2)
 		db.Add(&longOrder2)
 
 		shortOrder1 := getShortOrder()
 		shortOrder1.Salt.Add(shortOrder1.Salt, big.NewInt(200))
-		shortOrder1.Id = getIdFromLimitOrder(shortOrder1)
+		shortOrder1.Id = getIdFromOrder(shortOrder1)
 		db.Add(&shortOrder1)
 
 		shortOrder2 := getShortOrder()
 		shortOrder2.Salt.Add(shortOrder1.Salt, big.NewInt(300))
 		shortOrder2.Price.Mul(shortOrder2.Price, big.NewInt(2))
-		shortOrder2.Id = getIdFromLimitOrder(shortOrder2)
+		shortOrder2.Id = getIdFromOrder(shortOrder2)
 		db.Add(&shortOrder2)
 
 		ctx := context.TODO()

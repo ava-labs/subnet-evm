@@ -28,6 +28,7 @@ marginAccount = new ethers.Contract(MarginAccountContractAddress, require('./abi
 hubblebibliophile = new ethers.Contract(HubbleBibliophilePrecompileAddress, require('./abi/IHubbleBibliophile.json'), provider)
 ioc = new ethers.Contract(IOCContractAddress, require('./abi/IOC.json'), provider);
 juror = new ethers.Contract(JurorPrecompileAddress, require('./abi/Juror.json'), provider);
+juror2 = new ethers.Contract("0x8A791620dd6260079BF849Dc5567aDC3F2FdC318", require('./abi/Juror.json'), provider);
 
 orderType = {
     Order: [
@@ -50,13 +51,25 @@ function getOrder(market, traderAddress, baseAssetQuantity, price, salt, reduceO
     }
 }
 
+function getOrderV2(ammIndex, trader, baseAssetQuantity, price, salt, reduceOnly=false, postOnly=false) {
+    return {
+        ammIndex,
+        trader,
+        baseAssetQuantity,
+        price,
+        salt: BigNumber.from(salt),
+        reduceOnly,
+        postOnly
+    }
+}
+
 function getIOCOrder(expireAt, ammIndex, trader, baseAssetQuantity, price, salt, reduceOnly=false) {
     return {
         orderType: 1,
-        expireAt: expireAt, 
+        expireAt: expireAt,
         ammIndex: ammIndex,
         trader: trader,
-        baseAssetQuantity: baseAssetQuantity, 
+        baseAssetQuantity: baseAssetQuantity,
         price: price,
         salt: salt,
         reduceOnly: false
@@ -65,11 +78,13 @@ function getIOCOrder(expireAt, ammIndex, trader, baseAssetQuantity, price, salt,
 
 //Convert to wei units to support 18 decimals
 function multiplySize(size) {
+    // return _1e18.mul(size)
     return ethers.utils.parseEther(size.toString())
 }
 
 function multiplyPrice(price) {
-    return ethers.utils.parseUnits(price.toString(), 6)
+    return _1e6.mul(price)
+    // return ethers.utils.parseUnits(price.toString(), 6)
 }
 
 async function getDomain() {
@@ -88,7 +103,22 @@ async function placeOrder(market, trader, size, price, salt=Date.now(), reduceOn
 }
 
 async function placeOrderFromLimitOrder(order, trader) {
-    const tx = await orderBook.connect(trader).placeOrder(order)
+    const tx = await orderBook.connect(trader).placeOrders([order])
+    const txReceipt = await tx.wait()
+    return { tx, txReceipt }
+}
+
+async function placeOrderFromLimitOrderV2(order, trader) {
+    // console.log({ placeOrderEstimateGas: (await orderBook.connect(trader).estimateGas.placeOrders([order])).toNumber() })
+    // return orderBook.connect(trader).placeOrders([order])
+    const tx = await orderBook.connect(trader).placeOrders([order])
+    const txReceipt = await tx.wait()
+    return { tx, txReceipt }
+}
+
+async function placeV2Orders(orders, trader) {
+    console.log({ placeOrdersEstimateGas: (await orderBook.connect(trader).estimateGas.placeOrders(orders)).toNumber() })
+    const tx = await orderBook.connect(trader).placeOrders(orders)
     const txReceipt = await tx.wait()
     return { tx, txReceipt }
 }
@@ -105,8 +135,17 @@ async function cancelOrderFromLimitOrder(order, trader) {
     return { tx, txReceipt }
 }
 
-async function cancelOrderFromLimitOrder(order, trader) {
-    const tx = await orderBook.connect(trader).cancelOrder(order)
+async function cancelOrderFromLimitOrderV2(order, trader) {
+    // console.log({ estimateGas: (await orderBook.connect(trader).estimateGas.cancelOrders([order])).toNumber() })
+    // return orderBook.connect(trader).cancelOrders([order])
+    const tx = await orderBook.connect(trader).cancelOrders([order])
+    const txReceipt = await tx.wait()
+    return { tx, txReceipt }
+}
+
+async function cancelV2Orders(orders, trader) {
+    console.log({ cancelV2OrdersEstimateGas: (await orderBook.connect(trader).estimateGas.cancelOrders(orders)).toNumber() })
+    const tx = await orderBook.connect(trader).cancelOrders(orders)
     const txReceipt = await tx.wait()
     return { tx, txReceipt }
 }
@@ -134,9 +173,11 @@ async function removeMargin(trader, amount) {
 
 async function removeAllAvailableMargin(trader) {
     margin = await marginAccount.getAvailableMargin(trader.address)
+    console.log("margin", margin.toString())
     marginAccountHelper = await getMarginAccountHelper()
     if (margin.toNumber() > 0) {
-        const tx = await marginAccountHelper.connect(trader).removeMarginInUSD(margin.toNumber())
+        const tx = await marginAccountHelper.connect(trader).removeMarginInUSD(5e11)
+        // const tx = await marginAccountHelper.connect(trader).removeMarginInUSD(margin.toNumber())
         await tx.wait()
     }
     return
@@ -219,6 +260,11 @@ async function getAMMContract(market) {
     return amm
 }
 
+async function getMinSizeRequirement(market) {
+    const amm = await getAMMContract(market)
+    return await amm.minSizeRequirement()
+}
+
 async function enableValidatorMatching() {
     const tx = await orderBook.connect(governance).setValidatorStatus(ethers.utils.getAddress('0x4Cf2eD3665F6bFA95cE6A11CFDb7A2EF5FC1C7E4'), true)
     await tx.wait()
@@ -237,6 +283,16 @@ async function getTakerFee() {
     return await clearingHouse.takerFee()
 }
 
+async function getOrderBookEvents(fromBlock=0) {
+    block = await provider.getBlock("latest")
+    events = await orderBook.queryFilter("*",fromBlock,block.number)
+    console.log("events", events)
+}
+
+function bnToFloat(num, decimals = 6) {
+    return parseFloat(ethers.utils.formatUnits(num.toString(), decimals))
+}
+
 module.exports = {
     _1e6,
     _1e12,
@@ -245,6 +301,7 @@ module.exports = {
     alice,
     bob,
     cancelOrderFromLimitOrder,
+    cancelOrderFromLimitOrderV2,
     charlie,
     clearingHouse,
     disableValidatorMatching,
@@ -255,13 +312,17 @@ module.exports = {
     getDomain,
     getIOCOrder,
     getOrder,
+    getOrderV2,
     getMakerFee,
+    getMinSizeRequirement,
+    getOrderBookEvents,
     getRandomSalt,
     getTakerFee,
     governance,
     hubblebibliophile,
-    ioc, 
+    ioc,
     juror,
+    juror2,
     marginAccount,
     multiplySize,
     multiplyPrice,
@@ -270,10 +331,14 @@ module.exports = {
     provider,
     placeOrder,
     placeOrderFromLimitOrder,
+    placeOrderFromLimitOrderV2,
     placeIOCOrder,
     removeAllAvailableMargin,
     removeMargin,
     sleep,
     url,
     waitForOrdersToMatch,
+    placeV2Orders,
+    cancelV2Orders,
+    bnToFloat
 }

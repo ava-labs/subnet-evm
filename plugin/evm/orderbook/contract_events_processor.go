@@ -226,6 +226,96 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 				return
 			}
 		}
+
+	// event OrderAccepted(address indexed trader, bytes32 indexed orderHash, OrderV2 order, uint timestamp);
+	case cep.orderBookABI.Events["OrderAccepted"].ID:
+		err := cep.orderBookABI.UnpackIntoMap(args, "OrderAccepted", event.Data)
+		if err != nil {
+			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderAccepted", "err", err)
+			return
+		}
+
+		orderId := event.Topics[2]
+		if !removed {
+			timestamp := args["timestamp"].(*big.Int)
+			order := LimitOrderV2{}
+			order.DecodeFromRawOrder(args["order"])
+
+			limitOrder := Order{
+				Id:                      orderId,
+				Market:                  Market(order.AmmIndex.Int64()),
+				PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
+				UserAddress:             getAddressFromTopicHash(event.Topics[1]).String(),
+				BaseAssetQuantity:       order.BaseAssetQuantity,
+				FilledBaseAssetQuantity: big.NewInt(0),
+				Price:                   order.Price,
+				RawOrder:                &order,
+				Salt:                    order.Salt,
+				ReduceOnly:              order.ReduceOnly,
+				BlockNumber:             big.NewInt(int64(event.BlockNumber)),
+				OrderType:               LimitOrderType,
+			}
+			log.Info("LimitOrder/OrderAccepted", "order", limitOrder, "timestamp", timestamp)
+			cep.database.Add(&limitOrder)
+		} else {
+			log.Info("LimitOrder/OrderAccepted removed", "args", args, "orderId", orderId.String(), "number", event.BlockNumber)
+			cep.database.Delete(orderId)
+		}
+
+	// event OrderRejected(address indexed trader, bytes32 indexed orderHash, OrderV2 order, uint timestamp, string err);
+	case cep.orderBookABI.Events["OrderRejected"].ID:
+		err := cep.orderBookABI.UnpackIntoMap(args, "OrderRejected", event.Data)
+		if err != nil {
+			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderRejected", "err", err)
+			return
+		}
+
+		orderId := event.Topics[2]
+		order := args["order"]
+		if !removed {
+			log.Info("LimitOrder/OrderRejected", "args", args, "orderId", orderId.String(), "number", event.BlockNumber, "order", order)
+		} else {
+			log.Info("LimitOrder/OrderRejected removed", "args", args, "orderId", orderId.String(), "number", event.BlockNumber, "order", order)
+		}
+
+	// event OrderCancelAccepted(address indexed trader, bytes32 indexed orderHash, uint timestamp);
+	case cep.orderBookABI.Events["OrderCancelAccepted"].ID:
+		err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelAccepted", event.Data)
+		if err != nil {
+			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderCancelAccepted", "err", err)
+			return
+		}
+
+		orderId := event.Topics[2]
+		if !removed {
+			timestamp := args["timestamp"].(*big.Int)
+			log.Info("LimitOrder/OrderCancelAccepted", "args", args, "orderId", orderId.String(), "number", event.BlockNumber, "timestamp", timestamp)
+			if err := cep.database.SetOrderStatus(orderId, Cancelled, "", event.BlockNumber); err != nil {
+				log.Error("error in SetOrderStatus", "method", "OrderCancelAccepted", "err", err)
+				return
+			}
+		} else {
+			log.Info("LimitOrder/OrderCancelAccepted removed", "args", args, "orderId", orderId.String(), "number", event.BlockNumber)
+			if err := cep.database.RevertLastStatus(orderId); err != nil {
+				log.Error("error in SetOrderStatus", "method", "OrderCancelAccepted", "removed", true, "err", err)
+				return
+			}
+		}
+
+	// event OrderCancelRejected(address indexed trader, bytes32 indexed orderHash, uint timestamp, string err);
+	case cep.orderBookABI.Events["OrderCancelRejected"].ID:
+		err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelRejected", event.Data)
+		if err != nil {
+			log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderCancelRejected", "err", err)
+			return
+		}
+
+		orderId := event.Topics[2]
+		if !removed {
+			log.Info("LimitOrder/OrderCancelRejected", "args", args, "orderId", orderId.String(), "number", event.BlockNumber)
+		} else {
+			log.Info("LimitOrder/OrderCancelRejected removed", "args", args, "orderId", orderId.String(), "number", event.BlockNumber)
+		}
 	}
 }
 
@@ -384,6 +474,33 @@ func (cep *ContractEventsProcessor) handleClearingHouseEvent(event *types.Log) {
 		size := args["size"].(*big.Int)
 		log.Info("PositionLiquidated", "market", market, "trader", trader, "args", args)
 		cep.database.UpdatePosition(trader, market, size, openNotional, true, event.BlockNumber)
+
+	// event NotifyNextPISample(uint nextSampleTime);
+	case cep.clearingHouseABI.Events["NotifyNextPISample"].ID:
+		err := cep.clearingHouseABI.UnpackIntoMap(args, "NotifyNextPISample", event.Data)
+		if err != nil {
+			log.Error("error in clearingHouseABI.UnpackIntoMap", "method", "NotifyNextPISample", "err", err)
+			return
+		}
+		nextSampleTime := args["nextSampleTime"].(*big.Int)
+		log.Info("NotifyNextPISample", "nextSampleTime", nextSampleTime)
+		cep.database.UpdateNextSamplePITime(nextSampleTime.Uint64())
+
+	case cep.clearingHouseABI.Events["PISampledUpdated"].ID:
+		err := cep.clearingHouseABI.UnpackIntoMap(args, "PISampledUpdated", event.Data)
+		if err != nil {
+			log.Error("error in clearingHouseABI.UnpackIntoMap", "method", "PISampledUpdated", "err", err)
+			return
+		}
+		log.Info("PISampledUpdated", "args", args)
+
+	case cep.clearingHouseABI.Events["PISampleSkipped"].ID:
+		err := cep.clearingHouseABI.UnpackIntoMap(args, "PISampleSkipped", event.Data)
+		if err != nil {
+			log.Error("error in clearingHouseABI.UnpackIntoMap", "method", "PISampleSkipped", "err", err)
+			return
+		}
+		log.Info("PISampleSkipped", "args", args)
 	}
 }
 
@@ -446,6 +563,32 @@ func (cep *ContractEventsProcessor) PushToTraderFeed(events []*types.Log, blockS
 				orderId = event.Topics[2]
 				trader = getAddressFromTopicHash(event.Topics[1])
 
+			case cep.orderBookABI.Events["OrderAccepted"].ID:
+				err := cep.orderBookABI.UnpackIntoMap(args, "OrderAccepted", event.Data)
+				if err != nil {
+					log.Error("error in orderBookABI.UnpackIntoMap", "method", "OrderAccepted", "err", err)
+					continue
+				}
+				eventName = "OrderAccepted"
+				order := LimitOrderV2{}
+				order.DecodeFromRawOrder(args["order"])
+				args["order"] = order.Map()
+				orderId = event.Topics[2]
+				trader = getAddressFromTopicHash(event.Topics[1])
+
+			case cep.orderBookABI.Events["OrderRejected"].ID:
+				err := cep.orderBookABI.UnpackIntoMap(args, "OrderRejected", event.Data)
+				if err != nil {
+					log.Error("error in orderBookABI.UnpackIntoMap", "method", "OrderRejected", "err", err)
+					continue
+				}
+				eventName = "OrderRejected"
+				order := LimitOrderV2{}
+				order.DecodeFromRawOrder(args["order"])
+				args["order"] = order.Map()
+				orderId = event.Topics[2]
+				trader = getAddressFromTopicHash(event.Topics[1])
+
 			case cep.orderBookABI.Events["OrderMatched"].ID:
 				err := cep.orderBookABI.UnpackIntoMap(args, "OrderMatched", event.Data)
 				if err != nil {
@@ -469,6 +612,26 @@ func (cep *ContractEventsProcessor) PushToTraderFeed(events []*types.Log, blockS
 					continue
 				}
 				eventName = "OrderCancelled"
+				orderId = event.Topics[2]
+				trader = getAddressFromTopicHash(event.Topics[1])
+
+			case cep.orderBookABI.Events["OrderCancelAccepted"].ID:
+				err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelAccepted", event.Data)
+				if err != nil {
+					log.Error("error in orderBookABI.UnpackIntoMap", "method", "OrderCancelAccepted", "err", err)
+					continue
+				}
+				eventName = "OrderCancelAccepted"
+				orderId = event.Topics[2]
+				trader = getAddressFromTopicHash(event.Topics[1])
+
+			case cep.orderBookABI.Events["OrderCancelRejected"].ID:
+				err := cep.orderBookABI.UnpackIntoMap(args, "OrderCancelRejected", event.Data)
+				if err != nil {
+					log.Error("error in orderBookABI.UnpackIntoMap", "method", "OrderCancelRejected", "err", err)
+					continue
+				}
+				eventName = "OrderCancelRejected"
 				orderId = event.Topics[2]
 				trader = getAddressFromTopicHash(event.Topics[1])
 
@@ -579,9 +742,9 @@ func (cep *ContractEventsProcessor) updateMetrics(logs []*types.Log) {
 		}
 
 		switch event_.Name {
-		case "OrderPlaced":
+		case "OrderPlaced", "OrderAccepted":
 			orderPlacedCount++
-		case "OrderCancelled":
+		case "OrderCancelled", "OrderCancelAccepted":
 			orderCancelledCount++
 		}
 	}

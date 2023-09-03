@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	MARK_PRICE_TWAP_DATA_SLOT       int64 = 1
 	VAR_POSITIONS_SLOT              int64 = 5
 	VAR_CUMULATIVE_PREMIUM_FRACTION int64 = 6
 	MAX_ORACLE_SPREAD_RATIO_SLOT    int64 = 7
@@ -20,6 +19,12 @@ const (
 	MAX_LIQUIDATION_PRICE_SPREAD    int64 = 17
 	RED_STONE_ADAPTER_SLOT          int64 = 21
 	RED_STONE_FEED_ID_SLOT          int64 = 22
+	IMPACT_MARGIN_NOTIONAL_SLOT     int64 = 27
+	LAST_TRADE_PRICE_SLOT           int64 = 28
+	BIDS_SLOT                       int64 = 29
+	ASKS_SLOT                       int64 = 30
+	BIDS_HEAD_SLOT                  int64 = 31
+	ASKS_HEAD_SLOT                  int64 = 32
 )
 
 const (
@@ -34,8 +39,16 @@ var (
 )
 
 // AMM State
+func getBidsHead(stateDB contract.StateDB, market common.Address) *big.Int {
+	return stateDB.GetState(market, common.BigToHash(big.NewInt(BIDS_HEAD_SLOT))).Big()
+}
+
+func getAsksHead(stateDB contract.StateDB, market common.Address) *big.Int {
+	return stateDB.GetState(market, common.BigToHash(big.NewInt(ASKS_HEAD_SLOT))).Big()
+}
+
 func getLastPrice(stateDB contract.StateDB, market common.Address) *big.Int {
-	return stateDB.GetState(market, common.BigToHash(big.NewInt(MARK_PRICE_TWAP_DATA_SLOT))).Big()
+	return stateDB.GetState(market, common.BigToHash(big.NewInt(LAST_TRADE_PRICE_SLOT))).Big()
 }
 
 func GetCumulativePremiumFraction(stateDB contract.StateDB, market common.Address) *big.Int {
@@ -136,6 +149,34 @@ func GetLastPremiumFraction(stateDB contract.StateDB, market common.Address, tra
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(new(big.Int).Add(positionsStorageSlot(trader), big.NewInt(2)))).Bytes())
 }
 
+func bidsStorageSlot(price *big.Int) common.Hash {
+	return common.BytesToHash(crypto.Keccak256(append(common.LeftPadBytes(price.Bytes(), 32), common.LeftPadBytes(big.NewInt(BIDS_SLOT).Bytes(), 32)...)))
+}
+
+func asksStorageSlot(price *big.Int) common.Hash {
+	return common.BytesToHash(crypto.Keccak256(append(common.LeftPadBytes(price.Bytes(), 32), common.LeftPadBytes(big.NewInt(ASKS_SLOT).Bytes(), 32)...)))
+}
+
+func getBidSize(stateDB contract.StateDB, market common.Address, price *big.Int) *big.Int {
+	return stateDB.GetState(market, common.BigToHash(new(big.Int).Add(bidsStorageSlot(price).Big(), big.NewInt(1)))).Big()
+}
+
+func getAskSize(stateDB contract.StateDB, market common.Address, price *big.Int) *big.Int {
+	return stateDB.GetState(market, common.BigToHash(new(big.Int).Add(asksStorageSlot(price).Big(), big.NewInt(1)))).Big()
+}
+
+func getNextBid(stateDB contract.StateDB, market common.Address, price *big.Int) *big.Int {
+	return stateDB.GetState(market, bidsStorageSlot(price)).Big()
+}
+
+func getNextAsk(stateDB contract.StateDB, market common.Address, price *big.Int) *big.Int {
+	return stateDB.GetState(market, asksStorageSlot(price)).Big()
+}
+
+func getImpactMarginNotional(stateDB contract.StateDB, market common.Address) *big.Int {
+	return stateDB.GetState(market, common.BigToHash(big.NewInt(IMPACT_MARGIN_NOTIONAL_SLOT))).Big()
+}
+
 // Utils
 
 func getPendingFundingPayment(stateDB contract.StateDB, market common.Address, trader *common.Address) *big.Int {
@@ -203,7 +244,7 @@ func divide1e6(number *big.Int) *big.Int {
 }
 
 func _multiply1e6(number *big.Int, blockTimestamp *big.Int) *big.Int {
-	if blockTimestamp.Cmp(V2ActivationDate) == 1 {
+	if blockTimestamp != nil && blockTimestamp.Cmp(V2ActivationDate) == 1 {
 		return multiply1e6(number)
 	}
 	return multiply1e6v1(number)

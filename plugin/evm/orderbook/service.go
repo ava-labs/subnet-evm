@@ -57,6 +57,7 @@ type OrderForOpenOrders struct {
 	Salt       string
 	OrderId    string
 	ReduceOnly bool
+	PostOnly   bool
 	OrderType  string
 }
 
@@ -178,6 +179,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string, marke
 				Salt:       order.Salt.String(),
 				OrderId:    order.Id.String(),
 				ReduceOnly: order.ReduceOnly,
+				PostOnly:   order.isPostOnly(),
 				OrderType:  order.OrderType.String(),
 			})
 		}

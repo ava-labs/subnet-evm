@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"strconv"
 
+	// "github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	// "github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
@@ -35,6 +37,29 @@ func GetLimitOrderHash(o *orderbook.LimitOrder) (hash common.Hash, err error) {
 		Message:     message,
 	}
 	return EncodeForSigning(typedData)
+}
+
+func GetLimitOrderV2Hash(o *ILimitOrderBookOrderV2) (common.Hash, error) {
+	order := &orderbook.LimitOrderV2{
+		LimitOrder: orderbook.LimitOrder{
+			AmmIndex:          o.AmmIndex,
+			BaseAssetQuantity: o.BaseAssetQuantity,
+			Price:             o.Price,
+			Salt:              o.Salt,
+			ReduceOnly:        o.ReduceOnly,
+			Trader:            o.Trader,
+		},
+		PostOnly: o.PostOnly,
+	}
+	return GetLimitOrderV2Hash_2(order)
+}
+
+func GetLimitOrderV2Hash_2(order *orderbook.LimitOrderV2) (common.Hash, error) {
+	data, err := order.EncodeToABIWithoutType()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return common.BytesToHash(crypto.Keccak256(data)), nil
 }
 
 func getIOCOrderHash(o *orderbook.IOCOrder) (hash common.Hash, err error) {
@@ -121,6 +146,36 @@ var Eip712OrderTypes = apitypes.Types{
 		{
 			Name: "reduceOnly",
 			Type: "bool",
+		},
+	},
+	"OrderV2": {
+		{
+			Name: "ammIndex",
+			Type: "uint256",
+		},
+		{
+			Name: "baseAssetQuantity",
+			Type: "int256",
+		},
+		{
+			Name: "price",
+			Type: "uint256",
+		},
+		{
+			Name: "salt",
+			Type: "uint256",
+		},
+		{
+			Name: "reduceOnly",
+			Type: "bool",
+		},
+		{
+			Name: "postOnly",
+			Type: "bool",
+		},
+		{
+			Name: "trader",
+			Type: "address",
 		},
 	},
 	"IOCOrder": {

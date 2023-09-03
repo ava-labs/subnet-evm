@@ -74,6 +74,17 @@ type VariablesReadFromAMMSlots struct {
 	RedStoneAdapterAddress    common.Address `json:"red_stone_adapter_address"`
 	RedStoneFeedId            common.Hash    `json:"red_stone_feed_id"`
 	Position                  Position       `json:"position"`
+	BidsHead                  *big.Int       `json:"bids_head"`
+	AsksHead                  *big.Int       `json:"asks_head"`
+	UpperBound                *big.Int       `json:"upper_bound"`
+	LowerBound                *big.Int       `json:"lower_bound"`
+	MinAllowableMargin        *big.Int       `json:"min_allowable_margin"`
+	TakerFee                  *big.Int       `json:"taker_fee"`
+	TotalMargin               *big.Int       `json:"total_margin"`
+	AvailableMargin           *big.Int       `json:"available_margin"`
+	ReduceOnlyAmount          *big.Int       `json:"reduce_only_amount"`
+	LongOpenOrders            *big.Int       `json:"long_open_orders"`
+	ShortOpenOrders           *big.Int       `json:"short_open_orders"`
 }
 
 type Position struct {
@@ -101,6 +112,16 @@ func GetAMMVariables(stateDB contract.StateDB, ammAddress common.Address, ammInd
 	underlyingPrice := getUnderlyingPrice(stateDB, ammAddress)
 	redStoneAdapterAddress := getRedStoneAdapterAddress(stateDB, ammAddress)
 	redStoneFeedId := getRedStoneFeedId(stateDB, ammAddress)
+	bidsHead := getBidsHead(stateDB, ammAddress)
+	asksHead := getAsksHead(stateDB, ammAddress)
+	upperBound, lowerBound := GetAcceptableBoundsForLiquidation(stateDB, ammIndex)
+	minAllowableMargin := GetMinAllowableMargin(stateDB)
+	takerFee := GetTakerFee(stateDB)
+	totalMargin := GetNormalizedMargin(stateDB, trader)
+	availableMargin := GetAvailableMargin(stateDB, trader)
+	reduceOnlyAmount := getReduceOnlyAmount(stateDB, trader, big.NewInt(ammIndex))
+	longOpenOrdersAmount := getLongOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
+	shortOpenOrdersAmount := getShortOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
 	return VariablesReadFromAMMSlots{
 		LastPrice:                 lastPrice,
 		CumulativePremiumFraction: cumulativePremiumFraction,
@@ -115,6 +136,17 @@ func GetAMMVariables(stateDB contract.StateDB, ammAddress common.Address, ammInd
 		RedStoneAdapterAddress:    redStoneAdapterAddress,
 		RedStoneFeedId:            redStoneFeedId,
 		Position:                  position,
+		BidsHead:                  bidsHead,
+		AsksHead:                  asksHead,
+		UpperBound:                upperBound,
+		LowerBound:                lowerBound,
+		MinAllowableMargin:        minAllowableMargin,
+		TotalMargin:               totalMargin,
+		AvailableMargin:           availableMargin,
+		TakerFee:                  takerFee,
+		ReduceOnlyAmount:          reduceOnlyAmount,
+		LongOpenOrders:            longOpenOrdersAmount,
+		ShortOpenOrders:           shortOpenOrdersAmount,
 	}
 }
 

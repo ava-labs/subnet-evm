@@ -3,6 +3,7 @@ package orderbook
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,6 +14,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook/abis"
+	"github.com/ava-labs/subnet-evm/utils"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -31,9 +33,10 @@ type LimitOrderTxProcessor interface {
 	PurgeOrderBookTxs()
 	ExecuteMatchedOrdersTx(incomingOrder Order, matchedOrder Order, fillAmount *big.Int) error
 	ExecuteFundingPaymentTx() error
+	ExecuteSamplePITx() error
 	ExecuteLiquidation(trader common.Address, matchedOrder Order, fillAmount *big.Int) error
 	UpdateMetrics(block *types.Block)
-	ExecuteLimitOrderCancel(orderIds []LimitOrder) error
+	ExecuteLimitOrderCancel(orderIds []LimitOrderV2) error
 }
 
 type ValidatorTxFeeConfig struct {
@@ -110,8 +113,14 @@ func (lotp *limitOrderTxProcessor) ExecuteLiquidation(trader common.Address, mat
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
-	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "settleFunding")
+	txHash, err := lotp.executeLocalTx(lotp.clearingHouseContractAddress, lotp.clearingHouseABI, "settleFunding")
 	log.Info("ExecuteFundingPaymentTx", "txHash", txHash.String(), "err", err)
+	return err
+}
+
+func (lotp *limitOrderTxProcessor) ExecuteSamplePITx() error {
+	txHash, err := lotp.executeLocalTx(lotp.clearingHouseContractAddress, lotp.clearingHouseABI, "samplePI")
+	log.Info("ExecuteSamplePITx", "txHash", txHash.String(), "err", err)
 	return err
 }
 
@@ -123,19 +132,21 @@ func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(longOrder Order, short
 		log.Error("EncodeLimitOrder failed for longOrder", "order", longOrder, "err", err)
 		return err
 	}
+
 	orders[1], err = shortOrder.RawOrder.EncodeToABI()
 	if err != nil {
 		log.Error("EncodeLimitOrder failed for shortOrder", "order", shortOrder, "err", err)
 		return err
 	}
 
+	log.Info("ExecuteMatchedOrdersTx", "orders[0]", hex.EncodeToString(orders[0]), "orders[1]", hex.EncodeToString(orders[1]), "fillAmount", prettifyScaledBigInt(fillAmount, 18))
 	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "executeMatchedOrders", orders, fillAmount)
 	log.Info("ExecuteMatchedOrdersTx", "LongOrder", longOrder, "ShortOrder", shortOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18), "txHash", txHash.String(), "err", err)
 	return err
 }
 
-func (lotp *limitOrderTxProcessor) ExecuteLimitOrderCancel(orders []LimitOrder) error {
-	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "cancelOrders", orders)
+func (lotp *limitOrderTxProcessor) ExecuteLimitOrderCancel(orders []LimitOrderV2) error {
+	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "cancelOrdersWithLowMargin", orders)
 	log.Info("ExecuteLimitOrderCancel", "orders", orders, "txHash", txHash.String(), "err", err)
 	return err
 }
@@ -261,6 +272,11 @@ func getAddressFromPrivateKey(key string) (common.Address, error) {
 	return address, nil
 }
 
+func formatReceiptForLogging(receipt *types.Receipt) string {
+	return fmt.Sprintf("Receipt{Status: %d, CumulativeGasUsed: %d, GasUsed: %d, EffectiveGasPrice: %d, BlockNumber: %d}",
+		receipt.Status, receipt.CumulativeGasUsed, receipt.GasUsed, receipt.EffectiveGasPrice, receipt.BlockNumber)
+}
+
 func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 	// defer func(start time.Time) { log.Info("limitOrderTxProcessor.UpdateMetrics", "time", time.Since(start)) }(time.Now())
 
@@ -307,13 +323,11 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 				orderBookTransactionsSuccessTotalCounter.Inc(1)
 			}
 
-			if contractAddress != nil && lotp.orderBookContractAddress == *contractAddress {
+			if contractAddress != nil && (lotp.orderBookContractAddress == *contractAddress || lotp.clearingHouseContractAddress == *contractAddress) {
 				note := "success"
 				if receipt.Status == 0 {
-					log.Error("orderbook tx failed", "method", method.Name, "tx", tx.Hash().String(),
-						"receipt.Status", receipt.Status, "receipt.CumulativeGasUsed", receipt.CumulativeGasUsed,
-						"receipt.GasUsed", receipt.GasUsed, "receipt.EffectiveGasPrice", receipt.EffectiveGasPrice,
-						"receipt.BlockNumber", receipt.BlockNumber)
+					log.Error("this validator's tx failed", "method", method.Name, "tx", tx.Hash().String(),
+						"receipt", formatReceiptForLogging(receipt), "from", from.String())
 					note = "failure"
 				}
 				counterName := fmt.Sprintf("orderbooktxs/%s/%s", method.Name, note)
@@ -321,7 +335,6 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 			}
 		}
 
-		// measure the gas usage irrespective of whether the tx is from this validator or not
 		if contractAddress != nil {
 			var contractName string
 			switch *contractAddress {
@@ -335,9 +348,17 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 				continue
 			}
 
+			// measure the gas usage irrespective of whether the tx is from this validator or not
 			gasUsageMetric := fmt.Sprintf("orderbooktxs/%s/%s/gas", contractName, method.Name)
 			sampler := metrics.ResettingSample(metrics.NewExpDecaySample(1028, 0.015))
 			metrics.GetOrRegisterHistogram(gasUsageMetric, nil, sampler).Update(int64(receipt.GasUsed))
+
+			// log the failure for validator txs irrespective of whether the tx is from this validator or not
+			// this will help us identify tx failures that are not due to a hubble's validator
+			validatorMethods := []string{"liquidateAndExecuteOrder", "executeMatchedOrders", "settleFunding", "samplePI", "cancelOrdersWithLowMargin"}
+			if receipt.Status == 0 && utils.ContainsString(validatorMethods, method.Name) {
+				log.Error("validator tx failed", "method", method.Name, "contractName", contractName, "tx", tx.Hash().String(), "from", from.String(), "receipt", formatReceiptForLogging(receipt))
+			}
 		}
 	}
 }

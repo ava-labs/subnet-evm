@@ -16,7 +16,7 @@ type ContractOrder interface {
 	Map() map[string]interface{}
 }
 
-// LimitOrder type is copy of LimitOrder struct defined in Orderbook contract
+// LimitOrder type is copy of Order struct defined in LimitOrderbook contract
 type LimitOrder struct {
 	AmmIndex          *big.Int       `json:"ammIndex"`
 	Trader            common.Address `json:"trader"`
@@ -24,6 +24,12 @@ type LimitOrder struct {
 	Price             *big.Int       `json:"price"`
 	Salt              *big.Int       `json:"salt"`
 	ReduceOnly        bool           `json:"reduceOnly"`
+}
+
+// LimitOrderV2 type is copy of OrderV2 struct defined in LimitOrderbook contract
+type LimitOrderV2 struct {
+	LimitOrder
+	PostOnly bool `json:"postOnly"`
 }
 
 // IOCOrder type is copy of IOCOrder struct defined in Orderbook contract
@@ -83,6 +89,65 @@ func DecodeLimitOrder(encodedOrder []byte) (*LimitOrder, error) {
 	limitOrder := &LimitOrder{}
 	limitOrder.DecodeFromRawOrder(order[0])
 	return limitOrder, nil
+}
+
+// LimitOrderV2
+func (order *LimitOrderV2) EncodeToABIWithoutType() ([]byte, error) {
+	limitOrderV2Type, err := getOrderType("limit_v2")
+	if err != nil {
+		return nil, err
+	}
+	encodedLimitOrderV2, err := abi.Arguments{{Type: limitOrderV2Type}}.Pack(order)
+	if err != nil {
+		return nil, err
+	}
+	return encodedLimitOrderV2, nil
+}
+
+func (order *LimitOrderV2) EncodeToABI() ([]byte, error) {
+	encodedLimitOrderV2, err := order.EncodeToABIWithoutType()
+	if err != nil {
+		return nil, fmt.Errorf("limit order packing failed: %w", err)
+	}
+	orderType, _ := abi.NewType("uint8", "uint8", nil)
+	orderBytesType, _ := abi.NewType("bytes", "bytes", nil)
+	// 2 means ordertype = limit order V2
+	encodedOrder, err := abi.Arguments{{Type: orderType}, {Type: orderBytesType}}.Pack(uint8(2) /* Limit Order v2 */, encodedLimitOrderV2)
+	if err != nil {
+		return nil, fmt.Errorf("order encoding failed: %w", err)
+	}
+	return encodedOrder, nil
+}
+
+func (order *LimitOrderV2) DecodeFromRawOrder(rawOrder interface{}) {
+	marshalledOrder, _ := json.Marshal(rawOrder)
+	json.Unmarshal(marshalledOrder, &order)
+}
+
+func (order *LimitOrderV2) Map() map[string]interface{} {
+	return map[string]interface{}{
+		"ammIndex":          order.AmmIndex,
+		"trader":            order.Trader,
+		"baseAssetQuantity": utils.BigIntToFloat(order.BaseAssetQuantity, 18),
+		"price":             utils.BigIntToFloat(order.Price, 6),
+		"reduceOnly":        order.ReduceOnly,
+		"postOnly":          order.PostOnly,
+		"salt":              order.Salt,
+	}
+}
+
+func DecodeLimitOrderV2(encodedOrder []byte) (*LimitOrderV2, error) {
+	limitOrderV2Type, err := getOrderType("limit_v2")
+	if err != nil {
+		return nil, fmt.Errorf("failed getting abi type: %w", err)
+	}
+	order, err := abi.Arguments{{Type: limitOrderV2Type}}.Unpack(encodedOrder)
+	if err != nil {
+		return nil, err
+	}
+	limitOrderV2 := &LimitOrderV2{}
+	limitOrderV2.DecodeFromRawOrder(order[0])
+	return limitOrderV2, nil
 }
 
 // ----------------------------------------------------------------------------
@@ -152,6 +217,17 @@ func getOrderType(orderType string) (abi.Type, error) {
 			{Name: "price", Type: "uint256"},
 			{Name: "salt", Type: "uint256"},
 			{Name: "reduceOnly", Type: "bool"},
+		})
+	}
+	if orderType == "limit_v2" {
+		return abi.NewType("tuple", "", []abi.ArgumentMarshaling{
+			{Name: "ammIndex", Type: "uint256"},
+			{Name: "trader", Type: "address"},
+			{Name: "baseAssetQuantity", Type: "int256"},
+			{Name: "price", Type: "uint256"},
+			{Name: "salt", Type: "uint256"},
+			{Name: "reduceOnly", Type: "bool"},
+			{Name: "postOnly", Type: "bool"},
 		})
 	}
 	if orderType == "ioc" {

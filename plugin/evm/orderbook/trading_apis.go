@@ -58,6 +58,7 @@ type OrderStatusResponse struct {
 	OrigQty      string   `json:"origQty"`      // "0.40"
 	Price        string   `json:"price"`        // "0"
 	ReduceOnly   bool     `json:"reduceOnly"`   // false
+	PostOnly     bool     `json:"postOnly"`     // false
 	PositionSide string   `json:"positionSide"` // "SHORT"
 	Status       string   `json:"status"`       // "NEW"
 	Symbol       int64    `json:"symbol"`       // "BTCUSDT"
@@ -147,6 +148,7 @@ func (api *TradingAPI) GetOrderStatus(ctx context.Context, orderId common.Hash) 
 		OrigQty:      utils.BigIntToDecimal(limitOrder.BaseAssetQuantity, 18, 8),
 		Price:        utils.BigIntToDecimal(limitOrder.Price, 6, 8),
 		ReduceOnly:   limitOrder.ReduceOnly,
+		PostOnly:     limitOrder.isPostOnly(),
 		PositionSide: positionSide,
 		Status:       status,
 		Symbol:       int64(limitOrder.Market),
