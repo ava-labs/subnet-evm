@@ -58,7 +58,7 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, common.Big2, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
-	"mint funds from manager role succeeds ": {
+	"mint funds from manager role succeeds": {
 		Caller:     allowlist.TestManagerAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
