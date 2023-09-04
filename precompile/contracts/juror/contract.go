@@ -5,7 +5,6 @@
 package juror
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -442,7 +441,7 @@ func validateCancelLimitOrder(accessibleState contract.AccessibleState, caller c
 	}
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output := ValidateCancelLimitOrderV2(bibliophile, &inputStruct)
+	output := ValidateCancelLimitOrderV2(bibliophile, &inputStruct, new(big.Int).SetUint64(accessibleState.GetBlockContext().Timestamp()))
 	packedOutput, err := PackValidateCancelLimitOrderOutput(*output)
 	if err != nil {
 		return nil, remainingGas, err
@@ -541,7 +540,6 @@ func validateOrdersAndDetermineFillPrice(accessibleState contract.AccessibleStat
 		return nil, remainingGas, err
 	}
 
-	log.Info("validateOrdersAndDetermineFillPrice", "orders[0]", hex.EncodeToString(inputStruct.Data[0]), "orders[1]", hex.EncodeToString(inputStruct.Data[1]), "fillAmount", inputStruct.FillAmount)
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
 	output, err := ValidateOrdersAndDetermineFillPrice(bibliophile, &inputStruct)
@@ -625,7 +623,7 @@ func PackValidatePlaceLimitOrder(inputStruct ValidatePlaceLimitOrderInput) ([]by
 func PackValidatePlaceLimitOrderOutput(outputStruct ValidatePlaceLimitOrderOutput) ([]byte, error) {
 	// @todo orderHash looks ugly
 	// lvl=info msg=validatePlaceLimitOrder                  outputStruct="{Errs: Orderhash:[163 9 195 151 255 44 17 22 177 218 216 139 75 238 217 56 226 244 244 41 106 243 100 63 204 145 170 96 95 106 252 157] Res:{ReserveAmount:+6015000 Amm:0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf}}"
-	log.Info("validatePlaceLimitOrder", "outputStruct", outputStruct)
+	// log.Info("validatePlaceLimitOrder", "outputStruct", outputStruct)
 	return JurorABI.PackOutput("validatePlaceLimitOrder",
 		outputStruct.Errs,
 		outputStruct.Orderhash,

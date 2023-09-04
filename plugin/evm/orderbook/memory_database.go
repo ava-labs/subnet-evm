@@ -264,6 +264,8 @@ func (db *InMemoryDatabase) LoadFromSnapshot(snapshot Snapshot) error {
 	db.TraderMap = snapshot.Data.TraderMap
 	db.LastPrice = snapshot.Data.LastPrice
 	db.NextFundingTime = snapshot.Data.NextFundingTime
+	db.NextSamplePITime = snapshot.Data.NextSamplePITime
+	db.CumulativePremiumFraction = snapshot.Data.CumulativePremiumFraction
 
 	return nil
 }
@@ -753,7 +755,8 @@ func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, 
 		}
 		// has orders that might be cancellable
 		availableMargin := getAvailableMargin(trader, pendingFunding, oraclePrices, db.LastPrice, db.configService.getMinAllowableMargin(), markets)
-		if availableMargin.Cmp(big.NewInt(0)) == -1 {
+		// availableMargin := getAvailableMarginWithDebugInfo(addr, trader, pendingFunding, oraclePrices, db.LastPrice, db.configService.getMinAllowableMargin(), markets)
+		if availableMargin.Sign() == -1 {
 			foundCancellableOrders := db.determineOrdersToCancel(addr, trader, availableMargin, oraclePrices, ordersToCancel)
 			if foundCancellableOrders {
 				log.Info("negative available margin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
@@ -929,16 +932,28 @@ func getBlankTrader() *Trader {
 }
 
 func getAvailableMargin(trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, minAllowableMargin *big.Int, markets []Market) *big.Int {
-	// log.Info("in getAvailableMargin", "trader", trader, "pendingFunding", pendingFunding, "oraclePrices", oraclePrices, "lastPrices", lastPrices)
 	margin := new(big.Int).Sub(getNormalisedMargin(trader), pendingFunding)
 	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices, markets)
 	utilisedMargin := divideByBasePrecision(new(big.Int).Mul(notionalPosition, minAllowableMargin))
-	// print margin, notionalPosition, unrealizePnL, utilisedMargin
-	// log.Info("stats", "margin", margin, "notionalPosition", notionalPosition, "unrealizePnL", unrealizePnL, "utilisedMargin", utilisedMargin, "Reserved", trader.Margin.Reserved)
 	return new(big.Int).Sub(
 		new(big.Int).Add(margin, unrealizePnL),
 		new(big.Int).Add(utilisedMargin, trader.Margin.Reserved),
 	)
+}
+
+func getAvailableMarginWithDebugInfo(addr common.Address, trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, minAllowableMargin *big.Int, markets []Market) *big.Int {
+	margin := new(big.Int).Sub(getNormalisedMargin(trader), pendingFunding)
+	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices, markets)
+	utilisedMargin := divideByBasePrecision(new(big.Int).Mul(notionalPosition, minAllowableMargin))
+	availableMargin := new(big.Int).Sub(
+		new(big.Int).Add(margin, unrealizePnL),
+		new(big.Int).Add(utilisedMargin, trader.Margin.Reserved),
+	)
+	if availableMargin.Sign() == -1 {
+		log.Info("availableMargin < 0", "addr", addr.String(), "pendingFunding", pendingFunding, "margin", margin, "notionalPosition", notionalPosition, "unrealizePnL", unrealizePnL, "utilisedMargin", utilisedMargin, "Reserved", trader.Margin.Reserved)
+		log.Info("prices", "oraclePrices", oraclePrices, "lastPrices", lastPrices)
+	}
+	return availableMargin
 }
 
 // deepCopyOrder deep copies the LimitOrder struct

@@ -432,15 +432,29 @@ func (mr *MockBibliophileClientMockRecorder) IOC_GetOrderStatus(orderHash interf
 }
 
 // IsTradingAuthority mocks base method.
-func (m *MockBibliophileClient) IsTradingAuthority(senderOrSigner, trader common.Address) bool {
+func (m *MockBibliophileClient) IsTradingAuthority(trader, senderOrSigner common.Address) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsTradingAuthority", senderOrSigner, trader)
+	ret := m.ctrl.Call(m, "IsTradingAuthority", trader, senderOrSigner)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // IsTradingAuthority indicates an expected call of IsTradingAuthority.
-func (mr *MockBibliophileClientMockRecorder) IsTradingAuthority(senderOrSigner, trader interface{}) *gomock.Call {
+func (mr *MockBibliophileClientMockRecorder) IsTradingAuthority(trader, senderOrSigner interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTradingAuthority", reflect.TypeOf((*MockBibliophileClient)(nil).IsTradingAuthority), senderOrSigner, trader)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTradingAuthority", reflect.TypeOf((*MockBibliophileClient)(nil).IsTradingAuthority), trader, senderOrSigner)
+}
+
+// IsValidator mocks base method.
+func (m *MockBibliophileClient) IsValidator(senderOrSigner common.Address) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsValidator", senderOrSigner)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsValidator indicates an expected call of IsValidator.
+func (mr *MockBibliophileClientMockRecorder) IsValidator(senderOrSigner interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidator", reflect.TypeOf((*MockBibliophileClient)(nil).IsValidator), senderOrSigner)
 }

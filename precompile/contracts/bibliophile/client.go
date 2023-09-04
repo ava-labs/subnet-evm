@@ -22,6 +22,7 @@ type BibliophileClient interface {
 	GetShortOpenOrdersAmount(trader common.Address, ammIndex *big.Int) *big.Int
 	GetReduceOnlyAmount(trader common.Address, ammIndex *big.Int) *big.Int
 	IsTradingAuthority(trader, senderOrSigner common.Address) bool
+	IsValidator(senderOrSigner common.Address) bool
 	// Limit Order
 	GetBlockPlaced(orderHash [32]byte) *big.Int
 	GetOrderFilledAmount(orderHash [32]byte) *big.Int
@@ -118,6 +119,10 @@ func (b *bibliophileClient) IsTradingAuthority(trader, senderOrSigner common.Add
 	return IsTradingAuthority(b.accessibleState.GetStateDB(), trader, senderOrSigner)
 }
 
+func (b *bibliophileClient) IsValidator(senderOrSigner common.Address) bool {
+	return IsValidator(b.accessibleState.GetStateDB(), senderOrSigner)
+}
+
 func (b *bibliophileClient) IOC_GetExpirationCap() *big.Int {
 	return iocGetExpirationCap(b.accessibleState.GetStateDB())
 }
@@ -171,5 +176,6 @@ func (b *bibliophileClient) GetReduceOnlyAmount(trader common.Address, ammIndex 
 }
 
 func (b *bibliophileClient) GetAvailableMargin(trader common.Address) *big.Int {
-	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader)
+	blockTimestamp := new(big.Int).SetUint64(b.accessibleState.GetBlockContext().Timestamp())
+	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader, blockTimestamp)
 }

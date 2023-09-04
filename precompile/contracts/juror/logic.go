@@ -10,7 +10,6 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
 	b "github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 type OrderType uint8
@@ -94,7 +93,6 @@ func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputS
 	}
 
 	decodeStep0, err := decodeTypeAndEncodedOrder(inputStruct.Data[0])
-	log.Info("decodeStep0", "decodeStep0", decodeStep0, "err", err)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +102,6 @@ func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputS
 	}
 
 	decodeStep1, err := decodeTypeAndEncodedOrder(inputStruct.Data[1])
-	log.Info("decodeStep1", "decodeStep1", decodeStep1, "err", err)
 	if err != nil {
 		return nil, err
 	}
@@ -518,8 +515,8 @@ func GetBaseQuote(bibliophile b.BibliophileClient, ammAddress common.Address, qu
 }
 
 // Limit Orders V2
-func ValidateCancelLimitOrderV2(bibliophile b.BibliophileClient, inputStruct *ValidateCancelLimitOrderInput) *ValidateCancelLimitOrderOutput {
-	errorString, orderHash, ammAddress, unfilledAmount := validateCancelLimitOrderV2(bibliophile, inputStruct.Order, inputStruct.Trader, inputStruct.AssertLowMargin)
+func ValidateCancelLimitOrderV2(bibliophile b.BibliophileClient, inputStruct *ValidateCancelLimitOrderInput, blockTimestamp *big.Int) *ValidateCancelLimitOrderOutput {
+	errorString, orderHash, ammAddress, unfilledAmount := validateCancelLimitOrderV2(bibliophile, inputStruct.Order, inputStruct.Trader, inputStruct.AssertLowMargin, blockTimestamp)
 	return &ValidateCancelLimitOrderOutput{
 		Err:       errorString,
 		OrderHash: orderHash,
@@ -530,12 +527,23 @@ func ValidateCancelLimitOrderV2(bibliophile b.BibliophileClient, inputStruct *Va
 	}
 }
 
-func validateCancelLimitOrderV2(bibliophile b.BibliophileClient, order ILimitOrderBookOrderV2, sender common.Address, assertLowMargin bool) (errorString string, orderHash [32]byte, ammAddress common.Address, unfilledAmount *big.Int) {
+// Sunday, 3 September 2023 10:35:00 UTC
+var V4ActivationDate *big.Int = new(big.Int).SetInt64(1693737300)
+
+func validateCancelLimitOrderV2(bibliophile b.BibliophileClient, order ILimitOrderBookOrderV2, sender common.Address, assertLowMargin bool, blockTimestamp *big.Int) (errorString string, orderHash [32]byte, ammAddress common.Address, unfilledAmount *big.Int) {
 	unfilledAmount = big.NewInt(0)
 	trader := order.Trader
-	if trader != sender && !bibliophile.IsTradingAuthority(trader, sender) {
-		errorString = ErrNoTradingAuthority.Error()
-		return
+	if blockTimestamp != nil && blockTimestamp.Cmp(V4ActivationDate) == 1 {
+		if (!assertLowMargin && trader != sender && !bibliophile.IsTradingAuthority(trader, sender)) ||
+			(assertLowMargin && !bibliophile.IsValidator(sender)) {
+			errorString = ErrNoTradingAuthority.Error()
+			return
+		}
+	} else {
+		if trader != sender && !bibliophile.IsTradingAuthority(trader, sender) {
+			errorString = ErrNoTradingAuthority.Error()
+			return
+		}
 	}
 	orderHash, err := GetLimitOrderV2Hash(&order)
 	if err != nil {
