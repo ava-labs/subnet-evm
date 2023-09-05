@@ -20,8 +20,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 
 	"github.com/ethereum/go-ethereum/common"
-	"go.uber.org/mock/gomock"
 	{{- end}}
+	"go.uber.org/mock/gomock"
 )
 
 // TestVerify tests the verification of Config.
