@@ -30,6 +30,14 @@ const (
 )
 
 var (
+	AllowListFuncKeys = []string{
+		SetAdminFuncKey,
+		SetManagerFuncKey,
+		SetEnabledFuncKey,
+		SetNoneFuncKey,
+		ReadAllowListFuncKey,
+	}
+
 	// AllowList function signatures
 	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
 	setManagerSignature    = contract.CalculateFunctionSelector("setManager(address)")
