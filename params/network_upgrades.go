@@ -22,6 +22,11 @@ var (
 		SubnetEVMTimestamp: utils.NewUint64(0),
 		// DUpgradeTimestamp: utils.NewUint64(0), // TODO: Uncomment and set this to the correct value
 	}
+
+	UnitTestNetworkUpgrades = MandatoryNetworkUpgrades{
+		SubnetEVMTimestamp: utils.NewUint64(0),
+		DUpgradeTimestamp:  utils.NewUint64(0),
+	}
 )
 
 // MandatoryNetworkUpgrades contains timestamps that enable mandatory network upgrades.

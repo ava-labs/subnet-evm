@@ -303,6 +303,12 @@ func (vm *VM) Initialize(
 		// We enforce network upgrades here, regardless of the chain config
 		// provided in the genesis file
 		g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
+	} else {
+		// If we are not enforcing, then apply those only if they are not
+		// already set in the genesis file
+		if g.Config.MandatoryNetworkUpgrades == (params.MandatoryNetworkUpgrades{}) {
+			g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
+		}
 	}
 
 	// Load airdrop file if provided
