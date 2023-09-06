@@ -161,19 +161,6 @@
           "type": "address"
         }
       ],
-      "name": "setManager",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "addr",
-          "type": "address"
-        }
-      ],
       "name": "setNone",
       "outputs": [],
       "stateMutability": "nonpayable",
