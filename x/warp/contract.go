@@ -8,12 +8,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 
@@ -55,30 +53,6 @@ var (
 
 	WarpPrecompile = createWarpPrecompile()
 )
-
-var (
-	getVerifiedWarpMessageInvalidOutput   []byte
-	getVerifiedWarpBlockHashInvalidOutput []byte
-)
-
-var (
-	_ messageHandler = addressedPayloadHandler{}
-	_ messageHandler = blockHashHandler{}
-)
-
-func init() {
-	res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
-	if err != nil {
-		panic(err)
-	}
-	getVerifiedWarpMessageInvalidOutput = res
-
-	res, err = PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{Valid: false})
-	if err != nil {
-		panic(err)
-	}
-	getVerifiedWarpBlockHashInvalidOutput = res
-}
 
 // WarpBlockHash is an auto generated low-level Go binding around an user-defined struct.
 type WarpBlockHash struct {
@@ -172,26 +146,6 @@ func UnpackGetVerifiedWarpBlockHashOutput(output []byte) (GetVerifiedWarpBlockHa
 	return outputStruct, err
 }
 
-type blockHashHandler struct{}
-
-func (blockHashHandler) packFailed() []byte {
-	return getVerifiedWarpBlockHashInvalidOutput
-}
-
-func (blockHashHandler) handleMessage(warpMessage *warp.Message) ([]byte, error) {
-	blockHashPayload, err := warpPayload.ParseBlockHashPayload(warpMessage.UnsignedMessage.Payload)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", errInvalidBlockHashPayload, err)
-	}
-	return PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{
-		WarpBlockHash: WarpBlockHash{
-			SourceChainID: common.Hash(warpMessage.SourceChainID),
-			BlockHash:     blockHashPayload.BlockHash,
-		},
-		Valid: true,
-	})
-}
-
 func getVerifiedWarpBlockHash(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 	remainingGas, err = contract.DeductGas(suppliedGas, GetVerifiedWarpMessageBaseCost)
 	if err != nil {
@@ -234,77 +188,6 @@ func UnpackGetVerifiedWarpMessageOutput(output []byte) (GetVerifiedWarpMessageOu
 	err := WarpABI.UnpackIntoInterface(&outputStruct, "getVerifiedWarpMessage", output)
 
 	return outputStruct, err
-}
-
-type messageHandler interface {
-	packFailed() []byte
-	handleMessage(msg *warp.Message) ([]byte, error)
-}
-
-func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, remainingGas uint64, handler messageHandler) ([]byte, uint64, error) {
-	warpIndex, err := UnpackGetVerifiedWarpMessageInput(input)
-	if err != nil {
-		return nil, 0, fmt.Errorf("%w: %s", errInvalidIndexInput, err)
-	}
-	if !warpIndex.IsInt64() {
-		return nil, 0, fmt.Errorf("%w: %v", errInvalidIndexInput, warpIndex)
-	}
-	warpIndexInt := int(warpIndex.Int64())
-	state := accessibleState.GetStateDB()
-	predicateBytes, exists := state.GetPredicateStorageSlots(ContractAddress, warpIndexInt)
-	predicateResults := accessibleState.GetBlockContext().GetPredicateResults(state.GetTxHash(), ContractAddress)
-	valid := set.BitsFromBytes(predicateResults).Contains(warpIndexInt) && exists
-	if !valid {
-		return handler.packFailed(), remainingGas, nil
-	}
-
-	// Note: we charge for the size of the message during both predicate verification and each time the message is read during
-	// EVM execution because each execution incurs an additional read cost.
-	msgBytesGas, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
-	if overflow {
-		return nil, 0, vmerrs.ErrOutOfGas
-	}
-	if remainingGas, err = contract.DeductGas(remainingGas, msgBytesGas); err != nil {
-		return nil, 0, err
-	}
-	// Note: since the predicate is verified in advance of execution, the precompile should not
-	// hit an error during execution.
-	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
-	if err != nil {
-		return nil, 0, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
-	}
-	warpMessage, err := warp.ParseMessage(unpackedPredicateBytes)
-	if err != nil {
-		return nil, 0, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
-	}
-	res, err := handler.handleMessage(warpMessage)
-	if err != nil {
-		return nil, 0, err
-	}
-	return res, remainingGas, nil
-}
-
-type addressedPayloadHandler struct{}
-
-func (addressedPayloadHandler) packFailed() []byte {
-	return getVerifiedWarpMessageInvalidOutput
-}
-
-func (addressedPayloadHandler) handleMessage(warpMessage *warp.Message) ([]byte, error) {
-	addressedPayload, err := warpPayload.ParseAddressedPayload(warpMessage.UnsignedMessage.Payload)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
-	}
-	return PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
-		Message: WarpMessage{
-			SourceChainID:       common.Hash(warpMessage.SourceChainID),
-			OriginSenderAddress: addressedPayload.SourceAddress,
-			DestinationChainID:  addressedPayload.DestinationChainID,
-			DestinationAddress:  addressedPayload.DestinationAddress,
-			Payload:             addressedPayload.Payload,
-		},
-		Valid: true,
-	})
 }
 
 // getVerifiedWarpMessage retrieves the pre-verified warp message from the predicate storage slots and returns
