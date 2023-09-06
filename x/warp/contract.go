@@ -61,6 +61,11 @@ var (
 	getVerifiedWarpBlockHashInvalidOutput []byte
 )
 
+var (
+	_ messageHandler = addressedPayloadHandler{}
+	_ messageHandler = blockHashHandler{}
+)
+
 func init() {
 	res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
 	if err != nil {
@@ -279,13 +284,13 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, r
 	return res, remainingGas, nil
 }
 
-type addressedHanlder struct{}
+type addressedPayloadHandler struct{}
 
-func (addressedHanlder) packFailed() []byte {
+func (addressedPayloadHandler) packFailed() []byte {
 	return getVerifiedWarpMessageInvalidOutput
 }
 
-func (addressedHanlder) handleMessage(warpMessage *warp.Message) ([]byte, error) {
+func (addressedPayloadHandler) handleMessage(warpMessage *warp.Message) ([]byte, error) {
 	addressedPayload, err := warpPayload.ParseAddressedPayload(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
@@ -309,7 +314,7 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	return handleWarpMessage(accessibleState, input, remainingGas, addressedHanlder{})
+	return handleWarpMessage(accessibleState, input, remainingGas, addressedPayloadHandler{})
 }
 
 // UnpackSendWarpMessageInput attempts to unpack [input] as SendWarpMessageInput

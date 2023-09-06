@@ -428,7 +428,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ReadOnly:    false,
 			ExpectedErr: errInvalidIndexInput.Error(),
 		},
-		"get message invalid index": {
+		"get message invalid index input bytes": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				res, err := PackGetVerifiedWarpMessage(common.Big1)
@@ -702,7 +702,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			ReadOnly:    false,
 			ExpectedErr: errInvalidIndexInput.Error(),
 		},
-		"get message invalid index": {
+		"get message invalid index input bytes": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				res, err := PackGetVerifiedWarpBlockHash(common.Big1)
