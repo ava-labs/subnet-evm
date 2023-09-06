@@ -4,6 +4,7 @@
 package nativeminter
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
@@ -23,12 +24,23 @@ const (
 	MintGasCost = 30_000
 )
 
+type MintNativeCoinInput struct {
+	Addr   common.Address
+	Amount *big.Int
+}
+
 var (
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
 	ContractNativeMinterPrecompile contract.StatefulPrecompiledContract = createNativeMinterPrecompile()
 
 	mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
 	ErrCannotMint = errors.New("non-enabled cannot mint")
+
+	// NativeMinterV2RawABI contains the raw ABI of NativeMinterV2 contract.
+	//go:embed contract.abi
+	NativeMinterV2RawABI string
+
+	NativeMinterV2ABI = contract.ParseABI(NativeMinterV2RawABI)
 )
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
@@ -115,4 +127,18 @@ func createNativeMinterPrecompile() contract.StatefulPrecompiledContract {
 		panic(err)
 	}
 	return contract
+}
+
+// UnpackMintNativeCoinInput attempts to unpack [input] as MintNativeCoinInput
+// assumes that [input] does not include selector (omits first 4 func signature bytes)
+func UnpackMintNativeCoinV2Input(input []byte) (MintNativeCoinInput, error) {
+	inputStruct := MintNativeCoinInput{}
+	err := NativeMinterV2ABI.UnpackInputIntoInterface(&inputStruct, "mintNativeCoin", input)
+
+	return inputStruct, err
+}
+
+// PackMintNativeCoin packs [inputStruct] of type MintNativeCoinInput into the appropriate arguments for mintNativeCoin.
+func PackMintNativeCoinV2(inputStruct MintNativeCoinInput) ([]byte, error) {
+	return NativeMinterV2ABI.Pack("mintNativeCoin", inputStruct.Addr, inputStruct.Amount)
 }

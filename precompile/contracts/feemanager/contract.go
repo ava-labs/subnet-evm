@@ -4,10 +4,12 @@
 package feemanager
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -50,7 +52,25 @@ var (
 	feeConfigLastChangedAtKey = common.Hash{'l', 'c', 'a'}
 
 	ErrCannotChangeFee = errors.New("non-enabled cannot change fee config")
+	ErrInvalidLen      = errors.New("invalid input length for fee config Input")
+
+	// IFeeManagerV2RawABI contains the raw ABI of IFeeManagerV2 contract.
+	//go:embed contract.abi
+	IFeeManagerV2RawABI string
+
+	IFeeManagerV2ABI = contract.ParseABI(IFeeManagerV2RawABI)
 )
+
+type GetFeeConfigOutput struct {
+	GasLimit                 *big.Int
+	TargetBlockRate          *big.Int
+	MinBaseFee               *big.Int
+	TargetGas                *big.Int
+	BaseFeeChangeDenominator *big.Int
+	MinBlockGasCost          *big.Int
+	MaxBlockGasCost          *big.Int
+	BlockGasCostStep         *big.Int
+}
 
 // GetFeeManagerStatus returns the role of [address] for the fee config manager list.
 func GetFeeManagerStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
@@ -112,7 +132,7 @@ func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]by
 // assumes that [input] does not include selector (omits first 4 bytes in PackSetFeeConfigInput)
 func UnpackFeeConfigInput(input []byte) (commontype.FeeConfig, error) {
 	if len(input) != feeConfigInputLen {
-		return commontype.FeeConfig{}, fmt.Errorf("invalid input length for fee config Input: %d", len(input))
+		return commontype.FeeConfig{}, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
 	}
 	feeConfig := commontype.FeeConfig{}
 	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
@@ -300,4 +320,118 @@ func createFeeManagerPrecompile() contract.StatefulPrecompiledContract {
 		panic(err)
 	}
 	return contract
+}
+
+// PackGetFeeConfig packs the include selector (first 4 func signature bytes).
+// This function is mostly used for tests.
+func PackGetFeeConfigV2() ([]byte, error) {
+	return IFeeManagerV2ABI.Pack("getFeeConfig")
+}
+
+// PackGetFeeConfigOutput attempts to pack given [outputStruct] of type GetFeeConfigOutput
+// to conform the ABI outputs.
+func PackGetFeeConfigOutputV2(output commontype.FeeConfig) ([]byte, error) {
+	outputStruct := GetFeeConfigOutput{
+		GasLimit:                 output.GasLimit,
+		TargetBlockRate:          new(big.Int).SetUint64(output.TargetBlockRate),
+		MinBaseFee:               output.MinBaseFee,
+		TargetGas:                output.TargetGas,
+		BaseFeeChangeDenominator: output.BaseFeeChangeDenominator,
+		MinBlockGasCost:          output.MinBlockGasCost,
+		MaxBlockGasCost:          output.MaxBlockGasCost,
+		BlockGasCostStep:         output.BlockGasCostStep,
+	}
+	return IFeeManagerV2ABI.PackOutput("getFeeConfig",
+		outputStruct.GasLimit,
+		outputStruct.TargetBlockRate,
+		outputStruct.MinBaseFee,
+		outputStruct.TargetGas,
+		outputStruct.BaseFeeChangeDenominator,
+		outputStruct.MinBlockGasCost,
+		outputStruct.MaxBlockGasCost,
+		outputStruct.BlockGasCostStep,
+	)
+}
+
+// UnpackGetFeeConfigOutput attempts to unpack [output] as GetFeeConfigOutput
+// assumes that [output] does not include selector (omits first 4 func signature bytes)
+func UnpackGetFeeConfigOutputV2(output []byte) (commontype.FeeConfig, error) {
+	if len(output) != feeConfigInputLen {
+		return commontype.FeeConfig{}, fmt.Errorf("%w: %d", ErrInvalidLen, len(output))
+	}
+	outputStruct := GetFeeConfigOutput{}
+	err := IFeeManagerV2ABI.UnpackIntoInterface(&outputStruct, "getFeeConfig", output)
+
+	result := commontype.FeeConfig{
+		GasLimit:                 outputStruct.GasLimit,
+		TargetBlockRate:          outputStruct.TargetBlockRate.Uint64(),
+		MinBaseFee:               outputStruct.MinBaseFee,
+		TargetGas:                outputStruct.TargetGas,
+		BaseFeeChangeDenominator: outputStruct.BaseFeeChangeDenominator,
+		MinBlockGasCost:          outputStruct.MinBlockGasCost,
+		MaxBlockGasCost:          outputStruct.MaxBlockGasCost,
+		BlockGasCostStep:         outputStruct.BlockGasCostStep,
+	}
+	return result, err
+}
+
+// PackGetFeeConfigLastChangedAt packs the include selector (first 4 func signature bytes).
+// This function is mostly used for tests.
+func PackGetFeeConfigLastChangedAtV2() ([]byte, error) {
+	return IFeeManagerV2ABI.Pack("getFeeConfigLastChangedAt")
+}
+
+// PackGetFeeConfigLastChangedAtOutput attempts to pack given blockNumber of type *big.Int
+// to conform the ABI outputs.
+func PackGetFeeConfigLastChangedAtOutputV2(blockNumber *big.Int) ([]byte, error) {
+	return IFeeManagerV2ABI.PackOutput("getFeeConfigLastChangedAt", blockNumber)
+}
+
+// UnpackGetFeeConfigLastChangedAtOutput attempts to unpack given [output] into the *big.Int type output
+// assumes that [output] does not include selector (omits first 4 func signature bytes)
+func UnpackGetFeeConfigLastChangedAtOutputV2(output []byte) (*big.Int, error) {
+	res, err := IFeeManagerV2ABI.Unpack("getFeeConfigLastChangedAt", output)
+	if err != nil {
+		return new(big.Int), err
+	}
+	unpacked := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
+	return unpacked, nil
+}
+
+// UnpackSetFeeConfigInput attempts to unpack [input] as SetFeeConfigInput
+// assumes that [input] does not include selector (omits first 4 func signature bytes)
+func UnpackSetFeeConfigInputV2(input []byte) (commontype.FeeConfig, error) {
+	if len(input) != feeConfigInputLen {
+		return commontype.FeeConfig{}, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
+	}
+	inputStruct := GetFeeConfigOutput{}
+	err := IFeeManagerV2ABI.UnpackInputIntoInterface(&inputStruct, "setFeeConfig", input)
+
+	result := commontype.FeeConfig{
+		GasLimit:                 inputStruct.GasLimit,
+		TargetBlockRate:          inputStruct.TargetBlockRate.Uint64(),
+		MinBaseFee:               inputStruct.MinBaseFee,
+		TargetGas:                inputStruct.TargetGas,
+		BaseFeeChangeDenominator: inputStruct.BaseFeeChangeDenominator,
+		MinBlockGasCost:          inputStruct.MinBlockGasCost,
+		MaxBlockGasCost:          inputStruct.MaxBlockGasCost,
+		BlockGasCostStep:         inputStruct.BlockGasCostStep,
+	}
+
+	return result, err
+}
+
+// PackSetFeeConfig packs [inputStruct] of type SetFeeConfigInput into the appropriate arguments for setFeeConfig.
+func PackSetFeeConfigV2(input commontype.FeeConfig) ([]byte, error) {
+	inputStruct := GetFeeConfigOutput{
+		GasLimit:                 input.GasLimit,
+		TargetBlockRate:          new(big.Int).SetUint64(input.TargetBlockRate),
+		MinBaseFee:               input.MinBaseFee,
+		TargetGas:                input.TargetGas,
+		BaseFeeChangeDenominator: input.BaseFeeChangeDenominator,
+		MinBlockGasCost:          input.MinBlockGasCost,
+		MaxBlockGasCost:          input.MaxBlockGasCost,
+		BlockGasCostStep:         input.BlockGasCostStep,
+	}
+	return IFeeManagerV2ABI.Pack("setFeeConfig", inputStruct.GasLimit, inputStruct.TargetBlockRate, inputStruct.MinBaseFee, inputStruct.TargetGas, inputStruct.BaseFeeChangeDenominator, inputStruct.MinBlockGasCost, inputStruct.MaxBlockGasCost, inputStruct.BlockGasCostStep)
 }

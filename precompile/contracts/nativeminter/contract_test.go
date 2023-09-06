@@ -4,8 +4,12 @@
 package nativeminter
 
 import (
+	"fmt"
+	"math/big"
+	"math/rand"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -13,6 +17,7 @@ import (
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 )
 
@@ -150,4 +155,76 @@ func TestContractNativeMinterRun(t *testing.T) {
 
 func BenchmarkContractNativeMinter(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
+}
+
+func TestUnpackAndPacks(t *testing.T) {
+	// Compare UnpackMintNativeCoinV2Input, PackMintNativeCoinV2 vs
+	// PackMintInput, UnpackMintInput to see if they are equivalent
+
+	// Test UnpackMintNativeCoinV2Input, PackMintNativeCoinV2
+	// against PackMintInput, UnpackMintInput
+	// for 1000 random addresses and amounts
+	for i := 0; i < 1000; i++ {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		amount := new(big.Int).SetInt64(rand.Int63())
+		testUnpackAndPacks(t, addr, amount)
+	}
+
+	// Some edge cases
+	testUnpackAndPacks(t, common.Address{}, common.Big0)
+	testUnpackAndPacks(t, common.Address{}, common.Big1)
+	testUnpackAndPacks(t, common.Address{}, math.MaxBig256)
+	testUnpackAndPacks(t, common.Address{}, math.MaxBig256.Sub(math.MaxBig256, common.Big1))
+	testUnpackAndPacks(t, common.Address{}, math.MaxBig256.Add(math.MaxBig256, common.Big1))
+	testUnpackAndPacks(t, constants.BlackholeAddr, common.Big2)
+}
+
+func testUnpackAndPacks(t *testing.T, addr common.Address, amount *big.Int) {
+	// Test PackMintNativeCoinV2, UnpackMintNativeCoinV2Input
+	t.Helper()
+	t.Run(fmt.Sprintf("TestUnpackAndPacks, addr: %s, amount: %s", addr.String(), amount.String()), func(t *testing.T) {
+		input, err := PackMintNativeCoinV2(MintNativeCoinInput{Addr: addr, Amount: amount})
+		require.NoError(t, err)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+
+		unpacked, err := UnpackMintNativeCoinV2Input(input)
+		require.NoError(t, err)
+
+		require.EqualValues(t, addr, unpacked.Addr)
+		require.Equal(t, amount.Bytes(), unpacked.Amount.Bytes())
+
+		// Test PackMintInput, UnpackMintInput
+		input, err = PackMintInput(addr, amount)
+		require.NoError(t, err)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+
+		to, assetAmount, err := UnpackMintInput(input)
+		require.NoError(t, err)
+
+		require.Equal(t, addr, to)
+		require.Equal(t, amount.Bytes(), assetAmount.Bytes())
+
+		// now mix and match
+		// Test PackMintInput, PackMintNativeCoinV2
+		input, err = PackMintInput(addr, amount)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+		require.NoError(t, err)
+		input2, err := PackMintNativeCoinV2(MintNativeCoinInput{Addr: addr, Amount: amount})
+		// exclude 4 bytes for function selector
+		input2 = input2[4:]
+		require.NoError(t, err)
+		require.Equal(t, input, input2)
+
+		// Test UnpackMintInput, UnpackMintNativeCoinV2Input
+		to, assetAmount, err = UnpackMintInput(input)
+		require.NoError(t, err)
+		unpacked, err = UnpackMintNativeCoinV2Input(input2)
+		require.NoError(t, err)
+		require.Equal(t, to, unpacked.Addr)
+		require.Equal(t, assetAmount.Bytes(), unpacked.Amount.Bytes())
+	})
 }
