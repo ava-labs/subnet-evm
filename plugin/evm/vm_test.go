@@ -2204,38 +2204,11 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil),
 	}
-<<<<<<< HEAD
-=======
-	// set the DUpgradeTimestamp to be in the future
-	dUpgradeTime := time.Now().Add(10 * time.Hour)
-	genesis.Config.DUpgradeTimestamp = utils.TimeToNewUint64(dUpgradeTime)
->>>>>>> 7f1674a74 (override network upgrades)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
-<<<<<<< HEAD
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", "")
-=======
-
-	// prepare the new upgrade bytes to disable the TxAllowList
-	disableAllowListTime := dUpgradeTime.Add(10 * time.Hour)
-	reenableAllowlistTime := disableAllowListTime.Add(10 * time.Hour)
-	upgradeConfig := &params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
-			{
-				Config: txallowlist.NewDisableConfig(utils.TimeToNewUint64(disableAllowListTime)),
-			},
-			// re-enable the tx allowlist after DUpgrade to set the manager role
-			{
-				Config: txallowlist.NewConfig(utils.TimeToNewUint64(reenableAllowlistTime), testEthAddrs[0:1], nil, []common.Address{managerAddress}),
-			},
-		},
-	}
-	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
-	require.NoError(t, err)
-	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", string(upgradeBytesJSON))
->>>>>>> 7f1674a74 (override network upgrades)
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
