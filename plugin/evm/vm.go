@@ -16,6 +16,7 @@ import (
 	"time"
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
+	"github.com/ava-labs/avalanchego/network/p2p"
 	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -205,6 +206,8 @@ type VM struct {
 	peer.Network
 	client       peer.NetworkClient
 	networkCodec codec.Manager
+
+	router *p2p.Router
 
 	// Metrics
 	multiGatherer avalanchegoMetrics.MultiGatherer
@@ -432,8 +435,9 @@ func (vm *VM) Initialize(
 	}
 
 	// initialize peer network
+	vm.router = p2p.NewRouter(vm.ctx.Log, appSender)
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
+	vm.Network = peer.NewNetwork(vm.router, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// initialize warp backend
