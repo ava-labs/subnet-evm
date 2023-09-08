@@ -14,7 +14,7 @@ func TestSerialize(t *testing.T) {
 	config, err := NewUpgradeConfig(params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
-				Config: nativeminter.NewConfig(&t0, nil, nil, nil), // enable at genesis
+				Config: nativeminter.NewConfig(&t0, nil, nil, nil, nil), // enable at genesis
 			},
 			{
 				Config: nativeminter.NewDisableConfig(&t1), // disable at timestamp 1

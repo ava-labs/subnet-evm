@@ -6,7 +6,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 )
 
 type PrecompileUpgrade struct {
@@ -52,15 +51,11 @@ func ParseUpgradeConfig(bytes []byte) (*UpgradeConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		if Config, ok := preCompile.(precompileconfig.Config); ok {
-			PrecompileUpgrades = append(PrecompileUpgrades, params.PrecompileUpgrade{Config: Config})
-		} else {
-			return nil, fmt.Errorf("Error deserializing precompile %s", precompileUpgrade.StructName)
-		}
+		PrecompileUpgrades = append(PrecompileUpgrades, params.PrecompileUpgrade{Config: preCompile})
 	}
 
 	config.config = params.UpgradeConfig{
-		OptionalNetworkUpgrades: &params.OptionalNetworkUpgrades{config.OptionalNetworkUpgrades},
+		OptionalNetworkUpgrades: &params.OptionalNetworkUpgrades{Updates: config.OptionalNetworkUpgrades},
 		StateUpgrades:           config.StateUpgrades,
 		PrecompileUpgrades:      PrecompileUpgrades,
 	}
