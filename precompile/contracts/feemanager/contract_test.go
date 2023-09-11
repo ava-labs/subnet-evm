@@ -286,13 +286,26 @@ func TestGetFeeConfigOutput(t *testing.T) {
 		_, _ = PackFeeConfig(commontype.FeeConfig{})
 	})
 
-	// These should err
+	// These should
 	unpacked, err := UnpackGetFeeConfigOutputV2([]byte{})
-	require.ErrorIs(t, err, ErrInvalidLen)
+	require.Error(t, err)
 
 	unpacked2, err := UnpackFeeConfigInput([]byte{})
 	require.ErrorIs(t, err, ErrInvalidLen)
 	require.Equal(t, unpacked, unpacked2)
+
+	// Test for extra padded bytes
+	input, err := PackGetFeeConfigOutputV2(testFeeConfig)
+	require.NoError(t, err)
+	// exclude 4 bytes for function selector
+	input = input[4:]
+	// add extra padded bytes
+	input = append(input, make([]byte, 32)...)
+	_, err = UnpackFeeConfigInput(input)
+	require.ErrorIs(t, err, ErrInvalidLen)
+
+	_, err = UnpackGetFeeConfigOutputV2(input)
+	require.Error(t, err)
 }
 
 func testGetFeeConfigOutput(t *testing.T, feeConfig commontype.FeeConfig) {
@@ -430,12 +443,31 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 	})
 
 	// These should err
-	unpacked, err := UnpackSetFeeConfigInputV2([]byte{})
+	_, err := UnpackSetFeeConfigInputV2([]byte{123}, true)
 	require.ErrorIs(t, err, ErrInvalidLen)
 
-	unpacked2, err := UnpackFeeConfigInput([]byte{})
+	_, err = UnpackSetFeeConfigInputV2([]byte{123}, false)
+	require.ErrorContains(t, err, "abi: improperly formatted input")
+
+	_, err = UnpackFeeConfigInput([]byte{123})
 	require.ErrorIs(t, err, ErrInvalidLen)
-	require.Equal(t, unpacked, unpacked2)
+
+	// Test for extra padded bytes
+	input, err := PackSetFeeConfigV2(testFeeConfig)
+	require.NoError(t, err)
+	// exclude 4 bytes for function selector
+	input = input[4:]
+	// add extra padded bytes
+	input = append(input, make([]byte, 32)...)
+	_, err = UnpackFeeConfigInput(input)
+	require.ErrorIs(t, err, ErrInvalidLen)
+
+	_, err = UnpackSetFeeConfigInputV2(input, true)
+	require.ErrorIs(t, err, ErrInvalidLen)
+
+	unpacked, err := UnpackSetFeeConfigInputV2(input, false)
+	require.NoError(t, err)
+	require.True(t, testFeeConfig.Equal(&unpacked))
 }
 
 func testPackSetFeeConfigInput(t *testing.T, feeConfig commontype.FeeConfig) {
@@ -447,7 +479,7 @@ func testPackSetFeeConfigInput(t *testing.T, feeConfig commontype.FeeConfig) {
 		// exclude 4 bytes for function selector
 		input = input[4:]
 
-		unpacked, err := UnpackSetFeeConfigInputV2(input)
+		unpacked, err := UnpackSetFeeConfigInputV2(input, true)
 		require.NoError(t, err)
 
 		require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
@@ -475,7 +507,7 @@ func testPackSetFeeConfigInput(t *testing.T, feeConfig commontype.FeeConfig) {
 		input2 = input2[4:]
 
 		// Test UnpackSetFeeConfigInputV2, UnpackFeeConfigInput
-		unpacked, err = UnpackSetFeeConfigInputV2(input2)
+		unpacked, err = UnpackSetFeeConfigInputV2(input2, true)
 		require.NoError(t, err)
 		unpacked2, err := UnpackFeeConfigInput(input)
 		require.NoError(t, err)

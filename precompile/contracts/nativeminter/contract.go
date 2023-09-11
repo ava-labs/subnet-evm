@@ -35,6 +35,7 @@ var (
 
 	mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
 	ErrCannotMint = errors.New("non-enabled cannot mint")
+	ErrInvalidLen = errors.New("invalid input length for minting")
 
 	// NativeMinterV2RawABI contains the raw ABI of NativeMinterV2 contract.
 	//go:embed contract.abi
@@ -71,7 +72,7 @@ func PackMintInput(address common.Address, amount *big.Int) ([]byte, error) {
 // assumes that [input] does not include selector (omits first 4 bytes in PackMintInput)
 func UnpackMintInput(input []byte) (common.Address, *big.Int, error) {
 	if len(input) != mintInputLen {
-		return common.Address{}, nil, fmt.Errorf("invalid input length for minting: %d", len(input))
+		return common.Address{}, nil, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
 	}
 	to := common.BytesToAddress(contract.PackedHash(input, mintInputAddressSlot))
 	assetAmount := new(big.Int).SetBytes(contract.PackedHash(input, mintInputAmountSlot))
@@ -131,7 +132,15 @@ func createNativeMinterPrecompile() contract.StatefulPrecompiledContract {
 
 // UnpackMintNativeCoinInput attempts to unpack [input] as MintNativeCoinInput
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackMintNativeCoinV2Input(input []byte) (MintNativeCoinInput, error) {
+// if [doLenCheck] is true, it will return an error if the length of [input] is not [mintInputLen]
+func UnpackMintNativeCoinV2Input(input []byte, doLenCheck bool) (MintNativeCoinInput, error) {
+	// Initially we had this check to ensure that the input was the correct length.
+	// However solidity does not always pack the input to the correct length, and allows
+	// for extra padding bytes to be added to the end of the input. Therefore, we have removed
+	// this check with the DUpgrade. We still need to keep this check for backwards compatibility.
+	if doLenCheck && len(input) != mintInputLen {
+		return MintNativeCoinInput{}, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
+	}
 	inputStruct := MintNativeCoinInput{}
 	err := NativeMinterV2ABI.UnpackInputIntoInterface(&inputStruct, "mintNativeCoin", input)
 

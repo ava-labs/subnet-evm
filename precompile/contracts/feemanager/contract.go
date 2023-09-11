@@ -356,11 +356,12 @@ func PackGetFeeConfigOutputV2(output commontype.FeeConfig) ([]byte, error) {
 // UnpackGetFeeConfigOutput attempts to unpack [output] as GetFeeConfigOutput
 // assumes that [output] does not include selector (omits first 4 func signature bytes)
 func UnpackGetFeeConfigOutputV2(output []byte) (commontype.FeeConfig, error) {
-	if len(output) != feeConfigInputLen {
-		return commontype.FeeConfig{}, fmt.Errorf("%w: %d", ErrInvalidLen, len(output))
-	}
 	outputStruct := GetFeeConfigOutput{}
 	err := IFeeManagerV2ABI.UnpackIntoInterface(&outputStruct, "getFeeConfig", output)
+
+	if err != nil {
+		return commontype.FeeConfig{}, err
+	}
 
 	result := commontype.FeeConfig{
 		GasLimit:                 outputStruct.GasLimit,
@@ -372,7 +373,7 @@ func UnpackGetFeeConfigOutputV2(output []byte) (commontype.FeeConfig, error) {
 		MaxBlockGasCost:          outputStruct.MaxBlockGasCost,
 		BlockGasCostStep:         outputStruct.BlockGasCostStep,
 	}
-	return result, err
+	return result, nil
 }
 
 // PackGetFeeConfigLastChangedAt packs the include selector (first 4 func signature bytes).
@@ -400,12 +401,21 @@ func UnpackGetFeeConfigLastChangedAtOutputV2(output []byte) (*big.Int, error) {
 
 // UnpackSetFeeConfigInput attempts to unpack [input] as SetFeeConfigInput
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackSetFeeConfigInputV2(input []byte) (commontype.FeeConfig, error) {
-	if len(input) != feeConfigInputLen {
+// if [doLenCheck] is true, it will return an error if the length of [input] is not [feeConfigInputLen]
+func UnpackSetFeeConfigInputV2(input []byte, doLenCheck bool) (commontype.FeeConfig, error) {
+	// Initially we had this check to ensure that the input was the correct length.
+	// However solidity does not always pack the input to the correct length, and allows
+	// for extra padding bytes to be added to the end of the input. Therefore, we have removed
+	// this check with the DUpgrade. We still need to keep this check for backwards compatibility.
+	if doLenCheck && len(input) != feeConfigInputLen {
 		return commontype.FeeConfig{}, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
 	}
 	inputStruct := GetFeeConfigOutput{}
 	err := IFeeManagerV2ABI.UnpackInputIntoInterface(&inputStruct, "setFeeConfig", input)
+
+	if err != nil {
+		return commontype.FeeConfig{}, err
+	}
 
 	result := commontype.FeeConfig{
 		GasLimit:                 inputStruct.GasLimit,
@@ -418,7 +428,7 @@ func UnpackSetFeeConfigInputV2(input []byte) (commontype.FeeConfig, error) {
 		BlockGasCostStep:         inputStruct.BlockGasCostStep,
 	}
 
-	return result, err
+	return result, nil
 }
 
 // PackSetFeeConfig packs [inputStruct] of type SetFeeConfigInput into the appropriate arguments for setFeeConfig.

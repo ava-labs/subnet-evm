@@ -178,6 +178,24 @@ func TestUnpackAndPacks(t *testing.T) {
 	testUnpackAndPacks(t, common.Address{}, math.MaxBig256.Sub(math.MaxBig256, common.Big1))
 	testUnpackAndPacks(t, common.Address{}, math.MaxBig256.Add(math.MaxBig256, common.Big1))
 	testUnpackAndPacks(t, constants.BlackholeAddr, common.Big2)
+
+	input, err := PackMintNativeCoinV2(MintNativeCoinInput{Addr: constants.BlackholeAddr, Amount: common.Big2})
+	require.NoError(t, err)
+	// exclude 4 bytes for function selector
+	input = input[4:]
+	// add extra padded bytes
+	input = append(input, make([]byte, 32)...)
+
+	_, _, err = UnpackMintInput(input)
+	require.ErrorIs(t, err, ErrInvalidLen)
+
+	_, err = UnpackMintNativeCoinV2Input(input, true)
+	require.ErrorIs(t, err, ErrInvalidLen)
+
+	unpacked, err := UnpackMintNativeCoinV2Input(input, false)
+	require.NoError(t, err)
+	require.Equal(t, constants.BlackholeAddr, unpacked.Addr)
+	require.Equal(t, common.Big2.Bytes(), unpacked.Amount.Bytes())
 }
 
 func testUnpackAndPacks(t *testing.T, addr common.Address, amount *big.Int) {
@@ -189,7 +207,7 @@ func testUnpackAndPacks(t *testing.T, addr common.Address, amount *big.Int) {
 		// exclude 4 bytes for function selector
 		input = input[4:]
 
-		unpacked, err := UnpackMintNativeCoinV2Input(input)
+		unpacked, err := UnpackMintNativeCoinV2Input(input, true)
 		require.NoError(t, err)
 
 		require.EqualValues(t, addr, unpacked.Addr)
@@ -222,7 +240,7 @@ func testUnpackAndPacks(t *testing.T, addr common.Address, amount *big.Int) {
 		// Test UnpackMintInput, UnpackMintNativeCoinV2Input
 		to, assetAmount, err = UnpackMintInput(input)
 		require.NoError(t, err)
-		unpacked, err = UnpackMintNativeCoinV2Input(input2)
+		unpacked, err = UnpackMintNativeCoinV2Input(input2, true)
 		require.NoError(t, err)
 		require.Equal(t, to, unpacked.Addr)
 		require.Equal(t, assetAmount.Bytes(), unpacked.Amount.Bytes())
