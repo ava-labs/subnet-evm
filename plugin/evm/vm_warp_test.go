@@ -213,7 +213,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	)
 	require.NoError(err)
 
-	getWarpMsgInput, err := warp.PackGetVerifiedWarpMessage(common.Big0)
+	getWarpMsgInput, err := warp.PackGetVerifiedWarpMessage(0)
 	require.NoError(err)
 	getVerifiedWarpMessageTx, err := types.SignTx(
 		predicateutils.NewPredicateTx(

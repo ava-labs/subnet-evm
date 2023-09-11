@@ -175,7 +175,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	warpMessage, err := avalancheWarp.NewMessage(unsignedWarpMsg, &avalancheWarp.BitSetSignature{}) // Create message with empty signature for testing
 	require.NoError(t, err)
 	warpMessagePredicateBytes := predicateutils.PackPredicate(warpMessage.Bytes())
-	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage(common.Big0)
+	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage(0)
 	require.NoError(t, err)
 
 	tests := map[string]testutils.PrecompileTest{
@@ -210,7 +210,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		"get message out of bounds non-zero index": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
-				input, err := PackGetVerifiedWarpMessage(common.Big1)
+				input, err := PackGetVerifiedWarpMessage(1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -235,7 +235,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 		"get message success non-zero index": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
-				input, err := PackGetVerifiedWarpMessage(common.Big1)
+				input, err := PackGetVerifiedWarpMessage(1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -383,36 +383,10 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			ReadOnly:    false,
 			ExpectedErr: errInvalidAddressedPayload.Error(),
 		},
-		"get message index maxint64": {
+		"get message index invalid uint32": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
-				input, err := PackGetVerifiedWarpMessage(new(big.Int).SetInt64(math.MaxInt64))
-				if err != nil {
-					t.Fatal(err)
-				}
-				return input
-			},
-			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
-			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost,
-			ReadOnly:    false,
-			ExpectedRes: func() []byte {
-				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
-				if err != nil {
-					panic(err)
-				}
-				return res
-			}(),
-		},
-		"get message index maxuint64": {
-			Caller: callerAddr,
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackGetVerifiedWarpMessage(new(big.Int).SetUint64(math.MaxUint64))
-				if err != nil {
-					t.Fatal(err)
-				}
-				return input
+				return append(WarpABI.Methods["getVerifiedWarpMessage"].ID, new(big.Int).SetInt64(math.MaxInt64).Bytes()...)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,
@@ -441,7 +415,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	warpMessage, err := avalancheWarp.NewMessage(unsignedWarpMsg, &avalancheWarp.BitSetSignature{}) // Create message with empty signature for testing
 	require.NoError(t, err)
 	warpMessagePredicateBytes := predicateutils.PackPredicate(warpMessage.Bytes())
-	getVerifiedWarpBlockHash, err := PackGetVerifiedWarpBlockHash(common.Big0)
+	getVerifiedWarpBlockHash, err := PackGetVerifiedWarpBlockHash(0)
 	require.NoError(t, err)
 
 	tests := map[string]testutils.PrecompileTest{
@@ -473,7 +447,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 		"get message out of bounds non-zero index": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
-				input, err := PackGetVerifiedWarpBlockHash(common.Big1)
+				input, err := PackGetVerifiedWarpBlockHash(1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -498,7 +472,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 		"get message success non-zero index": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
-				input, err := PackGetVerifiedWarpBlockHash(common.Big1)
+				input, err := PackGetVerifiedWarpBlockHash(1)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -640,36 +614,10 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			ReadOnly:    false,
 			ExpectedErr: errInvalidBlockHashPayload.Error(),
 		},
-		"get message index maxint64": {
+		"get message index invalid uint32": {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
-				input, err := PackGetVerifiedWarpBlockHash(new(big.Int).SetInt64(math.MaxInt64))
-				if err != nil {
-					t.Fatal(err)
-				}
-				return input
-			},
-			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
-			},
-			SuppliedGas: GetVerifiedWarpMessageBaseCost,
-			ReadOnly:    false,
-			ExpectedRes: func() []byte {
-				res, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{Valid: false})
-				if err != nil {
-					panic(err)
-				}
-				return res
-			}(),
-		},
-		"get message index maxuint64": {
-			Caller: callerAddr,
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackGetVerifiedWarpBlockHash(new(big.Int).SetUint64(math.MaxUint64))
-				if err != nil {
-					t.Fatal(err)
-				}
-				return input
+				return append(WarpABI.Methods["getVerifiedWarpBlockHash"].ID, new(big.Int).SetInt64(math.MaxInt64).Bytes()...)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,

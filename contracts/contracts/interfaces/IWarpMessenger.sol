@@ -44,7 +44,7 @@ interface WarpMessenger {
     // If the message exists and passes verification, returns the verified message
     // and true.
     // Otherwise, returns false and the empty value for the message.
-    function getVerifiedWarpMessage(uint256 index)
+    function getVerifiedWarpMessage(uint32 index)
         external view
         returns (WarpMessage calldata message, bool valid);
 
@@ -53,7 +53,7 @@ interface WarpMessenger {
     // If the message exists and passes verification, returns the verified message
     // and true.
     // Otherwise, returns false and the empty value for the message.
-    function getVerifiedWarpBlockHash(uint256 index)
+    function getVerifiedWarpBlockHash(uint32 index)
         external view
         returns (WarpBlockHash calldata warpBlockHash, bool valid);
 
