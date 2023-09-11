@@ -243,11 +243,10 @@ func unpackWarpMessage(accessibleState contract.AccessibleState, input []byte) (
 	if err != nil {
 		return nil, false
 	}
-	warpIndexInt := int(warpIndex)
 	state := accessibleState.GetStateDB()
-	predicateBytes, exists := state.GetPredicateStorageSlots(ContractAddress, warpIndexInt)
+	predicateBytes, exists := state.GetPredicateStorageSlots(ContractAddress, warpIndex)
 	predicateResults := accessibleState.GetBlockContext().GetPredicateResults(state.GetTxHash(), ContractAddress)
-	valid := set.BitsFromBytes(predicateResults).Contains(warpIndexInt)
+	valid := set.BitsFromBytes(predicateResults).Contains(int(warpIndex))
 	return predicateBytes, exists && valid
 }
 
