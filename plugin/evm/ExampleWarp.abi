@@ -38,9 +38,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "index",
-        "type": "uint256"
+        "type": "uint32"
       }
     ],
     "name": "validateInvalidWarpBlockHash",
@@ -51,9 +51,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "index",
-        "type": "uint256"
+        "type": "uint32"
       }
     ],
     "name": "validateInvalidWarpMessage",
@@ -64,9 +64,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "index",
-        "type": "uint256"
+        "type": "uint32"
       },
       {
         "internalType": "bytes32",
@@ -87,9 +87,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "index",
-        "type": "uint256"
+        "type": "uint32"
       },
       {
         "internalType": "bytes32",

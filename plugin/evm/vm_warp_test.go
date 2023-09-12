@@ -150,7 +150,7 @@ func TestValidateWarpMessage(t *testing.T) {
 	exampleWarpABI := contract.ParseABI(exampleWarpABI)
 	exampleWarpPayload, err := exampleWarpABI.Pack(
 		"validateWarpMessage",
-		big.NewInt(0),
+		uint32(0),
 		sourceChainID,
 		sourceAddress,
 		destinationChainID,
@@ -182,7 +182,7 @@ func TestValidateInvalidWarpMessage(t *testing.T) {
 	exampleWarpABI := contract.ParseABI(exampleWarpABI)
 	exampleWarpPayload, err := exampleWarpABI.Pack(
 		"validateInvalidWarpMessage",
-		big.NewInt(0),
+		uint32(0),
 	)
 	require.NoError(err)
 
@@ -201,7 +201,7 @@ func TestValidateWarpBlockHash(t *testing.T) {
 	exampleWarpABI := contract.ParseABI(exampleWarpABI)
 	exampleWarpPayload, err := exampleWarpABI.Pack(
 		"validateWarpBlockHash",
-		big.NewInt(0),
+		uint32(0),
 		sourceChainID,
 		blockHash,
 	)
@@ -222,7 +222,7 @@ func TestValidateInvalidWarpBlockHash(t *testing.T) {
 	exampleWarpABI := contract.ParseABI(exampleWarpABI)
 	exampleWarpPayload, err := exampleWarpABI.Pack(
 		"validateInvalidWarpBlockHash",
-		big.NewInt(0),
+		uint32(0),
 	)
 	require.NoError(err)
 
