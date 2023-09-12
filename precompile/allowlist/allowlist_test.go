@@ -49,7 +49,7 @@ func (d *dummyConfigurator) Configure(
 	chainConfig precompileconfig.ChainConfig,
 	precompileConfig precompileconfig.Config,
 	state contract.StateDB,
-	blockContext contract.BlockContext,
+	blockContext contract.ConfigurationBlockContext,
 ) error {
 	cfg := precompileConfig.(*dummyConfig)
 	return cfg.AllowListConfig.Configure(chainConfig, dummyAddr, state, blockContext)
