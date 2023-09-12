@@ -79,7 +79,7 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, r
 	}
 	res, err := handler.handleMessage(warpMessage)
 	if err != nil {
-		return nil, 0, err
+		return nil, remainingGas, err
 	}
 	return res, remainingGas, nil
 }
