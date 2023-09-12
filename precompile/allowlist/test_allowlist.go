@@ -319,7 +319,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrManagerCannotModify.Error(),
+			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set no role to admin from manager after activation": {
 			Caller:     TestManagerAddr,
@@ -332,7 +332,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrManagerCannotModify.Error(),
+			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set enabled role to admin from manager after activation": {
 			Caller:     TestManagerAddr,
@@ -345,7 +345,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrManagerCannotModify.Error(),
+			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set enabled role to manager from manager after activation": {
 			Caller:     TestManagerAddr,
@@ -363,7 +363,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrManagerCannotModify.Error(),
+			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set enabled role to no role from manager after activation": {
 			Caller:     TestManagerAddr,
@@ -393,7 +393,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrManagerCannotModify.Error(),
+			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set admin role to enabled from manager after activation": {
 			Caller:     TestManagerAddr,
@@ -406,7 +406,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrManagerCannotModify.Error(),
+			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set admin to manager from manager after activation": {
 			Caller:     TestManagerAddr,
@@ -424,7 +424,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrManagerCannotModify.Error(),
+			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set manager role to no role from manager after activation": {
 			Caller:     TestManagerAddr,
@@ -437,7 +437,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			},
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
-			ExpectedErr: ErrManagerCannotModify.Error(),
+			ExpectedErr: ErrCannotModifyAllowList.Error(),
 		},
 		"set no role with readOnly enabled": {
 			Caller:     TestAdminAddr,

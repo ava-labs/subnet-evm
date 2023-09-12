@@ -37,8 +37,7 @@ var (
 	setNoneSignature       = contract.CalculateFunctionSelector("setNone(address)")
 	readAllowListSignature = contract.CalculateFunctionSelector("readAllowList(address)")
 	// Error returned when an invalid write is attempted
-	ErrCannotModifyAllowList = errors.New("non-admin cannot modify allow list")
-	ErrManagerCannotModify   = errors.New("manager can only change enabled addresses")
+	ErrCannotModifyAllowList = errors.New("cannot modify allow list")
 )
 
 // GetAllowListStatus returns the allow list role of [address] for the precompile
@@ -117,18 +116,11 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 
 		// Verify that the caller is an admin with permission to modify the allow list
 		callerStatus := GetAllowListStatus(stateDB, precompileAddr, callerAddr)
-		if callerStatus == ManagerRole {
-			// Get current status.
-			// Before the manager role, we never checked the status of the address we are trying to modify.
-			// So we should keep the same behaviour by special casing this.
-			modifyStatus := GetAllowListStatus(stateDB, precompileAddr, modifyAddress)
-			if !callerStatus.CanModify(modifyStatus, role) {
-				return nil, remainingGas, fmt.Errorf("%w: modify address: %s, from role: %s, to role: %s", ErrManagerCannotModify, callerAddr, modifyStatus, role)
-			}
-		} else if !callerStatus.IsAdmin() {
-			return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotModifyAllowList, callerAddr)
+		// Verify that the address we are trying to modify has a status that allows it to be modified
+		modifyStatus := GetAllowListStatus(stateDB, precompileAddr, modifyAddress)
+		if !callerStatus.CanModify(modifyStatus, role) {
+			return nil, remainingGas, fmt.Errorf("%w: modify address: %s, from role: %s, to role: %s", ErrCannotModifyAllowList, callerAddr, modifyStatus, role)
 		}
-
 		SetAllowListRole(stateDB, precompileAddr, modifyAddress, role)
 		// Return an empty output and the remaining gas
 		return []byte{}, remainingGas, nil
