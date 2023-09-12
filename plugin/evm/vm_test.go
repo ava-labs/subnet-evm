@@ -2198,14 +2198,15 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	managerKey := testKeys[1]
 	managerAddress := testEthAddrs[1]
 	genesis := &core.Genesis{}
-	if err := genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)); err != nil {
+	if err := genesis.UnmarshalJSON([]byte(genesisJSONDUpgrade)); err != nil {
 		t.Fatal(err)
 	}
 	// this manager role should not be activated because DUpgradeTimestamp is in the future
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, nil),
 	}
-	dUpgradeTime := time.Unix(int64(*params.UnitTestNetworkUpgrades.DUpgradeTimestamp), 0)
+	dUpgradeTime := time.Now().Add(10 * time.Hour)
+	genesis.Config.DUpgradeTimestamp = utils.TimeToNewUint64(dUpgradeTime)
 	genesisJSON, err := genesis.MarshalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -2228,7 +2229,6 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 	upgradeBytesJSON, err := json.Marshal(upgradeConfig)
 	require.NoError(t, err)
 	issuer, vm, _, _ := GenesisVM(t, true, string(genesisJSON), "", string(upgradeBytesJSON))
-	vm.clock.Set(dUpgradeTime.Add(-time.Hour))
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -2351,8 +2351,10 @@ func TestTxAllowListSuccessfulTx(t *testing.T) {
 
 func TestVerifyManagerConfig(t *testing.T) {
 	genesis := &core.Genesis{}
-	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
+	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDUpgrade)))
 
+	dUpgradeTimestamp := time.Now().Add(10 * time.Hour)
+	genesis.Config.DUpgradeTimestamp = utils.TimeToNewUint64(dUpgradeTimestamp)
 	// this manager role should not be activated because DUpgradeTimestamp is in the future
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
 		txallowlist.ConfigKey: txallowlist.NewConfig(utils.NewUint64(0), testEthAddrs[0:1], nil, []common.Address{testEthAddrs[1]}),
@@ -2376,12 +2378,16 @@ func TestVerifyManagerConfig(t *testing.T) {
 	)
 	require.ErrorIs(t, err, allowlist.ErrCannotAddManagersBeforeDUpgrade)
 
+	genesis = &core.Genesis{}
+	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDUpgrade)))
+	genesis.Config.DUpgradeTimestamp = utils.TimeToNewUint64(dUpgradeTimestamp)
+	genesisJSON, err = genesis.MarshalJSON()
+	require.NoError(t, err)
 	// use an invalid upgrade now with managers set before DUpgrade
-	dUpgradeTime := time.Unix(int64(*params.UnitTestNetworkUpgrades.DUpgradeTimestamp), 0)
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
-				Config: txallowlist.NewConfig(utils.TimeToNewUint64(dUpgradeTime.Add(-time.Second)), nil, nil, []common.Address{testEthAddrs[1]}),
+				Config: txallowlist.NewConfig(utils.TimeToNewUint64(dUpgradeTimestamp.Add(-time.Second)), nil, nil, []common.Address{testEthAddrs[1]}),
 			},
 		},
 	}
@@ -2389,7 +2395,7 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm = &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ = setupGenesis(t, genesisJSONDUpgrade)
+	ctx, dbManager, genesisBytes, issuer, _ = setupGenesis(t, string(genesisJSON))
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
