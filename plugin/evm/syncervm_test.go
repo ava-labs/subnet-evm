@@ -130,7 +130,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		context.Background(),
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDBManager,
-		[]byte(genesisJSONSubnetEVM),
+		[]byte(genesisJSONLatest),
 		nil,
 		[]byte(stateSyncDisabledConfigJSON),
 		vmSetup.syncerVM.toEngine,
@@ -193,7 +193,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		context.Background(),
 		vmSetup.syncerVM.ctx,
 		vmSetup.syncerDBManager,
-		[]byte(genesisJSONSubnetEVM),
+		[]byte(genesisJSONLatest),
 		nil,
 		[]byte(configJSON),
 		vmSetup.syncerVM.toEngine,
@@ -291,7 +291,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
 	}()
 
 	// configure [serverVM]
-	_, serverVM, _, serverAppSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+	_, serverVM, _, serverAppSender := GenesisVM(t, true, genesisJSONLatest, "", "")
 	generateAndAcceptBlocks(t, serverVM, parentsToGet, func(i int, gen *core.BlockGen) {
 		b, err := results.NewPredicateResults().Bytes()
 		if err != nil {
@@ -332,7 +332,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
 
 	// initialise [syncerVM] with blank genesis state
 	stateSyncEnabledJSON := fmt.Sprintf("{\"state-sync-enabled\":true, \"state-sync-min-blocks\": %d}", test.stateSyncMinBlocks)
-	syncerEngineChan, syncerVM, syncerDBManager, syncerAppSender := GenesisVM(t, false, genesisJSONSubnetEVM, stateSyncEnabledJSON, "")
+	syncerEngineChan, syncerVM, syncerDBManager, syncerAppSender := GenesisVM(t, false, genesisJSONLatest, stateSyncEnabledJSON, "")
 	if err := syncerVM.SetState(context.Background(), snow.StateSyncing); err != nil {
 		t.Fatal(err)
 	}
