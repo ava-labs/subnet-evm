@@ -50,14 +50,10 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, r
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidIndexInput, err)
 	}
-	if !warpIndex.IsInt64() {
-		return nil, remainingGas, fmt.Errorf("%w: %v", errInvalidIndexInput, warpIndex)
-	}
-	warpIndexInt := int(warpIndex.Int64())
 	state := accessibleState.GetStateDB()
-	predicateBytes, exists := state.GetPredicateStorageSlots(ContractAddress, warpIndexInt)
+	predicateBytes, exists := state.GetPredicateStorageSlots(ContractAddress, warpIndex)
 	predicateResults := accessibleState.GetBlockContext().GetPredicateResults(state.GetTxHash(), ContractAddress)
-	valid := set.BitsFromBytes(predicateResults).Contains(warpIndexInt) && exists
+	valid := exists && set.BitsFromBytes(predicateResults).Contains(int(warpIndex))
 	if !valid {
 		return handler.packFailed(), remainingGas, nil
 	}

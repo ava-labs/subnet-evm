@@ -233,9 +233,10 @@ func TestWarpNilProposerCtx(t *testing.T) {
 	numKeys := 1
 	snowCtx := createSnowCtx([]validatorRange{
 		{
-			start:  0,
-			end:    numKeys,
-			weight: 20,
+			start:     0,
+			end:       numKeys,
+			weight:    20,
+			publicKey: true,
 		},
 	})
 	predicateBytes := createPredicate(numKeys)
@@ -258,9 +259,10 @@ func TestInvalidPredicatePacking(t *testing.T) {
 	numKeys := 1
 	snowCtx := createSnowCtx([]validatorRange{
 		{
-			start:  0,
-			end:    numKeys,
-			weight: 20,
+			start:     0,
+			end:       numKeys,
+			weight:    20,
+			publicKey: true,
 		},
 	})
 	predicateBytes := createPredicate(numKeys)
@@ -286,9 +288,10 @@ func TestInvalidWarpMessage(t *testing.T) {
 	numKeys := 1
 	snowCtx := createSnowCtx([]validatorRange{
 		{
-			start:  0,
-			end:    numKeys,
-			weight: 20,
+			start:     0,
+			end:       numKeys,
+			weight:    20,
+			publicKey: true,
 		},
 	})
 	warpMsg := createWarpMessage(1)
@@ -317,9 +320,10 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	numKeys := 1
 	snowCtx := createSnowCtx([]validatorRange{
 		{
-			start:  0,
-			end:    numKeys,
-			weight: 20,
+			start:     0,
+			end:       numKeys,
+			weight:    20,
+			publicKey: true,
 		},
 	})
 	aggregateSignature, err := bls.AggregateSignatures(blsSignatures[0:numKeys])
@@ -377,9 +381,10 @@ func TestInvalidBitSet(t *testing.T) {
 	numKeys := 1
 	snowCtx := createSnowCtx([]validatorRange{
 		{
-			start:  0,
-			end:    numKeys,
-			weight: 20,
+			start:     0,
+			end:       numKeys,
+			weight:    20,
+			publicKey: true,
 		},
 	})
 	predicateBytes := predicateutils.PackPredicate(msg.Bytes())

@@ -1246,21 +1246,27 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 	return s.accessList.Contains(addr, slot)
 }
 
+// GetTxHash returns the current tx hash on the StateDB set by SetTxContext.
 func (s *StateDB) GetTxHash() common.Hash {
 	return s.thash
 }
 
-// GetPredicateStorageSlots returns the storage slots associated with a given address, and whether or not
-// that address was included in the optional access list of the transaction.
-// The storage slots are returned in the same order as they appeared in the transaction.
-// These are the same storage slots that are used to verify any transaction
-// predicates for transactions with access list addresses that match a precompile address.
-func (s *StateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
+// GetPredicateStorageSlots returns the storage slots associated with the address, index pair.
+// A list of access tuples can be included within transaction types post EIP-2930. The address
+// is declared directly on the access tuple and the index is the i'th occurrence of an access
+// tuple with the specified address.
+//
+// Ex. AccessList[[AddrA, Predicate1], [AddrB, Predicate2], [AddrA, Predicate3]]
+// In this case, the caller could retrieve predicates 1-3 with the following calls:
+// GetPredicateStorageSlots(AddrA, 0) -> Predicate1
+// GetPredicateStorageSlots(AddrB, 0) -> Predicate2
+// GetPredicateStorageSlots(AddrA, 1) -> Predicate3
+func (s *StateDB) GetPredicateStorageSlots(address common.Address, index uint32) ([]byte, bool) {
 	predicates, exists := s.predicateStorageSlots[address]
 	if !exists {
 		return nil, false
 	}
-	if index >= len(predicates) {
+	if int(index) >= len(predicates) {
 		return nil, false
 	}
 	return predicates[index], true

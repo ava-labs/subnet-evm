@@ -19,7 +19,7 @@ contract ExampleWarp {
 
     // validateWarpMessage retrieves the warp message attached to the transaction and verifies all of its attributes.
     function validateWarpMessage(
-        uint256 index,
+        uint32 index,
         bytes32 sourceChainID,
         address originSenderAddress,
         bytes32 destinationChainID,
@@ -36,7 +36,7 @@ contract ExampleWarp {
     }
 
     function validateInvalidWarpMessage(
-        uint256 index
+        uint32 index
     ) external view {
         (WarpMessage memory message, bool valid) = warp.getVerifiedWarpMessage(index);
         require(!valid);
@@ -50,7 +50,7 @@ contract ExampleWarp {
     // validateWarpBlockHash retrieves the warp block hash attached to the transaction and verifies it matches the
     // expected block hash.
     function validateWarpBlockHash(
-        uint256 index,
+        uint32 index,
         bytes32 sourceChainID,
         bytes32 blockHash
     ) external view {
@@ -61,7 +61,7 @@ contract ExampleWarp {
     }
 
     function validateInvalidWarpBlockHash(
-        uint256 index
+        uint32 index
     ) external view {
         (WarpBlockHash memory warpBlockHash, bool valid) = warp.getVerifiedWarpBlockHash(index);
         require(valid);

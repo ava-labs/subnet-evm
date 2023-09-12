@@ -41,17 +41,19 @@ interface WarpMessenger {
 
     // getVerifiedWarpMessage parses the pre-verified warp message in the
     // predicate storage slots as a WarpMessage and returns it to the caller.
-    // Returns false if no such predicate exists or the message at the index
-    // fails verification.
-    function getVerifiedWarpMessage(uint256 index)
+    // If the message exists and passes verification, returns the verified message
+    // and true.
+    // Otherwise, returns false and the empty value for the message.
+    function getVerifiedWarpMessage(uint32 index)
         external view
         returns (WarpMessage calldata message, bool valid);
 
     // getVerifiedWarpBlockHash parses the pre-verified WarpBlockHash message in the
     // predicate storage slots as a WarpBlockHash message and returns it to the caller.
-    // Returns false if no such predicate exists or the message at the index fails
-    // verification.
-    function getVerifiedWarpBlockHash(uint256 index)
+    // If the message exists and passes verification, returns the verified message
+    // and true.
+    // Otherwise, returns false and the empty value for the message.
+    function getVerifiedWarpBlockHash(uint32 index)
         external view
         returns (WarpBlockHash calldata warpBlockHash, bool valid);
 

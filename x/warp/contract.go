@@ -6,7 +6,6 @@ package warp
 import (
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
@@ -110,21 +109,21 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 	return packedOutput, remainingGas, nil
 }
 
-// UnpackGetVerifiedWarpBlockHashInput attempts to unpack [input] into the *big.Int type argument
+// UnpackGetVerifiedWarpBlockHashInput attempts to unpack [input] into the uint32 type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackGetVerifiedWarpBlockHashInput(input []byte) (*big.Int, error) {
+func UnpackGetVerifiedWarpBlockHashInput(input []byte) (uint32, error) {
 	res, err := WarpABI.UnpackInput("getVerifiedWarpBlockHash", input)
 	if err != nil {
-		return new(big.Int), err
+		return 0, err
 	}
-	unpacked := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
+	unpacked := *abi.ConvertType(res[0], new(uint32)).(*uint32)
 	return unpacked, nil
 }
 
-// PackGetVerifiedWarpBlockHash packs [index] of type *big.Int into the appropriate arguments for getVerifiedWarpBlockHash.
+// PackGetVerifiedWarpBlockHash packs [index] of type uint32 into the appropriate arguments for getVerifiedWarpBlockHash.
 // the packed bytes include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
-func PackGetVerifiedWarpBlockHash(index *big.Int) ([]byte, error) {
+func PackGetVerifiedWarpBlockHash(index uint32) ([]byte, error) {
 	return WarpABI.Pack("getVerifiedWarpBlockHash", index)
 }
 
@@ -154,21 +153,21 @@ func getVerifiedWarpBlockHash(accessibleState contract.AccessibleState, caller c
 	return handleWarpMessage(accessibleState, input, remainingGas, blockHashHandler{})
 }
 
-// UnpackGetVerifiedWarpMessageInput attempts to unpack [input] into the *big.Int type argument
+// UnpackGetVerifiedWarpMessageInput attempts to unpack [input] into the uint32 type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackGetVerifiedWarpMessageInput(input []byte) (*big.Int, error) {
+func UnpackGetVerifiedWarpMessageInput(input []byte) (uint32, error) {
 	res, err := WarpABI.UnpackInput("getVerifiedWarpMessage", input)
 	if err != nil {
-		return new(big.Int), err
+		return 0, err
 	}
-	unpacked := *abi.ConvertType(res[0], new(*big.Int)).(**big.Int)
+	unpacked := *abi.ConvertType(res[0], new(uint32)).(*uint32)
 	return unpacked, nil
 }
 
-// PackGetVerifiedWarpMessage packs [index] of type *big.Int into the appropriate arguments for getVerifiedWarpMessage.
+// PackGetVerifiedWarpMessage packs [index] of type uint32 into the appropriate arguments for getVerifiedWarpMessage.
 // the packed bytes include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
-func PackGetVerifiedWarpMessage(index *big.Int) ([]byte, error) {
+func PackGetVerifiedWarpMessage(index uint32) ([]byte, error) {
 	return WarpABI.Pack("getVerifiedWarpMessage", index)
 }
 
