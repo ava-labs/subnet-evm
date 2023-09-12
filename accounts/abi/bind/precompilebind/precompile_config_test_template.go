@@ -34,6 +34,11 @@ func TestVerify(t *testing.T) {
 	tests := map[string]testutils.ConfigVerifyTest{
 		"valid config": {
 			Config: NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
+			ChainConfig: func() precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+				return config
+			}(),
 			ExpectedError: "",
 		},
 		// CUSTOM CODE STARTS HERE
