@@ -48,10 +48,10 @@ type messageHandler interface {
 func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, remainingGas uint64, handler messageHandler) ([]byte, uint64, error) {
 	warpIndex, err := UnpackGetVerifiedWarpMessageInput(input)
 	if err != nil {
-		return nil, 0, fmt.Errorf("%w: %s", errInvalidIndexInput, err)
+		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidIndexInput, err)
 	}
 	if !warpIndex.IsInt64() {
-		return nil, 0, fmt.Errorf("%w: %v", errInvalidIndexInput, warpIndex)
+		return nil, remainingGas, fmt.Errorf("%w: %v", errInvalidIndexInput, warpIndex)
 	}
 	warpIndexInt := int(warpIndex.Int64())
 	state := accessibleState.GetStateDB()
@@ -75,11 +75,11 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, r
 	// hit an error during execution.
 	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
 	if err != nil {
-		return nil, 0, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
+		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
 	}
 	warpMessage, err := warp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
-		return nil, 0, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
+		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
 	}
 	res, err := handler.handleMessage(warpMessage)
 	if err != nil {
