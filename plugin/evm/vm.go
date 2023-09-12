@@ -17,6 +17,7 @@ import (
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/network/p2p"
+	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -102,6 +103,30 @@ const (
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
 	chainStateMetricsPrefix = "chain_state"
+
+	// p2p app protocols
+	ethTxGossipProtocol = 0x0
+
+	// gossip constants
+	txGossipBloomMaxItems          = 8 * 1024
+	txGossipBloomFalsePositiveRate = 0.01
+	txGossipMaxFalsePositiveRate   = 0.05
+	txGossipTargetResponseSize     = 20 * units.KiB
+	maxValidatorSetStaleness       = time.Minute
+	throttlingPeriod               = 10 * time.Second
+	throttlingLimit                = 2
+)
+
+var (
+	txGossipConfig = gossip.Config{
+		Namespace: "eth_tx_gossip",
+		Frequency: 10 * time.Second,
+		PollSize:  10,
+	}
+	ethTxGossipHandlerConfig = gossip.HandlerConfig{
+		Namespace:          "eth_tx_gossip",
+		TargetResponseSize: txGossipTargetResponseSize,
+	}
 )
 
 // Define the API endpoints for the VM
@@ -153,6 +178,8 @@ var legacyApiNames = map[string]string{
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
+	// [cancel] may be nil until [snow.NormalOp] starts
+	cancel context.CancelFunc
 	// *chain.State helps to implement the VM interface by wrapping blocks
 	// with an efficient caching layer.
 	*chain.State
@@ -207,7 +234,8 @@ type VM struct {
 	client       peer.NetworkClient
 	networkCodec codec.Manager
 
-	router *p2p.Router
+	validators *p2p.Validators
+	router     *p2p.Router
 
 	// Metrics
 	multiGatherer avalanchegoMetrics.MultiGatherer
@@ -431,11 +459,18 @@ func (vm *VM) Initialize(
 	}
 	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
 
+	// TODO: read size from settings
+	vm.mempool, err = NewMempool(chainCtx.AVAXAssetID, defaultMempoolSize)
+	if err != nil {
+		return fmt.Errorf("failed to initialize mempool: %w", err)
+	}
+
 	if err := vm.initializeMetrics(); err != nil {
 		return err
 	}
 
 	// initialize peer network
+	vm.validators = p2p.NewValidators(vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.router = p2p.NewRouter(vm.ctx.Log, appSender, vm.sdkMetrics, "p2p")
 	vm.networkCodec = message.Codec
 	vm.Network = peer.NewNetwork(vm.router, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
@@ -616,8 +651,10 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 		}
 		return nil
 	case snow.NormalOp:
-		// Initialize gossip handling once we enter normal operation as there is no need to handle mempool gossip before this point.
-		vm.initBlockBuilding()
+		// Initialize goroutines related to block building once we enter normal operation as there is no need to handle mempool gossip before this point.
+		if err := vm.initBlockBuilding(); err != nil {
+			return fmt.Errorf("failed to initialize block building: %w", err)
+		}
 		vm.bootstrapped = true
 		return nil
 	default:
@@ -626,13 +663,65 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 }
 
 // initBlockBuilding starts goroutines to manage block building
-func (vm *VM) initBlockBuilding() {
+func (vm *VM) initBlockBuilding() error {
+	ctx, cancel := context.WithCancel(context.TODO())
+	vm.cancel = cancel
+
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
 	gossipStats := NewGossipStats()
 	vm.gossiper = vm.createGossiper(gossipStats)
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
+
+	ethTxPool, err := NewGossipEthTxPool(vm.txPool)
+	if err != nil {
+		return err
+	}
+	vm.shutdownWg.Add(1)
+	go func() {
+		ethTxPool.Subscribe(ctx)
+		vm.shutdownWg.Done()
+	}()
+
+	var (
+		ethTxGossipHandler p2p.Handler
+	)
+
+	ethTxGossipHandler, err = gossip.NewHandler[*GossipEthTx](ethTxPool, ethTxGossipHandlerConfig, vm.sdkMetrics)
+	if err != nil {
+		return err
+	}
+	ethTxGossipHandler = &p2p.ValidatorHandler{
+		ValidatorSet: vm.validators,
+		Handler: &p2p.ThrottlerHandler{
+			Throttler: p2p.NewSlidingWindowThrottler(throttlingPeriod, throttlingLimit),
+			Handler:   ethTxGossipHandler,
+		},
+	}
+	ethTxGossipClient, err := vm.router.RegisterAppProtocol(ethTxGossipProtocol, ethTxGossipHandler, vm.validators)
+	if err != nil {
+		return err
+	}
+
+	ethTxGossiper, err := gossip.NewGossiper[GossipEthTx, *GossipEthTx](
+		ethTxGossipConfig,
+		vm.ctx.Log,
+		ethTxPool,
+		ethTxGossipClient,
+		vm.sdkMetrics,
+	)
+	if err != nil {
+		return err
+	}
+
+	vm.shutdownWg.Add(1)
+	go func() {
+		ethTxGossiper.Gossip(ctx)
+		vm.shutdownWg.Done()
+	}()
+
+	return nil
 }
 
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
@@ -663,6 +752,9 @@ func (vm *VM) setCrossChainAppRequestHandler() {
 func (vm *VM) Shutdown(context.Context) error {
 	if vm.ctx == nil {
 		return nil
+	}
+	if vm.cancel != nil {
+		vm.cancel()
 	}
 	vm.Network.Shutdown()
 	if err := vm.StateSyncClient.Shutdown(); err != nil {
