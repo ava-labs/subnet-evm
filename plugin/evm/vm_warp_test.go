@@ -167,7 +167,7 @@ func TestValidateInvalidWarpMessage(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
 	destinationChainID := ids.GenerateTestID()
-	destinationAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
+	destinationAddress := common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87")
 	payload := []byte{1, 2, 3}
 	addressedPayload, err := warpPayload.NewAddressedPayload(
 		sourceAddress,
