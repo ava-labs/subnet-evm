@@ -4,15 +4,10 @@
 package params
 
 import (
-	"time"
-
-	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
 var (
-	defaultActivationTime = time.Date(2020, time.December, 5, 5, 0, 0, 0, time.UTC)
-
 	LocalNetworkUpgrades = MandatoryNetworkUpgrades{
 		SubnetEVMTimestamp: utils.NewUint64(0),
 		DUpgradeTimestamp:  utils.NewUint64(0),
@@ -30,7 +25,7 @@ var (
 
 	UnitTestNetworkUpgrades = MandatoryNetworkUpgrades{
 		SubnetEVMTimestamp: utils.NewUint64(0),
-		DUpgradeTimestamp:  utils.TimeToNewUint64(defaultActivationTime),
+		DUpgradeTimestamp:  utils.NewUint64(0),
 	}
 )
 
@@ -59,19 +54,6 @@ func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
 	return []fork{
 		{name: "subnetEVMTimestamp", timestamp: m.SubnetEVMTimestamp},
 		{name: "dUpgradeTimestamp", timestamp: m.DUpgradeTimestamp},
-	}
-}
-
-func GetMandatoryNetworkUpgrades(networkID uint32) MandatoryNetworkUpgrades {
-	switch networkID {
-	case constants.FujiID:
-		return FujiNetworkUpgrades
-	case constants.MainnetID:
-		return MainnetNetworkUpgrades
-	case constants.UnitTestID:
-		return UnitTestNetworkUpgrades
-	default:
-		return LocalNetworkUpgrades
 	}
 }
 
