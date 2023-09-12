@@ -992,10 +992,10 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 // along with a flag that indicates if returned upgrades should be strictly enforced.
 func getMandatoryNetworkUpgrades(networkID uint32) (params.MandatoryNetworkUpgrades, bool) {
 	switch networkID {
-	case avalanchegoConstants.FujiID:
-		return params.FujiNetworkUpgrades, true
 	case avalanchegoConstants.MainnetID:
 		return params.MainnetNetworkUpgrades, true
+	case avalanchegoConstants.FujiID:
+		return params.FujiNetworkUpgrades, true
 	case avalanchegoConstants.UnitTestID:
 		return params.UnitTestNetworkUpgrades, false
 	default:
