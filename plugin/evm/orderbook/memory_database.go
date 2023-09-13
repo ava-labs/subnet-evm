@@ -271,23 +271,102 @@ func (db *InMemoryDatabase) LoadFromSnapshot(snapshot Snapshot) error {
 	return nil
 }
 
-// assumes that lock is held by the caller
-func (db *InMemoryDatabase) Accept(blockNumber uint64, blockTimestamp uint64) {
+func (db *InMemoryDatabase) Accept(acceptedBlockNumber, blockTimestamp uint64) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	for orderId, order := range db.OrderMap {
-		lifecycle := order.getOrderStatus()
-		if (lifecycle.Status == FulFilled || lifecycle.Status == Cancelled) && lifecycle.BlockNumber <= blockNumber {
-			delete(db.OrderMap, orderId)
-			continue
-		}
-		expireAt := order.getExpireAt()
-		if expireAt.Sign() > 0 && expireAt.Int64() < int64(blockTimestamp) {
-			delete(db.OrderMap, orderId)
+	count := db.configService.GetActiveMarketsCount()
+	for m := int64(0); m < count; m++ {
+		longOrders := db.getLongOrdersWithoutLock(Market(m), nil, nil, false)
+		shortOrders := db.getShortOrdersWithoutLock(Market(m), nil, nil, false)
+
+		for _, longOrder := range longOrders {
+			status := shouldRemove(acceptedBlockNumber, blockTimestamp, longOrder)
+			if status == CHECK_FOR_MATCHES {
+				matchFound := false
+				for _, shortOrder := range shortOrders {
+					if longOrder.Price.Cmp(shortOrder.Price) < 0 {
+						break // because the short orders are sorted in ascending order of price, there is no point in checking further
+					}
+					// an IOC order even if has a price overlap can only be matched if the order came before it (or same block)
+					if longOrder.BlockNumber.Uint64() >= shortOrder.BlockNumber.Uint64() {
+						matchFound = true
+						break
+					} /* else {
+						dont break here because there might be an a short order with higher price that came before the IOC longOrder in question
+					} */
+				}
+				if !matchFound {
+					status = REMOVE
+				}
+			}
+
+			if status == REMOVE {
+				delete(db.OrderMap, longOrder.Id)
+			}
 		}
 
+		for _, shortOrder := range shortOrders {
+			status := shouldRemove(acceptedBlockNumber, blockTimestamp, shortOrder)
+			if status == CHECK_FOR_MATCHES {
+				matchFound := false
+				for _, longOrder := range longOrders {
+					if longOrder.Price.Cmp(shortOrder.Price) < 0 {
+						break // because the long orders are sorted in descending order of price, there is no point in checking further
+					}
+					// an IOC order even if has a price overlap can only be matched if the order came before it (or same block)
+					if shortOrder.BlockNumber.Uint64() >= longOrder.BlockNumber.Uint64() {
+						matchFound = true
+						break
+					}
+					/* else {
+						dont break here because there might be an a long order with lower price that came before the IOC shortOrder in question
+					} */
+				}
+				if !matchFound {
+					status = REMOVE
+				}
+			}
+
+			if status == REMOVE {
+				delete(db.OrderMap, shortOrder.Id)
+			}
+		}
 	}
+}
+
+type OrderStatus uint8
+
+const (
+	KEEP OrderStatus = iota
+	REMOVE
+	CHECK_FOR_MATCHES
+)
+
+func shouldRemove(acceptedBlockNumber, blockTimestamp uint64, order Order) OrderStatus {
+	// check if there is any criteria to delete the order
+	// 1. Order is fulfilled or cancelled
+	lifecycle := order.getOrderStatus()
+	if (lifecycle.Status == FulFilled || lifecycle.Status == Cancelled) && lifecycle.BlockNumber <= acceptedBlockNumber {
+		return REMOVE
+	}
+
+	if order.OrderType != IOCOrderType {
+		return KEEP
+	}
+
+	// 2. if the order is expired
+	expireAt := order.getExpireAt()
+	if expireAt.Sign() > 0 && expireAt.Int64() < int64(blockTimestamp) {
+		return REMOVE
+	}
+
+	// 3. IOC order can not matched with any order that came after it (same block is allowed)
+	// we can only surely say about orders that came at <= acceptedBlockNumber
+	if order.BlockNumber.Uint64() > acceptedBlockNumber {
+		return KEEP
+	}
+	return CHECK_FOR_MATCHES
 }
 
 func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error {
@@ -400,12 +479,19 @@ func (db *InMemoryDatabase) UpdateNextSamplePITime(nextSamplePITime uint64) {
 func (db *InMemoryDatabase) GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []Order {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
+	return db.getLongOrdersWithoutLock(market, lowerbound, blockNumber, true)
+}
 
+func (db *InMemoryDatabase) getLongOrdersWithoutLock(market Market, lowerbound *big.Int, blockNumber *big.Int, shouldClean bool) []Order {
 	var longOrders []Order
 	for _, order := range db.OrderMap {
 		if order.PositionType == LONG && order.Market == market && (lowerbound == nil || order.Price.Cmp(lowerbound) >= 0) {
-			if _order := db.getCleanOrder(order, blockNumber); _order != nil {
-				longOrders = append(longOrders, *_order)
+			if shouldClean {
+				if _order := db.getCleanOrder(order, blockNumber); _order != nil {
+					longOrders = append(longOrders, *_order)
+				}
+			} else {
+				longOrders = append(longOrders, *order)
 			}
 		}
 	}
@@ -416,12 +502,19 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, lowerbound *big.Int, bl
 func (db *InMemoryDatabase) GetShortOrders(market Market, upperbound *big.Int, blockNumber *big.Int) []Order {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
+	return db.getShortOrdersWithoutLock(market, upperbound, blockNumber, true)
+}
 
+func (db *InMemoryDatabase) getShortOrdersWithoutLock(market Market, upperbound *big.Int, blockNumber *big.Int, shouldClean bool) []Order {
 	var shortOrders []Order
 	for _, order := range db.OrderMap {
 		if order.PositionType == SHORT && order.Market == market && (upperbound == nil || order.Price.Cmp(upperbound) <= 0) {
-			if _order := db.getCleanOrder(order, blockNumber); _order != nil {
-				shortOrders = append(shortOrders, *_order)
+			if shouldClean {
+				if _order := db.getCleanOrder(order, blockNumber); _order != nil {
+					shortOrders = append(shortOrders, *_order)
+				}
+			} else {
+				shortOrders = append(shortOrders, *order)
 			}
 		}
 	}
@@ -829,34 +922,44 @@ func (db *InMemoryDatabase) getReduceOnlyOrderDisplay(order *Order) *Order {
 	}
 }
 
-func sortLongOrders(orders []Order) []Order {
+func sortLongOrders(orders []Order) {
 	sort.SliceStable(orders, func(i, j int) bool {
-		if orders[i].Price.Cmp(orders[j].Price) == 1 {
+		priceDiff := orders[i].Price.Cmp(orders[j].Price)
+		if priceDiff == 1 {
 			return true
-		}
-		if orders[i].Price.Cmp(orders[j].Price) == 0 {
-			if orders[i].BlockNumber.Cmp(orders[j].BlockNumber) == -1 {
+		} else if priceDiff == 0 {
+			blockDiff := orders[i].BlockNumber.Cmp(orders[j].BlockNumber)
+			if blockDiff == -1 { // i was placed before j
 				return true
+			} else if blockDiff == 0 { // i and j were placed in the same block
+				if orders[i].OrderType == IOCOrderType {
+					// prioritize fulfilling IOC orders first, because they are short lived
+					return true
+				}
 			}
 		}
 		return false
 	})
-	return orders
 }
 
-func sortShortOrders(orders []Order) []Order {
+func sortShortOrders(orders []Order) {
 	sort.SliceStable(orders, func(i, j int) bool {
-		if orders[i].Price.Cmp(orders[j].Price) == -1 {
+		priceDiff := orders[i].Price.Cmp(orders[j].Price)
+		if priceDiff == -1 {
 			return true
-		}
-		if orders[i].Price.Cmp(orders[j].Price) == 0 {
-			if orders[i].BlockNumber.Cmp(orders[j].BlockNumber) == -1 {
+		} else if priceDiff == 0 {
+			blockDiff := orders[i].BlockNumber.Cmp(orders[j].BlockNumber)
+			if blockDiff == -1 { // i was placed before j
 				return true
+			} else if blockDiff == 0 { // i and j were placed in the same block
+				if orders[i].OrderType == IOCOrderType {
+					// prioritize fulfilling IOC orders first, because they are short lived
+					return true
+				}
 			}
 		}
 		return false
 	})
-	return orders
 }
 
 func (db *InMemoryDatabase) GetOrderBookData() InMemoryDatabase {

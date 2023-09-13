@@ -2363,13 +2363,6 @@ func getOrder(ammIndex *big.Int, trader common.Address, baseAssetQuantity *big.I
 	}
 }
 
-func getMockBibliophile(t *testing.T) b.BibliophileClient {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockBibliophile := b.NewMockBibliophileClient(ctrl)
-	return mockBibliophile
-}
-
 func multiplyTwoBigInts(a, b *big.Int) *big.Int {
 	return big.NewInt(0).Mul(a, b)
 }
@@ -2400,4 +2393,378 @@ func getValidateCancelLimitOrderInput(order ILimitOrderBookOrderV2, trader commo
 		Trader:          trader,
 		AssertLowMargin: assertLowMargin,
 	}
+}
+
+var _1e6 = big.NewInt(1e6)
+
+func TestDetermineFillPrice(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBibliophile := b.NewMockBibliophileClient(ctrl)
+
+	oraclePrice := multiply1e6(big.NewInt(20))                                                  // $10
+	spreadLimit := new(big.Int).Mul(big.NewInt(50), big.NewInt(1e4))                            // 50%
+	upperbound := divide1e6(new(big.Int).Mul(oraclePrice, new(big.Int).Add(_1e6, spreadLimit))) // $10
+	lowerbound := divide1e6(new(big.Int).Mul(oraclePrice, new(big.Int).Sub(_1e6, spreadLimit))) // $30
+	market := int64(5)
+
+	t.Run("long order came first", func(t *testing.T) {
+		blockPlaced0 := big.NewInt(69)
+		blockPlaced1 := big.NewInt(70)
+		t.Run("long price < lower bound", func(t *testing.T) {
+			t.Run("short price < long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       multiply1e6(big.NewInt(9)),
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       multiply1e6(big.NewInt(8)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, output)
+				assert.Equal(t, ErrTooLow, err)
+			})
+
+			t.Run("short price == long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       multiply1e6(big.NewInt(7)),
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       multiply1e6(big.NewInt(7)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, output)
+				assert.Equal(t, ErrTooLow, err)
+			})
+		})
+
+		t.Run("long price == lower bound", func(t *testing.T) {
+			longPrice := lowerbound
+			t.Run("short price < long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       new(big.Int).Sub(longPrice, big.NewInt(1)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+
+			t.Run("short price == long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       longPrice,
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+		})
+
+		t.Run("lowerbound < long price < oracle", func(t *testing.T) {
+			longPrice := multiply1e6(big.NewInt(15))
+			t.Run("short price < long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       new(big.Int).Sub(longPrice, big.NewInt(1)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+
+			t.Run("short price == long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       longPrice,
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+		})
+
+		t.Run("long price == oracle", func(t *testing.T) {
+			longPrice := oraclePrice
+			t.Run("short price < long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       new(big.Int).Sub(longPrice, big.NewInt(1)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+
+			t.Run("short price == long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       longPrice,
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+		})
+
+		t.Run("oracle < long price < upper bound", func(t *testing.T) {
+			longPrice := multiply1e6(big.NewInt(25))
+			t.Run("short price < long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       new(big.Int).Sub(longPrice, big.NewInt(1)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+
+			t.Run("short price == long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       longPrice,
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+		})
+
+		t.Run("long price == upper bound", func(t *testing.T) {
+			longPrice := upperbound
+			t.Run("short price < long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       new(big.Int).Sub(longPrice, big.NewInt(1)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+
+			t.Run("short price == long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       longPrice,
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{longPrice, Maker, Taker}, *output)
+			})
+		})
+
+		t.Run("upper bound < long price", func(t *testing.T) {
+			longPrice := new(big.Int).Add(upperbound, big.NewInt(42))
+			t.Run("upper < short price < long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       new(big.Int).Add(upperbound, big.NewInt(1)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, output)
+				assert.Equal(t, ErrTooHigh, err)
+			})
+
+			t.Run("upper == short price < long price", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       upperbound,
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{upperbound, Maker, Taker}, *output)
+			})
+
+			t.Run("short price < upper", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       new(big.Int).Sub(upperbound, big.NewInt(1)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{upperbound, Maker, Taker}, *output)
+			})
+
+			t.Run("short price < lower", func(t *testing.T) {
+				m0 := &Metadata{
+					Price:       longPrice,
+					AmmIndex:    big.NewInt(market),
+					BlockPlaced: blockPlaced0,
+				}
+				m1 := &Metadata{
+					Price:       new(big.Int).Sub(lowerbound, big.NewInt(1)),
+					BlockPlaced: blockPlaced1,
+				}
+				mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+				output, err := determineFillPrice(mockBibliophile, m0, m1)
+				assert.Nil(t, err)
+				assert.Equal(t, FillPriceAndModes{upperbound, Maker, Taker}, *output)
+			})
+		})
+	})
+}
+
+func TestDetermineLiquidationFillPrice(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBibliophile := b.NewMockBibliophileClient(ctrl)
+
+	liqUpperBound, liqLowerBound := multiply1e6(big.NewInt(22)), multiply1e6(big.NewInt(18))
+
+	upperbound := multiply1e6(big.NewInt(30)) // $30
+	lowerbound := multiply1e6(big.NewInt(10)) // $10
+	market := int64(7)
+
+	t.Run("long position is being liquidated", func(t *testing.T) {
+		t.Run("order price < liqLowerBound", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:             new(big.Int).Sub(liqLowerBound, big.NewInt(1)),
+				BaseAssetQuantity: big.NewInt(5),
+				AmmIndex:          big.NewInt(market),
+			}
+			mockBibliophile.EXPECT().GetAcceptableBoundsForLiquidation(market).Return(liqUpperBound, liqLowerBound).Times(1)
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err := determineLiquidationFillPrice(mockBibliophile, m0)
+			assert.Nil(t, output)
+			assert.Equal(t, ErrTooLow, err)
+		})
+		t.Run("order price == liqLowerBound", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:             liqLowerBound,
+				BaseAssetQuantity: big.NewInt(5),
+				AmmIndex:          big.NewInt(market),
+			}
+			mockBibliophile.EXPECT().GetAcceptableBoundsForLiquidation(market).Return(liqUpperBound, liqLowerBound).Times(1)
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err := determineLiquidationFillPrice(mockBibliophile, m0)
+			assert.Nil(t, err)
+			assert.Equal(t, liqLowerBound, output)
+		})
+
+		t.Run("liqLowerBound < order price < upper bound", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:             new(big.Int).Add(liqLowerBound, big.NewInt(99)),
+				BaseAssetQuantity: big.NewInt(5),
+				AmmIndex:          big.NewInt(market),
+			}
+			mockBibliophile.EXPECT().GetAcceptableBoundsForLiquidation(market).Return(liqUpperBound, liqLowerBound).Times(1)
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err := determineLiquidationFillPrice(mockBibliophile, m0)
+			assert.Nil(t, err)
+			assert.Equal(t, m0.Price, output)
+		})
+
+		t.Run("order price == upper bound", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:             upperbound,
+				BaseAssetQuantity: big.NewInt(5),
+				AmmIndex:          big.NewInt(market),
+			}
+			mockBibliophile.EXPECT().GetAcceptableBoundsForLiquidation(market).Return(liqUpperBound, liqLowerBound).Times(1)
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err := determineLiquidationFillPrice(mockBibliophile, m0)
+			assert.Nil(t, err)
+			assert.Equal(t, upperbound, output)
+		})
+
+		t.Run("order price > upper bound", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:             new(big.Int).Add(upperbound, big.NewInt(99)),
+				BaseAssetQuantity: big.NewInt(5),
+				AmmIndex:          big.NewInt(market),
+			}
+			mockBibliophile.EXPECT().GetAcceptableBoundsForLiquidation(market).Return(liqUpperBound, liqLowerBound).Times(1)
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err := determineLiquidationFillPrice(mockBibliophile, m0)
+			assert.Nil(t, err)
+			assert.Equal(t, upperbound, output)
+		})
+	})
 }

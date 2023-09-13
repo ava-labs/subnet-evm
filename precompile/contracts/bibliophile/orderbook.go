@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/utils"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -80,113 +79,6 @@ func IsTradingAuthority(stateDB contract.StateDB, trader, senderOrSigner common.
 func IsValidator(stateDB contract.StateDB, senderOrSigner common.Address) bool {
 	isValidatorMappingSlot := crypto.Keccak256(append(common.LeftPadBytes(senderOrSigner.Bytes(), 32), common.LeftPadBytes(big.NewInt(IS_VALIDATOR_SLOT).Bytes(), 32)...))
 	return stateDB.GetState(common.HexToAddress(ORDERBOOK_GENESIS_ADDRESS), common.BytesToHash(isValidatorMappingSlot)).Big().Cmp(big.NewInt(1)) == 0
-}
-
-// Business Logic
-
-func ValidateOrdersAndDetermineFillPrice(stateDB contract.StateDB, inputStruct *ValidateOrdersAndDetermineFillPriceInput) (*ValidateOrdersAndDetermineFillPriceOutput, error) {
-	longOrder := inputStruct.Orders[0]
-	shortOrder := inputStruct.Orders[1]
-
-	if longOrder.BaseAssetQuantity.Cmp(big.NewInt(0)) <= 0 {
-		return nil, ErrNotLongOrder
-	}
-
-	if shortOrder.BaseAssetQuantity.Cmp(big.NewInt(0)) >= 0 {
-		return nil, ErrNotShortOrder
-	}
-
-	if longOrder.AmmIndex.Cmp(shortOrder.AmmIndex) != 0 {
-		return nil, ErrNotSameAMM
-	}
-
-	if longOrder.Price.Cmp(shortOrder.Price) == -1 {
-		return nil, ErrNoMatch
-	}
-
-	if getOrderStatus(stateDB, inputStruct.OrderHashes[0]) != 1 || getOrderStatus(stateDB, inputStruct.OrderHashes[1]) != 1 {
-		return nil, ErrInvalidOrder
-	}
-
-	blockPlaced0 := getBlockPlaced(stateDB, inputStruct.OrderHashes[0])
-	blockPlaced1 := getBlockPlaced(stateDB, inputStruct.OrderHashes[1])
-	minSize := GetMinSizeRequirement(stateDB, longOrder.AmmIndex.Int64())
-	if new(big.Int).Mod(inputStruct.FillAmount, minSize).Cmp(big.NewInt(0)) != 0 {
-		return nil, ErrNotMultiple
-	}
-	return DetermineFillPrice(stateDB, longOrder.AmmIndex.Int64(), longOrder.Price, shortOrder.Price, blockPlaced0, blockPlaced1)
-}
-
-func DetermineFillPrice(stateDB contract.StateDB, marketId int64, longOrderPrice, shortOrderPrice, blockPlaced0, blockPlaced1 *big.Int) (*ValidateOrdersAndDetermineFillPriceOutput, error) {
-	market := getMarketAddressFromMarketID(marketId, stateDB)
-	oraclePrice := getUnderlyingPrice(stateDB, market)
-	spreadLimit := GetMaxOraclePriceSpread(stateDB, marketId)
-	return determineFillPrice(oraclePrice, spreadLimit, longOrderPrice, shortOrderPrice, blockPlaced0, blockPlaced1)
-}
-
-func determineFillPrice(oraclePrice, spreadLimit, longOrderPrice, shortOrderPrice, blockPlaced0, blockPlaced1 *big.Int) (*ValidateOrdersAndDetermineFillPriceOutput, error) {
-	upperbound, lowerbound := calculateBounds(spreadLimit, oraclePrice)
-	if longOrderPrice.Cmp(lowerbound) == -1 {
-		return nil, ErrTooLow
-	}
-	if shortOrderPrice.Cmp(upperbound) == 1 {
-		return nil, ErrTooHigh
-	}
-
-	output := ValidateOrdersAndDetermineFillPriceOutput{}
-	if blockPlaced0.Cmp(blockPlaced1) == -1 {
-		// long order is the maker order
-		output.FillPrice = utils.BigIntMin(longOrderPrice, upperbound)
-		output.Mode0 = 1 // Mode0 corresponds to the long order and `1` is maker
-		output.Mode1 = 0 // Mode1 corresponds to the short order and `0` is taker
-	} else { // if long order is placed after short order or in the same block as short
-		// short order is the maker order
-		output.FillPrice = utils.BigIntMax(shortOrderPrice, lowerbound)
-		output.Mode0 = 0 // Mode0 corresponds to the long order and `0` is taker
-		output.Mode1 = 1 // Mode1 corresponds to the short order and `1` is maker
-	}
-	return &output, nil
-}
-
-func ValidateLiquidationOrderAndDetermineFillPrice(stateDB contract.StateDB, inputStruct *ValidateLiquidationOrderAndDetermineFillPriceInput) (*big.Int, error) {
-	order := inputStruct.Order
-	minSize := GetMinSizeRequirement(stateDB, order.AmmIndex.Int64())
-	if new(big.Int).Mod(inputStruct.FillAmount, minSize).Cmp(big.NewInt(0)) != 0 {
-		return nil, ErrNotMultiple
-	}
-	return DetermineLiquidationFillPrice(stateDB, order.AmmIndex.Int64(), order.BaseAssetQuantity, order.Price)
-}
-
-func DetermineLiquidationFillPrice(stateDB contract.StateDB, marketId int64, baseAssetQuantity, price *big.Int) (*big.Int, error) {
-	isLongOrder := true
-	if baseAssetQuantity.Sign() < 0 {
-		isLongOrder = false
-	}
-	market := getMarketAddressFromMarketID(marketId, stateDB)
-	oraclePrice := getUnderlyingPrice(stateDB, market)
-	liquidationSpreadLimit := GetMaxLiquidationPriceSpread(stateDB, marketId)
-	liqUpperBound, liqLowerBound := calculateBounds(liquidationSpreadLimit, oraclePrice)
-
-	oracleSpreadLimit := GetMaxOraclePriceSpread(stateDB, marketId)
-	upperbound, lowerbound := calculateBounds(oracleSpreadLimit, oraclePrice)
-	return determineLiquidationFillPrice(isLongOrder, price, liqUpperBound, liqLowerBound, upperbound, lowerbound)
-}
-
-func determineLiquidationFillPrice(isLongOrder bool, price, liqUpperBound, liqLowerBound, upperbound, lowerbound *big.Int) (*big.Int, error) {
-	if isLongOrder {
-		// we are liquidating a long position
-		// do not allow liquidation if order.Price < liqLowerBound, because that gives scope for malicious activity to a validator
-		if price.Cmp(liqLowerBound) == -1 {
-			return nil, ErrTooLow
-		}
-		return utils.BigIntMin(price, upperbound /* oracle spread upper bound */), nil
-	}
-
-	// short order
-	if price.Cmp(liqUpperBound) == 1 {
-		return nil, ErrTooHigh
-	}
-	return utils.BigIntMax(price, lowerbound /* oracle spread lower bound */), nil
 }
 
 // Helper functions

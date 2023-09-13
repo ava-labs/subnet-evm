@@ -140,7 +140,6 @@ func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(longOrder Order, short
 		return err
 	}
 
-	// log.Info("ExecuteMatchedOrdersTx", "orders[0]", hex.EncodeToString(orders[0]), "orders[1]", hex.EncodeToString(orders[1]), "fillAmount", prettifyScaledBigInt(fillAmount, 18))
 	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "executeMatchedOrders", orders, fillAmount)
 	log.Info("ExecuteMatchedOrdersTx", "LongOrder", longOrder, "ShortOrder", shortOrder, "fillAmount", prettifyScaledBigInt(fillAmount, 18), "txHash", txHash.String(), "err", err)
 	return err

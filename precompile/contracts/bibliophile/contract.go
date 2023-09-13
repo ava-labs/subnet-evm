@@ -224,10 +224,8 @@ func validateLiquidationOrderAndDetermineFillPrice(accessibleState contract.Acce
 	}
 
 	// CUSTOM CODE STARTS HERE
-	output, err := ValidateLiquidationOrderAndDetermineFillPrice(accessibleState.GetStateDB(), &inputStruct)
-	if err != nil {
-		return nil, remainingGas, err
-	}
+	_ = inputStruct
+	output := big.NewInt(0)
 	packedOutput, err := PackValidateLiquidationOrderAndDetermineFillPriceOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
@@ -274,11 +272,9 @@ func validateOrdersAndDetermineFillPrice(accessibleState contract.AccessibleStat
 	}
 
 	// CUSTOM CODE STARTS HERE
-	output, err := ValidateOrdersAndDetermineFillPrice(accessibleState.GetStateDB(), &inputStruct)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-	packedOutput, err := PackValidateOrdersAndDetermineFillPriceOutput(*output)
+	_ = inputStruct
+	output := ValidateOrdersAndDetermineFillPriceOutput{}
+	packedOutput, err := PackValidateOrdersAndDetermineFillPriceOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
 	}

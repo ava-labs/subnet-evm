@@ -225,21 +225,18 @@ func (pipeline *MatchingPipeline) runLiquidations(liquidablePositions []Liquidab
 }
 
 func (pipeline *MatchingPipeline) runMatchingEngine(lotp LimitOrderTxProcessor, longOrders []Order, shortOrders []Order) {
-	if len(longOrders) == 0 || len(shortOrders) == 0 {
-		return
-	}
-
-	matchingComplete := false
 	for i := 0; i < len(longOrders); i++ {
+		// if there are no short orders or if the price of the first long order is < the price of the first short order, then we can stop matching
+		if len(shortOrders) == 0 || longOrders[i].Price.Cmp(shortOrders[0].Price) == -1 {
+			break
+		}
 		numOrdersExhausted := 0
 		for j := 0; j < len(shortOrders); j++ {
-			var ordersMatched bool
-			longOrders[i], shortOrders[j], ordersMatched = matchLongAndShortOrder(lotp, longOrders[i], shortOrders[j])
-			if !ordersMatched {
-				matchingComplete = true
-				break
-
+			fillAmount := areMatchingOrders(longOrders[i], shortOrders[j])
+			if fillAmount == nil {
+				continue
 			}
+			longOrders[i], shortOrders[j] = ExecuteMatchedOrders(lotp, longOrders[i], shortOrders[j], fillAmount)
 			if shortOrders[j].GetUnFilledBaseAssetQuantity().Sign() == 0 {
 				numOrdersExhausted++
 			}
@@ -247,11 +244,31 @@ func (pipeline *MatchingPipeline) runMatchingEngine(lotp LimitOrderTxProcessor, 
 				break
 			}
 		}
-		if matchingComplete {
-			break
-		}
 		shortOrders = shortOrders[numOrdersExhausted:]
 	}
+}
+
+func areMatchingOrders(longOrder, shortOrder Order) *big.Int {
+	if longOrder.Price.Cmp(shortOrder.Price) == -1 {
+		return nil
+	}
+	blockDiff := longOrder.BlockNumber.Cmp(shortOrder.BlockNumber)
+	if blockDiff == -1 && (longOrder.OrderType == IOCOrderType || shortOrder.isPostOnly()) ||
+		blockDiff == 1 && (shortOrder.OrderType == IOCOrderType || longOrder.isPostOnly()) {
+		return nil
+	}
+	fillAmount := utils.BigIntMinAbs(longOrder.GetUnFilledBaseAssetQuantity(), shortOrder.GetUnFilledBaseAssetQuantity())
+	if fillAmount.Sign() == 0 {
+		return nil
+	}
+	return fillAmount
+}
+
+func ExecuteMatchedOrders(lotp LimitOrderTxProcessor, longOrder, shortOrder Order, fillAmount *big.Int) (Order, Order) {
+	lotp.ExecuteMatchedOrdersTx(longOrder, shortOrder, fillAmount)
+	longOrder.FilledBaseAssetQuantity = big.NewInt(0).Add(longOrder.FilledBaseAssetQuantity, fillAmount)
+	shortOrder.FilledBaseAssetQuantity = big.NewInt(0).Sub(shortOrder.FilledBaseAssetQuantity, fillAmount)
+	return longOrder, shortOrder
 }
 
 func matchLongAndShortOrder(lotp LimitOrderTxProcessor, longOrder, shortOrder Order) (Order, Order, bool) {

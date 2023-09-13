@@ -16,8 +16,6 @@ type BibliophileClient interface {
 	GetTakerFee() *big.Int
 	//orderbook
 	GetSize(market common.Address, trader *common.Address) *big.Int
-	DetermineFillPrice(marketId int64, longOrderPrice, shortOrderPrice, blockPlaced0, blockPlaced1 *big.Int) (*ValidateOrdersAndDetermineFillPriceOutput, error)
-	DetermineLiquidationFillPrice(marketId int64, baseAssetQuantity, price *big.Int) (*big.Int, error)
 	GetLongOpenOrdersAmount(trader common.Address, ammIndex *big.Int) *big.Int
 	GetShortOpenOrdersAmount(trader common.Address, ammIndex *big.Int) *big.Int
 	GetReduceOnlyAmount(trader common.Address, ammIndex *big.Int) *big.Int
@@ -44,6 +42,7 @@ type BibliophileClient interface {
 	GetBidsHead(market common.Address) *big.Int
 	GetAsksHead(market common.Address) *big.Int
 	GetUpperAndLowerBoundForMarket(marketId int64) (*big.Int, *big.Int)
+	GetAcceptableBoundsForLiquidation(marketId int64) (*big.Int, *big.Int)
 
 	GetAccessibleState() contract.AccessibleState
 }
@@ -81,14 +80,6 @@ func (b *bibliophileClient) GetTakerFee() *big.Int {
 
 func (b *bibliophileClient) GetMarketAddressFromMarketID(marketID int64) common.Address {
 	return getMarketAddressFromMarketID(marketID, b.accessibleState.GetStateDB())
-}
-
-func (b *bibliophileClient) DetermineFillPrice(marketId int64, longOrderPrice, shortOrderPrice, blockPlaced0, blockPlaced1 *big.Int) (*ValidateOrdersAndDetermineFillPriceOutput, error) {
-	return DetermineFillPrice(b.accessibleState.GetStateDB(), marketId, longOrderPrice, shortOrderPrice, blockPlaced0, blockPlaced1)
-}
-
-func (b *bibliophileClient) DetermineLiquidationFillPrice(marketId int64, baseAssetQuantity, price *big.Int) (*big.Int, error) {
-	return DetermineLiquidationFillPrice(b.accessibleState.GetStateDB(), marketId, baseAssetQuantity, price)
 }
 
 func (b *bibliophileClient) GetBlockPlaced(orderHash [32]byte) *big.Int {
@@ -153,6 +144,10 @@ func (b *bibliophileClient) GetImpactMarginNotional(ammAddress common.Address) *
 
 func (b *bibliophileClient) GetUpperAndLowerBoundForMarket(marketId int64) (*big.Int, *big.Int) {
 	return GetAcceptableBounds(b.accessibleState.GetStateDB(), marketId)
+}
+
+func (b *bibliophileClient) GetAcceptableBoundsForLiquidation(marketId int64) (*big.Int, *big.Int) {
+	return GetAcceptableBoundsForLiquidation(b.accessibleState.GetStateDB(), marketId)
 }
 
 func (b *bibliophileClient) GetBidsHead(market common.Address) *big.Int {

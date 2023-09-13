@@ -9,6 +9,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
 	b "github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -18,6 +19,7 @@ type OrderType uint8
 const (
 	Limit OrderType = iota
 	IOC
+	PostOnly
 )
 
 type DecodeStep struct {
@@ -32,6 +34,7 @@ type Metadata struct {
 	Price             *big.Int
 	BlockPlaced       *big.Int
 	OrderHash         common.Hash
+	OrderType         OrderType
 }
 
 type Side uint8
@@ -66,8 +69,8 @@ var (
 	ErrCancelledOrder                     = errors.New("cancelled order")
 	ErrFilledOrder                        = errors.New("filled order")
 	ErrOrderAlreadyExists                 = errors.New("order already exists")
-	ErrTooLow                             = errors.New("OB_long_order_price_too_low")
-	ErrTooHigh                            = errors.New("OB_short_order_price_too_high")
+	ErrTooLow                             = errors.New("long price below lower bound")
+	ErrTooHigh                            = errors.New("short price above upper bound")
 	ErrOverFill                           = errors.New("overfill")
 	ErrReduceOnlyAmountExceeded           = errors.New("not reducing pos")
 	ErrBaseAssetQuantityZero              = errors.New("baseAssetQuantity is zero")
@@ -76,6 +79,7 @@ var (
 	ErrStaleReduceOnlyOrders              = errors.New("cancel stale reduce only orders")
 	ErrInsufficientMargin                 = errors.New("insufficient margin")
 	ErrCrossingMarket                     = errors.New("crossing market")
+	ErrIOCOrderExpired                    = errors.New("IOC order expired")
 	ErrOpenOrders                         = errors.New("open orders")
 	ErrOpenReduceOnlyOrders               = errors.New("open reduce only orders")
 	ErrNoTradingAuthority                 = errors.New("no trading authority")
@@ -122,7 +126,7 @@ func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputS
 		return nil, ErrNotMultiple
 	}
 
-	fillPriceAndModes, err := bibliophile.DetermineFillPrice(m0.AmmIndex.Int64(), m0.Price, m1.Price, m0.BlockPlaced, m1.BlockPlaced)
+	fillPriceAndModes, err := determineFillPrice(bibliophile, m0, m1)
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +137,13 @@ func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputS
 				AmmIndex:  m0.AmmIndex,
 				Trader:    m0.Trader,
 				OrderHash: m0.OrderHash,
-				Mode:      fillPriceAndModes.Mode0,
+				Mode:      uint8(fillPriceAndModes.Mode0),
 			},
 			IClearingHouseInstruction{
 				AmmIndex:  m1.AmmIndex,
 				Trader:    m1.Trader,
 				OrderHash: m1.OrderHash,
-				Mode:      fillPriceAndModes.Mode1,
+				Mode:      uint8(fillPriceAndModes.Mode1),
 			},
 		},
 		OrderTypes: [2]uint8{uint8(decodeStep0.OrderType), uint8(decodeStep1.OrderType)},
@@ -150,6 +154,76 @@ func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputS
 		FillPrice: fillPriceAndModes.FillPrice,
 	}
 	return output, nil
+}
+
+type executionMode uint8
+
+// DO NOT change this ordering because it is critical for the clearing house to determine the correct fill mode
+const (
+	Taker executionMode = iota
+	Maker
+)
+
+type FillPriceAndModes struct {
+	FillPrice *big.Int
+	Mode0     executionMode
+	Mode1     executionMode
+}
+
+func determineFillPrice(bibliophile b.BibliophileClient, m0, m1 *Metadata) (*FillPriceAndModes, error) {
+	output := FillPriceAndModes{}
+	upperBound, lowerBound := bibliophile.GetUpperAndLowerBoundForMarket(m0.AmmIndex.Int64())
+	if m0.Price.Cmp(lowerBound) == -1 {
+		return nil, ErrTooLow
+	}
+	if m1.Price.Cmp(upperBound) == 1 {
+		return nil, ErrTooHigh
+	}
+
+	blockDiff := m0.BlockPlaced.Cmp(m1.BlockPlaced)
+	if blockDiff == -1 {
+		// order0 came first, can't be IOC order
+		if m0.OrderType == IOC {
+			return nil, ErrIOCOrderExpired
+		}
+		// order1 came second, can't be post only order
+		if m1.OrderType == PostOnly {
+			return nil, ErrCrossingMarket
+		}
+		output.Mode0 = Maker
+		output.Mode1 = Taker
+	} else if blockDiff == 1 {
+		// order1 came first, can't be IOC order
+		if m1.OrderType == IOC {
+			return nil, ErrIOCOrderExpired
+		}
+		// order0 came second, can't be post only order
+		if m0.OrderType == PostOnly {
+			return nil, ErrCrossingMarket
+		}
+		output.Mode0 = Taker
+		output.Mode1 = Maker
+	} else {
+		// both orders were placed in same block
+		if m1.OrderType == IOC {
+			// order1 is IOC, order0 is Limit or post only
+			output.Mode0 = Maker
+			output.Mode1 = Taker
+		} else {
+			// scenarios:
+			// 1. order0 is IOC, order1 is Limit or post only
+			// 2. both order0 and order1 are Limit or post only (in that scenario we default to long being the taker order, which can sometimes result in a better execution price for them)
+			output.Mode0 = Taker
+			output.Mode1 = Maker
+		}
+	}
+
+	if output.Mode0 == Maker {
+		output.FillPrice = utils.BigIntMin(m0.Price, upperBound)
+	} else {
+		output.FillPrice = utils.BigIntMax(m1.Price, lowerBound)
+	}
+	return &output, nil
 }
 
 func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClient, inputStruct *ValidateLiquidationOrderAndDetermineFillPriceInput) (*ValidateLiquidationOrderAndDetermineFillPriceOutput, error) {
@@ -176,7 +250,7 @@ func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClie
 		return nil, ErrNotMultiple
 	}
 
-	fillPrice, err := bibliophile.DetermineLiquidationFillPrice(m0.AmmIndex.Int64(), m0.BaseAssetQuantity, m0.Price)
+	fillPrice, err := determineLiquidationFillPrice(bibliophile, m0)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +260,7 @@ func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClie
 			AmmIndex:  m0.AmmIndex,
 			Trader:    m0.Trader,
 			OrderHash: m0.OrderHash,
-			Mode:      1, // Maker
+			Mode:      uint8(Maker),
 		},
 		OrderType:    uint8(decodeStep0.OrderType),
 		EncodedOrder: decodeStep0.EncodedOrder,
@@ -194,6 +268,25 @@ func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClie
 		FillAmount:   fillAmount,
 	}
 	return output, nil
+}
+
+func determineLiquidationFillPrice(bibliophile b.BibliophileClient, m0 *Metadata) (*big.Int, error) {
+	liqUpperBound, liqLowerBound := bibliophile.GetAcceptableBoundsForLiquidation(m0.AmmIndex.Int64())
+	upperBound, lowerBound := bibliophile.GetUpperAndLowerBoundForMarket(m0.AmmIndex.Int64())
+	if m0.BaseAssetQuantity.Sign() > 0 {
+		// we are liquidating a long position
+		// do not allow liquidation if order.Price < liqLowerBound, because that gives scope for malicious activity to a validator
+		if m0.Price.Cmp(liqLowerBound) == -1 {
+			return nil, ErrTooLow
+		}
+		return utils.BigIntMin(m0.Price, upperBound /* oracle spread upper bound */), nil
+	}
+
+	// we are liquidating a short position
+	if m0.Price.Cmp(liqUpperBound) == 1 {
+		return nil, ErrTooHigh
+	}
+	return utils.BigIntMax(m0.Price, lowerBound /* oracle spread lower bound */), nil
 }
 
 func decodeTypeAndEncodedOrder(data []byte) (*DecodeStep, error) {
@@ -219,7 +312,13 @@ func validateOrder(bibliophile b.BibliophileClient, orderType OrderType, encoded
 		if err != nil {
 			return nil, err
 		}
-		return validateExecuteLimitOrder(bibliophile, order, side, fillAmount, orderHash)
+		metadata, err := validateExecuteLimitOrder(bibliophile, order, side, fillAmount, orderHash)
+		if order.PostOnly {
+			metadata.OrderType = PostOnly
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	if orderType == IOC {
 		order, err := orderbook.DecodeIOCOrder(encodedOrder)
@@ -244,6 +343,7 @@ func validateExecuteLimitOrder(bibliophile b.BibliophileClient, order *orderbook
 		BlockPlaced:       bibliophile.GetBlockPlaced(orderHash),
 		Price:             order.Price,
 		OrderHash:         orderHash,
+		OrderType:         Limit,
 	}, nil
 }
 
@@ -385,6 +485,7 @@ func validateExecuteIOCOrder(bibliophile b.BibliophileClient, order *orderbook.I
 		BlockPlaced:       bibliophile.IOC_GetBlockPlaced(orderHash),
 		Price:             order.Price,
 		OrderHash:         orderHash,
+		OrderType:         IOC,
 	}, nil
 }
 
