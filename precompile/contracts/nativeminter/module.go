@@ -15,12 +15,13 @@ import (
 
 var _ contract.Configurator = &configurator{}
 
-// ConfigKey is the key used in json config files to specify this precompile config.
+// ConfigKey is the key used in json config files to specify this precompile precompileconfig.
 // must be unique across all precompiles.
 const ConfigKey = "contractNativeMinterConfig"
 
 var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000001")
 
+// Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{
 	ConfigKey:    ConfigKey,
 	Address:      ContractAddress,
