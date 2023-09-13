@@ -56,12 +56,9 @@ func getBlockPlaced(stateDB contract.StateDB, orderHash [32]byte) *big.Int {
 	return new(big.Int).SetBytes(stateDB.GetState(common.HexToAddress(ORDERBOOK_GENESIS_ADDRESS), common.BigToHash(orderInfo)).Bytes())
 }
 
-func getOrderFilledAmount(stateDB contract.StateDB, orderHash [32]byte, blockTimestamp *big.Int) *big.Int {
+func getOrderFilledAmount(stateDB contract.StateDB, orderHash [32]byte) *big.Int {
 	orderInfo := orderInfoMappingStorageSlot(orderHash)
 	num := stateDB.GetState(common.HexToAddress(ORDERBOOK_GENESIS_ADDRESS), common.BigToHash(new(big.Int).Add(orderInfo, big.NewInt(1)))).Bytes()
-	if blockTimestamp != nil && blockTimestamp.Cmp(V3ActivationDate) == -1 {
-		return new(big.Int).SetBytes(num)
-	}
 	return fromTwosComplement(num)
 }
 

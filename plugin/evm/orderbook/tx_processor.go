@@ -3,6 +3,7 @@ package orderbook
 import (
 	"context"
 	"crypto/ecdsa"
+
 	// "encoding/hex"
 	"errors"
 	"fmt"
@@ -36,7 +37,7 @@ type LimitOrderTxProcessor interface {
 	ExecuteSamplePITx() error
 	ExecuteLiquidation(trader common.Address, matchedOrder Order, fillAmount *big.Int) error
 	UpdateMetrics(block *types.Block)
-	ExecuteLimitOrderCancel(orderIds []LimitOrderV2) error
+	ExecuteLimitOrderCancel(orderIds []LimitOrder) error
 }
 
 type ValidatorTxFeeConfig struct {
@@ -145,7 +146,7 @@ func (lotp *limitOrderTxProcessor) ExecuteMatchedOrdersTx(longOrder Order, short
 	return err
 }
 
-func (lotp *limitOrderTxProcessor) ExecuteLimitOrderCancel(orders []LimitOrderV2) error {
+func (lotp *limitOrderTxProcessor) ExecuteLimitOrderCancel(orders []LimitOrder) error {
 	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "cancelOrdersWithLowMargin", orders)
 	log.Info("ExecuteLimitOrderCancel", "orders", orders, "txHash", txHash.String(), "err", err)
 	return err
@@ -361,29 +362,4 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 			}
 		}
 	}
-}
-
-func EncodeLimitOrder(order LimitOrder) ([]byte, error) {
-	limitOrderType, _ := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
-		{Name: "ammIndex", Type: "uint256"},
-		{Name: "trader", Type: "address"},
-		{Name: "baseAssetQuantity", Type: "int256"},
-		{Name: "price", Type: "uint256"},
-		{Name: "salt", Type: "uint256"},
-		{Name: "reduceOnly", Type: "bool"},
-	})
-
-	encodedLimitOrder, err := abi.Arguments{{Type: limitOrderType}}.Pack(order)
-	if err != nil {
-		return nil, fmt.Errorf("limit order packing failed: %w", err)
-	}
-
-	orderType, _ := abi.NewType("uint8", "uint8", nil)
-	orderBytesType, _ := abi.NewType("bytes", "bytes", nil)
-	encodedOrder, err := abi.Arguments{{Type: orderType}, {Type: orderBytesType}}.Pack(uint8(0), encodedLimitOrder)
-	if err != nil {
-		return nil, fmt.Errorf("order encoding failed: %w", err)
-	}
-
-	return encodedOrder, nil
 }

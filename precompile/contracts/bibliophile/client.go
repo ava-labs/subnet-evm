@@ -96,7 +96,7 @@ func (b *bibliophileClient) GetBlockPlaced(orderHash [32]byte) *big.Int {
 }
 
 func (b *bibliophileClient) GetOrderFilledAmount(orderHash [32]byte) *big.Int {
-	return getOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash, new(big.Int).SetUint64(b.accessibleState.GetBlockContext().Timestamp()))
+	return getOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash)
 }
 
 func (b *bibliophileClient) GetOrderStatus(orderHash [32]byte) int64 {
@@ -108,7 +108,7 @@ func (b *bibliophileClient) IOC_GetBlockPlaced(orderHash [32]byte) *big.Int {
 }
 
 func (b *bibliophileClient) IOC_GetOrderFilledAmount(orderHash [32]byte) *big.Int {
-	return iocGetOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash, new(big.Int).SetUint64(b.accessibleState.GetBlockContext().Timestamp()))
+	return iocGetOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash)
 }
 
 func (b *bibliophileClient) IOC_GetOrderStatus(orderHash [32]byte) int64 {
@@ -176,6 +176,5 @@ func (b *bibliophileClient) GetReduceOnlyAmount(trader common.Address, ammIndex 
 }
 
 func (b *bibliophileClient) GetAvailableMargin(trader common.Address) *big.Int {
-	blockTimestamp := new(big.Int).SetUint64(b.accessibleState.GetBlockContext().Timestamp())
-	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader, blockTimestamp)
+	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader)
 }

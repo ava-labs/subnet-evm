@@ -18,7 +18,6 @@ type OrderType uint8
 const (
 	Limit OrderType = iota
 	IOC
-	LimitV2
 )
 
 type DecodeStep struct {
@@ -229,25 +228,13 @@ func validateOrder(bibliophile b.BibliophileClient, orderType OrderType, encoded
 		}
 		return validateExecuteIOCOrder(bibliophile, order, side, fillAmount)
 	}
-	if orderType == LimitV2 {
-		order, err := orderbook.DecodeLimitOrderV2(encodedOrder)
-		if err != nil {
-			return nil, err
-		}
-		orderHash, err := GetLimitOrderV2Hash_2(order)
-		if err != nil {
-			return nil, err
-		}
-		// order.postOnly field is not required to be validated while matching
-		return validateExecuteLimitOrder(bibliophile, &order.LimitOrder, side, fillAmount, orderHash)
-	}
 	return nil, errors.New("invalid order type")
 }
 
 // Limit Orders
 
 func validateExecuteLimitOrder(bibliophile b.BibliophileClient, order *orderbook.LimitOrder, side Side, fillAmount *big.Int, orderHash [32]byte) (metadata *Metadata, err error) {
-	if err := validateLimitOrderLike(bibliophile, order, bibliophile.GetOrderFilledAmount(orderHash), OrderStatus(bibliophile.GetOrderStatus(orderHash)), side, fillAmount); err != nil {
+	if err := validateLimitOrderLike(bibliophile, &order.BaseOrder, bibliophile.GetOrderFilledAmount(orderHash), OrderStatus(bibliophile.GetOrderStatus(orderHash)), side, fillAmount); err != nil {
 		return nil, err
 	}
 	return &Metadata{
@@ -260,7 +247,7 @@ func validateExecuteLimitOrder(bibliophile b.BibliophileClient, order *orderbook
 	}, nil
 }
 
-func validateLimitOrderLike(bibliophile b.BibliophileClient, order *orderbook.LimitOrder, filledAmount *big.Int, status OrderStatus, side Side, fillAmount *big.Int) error {
+func validateLimitOrderLike(bibliophile b.BibliophileClient, order *orderbook.BaseOrder, filledAmount *big.Int, status OrderStatus, side Side, fillAmount *big.Int) error {
 	if status != Placed {
 		return ErrInvalidOrder
 	}
@@ -354,10 +341,10 @@ func ValidatePlaceIOCOrders(bibliophile b.BibliophileClient, inputStruct *Valida
 		// this check is as such not required, because even if this order is not reducing the position, it will be rejected by the matching engine and expire away
 		// this check is sort of also redundant because either ways user can circumvent this by placing several reduceOnly orders
 		// if order.ReduceOnly {}
-		orderHashes[i], err = getIOCOrderHash(&orderbook.IOCOrder{
+		orderHashes[i], err = GetIOCOrderHash(&orderbook.IOCOrder{
 			OrderType: order.OrderType,
 			ExpireAt:  order.ExpireAt,
-			LimitOrder: orderbook.LimitOrder{
+			BaseOrder: orderbook.BaseOrder{
 				AmmIndex:          order.AmmIndex,
 				Trader:            order.Trader,
 				BaseAssetQuantity: order.BaseAssetQuantity,
@@ -384,11 +371,11 @@ func validateExecuteIOCOrder(bibliophile b.BibliophileClient, order *orderbook.I
 	if order.ExpireAt.Cmp(blockTimestamp) < 0 {
 		return nil, errors.New("ioc expired")
 	}
-	orderHash, err := getIOCOrderHash(order)
+	orderHash, err := GetIOCOrderHash(order)
 	if err != nil {
 		return nil, err
 	}
-	if err := validateLimitOrderLike(bibliophile, &order.LimitOrder, bibliophile.IOC_GetOrderFilledAmount(orderHash), OrderStatus(bibliophile.IOC_GetOrderStatus(orderHash)), side, fillAmount); err != nil {
+	if err := validateLimitOrderLike(bibliophile, &order.BaseOrder, bibliophile.IOC_GetOrderFilledAmount(orderHash), OrderStatus(bibliophile.IOC_GetOrderStatus(orderHash)), side, fillAmount); err != nil {
 		return nil, err
 	}
 	return &Metadata{
@@ -514,104 +501,82 @@ func GetBaseQuote(bibliophile b.BibliophileClient, ammAddress common.Address, qu
 	return _sampleImpactBid(bibliophile, ammAddress, new(big.Int).Neg(quoteAssetQuantity))
 }
 
-// Limit Orders V2
-func ValidateCancelLimitOrderV2(bibliophile b.BibliophileClient, inputStruct *ValidateCancelLimitOrderInput, blockTimestamp *big.Int) *ValidateCancelLimitOrderOutput {
-	errorString, orderHash, ammAddress, unfilledAmount := validateCancelLimitOrderV2(bibliophile, inputStruct.Order, inputStruct.Trader, inputStruct.AssertLowMargin, blockTimestamp)
-	return &ValidateCancelLimitOrderOutput{
-		Err:       errorString,
-		OrderHash: orderHash,
-		Res: IOrderHandlerCancelOrderRes{
-			Amm:            ammAddress,
-			UnfilledAmount: unfilledAmount,
-		},
-	}
-}
+// Limit Orders
+func ValidateCancelLimitOrder(bibliophile b.BibliophileClient, inputStruct *ValidateCancelLimitOrderInput) (response *ValidateCancelLimitOrderOutput) {
+	order := inputStruct.Order
+	sender := inputStruct.Trader
+	assertLowMargin := inputStruct.AssertLowMargin
 
-// Sunday, 3 September 2023 10:35:00 UTC
-var V4ActivationDate *big.Int = new(big.Int).SetInt64(1693737300)
+	response = &ValidateCancelLimitOrderOutput{Res: IOrderHandlerCancelOrderRes{}}
+	response.Res.UnfilledAmount = big.NewInt(0)
 
-func validateCancelLimitOrderV2(bibliophile b.BibliophileClient, order ILimitOrderBookOrderV2, sender common.Address, assertLowMargin bool, blockTimestamp *big.Int) (errorString string, orderHash [32]byte, ammAddress common.Address, unfilledAmount *big.Int) {
-	unfilledAmount = big.NewInt(0)
 	trader := order.Trader
-	if blockTimestamp != nil && blockTimestamp.Cmp(V4ActivationDate) == 1 {
-		if (!assertLowMargin && trader != sender && !bibliophile.IsTradingAuthority(trader, sender)) ||
-			(assertLowMargin && !bibliophile.IsValidator(sender)) {
-			errorString = ErrNoTradingAuthority.Error()
-			return
-		}
-	} else {
-		if trader != sender && !bibliophile.IsTradingAuthority(trader, sender) {
-			errorString = ErrNoTradingAuthority.Error()
-			return
-		}
+	if (!assertLowMargin && trader != sender && !bibliophile.IsTradingAuthority(trader, sender)) ||
+		(assertLowMargin && !bibliophile.IsValidator(sender)) {
+		response.Err = ErrNoTradingAuthority.Error()
+		return
 	}
-	orderHash, err := GetLimitOrderV2Hash(&order)
+	orderHash, err := GetLimitOrderHashFromContractStruct(&order)
+	response.OrderHash = orderHash
 	if err != nil {
-		errorString = err.Error()
+		response.Err = err.Error()
 		return
 	}
 	switch status := OrderStatus(bibliophile.GetOrderStatus(orderHash)); status {
 	case Invalid:
-		errorString = "Invalid"
+		response.Err = "Invalid"
 		return
 	case Filled:
-		errorString = "Filled"
+		response.Err = "Filled"
 		return
 	case Cancelled:
-		errorString = "Cancelled"
+		response.Err = "Cancelled"
 		return
 	default:
 	}
 	if assertLowMargin && bibliophile.GetAvailableMargin(trader).Sign() != -1 {
-		errorString = "Not Low Margin"
+		response.Err = "Not Low Margin"
 		return
 	}
-	unfilledAmount = big.NewInt(0).Sub(order.BaseAssetQuantity, bibliophile.GetOrderFilledAmount(orderHash))
-	ammAddress = bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())
-	return
+	response.Res.UnfilledAmount = big.NewInt(0).Sub(order.BaseAssetQuantity, bibliophile.GetOrderFilledAmount(orderHash))
+	response.Res.Amm = bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())
+
+	return response
 }
 
-func ValidatePlaceLimitOrderV2(bibliophile b.BibliophileClient, order ILimitOrderBookOrderV2, trader common.Address) *ValidatePlaceLimitOrderOutput {
-	errorString, orderHash, ammAddress, reserveAmount := validatePlaceLimitOrderV2(bibliophile, order, trader)
-	return &ValidatePlaceLimitOrderOutput{
-		Errs:      errorString,
-		Orderhash: orderHash,
-		Res: IOrderHandlerPlaceOrderRes{
-			Amm:           ammAddress,
-			ReserveAmount: reserveAmount,
-		},
-	}
-}
+func ValidatePlaceLimitOrder(bibliophile b.BibliophileClient, order ILimitOrderBookOrderV2, sender common.Address) (response *ValidatePlaceLimitOrderOutput) {
+	response = &ValidatePlaceLimitOrderOutput{Res: IOrderHandlerPlaceOrderRes{}}
+	response.Res.ReserveAmount = big.NewInt(0)
+	orderHash, err := GetLimitOrderHashFromContractStruct(&order)
+	response.Orderhash = orderHash
 
-func validatePlaceLimitOrderV2(bibliophile b.BibliophileClient, order ILimitOrderBookOrderV2, sender common.Address) (errorString string, orderHash [32]byte, ammAddress common.Address, reserveAmount *big.Int) {
-	reserveAmount = big.NewInt(0)
-	orderHash, err := GetLimitOrderV2Hash(&order)
 	if err != nil {
-		errorString = err.Error()
+		response.Errs = err.Error()
 		return
 	}
 	if order.Price.Sign() != 1 {
-		errorString = ErrInvalidPrice.Error()
+		response.Errs = ErrInvalidPrice.Error()
 		return
 	}
 	trader := order.Trader
 	if trader != sender && !bibliophile.IsTradingAuthority(trader, sender) {
-		errorString = ErrNoTradingAuthority.Error()
+		response.Errs = ErrNoTradingAuthority.Error()
 		return
 	}
-	ammAddress = bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())
+	ammAddress := bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())
+	response.Res.Amm = ammAddress
 	if order.BaseAssetQuantity.Sign() == 0 {
-		errorString = ErrBaseAssetQuantityZero.Error()
+		response.Errs = ErrBaseAssetQuantityZero.Error()
 		return
 	}
 	minSize := bibliophile.GetMinSizeRequirement(order.AmmIndex.Int64())
 	if new(big.Int).Mod(order.BaseAssetQuantity, minSize).Sign() != 0 {
-		errorString = ErrNotMultiple.Error()
+		response.Errs = ErrNotMultiple.Error()
 		return
 	}
 	status := OrderStatus(bibliophile.GetOrderStatus(orderHash))
 	if status != Invalid {
-		errorString = ErrOrderAlreadyExists.Error()
+		response.Errs = ErrOrderAlreadyExists.Error()
 		return
 	}
 
@@ -620,7 +585,7 @@ func validatePlaceLimitOrderV2(bibliophile b.BibliophileClient, order ILimitOrde
 	// this should only happen when a trader with open reduce only orders was liquidated
 	if (posSize.Sign() == 0 && reduceOnlyAmount.Sign() != 0) || (posSize.Sign() != 0 && new(big.Int).Mul(posSize, reduceOnlyAmount).Sign() == 1) {
 		// if position is non-zero then reduceOnlyAmount should be zero or have the opposite sign as posSize
-		errorString = ErrStaleReduceOnlyOrders.Error()
+		response.Errs = ErrStaleReduceOnlyOrders.Error()
 		return
 	}
 
@@ -630,41 +595,41 @@ func validatePlaceLimitOrderV2(bibliophile b.BibliophileClient, order ILimitOrde
 	}
 	if order.ReduceOnly {
 		if !reducesPosition(posSize, order.BaseAssetQuantity) {
-			errorString = ErrReduceOnlyBaseAssetQuantityInvalid.Error()
+			response.Errs = ErrReduceOnlyBaseAssetQuantityInvalid.Error()
 			return
 		}
 		longOrdersAmount := bibliophile.GetLongOpenOrdersAmount(trader, order.AmmIndex)
 		shortOrdersAmount := bibliophile.GetShortOpenOrdersAmount(trader, order.AmmIndex)
 		if (orderSide == Side(Long) && longOrdersAmount.Sign() != 0) || (orderSide == Side(Short) && shortOrdersAmount.Sign() != 0) {
-			errorString = ErrOpenOrders.Error()
+			response.Errs = ErrOpenOrders.Error()
 			return
 		}
 		if big.NewInt(0).Abs(big.NewInt(0).Add(reduceOnlyAmount, order.BaseAssetQuantity)).Cmp(big.NewInt(0).Abs(posSize)) == 1 {
-			errorString = ErrNetReduceOnlyAmountExceeded.Error()
+			response.Errs = ErrNetReduceOnlyAmountExceeded.Error()
 			return
 		}
 	} else {
 		if reduceOnlyAmount.Sign() != 0 && order.BaseAssetQuantity.Sign() != posSize.Sign() {
-			errorString = ErrOpenReduceOnlyOrders.Error()
+			response.Errs = ErrOpenReduceOnlyOrders.Error()
 			return
 		}
 		availableMargin := bibliophile.GetAvailableMargin(trader)
 		requiredMargin := getRequiredMargin(bibliophile, order)
 		if availableMargin.Cmp(requiredMargin) == -1 {
-			errorString = ErrInsufficientMargin.Error()
+			response.Errs = ErrInsufficientMargin.Error()
 			return
 		}
-		reserveAmount = requiredMargin
+		response.Res.ReserveAmount = requiredMargin
 	}
 	if order.PostOnly {
 		asksHead := bibliophile.GetAsksHead(ammAddress)
 		bidsHead := bibliophile.GetBidsHead(ammAddress)
 		if (orderSide == Side(Short) && bidsHead.Sign() != 0 && order.Price.Cmp(bidsHead) != 1) || (orderSide == Side(Long) && asksHead.Sign() != 0 && order.Price.Cmp(asksHead) != -1) {
-			errorString = ErrCrossingMarket.Error()
+			response.Errs = ErrCrossingMarket.Error()
 			return
 		}
 	}
-	return
+	return response
 }
 
 func reducesPosition(positionSize *big.Int, baseAssetQuantity *big.Int) bool {
@@ -723,20 +688,7 @@ func formatOrder(orderBytes []byte) interface{} {
 			return decodeStep0
 		}
 		orderJson := order.Map()
-		orderHash, err := getIOCOrderHash(order)
-		if err != nil {
-			return orderJson
-		}
-		orderJson["hash"] = orderHash.String()
-		return orderJson
-	}
-	if decodeStep0.OrderType == LimitV2 {
-		order, err := orderbook.DecodeLimitOrderV2(decodeStep0.EncodedOrder)
-		if err != nil {
-			return decodeStep0
-		}
-		orderJson := order.Map()
-		orderHash, err := GetLimitOrderV2Hash_2(order)
+		orderHash, err := GetIOCOrderHash(order)
 		if err != nil {
 			return orderJson
 		}

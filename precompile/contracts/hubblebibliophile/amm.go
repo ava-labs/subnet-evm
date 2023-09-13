@@ -25,11 +25,6 @@ const (
 	TEST_ORACLE_PRICES_MAPPING_SLOT int64 = 53
 )
 
-var (
-	// Date and time (GMT): riday, 9 June 2023 14:40:00
-	V2ActivationDate *big.Int = new(big.Int).SetInt64(1686321600)
-)
-
 // AMM State
 func getLastPrice(stateDB contract.StateDB, market common.Address) *big.Int {
 	return stateDB.GetState(market, common.BigToHash(big.NewInt(MARK_PRICE_TWAP_DATA_SLOT))).Big()
@@ -145,7 +140,7 @@ func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 	} else {
 		uPnl = new(big.Int).Sub(openNotional, notionalPos)
 	}
-	marginFraction = new(big.Int).Div(multiply1e6(new(big.Int).Add(margin, uPnl), blockTimestamp), notionalPos)
+	marginFraction = new(big.Int).Div(multiply1e6(new(big.Int).Add(margin, uPnl)), notionalPos)
 	return notionalPos, uPnl, marginFraction
 }
 
@@ -155,21 +150,8 @@ func divide1e18(number *big.Int) *big.Int {
 	return big.NewInt(0).Div(number, big.NewInt(1e18))
 }
 
-func multiply1e6(number *big.Int, blockTimestamp *big.Int) *big.Int {
-	if blockTimestamp.Cmp(V2ActivationDate) == 1 {
-		return multiply1e6v2(number)
-	}
-	return multiply1e6v1(number)
-}
-
-// multiple1e6 v1
-func multiply1e6v1(number *big.Int) *big.Int {
-	return new(big.Int).Div(number, big.NewInt(1e6))
-
-}
-
-// multiple1e6 v2
-func multiply1e6v2(number *big.Int) *big.Int {
+// multiple1e6
+func multiply1e6(number *big.Int) *big.Int {
 	return new(big.Int).Mul(number, big.NewInt(1e6))
 }
 

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -102,7 +101,7 @@ type Order struct {
 	Id                      common.Hash
 	Market                  Market
 	PositionType            PositionType
-	UserAddress             string
+	Trader                  common.Address
 	BaseAssetQuantity       *big.Int
 	FilledBaseAssetQuantity *big.Int
 	Salt                    *big.Int
@@ -118,7 +117,7 @@ func (order *Order) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
 		Market                  Market      `json:"market"`
 		PositionType            string      `json:"position_type"`
-		UserAddress             string      `json:"user_address"`
+		Trader                  string      `json:"trader"`
 		BaseAssetQuantity       string      `json:"base_asset_quantity"`
 		FilledBaseAssetQuantity string      `json:"filled_base_asset_quantity"`
 		Salt                    string      `json:"salt"`
@@ -130,7 +129,7 @@ func (order *Order) MarshalJSON() ([]byte, error) {
 	}{
 		Market:                  order.Market,
 		PositionType:            order.PositionType.String(),
-		UserAddress:             order.UserAddress,
+		Trader:                  order.Trader.String(),
 		BaseAssetQuantity:       order.BaseAssetQuantity.String(),
 		FilledBaseAssetQuantity: order.FilledBaseAssetQuantity.String(),
 		Salt:                    order.Salt.String(),
@@ -159,14 +158,16 @@ func (order Order) getExpireAt() *big.Int {
 }
 
 func (order Order) isPostOnly() bool {
-	if rawOrder, ok := order.RawOrder.(*LimitOrderV2); ok {
-		return rawOrder.PostOnly
+	if order.OrderType == LimitOrderType {
+		if rawOrder, ok := order.RawOrder.(*LimitOrder); ok {
+			return rawOrder.PostOnly
+		}
 	}
 	return false
 }
 
 func (order Order) String() string {
-	return fmt.Sprintf("Order: Id: %s, OrderType: %s, Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, PostOnly: %v, BlockNumber: %s", order.Id, order.OrderType, order.Market, order.PositionType, order.UserAddress, prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.isPostOnly(), order.BlockNumber)
+	return fmt.Sprintf("Order: Id: %s, OrderType: %s, Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, PostOnly: %v, BlockNumber: %s", order.Id, order.OrderType, order.Market, order.PositionType, order.Trader.String(), prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.isPostOnly(), order.BlockNumber)
 }
 
 func (order Order) ToOrderMin() OrderMin {
@@ -174,7 +175,7 @@ func (order Order) ToOrderMin() OrderMin {
 		Market:  order.Market,
 		Price:   order.Price.String(),
 		Size:    order.GetUnFilledBaseAssetQuantity().String(),
-		Signer:  order.UserAddress,
+		Signer:  order.Trader.String(),
 		OrderId: order.Id.String(),
 	}
 }
@@ -519,30 +520,6 @@ func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market,
 		db.TraderMap[trader].Positions[market].UnrealisedFunding = big.NewInt(0)
 	}
 
-	// before the rc9 release (completed at block 1530589) hubble-protocol, it was possible that the lastPremiumFraction for a trader was updated without emitting a corresponding event.
-	// This only happened in markets for which trader had a 0 position.
-	// Since we build the entire memory db state based on events alone, we miss these updates and hence "forcibly" set LastPremiumFraction = CumulativePremiumFraction for a trader in all markets
-	// note that in rc9 release this was changed and the "FundingPaid" event will always be emitted whenever the lastPremiumFraction is updated (EXCEPT for the case when trader opens a new position in the market - handled above)
-	// so while we still need this update for backwards compatibility, it can be removed when there is a fresh deployment of the entire system.
-	if blockNumber <= 1530589 {
-		for market, position := range db.TraderMap[trader].Positions {
-			if db.CumulativePremiumFraction[market] == nil {
-				db.CumulativePremiumFraction[market] = big.NewInt(0)
-			}
-			if position.LastPremiumFraction == nil {
-				position.LastPremiumFraction = big.NewInt(0)
-			}
-			if position.LastPremiumFraction.Cmp(db.CumulativePremiumFraction[market]) != 0 {
-				if position.Size == nil || position.Size.Sign() == 0 || calcPendingFunding(db.CumulativePremiumFraction[market], position.LastPremiumFraction, position.Size).Sign() == 0 {
-					// expected scenario
-					position.LastPremiumFraction = db.CumulativePremiumFraction[market]
-				} else {
-					log.Error("pendingFunding is not 0", "trader", trader.String(), "market", market, "position", position, "pendingFunding", calcPendingFunding(db.CumulativePremiumFraction[market], position.LastPremiumFraction, position.Size), "lastPremiumFraction", position.LastPremiumFraction, "cumulativePremiumFraction", db.CumulativePremiumFraction[market])
-				}
-			}
-		}
-	}
-
 	db.TraderMap[trader].Positions[market].Size = size
 	db.TraderMap[trader].Positions[market].OpenNotional = openNotional
 
@@ -807,9 +784,8 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 
 func (db *InMemoryDatabase) getTraderOrders(trader common.Address, orderType OrderType) []Order {
 	traderOrders := []Order{}
-	_trader := trader.String()
 	for _, order := range db.OrderMap {
-		if strings.EqualFold(order.UserAddress, _trader) && order.OrderType == orderType {
+		if order.Trader == trader && order.OrderType == orderType {
 			traderOrders = append(traderOrders, deepCopyOrder(order))
 		}
 	}
@@ -818,9 +794,8 @@ func (db *InMemoryDatabase) getTraderOrders(trader common.Address, orderType Ord
 
 func (db *InMemoryDatabase) getAllTraderOrders(trader common.Address) []Order {
 	traderOrders := []Order{}
-	_trader := trader.String()
 	for _, order := range db.OrderMap {
-		if strings.EqualFold(order.UserAddress, _trader) {
+		if order.Trader == trader {
 			traderOrders = append(traderOrders, deepCopyOrder(order))
 		}
 	}
@@ -828,7 +803,7 @@ func (db *InMemoryDatabase) getAllTraderOrders(trader common.Address) []Order {
 }
 
 func (db *InMemoryDatabase) getReduceOnlyOrderDisplay(order *Order) *Order {
-	trader := common.HexToAddress(order.UserAddress)
+	trader := order.Trader
 	if db.TraderMap[trader] == nil {
 		return nil
 	}
@@ -963,7 +938,7 @@ func deepCopyOrder(order *Order) Order {
 		Id:                      order.Id,
 		Market:                  order.Market,
 		PositionType:            order.PositionType,
-		UserAddress:             order.UserAddress,
+		Trader:                  order.Trader,
 		BaseAssetQuantity:       big.NewInt(0).Set(order.BaseAssetQuantity),
 		FilledBaseAssetQuantity: big.NewInt(0).Set(order.FilledBaseAssetQuantity),
 		Salt:                    big.NewInt(0).Set(order.Salt),

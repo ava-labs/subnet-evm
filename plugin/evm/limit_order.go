@@ -72,7 +72,6 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownCh
 
 	// need to register the types for gob encoding because memory DB has an interface field(ContractOrder)
 	gob.Register(&orderbook.LimitOrder{})
-	gob.Register(&orderbook.LimitOrderV2{})
 	gob.Register(&orderbook.IOCOrder{})
 	return &limitOrderProcesser{
 		ctx:                     ctx,

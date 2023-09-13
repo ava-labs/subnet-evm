@@ -118,9 +118,9 @@ func (pipeline *MatchingPipeline) cancelLimitOrders(cancellableOrders map[common
 	// @todo: if there are too many cancellable orders, they might not fit in a single block. Need to adjust for that.
 	for _, orders := range cancellableOrders {
 		if len(orders) > 0 {
-			rawOrders := make([]LimitOrderV2, len(orders))
+			rawOrders := make([]LimitOrder, len(orders))
 			for i, order := range orders {
-				rawOrder := order.RawOrder.(*LimitOrderV2)
+				rawOrder := order.RawOrder.(*LimitOrder)
 				rawOrders[i] = *rawOrder // @todo: make sure only limit orders reach here
 			}
 			log.Info("orders to cancel", "num", len(orders))

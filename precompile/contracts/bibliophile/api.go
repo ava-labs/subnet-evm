@@ -2,7 +2,6 @@ package bibliophile
 
 import (
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
@@ -29,7 +28,7 @@ func GetClearingHouseVariables(stateDB contract.StateDB, trader common.Address) 
 		Trader:                 trader,
 		IncludeFundingPayments: false,
 		Mode:                   0,
-	}, big.NewInt(time.Now().Unix()))
+	})
 	totalFunding := GetTotalFunding(stateDB, &trader)
 	positionSizes := getPosSizes(stateDB, &trader)
 	underlyingPrices := GetUnderlyingPrices(stateDB)
@@ -119,7 +118,7 @@ func GetAMMVariables(stateDB contract.StateDB, ammAddress common.Address, ammInd
 	minAllowableMargin := GetMinAllowableMargin(stateDB)
 	takerFee := GetTakerFee(stateDB)
 	totalMargin := GetNormalizedMargin(stateDB, trader)
-	availableMargin := GetAvailableMargin(stateDB, trader, big.NewInt(time.Now().Unix()))
+	availableMargin := GetAvailableMargin(stateDB, trader)
 	reduceOnlyAmount := getReduceOnlyAmount(stateDB, trader, big.NewInt(ammIndex))
 	longOpenOrdersAmount := getLongOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
 	shortOpenOrdersAmount := getShortOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
@@ -164,7 +163,7 @@ type OrderDetails struct {
 
 func GetIOCOrdersVariables(stateDB contract.StateDB, orderHash common.Hash) VariablesReadFromIOCOrdersSlots {
 	blockPlaced := iocGetBlockPlaced(stateDB, orderHash)
-	filledAmount := iocGetOrderFilledAmount(stateDB, orderHash, nil)
+	filledAmount := iocGetOrderFilledAmount(stateDB, orderHash)
 	orderStatus := iocGetOrderStatus(stateDB, orderHash)
 
 	iocExpirationCap := iocGetExpirationCap(stateDB)
@@ -185,7 +184,7 @@ type VariablesReadFromOrderbookSlots struct {
 
 func GetOrderBookVariables(stateDB contract.StateDB, traderAddress string, senderAddress string, orderHash common.Hash) VariablesReadFromOrderbookSlots {
 	blockPlaced := getBlockPlaced(stateDB, orderHash)
-	filledAmount := getOrderFilledAmount(stateDB, orderHash, nil)
+	filledAmount := getOrderFilledAmount(stateDB, orderHash)
 	orderStatus := getOrderStatus(stateDB, orderHash)
 	isTradingAuthoriy := IsTradingAuthority(stateDB, common.HexToAddress(traderAddress), common.HexToAddress(senderAddress))
 	return VariablesReadFromOrderbookSlots{

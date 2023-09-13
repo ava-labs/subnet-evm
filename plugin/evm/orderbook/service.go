@@ -170,7 +170,7 @@ func (api *OrderBookAPI) GetOpenOrders(ctx context.Context, trader string, marke
 	traderHash := common.HexToAddress(trader)
 	orders := api.db.GetOpenOrdersForTraderByType(traderHash, LimitOrderType)
 	for _, order := range orders {
-		if strings.EqualFold(order.UserAddress, trader) && (market == nil || order.Market == Market(*market)) {
+		if strings.EqualFold(order.Trader.String(), trader) && (market == nil || order.Market == Market(*market)) {
 			traderOrders = append(traderOrders, OrderForOpenOrders{
 				Market:     order.Market,
 				Price:      order.Price.String(),

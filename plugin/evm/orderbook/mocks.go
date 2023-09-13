@@ -180,7 +180,7 @@ func (lotp *MockLimitOrderTxProcessor) ExecuteLiquidation(trader common.Address,
 	return args.Error(0)
 }
 
-func (lotp *MockLimitOrderTxProcessor) ExecuteLimitOrderCancel(orderIds []LimitOrderV2) error {
+func (lotp *MockLimitOrderTxProcessor) ExecuteLimitOrderCancel(orderIds []LimitOrder) error {
 	args := lotp.Called(orderIds)
 	return args.Error(0)
 }

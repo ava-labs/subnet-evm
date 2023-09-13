@@ -441,7 +441,7 @@ func validateCancelLimitOrder(accessibleState contract.AccessibleState, caller c
 	}
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output := ValidateCancelLimitOrderV2(bibliophile, &inputStruct, new(big.Int).SetUint64(accessibleState.GetBlockContext().Timestamp()))
+	output := ValidateCancelLimitOrder(bibliophile, &inputStruct)
 	packedOutput, err := PackValidateCancelLimitOrderOutput(*output)
 	if err != nil {
 		return nil, remainingGas, err
@@ -645,7 +645,7 @@ func validatePlaceLimitOrder(accessibleState contract.AccessibleState, caller co
 
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output := ValidatePlaceLimitOrderV2(bibliophile, inputStruct.Order, inputStruct.Trader)
+	output := ValidatePlaceLimitOrder(bibliophile, inputStruct.Order, inputStruct.Trader)
 	packedOutput, err := PackValidatePlaceLimitOrderOutput(*output)
 	if err != nil {
 		return nil, remainingGas, err
