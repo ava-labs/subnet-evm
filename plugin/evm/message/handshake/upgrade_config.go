@@ -1,52 +1,53 @@
+// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package handshake
 
 import (
-	"crypto/sha256"
-	"fmt"
-
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
-type PrecompileUpgrade struct {
-	StructName string `serialize:"true"`
-	Bytes      []byte `serialize:"true"`
+type rawPrecompileUpgrade struct {
+	Key   string `serialize:"true"`
+	Bytes []byte `serialize:"true"`
 }
 
-type UpgradeConfig struct {
+type upgradeConfigMessage struct {
 	OptionalNetworkUpgrades []params.Fork `serialize:"true"`
 
 	// Config for modifying state as a network upgrade.
 	StateUpgrades []params.StateUpgrade `serialize:"true"`
 
 	// Config for enabling and disabling precompiles as network upgrades.
-	PrecompileUpgrades []PrecompileUpgrade `serialize:"true"`
+	PrecompileUpgrades []rawPrecompileUpgrade `serialize:"true"`
 	config             params.UpgradeConfig
 	bytes              []byte
 }
 
-func ParseUpgradeConfig(bytes []byte) (*UpgradeConfig, error) {
-	var config UpgradeConfig
+func ParseUpgradeConfig(bytes []byte) (*upgradeConfigMessage, error) {
+	var config upgradeConfigMessage
 	version, err := Codec.Unmarshal(bytes, &config)
 	if err != nil {
 		return nil, err
 	}
 	if version != Version {
-		return nil, fmt.Errorf("Invalid version")
+		return nil, ErrInvalidVersion
 	}
 
 	var PrecompileUpgrades []params.PrecompileUpgrade
 
 	for _, precompileUpgrade := range config.PrecompileUpgrades {
-		module, ok := modules.GetPrecompileModule(precompileUpgrade.StructName)
+		module, ok := modules.GetPrecompileModule(precompileUpgrade.Key)
 		if !ok {
-			return nil, fmt.Errorf("unknown precompile config: %s", precompileUpgrade.StructName)
+			return nil, ErrUnknowPrecompile
 		}
 		preCompile := module.MakeConfig()
 
 		version, err := Codec.Unmarshal(precompileUpgrade.Bytes, preCompile)
 		if version != Version {
-			return nil, fmt.Errorf("Invalid version")
+			return nil, ErrInvalidVersion
 		}
 		if err != nil {
 			return nil, err
@@ -64,16 +65,16 @@ func ParseUpgradeConfig(bytes []byte) (*UpgradeConfig, error) {
 	return &config, nil
 }
 
-func NewUpgradeConfig(config params.UpgradeConfig) (*UpgradeConfig, error) {
-	PrecompileUpgrades := make([]PrecompileUpgrade, 0)
+func NewUpgradeConfig(config params.UpgradeConfig) (*upgradeConfigMessage, error) {
+	PrecompileUpgrades := make([]rawPrecompileUpgrade, 0)
 	for _, precompileConfig := range config.PrecompileUpgrades {
 		bytes, err := Codec.Marshal(Version, precompileConfig.Config)
 		if err != nil {
 			return nil, err
 		}
-		PrecompileUpgrades = append(PrecompileUpgrades, PrecompileUpgrade{
-			StructName: precompileConfig.Key(),
-			Bytes:      bytes,
+		PrecompileUpgrades = append(PrecompileUpgrades, rawPrecompileUpgrade{
+			Key:   precompileConfig.Key(),
+			Bytes: bytes,
 		})
 	}
 
@@ -82,7 +83,7 @@ func NewUpgradeConfig(config params.UpgradeConfig) (*UpgradeConfig, error) {
 		optionalNetworkUpgrades = config.OptionalNetworkUpgrades.Updates
 	}
 
-	wrappedConfig := UpgradeConfig{
+	wrappedConfig := upgradeConfigMessage{
 		OptionalNetworkUpgrades: optionalNetworkUpgrades,
 		StateUpgrades:           config.StateUpgrades,
 		PrecompileUpgrades:      PrecompileUpgrades,
@@ -98,16 +99,16 @@ func NewUpgradeConfig(config params.UpgradeConfig) (*UpgradeConfig, error) {
 	return &wrappedConfig, nil
 }
 
-func (r *UpgradeConfig) Config() params.UpgradeConfig {
+func (r *upgradeConfigMessage) Config() params.UpgradeConfig {
 	return r.config
 }
 
-func (r *UpgradeConfig) Bytes() []byte {
+func (r *upgradeConfigMessage) Bytes() []byte {
 	return r.bytes
 }
 
-func (r *UpgradeConfig) Hash() [8]byte {
-	hash := sha256.Sum256(r.bytes)
+func (r *upgradeConfigMessage) Hash() [8]byte {
+	hash := crypto.Keccak256(r.bytes)
 	var firstBytes [8]byte
 	copy(firstBytes[:], hash[:8])
 	return firstBytes

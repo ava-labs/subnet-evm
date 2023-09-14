@@ -1,3 +1,6 @@
+// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package handshake
 
 import (
@@ -5,7 +8,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSerialize(t *testing.T) {
@@ -21,15 +24,15 @@ func TestSerialize(t *testing.T) {
 			},
 		},
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	config2, err := ParseUpgradeConfig(config.Bytes())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	config3, err := NewUpgradeConfig(config2.Config())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	assert.Equal(t, config2, config3)
-	assert.Equal(t, config.Hash(), config2.Hash())
-	assert.Equal(t, config.Hash(), config3.Hash())
+	require.Equal(t, config2, config3)
+	require.Equal(t, config.Hash(), config2.Hash())
+	require.Equal(t, config.Hash(), config3.Hash())
 }

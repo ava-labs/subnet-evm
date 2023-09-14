@@ -1,9 +1,14 @@
 // (c) 2019-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
+// See the file LICENSE for licensing terms.
+
 package handshake
 
 import (
+	"errors"
+
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/codec/linearcodec"
 	"github.com/ava-labs/avalanchego/utils/units"
@@ -16,7 +21,9 @@ const (
 )
 
 var (
-	Codec codec.Manager
+	ErrInvalidVersion   = errors.New("invalid version")
+	ErrUnknowPrecompile = errors.New("unknown precompile config")
+	Codec               codec.Manager
 )
 
 func init() {
@@ -25,7 +32,7 @@ func init() {
 
 	errs := wrappers.Errs{}
 	errs.Add(
-		c.RegisterType(UpgradeConfig{}),
+		c.RegisterType(upgradeConfigMessage{}),
 
 		Codec.RegisterCodec(Version, c),
 	)
