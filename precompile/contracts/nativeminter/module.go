@@ -15,7 +15,7 @@ import (
 
 var _ contract.Configurator = &configurator{}
 
-// ConfigKey is the key used in json config files to specify this precompile precompileconfig.
+// ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
 const ConfigKey = "contractNativeMinterConfig"
 
@@ -37,11 +37,14 @@ func init() {
 	}
 }
 
+// MakeConfig returns a new precompile config instance.
+// This is required for Marshal/Unmarshal the precompile config.
 func (*configurator) MakeConfig() precompileconfig.Config {
 	return new(Config)
 }
 
-// Configure configures [state] with the desired admins based on [cfg].
+// Configure configures [state] with the given [cfg] precompileconfig.
+// This function is called by the EVM once per precompile contract activation.
 func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, blockContext contract.ConfigurationBlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
