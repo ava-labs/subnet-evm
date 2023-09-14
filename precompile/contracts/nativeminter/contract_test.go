@@ -17,7 +17,7 @@ import (
 )
 
 var tests = map[string]testutils.PrecompileTest{
-	"mint funds from no role fails": {
+	"calling mintNativeCoin from NoRole should fail": {
 		Caller:     allowlist.TestNoRoleAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
@@ -30,7 +30,7 @@ var tests = map[string]testutils.PrecompileTest{
 		ReadOnly:    false,
 		ExpectedErr: ErrCannotMint.Error(),
 	},
-	"mint funds from enabled address": {
+	"calling mintNativeCoin from Enabled should succeed": {
 		Caller:     allowlist.TestEnabledAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
@@ -58,7 +58,7 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, common.Big2, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
-	"mint funds from manager role succeeds": {
+	"calling mintNativeCoin from Manager should succeed": {
 		Caller:     allowlist.TestManagerAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
@@ -74,7 +74,7 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
-	"mint funds from admin address": {
+	"calling mintNativeCoin from Admin should succeed": {
 		Caller:     allowlist.TestAdminAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
