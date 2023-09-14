@@ -184,7 +184,6 @@ func UnpackSetFeeConfigInput(input []byte, skipLenCheck bool) (commontype.FeeCon
 	}
 	inputStruct := FeeConfigABIStruct{}
 	err := FeeManagerABI.UnpackInputIntoInterface(&inputStruct, "setFeeConfig", input)
-
 	if err != nil {
 		return commontype.FeeConfig{}, err
 	}
