@@ -14,7 +14,7 @@ type rawPrecompileUpgrade struct {
 	Bytes []byte `serialize:"true"`
 }
 
-type upgradeConfigMessage struct {
+type networkUpgradeConfigMessage struct {
 	OptionalNetworkUpgrades []params.Fork `serialize:"true"`
 
 	// Config for modifying state as a network upgrade.
@@ -22,12 +22,22 @@ type upgradeConfigMessage struct {
 
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []rawPrecompileUpgrade `serialize:"true"`
-	config             params.UpgradeConfig
-	bytes              []byte
 }
 
-func ParseUpgradeConfig(bytes []byte) (*upgradeConfigMessage, error) {
-	var config upgradeConfigMessage
+type UpgradeConfigMessage struct {
+	Bytes []byte
+	Hash  []byte
+}
+
+// Attempts to parse a networkUpgradeConfigMessage from a []byte
+//
+// This function attempts to parse a stream of bytes as a
+// networkUpgradeConfigMessage (as serialized from
+// UpgradeConfigToNetworkMessage).
+//
+// The function returns a reference of *params.UpgradeConfig
+func ParseUpgradeConfigMessage(bytes []byte) (*params.UpgradeConfig, error) {
+	var config networkUpgradeConfigMessage
 	version, err := Codec.Unmarshal(bytes, &config)
 	if err != nil {
 		return nil, err
@@ -37,14 +47,12 @@ func ParseUpgradeConfig(bytes []byte) (*upgradeConfigMessage, error) {
 	}
 
 	var PrecompileUpgrades []params.PrecompileUpgrade
-
 	for _, precompileUpgrade := range config.PrecompileUpgrades {
 		module, ok := modules.GetPrecompileModule(precompileUpgrade.Key)
 		if !ok {
 			return nil, ErrUnknowPrecompile
 		}
 		preCompile := module.MakeConfig()
-
 		version, err := Codec.Unmarshal(precompileUpgrade.Bytes, preCompile)
 		if version != Version {
 			return nil, ErrInvalidVersion
@@ -55,17 +63,23 @@ func ParseUpgradeConfig(bytes []byte) (*upgradeConfigMessage, error) {
 		PrecompileUpgrades = append(PrecompileUpgrades, params.PrecompileUpgrade{Config: preCompile})
 	}
 
-	config.config = params.UpgradeConfig{
+	return &params.UpgradeConfig{
 		OptionalNetworkUpgrades: &params.OptionalNetworkUpgrades{Updates: config.OptionalNetworkUpgrades},
 		StateUpgrades:           config.StateUpgrades,
 		PrecompileUpgrades:      PrecompileUpgrades,
-	}
-	config.bytes = bytes
-
-	return &config, nil
+	}, nil
 }
 
-func NewUpgradeConfig(config params.UpgradeConfig) (*upgradeConfigMessage, error) {
+// Wraps an instance of *params.UpgradeConfig
+//
+// This function returns the serialized UpgradeConfig, ready to be send over to
+// other peers. The struct also includes a hash of the content, ready to be used
+// as part of the handshake protocol.
+//
+// Since params.UpgradeConfig should never change without a node reloading, it
+// is safe to call this function once and store its output globally to re-use
+// multiple times
+func UpgradeConfigToNetworkMessage(config *params.UpgradeConfig) (*UpgradeConfigMessage, error) {
 	PrecompileUpgrades := make([]rawPrecompileUpgrade, 0)
 	for _, precompileConfig := range config.PrecompileUpgrades {
 		bytes, err := Codec.Marshal(Version, precompileConfig.Config)
@@ -83,33 +97,22 @@ func NewUpgradeConfig(config params.UpgradeConfig) (*upgradeConfigMessage, error
 		optionalNetworkUpgrades = config.OptionalNetworkUpgrades.Updates
 	}
 
-	wrappedConfig := upgradeConfigMessage{
+	wrappedConfig := networkUpgradeConfigMessage{
 		OptionalNetworkUpgrades: optionalNetworkUpgrades,
 		StateUpgrades:           config.StateUpgrades,
 		PrecompileUpgrades:      PrecompileUpgrades,
-		config:                  config,
-		bytes:                   make([]byte, 0),
 	}
 	bytes, err := Codec.Marshal(Version, wrappedConfig)
 	if err != nil {
 		return nil, err
 	}
-	wrappedConfig.bytes = bytes
 
-	return &wrappedConfig, nil
-}
-
-func (r *upgradeConfigMessage) Config() params.UpgradeConfig {
-	return r.config
-}
-
-func (r *upgradeConfigMessage) Bytes() []byte {
-	return r.bytes
-}
-
-func (r *upgradeConfigMessage) Hash() [8]byte {
-	hash := crypto.Keccak256(r.bytes)
+	hash := crypto.Keccak256(bytes)
 	var firstBytes [8]byte
 	copy(firstBytes[:], hash[:8])
-	return firstBytes
+
+	return &UpgradeConfigMessage{
+		Bytes: bytes,
+		Hash:  hash,
+	}, nil
 }

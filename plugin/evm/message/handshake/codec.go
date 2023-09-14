@@ -32,7 +32,7 @@ func init() {
 
 	errs := wrappers.Errs{}
 	errs.Add(
-		c.RegisterType(upgradeConfigMessage{}),
+		c.RegisterType(networkUpgradeConfigMessage{}),
 
 		Codec.RegisterCodec(Version, c),
 	)
