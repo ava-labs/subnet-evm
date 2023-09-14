@@ -33,7 +33,7 @@ var (
 	ErrCannotMint = errors.New("non-enabled cannot mint")
 	ErrInvalidLen = errors.New("invalid input length for minting")
 
-	// NativeMinterRawABI contains the raw ABI of NativeMinterV2 contract.
+	// NativeMinterRawABI contains the raw ABI of NativeMinter contract.
 	//go:embed contract.abi
 	NativeMinterRawABI string
 
@@ -51,26 +51,26 @@ func SetContractNativeMinterStatus(stateDB contract.StateDB, address common.Addr
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 
+// PackMintNativeCoin packs [address] and [amount] into the appropriate arguments for mintNativeCoin.
+func PackMintNativeCoin(address common.Address, amount *big.Int) ([]byte, error) {
+	return NativeMinterABI.Pack("mintNativeCoin", address, amount)
+}
+
 // UnpackMintNativeCoinInput attempts to unpack [input] as address and amount.
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-// if [doLenCheck] is true, it will return an error if the length of [input] is not [mintInputLen]
-func UnpackMintNativeCoinInput(input []byte, doLenCheck bool) (common.Address, *big.Int, error) {
+// if [skipLenCheck] is false, it will return an error if the length of [input] is not [mintInputLen]
+func UnpackMintNativeCoinInput(input []byte, skipLenCheck bool) (common.Address, *big.Int, error) {
 	// Initially we had this check to ensure that the input was the correct length.
 	// However solidity does not always pack the input to the correct length, and allows
 	// for extra padding bytes to be added to the end of the input. Therefore, we have removed
 	// this check with the DUpgrade. We still need to keep this check for backwards compatibility.
-	if doLenCheck && len(input) != mintInputLen {
+	if !skipLenCheck && len(input) != mintInputLen {
 		return common.Address{}, nil, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
 	}
 	inputStruct := MintNativeCoinInput{}
 	err := NativeMinterABI.UnpackInputIntoInterface(&inputStruct, "mintNativeCoin", input)
 
 	return inputStruct.Addr, inputStruct.Amount, err
-}
-
-// PackMintNativeCoin packs [address] and [amount] into the appropriate arguments for mintNativeCoin.
-func PackMintNativeCoin(address common.Address, amount *big.Int) ([]byte, error) {
-	return NativeMinterABI.Pack("mintNativeCoin", address, amount)
 }
 
 // mintNativeCoin checks if the caller is permissioned for minting operation.
@@ -83,8 +83,9 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
-	doCheckLen := contract.IsDUpgradeActivated(accessibleState)
-	to, amount, err := UnpackMintNativeCoinInput(input, doCheckLen)
+
+	skipLenCheck := contract.IsDUpgradeActivated(accessibleState)
+	to, amount, err := UnpackMintNativeCoinInput(input, skipLenCheck)
 	if err != nil {
 		return nil, remainingGas, err
 	}
