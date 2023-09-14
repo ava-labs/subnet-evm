@@ -47,8 +47,6 @@ type PrecompileTest struct {
 	ExpectedRes []byte
 	// ExpectedErr is the expected error returned by the precompile
 	ExpectedErr string
-	// BlockNumber is the block number to use for the precompile's block context
-	BlockNumber int64
 	// ChainConfig is the chain config to use for the precompile's block context
 	// If nil, the default chain config will be used.
 	ChainConfig precompileconfig.ChainConfig
@@ -97,6 +95,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 		mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
 		mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
 		mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
+		mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(true)
 		chainConfig = mockChainConfig
 	}
 
@@ -105,6 +104,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 		test.SetupBlockContext(blockContext)
 	} else {
 		blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
+		blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 	}
 	snowContext := snow.DefaultContextTest()
 
@@ -112,6 +112,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	accessibleState.EXPECT().GetStateDB().Return(state).AnyTimes()
 	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
 	accessibleState.EXPECT().GetSnowContext().Return(snowContext).AnyTimes()
+	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
 
 	if test.Config != nil {
 		err := module.Configure(chainConfig, test.Config, state, blockContext)

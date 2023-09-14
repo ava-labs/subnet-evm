@@ -16,6 +16,7 @@ import (
 	"time"
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
+	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -119,13 +120,14 @@ var (
 )
 
 var (
-	errEmptyBlock               = errors.New("empty block")
-	errUnsupportedFXs           = errors.New("unsupported feature extensions")
-	errInvalidBlock             = errors.New("invalid block")
-	errInvalidNonce             = errors.New("invalid nonce")
-	errUnclesUnsupported        = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM      = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errEmptyBlock                    = errors.New("empty block")
+	errUnsupportedFXs                = errors.New("unsupported feature extensions")
+	errInvalidBlock                  = errors.New("invalid block")
+	errInvalidNonce                  = errors.New("invalid nonce")
+	errUnclesUnsupported             = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -297,9 +299,18 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
-	// We enforce network upgrades here, regardless of the chain config
-	// provided in the genesis file.
-	g.Config.MandatoryNetworkUpgrades = params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
+	mandatoryNetworkUpgrades, enforce := getMandatoryNetworkUpgrades(chainCtx.NetworkID)
+	if enforce {
+		// We enforce network upgrades here, regardless of the chain config
+		// provided in the genesis file
+		g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
+	} else {
+		// If we are not enforcing, then apply those only if they are not
+		// already set in the genesis file
+		if g.Config.MandatoryNetworkUpgrades == (params.MandatoryNetworkUpgrades{}) {
+			g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
+		}
+	}
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
@@ -317,6 +328,17 @@ func (vm *VM) Initialize(
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
 		log.Info("No fee config given in genesis, setting default fee config", "DefaultFeeConfig", params.DefaultFeeConfig)
 		g.Config.FeeConfig = params.DefaultFeeConfig
+	}
+
+	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
+	// Initializing the chain will verify upgradeBytes are compatible with existing values.
+	// This should be called before g.Verify().
+	if len(upgradeBytes) > 0 {
+		var upgradeConfig params.UpgradeConfig
+		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
+			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
+		}
+		g.Config.UpgradeConfig = upgradeConfig
 	}
 
 	if err := g.Verify(); err != nil {
@@ -395,16 +417,6 @@ func (vm *VM) Initialize(
 
 	vm.chainConfig = g.Config
 	vm.networkID = vm.ethConfig.NetworkId
-
-	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
-	// Initializing the chain will verify upgradeBytes are compatible with existing values.
-	if len(upgradeBytes) > 0 {
-		var upgradeConfig params.UpgradeConfig
-		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
-			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
-		}
-		vm.chainConfig.UpgradeConfig = upgradeConfig
-	}
 
 	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
@@ -976,4 +988,19 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 	}
 
 	return nil
+}
+
+// getMandatoryNetworkUpgrades returns the mandatory network upgrades for the specified network ID,
+// along with a flag that indicates if returned upgrades should be strictly enforced.
+func getMandatoryNetworkUpgrades(networkID uint32) (params.MandatoryNetworkUpgrades, bool) {
+	switch networkID {
+	case avalanchegoConstants.MainnetID:
+		return params.MainnetNetworkUpgrades, true
+	case avalanchegoConstants.FujiID:
+		return params.FujiNetworkUpgrades, true
+	case avalanchegoConstants.UnitTestID:
+		return params.UnitTestNetworkUpgrades, false
+	default:
+		return params.LocalNetworkUpgrades, false
+	}
 }
