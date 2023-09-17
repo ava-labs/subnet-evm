@@ -45,6 +45,7 @@ type BibliophileClient interface {
 	GetAcceptableBoundsForLiquidation(marketId int64) (*big.Int, *big.Int)
 
 	GetAccessibleState() contract.AccessibleState
+	GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int)
 }
 
 // Define a structure that will implement the Bibliophile interface
@@ -172,4 +173,9 @@ func (b *bibliophileClient) GetReduceOnlyAmount(trader common.Address, ammIndex 
 
 func (b *bibliophileClient) GetAvailableMargin(trader common.Address) *big.Int {
 	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader)
+}
+
+func (b *bibliophileClient) GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int) {
+	output := getNotionalPositionAndMargin(b.accessibleState.GetStateDB(), &GetNotionalPositionAndMarginInput{Trader: trader, IncludeFundingPayments: includeFundingPayments, Mode: mode})
+	return output.NotionalPosition, output.Margin
 }

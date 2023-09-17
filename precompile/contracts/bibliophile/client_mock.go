@@ -261,6 +261,21 @@ func (mr *MockBibliophileClientMockRecorder) GetNextBidPrice(ammAddress, price i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextBidPrice", reflect.TypeOf((*MockBibliophileClient)(nil).GetNextBidPrice), ammAddress, price)
 }
 
+// GetNotionalPositionAndMargin mocks base method.
+func (m *MockBibliophileClient) GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNotionalPositionAndMargin", trader, includeFundingPayments, mode)
+	ret0, _ := ret[0].(*big.Int)
+	ret1, _ := ret[1].(*big.Int)
+	return ret0, ret1
+}
+
+// GetNotionalPositionAndMargin indicates an expected call of GetNotionalPositionAndMargin.
+func (mr *MockBibliophileClientMockRecorder) GetNotionalPositionAndMargin(trader, includeFundingPayments, mode interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotionalPositionAndMargin", reflect.TypeOf((*MockBibliophileClient)(nil).GetNotionalPositionAndMargin), trader, includeFundingPayments, mode)
+}
+
 // GetOrderFilledAmount mocks base method.
 func (m *MockBibliophileClient) GetOrderFilledAmount(orderHash [32]byte) *big.Int {
 	m.ctrl.T.Helper()

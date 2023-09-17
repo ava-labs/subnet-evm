@@ -3,6 +3,7 @@ package bibliophile
 import (
 	"math/big"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -174,7 +175,7 @@ func getImpactMarginNotional(stateDB contract.StateDB, market common.Address) *b
 
 func getPendingFundingPayment(stateDB contract.StateDB, market common.Address, trader *common.Address) *big.Int {
 	cumulativePremiumFraction := GetCumulativePremiumFraction(stateDB, market)
-	return divide1e18(new(big.Int).Mul(new(big.Int).Sub(cumulativePremiumFraction, GetLastPremiumFraction(stateDB, market, trader)), getSize(stateDB, market, trader)))
+	return hu.Div1e18(new(big.Int).Mul(new(big.Int).Sub(cumulativePremiumFraction, GetLastPremiumFraction(stateDB, market, trader)), getSize(stateDB, market, trader)))
 }
 
 func getOptimalPnl(stateDB contract.StateDB, market common.Address, oraclePrice *big.Int, lastPrice *big.Int, trader *common.Address, margin *big.Int, marginMode MarginMode) (notionalPosition *big.Int, uPnL *big.Int) {
@@ -208,7 +209,7 @@ func getOptimalPnl(stateDB contract.StateDB, market common.Address, oraclePrice 
 }
 
 func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, margin *big.Int) (notionalPos *big.Int, uPnl *big.Int, marginFraction *big.Int) {
-	notionalPos = divide1e18(new(big.Int).Mul(price, new(big.Int).Abs(size)))
+	notionalPos = hu.Div1e18(new(big.Int).Mul(price, new(big.Int).Abs(size)))
 	if notionalPos.Sign() == 0 {
 		return big.NewInt(0), big.NewInt(0), big.NewInt(0)
 	}
@@ -217,27 +218,11 @@ func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 	} else {
 		uPnl = new(big.Int).Sub(openNotional, notionalPos)
 	}
-	marginFraction = new(big.Int).Div(multiply1e6(new(big.Int).Add(margin, uPnl)), notionalPos)
+	marginFraction = new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(margin, uPnl)), notionalPos)
 	return notionalPos, uPnl, marginFraction
 }
 
 // Common Utils
-
-var _1e18 = big.NewInt(1e18)
-var _1e6 = big.NewInt(1e6)
-
-func divide1e18(number *big.Int) *big.Int {
-	return big.NewInt(0).Div(number, _1e18)
-}
-
-func divide1e6(number *big.Int) *big.Int {
-	return big.NewInt(0).Div(number, _1e6)
-}
-
-func multiply1e6(number *big.Int) *big.Int {
-	return new(big.Int).Mul(number, big.NewInt(1e6))
-}
-
 func fromTwosComplement(b []byte) *big.Int {
 	t := new(big.Int).SetBytes(b)
 	if b[0]&0x80 != 0 {

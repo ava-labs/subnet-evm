@@ -17,9 +17,8 @@ import (
 
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 
-	_ "github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
-	_ "github.com/ava-labs/subnet-evm/precompile/contracts/hubblebibliophile"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/juror"
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/ticks"
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
 )
@@ -45,8 +44,7 @@ import (
 // OrderBook		       = common.HexToAddress("0x0300000000000000000000000000000000000000")
 // MarginAccount		   = common.HexToAddress("0x0300000000000000000000000000000000000001")
 // ClearingHouse		   = common.HexToAddress("0x0300000000000000000000000000000000000002")
-// HubbleBiblioPhile       = common.HexToAddress("0x0300000000000000000000000000000000000003")
-// bibliophile       = common.HexToAddress("0x0300000000000000000000000000000000000004")
 // juror       = common.HexToAddress("0x0300000000000000000000000000000000000005")
-// iocOrderBook       = common.HexToAddress("0x0300000000000000000000000000000000000006")
+// ticks       = common.HexToAddress("0x0300000000000000000000000000000000000006")
+// iocOrderBook       = common.HexToAddress("0x635c5F96989a4226953FE6361f12B96c5d50289b")
 // {YourPrecompile}Address = common.HexToAddress("0x03000000000000000000000000000000000000??")

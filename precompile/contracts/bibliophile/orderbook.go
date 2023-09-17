@@ -6,6 +6,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -96,10 +97,10 @@ func GetAcceptableBoundsForLiquidation(stateDB contract.StateDB, marketID int64)
 }
 
 func calculateBounds(spreadLimit, oraclePrice *big.Int) (*big.Int, *big.Int) {
-	upperbound := divide1e6(new(big.Int).Mul(oraclePrice, new(big.Int).Add(_1e6, spreadLimit)))
+	upperbound := hu.Div1e6(hu.Mul(oraclePrice, hu.Add(hu.ONE_E_6, spreadLimit)))
 	lowerbound := big.NewInt(0)
-	if spreadLimit.Cmp(_1e6) == -1 {
-		lowerbound = divide1e6(new(big.Int).Mul(oraclePrice, new(big.Int).Sub(_1e6, spreadLimit)))
+	if spreadLimit.Cmp(hu.ONE_E_6) == -1 {
+		lowerbound = hu.Div1e6(hu.Mul(oraclePrice, hu.Sub(hu.ONE_E_6, spreadLimit)))
 	}
 	return upperbound, lowerbound
 }

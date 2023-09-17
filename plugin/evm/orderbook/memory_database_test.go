@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/metrics"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -62,11 +63,11 @@ func TestGetAllOrders(t *testing.T) {
 }
 
 func TestGetShortOrders(t *testing.T) {
-	baseAssetQuantity := big.NewInt(0).Mul(big.NewInt(-3), _1e18)
+	baseAssetQuantity := hu.Mul1e18(big.NewInt(-3))
 	inMemoryDatabase := getDatabase()
 	totalLongOrders := uint64(2)
 	longOrderPrice := big.NewInt(0).Add(price, big.NewInt(1))
-	longOrderBaseAssetQuantity := big.NewInt(0).Mul(big.NewInt(10), _1e18)
+	longOrderBaseAssetQuantity := hu.Mul1e18(big.NewInt(10))
 	for i := uint64(0); i < totalLongOrders; i++ {
 		salt := big.NewInt(0).Add(big.NewInt(int64(i)), big.NewInt(time.Now().Unix()))
 		limitOrder := createLimitOrder(LONG, userAddress, longOrderBaseAssetQuantity, longOrderPrice, status, blockNumber, salt)
@@ -120,8 +121,8 @@ func TestGetShortOrders(t *testing.T) {
 	assert.Equal(t, blockNumber1, returnedShortOrders[2].BlockNumber)
 
 	// now test with one reduceOnly order when there's a long position
-	size := big.NewInt(0).Mul(big.NewInt(2), _1e18)
-	inMemoryDatabase.UpdatePosition(trader, market, size, big.NewInt(0).Mul(big.NewInt(100), _1e6), false, 0)
+	size := big.NewInt(0).Mul(big.NewInt(2), hu.ONE_E_18)
+	inMemoryDatabase.UpdatePosition(trader, market, size, big.NewInt(0).Mul(big.NewInt(100), hu.ONE_E_6), false, 0)
 
 	returnedShortOrders = inMemoryDatabase.GetShortOrders(market, nil, nil)
 	assert.Equal(t, 4, len(returnedShortOrders))
@@ -135,7 +136,7 @@ func TestGetShortOrders(t *testing.T) {
 	}
 	assert.Equal(t, reduceOnlyOrder.Salt, salt4)
 	assert.Equal(t, reduceOnlyOrder.BaseAssetQuantity, baseAssetQuantity)
-	assert.Equal(t, reduceOnlyOrder.FilledBaseAssetQuantity, big.NewInt(0).Neg(_1e18))
+	assert.Equal(t, reduceOnlyOrder.FilledBaseAssetQuantity, big.NewInt(0).Neg(hu.ONE_E_18))
 }
 
 func TestGetShortOrdersIOC(t *testing.T) {
@@ -207,26 +208,26 @@ func TestGetCancellableOrders(t *testing.T) {
 	// also tests getTotalNotionalPositionAndUnrealizedPnl
 	inMemoryDatabase := getDatabase()
 	getReservedMargin := func(order Order) *big.Int {
-		notional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.BaseAssetQuantity, order.Price), _1e18))
-		return divideByBasePrecision(big.NewInt(0).Mul(notional, inMemoryDatabase.configService.getMinAllowableMargin()))
+		notional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.BaseAssetQuantity, order.Price), hu.ONE_E_18))
+		return hu.Div1e6(big.NewInt(0).Mul(notional, inMemoryDatabase.configService.getMinAllowableMargin()))
 	}
 
 	blockNumber1 := big.NewInt(2)
-	baseAssetQuantity := big.NewInt(0).Mul(big.NewInt(-3), _1e18)
+	baseAssetQuantity := hu.Mul1e18(big.NewInt(-3))
 
 	salt1 := big.NewInt(101)
-	price1 := multiplyBasePrecision(big.NewInt(10))
+	price1 := hu.Mul1e6(big.NewInt(10))
 	shortOrder1 := createLimitOrder(SHORT, userAddress, baseAssetQuantity, price1, status, blockNumber1, salt1)
 
 	salt2 := big.NewInt(102)
-	price2 := multiplyBasePrecision(big.NewInt(9))
+	price2 := hu.Mul1e6(big.NewInt(9))
 	shortOrder2 := createLimitOrder(SHORT, userAddress, baseAssetQuantity, price2, status, blockNumber1, salt2)
 
 	salt3 := big.NewInt(103)
-	price3 := multiplyBasePrecision(big.NewInt(8))
+	price3 := hu.Mul1e6(big.NewInt(8))
 	shortOrder3 := createLimitOrder(SHORT, userAddress, baseAssetQuantity, price3, status, blockNumber1, salt3)
 
-	depositMargin := multiplyBasePrecision(big.NewInt(40))
+	depositMargin := hu.Mul1e6(big.NewInt(40))
 	inMemoryDatabase.UpdateMargin(trader, HUSD, depositMargin)
 
 	// 3 different short orders with price = 10, 9, 8
@@ -238,14 +239,14 @@ func TestGetCancellableOrders(t *testing.T) {
 	inMemoryDatabase.UpdateReservedMargin(trader, getReservedMargin(shortOrder3))
 
 	// 1 fulfilled order at price = 10, size = 9
-	size := big.NewInt(0).Mul(big.NewInt(-9), _1e18)
-	fulfilPrice := multiplyBasePrecision(big.NewInt(10))
-	inMemoryDatabase.UpdatePosition(trader, market, size, dividePrecisionSize(new(big.Int).Mul(new(big.Int).Abs(size), fulfilPrice)), false, 0)
+	size := big.NewInt(0).Mul(big.NewInt(-9), hu.ONE_E_18)
+	fulfilPrice := hu.Mul1e6(big.NewInt(10))
+	inMemoryDatabase.UpdatePosition(trader, market, size, hu.Div1e18(new(big.Int).Mul(new(big.Int).Abs(size), fulfilPrice)), false, 0)
 	inMemoryDatabase.UpdateLastPrice(market, fulfilPrice)
 
 	// price has moved from 10 to 11 now
 	priceMap := map[Market]*big.Int{
-		market: multiplyBasePrecision(big.NewInt(11)),
+		market: hu.Mul1e6(big.NewInt(11)),
 	}
 	// Setup completed, assertions start here
 	_trader := inMemoryDatabase.TraderMap[trader]
@@ -256,20 +257,20 @@ func TestGetCancellableOrders(t *testing.T) {
 	// oracle price based notional = 9 * 11 = 99, pnl = -9, mf = (40-9)/99 = 0.31
 	// for Min_Allowable_Margin we select the min of 2 hence, oracle based mf
 	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, Min_Allowable_Margin, priceMap, inMemoryDatabase.GetLastPrices(), []Market{market})
-	assert.Equal(t, multiplyBasePrecision(big.NewInt(99)), notionalPosition)
-	assert.Equal(t, multiplyBasePrecision(big.NewInt(-9)), unrealizePnL)
+	assert.Equal(t, hu.Mul1e6(big.NewInt(99)), notionalPosition)
+	assert.Equal(t, hu.Mul1e6(big.NewInt(-9)), unrealizePnL)
 
 	// for Maintenance_Margin we select the max of 2 hence, last price based mf
 	notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, Maintenance_Margin, priceMap, inMemoryDatabase.GetLastPrices(), []Market{market})
-	assert.Equal(t, multiplyBasePrecision(big.NewInt(90)), notionalPosition)
+	assert.Equal(t, hu.Mul1e6(big.NewInt(90)), notionalPosition)
 	assert.Equal(t, big.NewInt(0), unrealizePnL)
 
 	marginFraction := calcMarginFraction(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices(), []Market{market})
-	assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(depositMargin /* uPnL = 0 */), notionalPosition), marginFraction)
+	assert.Equal(t, new(big.Int).Div(hu.Mul1e6(depositMargin /* uPnL = 0 */), notionalPosition), marginFraction)
 
 	availableMargin := getAvailableMargin(_trader, big.NewInt(0), priceMap, inMemoryDatabase.GetLastPrices(), inMemoryDatabase.configService.getMinAllowableMargin(), []Market{market})
 	// availableMargin = 40 - 9 - (99 + (10+9+8) * 3)/5 = -5
-	assert.Equal(t, multiplyBasePrecision(big.NewInt(-5)), availableMargin)
+	assert.Equal(t, hu.Mul1e6(big.NewInt(-5)), availableMargin)
 	_, ordersToCancel := inMemoryDatabase.GetNaughtyTraders(priceMap, []Market{market})
 
 	// t.Log("####", "ordersToCancel", ordersToCancel)
@@ -671,7 +672,7 @@ func createIOCOrder(positionType PositionType, userAddress string, baseAssetQuan
 	now := big.NewInt(time.Now().Unix())
 	expireAt := big.NewInt(0).Add(now, expireDuration)
 	ioc := Order{
-		OrderType:               IOCOrderType,
+		OrderType:               IOC,
 		Market:                  market,
 		PositionType:            positionType,
 		Trader:                  common.HexToAddress(userAddress),
@@ -682,7 +683,7 @@ func createIOCOrder(positionType PositionType, userAddress string, baseAssetQuan
 		BlockNumber:             blockNumber,
 		ReduceOnly:              false,
 		RawOrder: &IOCOrder{
-			OrderType: uint8(IOCOrderType),
+			OrderType: uint8(IOC),
 			ExpireAt:  expireAt,
 			BaseOrder: BaseOrder{
 				AmmIndex:          big.NewInt(0),

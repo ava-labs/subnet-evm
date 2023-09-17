@@ -24,9 +24,9 @@ jobs:
           go-version: ${{ matrix.go }}
       - run: go mod download
         shell: bash
-      - run:  go test ./plugin/evm/... -test.v
+      - run:  go test github.com/ava-labs/subnet-evm/plugin/evm/...
         shell: bash
-      - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile
+      - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/ticks
         shell: bash
       - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/juror
         shell: bash

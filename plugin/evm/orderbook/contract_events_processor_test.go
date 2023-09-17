@@ -9,6 +9,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook/abis"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
@@ -76,7 +77,7 @@ func TestProcessEvents(t *testing.T) {
 	// 	traderAddress := common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 	// 	db := getDatabase()
 	// 	collateral := HUSD
-	// 	originalMargin := multiplyBasePrecision(big.NewInt(100))
+	// 	originalMargin := hu.Mul1e6(big.NewInt(100))
 	// 	trader := &Trader{
 	// 		Margins: map[Collateral]*big.Int{collateral: big.NewInt(0).Set(originalMargin)},
 	// 	}
@@ -87,7 +88,7 @@ func TestProcessEvents(t *testing.T) {
 	// 	marginAccountABI := getABIfromJson(marginAccountAbi)
 	// 	marginAccountEvent := getEventFromABI(marginAccountABI, "MarginAdded")
 	// 	marginAccountEventTopics := []common.Hash{marginAccountEvent.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(collateral)))}
-	// 	marginAdded := multiplyBasePrecision(big.NewInt(100))
+	// 	marginAdded := hu.Mul1e6(big.NewInt(100))
 	// 	timestamp := big.NewInt(time.Now().Unix())
 	// 	marginAddedEventData, _ := marginAccountEvent.Inputs.NonIndexed().Pack(marginAdded, timestamp)
 	// 	marginAddedLog := getEventLog(MarginAccountContractAddress, marginAccountEventTopics, marginAddedEventData, blockNumber)
@@ -105,11 +106,11 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	db := getDatabase()
 	cep := newcep(t, db)
 	collateral := HUSD
-	openNotional := multiplyBasePrecision(big.NewInt(100))
-	size := multiplyPrecisionSize(big.NewInt(10))
-	lastPremiumFraction := multiplyBasePrecision(big.NewInt(1))
-	liquidationThreshold := multiplyBasePrecision(big.NewInt(1))
-	unrealisedFunding := multiplyBasePrecision(big.NewInt(1))
+	openNotional := hu.Mul1e6(big.NewInt(100))
+	size := hu.Mul1e18(big.NewInt(10))
+	lastPremiumFraction := hu.Mul1e6(big.NewInt(1))
+	liquidationThreshold := hu.Mul1e6(big.NewInt(1))
+	unrealisedFunding := hu.Mul1e6(big.NewInt(1))
 	market := Market(0)
 	position := &Position{
 		OpenNotional:         openNotional,
@@ -118,7 +119,7 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 		LastPremiumFraction:  lastPremiumFraction,
 		LiquidationThreshold: liquidationThreshold,
 	}
-	originalMargin := multiplyBasePrecision(big.NewInt(100))
+	originalMargin := hu.Mul1e6(big.NewInt(100))
 	trader := &Trader{
 		Margin:    Margin{Deposited: map[Collateral]*big.Int{collateral: big.NewInt(0).Set(originalMargin)}},
 		Positions: map[Market]*Position{market: position},
@@ -142,7 +143,7 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	marginAccountABI := getABIfromJson(abis.MarginAccountAbi)
 	marginAccountEvent := getEventFromABI(marginAccountABI, "MarginAdded")
 	marginAccountEventTopics := []common.Hash{marginAccountEvent.ID, traderAddress.Hash(), common.BigToHash(big.NewInt(int64(collateral)))}
-	marginAdded := multiplyBasePrecision(big.NewInt(100))
+	marginAdded := hu.Mul1e6(big.NewInt(100))
 	marginAddedEventData, _ := marginAccountEvent.Inputs.NonIndexed().Pack(marginAdded, timestamp)
 	marginAccountLog := getEventLog(MarginAccountContractAddress, marginAccountEventTopics, marginAddedEventData, blockNumber)
 
@@ -152,9 +153,9 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	clearingHouseEventTopics := []common.Hash{clearingHouseEvent.ID, common.BigToHash(big.NewInt(int64(market)))}
 
 	nextFundingTime := big.NewInt(time.Now().Unix())
-	premiumFraction := multiplyBasePrecision(big.NewInt(10))
-	underlyingPrice := multiplyBasePrecision(big.NewInt(100))
-	cumulativePremiumFraction := multiplyBasePrecision(big.NewInt(10))
+	premiumFraction := hu.Mul1e6(big.NewInt(10))
+	underlyingPrice := hu.Mul1e6(big.NewInt(100))
+	cumulativePremiumFraction := hu.Mul1e6(big.NewInt(10))
 	fundingRateUpdated, _ := clearingHouseEvent.Inputs.NonIndexed().Pack(premiumFraction, underlyingPrice, cumulativePremiumFraction, nextFundingTime, timestamp, big.NewInt(int64(blockNumber)))
 	clearingHouseLog := getEventLog(ClearingHouseContractAddress, clearingHouseEventTopics, fundingRateUpdated, blockNumber)
 
@@ -178,7 +179,7 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	assert.Equal(t, rawOrder, actualLimitOrder.RawOrder.(*LimitOrder))
 
 	//ClearingHouse log - FundingRateUpdated
-	expectedUnrealisedFunding := dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, position.LastPremiumFraction), position.Size))
+	expectedUnrealisedFunding := hu.Div1e18(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, position.LastPremiumFraction), position.Size))
 	assert.Equal(t, expectedUnrealisedFunding, db.TraderMap[traderAddress].Positions[market].UnrealisedFunding)
 
 	//MarginAccount log - marginAdded
@@ -439,11 +440,11 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 	collateral := HUSD
 	market := Market(0)
 	clearingHouseABI := getABIfromJson(abis.ClearingHouseAbi)
-	openNotional := multiplyBasePrecision(big.NewInt(100))
-	size := multiplyPrecisionSize(big.NewInt(10))
-	lastPremiumFraction := multiplyBasePrecision(big.NewInt(1))
-	liquidationThreshold := multiplyBasePrecision(big.NewInt(1))
-	unrealisedFunding := multiplyBasePrecision(big.NewInt(1))
+	openNotional := hu.Mul1e6(big.NewInt(100))
+	size := hu.Mul1e18(big.NewInt(10))
+	lastPremiumFraction := hu.Mul1e6(big.NewInt(1))
+	liquidationThreshold := hu.Mul1e6(big.NewInt(1))
+	unrealisedFunding := hu.Mul1e6(big.NewInt(1))
 	t.Run("when event is FundingRateUpdated", func(t *testing.T) {
 		event := getEventFromABI(clearingHouseABI, "FundingRateUpdated")
 		topics := []common.Hash{event.ID, common.BigToHash(big.NewInt(int64(market)))}
@@ -472,13 +473,13 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 		})
 		t.Run("When event parsing succeeds", func(t *testing.T) {
 			nextFundingTime := big.NewInt(time.Now().Unix())
-			premiumFraction := multiplyBasePrecision(big.NewInt(10))
-			underlyingPrice := multiplyBasePrecision(big.NewInt(100))
-			cumulativePremiumFraction := multiplyBasePrecision(big.NewInt(10))
+			premiumFraction := hu.Mul1e6(big.NewInt(10))
+			underlyingPrice := hu.Mul1e6(big.NewInt(100))
+			cumulativePremiumFraction := hu.Mul1e6(big.NewInt(10))
 			fundingRateUpdated, _ := event.Inputs.NonIndexed().Pack(premiumFraction, underlyingPrice, cumulativePremiumFraction, nextFundingTime, timestamp, big.NewInt(int64(blockNumber)))
 			log := getEventLog(ClearingHouseContractAddress, topics, fundingRateUpdated, blockNumber)
 			cep.ProcessAcceptedEvents([]*types.Log{log}, true)
-			expectedUnrealisedFunding := dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, position.LastPremiumFraction), position.Size))
+			expectedUnrealisedFunding := hu.Div1e18(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, position.LastPremiumFraction), position.Size))
 			assert.Equal(t, expectedUnrealisedFunding, db.TraderMap[traderAddress].Positions[market].UnrealisedFunding)
 		})
 	})
@@ -509,8 +510,8 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 			assert.Equal(t, lastPremiumFraction, db.TraderMap[traderAddress].Positions[market].LastPremiumFraction)
 		})
 		t.Run("When event parsing succeeds", func(t *testing.T) {
-			takerFundingPayment := multiplyBasePrecision(big.NewInt(10))
-			cumulativePremiumFraction := multiplyBasePrecision(big.NewInt(10))
+			takerFundingPayment := hu.Mul1e6(big.NewInt(10))
+			cumulativePremiumFraction := hu.Mul1e6(big.NewInt(10))
 			fundingPaidEvent, _ := event.Inputs.NonIndexed().Pack(takerFundingPayment, cumulativePremiumFraction)
 			log := getEventLog(ClearingHouseContractAddress, topics, fundingPaidEvent, blockNumber)
 			cep.ProcessAcceptedEvents([]*types.Log{log}, true)
@@ -544,13 +545,13 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 			// assert.Equal(t, big.NewInt(0), db.LastPrice[market])
 		})
 		t.Run("When event parsing succeeds", func(t *testing.T) {
-			baseAsset := multiplyPrecisionSize(big.NewInt(10))
-			// quoteAsset := multiplyBasePrecision(big.NewInt(1000))
-			realizedPnl := multiplyBasePrecision(big.NewInt(20))
-			openNotional := multiplyBasePrecision(big.NewInt(4000))
-			timestamp := multiplyBasePrecision(big.NewInt(time.Now().Unix()))
-			size := multiplyPrecisionSize(big.NewInt(40))
-			price := multiplyBasePrecision(big.NewInt(100)) // baseAsset / quoteAsset
+			baseAsset := hu.Mul1e18(big.NewInt(10))
+			// quoteAsset := hu.Mul1e6(big.NewInt(1000))
+			realizedPnl := hu.Mul1e6(big.NewInt(20))
+			openNotional := hu.Mul1e6(big.NewInt(4000))
+			timestamp := hu.Mul1e6(big.NewInt(time.Now().Unix()))
+			size := hu.Mul1e18(big.NewInt(40))
+			price := hu.Mul1e6(big.NewInt(100)) // baseAsset / quoteAsset
 
 			positionModifiedEvent, err := event.Inputs.NonIndexed().Pack(baseAsset, price, realizedPnl, size, openNotional, big.NewInt(0), uint8(0), timestamp)
 			if err != nil {
@@ -591,13 +592,13 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 			assert.Nil(t, db.LastPrice[market])
 		})
 		t.Run("When event parsing succeeds", func(t *testing.T) {
-			baseAsset := multiplyPrecisionSize(big.NewInt(10))
-			// quoteAsset := multiplyBasePrecision(big.NewInt(1000))
-			realizedPnl := multiplyBasePrecision(big.NewInt(20))
-			openNotional := multiplyBasePrecision(big.NewInt(4000))
-			timestamp := multiplyBasePrecision(big.NewInt(time.Now().Unix()))
-			size := multiplyPrecisionSize(big.NewInt(40))
-			price := multiplyBasePrecision(big.NewInt(100)) // baseAsset / quoteAsset
+			baseAsset := hu.Mul1e18(big.NewInt(10))
+			// quoteAsset := hu.Mul1e6(big.NewInt(1000))
+			realizedPnl := hu.Mul1e6(big.NewInt(20))
+			openNotional := hu.Mul1e6(big.NewInt(4000))
+			timestamp := hu.Mul1e6(big.NewInt(time.Now().Unix()))
+			size := hu.Mul1e18(big.NewInt(40))
+			price := hu.Mul1e6(big.NewInt(100)) // baseAsset / quoteAsset
 
 			positionLiquidatedEvent, _ := event.Inputs.NonIndexed().Pack(baseAsset, price, realizedPnl, size, openNotional, big.NewInt(0), timestamp)
 			log := getEventLog(ClearingHouseContractAddress, topics, positionLiquidatedEvent, blockNumber)

@@ -8,6 +8,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type ContractOrder interface {
@@ -99,6 +100,14 @@ func DecodeLimitOrder(encodedOrder []byte) (*LimitOrder, error) {
 	return limitOrder, nil
 }
 
+func (order *LimitOrder) Hash() (common.Hash, error) {
+	data, err := order.EncodeToABIWithoutType()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return common.BytesToHash(crypto.Keccak256(data)), nil
+}
+
 // ----------------------------------------------------------------------------
 // IOCOrder
 
@@ -167,8 +176,34 @@ func DecodeIOCOrder(encodedOrder []byte) (*IOCOrder, error) {
 	return iocOrder, nil
 }
 
+func (order *IOCOrder) Hash() (hash common.Hash, err error) {
+	data, err := order.EncodeToABIWithoutType()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return common.BytesToHash(crypto.Keccak256(data)), nil
+}
+
 // ----------------------------------------------------------------------------
 // Helper functions
+type DecodeStep struct {
+	OrderType    OrderType
+	EncodedOrder []byte
+}
+
+func DecodeTypeAndEncodedOrder(data []byte) (*DecodeStep, error) {
+	orderType, _ := abi.NewType("uint8", "uint8", nil)
+	orderBytesType, _ := abi.NewType("bytes", "bytes", nil)
+	decodedValues, err := abi.Arguments{{Type: orderType}, {Type: orderBytesType}}.Unpack(data)
+	if err != nil {
+		return nil, err
+	}
+	return &DecodeStep{
+		OrderType:    OrderType(decodedValues[0].(uint8)),
+		EncodedOrder: decodedValues[1].([]byte),
+	}, nil
+}
+
 func getOrderType(orderType string) (abi.Type, error) {
 	if orderType == "limit" {
 		return abi.NewType("tuple", "", []abi.ArgumentMarshaling{

@@ -1,57 +1,44 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { IClearingHouse } from "./IClearingHouse.sol";
+import { IOrderHandler } from "./IOrderHandler.sol";
 
 interface IJuror {
+    enum BadElement { Order0, Order1, Generic }
+
+    // Order Matching
     function validateOrdersAndDetermineFillPrice(
         bytes[2] calldata data,
         int256 fillAmount
     )   external
         view
-        returns(
-            IClearingHouse.Instruction[2] memory instructions,
-            uint8[2] memory orderTypes,
-            bytes[2] memory encodedOrders,
-            uint256 fillPrice
-        );
+        returns(string memory err, BadElement reason, IOrderHandler.MatchingValidationRes memory res);
 
     function validateLiquidationOrderAndDetermineFillPrice(bytes calldata data, uint256 liquidationAmount)
         external
         view
-        returns(
-            IClearingHouse.Instruction memory instruction,
-            uint8 orderType,
-            bytes memory encodedOrder,
-            uint256 fillPrice,
-            int256 fillAmount
-        );
-
+        returns(string memory err, IOrderHandler.LiquidationMatchingValidationRes memory res);
 
     // Limit Orders
-    function validatePlaceLimitOrder(ILimitOrderBook.OrderV2 calldata order, address trader)
+    function validatePlaceLimitOrder(ILimitOrderBook.Order calldata order, address sender)
         external
         view
-        returns (string memory errs, bytes32 orderhash, IOrderHandler.PlaceOrderRes memory res);
+        returns (string memory err, bytes32 orderhash, IOrderHandler.PlaceOrderRes memory res);
 
-    function validateCancelLimitOrder(ILimitOrderBook.OrderV2 memory order, address trader, bool assertLowMargin)
+    function validateCancelLimitOrder(ILimitOrderBook.Order memory order, address sender, bool assertLowMargin)
         external
         view
         returns (string memory err, bytes32 orderHash, IOrderHandler.CancelOrderRes memory res);
 
     // IOC Orders
-    function validatePlaceIOCOrders(IImmediateOrCancelOrders.Order[] memory orders, address sender) external view returns(bytes32[] memory orderHashes);
+    function validatePlaceIOCOrder(IImmediateOrCancelOrders.Order memory order, address sender) external view returns(string memory err, bytes32 orderHash);
 
-    // ticks
-    function getPrevTick(address amm, bool isBid, uint tick) external view returns (uint prevTick);
-    function sampleImpactBid(address amm) external view returns (uint impactBid);
-    function sampleImpactAsk(address amm) external view returns (uint impactAsk);
-    function getQuote(address amm, int256 baseAssetQuantity) external view returns (uint256 rate);
-    function getBaseQuote(address amm, int256 quoteQuantity) external view returns (uint256 rate);
+    // other methods
+    function getNotionalPositionAndMargin(address trader, bool includeFundingPayments, uint8 mode) external view returns(uint256 notionalPosition, int256 margin);
 }
 
 interface ILimitOrderBook {
-    struct OrderV2 {
+    struct Order {
         uint256 ammIndex;
         address trader;
         int256 baseAssetQuantity;
@@ -72,24 +59,5 @@ interface IImmediateOrCancelOrders {
         uint256 price;
         uint256 salt;
         bool reduceOnly;
-    }
-}
-
-interface IOrderHandler {
-    enum OrderStatus {
-        Invalid,
-        Placed,
-        Filled,
-        Cancelled
-    }
-
-    struct PlaceOrderRes {
-        uint reserveAmount;
-        address amm;
-    }
-
-    struct CancelOrderRes {
-        int unfilledAmount;
-        address amm;
     }
 }

@@ -5,9 +5,9 @@ import (
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	// "github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -36,10 +36,10 @@ func getReservedMargin(stateDB contract.StateDB, trader common.Address) *big.Int
 func GetAvailableMargin(stateDB contract.StateDB, trader common.Address) *big.Int {
 	includeFundingPayment := true
 	mode := uint8(1) // Min_Allowable_Margin
-	output := GetNotionalPositionAndMargin(stateDB, &GetNotionalPositionAndMarginInput{Trader: trader, IncludeFundingPayments: includeFundingPayment, Mode: mode})
+	output := getNotionalPositionAndMargin(stateDB, &GetNotionalPositionAndMarginInput{Trader: trader, IncludeFundingPayments: includeFundingPayment, Mode: mode})
 	notionalPostion := output.NotionalPosition
 	margin := output.Margin
-	utitlizedMargin := divide1e6(big.NewInt(0).Mul(notionalPostion, GetMinAllowableMargin(stateDB)))
+	utitlizedMargin := hu.Div1e6(big.NewInt(0).Mul(notionalPostion, GetMinAllowableMargin(stateDB)))
 	reservedMargin := getReservedMargin(stateDB, trader)
 	// log.Info("GetAvailableMargin", "trader", trader, "notionalPostion", notionalPostion, "margin", margin, "utitlizedMargin", utitlizedMargin, "reservedMargin", reservedMargin)
 	return big.NewInt(0).Sub(big.NewInt(0).Sub(margin, utitlizedMargin), reservedMargin)

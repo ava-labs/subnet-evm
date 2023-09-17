@@ -185,7 +185,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 				Salt:                    order.Salt,
 				ReduceOnly:              order.ReduceOnly,
 				BlockNumber:             big.NewInt(int64(event.BlockNumber)),
-				OrderType:               LimitOrderType,
+				OrderType:               Limit,
 			}
 			log.Info("LimitOrder/OrderAccepted", "order", limitOrder, "timestamp", timestamp)
 			cep.database.Add(&limitOrder)
@@ -277,7 +277,7 @@ func (cep *ContractEventsProcessor) handleIOCOrderBookEvent(event *types.Log) {
 				Salt:                    order.Salt,
 				ReduceOnly:              order.ReduceOnly,
 				BlockNumber:             big.NewInt(int64(event.BlockNumber)),
-				OrderType:               IOCOrderType,
+				OrderType:               IOC,
 			}
 			log.Info("IOCOrder/OrderPlaced", "order", limitOrder, "number", event.BlockNumber)
 			cep.database.Add(&limitOrder)

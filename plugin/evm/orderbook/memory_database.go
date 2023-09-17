@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/metrics"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -42,11 +43,6 @@ func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
 		configService:             configService,
 	}
 }
-
-var (
-	_1e18 = big.NewInt(1e18)
-	_1e6  = big.NewInt(1e6)
-)
 
 const (
 	RETRY_AFTER_BLOCKS = 10
@@ -83,8 +79,8 @@ const (
 type OrderType uint8
 
 const (
-	LimitOrderType OrderType = iota
-	IOCOrderType
+	Limit OrderType = iota
+	IOC
 )
 
 func (o OrderType) String() string {
@@ -151,14 +147,14 @@ func (order Order) getOrderStatus() Lifecycle {
 }
 
 func (order Order) getExpireAt() *big.Int {
-	if order.OrderType == IOCOrderType {
+	if order.OrderType == IOC {
 		return order.RawOrder.(*IOCOrder).ExpireAt
 	}
 	return big.NewInt(0)
 }
 
 func (order Order) isPostOnly() bool {
-	if order.OrderType == LimitOrderType {
+	if order.OrderType == Limit {
 		if rawOrder, ok := order.RawOrder.(*LimitOrder); ok {
 			return rawOrder.PostOnly
 		}
@@ -351,7 +347,7 @@ func shouldRemove(acceptedBlockNumber, blockTimestamp uint64, order Order) Order
 		return REMOVE
 	}
 
-	if order.OrderType != IOCOrderType {
+	if order.OrderType != IOC {
 		return KEEP
 	}
 
@@ -663,7 +659,7 @@ func calcPendingFunding(cumulativePremiumFraction, lastPremiumFraction, size *bi
 	}
 
 	// Divide by 1e18
-	return result.Div(result, SIZE_BASE_PRECISION)
+	return hu.Div1e18(result)
 }
 
 func (db *InMemoryDatabase) ResetUnrealisedFunding(market Market, trader common.Address, cumulativePremiumFraction *big.Int) {
@@ -698,7 +694,7 @@ func (db *InMemoryDatabase) UpdateLastPremiumFraction(market Market, trader comm
 	}
 
 	db.TraderMap[trader].Positions[market].LastPremiumFraction = lastPremiumFraction
-	db.TraderMap[trader].Positions[market].UnrealisedFunding = dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, lastPremiumFraction), db.TraderMap[trader].Positions[market].Size))
+	db.TraderMap[trader].Positions[market].UnrealisedFunding = hu.Div1e18(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, lastPremiumFraction), db.TraderMap[trader].Positions[market].Size))
 }
 
 func (db *InMemoryDatabase) GetLastPrice(market Market) *big.Int {
@@ -845,7 +841,7 @@ func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, 
 
 // assumes db.mu.RLock has been held by the caller
 func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader *Trader, availableMargin *big.Int, oraclePrices map[Market]*big.Int, ordersToCancel map[common.Address][]Order) bool {
-	traderOrders := db.getTraderOrders(addr, LimitOrderType)
+	traderOrders := db.getTraderOrders(addr, Limit)
 	sort.Slice(traderOrders, func(i, j int) bool {
 		// higher diff comes first
 		iDiff := big.NewInt(0).Abs(big.NewInt(0).Sub(traderOrders[i].Price, oraclePrices[traderOrders[i].Market]))
@@ -859,12 +855,12 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 		ordersToCancel[addr] = []Order{}
 		for _, order := range traderOrders {
 			// cannot cancel ReduceOnly orders or Market orders because no margin is reserved for them
-			if order.ReduceOnly || order.OrderType != LimitOrderType {
+			if order.ReduceOnly || order.OrderType != Limit {
 				continue
 			}
 			ordersToCancel[addr] = append(ordersToCancel[addr], order)
-			orderNotional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.GetUnFilledBaseAssetQuantity(), order.Price), _1e18)) // | size * current price |
-			marginReleased := divideByBasePrecision(big.NewInt(0).Mul(orderNotional, db.configService.getMinAllowableMargin()))
+			orderNotional := big.NewInt(0).Abs(hu.Div1e18(hu.Mul(order.GetUnFilledBaseAssetQuantity(), order.Price))) // | size * current price |
+			marginReleased := hu.Div1e6(hu.Mul(orderNotional, db.configService.getMinAllowableMargin()))
 			_availableMargin.Add(_availableMargin, marginReleased)
 			if _availableMargin.Sign() >= 0 {
 				break
@@ -932,7 +928,7 @@ func sortLongOrders(orders []Order) {
 			if blockDiff == -1 { // i was placed before j
 				return true
 			} else if blockDiff == 0 { // i and j were placed in the same block
-				if orders[i].OrderType == IOCOrderType {
+				if orders[i].OrderType == IOC {
 					// prioritize fulfilling IOC orders first, because they are short lived
 					return true
 				}
@@ -952,7 +948,7 @@ func sortShortOrders(orders []Order) {
 			if blockDiff == -1 { // i was placed before j
 				return true
 			} else if blockDiff == 0 { // i and j were placed in the same block
-				if orders[i].OrderType == IOCOrderType {
+				if orders[i].OrderType == IOC {
 					// prioritize fulfilling IOC orders first, because they are short lived
 					return true
 				}
@@ -992,7 +988,7 @@ func (db *InMemoryDatabase) GetOrderBookDataCopy() (*InMemoryDatabase, error) {
 
 func getLiquidationThreshold(maxLiquidationRatio *big.Int, minSizeRequirement *big.Int, size *big.Int) *big.Int {
 	absSize := big.NewInt(0).Abs(size)
-	maxLiquidationSize := divideByBasePrecision(big.NewInt(0).Mul(absSize, maxLiquidationRatio))
+	maxLiquidationSize := hu.Div1e6(big.NewInt(0).Mul(absSize, maxLiquidationRatio))
 	liquidationThreshold := utils.BigIntMax(maxLiquidationSize, minSizeRequirement)
 	return big.NewInt(0).Mul(liquidationThreshold, big.NewInt(int64(size.Sign()))) // same sign as size
 }
@@ -1012,7 +1008,7 @@ func getBlankTrader() *Trader {
 func getAvailableMargin(trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, minAllowableMargin *big.Int, markets []Market) *big.Int {
 	margin := new(big.Int).Sub(getNormalisedMargin(trader), pendingFunding)
 	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices, markets)
-	utilisedMargin := divideByBasePrecision(new(big.Int).Mul(notionalPosition, minAllowableMargin))
+	utilisedMargin := hu.Div1e6(new(big.Int).Mul(notionalPosition, minAllowableMargin))
 	return new(big.Int).Sub(
 		new(big.Int).Add(margin, unrealizePnL),
 		new(big.Int).Add(utilisedMargin, trader.Margin.Reserved),
@@ -1022,7 +1018,7 @@ func getAvailableMargin(trader *Trader, pendingFunding *big.Int, oraclePrices ma
 func getAvailableMarginWithDebugInfo(addr common.Address, trader *Trader, pendingFunding *big.Int, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, minAllowableMargin *big.Int, markets []Market) *big.Int {
 	margin := new(big.Int).Sub(getNormalisedMargin(trader), pendingFunding)
 	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices, markets)
-	utilisedMargin := divideByBasePrecision(new(big.Int).Mul(notionalPosition, minAllowableMargin))
+	utilisedMargin := hu.Div1e6(new(big.Int).Mul(notionalPosition, minAllowableMargin))
 	availableMargin := new(big.Int).Sub(
 		new(big.Int).Add(margin, unrealizePnL),
 		new(big.Int).Add(utilisedMargin, trader.Margin.Reserved),

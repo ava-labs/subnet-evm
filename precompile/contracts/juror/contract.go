@@ -16,7 +16,6 @@ import (
 	_ "embed"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -24,16 +23,12 @@ const (
 	// You should set a gas cost for each function in your contract.
 	// Generally, you should not set gas costs very low as this may cause your network to be vulnerable to DoS attacks.
 	// There are some predefined gas costs in contract/utils.go that you can use.
-	GetBaseQuoteGasCost                                  uint64 = 69 /* SET A GAS COST HERE */
-	GetPrevTickGasCost                                   uint64 = 69 /* SET A GAS COST HERE */
-	GetQuoteGasCost                                      uint64 = 69 /* SET A GAS COST HERE */
-	SampleImpactAskGasCost                               uint64 = 69 /* SET A GAS COST HERE */
-	SampleImpactBidGasCost                               uint64 = 69 /* SET A GAS COST HERE */
-	ValidateCancelLimitOrderGasCost                      uint64 = 69 /* SET A GAS COST HERE */
-	ValidateLiquidationOrderAndDetermineFillPriceGasCost uint64 = 69 /* SET A GAS COST HERE */
-	ValidateOrdersAndDetermineFillPriceGasCost           uint64 = 69 /* SET A GAS COST HERE */
-	ValidatePlaceIOCOrdersGasCost                        uint64 = 69 /* SET A GAS COST HERE */
-	ValidatePlaceLimitOrderGasCost                       uint64 = 69 /* SET A GAS COST HERE */
+	GetNotionalPositionAndMarginGasCost                  uint64 = 69
+	ValidateCancelLimitOrderGasCost                      uint64 = 69
+	ValidateLiquidationOrderAndDetermineFillPriceGasCost uint64 = 69
+	ValidateOrdersAndDetermineFillPriceGasCost           uint64 = 69
+	ValidatePlaceIOCOrderGasCost                         uint64 = 69
+	ValidatePlaceLimitOrderGasCost                       uint64 = 69
 )
 
 // CUSTOM CODE STARTS HERE
@@ -76,15 +71,15 @@ type IImmediateOrCancelOrdersOrder struct {
 	ReduceOnly        bool
 }
 
-// ILimitOrderBookOrderV2 is an auto generated low-level Go binding around an user-defined struct.
-type ILimitOrderBookOrderV2 struct {
-	AmmIndex          *big.Int       `json: "ammIndex"`
-	Trader            common.Address `json: "trader"`
-	BaseAssetQuantity *big.Int       `json: "baseAssetQuantity"`
-	Price             *big.Int       `json: "price"`
-	Salt              *big.Int       `json: "salt"`
-	ReduceOnly        bool           `json: "reduceOnly"`
-	PostOnly          bool           `json: "postOnly"`
+// ILimitOrderBookOrder is an auto generated low-level Go binding around an user-defined struct.
+type ILimitOrderBookOrder struct {
+	AmmIndex          *big.Int
+	Trader            common.Address
+	BaseAssetQuantity *big.Int
+	Price             *big.Int
+	Salt              *big.Int
+	ReduceOnly        bool
+	PostOnly          bool
 }
 
 // IOrderHandlerCancelOrderRes is an auto generated low-level Go binding around an user-defined struct.
@@ -93,31 +88,43 @@ type IOrderHandlerCancelOrderRes struct {
 	Amm            common.Address
 }
 
+// IOrderHandlerLiquidationMatchingValidationRes is an auto generated low-level Go binding around an user-defined struct.
+type IOrderHandlerLiquidationMatchingValidationRes struct {
+	Instruction  IClearingHouseInstruction
+	OrderType    uint8
+	EncodedOrder []byte
+	FillPrice    *big.Int
+	FillAmount   *big.Int
+}
+
+// IOrderHandlerMatchingValidationRes is an auto generated low-level Go binding around an user-defined struct.
+type IOrderHandlerMatchingValidationRes struct {
+	Instructions  [2]IClearingHouseInstruction
+	OrderTypes    [2]uint8
+	EncodedOrders [2][]byte
+	FillPrice     *big.Int
+}
+
 // IOrderHandlerPlaceOrderRes is an auto generated low-level Go binding around an user-defined struct.
 type IOrderHandlerPlaceOrderRes struct {
 	ReserveAmount *big.Int
 	Amm           common.Address
 }
 
-type GetBaseQuoteInput struct {
-	Amm           common.Address
-	QuoteQuantity *big.Int
+type GetNotionalPositionAndMarginInput struct {
+	Trader                 common.Address
+	IncludeFundingPayments bool
+	Mode                   uint8
 }
 
-type GetPrevTickInput struct {
-	Amm   common.Address
-	IsBid bool
-	Tick  *big.Int
-}
-
-type GetQuoteInput struct {
-	Amm               common.Address
-	BaseAssetQuantity *big.Int
+type GetNotionalPositionAndMarginOutput struct {
+	NotionalPosition *big.Int
+	Margin           *big.Int
 }
 
 type ValidateCancelLimitOrderInput struct {
-	Order           ILimitOrderBookOrderV2
-	Trader          common.Address
+	Order           ILimitOrderBookOrder
+	Sender          common.Address
 	AssertLowMargin bool
 }
 
@@ -133,11 +140,8 @@ type ValidateLiquidationOrderAndDetermineFillPriceInput struct {
 }
 
 type ValidateLiquidationOrderAndDetermineFillPriceOutput struct {
-	Instruction  IClearingHouseInstruction
-	OrderType    uint8
-	EncodedOrder []byte
-	FillPrice    *big.Int
-	FillAmount   *big.Int
+	Err string
+	Res IOrderHandlerLiquidationMatchingValidationRes
 }
 
 type ValidateOrdersAndDetermineFillPriceInput struct {
@@ -146,20 +150,24 @@ type ValidateOrdersAndDetermineFillPriceInput struct {
 }
 
 type ValidateOrdersAndDetermineFillPriceOutput struct {
-	Instructions  [2]IClearingHouseInstruction
-	OrderTypes    [2]uint8
-	EncodedOrders [2][]byte
-	FillPrice     *big.Int
+	Err     string
+	Element uint8
+	Res     IOrderHandlerMatchingValidationRes
 }
 
-type ValidatePlaceIOCOrdersInput struct {
-	Orders []IImmediateOrCancelOrdersOrder
+type ValidatePlaceIOCOrderInput struct {
+	Order  IImmediateOrCancelOrdersOrder
 	Sender common.Address
 }
 
+type ValidatePlaceIOCOrderOutput struct {
+	Err       string
+	OrderHash [32]byte
+}
+
 type ValidatePlaceLimitOrderInput struct {
-	Order  ILimitOrderBookOrderV2
-	Trader common.Address
+	Order  ILimitOrderBookOrder
+	Sender common.Address
 }
 
 type ValidatePlaceLimitOrderOutput struct {
@@ -168,234 +176,45 @@ type ValidatePlaceLimitOrderOutput struct {
 	Res       IOrderHandlerPlaceOrderRes
 }
 
-// UnpackGetBaseQuoteInput attempts to unpack [input] as GetBaseQuoteInput
+// UnpackGetNotionalPositionAndMarginInput attempts to unpack [input] as GetNotionalPositionAndMarginInput
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackGetBaseQuoteInput(input []byte) (GetBaseQuoteInput, error) {
-	inputStruct := GetBaseQuoteInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "getBaseQuote", input)
+func UnpackGetNotionalPositionAndMarginInput(input []byte) (GetNotionalPositionAndMarginInput, error) {
+	inputStruct := GetNotionalPositionAndMarginInput{}
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "getNotionalPositionAndMargin", input)
 
 	return inputStruct, err
 }
 
-// PackGetBaseQuote packs [inputStruct] of type GetBaseQuoteInput into the appropriate arguments for getBaseQuote.
-func PackGetBaseQuote(inputStruct GetBaseQuoteInput) ([]byte, error) {
-	return JurorABI.Pack("getBaseQuote", inputStruct.Amm, inputStruct.QuoteQuantity)
+// PackGetNotionalPositionAndMargin packs [inputStruct] of type GetNotionalPositionAndMarginInput into the appropriate arguments for getNotionalPositionAndMargin.
+func PackGetNotionalPositionAndMargin(inputStruct GetNotionalPositionAndMarginInput) ([]byte, error) {
+	return JurorABI.Pack("getNotionalPositionAndMargin", inputStruct.Trader, inputStruct.IncludeFundingPayments, inputStruct.Mode)
 }
 
-// PackGetBaseQuoteOutput attempts to pack given base of type *big.Int
+// PackGetNotionalPositionAndMarginOutput attempts to pack given [outputStruct] of type GetNotionalPositionAndMarginOutput
 // to conform the ABI outputs.
-func PackGetBaseQuoteOutput(base *big.Int) ([]byte, error) {
-	return JurorABI.PackOutput("getBaseQuote", base)
+func PackGetNotionalPositionAndMarginOutput(outputStruct GetNotionalPositionAndMarginOutput) ([]byte, error) {
+	return JurorABI.PackOutput("getNotionalPositionAndMargin",
+		outputStruct.NotionalPosition,
+		outputStruct.Margin,
+	)
 }
 
-func getBaseQuote(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, GetBaseQuoteGasCost); err != nil {
+func getNotionalPositionAndMargin(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	if remainingGas, err = contract.DeductGas(suppliedGas, GetNotionalPositionAndMarginGasCost); err != nil {
 		return nil, 0, err
 	}
-	// attempts to unpack [input] into the arguments to the GetBaseQuoteInput.
+	// attempts to unpack [input] into the arguments to the GetNotionalPositionAndMarginInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackGetBaseQuoteInput(input)
+	inputStruct, err := UnpackGetNotionalPositionAndMarginInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	baseQuote := GetBaseQuote(bibliophile, inputStruct.Amm, inputStruct.QuoteQuantity)
-
-	packedOutput, err := PackGetBaseQuoteOutput(baseQuote)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
-}
-
-// UnpackGetPrevTickInput attempts to unpack [input] as GetPrevTickInput
-// assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackGetPrevTickInput(input []byte) (GetPrevTickInput, error) {
-	inputStruct := GetPrevTickInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "getPrevTick", input)
-
-	return inputStruct, err
-}
-
-// PackGetPrevTick packs [inputStruct] of type GetPrevTickInput into the appropriate arguments for getPrevTick.
-func PackGetPrevTick(inputStruct GetPrevTickInput) ([]byte, error) {
-	return JurorABI.Pack("getPrevTick", inputStruct.Amm, inputStruct.IsBid, inputStruct.Tick)
-}
-
-// PackGetPrevTickOutput attempts to pack given prevTick of type *big.Int
-// to conform the ABI outputs.
-func PackGetPrevTickOutput(prevTick *big.Int) ([]byte, error) {
-	return JurorABI.PackOutput("getPrevTick", prevTick)
-}
-
-func getPrevTick(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, GetPrevTickGasCost); err != nil {
-		return nil, 0, err
-	}
-	// attempts to unpack [input] into the arguments to the GetPrevTickInput.
-	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackGetPrevTickInput(input)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// CUSTOM CODE STARTS HERE
-	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	prevTick, err := GetPrevTick(bibliophile, inputStruct)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	packedOutput, err := PackGetPrevTickOutput(prevTick)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
-}
-
-// UnpackGetQuoteInput attempts to unpack [input] as GetQuoteInput
-// assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackGetQuoteInput(input []byte) (GetQuoteInput, error) {
-	inputStruct := GetQuoteInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "getQuote", input)
-
-	return inputStruct, err
-}
-
-// PackGetQuote packs [inputStruct] of type GetQuoteInput into the appropriate arguments for getQuote.
-func PackGetQuote(inputStruct GetQuoteInput) ([]byte, error) {
-	return JurorABI.Pack("getQuote", inputStruct.Amm, inputStruct.BaseAssetQuantity)
-}
-
-// PackGetQuoteOutput attempts to pack given quote of type *big.Int
-// to conform the ABI outputs.
-func PackGetQuoteOutput(quote *big.Int) ([]byte, error) {
-	return JurorABI.PackOutput("getQuote", quote)
-}
-
-func getQuote(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, GetQuoteGasCost); err != nil {
-		return nil, 0, err
-	}
-	// attempts to unpack [input] into the arguments to the GetQuoteInput.
-	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackGetQuoteInput(input)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// CUSTOM CODE STARTS HERE
-	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	quote := GetQuote(bibliophile, inputStruct.Amm, inputStruct.BaseAssetQuantity)
-
-	packedOutput, err := PackGetQuoteOutput(quote)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
-}
-
-// UnpackSampleImpactAskInput attempts to unpack [input] into the common.Address type argument
-// assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackSampleImpactAskInput(input []byte) (common.Address, error) {
-	res, err := JurorABI.UnpackInput("sampleImpactAsk", input)
-	if err != nil {
-		return *new(common.Address), err
-	}
-	unpacked := *abi.ConvertType(res[0], new(common.Address)).(*common.Address)
-	return unpacked, nil
-}
-
-// PackSampleImpactAsk packs [amm] of type common.Address into the appropriate arguments for sampleImpactAsk.
-// the packed bytes include selector (first 4 func signature bytes).
-// This function is mostly used for tests.
-func PackSampleImpactAsk(amm common.Address) ([]byte, error) {
-	return JurorABI.Pack("sampleImpactAsk", amm)
-}
-
-// PackSampleImpactAskOutput attempts to pack given impactAsk of type *big.Int
-// to conform the ABI outputs.
-func PackSampleImpactAskOutput(impactAsk *big.Int) ([]byte, error) {
-	return JurorABI.PackOutput("sampleImpactAsk", impactAsk)
-}
-
-func sampleImpactAsk(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, SampleImpactAskGasCost); err != nil {
-		return nil, 0, err
-	}
-	// attempts to unpack [input] into the arguments to the SampleImpactAskInput.
-	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackSampleImpactAskInput(input)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// CUSTOM CODE STARTS HERE
-	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output := SampleImpactAsk(bibliophile, inputStruct)
-
-	packedOutput, err := PackSampleImpactAskOutput(output)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
-}
-
-// UnpackSampleImpactBidInput attempts to unpack [input] into the common.Address type argument
-// assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackSampleImpactBidInput(input []byte) (common.Address, error) {
-	res, err := JurorABI.UnpackInput("sampleImpactBid", input)
-	if err != nil {
-		return *new(common.Address), err
-	}
-	unpacked := *abi.ConvertType(res[0], new(common.Address)).(*common.Address)
-	return unpacked, nil
-}
-
-// PackSampleImpactBid packs [amm] of type common.Address into the appropriate arguments for sampleImpactBid.
-// the packed bytes include selector (first 4 func signature bytes).
-// This function is mostly used for tests.
-func PackSampleImpactBid(amm common.Address) ([]byte, error) {
-	return JurorABI.Pack("sampleImpactBid", amm)
-}
-
-// PackSampleImpactBidOutput attempts to pack given impactBid of type *big.Int
-// to conform the ABI outputs.
-func PackSampleImpactBidOutput(impactBid *big.Int) ([]byte, error) {
-	return JurorABI.PackOutput("sampleImpactBid", impactBid)
-}
-
-func sampleImpactBid(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, SampleImpactBidGasCost); err != nil {
-		return nil, 0, err
-	}
-	// attempts to unpack [input] into the arguments to the SampleImpactBidInput.
-	// Assumes that [input] does not include selector
-	// You can use unpacked [ammAddress] variable in your code
-	ammAddress, err := UnpackSampleImpactBidInput(input)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-
-	// CUSTOM CODE STARTS HERE
-	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output := SampleImpactBid(bibliophile, ammAddress)
-
-	packedOutput, err := PackSampleImpactBidOutput(output)
+	output := GetNotionalPositionAndMargin(bibliophile, &inputStruct)
+	packedOutput, err := PackGetNotionalPositionAndMarginOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -415,7 +234,7 @@ func UnpackValidateCancelLimitOrderInput(input []byte) (ValidateCancelLimitOrder
 
 // PackValidateCancelLimitOrder packs [inputStruct] of type ValidateCancelLimitOrderInput into the appropriate arguments for validateCancelLimitOrder.
 func PackValidateCancelLimitOrder(inputStruct ValidateCancelLimitOrderInput) ([]byte, error) {
-	return JurorABI.Pack("validateCancelLimitOrder", inputStruct.Order, inputStruct.Trader, inputStruct.AssertLowMargin)
+	return JurorABI.Pack("validateCancelLimitOrder", inputStruct.Order, inputStruct.Sender, inputStruct.AssertLowMargin)
 }
 
 // PackValidateCancelLimitOrderOutput attempts to pack given [outputStruct] of type ValidateCancelLimitOrderOutput
@@ -439,13 +258,15 @@ func validateCancelLimitOrder(accessibleState contract.AccessibleState, caller c
 	if err != nil {
 		return nil, remainingGas, err
 	}
+
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
 	output := ValidateCancelLimitOrder(bibliophile, &inputStruct)
-	packedOutput, err := PackValidateCancelLimitOrderOutput(*output)
+	packedOutput, err := PackValidateCancelLimitOrderOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
 	}
+
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
 }
@@ -468,11 +289,8 @@ func PackValidateLiquidationOrderAndDetermineFillPrice(inputStruct ValidateLiqui
 // to conform the ABI outputs.
 func PackValidateLiquidationOrderAndDetermineFillPriceOutput(outputStruct ValidateLiquidationOrderAndDetermineFillPriceOutput) ([]byte, error) {
 	return JurorABI.PackOutput("validateLiquidationOrderAndDetermineFillPrice",
-		outputStruct.Instruction,
-		outputStruct.OrderType,
-		outputStruct.EncodedOrder,
-		outputStruct.FillPrice,
-		outputStruct.FillAmount,
+		outputStruct.Err,
+		outputStruct.Res,
 	)
 }
 
@@ -490,11 +308,8 @@ func validateLiquidationOrderAndDetermineFillPrice(accessibleState contract.Acce
 
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output, err := ValidateLiquidationOrderAndDetermineFillPrice(bibliophile, &inputStruct)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-	packedOutput, err := PackValidateLiquidationOrderAndDetermineFillPriceOutput(*output)
+	output := ValidateLiquidationOrderAndDetermineFillPrice(bibliophile, &inputStruct)
+	packedOutput, err := PackValidateLiquidationOrderAndDetermineFillPriceOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -521,10 +336,9 @@ func PackValidateOrdersAndDetermineFillPrice(inputStruct ValidateOrdersAndDeterm
 // to conform the ABI outputs.
 func PackValidateOrdersAndDetermineFillPriceOutput(outputStruct ValidateOrdersAndDetermineFillPriceOutput) ([]byte, error) {
 	return JurorABI.PackOutput("validateOrdersAndDetermineFillPrice",
-		outputStruct.Instructions,
-		outputStruct.OrderTypes,
-		outputStruct.EncodedOrders,
-		outputStruct.FillPrice,
+		outputStruct.Err,
+		outputStruct.Element,
+		outputStruct.Res,
 	)
 }
 
@@ -542,12 +356,8 @@ func validateOrdersAndDetermineFillPrice(accessibleState contract.AccessibleStat
 
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output, err := ValidateOrdersAndDetermineFillPrice(bibliophile, &inputStruct)
-	if err != nil {
-		log.Error("validateOrdersAndDetermineFillPrice", "order0", formatOrder(inputStruct.Data[0]), "order1", formatOrder(inputStruct.Data[1]), "fillAmount", inputStruct.FillAmount, "err", err, "block", accessibleState.GetBlockContext().Number())
-		return nil, remainingGas, err
-	}
-	packedOutput, err := PackValidateOrdersAndDetermineFillPriceOutput(*output)
+	output := ValidateOrdersAndDetermineFillPrice(bibliophile, &inputStruct)
+	packedOutput, err := PackValidateOrdersAndDetermineFillPriceOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -556,46 +366,45 @@ func validateOrdersAndDetermineFillPrice(accessibleState contract.AccessibleStat
 	return packedOutput, remainingGas, nil
 }
 
-// UnpackValidatePlaceIOCOrdersInput attempts to unpack [input] as ValidatePlaceIOCOrdersInput
+// UnpackValidatePlaceIOCOrderInput attempts to unpack [input] as ValidatePlaceIOCOrderInput
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackValidatePlaceIOCOrdersInput(input []byte) (ValidatePlaceIOCOrdersInput, error) {
-	inputStruct := ValidatePlaceIOCOrdersInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validatePlaceIOCOrders", input)
+func UnpackValidatePlaceIOCOrderInput(input []byte) (ValidatePlaceIOCOrderInput, error) {
+	inputStruct := ValidatePlaceIOCOrderInput{}
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validatePlaceIOCOrder", input)
 
 	return inputStruct, err
 }
 
-// PackValidatePlaceIOCOrders packs [inputStruct] of type ValidatePlaceIOCOrdersInput into the appropriate arguments for validatePlaceIOCOrders.
-func PackValidatePlaceIOCOrders(inputStruct ValidatePlaceIOCOrdersInput) ([]byte, error) {
-	return JurorABI.Pack("validatePlaceIOCOrders", inputStruct.Orders, inputStruct.Sender)
+// PackValidatePlaceIOCOrder packs [inputStruct] of type ValidatePlaceIOCOrderInput into the appropriate arguments for validatePlaceIOCOrder.
+func PackValidatePlaceIOCOrder(inputStruct ValidatePlaceIOCOrderInput) ([]byte, error) {
+	return JurorABI.Pack("validatePlaceIOCOrder", inputStruct.Order, inputStruct.Sender)
 }
 
-// PackValidatePlaceIOCOrdersOutput attempts to pack given orderHashes of type [][32]byte
+// PackValidatePlaceIOCOrderOutput attempts to pack given [outputStruct] of type ValidatePlaceIOCOrderOutput
 // to conform the ABI outputs.
-func PackValidatePlaceIOCOrdersOutput(orderHashes [][32]byte) ([]byte, error) {
-	return JurorABI.PackOutput("validatePlaceIOCOrders", orderHashes)
+func PackValidatePlaceIOCOrderOutput(outputStruct ValidatePlaceIOCOrderOutput) ([]byte, error) {
+	return JurorABI.PackOutput("validatePlaceIOCOrder",
+		outputStruct.Err,
+		outputStruct.OrderHash,
+	)
 }
 
-func validatePlaceIOCOrders(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, ValidatePlaceIOCOrdersGasCost); err != nil {
+func validatePlaceIOCOrder(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
+	if remainingGas, err = contract.DeductGas(suppliedGas, ValidatePlaceIOCOrderGasCost); err != nil {
 		return nil, 0, err
 	}
-	// attempts to unpack [input] into the arguments to the ValidatePlaceIOCOrdersInput.
+	// attempts to unpack [input] into the arguments to the ValidatePlaceIOCOrderInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackValidatePlaceIOCOrdersInput(input)
+	inputStruct, err := UnpackValidatePlaceIOCOrderInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output, err := ValidatePlaceIOCOrders(bibliophile, &inputStruct)
-	if err != nil {
-		log.Error("validatePlaceIOCOrders", "error", err, "inputStruct", inputStruct, "block", accessibleState.GetBlockContext().Number())
-		return nil, remainingGas, err
-	}
-	packedOutput, err := PackValidatePlaceIOCOrdersOutput(output)
+	output := ValidatePlaceIOCorder(bibliophile, &inputStruct)
+	packedOutput, err := PackValidatePlaceIOCOrderOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -615,15 +424,12 @@ func UnpackValidatePlaceLimitOrderInput(input []byte) (ValidatePlaceLimitOrderIn
 
 // PackValidatePlaceLimitOrder packs [inputStruct] of type ValidatePlaceLimitOrderInput into the appropriate arguments for validatePlaceLimitOrder.
 func PackValidatePlaceLimitOrder(inputStruct ValidatePlaceLimitOrderInput) ([]byte, error) {
-	return JurorABI.Pack("validatePlaceLimitOrder", inputStruct.Order, inputStruct.Trader)
+	return JurorABI.Pack("validatePlaceLimitOrder", inputStruct.Order, inputStruct.Sender)
 }
 
 // PackValidatePlaceLimitOrderOutput attempts to pack given [outputStruct] of type ValidatePlaceLimitOrderOutput
 // to conform the ABI outputs.
 func PackValidatePlaceLimitOrderOutput(outputStruct ValidatePlaceLimitOrderOutput) ([]byte, error) {
-	// @todo orderHash looks ugly
-	// lvl=info msg=validatePlaceLimitOrder                  outputStruct="{Errs: Orderhash:[163 9 195 151 255 44 17 22 177 218 216 139 75 238 217 56 226 244 244 41 106 243 100 63 204 145 170 96 95 106 252 157] Res:{ReserveAmount:+6015000 Amm:0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf}}"
-	// log.Info("validatePlaceLimitOrder", "outputStruct", outputStruct)
 	return JurorABI.PackOutput("validatePlaceLimitOrder",
 		outputStruct.Errs,
 		outputStruct.Orderhash,
@@ -645,8 +451,8 @@ func validatePlaceLimitOrder(accessibleState contract.AccessibleState, caller co
 
 	// CUSTOM CODE STARTS HERE
 	bibliophile := bibliophile.NewBibliophileClient(accessibleState)
-	output := ValidatePlaceLimitOrder(bibliophile, inputStruct.Order, inputStruct.Trader)
-	packedOutput, err := PackValidatePlaceLimitOrderOutput(*output)
+	output := ValidatePlaceLimitOrder(bibliophile, &inputStruct)
+	packedOutput, err := PackValidatePlaceLimitOrderOutput(output)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -661,15 +467,11 @@ func createJurorPrecompile() contract.StatefulPrecompiledContract {
 	var functions []*contract.StatefulPrecompileFunction
 
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
-		// "getBaseQuote":             getBaseQuote,
-		"getPrevTick": getPrevTick,
-		// "getQuote":                 getQuote,
-		"sampleImpactAsk":                               sampleImpactAsk,
-		"sampleImpactBid":                               sampleImpactBid,
+		"getNotionalPositionAndMargin":                  getNotionalPositionAndMargin,
 		"validateCancelLimitOrder":                      validateCancelLimitOrder,
 		"validateLiquidationOrderAndDetermineFillPrice": validateLiquidationOrderAndDetermineFillPrice,
 		"validateOrdersAndDetermineFillPrice":           validateOrdersAndDetermineFillPrice,
-		"validatePlaceIOCOrders":                        validatePlaceIOCOrders,
+		"validatePlaceIOCOrder":                         validatePlaceIOCOrder,
 		"validatePlaceLimitOrder":                       validatePlaceLimitOrder,
 	}
 

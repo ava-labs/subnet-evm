@@ -253,8 +253,8 @@ func areMatchingOrders(longOrder, shortOrder Order) *big.Int {
 		return nil
 	}
 	blockDiff := longOrder.BlockNumber.Cmp(shortOrder.BlockNumber)
-	if blockDiff == -1 && (longOrder.OrderType == IOCOrderType || shortOrder.isPostOnly()) ||
-		blockDiff == 1 && (shortOrder.OrderType == IOCOrderType || longOrder.isPostOnly()) {
+	if blockDiff == -1 && (longOrder.OrderType == IOC || shortOrder.isPostOnly()) ||
+		blockDiff == 1 && (shortOrder.OrderType == IOC || longOrder.isPostOnly()) {
 		return nil
 	}
 	fillAmount := utils.BigIntMinAbs(longOrder.GetUnFilledBaseAssetQuantity(), shortOrder.GetUnFilledBaseAssetQuantity())

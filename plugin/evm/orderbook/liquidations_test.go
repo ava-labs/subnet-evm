@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,7 +14,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 	collateral := HUSD
 	t.Run("When no trader exist", func(t *testing.T) {
 		db := getDatabase()
-		oraclePrices := map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(110))}
+		oraclePrices := map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))}
 		liquidablePositions, _ := db.GetNaughtyTraders(oraclePrices, []Market{market})
 		assert.Equal(t, 0, len(liquidablePositions))
 	})
@@ -31,19 +32,19 @@ func TestGetLiquidableTraders(t *testing.T) {
 				Positions: map[Market]*Position{},
 			},
 		}
-		db.LastPrice = map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(100))}
-		oraclePrices := map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(110))}
+		db.LastPrice = map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(100))}
+		oraclePrices := map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))}
 		liquidablePositions, _ := db.GetNaughtyTraders(oraclePrices, []Market{market})
 		assert.Equal(t, 0, len(liquidablePositions))
 	})
 
 	t.Run("long trader", func(t *testing.T) {
 		longTraderAddress := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
-		marginLong := multiplyBasePrecision(big.NewInt(500))
-		longSize := multiplyPrecisionSize(big.NewInt(10))
-		longEntryPrice := multiplyBasePrecision(big.NewInt(90))
-		openNotionalLong := dividePrecisionSize(big.NewInt(0).Mul(longEntryPrice, longSize))
-		pendingFundingLong := multiplyBasePrecision(big.NewInt(42))
+		marginLong := hu.Mul1e6(big.NewInt(500))
+		longSize := hu.Mul1e18(big.NewInt(10))
+		longEntryPrice := hu.Mul1e6(big.NewInt(90))
+		openNotionalLong := hu.Div1e18(big.NewInt(0).Mul(longEntryPrice, longSize))
+		pendingFundingLong := hu.Mul1e6(big.NewInt(42))
 		t.Run("is saved from liquidation zone by mark price", func(t *testing.T) {
 			// setup db
 			db := getDatabase()
@@ -59,8 +60,8 @@ func TestGetLiquidableTraders(t *testing.T) {
 			db.TraderMap = map[common.Address]*Trader{
 				longTraderAddress: &longTrader,
 			}
-			db.LastPrice = map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(50))}
-			oraclePrices := map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(49))}
+			db.LastPrice = map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(50))}
+			oraclePrices := map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(49))}
 
 			// assertions begin
 			// for long trader
@@ -74,20 +75,20 @@ func TestGetLiquidableTraders(t *testing.T) {
 
 			// for Min_Allowable_Margin we select the min of 2 hence orale_mf
 			notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, new(big.Int).Add(marginLong, pendingFundingLong), Min_Allowable_Margin, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(490)), notionalPosition)
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-410)), unrealizePnL)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(490)), notionalPosition)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-410)), unrealizePnL)
 
 			availableMargin := getAvailableMargin(_trader, pendingFundingLong, oraclePrices, db.GetLastPrices(), db.configService.getMinAllowableMargin(), []Market{market})
 			// availableMargin = 500 - 42 (pendingFundingLong) - 410 (uPnL) - 490/5 = -50
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-50)), availableMargin)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-50)), availableMargin)
 
 			// for Maintenance_Margin we select the max of 2 hence, last_mf
 			notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, new(big.Int).Add(marginLong, pendingFundingLong), Maintenance_Margin, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(500)), notionalPosition)
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-400)), unrealizePnL)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(500)), notionalPosition)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-400)), unrealizePnL)
 
 			marginFraction := calcMarginFraction(_trader, pendingFundingLong, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(new(big.Int).Add(new(big.Int).Sub(marginLong, pendingFundingLong), unrealizePnL)), notionalPosition), marginFraction)
+			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(new(big.Int).Sub(marginLong, pendingFundingLong), unrealizePnL)), notionalPosition), marginFraction)
 
 			liquidablePositions, _ := db.GetNaughtyTraders(oraclePrices, []Market{market})
 			assert.Equal(t, 0, len(liquidablePositions))
@@ -108,8 +109,8 @@ func TestGetLiquidableTraders(t *testing.T) {
 			db.TraderMap = map[common.Address]*Trader{
 				longTraderAddress: &longTrader,
 			}
-			db.LastPrice = map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(49))}
-			oraclePrices := map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(50))}
+			db.LastPrice = map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(49))}
+			oraclePrices := map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(50))}
 
 			// assertions begin
 			// for long trader
@@ -123,20 +124,20 @@ func TestGetLiquidableTraders(t *testing.T) {
 
 			// for Min_Allowable_Margin we select the min of 2 hence last_mf
 			notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, new(big.Int).Add(marginLong, pendingFundingLong), Min_Allowable_Margin, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(490)), notionalPosition)
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-410)), unrealizePnL)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(490)), notionalPosition)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-410)), unrealizePnL)
 
 			availableMargin := getAvailableMargin(_trader, pendingFundingLong, oraclePrices, db.GetLastPrices(), db.configService.getMinAllowableMargin(), []Market{market})
 			// availableMargin = 500 - 42 (pendingFundingLong) - 410 (uPnL) - 490/5 = -50
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-50)), availableMargin)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-50)), availableMargin)
 
 			// for Maintenance_Margin we select the max of 2 hence, oracle_mf
 			notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, new(big.Int).Add(marginLong, pendingFundingLong), Maintenance_Margin, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(500)), notionalPosition)
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-400)), unrealizePnL)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(500)), notionalPosition)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-400)), unrealizePnL)
 
 			marginFraction := calcMarginFraction(_trader, pendingFundingLong, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(new(big.Int).Add(new(big.Int).Sub(marginLong, pendingFundingLong), unrealizePnL)), notionalPosition), marginFraction)
+			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(new(big.Int).Sub(marginLong, pendingFundingLong), unrealizePnL)), notionalPosition), marginFraction)
 
 			liquidablePositions, _ := db.GetNaughtyTraders(oraclePrices, []Market{market})
 			assert.Equal(t, 0, len(liquidablePositions))
@@ -145,11 +146,11 @@ func TestGetLiquidableTraders(t *testing.T) {
 
 	t.Run("short trader is saved from liquidation zone by mark price", func(t *testing.T) {
 		shortTraderAddress := common.HexToAddress("0x710bf5F942331874dcBC7783319123679033b63b")
-		marginShort := multiplyBasePrecision(big.NewInt(1000))
-		shortSize := multiplyPrecisionSize(big.NewInt(-20))
-		shortEntryPrice := multiplyBasePrecision(big.NewInt(105))
-		openNotionalShort := dividePrecisionSize(big.NewInt(0).Abs(big.NewInt(0).Mul(shortEntryPrice, shortSize)))
-		pendingFundingShort := multiplyBasePrecision(big.NewInt(-37))
+		marginShort := hu.Mul1e6(big.NewInt(1000))
+		shortSize := hu.Mul1e18(big.NewInt(-20))
+		shortEntryPrice := hu.Mul1e6(big.NewInt(105))
+		openNotionalShort := hu.Div1e18(big.NewInt(0).Abs(big.NewInt(0).Mul(shortEntryPrice, shortSize)))
+		pendingFundingShort := hu.Mul1e6(big.NewInt(-37))
 		t.Run("is saved from liquidation zone by mark price", func(t *testing.T) {
 			// setup db
 			db := getDatabase()
@@ -165,8 +166,8 @@ func TestGetLiquidableTraders(t *testing.T) {
 			db.TraderMap = map[common.Address]*Trader{
 				shortTraderAddress: &shortTrader,
 			}
-			db.LastPrice = map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(142))}
-			oraclePrices := map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(143))}
+			db.LastPrice = map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(142))}
+			oraclePrices := map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(143))}
 
 			// assertions begin
 			_trader := &shortTrader
@@ -179,20 +180,20 @@ func TestGetLiquidableTraders(t *testing.T) {
 
 			// for Min_Allowable_Margin we select the min of 2 hence, oracle_mf
 			notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, new(big.Int).Add(marginShort, pendingFundingShort), Min_Allowable_Margin, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(2860)), notionalPosition)
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-760)), unrealizePnL)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(2860)), notionalPosition)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-760)), unrealizePnL)
 
 			availableMargin := getAvailableMargin(_trader, pendingFundingShort, oraclePrices, db.GetLastPrices(), db.configService.getMinAllowableMargin(), []Market{market})
 			// availableMargin = 1000 + 37 (pendingFundingShort) -760 (uPnL) - 2860/5 = -295
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-295)), availableMargin)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-295)), availableMargin)
 
 			// for Maintenance_Margin we select the max of 2 hence, last_mf
 			notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, new(big.Int).Add(marginShort, pendingFundingShort), Maintenance_Margin, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(2840)), notionalPosition)
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-740)), unrealizePnL)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(2840)), notionalPosition)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-740)), unrealizePnL)
 
 			marginFraction := calcMarginFraction(_trader, pendingFundingShort, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(new(big.Int).Add(new(big.Int).Sub(marginShort, pendingFundingShort), unrealizePnL)), notionalPosition), marginFraction)
+			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(new(big.Int).Sub(marginShort, pendingFundingShort), unrealizePnL)), notionalPosition), marginFraction)
 
 			liquidablePositions, _ := db.GetNaughtyTraders(oraclePrices, []Market{market})
 			assert.Equal(t, 0, len(liquidablePositions))
@@ -213,8 +214,8 @@ func TestGetLiquidableTraders(t *testing.T) {
 			db.TraderMap = map[common.Address]*Trader{
 				shortTraderAddress: &shortTrader,
 			}
-			db.LastPrice = map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(143))}
-			oraclePrices := map[Market]*big.Int{market: multiplyBasePrecision(big.NewInt(142))}
+			db.LastPrice = map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(143))}
+			oraclePrices := map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(142))}
 
 			// assertions begin
 			_trader := &shortTrader
@@ -227,20 +228,20 @@ func TestGetLiquidableTraders(t *testing.T) {
 
 			// for Min_Allowable_Margin we select the min of 2 hence, last_mf
 			notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, new(big.Int).Add(marginShort, pendingFundingShort), Min_Allowable_Margin, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(2860)), notionalPosition)
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-760)), unrealizePnL)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(2860)), notionalPosition)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-760)), unrealizePnL)
 
 			availableMargin := getAvailableMargin(_trader, pendingFundingShort, oraclePrices, db.GetLastPrices(), db.configService.getMinAllowableMargin(), []Market{market})
 			// availableMargin = 1000 + 37 (pendingFundingShort) - 760 (uPnL) - 2860/5 = -295
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-295)), availableMargin)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-295)), availableMargin)
 
 			// for Maintenance_Margin we select the max of 2 hence, oracle_mf
 			notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, new(big.Int).Add(marginShort, pendingFundingShort), Maintenance_Margin, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(2840)), notionalPosition)
-			assert.Equal(t, multiplyBasePrecision(big.NewInt(-740)), unrealizePnL)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(2840)), notionalPosition)
+			assert.Equal(t, hu.Mul1e6(big.NewInt(-740)), unrealizePnL)
 
 			marginFraction := calcMarginFraction(_trader, pendingFundingShort, oraclePrices, db.GetLastPrices(), []Market{market})
-			assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(new(big.Int).Add(new(big.Int).Sub(marginShort, pendingFundingShort), unrealizePnL)), notionalPosition), marginFraction)
+			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(new(big.Int).Sub(marginShort, pendingFundingShort), unrealizePnL)), notionalPosition), marginFraction)
 
 			liquidablePositions, _ := db.GetNaughtyTraders(oraclePrices, []Market{market})
 			assert.Equal(t, 0, len(liquidablePositions))
@@ -254,7 +255,7 @@ func TestGetNormalisedMargin(t *testing.T) {
 		assert.Equal(t, trader.Margin.Deposited[HUSD], getNormalisedMargin(&trader))
 	})
 	t.Run("When trader has margin in HUSD", func(t *testing.T) {
-		margin := multiplyBasePrecision(big.NewInt(10))
+		margin := hu.Mul1e6(big.NewInt(10))
 		trader := Trader{
 			Margin: Margin{Deposited: map[Collateral]*big.Int{
 				HUSD: margin,
@@ -266,15 +267,15 @@ func TestGetNormalisedMargin(t *testing.T) {
 
 func TestGetNotionalPosition(t *testing.T) {
 	t.Run("When size is positive, it return abs value", func(t *testing.T) {
-		price := multiplyBasePrecision(big.NewInt(10))
-		size := multiplyPrecisionSize(big.NewInt(20))
-		expectedNotionalPosition := dividePrecisionSize(big.NewInt(0).Mul(price, size))
+		price := hu.Mul1e6(big.NewInt(10))
+		size := hu.Mul1e18(big.NewInt(20))
+		expectedNotionalPosition := hu.Div1e18(big.NewInt(0).Mul(price, size))
 		assert.Equal(t, expectedNotionalPosition, getNotionalPosition(price, size))
 	})
 	t.Run("When size is negative, it return abs value", func(t *testing.T) {
-		price := multiplyBasePrecision(big.NewInt(10))
-		size := multiplyPrecisionSize(big.NewInt(-20))
-		expectedNotionalPosition := dividePrecisionSize(big.NewInt(0).Abs(big.NewInt(0).Mul(price, size)))
+		price := hu.Mul1e6(big.NewInt(10))
+		size := hu.Mul1e18(big.NewInt(-20))
+		expectedNotionalPosition := hu.Div1e18(big.NewInt(0).Abs(big.NewInt(0).Mul(price, size)))
 		assert.Equal(t, expectedNotionalPosition, getNotionalPosition(price, size))
 	})
 }
@@ -282,25 +283,25 @@ func TestGetNotionalPosition(t *testing.T) {
 func TestGetPositionMetadata(t *testing.T) {
 	t.Run("When newPrice is > entryPrice", func(t *testing.T) {
 		t.Run("When size is positive", func(t *testing.T) {
-			size := multiplyPrecisionSize(big.NewInt(10))
-			entryPrice := multiplyBasePrecision(big.NewInt(10))
-			newPrice := multiplyBasePrecision(big.NewInt(15))
+			size := hu.Mul1e18(big.NewInt(10))
+			entryPrice := hu.Mul1e6(big.NewInt(10))
+			newPrice := hu.Mul1e6(big.NewInt(15))
 			position := &Position{
 				Size:         size,
 				OpenNotional: getNotionalPosition(entryPrice, size),
 			}
 
-			arbitaryMarginValue := multiplyBasePrecision(big.NewInt(69))
+			arbitaryMarginValue := hu.Mul1e6(big.NewInt(69))
 			notionalPosition, uPnL, mf := getPositionMetadata(newPrice, position.OpenNotional, position.Size, arbitaryMarginValue)
 			assert.Equal(t, getNotionalPosition(newPrice, size), notionalPosition)
-			expectedPnl := dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(newPrice, entryPrice), size))
+			expectedPnl := hu.Div1e18(big.NewInt(0).Mul(big.NewInt(0).Sub(newPrice, entryPrice), size))
 			assert.Equal(t, expectedPnl, uPnL)
-			assert.Equal(t, new(big.Int).Div(multiplyBasePrecision(new(big.Int).Add(arbitaryMarginValue, uPnL)), notionalPosition), mf)
+			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(arbitaryMarginValue, uPnL)), notionalPosition), mf)
 		})
 		t.Run("When size is negative", func(t *testing.T) {
-			size := multiplyPrecisionSize(big.NewInt(-10))
-			entryPrice := multiplyBasePrecision(big.NewInt(10))
-			newPrice := multiplyBasePrecision(big.NewInt(15))
+			size := hu.Mul1e18(big.NewInt(-10))
+			entryPrice := hu.Mul1e6(big.NewInt(10))
+			newPrice := hu.Mul1e6(big.NewInt(15))
 			position := &Position{
 				Size:         size,
 				OpenNotional: getNotionalPosition(entryPrice, size),
@@ -308,15 +309,15 @@ func TestGetPositionMetadata(t *testing.T) {
 
 			notionalPosition, uPnL, _ := getPositionMetadata(newPrice, position.OpenNotional, position.Size, big.NewInt(0))
 			assert.Equal(t, getNotionalPosition(newPrice, size), notionalPosition)
-			expectedPnl := dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(newPrice, entryPrice), size))
+			expectedPnl := hu.Div1e18(big.NewInt(0).Mul(big.NewInt(0).Sub(newPrice, entryPrice), size))
 			assert.Equal(t, expectedPnl, uPnL)
 		})
 	})
 	t.Run("When newPrice is < entryPrice", func(t *testing.T) {
 		t.Run("When size is positive", func(t *testing.T) {
-			size := multiplyPrecisionSize(big.NewInt(10))
-			entryPrice := multiplyBasePrecision(big.NewInt(10))
-			newPrice := multiplyBasePrecision(big.NewInt(5))
+			size := hu.Mul1e18(big.NewInt(10))
+			entryPrice := hu.Mul1e6(big.NewInt(10))
+			newPrice := hu.Mul1e6(big.NewInt(5))
 			position := &Position{
 				Size:         size,
 				OpenNotional: getNotionalPosition(entryPrice, size),
@@ -324,20 +325,20 @@ func TestGetPositionMetadata(t *testing.T) {
 
 			notionalPosition, uPnL, _ := getPositionMetadata(newPrice, position.OpenNotional, position.Size, big.NewInt(0))
 			assert.Equal(t, getNotionalPosition(newPrice, size), notionalPosition)
-			expectedPnl := dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(newPrice, entryPrice), size))
+			expectedPnl := hu.Div1e18(big.NewInt(0).Mul(big.NewInt(0).Sub(newPrice, entryPrice), size))
 			assert.Equal(t, expectedPnl, uPnL)
 		})
 		t.Run("When size is negative", func(t *testing.T) {
-			size := multiplyPrecisionSize(big.NewInt(-10))
-			entryPrice := multiplyBasePrecision(big.NewInt(10))
-			newPrice := multiplyBasePrecision(big.NewInt(5))
+			size := hu.Mul1e18(big.NewInt(-10))
+			entryPrice := hu.Mul1e6(big.NewInt(10))
+			newPrice := hu.Mul1e6(big.NewInt(5))
 			position := &Position{
 				Size:         size,
 				OpenNotional: getNotionalPosition(entryPrice, size),
 			}
 			notionalPosition, uPnL, _ := getPositionMetadata(newPrice, position.OpenNotional, position.Size, big.NewInt(0))
 			assert.Equal(t, getNotionalPosition(newPrice, size), notionalPosition)
-			expectedPnl := dividePrecisionSize(big.NewInt(0).Mul(big.NewInt(0).Sub(newPrice, entryPrice), size))
+			expectedPnl := hu.Div1e18(big.NewInt(0).Mul(big.NewInt(0).Sub(newPrice, entryPrice), size))
 			assert.Equal(t, expectedPnl, uPnL)
 		})
 	})

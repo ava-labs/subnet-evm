@@ -5,11 +5,9 @@ import (
 	"math/big"
 	"sort"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-var BASE_PRECISION = _1e6
-var SIZE_BASE_PRECISION = _1e18
 
 type LiquidablePosition struct {
 	Address        common.Address
@@ -31,7 +29,7 @@ func calcMarginFraction(trader *Trader, pendingFunding *big.Int, oraclePrices ma
 		return big.NewInt(math.MaxInt64)
 	}
 	margin.Add(margin, unrealizePnL)
-	return new(big.Int).Div(multiplyBasePrecision(margin), notionalPosition)
+	return new(big.Int).Div(hu.Mul1e6(margin), notionalPosition)
 }
 
 func sortLiquidableSliceByMarginFraction(positions []LiquidablePosition) []LiquidablePosition {
@@ -57,7 +55,7 @@ func getTotalFunding(trader *Trader, markets []Market) *big.Int {
 }
 
 func getNotionalPosition(price *big.Int, size *big.Int) *big.Int {
-	return big.NewInt(0).Abs(dividePrecisionSize(big.NewInt(0).Mul(size, price)))
+	return big.NewInt(0).Abs(hu.Div1e18(big.NewInt(0).Mul(size, price)))
 }
 
 type MarginMode uint8
@@ -121,24 +119,8 @@ func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 	} else {
 		uPnL = new(big.Int).Sub(openNotional, notionalPosition)
 	}
-	mf := new(big.Int).Div(multiplyBasePrecision(new(big.Int).Add(margin, uPnL)), notionalPosition)
+	mf := new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(margin, uPnL)), notionalPosition)
 	return notionalPosition, uPnL, mf
-}
-
-func multiplyBasePrecision(number *big.Int) *big.Int {
-	return big.NewInt(0).Mul(number, BASE_PRECISION)
-}
-
-func multiplyPrecisionSize(number *big.Int) *big.Int {
-	return big.NewInt(0).Mul(number, SIZE_BASE_PRECISION)
-}
-
-func dividePrecisionSize(number *big.Int) *big.Int {
-	return big.NewInt(0).Div(number, SIZE_BASE_PRECISION)
-}
-
-func divideByBasePrecision(number *big.Int) *big.Int {
-	return big.NewInt(0).Div(number, BASE_PRECISION)
 }
 
 func prettifyScaledBigInt(number *big.Int, precision int8) string {
