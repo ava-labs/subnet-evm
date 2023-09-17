@@ -296,12 +296,8 @@ func TestRequestMinVersion(t *testing.T) {
 	}
 
 	// passing nil as codec works because the net.AppRequest is never called
-<<<<<<< HEAD
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
-	net = NewNetwork(p2p.NewRouter(logging.NoLog{}, nil), sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 16)
-=======
 	net = NewNetwork(p2p.NewRouter(logging.NoLog{}, nil, prometheus.NewRegistry(), ""), sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 16)
->>>>>>> 0af32656d (Update to 1.10.10-rc.2 (#328))
 	client := NewNetworkClient(net)
 	requestMessage := TestMessage{Message: "this is a request"}
 	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
@@ -688,11 +684,7 @@ func TestSDKRouting(t *testing.T) {
 	}
 	protocol := 0
 	handler := &testSDKHandler{}
-<<<<<<< HEAD
-	router := p2p.NewRouter(logging.NoLog{}, sender)
-=======
 	router := p2p.NewRouter(logging.NoLog{}, sender, prometheus.NewRegistry(), "")
->>>>>>> 0af32656d (Update to 1.10.10-rc.2 (#328))
 	_, err := router.RegisterAppProtocol(uint64(protocol), handler, nil)
 	require.NoError(err)
 
