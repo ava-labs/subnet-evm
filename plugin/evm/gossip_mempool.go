@@ -13,50 +13,30 @@ import (
 
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 
-	"github.com/ava-labs/coreth/core"
-	"github.com/ava-labs/coreth/core/txpool"
-	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/txpool"
+	"github.com/ava-labs/subnet-evm/core/types"
 )
 
 var (
-	_ gossip.Gossipable        = (*GossipEthTx)(nil)
-	_ gossip.Gossipable        = (*GossipAtomicTx)(nil)
-	_ gossip.Set[*GossipEthTx] = (*GossipEthTxPool)(nil)
+	_ gossip.Gossipable     = (*GossipTx)(nil)
+	_ gossip.Set[*GossipTx] = (*GossipTxPool)(nil)
 )
 
-type GossipAtomicTx struct {
-	Tx *Tx
-}
-
-func (tx *GossipAtomicTx) GetID() ids.ID {
-	return tx.Tx.ID()
-}
-
-func (tx *GossipAtomicTx) Marshal() ([]byte, error) {
-	return tx.Tx.SignedBytes(), nil
-}
-
-func (tx *GossipAtomicTx) Unmarshal(bytes []byte) error {
-	atomicTx, err := ExtractAtomicTx(bytes, Codec)
-	tx.Tx = atomicTx
-
-	return err
-}
-
-func NewGossipEthTxPool(mempool *txpool.TxPool) (*GossipEthTxPool, error) {
+func NewGossipTxPool(mempool *txpool.TxPool) (*GossipTxPool, error) {
 	bloom, err := gossip.NewBloomFilter(txGossipBloomMaxItems, txGossipBloomFalsePositiveRate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize bloom filter: %w", err)
 	}
 
-	return &GossipEthTxPool{
+	return &GossipTxPool{
 		mempool:    mempool,
 		pendingTxs: make(chan core.NewTxsEvent),
 		bloom:      bloom,
 	}, nil
 }
 
-type GossipEthTxPool struct {
+type GossipTxPool struct {
 	mempool    *txpool.TxPool
 	pendingTxs chan core.NewTxsEvent
 
@@ -64,7 +44,7 @@ type GossipEthTxPool struct {
 	lock  sync.RWMutex
 }
 
-func (g *GossipEthTxPool) Subscribe(ctx context.Context) {
+func (g *GossipTxPool) Subscribe(ctx context.Context) {
 	g.mempool.SubscribeNewTxsEvent(g.pendingTxs)
 
 	for {
@@ -75,7 +55,7 @@ func (g *GossipEthTxPool) Subscribe(ctx context.Context) {
 		case pendingTxs := <-g.pendingTxs:
 			g.lock.Lock()
 			for _, pendingTx := range pendingTxs.Txs {
-				tx := &GossipEthTx{Tx: pendingTx}
+				tx := &GossipTx{Tx: pendingTx}
 				g.bloom.Add(tx)
 				reset, err := gossip.ResetBloomFilterIfNeeded(g.bloom, txGossipMaxFalsePositiveRate)
 				if err != nil {
@@ -87,7 +67,7 @@ func (g *GossipEthTxPool) Subscribe(ctx context.Context) {
 					log.Debug("resetting bloom filter", "reason", "reached max filled ratio")
 
 					g.mempool.IteratePending(func(tx *types.Transaction) bool {
-						g.bloom.Add(&GossipEthTx{Tx: pendingTx})
+						g.bloom.Add(&GossipTx{Tx: pendingTx})
 						return true
 					})
 				}
@@ -99,17 +79,17 @@ func (g *GossipEthTxPool) Subscribe(ctx context.Context) {
 
 // Add enqueues the transaction to the mempool. Subscribe should be called
 // to receive an event if tx is actually added to the mempool or not.
-func (g *GossipEthTxPool) Add(tx *GossipEthTx) error {
+func (g *GossipTxPool) Add(tx *GossipTx) error {
 	return g.mempool.AddRemotes([]*types.Transaction{tx.Tx})[0]
 }
 
-func (g *GossipEthTxPool) Iterate(f func(tx *GossipEthTx) bool) {
+func (g *GossipTxPool) Iterate(f func(tx *GossipTx) bool) {
 	g.mempool.IteratePending(func(tx *types.Transaction) bool {
-		return f(&GossipEthTx{Tx: tx})
+		return f(&GossipTx{Tx: tx})
 	})
 }
 
-func (g *GossipEthTxPool) GetFilter() ([]byte, []byte, error) {
+func (g *GossipTxPool) GetFilter() ([]byte, []byte, error) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
@@ -119,19 +99,19 @@ func (g *GossipEthTxPool) GetFilter() ([]byte, []byte, error) {
 	return bloom, salt[:], err
 }
 
-type GossipEthTx struct {
+type GossipTx struct {
 	Tx *types.Transaction
 }
 
-func (tx *GossipEthTx) GetID() ids.ID {
+func (tx *GossipTx) GetID() ids.ID {
 	return ids.ID(tx.Tx.Hash())
 }
 
-func (tx *GossipEthTx) Marshal() ([]byte, error) {
+func (tx *GossipTx) Marshal() ([]byte, error) {
 	return tx.Tx.MarshalBinary()
 }
 
-func (tx *GossipEthTx) Unmarshal(bytes []byte) error {
+func (tx *GossipTx) Unmarshal(bytes []byte) error {
 	tx.Tx = &types.Transaction{}
 	return tx.Tx.UnmarshalBinary(bytes)
 }

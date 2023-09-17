@@ -105,7 +105,7 @@ const (
 	chainStateMetricsPrefix = "chain_state"
 
 	// p2p app protocols
-	ethTxGossipProtocol = 0x0
+	txGossipProtocol = 0x0
 
 	// gossip constants
 	txGossipBloomMaxItems          = 8 * 1024
@@ -123,7 +123,7 @@ var (
 		Frequency: 10 * time.Second,
 		PollSize:  10,
 	}
-	ethTxGossipHandlerConfig = gossip.HandlerConfig{
+	txGossipHandlerConfig = gossip.HandlerConfig{
 		Namespace:          "eth_tx_gossip",
 		TargetResponseSize: txGossipTargetResponseSize,
 	}
@@ -459,12 +459,6 @@ func (vm *VM) Initialize(
 	}
 	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
 
-	// TODO: read size from settings
-	vm.mempool, err = NewMempool(chainCtx.AVAXAssetID, defaultMempoolSize)
-	if err != nil {
-		return fmt.Errorf("failed to initialize mempool: %w", err)
-	}
-
 	if err := vm.initializeMetrics(); err != nil {
 		return err
 	}
@@ -674,41 +668,41 @@ func (vm *VM) initBlockBuilding() error {
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
 
-	ethTxPool, err := NewGossipEthTxPool(vm.txPool)
+	txPool, err := NewGossipTxPool(vm.txPool)
 	if err != nil {
 		return err
 	}
 	vm.shutdownWg.Add(1)
 	go func() {
-		ethTxPool.Subscribe(ctx)
+		txPool.Subscribe(ctx)
 		vm.shutdownWg.Done()
 	}()
 
 	var (
-		ethTxGossipHandler p2p.Handler
+		txGossipHandler p2p.Handler
 	)
 
-	ethTxGossipHandler, err = gossip.NewHandler[*GossipEthTx](ethTxPool, ethTxGossipHandlerConfig, vm.sdkMetrics)
+	txGossipHandler, err = gossip.NewHandler[*GossipTx](txPool, txGossipHandlerConfig, vm.sdkMetrics)
 	if err != nil {
 		return err
 	}
-	ethTxGossipHandler = &p2p.ValidatorHandler{
+	txGossipHandler = &p2p.ValidatorHandler{
 		ValidatorSet: vm.validators,
 		Handler: &p2p.ThrottlerHandler{
 			Throttler: p2p.NewSlidingWindowThrottler(throttlingPeriod, throttlingLimit),
-			Handler:   ethTxGossipHandler,
+			Handler:   txGossipHandler,
 		},
 	}
-	ethTxGossipClient, err := vm.router.RegisterAppProtocol(ethTxGossipProtocol, ethTxGossipHandler, vm.validators)
+	txGossipClient, err := vm.router.RegisterAppProtocol(txGossipProtocol, txGossipHandler, vm.validators)
 	if err != nil {
 		return err
 	}
 
-	ethTxGossiper, err := gossip.NewGossiper[GossipEthTx, *GossipEthTx](
-		ethTxGossipConfig,
+	txGossiper, err := gossip.NewGossiper[GossipTx, *GossipTx](
+		txGossipConfig,
 		vm.ctx.Log,
-		ethTxPool,
-		ethTxGossipClient,
+		txPool,
+		txGossipClient,
 		vm.sdkMetrics,
 	)
 	if err != nil {
@@ -717,7 +711,7 @@ func (vm *VM) initBlockBuilding() error {
 
 	vm.shutdownWg.Add(1)
 	go func() {
-		ethTxGossiper.Gossip(ctx)
+		txGossiper.Gossip(ctx)
 		vm.shutdownWg.Done()
 	}()
 
