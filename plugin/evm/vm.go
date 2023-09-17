@@ -697,8 +697,8 @@ func (vm *VM) initBlockBuilding() error {
 	if err != nil {
 		return err
 	}
-
-	txGossiper, err = gossip.NewPullGossiper[GossipTx, *GossipTx](
+	var ethTxGossiper gossip.Gossiper
+	ethTxGossiper, err = gossip.NewPullGossiper[GossipTx, *GossipTx](
 		txGossipConfig,
 		vm.ctx.Log,
 		txPool,
@@ -708,7 +708,7 @@ func (vm *VM) initBlockBuilding() error {
 	if err != nil {
 		return err
 	}
-	ethTxGossiper = gossip.ValidatorGossiper{
+	txGossiper := gossip.ValidatorGossiper{
 		Gossiper:   ethTxGossiper,
 		NodeID:     vm.ctx.NodeID,
 		Validators: vm.validators,
