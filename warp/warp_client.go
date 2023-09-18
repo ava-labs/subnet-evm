@@ -9,7 +9,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/subnet-evm/rpc"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var _ WarpClient = (*warpClient)(nil)
@@ -37,20 +36,18 @@ func NewWarpClient(uri, chain string) (WarpClient, error) {
 
 // GetSignature requests the BLS signature associated with a messageID
 func (c *warpClient) GetSignature(ctx context.Context, messageID ids.ID) ([]byte, error) {
-	var res hexutil.Bytes
-	err := c.client.CallContext(ctx, &res, "warp_getSignature", messageID)
-	if err != nil {
+	var res []byte
+	if err := c.client.CallContext(ctx, &res, "warp_getSignature", messageID); err != nil {
 		return nil, fmt.Errorf("call to warp_getSignature failed. err: %w", err)
 	}
-	return res, err
+	return res, nil
 }
 
 // GetAggregateSignature requests the aggregate signature associated with messageID
 func (c *warpClient) GetAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) ([]byte, error) {
-	var res hexutil.Bytes
-	err := c.client.CallContext(ctx, &res, "warp_getAggregateSignature", messageID, quorumNum)
-	if err != nil {
+	var res []byte
+	if err := c.client.CallContext(ctx, &res, "warp_getAggregateSignature", messageID, quorumNum); err != nil {
 		return nil, fmt.Errorf("call to warp_getAggregateSignature failed. err: %w", err)
 	}
-	return res, err
+	return res, nil
 }
