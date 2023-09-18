@@ -16,8 +16,11 @@ import (
 )
 
 var (
-	_                WarpBackend = &warpBackend{}
-	maxWarpCacheSize             = 500
+	_ WarpBackend = &warpBackend{}
+)
+
+const (
+	maxWarpCacheSize = 500
 )
 
 // WarpBackend tracks signature eligible warp messages and provides an interface to fetch them.
