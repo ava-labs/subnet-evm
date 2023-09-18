@@ -78,25 +78,25 @@ func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) err
 	return nil
 }
 
-func (w *backend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
+func (b *backend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
 	log.Debug("Getting warp message from backend", "messageID", messageID)
-	if sig, ok := w.signatureCache.Get(messageID); ok {
+	if sig, ok := b.signatureCache.Get(messageID); ok {
 		return sig, nil
 	}
 
-	unsignedMessage, err := w.GetMessage(messageID)
+	unsignedMessage, err := b.GetMessage(messageID)
 	if err != nil {
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
 	}
 
 	var signature [bls.SignatureLen]byte
-	sig, err := w.snowCtx.WarpSigner.Sign(unsignedMessage)
+	sig, err := b.snowCtx.WarpSigner.Sign(unsignedMessage)
 	if err != nil {
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
 	}
 
 	copy(signature[:], sig)
-	w.signatureCache.Put(messageID, signature)
+	b.signatureCache.Put(messageID, signature)
 	return signature, nil
 }
 
