@@ -125,3 +125,15 @@ func TestZeroSizedCache(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectedSig, signature[:])
 }
+
+func TestMaxSizeCache(t *testing.T) {
+	db := memdb.New()
+
+	snowCtx := snow.DefaultContextTest()
+	sk, err := bls.NewSecretKey()
+	require.NoError(t, err)
+	snowCtx.WarpSigner = avalancheWarp.NewSigner(sk, networkID, sourceChainID)
+
+	_, err = NewWarpBackend(snowCtx, db, 501)
+	require.ErrorContains(t, err, "is greater than maxWarpCacheSize")
+}
