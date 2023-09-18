@@ -15,11 +15,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var _ WarpBackend = &warpBackend{}
+var _ Backend = &backend{}
 
-// WarpBackend tracks signature eligible warp messages and provides an interface to fetch them.
+// Backend tracks signature-eligible warp messages and provides an interface to fetch them.
 // The backend is also used to query for warp message signatures by the signature request handler.
-type WarpBackend interface {
+type Backend interface {
 	// AddMessage signs [unsignedMessage] and adds it to the warp backend database
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
 
@@ -33,17 +33,17 @@ type WarpBackend interface {
 	Clear() error
 }
 
-// warpBackend implements WarpBackend, keeps track of warp messages, and generates message signatures.
-type warpBackend struct {
+// backend implements Backend, keeps track of warp messages, and generates message signatures.
+type backend struct {
 	db             database.Database
 	snowCtx        *snow.Context
 	signatureCache *cache.LRU[ids.ID, [bls.SignatureLen]byte]
 	messageCache   *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
 }
 
-// NewWarpBackend creates a new WarpBackend, and initializes the signature cache and message tracking database.
-func NewWarpBackend(snowCtx *snow.Context, db database.Database, cacheSize int) WarpBackend {
-	return &warpBackend{
+// NewBackend creates a new Backend, and initializes the signature cache and message tracking database.
+func NewBackend(snowCtx *snow.Context, db database.Database, cacheSize int) Backend {
+	return &backend{
 		db:             db,
 		snowCtx:        snowCtx,
 		signatureCache: &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
@@ -51,12 +51,12 @@ func NewWarpBackend(snowCtx *snow.Context, db database.Database, cacheSize int) 
 	}
 }
 
-func (w *warpBackend) Clear() error {
+func (w *backend) Clear() error {
 	w.signatureCache.Flush()
 	return database.Clear(w.db, w.db)
 }
 
-func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
+func (w *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
 	messageID := unsignedMessage.ID()
 
 	// In the case when a node restarts, and possibly changes its bls key, the cache gets emptied but the database does not.
@@ -78,7 +78,7 @@ func (w *warpBackend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage)
 	return nil
 }
 
-func (w *warpBackend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
+func (w *backend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
 	log.Debug("Getting warp message from backend", "messageID", messageID)
 	if sig, ok := w.signatureCache.Get(messageID); ok {
 		return sig, nil
@@ -100,7 +100,7 @@ func (w *warpBackend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, er
 	return signature, nil
 }
 
-func (w *warpBackend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, error) {
+func (w *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, error) {
 	if message, ok := w.messageCache.Get(messageID); ok {
 		return message, nil
 	}
