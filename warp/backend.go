@@ -51,29 +51,29 @@ func NewBackend(snowCtx *snow.Context, db database.Database, cacheSize int) Back
 	}
 }
 
-func (w *backend) Clear() error {
-	w.signatureCache.Flush()
-	return database.Clear(w.db, w.db)
+func (b *backend) Clear() error {
+	b.signatureCache.Flush()
+	return database.Clear(b.db, b.db)
 }
 
-func (w *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
+func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error {
 	messageID := unsignedMessage.ID()
 
 	// In the case when a node restarts, and possibly changes its bls key, the cache gets emptied but the database does not.
 	// So to avoid having incorrect signatures saved in the database after a bls key change, we save the full message in the database.
 	// Whereas for the cache, after the node restart, the cache would be emptied so we can directly save the signatures.
-	if err := w.db.Put(messageID[:], unsignedMessage.Bytes()); err != nil {
+	if err := b.db.Put(messageID[:], unsignedMessage.Bytes()); err != nil {
 		return fmt.Errorf("failed to put warp signature in db: %w", err)
 	}
 
 	var signature [bls.SignatureLen]byte
-	sig, err := w.snowCtx.WarpSigner.Sign(unsignedMessage)
+	sig, err := b.snowCtx.WarpSigner.Sign(unsignedMessage)
 	if err != nil {
 		return fmt.Errorf("failed to sign warp message: %w", err)
 	}
 
 	copy(signature[:], sig)
-	w.signatureCache.Put(messageID, signature)
+	b.signatureCache.Put(messageID, signature)
 	log.Debug("Adding warp message to backend", "messageID", messageID)
 	return nil
 }
@@ -100,12 +100,12 @@ func (w *backend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error)
 	return signature, nil
 }
 
-func (w *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, error) {
-	if message, ok := w.messageCache.Get(messageID); ok {
+func (b *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, error) {
+	if message, ok := b.messageCache.Get(messageID); ok {
 		return message, nil
 	}
 
-	unsignedMessageBytes, err := w.db.Get(messageID[:])
+	unsignedMessageBytes, err := b.db.Get(messageID[:])
 	if err != nil {
 		return nil, fmt.Errorf("failed to get warp message %s from db: %w", messageID.String(), err)
 	}
@@ -114,7 +114,7 @@ func (w *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse unsigned message %s: %w", messageID.String(), err)
 	}
-	w.messageCache.Put(messageID, unsignedMessage)
+	b.messageCache.Put(messageID, unsignedMessage)
 
 	return unsignedMessage, nil
 }
