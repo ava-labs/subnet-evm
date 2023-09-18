@@ -15,7 +15,10 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var _ WarpBackend = &warpBackend{}
+var (
+	_                WarpBackend = &warpBackend{}
+	maxWarpCacheSize             = 500
+)
 
 // WarpBackend tracks signature eligible warp messages and provides an interface to fetch them.
 // The backend is also used to query for warp message signatures by the signature request handler.
@@ -42,13 +45,16 @@ type warpBackend struct {
 }
 
 // NewWarpBackend creates a new WarpBackend, and initializes the signature cache and message tracking database.
-func NewWarpBackend(snowCtx *snow.Context, db database.Database, cacheSize int) WarpBackend {
+func NewWarpBackend(snowCtx *snow.Context, db database.Database, cacheSize int) (WarpBackend, error) {
+	if cacheSize > maxWarpCacheSize {
+		return nil, fmt.Errorf("warp cache size: %d is greater than maxWarpCacheSize: %d", cacheSize, maxWarpCacheSize)
+	}
 	return &warpBackend{
 		db:             db,
 		snowCtx:        snowCtx,
 		signatureCache: &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
 		messageCache:   &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: cacheSize},
-	}
+	}, nil
 }
 
 func (w *warpBackend) Clear() error {
