@@ -325,11 +325,3 @@ func removeOrdersWithIds(orders []Order, orderIds map[common.Hash]struct{}) []Or
 	}
 	return filteredOrders
 }
-
-func formatHashSlice(hashes []common.Hash) []string {
-	var formattedHashes []string
-	for _, hash := range hashes {
-		formattedHashes = append(formattedHashes, hash.String())
-	}
-	return formattedHashes
-}

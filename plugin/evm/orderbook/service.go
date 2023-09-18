@@ -140,14 +140,18 @@ func (api *OrderBookAPI) GetOrderBook(ctx context.Context, marketStr string) (*O
 	if err != nil {
 		return nil, err
 	}
-	allOrders := api.db.GetAllOrders()
-	orders := []OrderMin{}
-	for _, order := range allOrders {
-		if market == nil || order.Market == Market(*market) {
-			orders = append(orders, order.ToOrderMin())
-		}
+	var orders []Order
+	if market == nil {
+		orders = api.db.GetAllOrders()
+	} else {
+		orders = api.db.GetMarketOrders(Market(*market))
 	}
-	return &OrderBookResponse{Orders: orders}, nil
+
+	responseOrders := []OrderMin{}
+	for _, order := range orders {
+		responseOrders = append(responseOrders, order.ToOrderMin())
+	}
+	return &OrderBookResponse{Orders: responseOrders}, nil
 }
 
 func parseMarket(marketStr string) (*int, error) {

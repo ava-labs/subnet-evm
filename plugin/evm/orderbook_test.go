@@ -1003,22 +1003,22 @@ func TestHubbleLogs(t *testing.T) {
 	t.Logf("VM2 Orders: %+v", detail2)
 
 	// verify that order 1, 2, 3 are in both VMs
-	if order := filterOrderMapBySalt(detail1.OrderMap, big.NewInt(101)); order == nil {
+	if order := filterOrderMapBySalt(detail1.Orders, big.NewInt(101)); order == nil {
 		t.Fatalf("Order 1 is not in VM1")
 	}
-	if order := filterOrderMapBySalt(detail2.OrderMap, big.NewInt(101)); order == nil {
+	if order := filterOrderMapBySalt(detail2.Orders, big.NewInt(101)); order == nil {
 		t.Fatalf("Order 1 is not in VM2")
 	}
-	if order := filterOrderMapBySalt(detail1.OrderMap, big.NewInt(102)); order == nil {
+	if order := filterOrderMapBySalt(detail1.Orders, big.NewInt(102)); order == nil {
 		t.Fatalf("Order 2 is not in VM1")
 	}
-	if order := filterOrderMapBySalt(detail2.OrderMap, big.NewInt(102)); order == nil {
+	if order := filterOrderMapBySalt(detail2.Orders, big.NewInt(102)); order == nil {
 		t.Fatalf("Order 2 is not in VM2")
 	}
-	if order := filterOrderMapBySalt(detail1.OrderMap, big.NewInt(104)); order == nil {
+	if order := filterOrderMapBySalt(detail1.Orders, big.NewInt(104)); order == nil {
 		t.Fatalf("Order 3 is not in VM1")
 	}
-	if order := filterOrderMapBySalt(detail2.OrderMap, big.NewInt(104)); order == nil {
+	if order := filterOrderMapBySalt(detail2.Orders, big.NewInt(104)); order == nil {
 		t.Fatalf("Order 3 is not in VM2")
 	}
 }

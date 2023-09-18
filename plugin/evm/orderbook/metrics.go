@@ -28,4 +28,7 @@ var (
 
 	// lag between head and accepted block
 	headBlockLagHistogram = metrics.NewRegisteredHistogram("head_block_lag", nil, metrics.ResettingSample(metrics.NewExpDecaySample(1028, 0.015)))
+
+	// order id not found while deleting
+	deleteOrderIdNotFoundCounter = metrics.NewRegisteredCounter("delete_order_id_not_found", nil)
 )

@@ -32,6 +32,11 @@ func (db *MockLimitOrderDatabase) GetAllOrders() []Order {
 	return args.Get(0).([]Order)
 }
 
+func (db *MockLimitOrderDatabase) GetMarketOrders(market Market) []Order {
+	args := db.Called()
+	return args.Get(0).([]Order)
+}
+
 func (db *MockLimitOrderDatabase) Add(order *Order) {
 }
 

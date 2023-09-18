@@ -263,24 +263,24 @@ func (cep *ContractEventsProcessor) handleIOCOrderBookEvent(event *types.Log) {
 		}
 		orderId := event.Topics[2]
 		if !removed {
-			order := IOCOrder{}
-			order.DecodeFromRawOrder(args["order"])
-			limitOrder := Order{
+			iocOrder := IOCOrder{}
+			iocOrder.DecodeFromRawOrder(args["order"])
+			order := Order{
 				Id:                      orderId,
-				Market:                  Market(order.AmmIndex.Int64()),
-				PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
+				Market:                  Market(iocOrder.AmmIndex.Int64()),
+				PositionType:            getPositionTypeBasedOnBaseAssetQuantity(iocOrder.BaseAssetQuantity),
 				Trader:                  getAddressFromTopicHash(event.Topics[1]),
-				BaseAssetQuantity:       order.BaseAssetQuantity,
+				BaseAssetQuantity:       iocOrder.BaseAssetQuantity,
 				FilledBaseAssetQuantity: big.NewInt(0),
-				Price:                   order.Price,
-				RawOrder:                &order,
-				Salt:                    order.Salt,
-				ReduceOnly:              order.ReduceOnly,
+				Price:                   iocOrder.Price,
+				RawOrder:                &iocOrder,
+				Salt:                    iocOrder.Salt,
+				ReduceOnly:              iocOrder.ReduceOnly,
 				BlockNumber:             big.NewInt(int64(event.BlockNumber)),
 				OrderType:               IOC,
 			}
-			log.Info("IOCOrder/OrderPlaced", "order", limitOrder, "number", event.BlockNumber)
-			cep.database.Add(&limitOrder)
+			log.Info("IOCOrder/OrderPlaced", "order", order, "number", event.BlockNumber)
+			cep.database.Add(&order)
 		} else {
 			log.Info("IOCOrder/OrderPlaced removed", "orderId", orderId.String(), "block", event.BlockHash.String(), "number", event.BlockNumber)
 			cep.database.Delete(orderId)

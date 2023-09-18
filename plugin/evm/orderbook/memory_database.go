@@ -19,7 +19,9 @@ import (
 
 type InMemoryDatabase struct {
 	mu                        *sync.RWMutex              `json:"-"`
-	OrderMap                  map[common.Hash]*Order     `json:"order_map"`  // ID => order
+	Orders                    map[common.Hash]*Order     `json:"order_map"` // ID => order
+	LongOrders                map[Market][]*Order        `json:"long_orders"`
+	ShortOrders               map[Market][]*Order        `json:"short_orders"`
 	TraderMap                 map[common.Address]*Trader `json:"trader_map"` // address => trader info
 	NextFundingTime           uint64                     `json:"next_funding_time"`
 	LastPrice                 map[Market]*big.Int        `json:"last_price"`
@@ -29,12 +31,13 @@ type InMemoryDatabase struct {
 }
 
 func NewInMemoryDatabase(configService IConfigService) *InMemoryDatabase {
-	orderMap := map[common.Hash]*Order{}
 	lastPrice := map[Market]*big.Int{}
 	traderMap := map[common.Address]*Trader{}
 
 	return &InMemoryDatabase{
-		OrderMap:                  orderMap,
+		Orders:                    map[common.Hash]*Order{},
+		LongOrders:                map[Market][]*Order{},
+		ShortOrders:               map[Market][]*Order{},
 		TraderMap:                 traderMap,
 		NextFundingTime:           0,
 		LastPrice:                 lastPrice,
@@ -213,6 +216,7 @@ type Trader struct {
 type LimitOrderDatabase interface {
 	LoadFromSnapshot(snapshot Snapshot) error
 	GetAllOrders() []Order
+	GetMarketOrders(market Market) []Order
 	Add(order *Order)
 	Delete(orderId common.Hash)
 	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64)
@@ -233,7 +237,7 @@ type LimitOrderDatabase interface {
 	GetAllTraders() map[common.Address]Trader
 	GetOrderBookData() InMemoryDatabase
 	GetOrderBookDataCopy() (*InMemoryDatabase, error)
-	Accept(blockNumber uint64, blockTimestamp uint64)
+	Accept(acceptedBlockNumber uint64, blockTimestamp uint64)
 	SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
 	GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]Order)
@@ -253,11 +257,14 @@ func (db *InMemoryDatabase) LoadFromSnapshot(snapshot Snapshot) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if snapshot.Data == nil || snapshot.Data.OrderMap == nil || snapshot.Data.TraderMap == nil || snapshot.Data.LastPrice == nil {
+	if snapshot.Data == nil || snapshot.Data.Orders == nil || snapshot.Data.LongOrders == nil || snapshot.Data.ShortOrders == nil ||
+		snapshot.Data.TraderMap == nil || snapshot.Data.LastPrice == nil {
 		return fmt.Errorf("invalid snapshot; snapshot=%+v", snapshot)
 	}
 
-	db.OrderMap = snapshot.Data.OrderMap
+	db.Orders = snapshot.Data.Orders
+	db.LongOrders = snapshot.Data.LongOrders
+	db.ShortOrders = snapshot.Data.ShortOrders
 	db.TraderMap = snapshot.Data.TraderMap
 	db.LastPrice = snapshot.Data.LastPrice
 	db.NextFundingTime = snapshot.Data.NextFundingTime
@@ -298,7 +305,7 @@ func (db *InMemoryDatabase) Accept(acceptedBlockNumber, blockTimestamp uint64) {
 			}
 
 			if status == REMOVE {
-				delete(db.OrderMap, longOrder.Id)
+				db.deleteOrderWithoutLock(longOrder.Id)
 			}
 		}
 
@@ -325,7 +332,7 @@ func (db *InMemoryDatabase) Accept(acceptedBlockNumber, blockTimestamp uint64) {
 			}
 
 			if status == REMOVE {
-				delete(db.OrderMap, shortOrder.Id)
+				db.deleteOrderWithoutLock(shortOrder.Id)
 			}
 		}
 	}
@@ -369,10 +376,10 @@ func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, i
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if db.OrderMap[orderId] == nil {
+	if db.Orders[orderId] == nil {
 		return fmt.Errorf("invalid orderId %s", orderId.Hex())
 	}
-	db.OrderMap[orderId].LifecycleList = append(db.OrderMap[orderId].LifecycleList, Lifecycle{blockNumber, status, info})
+	db.Orders[orderId].LifecycleList = append(db.Orders[orderId].LifecycleList, Lifecycle{blockNumber, status, info})
 	return nil
 }
 
@@ -380,13 +387,13 @@ func (db *InMemoryDatabase) RevertLastStatus(orderId common.Hash) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if db.OrderMap[orderId] == nil {
+	if db.Orders[orderId] == nil {
 		return fmt.Errorf("invalid orderId %s", orderId.Hex())
 	}
 
-	lifeCycleList := db.OrderMap[orderId].LifecycleList
+	lifeCycleList := db.Orders[orderId].LifecycleList
 	if len(lifeCycleList) > 0 {
-		db.OrderMap[orderId].LifecycleList = lifeCycleList[:len(lifeCycleList)-1]
+		db.Orders[orderId].LifecycleList = lifeCycleList[:len(lifeCycleList)-1]
 	}
 	return nil
 }
@@ -396,9 +403,25 @@ func (db *InMemoryDatabase) GetAllOrders() []Order {
 	defer db.mu.RUnlock()
 
 	allOrders := []Order{}
-	for _, order := range db.OrderMap {
+	for _, order := range db.Orders {
 		allOrders = append(allOrders, deepCopyOrder(order))
 	}
+	return allOrders
+}
+
+func (db *InMemoryDatabase) GetMarketOrders(market Market) []Order {
+	db.mu.RLock() // only read lock required
+	defer db.mu.RUnlock()
+
+	allOrders := []Order{}
+	for _, order := range db.LongOrders[market] {
+		allOrders = append(allOrders, deepCopyOrder(order))
+	}
+
+	for _, order := range db.ShortOrders[market] {
+		allOrders = append(allOrders, deepCopyOrder(order))
+	}
+
 	return allOrders
 }
 
@@ -406,41 +429,131 @@ func (db *InMemoryDatabase) Add(order *Order) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
+	market := order.Market
 	order.LifecycleList = append(order.LifecycleList, Lifecycle{order.BlockNumber.Uint64(), Placed, ""})
-	db.OrderMap[order.Id] = order
+
+	var orders []*Order
+	var position int
+	if order.PositionType == LONG {
+		orders = db.LongOrders[market]
+		position = sort.Search(len(orders), func(i int) bool {
+			priceDiff := order.Price.Cmp(orders[i].Price)
+			if priceDiff == 1 {
+				return true
+			} else if priceDiff == 0 {
+				blockDiff := order.BlockNumber.Cmp(orders[i].BlockNumber)
+				if blockDiff == -1 { // order was placed before i
+					return true
+				} else if blockDiff == 0 { // order and i were placed in the same block
+					if order.OrderType == IOC {
+						// prioritize fulfilling IOC orders first, because they are short-lived
+						return true
+					}
+				}
+			}
+			return false
+		})
+
+	} else {
+		orders = db.ShortOrders[market]
+		position = sort.Search(len(orders), func(i int) bool {
+			priceDiff := order.Price.Cmp(orders[i].Price)
+			if priceDiff == -1 {
+				return true
+			} else if priceDiff == 0 {
+				blockDiff := order.BlockNumber.Cmp(orders[i].BlockNumber)
+				if blockDiff == -1 { // order was placed before i
+					return true
+				} else if blockDiff == 0 { // order and i were placed in the same block
+					if order.OrderType == IOC {
+						// prioritize fulfilling IOC orders first, because they are short-lived
+						return true
+					}
+				}
+			}
+			return false
+		})
+	}
+
+	// Insert the order at the determined position
+	orders = append(orders, &Order{})            // Add an empty order to the end
+	copy(orders[position+1:], orders[position:]) // Shift orders to the right
+	orders[position] = order                     // Insert new Order at the right position
+
+	if order.PositionType == LONG {
+		db.LongOrders[market] = orders
+	} else {
+		db.ShortOrders[market] = orders
+	}
+
+	db.Orders[order.Id] = order
 }
 
 func (db *InMemoryDatabase) Delete(orderId common.Hash) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	delete(db.OrderMap, orderId)
+	db.deleteOrderWithoutLock(orderId)
+}
+
+func (db *InMemoryDatabase) deleteOrderWithoutLock(orderId common.Hash) {
+	order := db.Orders[orderId]
+	if order == nil {
+		log.Error("In Delete - orderId does not exist in the db.Orders", "orderId", orderId.Hex())
+		deleteOrderIdNotFoundCounter.Inc(1)
+		return
+	}
+
+	market := order.Market
+	if order.PositionType == LONG {
+		orders := db.LongOrders[market]
+		idx := getOrderIdx(orders, orderId)
+		if idx == -1 {
+			log.Error("In Delete - orderId does not exist in the db.LongOrders", "orderId", orderId.Hex())
+			deleteOrderIdNotFoundCounter.Inc(1)
+		} else {
+			orders = append(orders[:idx], orders[idx+1:]...)
+			db.LongOrders[market] = orders
+		}
+	} else {
+		orders := db.ShortOrders[market]
+		idx := getOrderIdx(orders, orderId)
+		if idx == -1 {
+			log.Error("In Delete - orderId does not exist in the db.ShortOrders", "orderId", orderId.Hex())
+			deleteOrderIdNotFoundCounter.Inc(1)
+		} else {
+			orders = append(orders[:idx], orders[idx+1:]...)
+			db.ShortOrders[market] = orders
+		}
+	}
+
+	delete(db.Orders, orderId)
 }
 
 func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	limitOrder := db.OrderMap[orderId]
-	if limitOrder == nil {
+	order := db.Orders[orderId]
+	if order == nil {
 		log.Error("In UpdateFilledBaseAssetQuantity - orderId does not exist in the database", "orderId", orderId.Hex())
 		metrics.GetOrRegisterCounter("update_filled_base_asset_quantity_order_id_not_found", nil).Inc(1)
 		return
 	}
-	if limitOrder.PositionType == LONG {
-		limitOrder.FilledBaseAssetQuantity.Add(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
+	if order.PositionType == LONG {
+		order.FilledBaseAssetQuantity.Add(order.FilledBaseAssetQuantity, quantity) // filled = filled + quantity
 	}
-	if limitOrder.PositionType == SHORT {
-		limitOrder.FilledBaseAssetQuantity.Sub(limitOrder.FilledBaseAssetQuantity, quantity) // filled = filled - quantity
-	}
-
-	if limitOrder.BaseAssetQuantity.Cmp(limitOrder.FilledBaseAssetQuantity) == 0 {
-		limitOrder.LifecycleList = append(limitOrder.LifecycleList, Lifecycle{blockNumber, FulFilled, ""})
+	if order.PositionType == SHORT {
+		order.FilledBaseAssetQuantity.Sub(order.FilledBaseAssetQuantity, quantity) // filled = filled - quantity
 	}
 
-	if quantity.Cmp(big.NewInt(0)) == -1 && limitOrder.getOrderStatus().Status == FulFilled {
+	if order.BaseAssetQuantity.Cmp(order.FilledBaseAssetQuantity) == 0 {
+		order.LifecycleList = append(order.LifecycleList, Lifecycle{blockNumber, FulFilled, ""})
+	}
+
+	if quantity.Cmp(big.NewInt(0)) == -1 && order.getOrderStatus().Status == FulFilled {
 		// handling reorgs
-		limitOrder.LifecycleList = limitOrder.LifecycleList[:len(limitOrder.LifecycleList)-1]
+		order.LifecycleList = order.LifecycleList[:len(order.LifecycleList)-1]
 	}
 }
 
@@ -480,18 +593,22 @@ func (db *InMemoryDatabase) GetLongOrders(market Market, lowerbound *big.Int, bl
 
 func (db *InMemoryDatabase) getLongOrdersWithoutLock(market Market, lowerbound *big.Int, blockNumber *big.Int, shouldClean bool) []Order {
 	var longOrders []Order
-	for _, order := range db.OrderMap {
-		if order.PositionType == LONG && order.Market == market && (lowerbound == nil || order.Price.Cmp(lowerbound) >= 0) {
-			if shouldClean {
-				if _order := db.getCleanOrder(order, blockNumber); _order != nil {
-					longOrders = append(longOrders, *_order)
-				}
-			} else {
-				longOrders = append(longOrders, *order)
+
+	marketOrders := db.LongOrders[market]
+	for _, order := range marketOrders {
+		if lowerbound != nil && order.Price.Cmp(lowerbound) < 0 {
+			// because the long orders are sorted in descending order of price, there is no point in checking further
+			break
+		}
+
+		if shouldClean {
+			if _order := db.getCleanOrder(order, blockNumber); _order != nil {
+				longOrders = append(longOrders, *_order)
 			}
+		} else {
+			longOrders = append(longOrders, deepCopyOrder(order))
 		}
 	}
-	sortLongOrders(longOrders)
 	return longOrders
 }
 
@@ -503,18 +620,22 @@ func (db *InMemoryDatabase) GetShortOrders(market Market, upperbound *big.Int, b
 
 func (db *InMemoryDatabase) getShortOrdersWithoutLock(market Market, upperbound *big.Int, blockNumber *big.Int, shouldClean bool) []Order {
 	var shortOrders []Order
-	for _, order := range db.OrderMap {
-		if order.PositionType == SHORT && order.Market == market && (upperbound == nil || order.Price.Cmp(upperbound) <= 0) {
-			if shouldClean {
-				if _order := db.getCleanOrder(order, blockNumber); _order != nil {
-					shortOrders = append(shortOrders, *_order)
-				}
-			} else {
-				shortOrders = append(shortOrders, *order)
+
+	marketOrders := db.ShortOrders[market]
+
+	for _, order := range marketOrders {
+		if upperbound != nil && order.Price.Cmp(upperbound) > 0 {
+			// short orders are sorted in ascending order of price
+			break
+		}
+		if shouldClean {
+			if _order := db.getCleanOrder(order, blockNumber); _order != nil {
+				shortOrders = append(shortOrders, *_order)
 			}
+		} else {
+			shortOrders = append(shortOrders, deepCopyOrder(order))
 		}
 	}
-	sortShortOrders(shortOrders)
 	return shortOrders
 }
 
@@ -740,7 +861,7 @@ func (db *InMemoryDatabase) GetOrderById(orderId common.Hash) *Order {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
-	order := db.OrderMap[orderId]
+	order := db.Orders[orderId]
 	if order == nil {
 		return nil
 	}
@@ -873,7 +994,7 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 
 func (db *InMemoryDatabase) getTraderOrders(trader common.Address, orderType OrderType) []Order {
 	traderOrders := []Order{}
-	for _, order := range db.OrderMap {
+	for _, order := range db.Orders {
 		if order.Trader == trader && order.OrderType == orderType {
 			traderOrders = append(traderOrders, deepCopyOrder(order))
 		}
@@ -883,7 +1004,7 @@ func (db *InMemoryDatabase) getTraderOrders(trader common.Address, orderType Ord
 
 func (db *InMemoryDatabase) getAllTraderOrders(trader common.Address) []Order {
 	traderOrders := []Order{}
-	for _, order := range db.OrderMap {
+	for _, order := range db.Orders {
 		if order.Trader == trader {
 			traderOrders = append(traderOrders, deepCopyOrder(order))
 		}
@@ -916,46 +1037,6 @@ func (db *InMemoryDatabase) getReduceOnlyOrderDisplay(order *Order) *Order {
 	} else {
 		return nil
 	}
-}
-
-func sortLongOrders(orders []Order) {
-	sort.SliceStable(orders, func(i, j int) bool {
-		priceDiff := orders[i].Price.Cmp(orders[j].Price)
-		if priceDiff == 1 {
-			return true
-		} else if priceDiff == 0 {
-			blockDiff := orders[i].BlockNumber.Cmp(orders[j].BlockNumber)
-			if blockDiff == -1 { // i was placed before j
-				return true
-			} else if blockDiff == 0 { // i and j were placed in the same block
-				if orders[i].OrderType == IOC {
-					// prioritize fulfilling IOC orders first, because they are short lived
-					return true
-				}
-			}
-		}
-		return false
-	})
-}
-
-func sortShortOrders(orders []Order) {
-	sort.SliceStable(orders, func(i, j int) bool {
-		priceDiff := orders[i].Price.Cmp(orders[j].Price)
-		if priceDiff == -1 {
-			return true
-		} else if priceDiff == 0 {
-			blockDiff := orders[i].BlockNumber.Cmp(orders[j].BlockNumber)
-			if blockDiff == -1 { // i was placed before j
-				return true
-			} else if blockDiff == 0 { // i and j were placed in the same block
-				if orders[i].OrderType == IOC {
-					// prioritize fulfilling IOC orders first, because they are short lived
-					return true
-				}
-			}
-		}
-		return false
-	})
 }
 
 func (db *InMemoryDatabase) GetOrderBookData() InMemoryDatabase {
@@ -1072,4 +1153,13 @@ func deepCopyTrader(order *Trader) *Trader {
 		Positions: positions,
 		Margin:    margin,
 	}
+}
+
+func getOrderIdx(orders []*Order, orderId common.Hash) int {
+	for i, order := range orders {
+		if order.Id == orderId {
+			return i
+		}
+	}
+	return -1
 }

@@ -66,10 +66,10 @@ func TestProcessEvents(t *testing.T) {
 		orderMatchedEventLog1 := getEventLog(OrderBookContractAddress, orderMatchedEventTopics1, orderMatchedEventData1, orderMatchedBlockNumber)
 		cep.ProcessEvents([]*types.Log{longOrderAcceptedEventLog, shortOrderAcceptedEventLog, orderMatchedEventLog0, orderMatchedEventLog1})
 
-		actualLongOrder := db.OrderMap[getIdFromLimitOrder(longOrder)]
+		actualLongOrder := db.Orders[getIdFromLimitOrder(longOrder)]
 		assert.Equal(t, fillAmount, actualLongOrder.FilledBaseAssetQuantity)
 
-		actualShortOrder := db.OrderMap[getIdFromLimitOrder(shortOrder)]
+		actualShortOrder := db.Orders[getIdFromLimitOrder(shortOrder)]
 		assert.Equal(t, big.NewInt(0).Neg(fillAmount), actualShortOrder.FilledBaseAssetQuantity)
 	})
 
@@ -164,7 +164,7 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	cep.ProcessAcceptedEvents([]*types.Log{marginAccountLog, clearingHouseLog}, true)
 
 	//OrderBook log - OrderAccepted
-	actualLimitOrder := *db.GetOrderBookData().OrderMap[getIdFromLimitOrder(order)]
+	actualLimitOrder := *db.GetOrderBookData().Orders[getIdFromLimitOrder(order)]
 	args := map[string]interface{}{}
 	orderBookABI.UnpackIntoMap(args, "OrderAccepted", orderAcceptedEventData)
 	assert.Equal(t, Market(ammIndex.Int64()), actualLimitOrder.Market)
@@ -208,7 +208,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			orderAcceptedEventData := []byte{}
 			log := getEventLog(OrderBookContractAddress, topics, orderAcceptedEventData, blockNumber)
 			cep.ProcessEvents([]*types.Log{log})
-			actualLimitOrder := db.GetOrderBookData().OrderMap[orderId]
+			actualLimitOrder := db.GetOrderBookData().Orders[orderId]
 			assert.Nil(t, actualLimitOrder)
 		})
 		t.Run("When data in log unpack succeeds", func(t *testing.T) {
@@ -219,7 +219,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			log := getEventLog(OrderBookContractAddress, topics, orderAcceptedEventData, blockNumber)
 			cep.ProcessEvents([]*types.Log{log})
 
-			actualLimitOrder := db.GetOrderBookData().OrderMap[orderId]
+			actualLimitOrder := db.GetOrderBookData().Orders[orderId]
 			args := map[string]interface{}{}
 			orderBookABI.UnpackIntoMap(args, "OrderAccepted", orderAcceptedEventData)
 			assert.Equal(t, Market(ammIndex.Int64()), actualLimitOrder.Market)
@@ -260,7 +260,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			log := getEventLog(OrderBookContractAddress, topics, orderCancelAcceptedEventData, blockNumber)
 			cep.ProcessEvents([]*types.Log{log})
 			orderId := getIdFromOrder(*limitOrder)
-			actualLimitOrder := db.GetOrderBookData().OrderMap[orderId]
+			actualLimitOrder := db.GetOrderBookData().Orders[orderId]
 			assert.Equal(t, limitOrder, actualLimitOrder)
 		})
 		t.Run("When data in log unpack succeeds", func(t *testing.T) {
@@ -268,7 +268,7 @@ func TestHandleOrderBookEvent(t *testing.T) {
 			log := getEventLog(OrderBookContractAddress, topics, orderCancelAcceptedEventData, blockNumber)
 			orderId := getIdFromOrder(*limitOrder)
 			cep.ProcessEvents([]*types.Log{log})
-			actualLimitOrder := db.GetOrderBookData().OrderMap[orderId]
+			actualLimitOrder := db.GetOrderBookData().Orders[orderId]
 			assert.Equal(t, Cancelled, actualLimitOrder.getOrderStatus().Status)
 		})
 	})
@@ -643,12 +643,12 @@ func TestRemovedEvents(t *testing.T) {
 		cep.ProcessEvents([]*types.Log{longOrderAcceptedEventLog})
 
 		// order exists in memory now
-		assert.Equal(t, db.OrderMap[longOrderId].Salt, longOrder.Salt)
+		assert.Equal(t, db.Orders[longOrderId].Salt, longOrder.Salt)
 
 		// order should be deleted if OrderAccepted log is removed
 		longOrderAcceptedEventLog.Removed = true
 		cep.ProcessEvents([]*types.Log{longOrderAcceptedEventLog})
-		assert.Nil(t, db.OrderMap[longOrderId])
+		assert.Nil(t, db.Orders[longOrderId])
 	})
 
 	t.Run("un-cancel an order when OrderCancelAccepted is removed", func(t *testing.T) {
@@ -656,7 +656,7 @@ func TestRemovedEvents(t *testing.T) {
 		cep.ProcessEvents([]*types.Log{longOrderAcceptedEventLog})
 
 		// order exists in memory now
-		assert.Equal(t, db.OrderMap[longOrderId].Salt, longOrder.Salt)
+		assert.Equal(t, db.Orders[longOrderId].Salt, longOrder.Salt)
 
 		// cancel it
 		orderCancelAcceptedEvent := getEventFromABI(limitOrderrderBookABI, "OrderCancelAccepted")
@@ -665,12 +665,12 @@ func TestRemovedEvents(t *testing.T) {
 		orderCancelAcceptedLog := getEventLog(OrderBookContractAddress, orderCancelAcceptedEventTopics, orderCancelAcceptedEventData, blockNumber.Uint64()+2)
 		cep.ProcessEvents([]*types.Log{orderCancelAcceptedLog})
 
-		assert.Equal(t, db.OrderMap[longOrderId].getOrderStatus().Status, Cancelled)
+		assert.Equal(t, db.Orders[longOrderId].getOrderStatus().Status, Cancelled)
 
 		// now uncancel it
 		orderCancelAcceptedLog.Removed = true
 		cep.ProcessEvents([]*types.Log{orderCancelAcceptedLog})
-		assert.Equal(t, db.OrderMap[longOrderId].getOrderStatus().Status, Placed)
+		assert.Equal(t, db.Orders[longOrderId].getOrderStatus().Status, Placed)
 	})
 
 	t.Run("un-fulfill an order when OrderMatched is removed", func(t *testing.T) {
@@ -679,8 +679,8 @@ func TestRemovedEvents(t *testing.T) {
 		cep.ProcessEvents([]*types.Log{longOrderAcceptedEventLog, shortOrderAcceptedEventLog})
 
 		// orders exist in memory now
-		assert.Equal(t, db.OrderMap[longOrderId].Salt, longOrder.Salt)
-		assert.Equal(t, db.OrderMap[shortOrderId].Salt, shortOrder.Salt)
+		assert.Equal(t, db.Orders[longOrderId].Salt, longOrder.Salt)
+		assert.Equal(t, db.Orders[shortOrderId].Salt, shortOrder.Salt)
 
 		// fulfill them
 		orderMatchedEvent := getEventFromABI(orderBookABI, "OrderMatched")
@@ -689,12 +689,12 @@ func TestRemovedEvents(t *testing.T) {
 		orderMatchedLog := getEventLog(OrderBookContractAddress, orderMatchedEventTopics, orderMatchedEventData, blockNumber.Uint64()+2)
 		cep.ProcessEvents([]*types.Log{orderMatchedLog})
 
-		assert.Equal(t, db.OrderMap[longOrderId].getOrderStatus().Status, FulFilled)
+		assert.Equal(t, db.Orders[longOrderId].getOrderStatus().Status, FulFilled)
 
 		// now un-fulfill it
 		orderMatchedLog.Removed = true
 		cep.ProcessEvents([]*types.Log{orderMatchedLog})
-		assert.Equal(t, db.OrderMap[longOrderId].getOrderStatus().Status, Placed)
+		assert.Equal(t, db.Orders[longOrderId].getOrderStatus().Status, Placed)
 	})
 
 	t.Run("revert state of an order when OrderMatchingError is removed", func(t *testing.T) {
@@ -707,8 +707,8 @@ func TestRemovedEvents(t *testing.T) {
 		cep.ProcessEvents([]*types.Log{longOrderAcceptedEventLog})
 
 		// orders exist in memory now
-		assert.Equal(t, db.OrderMap[longOrderId].Salt, longOrder.Salt)
-		assert.Equal(t, db.OrderMap[longOrderId].getOrderStatus().Status, Placed)
+		assert.Equal(t, db.Orders[longOrderId].Salt, longOrder.Salt)
+		assert.Equal(t, db.Orders[longOrderId].getOrderStatus().Status, Placed)
 
 		// fail matching
 		orderMatchingError := getEventFromABI(orderBookABI, "OrderMatchingError")
@@ -717,12 +717,12 @@ func TestRemovedEvents(t *testing.T) {
 		orderMatchingErrorLog := getEventLog(OrderBookContractAddress, orderMatchingErrorTopics, orderMatchingErrorData, blockNumber.Uint64()+2)
 		cep.ProcessEvents([]*types.Log{orderMatchingErrorLog})
 
-		assert.Equal(t, db.OrderMap[longOrderId].getOrderStatus().Status, Execution_Failed)
+		assert.Equal(t, db.Orders[longOrderId].getOrderStatus().Status, Execution_Failed)
 
 		// now un-fail it
 		orderMatchingErrorLog.Removed = true
 		cep.ProcessEvents([]*types.Log{orderMatchingErrorLog})
-		assert.Equal(t, db.OrderMap[longOrderId].getOrderStatus().Status, Placed)
+		assert.Equal(t, db.Orders[longOrderId].getOrderStatus().Status, Placed)
 	})
 }
 
