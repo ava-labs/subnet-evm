@@ -13,10 +13,10 @@ import (
 )
 
 type apiFetcher struct {
-	clients map[ids.NodeID]WarpClient
+	clients map[ids.NodeID]Client
 }
 
-func NewAPIFetcher(clients map[ids.NodeID]WarpClient) *apiFetcher {
+func NewAPIFetcher(clients map[ids.NodeID]Client) *apiFetcher {
 	return &apiFetcher{
 		clients: clients,
 	}
