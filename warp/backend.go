@@ -16,27 +16,28 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var _ Backend = &backend{}
-
 const batchSize = ethdb.IdealBatchSize
+
+var _ Backend = &backend{}
 
 // Backend tracks signature-eligible warp messages and provides an interface to fetch them.
 // The backend is also used to query for warp message signatures by the signature request handler.
 type Backend interface {
-	// AddMessage signs [unsignedMessage] and adds it to the warp backend database
+	// AddMessage stores [unsignedMessage] and this node's signature over it.
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
 
-	// GetSignature returns the signature of the requested message hash.
+	// GetSignature returns this node's signature over the node with the given [messageHash].
+	// Errors if the message wasn't added with AddMessage.
 	GetSignature(messageHash ids.ID) ([bls.SignatureLen]byte, error)
 
-	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
+	// GetMessage returns the message with the given [messageHash].
+	// Errors if the message wasn't added with AddMessage.
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
 
-	// Clear clears the entire db
+	// Clear clears the entire database, including persisted data.
 	Clear() error
 }
 
-// backend implements Backend, keeps track of warp messages, and generates message signatures.
 type backend struct {
 	db             database.Database
 	snowCtx        *snow.Context
@@ -56,6 +57,7 @@ func NewBackend(snowCtx *snow.Context, db database.Database, cacheSize int) Back
 
 func (b *backend) Clear() error {
 	b.signatureCache.Flush()
+	b.messageCache.Flush()
 	return database.Clear(b.db, batchSize)
 }
 
