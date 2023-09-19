@@ -24,6 +24,8 @@ var _ Backend = &backend{}
 // The backend is also used to query for warp message signatures by the signature request handler.
 type Backend interface {
 	// AddMessage stores [unsignedMessage] and this node's signature over it.
+	// The signature isn't persisted on disk, so if this node's BLS key changes
+	// on a subsequent startup, the signature will be recalculated and reported correctly.
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
 
 	// GetSignature returns this node's signature over the node with the given [messageHash].
