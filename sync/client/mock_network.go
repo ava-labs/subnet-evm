@@ -4,6 +4,7 @@
 package statesyncclient
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -39,7 +40,7 @@ func (t *mockNetwork) SendAppRequestAny(minVersion *version.Application, request
 	return response, ids.EmptyNodeID, err
 }
 
-func (t *mockNetwork) SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, error) {
+func (t *mockNetwork) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error) {
 	if len(t.response) == 0 {
 		return nil, errors.New("no mocked response to return in mockNetwork")
 	}

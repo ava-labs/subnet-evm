@@ -4,6 +4,7 @@
 package peer
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -27,7 +28,7 @@ type NetworkClient interface {
 
 	// SendAppRequest synchronously sends request to the selected nodeID
 	// Returns response bytes, and ErrRequestFailed if the request should be retried.
-	SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, error)
+	SendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error)
 
 	// SendCrossChainRequest sends a request to a specific blockchain running on this node.
 	// Returns response bytes, and ErrRequestFailed if the request failed.
@@ -74,7 +75,7 @@ func (c *client) SendAppRequestAny(minVersion *version.Application, request []by
 
 // SendAppRequest synchronously sends request to the specified nodeID
 // Returns response bytes and ErrRequestFailed if the request should be retried.
-func (c *client) SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, error) {
+func (c *client) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error) {
 	waitingHandler := newWaitingResponseHandler()
 	if err := c.network.SendAppRequest(nodeID, request, waitingHandler); err != nil {
 		return nil, err

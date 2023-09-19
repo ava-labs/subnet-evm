@@ -22,7 +22,7 @@ const (
 var _ SignatureBackend = (*NetworkSigner)(nil)
 
 type NetworkClient interface {
-	SendAppRequest(nodeID ids.NodeID, message []byte) ([]byte, error)
+	SendAppRequest(ctx context.Context, nodeID ids.NodeID, message []byte) ([]byte, error)
 }
 
 // NetworkSigner fetches warp signatures on behalf of the aggregator using VM App-Specific Messaging
@@ -45,7 +45,7 @@ func (s *NetworkSigner) FetchWarpSignature(ctx context.Context, nodeID ids.NodeI
 
 	delay := initialRetryFetchSignatureDelay
 	for ctx.Err() == nil {
-		signatureRes, err := s.Client.SendAppRequest(nodeID, signatureReqBytes)
+		signatureRes, err := s.Client.SendAppRequest(context.TODO(), nodeID, signatureReqBytes)
 		// If the client fails to retrieve a response perform an exponential backoff.
 		// Note: it is up to the caller to ensure that [ctx] is eventually cancelled
 		if err != nil {

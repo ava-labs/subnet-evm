@@ -200,7 +200,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, err := client.SendAppRequest(nodeID, requestBytes)
+			responseBytes, err := client.SendAppRequest(context.Background(), nodeID, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -222,7 +222,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	// ensure empty nodeID is not allowed
-	_, err := client.SendAppRequest(ids.EmptyNodeID, []byte("hello there"))
+	_, err := client.SendAppRequest(context.Background(), ids.EmptyNodeID, []byte("hello there"))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot send request to empty nodeID")
 }
