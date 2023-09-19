@@ -80,11 +80,16 @@ func (c *client) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request 
 	if err := c.network.SendAppRequest(nodeID, request, waitingHandler); err != nil {
 		return nil, err
 	}
-	response := <-waitingHandler.responseChan
-	if waitingHandler.failed {
-		return nil, ErrRequestFailed
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case response := <-waitingHandler.responseChan:
+		if waitingHandler.failed {
+			return nil, ErrRequestFailed
+		}
+		return response, nil
 	}
-	return response, nil
 }
 
 // SendCrossChainRequest synchronously sends request to the specified chainID
