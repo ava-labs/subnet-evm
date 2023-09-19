@@ -75,7 +75,7 @@ func (*Config) Key() string { return ConfigKey }
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	if c.Timestamp() != nil {
-		// If the config attempts to activate a manager before the DUpgrade, fail verification
+		// If Warp attempts to activate before the DUpgrade, fail verification
 		timestamp := *c.Timestamp()
 		if !chainConfig.IsDUpgrade(timestamp) {
 			return errWarpCannotBeActivated
