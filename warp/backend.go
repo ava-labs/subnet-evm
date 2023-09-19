@@ -28,7 +28,7 @@ type Backend interface {
 	// on a subsequent startup, the signature will be recalculated and reported correctly.
 	AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) error
 
-	// GetSignature returns this node's signature over the node with the given [messageHash].
+	// GetSignature returns this node's signature over the message with the given [messageHash].
 	// Errors if the message wasn't added with AddMessage.
 	GetSignature(messageHash ids.ID) ([bls.SignatureLen]byte, error)
 
