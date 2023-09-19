@@ -115,12 +115,12 @@ const (
 	maxValidatorSetStaleness       = time.Minute
 	throttlingPeriod               = 10 * time.Second
 	throttlingLimit                = 2
+	gossipFrequency                = 10 * time.Second
 )
 
 var (
 	txGossipConfig = gossip.Config{
 		Namespace: "eth_tx_gossip",
-		Frequency: 10 * time.Second,
 		PollSize:  10,
 	}
 	txGossipHandlerConfig = gossip.HandlerConfig{
@@ -697,8 +697,8 @@ func (vm *VM) initBlockBuilding() error {
 	if err != nil {
 		return err
 	}
-
-	txGossiper, err := gossip.NewGossiper[GossipTx, *GossipTx](
+	var ethTxGossiper gossip.Gossiper
+	ethTxGossiper, err = gossip.NewPullGossiper[GossipTx, *GossipTx](
 		txGossipConfig,
 		vm.ctx.Log,
 		txPool,
@@ -708,10 +708,15 @@ func (vm *VM) initBlockBuilding() error {
 	if err != nil {
 		return err
 	}
+	txGossiper := gossip.ValidatorGossiper{
+		Gossiper:   ethTxGossiper,
+		NodeID:     vm.ctx.NodeID,
+		Validators: vm.validators,
+	}
 
 	vm.shutdownWg.Add(1)
 	go func() {
-		txGossiper.Gossip(ctx)
+		gossip.Every(ctx, vm.ctx.Log, txGossiper, gossipFrequency)
 		vm.shutdownWg.Done()
 	}()
 
