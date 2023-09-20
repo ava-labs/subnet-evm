@@ -190,6 +190,7 @@ func (n *network) sendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 
 	// Send app request to [nodeID].
 	// On failure, release the slot from [activeAppRequests] and delete request from [outstandingRequestHandlers]
+	// TODO: treat error from  n.appSender.SendAppRequest as fatal
 	if err := n.appSender.SendAppRequest(ctx, nodeIDs, requestID, request); err != nil {
 		n.activeAppRequests.Release(1)
 		delete(n.outstandingRequestHandlers, requestID)
@@ -222,6 +223,7 @@ func (n *network) SendCrossChainRequest(ctx context.Context, chainID ids.ID, req
 
 	// Send cross chain request to [chainID].
 	// On failure, release the slot from [activeCrossChainRequests] and delete request from [outstandingRequestHandlers].
+	// TODO: treat error from  n.appSender.SendCrossChainAppRequest as fatal
 	if err := n.appSender.SendCrossChainAppRequest(ctx, chainID, requestID, request); err != nil {
 		n.activeCrossChainRequests.Release(1)
 		delete(n.outstandingRequestHandlers, requestID)
