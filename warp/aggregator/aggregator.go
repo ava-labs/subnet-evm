@@ -33,16 +33,23 @@ type SignatureGetter interface {
 }
 
 type AggregateSignatureResult struct {
+	// Weight of validators included in the aggregate signature.
 	SignatureWeight uint64
-	TotalWeight     uint64
-	Message         *avalancheWarp.Message
+	// Total weight of all validators in the subnet.
+	TotalWeight uint64
+	// The message with the aggregate signature.
+	Message *avalancheWarp.Message
 }
 
-// Aggregator fulfills requests to aggregate signatures of a subnet's validator set for Avalanche Warp Messages.
+// Aggregator requests signatures from validators and
+// aggregates them into a single signature.
 type Aggregator struct {
+	// Aggregating signatures for a chain validated by this subnet.
 	subnetID ids.ID
-	client   SignatureGetter
-	state    validators.State
+	// Fetches signatures from validators.
+	client SignatureGetter
+	// Validator state for this chain.
+	state validators.State
 }
 
 // New returns a signature aggregator for the chain with the given [state] on the
