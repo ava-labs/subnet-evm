@@ -66,7 +66,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 
 	var (
 		// [signatureLock] must be held when accessing [blsSignatures],
-		// [bitSet], or [signatureWeight] in the goroutine below.
+		// [signersBitset], or [signatureWeight] in the goroutine below.
 		signatureLock   = sync.Mutex{}
 		signatures      = make([]*bls.Signature, 0, len(validators))
 		signersBitset   = set.NewBits()
