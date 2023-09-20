@@ -71,7 +71,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 		return nil, err
 	}
 
-	log.Info("Fetching signature",
+	log.Debug("Fetching signature",
 		"a.subnetID", a.subnetID,
 		"height", pChainHeight,
 	)
@@ -118,21 +118,21 @@ func aggregateSignatures(
 		go func() {
 			defer wg.Done()
 
-			log.Info("Fetching warp signature",
+			log.Debug("Fetching warp signature",
 				"nodeID", nodeID,
 				"index", i,
 			)
 
 			signature, err := client.GetSignature(signatureFetchCtx, nodeID, unsignedMessage)
 			if err != nil {
-				log.Info("Failed to fetch warp signature",
+				log.Debug("Failed to fetch warp signature",
 					"nodeID", nodeID,
 					"index", i,
 					"err", err,
 				)
 				return
 			}
-			log.Info("Retrieved warp signature",
+			log.Debug("Retrieved warp signature",
 				"nodeID", nodeID,
 				"index", i,
 				"signature", hexutil.Bytes(bls.SignatureToBytes(signature)),
@@ -155,14 +155,14 @@ func aggregateSignatures(
 			signatures = append(signatures, signature)
 			signersBitset.Add(i)
 			signatureWeight += validator.Weight
-			log.Info("Updated weight",
+			log.Debug("Updated weight",
 				"totalWeight", signatureWeight,
 				"addedWeight", validator.Weight,
 			)
 
 			// If the signature weight meets the requested threshold, cancel signature fetching
 			if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err == nil {
-				log.Info("Verify weight passed, exiting aggregation early",
+				log.Debug("Verify weight passed, exiting aggregation early",
 					"maxNeededQuorumNum", quorumNum,
 					"totalWeight", totalWeight,
 					"signatureWeight", signatureWeight,
