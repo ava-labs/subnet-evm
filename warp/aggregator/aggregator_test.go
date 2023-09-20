@@ -14,6 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	warp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,9 +34,8 @@ func TestAggregateSignatures(t *testing.T) {
 	subnetID := ids.GenerateTestID()
 	errTest := errors.New("test error")
 	pChainHeight := uint64(1337)
-	networkID = uint32(1338)
 	unsignedMsg := &avalancheWarp.UnsignedMessage{
-		NetworkID:     1337,
+		NetworkID:     1338,
 		SourceChainID: ids.ID{'y', 'e', 'e', 't'},
 		Payload:       []byte("hello world"),
 	}
@@ -49,6 +49,11 @@ func TestAggregateSignatures(t *testing.T) {
 	sig1 := bls.Sign(vdr1sk, unsignedMsg.Bytes())
 	sig2 := bls.Sign(vdr2sk, unsignedMsg.Bytes())
 	sig3 := bls.Sign(vdr3sk, unsignedMsg.Bytes())
+	vdrToSig := map[*warp.Validator]*bls.Signature{
+		vdr1: sig1,
+		vdr2: sig2,
+		vdr3: sig3,
+	}
 	nonVdrSk, err := bls.NewSecretKey()
 	require.NoError(t, err)
 	nonVdrSig := bls.Sign(nonVdrSk, unsignedMsg.Bytes())
@@ -71,12 +76,12 @@ func TestAggregateSignatures(t *testing.T) {
 	}
 
 	type test struct {
-		name               string
-		aggregatorFunc     func(*gomock.Controller) *Aggregator
-		unsignedMsg        *avalancheWarp.UnsignedMessage
-		quorumNum          uint64
-		assertResponseFunc func(*require.Assertions, *AggregateSignatureResult)
-		expectedErr        error
+		name            string
+		aggregatorFunc  func(*gomock.Controller) *Aggregator
+		unsignedMsg     *avalancheWarp.UnsignedMessage
+		quorumNum       uint64
+		expectedSigners []*warp.Validator
+		expectedErr     error
 	}
 
 	tests := []test{
@@ -87,10 +92,9 @@ func TestAggregateSignatures(t *testing.T) {
 				state.EXPECT().GetCurrentHeight(gomock.Any()).Return(uint64(0), errTest)
 				return NewAggregator(subnetID, state, nil)
 			},
-			unsignedMsg:        nil,
-			quorumNum:          0,
-			assertResponseFunc: nil,
-			expectedErr:        errTest,
+			unsignedMsg: nil,
+			quorumNum:   0,
+			expectedErr: errTest,
 		},
 		{
 			name: "can't get validator set",
@@ -100,9 +104,8 @@ func TestAggregateSignatures(t *testing.T) {
 				state.EXPECT().GetValidatorSet(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest)
 				return NewAggregator(subnetID, state, nil)
 			},
-			unsignedMsg:        nil,
-			assertResponseFunc: nil,
-			expectedErr:        errTest,
+			unsignedMsg: nil,
+			expectedErr: errTest,
 		},
 		{
 			name: "no validators exist",
@@ -112,10 +115,9 @@ func TestAggregateSignatures(t *testing.T) {
 				state.EXPECT().GetValidatorSet(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				return NewAggregator(subnetID, state, nil)
 			},
-			unsignedMsg:        nil,
-			quorumNum:          0,
-			assertResponseFunc: nil,
-			expectedErr:        errNoValidators,
+			unsignedMsg: nil,
+			quorumNum:   0,
+			expectedErr: errNoValidators,
 		},
 		{
 			name: "0/3 validators reply with signature",
@@ -130,10 +132,9 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest).AnyTimes()
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg:        unsignedMsg,
-			quorumNum:          1,
-			assertResponseFunc: nil,
-			expectedErr:        errInsufficientWeight,
+			unsignedMsg: unsignedMsg,
+			quorumNum:   1,
+			expectedErr: errInsufficientWeight,
 		},
 		{
 			name: "1/3 validators reply with signature; insufficient weight",
@@ -150,10 +151,9 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest)
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg:        unsignedMsg,
-			quorumNum:          35, // Require >1/3 of weight
-			assertResponseFunc: nil,
-			expectedErr:        errInsufficientWeight,
+			unsignedMsg: unsignedMsg,
+			quorumNum:   35, // Require >1/3 of weight
+			expectedErr: errInsufficientWeight,
 		},
 		{
 			name: "2/3 validators reply with signature; insufficient weight",
@@ -170,10 +170,9 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest)
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg:        unsignedMsg,
-			quorumNum:          69, // Require >2/3 of weight
-			assertResponseFunc: nil,
-			expectedErr:        errInsufficientWeight,
+			unsignedMsg: unsignedMsg,
+			quorumNum:   69, // Require >2/3 of weight
+			expectedErr: errInsufficientWeight,
 		},
 		{
 			name: "2/3 validators reply with signature; sufficient weight",
@@ -190,26 +189,10 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest)
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg: unsignedMsg,
-			quorumNum:   65, // Require <2/3 of weight
-			assertResponseFunc: func(require *require.Assertions, res *AggregateSignatureResult) {
-				require.Equal(vdr1.Weight+vdr2.Weight, res.SignatureWeight)
-				require.Equal(vdr1.Weight+vdr2.Weight+vdr3.Weight, res.TotalWeight)
-				require.Equal(unsignedMsg, &res.Message.UnsignedMessage)
-
-				expectedSig, err := bls.AggregateSignatures([]*bls.Signature{sig1, sig2})
-				require.NoError(err)
-
-				gotBLSSig, ok := res.Message.Signature.(*avalancheWarp.BitSetSignature)
-				require.True(ok)
-
-				require.Equal(bls.SignatureToBytes(expectedSig), gotBLSSig.Signature[:])
-
-				numSigners, err := res.Message.Signature.NumSigners()
-				require.NoError(err)
-				require.Equal(2, numSigners)
-			},
-			expectedErr: nil,
+			unsignedMsg:     unsignedMsg,
+			quorumNum:       65, // Require <2/3 of weight
+			expectedSigners: []*warp.Validator{vdr1, vdr2},
+			expectedErr:     nil,
 		},
 		{
 			name: "3/3 validators reply with signature; sufficient weight",
@@ -226,26 +209,10 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil)
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg: unsignedMsg,
-			quorumNum:   100, // Require all weight
-			assertResponseFunc: func(require *require.Assertions, res *AggregateSignatureResult) {
-				require.Equal(vdr1.Weight+vdr2.Weight+vdr3.Weight, res.SignatureWeight)
-				require.Equal(vdr1.Weight+vdr2.Weight+vdr3.Weight, res.TotalWeight)
-				require.Equal(unsignedMsg, &res.Message.UnsignedMessage)
-
-				expectedSig, err := bls.AggregateSignatures([]*bls.Signature{sig1, sig2, sig3})
-				require.NoError(err)
-
-				gotBLSSig, ok := res.Message.Signature.(*avalancheWarp.BitSetSignature)
-				require.True(ok)
-
-				require.Equal(bls.SignatureToBytes(expectedSig), gotBLSSig.Signature[:])
-
-				numSigners, err := res.Message.Signature.NumSigners()
-				require.NoError(err)
-				require.Equal(3, numSigners)
-			},
-			expectedErr: nil,
+			unsignedMsg:     unsignedMsg,
+			quorumNum:       100, // Require all weight
+			expectedSigners: []*warp.Validator{vdr1, vdr2, vdr3},
+			expectedErr:     nil,
 		},
 		{
 			name: "3/3 validators reply with signature; 1 invalid signature; sufficient weight",
@@ -262,26 +229,10 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil)
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg: unsignedMsg,
-			quorumNum:   64,
-			assertResponseFunc: func(require *require.Assertions, res *AggregateSignatureResult) {
-				require.Equal(vdr2.Weight+vdr3.Weight, res.SignatureWeight)
-				require.Equal(vdr1.Weight+vdr2.Weight+vdr3.Weight, res.TotalWeight)
-				require.Equal(unsignedMsg, &res.Message.UnsignedMessage)
-
-				expectedSig, err := bls.AggregateSignatures([]*bls.Signature{sig2, sig3})
-				require.NoError(err)
-
-				gotBLSSig, ok := res.Message.Signature.(*avalancheWarp.BitSetSignature)
-				require.True(ok)
-
-				require.Equal(bls.SignatureToBytes(expectedSig), gotBLSSig.Signature[:])
-
-				numSigners, err := res.Message.Signature.NumSigners()
-				require.NoError(err)
-				require.Equal(2, numSigners)
-			},
-			expectedErr: nil,
+			unsignedMsg:     unsignedMsg,
+			quorumNum:       64,
+			expectedSigners: []*warp.Validator{vdr2, vdr3},
+			expectedErr:     nil,
 		},
 		{
 			name: "3/3 validators reply with signature; 3 invalid signatures; insufficient weight",
@@ -298,10 +249,9 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nonVdrSig, nil)
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg:        unsignedMsg,
-			quorumNum:          1,
-			assertResponseFunc: nil,
-			expectedErr:        errInsufficientWeight,
+			unsignedMsg: unsignedMsg,
+			quorumNum:   1,
+			expectedErr: errInsufficientWeight,
 		},
 		{
 			name: "3/3 validators reply with signature; 2 invalid signatures; insufficient weight",
@@ -318,10 +268,9 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil)
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg:        unsignedMsg,
-			quorumNum:          40,
-			assertResponseFunc: nil,
-			expectedErr:        errInsufficientWeight,
+			unsignedMsg: unsignedMsg,
+			quorumNum:   40,
+			expectedErr: errInsufficientWeight,
 		},
 		{
 			name: "2/3 validators reply with signature; 1 invalid signature; sufficient weight",
@@ -338,26 +287,10 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil)
 				return NewAggregator(subnetID, state, client)
 			},
-			unsignedMsg: unsignedMsg,
-			quorumNum:   30,
-			assertResponseFunc: func(require *require.Assertions, res *AggregateSignatureResult) {
-				require.Equal(vdr3.Weight, res.SignatureWeight)
-				require.Equal(vdr1.Weight+vdr2.Weight+vdr3.Weight, res.TotalWeight)
-				require.Equal(unsignedMsg, &res.Message.UnsignedMessage)
-
-				expectedSig, err := bls.AggregateSignatures([]*bls.Signature{sig3})
-				require.NoError(err)
-
-				gotBLSSig, ok := res.Message.Signature.(*avalancheWarp.BitSetSignature)
-				require.True(ok)
-
-				require.Equal(bls.SignatureToBytes(expectedSig), gotBLSSig.Signature[:])
-
-				numSigners, err := res.Message.Signature.NumSigners()
-				require.NoError(err)
-				require.Equal(1, numSigners)
-			},
-			expectedErr: nil,
+			unsignedMsg:     unsignedMsg,
+			quorumNum:       30,
+			expectedSigners: []*warp.Validator{vdr3},
+			expectedErr:     nil,
 		},
 	}
 
@@ -373,9 +306,29 @@ func TestAggregateSignatures(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if tt.assertResponseFunc != nil {
-				tt.assertResponseFunc(require, res)
+
+			require.Equal(unsignedMsg, &res.Message.UnsignedMessage)
+
+			expectedSigWeight := uint64(0)
+			for _, vdr := range tt.expectedSigners {
+				expectedSigWeight += vdr.Weight
 			}
+			require.Equal(expectedSigWeight, res.SignatureWeight)
+			require.Equal(vdr1.Weight+vdr2.Weight+vdr3.Weight, res.TotalWeight)
+
+			expectedSigs := []*bls.Signature{}
+			for _, vdr := range tt.expectedSigners {
+				expectedSigs = append(expectedSigs, vdrToSig[vdr])
+			}
+			expectedSig, err := bls.AggregateSignatures(expectedSigs)
+			require.NoError(err)
+			gotBLSSig, ok := res.Message.Signature.(*avalancheWarp.BitSetSignature)
+			require.True(ok)
+			require.Equal(bls.SignatureToBytes(expectedSig), gotBLSSig.Signature[:])
+
+			numSigners, err := res.Message.Signature.NumSigners()
+			require.NoError(err)
+			require.Len(tt.expectedSigners, numSigners)
 		})
 	}
 }
