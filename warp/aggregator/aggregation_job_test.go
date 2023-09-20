@@ -267,7 +267,7 @@ func TestAggregateThresholdSignaturesOverMaxNeeded(t *testing.T) {
 		Message:         signedMessage,
 	}
 	// This test is failing even though it shoudn't be.
-	// Why does this test get 500/500 signature weight? Shouldn't it the child context be canceled by VerifyWeight after we hit 300/500 or 60/100?
+	// Why does this test get 500/500 signature weight? Shouldn't the child context be canceled by VerifyWeight after we hit 300/500 or 60/100?
 	executeSignatureAggregationTest(t, signatureAggregationTest{
 		ctx:         ctx,
 		job:         aggregationJob,
