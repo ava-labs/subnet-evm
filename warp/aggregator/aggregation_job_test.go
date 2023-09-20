@@ -400,7 +400,8 @@ func TestAggregateThresholdSignaturesParentCtxCancelsAfterDelay(t *testing.T) {
 		unsignedMsg,
 	)
 
-	// Specify error because it should have been able to grab one signature exactly, but is still below the quorum num
+	// Specify error because it should have been able to grab one signature exactly but is still insufficient weight, so quorumNum * totalWeight > quorumDen * sigWeight
+	//
 	executeSignatureAggregationTest(t, signatureAggregationTest{
 		ctx:         ctx,
 		job:         aggregationJob,
