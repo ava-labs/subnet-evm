@@ -17,6 +17,12 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+// SignatureGetter defines the minimum network interface to perform signature aggregation
+type SignatureGetter interface {
+	// GetSignature attempts to fetch a BLS Signature from [nodeID] for [unsignedWarpMessage]
+	GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error)
+}
+
 // signatureAggregationJob fetches signatures for a single unsigned warp message.
 type signatureAggregationJob struct {
 	// SignatureBackend is assumed to be thread-safe and may be used by multiple signature aggregation jobs concurrently
@@ -87,6 +93,7 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 	wg := sync.WaitGroup{}
 	for i, validator := range validators {
 		i := i
+		validator := validator
 		nodeID := validator.NodeIDs[0]
 
 		wg.Add(1)
