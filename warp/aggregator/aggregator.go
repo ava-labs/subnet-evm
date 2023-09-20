@@ -45,8 +45,8 @@ type Aggregator struct {
 	state    validators.State
 }
 
-// NewAggregator returns a signature aggregator, which will aggregate Warp Signatures for the given [
-func NewAggregator(subnetID ids.ID, state validators.State, client SignatureGetter) *Aggregator {
+// New returns a signature aggregator, which will aggregate Warp Signatures for the given [
+func New(subnetID ids.ID, state validators.State, client SignatureGetter) *Aggregator {
 	return &Aggregator{
 		subnetID: subnetID,
 		client:   client,

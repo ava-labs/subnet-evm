@@ -8,14 +8,14 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"go.uber.org/mock/gomock"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	warp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/stretchr/testify/require"
 )
 
 func newValidator(t testing.TB, weight uint64) (*bls.SecretKey, *avalancheWarp.Validator) {
@@ -49,7 +49,7 @@ func TestAggregateSignatures(t *testing.T) {
 	sig1 := bls.Sign(vdr1sk, unsignedMsg.Bytes())
 	sig2 := bls.Sign(vdr2sk, unsignedMsg.Bytes())
 	sig3 := bls.Sign(vdr3sk, unsignedMsg.Bytes())
-	vdrToSig := map[*warp.Validator]*bls.Signature{
+	vdrToSig := map[*avalancheWarp.Validator]*bls.Signature{
 		vdr1: sig1,
 		vdr2: sig2,
 		vdr3: sig3,
@@ -80,7 +80,7 @@ func TestAggregateSignatures(t *testing.T) {
 		aggregatorFunc  func(*gomock.Controller) *Aggregator
 		unsignedMsg     *avalancheWarp.UnsignedMessage
 		quorumNum       uint64
-		expectedSigners []*warp.Validator
+		expectedSigners []*avalancheWarp.Validator
 		expectedErr     error
 	}
 
@@ -90,7 +90,7 @@ func TestAggregateSignatures(t *testing.T) {
 			aggregatorFunc: func(ctrl *gomock.Controller) *Aggregator {
 				state := validators.NewMockState(ctrl)
 				state.EXPECT().GetCurrentHeight(gomock.Any()).Return(uint64(0), errTest)
-				return NewAggregator(subnetID, state, nil)
+				return New(subnetID, state, nil)
 			},
 			unsignedMsg: nil,
 			quorumNum:   0,
@@ -102,7 +102,7 @@ func TestAggregateSignatures(t *testing.T) {
 				state := validators.NewMockState(ctrl)
 				state.EXPECT().GetCurrentHeight(gomock.Any()).Return(pChainHeight, nil)
 				state.EXPECT().GetValidatorSet(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest)
-				return NewAggregator(subnetID, state, nil)
+				return New(subnetID, state, nil)
 			},
 			unsignedMsg: nil,
 			expectedErr: errTest,
@@ -113,7 +113,7 @@ func TestAggregateSignatures(t *testing.T) {
 				state := validators.NewMockState(ctrl)
 				state.EXPECT().GetCurrentHeight(gomock.Any()).Return(pChainHeight, nil)
 				state.EXPECT().GetValidatorSet(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
-				return NewAggregator(subnetID, state, nil)
+				return New(subnetID, state, nil)
 			},
 			unsignedMsg: nil,
 			quorumNum:   0,
@@ -130,7 +130,7 @@ func TestAggregateSignatures(t *testing.T) {
 
 				client := NewMockSignatureGetter(ctrl)
 				client.EXPECT().GetSignature(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest).AnyTimes()
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   1,
@@ -149,7 +149,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(sig1, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(nil, errTest)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest)
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   35, // Require >1/3 of weight
@@ -168,7 +168,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(sig1, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(sig2, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest)
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   69, // Require >2/3 of weight
@@ -187,11 +187,11 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(sig1, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(sig2, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest)
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       65, // Require <2/3 of weight
-			expectedSigners: []*warp.Validator{vdr1, vdr2},
+			expectedSigners: []*avalancheWarp.Validator{vdr1, vdr2},
 			expectedErr:     nil,
 		},
 		{
@@ -207,11 +207,11 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(sig1, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(sig2, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil)
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       100, // Require all weight
-			expectedSigners: []*warp.Validator{vdr1, vdr2, vdr3},
+			expectedSigners: []*avalancheWarp.Validator{vdr1, vdr2, vdr3},
 			expectedErr:     nil,
 		},
 		{
@@ -227,11 +227,11 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(nonVdrSig, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(sig2, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil)
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       64,
-			expectedSigners: []*warp.Validator{vdr2, vdr3},
+			expectedSigners: []*avalancheWarp.Validator{vdr2, vdr3},
 			expectedErr:     nil,
 		},
 		{
@@ -247,7 +247,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(nonVdrSig, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(nonVdrSig, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nonVdrSig, nil)
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   1,
@@ -266,7 +266,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(nonVdrSig, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(nonVdrSig, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil)
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   40,
@@ -285,11 +285,11 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(nonVdrSig, nil)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(nil, errTest)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil)
-				return NewAggregator(subnetID, state, client)
+				return New(subnetID, state, client)
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       30,
-			expectedSigners: []*warp.Validator{vdr3},
+			expectedSigners: []*avalancheWarp.Validator{vdr3},
 			expectedErr:     nil,
 		},
 	}
