@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
@@ -35,7 +36,7 @@ func executeSignatureAggregationTest(t testing.TB, test signatureAggregationTest
 
 	res, err := test.job.Execute(test.ctx)
 	if test.expectedErr != nil {
-		require.ErrorIs(t, err, test.expectedErr)
+		require.ErrorContains(t, err, test.expectedErr.Error())
 		return
 	}
 
@@ -351,5 +352,58 @@ func TestAggregateThresholdSignaturesParentCtxCancels(t *testing.T) {
 		ctx:         ctx,
 		job:         aggregationJob,
 		expectedErr: avalancheWarp.ErrInsufficientWeight,
+	})
+}
+
+func TestAggregateThresholdSignaturesParentCtxCancelsAfterDelay(t *testing.T) {
+	// Should be able to get one signature exactly and then parent context cancels
+	fetchSignatureTicker := time.NewTicker(1 * time.Second)
+	parentCtx, cancel := context.WithTimeout(context.Background(), 1001*time.Millisecond)
+	defer cancel()
+
+	aggregationJob := newSignatureAggregationJob(
+		&mockFetcher{
+			fetch: func(ctx context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-fetchSignatureTicker.C:
+					for i, matchingNodeID := range nodeIDs {
+						if matchingNodeID == nodeID {
+							return blsSignatures[i], nil
+						}
+					}
+					return nil, errors.New("what do we say to the god of death")
+				}
+			},
+		},
+		pChainHeight,
+		subnetID,
+		40,
+		40,
+		100,
+		&validators.TestState{
+			GetSubnetIDF:      getSubnetIDF,
+			GetCurrentHeightF: getCurrentHeightF,
+			GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+				res := make(map[ids.NodeID]*validators.GetValidatorOutput)
+				for i := 0; i < 5; i++ {
+					res[nodeIDs[i]] = &validators.GetValidatorOutput{
+						NodeID:    nodeIDs[i],
+						PublicKey: blsPublicKeys[i],
+						Weight:    100,
+					}
+				}
+				return res, nil
+			},
+		},
+		unsignedMsg,
+	)
+
+	// Specify error because it should have been able to grab one signature exactly, but is still below the quorum num
+	executeSignatureAggregationTest(t, signatureAggregationTest{
+		ctx:         parentCtx,
+		job:         aggregationJob,
+		expectedErr: errors.New("signature weight is insufficient: 40*500 > 100*100"),
 	})
 }
