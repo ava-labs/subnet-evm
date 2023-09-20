@@ -217,10 +217,16 @@ func TestAggregateThresholdSignaturesOverMaxNeeded(t *testing.T) {
 		&mockFetcher{
 			fetch: func(_ context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 				// Allow bls signatures from all nodes even though we only need 3/5
-				for i, matchingNodeID := range nodeIDs {
-					if matchingNodeID == nodeID {
-						return blsSignatures[i], nil
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				default:
+					for i, matchingNodeID := range nodeIDs {
+						if matchingNodeID == nodeID {
+							return blsSignatures[i], nil
+						}
 					}
+
 				}
 				return nil, errors.New("what do we say to the god of death")
 			},
@@ -261,6 +267,7 @@ func TestAggregateThresholdSignaturesOverMaxNeeded(t *testing.T) {
 		TotalWeight:     500,
 		Message:         signedMessage,
 	}
+	// Why does this test get 500/500 signature weight? Shouldn't it cancel the context after we hit 300/500 or 60/100?
 	executeSignatureAggregationTest(t, signatureAggregationTest{
 		ctx:         ctx,
 		job:         aggregationJob,
