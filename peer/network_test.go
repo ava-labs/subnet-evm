@@ -177,7 +177,7 @@ func TestAppRequestOnCtxCancellation(t *testing.T) {
 	// cancel context prior to sending
 	cancel()
 	_, err = client.SendAppRequest(ctx, nodeID, requestBytes)
-	assert.ErrorContains(t, err, "context canceled")
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 func TestRequestRequestsRoutingAndResponse(t *testing.T) {
@@ -374,7 +374,7 @@ func TestAppRequestAnyOnCtxCancellation(t *testing.T) {
 	// cancel context prior to sending
 	cancel()
 	_, _, err = client.SendAppRequestAny(ctx, defaultPeerVersion, requestBytes)
-	assert.ErrorContains(t, err, "context canceled")
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 func TestRequestMinVersion(t *testing.T) {
@@ -687,7 +687,7 @@ func TestCrossChainAppRequestOnCtxCancellation(t *testing.T) {
 	// cancel context prior to sending
 	cancel()
 	_, err = client.SendCrossChainRequest(ctx, chainID, crossChainRequest)
-	assert.ErrorContains(t, err, "context canceled")
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
