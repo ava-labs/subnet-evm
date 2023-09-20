@@ -113,7 +113,8 @@ func aggregateSignatures(
 		var (
 			i         = i
 			validator = validator
-			nodeID    = validator.NodeIDs[0]
+			// TODO: update from a single nodeID to the original slice and use extra nodeIDs as backup.
+			nodeID = validator.NodeIDs[0]
 		)
 		go func() {
 			defer wg.Done()
