@@ -49,7 +49,6 @@ func main() {
 	ctx, cancel := context.WithCancel(ctx)
 
 	setup(ctx)
-	warpSetup()
 	cancelChan := make(chan os.Signal, 1)
 	// catch SIGETRM or SIGINTERRUPT
 	signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
@@ -123,6 +122,10 @@ func setup(ctx context.Context) {
 	if err != nil {
 		panic(err)
 	}
+
+	fundedAddress := crypto.PubkeyToAddress(fundedKey.PublicKey)
+
+	log.Info("Funded address", "address", fundedAddress.String(), "fundedKey", fundedKeyStr)
 	subnetB := manager.GetSubnets()[1]
 	subnetBDetails, ok := manager.GetSubnet(subnetB)
 	if !ok {
@@ -140,34 +143,9 @@ func setup(ctx context.Context) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func shutdown() {
-	if manager == nil {
-		return
-	}
-
-	if err := manager.TeardownNetwork(); err != nil {
-		panic(err)
-	}
-
-	if err := os.Remove(warpChainConfigPath); err != nil {
-		panic(err)
-	}
-}
-
-func warpSetup() {
 	var (
 		chainAURIs, chainBURIs []string
 	)
-
-	fundedKey, err := crypto.HexToECDSA(fundedKeyStr)
-	if err != nil {
-		panic(err)
-	}
-	fundedAddress := crypto.PubkeyToAddress(fundedKey.PublicKey)
-
-	log.Info("Funded address", "address", fundedAddress.String(), "fundedKey", fundedKeyStr)
 
 	subnetIDs := manager.GetSubnets()
 	if len(subnetIDs) != 2 {
@@ -186,22 +164,38 @@ func warpSetup() {
 	}
 	chainAURIs = append(chainAURIs, subnetADetails.ValidatorURIs...)
 
-	subnetB := subnetIDs[1]
-	subnetBDetails, ok := manager.GetSubnet(subnetB)
-	if !ok {
-		panic("subnetB not found")
-	}
 	blockchainIDB := subnetBDetails.BlockchainID
 	if len(subnetBDetails.ValidatorURIs) != 5 {
 		panic("expected 5 validators in subnetB")
 	}
 	chainBURIs = append(chainBURIs, subnetBDetails.ValidatorURIs...)
 
-	log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA, "blockchainIDB", blockchainIDB)
+	// print out full URIs for both chains
+	for i, uri := range chainAURIs {
+		log.Info("Printing full chain URI for Subnet A", "nodeName", subnetANodeNames[i], "uri", fmt.Sprintf("%s/ext/bc/%s", uri, blockchainIDA.String()))
+	}
+
+	for i, uri := range chainBURIs {
+		log.Info("Printing full chain URI for Subnet B", "nodeName", subnetBNodeNames[i], "uri", fmt.Sprintf("%s/ext/bc/%s", uri, blockchainIDB.String()))
+	}
 
 	chainAWSURI := toWebsocketURI(chainAURIs[0], blockchainIDA.String())
 	log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
 
 	chainBWSURI := toWebsocketURI(chainBURIs[0], blockchainIDB.String())
 	log.Info("Creating ethclient for blockchainB", "wsURI", chainBWSURI)
+}
+
+func shutdown() {
+	if manager == nil {
+		return
+	}
+
+	if err := manager.TeardownNetwork(); err != nil {
+		panic(err)
+	}
+
+	if err := os.Remove(warpChainConfigPath); err != nil {
+		panic(err)
+	}
 }
