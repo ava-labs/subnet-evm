@@ -80,9 +80,11 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 	wg := sync.WaitGroup{}
 	wg.Add(len(validators))
 	for i, validator := range validators {
-		i := i
-		validator := validator
-		nodeID := validator.NodeIDs[0]
+		var (
+			i         = i
+			validator = validator
+			nodeID    = validator.NodeIDs[0]
+		)
 		go func() {
 			defer wg.Done()
 
