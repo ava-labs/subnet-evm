@@ -539,6 +539,49 @@ func TestCrossChainAppRequest(t *testing.T) {
 	assert.Equal(t, "this is an example response", response.Response)
 }
 
+func TestCrossChainAppRequestOnCtxCancellation(t *testing.T) {
+	var net Network
+	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	sender := testAppSender{
+		sendCrossChainAppRequestFn: func(requestingChainID ids.ID, requestID uint32, requestBytes []byte) error {
+			go func() {
+				if err := net.CrossChainAppRequest(context.Background(), requestingChainID, requestID, time.Now().Add(5*time.Second), requestBytes); err != nil {
+					panic(err)
+				}
+			}()
+			return nil
+		},
+		sendCrossChainAppResponseFn: func(respondingChainID ids.ID, requestID uint32, responseBytes []byte) error {
+			go func() {
+				if err := net.CrossChainAppResponse(context.Background(), respondingChainID, requestID, responseBytes); err != nil {
+					panic(err)
+				}
+			}()
+			return nil
+		},
+	}
+
+	net = NewNetwork(p2p.NewRouter(logging.NoLog{}, nil, prometheus.NewRegistry(), ""), sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetCrossChainRequestHandler(&testCrossChainHandler{codec: crossChainCodecManager})
+	client := NewNetworkClient(net)
+
+	exampleCrossChainRequest := ExampleCrossChainRequest{
+		Message: "hello this is an example request",
+	}
+
+	crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
+	assert.NoError(t, err)
+
+	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel context prior to sending
+	cancel()
+	_, err = client.SendCrossChainRequest(ctx, chainID, crossChainRequest)
+	assert.ErrorContains(t, err, "context canceled")
+}
+
 func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
 	var (
 		callNum  uint32
