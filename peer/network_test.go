@@ -317,6 +317,66 @@ func TestAppRequestOnShutdown(t *testing.T) {
 	require.True(t, called)
 }
 
+func TestAppRequestAnyOnCtxCancellation(t *testing.T) {
+	var net Network
+	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	callNum := uint32(0)
+	senderWg := &sync.WaitGroup{}
+	sender := testAppSender{
+		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+			nodeID, _ := nodes.Pop()
+			senderWg.Add(1)
+			go func() {
+				defer senderWg.Done()
+				if err := net.AppRequest(context.Background(), nodeID, requestID, time.Now().Add(5*time.Second), requestBytes); err != nil {
+					panic(err)
+				}
+			}()
+			return nil
+		},
+		sendAppResponseFn: func(nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+			senderWg.Add(1)
+			go func() {
+				defer senderWg.Done()
+				if err := net.AppResponse(context.Background(), nodeID, requestID, responseBytes); err != nil {
+					panic(err)
+				}
+				atomic.AddUint32(&callNum, 1)
+			}()
+			return nil
+		},
+	}
+
+	net = NewNetwork(p2p.NewRouter(logging.NoLog{}, nil, prometheus.NewRegistry(), ""), sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
+	client := NewNetworkClient(net)
+	for i := 0; i < 3; i++ {
+		assert.NoError(t,
+			net.Connected(
+				context.Background(),
+				ids.GenerateTestNodeID(),
+				&version.Application{
+					Major: 1,
+					Minor: 7,
+					Patch: i,
+				},
+			),
+		)
+	}
+
+	requestMessage := HelloRequest{Message: "this is a request"}
+	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel context prior to sending
+	cancel()
+	_, _, err = client.SendAppRequestAny(ctx, defaultPeerVersion, requestBytes)
+	assert.ErrorContains(t, err, "context canceled")
+}
+
 func TestRequestMinVersion(t *testing.T) {
 	callNum := uint32(0)
 	nodeID := ids.GenerateTestNodeID()
