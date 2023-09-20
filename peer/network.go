@@ -136,7 +136,7 @@ func NewNetwork(router *p2p.Router, appSender common.AppSender, codec codec.Mana
 // be sent to a peer with the desired [minVersion].
 func (n *network) SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte, handler message.ResponseHandler) (ids.NodeID, error) {
 	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
-	if err := n.activeAppRequests.Acquire(context.Background(), 1); err != nil {
+	if err := n.activeAppRequests.Acquire(ctx, 1); err != nil {
 		return ids.EmptyNodeID, errAcquiringSemaphore
 	}
 
@@ -157,7 +157,7 @@ func (n *network) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 	}
 
 	// Take a slot from total [activeAppRequests] and block until a slot becomes available.
-	if err := n.activeAppRequests.Acquire(context.Background(), 1); err != nil {
+	if err := n.activeAppRequests.Acquire(ctx, 1); err != nil {
 		return errAcquiringSemaphore
 	}
 
@@ -205,7 +205,7 @@ func (n *network) sendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 // Returns an error if [appSender] is unable to make the request.
 func (n *network) SendCrossChainRequest(ctx context.Context, chainID ids.ID, request []byte, handler message.ResponseHandler) error {
 	// Take a slot from total [activeCrossChainRequests] and block until a slot becomes available.
-	if err := n.activeCrossChainRequests.Acquire(context.Background(), 1); err != nil {
+	if err := n.activeCrossChainRequests.Acquire(ctx, 1); err != nil {
 		return errAcquiringSemaphore
 	}
 

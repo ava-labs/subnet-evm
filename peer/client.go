@@ -24,7 +24,7 @@ type NetworkClient interface {
 	// node version greater than or equal to minVersion.
 	// Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
 	// the request should be retried.
-	SendAppRequestAny(ctx context.Context, cominVersion *version.Application, request []byte) ([]byte, ids.NodeID, error)
+	SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error)
 
 	// SendAppRequest synchronously sends request to the selected nodeID
 	// Returns response bytes, and ErrRequestFailed if the request should be retried.
