@@ -36,16 +36,16 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 	if err != nil {
 		return nil, err
 	}
-	job := newSignatureAggregationJob(
+
+	return GetAggregateSignature(
+		ctx,
 		a.client,
 		pChainHeight,
 		a.subnetID,
+		a.state,
+		unsignedMessage,
 		quorumNum,
 		quorumNum,
 		params.WarpQuorumDenominator,
-		a.state,
-		unsignedMessage,
 	)
-
-	return job.Execute(ctx)
 }
