@@ -215,7 +215,7 @@ func TestAggregateThresholdSignaturesOverMaxNeeded(t *testing.T) {
 	ctx := context.Background()
 	aggregationJob := newSignatureAggregationJob(
 		&mockFetcher{
-			fetch: func(_ context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+			fetch: func(ctx context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 				select {
 				case <-ctx.Done():
 					return nil, ctx.Err()
