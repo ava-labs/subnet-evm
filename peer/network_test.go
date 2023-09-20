@@ -115,7 +115,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, _, err := client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+			responseBytes, _, err := client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -261,7 +261,7 @@ func TestAppRequestOnShutdown(t *testing.T) {
 		defer wg.Done()
 		requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 		require.NoError(t, err)
-		responseBytes, _, err := client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+		responseBytes, _, err := client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 		require.Error(t, err, ErrRequestFailed)
 		require.Nil(t, responseBytes)
 	}()
@@ -316,6 +316,7 @@ func TestRequestMinVersion(t *testing.T) {
 
 	// ensure version does not match
 	responseBytes, _, err := client.SendAppRequestAny(
+		context.Background(),
 		&version.Application{
 			Major: 2,
 			Minor: 0,
@@ -327,7 +328,7 @@ func TestRequestMinVersion(t *testing.T) {
 	assert.Nil(t, responseBytes)
 
 	// ensure version matches and the request goes through
-	responseBytes, _, err = client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+	responseBytes, _, err = client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 	assert.NoError(t, err)
 
 	var response TestMessage
@@ -528,7 +529,7 @@ func TestCrossChainAppRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
-	responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+	responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 	assert.NoError(t, err)
 
 	var response ExampleCrossChainResponse
@@ -594,7 +595,7 @@ func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
 			defer requestWg.Done()
 			crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
 			assert.NoError(t, err)
-			responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+			responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -644,7 +645,7 @@ func TestCrossChainRequestOnShutdown(t *testing.T) {
 		defer wg.Done()
 		crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
 		require.NoError(t, err)
-		responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+		responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 		require.ErrorIs(t, err, ErrRequestFailed)
 		require.Nil(t, responseBytes)
 	}()
@@ -658,8 +659,8 @@ func TestNetworkAppRequestAfterShutdown(t *testing.T) {
 	net := NewNetwork(nil, nil, nil, nil, ids.EmptyNodeID, 1, 0)
 	net.Shutdown()
 
-	require.NoError(net.SendAppRequest(ids.GenerateTestNodeID(), nil, nil))
-	require.NoError(net.SendAppRequest(ids.GenerateTestNodeID(), nil, nil))
+	require.NoError(net.SendAppRequest(context.Background(), ids.GenerateTestNodeID(), nil, nil))
+	require.NoError(net.SendAppRequest(context.Background(), ids.GenerateTestNodeID(), nil, nil))
 }
 
 func TestNetworkCrossChainAppRequestAfterShutdown(t *testing.T) {
@@ -668,8 +669,8 @@ func TestNetworkCrossChainAppRequestAfterShutdown(t *testing.T) {
 	net := NewNetwork(nil, nil, nil, nil, ids.EmptyNodeID, 0, 1)
 	net.Shutdown()
 
-	require.NoError(net.SendCrossChainRequest(ids.GenerateTestID(), nil, nil))
-	require.NoError(net.SendCrossChainRequest(ids.GenerateTestID(), nil, nil))
+	require.NoError(net.SendCrossChainRequest(context.Background(), ids.GenerateTestID(), nil, nil))
+	require.NoError(net.SendCrossChainRequest(context.Background(), ids.GenerateTestID(), nil, nil))
 }
 
 func TestSDKRouting(t *testing.T) {
