@@ -356,7 +356,8 @@ func TestAggregateThresholdSignaturesParentCtxCancels(t *testing.T) {
 }
 
 func TestAggregateThresholdSignaturesParentCtxCancelsAfterDelay(t *testing.T) {
-	// Should be able to get one signature exactly and then parent context cancels
+	// Get one signature exactly and then parent context cancels
+	// which should cancel child context and prevent any new signatures from being fetched
 	fetchSignatureTicker := time.NewTicker(1 * time.Second)
 	ctx, cancel := context.WithTimeout(context.Background(), 1001*time.Millisecond)
 	defer cancel()
@@ -401,7 +402,6 @@ func TestAggregateThresholdSignaturesParentCtxCancelsAfterDelay(t *testing.T) {
 	)
 
 	// Specify error because it should have been able to grab one signature exactly but is still insufficient weight, so quorumNum * totalWeight > quorumDen * sigWeight
-	//
 	executeSignatureAggregationTest(t, signatureAggregationTest{
 		ctx:         ctx,
 		job:         aggregationJob,
