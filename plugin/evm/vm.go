@@ -943,8 +943,9 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	}
 
 	if vm.config.WarpAPIEnabled {
-		signatureGetter := aggregator.NewSignatureGetter(vm.client)
-		warpAggregator := aggregator.New(vm.ctx.SubnetID, warpValidators.NewState(vm.ctx), signatureGetter)
+		validatorsState := warpValidators.NewState(vm.ctx)
+		signatureGetter := &aggregator.NetworkSignatureGetter{Client: vm.client}
+		warpAggregator := aggregator.New(vm.ctx.SubnetID, validatorsState, signatureGetter)
 		if err := handler.RegisterName("warp", warp.NewWarpAPI(vm.warpBackend, warpAggregator)); err != nil {
 			return nil, err
 		}
