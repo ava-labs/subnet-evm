@@ -5,6 +5,7 @@ package aggregator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -16,6 +17,11 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
+)
+
+var (
+	errNoValidators       = errors.New("cannot aggregate signatures from subnet with no validators")
+	errInsufficientWeight = errors.New("verification failed with insufficient weight")
 )
 
 // SignatureGetter defines the minimum network interface to perform signature aggregation
@@ -55,15 +61,29 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 		return nil, err
 	}
 
-	log.Info("Fetching signature", "a.subnetID", a.subnetID, "height", pChainHeight)
+	log.Info("Fetching signature",
+		"a.subnetID", a.subnetID,
+		"height", pChainHeight,
+	)
 	validators, totalWeight, err := avalancheWarp.GetCanonicalValidatorSet(ctx, a.state, pChainHeight, a.subnetID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get validator set: %w", err)
 	}
 	if len(validators) == 0 {
-		return nil, fmt.Errorf("cannot aggregate signatures from subnet with no validators (SubnetID: %s, Height: %d)", a.subnetID, pChainHeight)
+		return nil, fmt.Errorf("%w (SubnetID: %s, Height: %d)", errNoValidators, a.subnetID, pChainHeight)
 	}
 
+	return aggregateSignatures(ctx, a.client, unsignedMessage, validators, quorumNum, totalWeight)
+}
+
+func aggregateSignatures(
+	ctx context.Context,
+	client SignatureGetter,
+	unsignedMessage *avalancheWarp.UnsignedMessage,
+	validators []*avalancheWarp.Validator,
+	quorumNum uint64,
+	totalWeight uint64,
+) (*AggregateSignatureResult, error) {
 	var (
 		// [signatureLock] must be held when accessing [blsSignatures],
 		// [signersBitset], or [signatureWeight] in the goroutine below.
@@ -93,7 +113,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 				"index", i,
 			)
 
-			signature, err := a.client.GetSignature(signatureFetchCtx, nodeID, unsignedMessage)
+			signature, err := client.GetSignature(signatureFetchCtx, nodeID, unsignedMessage)
 			if err != nil {
 				log.Info("Failed to fetch warp signature",
 					"nodeID", nodeID,
@@ -145,7 +165,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 
 	// If I failed to fetch sufficient signature stake, return an error
 	if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err != nil {
-		return nil, fmt.Errorf("failed to aggregate signature: %w", err)
+		return nil, fmt.Errorf("%w: %w", errInsufficientWeight, err)
 	}
 
 	// Otherwise, return the aggregate signature
