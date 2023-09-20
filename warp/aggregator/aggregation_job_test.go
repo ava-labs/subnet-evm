@@ -211,6 +211,63 @@ func TestAggregateThresholdSignatures(t *testing.T) {
 	})
 }
 
+func TestAggregateThresholdSignaturesOverMaxNeeded(t *testing.T) {
+	ctx := context.Background()
+	aggregationJob := newSignatureAggregationJob(
+		&mockFetcher{
+			fetch: func(_ context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+				// Allow bls signatures from all nodes even though we only need 3/5
+				for i, matchingNodeID := range nodeIDs {
+					if matchingNodeID == nodeID {
+						return blsSignatures[i], nil
+					}
+				}
+				return nil, errors.New("what do we say to the god of death")
+			},
+		},
+		pChainHeight,
+		subnetID,
+		60,
+		60,
+		100,
+		&validators.TestState{
+			GetSubnetIDF:      getSubnetIDF,
+			GetCurrentHeightF: getCurrentHeightF,
+			GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+				res := make(map[ids.NodeID]*validators.GetValidatorOutput)
+				for i := 0; i < 5; i++ {
+					res[nodeIDs[i]] = &validators.GetValidatorOutput{
+						NodeID:    nodeIDs[i],
+						PublicKey: blsPublicKeys[i],
+						Weight:    100,
+					}
+				}
+				return res, nil
+			},
+		},
+		unsignedMsg,
+	)
+
+	signature := &avalancheWarp.BitSetSignature{
+		Signers: set.NewBits(0, 1, 2).Bytes(),
+	}
+	signedMessage, err := avalancheWarp.NewMessage(unsignedMsg, signature)
+	require.NoError(t, err)
+	aggregateSignature, err := bls.AggregateSignatures(blsSignatures)
+	require.NoError(t, err)
+	copy(signature.Signature[:], bls.SignatureToBytes(aggregateSignature))
+	expectedRes := &AggregateSignatureResult{
+		SignatureWeight: 300,
+		TotalWeight:     500,
+		Message:         signedMessage,
+	}
+	executeSignatureAggregationTest(t, signatureAggregationTest{
+		ctx:         ctx,
+		job:         aggregationJob,
+		expectedRes: expectedRes,
+	})
+}
+
 func TestAggregateThresholdSignaturesInsufficientWeight(t *testing.T) {
 	ctx := context.Background()
 	aggregationJob := newSignatureAggregationJob(
