@@ -19,22 +19,35 @@ const (
 	retryBackoffFactor              = 2
 )
 
-var _ SignatureGetter = (*NetworkSigner)(nil)
+var _ SignatureGetter = (*signatureGetter)(nil)
+
+// SignatureGetter defines the minimum network interface to perform signature aggregation
+type SignatureGetter interface {
+	// GetSignature attempts to fetch a BLS Signature from [nodeID] for [unsignedWarpMessage]
+	GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error)
+}
 
 type NetworkClient interface {
 	SendAppRequest(nodeID ids.NodeID, message []byte) ([]byte, error)
 }
 
-// NetworkSigner fetches warp signatures on behalf of the aggregator using VM App-Specific Messaging
-type NetworkSigner struct {
-	Client NetworkClient
+func NewSignatureGetter(client NetworkClient) SignatureGetter {
+	return &signatureGetter{
+		client: client,
+	}
+}
+
+// signatureGetter fetches warp signatures on behalf of the
+// aggregator using VM App-Specific Messaging
+type signatureGetter struct {
+	client NetworkClient
 }
 
 // GetSignature attempts to fetch a BLS Signature of [unsignedWarpMessage] from [nodeID] until it succeeds or receives an invalid response
 //
 // Note: this function will continue attempting to fetch the signature from [nodeID] until it receives an invalid value or [ctx] is cancelled.
 // The caller is responsible to cancel [ctx] if it no longer needs to fetch this signature.
-func (s *NetworkSigner) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+func (s *signatureGetter) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 	signatureReq := message.SignatureRequest{
 		MessageID: unsignedWarpMessage.ID(),
 	}
@@ -45,7 +58,7 @@ func (s *NetworkSigner) GetSignature(ctx context.Context, nodeID ids.NodeID, uns
 
 	delay := initialRetryFetchSignatureDelay
 	for ctx.Err() == nil {
-		signatureRes, err := s.Client.SendAppRequest(nodeID, signatureReqBytes)
+		signatureRes, err := s.client.SendAppRequest(nodeID, signatureReqBytes)
 		// If the client fails to retrieve a response perform an exponential backoff.
 		// Note: it is up to the caller to ensure that [ctx] is eventually cancelled
 		if err != nil {
