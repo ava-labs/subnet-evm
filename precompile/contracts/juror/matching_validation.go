@@ -50,6 +50,7 @@ var (
 
 	ErrInvalidOrder                       = errors.New("invalid order")
 	ErrInvalidPrice                       = errors.New("invalid price")
+	ErrPricePrecision                     = errors.New("invalid price precision")
 	ErrCancelledOrder                     = errors.New("cancelled order")
 	ErrFilledOrder                        = errors.New("filled order")
 	ErrOrderAlreadyExists                 = errors.New("order already exists")
@@ -67,6 +68,7 @@ var (
 	ErrOpenOrders                         = errors.New("open orders")
 	ErrOpenReduceOnlyOrders               = errors.New("open reduce only orders")
 	ErrNoTradingAuthority                 = errors.New("no trading authority")
+	ErrNoReferrer                         = errors.New("no referrer")
 )
 
 type BadElement uint8
@@ -226,16 +228,16 @@ func determineFillPrice(bibliophile b.BibliophileClient, m0, m1 *Metadata) (*Fil
 func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClient, inputStruct *ValidateLiquidationOrderAndDetermineFillPriceInput) ValidateLiquidationOrderAndDetermineFillPriceOutput {
 	fillAmount := new(big.Int).Set(inputStruct.LiquidationAmount)
 	if fillAmount.Sign() <= 0 {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: ErrInvalidFillAmount.Error()}
+		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: ErrInvalidFillAmount.Error(), Element: uint8(Generic)}
 	}
 
 	decodeStep0, err := ob.DecodeTypeAndEncodedOrder(inputStruct.Data)
 	if err != nil {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error()}
+		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order0)}
 	}
 	m0, err := validateOrder(bibliophile, decodeStep0.OrderType, decodeStep0.EncodedOrder, Liquidation, fillAmount)
 	if err != nil {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error()}
+		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order0)}
 	}
 
 	if m0.BaseAssetQuantity.Sign() < 0 {
@@ -244,16 +246,17 @@ func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClie
 
 	minSize := bibliophile.GetMinSizeRequirement(m0.AmmIndex.Int64())
 	if new(big.Int).Mod(fillAmount, minSize).Cmp(big.NewInt(0)) != 0 {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: ErrNotMultiple.Error()}
+		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: ErrNotMultiple.Error(), Element: uint8(Generic)}
 	}
 
 	fillPrice, err := determineLiquidationFillPrice(bibliophile, m0)
 	if err != nil {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error()}
+		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order0)}
 	}
 
 	return ValidateLiquidationOrderAndDetermineFillPriceOutput{
-		Err: "",
+		Err:     "",
+		Element: uint8(NoError),
 		Res: IOrderHandlerLiquidationMatchingValidationRes{
 			Instruction: IClearingHouseInstruction{
 				AmmIndex:  m0.AmmIndex,
@@ -298,10 +301,7 @@ func validateOrder(bibliophile b.BibliophileClient, orderType ob.OrderType, enco
 		if err != nil {
 			return nil, err
 		}
-		metadata, err = validateExecuteLimitOrder(bibliophile, order, side, fillAmount, orderHash)
-		if err != nil {
-			return nil, err
-		}
+		return validateExecuteLimitOrder(bibliophile, order, side, fillAmount, orderHash)
 	}
 	if orderType == ob.IOC {
 		order, err := ob.DecodeIOCOrder(encodedOrder)

@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	ob "github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	b "github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -18,32 +19,32 @@ func ValidatePlaceLimitOrder(bibliophile b.BibliophileClient, inputStruct *Valid
 	response.Orderhash = orderHash
 
 	if err != nil {
-		response.Errs = err.Error()
+		response.Err = err.Error()
 		return
 	}
 	if order.Price.Sign() != 1 {
-		response.Errs = ErrInvalidPrice.Error()
+		response.Err = ErrInvalidPrice.Error()
 		return
 	}
 	trader := order.Trader
 	if trader != sender && !bibliophile.IsTradingAuthority(trader, sender) {
-		response.Errs = ErrNoTradingAuthority.Error()
+		response.Err = ErrNoTradingAuthority.Error()
 		return
 	}
 	ammAddress := bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())
 	response.Res.Amm = ammAddress
 	if order.BaseAssetQuantity.Sign() == 0 {
-		response.Errs = ErrBaseAssetQuantityZero.Error()
+		response.Err = ErrBaseAssetQuantityZero.Error()
 		return
 	}
 	minSize := bibliophile.GetMinSizeRequirement(order.AmmIndex.Int64())
 	if new(big.Int).Mod(order.BaseAssetQuantity, minSize).Sign() != 0 {
-		response.Errs = ErrNotMultiple.Error()
+		response.Err = ErrNotMultiple.Error()
 		return
 	}
 	status := OrderStatus(bibliophile.GetOrderStatus(orderHash))
 	if status != Invalid {
-		response.Errs = ErrOrderAlreadyExists.Error()
+		response.Err = ErrOrderAlreadyExists.Error()
 		return
 	}
 
@@ -52,7 +53,7 @@ func ValidatePlaceLimitOrder(bibliophile b.BibliophileClient, inputStruct *Valid
 	// this should only happen when a trader with open reduce only orders was liquidated
 	if (posSize.Sign() == 0 && reduceOnlyAmount.Sign() != 0) || (posSize.Sign() != 0 && new(big.Int).Mul(posSize, reduceOnlyAmount).Sign() == 1) {
 		// if position is non-zero then reduceOnlyAmount should be zero or have the opposite sign as posSize
-		response.Errs = ErrStaleReduceOnlyOrders.Error()
+		response.Err = ErrStaleReduceOnlyOrders.Error()
 		return
 	}
 
@@ -61,41 +62,59 @@ func ValidatePlaceLimitOrder(bibliophile b.BibliophileClient, inputStruct *Valid
 		orderSide = Side(Short)
 	}
 	if order.ReduceOnly {
+		// a reduce only order should reduce position
 		if !reducesPosition(posSize, order.BaseAssetQuantity) {
-			response.Errs = ErrReduceOnlyBaseAssetQuantityInvalid.Error()
+			response.Err = ErrReduceOnlyBaseAssetQuantityInvalid.Error()
 			return
 		}
 		longOrdersAmount := bibliophile.GetLongOpenOrdersAmount(trader, order.AmmIndex)
 		shortOrdersAmount := bibliophile.GetShortOpenOrdersAmount(trader, order.AmmIndex)
-		if (orderSide == Side(Long) && longOrdersAmount.Sign() != 0) || (orderSide == Side(Short) && shortOrdersAmount.Sign() != 0) {
-			response.Errs = ErrOpenOrders.Error()
+
+		// if the trader is placing a reduceOnly long that means they have a short position
+		// we allow only 1 kind of order in the opposite direction of the position
+		// otherwise we run the risk of having stale reduceOnly orders (orders that are not actually reducing the position)
+		if (orderSide == Side(Long) && longOrdersAmount.Sign() != 0) ||
+			(orderSide == Side(Short) && shortOrdersAmount.Sign() != 0) {
+			response.Err = ErrOpenOrders.Error()
 			return
 		}
-		if big.NewInt(0).Abs(big.NewInt(0).Add(reduceOnlyAmount, order.BaseAssetQuantity)).Cmp(big.NewInt(0).Abs(posSize)) == 1 {
-			response.Errs = ErrNetReduceOnlyAmountExceeded.Error()
+		if hu.Abs(hu.Add(reduceOnlyAmount, order.BaseAssetQuantity)).Cmp(hu.Abs(posSize)) == 1 {
+			response.Err = ErrNetReduceOnlyAmountExceeded.Error()
 			return
 		}
 	} else {
-		if reduceOnlyAmount.Sign() != 0 && order.BaseAssetQuantity.Sign() != posSize.Sign() {
-			response.Errs = ErrOpenReduceOnlyOrders.Error()
+		// we allow only 1 kind of order in the opposite direction of the position
+		if order.BaseAssetQuantity.Sign() != posSize.Sign() && reduceOnlyAmount.Sign() != 0 {
+			response.Err = ErrOpenReduceOnlyOrders.Error()
 			return
 		}
 		availableMargin := bibliophile.GetAvailableMargin(trader)
 		requiredMargin := getRequiredMargin(bibliophile, order)
 		if availableMargin.Cmp(requiredMargin) == -1 {
-			response.Errs = ErrInsufficientMargin.Error()
+			response.Err = ErrInsufficientMargin.Error()
 			return
 		}
 		response.Res.ReserveAmount = requiredMargin
 	}
+
 	if order.PostOnly {
 		asksHead := bibliophile.GetAsksHead(ammAddress)
 		bidsHead := bibliophile.GetBidsHead(ammAddress)
 		if (orderSide == Side(Short) && bidsHead.Sign() != 0 && order.Price.Cmp(bidsHead) != 1) || (orderSide == Side(Long) && asksHead.Sign() != 0 && order.Price.Cmp(asksHead) != -1) {
-			response.Errs = ErrCrossingMarket.Error()
+			response.Err = ErrCrossingMarket.Error()
 			return
 		}
 	}
+
+	if !bibliophile.HasReferrer(order.Trader) {
+		response.Err = ErrNoReferrer.Error()
+	}
+
+	if hu.Mod(order.Price, bibliophile.GetPriceMultiplier(ammAddress)).Sign() != 0 {
+		response.Err = ErrPricePrecision.Error()
+		return
+	}
+
 	return response
 }
 

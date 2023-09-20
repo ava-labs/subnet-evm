@@ -85,22 +85,20 @@ func IsValidator(stateDB contract.StateDB, senderOrSigner common.Address) bool {
 // Helper functions
 
 func GetAcceptableBounds(stateDB contract.StateDB, marketID int64) (upperBound, lowerBound *big.Int) {
-	spreadLimit := GetMaxOraclePriceSpread(stateDB, marketID)
-	oraclePrice := getUnderlyingPriceForMarket(stateDB, marketID)
-	return calculateBounds(spreadLimit, oraclePrice)
+	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return calculateBounds(getMaxOraclePriceSpread(stateDB, market), getUnderlyingPrice(stateDB, market), getMultiplier(stateDB, market))
 }
 
 func GetAcceptableBoundsForLiquidation(stateDB contract.StateDB, marketID int64) (upperBound, lowerBound *big.Int) {
-	spreadLimit := GetMaxLiquidationPriceSpread(stateDB, marketID)
-	oraclePrice := getUnderlyingPriceForMarket(stateDB, marketID)
-	return calculateBounds(spreadLimit, oraclePrice)
+	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return calculateBounds(getMaxLiquidationPriceSpread(stateDB, market), getUnderlyingPrice(stateDB, market), getMultiplier(stateDB, market))
 }
 
-func calculateBounds(spreadLimit, oraclePrice *big.Int) (*big.Int, *big.Int) {
-	upperbound := hu.Div1e6(hu.Mul(oraclePrice, hu.Add(hu.ONE_E_6, spreadLimit)))
+func calculateBounds(spreadLimit, oraclePrice, multiplier *big.Int) (*big.Int, *big.Int) {
+	upperbound := hu.RoundOff(hu.Div1e6(hu.Mul(oraclePrice, hu.Add1e6(spreadLimit))), multiplier)
 	lowerbound := big.NewInt(0)
 	if spreadLimit.Cmp(hu.ONE_E_6) == -1 {
-		lowerbound = hu.Div1e6(hu.Mul(oraclePrice, hu.Sub(hu.ONE_E_6, spreadLimit)))
+		lowerbound = hu.RoundOff(hu.Div1e6(hu.Mul(oraclePrice, hu.Sub(hu.ONE_E_6, spreadLimit))), multiplier)
 	}
 	return upperbound, lowerbound
 }

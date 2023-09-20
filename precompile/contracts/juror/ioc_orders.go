@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	ob "github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	b "github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 )
 
@@ -51,10 +52,38 @@ func ValidatePlaceIOCorder(bibliophile b.BibliophileClient, inputStruct *Validat
 		response.Err = ErrInvalidOrder.Error()
 		return
 	}
+
+	if !bibliophile.HasReferrer(order.Trader) {
+		response.Err = ErrNoReferrer.Error()
+	}
+
 	// this check is sort of redundant because either ways user can circumvent this by placing several reduceOnly order in a single tx/block
-	// if order.ReduceOnly {
-	// @todo
-	// }
+	if order.ReduceOnly {
+		ammAddress := bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())
+		posSize := bibliophile.GetSize(ammAddress, &trader)
+		// a reduce only order should reduce position
+		if !reducesPosition(posSize, order.BaseAssetQuantity) {
+			response.Err = ErrReduceOnlyBaseAssetQuantityInvalid.Error()
+			return
+		}
+
+		reduceOnlyAmount := bibliophile.GetReduceOnlyAmount(trader, order.AmmIndex)
+		if hu.Abs(hu.Add(reduceOnlyAmount, order.BaseAssetQuantity)).Cmp(hu.Abs(posSize)) == 1 {
+			response.Err = ErrNetReduceOnlyAmountExceeded.Error()
+			return
+		}
+	}
+
+	if order.Price.Sign() != 1 {
+		response.Err = ErrInvalidPrice.Error()
+		return
+	}
+
+	ammAddress := bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())
+	if hu.Mod(order.Price, bibliophile.GetPriceMultiplier(ammAddress)).Sign() != 0 {
+		response.Err = ErrPricePrecision.Error()
+		return
+	}
 	return response
 }
 

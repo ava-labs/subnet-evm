@@ -10,6 +10,10 @@ var (
 	ONE_E_18 = big.NewInt(1e18)
 )
 
+func Add1e6(a *big.Int) *big.Int {
+	return Add(a, ONE_E_6)
+}
+
 func Mul1e6(a *big.Int) *big.Int {
 	return Mul(a, ONE_E_6)
 }
@@ -40,4 +44,16 @@ func Mul(a, b *big.Int) *big.Int {
 
 func Div(a, b *big.Int) *big.Int {
 	return new(big.Int).Div(a, b)
+}
+
+func Abs(a *big.Int) *big.Int {
+	return new(big.Int).Abs(a)
+}
+
+func RoundOff(a, b *big.Int) *big.Int {
+	return Mul(Div(a, b), b)
+}
+
+func Mod(a, b *big.Int) *big.Int {
+	return new(big.Int).Mod(a, b)
 }

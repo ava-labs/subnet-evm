@@ -16,6 +16,7 @@ const (
 	MIN_ALLOWABLE_MARGIN_SLOT      int64 = 2
 	TAKER_FEE_SLOT                 int64 = 3
 	AMMS_SLOT                      int64 = 12
+	REFERRAL_SLOT                  int64 = 13
 )
 
 type MarginMode uint8
@@ -133,4 +134,9 @@ func getMarketAddressFromMarketID(marketID int64, stateDB contract.StateDB) comm
 	baseStorageSlot := marketsStorageSlot()
 	amm := stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BigToHash(new(big.Int).Add(baseStorageSlot, big.NewInt(marketID))))
 	return common.BytesToAddress(amm.Bytes())
+}
+
+func getReferralAddress(stateDB contract.StateDB) common.Address {
+	referral := stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BigToHash(big.NewInt(REFERRAL_SLOT)))
+	return common.BytesToAddress(referral.Bytes())
 }

@@ -140,8 +140,9 @@ type ValidateLiquidationOrderAndDetermineFillPriceInput struct {
 }
 
 type ValidateLiquidationOrderAndDetermineFillPriceOutput struct {
-	Err string
-	Res IOrderHandlerLiquidationMatchingValidationRes
+	Err     string
+	Element uint8
+	Res     IOrderHandlerLiquidationMatchingValidationRes
 }
 
 type ValidateOrdersAndDetermineFillPriceInput struct {
@@ -171,7 +172,7 @@ type ValidatePlaceLimitOrderInput struct {
 }
 
 type ValidatePlaceLimitOrderOutput struct {
-	Errs      string
+	Err       string
 	Orderhash [32]byte
 	Res       IOrderHandlerPlaceOrderRes
 }
@@ -431,7 +432,7 @@ func PackValidatePlaceLimitOrder(inputStruct ValidatePlaceLimitOrderInput) ([]by
 // to conform the ABI outputs.
 func PackValidatePlaceLimitOrderOutput(outputStruct ValidatePlaceLimitOrderOutput) ([]byte, error) {
 	return JurorABI.PackOutput("validatePlaceLimitOrder",
-		outputStruct.Errs,
+		outputStruct.Err,
 		outputStruct.Orderhash,
 		outputStruct.Res,
 	)

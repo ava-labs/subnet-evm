@@ -304,6 +304,20 @@ func (mr *MockBibliophileClientMockRecorder) GetOrderStatus(orderHash interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrderStatus", reflect.TypeOf((*MockBibliophileClient)(nil).GetOrderStatus), orderHash)
 }
 
+// GetPriceMultiplier mocks base method.
+func (m *MockBibliophileClient) GetPriceMultiplier(market common.Address) *big.Int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPriceMultiplier", market)
+	ret0, _ := ret[0].(*big.Int)
+	return ret0
+}
+
+// GetPriceMultiplier indicates an expected call of GetPriceMultiplier.
+func (mr *MockBibliophileClientMockRecorder) GetPriceMultiplier(market interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPriceMultiplier", reflect.TypeOf((*MockBibliophileClient)(nil).GetPriceMultiplier), market)
+}
+
 // GetReduceOnlyAmount mocks base method.
 func (m *MockBibliophileClient) GetReduceOnlyAmount(trader common.Address, ammIndex *big.Int) *big.Int {
 	m.ctrl.T.Helper()
@@ -373,6 +387,20 @@ func (m *MockBibliophileClient) GetUpperAndLowerBoundForMarket(marketId int64) (
 func (mr *MockBibliophileClientMockRecorder) GetUpperAndLowerBoundForMarket(marketId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpperAndLowerBoundForMarket", reflect.TypeOf((*MockBibliophileClient)(nil).GetUpperAndLowerBoundForMarket), marketId)
+}
+
+// HasReferrer mocks base method.
+func (m *MockBibliophileClient) HasReferrer(trader common.Address) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasReferrer", trader)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasReferrer indicates an expected call of HasReferrer.
+func (mr *MockBibliophileClientMockRecorder) HasReferrer(trader interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasReferrer", reflect.TypeOf((*MockBibliophileClient)(nil).HasReferrer), trader)
 }
 
 // IOC_GetBlockPlaced mocks base method.

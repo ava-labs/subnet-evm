@@ -10,22 +10,23 @@ import (
 )
 
 const (
-	VAR_POSITIONS_SLOT              int64 = 5
-	VAR_CUMULATIVE_PREMIUM_FRACTION int64 = 6
-	MAX_ORACLE_SPREAD_RATIO_SLOT    int64 = 7
-	MAX_LIQUIDATION_RATIO_SLOT      int64 = 8
-	MIN_SIZE_REQUIREMENT_SLOT       int64 = 9
-	ORACLE_SLOT                     int64 = 10
-	UNDERLYING_ASSET_SLOT           int64 = 11
-	MAX_LIQUIDATION_PRICE_SPREAD    int64 = 17
-	RED_STONE_ADAPTER_SLOT          int64 = 21
-	RED_STONE_FEED_ID_SLOT          int64 = 22
-	IMPACT_MARGIN_NOTIONAL_SLOT     int64 = 27
-	LAST_TRADE_PRICE_SLOT           int64 = 28
-	BIDS_SLOT                       int64 = 29
-	ASKS_SLOT                       int64 = 30
-	BIDS_HEAD_SLOT                  int64 = 31
-	ASKS_HEAD_SLOT                  int64 = 32
+	VAR_POSITIONS_SLOT              int64 = 1
+	VAR_CUMULATIVE_PREMIUM_FRACTION int64 = 2
+	MAX_ORACLE_SPREAD_RATIO_SLOT    int64 = 3
+	MAX_LIQUIDATION_RATIO_SLOT      int64 = 4
+	MIN_SIZE_REQUIREMENT_SLOT       int64 = 5
+	ORACLE_SLOT                     int64 = 6
+	UNDERLYING_ASSET_SLOT           int64 = 7
+	MAX_LIQUIDATION_PRICE_SPREAD    int64 = 12
+	RED_STONE_ADAPTER_SLOT          int64 = 16
+	RED_STONE_FEED_ID_SLOT          int64 = 17
+	IMPACT_MARGIN_NOTIONAL_SLOT     int64 = 22
+	LAST_TRADE_PRICE_SLOT           int64 = 23
+	BIDS_SLOT                       int64 = 24
+	ASKS_SLOT                       int64 = 25
+	BIDS_HEAD_SLOT                  int64 = 24
+	ASKS_HEAD_SLOT                  int64 = 25
+	MULTIPLIER_SLOT                 int64 = 30
 )
 
 const (
@@ -51,19 +52,28 @@ func GetCumulativePremiumFraction(stateDB contract.StateDB, market common.Addres
 
 // GetMaxOraclePriceSpread returns the maxOracleSpreadRatio for a given market
 func GetMaxOraclePriceSpread(stateDB contract.StateDB, marketID int64) *big.Int {
-	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return getMaxOraclePriceSpread(stateDB, getMarketAddressFromMarketID(marketID, stateDB))
+}
+
+func getMaxOraclePriceSpread(stateDB contract.StateDB, market common.Address) *big.Int {
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MAX_ORACLE_SPREAD_RATIO_SLOT))).Bytes())
 }
 
 // GetMaxLiquidationPriceSpread returns the maxOracleSpreadRatio for a given market
 func GetMaxLiquidationPriceSpread(stateDB contract.StateDB, marketID int64) *big.Int {
-	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return getMaxLiquidationPriceSpread(stateDB, getMarketAddressFromMarketID(marketID, stateDB))
+}
+
+func getMaxLiquidationPriceSpread(stateDB contract.StateDB, market common.Address) *big.Int {
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MAX_LIQUIDATION_PRICE_SPREAD))).Bytes())
 }
 
 // GetMaxLiquidationRatio returns the maxLiquidationPriceSpread for a given market
 func GetMaxLiquidationRatio(stateDB contract.StateDB, marketID int64) *big.Int {
-	market := getMarketAddressFromMarketID(marketID, stateDB)
+	return getMaxLiquidationRatio(stateDB, getMarketAddressFromMarketID(marketID, stateDB))
+}
+
+func getMaxLiquidationRatio(stateDB contract.StateDB, market common.Address) *big.Int {
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MAX_LIQUIDATION_RATIO_SLOT))).Bytes())
 }
 
@@ -71,6 +81,10 @@ func GetMaxLiquidationRatio(stateDB contract.StateDB, marketID int64) *big.Int {
 func GetMinSizeRequirement(stateDB contract.StateDB, marketID int64) *big.Int {
 	market := getMarketAddressFromMarketID(marketID, stateDB)
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MIN_SIZE_REQUIREMENT_SLOT))).Bytes())
+}
+
+func getMultiplier(stateDB contract.StateDB, market common.Address) *big.Int {
+	return stateDB.GetState(market, common.BigToHash(big.NewInt(MULTIPLIER_SLOT))).Big()
 }
 
 func getOracleAddress(stateDB contract.StateDB, market common.Address) common.Address {
