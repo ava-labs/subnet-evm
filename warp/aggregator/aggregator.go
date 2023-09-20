@@ -15,12 +15,12 @@ import (
 // Aggregator fulfills requests to aggregate signatures of a subnet's validator set for Avalanche Warp Messages.
 type Aggregator struct {
 	subnetID ids.ID
-	client   SignatureBackend
+	client   SignatureGetter
 	state    validators.State
 }
 
 // NewAggregator returns a signature aggregator, which will aggregate Warp Signatures for the given [
-func NewAggregator(subnetID ids.ID, state validators.State, client SignatureBackend) *Aggregator {
+func NewAggregator(subnetID ids.ID, state validators.State, client SignatureGetter) *Aggregator {
 	return &Aggregator{
 		subnetID: subnetID,
 		client:   client,

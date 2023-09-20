@@ -11,16 +11,8 @@ import (
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
-// SignatureBackend defines the minimum network interface to perform signature aggregation
-type SignatureBackend interface {
-	// FetchWarpSignature attempts to fetch a BLS Signature from [nodeID] for [unsignedWarpMessage]
-	FetchWarpSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error)
-}
-
-// signatureJob fetches a single signature using the injected dependency SignatureBackend and returns a verified signature of the requested message.
-type signatureJob struct {
-	msg       *avalancheWarp.UnsignedMessage
-	nodeID    ids.NodeID
-	publicKey *bls.PublicKey
-	weight    uint64
+// SignatureGetter defines the minimum network interface to perform signature aggregation
+type SignatureGetter interface {
+	// GetSignature attempts to fetch a BLS Signature from [nodeID] for [unsignedWarpMessage]
+	GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error)
 }

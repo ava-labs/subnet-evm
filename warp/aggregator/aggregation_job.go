@@ -20,7 +20,7 @@ import (
 // signatureAggregationJob fetches signatures for a single unsigned warp message.
 type signatureAggregationJob struct {
 	// SignatureBackend is assumed to be thread-safe and may be used by multiple signature aggregation jobs concurrently
-	client   SignatureBackend
+	client   SignatureGetter
 	height   uint64
 	subnetID ids.ID
 
@@ -42,7 +42,7 @@ type AggregateSignatureResult struct {
 }
 
 func newSignatureAggregationJob(
-	client SignatureBackend,
+	client SignatureGetter,
 	height uint64,
 	subnetID ids.ID,
 	minValidQuorumNum uint64,
@@ -73,19 +73,10 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 	if len(validators) == 0 {
 		return nil, fmt.Errorf("cannot aggregate signatures from subnet with no validators (SubnetID: %s, Height: %d)", a.subnetID, a.height)
 	}
-	jobs := make([]*signatureJob, 0, len(validators))
-	for _, validator := range validators {
-		jobs = append(jobs, &signatureJob{
-			msg:       a.msg,
-			nodeID:    validator.NodeIDs[0], // TODO: update from a single nodeID to the original slice and use extra nodeIDs as backup.
-			publicKey: validator.PublicKey,
-			weight:    validator.Weight,
-		})
-	}
 
 	// signatureLock is used to access any of the signature attributes in the goroutines created below
 	signatureLock := sync.Mutex{}
-	signatures := make([]*bls.Signature, 0, len(jobs))
+	signatures := make([]*bls.Signature, 0, len(validators))
 	bitSet := set.NewBits()
 	signatureWeight := uint64(0)
 
@@ -94,26 +85,27 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 	defer signatureFetchCancel()
 
 	wg := sync.WaitGroup{}
-	for i, job := range jobs {
+	for i, validator := range validators {
 		i := i
-		job := job
+		nodeID := validator.NodeIDs[0]
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			log.Info("Fetching warp signature", "nodeID", job.nodeID, "index", i)
-			signature, err := a.client.FetchWarpSignature(signatureFetchCtx, job.nodeID, job.msg)
+			log.Info("Fetching warp signature", "nodeID", nodeID, "index", i)
+			signature, err := a.client.GetSignature(signatureFetchCtx, nodeID, a.msg)
 			if err != nil {
-				log.Debug("Failed to fetch warp signature", "nodeID", job.nodeID, "index", i, "err", err)
+				log.Debug("Failed to fetch warp signature", "nodeID", nodeID, "index", i, "err", err)
 				return
 			}
-			log.Info("Retrieved warp signature", "nodeID", job.nodeID, "index", i, "signature", hexutil.Bytes(bls.SignatureToBytes(signature)))
+			log.Info("Retrieved warp signature", "nodeID", nodeID, "index", i, "signature", hexutil.Bytes(bls.SignatureToBytes(signature)))
 
-			if !bls.Verify(job.publicKey, signature, job.msg.Bytes()) {
+			if !bls.Verify(validator.PublicKey, signature, a.msg.Bytes()) {
 				log.Debug("Failed to verify warp signature",
-					"nodeID", job.nodeID,
+					"nodeID", nodeID,
 					"index", i,
 					"signature", hexutil.Bytes(bls.SignatureToBytes(signature)),
-					"msgID", job.msg.ID(),
+					"msgID", a.msg.ID(),
 				)
 				return
 			}
@@ -124,8 +116,8 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 
 			signatures = append(signatures, signature)
 			bitSet.Add(i)
-			log.Info("Updated weight", "totalWeight", signatureWeight+job.weight, "addedWeight", job.weight)
-			signatureWeight += job.weight
+			log.Info("Updated weight", "totalWeight", signatureWeight+validator.Weight, "addedWeight", validator.Weight)
+			signatureWeight += validator.Weight
 			// If the signature weight meets the requested threshold, cancel signature fetching
 			if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, a.maxNeededQuorumNum, a.quorumDen); err == nil {
 				log.Info("Verify weight passed, exiting aggregation early", "maxNeededQuorumNum", a.maxNeededQuorumNum, "totalWeight", totalWeight, "signatureWeight", signatureWeight)
