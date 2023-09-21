@@ -332,7 +332,7 @@ func (c *client) get(ctx context.Context, request message.Request, parseFn parse
 			nodeIdx := atomic.AddUint32(&c.stateSyncNodeIdx, 1)
 			nodeID = c.stateSyncNodes[nodeIdx%uint32(len(c.stateSyncNodes))]
 
-			response, err = c.networkClient.SendAppRequest(context.TODO(), nodeID, requestBytes)
+			response, err = c.networkClient.SendAppRequest(ctx, nodeID, requestBytes)
 		}
 		metric.UpdateRequestLatency(time.Since(start))
 
