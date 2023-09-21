@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	_ NetworkClient = &client{}
+	_ NetworkClient = &networkClient{}
 
 	ErrRequestFailed = errors.New("request failed")
 )
@@ -41,16 +41,16 @@ type NetworkClient interface {
 	TrackBandwidth(nodeID ids.NodeID, bandwidth float64)
 }
 
-// client implements NetworkClient interface
+// networkClient implements NetworkClient interface
 // provides ability to send request / responses through the Network and wait for a response
 // so that the caller gets the result synchronously.
-type client struct {
+type networkClient struct {
 	network Network
 }
 
 // NewNetworkClient returns Client for a given network
 func NewNetworkClient(network Network) NetworkClient {
-	return &client{
+	return &networkClient{
 		network: network,
 	}
 }
@@ -59,7 +59,7 @@ func NewNetworkClient(network Network) NetworkClient {
 // node version greater than or equal to minVersion.
 // Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
 // the request should be retried.
-func (c *client) SendAppRequestAny(minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
+func (c *networkClient) SendAppRequestAny(minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
 	waitingHandler := newWaitingResponseHandler()
 	nodeID, err := c.network.SendAppRequestAny(minVersion, request, waitingHandler)
 	if err != nil {
@@ -74,7 +74,7 @@ func (c *client) SendAppRequestAny(minVersion *version.Application, request []by
 
 // SendAppRequest synchronously sends request to the specified nodeID
 // Returns response bytes and ErrRequestFailed if the request should be retried.
-func (c *client) SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, error) {
+func (c *networkClient) SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, error) {
 	waitingHandler := newWaitingResponseHandler()
 	if err := c.network.SendAppRequest(nodeID, request, waitingHandler); err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (c *client) SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, erro
 
 // SendCrossChainRequest synchronously sends request to the specified chainID
 // Returns response bytes and ErrRequestFailed if the request should be retried.
-func (c *client) SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
+func (c *networkClient) SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
 	waitingHandler := newWaitingResponseHandler()
 	if err := c.network.SendCrossChainRequest(chainID, request, waitingHandler); err != nil {
 		return nil, err
@@ -100,10 +100,10 @@ func (c *client) SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, 
 	return response, nil
 }
 
-func (c *client) Gossip(gossip []byte) error {
+func (c *networkClient) Gossip(gossip []byte) error {
 	return c.network.Gossip(gossip)
 }
 
-func (c *client) TrackBandwidth(nodeID ids.NodeID, bandwidth float64) {
+func (c *networkClient) TrackBandwidth(nodeID ids.NodeID, bandwidth float64) {
 	c.network.TrackBandwidth(nodeID, bandwidth)
 }
