@@ -110,7 +110,15 @@ type network struct {
 	closed utils.Atomic[bool]
 }
 
-func NewNetwork(router *p2p.Router, appSender common.AppSender, codec codec.Manager, crossChainCodec codec.Manager, self ids.NodeID, maxActiveAppRequests int64, maxActiveCrossChainRequests int64) Network {
+func NewNetwork(
+	router *p2p.Router,
+	appSender common.AppSender,
+	codec codec.Manager,
+	crossChainCodec codec.Manager,
+	self ids.NodeID,
+	maxActiveAppRequests int64,
+	maxActiveCrossChainRequests int64,
+) Network {
 	return &network{
 		router:                     router,
 		appSender:                  appSender,
