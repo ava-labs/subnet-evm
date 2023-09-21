@@ -64,7 +64,7 @@ func (s *NetworkSignatureGetter) GetSignature(ctx context.Context, nodeID ids.No
 
 			select {
 			case <-ctx.Done():
-				return nil, err
+				return nil, ctx.Err()
 			case <-timer.C:
 			}
 
