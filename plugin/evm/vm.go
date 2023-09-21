@@ -693,34 +693,8 @@ func (vm *VM) initBlockBuilding() error {
 			Handler:   txGossipHandler,
 		},
 	}
-	txGossipClient, err := vm.router.RegisterAppProtocol(txGossipProtocol, txGossipHandler, vm.validators)
-	if err != nil {
-		return err
-	}
-	var ethTxGossiper gossip.Gossiper
-	ethTxGossiper, err = gossip.NewPullGossiper[GossipTx, *GossipTx](
-		txGossipConfig,
-		vm.ctx.Log,
-		txPool,
-		txGossipClient,
-		vm.sdkMetrics,
-	)
-	if err != nil {
-		return err
-	}
-	txGossiper := gossip.ValidatorGossiper{
-		Gossiper:   ethTxGossiper,
-		NodeID:     vm.ctx.NodeID,
-		Validators: vm.validators,
-	}
-
-	vm.shutdownWg.Add(1)
-	go func() {
-		gossip.Every(ctx, vm.ctx.Log, txGossiper, gossipFrequency)
-		vm.shutdownWg.Done()
-	}()
-
-	return nil
+	_, err = vm.router.RegisterAppProtocol(txGossipProtocol, txGossipHandler, vm.validators)
+	return err
 }
 
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
