@@ -115,7 +115,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, _, err := client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+			responseBytes, _, err := client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -130,6 +130,35 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 	requestWg.Wait()
 	senderWg.Wait()
 	assert.Equal(t, totalCalls, int(atomic.LoadUint32(&callNum)))
+}
+
+func TestAppRequestOnCtxCancellation(t *testing.T) {
+	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	sender := testAppSender{
+		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+			return nil
+		},
+		sendAppResponseFn: func(nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+			return nil
+		},
+	}
+
+	net := NewNetwork(p2p.NewRouter(logging.NoLog{}, nil, prometheus.NewRegistry(), ""), sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
+
+	requestMessage := HelloRequest{Message: "this is a request"}
+	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
+	assert.NoError(t, err)
+
+	nodeID := ids.GenerateTestNodeID()
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel context prior to sending
+	cancel()
+	client := NewNetworkClient(net)
+	_, err = client.SendAppRequest(ctx, nodeID, requestBytes)
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 func TestRequestRequestsRoutingAndResponse(t *testing.T) {
@@ -261,12 +290,47 @@ func TestAppRequestOnShutdown(t *testing.T) {
 		defer wg.Done()
 		requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 		require.NoError(t, err)
-		responseBytes, _, err := client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+		responseBytes, _, err := client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 		require.Error(t, err, ErrRequestFailed)
 		require.Nil(t, responseBytes)
 	}()
 	wg.Wait()
 	require.True(t, called)
+}
+
+func TestAppRequestAnyOnCtxCancellation(t *testing.T) {
+	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	sender := testAppSender{
+		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+			return nil
+		},
+		sendAppResponseFn: func(nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+			return nil
+		},
+	}
+
+	net := NewNetwork(p2p.NewRouter(logging.NoLog{}, nil, prometheus.NewRegistry(), ""), sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
+	assert.NoError(t,
+		net.Connected(
+			context.Background(),
+			ids.GenerateTestNodeID(),
+			version.CurrentApp,
+		),
+	)
+
+	requestMessage := HelloRequest{Message: "this is a request"}
+	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel context prior to sending
+	cancel()
+	client := NewNetworkClient(net)
+	_, _, err = client.SendAppRequestAny(ctx, defaultPeerVersion, requestBytes)
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 func TestRequestMinVersion(t *testing.T) {
@@ -316,6 +380,7 @@ func TestRequestMinVersion(t *testing.T) {
 
 	// ensure version does not match
 	responseBytes, _, err := client.SendAppRequestAny(
+		context.Background(),
 		&version.Application{
 			Major: 2,
 			Minor: 0,
@@ -327,7 +392,7 @@ func TestRequestMinVersion(t *testing.T) {
 	assert.Nil(t, responseBytes)
 
 	// ensure version matches and the request goes through
-	responseBytes, _, err = client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+	responseBytes, _, err = client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 	assert.NoError(t, err)
 
 	var response TestMessage
@@ -528,7 +593,7 @@ func TestCrossChainAppRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
-	responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+	responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 	assert.NoError(t, err)
 
 	var response ExampleCrossChainResponse
@@ -536,6 +601,38 @@ func TestCrossChainAppRequest(t *testing.T) {
 		t.Fatal("unexpected error during unmarshal", err)
 	}
 	assert.Equal(t, "this is an example response", response.Response)
+}
+
+func TestCrossChainAppRequestOnCtxCancellation(t *testing.T) {
+	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	sender := testAppSender{
+		sendCrossChainAppRequestFn: func(requestingChainID ids.ID, requestID uint32, requestBytes []byte) error {
+			return nil
+		},
+		sendCrossChainAppResponseFn: func(respondingChainID ids.ID, requestID uint32, responseBytes []byte) error {
+			return nil
+		},
+	}
+
+	net := NewNetwork(p2p.NewRouter(logging.NoLog{}, nil, prometheus.NewRegistry(), ""), sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetCrossChainRequestHandler(&testCrossChainHandler{codec: crossChainCodecManager})
+
+	exampleCrossChainRequest := ExampleCrossChainRequest{
+		Message: "hello this is an example request",
+	}
+
+	crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
+	assert.NoError(t, err)
+
+	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel context prior to sending
+	cancel()
+	client := NewNetworkClient(net)
+	_, err = client.SendCrossChainRequest(ctx, chainID, crossChainRequest)
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
@@ -594,7 +691,7 @@ func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
 			defer requestWg.Done()
 			crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
 			assert.NoError(t, err)
-			responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+			responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -644,7 +741,7 @@ func TestCrossChainRequestOnShutdown(t *testing.T) {
 		defer wg.Done()
 		crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
 		require.NoError(t, err)
-		responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+		responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 		require.ErrorIs(t, err, ErrRequestFailed)
 		require.Nil(t, responseBytes)
 	}()
@@ -658,8 +755,8 @@ func TestNetworkAppRequestAfterShutdown(t *testing.T) {
 	net := NewNetwork(nil, nil, nil, nil, ids.EmptyNodeID, 1, 0)
 	net.Shutdown()
 
-	require.NoError(net.SendAppRequest(ids.GenerateTestNodeID(), nil, nil))
-	require.NoError(net.SendAppRequest(ids.GenerateTestNodeID(), nil, nil))
+	require.NoError(net.SendAppRequest(context.Background(), ids.GenerateTestNodeID(), nil, nil))
+	require.NoError(net.SendAppRequest(context.Background(), ids.GenerateTestNodeID(), nil, nil))
 }
 
 func TestNetworkCrossChainAppRequestAfterShutdown(t *testing.T) {
@@ -668,8 +765,8 @@ func TestNetworkCrossChainAppRequestAfterShutdown(t *testing.T) {
 	net := NewNetwork(nil, nil, nil, nil, ids.EmptyNodeID, 0, 1)
 	net.Shutdown()
 
-	require.NoError(net.SendCrossChainRequest(ids.GenerateTestID(), nil, nil))
-	require.NoError(net.SendCrossChainRequest(ids.GenerateTestID(), nil, nil))
+	require.NoError(net.SendCrossChainRequest(context.Background(), ids.GenerateTestID(), nil, nil))
+	require.NoError(net.SendCrossChainRequest(context.Background(), ids.GenerateTestID(), nil, nil))
 }
 
 func TestSDKRouting(t *testing.T) {

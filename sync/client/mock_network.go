@@ -29,7 +29,7 @@ type mockNetwork struct {
 	nodesRequested []ids.NodeID
 }
 
-func (t *mockNetwork) SendAppRequestAny(minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
+func (t *mockNetwork) SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
 	if len(t.response) == 0 {
 		return nil, ids.EmptyNodeID, errors.New("no mocked response to return in mockNetwork")
 	}
@@ -78,7 +78,7 @@ func (t *mockNetwork) Gossip([]byte) error {
 	panic("not implemented") // we don't care about this function for this test
 }
 
-func (t *mockNetwork) SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
+func (t *mockNetwork) SendCrossChainRequest(ctx context.Context, chainID ids.ID, request []byte) ([]byte, error) {
 	panic("not implemented") // we don't care about this function for this test
 }
 
