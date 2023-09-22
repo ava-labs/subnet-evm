@@ -1197,10 +1197,8 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 }
 
 // preparePredicateStorageSlots populates the predicateStorageSlots field from the transaction's access list
-// Note: if an address is specified multiple times in the access list, only the last storage slots provided
-// for it are used in predicates.
-// During predicate verification, we require that a precompile address is only specififed in the access list
-// once to avoid a situation where we verify multiple predicate and only expose data from the last one.
+// Note: if an address is specified multiple times in the access list, the storage slots for that address are
+// appended to a list of predicate bytes, and every predicate in the list goes through verification.
 func (s *StateDB) preparePredicateStorageSlots(rules params.Rules, list types.AccessList) {
 	s.predicateStorageSlots = make(map[common.Address][][]byte)
 	for _, el := range list {
