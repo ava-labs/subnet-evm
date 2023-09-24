@@ -388,19 +388,6 @@ var ClearingHouseAbi = []byte(`{"abi": [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "bibliophile",
-    "outputs": [
-      {
-        "internalType": "contract IHubbleBibliophile",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "address",
@@ -712,6 +699,19 @@ var ClearingHouseAbi = []byte(`{"abi": [
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "juror",
+    "outputs": [
+      {
+        "internalType": "contract IJuror",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -1075,19 +1075,6 @@ var ClearingHouseAbi = []byte(`{"abi": [
     "inputs": [
       {
         "internalType": "address",
-        "name": "_bibliophile",
-        "type": "address"
-      }
-    ],
-    "name": "setBibliophile",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
         "name": "_feeSink",
         "type": "address"
       }
@@ -1106,6 +1093,19 @@ var ClearingHouseAbi = []byte(`{"abi": [
       }
     ],
     "name": "setGovernace",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_juror",
+        "type": "address"
+      }
+    ],
+    "name": "setJuror",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

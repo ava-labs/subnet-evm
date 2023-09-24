@@ -284,19 +284,6 @@ var MarginAccountAbi = []byte(`{"abi": [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "bibliophile",
-    "outputs": [
-      {
-        "internalType": "contract IHubbleBibliophile",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -514,6 +501,19 @@ var MarginAccountAbi = []byte(`{"abi": [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "juror",
+    "outputs": [
+      {
+        "internalType": "contract IJuror",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -670,19 +670,6 @@ var MarginAccountAbi = []byte(`{"abi": [
   },
   {
     "inputs": [],
-    "name": "orderBook",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "pause",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -819,11 +806,11 @@ var MarginAccountAbi = []byte(`{"abi": [
     "inputs": [
       {
         "internalType": "address",
-        "name": "_bibliophile",
+        "name": "__governance",
         "type": "address"
       }
     ],
-    "name": "setBibliophile",
+    "name": "setGovernace",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -832,11 +819,11 @@ var MarginAccountAbi = []byte(`{"abi": [
     "inputs": [
       {
         "internalType": "address",
-        "name": "__governance",
+        "name": "_juror",
         "type": "address"
       }
     ],
-    "name": "setGovernace",
+    "name": "setJuror",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -961,6 +948,19 @@ var MarginAccountAbi = []byte(`{"abi": [
     "inputs": [
       {
         "internalType": "address",
+        "name": "_orderBook",
+        "type": "address"
+      }
+    ],
+    "name": "toggleWhitelistedOrderBook",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "recipient",
         "type": "address"
       },
@@ -1067,6 +1067,25 @@ var MarginAccountAbi = []byte(`{"abi": [
     "name": "whitelistCollateral",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "whitelistedOrderBooks",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

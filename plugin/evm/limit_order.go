@@ -22,7 +22,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -411,7 +410,6 @@ func (lop *limitOrderProcesser) getLogs(fromBlock, toBlock *big.Int) []*types.Lo
 	logs, err := lop.filterAPI.GetLogs(ctx, filters.FilterCriteria{
 		FromBlock: fromBlock,
 		ToBlock:   toBlock,
-		Addresses: []common.Address{orderbook.OrderBookContractAddress, orderbook.ClearingHouseContractAddress, orderbook.MarginAccountContractAddress},
 	})
 
 	if err != nil {

@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	MARGIN_ACCOUNT_GENESIS_ADDRESS        = "0x0300000000000000000000000000000000000001"
-	VAR_MARGIN_MAPPING_STORAGE_SLOT int64 = 10
-	VAR_RESERVED_MARGIN_SLOT        int64 = 11
+	MARGIN_ACCOUNT_GENESIS_ADDRESS       = "0x0300000000000000000000000000000000000001"
+	VAR_MARGIN_MAPPING_SLOT        int64 = 10
+	VAR_RESERVED_MARGIN_SLOT       int64 = 11
 )
 
 func GetNormalizedMargin(stateDB contract.StateDB, trader common.Address) *big.Int {
@@ -23,7 +23,7 @@ func GetNormalizedMargin(stateDB contract.StateDB, trader common.Address) *big.I
 }
 
 func getMargin(stateDB contract.StateDB, collateralIdx *big.Int, trader common.Address) *big.Int {
-	marginStorageSlot := crypto.Keccak256(append(common.LeftPadBytes(collateralIdx.Bytes(), 32), common.LeftPadBytes(big.NewInt(VAR_MARGIN_MAPPING_STORAGE_SLOT).Bytes(), 32)...))
+	marginStorageSlot := crypto.Keccak256(append(common.LeftPadBytes(collateralIdx.Bytes(), 32), common.LeftPadBytes(big.NewInt(VAR_MARGIN_MAPPING_SLOT).Bytes(), 32)...))
 	marginStorageSlot = crypto.Keccak256(append(common.LeftPadBytes(trader.Bytes(), 32), marginStorageSlot...))
 	return fromTwosComplement(stateDB.GetState(common.HexToAddress(MARGIN_ACCOUNT_GENESIS_ADDRESS), common.BytesToHash(marginStorageSlot)).Bytes())
 }

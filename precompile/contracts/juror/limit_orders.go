@@ -32,6 +32,11 @@ func ValidatePlaceLimitOrder(bibliophile b.BibliophileClient, inputStruct *Valid
 		return
 	}
 	ammAddress := bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())
+
+	if (ammAddress == common.Address{}) {
+		response.Err = ErrInvalidMarket.Error()
+		return
+	}
 	response.Res.Amm = ammAddress
 	if order.BaseAssetQuantity.Sign() == 0 {
 		response.Err = ErrBaseAssetQuantityZero.Error()

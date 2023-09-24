@@ -51,6 +51,7 @@ var (
 	ErrInvalidOrder                       = errors.New("invalid order")
 	ErrInvalidPrice                       = errors.New("invalid price")
 	ErrPricePrecision                     = errors.New("invalid price precision")
+	ErrInvalidMarket                      = errors.New("invalid market")
 	ErrCancelledOrder                     = errors.New("cancelled order")
 	ErrFilledOrder                        = errors.New("filled order")
 	ErrOrderAlreadyExists                 = errors.New("order already exists")
@@ -81,50 +82,71 @@ const (
 	NoError
 )
 
+func getValidateOrdersAndDetermineFillPriceErrorOutput(err error, element BadElement) ValidateOrdersAndDetermineFillPriceOutput {
+	// need to provide an empty res because PackValidateOrdersAndDetermineFillPriceOutput fails if FillPrice is nil, and if res.Instructions[0].AmmIndex is nil
+	emptyRes := IOrderHandlerMatchingValidationRes{
+		Instructions: [2]IClearingHouseInstruction{
+			IClearingHouseInstruction{AmmIndex: big.NewInt(0)},
+			IClearingHouseInstruction{AmmIndex: big.NewInt(0)},
+		},
+		OrderTypes:    [2]uint8{},
+		EncodedOrders: [2][]byte{},
+		FillPrice:     big.NewInt(0),
+	}
+
+	var errorString string
+	if err != nil {
+		// should always be true
+		errorString = err.Error()
+	}
+
+	return ValidateOrdersAndDetermineFillPriceOutput{Err: errorString, Element: uint8(element), Res: emptyRes}
+}
+
 // Business Logic
 func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputStruct *ValidateOrdersAndDetermineFillPriceInput) ValidateOrdersAndDetermineFillPriceOutput {
 	if len(inputStruct.Data) != 2 {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: ErrTwoOrders.Error(), Element: uint8(Generic)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrTwoOrders, Generic)
 	}
 
 	if inputStruct.FillAmount.Sign() <= 0 {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: ErrInvalidFillAmount.Error(), Element: uint8(Generic)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrInvalidFillAmount, Generic)
 	}
 
 	decodeStep0, err := ob.DecodeTypeAndEncodedOrder(inputStruct.Data[0])
 	if err != nil {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order0)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order0)
 	}
 	m0, err := validateOrder(bibliophile, decodeStep0.OrderType, decodeStep0.EncodedOrder, Long, inputStruct.FillAmount)
 	if err != nil {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order0)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order0)
 	}
 
 	decodeStep1, err := ob.DecodeTypeAndEncodedOrder(inputStruct.Data[1])
 	if err != nil {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order1)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order1)
 	}
 	m1, err := validateOrder(bibliophile, decodeStep1.OrderType, decodeStep1.EncodedOrder, Short, new(big.Int).Neg(inputStruct.FillAmount))
 	if err != nil {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order1)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order1)
 	}
 
 	if m0.AmmIndex.Cmp(m1.AmmIndex) != 0 {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: ErrNotSameAMM.Error(), Element: uint8(Generic)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNotSameAMM, Generic)
 	}
 
 	if m0.Price.Cmp(m1.Price) < 0 {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: ErrNoMatch.Error(), Element: uint8(Generic)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNoMatch, Generic)
 	}
 
 	minSize := bibliophile.GetMinSizeRequirement(m0.AmmIndex.Int64())
 	if new(big.Int).Mod(inputStruct.FillAmount, minSize).Cmp(big.NewInt(0)) != 0 {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: ErrNotMultiple.Error(), Element: uint8(Generic)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNotMultiple, Generic)
 	}
 
 	fillPriceAndModes, err, element := determineFillPrice(bibliophile, m0, m1)
 	if err != nil {
-		return ValidateOrdersAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(element)}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, element)
 	}
 
 	return ValidateOrdersAndDetermineFillPriceOutput{

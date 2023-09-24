@@ -25,9 +25,8 @@ import (
 var OrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000000")
 var MarginAccountContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000001")
 var ClearingHouseContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000002")
-var IOCOrderBookContractAddress = common.HexToAddress("0x635c5F96989a4226953FE6361f12B96c5d50289b")
-
-// var IOCOrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000006")
+var LimitOrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000005")
+var IOCOrderBookContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000006")
 
 type LimitOrderTxProcessor interface {
 	GetOrderBookTxsCount() uint64
