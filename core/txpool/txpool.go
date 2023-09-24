@@ -39,6 +39,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -1559,7 +1560,13 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 						return
 					}
 				}
-				reinject = types.TxDifference(discarded, included)
+				difference := types.TxDifference(discarded, included)
+				for _, tx := range difference {
+					log.Info("txpool", "to", tx.To(), "orderbook", constants.OrderBookContractAddress, "clearing", constants.ClearingHouseContractAddress)
+					if tx.To() == nil || (tx.To().Hex() != constants.OrderBookContractAddress && tx.To().Hex() != constants.ClearingHouseContractAddress) {
+						reinject = append(reinject, tx)
+					}
+				}
 			}
 		}
 	}
