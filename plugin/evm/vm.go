@@ -698,10 +698,22 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}
 
+	currentHeadBlock := vm.blockChain.CurrentBlock()
+	orderbookTxsBlockNumber := vm.txPool.GetOrderBookTxsBlockNumber()
+	if orderbookTxsBlockNumber > 0 && currentHeadBlock.Number.Uint64() >= orderbookTxsBlockNumber {
+		// the orderbooks txs in mempool could be outdated cuz the
+		// current head block is ahead of the orderbook txs block(the block at which matching pipeline evaluated the txs)
+		// it's possible that another validator has already included the orderbook txs in the current head block
+
+		log.Warn("buildBlock - current head block is ahead of OrderBookTxsBlockNumber", "orderbookTxsBlockNumber", orderbookTxsBlockNumber, "currentHeadBlockNumber", currentHeadBlock.Number.Uint64())
+		vm.txPool.PurgeOrderBookTxs()
+
+		// don't return now, attempt to generate a block without the matching orderbook txs
+	}
+
 	block, err := vm.miner.GenerateBlock(predicateCtx)
 	vm.builder.handleGenerateBlock()
 	if err != nil {
-
 		if vm.txPool.GetOrderBookTxsCount() > 0 && strings.Contains(err.Error(), "BLOCK_GAS_TOO_LOW") {
 			// orderbook txs from the validator were part of the block that failed to be generated because of low block gas
 			orderbook.BuildBlockFailedWithLowBlockGasCounter.Inc(1)

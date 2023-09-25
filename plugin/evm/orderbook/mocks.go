@@ -167,6 +167,10 @@ func (lotp *MockLimitOrderTxProcessor) PurgeOrderBookTxs() {
 	lotp.Called()
 }
 
+func (lotp *MockLimitOrderTxProcessor) SetOrderBookTxsBlockNumber(blockNumber uint64) {
+	lotp.Called()
+}
+
 func (lotp *MockLimitOrderTxProcessor) GetOrderBookTxsCount() uint64 {
 	args := lotp.Called()
 	return uint64(args.Int(0))
