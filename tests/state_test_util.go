@@ -250,7 +250,10 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 
 	// Prepare the EVM.
 	txContext := core.NewEVMTxContext(msg)
-	context := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
+	context, err := core.NewEVMBlockContext(block.Header(), nil, &t.json.Env.Coinbase)
+	if err != nil {
+		return nil, nil, common.Hash{}, err
+	}
 	context.GetHash = vmTestBlockHash
 	context.BaseFee = baseFee
 	if config.IsSubnetEVM(0) && t.json.Env.Random != nil {

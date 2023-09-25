@@ -87,7 +87,11 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		return nil, nil, 0, err
 	}
 
-	blockContext := NewEVMBlockContext(header, p.bc, nil)
+	blockContext, err := NewEVMBlockContext(header, p.bc, nil)
+	if err != nil {
+		log.Error("failed to create block context", "hash", block.Hash(), "number", block.NumberU64(), "timestamp", block.Time(), "err", err)
+		return nil, nil, 0, fmt.Errorf("could not create block context: %w", err)
+	}
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {

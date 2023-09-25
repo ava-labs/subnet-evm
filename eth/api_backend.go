@@ -275,7 +275,10 @@ func (b *EthAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *st
 		vmConfig = b.eth.blockchain.GetVMConfig()
 	}
 	txContext := core.NewEVMTxContext(msg)
-	context := core.NewEVMBlockContext(header, b.eth.BlockChain(), nil)
+	context, err := core.NewEVMBlockContext(header, b.eth.BlockChain(), nil)
+	if err != nil {
+		return nil, nil, err
+	}
 	return vm.NewEVM(context, txContext, state, b.eth.blockchain.Config(), *vmConfig), state.Error, nil
 }
 

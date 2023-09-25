@@ -705,7 +705,10 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call interfaces.Cal
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
 	txContext := core.NewEVMTxContext(msg)
-	evmContext := core.NewEVMBlockContext(header, b.blockchain, nil)
+	evmContext, err := core.NewEVMBlockContext(header, b.blockchain, nil)
+	if err != nil {
+		return nil, err
+	}
 	vmEnv := vm.NewEVM(evmContext, txContext, stateDB, b.config, vm.Config{NoBaseFee: true})
 	gasPool := new(core.GasPool).AddGas(math.MaxUint64)
 

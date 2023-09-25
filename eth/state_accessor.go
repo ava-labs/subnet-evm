@@ -224,7 +224,10 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := core.TransactionToMessage(tx, signer, block.BaseFee())
 		txContext := core.NewEVMTxContext(msg)
-		context := core.NewEVMBlockContext(block.Header(), eth.blockchain, nil)
+		context, err := core.NewEVMBlockContext(block.Header(), eth.blockchain, nil)
+		if err != nil {
+			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("failed to create block context: %w", err)
+		}
 		if idx == txIndex {
 			return msg, context, statedb, release, nil
 		}

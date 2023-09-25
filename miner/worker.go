@@ -262,7 +262,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 
 		blockContext = core.NewEVMBlockContextWithPredicateResults(env.header, w.chain, &coinbase, env.predicateResults)
 	} else {
-		blockContext = core.NewEVMBlockContext(env.header, w.chain, &coinbase)
+		blockContext = core.NewEVMBlockContextWithPredicateResults(env.header, w.chain, &coinbase, nil)
 	}
 
 	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, blockContext, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
