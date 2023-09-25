@@ -4,6 +4,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -13,6 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
+
+var ErrMissingPredicateContext = errors.New("missing predicate context")
 
 // CheckPredicates verifies the predicates of [tx] and returns the result. Returning an error invalidates the block.
 func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) (map[common.Address][]byte, error) {
@@ -40,6 +43,16 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 		}
 
 		predicateArguments[address] = append(predicateArguments[address], predicateutils.HashSliceToBytes(accessTuple.StorageKeys))
+	}
+
+	// If there are no predicates to verify, we must terminate early because the
+	// proposervm block context isn't guaranteed to be populated.
+	if len(predicateArguments) == 0 {
+		return predicateResults, nil
+	}
+
+	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
+		return nil, ErrMissingPredicateContext
 	}
 
 	for address, predicates := range predicateArguments {
