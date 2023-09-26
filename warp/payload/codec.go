@@ -21,7 +21,7 @@ const (
 
 	// Note: Modifying this variable can have subtle implications on memory
 	// usage when parsing malformed payloads.
-	MaxSliceLen = 24 * 1024
+	MaxSliceLen = 24 * units.KiB
 )
 
 // Codec does serialization and deserialization for Warp messages.
