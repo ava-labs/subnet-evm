@@ -9,7 +9,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -39,7 +39,7 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 			continue
 		}
 
-		predicateArguments[address] = append(predicateArguments[address], predicateutils.HashSliceToBytes(accessTuple.StorageKeys))
+		predicateArguments[address] = append(predicateArguments[address], predicate.HashSliceToBytes(accessTuple.StorageKeys))
 	}
 
 	for address, predicates := range predicateArguments {

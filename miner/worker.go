@@ -46,7 +46,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/precompile/results"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -76,7 +76,7 @@ type environment struct {
 	// The results are accumulated as transactions are executed by the miner and set on the BlockContext.
 	// If a transaction is dropped, its results must explicitly be removed from predicateResults in the same
 	// way that the gas pool and state is reset.
-	predicateResults *results.PredicateResults
+	predicateResults *predicate.PredicateResults
 
 	start time.Time // Time that block building began
 }
@@ -240,7 +240,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 		gasPool:          new(core.GasPool).AddGas(header.GasLimit),
 		rules:            w.chainConfig.AvalancheRules(header.Number, header.Time),
 		predicateContext: predicateContext,
-		predicateResults: results.NewPredicateResults(),
+		predicateResults: predicate.NewPredicateResults(),
 		start:            tstart,
 	}, nil
 }
