@@ -1,6 +1,6 @@
-# Predicate Utils
+# Predicate
 
-This package provides simple helpers to pack/unpack byte slices for a predicate transaction, where a byte slice of size N is encoded in the access list of a transaction.
+This package contains the predicate data structure and its encoding and helper functions to unpack/pack the data structure.
 
 ## Encoding
 
