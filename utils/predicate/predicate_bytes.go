@@ -6,6 +6,7 @@ package predicate
 import (
 	"fmt"
 
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -65,4 +66,21 @@ func BytesToHashSlice(b []byte) []common.Hash {
 		copy(hashes[i][:], b[start:])
 	}
 	return hashes
+}
+
+// GetPredicateResultBytes returns the predicate result bytes from the extra data.
+// If the extra data does not contain predicate result bytes, an error is returned.
+func GetPredicateResultBytes(extraData []byte) ([]byte, error) {
+	// Prior to the DUpgrade, the VM enforces the extra data is smaller than or equal to this size.
+	// After the DUpgrade, the VM pre-verifies the extra data past the dynamic fee rollup window is
+	// valid.
+	if len(extraData) < params.DynamicFeeExtraDataSize {
+		return nil, fmt.Errorf("header extra data too short for predicate verification found: %d, required: %d", len(extraData), params.DynamicFeeExtraDataSize)
+	}
+	return extraData[params.DynamicFeeExtraDataSize:], nil
+}
+
+// HasPredicateResultBytes returns true if the extra data contains predicate result bytes.
+func HasPredicateResultBytes(extraData []byte) bool {
+	return len(extraData) >= params.DynamicFeeExtraDataSize
 }
