@@ -1190,25 +1190,10 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 			al.AddAddress(coinbase)
 		}
 
-		s.preparePredicateStorageSlots(rules, list)
+		s.predicateStorageSlots = predicateutils.PreparePredicateStorageSlots(rules, list)
 	}
 	// Reset transient storage at the beginning of transaction execution
 	s.transientStorage = newTransientStorage()
-}
-
-// preparePredicateStorageSlots populates the predicateStorageSlots field from the transaction's access list
-// Note: if an address is specified multiple times in the access list, only the last storage slots provided
-// for it are used in predicates.
-// During predicate verification, we require that a precompile address is only specififed in the access list
-// once to avoid a situation where we verify multiple predicate and only expose data from the last one.
-func (s *StateDB) preparePredicateStorageSlots(rules params.Rules, list types.AccessList) {
-	s.predicateStorageSlots = make(map[common.Address][][]byte)
-	for _, el := range list {
-		if !rules.PredicateExists(el.Address) {
-			continue
-		}
-		s.predicateStorageSlots[el.Address] = append(s.predicateStorageSlots[el.Address], predicateutils.HashSliceToBytes(el.StorageKeys))
-	}
 }
 
 // AddAddressToAccessList adds the given address to the access list
@@ -1261,12 +1246,12 @@ func (s *StateDB) GetTxHash() common.Hash {
 // GetPredicateStorageSlots(AddrA, 0) -> Predicate1
 // GetPredicateStorageSlots(AddrB, 0) -> Predicate2
 // GetPredicateStorageSlots(AddrA, 1) -> Predicate3
-func (s *StateDB) GetPredicateStorageSlots(address common.Address, index uint32) ([]byte, bool) {
+func (s *StateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
 	predicates, exists := s.predicateStorageSlots[address]
 	if !exists {
 		return nil, false
 	}
-	if int(index) >= len(predicates) {
+	if index >= len(predicates) {
 		return nil, false
 	}
 	return predicates[index], true
