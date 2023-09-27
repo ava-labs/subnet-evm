@@ -21,7 +21,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	predicateutils "github.com/ava-labs/subnet-evm/predicate"
+	"github.com/ava-labs/subnet-evm/predicate"
 	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ethereum/go-ethereum/common"
@@ -170,7 +170,7 @@ func createWarpMessage(numKeys int) *avalancheWarp.Message {
 // and packs it into predicate encoding.
 func createPredicate(numKeys int) []byte {
 	warpMsg := createWarpMessage(numKeys)
-	predicateBytes := predicateutils.PackPredicate(warpMsg.Bytes())
+	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
 	return predicateBytes
 }
 
@@ -287,7 +287,7 @@ func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
 	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
 	require.NoError(err)
 
-	predicateBytes := predicateutils.PackPredicate(warpMsg.Bytes())
+	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
 
 	snowCtx := snow.DefaultContextTest()
 	snowCtx.SubnetID = ids.GenerateTestID()
@@ -364,7 +364,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 	warpMsg := createWarpMessage(1)
 	warpMsgBytes := warpMsg.Bytes()
 	warpMsgBytes = append(warpMsgBytes, byte(0x01)) // Invalidate warp message packing
-	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
+	predicateBytes := predicate.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
@@ -409,7 +409,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	warpMsg, err := avalancheWarp.NewMessage(unsignedMsg, warpSignature)
 	require.NoError(t, err)
 	warpMsgBytes := warpMsg.Bytes()
-	predicateBytes := predicateutils.PackPredicate(warpMsgBytes)
+	predicateBytes := predicate.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
@@ -454,7 +454,7 @@ func TestInvalidBitSet(t *testing.T) {
 			publicKey: true,
 		},
 	})
-	predicateBytes := predicateutils.PackPredicate(msg.Bytes())
+	predicateBytes := predicate.PackPredicate(msg.Bytes())
 	test := testutils.PredicateTest{
 		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{

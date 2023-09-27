@@ -6,6 +6,7 @@ package predicate
 import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -19,7 +20,7 @@ func PreparePredicateStorageSlots(rules params.Rules, list types.AccessList) map
 		if !rules.PredicateExists(el.Address) {
 			continue
 		}
-		predicateStorageSlots[el.Address] = append(predicateStorageSlots[el.Address], HashSliceToBytes(el.StorageKeys))
+		predicateStorageSlots[el.Address] = append(predicateStorageSlots[el.Address], utils.HashSliceToBytes(el.StorageKeys))
 	}
 
 	return predicateStorageSlots

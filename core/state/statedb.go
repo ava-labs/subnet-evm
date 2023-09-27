@@ -39,7 +39,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
-	predicateutils "github.com/ava-labs/subnet-evm/predicate"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -1190,7 +1190,7 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 			al.AddAddress(coinbase)
 		}
 
-		s.predicateStorageSlots = predicateutils.PreparePredicateStorageSlots(rules, list)
+		s.predicateStorageSlots = predicate.PreparePredicateStorageSlots(rules, list)
 	}
 	// Reset transient storage at the beginning of transaction execution
 	s.transientStorage = newTransientStorage()

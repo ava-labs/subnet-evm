@@ -19,7 +19,6 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
-	predicate1 "github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
 
@@ -276,7 +275,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		return nil
 	}
 
-	predicateResults := predicate1.NewPredicateResults()
+	predicateResults := predicate.NewPredicateResults()
 	for _, tx := range b.ethBlock.Transactions() {
 		results, err := core.CheckPredicates(rules, predicateContext, tx)
 		if err != nil {
@@ -295,7 +294,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		return err
 	}
 	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
-		parsedResults, err := predicate1.ParsePredicateResults(headerPredicateResultsBytes)
+		parsedResults, err := predicate.ParsePredicateResults(headerPredicateResultsBytes)
 		if err != nil {
 			return err
 		}

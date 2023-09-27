@@ -24,7 +24,7 @@ import (
 	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
-	predicateutils "github.com/ava-labs/subnet-evm/predicate"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
@@ -344,7 +344,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		packedInput, err := warp.PackGetVerifiedWarpMessage(0)
 		gomega.Expect(err).Should(gomega.BeNil())
-		tx := predicateutils.NewPredicateTx(
+		tx := predicate.NewPredicateTx(
 			chainID,
 			nonce,
 			&warp.Module.Address,

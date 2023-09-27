@@ -7,34 +7,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ava-labs/avalanchego/utils"
+	avagoutils "github.com/ava-labs/avalanchego/utils"
 	"github.com/stretchr/testify/require"
 )
-
-func testBytesToHashSlice(t testing.TB, b []byte) {
-	hashSlice := BytesToHashSlice(b)
-
-	copiedBytes := HashSliceToBytes(hashSlice)
-
-	if len(b)%32 == 0 {
-		require.Equal(t, b, copiedBytes)
-	} else {
-		require.Equal(t, b, copiedBytes[:len(b)])
-		// Require that any additional padding is all zeroes
-		padding := copiedBytes[len(b):]
-		require.Equal(t, bytes.Repeat([]byte{0x00}, len(padding)), padding)
-	}
-}
-
-func FuzzHashSliceToBytes(f *testing.F) {
-	for i := 0; i < 100; i++ {
-		f.Add(utils.RandomBytes(i))
-	}
-
-	f.Fuzz(func(t *testing.T, b []byte) {
-		testBytesToHashSlice(t, b)
-	})
-}
 
 func testPackPredicate(t testing.TB, b []byte) {
 	packedPredicate := PackPredicate(b)
@@ -45,7 +20,7 @@ func testPackPredicate(t testing.TB, b []byte) {
 
 func FuzzPackPredicate(f *testing.F) {
 	for i := 0; i < 100; i++ {
-		f.Add(utils.RandomBytes(i))
+		f.Add(avagoutils.RandomBytes(i))
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
@@ -64,7 +39,7 @@ func TestUnpackInvalidPredicate(t *testing.T) {
 	}
 
 	for _, l := range []int{0, 1, 31, 32, 33, 63, 64, 65} {
-		validPredicate := PackPredicate(utils.RandomBytes(l))
+		validPredicate := PackPredicate(avagoutils.RandomBytes(l))
 
 		for _, padding := range paddingCases {
 			invalidPredicate := append(validPredicate, padding...)
