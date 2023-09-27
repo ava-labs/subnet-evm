@@ -31,6 +31,8 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 	if len(rules.Predicates) == 0 {
 		return predicateResults, nil
 	}
+
+	// Prepare the predicate storage slots from the transaction's access list
 	predicateArguments := predicateutils.PreparePredicateStorageSlots(rules, tx.AccessList())
 
 	for address, predicates := range predicateArguments {
