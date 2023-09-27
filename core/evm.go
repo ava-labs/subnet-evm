@@ -61,6 +61,9 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common
 	predicateResults, err := results.ParsePredicateResults(header.Extra[params.DynamicFeeExtraDataSize:])
 	if err != nil {
 		log.Error("failed to parse predicate results creating new block context", "err", err, "extra", header.Extra)
+		// As mentioned above, we pre-verify the extra data to ensure this never happens.
+		// If we hit an error, construct a new block context rather than use a potentially half initialized value
+		// as defense in depth.
 		return newEVMBlockContext(header, chain, author, nil)
 	}
 	return newEVMBlockContext(header, chain, author, predicateResults)
