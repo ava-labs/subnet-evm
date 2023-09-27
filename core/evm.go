@@ -52,6 +52,7 @@ type ChainContext interface {
 func NewEVMBlockContext(header *types.Header, chain ChainContext, author *common.Address) vm.BlockContext {
 	var predicateResults *predicate.PredicateResults
 	if predicateBytes, err := predicate.GetPredicateResultBytes(header.Extra); err == nil {
+		// Parse predicate results if they are present (ie GetPredicateResultBytes returns err == nil)
 		predicateResults, err = predicate.ParsePredicateResults(predicateBytes)
 		if err != nil {
 			log.Error("failed to parse predicate results creating new block context", "err", err, "extra", header.Extra)
