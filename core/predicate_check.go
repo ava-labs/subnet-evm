@@ -38,11 +38,8 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 	// Prepare the predicate storage slots from the transaction's access list
 	predicateArguments := predicateutils.PreparePredicateStorageSlots(rules, tx.AccessList())
 
-	// If there are no predicates to verify, we must terminate early because the
-	// proposervm block context isn't guaranteed to be populated.
-	if len(predicateArguments) == 0 {
-		return predicateResults, nil
-	}
+	// If there are no predicates to verify, return early and skip requiring the proposervm block
+	// context to be populated.
 
 	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
 		return nil, ErrMissingPredicateContext
