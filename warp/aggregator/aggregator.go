@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ava-labs/subnet-evm/params"
 
@@ -94,21 +93,18 @@ func aggregateSignatures(
 	quorumNum uint64,
 	totalWeight uint64,
 ) (*AggregateSignatureResult, error) {
-	var (
-		// [signatureLock] must be held when accessing [blsSignatures],
-		// [signersBitset], or [signatureWeight] in the goroutine below.
-		signatureLock   = sync.Mutex{}
-		signatures      = make([]*bls.Signature, 0, len(validators))
-		signersBitset   = set.NewBits()
-		signatureWeight = uint64(0)
-	)
+	type signatureFetchResult struct {
+		sig    *bls.Signature
+		index  int
+		weight uint64
+	}
 
-	// Create a child context to cancel signature fetching if we reach [maxNeededQuorumNum] threshold
+	// Create a child context to cancel signature fetching if we reach signature threshold.
 	signatureFetchCtx, signatureFetchCancel := context.WithCancel(ctx)
 	defer signatureFetchCancel()
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(validators))
+	// Fetch signatures from validators concurrently.
+	signatureFetchResultChan := make(chan *signatureFetchResult, len(validators))
 	for i, validator := range validators {
 		var (
 			i         = i
@@ -117,8 +113,6 @@ func aggregateSignatures(
 			nodeID = validator.NodeIDs[0]
 		)
 		go func() {
-			defer wg.Done()
-
 			log.Debug("Fetching warp signature",
 				"nodeID", nodeID,
 				"index", i,
@@ -131,6 +125,7 @@ func aggregateSignatures(
 					"index", i,
 					"err", err,
 				)
+				signatureFetchResultChan <- nil
 				return
 			}
 
@@ -148,37 +143,55 @@ func aggregateSignatures(
 					"signature", sigHex,
 					"msgID", unsignedMessage.ID(),
 				)
+				signatureFetchResultChan <- nil
 				return
 			}
 
-			// Add the signature and check if we've reached the requested threshold
-			signatureLock.Lock()
-			defer signatureLock.Unlock()
-
-			signatures = append(signatures, signature)
-			signersBitset.Add(i)
-			signatureWeight += validator.Weight
-			log.Debug("Updated weight",
-				"totalWeight", signatureWeight,
-				"addedWeight", validator.Weight,
-			)
-
-			// If the signature weight meets the requested threshold, cancel signature fetching
-			if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err == nil {
-				log.Debug("Verify weight passed, exiting aggregation early",
-					"maxNeededQuorumNum", quorumNum,
-					"totalWeight", totalWeight,
-					"signatureWeight", signatureWeight,
-				)
-				signatureFetchCancel()
+			signatureFetchResultChan <- &signatureFetchResult{
+				sig:    signature,
+				index:  i,
+				weight: validator.Weight,
 			}
 		}()
 	}
-	wg.Wait()
+
+	var (
+		signatures                = make([]*bls.Signature, 0, len(validators))
+		signersBitset             = set.NewBits()
+		signaturesWeight          = uint64(0)
+		signaturesPassedThreshold = false
+	)
+
+	for i := 0; i < len(validators); i++ {
+		signatureFetchResult := <-signatureFetchResultChan
+		if signatureFetchResult == nil {
+			continue
+		}
+
+		signatures = append(signatures, signatureFetchResult.sig)
+		signersBitset.Add(signatureFetchResult.index)
+		signaturesWeight += signatureFetchResult.weight
+		log.Debug("Updated weight",
+			"totalWeight", signaturesWeight,
+			"addedWeight", signatureFetchResult.weight,
+		)
+
+		// If the signature weight meets the requested threshold, cancel signature fetching
+		if err := avalancheWarp.VerifyWeight(signaturesWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err == nil {
+			log.Debug("Verify weight passed, exiting aggregation early",
+				"quorumNum", quorumNum,
+				"totalWeight", totalWeight,
+				"signatureWeight", signaturesWeight,
+			)
+			signatureFetchCancel()
+			signaturesPassedThreshold = true
+			break
+		}
+	}
 
 	// If I failed to fetch sufficient signature stake, return an error
-	if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err != nil {
-		return nil, fmt.Errorf("%w: %w", errInsufficientWeight, err)
+	if !signaturesPassedThreshold {
+		return nil, errInsufficientWeight
 	}
 
 	// Otherwise, return the aggregate signature
@@ -199,7 +212,7 @@ func aggregateSignatures(
 
 	return &AggregateSignatureResult{
 		Message:         msg,
-		SignatureWeight: signatureWeight,
+		SignatureWeight: signaturesWeight,
 		TotalWeight:     totalWeight,
 	}, nil
 }
