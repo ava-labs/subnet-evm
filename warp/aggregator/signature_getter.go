@@ -51,37 +51,29 @@ func (s *NetworkSignatureGetter) GetSignature(ctx context.Context, nodeID ids.No
 	}
 
 	delay := initialRetryFetchSignatureDelay
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-	for {
+	for ctx.Err() == nil {
 		signatureRes, err := s.Client.SendAppRequest(nodeID, signatureReqBytes)
+		// If the client fails to retrieve a response perform an exponential backoff.
+		// Note: it is up to the caller to ensure that [ctx] is eventually cancelled
 		if err != nil {
-			// Wait until the retry delay has elapsed before retrying.
-			if !timer.Stop() {
-				<-timer.C
-			}
-			timer.Reset(delay)
-
 			select {
 			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-timer.C:
+				break
+			case <-time.After(delay):
 			}
-
-			// Exponential backoff.
 			delay *= retryBackoffFactor
 			continue
 		}
-
 		var response message.SignatureResponse
 		if _, err := message.Codec.Unmarshal(signatureRes, &response); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal signature res: %w", err)
 		}
-
 		blsSignature, err := bls.SignatureFromBytes(response.Signature[:])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse signature from res: %w", err)
 		}
 		return blsSignature, nil
 	}
+
+	return nil, fmt.Errorf("ctx expired fetching signature for message %s from %s: %w", unsignedWarpMessage.ID(), nodeID, ctx.Err())
 }
