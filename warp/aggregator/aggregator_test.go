@@ -139,7 +139,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   1,
-			expectedErr: errInsufficientWeight,
+			expectedErr: avalancheWarp.ErrInsufficientWeight,
 		},
 		{
 			name:        "1/3 validators reply with signature; insufficient weight",
@@ -159,7 +159,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   35, // Require >1/3 of weight
-			expectedErr: errInsufficientWeight,
+			expectedErr: avalancheWarp.ErrInsufficientWeight,
 		},
 		{
 			name:        "2/3 validators reply with signature; insufficient weight",
@@ -179,7 +179,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   69, // Require >2/3 of weight
-			expectedErr: errInsufficientWeight,
+			expectedErr: avalancheWarp.ErrInsufficientWeight,
 		},
 		{
 			name:        "2/3 validators reply with signature; sufficient weight",
@@ -262,7 +262,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   1,
-			expectedErr: errInsufficientWeight,
+			expectedErr: avalancheWarp.ErrInsufficientWeight,
 		},
 		{
 			name:        "3/3 validators reply with signature; 2 invalid signatures; insufficient weight",
@@ -282,7 +282,7 @@ func TestAggregateSignatures(t *testing.T) {
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   40,
-			expectedErr: errInsufficientWeight,
+			expectedErr: avalancheWarp.ErrInsufficientWeight,
 		},
 		{
 			name:        "2/3 validators reply with signature; 1 invalid signature; sufficient weight",
@@ -351,7 +351,7 @@ func TestAggregateSignatures(t *testing.T) {
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       60, // Require 2/3 validators
 			expectedSigners: []*avalancheWarp.Validator{vdr1, vdr2},
-			expectedErr:     errInsufficientWeight,
+			expectedErr:     avalancheWarp.ErrInsufficientWeight,
 		},
 		{
 			name:        "early termination of signature fetching on passing threshold",
