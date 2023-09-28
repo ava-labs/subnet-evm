@@ -52,7 +52,7 @@ type Aggregator struct {
 }
 
 // New returns a signature aggregator for the chain with the given [state] on the
-// given [subnet], and where [client] can be used to fetch signatures from validators.
+// given [subnetID], and where [client] can be used to fetch signatures from validators.
 func New(subnetID ids.ID, state validators.State, client SignatureGetter) *Aggregator {
 	return &Aggregator{
 		subnetID: subnetID,
@@ -61,6 +61,8 @@ func New(subnetID ids.ID, state validators.State, client SignatureGetter) *Aggre
 	}
 }
 
+// Returns an aggregate signature over [unsignedMessage].
+// The returned signature's weight exceeds the threshold given by [quorumNum].
 func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *avalancheWarp.UnsignedMessage, quorumNum uint64) (*AggregateSignatureResult, error) {
 	// Note: we use the current height as a best guess of the canonical validator set when the aggregated signature will be verified
 	// by the recipient chain. If the validator set changes from [pChainHeight] to the P-Chain height that is actually specified by the
