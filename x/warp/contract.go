@@ -8,11 +8,11 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	avalancheWarpPayload "github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 
 	_ "embed"
 
@@ -233,8 +233,8 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		sourceAddress = caller
 	)
 
-	addressedPayload, err := warpPayload.NewAddressedPayload(
-		sourceAddress,
+	addressedPayload, err := avalancheWarpPayload.NewAddressedPayload(
+		sourceAddress.Bytes(),
 		payload,
 	)
 	if err != nil {
