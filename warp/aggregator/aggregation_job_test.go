@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
@@ -35,8 +34,8 @@ func executeSignatureAggregationTest(t testing.TB, test signatureAggregationTest
 	t.Helper()
 
 	res, err := test.job.Execute(test.ctx)
+	require.ErrorIs(t, err, test.expectedErr)
 	if test.expectedErr != nil {
-		require.ErrorContains(t, err, test.expectedErr.Error())
 		return
 	}
 
@@ -356,25 +355,22 @@ func TestAggregateThresholdSignaturesParentCtxCancels(t *testing.T) {
 }
 
 func TestAggregateThresholdSignaturesParentCtxCancelsAfterDelay(t *testing.T) {
-	// Get one signature exactly and then parent context cancels
-	fetchSignatureTicker := time.NewTicker(1 * time.Second)
-	ctx, cancel := context.WithTimeout(context.Background(), 1001*time.Millisecond)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	aggregationJob := newSignatureAggregationJob(
 		&mockFetcher{
 			fetch: func(ctx context.Context, nodeID ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
-				select {
-				case <-ctx.Done():
-					return nil, ctx.Err()
-				case <-fetchSignatureTicker.C:
-					for i, matchingNodeID := range nodeIDs {
-						if matchingNodeID == nodeID {
-							return blsSignatures[i], nil
-						}
-					}
-					return nil, errors.New("what do we say to the god of death")
+				if err := ctx.Err(); err != nil {
+					return nil, err
 				}
+				for i, matchingNodeID := range nodeIDs {
+					if matchingNodeID == nodeID {
+						cancel() // cancel the parent context after first signature is fetched
+						return blsSignatures[i], nil
+					}
+				}
+				return nil, errors.New("what do we say to the god of death")
 			},
 		},
 		pChainHeight,
@@ -387,7 +383,7 @@ func TestAggregateThresholdSignaturesParentCtxCancelsAfterDelay(t *testing.T) {
 			GetCurrentHeightF: getCurrentHeightF,
 			GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 				res := make(map[ids.NodeID]*validators.GetValidatorOutput)
-				for i := 0; i < 5; i++ {
+				for i := 0; i < len(nodeIDs); i++ {
 					res[nodeIDs[i]] = &validators.GetValidatorOutput{
 						NodeID:    nodeIDs[i],
 						PublicKey: blsPublicKeys[i],
@@ -404,6 +400,6 @@ func TestAggregateThresholdSignaturesParentCtxCancelsAfterDelay(t *testing.T) {
 	executeSignatureAggregationTest(t, signatureAggregationTest{
 		ctx:         ctx,
 		job:         aggregationJob,
-		expectedErr: errors.New("signature weight is insufficient: 40*500 > 100*100"),
+		expectedErr: avalancheWarp.ErrInsufficientWeight,
 	})
 }
