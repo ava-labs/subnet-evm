@@ -7,11 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ava-labs/subnet-evm/params"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -21,10 +19,7 @@ import (
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
-var (
-	errNoValidators       = errors.New("cannot aggregate signatures from subnet with no validators")
-	errInsufficientWeight = errors.New("verification failed with insufficient weight")
-)
+var errNoValidators = errors.New("cannot aggregate signatures from subnet with no validators")
 
 type AggregateSignatureResult struct {
 	// Weight of validators included in the aggregate signature.
@@ -47,7 +42,7 @@ type Aggregator struct {
 }
 
 // New returns a signature aggregator for the chain with the given [state] on the
-// given [subnet], and where [client] can be used to fetch signatures from validators.
+// given [subnetID], and where [client] can be used to fetch signatures from validators.
 func New(subnetID ids.ID, state validators.State, client SignatureGetter) *Aggregator {
 	return &Aggregator{
 		subnetID: subnetID,
@@ -56,6 +51,8 @@ func New(subnetID ids.ID, state validators.State, client SignatureGetter) *Aggre
 	}
 }
 
+// Returns an aggregate signature over [unsignedMessage].
+// The returned signature's weight exceeds the threshold given by [quorumNum].
 func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *avalancheWarp.UnsignedMessage, quorumNum uint64) (*AggregateSignatureResult, error) {
 	// Note: we use the current height as a best guess of the canonical validator set when the aggregated signature will be verified
 	// by the recipient chain. If the validator set changes from [pChainHeight] to the P-Chain height that is actually specified by the
@@ -77,32 +74,18 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 		return nil, fmt.Errorf("%w (SubnetID: %s, Height: %d)", errNoValidators, a.subnetID, pChainHeight)
 	}
 
-	return aggregateSignatures(ctx, a.client, unsignedMessage, validators, quorumNum, totalWeight)
-}
+	type signatureFetchResult struct {
+		sig    *bls.Signature
+		index  int
+		weight uint64
+	}
 
-func aggregateSignatures(
-	ctx context.Context,
-	client SignatureGetter,
-	unsignedMessage *avalancheWarp.UnsignedMessage,
-	validators []*avalancheWarp.Validator,
-	quorumNum uint64,
-	totalWeight uint64,
-) (*AggregateSignatureResult, error) {
-	var (
-		// [signatureLock] must be held when accessing [blsSignatures],
-		// [signersBitset], or [signatureWeight] in the goroutine below.
-		signatureLock   = sync.Mutex{}
-		signatures      = make([]*bls.Signature, 0, len(validators))
-		signersBitset   = set.NewBits()
-		signatureWeight = uint64(0)
-	)
-
-	// Create a child context to cancel signature fetching if we reach [maxNeededQuorumNum] threshold
+	// Create a child context to cancel signature fetching if we reach signature threshold.
 	signatureFetchCtx, signatureFetchCancel := context.WithCancel(ctx)
 	defer signatureFetchCancel()
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(validators))
+	// Fetch signatures from validators concurrently.
+	signatureFetchResultChan := make(chan *signatureFetchResult)
 	for i, validator := range validators {
 		var (
 			i         = i
@@ -111,66 +94,87 @@ func aggregateSignatures(
 			nodeID = validator.NodeIDs[0]
 		)
 		go func() {
-			defer wg.Done()
-
 			log.Debug("Fetching warp signature",
 				"nodeID", nodeID,
 				"index", i,
+				"msgID", unsignedMessage.ID(),
 			)
 
-			signature, err := client.GetSignature(signatureFetchCtx, nodeID, unsignedMessage)
+			signature, err := a.client.GetSignature(signatureFetchCtx, nodeID, unsignedMessage)
 			if err != nil {
 				log.Debug("Failed to fetch warp signature",
 					"nodeID", nodeID,
 					"index", i,
 					"err", err,
+					"msgID", unsignedMessage.ID(),
 				)
+				signatureFetchResultChan <- nil
 				return
 			}
+
 			log.Debug("Retrieved warp signature",
 				"nodeID", nodeID,
+				"msgID", unsignedMessage.ID(),
 				"index", i,
-				"signature", hexutil.Bytes(bls.SignatureToBytes(signature)),
 			)
 
 			if !bls.Verify(validator.PublicKey, signature, unsignedMessage.Bytes()) {
 				log.Debug("Failed to verify warp signature",
 					"nodeID", nodeID,
 					"index", i,
-					"signature", hexutil.Bytes(bls.SignatureToBytes(signature)),
 					"msgID", unsignedMessage.ID(),
 				)
+				signatureFetchResultChan <- nil
 				return
 			}
 
-			// Add the signature and check if we've reached the requested threshold
-			signatureLock.Lock()
-			defer signatureLock.Unlock()
-
-			signatures = append(signatures, signature)
-			signersBitset.Add(i)
-			signatureWeight += validator.Weight
-			log.Debug("Updated weight",
-				"totalWeight", signatureWeight,
-				"addedWeight", validator.Weight,
-			)
-
-			// If the signature weight meets the requested threshold, cancel signature fetching
-			if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err == nil {
-				log.Debug("Verify weight passed, exiting aggregation early",
-					"maxNeededQuorumNum", quorumNum,
-					"totalWeight", totalWeight,
-					"signatureWeight", signatureWeight,
-				)
-				signatureFetchCancel()
+			signatureFetchResultChan <- &signatureFetchResult{
+				sig:    signature,
+				index:  i,
+				weight: validator.Weight,
 			}
 		}()
 	}
-	wg.Wait()
+
+	var (
+		signatures                = make([]*bls.Signature, 0, len(validators))
+		signersBitset             = set.NewBits()
+		signaturesWeight          = uint64(0)
+		signaturesPassedThreshold = false
+	)
+
+	for i := 0; i < len(validators); i++ {
+		signatureFetchResult := <-signatureFetchResultChan
+		if signatureFetchResult == nil {
+			continue
+		}
+
+		signatures = append(signatures, signatureFetchResult.sig)
+		signersBitset.Add(signatureFetchResult.index)
+		signaturesWeight += signatureFetchResult.weight
+		log.Debug("Updated weight",
+			"totalWeight", signaturesWeight,
+			"addedWeight", signatureFetchResult.weight,
+			"msgID", unsignedMessage.ID(),
+		)
+
+		// If the signature weight meets the requested threshold, cancel signature fetching
+		if err := avalancheWarp.VerifyWeight(signaturesWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err == nil {
+			log.Debug("Verify weight passed, exiting aggregation early",
+				"quorumNum", quorumNum,
+				"totalWeight", totalWeight,
+				"signatureWeight", signaturesWeight,
+				"msgID", unsignedMessage.ID(),
+			)
+			signatureFetchCancel()
+			signaturesPassedThreshold = true
+			break
+		}
+	}
 
 	// If I failed to fetch sufficient signature stake, return an error
-	if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err != nil {
-		return nil, fmt.Errorf("%w: %w", errInsufficientWeight, err)
+	if !signaturesPassedThreshold {
+		return nil, avalancheWarp.ErrInsufficientWeight
 	}
 
 	// Otherwise, return the aggregate signature
@@ -191,7 +195,7 @@ func aggregateSignatures(
 
 	return &AggregateSignatureResult{
 		Message:         msg,
-		SignatureWeight: signatureWeight,
+		SignatureWeight: signaturesWeight,
 		TotalWeight:     totalWeight,
 	}, nil
 }
