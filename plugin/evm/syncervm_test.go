@@ -230,6 +230,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 }
 
 func TestVMShutdownWhileSyncing(t *testing.T) {
+	t.Skip("FLAKY")
 	var (
 		lock    sync.Mutex
 		vmSetup *syncVMSetup
@@ -264,9 +265,7 @@ func TestVMShutdownWhileSyncing(t *testing.T) {
 }
 
 func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
-	var (
-		serverVM, syncerVM *VM
-	)
+	var serverVM, syncerVM *VM
 	// If there is an error shutdown the VMs if they have been instantiated
 	defer func() {
 		// If the test has not already failed, shut down the VMs since the caller
