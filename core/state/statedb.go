@@ -747,8 +747,8 @@ func copyPredicateStorageSlots(predicateStorageSlots map[common.Address][][]byte
 	res := make(map[common.Address][][]byte, len(predicateStorageSlots))
 	for address, predicates := range predicateStorageSlots {
 		copiedPredicates := make([][]byte, len(predicates))
-		for i, predicate := range predicates {
-			copiedPredicates[i] = common.CopyBytes(predicate)
+		for i, predicateBytes := range predicates {
+			copiedPredicates[i] = common.CopyBytes(predicateBytes)
 		}
 		res[address] = copiedPredicates
 	}
