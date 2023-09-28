@@ -165,7 +165,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 		)
 
 		// If the signature weight meets the requested threshold, cancel signature fetching
-		if err := avalancheWarp.VerifyWeight(signaturesWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err != nil {
+		if err := avalancheWarp.VerifyWeight(signaturesWeight, totalWeight, quorumNum, params.WarpQuorumDenominator); err == nil {
 			log.Debug("Verify weight passed, exiting aggregation early",
 				"quorumNum", quorumNum,
 				"totalWeight", totalWeight,
