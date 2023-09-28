@@ -133,17 +133,19 @@ func aggregateSignatures(
 				)
 				return
 			}
+
+			sigHex := hexutil.Bytes(bls.SignatureToBytes(signature))
 			log.Debug("Retrieved warp signature",
 				"nodeID", nodeID,
 				"index", i,
-				"signature", hexutil.Bytes(bls.SignatureToBytes(signature)),
+				"signature", sigHex,
 			)
 
 			if !bls.Verify(validator.PublicKey, signature, unsignedMessage.Bytes()) {
 				log.Debug("Failed to verify warp signature",
 					"nodeID", nodeID,
 					"index", i,
-					"signature", hexutil.Bytes(bls.SignatureToBytes(signature)),
+					"signature", sigHex,
 					"msgID", unsignedMessage.ID(),
 				)
 				return
