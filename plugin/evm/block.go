@@ -200,7 +200,7 @@ func (b *Block) Verify(context.Context) error {
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	predicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Predicates
+	predicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Predicaters
 	// Short circuit early if there are no predicates to verify
 	if len(predicates) == 0 {
 		return false, nil

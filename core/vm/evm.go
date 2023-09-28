@@ -114,7 +114,7 @@ type BlockContext struct {
 	GetHash GetHashFunc
 	// PredicateResults are the results of predicate verification available throughout the EVM's execution.
 	// PredicateResults may be nil if it is not encoded in the block's header.
-	PredicateResults *predicate.PredicateResults
+	PredicateResults *predicate.Results
 
 	// Block information
 	Coinbase    common.Address // Provides information for COINBASE

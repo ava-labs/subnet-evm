@@ -27,7 +27,7 @@ func init() {
 	c := linearcodec.NewDefault()
 	errs := wrappers.Errs{}
 	errs.Add(
-		c.RegisterType(PredicateResults{}),
+		c.RegisterType(Results{}),
 		Codec.RegisterCodec(Version, c),
 	)
 	if errs.Errored() {
@@ -35,31 +35,31 @@ func init() {
 	}
 }
 
-// TxPredicateResults is a map of results for each precompile address to the resulting byte array.
-type TxPredicateResults map[common.Address][]byte
+// TxResults is a map of results for each precompile address to the resulting byte array.
+type TxResults map[common.Address][]byte
 
-// PredicateResults encodes the precompile predicate results included in a block on a per transaction basis.
-// PredicateResults is not thread-safe.
-type PredicateResults struct {
-	Results map[common.Hash]TxPredicateResults `serialize:"true"`
+// Results encodes the precompile predicate results included in a block on a per transaction basis.
+// Results is not thread-safe.
+type Results struct {
+	Results map[common.Hash]TxResults `serialize:"true"`
 }
 
 // NewPredicateResults returns an empty predicate results.
-func NewPredicateResults() *PredicateResults {
-	return &PredicateResults{
-		Results: make(map[common.Hash]TxPredicateResults),
+func NewPredicateResults() *Results {
+	return &Results{
+		Results: make(map[common.Hash]TxResults),
 	}
 }
 
-func NewPredicateResultsFromMap(results map[common.Hash]TxPredicateResults) *PredicateResults {
-	return &PredicateResults{
+func NewPredicateResultsFromMap(results map[common.Hash]TxResults) *Results {
+	return &Results{
 		Results: results,
 	}
 }
 
 // ParsePredicateResults parses [b] into predicate results.
-func ParsePredicateResults(b []byte) (*PredicateResults, error) {
-	res := new(PredicateResults)
+func ParsePredicateResults(b []byte) (*Results, error) {
+	res := new(Results)
 	parsedVersion, err := Codec.Unmarshal(b, res)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal predicate results: %w", err)
@@ -71,7 +71,7 @@ func ParsePredicateResults(b []byte) (*PredicateResults, error) {
 }
 
 // GetPredicateResults returns the byte array results for [txHash] from precompile [address] if available.
-func (p *PredicateResults) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
+func (p *Results) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
 	txResults, ok := p.Results[txHash]
 	if !ok {
 		return nil
@@ -80,7 +80,7 @@ func (p *PredicateResults) GetPredicateResults(txHash common.Hash, address commo
 }
 
 // SetTxPredicateResults sets the predicate results for the given [txHash]. Overrides results if present.
-func (p *PredicateResults) SetTxPredicateResults(txHash common.Hash, txResults TxPredicateResults) {
+func (p *Results) SetTxPredicateResults(txHash common.Hash, txResults TxResults) {
 	// If there are no tx results, don't store an entry in the map
 	if len(txResults) == 0 {
 		delete(p.Results, txHash)
@@ -90,16 +90,16 @@ func (p *PredicateResults) SetTxPredicateResults(txHash common.Hash, txResults T
 }
 
 // DeleteTxPredicateResults deletes the predicate results for the given [txHash].
-func (p *PredicateResults) DeleteTxPredicateResults(txHash common.Hash) {
+func (p *Results) DeleteTxPredicateResults(txHash common.Hash) {
 	delete(p.Results, txHash)
 }
 
 // Bytes marshals the current state of predicate results
-func (p *PredicateResults) Bytes() ([]byte, error) {
+func (p *Results) Bytes() ([]byte, error) {
 	return Codec.Marshal(Version, p)
 }
 
-func (p *PredicateResults) String() string {
+func (p *Results) String() string {
 	sb := strings.Builder{}
 
 	sb.WriteString(fmt.Sprintf("PredicateResults: (Size = %d)", len(p.Results)))

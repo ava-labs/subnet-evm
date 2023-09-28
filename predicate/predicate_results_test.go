@@ -12,22 +12,22 @@ import (
 
 func TestPredicateResultsParsing(t *testing.T) {
 	type test struct {
-		results     map[common.Hash]TxPredicateResults
+		results     map[common.Hash]TxResults
 		expectedHex string
 	}
 	for name, test := range map[string]test{
 		"empty": {
-			results:     make(map[common.Hash]TxPredicateResults),
+			results:     make(map[common.Hash]TxResults),
 			expectedHex: "000000000000",
 		},
 		"single tx no results": {
-			results: map[common.Hash]TxPredicateResults{
+			results: map[common.Hash]TxResults{
 				{1}: map[common.Address][]byte{},
 			},
 			expectedHex: "000000000001010000000000000000000000000000000000000000000000000000000000000000000000",
 		},
 		"single tx single result": {
-			results: map[common.Hash]TxPredicateResults{
+			results: map[common.Hash]TxResults{
 				{1}: map[common.Address][]byte{
 					{2}: {1, 2, 3},
 				},
@@ -35,7 +35,7 @@ func TestPredicateResultsParsing(t *testing.T) {
 			expectedHex: "000000000001010000000000000000000000000000000000000000000000000000000000000000000001020000000000000000000000000000000000000000000003010203",
 		},
 		"single tx multiple results": {
-			results: map[common.Hash]TxPredicateResults{
+			results: map[common.Hash]TxResults{
 				{1}: map[common.Address][]byte{
 					{2}: {1, 2, 3},
 					{3}: {1, 2, 3},
@@ -44,14 +44,14 @@ func TestPredicateResultsParsing(t *testing.T) {
 			expectedHex: "000000000001010000000000000000000000000000000000000000000000000000000000000000000002020000000000000000000000000000000000000000000003010203030000000000000000000000000000000000000000000003010203",
 		},
 		"multiple txs no result": {
-			results: map[common.Hash]TxPredicateResults{
+			results: map[common.Hash]TxResults{
 				{1}: map[common.Address][]byte{},
 				{2}: map[common.Address][]byte{},
 			},
 			expectedHex: "000000000002010000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000",
 		},
 		"multiple txs single result": {
-			results: map[common.Hash]TxPredicateResults{
+			results: map[common.Hash]TxResults{
 				{1}: map[common.Address][]byte{
 					{2}: {1, 2, 3},
 				},
@@ -62,7 +62,7 @@ func TestPredicateResultsParsing(t *testing.T) {
 			expectedHex: "000000000002010000000000000000000000000000000000000000000000000000000000000000000001020000000000000000000000000000000000000000000003010203020000000000000000000000000000000000000000000000000000000000000000000001030000000000000000000000000000000000000000000003030201",
 		},
 		"multiple txs multiple results": {
-			results: map[common.Hash]TxPredicateResults{
+			results: map[common.Hash]TxResults{
 				{1}: map[common.Address][]byte{
 					{2}: {1, 2, 3},
 					{3}: {3, 2, 1},
@@ -75,7 +75,7 @@ func TestPredicateResultsParsing(t *testing.T) {
 			expectedHex: "000000000002010000000000000000000000000000000000000000000000000000000000000000000002020000000000000000000000000000000000000000000003010203030000000000000000000000000000000000000000000003030201020000000000000000000000000000000000000000000000000000000000000000000002020000000000000000000000000000000000000000000003010203030000000000000000000000000000000000000000000003030201",
 		},
 		"multiple txs mixed results": {
-			results: map[common.Hash]TxPredicateResults{
+			results: map[common.Hash]TxResults{
 				{1}: map[common.Address][]byte{
 					{2}: {1, 2, 3},
 				},

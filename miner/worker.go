@@ -76,7 +76,7 @@ type environment struct {
 	// The results are accumulated as transactions are executed by the miner and set on the BlockContext.
 	// If a transaction is dropped, its results must explicitly be removed from predicateResults in the same
 	// way that the gas pool and state is reset.
-	predicateResults *predicate.PredicateResults
+	predicateResults *predicate.Results
 
 	start time.Time // Time that block building began
 }

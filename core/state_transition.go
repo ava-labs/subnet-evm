@@ -144,7 +144,7 @@ func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, err
 
 	for _, accessTuple := range accessList {
 		address := accessTuple.Address
-		predicate, ok := rules.Predicates[address]
+		predicaterContract, ok := rules.Predicaters[address]
 		if !ok {
 			// Previous access list gas calculation does not use safemath because an overflow would not be possible with
 			// the size of access lists that could be included in a block and standard access list gas costs.
@@ -157,7 +157,7 @@ func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, err
 			}
 			gas = totalGas
 		} else {
-			predicateGas, err := predicate.PredicateGas(utils.HashSliceToBytes(accessTuple.StorageKeys))
+			predicateGas, err := predicaterContract.PredicateGas(utils.HashSliceToBytes(accessTuple.StorageKeys))
 			if err != nil {
 				return 0, err
 			}
