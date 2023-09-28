@@ -1,5 +1,5 @@
-const { ethers, BigNumber } = require("ethers");
-const { expect, assert } = require("chai");
+const { ethers, BigNumber } = require("ethers")
+const { expect, assert } = require("chai")
 const utils = require("../utils")
 
 const {
@@ -7,160 +7,152 @@ const {
     addMargin,
     alice,
     bob,
-    cancelOrderFromLimitOrder,
+    cancelOrderFromLimitOrderV2,
     disableValidatorMatching,
     enableValidatorMatching,
-    encodeLimitOrder,
-    encodeLimitOrderWithType,
+    encodeLimitOrderV2,
+    encodeLimitOrderV2WithType,
     getAMMContract,
-    getOrder,
+    getOrderV2,
     getRandomSalt,
+    getRequiredMarginForLongOrder,
+    getRequiredMarginForShortOrder,
     juror,
     multiplySize,
     multiplyPrice,
     orderBook,
-    placeOrderFromLimitOrder,
+    placeOrderFromLimitOrderV2,
     removeAllAvailableMargin,
     waitForOrdersToMatch,
 } = utils
 
 // Testing juror precompile contract 
 describe("Test validateOrdersAndDetermineFillPrice", function () {
-    beforeEach(async function () {
-        market = BigNumber.from(0)
-        longOrderBaseAssetQuantity = multiplySize(0.1) // 0.1 ether
-        shortOrderBaseAssetQuantity = multiplySize(-0.1) // 0.1 ether
-        longOrderPrice = multiplyPrice(1800)
-        shortOrderPrice = multiplyPrice(1800)
-        initialMargin = multiplyPrice(150000)
-    });
+    let market = BigNumber.from(0)
+    let longOrderBaseAssetQuantity = multiplySize(0.1) // 0.1 ether
+    let shortOrderBaseAssetQuantity = multiplySize(-0.1) // 0.1 ether
+    let longOrderPrice = multiplyPrice(2000)
+    let shortOrderPrice = multiplyPrice(2000)
 
     context("when fillAmount is <= 0", async function () {
         it("returns error when fillAmount=0", async function () {
-            try {
-                await juror.validateOrdersAndDetermineFillPrice([1,1], 0)
-            } catch (error) {
-                error_message = JSON.parse(error.error.body).error.message
-                expect(error_message).to.equal("invalid fillAmount")
-            }
+            output = await juror.validateOrdersAndDetermineFillPrice([1,1], 0)
+            expect(output.err).to.equal("invalid fillAmount")
+            expect(output.element).to.equal(2)
+            expect(output.res.fillPrice.toNumber()).to.equal(0)
         })
         it("returns error when fillAmount<0", async function () {
             let fillAmount = BigNumber.from("-1")
-            try {
-                await juror.validateOrdersAndDetermineFillPrice([1,1], fillAmount)
-            } catch (error) {
-                error_message = JSON.parse(error.error.body).error.message
-                expect(error_message).to.equal("invalid fillAmount")
-            }
+            output = await juror.validateOrdersAndDetermineFillPrice([1,1], fillAmount)
+            expect(output.err).to.equal("invalid fillAmount")
+            expect(output.element).to.equal(2)
+            expect(output.res.fillPrice.toNumber()).to.equal(0)
         })
     })
     context("when fillAmount is > 0", async function () {
         context("when either longOrder or shortOrder is invalid", async function () {
             context("when longOrder is invalid", async function () {
                 context("when longOrder's status is not placed", async function () {
-                    it("returns error if longOrder was never placed", async function () {
-                        longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                        fillAmount = longOrderBaseAssetQuantity
-                        try {
-                            await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(longOrder)], fillAmount)
-                        } catch (error) {
-                            error_message = JSON.parse(error.error.body).error.message
-                            expect(error_message).to.equal("invalid order")
-                            return
-                        }
-                        expect.fail('Expected throw not received');
-                    });
-                    it("returns error if longOrder's status is cancelled", async function () {
-                        await addMargin(alice, initialMargin)
-                        longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                        await placeOrderFromLimitOrder(longOrder, alice)
-                        await cancelOrderFromLimitOrder(longOrder, alice)
-                        fillAmount = longOrderBaseAssetQuantity
-
-                        try {
-                            await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(longOrder)], fillAmount)
-                        } catch (error) {
-                            // cleanup
+                    context("when longOrder was never placed", async function () {
+                        it("returns error", async function () {
+                            let fillAmount = longOrderBaseAssetQuantity
+                            let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                            let output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(longOrder)], fillAmount)
+                            expect(output.err).to.equal("invalid order")
+                            expect(output.element).to.equal(0)
+                            expect(output.res.fillPrice.toNumber()).to.equal(0)
+                        })
+                    })
+                    context("if longOrder's status is cancelled", async function () {
+                        let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                        this.beforeAll(async function () {
+                            requiredMargin = await getRequiredMarginForLongOrder(longOrder)
+                            await addMargin(alice, requiredMargin)
+                            await placeOrderFromLimitOrderV2(longOrder, alice)
+                            await cancelOrderFromLimitOrderV2(longOrder, alice)
+                        })
+                        this.afterAll(async function () {
                             await removeAllAvailableMargin(alice)
+                        })
+                        it("returns error", async function () {
+                            let fillAmount = longOrderBaseAssetQuantity
+                            let output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(longOrder)], fillAmount)
+                            expect(output.err).to.equal("invalid order")
+                            expect(output.element).to.equal(0)
+                            expect(output.res.fillPrice.toNumber()).to.equal(0)
+                        })
+                    })
+                    context("if longOrder's status is filled", async function () {
+                        let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                        let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
 
-                            error_message = JSON.parse(error.error.body).error.message
-                            expect(error_message).to.equal("invalid order")
-                            return
-                        }
-                        expect.fail('Expected throw not received');
-                    });
-                    it("returns error if longOrder's status is filled", async function () {
-                        await addMargin(alice, initialMargin)
-                        await addMargin(bob, initialMargin)
-                        longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                        await placeOrderFromLimitOrder(longOrder, alice)
-                        shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                        await placeOrderFromLimitOrder(shortOrder, bob)
-                        fillAmount = longOrderBaseAssetQuantity
-
-                        await waitForOrdersToMatch()
-
-                        try {
-                            await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(longOrder)], fillAmount)
-                        } catch (error) {
-                            //cleanup
-                            aliceOppositeOrder = getOrder(market, alice.address, shortOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), true)
-                            bobOppositeOrder = getOrder(market, bob.address, longOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), true)
-                            await placeOrderFromLimitOrder(aliceOppositeOrder, alice)
-                            await placeOrderFromLimitOrder(bobOppositeOrder, bob)
+                        this.beforeAll(async function () {
+                            requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                            await addMargin(alice, requiredMarginForLongOrder)
+                            await placeOrderFromLimitOrderV2(longOrder, alice)
+                            requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                            await addMargin(bob, requiredMarginForShortOrder)
+                            await placeOrderFromLimitOrderV2(shortOrder, bob)
+                            await waitForOrdersToMatch()
+                        })
+                        this.afterAll(async function () {
+                            aliceOppositeOrder = getOrderV2(market, alice.address, shortOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), true)
+                            bobOppositeOrder = getOrderV2(market, bob.address, longOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), true)
+                            await placeOrderFromLimitOrderV2(aliceOppositeOrder, alice)
+                            await placeOrderFromLimitOrderV2(bobOppositeOrder, bob)
                             await waitForOrdersToMatch()
                             await removeAllAvailableMargin(alice)
                             await removeAllAvailableMargin(bob)
-
-                            error_message = JSON.parse(error.error.body).error.message
-                            expect(error_message).to.equal("invalid order")
-                            return
-                        }
-                        expect.fail('Expected throw not received');
-                    });
-                });
+                        })
+                        it("returns error", async function () {
+                            let fillAmount = longOrderBaseAssetQuantity
+                            let output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                            expect(output.err).to.equal("invalid order")
+                            expect(output.element).to.equal(0)
+                            expect(output.res.fillPrice.toNumber()).to.equal(0)
+                        })
+                    })
+                })
                 context("when longOrder's status is placed", async function () {
                     context("when longOrder's baseAssetQuantity is negative", async function () {
+                        let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                        this.beforeAll(async function () {
+                            requiredMargin = await getRequiredMarginForShortOrder(shortOrder)
+                            await addMargin(bob, requiredMargin)
+                            await placeOrderFromLimitOrderV2(shortOrder, bob)
+                        })
+                        this.afterAll(async function () {
+                            await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                            await removeAllAvailableMargin(bob)
+                        })
+
                         it("returns error", async function () {
-                            await addMargin(bob, initialMargin)
-                            shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(shortOrder, bob)
                             fillAmount = longOrderBaseAssetQuantity
-
-                            try {
-                                await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(shortOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                            } catch (error) {
-                                //cleanup
-                                await cancelOrderFromLimitOrder(shortOrder, bob)
-                                await removeAllAvailableMargin(bob)
-
-                                error_message = JSON.parse(error.error.body).error.message
-                                expect(error_message).to.equal("not long")
-                                return
-                            }
-                            expect.fail('Expected throw not received');
+                            let output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(shortOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                            expect(output.err).to.equal("not long")
+                            expect(output.element).to.equal(0)
+                            expect(output.res.fillPrice.toNumber()).to.equal(0)
                         })
                     })
                     context("when longOrder's baseAssetQuantity is positive", async function () {
                         context("when longOrder's unfilled < fillAmount", async function () {
+                            let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                            this.beforeAll(async function () {
+                                requiredMargin = await getRequiredMarginForLongOrder(longOrder)
+                                await addMargin(alice, requiredMargin)
+                                await placeOrderFromLimitOrderV2(longOrder, alice)
+                            })
+                            this.afterAll(async function () {
+                                await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                await removeAllAvailableMargin(alice)
+                            })
+
                             it("returns error", async function () {
-                                await addMargin(alice, initialMargin)
-                                longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                await placeOrderFromLimitOrder(longOrder, alice)
                                 fillAmount = longOrderBaseAssetQuantity.mul(2)
-
-                                try {
-                                    await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(longOrder)], fillAmount)
-                                } catch (error) {
-                                    //cleanup
-                                    await cancelOrderFromLimitOrder(longOrder, alice)
-                                    await removeAllAvailableMargin(alice)
-
-                                    error_message = JSON.parse(error.error.body).error.message
-                                    expect(error_message).to.equal("overfill")
-                                    return
-                                }
-                                expect.fail('Expected throw not received');
+                                let output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(longOrder)], fillAmount)
+                                expect(output.err).to.equal("overfill")
+                                expect(output.element).to.equal(0)
+                                expect(output.res.fillPrice.toNumber()).to.equal(0)
                             })
                         })
                         context("when longOrder's unfilled > fillAmount", async function () {
@@ -175,139 +167,143 @@ describe("Test validateOrdersAndDetermineFillPrice", function () {
             context("when longOrder is valid", async function () {
                 context("when shortOrder is invalid", async function () {
                     context("when shortOrder's status is not placed", async function () {
-                        it("returns error if shortOrder was never placed", async function () {
-                            await addMargin(alice, initialMargin)
-                            longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(longOrder, alice)
-                            shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                            fillAmount = longOrderBaseAssetQuantity
-                            try {
-                                await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                            } catch (error) {
-                                // cleanup
-                                await cancelOrderFromLimitOrder(longOrder, alice)
-                                await removeAllAvailableMargin(alice)
+                        let fillAmount = longOrderBaseAssetQuantity
+                        context("if shortOrder was never placed", async function () {
+                            let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                            let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
 
-                                error_message = JSON.parse(error.error.body).error.message
-                                expect(error_message).to.equal("invalid order")
-                                return
-                            }
-                            expect.fail('Expected throw not received');
-                        });
-                        it("returns error if shortOrder's status is cancelled", async function () {
-                            await addMargin(bob, initialMargin)
-                            shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(shortOrder, bob)
-                            await cancelOrderFromLimitOrder(shortOrder, bob)
-                            await addMargin(alice, initialMargin)
-                            longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(longOrder, alice)
-                            fillAmount = longOrderBaseAssetQuantity
-                            try {
-                                await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                            } catch (error) {
-                                // cleanup
-                                await cancelOrderFromLimitOrder(longOrder, alice)
+                            this.beforeAll(async function () {
+                                requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                await addMargin(alice, requiredMarginForLongOrder)
+                                await placeOrderFromLimitOrderV2(longOrder, alice)
+                            })
+                            this.afterAll(async function () {
+                                await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                await removeAllAvailableMargin(alice)
+                            })
+                            it("returns error", async function () {
+                                output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                expect(output.err).to.equal("invalid order")
+                                expect(output.element).to.equal(1)
+                                expect(output.res.fillPrice.toNumber()).to.equal(0)
+                            })
+                        })
+                        context("if shortOrder's status is cancelled", async function () {
+                            let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                            let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                            this.beforeAll(async function () {
+                                //placing short order first to avoid matching. We can use disableValidatorMatching() also
+                                requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                await addMargin(bob, requiredMarginForShortOrder)
+                                await placeOrderFromLimitOrderV2(shortOrder, bob)
+                                await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                                requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                await addMargin(alice, requiredMarginForLongOrder)
+                                await placeOrderFromLimitOrderV2(longOrder, alice)
+                            })
+                            this.afterAll(async function () {
+                                await cancelOrderFromLimitOrderV2(longOrder, alice)
                                 await removeAllAvailableMargin(alice)
                                 await removeAllAvailableMargin(bob)
-
-                                error_message = JSON.parse(error.error.body).error.message
-                                expect(error_message).to.equal("invalid order")
-                                return
-                            }
-                            expect.fail('Expected throw not received');
-                        });
-                        it("returns error if shortOrder's status is filled", async function () {
-                            await addMargin(bob, initialMargin)
-                            shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(shortOrder, bob)
-                            await addMargin(alice, initialMargin)
-                            longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(longOrder, alice)
-                            fillAmount = longOrderBaseAssetQuantity
-                            await waitForOrdersToMatch()
-
-                            longOrder2 = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(longOrder2, alice)
-
-                            try {
-                                await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder2), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                            } catch (error) {
-                                // cleanup
-                                await cancelOrderFromLimitOrder(longOrder2, alice)
-                                shortOrder = getOrder(market, alice.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                                longOrder = getOrder(market, bob.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                await placeOrderFromLimitOrder(shortOrder, alice)
-                                await placeOrderFromLimitOrder(longOrder, bob)
+                            })
+                            it("returns error", async function () {
+                                output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                expect(output.err).to.equal("invalid order")
+                                expect(output.element).to.equal(1)
+                                expect(output.res.fillPrice.toNumber()).to.equal(0)
+                            })
+                        })
+                        context("if shortOrder's status is filled", async function () {
+                            let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                            let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                            let longOrder2 = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                            this.beforeAll(async function () {
+                                requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                await addMargin(alice, requiredMarginForLongOrder)
+                                await placeOrderFromLimitOrderV2(longOrder, alice)
+                                requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                await addMargin(bob, requiredMarginForShortOrder)
+                                await placeOrderFromLimitOrderV2(shortOrder, bob)
+                                await waitForOrdersToMatch()
+                                requiredMarginForLongOrder2 = await getRequiredMarginForLongOrder(longOrder2)
+                                await addMargin(alice, requiredMarginForLongOrder2)
+                                await placeOrderFromLimitOrderV2(longOrder2, alice)
+                            })
+                            this.afterAll(async function () {
+                                await cancelOrderFromLimitOrderV2(longOrder2, alice)
+                                aliceOppositeOrder = getOrderV2(market, alice.address, shortOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), true)
+                                requiredMarginForAliceOppositeOrder = await getRequiredMarginForShortOrder(aliceOppositeOrder)
+                                bobOppositeOrder = getOrderV2(market, bob.address, longOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), true)
+                                requiredMarginForBobOppositeOrder = await getRequiredMarginForLongOrder(bobOppositeOrder)
+                                await addMargin(alice, requiredMarginForAliceOppositeOrder)
+                                await addMargin(bob, requiredMarginForBobOppositeOrder)
+                                await placeOrderFromLimitOrderV2(aliceOppositeOrder, alice)
+                                await placeOrderFromLimitOrderV2(bobOppositeOrder, bob)
                                 await waitForOrdersToMatch()
                                 await removeAllAvailableMargin(alice)
                                 await removeAllAvailableMargin(bob)
-
-                                error_message = JSON.parse(error.error.body).error.message
-                                expect(error_message).to.equal("invalid order")
-                                return
-                            }
-                            expect.fail('Expected throw not received');
-                        });
-                    });
+                            })
+                            it("returns error", async function () {
+                                output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder2), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                expect(output.err).to.equal("invalid order")
+                                expect(output.element).to.equal(1)
+                                expect(output.res.fillPrice.toNumber()).to.equal(0)
+                            })
+                        })
+                    })
                     context("when shortOrder's status is placed", async function () {
                         context("when shortOrder's baseAssetQuantity is positive", async function () {
+                            let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                            this.beforeAll(async function () {
+                                requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                await addMargin(alice, requiredMarginForLongOrder)
+                                await placeOrderFromLimitOrderV2(longOrder, alice)
+                            })
+                            this.afterAll(async function () {
+                                await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                await removeAllAvailableMargin(alice)
+                            })
                             it("returns error", async function () {
-                                await addMargin(alice, initialMargin)
-                                longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                await placeOrderFromLimitOrder(longOrder, alice)
-
                                 fillAmount = longOrderBaseAssetQuantity
-
-                                try {
-                                    await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(longOrder)], fillAmount)
-                                } catch (error) {
-                                    // cleanup
-                                    await cancelOrderFromLimitOrder(longOrder, alice)
-                                    await removeAllAvailableMargin(alice)
-
-                                    error_message = JSON.parse(error.error.body).error.message
-                                    expect(error_message).to.equal("not short")
-                                    return
-                                }
-                                expect.fail('Expected throw not received');
+                                output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(longOrder)], fillAmount)
+                                expect(output.err).to.equal("not short")
+                                expect(output.element).to.equal(1)
+                                expect(output.res.fillPrice.toNumber()).to.equal(0)
                             })
                         })
                         context("when shortOrder's baseAssetQuantity is negative", async function () {
                             context("when shortOrder's unfilled < fillAmount", async function () {
+                                let newLongOrderPrice = multiplyPrice(1999)
+                                let newShortOrderPrice = multiplyPrice(2001)
+                                let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity.mul(3), newLongOrderPrice, getRandomSalt())
+                                let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, newShortOrderPrice, getRandomSalt())
+
+                                this.beforeAll(async function () {
+                                    requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                    await addMargin(alice, requiredMarginForLongOrder)
+                                    await placeOrderFromLimitOrderV2(longOrder, alice)
+                                    requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                    await addMargin(bob, requiredMarginForShortOrder)
+                                    await placeOrderFromLimitOrderV2(shortOrder, bob)
+                                })
+                                this.afterAll(async function () {
+                                    await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                    await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                                    await removeAllAvailableMargin(alice)
+                                    await removeAllAvailableMargin(bob)
+                                })
+
                                 it("returns error", async function () {
-                                    await disableValidatorMatching()
-                                    await addMargin(alice, initialMargin)
-                                    longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity.mul(3), longOrderPrice, getRandomSalt(), false)
-                                    await placeOrderFromLimitOrder(longOrder, alice)
-                                    await addMargin(bob, initialMargin)
-                                    shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                                    await placeOrderFromLimitOrder(shortOrder, bob)
-
                                     fillAmount = shortOrderBaseAssetQuantity.abs().mul(2)
-
-    
-                                    try {
-                                        await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                                    } catch (error) {
-                                        //cleanup
-                                        await cancelOrderFromLimitOrder(longOrder, alice)
-                                        await cancelOrderFromLimitOrder(shortOrder, bob)
-                                        await enableValidatorMatching()
-                                        await removeAllAvailableMargin(alice)
-                                        await removeAllAvailableMargin(bob)
-    
-                                        error_message = JSON.parse(error.error.body).error.message
-                                        expect(error_message).to.equal("overfill")
-                                        return
-                                    }
-                                    expect.fail('Expected throw not received');
+                                    output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                    expect(output.err).to.equal("overfill")
+                                    expect(output.element).to.equal(1)
+                                    expect(output.res.fillPrice.toNumber()).to.equal(0)
                                 })
                             })
                             context("when shortOrder's unfilled > fillAmount", async function () {
                                 context.skip("when order is reduceOnly", async function () {
                                     it("returns error if fillAmount > currentPosition of shortOrder's trader", async function () {
-                                        console.log("stuff")
                                     })
                                 })
                             })
@@ -317,8 +313,15 @@ describe("Test validateOrdersAndDetermineFillPrice", function () {
             })
         })
         context("when both orders are valid", async function () {
+            let amm, minSizeRequirement, lowerBoundPrice, upperBoundPrice
             this.beforeEach(async function () {
                 await disableValidatorMatching()
+                amm = await getAMMContract(market)
+                minSizeRequirement = await amm.minSizeRequirement()
+                let maxOracleSpreadRatio = await amm.maxOracleSpreadRatio()
+                let oraclePrice = await amm.getUnderlyingPrice()
+                upperBoundPrice = oraclePrice.mul(_1e6.add(maxOracleSpreadRatio)).div(_1e6)
+                lowerBoundPrice = oraclePrice.mul(_1e6.sub(maxOracleSpreadRatio)).div(_1e6)
             })
 
             this.afterEach(async function () {
@@ -332,363 +335,352 @@ describe("Test validateOrdersAndDetermineFillPrice", function () {
             })
             context("when amm is same for long and short orders", async function () {
                 context("when longOrder's price is less than shortOrder's price", async function () {
+                    let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                    let newShortOrderPrice = longOrderPrice.add(1)
+                    let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, newShortOrderPrice, getRandomSalt())
+                    this.beforeEach(async function () {
+                        requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                        await addMargin(alice, requiredMarginForLongOrder)
+                        await placeOrderFromLimitOrderV2(longOrder, alice)
+                        requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                        await addMargin(bob, requiredMarginForShortOrder)
+                        await placeOrderFromLimitOrderV2(shortOrder, bob)
+                    })
+                    this.afterEach(async function () {
+                        await cancelOrderFromLimitOrderV2(longOrder, alice)
+                        await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                        await removeAllAvailableMargin(alice)
+                        await removeAllAvailableMargin(bob)
+                    })
+
                     it("returns error ", async function () {
-                        await addMargin(alice, initialMargin)
-                        longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                        await placeOrderFromLimitOrder(longOrder, alice)
-                        await addMargin(bob, initialMargin)
-                        shortOrderPrice = longOrderPrice.add(1)
-                        shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                        await placeOrderFromLimitOrder(shortOrder, bob)
-
                         fillAmount = longOrderBaseAssetQuantity
-
-                        try {
-                            await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                        } catch (error) {
-                            // cleanup
-                            await cancelOrderFromLimitOrder(longOrder, alice)
-                            await cancelOrderFromLimitOrder(shortOrder, bob)
-                            await removeAllAvailableMargin(alice)
-                            await removeAllAvailableMargin(bob)
-
-                            error_message = JSON.parse(error.error.body).error.message
-                            expect(error_message).to.equal("OB_orders_do_not_match")
-                            return
-                        }
-                        expect.fail('Expected throw not received');
+                        output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                        expect(output.err).to.equal("OB_orders_do_not_match")
+                        expect(output.element).to.equal(2)
+                        expect(output.res.fillPrice.toNumber()).to.equal(0)
                     })
                 })
                 context("when longOrder's price is greater than shortOrder's price", async function () {
                     context("when fillAmount is not a multiple of minSizeRequirement", async function () {
-                        it("returns error if fillAmount < minSizeRequirement", async function () {
-                            amm = await getAMMContract(market)
-                            minSizeRequirement = await amm.minSizeRequirement()
-                            fillAmount = minSizeRequirement.div(2)
-
-                            await addMargin(alice, initialMargin)
-                            longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(longOrder, alice)
-                            await addMargin(bob, initialMargin)
-                            shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(shortOrder, bob)
-
-                            try {
-                                await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                            } catch (error) {
-                                // cleanup
-                                await cancelOrderFromLimitOrder(longOrder, alice)
-                                await cancelOrderFromLimitOrder(shortOrder, bob)
+                        context("when fillAmount < minSizeRequirement", async function () {
+                            let longOrder, shortOrder
+                            this.beforeEach(async function () {
+                                longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                                let requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                                let requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                await addMargin(alice, requiredMarginForLongOrder)
+                                await addMargin(bob, requiredMarginForShortOrder)
+                                await placeOrderFromLimitOrderV2(longOrder, alice)
+                                await placeOrderFromLimitOrderV2(shortOrder, bob)
+                            })
+                            this.afterEach(async function () {
+                                await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                await cancelOrderFromLimitOrderV2(shortOrder, bob)
                                 await removeAllAvailableMargin(alice)
                                 await removeAllAvailableMargin(bob)
+                            })
 
-                                error_message = JSON.parse(error.error.body).error.message
-                                expect(error_message).to.equal("not multiple")
-                                return
-                            }
-                            expect.fail('Expected throw not received');
+                            it("returns error", async function () {
+                                let fillAmount = minSizeRequirement.div(2)
+                                output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                expect(output.err).to.equal("not multiple")
+                                expect(output.element).to.equal(2)
+                                expect(output.res.fillPrice.toNumber()).to.equal(0)
+                            })
                         })              
-                        it("returns error if fillAmount > minSizeRequirement", async function () {
-                            amm = await getAMMContract(market)
-                            minSizeRequirement = await amm.minSizeRequirement()
-                            fillAmount = minSizeRequirement.mul(3).div(2)
-
-                            await addMargin(alice, initialMargin)
-                            longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(longOrder, alice)
-                            await addMargin(bob, initialMargin)
-                            shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                            await placeOrderFromLimitOrder(shortOrder, bob)
-
-                            try {
-                                await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                            } catch (error) {
-                                // cleanup
-                                await cancelOrderFromLimitOrder(longOrder, alice)
-                                await cancelOrderFromLimitOrder(shortOrder, bob)
+                        context("when fillAmount > minSizeRequirement", async function () {
+                            let longOrder, shortOrder
+                            this.beforeEach(async function () {
+                                longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                                let requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                                let requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                await addMargin(alice, requiredMarginForLongOrder)
+                                await addMargin(bob, requiredMarginForShortOrder)
+                                await placeOrderFromLimitOrderV2(longOrder, alice)
+                                await placeOrderFromLimitOrderV2(shortOrder, bob)
+                            })
+                            this.afterEach(async function () {
+                                await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                await cancelOrderFromLimitOrderV2(shortOrder, bob)
                                 await removeAllAvailableMargin(alice)
                                 await removeAllAvailableMargin(bob)
+                            })
 
-                                error_message = JSON.parse(error.error.body).error.message
-                                expect(error_message).to.equal("not multiple")
-                                return
-                            }
-                            expect.fail('Expected throw not received');
-                        })              
+                            it("returns error", async function () {
+                                let fillAmount = minSizeRequirement.mul(3).div(2)
+                                output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                expect(output.err).to.equal("not multiple")
+                                expect(output.element).to.equal(2)
+                                expect(output.res.fillPrice.toNumber()).to.equal(0)
+                            })
+                        })
                     })
                     context("when fillAmount is a multiple of minSizeRequirement", async function () {
                         context("when longOrder price is less than lowerBoundPrice", async function () {
+                            let longOrder, shortOrder
+                            this.beforeEach(async function () {
+                                let longOrderPrice = lowerBoundPrice.sub(1)
+                                longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                                let requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                await addMargin(alice, requiredMarginForLongOrder)
+                                let shortOrderPrice = longOrderPrice
+                                shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                                let requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                await addMargin(bob, requiredMarginForShortOrder)
+                                await placeOrderFromLimitOrderV2(longOrder, alice)
+                                await placeOrderFromLimitOrderV2(shortOrder, bob)
+                            })
+                            this.afterEach(async function () {
+                                await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                                await removeAllAvailableMargin(alice)
+                                await removeAllAvailableMargin(bob)
+                            })
+
                             it("returns error", async function () {
-                                amm = await getAMMContract(market)
-                                minSizeRequirement = await amm.minSizeRequirement()
                                 fillAmount = minSizeRequirement.mul(3)
-                                maxOracleSpreadRatio = await amm.maxOracleSpreadRatio()
-                                oraclePrice = await amm.getUnderlyingPrice()
-                                lowerBoundPrice = oraclePrice.mul(_1e6.sub(maxOracleSpreadRatio)).div(_1e6)
-
-                                await addMargin(alice, initialMargin)
-                                longOrderPrice = lowerBoundPrice.sub(1)
-                                longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                await placeOrderFromLimitOrder(longOrder, alice)
-                                await addMargin(bob, initialMargin)
-                                shortOrderPrice = longOrderPrice
-                                shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                                await placeOrderFromLimitOrder(shortOrder, bob)
-
-                                try {
-                                    await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                                } catch (error) {
-                                    // cleanup
-                                    await cancelOrderFromLimitOrder(longOrder, alice)
-                                    await cancelOrderFromLimitOrder(shortOrder, bob)
-                                    await removeAllAvailableMargin(alice)
-                                    await removeAllAvailableMargin(bob)
-
-                                    error_message = JSON.parse(error.error.body).error.message
-                                    expect(error_message).to.equal("OB_long_order_price_too_low")
-                                    return
-                                }
-                                expect.fail('Expected throw not received');
-                            });
+                                output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                expect(output.err).to.equal("long price below lower bound")
+                                expect(output.element).to.equal(0)
+                                expect(output.res.fillPrice.toNumber()).to.equal(0)
+                            })
                         })
                         context("when longOrder price is >= lowerBoundPrice", async function () {
                             context("when shortOrder price is greater than upperBoundPrice", async function () {
-                                it("returns error", async function () {
-                                    amm = await getAMMContract(market)
-                                    minSizeRequirement = await amm.minSizeRequirement()
-                                    fillAmount = minSizeRequirement.mul(3)
-                                    maxOracleSpreadRatio = await amm.maxOracleSpreadRatio()
-                                    oraclePrice = await amm.getUnderlyingPrice()
-                                    lowerBoundPrice = oraclePrice.mul(_1e6.sub(maxOracleSpreadRatio)).div(_1e6)
-                                    upperBoundPrice = oraclePrice.mul(_1e6.add(maxOracleSpreadRatio)).div(_1e6)
-
-                                    await addMargin(alice, initialMargin)
+                                let longOrder, shortOrder
+                                this.beforeEach(async function () {
                                     longOrderPrice = upperBoundPrice.add(1)
-                                    longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                    await placeOrderFromLimitOrder(longOrder, alice)
-                                    await addMargin(bob, initialMargin)
+                                    longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                                    let requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                    await addMargin(alice, requiredMarginForLongOrder)
                                     shortOrderPrice = upperBoundPrice.add(1)
-                                    shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                                    await placeOrderFromLimitOrder(shortOrder, bob)
+                                    shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                                    let requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                    await addMargin(bob, requiredMarginForShortOrder)
+                                    await placeOrderFromLimitOrderV2(longOrder, alice)
+                                    await placeOrderFromLimitOrderV2(shortOrder, bob)
+                                })
+                                this.afterEach(async function () {
+                                    await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                    await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                                    await removeAllAvailableMargin(alice)
+                                    await removeAllAvailableMargin(bob)
+                                })
 
-                                    try {
-                                        await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                                    } catch (error) {
-                                        // cleanup
-                                        await cancelOrderFromLimitOrder(longOrder, alice)
-                                        await cancelOrderFromLimitOrder(shortOrder, bob)
-                                        await removeAllAvailableMargin(alice)
-                                        await removeAllAvailableMargin(bob)
-
-                                        error_message = JSON.parse(error.error.body).error.message
-                                        expect(error_message).to.equal("OB_short_order_price_too_high")
-                                        return
-                                    }
-                                    expect.fail('Expected throw not received');
-                                });
+                                it("returns error", async function () {
+                                    fillAmount = minSizeRequirement.mul(3)
+                                    output = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                    expect(output.err).to.equal("short price above upper bound")
+                                    expect(output.element).to.equal(1)
+                                    expect(output.res.fillPrice.toNumber()).to.equal(0)
+                                })
                             })
                             context("when shortOrder price is <= upperBoundPrice", async function () {
                                 context("When longOrder was placed in earlier block than shortOrder", async function () {
-                                    it("returns longOrder's price as fillPrice if longOrder price is greater than lowerBoundPrice but less than upperBoundPrice", async function () {
-                                        amm = await getAMMContract(market)
-                                        minSizeRequirement = await amm.minSizeRequirement()
-                                        fillAmount = minSizeRequirement.mul(3)
-                                        maxOracleSpreadRatio = await amm.maxOracleSpreadRatio()
-                                        oraclePrice = await amm.getUnderlyingPrice()
-                                        lowerBoundPrice = oraclePrice.mul(_1e6.sub(maxOracleSpreadRatio)).div(_1e6)
-                                        upperBoundPrice = oraclePrice.mul(_1e6.add(maxOracleSpreadRatio)).div(_1e6)
-                                        longOrderPrice = upperBoundPrice.sub(1)
+                                    context("if longOrder price is greater than lowerBoundPrice but less than upperBoundPrice", async function () {
+                                        let longOrder, shortOrder
+                                        this.beforeEach(async function () {
+                                            let longOrderPrice = lowerBoundPrice.add(1)
+                                            longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                                            let requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                            await addMargin(alice, requiredMarginForLongOrder)
+                                            let shortOrderPrice = longOrderPrice
+                                            shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                                            let requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                            await addMargin(bob, requiredMarginForShortOrder)
+                                            await placeOrderFromLimitOrderV2(longOrder, alice)
+                                            await placeOrderFromLimitOrderV2(shortOrder, bob)
+                                        })
+                                        this.afterEach(async function () {
+                                            await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                            await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                                            await removeAllAvailableMargin(alice)
+                                            await removeAllAvailableMargin(bob)
+                                        })
+                                        it("returns longOrder's price as fillPrice", async function () {
+                                            let fillAmount = minSizeRequirement.mul(3)
+                                            response = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                            expect(response.err).to.equal("")
+                                            expect(response.element).to.equal(3)
+                                            expect(response.res.fillPrice.toString()).to.equal(longOrder.price.toString())
+                                            expect(response.res.instructions.length).to.equal(2)
+                                            //longOrder
+                                            expect(response.res.instructions[0].ammIndex.toNumber()).to.equal(0)
+                                            expect(response.res.instructions[0].trader).to.equal(alice.address)
+                                            expect(response.res.instructions[0].mode).to.equal(1)
+                                            longOrderHash = await limitOrderBook.getOrderHash(longOrder)
+                                            expect(response.res.instructions[0].orderHash).to.equal(longOrderHash)
 
-                                        await addMargin(alice, initialMargin)
-                                        longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                        await placeOrderFromLimitOrder(longOrder, alice)
-                                        await addMargin(bob, initialMargin)
-                                        shortOrderPrice = longOrderPrice
-                                        shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                                        await placeOrderFromLimitOrder(shortOrder, bob)
+                                            //shortOrder
+                                            expect(response.res.instructions[1].ammIndex.toNumber()).to.equal(0)
+                                            expect(response.res.instructions[1].trader).to.equal(bob.address)
+                                            expect(response.res.instructions[1].mode).to.equal(0)
+                                            shortOrderHash = await limitOrderBook.getOrderHash(shortOrder)
+                                            expect(response.res.instructions[1].orderHash).to.equal(shortOrderHash)
 
-                                        response = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                                        // cleanup
-                                        await cancelOrderFromLimitOrder(longOrder, alice)
-                                        await cancelOrderFromLimitOrder(shortOrder, bob)
-                                        await removeAllAvailableMargin(alice)
-                                        await removeAllAvailableMargin(bob)
+                                            expect(response.res.orderTypes.length).to.equal(2)
+                                            expect(response.res.orderTypes[0]).to.equal(0)
+                                            expect(response.res.orderTypes[1]).to.equal(0)
 
-                                        expect(response.fillPrice.toString()).to.equal(longOrderPrice.toString())
-                                        expect(response.instructions.length).to.equal(2)
-                                        //longOrder
-                                        expect(response.instructions[0].ammIndex.toNumber()).to.equal(0)
-                                        expect(response.instructions[0].trader).to.equal(alice.address)
-                                        expect(response.instructions[0].mode).to.equal(1)
-                                        longOrderHash = await orderBook.getOrderHash(longOrder)
-                                        expect(response.instructions[0].orderHash).to.equal(longOrderHash)
-
-                                        //shortOrder
-                                        expect(response.instructions[1].ammIndex.toNumber()).to.equal(0)
-                                        expect(response.instructions[1].trader).to.equal(bob.address)
-                                        expect(response.instructions[1].mode).to.equal(0)
-                                        shortOrderHash = await orderBook.getOrderHash(shortOrder)
-                                        expect(response.instructions[1].orderHash).to.equal(shortOrderHash)
-
-                                        expect(response.orderTypes.length).to.equal(2)
-                                        expect(response.orderTypes[0]).to.equal(0)
-                                        expect(response.orderTypes[1]).to.equal(0)
-
-                                        expect(response.encodedOrders[0]).to.equal(encodeLimitOrder(longOrder))
-                                        expect(response.encodedOrders[1]).to.equal(encodeLimitOrder(shortOrder))
-                                    });
-                                    it("returns upperBound as fillPrice if longOrder price is greater than upperBoundPrice", async function () {
-                                        amm = await getAMMContract(market)
-                                        minSizeRequirement = await amm.minSizeRequirement()
-                                        fillAmount = minSizeRequirement.mul(3)
-                                        maxOracleSpreadRatio = await amm.maxOracleSpreadRatio()
-                                        oraclePrice = await amm.getUnderlyingPrice()
-                                        lowerBoundPrice = oraclePrice.mul(_1e6.sub(maxOracleSpreadRatio)).div(_1e6)
-                                        upperBoundPrice = oraclePrice.mul(_1e6.add(maxOracleSpreadRatio)).div(_1e6)
-
-                                        await addMargin(alice, initialMargin)
-                                        longOrderPrice = upperBoundPrice.add(1)
-                                        longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                        await placeOrderFromLimitOrder(longOrder, alice)
-                                        await addMargin(bob, initialMargin)
-                                        shortOrderPrice = upperBoundPrice.sub(1)
-                                        shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                                        await placeOrderFromLimitOrder(shortOrder, bob)
-
-                                        response = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                                        // cleanup
-                                        await cancelOrderFromLimitOrder(longOrder, alice)
-                                        await cancelOrderFromLimitOrder(shortOrder, bob)
-                                        await removeAllAvailableMargin(alice)
-                                        await removeAllAvailableMargin(bob)
-
-                                        expect(response.fillPrice.toString()).to.equal(upperBoundPrice.toString())
-                                        expect(response.instructions.length).to.equal(2)
-                                        //longOrder
-                                        expect(response.instructions[0].ammIndex.toNumber()).to.equal(0)
-                                        expect(response.instructions[0].trader).to.equal(alice.address)
-                                        expect(response.instructions[0].mode).to.equal(1)
-                                        longOrderHash = await orderBook.getOrderHash(longOrder)
-                                        expect(response.instructions[0].orderHash).to.equal(longOrderHash)
-
-                                        //shortOrder
-                                        expect(response.instructions[1].ammIndex.toNumber()).to.equal(0)
-                                        expect(response.instructions[1].trader).to.equal(bob.address)
-                                        expect(response.instructions[1].mode).to.equal(0)
-                                        shortOrderHash = await orderBook.getOrderHash(shortOrder)
-                                        expect(response.instructions[1].orderHash).to.equal(shortOrderHash)
-
-                                        expect(response.orderTypes.length).to.equal(2)
-                                        expect(response.orderTypes[0]).to.equal(0)
-                                        expect(response.orderTypes[1]).to.equal(0)
-
-                                        expect(response.encodedOrders[0]).to.equal(encodeLimitOrder(longOrder))
-                                        expect(response.encodedOrders[1]).to.equal(encodeLimitOrder(shortOrder))
+                                            expect(response.res.encodedOrders[0]).to.equal(encodeLimitOrderV2(longOrder))
+                                            expect(response.res.encodedOrders[1]).to.equal(encodeLimitOrderV2(shortOrder))
+                                        })
                                     })
-                                });
+                                    context("if longOrder price is greater than upperBoundPrice", async function () {
+                                        let longOrder, shortOrder
+                                        this.beforeEach(async function () {
+                                            let longOrderPrice = upperBoundPrice.add(1)
+                                            longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                                            let requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                            await addMargin(alice, requiredMarginForLongOrder)
+                                            let shortOrderPrice = upperBoundPrice.sub(1)
+                                            shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                                            let requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                            await addMargin(bob, requiredMarginForShortOrder)
+                                            await placeOrderFromLimitOrderV2(longOrder, alice)
+                                            await placeOrderFromLimitOrderV2(shortOrder, bob)
+                                        })
+                                        this.afterEach(async function () {
+                                            await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                            await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                                            await removeAllAvailableMargin(alice)
+                                            await removeAllAvailableMargin(bob)
+                                        })
+                                        it("returns upperBound as fillPrice", async function () {
+                                            let fillAmount = minSizeRequirement.mul(3)
+                                            response = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                            expect(response.err).to.equal("")
+                                            expect(response.element).to.equal(3)
+                                            expect(response.res.fillPrice.toString()).to.equal(upperBoundPrice.toString())
+                                            expect(response.res.instructions.length).to.equal(2)
+                                            //longOrder
+                                            expect(response.res.instructions[0].ammIndex.toNumber()).to.equal(0)
+                                            expect(response.res.instructions[0].trader).to.equal(alice.address)
+                                            expect(response.res.instructions[0].mode).to.equal(1)
+                                            longOrderHash = await limitOrderBook.getOrderHash(longOrder)
+                                            expect(response.res.instructions[0].orderHash).to.equal(longOrderHash)
+
+                                            //shortOrder
+                                            expect(response.res.instructions[1].ammIndex.toNumber()).to.equal(0)
+                                            expect(response.res.instructions[1].trader).to.equal(bob.address)
+                                            expect(response.res.instructions[1].mode).to.equal(0)
+                                            shortOrderHash = await limitOrderBook.getOrderHash(shortOrder)
+                                            expect(response.res.instructions[1].orderHash).to.equal(shortOrderHash)
+
+                                            expect(response.res.orderTypes.length).to.equal(2)
+                                            expect(response.res.orderTypes[0]).to.equal(0)
+                                            expect(response.res.orderTypes[1]).to.equal(0)
+
+                                            expect(response.res.encodedOrders[0]).to.equal(encodeLimitOrderV2(longOrder))
+                                            expect(response.res.encodedOrders[1]).to.equal(encodeLimitOrderV2(shortOrder))
+                                        })
+                                    })
+                                })
                                 context("When shortOrder was placed in same or earlier block than longOrder", async function () {
-                                    it("returns shortOrder's price as fillPrice if shortOrder price is less than upperBoundPrice greater than lowerBoundPrice", async function () {
-                                        amm = await getAMMContract(market)
-                                        minSizeRequirement = await amm.minSizeRequirement()
-                                        fillAmount = minSizeRequirement.mul(3)
-                                        maxOracleSpreadRatio = await amm.maxOracleSpreadRatio()
-                                        oraclePrice = await amm.getUnderlyingPrice()
-                                        lowerBoundPrice = oraclePrice.mul(_1e6.sub(maxOracleSpreadRatio)).div(_1e6)
-                                        upperBoundPrice = oraclePrice.mul(_1e6.add(maxOracleSpreadRatio)).div(_1e6)
+                                    context("if shortOrder price is less than upperBoundPrice greater than lowerBoundPrice", async function () {
+                                        let longOrder, shortOrder
+                                        this.beforeEach(async function () {
+                                            let shortOrderPrice = upperBoundPrice.sub(1)
+                                            shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                                            let requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                            await addMargin(bob, requiredMarginForShortOrder)
+                                            let longOrderPrice = shortOrderPrice.add(2)
+                                            longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                                            let requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                            await addMargin(alice, requiredMarginForLongOrder)
+                                            await placeOrderFromLimitOrderV2(shortOrder, bob)
+                                            await placeOrderFromLimitOrderV2(longOrder, alice)
+                                        })
+                                        this.afterEach(async function () {
+                                            await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                            await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                                            await removeAllAvailableMargin(alice)
+                                            await removeAllAvailableMargin(bob)
+                                        })
 
-                                        await addMargin(bob, initialMargin)
-                                        shortOrderPrice = upperBoundPrice.sub(1)
-                                        shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                                        await placeOrderFromLimitOrder(shortOrder, bob)
-                                        await addMargin(alice, initialMargin)
-                                        longOrderPrice = shortOrderPrice
-                                        longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                        await placeOrderFromLimitOrder(longOrder, alice)
-                                        
-                                        response = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                                        // cleanup
-                                        await cancelOrderFromLimitOrder(longOrder, alice)
-                                        await cancelOrderFromLimitOrder(shortOrder, bob)
-                                        await removeAllAvailableMargin(alice)
-                                        await removeAllAvailableMargin(bob)
+                                        it("returns shortOrder's price as fillPrice", async function () {
+                                            fillAmount = minSizeRequirement.mul(3)
+                                            response = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                            expect(response.res.fillPrice.toString()).to.equal(shortOrder.price.toString())
+                                            expect(response.res.instructions.length).to.equal(2)
+                                            //longOrder
+                                            expect(response.res.instructions[0].ammIndex.toNumber()).to.equal(0)
+                                            expect(response.res.instructions[0].trader).to.equal(alice.address)
+                                            expect(response.res.instructions[0].mode).to.equal(0)
+                                            longOrderHash = await limitOrderBook.getOrderHash(longOrder)
+                                            expect(response.res.instructions[0].orderHash).to.equal(longOrderHash)
 
-                                        expect(response.fillPrice.toString()).to.equal(shortOrderPrice.toString())
-                                        expect(response.instructions.length).to.equal(2)
-                                        //longOrder
-                                        expect(response.instructions[0].ammIndex.toNumber()).to.equal(0)
-                                        expect(response.instructions[0].trader).to.equal(alice.address)
-                                        expect(response.instructions[0].mode).to.equal(0)
-                                        longOrderHash = await orderBook.getOrderHash(longOrder)
-                                        expect(response.instructions[0].orderHash).to.equal(longOrderHash)
+                                            //shortOrder
+                                            expect(response.res.instructions[1].ammIndex.toNumber()).to.equal(0)
+                                            expect(response.res.instructions[1].trader).to.equal(bob.address)
+                                            expect(response.res.instructions[1].mode).to.equal(1)
+                                            shortOrderHash = await limitOrderBook.getOrderHash(shortOrder)
+                                            expect(response.res.instructions[1].orderHash).to.equal(shortOrderHash)
 
-                                        //shortOrder
-                                        expect(response.instructions[1].ammIndex.toNumber()).to.equal(0)
-                                        expect(response.instructions[1].trader).to.equal(bob.address)
-                                        expect(response.instructions[1].mode).to.equal(1)
-                                        shortOrderHash = await orderBook.getOrderHash(shortOrder)
-                                        expect(response.instructions[1].orderHash).to.equal(shortOrderHash)
+                                            expect(response.res.orderTypes.length).to.equal(2)
+                                            expect(response.res.orderTypes[0]).to.equal(0)
+                                            expect(response.res.orderTypes[1]).to.equal(0)
 
-                                        expect(response.orderTypes.length).to.equal(2)
-                                        expect(response.orderTypes[0]).to.equal(0)
-                                        expect(response.orderTypes[1]).to.equal(0)
+                                            expect(response.res.encodedOrders[0]).to.equal(encodeLimitOrderV2(longOrder))
+                                            expect(response.res.encodedOrders[1]).to.equal(encodeLimitOrderV2(shortOrder))
+                                        })
+                                    })
+                                    context("returns lowerBoundPrice price as fillPrice if shortOrder's price is less than lowerBoundPrice", async function () {
+                                        let longOrder, shortOrder
+                                        this.beforeEach(async function () {
+                                            let shortOrderPrice = lowerBoundPrice.sub(1)
+                                            shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt())
+                                            let requiredMarginForShortOrder = await getRequiredMarginForShortOrder(shortOrder)
+                                            await addMargin(bob, requiredMarginForShortOrder)
+                                            let longOrderPrice = shortOrderPrice.add(2)
+                                            longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt())
+                                            let requiredMarginForLongOrder = await getRequiredMarginForLongOrder(longOrder)
+                                            await addMargin(alice, requiredMarginForLongOrder)
+                                            await placeOrderFromLimitOrderV2(shortOrder, bob)
+                                            await placeOrderFromLimitOrderV2(longOrder, alice)
+                                        })
+                                        this.afterEach(async function () {
+                                            await cancelOrderFromLimitOrderV2(longOrder, alice)
+                                            await cancelOrderFromLimitOrderV2(shortOrder, bob)
+                                            await removeAllAvailableMargin(alice)
+                                            await removeAllAvailableMargin(bob)
+                                        })
+                                        it("returns lowerBoundPrice price as fillPrice", async function () {
+                                            fillAmount = minSizeRequirement.mul(3)
+                                            response = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderV2WithType(longOrder), encodeLimitOrderV2WithType(shortOrder)], fillAmount)
+                                            expect(response.res.fillPrice.toString()).to.equal(lowerBoundPrice.toString())
+                                            expect(response.res.instructions.length).to.equal(2)
+                                            //longOrder
+                                            expect(response.res.instructions[0].ammIndex.toNumber()).to.equal(0)
+                                            expect(response.res.instructions[0].trader).to.equal(alice.address)
+                                            expect(response.res.instructions[0].mode).to.equal(0)
+                                            longOrderHash = await limitOrderBook.getOrderHash(longOrder)
+                                            expect(response.res.instructions[0].orderHash).to.equal(longOrderHash)
 
-                                        expect(response.encodedOrders[0]).to.equal(encodeLimitOrder(longOrder))
-                                        expect(response.encodedOrders[1]).to.equal(encodeLimitOrder(shortOrder))
-                                    });
-                                    it("returns lowerBoundPrice price as fillPrice if shortOrder's price is less than lowerBoundPrice", async function () {
-                                        amm = await getAMMContract(market)
-                                        minSizeRequirement = await amm.minSizeRequirement()
-                                        fillAmount = minSizeRequirement.mul(3)
-                                        maxOracleSpreadRatio = await amm.maxOracleSpreadRatio()
-                                        oraclePrice = await amm.getUnderlyingPrice()
-                                        lowerBoundPrice = oraclePrice.mul(_1e6.sub(maxOracleSpreadRatio)).div(_1e6)
-                                        upperBoundPrice = oraclePrice.mul(_1e6.add(maxOracleSpreadRatio)).div(_1e6)
+                                            //shortOrder
+                                            expect(response.res.instructions[1].ammIndex.toNumber()).to.equal(0)
+                                            expect(response.res.instructions[1].trader).to.equal(bob.address)
+                                            expect(response.res.instructions[1].mode).to.equal(1)
+                                            shortOrderHash = await limitOrderBook.getOrderHash(shortOrder)
+                                            expect(response.res.instructions[1].orderHash).to.equal(shortOrderHash)
 
-                                        await addMargin(bob, initialMargin)
-                                        shortOrderPrice = lowerBoundPrice.sub(1)
-                                        shortOrder = getOrder(market, bob.address, shortOrderBaseAssetQuantity, shortOrderPrice, getRandomSalt(), false)
-                                        await placeOrderFromLimitOrder(shortOrder, bob)
-                                        await addMargin(alice, initialMargin)
-                                        longOrderPrice = upperBoundPrice
-                                        longOrder = getOrder(market, alice.address, longOrderBaseAssetQuantity, longOrderPrice, getRandomSalt(), false)
-                                        await placeOrderFromLimitOrder(longOrder, alice)
-                                        
-                                        response = await juror.validateOrdersAndDetermineFillPrice([encodeLimitOrderWithType(longOrder), encodeLimitOrderWithType(shortOrder)], fillAmount)
-                                        // cleanup
-                                        await cancelOrderFromLimitOrder(longOrder, alice)
-                                        await cancelOrderFromLimitOrder(shortOrder, bob)
-                                        await removeAllAvailableMargin(alice)
-                                        await removeAllAvailableMargin(bob)
+                                            expect(response.res.orderTypes.length).to.equal(2)
+                                            expect(response.res.orderTypes[0]).to.equal(0)
+                                            expect(response.res.orderTypes[1]).to.equal(0)
 
-                                        expect(response.fillPrice.toString()).to.equal(lowerBoundPrice.toString())
-                                        expect(response.instructions.length).to.equal(2)
-                                        //longOrder
-                                        expect(response.instructions[0].ammIndex.toNumber()).to.equal(0)
-                                        expect(response.instructions[0].trader).to.equal(alice.address)
-                                        expect(response.instructions[0].mode).to.equal(0)
-                                        longOrderHash = await orderBook.getOrderHash(longOrder)
-                                        expect(response.instructions[0].orderHash).to.equal(longOrderHash)
-
-                                        //shortOrder
-                                        expect(response.instructions[1].ammIndex.toNumber()).to.equal(0)
-                                        expect(response.instructions[1].trader).to.equal(bob.address)
-                                        expect(response.instructions[1].mode).to.equal(1)
-                                        shortOrderHash = await orderBook.getOrderHash(shortOrder)
-                                        expect(response.instructions[1].orderHash).to.equal(shortOrderHash)
-
-                                        expect(response.orderTypes.length).to.equal(2)
-                                        expect(response.orderTypes[0]).to.equal(0)
-                                        expect(response.orderTypes[1]).to.equal(0)
-
-                                        expect(response.encodedOrders[0]).to.equal(encodeLimitOrder(longOrder))
-                                        expect(response.encodedOrders[1]).to.equal(encodeLimitOrder(shortOrder))
-                                    });
-                                });
+                                            expect(response.res.encodedOrders[0]).to.equal(encodeLimitOrderV2(longOrder))
+                                            expect(response.res.encodedOrders[1]).to.equal(encodeLimitOrderV2(shortOrder))
+                                        })
+                                    })
+                                })
                             })
-                        });
+                        })
                     })
                 })
             })
         })
     })
-});
+})

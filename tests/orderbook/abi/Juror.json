@@ -1,982 +1,986 @@
 [
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_clearingHouse",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_defaultOrderBook",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_governance",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [],
-    "name": "clearingHouse",
-    "outputs": [
-      {
-        "internalType": "contract IClearingHouse",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "amm",
-        "type": "address"
-      },
-      {
-        "internalType": "int256",
-        "name": "quoteQuantity",
-        "type": "int256"
-      }
-    ],
-    "name": "getBaseQuote",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "rate",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "orderType",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "expireAt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "reduceOnly",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct IImmediateOrCancelOrders.Order",
-        "name": "order",
-        "type": "tuple"
-      }
-    ],
-    "name": "getIOCOrderHash",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_amm",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "isBid",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "tick",
-        "type": "uint256"
-      }
-    ],
-    "name": "getPrevTick",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "prevTick",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "amm",
-        "type": "address"
-      },
-      {
-        "internalType": "int256",
-        "name": "baseAssetQuantity",
-        "type": "int256"
-      }
-    ],
-    "name": "getQuote",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "rate",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "governance",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "iocOrderBook",
-    "outputs": [
-      {
-        "internalType": "contract IImmediateOrCancelOrders",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "trader",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "isTradingAuthority",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "orderBook",
-    "outputs": [
-      {
-        "internalType": "contract OrderBook",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "orderBookRollup",
-    "outputs": [
-      {
-        "internalType": "contract IOrderBookRollup",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_amm",
-        "type": "address"
-      }
-    ],
-    "name": "sampleImpactAsk",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "impactAsk",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_amm",
-        "type": "address"
-      }
-    ],
-    "name": "sampleImpactBid",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "impactBid",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "__governance",
-        "type": "address"
-      }
-    ],
-    "name": "setGovernace",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_iocOrderBook",
-        "type": "address"
-      }
-    ],
-    "name": "setIOCOrderBook",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_orderBookRollup",
-        "type": "address"
-      }
-    ],
-    "name": "setOrderBookRollup",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "reduceOnly",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "postOnly",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct ILimitOrderBook.OrderV2",
-        "name": "order",
-        "type": "tuple"
-      },
-      {
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "assertLowMargin",
-        "type": "bool"
-      }
-    ],
-    "name": "validateCancelLimitOrder",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "err",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "orderHash",
-        "type": "bytes32"
-      },
-      {
-        "components": [
-          {
-            "internalType": "int256",
-            "name": "unfilledAmount",
-            "type": "int256"
-          },
-          {
-            "internalType": "address",
-            "name": "amm",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct IOrderHandler.CancelOrderRes",
-        "name": "res",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "orderType",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "expireAt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "reduceOnly",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct IImmediateOrCancelOrders.Order",
-        "name": "order",
-        "type": "tuple"
-      },
-      {
-        "internalType": "enum Juror.Side",
-        "name": "side",
-        "type": "uint8"
-      },
-      {
-        "internalType": "int256",
-        "name": "fillAmount",
-        "type": "int256"
-      }
-    ],
-    "name": "validateExecuteIOCOrder",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "blockPlaced",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "orderHash",
-            "type": "bytes32"
-          }
-        ],
-        "internalType": "struct Juror.Metadata",
-        "name": "metadata",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "reduceOnly",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "postOnly",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct ILimitOrderBook.OrderV2",
-        "name": "order",
-        "type": "tuple"
-      },
-      {
-        "internalType": "enum Juror.Side",
-        "name": "side",
-        "type": "uint8"
-      },
-      {
-        "internalType": "int256",
-        "name": "fillAmount",
-        "type": "int256"
-      }
-    ],
-    "name": "validateExecuteLimitOrder",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "blockPlaced",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "orderHash",
-            "type": "bytes32"
-          }
-        ],
-        "internalType": "struct Juror.Metadata",
-        "name": "metadata",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "data",
-        "type": "bytes"
-      },
-      {
-        "internalType": "uint256",
-        "name": "liquidationAmount",
-        "type": "uint256"
-      }
-    ],
-    "name": "validateLiquidationOrderAndDetermineFillPrice",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "orderHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "enum IClearingHouse.OrderExecutionMode",
-            "name": "mode",
-            "type": "uint8"
-          }
-        ],
-        "internalType": "struct IClearingHouse.Instruction",
-        "name": "instruction",
-        "type": "tuple"
-      },
-      {
-        "internalType": "uint8",
-        "name": "orderType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "bytes",
-        "name": "encodedOrder",
-        "type": "bytes"
-      },
-      {
-        "internalType": "uint256",
-        "name": "fillPrice",
-        "type": "uint256"
-      },
-      {
-        "internalType": "int256",
-        "name": "fillAmount",
-        "type": "int256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint8",
-        "name": "orderType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "bytes",
-        "name": "orderData",
-        "type": "bytes"
-      },
-      {
-        "internalType": "enum Juror.Side",
-        "name": "side",
-        "type": "uint8"
-      },
-      {
-        "internalType": "int256",
-        "name": "fillAmount",
-        "type": "int256"
-      }
-    ],
-    "name": "validateOrder",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "blockPlaced",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "orderHash",
-            "type": "bytes32"
-          }
-        ],
-        "internalType": "struct Juror.Metadata",
-        "name": "metadata",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes[2]",
-        "name": "data",
-        "type": "bytes[2]"
-      },
-      {
-        "internalType": "int256",
-        "name": "fillAmount",
-        "type": "int256"
-      }
-    ],
-    "name": "validateOrdersAndDetermineFillPrice",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "orderHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "enum IClearingHouse.OrderExecutionMode",
-            "name": "mode",
-            "type": "uint8"
-          }
-        ],
-        "internalType": "struct IClearingHouse.Instruction[2]",
-        "name": "instructions",
-        "type": "tuple[2]"
-      },
-      {
-        "internalType": "uint8[2]",
-        "name": "orderTypes",
-        "type": "uint8[2]"
-      },
-      {
-        "internalType": "bytes[2]",
-        "name": "encodedOrders",
-        "type": "bytes[2]"
-      },
-      {
-        "internalType": "uint256",
-        "name": "fillPrice",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "orderType",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "expireAt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "reduceOnly",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct IImmediateOrCancelOrders.Order[]",
-        "name": "orders",
-        "type": "tuple[]"
-      },
-      {
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "validatePlaceIOCOrders",
-    "outputs": [
-      {
-        "internalType": "bytes32[]",
-        "name": "orderHashes",
-        "type": "bytes32[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "ammIndex",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "trader",
-            "type": "address"
-          },
-          {
-            "internalType": "int256",
-            "name": "baseAssetQuantity",
-            "type": "int256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "salt",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bool",
-            "name": "reduceOnly",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "postOnly",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct ILimitOrderBook.OrderV2",
-        "name": "order",
-        "type": "tuple"
-      },
-      {
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "validatePlaceLimitOrder",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "err",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "orderHash",
-        "type": "bytes32"
-      },
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "reserveAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "amm",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct IOrderHandler.PlaceOrderRes",
-        "name": "res",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "orderHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes",
-        "name": "signature",
-        "type": "bytes"
-      }
-    ],
-    "name": "verifySigner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  }
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_clearingHouse",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_defaultOrderBook",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_governance",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "clearingHouse",
+      "outputs": [
+        {
+          "internalType": "contract IClearingHouse",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "orderType",
+              "type": "uint8"
+            },
+            {
+              "internalType": "uint256",
+              "name": "expireAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "salt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "reduceOnly",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct IImmediateOrCancelOrders.Order",
+          "name": "order",
+          "type": "tuple"
+        }
+      ],
+      "name": "getIOCOrderHash",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "trader",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "includeFundingPayments",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint8",
+          "name": "mode",
+          "type": "uint8"
+        }
+      ],
+      "name": "getNotionalPositionAndMargin",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "notionalPosition",
+          "type": "uint256"
+        },
+        {
+          "internalType": "int256",
+          "name": "margin",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "baseAssetQuantity",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "upperBound",
+          "type": "uint256"
+        }
+      ],
+      "name": "getRequiredMargin",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "requiredMargin",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governance",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "iocOrderBook",
+      "outputs": [
+        {
+          "internalType": "contract ImmediateOrCancelOrders",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "trader",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "isTradingAuthority",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "limitOrderBook",
+      "outputs": [
+        {
+          "internalType": "contract LimitOrderBook",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "orderBook",
+      "outputs": [
+        {
+          "internalType": "contract OrderBook",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "referral",
+      "outputs": [
+        {
+          "internalType": "contract IHubbleReferral",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "__governance",
+          "type": "address"
+        }
+      ],
+      "name": "setGovernace",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_iocOrderBook",
+          "type": "address"
+        }
+      ],
+      "name": "setIOCOrderBook",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_limitOrderBook",
+          "type": "address"
+        }
+      ],
+      "name": "setLimitOrderBook",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_referral",
+          "type": "address"
+        }
+      ],
+      "name": "setReferral",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "salt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "reduceOnly",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "postOnly",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct ILimitOrderBook.Order",
+          "name": "order",
+          "type": "tuple"
+        },
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "assertLowMargin",
+          "type": "bool"
+        }
+      ],
+      "name": "validateCancelLimitOrder",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "err",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "orderHash",
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "int256",
+              "name": "unfilledAmount",
+              "type": "int256"
+            },
+            {
+              "internalType": "address",
+              "name": "amm",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct IOrderHandler.CancelOrderRes",
+          "name": "res",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "orderType",
+              "type": "uint8"
+            },
+            {
+              "internalType": "uint256",
+              "name": "expireAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "salt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "reduceOnly",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct IImmediateOrCancelOrders.Order",
+          "name": "order",
+          "type": "tuple"
+        },
+        {
+          "internalType": "enum Juror.Side",
+          "name": "side",
+          "type": "uint8"
+        },
+        {
+          "internalType": "int256",
+          "name": "fillAmount",
+          "type": "int256"
+        }
+      ],
+      "name": "validateExecuteIOCOrder",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockPlaced",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "orderHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "string",
+              "name": "err",
+              "type": "string"
+            }
+          ],
+          "internalType": "struct Juror.Metadata",
+          "name": "metadata",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "salt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "reduceOnly",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "postOnly",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct ILimitOrderBook.Order",
+          "name": "order",
+          "type": "tuple"
+        },
+        {
+          "internalType": "enum Juror.Side",
+          "name": "side",
+          "type": "uint8"
+        },
+        {
+          "internalType": "int256",
+          "name": "fillAmount",
+          "type": "int256"
+        }
+      ],
+      "name": "validateExecuteLimitOrder",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockPlaced",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "orderHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "string",
+              "name": "err",
+              "type": "string"
+            }
+          ],
+          "internalType": "struct Juror.Metadata",
+          "name": "metadata",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "internalType": "uint256",
+          "name": "liquidationAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "validateLiquidationOrderAndDetermineFillPrice",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "err",
+          "type": "string"
+        },
+        {
+          "internalType": "enum IJuror.BadElement",
+          "name": "element",
+          "type": "uint8"
+        },
+        {
+          "components": [
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "ammIndex",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "address",
+                  "name": "trader",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "orderHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "enum IClearingHouse.OrderExecutionMode",
+                  "name": "mode",
+                  "type": "uint8"
+                }
+              ],
+              "internalType": "struct IClearingHouse.Instruction",
+              "name": "instruction",
+              "type": "tuple"
+            },
+            {
+              "internalType": "uint8",
+              "name": "orderType",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes",
+              "name": "encodedOrder",
+              "type": "bytes"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fillPrice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "int256",
+              "name": "fillAmount",
+              "type": "int256"
+            }
+          ],
+          "internalType": "struct IOrderHandler.LiquidationMatchingValidationRes",
+          "name": "res",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint8",
+          "name": "orderType",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bytes",
+          "name": "orderData",
+          "type": "bytes"
+        },
+        {
+          "internalType": "enum Juror.Side",
+          "name": "side",
+          "type": "uint8"
+        },
+        {
+          "internalType": "int256",
+          "name": "fillAmount",
+          "type": "int256"
+        }
+      ],
+      "name": "validateOrder",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "blockPlaced",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "orderHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "string",
+              "name": "err",
+              "type": "string"
+            }
+          ],
+          "internalType": "struct Juror.Metadata",
+          "name": "metadata",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes[2]",
+          "name": "data",
+          "type": "bytes[2]"
+        },
+        {
+          "internalType": "int256",
+          "name": "fillAmount",
+          "type": "int256"
+        }
+      ],
+      "name": "validateOrdersAndDetermineFillPrice",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "err",
+          "type": "string"
+        },
+        {
+          "internalType": "enum IJuror.BadElement",
+          "name": "element",
+          "type": "uint8"
+        },
+        {
+          "components": [
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "ammIndex",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "address",
+                  "name": "trader",
+                  "type": "address"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "orderHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "enum IClearingHouse.OrderExecutionMode",
+                  "name": "mode",
+                  "type": "uint8"
+                }
+              ],
+              "internalType": "struct IClearingHouse.Instruction[2]",
+              "name": "instructions",
+              "type": "tuple[2]"
+            },
+            {
+              "internalType": "uint8[2]",
+              "name": "orderTypes",
+              "type": "uint8[2]"
+            },
+            {
+              "internalType": "bytes[2]",
+              "name": "encodedOrders",
+              "type": "bytes[2]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fillPrice",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IOrderHandler.MatchingValidationRes",
+          "name": "res",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "orderType",
+              "type": "uint8"
+            },
+            {
+              "internalType": "uint256",
+              "name": "expireAt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "salt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "reduceOnly",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct IImmediateOrCancelOrders.Order",
+          "name": "order",
+          "type": "tuple"
+        },
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "validatePlaceIOCOrder",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "err",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "orderHash",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "ammIndex",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "trader",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "baseAssetQuantity",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "salt",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "reduceOnly",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "postOnly",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct ILimitOrderBook.Order",
+          "name": "order",
+          "type": "tuple"
+        },
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "validatePlaceLimitOrder",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "err",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "orderHash",
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "reserveAmount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "amm",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct IOrderHandler.PlaceOrderRes",
+          "name": "res",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
 ]

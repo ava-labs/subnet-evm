@@ -25,8 +25,8 @@ const (
 	LAST_TRADE_PRICE_SLOT           int64 = 23
 	BIDS_SLOT                       int64 = 24
 	ASKS_SLOT                       int64 = 25
-	BIDS_HEAD_SLOT                  int64 = 24
-	ASKS_HEAD_SLOT                  int64 = 25
+	BIDS_HEAD_SLOT                  int64 = 26
+	ASKS_HEAD_SLOT                  int64 = 27
 )
 
 const (

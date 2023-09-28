@@ -1,0 +1,117 @@
+[
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "amm",
+          "type": "address"
+        },
+        {
+          "internalType": "int256",
+          "name": "quoteQuantity",
+          "type": "int256"
+        }
+      ],
+      "name": "getBaseQuote",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "rate",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_amm",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "isBid",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tick",
+          "type": "uint256"
+        }
+      ],
+      "name": "getPrevTick",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "prevTick",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "amm",
+          "type": "address"
+        },
+        {
+          "internalType": "int256",
+          "name": "baseAssetQuantity",
+          "type": "int256"
+        }
+      ],
+      "name": "getQuote",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "rate",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_amm",
+          "type": "address"
+        }
+      ],
+      "name": "sampleImpactAsk",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "impactAsk",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_amm",
+          "type": "address"
+        }
+      ],
+      "name": "sampleImpactBid",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "impactBid",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+]

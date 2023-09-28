@@ -5,34 +5,36 @@ const utils = require("../utils")
 const {
     addMargin,
     alice,
-    cancelOrderFromLimitOrderV2,
+    bnToFloat,
+    cancelV2Orders,
+    getAMMContract,
     getOrderV2,
     getRandomSalt,
-    juror,
+    limitOrderBook,
     multiplyPrice,
     multiplySize,
-    removeAllAvailableMargin,
     placeOrderFromLimitOrderV2,
     placeV2Orders,
-    cancelV2Orders,
-    bnToFloat
+    removeAllAvailableMargin,
 } = utils
 
 describe("Testing Tick methods", async function() {
     market = BigNumber.from(0)
     initialMargin = multiplyPrice(500000)
+    let amm
 
     this.beforeAll(async function() {
-        amm = await utils.getAMMContract(0)
-
+        amm = await getAMMContract(0)
+    })
+    this.afterEach(async function() {
         // get all OrderAccepted events
-        let filter = utils.orderBook.filters.OrderAccepted(alice.address)
-        let orderAcceptedEvents = await utils.orderBook.queryFilter(filter)
+        let filter = limitOrderBook.filters.OrderAccepted(alice.address)
+        let orderAcceptedEvents = await limitOrderBook.queryFilter(filter)
         // console.log(orderAcceptedEvents)
 
         // get all OrderCancelAccepted events
-        filter = utils.orderBook.filters.OrderCancelAccepted(alice.address)
-        let orderCancelAccepted = await utils.orderBook.queryFilter(filter)
+        filter = limitOrderBook.filters.OrderCancelAccepted(alice.address)
+        let orderCancelAccepted = await limitOrderBook.queryFilter(filter)
         // console.log(orderCancelAccepted)
         const openOrders = orderAcceptedEvents.filter(e => {
             return orderCancelAccepted.filter(e2 => e2.args.orderHash == e.args.orderHash).length == 0
@@ -44,24 +46,26 @@ describe("Testing Tick methods", async function() {
             // const orderRejected = txReceipt.events.filter(l => l.event == 'OrderCancelRejected')
             // console.log(orderRejected.map(l => l.args))
         }
-        // await removeAllAvailableMargin(alice)
-        // await addMargin(alice, initialMargin)
+        await removeAllAvailableMargin(alice)
     })
 
     // these 2 tests when run together have a problem that they dont account for live matching
     it("bids", async function() {
         expect((await amm.bidsHead()).toNumber()).to.equal(0)
         let orderData = generateRandomArray(15)
-        console.log(orderData)
         orderData = orderData.map(a => {
             return { price: multiplyPrice(a.price), size: multiplySize(a.size) }
         })
 
+
         const orders = []
+        let requiredMargin = BigNumber.from(0)
         for (let i = 0; i < orderData.length; i++) {
             let longOrder = getOrderV2(market, alice.address, orderData[i].size, orderData[i].price, getRandomSalt())
+            requiredMargin = requiredMargin.add(await utils.getRequiredMarginForLongOrder(longOrder))
             orders.push(longOrder)
         }
+        await addMargin(alice, requiredMargin)
 
         const { txReceipt } = await placeV2Orders(orders, alice)
         txReceipt.events.forEach(e => prettyPrintEvents(e))
@@ -118,18 +122,15 @@ describe("Testing Tick methods", async function() {
         })
 
         const orders = []
+        let requiredMargin = BigNumber.from(0)
         for (let i = 0; i < orderData.length; i++) {
-            let longOrder = getOrderV2(market, alice.address, orderData[i].size, orderData[i].price, getRandomSalt())
-            orders.push(longOrder)
+            let shortOrder = getOrderV2(market, alice.address, orderData[i].size, orderData[i].price, getRandomSalt())
+            requiredMargin = requiredMargin.add(await utils.getRequiredMarginForShortOrder(shortOrder))
+            orders.push(shortOrder)
         }
-
-        for (let i = 0; i < orders.length; i++) {
-            const { txReceipt } = await placeOrderFromLimitOrderV2(orders[i], alice)
-            txReceipt.events.forEach(e => prettyPrintEvents(e))
-            console.log('asksHead', bnToFloat(await amm.asksHead()))
-        }
-        // const { txReceipt } = await placeV2Orders(orders, alice)
-        // txReceipt.events.forEach(e => prettyPrintEvents(e))
+        await addMargin(alice, requiredMargin)
+        const { txReceipt } = await placeV2Orders(orders, alice)
+        txReceipt.events.forEach(e => prettyPrintEvents(e))
 
         orderData = orderData
         .reduce((accumulator, order) => {

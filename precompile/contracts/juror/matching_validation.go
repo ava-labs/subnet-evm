@@ -82,27 +82,6 @@ const (
 	NoError
 )
 
-func getValidateOrdersAndDetermineFillPriceErrorOutput(err error, element BadElement) ValidateOrdersAndDetermineFillPriceOutput {
-	// need to provide an empty res because PackValidateOrdersAndDetermineFillPriceOutput fails if FillPrice is nil, and if res.Instructions[0].AmmIndex is nil
-	emptyRes := IOrderHandlerMatchingValidationRes{
-		Instructions: [2]IClearingHouseInstruction{
-			IClearingHouseInstruction{AmmIndex: big.NewInt(0)},
-			IClearingHouseInstruction{AmmIndex: big.NewInt(0)},
-		},
-		OrderTypes:    [2]uint8{},
-		EncodedOrders: [2][]byte{},
-		FillPrice:     big.NewInt(0),
-	}
-
-	var errorString string
-	if err != nil {
-		// should always be true
-		errorString = err.Error()
-	}
-
-	return ValidateOrdersAndDetermineFillPriceOutput{Err: errorString, Element: uint8(element), Res: emptyRes}
-}
-
 // Business Logic
 func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputStruct *ValidateOrdersAndDetermineFillPriceInput) ValidateOrdersAndDetermineFillPriceOutput {
 	if len(inputStruct.Data) != 2 {
@@ -250,16 +229,16 @@ func determineFillPrice(bibliophile b.BibliophileClient, m0, m1 *Metadata) (*Fil
 func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClient, inputStruct *ValidateLiquidationOrderAndDetermineFillPriceInput) ValidateLiquidationOrderAndDetermineFillPriceOutput {
 	fillAmount := new(big.Int).Set(inputStruct.LiquidationAmount)
 	if fillAmount.Sign() <= 0 {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: ErrInvalidFillAmount.Error(), Element: uint8(Generic)}
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(ErrInvalidFillAmount, Generic)
 	}
 
 	decodeStep0, err := ob.DecodeTypeAndEncodedOrder(inputStruct.Data)
 	if err != nil {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order0)}
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0)
 	}
 	m0, err := validateOrder(bibliophile, decodeStep0.OrderType, decodeStep0.EncodedOrder, Liquidation, fillAmount)
 	if err != nil {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order0)}
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0)
 	}
 
 	if m0.BaseAssetQuantity.Sign() < 0 {
@@ -268,12 +247,12 @@ func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClie
 
 	minSize := bibliophile.GetMinSizeRequirement(m0.AmmIndex.Int64())
 	if new(big.Int).Mod(fillAmount, minSize).Cmp(big.NewInt(0)) != 0 {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: ErrNotMultiple.Error(), Element: uint8(Generic)}
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(ErrNotMultiple, Generic)
 	}
 
 	fillPrice, err := determineLiquidationFillPrice(bibliophile, m0)
 	if err != nil {
-		return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: err.Error(), Element: uint8(Order0)}
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0)
 	}
 
 	return ValidateLiquidationOrderAndDetermineFillPriceOutput{
@@ -493,4 +472,43 @@ func formatOrder(orderBytes []byte) interface{} {
 		return orderJson
 	}
 	return nil
+}
+
+func getValidateOrdersAndDetermineFillPriceErrorOutput(err error, element BadElement) ValidateOrdersAndDetermineFillPriceOutput {
+	// need to provide an empty res because PackValidateOrdersAndDetermineFillPriceOutput fails if FillPrice is nil, and if res.Instructions[0].AmmIndex is nil
+	emptyRes := IOrderHandlerMatchingValidationRes{
+		Instructions: [2]IClearingHouseInstruction{
+			IClearingHouseInstruction{AmmIndex: big.NewInt(0)},
+			IClearingHouseInstruction{AmmIndex: big.NewInt(0)},
+		},
+		OrderTypes:    [2]uint8{},
+		EncodedOrders: [2][]byte{},
+		FillPrice:     big.NewInt(0),
+	}
+
+	var errorString string
+	if err != nil {
+		// should always be true
+		errorString = err.Error()
+	}
+
+	return ValidateOrdersAndDetermineFillPriceOutput{Err: errorString, Element: uint8(element), Res: emptyRes}
+}
+
+func getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err error, element BadElement) ValidateLiquidationOrderAndDetermineFillPriceOutput {
+	emptyRes := IOrderHandlerLiquidationMatchingValidationRes{
+		Instruction:  IClearingHouseInstruction{AmmIndex: big.NewInt(0)},
+		OrderType:    0,
+		EncodedOrder: []byte{},
+		FillPrice:    big.NewInt(0),
+		FillAmount:   big.NewInt(0),
+	}
+
+	var errorString string
+	if err != nil {
+		// should always be true
+		errorString = err.Error()
+	}
+
+	return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: errorString, Element: uint8(element), Res: emptyRes}
 }

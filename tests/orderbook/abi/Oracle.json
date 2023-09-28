@@ -3,6 +3,17 @@
       "inputs": [
         {
           "internalType": "address",
+          "name": "_governance",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
           "name": "",
           "type": "address"
         }
@@ -11,8 +22,13 @@
       "outputs": [
         {
           "internalType": "address",
-          "name": "",
+          "name": "aggregator",
           "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "heartbeat",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -38,35 +54,6 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "underlying",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "periodStart",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "intervalInSeconds",
-          "type": "uint256"
-        }
-      ],
-      "name": "getUnderlyingTwapPrice",
-      "outputs": [
-        {
-          "internalType": "int256",
-          "name": "",
-          "type": "int256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "governance",
       "outputs": [
@@ -83,19 +70,6 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "_governance",
-          "type": "address"
-        }
-      ],
-      "name": "initialize",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
           "name": "underlying",
           "type": "address"
         },
@@ -103,6 +77,11 @@
           "internalType": "address",
           "name": "aggregator",
           "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "hearbeat",
+          "type": "uint256"
         }
       ],
       "name": "setAggregator",
@@ -131,9 +110,9 @@
           "type": "address"
         },
         {
-          "internalType": "int256",
+          "internalType": "uint256",
           "name": "price",
-          "type": "int256"
+          "type": "uint256"
         }
       ],
       "name": "setStablePrice",

@@ -31,6 +31,9 @@
       },
       "jurorConfig": {
         "blockTimestamp": 0
+      },
+      "ticksConfig": {
+        "blockTimestamp": 0
       }
     },
     "alloc": {

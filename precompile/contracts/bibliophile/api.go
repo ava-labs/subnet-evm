@@ -10,6 +10,7 @@ import (
 type VariablesReadFromClearingHouseSlots struct {
 	MaintenanceMargin  *big.Int         `json:"maintenance_margin"`
 	MinAllowableMargin *big.Int         `json:"min_allowable_margin"`
+	TakerFee           *big.Int         `json:"taker_fee"`
 	Amms               []common.Address `json:"amms"`
 	ActiveMarketsCount int64            `json:"active_markets_count"`
 	NotionalPosition   *big.Int         `json:"notional_position"`
@@ -22,6 +23,7 @@ type VariablesReadFromClearingHouseSlots struct {
 func GetClearingHouseVariables(stateDB contract.StateDB, trader common.Address) VariablesReadFromClearingHouseSlots {
 	maintenanceMargin := GetMaintenanceMargin(stateDB)
 	minAllowableMargin := GetMinAllowableMargin(stateDB)
+	takerFee := GetTakerFee(stateDB)
 	amms := GetMarkets(stateDB)
 	activeMarketsCount := GetActiveMarketsCount(stateDB)
 	notionalPositionAndMargin := getNotionalPositionAndMargin(stateDB, &GetNotionalPositionAndMarginInput{
@@ -36,6 +38,7 @@ func GetClearingHouseVariables(stateDB contract.StateDB, trader common.Address) 
 	return VariablesReadFromClearingHouseSlots{
 		MaintenanceMargin:  maintenanceMargin,
 		MinAllowableMargin: minAllowableMargin,
+		TakerFee:           takerFee,
 		Amms:               amms,
 		ActiveMarketsCount: activeMarketsCount,
 		NotionalPosition:   notionalPositionAndMargin.NotionalPosition,
@@ -49,18 +52,23 @@ func GetClearingHouseVariables(stateDB contract.StateDB, trader common.Address) 
 type VariablesReadFromMarginAccountSlots struct {
 	Margin           *big.Int `json:"margin"`
 	NormalizedMargin *big.Int `json:"normalized_margin"`
+	ReservedMargin   *big.Int `json:"reserved_margin"`
 }
 
 func GetMarginAccountVariables(stateDB contract.StateDB, collateralIdx *big.Int, trader common.Address) VariablesReadFromMarginAccountSlots {
 	margin := getMargin(stateDB, collateralIdx, trader)
 	normalizedMargin := GetNormalizedMargin(stateDB, trader)
+	reservedMargin := getReservedMargin(stateDB, trader)
 	return VariablesReadFromMarginAccountSlots{
 		Margin:           margin,
 		NormalizedMargin: normalizedMargin,
+		ReservedMargin:   reservedMargin,
 	}
 }
 
 type VariablesReadFromAMMSlots struct {
+	// positions, cumulativePremiumFraction, maxOracleSpreadRatio, maxLiquidationRatio, minSizeRequirement, oracle, underlyingAsset,
+	// maxLiquidationPriceSpread, redStoneAdapter, redStoneFeedId, impactMarginNotional, lastTradePrice, bids, asks, bidsHead, asksHead
 	LastPrice                 *big.Int       `json:"last_price"`
 	CumulativePremiumFraction *big.Int       `json:"cumulative_premium_fraction"`
 	MaxOracleSpreadRatio      *big.Int       `json:"max_oracle_spread_ratio"`
@@ -73,9 +81,12 @@ type VariablesReadFromAMMSlots struct {
 	MaxLiquidationPriceSpread *big.Int       `json:"max_liquidation_price_spread"`
 	RedStoneAdapterAddress    common.Address `json:"red_stone_adapter_address"`
 	RedStoneFeedId            common.Hash    `json:"red_stone_feed_id"`
+	ImpactMarginNotional      *big.Int       `json:"impact_margin_notional"`
 	Position                  Position       `json:"position"`
 	BidsHead                  *big.Int       `json:"bids_head"`
+	BidsHeadSize              *big.Int       `json:"bids_head_size"`
 	AsksHead                  *big.Int       `json:"asks_head"`
+	AsksHeadSize              *big.Int       `json:"asks_head_size"`
 	UpperBound                *big.Int       `json:"upper_bound"`
 	LowerBound                *big.Int       `json:"lower_bound"`
 	MinAllowableMargin        *big.Int       `json:"min_allowable_margin"`
@@ -113,7 +124,9 @@ func GetAMMVariables(stateDB contract.StateDB, ammAddress common.Address, ammInd
 	redStoneAdapterAddress := getRedStoneAdapterAddress(stateDB, ammAddress)
 	redStoneFeedId := getRedStoneFeedId(stateDB, ammAddress)
 	bidsHead := getBidsHead(stateDB, ammAddress)
+	bidsHeadSize := getBidSize(stateDB, ammAddress, bidsHead)
 	asksHead := getAsksHead(stateDB, ammAddress)
+	asksHeadSize := getAskSize(stateDB, ammAddress, asksHead)
 	upperBound, lowerBound := GetAcceptableBoundsForLiquidation(stateDB, ammIndex)
 	minAllowableMargin := GetMinAllowableMargin(stateDB)
 	takerFee := GetTakerFee(stateDB)
@@ -122,6 +135,7 @@ func GetAMMVariables(stateDB contract.StateDB, ammAddress common.Address, ammInd
 	reduceOnlyAmount := getReduceOnlyAmount(stateDB, trader, big.NewInt(ammIndex))
 	longOpenOrdersAmount := getLongOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
 	shortOpenOrdersAmount := getShortOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
+	impactMarginNotional := getImpactMarginNotional(stateDB, ammAddress)
 	return VariablesReadFromAMMSlots{
 		LastPrice:                 lastPrice,
 		CumulativePremiumFraction: cumulativePremiumFraction,
@@ -135,9 +149,12 @@ func GetAMMVariables(stateDB contract.StateDB, ammAddress common.Address, ammInd
 		MaxLiquidationPriceSpread: maxLiquidationPriceSpread,
 		RedStoneAdapterAddress:    redStoneAdapterAddress,
 		RedStoneFeedId:            redStoneFeedId,
+		ImpactMarginNotional:      impactMarginNotional,
 		Position:                  position,
 		BidsHead:                  bidsHead,
+		BidsHeadSize:              bidsHeadSize,
 		AsksHead:                  asksHead,
+		AsksHeadSize:              asksHeadSize,
 		UpperBound:                upperBound,
 		LowerBound:                lowerBound,
 		MinAllowableMargin:        minAllowableMargin,

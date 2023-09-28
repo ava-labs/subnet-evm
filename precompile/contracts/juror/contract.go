@@ -291,6 +291,7 @@ func PackValidateLiquidationOrderAndDetermineFillPrice(inputStruct ValidateLiqui
 func PackValidateLiquidationOrderAndDetermineFillPriceOutput(outputStruct ValidateLiquidationOrderAndDetermineFillPriceOutput) ([]byte, error) {
 	return JurorABI.PackOutput("validateLiquidationOrderAndDetermineFillPrice",
 		outputStruct.Err,
+		outputStruct.Element,
 		outputStruct.Res,
 	)
 }
