@@ -67,7 +67,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 	senderWg := &sync.WaitGroup{}
 	var net Network
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			nodeID, _ := nodes.Pop()
 			senderWg.Add(1)
 			go func() {
@@ -137,7 +137,7 @@ func TestAppRequestOnCtxCancellation(t *testing.T) {
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
 
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			return nil
 		},
 		sendAppResponseFn: func(nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
@@ -168,7 +168,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	var lock sync.Mutex
 	contactedNodes := make(map[ids.NodeID]struct{})
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			nodeID, _ := nodes.Pop()
 			lock.Lock()
 			contactedNodes[nodeID] = struct{}{}
@@ -263,7 +263,7 @@ func TestAppRequestOnShutdown(t *testing.T) {
 		called bool
 	)
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			wg.Add(1)
 			go func() {
 				called = true
@@ -302,8 +302,23 @@ func TestAppRequestAnyOnCtxCancellation(t *testing.T) {
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
 
+	type reqInfo struct {
+		nodeID    ids.NodeID
+		requestID uint32
+	}
+	sentAppRequest := make(chan reqInfo, 1)
+
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(ctx context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+
+			assert.Len(t, nodes, 1)
+			sentAppRequest <- reqInfo{
+				nodeID:    nodes.List()[0],
+				requestID: requestID,
+			}
 			return nil
 		},
 		sendAppResponseFn: func(nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
@@ -325,12 +340,39 @@ func TestAppRequestAnyOnCtxCancellation(t *testing.T) {
 	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
 	// cancel context prior to sending
+	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	client := NewNetworkClient(net)
 	_, _, err = client.SendAppRequestAny(ctx, defaultPeerVersion, requestBytes)
 	assert.ErrorIs(t, err, context.Canceled)
+	// Assert we didn't send anything
+	select {
+	case <-sentAppRequest:
+		assert.FailNow(t, "should not have sent request")
+	default:
+	}
+
+	// Cancel context after sending
+	assert.Empty(t, net.(*network).outstandingRequestHandlers) // no outstanding requests
+	ctx, cancel = context.WithCancel(context.Background())
+	doneChan := make(chan struct{})
+	go func() {
+		_, _, err = client.SendAppRequestAny(ctx, defaultPeerVersion, requestBytes)
+		assert.ErrorIs(t, err, context.Canceled)
+		close(doneChan)
+	}()
+	// Wait until we've "sent" the app request over the network
+	// before cancelling context.
+	sentAppRequestInfo := <-sentAppRequest
+	assert.Len(t, net.(*network).outstandingRequestHandlers, 1)
+	cancel()
+	<-doneChan
+	// Should still be able to process a response after cancelling.
+	assert.Len(t, net.(*network).outstandingRequestHandlers, 1) // context cancellation SendAppRequestAny failure doesn't clear
+	err = net.AppResponse(context.Background(), sentAppRequestInfo.nodeID, sentAppRequestInfo.requestID, []byte{})
+	assert.NoError(t, err)
+	assert.Empty(t, net.(*network).outstandingRequestHandlers) // Received response
 }
 
 func TestRequestMinVersion(t *testing.T) {
@@ -340,7 +382,7 @@ func TestRequestMinVersion(t *testing.T) {
 
 	var net Network
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], reqID uint32, messageBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], reqID uint32, messageBytes []byte) error {
 			atomic.AddUint32(&callNum, 1)
 			assert.True(t, nodes.Contains(nodeID), "request nodes should contain expected nodeID")
 			assert.Len(t, nodes, 1, "request nodes should contain exactly one node")
@@ -406,7 +448,7 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	var net Network
 	responded := false
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], reqID uint32, message []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], reqID uint32, message []byte) error {
 			return nil
 		},
 		sendAppResponseFn: func(nodeID ids.NodeID, reqID uint32, message []byte) error {
@@ -772,7 +814,7 @@ func TestNetworkCrossChainAppRequestAfterShutdown(t *testing.T) {
 func TestSDKRouting(t *testing.T) {
 	require := require.New(t)
 	sender := &testAppSender{
-		sendAppRequestFn: func(s set.Set[ids.NodeID], u uint32, bytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, s set.Set[ids.NodeID], u uint32, bytes []byte) error {
 			return nil
 		},
 		sendAppResponseFn: func(id ids.NodeID, u uint32, bytes []byte) error {
@@ -838,7 +880,7 @@ func buildCrossChainRequest(codec codec.Manager, msg message.CrossChainRequest) 
 type testAppSender struct {
 	sendCrossChainAppRequestFn  func(ids.ID, uint32, []byte) error
 	sendCrossChainAppResponseFn func(ids.ID, uint32, []byte) error
-	sendAppRequestFn            func(set.Set[ids.NodeID], uint32, []byte) error
+	sendAppRequestFn            func(context.Context, set.Set[ids.NodeID], uint32, []byte) error
 	sendAppResponseFn           func(ids.NodeID, uint32, []byte) error
 	sendAppGossipFn             func([]byte) error
 }
@@ -855,8 +897,8 @@ func (t testAppSender) SendAppGossipSpecific(context.Context, set.Set[ids.NodeID
 	panic("not implemented")
 }
 
-func (t testAppSender) SendAppRequest(_ context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, message []byte) error {
-	return t.sendAppRequestFn(nodeIDs, requestID, message)
+func (t testAppSender) SendAppRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, message []byte) error {
+	return t.sendAppRequestFn(ctx, nodeIDs, requestID, message)
 }
 
 func (t testAppSender) SendAppResponse(_ context.Context, nodeID ids.NodeID, requestID uint32, message []byte) error {
