@@ -295,11 +295,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		return err
 	}
 	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
-		parsedResults, err := results.ParsePredicateResults(headerPredicateResultsBytes)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf("%w (remote: %x %v local: %x %v)", errInvalidHeaderPredicateResults, headerPredicateResultsBytes, parsedResults, predicateResultsBytes, predicateResults)
+		return fmt.Errorf("%w (remote: %x local: %x)", errInvalidHeaderPredicateResults, headerPredicateResultsBytes, predicateResultsBytes)
 	}
 	return nil
 }
