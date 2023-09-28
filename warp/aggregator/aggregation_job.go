@@ -65,7 +65,8 @@ func newSignatureAggregationJob(
 
 // Execute aggregates signatures for the requested message
 func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignatureResult, error) {
-	log.Info("Fetching signature", "subnetID", a.subnetID, "height", a.height)
+	msgID := a.msg.ID()
+	log.Info("Fetching signature", "msgID", msgID, "subnetID", a.subnetID, "height", a.height)
 	validators, totalWeight, err := avalancheWarp.GetCanonicalValidatorSet(ctx, a.state, a.height, a.subnetID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get validator set: %w", err)
@@ -95,24 +96,31 @@ func (a *signatureAggregationJob) Execute(ctx context.Context) (*AggregateSignat
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			log.Info("Fetching warp signature", "nodeID", signatureJob.nodeID, "index", i)
+			log.Info("Fetching warp signature", "msgID", msgID, "nodeID", signatureJob.nodeID, "index", i)
 			blsSignature, err := signatureJob.Execute(signatureFetchCtx)
 			if err != nil {
 				log.Info("Failed to fetch signature at index %d: %s", i, signatureJob)
 				return
 			}
-			log.Info("Retrieved warp signature", "nodeID", signatureJob.nodeID, "index", i, "signature", hexutil.Bytes(bls.SignatureToBytes(blsSignature)))
-			// Add the signature and check if we've reached the requested threshold
+			log.Info("Retrieved warp signature", "msgID", msgID, "nodeID", signatureJob.nodeID, "index", i, "signature", hexutil.Bytes(bls.SignatureToBytes(blsSignature)))
+
+			// Obtain signatureLock for aggregating the signature weight
 			signatureLock.Lock()
 			defer signatureLock.Unlock()
 
+			// Exit early if context was cancelled
+			if err := signatureFetchCtx.Err(); err != nil {
+				return
+			}
+
+			// Add the signature and check if we've reached the requested threshold
 			blsSignatures = append(blsSignatures, blsSignature)
 			bitSet.Add(i)
-			log.Info("Updated weight", "totalWeight", signatureWeight+signatureJob.weight, "addedWeight", signatureJob.weight)
 			signatureWeight += signatureJob.weight
+			log.Info("Updated weight", "msgID", msgID, "signatureWeight", signatureWeight, "addedWeight", signatureJob.weight)
 			// If the signature weight meets the requested threshold, cancel signature fetching
 			if err := avalancheWarp.VerifyWeight(signatureWeight, totalWeight, a.maxNeededQuorumNum, a.quorumDen); err == nil {
-				log.Info("Verify weight passed, exiting aggregation early", "maxNeededQuorumNum", a.maxNeededQuorumNum, "totalWeight", totalWeight, "signatureWeight", signatureWeight)
+				log.Info("Verify weight passed, exiting aggregation early", "msgID", msgID, "maxNeededQuorumNum", a.maxNeededQuorumNum, "totalWeight", totalWeight, "signatureWeight", signatureWeight)
 				signatureFetchCancel()
 			}
 		}()
