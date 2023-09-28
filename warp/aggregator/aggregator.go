@@ -103,6 +103,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 			log.Debug("Fetching warp signature",
 				"nodeID", nodeID,
 				"index", i,
+				"msgID", unsignedMessage.ID(),
 			)
 
 			signature, err := a.client.GetSignature(signatureFetchCtx, nodeID, unsignedMessage)
@@ -111,6 +112,7 @@ func (a *Aggregator) AggregateSignatures(ctx context.Context, unsignedMessage *a
 					"nodeID", nodeID,
 					"index", i,
 					"err", err,
+					"msgID", unsignedMessage.ID(),
 				)
 				signatureFetchResultChan <- nil
 				return
