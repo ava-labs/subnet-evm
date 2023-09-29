@@ -5,6 +5,7 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -17,6 +18,7 @@ type IConfigService interface {
 	getMinSizeRequirement(market Market) *big.Int
 	GetActiveMarketsCount() int64
 	GetUnderlyingPrices() []*big.Int
+	GetCollaterals() []hu.Collateral
 	GetLastPremiumFraction(market Market, trader *common.Address) *big.Int
 	GetCumulativePremiumFraction(market Market) *big.Int
 	GetAcceptableBounds(market Market) (*big.Int, *big.Int)
@@ -80,6 +82,10 @@ func (cs *ConfigService) GetActiveMarketsCount() int64 {
 
 func (cs *ConfigService) GetUnderlyingPrices() []*big.Int {
 	return bibliophile.GetUnderlyingPrices(cs.getStateAtCurrentBlock())
+}
+
+func (cs *ConfigService) GetCollaterals() []hu.Collateral {
+	return bibliophile.GetCollaterals(cs.getStateAtCurrentBlock())
 }
 
 func (cs *ConfigService) GetLastPremiumFraction(market Market, trader *common.Address) *big.Int {

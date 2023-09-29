@@ -107,19 +107,19 @@ func (api *OrderBookAPI) GetDebugData(ctx context.Context, trader string) GetDeb
 		markets[i] = Market(i)
 		oraclePrices[Market(i)] = prices[Market(i)]
 	}
-
+	assets := api.configService.GetCollaterals()
 	for addr, trader := range traderMap {
 		pendingFunding := getTotalFunding(&trader, markets)
-		margin := new(big.Int).Sub(getNormalisedMargin(&trader), pendingFunding)
-		notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(&trader, margin, Min_Allowable_Margin, oraclePrices, lastPrices, markets)
-		marginFraction := calcMarginFraction(&trader, pendingFunding, oraclePrices, lastPrices, markets)
-		availableMargin := getAvailableMargin(&trader, pendingFunding, oraclePrices, lastPrices, api.configService.getMinAllowableMargin(), markets)
+		margin := new(big.Int).Sub(getNormalisedMargin(&trader, assets), pendingFunding)
+		notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(&trader, margin, hu.Min_Allowable_Margin, oraclePrices, lastPrices, markets)
+		marginFraction := calcMarginFraction(&trader, pendingFunding, assets, oraclePrices, lastPrices, markets)
+		availableMargin := getAvailableMargin(&trader, pendingFunding, assets, oraclePrices, lastPrices, api.configService.getMinAllowableMargin(), markets)
 		utilisedMargin := hu.Div1e6(new(big.Int).Mul(notionalPosition, minAllowableMargin))
 
 		response.MarginFraction[addr] = marginFraction
 		response.AvailableMargin[addr] = availableMargin
 		response.PendingFunding[addr] = pendingFunding
-		response.Margin[addr] = getNormalisedMargin(&trader)
+		response.Margin[addr] = getNormalisedMargin(&trader, assets)
 		response.UtilisedMargin[addr] = utilisedMargin
 		response.NotionalPosition[addr] = notionalPosition
 		response.UnrealizePnL[addr] = unrealizePnL

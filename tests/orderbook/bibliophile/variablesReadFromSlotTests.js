@@ -127,7 +127,7 @@ describe('Testing variables read from slots by precompile', function () {
     })
     context("AMM contract variables", function () {
         // vars read from slot
-        // positions, cumulativePremiumFraction, maxOracleSpreadRatio, maxLiquidationRatio, minSizeRequirement, oracle, underlyingAsset, 
+        // positions, cumulativePremiumFraction, maxOracleSpreadRatio, maxLiquidationRatio, minSizeRequirement, oracle, underlyingAsset,
         // maxLiquidationPriceSpread, redStoneAdapter, redStoneFeedId, impactMarginNotional, lastTradePrice, bids, asks, bidsHead, asksHead
         let ammIndex = 0
         let method ="testing_getAMMVars"
@@ -163,28 +163,28 @@ describe('Testing variables read from slots by precompile', function () {
         context("when variables dont have default value after setup", async function () {
             // positions, cumulativePremiumFraction, redStoneAdapter, redStoneFeedId, impactMarginNotional, lastTradePrice, bids, asks, bidsHead, asksHead
             context("variables which need set config before reading", async function () {
-                // redStoneAdapter, redStoneFeedId, impactMarginNotional
-                // impactMarginNotional
-                let amm, oracleAddress, redStoneAdapterAddress, redStoneFeedId, impactMarginNotional
+                let amm, oracleAddress, redStoneAdapterAddress, impactMarginNotional
                 this.beforeAll(async function () {
                     amm = await getAMMContract(ammIndex)
                     oracleAddress = await amm.oracle()
-                    redStoneAdapterAddress = await amm.redStoneAdapter()
-                    redStoneFeedId = await amm.redStoneFeedId()
+                    oracle = new ethers.Contract(oracleAddress, require("../abi/Oracle.json"), provider);
+                    marginAccount = new ethers.Contract(await amm.marginAccount(), require("../abi/MarginAccount.json"), provider);
+
+                    redStoneAdapterAddress = await oracle.redStoneAdapter()
+                    console.log("redStoneAdapterAddress", redStoneAdapterAddress)
                     impactMarginNotional = await amm.impactMarginNotional()
                 })
                 this.afterAll(async function () {
-                    await amm.connect(governance).setOracleConfig(oracleAddress, redStoneAdapterAddress, redStoneFeedId)
+                    await oracle.connect(governance).setRedStoneAdapterAddress(redStoneAdapterAddress)
+                    await marginAccount.connect(governance).setOracle(oracleAddress)
                     await amm.connect(governance).setImpactMarginNotional(impactMarginNotional)
                 })
                 it("should read the correct value from contracts", async function () {
                     newOracleAddress = alice.address
                     newRedStoneAdapterAddress = bob.address
-                    newRedStoneFeedId = ethers.utils.formatBytes32String("redStoneFeedId")
-                    tx = await amm.connect(governance).setOracleConfig(newOracleAddress, newRedStoneAdapterAddress, newRedStoneFeedId)
-                    await tx.wait()
-
                     newImpactMarginNotional = BigNumber.from(100000)
+
+                    tx = await oracle.connect(governance).setRedStoneAdapterAddress(newRedStoneAdapterAddress)
                     tx = await amm.connect(governance).setImpactMarginNotional(newImpactMarginNotional)
                     await tx.wait()
 
@@ -192,9 +192,16 @@ describe('Testing variables read from slots by precompile', function () {
                     response = await makehttpCall(method, params)
                     result = response.body.result
 
-                    expect(result.oracle_address.toLowerCase()).to.equal(newOracleAddress.toLowerCase())
                     expect(result.red_stone_adapter_address.toLowerCase()).to.equal(newRedStoneAdapterAddress.toLowerCase())
-                    expect(result.red_stone_feed_id).to.equal(newRedStoneFeedId)
+                    expect(result.impact_margin_notional).to.equal(newImpactMarginNotional.toNumber())
+
+                    // setOracle
+                    tx = await marginAccount.connect(governance).setOracle(newOracleAddress)
+                    await tx.wait()
+                    response = await makehttpCall(method, params)
+                    result = response.body.result
+                    expect(result.oracle_address.toLowerCase()).to.equal(newOracleAddress.toLowerCase())
+                    expect(result.red_stone_adapter_address.toLowerCase()).to.equal('0x' + '0'.repeat(40)) // red stone adapter should be zero in new oracle
                     expect(result.impact_margin_notional).to.equal(newImpactMarginNotional.toNumber())
                 })
             })
@@ -287,7 +294,7 @@ describe('Testing variables read from slots by precompile', function () {
             //ioc expiration cap
             it("should read the correct value from contracts", async function () {
                 params = [ "0xe97a0702264091714ea19b481c1fd12d9686cb4602efbfbec41ec5ea5410da84"]
-                
+
                 result = (await makehttpCall(method, params)).body.result
                 actualExpirationCap = await ioc.expirationCap()
                 expect(result.ioc_expiration_cap).to.eq(actualExpirationCap.toNumber())
@@ -319,7 +326,7 @@ describe('Testing variables read from slots by precompile', function () {
                     longIOCOrder = getIOCOrder(expireAt, market, charlie.address, longOrderBaseAssetQuantity, orderPrice, getRandomSalt(), false)
                     orderHash = await ioc.getOrderHash(longIOCOrder)
                     params = [ orderHash ]
-                    txDetails = await placeIOCOrder(longIOCOrder, charlie) 
+                    txDetails = await placeIOCOrder(longIOCOrder, charlie)
                     result = (await makehttpCall(method, params)).body.result
 
                     //cleanup

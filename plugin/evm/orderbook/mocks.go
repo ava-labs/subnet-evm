@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/core/types"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/mock"
 )
@@ -115,7 +116,7 @@ func (db *MockLimitOrderDatabase) GetLastPrices() map[Market]*big.Int {
 	return map[Market]*big.Int{}
 }
 
-func (db *MockLimitOrderDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, markets []Market) ([]LiquidablePosition, map[common.Address][]Order) {
+func (db *MockLimitOrderDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, assets []hu.Collateral, markets []Market) ([]LiquidablePosition, map[common.Address][]Order) {
 	return []LiquidablePosition{}, map[common.Address][]Order{}
 }
 
@@ -225,11 +226,6 @@ func (mcs *MockConfigService) GetAcceptableBoundsForLiquidation(market Market) (
 	return args.Get(0).(*big.Int), args.Get(1).(*big.Int)
 }
 
-// func (mcs *MockConfigService) getOracleSpreadThreshold(market Market) *big.Int {
-// 	args := mcs.Called()
-// 	return args.Get(0).(*big.Int)
-// }
-
 func (mcs *MockConfigService) getLiquidationSpreadThreshold(market Market) *big.Int {
 	return big.NewInt(1e4)
 }
@@ -275,6 +271,10 @@ func (cs *MockConfigService) GetCumulativePremiumFraction(market Market) *big.In
 
 func (cs *MockConfigService) GetCumulativePremiumFractionAtBlock(market Market, blockNumber uint64) *big.Int {
 	return big.NewInt(0)
+}
+
+func (cs *MockConfigService) GetCollaterals() []hu.Collateral {
+	return []hu.Collateral{{Price: big.NewInt(1e6), Weight: big.NewInt(1e6), Decimals: 6}}
 }
 
 func NewMockConfigService() *MockConfigService {

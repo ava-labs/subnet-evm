@@ -177,8 +177,9 @@ func (api *TradingAPI) GetMarginAndPositions(ctx context.Context, trader string)
 		markets[i] = Market(i)
 	}
 
+	assets := api.configService.GetCollaterals()
 	pendingFunding := getTotalFunding(traderInfo, markets)
-	margin := new(big.Int).Sub(getNormalisedMargin(traderInfo), pendingFunding)
+	margin := new(big.Int).Sub(getNormalisedMargin(traderInfo, assets), pendingFunding)
 	response.Margin = utils.BigIntToDecimal(margin, 6, 8)
 	response.ReservedMargin = utils.BigIntToDecimal(traderInfo.Margin.Reserved, 6, 8)
 

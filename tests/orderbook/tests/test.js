@@ -664,7 +664,7 @@ async function setOraclePrice(market, price) {
     const oracleAddress = await marginAccount.oracle()
     const oracle = new ethers.Contract(oracleAddress, require('../abi/Oracle.json'), provider);
 
-    await oracle.connect(governance).setStablePrice(underlying, price)
+    await oracle.connect(governance).setUnderlyingPrice(underlying, price)
 }
 
 async function getOraclePrice(market) {

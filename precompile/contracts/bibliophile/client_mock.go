@@ -8,6 +8,7 @@ import (
 	big "math/big"
 	reflect "reflect"
 
+	hubbleutils "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	contract "github.com/ava-labs/subnet-evm/precompile/contract"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "github.com/golang/mock/gomock"
@@ -147,6 +148,20 @@ func (m *MockBibliophileClient) GetBlockPlaced(orderHash [32]byte) *big.Int {
 func (mr *MockBibliophileClientMockRecorder) GetBlockPlaced(orderHash interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockPlaced", reflect.TypeOf((*MockBibliophileClient)(nil).GetBlockPlaced), orderHash)
+}
+
+// GetCollaterals mocks base method.
+func (m *MockBibliophileClient) GetCollaterals(stateDB contract.StateDB) []hubbleutils.Collateral {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCollaterals", stateDB)
+	ret0, _ := ret[0].([]hubbleutils.Collateral)
+	return ret0
+}
+
+// GetCollaterals indicates an expected call of GetCollaterals.
+func (mr *MockBibliophileClientMockRecorder) GetCollaterals(stateDB interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCollaterals", reflect.TypeOf((*MockBibliophileClient)(nil).GetCollaterals), stateDB)
 }
 
 // GetImpactMarginNotional mocks base method.

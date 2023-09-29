@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -71,9 +72,10 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 
 	// fetch the underlying price and run the matching engine
 	underlyingPrices := pipeline.GetUnderlyingPrices()
+	assets := pipeline.GetCollaterals()
 
 	// build trader map
-	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(underlyingPrices, markets)
+	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(underlyingPrices, assets, markets)
 	cancellableOrderIds := pipeline.cancelLimitOrders(ordersToCancel)
 	orderMap := make(map[Market]*Orders)
 	for _, market := range markets {
@@ -115,6 +117,10 @@ func (pipeline *MatchingPipeline) GetUnderlyingPrices() map[Market]*big.Int {
 		underlyingPrices[Market(market)] = price
 	}
 	return underlyingPrices
+}
+
+func (pipeline *MatchingPipeline) GetCollaterals() []hu.Collateral {
+	return pipeline.configService.GetCollaterals()
 }
 
 func (pipeline *MatchingPipeline) cancelLimitOrders(cancellableOrders map[common.Address][]Order) map[common.Hash]struct{} {

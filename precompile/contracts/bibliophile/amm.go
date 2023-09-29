@@ -15,23 +15,15 @@ const (
 	MAX_ORACLE_SPREAD_RATIO_SLOT    int64 = 3
 	MAX_LIQUIDATION_RATIO_SLOT      int64 = 4
 	MIN_SIZE_REQUIREMENT_SLOT       int64 = 5
-	ORACLE_SLOT                     int64 = 6
-	UNDERLYING_ASSET_SLOT           int64 = 7
-	MAX_LIQUIDATION_PRICE_SPREAD    int64 = 12
-	MULTIPLIER_SLOT                 int64 = 13
-	RED_STONE_ADAPTER_SLOT          int64 = 16
-	RED_STONE_FEED_ID_SLOT          int64 = 17
-	IMPACT_MARGIN_NOTIONAL_SLOT     int64 = 22
-	LAST_TRADE_PRICE_SLOT           int64 = 23
-	BIDS_SLOT                       int64 = 24
-	ASKS_SLOT                       int64 = 25
-	BIDS_HEAD_SLOT                  int64 = 26
-	ASKS_HEAD_SLOT                  int64 = 27
-)
-
-const (
-	// this slot is from TestOracle.sol
-	TEST_ORACLE_PRICES_MAPPING_SLOT int64 = 3
+	UNDERLYING_ASSET_SLOT           int64 = 6
+	MAX_LIQUIDATION_PRICE_SPREAD    int64 = 11
+	MULTIPLIER_SLOT                 int64 = 12
+	IMPACT_MARGIN_NOTIONAL_SLOT     int64 = 19
+	LAST_TRADE_PRICE_SLOT           int64 = 20
+	BIDS_SLOT                       int64 = 21
+	ASKS_SLOT                       int64 = 22
+	BIDS_HEAD_SLOT                  int64 = 23
+	ASKS_HEAD_SLOT                  int64 = 24
 )
 
 // AMM State
@@ -88,10 +80,6 @@ func getMultiplier(stateDB contract.StateDB, market common.Address) *big.Int {
 	return stateDB.GetState(market, common.BigToHash(big.NewInt(MULTIPLIER_SLOT))).Big()
 }
 
-func getOracleAddress(stateDB contract.StateDB, market common.Address) common.Address {
-	return common.BytesToAddress(stateDB.GetState(market, common.BigToHash(big.NewInt(ORACLE_SLOT))).Bytes())
-}
-
 func getUnderlyingAssetAddress(stateDB contract.StateDB, market common.Address) common.Address {
 	return common.BytesToAddress(stateDB.GetState(market, common.BigToHash(big.NewInt(UNDERLYING_ASSET_SLOT))).Bytes())
 }
@@ -99,45 +87,6 @@ func getUnderlyingAssetAddress(stateDB contract.StateDB, market common.Address) 
 func getUnderlyingPriceForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
 	market := getMarketAddressFromMarketID(marketID, stateDB)
 	return getUnderlyingPrice(stateDB, market)
-}
-
-func getRedStoneAdapterAddress(stateDB contract.StateDB, market common.Address) common.Address {
-	return common.BytesToAddress(stateDB.GetState(market, common.BigToHash(big.NewInt(RED_STONE_ADAPTER_SLOT))).Bytes())
-}
-
-func getRedStoneFeedId(stateDB contract.StateDB, market common.Address) common.Hash {
-	return stateDB.GetState(market, common.BigToHash(big.NewInt(RED_STONE_FEED_ID_SLOT)))
-}
-
-func getUnderlyingPrice(stateDB contract.StateDB, market common.Address) *big.Int {
-	redStoneAdapter := getRedStoneAdapterAddress(stateDB, market)
-	if redStoneAdapter.Hash().Big().Sign() != 0 {
-		feedId := getRedStoneFeedId(stateDB, market)
-		// first we check the feedId, if it is set, it should imply we are using a redstone oracle
-		// log.Info("red-stone-feed-id", "feedId", feedId.String())
-		if feedId.Big().Sign() != 0 {
-			// redstone oracle is configured for this market
-			redstonePrice := getRedStonePrice(stateDB, redStoneAdapter, feedId)
-			// log.Info("redstone-price", "amm", market, "price", redstonePrice)
-			return redstonePrice
-		}
-		/* else {
-			// just log the red stone price, for testing before deployment
-			var feedId common.Hash
-			if strings.EqualFold(market.String(), "0xa72b463C21dA61cCc86069cFab82e9e8491152a0") { // eth amm
-				feedId = common.HexToHash("0x4554480000000000000000000000000000000000000000000000000000000000")
-			} else if strings.EqualFold(market.String(), "0xd80e57dB448b0692C396B890eE9c791D7386dAdC") { // avax amm
-				feedId = common.HexToHash("0x4156415800000000000000000000000000000000000000000000000000000000")
-			}
-			// redstonePrice := getRedStonePrice(stateDB, redStoneAdapter, feedId)
-			// log.Info("log-only-redstone-price", "amm", market, "price", redstonePrice)
-		} */
-	}
-	// red stone oracle is not enabled for this market, we use the default TestOracle
-	oracle := getOracleAddress(stateDB, market)
-	underlying := getUnderlyingAssetAddress(stateDB, market)
-	slot := crypto.Keccak256(append(common.LeftPadBytes(underlying.Bytes(), 32), common.LeftPadBytes(big.NewInt(TEST_ORACLE_PRICES_MAPPING_SLOT).Bytes(), 32)...))
-	return fromTwosComplement(stateDB.GetState(oracle, common.BytesToHash(slot)).Bytes())
 }
 
 // Trader State
@@ -186,55 +135,18 @@ func getImpactMarginNotional(stateDB contract.StateDB, market common.Address) *b
 	return stateDB.GetState(market, common.BigToHash(big.NewInt(IMPACT_MARGIN_NOTIONAL_SLOT))).Big()
 }
 
+func getPosition(stateDB contract.StateDB, market common.Address, trader *common.Address) *hu.Position {
+	return &hu.Position{
+		Size:         getSize(stateDB, market, trader),
+		OpenNotional: getOpenNotional(stateDB, market, trader),
+	}
+}
+
 // Utils
 
 func getPendingFundingPayment(stateDB contract.StateDB, market common.Address, trader *common.Address) *big.Int {
 	cumulativePremiumFraction := GetCumulativePremiumFraction(stateDB, market)
 	return hu.Div1e18(new(big.Int).Mul(new(big.Int).Sub(cumulativePremiumFraction, GetLastPremiumFraction(stateDB, market, trader)), getSize(stateDB, market, trader)))
-}
-
-func getOptimalPnl(stateDB contract.StateDB, market common.Address, oraclePrice *big.Int, lastPrice *big.Int, trader *common.Address, margin *big.Int, marginMode MarginMode) (notionalPosition *big.Int, uPnL *big.Int) {
-	size := getSize(stateDB, market, trader)
-	if size.Sign() == 0 {
-		return big.NewInt(0), big.NewInt(0)
-	}
-
-	openNotional := getOpenNotional(stateDB, market, trader)
-	// based on last price
-	notionalPosition, unrealizedPnl, lastPriceBasedMF := getPositionMetadata(
-		lastPrice,
-		openNotional,
-		size,
-		margin,
-	)
-
-	// based on oracle price
-	oracleBasedNotional, oracleBasedUnrealizedPnl, oracleBasedMF := getPositionMetadata(
-		oraclePrice,
-		openNotional,
-		size,
-		margin,
-	)
-
-	if (marginMode == Maintenance_Margin && oracleBasedMF.Cmp(lastPriceBasedMF) == 1) || // for liquidations
-		(marginMode == Min_Allowable_Margin && oracleBasedMF.Cmp(lastPriceBasedMF) == -1) { // for increasing leverage
-		return oracleBasedNotional, oracleBasedUnrealizedPnl
-	}
-	return notionalPosition, unrealizedPnl
-}
-
-func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, margin *big.Int) (notionalPos *big.Int, uPnl *big.Int, marginFraction *big.Int) {
-	notionalPos = hu.Div1e18(new(big.Int).Mul(price, new(big.Int).Abs(size)))
-	if notionalPos.Sign() == 0 {
-		return big.NewInt(0), big.NewInt(0), big.NewInt(0)
-	}
-	if size.Sign() == 1 {
-		uPnl = new(big.Int).Sub(notionalPos, openNotional)
-	} else {
-		uPnl = new(big.Int).Sub(openNotional, notionalPos)
-	}
-	marginFraction = new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(margin, uPnl)), notionalPos)
-	return notionalPos, uPnl, marginFraction
 }
 
 // Common Utils

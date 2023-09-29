@@ -38,7 +38,7 @@ describe("Juror tests", async function() {
         let longOrderBaseAssetQuantity = multiplySize(0.1) // 0.1 ether
         let orderPrice = multiplyPrice(1800)
         let market = BigNumber.from(0)
-        let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, orderPrice, getRandomSalt()) 
+        let longOrder = getOrderV2(market, alice.address, longOrderBaseAssetQuantity, orderPrice, getRandomSalt())
 
         it("should fail as trader has not margin", async function() {
             await removeAllAvailableMargin(alice)
@@ -132,7 +132,7 @@ describe("Juror tests", async function() {
         let shortOrderBaseAssetQuantity = multiplySize(-0.1) // 0.1 ether
         let orderPrice = multiplyPrice(1800)
         let market = BigNumber.from(0)
-        let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, orderPrice, getRandomSalt()) 
+        let shortOrder = getOrderV2(market, bob.address, shortOrderBaseAssetQuantity, orderPrice, getRandomSalt())
         let tradingAuthority = charlie
 
         it("should fail as trader has no margin", async function() {
@@ -202,7 +202,7 @@ describe("Juror tests", async function() {
             expect(output.orderHash).to.equal(expectedOrderHash)
             expect(output.res.unfilledAmount.toString()).to.equal(shortOrder.baseAssetQuantity.toString())
             expect(output.res.amm).to.equal(await clearingHouse.amms(market))
-            
+
             await cancelOrderFromLimitOrderV2(shortOrder, tradingAuthority)
             orderStatus = await limitOrderBook.orderStatus(expectedOrderHash)
             expect(orderStatus.status).to.equal(3)
@@ -408,7 +408,7 @@ describe("Juror tests", async function() {
                 totalRequiredMarginForShortOrder3 = await getRequiredMarginForShortOrder(shortOrder3)
                 expect(output.res.reserveAmount.toNumber()).to.equal(totalRequiredMarginForShortOrder3.toNumber())
                 expectedAmmAddress = await clearingHouse.amms(market)
-                
+
                 // place the order
                 output = await placeOrderFromLimitOrderV2(shortOrder3, marketMaker)
                 limitOrderBookLogWithEvent = (await getEventsFromLimitOrderBookTx(output.txReceipt.transactionHash))[0]
@@ -469,7 +469,7 @@ describe("Juror tests", async function() {
                 expect(output.orderHash).to.equal(expectedOrderHash)
                 expect(output.res.unfilledAmount.toString()).to.equal(longOrder.baseAssetQuantity.toString())
                 expect(output.res.amm).to.equal(await clearingHouse.amms(market))
-                
+
                 await cancelOrderFromLimitOrderV2(longOrder, marketMaker)
                 orderStatus = await limitOrderBook.orderStatus(expectedOrderHash)
                 expect(orderStatus.status).to.equal(3)
@@ -563,7 +563,7 @@ describe("Juror tests", async function() {
         // Alice has long Position and bob has short position
         // If reduceOnly order is longOrder - it should fail
         // Alice tries to place a short reduceOnly order when she has an open shortOrder - it should fail
-        // when there is no open shortOrder for alice and alice tries to place a short reduceOnly order - it should succeed 
+        // when there is no open shortOrder for alice and alice tries to place a short reduceOnly order - it should succeed
         // after placing short reduceOnly order, alice tries to place a normal shortOrder - it should fail
         // if currentOrder size + (sum of size of all reduceOnly orders) > posSize of alice - it should fail
         // if currentOrder size + (sum of size of all reduceOnly orders) < posSize of alice - it should succeed

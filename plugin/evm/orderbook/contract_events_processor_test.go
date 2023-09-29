@@ -111,8 +111,7 @@ func TestOrderBookMarginAccountClearingHouseEventInLog(t *testing.T) {
 	unrealisedFunding := hu.Mul1e6(big.NewInt(1))
 	market := Market(0)
 	position := &Position{
-		OpenNotional:         openNotional,
-		Size:                 size,
+		Position:             hu.Position{OpenNotional: openNotional, Size: size},
 		UnrealisedFunding:    unrealisedFunding,
 		LastPremiumFraction:  lastPremiumFraction,
 		LiquidationThreshold: liquidationThreshold,
@@ -455,8 +454,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 		db := getDatabase()
 		cep := newcep(t, db)
 		position := &Position{
-			OpenNotional:         openNotional,
-			Size:                 size,
+			Position:             hu.Position{OpenNotional: openNotional, Size: size},
 			UnrealisedFunding:    unrealisedFunding,
 			LastPremiumFraction:  lastPremiumFraction,
 			LiquidationThreshold: liquidationThreshold,
@@ -493,8 +491,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 		db := getDatabase()
 		cep := newcep(t, db)
 		position := &Position{
-			OpenNotional:         openNotional,
-			Size:                 size,
+			Position:             hu.Position{OpenNotional: openNotional, Size: size},
 			UnrealisedFunding:    unrealisedFunding,
 			LastPremiumFraction:  lastPremiumFraction,
 			LiquidationThreshold: liquidationThreshold,
@@ -529,8 +526,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 		db := getDatabase()
 		cep := newcep(t, db)
 		position := &Position{
-			OpenNotional:         openNotional,
-			Size:                 size,
+			Position:             hu.Position{OpenNotional: openNotional, Size: size},
 			UnrealisedFunding:    unrealisedFunding,
 			LastPremiumFraction:  lastPremiumFraction,
 			LiquidationThreshold: liquidationThreshold,
@@ -577,8 +573,7 @@ func TestHandleClearingHouseEvent(t *testing.T) {
 		db := getDatabase()
 		cep := newcep(t, db)
 		position := &Position{
-			OpenNotional:         openNotional,
-			Size:                 size,
+			Position:             hu.Position{OpenNotional: openNotional, Size: size},
 			UnrealisedFunding:    unrealisedFunding,
 			LastPremiumFraction:  lastPremiumFraction,
 			LiquidationThreshold: liquidationThreshold,
