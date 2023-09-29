@@ -83,8 +83,8 @@ type SendWarpMessageInput struct {
 	Payload            []byte
 }
 
-type sendWarpMessageData struct {
-	message []byte
+type SendWarpMessageEventData struct {
+	Message []byte
 }
 
 // PackGetBlockchainID packs the include selector (first 4 func signature bytes).
@@ -287,12 +287,12 @@ func PackSendWarpMessageEvent(destinationChainID common.Hash, destinationAddress
 
 // UnpackSendWarpEventDataToMessage attempts to unpack event [data] as warp.UnsignedMessage.
 func UnpackSendWarpEventDataToMessage(data []byte) (*warp.UnsignedMessage, error) {
-	event := sendWarpMessageData{}
+	event := SendWarpMessageEventData{}
 	err := WarpABI.UnpackIntoInterface(&event, "SendWarpMessage", data)
 	if err != nil {
 		return nil, err
 	}
-	return warp.ParseUnsignedMessage(event.message)
+	return warp.ParseUnsignedMessage(event.Message)
 }
 
 // createWarpPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
