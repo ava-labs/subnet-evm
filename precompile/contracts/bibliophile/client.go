@@ -45,7 +45,7 @@ type BibliophileClient interface {
 	GetUpperAndLowerBoundForMarket(marketId int64) (*big.Int, *big.Int)
 	GetAcceptableBoundsForLiquidation(marketId int64) (*big.Int, *big.Int)
 
-	GetAccessibleState() contract.AccessibleState
+	GetTimeStamp() uint64
 	GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int)
 	HasReferrer(trader common.Address) bool
 }
@@ -61,8 +61,8 @@ func NewBibliophileClient(accessibleState contract.AccessibleState) BibliophileC
 	}
 }
 
-func (b *bibliophileClient) GetAccessibleState() contract.AccessibleState {
-	return b.accessibleState
+func (b *bibliophileClient) GetTimeStamp() uint64 {
+	return b.accessibleState.GetBlockContext().Timestamp()
 }
 
 func (b *bibliophileClient) GetSize(market common.Address, trader *common.Address) *big.Int {

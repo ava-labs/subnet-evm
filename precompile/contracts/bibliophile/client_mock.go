@@ -52,20 +52,6 @@ func (mr *MockBibliophileClientMockRecorder) GetAcceptableBoundsForLiquidation(m
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAcceptableBoundsForLiquidation", reflect.TypeOf((*MockBibliophileClient)(nil).GetAcceptableBoundsForLiquidation), marketId)
 }
 
-// GetAccessibleState mocks base method.
-func (m *MockBibliophileClient) GetAccessibleState() contract.AccessibleState {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccessibleState")
-	ret0, _ := ret[0].(contract.AccessibleState)
-	return ret0
-}
-
-// GetAccessibleState indicates an expected call of GetAccessibleState.
-func (mr *MockBibliophileClientMockRecorder) GetAccessibleState() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessibleState", reflect.TypeOf((*MockBibliophileClient)(nil).GetAccessibleState))
-}
-
 // GetAskSize mocks base method.
 func (m *MockBibliophileClient) GetAskSize(ammAddress common.Address, price *big.Int) *big.Int {
 	m.ctrl.T.Helper()
@@ -387,6 +373,20 @@ func (m *MockBibliophileClient) GetTakerFee() *big.Int {
 func (mr *MockBibliophileClientMockRecorder) GetTakerFee() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTakerFee", reflect.TypeOf((*MockBibliophileClient)(nil).GetTakerFee))
+}
+
+// GetTimeStamp mocks base method.
+func (m *MockBibliophileClient) GetTimeStamp() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTimeStamp")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// GetTimeStamp indicates an expected call of GetTimeStamp.
+func (mr *MockBibliophileClientMockRecorder) GetTimeStamp() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTimeStamp", reflect.TypeOf((*MockBibliophileClient)(nil).GetTimeStamp))
 }
 
 // GetUpperAndLowerBoundForMarket mocks base method.

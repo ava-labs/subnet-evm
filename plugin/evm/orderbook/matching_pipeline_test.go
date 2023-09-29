@@ -491,6 +491,142 @@ func TestMatchLongAndShortOrder(t *testing.T) {
 	})
 }
 
+func TestAreMatchingOrders(t *testing.T) {
+	trader := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
+	longOrder_ := Order{
+		Market:                  1,
+		PositionType:            LONG,
+		BaseAssetQuantity:       big.NewInt(10),
+		Trader:                  trader,
+		FilledBaseAssetQuantity: big.NewInt(0),
+		Salt:                    big.NewInt(1),
+		Price:                   big.NewInt(100),
+		ReduceOnly:              false,
+		LifecycleList:           []Lifecycle{Lifecycle{}},
+		BlockNumber:             big.NewInt(21),
+		RawOrder: &LimitOrder{
+			BaseOrder: BaseOrder{
+				AmmIndex:          big.NewInt(1),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(1),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		},
+		OrderType: Limit,
+	}
+	shortOrder_ := Order{
+		Market:                  1,
+		PositionType:            SHORT,
+		BaseAssetQuantity:       big.NewInt(-10),
+		Trader:                  trader,
+		FilledBaseAssetQuantity: big.NewInt(0),
+		Salt:                    big.NewInt(2),
+		Price:                   big.NewInt(100),
+		ReduceOnly:              false,
+		LifecycleList:           []Lifecycle{Lifecycle{}},
+		BlockNumber:             big.NewInt(21),
+		RawOrder: &LimitOrder{
+			BaseOrder: BaseOrder{
+				AmmIndex:          big.NewInt(1),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(-10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(2),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		},
+		OrderType: Limit,
+	}
+
+	t.Run("longOrder's price < shortOrder's price", func(t *testing.T) {
+		longOrder := deepCopyOrder(&longOrder_)
+		shortOrder := deepCopyOrder(&shortOrder_)
+
+		longOrder.Price = big.NewInt(80)
+		actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+
+		assert.Nil(t, actualFillAmount)
+	})
+
+	t.Run("longOrder was placed first", func(t *testing.T) {
+		longOrder := deepCopyOrder(&longOrder_)
+		shortOrder := deepCopyOrder(&shortOrder_)
+		longOrder.BlockNumber = big.NewInt(20)
+		shortOrder.BlockNumber = big.NewInt(21)
+		t.Run("longOrder is IOC", func(t *testing.T) {
+			longOrder.OrderType = IOC
+			rawOrder := longOrder.RawOrder.(*LimitOrder)
+			longOrder.RawOrder = &IOCOrder{
+				BaseOrder: rawOrder.BaseOrder,
+				OrderType: 1,
+				ExpireAt:  big.NewInt(0),
+			}
+
+			actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+			assert.Nil(t, actualFillAmount)
+		})
+		t.Run("short order is post only", func(t *testing.T) {
+			longOrder := deepCopyOrder(&longOrder_)
+			longOrder.BlockNumber = big.NewInt(20)
+
+			shortOrder.RawOrder.(*LimitOrder).PostOnly = true
+
+			actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+			assert.Nil(t, actualFillAmount)
+		})
+	})
+
+	t.Run("shortOrder was placed first", func(t *testing.T) {
+		longOrder := deepCopyOrder(&longOrder_)
+		shortOrder := deepCopyOrder(&shortOrder_)
+		longOrder.BlockNumber = big.NewInt(21)
+		shortOrder.BlockNumber = big.NewInt(20)
+		t.Run("shortOrder is IOC", func(t *testing.T) {
+			shortOrder.OrderType = IOC
+			rawOrder := shortOrder.RawOrder.(*LimitOrder)
+			shortOrder.RawOrder = &IOCOrder{
+				BaseOrder: rawOrder.BaseOrder,
+				OrderType: 1,
+				ExpireAt:  big.NewInt(0),
+			}
+
+			actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+			assert.Nil(t, actualFillAmount)
+		})
+		t.Run("longOrder is post only", func(t *testing.T) {
+			longOrder := deepCopyOrder(&longOrder_)
+			longOrder.BlockNumber = big.NewInt(21)
+
+			longOrder.RawOrder.(*LimitOrder).PostOnly = true
+
+			actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+			assert.Nil(t, actualFillAmount)
+		})
+	})
+
+	t.Run("one of the orders is fully filled", func(t *testing.T) {
+		longOrder := deepCopyOrder(&longOrder_)
+		shortOrder := deepCopyOrder(&shortOrder_)
+
+		longOrder.FilledBaseAssetQuantity = longOrder.BaseAssetQuantity
+		actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+		assert.Nil(t, actualFillAmount)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		longOrder := deepCopyOrder(&longOrder_)
+		shortOrder := deepCopyOrder(&shortOrder_)
+
+		longOrder.FilledBaseAssetQuantity = big.NewInt(5)
+		actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+		assert.Equal(t, big.NewInt(5), actualFillAmount)
+	})
+}
+
 func getShortOrder() Order {
 	salt := big.NewInt(time.Now().Unix())
 	shortOrder := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-10), big.NewInt(20.0), Placed, big.NewInt(2), salt)

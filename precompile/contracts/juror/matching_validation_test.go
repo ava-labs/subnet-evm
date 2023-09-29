@@ -5,6 +5,7 @@
 package juror
 
 import (
+	"fmt"
 	"math/big"
 
 	"testing"
@@ -66,6 +67,13 @@ func TestValidateLimitOrderLike(t *testing.T) {
 
 			err := validateLimitOrderLike(mockBibliophile, order, filledAmount, Placed, Long, fillAmount)
 			assert.EqualError(t, err, ErrOverFill.Error())
+		})
+
+		t.Run("negative fillAmount", func(t *testing.T) {
+			fillAmount := big.NewInt(-6)
+
+			err := validateLimitOrderLike(mockBibliophile, order, filledAmount, Placed, Long, fillAmount)
+			assert.EqualError(t, err, ErrInvalidFillAmount.Error())
 		})
 
 		t.Run("ErrReduceOnlyAmountExceeded", func(t *testing.T) {
@@ -130,6 +138,13 @@ func TestValidateLimitOrderLike(t *testing.T) {
 			badOrder.BaseAssetQuantity = big.NewInt(0)
 			err = validateLimitOrderLike(mockBibliophile, &badOrder, filledAmount, Placed, Short, fillAmount)
 			assert.EqualError(t, err, ErrNotShortOrder.Error())
+		})
+
+		t.Run("positive fillAmount", func(t *testing.T) {
+			fillAmount := big.NewInt(6)
+
+			err := validateLimitOrderLike(mockBibliophile, order, filledAmount, Placed, Short, fillAmount)
+			assert.EqualError(t, err, ErrInvalidFillAmount.Error())
 		})
 
 		t.Run("ErrOverFill", func(t *testing.T) {
@@ -609,4 +624,512 @@ func TestDetermineLiquidationFillPrice(t *testing.T) {
 			assert.Equal(t, upperbound, output)
 		})
 	})
+}
+
+type ValidateOrdersAndDetermineFillPriceTestCase struct {
+	Order0, Order1 ob.ContractOrder
+	FillAmount     *big.Int
+	Err            error
+	BadElement     BadElement
+}
+
+func testValidateOrdersAndDetermineFillPriceTestCase(t *testing.T, mockBibliophile *b.MockBibliophileClient, testCase ValidateOrdersAndDetermineFillPriceTestCase) ValidateOrdersAndDetermineFillPriceOutput {
+	order0Bytes, err := testCase.Order0.EncodeToABI()
+	if err != nil {
+		t.Fatal(err)
+	}
+	order1Bytes, err := testCase.Order1.EncodeToABI()
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp := ValidateOrdersAndDetermineFillPrice(mockBibliophile, &ValidateOrdersAndDetermineFillPriceInput{
+		Data:       [2][]byte{order0Bytes, order1Bytes},
+		FillAmount: testCase.FillAmount,
+	})
+
+	// verify results
+	if testCase.Err == nil && resp.Err != "" {
+		t.Fatalf("expected no error, got %v", resp.Err)
+	}
+	if testCase.Err != nil {
+		if resp.Err != testCase.Err.Error() {
+			t.Fatalf("expected %v, got %v", testCase.Err, testCase.Err)
+		}
+
+		if resp.Element != uint8(testCase.BadElement) {
+			t.Fatalf("expected %v, got %v", testCase.BadElement, resp.Element)
+		}
+	}
+	return resp
+}
+
+func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
+	// create a mock BibliophileClient
+	trader := common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	t.Run("invalid fillAmount", func(t *testing.T) {
+		order0 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(1),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order1 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(-10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(2),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		fillAmount := big.NewInt(0)
+
+		mockBibliophile := b.NewMockBibliophileClient(ctrl)
+
+		testCase := ValidateOrdersAndDetermineFillPriceTestCase{
+			Order0:     order0,
+			Order1:     order1,
+			FillAmount: fillAmount,
+			Err:        ErrInvalidFillAmount,
+			BadElement: Generic,
+		}
+
+		testValidateOrdersAndDetermineFillPriceTestCase(t, mockBibliophile, testCase)
+	})
+
+	t.Run("different amm", func(t *testing.T) {
+		order0 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(1),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order0Hash, _ := order0.Hash()
+		order1 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(1),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(-10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(2),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order1Hash, _ := order1.Hash()
+		fillAmount := big.NewInt(2)
+
+		mockBibliophile := b.NewMockBibliophileClient(ctrl)
+		mockBibliophile.EXPECT().GetOrderFilledAmount(order0Hash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(order0Hash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order0.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(order0Hash).Return(big.NewInt(10))
+
+		mockBibliophile.EXPECT().GetOrderFilledAmount(order1Hash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(order1Hash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order1.AmmIndex.Int64()).Return(common.Address{102})
+		mockBibliophile.EXPECT().GetBlockPlaced(order1Hash).Return(big.NewInt(12))
+		testCase := ValidateOrdersAndDetermineFillPriceTestCase{
+			Order0:     order0,
+			Order1:     order1,
+			FillAmount: fillAmount,
+			Err:        ErrNotSameAMM,
+			BadElement: Generic,
+		}
+
+		testValidateOrdersAndDetermineFillPriceTestCase(t, mockBibliophile, testCase)
+	})
+
+	t.Run("price mismatch", func(t *testing.T) {
+		order0 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(10),
+				Price:             big.NewInt(99),
+				Salt:              big.NewInt(1),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order0Hash, _ := order0.Hash()
+		order1 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(-10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(2),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order1Hash, _ := order1.Hash()
+		fillAmount := big.NewInt(2)
+
+		mockBibliophile := b.NewMockBibliophileClient(ctrl)
+		mockBibliophile.EXPECT().GetOrderFilledAmount(order0Hash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(order0Hash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order0.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(order0Hash).Return(big.NewInt(10))
+
+		mockBibliophile.EXPECT().GetOrderFilledAmount(order1Hash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(order1Hash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order1.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(order1Hash).Return(big.NewInt(12))
+		testCase := ValidateOrdersAndDetermineFillPriceTestCase{
+			Order0:     order0,
+			Order1:     order1,
+			FillAmount: fillAmount,
+			Err:        ErrNoMatch,
+			BadElement: Generic,
+		}
+
+		testValidateOrdersAndDetermineFillPriceTestCase(t, mockBibliophile, testCase)
+	})
+
+	t.Run("fillAmount not multiple", func(t *testing.T) {
+		order0 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(1),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order0Hash, _ := order0.Hash()
+		order1 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(-10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(2),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order1Hash, _ := order1.Hash()
+		fillAmount := big.NewInt(2)
+
+		mockBibliophile := b.NewMockBibliophileClient(ctrl)
+		mockBibliophile.EXPECT().GetOrderFilledAmount(order0Hash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(order0Hash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order0.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(order0Hash).Return(big.NewInt(10))
+
+		mockBibliophile.EXPECT().GetOrderFilledAmount(order1Hash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(order1Hash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order1.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(order1Hash).Return(big.NewInt(12))
+
+		mockBibliophile.EXPECT().GetMinSizeRequirement(order1.AmmIndex.Int64()).Return(big.NewInt(5))
+
+		testCase := ValidateOrdersAndDetermineFillPriceTestCase{
+			Order0:     order0,
+			Order1:     order1,
+			FillAmount: fillAmount,
+			Err:        ErrNotMultiple,
+			BadElement: Generic,
+		}
+
+		testValidateOrdersAndDetermineFillPriceTestCase(t, mockBibliophile, testCase)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		order0 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(1),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order0Hash, _ := order0.Hash()
+		order1 := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(-10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(2),
+				ReduceOnly:        false,
+			},
+			PostOnly: false,
+		}
+		order1Hash, _ := order1.Hash()
+		fillAmount := big.NewInt(2)
+
+		mockBibliophile := b.NewMockBibliophileClient(ctrl)
+		mockBibliophile.EXPECT().GetOrderFilledAmount(order0Hash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(order0Hash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order0.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(order0Hash).Return(big.NewInt(10))
+
+		mockBibliophile.EXPECT().GetOrderFilledAmount(order1Hash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(order1Hash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order1.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(order1Hash).Return(big.NewInt(12))
+
+		mockBibliophile.EXPECT().GetMinSizeRequirement(order1.AmmIndex.Int64()).Return(big.NewInt(1))
+		mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(order1.AmmIndex.Int64()).Return(big.NewInt(110), big.NewInt(90))
+
+		testCase := ValidateOrdersAndDetermineFillPriceTestCase{
+			Order0:     order0,
+			Order1:     order1,
+			FillAmount: fillAmount,
+			Err:        nil,
+			BadElement: NoError,
+		}
+
+		response := testValidateOrdersAndDetermineFillPriceTestCase(t, mockBibliophile, testCase)
+		assert.Equal(t, big.NewInt(100), response.Res.FillPrice)
+		assert.Equal(t, uint8(0), response.Res.OrderTypes[0])
+		assert.Equal(t, uint8(0), response.Res.OrderTypes[1])
+
+		assert.Equal(t, uint8(NoError), response.Element)
+		assert.Equal(t, IClearingHouseInstruction{
+			AmmIndex:  big.NewInt(0),
+			Trader:    trader,
+			OrderHash: order0Hash,
+			Mode:      uint8(Maker),
+		}, response.Res.Instructions[0])
+		assert.Equal(t, IClearingHouseInstruction{
+			AmmIndex:  big.NewInt(0),
+			Trader:    trader,
+			OrderHash: order1Hash,
+			Mode:      uint8(Taker),
+		}, response.Res.Instructions[1])
+	})
+}
+
+type ValidateLiquidationOrderAndDetermineFillPriceTestCase struct {
+	Order             ob.ContractOrder
+	LiquidationAmount *big.Int
+	Err               error
+	BadElement        BadElement
+}
+
+func testValidateLiquidationOrderAndDetermineFillPriceTestCase(t *testing.T, mockBibliophile *b.MockBibliophileClient, testCase ValidateLiquidationOrderAndDetermineFillPriceTestCase) ValidateLiquidationOrderAndDetermineFillPriceOutput {
+	orderBytes, err := testCase.Order.EncodeToABI()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := ValidateLiquidationOrderAndDetermineFillPrice(mockBibliophile, &ValidateLiquidationOrderAndDetermineFillPriceInput{
+		Data:              orderBytes,
+		LiquidationAmount: testCase.LiquidationAmount,
+	})
+
+	// verify results
+	if testCase.Err == nil && resp.Err != "" {
+		t.Fatalf("expected no error, got %v", resp.Err)
+	}
+	if testCase.Err != nil {
+		if resp.Err != testCase.Err.Error() {
+			t.Fatalf("expected %v, got %v", testCase.Err, testCase.Err)
+		}
+
+		if resp.Element != uint8(testCase.BadElement) {
+			t.Fatalf("expected %v, got %v", testCase.BadElement, resp.Element)
+		}
+	}
+	return resp
+}
+
+func TestValidateLiquidationOrderAndDetermineFillPrice(t *testing.T) {
+	trader := common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	t.Run("invalid liquidationAmount", func(t *testing.T) {
+		order := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(1),
+				ReduceOnly:        true,
+			},
+			PostOnly: false,
+		}
+
+		mockBibliophile := b.NewMockBibliophileClient(ctrl)
+
+		testCase := ValidateLiquidationOrderAndDetermineFillPriceTestCase{
+			Order:             order,
+			LiquidationAmount: big.NewInt(0),
+			Err:               ErrInvalidFillAmount,
+			BadElement:        Generic,
+		}
+
+		testValidateLiquidationOrderAndDetermineFillPriceTestCase(t, mockBibliophile, testCase)
+	})
+
+	t.Run("fillAmount not multiple", func(t *testing.T) {
+		order := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(-10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(2),
+				ReduceOnly:        true,
+			},
+			PostOnly: false,
+		}
+		orderHash, _ := order.Hash()
+
+		mockBibliophile := b.NewMockBibliophileClient(ctrl)
+		mockBibliophile.EXPECT().GetOrderFilledAmount(orderHash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(orderHash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(orderHash).Return(big.NewInt(10))
+		mockBibliophile.EXPECT().GetSize(common.Address{101}, &trader).Return(big.NewInt(10))
+
+		mockBibliophile.EXPECT().GetMinSizeRequirement(order.AmmIndex.Int64()).Return(big.NewInt(5))
+
+		testCase := ValidateLiquidationOrderAndDetermineFillPriceTestCase{
+			Order:             order,
+			LiquidationAmount: big.NewInt(2),
+			Err:               ErrNotMultiple,
+			BadElement:        Generic,
+		}
+
+		testValidateLiquidationOrderAndDetermineFillPriceTestCase(t, mockBibliophile, testCase)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		order := &ob.LimitOrder{
+			BaseOrder: ob.BaseOrder{
+				AmmIndex:          big.NewInt(0),
+				Trader:            trader,
+				BaseAssetQuantity: big.NewInt(-10),
+				Price:             big.NewInt(100),
+				Salt:              big.NewInt(2),
+				ReduceOnly:        true,
+			},
+			PostOnly: false,
+		}
+		orderHash, _ := order.Hash()
+
+		mockBibliophile := b.NewMockBibliophileClient(ctrl)
+		mockBibliophile.EXPECT().GetOrderFilledAmount(orderHash).Return(big.NewInt(0))
+		mockBibliophile.EXPECT().GetOrderStatus(orderHash).Return(int64(1)) // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order.AmmIndex.Int64()).Return(common.Address{101})
+		mockBibliophile.EXPECT().GetBlockPlaced(orderHash).Return(big.NewInt(10))
+		mockBibliophile.EXPECT().GetSize(common.Address{101}, &trader).Return(big.NewInt(10))
+		mockBibliophile.EXPECT().GetMinSizeRequirement(order.AmmIndex.Int64()).Return(big.NewInt(1))
+		mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(order.AmmIndex.Int64()).Return(big.NewInt(110), big.NewInt(90))
+		mockBibliophile.EXPECT().GetAcceptableBoundsForLiquidation(order.AmmIndex.Int64()).Return(big.NewInt(110), big.NewInt(90))
+
+		testCase := ValidateLiquidationOrderAndDetermineFillPriceTestCase{
+			Order:             order,
+			LiquidationAmount: big.NewInt(2),
+			Err:               nil,
+			BadElement:        NoError,
+		}
+
+		response := testValidateLiquidationOrderAndDetermineFillPriceTestCase(t, mockBibliophile, testCase)
+
+		assert.Equal(t, uint8(NoError), response.Element)
+		assert.Equal(t, IClearingHouseInstruction{
+			AmmIndex:  big.NewInt(0),
+			Trader:    trader,
+			OrderHash: orderHash,
+			Mode:      uint8(Maker),
+		}, response.Res.Instruction)
+		assert.Equal(t, big.NewInt(100), response.Res.FillPrice)
+		assert.Equal(t, uint8(0), response.Res.OrderType)
+		assert.Equal(t, big.NewInt(-2), response.Res.FillAmount)
+	})
+}
+
+func TestReducesPosition(t *testing.T) {
+	testCases := []struct {
+		positionSize      *big.Int
+		baseAssetQuantity *big.Int
+		expectedResult    bool
+	}{
+		{
+			positionSize:      big.NewInt(100),
+			baseAssetQuantity: big.NewInt(-50),
+			expectedResult:    true,
+		},
+		{
+			positionSize:      big.NewInt(-100),
+			baseAssetQuantity: big.NewInt(50),
+			expectedResult:    true,
+		},
+		{
+			positionSize:      big.NewInt(100),
+			baseAssetQuantity: big.NewInt(50),
+			expectedResult:    false,
+		},
+		{
+			positionSize:      big.NewInt(-100),
+			baseAssetQuantity: big.NewInt(-50),
+			expectedResult:    false,
+		},
+	}
+
+	for _, tc := range testCases {
+		result := reducesPosition(tc.positionSize, tc.baseAssetQuantity)
+		if result != tc.expectedResult {
+			t.Errorf("reducesPosition(%v, %v) = %v; expected %v", tc.positionSize, tc.baseAssetQuantity, result, tc.expectedResult)
+		}
+	}
+}
+
+func TestGetRequiredMargin(t *testing.T) {
+	trader := common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBibliophile := b.NewMockBibliophileClient(ctrl)
+	mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(gomock.Any()).Return(big.NewInt(100), big.NewInt(10)).AnyTimes()
+	mockBibliophile.EXPECT().GetMinAllowableMargin().Return(big.NewInt(1000)).AnyTimes()
+	mockBibliophile.EXPECT().GetTakerFee().Return(big.NewInt(5)).AnyTimes()
+
+	// create a mock order
+	order := ILimitOrderBookOrder{
+		AmmIndex:          big.NewInt(0),
+		Trader:            trader,
+		BaseAssetQuantity: hu.Mul(big.NewInt(10), hu.ONE_E_18),
+		Price:             hu.Mul(big.NewInt(50), hu.ONE_E_6),
+		ReduceOnly:        false,
+		Salt:              big.NewInt(1),
+		PostOnly:          false,
+	}
+
+	// call the function
+	requiredMargin := getRequiredMargin(mockBibliophile, order)
+
+	fmt.Println("#####", requiredMargin)
+
+	// assert that the result is correct
+	expectedMargin := big.NewInt(502500) // (10 * 50 * 1e6) * (1 + 0.005)
+	assert.Equal(t, expectedMargin, requiredMargin)
 }

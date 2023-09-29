@@ -25,16 +25,17 @@ func ValidatePlaceIOCorder(bibliophile b.BibliophileClient, inputStruct *Validat
 		response.Err = ErrNoTradingAuthority.Error()
 		return
 	}
-	blockTimestamp := bibliophile.GetAccessibleState().GetBlockContext().Timestamp()
-	expireWithin := blockTimestamp + bibliophile.IOC_GetExpirationCap().Uint64()
 	if order.BaseAssetQuantity.Sign() == 0 {
 		response.Err = ErrInvalidFillAmount.Error()
 		return
 	}
 	if ob.OrderType(order.OrderType) != ob.IOC {
-		response.Err = errors.New("not_ioc_order").Error()
+		response.Err = ErrNotIOCOrder.Error()
 		return
 	}
+
+	blockTimestamp := bibliophile.GetTimeStamp()
+	expireWithin := blockTimestamp + bibliophile.IOC_GetExpirationCap().Uint64()
 	if order.ExpireAt.Uint64() < blockTimestamp {
 		response.Err = errors.New("ioc expired").Error()
 		return
@@ -56,6 +57,7 @@ func ValidatePlaceIOCorder(bibliophile b.BibliophileClient, inputStruct *Validat
 
 	if !bibliophile.HasReferrer(order.Trader) {
 		response.Err = ErrNoReferrer.Error()
+		return
 	}
 
 	ammAddress := bibliophile.GetMarketAddressFromMarketID(order.AmmIndex.Int64())

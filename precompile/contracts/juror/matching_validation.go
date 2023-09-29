@@ -49,6 +49,7 @@ var (
 	ErrNotMultiple       = errors.New("not multiple")
 
 	ErrInvalidOrder                       = errors.New("invalid order")
+	ErrNotIOCOrder                        = errors.New("not_ioc_order")
 	ErrInvalidPrice                       = errors.New("invalid price")
 	ErrPricePrecision                     = errors.New("invalid price precision")
 	ErrInvalidMarket                      = errors.New("invalid market")
@@ -334,7 +335,7 @@ func validateExecuteIOCOrder(bibliophile b.BibliophileClient, order *ob.IOCOrder
 	if ob.OrderType(order.OrderType) != ob.IOC {
 		return nil, errors.New("not ioc order")
 	}
-	if order.ExpireAt.Uint64() < bibliophile.GetAccessibleState().GetBlockContext().Timestamp() {
+	if order.ExpireAt.Uint64() < bibliophile.GetTimeStamp() {
 		return nil, errors.New("ioc expired")
 	}
 	orderHash, err := order.Hash()
