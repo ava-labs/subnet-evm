@@ -275,13 +275,13 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		return nil
 	}
 
-	predicateResults := predicate.NewPredicateResults()
+	predicateResults := predicate.NewResults()
 	for _, tx := range b.ethBlock.Transactions() {
 		results, err := core.CheckPredicates(rules, predicateContext, tx)
 		if err != nil {
 			return err
 		}
-		predicateResults.SetTxPredicateResults(tx.Hash(), results)
+		predicateResults.SetTxResults(tx.Hash(), results)
 	}
 	// TODO: document required gas constraints to ensure marshalling predicate results does not error
 	predicateResultsBytes, err := predicateResults.Bytes()

@@ -133,11 +133,11 @@ func (b *BlockContext) Timestamp() uint64 {
 	return b.Time
 }
 
-func (b *BlockContext) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
+func (b *BlockContext) GetResults(txHash common.Hash, address common.Address) []byte {
 	if b.PredicateResults == nil {
 		return nil
 	}
-	return b.PredicateResults.GetPredicateResults(txHash, address)
+	return b.PredicateResults.GetResults(txHash, address)
 }
 
 // TxContext provides the EVM with information about a transaction.

@@ -291,7 +291,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
 	// configure [serverVM]
 	_, serverVM, _, serverAppSender := GenesisVM(t, true, genesisJSONLatest, "", "")
 	generateAndAcceptBlocks(t, serverVM, parentsToGet, func(i int, gen *core.BlockGen) {
-		b, err := predicate.NewPredicateResults().Bytes()
+		b, err := predicate.NewResults().Bytes()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -467,7 +467,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	txsPerBlock := 10
 	toAddress := testEthAddrs[1] // arbitrary choice
 	generateAndAcceptBlocks(t, syncerVM, blocksToBuild, func(_ int, gen *core.BlockGen) {
-		b, err := predicate.NewPredicateResults().Bytes()
+		b, err := predicate.NewResults().Bytes()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -493,7 +493,7 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 
 	// Generate blocks after we have entered normal consensus as well
 	generateAndAcceptBlocks(t, syncerVM, blocksToBuild, func(_ int, gen *core.BlockGen) {
-		b, err := predicate.NewPredicateResults().Bytes()
+		b, err := predicate.NewResults().Bytes()
 		if err != nil {
 			t.Fatal(err)
 		}

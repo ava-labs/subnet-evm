@@ -44,21 +44,21 @@ type Results struct {
 	Results map[common.Hash]TxResults `serialize:"true"`
 }
 
-// NewPredicateResults returns an empty predicate results.
-func NewPredicateResults() *Results {
+// NewResults returns an empty predicate results.
+func NewResults() *Results {
 	return &Results{
 		Results: make(map[common.Hash]TxResults),
 	}
 }
 
-func NewPredicateResultsFromMap(results map[common.Hash]TxResults) *Results {
+func NewResultsFromMap(results map[common.Hash]TxResults) *Results {
 	return &Results{
 		Results: results,
 	}
 }
 
-// ParsePredicateResults parses [b] into predicate results.
-func ParsePredicateResults(b []byte) (*Results, error) {
+// ParseResults parses [b] into predicate results.
+func ParseResults(b []byte) (*Results, error) {
 	res := new(Results)
 	parsedVersion, err := Codec.Unmarshal(b, res)
 	if err != nil {
@@ -70,8 +70,8 @@ func ParsePredicateResults(b []byte) (*Results, error) {
 	return res, nil
 }
 
-// GetPredicateResults returns the byte array results for [txHash] from precompile [address] if available.
-func (p *Results) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
+// GetResults returns the byte array results for [txHash] from precompile [address] if available.
+func (p *Results) GetResults(txHash common.Hash, address common.Address) []byte {
 	txResults, ok := p.Results[txHash]
 	if !ok {
 		return nil
@@ -79,8 +79,8 @@ func (p *Results) GetPredicateResults(txHash common.Hash, address common.Address
 	return txResults[address]
 }
 
-// SetTxPredicateResults sets the predicate results for the given [txHash]. Overrides results if present.
-func (p *Results) SetTxPredicateResults(txHash common.Hash, txResults TxResults) {
+// SetTxResults sets the predicate results for the given [txHash]. Overrides results if present.
+func (p *Results) SetTxResults(txHash common.Hash, txResults TxResults) {
 	// If there are no tx results, don't store an entry in the map
 	if len(txResults) == 0 {
 		delete(p.Results, txHash)
@@ -89,8 +89,8 @@ func (p *Results) SetTxPredicateResults(txHash common.Hash, txResults TxResults)
 	p.Results[txHash] = txResults
 }
 
-// DeleteTxPredicateResults deletes the predicate results for the given [txHash].
-func (p *Results) DeleteTxPredicateResults(txHash common.Hash) {
+// DeleteTxResults deletes the predicate results for the given [txHash].
+func (p *Results) DeleteTxResults(txHash common.Hash) {
 	delete(p.Results, txHash)
 }
 

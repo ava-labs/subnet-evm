@@ -240,7 +240,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 		gasPool:          new(core.GasPool).AddGas(header.GasLimit),
 		rules:            w.chainConfig.AvalancheRules(header.Number, header.Time),
 		predicateContext: predicateContext,
-		predicateResults: predicate.NewPredicateResults(),
+		predicateResults: predicate.NewResults(),
 		start:            tstart,
 	}, nil
 }
@@ -258,7 +258,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
 			return nil, err
 		}
-		env.predicateResults.SetTxPredicateResults(tx.Hash(), results)
+		env.predicateResults.SetTxResults(tx.Hash(), results)
 
 		blockContext = core.NewEVMBlockContextWithPredicateResults(env.header, w.chain, &coinbase, env.predicateResults)
 	} else {
@@ -269,7 +269,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 	if err != nil {
 		env.state.RevertToSnapshot(snap)
 		env.gasPool.SetGas(gp)
-		env.predicateResults.DeleteTxPredicateResults(tx.Hash())
+		env.predicateResults.DeleteTxResults(tx.Hash())
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)

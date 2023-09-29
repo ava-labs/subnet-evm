@@ -90,11 +90,11 @@ func TestPredicateResultsParsing(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
-			predicateResults := NewPredicateResultsFromMap(test.results)
+			predicateResults := NewResultsFromMap(test.results)
 			b, err := predicateResults.Bytes()
 			require.NoError(err)
 
-			parsedPredicateResults, err := ParsePredicateResults(b)
+			parsedPredicateResults, err := ParseResults(b)
 			require.NoError(err)
 			require.Equal(predicateResults, parsedPredicateResults)
 			require.Equal(test.expectedHex, common.Bytes2Hex(b))
@@ -105,7 +105,7 @@ func TestPredicateResultsParsing(t *testing.T) {
 func TestPredicateResultsAccessors(t *testing.T) {
 	require := require.New(t)
 
-	predicateResults := NewPredicateResults()
+	predicateResults := NewResults()
 
 	txHash := common.Hash{1}
 	addr := common.Address{2}
@@ -114,15 +114,15 @@ func TestPredicateResultsAccessors(t *testing.T) {
 		addr: predicateResult,
 	}
 
-	require.Empty(predicateResults.GetPredicateResults(txHash, addr))
-	predicateResults.SetTxPredicateResults(txHash, txPredicateResults)
-	require.Equal(predicateResult, predicateResults.GetPredicateResults(txHash, addr))
-	predicateResults.DeleteTxPredicateResults(txHash)
-	require.Empty(predicateResults.GetPredicateResults(txHash, addr))
+	require.Empty(predicateResults.GetResults(txHash, addr))
+	predicateResults.SetTxResults(txHash, txPredicateResults)
+	require.Equal(predicateResult, predicateResults.GetResults(txHash, addr))
+	predicateResults.DeleteTxResults(txHash)
+	require.Empty(predicateResults.GetResults(txHash, addr))
 
 	// Ensure setting empty tx predicate results removes the entry
-	predicateResults.SetTxPredicateResults(txHash, txPredicateResults)
-	require.Equal(predicateResult, predicateResults.GetPredicateResults(txHash, addr))
-	predicateResults.SetTxPredicateResults(txHash, map[common.Address][]byte{})
-	require.Empty(predicateResults.GetPredicateResults(txHash, addr))
+	predicateResults.SetTxResults(txHash, txPredicateResults)
+	require.Equal(predicateResult, predicateResults.GetResults(txHash, addr))
+	predicateResults.SetTxResults(txHash, map[common.Address][]byte{})
+	require.Empty(predicateResults.GetResults(txHash, addr))
 }
