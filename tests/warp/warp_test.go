@@ -181,7 +181,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Creating ethclient for blockchainB", "wsURI", chainBWSURI)
 		chainBWSClient, err = ethclient.Dial(chainBWSURI)
 		gomega.Expect(err).Should(gomega.BeNil())
-
 	})
 
 	// Send a transaction to Subnet A to issue a Warp Message to Subnet B
@@ -237,7 +236,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		// the log extracted from the last block.
 		txLog := logs[0]
 		log.Info("Parsing logData as unsigned warp message")
-		unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
+		unsignedMsg, err := warp.UnpackSendWarpEventDataToMessage(txLog.Data)
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		// Set local variables for the duration of the test

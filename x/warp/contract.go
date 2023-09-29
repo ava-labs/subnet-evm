@@ -83,6 +83,10 @@ type SendWarpMessageInput struct {
 	Payload            []byte
 }
 
+type sendWarpMessageData struct {
+	message []byte
+}
+
 // PackGetBlockchainID packs the include selector (first 4 func signature bytes).
 // This function is mostly used for tests.
 func PackGetBlockchainID() ([]byte, error) {
@@ -256,20 +260,39 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 	}
 
 	// Add a log to be handled if this action is finalized.
+	topics, data, err := PackSendWarpMessageEvent(
+		destinationChainID,
+		destinationAddress,
+		sourceAddress,
+		unsignedWarpMessage.Bytes(),
+	)
+	if err != nil {
+		return nil, remainingGas, err
+	}
 	accessibleState.GetStateDB().AddLog(
 		ContractAddress,
-		[]common.Hash{
-			WarpABI.Events["SendWarpMessage"].ID,
-			destinationChainID,
-			destinationAddress.Hash(),
-			sourceAddress.Hash(),
-		},
-		unsignedWarpMessage.Bytes(),
+		topics,
+		data,
 		accessibleState.GetBlockContext().Number().Uint64(),
 	)
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
+}
+
+// PackSendWarpMessageEvent packs the given arguments into SendWarpMessage events including topics and data.
+func PackSendWarpMessageEvent(destinationChainID common.Hash, destinationAddress common.Address, sourceAddress common.Address, unsignedMessageBytes []byte) ([]common.Hash, []byte, error) {
+	return WarpABI.PackEvent("SendWarpMessage", destinationChainID, destinationAddress, sourceAddress, unsignedMessageBytes)
+}
+
+// UnpackSendWarpEventDataToMessage attempts to unpack event [data] as warp.UnsignedMessage.
+func UnpackSendWarpEventDataToMessage(data []byte) (*warp.UnsignedMessage, error) {
+	event := sendWarpMessageData{}
+	err := WarpABI.UnpackIntoInterface(&event, "SendWarpMessage", data)
+	if err != nil {
+		return nil, err
+	}
+	return warp.ParseUnsignedMessage(event.message)
 }
 
 // createWarpPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
