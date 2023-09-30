@@ -37,6 +37,7 @@
     "balances": "npx hardhat balances"
   },
   "dependencies": {
+    "ds-test": "https://github.com/dapphub/ds-test.git",
     "typescript": "^4.3.5"
   },
   "engines": {
