@@ -205,7 +205,7 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 	return append(localQueued, remoteQueued...)
 }
 
-// queueRegossipTxs finds the best priority transactions in the mempool and adds up to
+// queuePriorityRegossipTxs finds the best priority transactions in the mempool and adds up to
 // [PriorityRegossipMaxTxs] of them to [txsToGossip].
 func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 	// Fetch all pending transactions from the priority addresses
@@ -328,9 +328,9 @@ func (n *pushGossiper) gossipTxs(force bool) (int, error) {
 	}
 	n.lastGossiped = time.Now()
 	txs := make([]*types.Transaction, 0, len(n.txsToGossip))
-	for _, tx := range n.txsToGossip {
+	for txHash, tx := range n.txsToGossip {
 		txs = append(txs, tx)
-		delete(n.txsToGossip, tx.Hash())
+		delete(n.txsToGossip, txHash)
 	}
 
 	selectedTxs := make([]*types.Transaction, 0)
