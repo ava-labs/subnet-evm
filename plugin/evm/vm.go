@@ -4,6 +4,7 @@
 package evm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -221,7 +222,8 @@ func (vm *VM) GetActivationTime() time.Time {
 
 // Initialize implements the snowman.ChainVM interface
 func (vm *VM) Initialize(
-	ctx *snow.Context,
+	_ context.Context,
+	chainCtx *snow.Context,
 	dbManager manager.Manager,
 	genesisBytes []byte,
 	upgradeBytes []byte,
@@ -240,7 +242,7 @@ func (vm *VM) Initialize(
 		return err
 	}
 
-	vm.ctx = ctx
+	vm.ctx = chainCtx
 
 	// Create logger
 	alias, err := vm.ctx.BCLookup.PrimaryAlias(vm.ctx.ChainID)
@@ -282,6 +284,17 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
+	// Load airdrop file if provided
+	if vm.config.AirdropFile != "" {
+		g.AirdropData, err = os.ReadFile(vm.config.AirdropFile)
+		if err != nil {
+			return fmt.Errorf("could not read airdrop file '%s': %w", vm.config.AirdropFile, err)
+		}
+	}
+	// Set the Avalanche Context on the ChainConfig
+	g.Config.AvalancheContext = params.AvalancheContext{
+		SnowCtx: chainCtx,
+	}
 	vm.syntacticBlockValidator = NewBlockValidator()
 
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
@@ -302,6 +315,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
 	vm.ethConfig.AllowUnfinalizedQueries = vm.config.AllowUnfinalizedQueries
 	vm.ethConfig.AllowUnprotectedTxs = vm.config.AllowUnprotectedTxs
+	vm.ethConfig.AllowUnprotectedTxHashes = vm.config.AllowUnprotectedTxHashes
 	vm.ethConfig.Preimages = vm.config.Preimages
 	vm.ethConfig.Pruning = vm.config.Pruning
 	vm.ethConfig.TrieCleanCache = vm.config.TrieCleanCache
@@ -321,6 +335,8 @@ func (vm *VM) Initialize(
 	vm.ethConfig.OfflinePruningBloomFilterSize = vm.config.OfflinePruningBloomFilterSize
 	vm.ethConfig.OfflinePruningDataDirectory = vm.config.OfflinePruningDataDirectory
 	vm.ethConfig.CommitInterval = vm.config.CommitInterval
+	vm.ethConfig.SkipUpgradeCheck = vm.config.SkipUpgradeCheck
+	vm.ethConfig.AcceptedCacheSize = vm.config.AcceptedCacheSize
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
@@ -331,17 +347,13 @@ func (vm *VM) Initialize(
 	}
 
 	// Handle custom fee recipient
-	vm.ethConfig.Miner.Etherbase = constants.BlackholeAddr
 	if common.IsHexAddress(vm.config.FeeRecipient) {
-		if g.Config.AllowFeeRecipients {
-			address := common.HexToAddress(vm.config.FeeRecipient)
-			log.Info("Setting fee recipient", "address", address)
-			vm.ethConfig.Miner.Etherbase = address
-		} else {
-			return errors.New("cannot specify a custom fee recipient on this blockchain")
-		}
-	} else if g.Config.AllowFeeRecipients {
-		log.Warn("Chain enabled `AllowFeeRecipients`, but chain config has not specified any coinbase address. Defaulting to the blackhole address.")
+		address := common.HexToAddress(vm.config.FeeRecipient)
+		log.Info("Setting fee recipient", "address", address)
+		vm.ethConfig.Miner.Etherbase = address
+	} else {
+		log.Warn("Config has not specified any coinbase address. Defaulting to the blackhole address.")
+		vm.ethConfig.Miner.Etherbase = constants.BlackholeAddr
 	}
 
 	vm.chainConfig = g.Config
@@ -373,7 +385,7 @@ func (vm *VM) Initialize(
 
 	// initialize peer network
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, ctx.NodeID, vm.config.MaxOutboundActiveRequests)
+	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
@@ -522,7 +534,7 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	return vm.multiGatherer.Register(chainStateMetricsPrefix, chainStateRegisterer)
 }
 
-func (vm *VM) SetState(state snow.State) error {
+func (vm *VM) SetState(_ context.Context, state snow.State) error {
 	switch state {
 	case snow.StateSyncing:
 		vm.bootstrapped = false
@@ -575,7 +587,7 @@ func (vm *VM) setAppRequestHandlers() {
 }
 
 // Shutdown implements the snowman.ChainVM interface
-func (vm *VM) Shutdown() error {
+func (vm *VM) Shutdown(context.Context) error {
 	if vm.ctx == nil {
 		return nil
 	}
@@ -590,7 +602,7 @@ func (vm *VM) Shutdown() error {
 }
 
 // buildBlock builds a block to be wrapped by ChainState
-func (vm *VM) buildBlock() (snowman.Block, error) {
+func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
 	block, err := vm.miner.GenerateBlock()
 	vm.builder.handleGenerateBlock()
 	if err != nil {
@@ -623,7 +635,7 @@ func (vm *VM) buildBlock() (snowman.Block, error) {
 }
 
 // parseBlock parses [b] into a block to be wrapped by ChainState.
-func (vm *VM) parseBlock(b []byte) (snowman.Block, error) {
+func (vm *VM) parseBlock(_ context.Context, b []byte) (snowman.Block, error) {
 	ethBlock := new(types.Block)
 	if err := rlp.DecodeBytes(b, ethBlock); err != nil {
 		return nil, err
@@ -640,7 +652,7 @@ func (vm *VM) parseBlock(b []byte) (snowman.Block, error) {
 }
 
 func (vm *VM) ParseEthBlock(b []byte) (*types.Block, error) {
-	block, err := vm.parseBlock(b)
+	block, err := vm.parseBlock(context.TODO(), b)
 	if err != nil {
 		return nil, err
 	}
@@ -650,7 +662,7 @@ func (vm *VM) ParseEthBlock(b []byte) (*types.Block, error) {
 
 // getBlock attempts to retrieve block [id] from the VM to be wrapped
 // by ChainState.
-func (vm *VM) getBlock(id ids.ID) (snowman.Block, error) {
+func (vm *VM) getBlock(_ context.Context, id ids.ID) (snowman.Block, error) {
 	ethBlock := vm.blockChain.GetBlockByHash(common.Hash(id))
 	// If [ethBlock] is nil, return [database.ErrNotFound] here
 	// so that the miss is considered cacheable.
@@ -662,11 +674,11 @@ func (vm *VM) getBlock(id ids.ID) (snowman.Block, error) {
 }
 
 // SetPreference sets what the current tail of the chain is
-func (vm *VM) SetPreference(blkID ids.ID) error {
+func (vm *VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 	// Since each internal handler used by [vm.State] always returns a block
 	// with non-nil ethBlock value, GetBlockInternal should never return a
 	// (*Block) with a nil ethBlock value.
-	block, err := vm.GetBlockInternal(blkID)
+	block, err := vm.GetBlockInternal(ctx, blkID)
 	if err != nil {
 		return fmt.Errorf("failed to set preference to %s: %w", blkID, err)
 	}
@@ -676,7 +688,7 @@ func (vm *VM) SetPreference(blkID ids.ID) error {
 
 // VerifyHeightIndex always returns a nil error since the index is maintained by
 // vm.blockChain.
-func (vm *VM) VerifyHeightIndex() error {
+func (vm *VM) VerifyHeightIndex(context.Context) error {
 	return nil
 }
 
@@ -688,7 +700,7 @@ func (vm *VM) VerifyHeightIndex() error {
 // Note: the engine assumes that if a block is not found at [blkHeight], then
 // [database.ErrNotFound] will be returned. This indicates that the VM has state synced
 // and does not have all historical blocks available.
-func (vm *VM) GetBlockIDAtHeight(blkHeight uint64) (ids.ID, error) {
+func (vm *VM) GetBlockIDAtHeight(_ context.Context, blkHeight uint64) (ids.ID, error) {
 	ethBlock := vm.blockChain.GetBlockByNumber(blkHeight)
 	if ethBlock == nil {
 		return ids.ID{}, database.ErrNotFound
@@ -697,7 +709,7 @@ func (vm *VM) GetBlockIDAtHeight(blkHeight uint64) (ids.ID, error) {
 	return ids.ID(ethBlock.Hash()), nil
 }
 
-func (vm *VM) Version() (string, error) {
+func (vm *VM) Version(context.Context) (string, error) {
 	return Version, nil
 }
 
@@ -724,7 +736,7 @@ func newHandler(name string, service interface{}, lockOption ...commonEng.LockOp
 }
 
 // CreateHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateHandlers() (map[string]*commonEng.HTTPHandler, error) {
+func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler, error) {
 	handler := rpc.NewServer(vm.config.APIMaxDuration.Duration)
 	enabledAPIs := vm.config.EthAPIs()
 	if err := attachEthService(handler, vm.eth.APIs(), enabledAPIs); err != nil {
@@ -771,7 +783,7 @@ func (vm *VM) CreateHandlers() (map[string]*commonEng.HTTPHandler, error) {
 }
 
 // CreateStaticHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateStaticHandlers() (map[string]*commonEng.HTTPHandler, error) {
+func (vm *VM) CreateStaticHandlers(context.Context) (map[string]*commonEng.HTTPHandler, error) {
 	server := avalancheRPC.NewServer()
 	codec := cjson.NewCodec()
 	server.RegisterCodec(codec, "application/json")
