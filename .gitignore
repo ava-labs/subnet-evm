@@ -49,11 +49,3 @@ cmd/simulator/.simulator/*
 
 # goreleaser
 dist/
-
-# generator rpc file for e2e tests
-contract-examples/dynamic_rpc.json
-
-#sqlite
-plugins/evm/hubble.db
-
-*.bin

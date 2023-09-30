@@ -46,6 +46,7 @@ import (
 	// inside of cmd/geth.
 	_ "github.com/ava-labs/subnet-evm/eth/tracers/native"
 
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	// Force-load precompiles to trigger registration
 	_ "github.com/ava-labs/subnet-evm/precompile/registry"
 
@@ -77,8 +78,9 @@ import (
 )
 
 var (
-	_ block.ChainVM              = &VM{}
-	_ block.HeightIndexedChainVM = &VM{}
+	_ block.ChainVM                      = &VM{}
+	_ block.HeightIndexedChainVM         = &VM{}
+	_ block.BuildBlockWithContextChainVM = &VM{}
 )
 
 const (
@@ -542,14 +544,15 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 	block.status = choices.Accepted
 
 	config := &chain.Config{
-		DecidedCacheSize:    decidedCacheSize,
-		MissingCacheSize:    missingCacheSize,
-		UnverifiedCacheSize: unverifiedCacheSize,
-		GetBlockIDAtHeight:  vm.GetBlockIDAtHeight,
-		GetBlock:            vm.getBlock,
-		UnmarshalBlock:      vm.parseBlock,
-		BuildBlock:          vm.buildBlock,
-		LastAcceptedBlock:   block,
+		DecidedCacheSize:      decidedCacheSize,
+		MissingCacheSize:      missingCacheSize,
+		UnverifiedCacheSize:   unverifiedCacheSize,
+		GetBlockIDAtHeight:    vm.GetBlockIDAtHeight,
+		GetBlock:              vm.getBlock,
+		UnmarshalBlock:        vm.parseBlock,
+		BuildBlock:            vm.buildBlock,
+		BuildBlockWithContext: vm.buildBlockWithContext,
+		LastAcceptedBlock:     block,
 	}
 
 	// Register chain state metrics
@@ -632,15 +635,30 @@ func (vm *VM) Shutdown(context.Context) error {
 	}
 	close(vm.shutdownChan)
 	vm.eth.Stop()
+	log.Info("Ethereum backend stop completed")
 	vm.shutdownWg.Wait()
+	log.Info("Subnet-EVM Shutdown completed")
 	return nil
 }
 
-// buildBlock builds a block to be wrapped by ChainState
-func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
-	vm.limitOrderProcesser.RunBuildBlockPipeline(vm.miner.GetLastBlockTime())
-	// Resume block building (untouched subnet-EVM code)
-	block, err := vm.miner.GenerateBlock()
+func (vm *VM) buildBlock(ctx context.Context) (snowman.Block, error) {
+	return vm.buildBlockWithContext(ctx, nil)
+}
+
+func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *block.Context) (snowman.Block, error) {
+	if proposerVMBlockCtx != nil {
+		log.Debug("Building block with context", "pChainBlockHeight", proposerVMBlockCtx.PChainHeight)
+	} else {
+		log.Debug("Building block without context")
+	}
+	predicateCtx := &precompileconfig.ProposerPredicateContext{
+		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
+			SnowCtx: vm.ctx,
+		},
+		ProposerVMBlockCtx: proposerVMBlockCtx,
+	}
+
+	block, err := vm.miner.GenerateBlock(predicateCtx)
 	vm.builder.handleGenerateBlock()
 	if err != nil {
 		return nil, err
@@ -661,7 +679,7 @@ func (vm *VM) buildBlock(context.Context) (snowman.Block, error) {
 	// We call verify without writes here to avoid generating a reference
 	// to the blk state root in the triedb when we are going to call verify
 	// again from the consensus engine with writes enabled.
-	if err := blk.verify(false /*=writes*/); err != nil {
+	if err := blk.verify(predicateCtx, false /*=writes*/); err != nil {
 		return nil, fmt.Errorf("block failed verification due to: %w", err)
 	}
 
