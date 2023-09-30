@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/filters"
@@ -40,7 +41,7 @@ type LimitOrderProcesser interface {
 type limitOrderProcesser struct {
 	ctx                    *snow.Context
 	mu                     *sync.Mutex
-	txPool                 *core.TxPool
+	txPool                 *txpool.TxPool
 	shutdownChan           <-chan struct{}
 	shutdownWg             *sync.WaitGroup
 	backend                *eth.EthAPIBackend
@@ -54,7 +55,7 @@ type limitOrderProcesser struct {
 	configService          orderbook.IConfigService
 }
 
-func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database, validatorPrivateKey string) LimitOrderProcesser {
+func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup, backend *eth.EthAPIBackend, blockChain *core.BlockChain, hubbleDB database.Database, validatorPrivateKey string) LimitOrderProcesser {
 	log.Info("**** NewLimitOrderProcesser")
 	configService := orderbook.NewConfigService(blockChain)
 	memoryDb := orderbook.NewInMemoryDatabase(configService)
@@ -62,7 +63,7 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *core.TxPool, shutdownChan
 	contractEventProcessor := orderbook.NewContractEventsProcessor(memoryDb)
 	buildBlockPipeline := orderbook.NewBuildBlockPipeline(memoryDb, lotp, configService)
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{})
-	filterAPI := filters.NewFilterAPI(filterSystem, true)
+	filterAPI := filters.NewFilterAPI(filterSystem)
 
 	// need to register the types for gob encoding because memory DB has an interface field(ContractOrder)
 	gob.Register(&orderbook.LimitOrder{})
@@ -138,7 +139,7 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions() {
 
 func (lop *limitOrderProcesser) RunBuildBlockPipeline() {
 	executeFuncAndRecoverPanic(func() {
-		lop.buildBlockPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number(), big.NewInt(1)))
+		lop.buildBlockPipeline.Run(new(big.Int).Add(lop.blockChain.CurrentBlock().Number, big.NewInt(1)))
 	}, orderbook.RunBuildBlockPipelinePanicMessage, orderbook.RunBuildBlockPipelinePanicsCounter)
 }
 
@@ -273,17 +274,17 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 	if err != nil {
 		return fmt.Errorf("Error in getting memory DB copy: err=%v", err)
 	}
-	if currentHeadBlock.Number().Cmp(acceptedBlockNumber) == 1 {
+	if currentHeadBlock.Number.Cmp(acceptedBlockNumber) == 1 {
 		// if current head is ahead of the accepted block, then certain events(OrderBook)
 		// need to be removed from the saved state
 		logsToRemove := []*types.Log{}
 		for {
-			logs := lop.blockChain.GetLogs(currentHeadBlock.Hash(), currentHeadBlock.NumberU64())
+			logs := lop.blockChain.GetLogs(currentHeadBlock.Hash(), currentHeadBlock.Number.Uint64())
 			flattenedLogs := types.FlattenLogs(logs)
 			logsToRemove = append(logsToRemove, flattenedLogs...)
 
-			currentHeadBlock = lop.blockChain.GetBlockByHash(currentHeadBlock.ParentHash())
-			if currentHeadBlock.Number().Cmp(acceptedBlockNumber) == 0 {
+			currentHeadBlock = lop.blockChain.GetHeaderByHash(currentHeadBlock.ParentHash)
+			if currentHeadBlock.Number.Cmp(acceptedBlockNumber) == 0 {
 				break
 			}
 		}
@@ -312,7 +313,7 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 		return fmt.Errorf("Error in saving to DB: err=%v", err)
 	}
 
-	log.Info("Saved memory DB snapshot successfully", "accepted block", acceptedBlockNumber, "head block number", currentHeadBlock.Number(), "head block hash", currentHeadBlock.Hash())
+	log.Info("Saved memory DB snapshot successfully", "accepted block", acceptedBlockNumber, "head block number", currentHeadBlock.Number, "head block hash", currentHeadBlock.Hash())
 
 	return nil
 }

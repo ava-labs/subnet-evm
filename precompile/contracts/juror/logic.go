@@ -303,7 +303,7 @@ func ValidatePlaceIOCOrders(bibliophile b.BibliophileClient, inputStruct *Valida
 	if !strings.EqualFold(trader.String(), inputStruct.Sender.String()) && !bibliophile.IsTradingAuthority(trader, inputStruct.Sender) {
 		return nil, errors.New("no trading authority")
 	}
-	blockTimestamp := bibliophile.GetAccessibleState().GetBlockContext().Timestamp()
+	blockTimestamp := big.NewInt(int64(bibliophile.GetAccessibleState().GetBlockContext().Timestamp()))
 	expireWithin := new(big.Int).Add(blockTimestamp, bibliophile.IOC_GetExpirationCap())
 	orderHashes = make([][32]byte, len(orders))
 	for i, order := range orders {
@@ -355,7 +355,8 @@ func validateExecuteIOCOrder(bibliophile b.BibliophileClient, order *orderbook.I
 	if OrderType(order.OrderType) != IOC {
 		return nil, errors.New("not ioc order")
 	}
-	if order.ExpireAt.Cmp(bibliophile.GetAccessibleState().GetBlockContext().Timestamp()) < 0 {
+	blockTimestamp := big.NewInt(int64(bibliophile.GetAccessibleState().GetBlockContext().Timestamp()))
+	if order.ExpireAt.Cmp(blockTimestamp) < 0 {
 		return nil, errors.New("ioc expired")
 	}
 	orderHash, err := getIOCOrderHash(order)

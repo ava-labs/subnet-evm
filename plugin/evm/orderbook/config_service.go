@@ -62,7 +62,7 @@ func (cs *ConfigService) getMinSizeRequirement(market Market) *big.Int {
 }
 
 func (cs *ConfigService) getStateAtCurrentBlock() *state.StateDB {
-	stateDB, _ := cs.blockChain.StateAt(cs.blockChain.CurrentBlock().Root())
+	stateDB, _ := cs.blockChain.StateAt(cs.blockChain.CurrentBlock().Root)
 	return stateDB
 }
 

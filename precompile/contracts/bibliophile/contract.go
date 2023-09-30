@@ -134,7 +134,7 @@ func getNotionalPositionAndMargin(accessibleState contract.AccessibleState, call
 	}
 
 	// CUSTOM CODE STARTS HERE
-	output := GetNotionalPositionAndMargin(accessibleState.GetStateDB(), &inputStruct, accessibleState.GetBlockContext().Timestamp())
+	output := GetNotionalPositionAndMargin(accessibleState.GetStateDB(), &inputStruct, big.NewInt(int64(accessibleState.GetBlockContext().Timestamp())))
 	packedOutput, err := PackGetNotionalPositionAndMarginOutput(output)
 	if err != nil {
 		return nil, remainingGas, err

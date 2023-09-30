@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/metrics"
@@ -42,7 +42,7 @@ type ValidatorTxFeeConfig struct {
 }
 
 type limitOrderTxProcessor struct {
-	txPool                       *core.TxPool
+	txPool                       *txpool.TxPool
 	memoryDb                     LimitOrderDatabase
 	orderBookABI                 abi.ABI
 	clearingHouseABI             abi.ABI
@@ -56,7 +56,7 @@ type limitOrderTxProcessor struct {
 	validatorTxFeeConfig         ValidatorTxFeeConfig
 }
 
-func NewLimitOrderTxProcessor(txPool *core.TxPool, memoryDb LimitOrderDatabase, backend *eth.EthAPIBackend, validatorPrivateKey string) LimitOrderTxProcessor {
+func NewLimitOrderTxProcessor(txPool *txpool.TxPool, memoryDb LimitOrderDatabase, backend *eth.EthAPIBackend, validatorPrivateKey string) LimitOrderTxProcessor {
 	orderBookABI, err := abi.FromSolidityJson(string(abis.OrderBookAbi))
 	if err != nil {
 		panic(err)
@@ -177,14 +177,14 @@ func (lotp *limitOrderTxProcessor) executeLocalTx(contract common.Address, contr
 func (lotp *limitOrderTxProcessor) getBaseFeeEstimate() *big.Int {
 	baseFeeEstimate, err := lotp.backend.EstimateBaseFee(context.TODO())
 	if err != nil {
-		baseFeeEstimate = big.NewInt(0).Abs(lotp.backend.CurrentBlock().BaseFee())
+		baseFeeEstimate = big.NewInt(0).Abs(lotp.backend.CurrentBlock().BaseFee)
 		log.Error("Error in calculating updated bassFee, using last header's baseFee", "baseFeeEstimate", baseFeeEstimate)
 	}
 	return baseFeeEstimate
 }
 
 func (lotp *limitOrderTxProcessor) updateValidatorTxFeeConfig() {
-	currentBlockNumber := lotp.backend.CurrentBlock().NumberU64()
+	currentBlockNumber := lotp.backend.CurrentBlock().Number.Uint64()
 	if lotp.validatorTxFeeConfig.blockNumber < currentBlockNumber {
 		baseFeeEstimate := lotp.getBaseFeeEstimate()
 		// log.Info("inside lotp updating txFeeConfig", "blockNumber", currentBlockNumber, "baseFeeEstimate", baseFeeEstimate)
@@ -270,7 +270,7 @@ func (lotp *limitOrderTxProcessor) UpdateMetrics(block *types.Block) {
 	}
 
 	bigblock := new(big.Int).SetUint64(block.NumberU64())
-	timestamp := new(big.Int).SetUint64(block.Header().Time)
+	timestamp := block.Header().Time
 	signer := types.MakeSigner(lotp.backend.ChainConfig(), bigblock, timestamp)
 
 	for i := 0; i < len(txs); i++ {

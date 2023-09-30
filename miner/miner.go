@@ -31,6 +31,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
 	"github.com/ava-labs/subnet-evm/consensus"
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -41,12 +42,12 @@ import (
 // Backend wraps all methods required for mining.
 type Backend interface {
 	BlockChain() *core.BlockChain
-	TxPool() *core.TxPool
+	TxPool() *txpool.TxPool
 }
 
 // Config is the configuration parameters of mining.
 type Config struct {
-	Etherbase common.Address `toml:",omitempty"` // Public address for block mining rewards (default = first account)
+	Etherbase common.Address `toml:",omitempty"` // Public address for block mining rewards
 }
 
 type Miner struct {
@@ -69,7 +70,7 @@ func (miner *Miner) GenerateBlock(predicateContext *precompileconfig.ProposerPre
 
 func (miner *Miner) GetLastBlockTime() uint64 {
 	// the timestamp for the new block will be >= this value
-	return miner.worker.chain.CurrentBlock().Time()
+	return miner.worker.chain.CurrentBlock().Time
 }
 
 // SubscribePendingLogs starts delivering logs from pending transactions

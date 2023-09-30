@@ -23,17 +23,19 @@ type Config struct {
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // Juror.
 func NewConfig(blockTimestamp *big.Int) *Config {
+	val := blockTimestamp.Uint64()
 	return &Config{
-		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
+		Upgrade: precompileconfig.Upgrade{BlockTimestamp: &val},
 	}
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables Juror.
 func NewDisableConfig(blockTimestamp *big.Int) *Config {
+	val := blockTimestamp.Uint64()
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
-			BlockTimestamp: blockTimestamp,
+			BlockTimestamp: &val,
 			Disable:        true,
 		},
 	}
