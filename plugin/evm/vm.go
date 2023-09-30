@@ -36,9 +36,8 @@ import (
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
-	"github.com/ava-labs/subnet-evm/sync/handlers"
-	handlerstats "github.com/ava-labs/subnet-evm/sync/handlers/stats"
 	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/subnet-evm/warp"
 
 	// Force-load tracer engine to trigger registration
 	//
@@ -84,9 +83,10 @@ const (
 	// and fail verification
 	maxFutureBlockTime = 10 * time.Second
 
-	decidedCacheSize    = 100
-	missingCacheSize    = 50
-	unverifiedCacheSize = 50
+	decidedCacheSize       = 100
+	missingCacheSize       = 50
+	unverifiedCacheSize    = 50
+	warpSignatureCacheSize = 500
 
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
@@ -105,6 +105,7 @@ var (
 	lastAcceptedKey = []byte("last_accepted_key")
 	acceptedPrefix  = []byte("snowman_accepted")
 	metadataPrefix  = []byte("metadata")
+	warpPrefix      = []byte("warp")
 	ethDBPrefix     = []byte("ethdb")
 )
 
@@ -180,6 +181,10 @@ type VM struct {
 	// block.
 	acceptedBlockDB database.Database
 
+	// [warpDB] is used to store warp message signatures
+	// set to a prefixDB with the prefix [warpPrefix]
+	warpDB database.Database
+
 	toEngine chan<- commonEng.Message
 
 	syntacticBlockValidator BlockValidator
@@ -211,17 +216,10 @@ type VM struct {
 	// State sync server and client
 	StateSyncServer
 	StateSyncClient
-}
 
-/*
- ******************************************************************************
- ********************************* Snowman API ********************************
- ******************************************************************************
- */
-
-// implements SnowmanPlusPlusVM interface
-func (vm *VM) GetActivationTime() time.Time {
-	return time.Unix(vm.chainConfig.SubnetEVMTimestamp.Int64(), 0)
+	// Avalanche Warp Messaging backend
+	// Used to serve BLS signatures of warp messages over RPC
+	warpBackend warp.WarpBackend
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -280,6 +278,7 @@ func (vm *VM) Initialize(
 	vm.db = versiondb.New(baseDB)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
+	vm.warpDB = prefixdb.New(warpPrefix, vm.db)
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -385,6 +384,7 @@ func (vm *VM) Initialize(
 	vm.chainConfig = g.Config
 	vm.networkID = vm.ethConfig.NetworkId
 
+	// TODO: remove SkipSubnetEVMUpgradeCheck after next network upgrade
 	if !vm.config.SkipSubnetEVMUpgradeCheck {
 		// check that subnetEVM upgrade is enabled from genesis before upgradeBytes
 		if !vm.chainConfig.IsSubnetEVM(common.Big0) {
@@ -420,6 +420,9 @@ func (vm *VM) Initialize(
 	vm.networkCodec = message.Codec
 	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
+
+	// initialize warp backend
+	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
@@ -471,13 +474,11 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	}
 	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
+	vm.txPool.SetMinFee(vm.chainConfig.FeeConfig.MinBaseFee)
+	vm.txPool.SetGasPrice(big.NewInt(0))
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
 
-	// start goroutines to update the tx pool gas minimum gas price when upgrades go into effect
-	vm.handleGasPriceUpdates()
-
-	vm.limitOrderProcesser = vm.NewLimitOrderProcesser()
 	vm.eth.Start()
 	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
 }
@@ -614,13 +615,9 @@ func (vm *VM) setAppRequestHandlers() {
 			Cache: vm.config.StateSyncServerTrieCache,
 		},
 	)
-	syncRequestHandler := handlers.NewSyncHandler(
-		vm.blockChain,
-		evmTrieDB,
-		vm.networkCodec,
-		handlerstats.NewHandlerStats(metrics.Enabled),
-	)
-	vm.Network.SetRequestHandler(syncRequestHandler)
+
+	networkHandler := newNetworkHandler(vm.blockChain, evmTrieDB, vm.networkCodec)
+	vm.Network.SetRequestHandler(networkHandler)
 }
 
 // setCrossChainAppRequestHandler sets the request handlers for the VM to serve cross chain
@@ -813,6 +810,13 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 		return nil, err
 	}
 
+	if vm.config.WarpAPIEnabled {
+		if err := handler.RegisterName("warp", &warp.WarpAPI{Backend: vm.warpBackend}); err != nil {
+			return nil, err
+		}
+		enabledAPIs = append(enabledAPIs, "warp")
+	}
+
 	log.Info(fmt.Sprintf("Enabled APIs: %s", strings.Join(enabledAPIs, ", ")))
 	apis[ethRPCEndpoint] = &commonEng.HTTPHandler{
 		LockOptions: commonEng.NoLock,
@@ -862,12 +866,6 @@ func (vm *VM) GetCurrentNonce(address common.Address) (uint64, error) {
 		return 0, err
 	}
 	return state.GetNonce(address), nil
-}
-
-// currentRules returns the chain rules for the current block.
-func (vm *VM) currentRules() params.Rules {
-	header := vm.eth.APIBackend.CurrentHeader()
-	return vm.chainConfig.AvalancheRules(header.Number, big.NewInt(int64(header.Time)))
 }
 
 func (vm *VM) startContinuousProfiler() {
