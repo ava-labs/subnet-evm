@@ -18,6 +18,7 @@ type IConfigService interface {
 	getMinSizeRequirement(market Market) *big.Int
 	GetActiveMarketsCount() int64
 	GetUnderlyingPrices() []*big.Int
+	GetMidPrices() []*big.Int
 	GetCollaterals() []hu.Collateral
 	GetLastPremiumFraction(market Market, trader *common.Address) *big.Int
 	GetCumulativePremiumFraction(market Market) *big.Int
@@ -82,6 +83,10 @@ func (cs *ConfigService) GetActiveMarketsCount() int64 {
 
 func (cs *ConfigService) GetUnderlyingPrices() []*big.Int {
 	return bibliophile.GetUnderlyingPrices(cs.getStateAtCurrentBlock())
+}
+
+func (cs *ConfigService) GetMidPrices() []*big.Int {
+	return bibliophile.GetMidPrices(cs.getStateAtCurrentBlock())
 }
 
 func (cs *ConfigService) GetCollaterals() []hu.Collateral {

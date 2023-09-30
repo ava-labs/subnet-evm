@@ -71,17 +71,23 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	}
 
 	// fetch the underlying price and run the matching engine
-	underlyingPrices := pipeline.GetUnderlyingPrices()
-	assets := pipeline.GetCollaterals()
+	hState := &hu.HubbleState{
+		Assets:             pipeline.GetCollaterals(),
+		OraclePrices:       pipeline.GetUnderlyingPrices(),
+		MidPrices:          pipeline.GetMidPrices(),
+		ActiveMarkets:      markets,
+		MinAllowableMargin: pipeline.configService.getMinAllowableMargin(),
+		MaintenanceMargin:  pipeline.configService.getMaintenanceMargin(),
+	}
 
 	// build trader map
-	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(underlyingPrices, assets, markets)
+	liquidablePositions, ordersToCancel := pipeline.db.GetNaughtyTraders(hState)
 	cancellableOrderIds := pipeline.cancelLimitOrders(ordersToCancel)
 	orderMap := make(map[Market]*Orders)
 	for _, market := range markets {
-		orderMap[market] = pipeline.fetchOrders(market, underlyingPrices[market], cancellableOrderIds, blockNumber)
+		orderMap[market] = pipeline.fetchOrders(market, hState.OraclePrices[market], cancellableOrderIds, blockNumber)
 	}
-	pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
+	pipeline.runLiquidations(liquidablePositions, orderMap, hState.OraclePrices)
 	for _, market := range markets {
 		// @todo should we prioritize matching in any particular market?
 		pipeline.runMatchingEngine(pipeline.lotp, orderMap[market].longOrders, orderMap[market].shortOrders)
@@ -117,6 +123,16 @@ func (pipeline *MatchingPipeline) GetUnderlyingPrices() map[Market]*big.Int {
 		underlyingPrices[Market(market)] = price
 	}
 	return underlyingPrices
+}
+
+func (pipeline *MatchingPipeline) GetMidPrices() map[Market]*big.Int {
+	prices := pipeline.configService.GetMidPrices()
+	log.Info("GetMidPrices", "prices", prices)
+	midPrices := make(map[Market]*big.Int)
+	for market, price := range prices {
+		midPrices[Market(market)] = price
+	}
+	return midPrices
 }
 
 func (pipeline *MatchingPipeline) GetCollaterals() []hu.Collateral {

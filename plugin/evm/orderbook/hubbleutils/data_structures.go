@@ -23,9 +23,6 @@ type Market = int
 type Position struct {
 	OpenNotional *big.Int `json:"open_notional"`
 	Size         *big.Int `json:"size"`
-	// UnrealisedFunding    *big.Int `json:"unrealised_funding"`
-	// LastPremiumFraction  *big.Int `json:"last_premium_fraction"`
-	// LiquidationThreshold *big.Int `json:"liquidation_threshold"`
 }
 
 type Trader struct {

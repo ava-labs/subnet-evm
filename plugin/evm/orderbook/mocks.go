@@ -116,7 +116,7 @@ func (db *MockLimitOrderDatabase) GetLastPrices() map[Market]*big.Int {
 	return map[Market]*big.Int{}
 }
 
-func (db *MockLimitOrderDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, assets []hu.Collateral, markets []Market) ([]LiquidablePosition, map[common.Address][]Order) {
+func (db *MockLimitOrderDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order) {
 	return []LiquidablePosition{}, map[common.Address][]Order{}
 }
 
@@ -254,6 +254,10 @@ func (cs *MockConfigService) GetActiveMarketsCount() int64 {
 }
 
 func (cs *MockConfigService) GetUnderlyingPrices() []*big.Int {
+	return []*big.Int{}
+}
+
+func (cs *MockConfigService) GetMidPrices() []*big.Int {
 	return []*big.Int{}
 }
 

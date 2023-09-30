@@ -184,8 +184,8 @@ func (api *TradingAPI) GetMarginAndPositions(ctx context.Context, trader string)
 	response.ReservedMargin = utils.BigIntToDecimal(traderInfo.Margin.Reserved, 6, 8)
 
 	for market, position := range traderInfo.Positions {
-		lastPrice := api.db.GetLastPrice(market)
-		notionalPosition, uPnL, mf := getPositionMetadata(lastPrice, position.OpenNotional, position.Size, margin)
+		midPrice := api.configService.GetMidPrices()[market]
+		notionalPosition, uPnL, mf := getPositionMetadata(midPrice, position.OpenNotional, position.Size, margin)
 
 		response.Positions = append(response.Positions, TraderPosition{
 			Market:               market,
@@ -197,7 +197,7 @@ func (api *TradingAPI) GetMarginAndPositions(ctx context.Context, trader string)
 			MarginFraction:       utils.BigIntToDecimal(mf, 6, 8),
 			NotionalPosition:     utils.BigIntToDecimal(notionalPosition, 6, 8),
 			LiquidationPrice:     "0", // todo: calculate
-			MarkPrice:            utils.BigIntToDecimal(lastPrice, 6, 8),
+			MarkPrice:            utils.BigIntToDecimal(midPrice, 6, 8),
 		})
 	}
 

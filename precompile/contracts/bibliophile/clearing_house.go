@@ -46,6 +46,8 @@ func GetMarkets(stateDB contract.StateDB) []common.Address {
 	numMarkets := GetActiveMarketsCount(stateDB)
 	markets := make([]common.Address, numMarkets)
 	baseStorageSlot := marketsStorageSlot()
+	// @todo when we ever settle a market, here it needs to be taken care of
+	// because currently the following assumes that all markets are active
 	for i := int64(0); i < numMarkets; i++ {
 		amm := stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BigToHash(new(big.Int).Add(baseStorageSlot, big.NewInt(i))))
 		markets[i] = common.BytesToAddress(amm.Bytes())
@@ -69,13 +71,13 @@ func getNotionalPositionAndMargin(stateDB contract.StateDB, input *GetNotionalPo
 	numMarkets := len(markets)
 	positions := make(map[int]*hu.Position, numMarkets)
 	underlyingPrices := make(map[int]*big.Int, numMarkets)
-	lastPrices := make(map[int]*big.Int, numMarkets)
-	var marketIds []int
+	midPrices := make(map[int]*big.Int, numMarkets)
+	var activeMarketIds []int
 	for i, market := range markets {
 		positions[i] = getPosition(stateDB, getMarketAddressFromMarketID(int64(i), stateDB), &input.Trader)
 		underlyingPrices[i] = getUnderlyingPrice(stateDB, market)
-		lastPrices[i] = getLastPrice(stateDB, market)
-		marketIds = append(marketIds, i)
+		midPrices[i] = getMidPrice(stateDB, market)
+		activeMarketIds = append(activeMarketIds, i)
 	}
 	pendingFunding := big.NewInt(0)
 	if input.IncludeFundingPayments {
@@ -85,8 +87,8 @@ func getNotionalPositionAndMargin(stateDB contract.StateDB, input *GetNotionalPo
 		&hu.HubbleState{
 			Assets:        GetCollaterals(stateDB),
 			OraclePrices:  underlyingPrices,
-			LastPrices:    lastPrices,
-			ActiveMarkets: marketIds,
+			MidPrices:     midPrices,
+			ActiveMarkets: activeMarketIds,
 		},
 		&hu.UserState{
 			Positions:      positions,
@@ -128,6 +130,14 @@ func GetUnderlyingPrices(stateDB contract.StateDB) []*big.Int {
 	underlyingPrices := make([]*big.Int, 0)
 	for _, market := range GetMarkets(stateDB) {
 		underlyingPrices = append(underlyingPrices, getUnderlyingPrice(stateDB, market))
+	}
+	return underlyingPrices
+}
+
+func GetMidPrices(stateDB contract.StateDB) []*big.Int {
+	underlyingPrices := make([]*big.Int, 0)
+	for _, market := range GetMarkets(stateDB) {
+		underlyingPrices = append(underlyingPrices, getMidPrice(stateDB, market))
 	}
 	return underlyingPrices
 }

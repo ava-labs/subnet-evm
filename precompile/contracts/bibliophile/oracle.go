@@ -3,6 +3,7 @@ package bibliophile
 import (
 	"math/big"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -39,6 +40,15 @@ func getUnderlyingPrice_(stateDB contract.StateDB, underlying common.Address) *b
 	// red stone oracle is not enabled for this market, we use the default TestOracle
 	slot := crypto.Keccak256(append(common.LeftPadBytes(underlying.Bytes(), 32), common.BigToHash(big.NewInt(TEST_ORACLE_PRICES_MAPPING_SLOT)).Bytes()...))
 	return fromTwosComplement(stateDB.GetState(oracle, common.BytesToHash(slot)).Bytes())
+}
+
+func getMidPrice(stateDB contract.StateDB, market common.Address) *big.Int {
+	asksHead := getAsksHead(stateDB, market)
+	bidsHead := getBidsHead(stateDB, market)
+	if asksHead.Sign() == 0 || bidsHead.Sign() == 0 {
+		return getUnderlyingPrice(stateDB, market)
+	}
+	return hu.Div(hu.Add(asksHead, bidsHead), big.NewInt(2))
 }
 
 func getRedStoneAdapterAddress(stateDB contract.StateDB, oracle common.Address) common.Address {

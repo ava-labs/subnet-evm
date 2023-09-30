@@ -231,7 +231,6 @@ type LimitOrderDatabase interface {
 	UpdateNextSamplePITime(nextSamplePITime uint64)
 	GetNextSamplePITime() uint64
 	UpdateLastPrice(market Market, lastPrice *big.Int)
-	GetLastPrice(market Market) *big.Int
 	GetLastPrices() map[Market]*big.Int
 	GetAllTraders() map[common.Address]Trader
 	GetOrderBookData() InMemoryDatabase
@@ -239,7 +238,7 @@ type LimitOrderDatabase interface {
 	Accept(acceptedBlockNumber uint64, blockTimestamp uint64)
 	SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
-	GetNaughtyTraders(oraclePrices map[Market]*big.Int, assets []hu.Collateral, markets []Market) ([]LiquidablePosition, map[common.Address][]Order)
+	GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order)
 	GetAllOpenOrdersForTrader(trader common.Address) []Order
 	GetOpenOrdersForTraderByType(trader common.Address, orderType OrderType) []Order
 	UpdateLastPremiumFraction(market Market, trader common.Address, lastPremiumFraction *big.Int, cumlastPremiumFraction *big.Int)
@@ -817,18 +816,15 @@ func (db *InMemoryDatabase) UpdateLastPremiumFraction(market Market, trader comm
 	db.TraderMap[trader].Positions[market].UnrealisedFunding = hu.Div1e18(big.NewInt(0).Mul(big.NewInt(0).Sub(cumulativePremiumFraction, lastPremiumFraction), db.TraderMap[trader].Positions[market].Size))
 }
 
-func (db *InMemoryDatabase) GetLastPrice(market Market) *big.Int {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	return big.NewInt(0).Set(db.LastPrice[market])
-}
-
 func (db *InMemoryDatabase) GetLastPrices() map[Market]*big.Int {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
-	return db.LastPrice
+	copyMap := make(map[Market]*big.Int)
+	for k, v := range db.LastPrice {
+		copyMap[k] = new(big.Int).Set(v)
+	}
+	return copyMap
 }
 
 func (db *InMemoryDatabase) GetAllTraders() map[common.Address]Trader {
@@ -912,7 +908,7 @@ func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFra
 	return liquidable
 }
 
-func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, assets []hu.Collateral, markets []Market) ([]LiquidablePosition, map[common.Address][]Order) {
+func (db *InMemoryDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -924,26 +920,30 @@ func (db *InMemoryDatabase) GetNaughtyTraders(oraclePrices map[Market]*big.Int, 
 	minSizes := []*big.Int{}
 
 	for addr, trader := range db.TraderMap {
-		pendingFunding := getTotalFunding(trader, markets)
-		marginFraction := calcMarginFraction(trader, pendingFunding, assets, oraclePrices, db.LastPrice, markets)
-		if marginFraction.Cmp(db.configService.getMaintenanceMargin()) == -1 {
+		userState := &hu.UserState{
+			Positions:      translatePositions(trader.Positions),
+			Margins:        getMargins(trader, len(hState.Assets)),
+			PendingFunding: getTotalFunding(trader, hState.ActiveMarkets),
+			ReservedMargin: new(big.Int).Set(trader.Margin.Reserved),
+		}
+		marginFraction := hu.GetMarginFraction(hState, userState)
+		if marginFraction.Cmp(hState.MaintenanceMargin) == -1 {
 			log.Info("below maintenanceMargin", "trader", addr.String(), "marginFraction", prettifyScaledBigInt(marginFraction, 6))
 			if len(minSizes) == 0 {
-				for _, market := range markets {
+				for _, market := range hState.ActiveMarkets {
 					minSizes = append(minSizes, db.configService.getMinSizeRequirement(market))
 				}
 			}
-			liquidablePositions = append(liquidablePositions, determinePositionToLiquidate(trader, addr, marginFraction, markets, minSizes))
+			liquidablePositions = append(liquidablePositions, determinePositionToLiquidate(trader, addr, marginFraction, hState.ActiveMarkets, minSizes))
 			continue // we do not check for their open orders yet. Maybe liquidating them first will make available margin positive
 		}
 		if trader.Margin.Reserved.Sign() == 0 {
 			continue
 		}
 		// has orders that might be cancellable
-		availableMargin := getAvailableMargin(trader, pendingFunding, assets, oraclePrices, db.LastPrice, db.configService.getMinAllowableMargin(), markets)
-		// availableMargin := getAvailableMarginWithDebugInfo(addr, trader, pendingFunding, oraclePrices, db.LastPrice, db.configService.getMinAllowableMargin(), markets)
+		availableMargin := hu.GetAvailableMargin(hState, userState)
 		if availableMargin.Sign() == -1 {
-			foundCancellableOrders := db.determineOrdersToCancel(addr, trader, availableMargin, oraclePrices, ordersToCancel)
+			foundCancellableOrders := db.determineOrdersToCancel(addr, trader, availableMargin, hState.OraclePrices, ordersToCancel)
 			if foundCancellableOrders {
 				log.Info("negative available margin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
 			} else {
@@ -1085,19 +1085,13 @@ func getBlankTrader() *Trader {
 	}
 }
 
-func getAvailableMargin(trader *Trader, pendingFunding *big.Int, assets []hu.Collateral, oraclePrices map[Market]*big.Int, lastPrices map[Market]*big.Int, minAllowableMargin *big.Int, markets []Market) *big.Int {
+func getAvailableMargin(trader *Trader, hState *hu.HubbleState) *big.Int {
 	return hu.GetAvailableMargin(
-		&hu.HubbleState{
-			Assets:             assets,
-			OraclePrices:       oraclePrices,
-			LastPrices:         lastPrices,
-			ActiveMarkets:      markets,
-			MinAllowableMargin: minAllowableMargin,
-		},
+		hState,
 		&hu.UserState{
 			Positions:      translatePositions(trader.Positions),
-			Margins:        getMargins(trader, len(assets)),
-			PendingFunding: pendingFunding,
+			Margins:        getMargins(trader, len(hState.Assets)),
+			PendingFunding: getTotalFunding(trader, hState.ActiveMarkets),
 			ReservedMargin: trader.Margin.Reserved,
 		},
 	)

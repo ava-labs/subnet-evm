@@ -79,8 +79,8 @@ describe('Testing getNotionalPositionAndMargin',async function () {
                 await placeOrderFromLimitOrderV2(oppositeShortOrder, alice)
                 await waitForOrdersToMatch()
 
-                makerFee = await getMakerFee() 
-                takerFee = await getTakerFee() 
+                makerFee = await getMakerFee()
+                takerFee = await getTakerFee()
 
                 resultCharlie = await juror.getNotionalPositionAndMargin(charlie.address, false, 0)
                 charlieOrder1Fee = makerFee.mul(charlieOrderSize.abs()).mul(charlieOrderPrice).div(_1e18).div(_1e6)
@@ -103,8 +103,6 @@ describe('Testing getNotionalPositionAndMargin',async function () {
         //create position
         let aliceOrder1 = getOrderV2(market, alice.address, aliceOrderSize, aliceOrderPrice, getRandomSalt())
         let charlieOrder1 = getOrderV2(market, charlie.address, charlieOrderSize, charlieOrderPrice, getRandomSalt())
-        let oppositeAliceOrder1 = getOrderV2(market, alice.address, charlieOrderSize, charlieOrderPrice, getRandomSalt())
-        let oppositeCharlieOrder1 = getOrderV2(market, charlie.address, aliceOrderSize, aliceOrderPrice, getRandomSalt())
         // increase position
         let aliceOrder2Size = multiplySize(0.2)
         let charlieOrder2Size = multiplySize(-0.2)
@@ -119,8 +117,8 @@ describe('Testing getNotionalPositionAndMargin',async function () {
         let makerFee, takerFee
 
         this.beforeAll(async function () {
-            makerFee = await getMakerFee() 
-            takerFee = await getTakerFee() 
+            makerFee = await getMakerFee()
+            takerFee = await getTakerFee()
             await addMargin(alice, aliceInitialMargin)
             await addMargin(charlie, charlieInitialMargin)
             // charlie places a short order and alice places a long order
@@ -130,8 +128,6 @@ describe('Testing getNotionalPositionAndMargin',async function () {
         })
 
         this.afterAll(async function () {
-            let resultCharlie = await juror.getNotionalPositionAndMargin(charlie.address, false, 0)
-            let resultAlice = await juror.getNotionalPositionAndMargin(alice.address, false, 0)
             // charlie places a long order and alice places a short order
             charlieTotalSize = charlieOrder1.baseAssetQuantity.add(charlieOrder2Size).add(charlieOrder3Size)
             aliceTotalSize = aliceOrder1.baseAssetQuantity.add(aliceOrder2Size).add(aliceOrder3Size)
@@ -152,15 +148,19 @@ describe('Testing getNotionalPositionAndMargin',async function () {
             it('should return correct notional position and margin', async function () {
                 let resultCharlie = await juror.getNotionalPositionAndMargin(charlie.address, false, 0)
                 let charlieOrderFee = takerFee.mul(charlieOrderSize.abs()).mul(charlieOrderPrice).div(_1e18).div(_1e6)
-                let expectedCharlieMargin = charlieInitialMargin.sub(charlieOrderFee)
-                let expectedCharlieNotionalPosition = charlieOrderSize.abs().mul(charlieOrderPrice).div(_1e18)
+                // since there is no liquidity in the market, the optimal pnl will fall back to using underlying price
+                const amm = await utils.getAMMContract(market)
+                const underlyingPrice = await amm.getUnderlyingPrice()
+                let expectedCharlieNotionalPosition = charlieOrderSize.abs().mul(underlyingPrice).div(_1e18)
+                let uPnl = charlieOrderSize.abs().mul(charlieOrderPrice).div(_1e18).sub(expectedCharlieNotionalPosition) // short pos
+                let expectedCharlieMargin = charlieInitialMargin.sub(charlieOrderFee).add(uPnl)
                 expect(resultCharlie.notionalPosition.toString()).to.equal(expectedCharlieNotionalPosition.toString())
                 expect(resultCharlie.margin.toString()).to.equal(expectedCharlieMargin.toString())
 
                 let resultAlice = await juror.getNotionalPositionAndMargin(alice.address, false, 0)
                 let aliceOrderFee = takerFee.mul(aliceOrderSize).mul(aliceOrderPrice).div(_1e18).div(_1e6)
-                let expectedAliceMargin = aliceInitialMargin.sub(aliceOrderFee)
-                let expectedAliceNotionalPosition = aliceOrderSize.mul(aliceOrderPrice).div(_1e18)
+                let expectedAliceNotionalPosition = aliceOrderSize.abs().mul(underlyingPrice).div(_1e18)
+                let expectedAliceMargin = aliceInitialMargin.sub(aliceOrderFee).sub(uPnl) // - charlie's uPnL
                 expect(resultAlice.notionalPosition.toString()).to.equal(expectedAliceNotionalPosition.toString())
                 expect(resultAlice.margin.toString()).to.equal(expectedAliceMargin.toString())
             })
@@ -176,20 +176,23 @@ describe('Testing getNotionalPositionAndMargin',async function () {
                 let resultCharlie = await juror.getNotionalPositionAndMargin(charlie.address, false, 0)
                 let charlieOrder1Fee = makerFee.mul(charlieOrderSize.abs()).mul(charlieOrderPrice).div(_1e18).div(_1e6)
                 let charlieOrder2Fee = takerFee.mul(charlieOrder2Size.abs()).mul(charlieOrderPrice).div(_1e18).div(_1e6)
-                let expectedCharlieMargin = charlieInitialMargin.sub(charlieOrder1Fee).sub(charlieOrder2Fee)
-                let charlieOrder1Notional = charlieOrderSize.mul(charlieOrderPrice).div(_1e18).abs()
-                let charlieOrder2Notional = charlieOrder2Size.mul(charlieOrderPrice).div(_1e18).abs()
-                let expectedCharlieNotionalPosition = charlieOrder1Notional.add(charlieOrder2Notional) 
+
+                const amm = await utils.getAMMContract(market)
+                const underlyingPrice = await amm.getUnderlyingPrice()
+                let { openNotional, size } = await amm.positions(charlie.address)
+                let expectedCharlieNotionalPosition = size.abs().mul(underlyingPrice).div(_1e18)
+                let uPnl = expectedCharlieNotionalPosition.sub(openNotional).mul(size.isNegative() ? -1 : 1)
+
+                let expectedCharlieMargin = charlieInitialMargin.sub(charlieOrder1Fee).sub(charlieOrder2Fee).add(uPnl)
                 expect(resultCharlie.notionalPosition.toString()).to.equal(expectedCharlieNotionalPosition.toString())
                 expect(resultCharlie.margin.toString()).to.equal(expectedCharlieMargin.toString())
 
                 let resultAlice = await juror.getNotionalPositionAndMargin(alice.address, false, 0)
                 let aliceOrder1Fee = takerFee.mul(aliceOrderSize).mul(aliceOrderPrice).div(_1e18).div(_1e6)
                 let aliceOrder2Fee = makerFee.mul(aliceOrder2Size).mul(aliceOrderPrice).div(_1e18).div(_1e6)
-                let expectedAliceMargin = aliceInitialMargin.sub(aliceOrder1Fee).sub(aliceOrder2Fee)
-                let aliceOrder1Notional = aliceOrderSize.mul(aliceOrderPrice).div(_1e18)
-                let aliceOrder2Notional = aliceOrder2Size.mul(aliceOrderPrice).div(_1e18)
-                let expectedAliceNotionalPosition = aliceOrder1Notional.add(aliceOrder2Notional)
+                ;({ openNotional, size } = await amm.positions(charlie.address))
+                let expectedAliceNotionalPosition = size.abs().mul(underlyingPrice).div(_1e18)
+                let expectedAliceMargin = aliceInitialMargin.sub(aliceOrder1Fee).sub(aliceOrder2Fee).sub(uPnl)
                 expect(resultAlice.notionalPosition.toString()).to.equal(expectedAliceNotionalPosition.toString())
                 expect(resultAlice.margin.toString()).to.equal(expectedAliceMargin.toString())
             })
@@ -205,11 +208,14 @@ describe('Testing getNotionalPositionAndMargin',async function () {
                 let charlieOrder1Fee = makerFee.mul(charlieOrderSize.abs()).mul(charlieOrderPrice).div(_1e18).div(_1e6)
                 let charlieOrder2Fee = takerFee.mul(charlieOrder2Size.abs()).mul(charlieOrderPrice).div(_1e18).div(_1e6)
                 let charlieOrder3Fee = makerFee.mul(charlieOrder3Size.abs()).mul(charlieOrderPrice).div(_1e18).div(_1e6)
-                let expectedCharlieMargin = charlieInitialMargin.sub(charlieOrder1Fee).sub(charlieOrder2Fee).sub(charlieOrder3Fee)
-                let charlieOrder1Notional = charlieOrderSize.mul(charlieOrderPrice).div(_1e18)
-                let charlieOrder2Notional = charlieOrder2Size.mul(charlieOrderPrice).div(_1e18)
-                let charlieOrder3Notional = charlieOrder3Size.mul(charlieOrderPrice).div(_1e18)
-                let expectedCharlieNotionalPosition = charlieOrder1Notional.add(charlieOrder2Notional).add(charlieOrder3Notional).abs()
+
+                const amm = await utils.getAMMContract(market)
+                const underlyingPrice = await amm.getUnderlyingPrice()
+                let { openNotional, size } = await amm.positions(charlie.address)
+                let expectedCharlieNotionalPosition = size.abs().mul(underlyingPrice).div(_1e18)
+                let uPnl = expectedCharlieNotionalPosition.sub(openNotional).mul(size.isNegative() ? -1 : 1)
+                let expectedCharlieMargin = charlieInitialMargin.sub(charlieOrder1Fee).sub(charlieOrder2Fee).sub(charlieOrder3Fee).add(uPnl)
+
                 expect(resultCharlie.notionalPosition.toString()).to.equal(expectedCharlieNotionalPosition.toString())
                 expect(resultCharlie.margin.toString()).to.equal(expectedCharlieMargin.toString())
 
@@ -217,11 +223,9 @@ describe('Testing getNotionalPositionAndMargin',async function () {
                 let aliceOrder1Fee = takerFee.mul(aliceOrderSize.abs()).mul(aliceOrderPrice).div(_1e18).div(_1e6)
                 let aliceOrder2Fee = makerFee.mul(aliceOrder2Size.abs()).mul(aliceOrderPrice).div(_1e18).div(_1e6)
                 let aliceOrder3Fee = takerFee.mul(aliceOrder3Size.abs()).mul(aliceOrderPrice).div(_1e18).div(_1e6)
-                let expectedAliceMargin = aliceInitialMargin.sub(aliceOrder1Fee).sub(aliceOrder2Fee).sub(aliceOrder3Fee)
-                let aliceOrder1Notional = aliceOrderSize.mul(aliceOrderPrice).div(_1e18)
-                let aliceOrder2Notional = aliceOrder2Size.mul(aliceOrderPrice).div(_1e18)
-                let aliceOrder3Notional = aliceOrder3Size.mul(aliceOrderPrice).div(_1e18)
-                let expectedAliceNotionalPosition = aliceOrder1Notional.add(aliceOrder2Notional).add(aliceOrder3Notional).abs()
+                ;({ openNotional, size } = await amm.positions(charlie.address))
+                let expectedAliceNotionalPosition = size.abs().mul(underlyingPrice).div(_1e18)
+                let expectedAliceMargin = aliceInitialMargin.sub(aliceOrder1Fee).sub(aliceOrder2Fee).sub(aliceOrder3Fee).sub(uPnl)
                 expect(resultAlice.notionalPosition.toString()).to.equal(expectedAliceNotionalPosition.toString())
                 expect(resultAlice.margin.toString()).to.equal(expectedAliceMargin.toString())
             })

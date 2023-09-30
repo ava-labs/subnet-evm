@@ -1,15 +1,17 @@
 package hubbleutils
 
 import (
+	"math"
 	"math/big"
 )
 
 type HubbleState struct {
 	Assets             []Collateral
 	OraclePrices       map[Market]*big.Int
-	LastPrices         map[Market]*big.Int
+	MidPrices          map[Market]*big.Int
 	ActiveMarkets      []Market
 	MinAllowableMargin *big.Int
+	MaintenanceMargin  *big.Int
 }
 
 type UserState struct {
@@ -27,6 +29,14 @@ func GetAvailableMargin(hState *HubbleState, userState *UserState) *big.Int {
 func GetAvailableMargin_(notionalPosition, margin, reservedMargin, minAllowableMargin *big.Int) *big.Int {
 	utilisedMargin := Div1e6(Mul(notionalPosition, minAllowableMargin))
 	return Sub(Sub(margin, utilisedMargin), reservedMargin)
+}
+
+func GetMarginFraction(hState *HubbleState, userState *UserState) *big.Int {
+	notionalPosition, margin := GetNotionalPositionAndMargin(hState, userState, Maintenance_Margin)
+	if notionalPosition.Sign() == 0 {
+		return big.NewInt(math.MaxInt64)
+	}
+	return Div(Mul1e6(margin), notionalPosition)
 }
 
 func GetNotionalPositionAndMargin(hState *HubbleState, userState *UserState, marginMode MarginMode) (*big.Int, *big.Int) {
@@ -52,8 +62,8 @@ func GetOptimalPnl(hState *HubbleState, position *Position, margin *big.Int, mar
 	}
 
 	// based on last price
-	notionalPosition, unrealizedPnl, lastPriceBasedMF := GetPositionMetadata(
-		hState.LastPrices[market],
+	notionalPosition, unrealizedPnl, midPriceBasedMF := GetPositionMetadata(
+		hState.MidPrices[market],
 		position.OpenNotional,
 		position.Size,
 		margin,
@@ -67,8 +77,8 @@ func GetOptimalPnl(hState *HubbleState, position *Position, margin *big.Int, mar
 		margin,
 	)
 
-	if (marginMode == Maintenance_Margin && oracleBasedMF.Cmp(lastPriceBasedMF) == 1) || // for liquidations
-		(marginMode == Min_Allowable_Margin && oracleBasedMF.Cmp(lastPriceBasedMF) == -1) { // for increasing leverage
+	if (marginMode == Maintenance_Margin && oracleBasedMF.Cmp(midPriceBasedMF) == 1) || // for liquidations
+		(marginMode == Min_Allowable_Margin && oracleBasedMF.Cmp(midPriceBasedMF) == -1) { // for increasing leverage
 		return oracleBasedNotional, oracleBasedUnrealizedPnl
 	}
 	return notionalPosition, unrealizedPnl
@@ -80,7 +90,7 @@ func GetPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 	if notionalPosition.Sign() == 0 {
 		return big.NewInt(0), big.NewInt(0), big.NewInt(0)
 	}
-	if size.Cmp(big.NewInt(0)) > 0 {
+	if size.Sign() > 0 {
 		uPnL = Sub(notionalPosition, openNotional)
 	} else {
 		uPnL = Sub(openNotional, notionalPosition)
@@ -90,7 +100,7 @@ func GetPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 }
 
 func GetNotionalPosition(price *big.Int, size *big.Int) *big.Int {
-	return big.NewInt(0).Abs(Div1e18(Mul(size, price)))
+	return big.NewInt(0).Abs(Div1e18(Mul(price, size)))
 }
 
 func GetNormalizedMargin(assets []Collateral, margins []*big.Int) *big.Int {
