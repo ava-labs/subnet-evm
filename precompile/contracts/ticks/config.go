@@ -42,7 +42,7 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
-func (c *Config) Verify() error {
+func (c *Config) Verify(precompileconfig.ChainConfig) error {
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom verify code for Config here
 	// and return an error accordingly

@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 // PrecompileTest is a test case for a precompile
@@ -38,14 +39,17 @@ type PrecompileTest struct {
 	Config precompileconfig.Config
 	// BeforeHook is called before the precompile is called.
 	BeforeHook func(t testing.TB, state contract.StateDB)
+	// SetupBlockContext sets the expected calls on MockBlockContext for the test execution.
+	SetupBlockContext func(*contract.MockBlockContext)
 	// AfterHook is called after the precompile is called.
 	AfterHook func(t testing.TB, state contract.StateDB)
 	// ExpectedRes is the expected raw byte result returned by the precompile
 	ExpectedRes []byte
 	// ExpectedErr is the expected error returned by the precompile
 	ExpectedErr string
-	// BlockNumber is the block number to use for the precompile's block context
-	BlockNumber int64
+	// ChainConfig is the chain config to use for the precompile's block context
+	// If nil, the default chain config will be used.
+	ChainConfig precompileconfig.ChainConfig
 }
 
 type PrecompileRunparams struct {
@@ -80,13 +84,35 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	t.Helper()
 	contractAddress := module.Address
 
+	ctrl := gomock.NewController(t)
+
 	if test.BeforeHook != nil {
 		test.BeforeHook(t, state)
 	}
 
-	blockContext := contract.NewMockBlockContext(big.NewInt(test.BlockNumber), 0)
-	accesibleState := contract.NewMockAccessibleState(state, blockContext, snow.DefaultContextTest())
-	chainConfig := contract.NewMockChainState(commontype.ValidTestFeeConfig, false)
+	chainConfig := test.ChainConfig
+	if chainConfig == nil {
+		mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
+		mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
+		mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
+		mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(true)
+		chainConfig = mockChainConfig
+	}
+
+	blockContext := contract.NewMockBlockContext(ctrl)
+	if test.SetupBlockContext != nil {
+		test.SetupBlockContext(blockContext)
+	} else {
+		blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
+		blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
+	}
+	snowContext := snow.DefaultContextTest()
+
+	accessibleState := contract.NewMockAccessibleState(ctrl)
+	accessibleState.EXPECT().GetStateDB().Return(state).AnyTimes()
+	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+	accessibleState.EXPECT().GetSnowContext().Return(snowContext).AnyTimes()
+	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
 
 	if test.Config != nil {
 		err := module.Configure(chainConfig, test.Config, state, blockContext)
@@ -99,7 +125,7 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 	}
 
 	return PrecompileRunparams{
-		AccessibleState: accesibleState,
+		AccessibleState: accessibleState,
 		Caller:          test.Caller,
 		ContractAddress: contractAddress,
 		Input:           input,

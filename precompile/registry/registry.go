@@ -19,6 +19,7 @@ import (
 
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/juror"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/ticks"
+	_ "github.com/ava-labs/subnet-evm/x/warp"
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
 )
@@ -40,6 +41,7 @@ import (
 // TxAllowListAddress               = common.HexToAddress("0x0200000000000000000000000000000000000002")
 // FeeManagerAddress                = common.HexToAddress("0x0200000000000000000000000000000000000003")
 // RewardManagerAddress             = common.HexToAddress("0x0200000000000000000000000000000000000004")
+// WarpAddress                      = common.HexToAddress("0x0200000000000000000000000000000000000005")
 // ADD YOUR PRECOMPILE HERE
 // OrderBook		       = common.HexToAddress("0x0300000000000000000000000000000000000000")
 // MarginAccount		   = common.HexToAddress("0x0300000000000000000000000000000000000001")

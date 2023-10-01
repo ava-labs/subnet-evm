@@ -103,6 +103,11 @@ func (n *NetworkManager) startServer(ctx context.Context) (<-chan struct{}, erro
 		return nil, fmt.Errorf("failed to make server log: %w", err)
 	}
 
+	logLevel, err := logging.ToLevel(n.ANRConfig.LogLevel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ANR log level: %w", err)
+	}
+
 	n.anrServer, err = runner_server.New(
 		runner_server.Config{
 			Port:                ":12352",
@@ -111,6 +116,7 @@ func (n *NetworkManager) startServer(ctx context.Context) (<-chan struct{}, erro
 			DialTimeout:         10 * time.Second,
 			RedirectNodesOutput: true,
 			SnapshotsDir:        "",
+			LogLevel:            logLevel,
 		},
 		zapServerLog,
 	)
@@ -214,7 +220,9 @@ func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct
 // Uses [execPath] as the AvalancheGo binary execution path for any started nodes.
 // Note: this assumes that the default network has already been constructed.
 func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, blockchainSpecs []*rpcpb.BlockchainSpec) error {
-	cctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	// timeout according to how many blockchains we're creating
+	timeout := 2 * time.Minute * time.Duration(len(blockchainSpecs))
+	cctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	if err := n.init(); err != nil {
 		return err
@@ -249,8 +257,8 @@ func (n *NetworkManager) SetupNetwork(ctx context.Context, execPath string, bloc
 	}
 	nodeInfos := status.GetClusterInfo().GetNodeInfos()
 
-	for _, chainSpec := range blockchainSpecs {
-		blockchainIDStr := sresp.ChainIds[0]
+	for i, chainSpec := range blockchainSpecs {
+		blockchainIDStr := sresp.ChainIds[i]
 		blockchainID, err := ids.FromString(blockchainIDStr)
 		if err != nil {
 			panic(err)

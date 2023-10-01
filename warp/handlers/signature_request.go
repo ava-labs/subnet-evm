@@ -24,12 +24,12 @@ type SignatureRequestHandler interface {
 
 // signatureRequestHandler implements the SignatureRequestHandler interface
 type signatureRequestHandler struct {
-	backend warp.WarpBackend
+	backend warp.Backend
 	codec   codec.Manager
 	stats   stats.SignatureRequestHandlerStats
 }
 
-func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) SignatureRequestHandler {
+func NewSignatureRequestHandler(backend warp.Backend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) SignatureRequestHandler {
 	return &signatureRequestHandler{
 		backend: backend,
 		codec:   codec,
@@ -55,19 +55,11 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	if err != nil {
 		log.Debug("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
 		s.stats.IncSignatureMiss()
-
-		// Return empty response because the message was not found in backend,
-		// instead of returning nil, which would drop message response.
-		emptyResponse := message.SignatureResponse{Signature: [bls.SignatureLen]byte{}}
-		emptyResponseBytes, err := s.codec.Marshal(message.Version, &emptyResponse)
-		if err != nil {
-			log.Warn("could not marshal SignatureResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "err", err)
-			return nil, nil
-		}
-		return emptyResponseBytes, nil
+		signature = [bls.SignatureLen]byte{}
+	} else {
+		s.stats.IncSignatureHit()
 	}
 
-	s.stats.IncSignatureHit()
 	response := message.SignatureResponse{Signature: signature}
 	responseBytes, err := s.codec.Marshal(message.Version, &response)
 	if err != nil {

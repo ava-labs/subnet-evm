@@ -21,13 +21,14 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// FeeManager with the given [admins] and [enableds] as members of the
+// FeeManager with the given [admins], [enableds] and [managers] as members of the
 // allowlist with [initialConfig] as initial fee config if specified.
-func NewConfig(blockTimestamp *uint64, admins []common.Address, enableds []common.Address, initialConfig *commontype.FeeConfig) *Config {
+func NewConfig(blockTimestamp *uint64, admins []common.Address, enableds []common.Address, managers []common.Address, initialConfig *commontype.FeeConfig) *Config {
 	return &Config{
 		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
+			ManagerAddresses: managers,
 		},
 		Upgrade:          precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialFeeConfig: initialConfig,
@@ -66,8 +67,8 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	return c.InitialFeeConfig.Equal(other.InitialFeeConfig)
 }
 
-func (c *Config) Verify() error {
-	if err := c.AllowListConfig.Verify(); err != nil {
+func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
+	if err := c.AllowListConfig.Verify(chainConfig, c.Upgrade); err != nil {
 		return err
 	}
 	if c.InitialFeeConfig == nil {

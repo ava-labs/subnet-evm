@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
+	"go.uber.org/mock/gomock"
 )
 
 // TestVerify tests the verification of Config.
@@ -40,7 +41,7 @@ func TestEqual(t *testing.T) {
 		},
 		"different type": {
 			Config:   NewConfig(utils.NewUint64(3)),
-			Other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
+			Other:    precompileconfig.NewMockConfig(gomock.NewController(t)),
 			Expected: false,
 		},
 		"different timestamp": {

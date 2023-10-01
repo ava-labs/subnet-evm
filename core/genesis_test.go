@@ -35,6 +35,7 @@ import (
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
@@ -191,7 +192,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 			getConfig: func() *params.ChainConfig {
 				config := *params.TestChainConfig
 				config.GenesisPrecompiles = params.Precompiles{
-					deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil),
+					deployerallowlist.ConfigKey: deployerallowlist.NewConfig(utils.NewUint64(0), []common.Address{addr}, nil, nil),
 				}
 				return &config
 			},
@@ -265,7 +266,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	require.Greater(block.Time, bc.lastAccepted.Time())
 
 	activatedGenesisConfig := *customg.Config
-	contractDeployerConfig := deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil)
+	contractDeployerConfig := deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil)
 	activatedGenesisConfig.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
 		{
 			Config: contractDeployerConfig,
@@ -284,4 +285,46 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	if !reflect.DeepEqual(config, customg.Config) {
 		t.Errorf("returned %v\nwant     %v", config, customg.Config)
 	}
+}
+
+func TestGenesisWriteUpgradesRegression(t *testing.T) {
+	require := require.New(t)
+	testConfig := *params.TestChainConfig
+	genesis := &Genesis{
+		Config: &testConfig,
+		Alloc: GenesisAlloc{
+			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
+		},
+		GasLimit: config.FeeConfig.GasLimit.Uint64(),
+	}
+
+	db := rawdb.NewMemoryDatabase()
+	genesisBlock := genesis.ToBlock()
+	trieDB := trie.NewDatabase(db)
+
+	_, _, err := SetupGenesisBlock(db, trieDB, genesis, genesisBlock.Hash(), false)
+	require.NoError(err)
+
+	genesis.Config.UpgradeConfig.PrecompileUpgrades = []params.PrecompileUpgrade{
+		{
+			Config: deployerallowlist.NewConfig(utils.NewUint64(51), nil, nil, nil),
+		},
+	}
+	_, _, err = SetupGenesisBlock(db, trieDB, genesis, genesisBlock.Hash(), false)
+	require.NoError(err)
+
+	timestamp := uint64(100)
+	lastAcceptedBlock := types.NewBlock(&types.Header{
+		ParentHash: common.Hash{1, 2, 3},
+		Number:     big.NewInt(100),
+		GasLimit:   8_000_000,
+		Extra:      nil,
+		Time:       timestamp,
+	}, nil, nil, nil, trie.NewStackTrie(nil))
+	rawdb.WriteBlock(db, lastAcceptedBlock)
+
+	// Attempt restart after the chain has advanced past the activation of the precompile upgrade.
+	// This tests a regression where the UpgradeConfig would not be written to disk correctly.
+	_, _, err = SetupGenesisBlock(db, trieDB, genesis, lastAcceptedBlock.Hash(), false)
+	require.NoError(err)
 }

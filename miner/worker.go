@@ -43,8 +43,10 @@ import (
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/results"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -67,6 +69,14 @@ type environment struct {
 	txs      []*types.Transaction
 	receipts []*types.Receipt
 	size     uint64
+
+	rules            params.Rules
+	predicateContext *precompileconfig.PredicateContext
+	// predicateResults contains the results of checking the predicates for each transaction in the miner.
+	// The results are accumulated as transactions are executed by the miner and set on the BlockContext.
+	// If a transaction is dropped, its results must explicitly be removed from predicateResults in the same
+	// way that the gas pool and state is reset.
+	predicateResults *results.PredicateResults
 
 	start time.Time // Time that block building began
 }
@@ -114,7 +124,7 @@ func (w *worker) setEtherbase(addr common.Address) {
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredicateContext) (*types.Block, error) {
+func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateContext) (*types.Block, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
@@ -181,7 +191,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 		return nil, fmt.Errorf("failed to prepare header for mining: %w", err)
 	}
 
-	env, err := w.createCurrentEnvironment(parent, header, tstart)
+	env, err := w.createCurrentEnvironment(predicateContext, parent, header, tstart)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new current environment: %w", err)
 	}
@@ -194,9 +204,6 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 
 	// Get the pending txs from TxPool
 	pending := w.eth.TxPool().Pending(true)
-	// Filter out transactions that don't satisfy predicateContext and remove them from TxPool
-	rules := w.chainConfig.AvalancheRules(header.Number, header.Time)
-	pending = w.enforcePredicates(rules, predicateContext, pending)
 
 	// Split the pending transactions into locals and remotes
 	localTxs := make(map[common.Address]types.Transactions)
@@ -225,32 +232,50 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.ProposerPredic
 	return w.commit(env)
 }
 
-func (w *worker) createCurrentEnvironment(parent *types.Header, header *types.Header, tstart time.Time) (*environment, error) {
+func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.PredicateContext, parent *types.Header, header *types.Header, tstart time.Time) (*environment, error) {
 	state, err := w.chain.StateAt(parent.Root)
 	if err != nil {
 		return nil, err
 	}
 	return &environment{
-		signer:  types.MakeSigner(w.chainConfig, header.Number, header.Time),
-		state:   state,
-		parent:  parent,
-		header:  header,
-		tcount:  0,
-		gasPool: new(core.GasPool).AddGas(header.GasLimit),
-		start:   tstart,
+		signer:           types.MakeSigner(w.chainConfig, header.Number, header.Time),
+		state:            state,
+		parent:           parent,
+		header:           header,
+		tcount:           0,
+		gasPool:          new(core.GasPool).AddGas(header.GasLimit),
+		rules:            w.chainConfig.AvalancheRules(header.Number, header.Time),
+		predicateContext: predicateContext,
+		predicateResults: results.NewPredicateResults(),
+		start:            tstart,
 	}, nil
 }
 
 func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
 	var (
-		snap = env.state.Snapshot()
-		gp   = env.gasPool.Gas()
+		snap         = env.state.Snapshot()
+		gp           = env.gasPool.Gas()
+		blockContext vm.BlockContext
 	)
 
-	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, &coinbase, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
+	if env.rules.IsDUpgrade {
+		results, err := core.CheckPredicates(env.rules, env.predicateContext, tx)
+		if err != nil {
+			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
+			return nil, err
+		}
+		env.predicateResults.SetTxPredicateResults(tx.Hash(), results)
+
+		blockContext = core.NewEVMBlockContextWithPredicateResults(env.header, w.chain, &coinbase, env.predicateResults)
+	} else {
+		blockContext = core.NewEVMBlockContext(env.header, w.chain, &coinbase)
+	}
+
+	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, blockContext, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
 	if err != nil {
 		env.state.RevertToSnapshot(snap)
 		env.gasPool.SetGas(gp)
+		env.predicateResults.DeleteTxPredicateResults(tx.Hash())
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)
@@ -336,6 +361,13 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 func (w *worker) commit(env *environment) (*types.Block, error) {
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := copyReceipts(env.receipts)
+	if env.rules.IsDUpgrade {
+		predicateResultsBytes, err := env.predicateResults.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal predicate results: %w", err)
+		}
+		env.header.Extra = append(env.header.Extra, predicateResultsBytes...)
+	}
 	block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.parent, env.state, env.txs, nil, receipts)
 	if err != nil {
 		return nil, err
@@ -398,42 +430,6 @@ func copyReceipts(receipts []*types.Receipt) []*types.Receipt {
 	for i, l := range receipts {
 		cpy := *l
 		result[i] = &cpy
-	}
-	return result
-}
-
-// enforcePredicates takes a set of pending transactions (grouped by sender, and ordered by nonce)
-// and returns the subset of those transactions (following the same grouping) that satisfy predicateContext.
-// Any transaction that fails predicate verification will be removed from the tx pool and excluded
-// from the return value.
-// Transactions with a nonce that follows a removed transaction will be added back to the future
-// queue of the tx pool.
-func (w *worker) enforcePredicates(
-	rules params.Rules,
-	predicateContext *precompileconfig.ProposerPredicateContext,
-	pending map[common.Address]types.Transactions,
-) map[common.Address]types.Transactions {
-	// Short circuit early if there are no precompile predicates to verify and return the
-	// unmodified pending transactions.
-	if !rules.PredicatesExist() {
-		return pending
-	}
-	result := make(map[common.Address]types.Transactions, len(pending))
-	for addr, txs := range pending {
-		for i, tx := range txs {
-			if err := core.CheckPredicates(rules, predicateContext, tx); err != nil {
-				log.Debug("Transaction predicate failed verification in miner", "sender", addr, "err", err)
-				// If the transaction fails the predicate check, we remove the transaction from the mempool
-				// and move all transactions from the same address with a subsequent nonce back to the
-				// future queue of the transaction pool.
-				w.eth.TxPool().RemoveTx(tx.Hash())
-				txs = txs[:i] // Cut off any transactions past the failed predicate in the return value
-				break
-			}
-		}
-		if len(txs) > 0 {
-			result[addr] = txs
-		}
 	}
 	return result
 }

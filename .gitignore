@@ -48,6 +48,7 @@ tests/orderbook/node_modules
 bin/
 build/
 
+cmd/evm/evm
 cmd/simulator/.simulator/*
 cmd/simulator/simulator
 

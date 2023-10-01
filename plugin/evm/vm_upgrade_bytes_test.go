@@ -14,6 +14,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -36,7 +37,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 	upgradeConfig := &params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
-				Config: txallowlist.NewConfig(utils.TimeToNewUint64(enableAllowListTimestamp), testEthAddrs[0:1], nil),
+				Config: txallowlist.NewConfig(utils.TimeToNewUint64(enableAllowListTimestamp), testEthAddrs[0:1], nil, nil),
 			},
 		},
 	}
@@ -230,7 +231,7 @@ func TestVMUpgradeBytesPrecompile(t *testing.T) {
 // 	}
 // }
 
-func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
+func TestMandatoryUpgradesEnforced(t *testing.T) {
 	// make genesis w/ fork at block 5
 	// but this should not be used because we are enforcing
 	// network upgrades within the code
@@ -246,13 +247,61 @@ func TestVMUpgradeBytesNetworkUpgradesWithGenesis(t *testing.T) {
 	}
 
 	// initialize the VM with these upgrade bytes
-	_, vm, _, _ := GenesisVM(t, true, string(genesisBytes), "", "")
+	tests := []struct {
+		networkID uint32
+		expected  bool
+	}{
+		{
+			networkID: constants.MainnetID,
+			expected:  true,
+		},
+		{
+			networkID: constants.FujiID,
+			expected:  true,
+		},
+		{
+			networkID: constants.LocalID,
+			expected:  false,
+		},
+		{
+			networkID: constants.UnitTestID,
+			expected:  false,
+		},
+	}
 
-	// verify upgrade is rescheduled
-	require.True(t, vm.chainConfig.IsSubnetEVM(0))
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("networkID %d", test.networkID), func(t *testing.T) {
+			vm := &VM{}
+			ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisBytes))
+			ctx.NetworkID = test.networkID
+			appSender := &commonEng.SenderTest{T: t}
+			appSender.CantSendAppGossip = true
+			appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
+			err := vm.Initialize(
+				context.Background(),
+				ctx,
+				dbManager,
+				genesisBytes,
+				nil,
+				nil,
+				issuer,
+				[]*commonEng.Fx{},
+				appSender,
+			)
+			require.NoError(t, err, "error initializing GenesisVM")
 
-	if err := vm.Shutdown(context.Background()); err != nil {
-		t.Fatal(err)
+			require.NoError(t, vm.SetState(context.Background(), snow.Bootstrapping))
+			require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
+
+			defer func() {
+				if err := vm.Shutdown(context.Background()); err != nil {
+					t.Fatal(err)
+				}
+			}()
+
+			// verify upgrade is rescheduled
+			require.Equal(t, test.expected, vm.chainConfig.IsSubnetEVM(0))
+		})
 	}
 }
 
