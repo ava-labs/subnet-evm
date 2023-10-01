@@ -502,6 +502,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
 
+	vm.limitOrderProcesser = vm.NewLimitOrderProcesser()
 	vm.eth.Start()
 	return vm.initChainState(vm.blockChain.LastAcceptedBlock())
 }
@@ -624,7 +625,6 @@ func (vm *VM) initBlockBuilding() {
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
-
 	vm.limitOrderProcesser.ListenAndProcessTransactions(vm.builder)
 }
 
