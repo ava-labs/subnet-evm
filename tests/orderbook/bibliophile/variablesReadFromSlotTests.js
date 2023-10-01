@@ -171,7 +171,6 @@ describe('Testing variables read from slots by precompile', function () {
                     marginAccount = new ethers.Contract(await amm.marginAccount(), require("../abi/MarginAccount.json"), provider);
 
                     redStoneAdapterAddress = await oracle.redStoneAdapter()
-                    console.log("redStoneAdapterAddress", redStoneAdapterAddress)
                     impactMarginNotional = await amm.impactMarginNotional()
                 })
                 this.afterAll(async function () {
