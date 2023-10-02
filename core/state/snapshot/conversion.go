@@ -216,7 +216,6 @@ func (stat *generateStats) report() {
 		}
 	}
 	log.Info("Iterating state snapshot", ctx...)
-
 }
 
 // reportDone prints the last log when the whole generation is finished.
