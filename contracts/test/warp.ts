@@ -12,7 +12,7 @@ const WARP_ADDRESS = "0x0200000000000000000000000000000000000005";
 var senderAddress: string
 var destAddress: string
 
-describe("ExampleWarp", function () {
+describe("IWarpMessenger", function () {
   this.timeout("30s")
 
   let owner: SignerWithAddress

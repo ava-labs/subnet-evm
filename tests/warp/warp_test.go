@@ -7,11 +7,14 @@ package warp
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/api/info"
@@ -28,6 +31,7 @@ import (
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
+	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -379,4 +383,111 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(receipt.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful))
 	})
+
+	ginkgo.It("Send Message from A to B from hardhat", ginkgo.Label("Warp", "WarpContract", "SendWarpContract"), func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		log.Info("Subscribing to new heads")
+		newHeads := make(chan *types.Header, 10)
+		sub, err := chainAWSClient.SubscribeNewHead(ctx, newHeads)
+		gomega.Expect(err).Should(gomega.BeNil())
+		defer sub.Unsubscribe()
+
+		cmdPath := "./contracts"
+		// test path is relative to the cmd path
+		testPath := "./test/warp.ts"
+
+		rpcURI := toRPCURI(chainAURIs[0], blockchainIDA.String())
+		senderAddress := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
+		destinationAddress := common.HexToAddress("0x0550000000000000000000000000000000000000")
+		addressedPayload, err := warpPayload.NewAddressedPayload(
+			senderAddress,
+			common.Hash(blockchainIDB),
+			destinationAddress,
+			payload,
+		)
+		gomega.Expect(err).Should(gomega.BeNil())
+		expectedUnsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+			1337,
+			blockchainIDA,
+			addressedPayload.Bytes(),
+		)
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		os.Setenv("SENDER_ADDRESS", senderAddress.Hex())
+		os.Setenv("SOURCE_CHAIN_ID", blockchainIDA.Hex())
+		os.Setenv("DESTINATION_CHAIN_ID", blockchainIDB.Hex())
+		os.Setenv("PAYLOAD", common.Bytes2Hex(payload))
+		os.Setenv("DESTINATION_ADDRESS", destinationAddress.Hex())
+		os.Setenv("EXPECTED_UNSIGNED_MESSAGE", hex.EncodeToString(expectedUnsignedMessage.Bytes()))
+		runWarpHardhatTests(ctx, rpcURI, cmdPath, testPath)
+
+		log.Info("Waiting for new block confirmation")
+		newHead := <-newHeads
+		blockHash := newHead.Hash()
+
+		log.Info("Fetching relevant warp logs from the newly produced block")
+		logs, err := chainAWSClient.FilterLogs(ctx, interfaces.FilterQuery{
+			BlockHash: &blockHash,
+			Addresses: []common.Address{warp.Module.Address},
+		})
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(len(logs)).Should(gomega.Equal(1))
+
+		// Check for relevant warp log from subscription and ensure that it matches
+		// the log extracted from the last block.
+		txLog := logs[0]
+		log.Info("Parsing logData as unsigned warp message")
+		unsignedMsg, err := warp.UnpackSendWarpEventDataToMessage(txLog.Data)
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		// Set local variables for the duration of the test
+		unsignedWarpMessageID = unsignedMsg.ID()
+		unsignedWarpMsg = unsignedMsg
+		log.Info("Parsed unsignedWarpMsg", "unsignedWarpMessageID", unsignedWarpMessageID, "unsignedWarpMessage", unsignedWarpMsg)
+
+		// Loop over each client on chain A to ensure they all have time to accept the block.
+		// Note: if we did not confirm this here, the next stage could be racy since it assumes every node
+		// has accepted the block.
+		for i, uri := range chainAURIs {
+			chainAWSURI := toWebsocketURI(uri, blockchainIDA.String())
+			log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
+			client, err := ethclient.Dial(chainAWSURI)
+			gomega.Expect(err).Should(gomega.BeNil())
+
+			// Loop until each node has advanced to >= the height of the block that emitted the warp log
+			for {
+				block, err := client.BlockByNumber(ctx, nil)
+				gomega.Expect(err).Should(gomega.BeNil())
+				if block.NumberU64() >= newHead.Number.Uint64() {
+					log.Info("client accepted the block containing SendWarpMessage", "client", i, "height", block.NumberU64())
+					break
+				}
+			}
+		}
+	})
 })
+
+func runWarpHardhatTests(ctx context.Context, chainURI string, execPath string, testPath string) {
+	log.Info(
+		"Executing HardHat tests on warp blockchain",
+		"testPath", testPath,
+		"ChainURI", chainURI,
+	)
+
+	cmd := exec.Command("npx", "hardhat", "test", testPath, "--network", "local")
+	cmd.Dir = execPath
+
+	log.Info("Sleeping to wait for test ping", "rpcURI", chainURI)
+	err := os.Setenv("RPC_URI", chainURI)
+	gomega.Expect(err).Should(gomega.BeNil())
+	log.Info("Running test command", "cmd", cmd.String())
+
+	out, err := cmd.CombinedOutput()
+	fmt.Printf("\nCombined output:\n\n%s\n", string(out))
+	gomega.Expect(err).Should(gomega.BeNil())
+}
+
+func toRPCURI(uri string, blockchainID string) string {
+	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
+}
