@@ -385,13 +385,13 @@ func (c *ChainConfig) IsDUpgrade(time uint64) bool {
 	return utils.IsTimestampForked(c.DUpgradeTimestamp, time)
 }
 
-func (r *Rules) PredicatesExist() bool {
+func (r *Rules) PredicatersExist() bool {
 	return len(r.Predicaters) > 0
 }
 
-func (r *Rules) PredicateExists(addr common.Address) bool {
-	_, predicateExists := r.Predicaters[addr]
-	return predicateExists
+func (r *Rules) PredicaterExists(addr common.Address) bool {
+	_, PredicaterExists := r.Predicaters[addr]
+	return PredicaterExists
 }
 
 // IsPrecompileEnabled returns whether precompile with [address] is enabled at [timestamp].
@@ -719,7 +719,7 @@ type Rules struct {
 	// Note: none of these addresses should conflict with the address space used by
 	// any existing precompiles.
 	ActivePrecompiles map[common.Address]precompileconfig.Config
-	// Predicaters maps addresses to stateful precompile predicate functions
+	// Predicaters maps addresses to stateful precompile Predicaters
 	// that are enabled for this rule set.
 	Predicaters map[common.Address]precompileconfig.Predicater
 	// AccepterPrecompiles map addresses to stateful precompile accepter functions

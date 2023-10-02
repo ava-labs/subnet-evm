@@ -269,7 +269,7 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 
 	switch {
-	case !rules.IsDUpgrade && rules.PredicatesExist():
+	case !rules.IsDUpgrade && rules.PredicatersExist():
 		return errors.New("cannot enable predicates before DUpgrade activation")
 	case !rules.IsDUpgrade:
 		return nil

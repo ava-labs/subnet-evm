@@ -136,7 +136,7 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 
 func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, error) {
 	var gas uint64
-	if !rules.PredicatesExist() {
+	if !rules.PredicatersExist() {
 		gas += uint64(len(accessList)) * params.TxAccessListAddressGas
 		gas += uint64(accessList.StorageKeys()) * params.TxAccessListStorageKeyGas
 		return gas, nil
