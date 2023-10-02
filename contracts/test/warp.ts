@@ -28,13 +28,14 @@ describe("IWarpMessenger", function () {
     let destId = process.env["DESTINATION_CHAIN_ID"];
     let payload = process.env["PAYLOAD"];
     let expectedUnsignedMessage = process.env["EXPECTED_UNSIGNED_MESSAGE"];
-    console.log(`Sending warp message to chain: ${destId}, address: ${destAddress} with payload ${payload}`);
     let destIdHex = "0x" + destId.toString().padStart(32, "0");
     expect(ethers.utils.isHexString(destIdHex)).to.be.true;
     let payloadHex = "0x" + payload.toString()
     expect(ethers.utils.isHexString(payloadHex)).to.be.true;
     let unsignedMessageHex = "0x" + expectedUnsignedMessage.toString()
     expect(ethers.utils.isHexString(unsignedMessageHex)).to.be.true;
+
+    console.log(`Sending warp message to chain: ${destIdHex}, address: ${destAddress} with payload ${payloadHex}`);
 
     await expect(contract.sendWarpMessage(destIdHex, destAddress, payloadHex))
     .to.emit(contract, 'SendWarpMessage')
