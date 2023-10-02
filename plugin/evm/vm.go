@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -1156,9 +1155,16 @@ func attachEthService(handler *rpc.Server, apis []rpc.API, names []string) error
 }
 
 func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
-	validatorPrivateKey, err := loadPrivateKeyFromFile(vm.config.ValidatorPrivateKeyFile)
-	if err != nil {
-		panic(fmt.Sprint("please specify correct path for validator-private-key-file in chain.json ", err))
+	var validatorPrivateKey string
+	var err error
+	if vm.config.IsValidator {
+		validatorPrivateKey, err = loadPrivateKeyFromFile(vm.config.ValidatorPrivateKeyFile)
+		if err != nil {
+			panic(fmt.Sprint("please specify correct path for validator-private-key-file in chain.json ", err))
+		}
+		if validatorPrivateKey == "" {
+			panic("validator private key is empty")
+		}
 	}
 	return NewLimitOrderProcesser(
 		vm.ctx,
@@ -1174,7 +1180,7 @@ func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
 }
 
 func loadPrivateKeyFromFile(keyFile string) (string, error) {
-	key, err := ioutil.ReadFile(keyFile)
+	key, err := os.ReadFile(keyFile)
 	if err != nil {
 		return "", err
 	}

@@ -76,9 +76,6 @@ func NewLimitOrderTxProcessor(txPool *txpool.TxPool, memoryDb LimitOrderDatabase
 		panic(err)
 	}
 
-	if validatorPrivateKey == "" {
-		panic("private key is not supplied")
-	}
 	validatorAddress, err := getAddressFromPrivateKey(validatorPrivateKey)
 	if err != nil {
 		panic("Unable to get address from validator private key")
@@ -263,6 +260,10 @@ func getOrderBookContractCallMethod(tx *types.Transaction, orderBookABI abi.ABI,
 }
 
 func getAddressFromPrivateKey(key string) (common.Address, error) {
+	// blank key is allowed for non-validators
+	if key == "" {
+		return common.Address{}, nil
+	}
 	privateKey, err := crypto.HexToECDSA(key) // admin private key
 	if err != nil {
 		return common.Address{}, err
