@@ -26,7 +26,5 @@ jobs:
         shell: bash
       - run:  go test github.com/ava-labs/subnet-evm/plugin/evm/...
         shell: bash
-      - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/ticks
-        shell: bash
-      - run: go test github.com/ava-labs/subnet-evm/precompile/contracts/juror
+      - run: go test github.com/ava-labs/subnet-evm/precompile/...
         shell: bash
