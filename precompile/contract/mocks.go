@@ -37,18 +37,18 @@ func (m *MockBlockContext) EXPECT() *MockBlockContextMockRecorder {
 	return m.recorder
 }
 
-// GetResults mocks base method.
-func (m *MockBlockContext) GetResults(arg0 common.Hash, arg1 common.Address) []byte {
+// GetPredicateResults mocks base method.
+func (m *MockBlockContext) GetPredicateResults(arg0 common.Hash, arg1 common.Address) []byte {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetResults", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetPredicateResults", arg0, arg1)
 	ret0, _ := ret[0].([]byte)
 	return ret0
 }
 
-// GetResults indicates an expected call of GetResults.
-func (mr *MockBlockContextMockRecorder) GetResults(arg0, arg1 interface{}) *gomock.Call {
+// GetPredicateResults indicates an expected call of GetPredicateResults.
+func (mr *MockBlockContextMockRecorder) GetPredicateResults(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResults", reflect.TypeOf((*MockBlockContext)(nil).GetResults), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPredicateResults", reflect.TypeOf((*MockBlockContext)(nil).GetPredicateResults), arg0, arg1)
 }
 
 // Number mocks base method.

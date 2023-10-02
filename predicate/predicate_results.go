@@ -71,8 +71,8 @@ func ParseResults(b []byte) (*Results, error) {
 }
 
 // GetResults returns the byte array results for [txHash] from precompile [address] if available.
-func (p *Results) GetResults(txHash common.Hash, address common.Address) []byte {
-	txResults, ok := p.Results[txHash]
+func (r *Results) GetResults(txHash common.Hash, address common.Address) []byte {
+	txResults, ok := r.Results[txHash]
 	if !ok {
 		return nil
 	}
@@ -80,30 +80,30 @@ func (p *Results) GetResults(txHash common.Hash, address common.Address) []byte 
 }
 
 // SetTxResults sets the predicate results for the given [txHash]. Overrides results if present.
-func (p *Results) SetTxResults(txHash common.Hash, txResults TxResults) {
+func (r *Results) SetTxResults(txHash common.Hash, txResults TxResults) {
 	// If there are no tx results, don't store an entry in the map
 	if len(txResults) == 0 {
-		delete(p.Results, txHash)
+		delete(r.Results, txHash)
 		return
 	}
-	p.Results[txHash] = txResults
+	r.Results[txHash] = txResults
 }
 
 // DeleteTxResults deletes the predicate results for the given [txHash].
-func (p *Results) DeleteTxResults(txHash common.Hash) {
-	delete(p.Results, txHash)
+func (r *Results) DeleteTxResults(txHash common.Hash) {
+	delete(r.Results, txHash)
 }
 
 // Bytes marshals the current state of predicate results
-func (p *Results) Bytes() ([]byte, error) {
-	return Codec.Marshal(Version, p)
+func (r *Results) Bytes() ([]byte, error) {
+	return Codec.Marshal(Version, r)
 }
 
-func (p *Results) String() string {
+func (r *Results) String() string {
 	sb := strings.Builder{}
 
-	sb.WriteString(fmt.Sprintf("PredicateResults: (Size = %d)", len(p.Results)))
-	for txHash, results := range p.Results {
+	sb.WriteString(fmt.Sprintf("PredicateResults: (Size = %d)", len(r.Results)))
+	for txHash, results := range r.Results {
 		for address, result := range results {
 			sb.WriteString(fmt.Sprintf("\n%s    %s: %x", txHash, address, result))
 		}
