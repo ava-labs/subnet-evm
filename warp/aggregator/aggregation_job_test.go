@@ -34,8 +34,8 @@ func executeSignatureAggregationTest(t testing.TB, test signatureAggregationTest
 	t.Helper()
 
 	res, err := test.job.Execute(test.ctx)
+	require.ErrorIs(t, err, test.expectedErr)
 	if test.expectedErr != nil {
-		require.ErrorIs(t, err, test.expectedErr)
 		return
 	}
 
@@ -240,7 +240,7 @@ func TestAggregateThresholdSignaturesOverMaxNeeded(t *testing.T) {
 			GetCurrentHeightF: getCurrentHeightF,
 			GetValidatorSetF: func(ctx context.Context, height uint64, subnetID ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
 				res := make(map[ids.NodeID]*validators.GetValidatorOutput)
-				for i := 0; i < 5; i++ {
+				for i := 0; i < len(nodeIDs); i++ {
 					res[nodeIDs[i]] = &validators.GetValidatorOutput{
 						NodeID:    nodeIDs[i],
 						PublicKey: blsPublicKeys[i],
@@ -266,8 +266,6 @@ func TestAggregateThresholdSignaturesOverMaxNeeded(t *testing.T) {
 		TotalWeight:     500,
 		Message:         signedMessage,
 	}
-	// This test is failing even though it shoudn't be.
-	// Why does this test get 500/500 signature weight? Shouldn't the child context be canceled by VerifyWeight after we hit 300/500 or 60/100?
 	executeSignatureAggregationTest(t, signatureAggregationTest{
 		ctx:         ctx,
 		job:         aggregationJob,
