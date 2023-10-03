@@ -37,4 +37,3 @@ TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" ginkgo run -procs=5 tests/precompile \
 ./tests/warp/warp.test \
   --ginkgo.vv \
   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
-

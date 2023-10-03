@@ -384,7 +384,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(receipt.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful))
 	})
 
-	ginkgo.It("Send Message from A to B from hardhat", ginkgo.Label("Warp", "WarpContract", "SendWarpContract"), func() {
+	ginkgo.It("Send Message from A to B from Hardhat", ginkgo.Label("Warp", "IWarpMessenger", "SendWarpMessage"), func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 		log.Info("Subscribing to new heads")
