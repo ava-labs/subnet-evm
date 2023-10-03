@@ -24,9 +24,9 @@ import (
 	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
@@ -166,7 +166,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		subnetB := subnetIDs[1]
 		subnetBDetails, ok := manager.GetSubnet(subnetB)
 		gomega.Expect(ok).Should(gomega.BeTrue())
-		blockchainIDB := subnetBDetails.BlockchainID
+		blockchainIDB = subnetBDetails.BlockchainID
 		gomega.Expect(len(subnetBDetails.ValidatorURIs)).Should(gomega.Equal(5))
 		chainBURIs = append(chainBURIs, subnetBDetails.ValidatorURIs...)
 
@@ -181,7 +181,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		log.Info("Creating ethclient for blockchainB", "wsURI", chainBWSURI)
 		chainBWSClient, err = ethclient.Dial(chainBWSURI)
 		gomega.Expect(err).Should(gomega.BeNil())
-
 	})
 
 	// Send a transaction to Subnet A to issue a Warp Message to Subnet B
@@ -199,11 +198,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		startingNonce, err := chainAWSClient.NonceAt(ctx, fundedAddress, nil)
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		packedInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
-			DestinationChainID: common.Hash(blockchainIDB),
-			DestinationAddress: fundedAddress,
-			Payload:            payload,
-		})
+		packedInput, err := warp.PackSendWarpMessage(payload)
 		gomega.Expect(err).Should(gomega.BeNil())
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainID,
@@ -345,7 +340,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		packedInput, err := warp.PackGetVerifiedWarpMessage(0)
 		gomega.Expect(err).Should(gomega.BeNil())
-		tx := predicateutils.NewPredicateTx(
+		tx := predicate.NewPredicateTx(
 			chainID,
 			nonce,
 			&warp.Module.Address,
