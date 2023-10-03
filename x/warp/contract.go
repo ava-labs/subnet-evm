@@ -187,10 +187,12 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 // UnpackSendWarpMessageInput attempts to unpack [input] as []byte
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackSendWarpMessageInput(input []byte) ([]byte, error) {
-	inputStruct := []byte{}
-	err := WarpABI.UnpackInputIntoInterface(&inputStruct, "sendWarpMessage", input)
-
-	return inputStruct, err
+	res, err := WarpABI.UnpackInput("sendWarpMessage", input)
+	if err != nil {
+		return []byte{}, err
+	}
+	unpacked := *abi.ConvertType(res[0], new([]byte)).(*[]byte)
+	return unpacked, nil
 }
 
 // PackSendWarpMessage packs [inputStruct] of type []byte into the appropriate arguments for sendWarpMessage.
