@@ -16,7 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ethereum/go-ethereum/common"
@@ -83,18 +83,12 @@ func TestGetBlockchainID(t *testing.T) {
 
 func TestSendWarpMessage(t *testing.T) {
 	callerAddr := common.HexToAddress("0x0123")
-	receiverAddr := common.HexToAddress("0x456789")
 
 	defaultSnowCtx := snow.DefaultContextTest()
 	blockchainID := defaultSnowCtx.ChainID
-	destinationChainID := ids.GenerateTestID()
 	sendWarpMessagePayload := utils.RandomBytes(100)
 
-	sendWarpMessageInput, err := PackSendWarpMessage(SendWarpMessageInput{
-		DestinationChainID: common.Hash(destinationChainID),
-		DestinationAddress: receiverAddr,
-		Payload:            sendWarpMessagePayload,
-	})
+	sendWarpMessageInput, err := PackSendWarpMessage(sendWarpMessagePayload)
 	require.NoError(t, err)
 
 	tests := map[string]testutils.PrecompileTest{
@@ -146,8 +140,6 @@ func TestSendWarpMessage(t *testing.T) {
 
 				require.Equal(t, addressedPayload.SourceAddress, callerAddr)
 				require.Equal(t, unsignedWarpMsg.SourceChainID, blockchainID)
-				require.Equal(t, addressedPayload.DestinationChainID, common.Hash(destinationChainID))
-				require.Equal(t, addressedPayload.DestinationAddress, receiverAddr)
 				require.Equal(t, addressedPayload.Payload, sendWarpMessagePayload)
 			},
 		},
@@ -160,13 +152,10 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	networkID := uint32(54321)
 	callerAddr := common.HexToAddress("0x0123")
 	sourceAddress := common.HexToAddress("0x456789")
-	destinationAddress := common.HexToAddress("0x987654")
 	sourceChainID := ids.GenerateTestID()
 	packagedPayloadBytes := []byte("mcsorley")
 	addressedPayload, err := warpPayload.NewAddressedPayload(
 		sourceAddress,
-		common.Hash(destinationChainID),
-		destinationAddress,
 		packagedPayloadBytes,
 	)
 	require.NoError(t, err)
@@ -174,7 +163,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	require.NoError(t, err)
 	warpMessage, err := avalancheWarp.NewMessage(unsignedWarpMsg, &avalancheWarp.BitSetSignature{}) // Create message with empty signature for testing
 	require.NoError(t, err)
-	warpMessagePredicateBytes := predicateutils.PackPredicate(warpMessage.Bytes())
+	warpMessagePredicateBytes := predicate.PackPredicate(warpMessage.Bytes())
 	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage(0)
 	require.NoError(t, err)
 
@@ -195,8 +184,6 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 					Message: WarpMessage{
 						SourceChainID:       common.Hash(sourceChainID),
 						OriginSenderAddress: sourceAddress,
-						DestinationChainID:  common.Hash(destinationChainID),
-						DestinationAddress:  destinationAddress,
 						Payload:             packagedPayloadBytes,
 					},
 					Valid: true,
@@ -242,7 +229,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				return input
 			},
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, [][]byte{[]byte{}, warpMessagePredicateBytes})
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{{}, warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(1).Bytes())
@@ -254,8 +241,6 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 					Message: WarpMessage{
 						SourceChainID:       common.Hash(sourceChainID),
 						OriginSenderAddress: sourceAddress,
-						DestinationChainID:  common.Hash(destinationChainID),
-						DestinationAddress:  destinationAddress,
 						Payload:             packagedPayloadBytes,
 					},
 					Valid: true,
@@ -298,8 +283,6 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 					Message: WarpMessage{
 						SourceChainID:       common.Hash(sourceChainID),
 						OriginSenderAddress: sourceAddress,
-						DestinationChainID:  common.Hash(destinationChainID),
-						DestinationAddress:  destinationAddress,
 						Payload:             packagedPayloadBytes,
 					},
 					Valid: true,
@@ -366,7 +349,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicateutils.PackPredicate([]byte{1, 2, 3})})
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicate.PackPredicate([]byte{1, 2, 3})})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
@@ -384,7 +367,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				warpMessage, err := avalancheWarp.NewMessage(unsignedMessage, &avalancheWarp.BitSetSignature{})
 				require.NoError(t, err)
 
-				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicateutils.PackPredicate(warpMessage.Bytes())})
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicate.PackPredicate(warpMessage.Bytes())})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
@@ -444,7 +427,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	require.NoError(t, err)
 	warpMessage, err := avalancheWarp.NewMessage(unsignedWarpMsg, &avalancheWarp.BitSetSignature{}) // Create message with empty signature for testing
 	require.NoError(t, err)
-	warpMessagePredicateBytes := predicateutils.PackPredicate(warpMessage.Bytes())
+	warpMessagePredicateBytes := predicate.PackPredicate(warpMessage.Bytes())
 	getVerifiedWarpBlockHash, err := PackGetVerifiedWarpBlockHash(0)
 	require.NoError(t, err)
 
@@ -509,7 +492,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				return input
 			},
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, [][]byte{[]byte{}, warpMessagePredicateBytes})
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{{}, warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(1).Bytes())
@@ -627,7 +610,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
-				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicateutils.PackPredicate([]byte{1, 2, 3})})
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicate.PackPredicate([]byte{1, 2, 3})})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
@@ -645,7 +628,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				warpMessage, err := avalancheWarp.NewMessage(unsignedMessage, &avalancheWarp.BitSetSignature{})
 				require.NoError(t, err)
 
-				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicateutils.PackPredicate(warpMessage.Bytes())})
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicate.PackPredicate(warpMessage.Bytes())})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
 				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
