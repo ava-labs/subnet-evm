@@ -23,7 +23,7 @@ const ConfigKey = "ticksConfig"
 // ContractAddress is the defined address of the precompile contract.
 // This should be unique across all precompile contracts.
 // See precompile/registry/registry.go for registered precompile contracts and more information.
-var ContractAddress = common.HexToAddress("0x0300000000000000000000000000000000000004") // SET A SUITABLE HEX ADDRESS HERE
+var ContractAddress = common.HexToAddress("0x03000000000000000000000000000000000000a1") // SET A SUITABLE HEX ADDRESS HERE
 
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{

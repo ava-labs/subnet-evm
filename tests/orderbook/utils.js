@@ -14,13 +14,13 @@ alice = new ethers.Wallet('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f
 bob = new ethers.Wallet('0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a', provider); // 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc
 charlie = new ethers.Wallet('15614556be13730e9e8d6eacc1603143e7b96987429df8726384c2ec4502ef6e', provider); // 0x55ee05df718f1a5c1441e76190eb1a19ee2c9430
 
-const OrderBookContractAddress = "0x0300000000000000000000000000000000000000"
-const MarginAccountContractAddress = "0x0300000000000000000000000000000000000001"
-const ClearingHouseContractAddress = "0x0300000000000000000000000000000000000002"
-const JurorPrecompileAddress = "0x0300000000000000000000000000000000000003"
-const TicksPrecompileAddress = "0x0300000000000000000000000000000000000004"
-const LimitOrderBookContractAddress = "0x0300000000000000000000000000000000000005"
-const IOCContractAddress = "0x0300000000000000000000000000000000000006"
+const OrderBookContractAddress = "0x03000000000000000000000000000000000000b0"
+const MarginAccountContractAddress = "0x03000000000000000000000000000000000000b1"
+const ClearingHouseContractAddress = "0x03000000000000000000000000000000000000b2"
+const JurorPrecompileAddress = "0x03000000000000000000000000000000000000a0"
+const TicksPrecompileAddress = "0x03000000000000000000000000000000000000a1"
+const LimitOrderBookContractAddress = "0x03000000000000000000000000000000000000b3"
+const IOCContractAddress = "0x03000000000000000000000000000000000000b4"
 
 orderBook = new ethers.Contract(OrderBookContractAddress, require('./abi/OrderBook.json'), provider);
 limitOrderBook = new ethers.Contract(LimitOrderBookContractAddress, require('./abi/LimitOrderBook.json'), provider);

@@ -5,10 +5,10 @@ const axios = require('axios');
 const { expect } = require('chai');
 const { randomInt } = require('crypto');
 
-const OrderBookContractAddress = "0x0300000000000000000000000000000000000000"
-const MarginAccountContractAddress = "0x0300000000000000000000000000000000000001"
+const OrderBookContractAddress = "0x03000000000000000000000000000000000000b0"
+const MarginAccountContractAddress = "0x03000000000000000000000000000000000000b1"
 const MarginAccountHelperContractAddress = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
-const ClearingHouseContractAddress = "0x0300000000000000000000000000000000000002"
+const ClearingHouseContractAddress = "0x03000000000000000000000000000000000000b2"
 
 let provider, domain, orderType, orderBook, marginAccount, marginAccountHelper, clearingHouse
 let alice, bob, charlie, aliceAddress, bobAddress, charlieAddress

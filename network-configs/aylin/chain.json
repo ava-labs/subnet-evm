@@ -1,15 +1,12 @@
 {
-  "state-sync-enabled": true,
   "snowman-api-enabled": true,
   "local-txs-enabled": true,
   "priority-regossip-frequency": "1s",
   "tx-regossip-max-size": 32,
   "priority-regossip-max-txs": 32,
   "priority-regossip-txs-per-address": 20,
-  "priority-regossip-addresses": ["0xeAA6AE79bD3d042644D91edD786E4ed3d783Ca2d"],
+  "priority-regossip-addresses": ["0x06CCAD927e6B1d36E219Cb582Af3185D0705f78F"],
   "validator-private-key-file": "/home/ubuntu/validator.pk",
-  "feeRecipient": "0x393bd9ac9dbBe75e84db739Bb15d22cA86D26696",
-  "is-validator": true,
-  "trading-api-enabled": false,
-  "load-from-snapshot-enabled": true
+  "feeRecipient": "<insert address corresponding to private key above>",
+  "is-validator": true
 }
