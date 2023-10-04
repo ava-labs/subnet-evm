@@ -45,6 +45,7 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	// reset ticker
 	pipeline.MatchingTicker.Reset(matchingTickerDuration)
 	markets := pipeline.GetActiveMarkets()
+	log.Info("MatchingPipeline:Run", "blockNumber", blockNumber)
 
 	if len(markets) == 0 {
 		return false

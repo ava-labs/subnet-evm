@@ -86,47 +86,53 @@ const (
 // Business Logic
 func ValidateOrdersAndDetermineFillPrice(bibliophile b.BibliophileClient, inputStruct *ValidateOrdersAndDetermineFillPriceInput) ValidateOrdersAndDetermineFillPriceOutput {
 	if len(inputStruct.Data) != 2 {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrTwoOrders, Generic)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrTwoOrders, Generic, common.Hash{})
 	}
 
 	if inputStruct.FillAmount.Sign() <= 0 {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrInvalidFillAmount, Generic)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrInvalidFillAmount, Generic, common.Hash{})
 	}
 
 	decodeStep0, err := ob.DecodeTypeAndEncodedOrder(inputStruct.Data[0])
 	if err != nil {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order0)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order0, common.Hash{})
 	}
 	m0, err := validateOrder(bibliophile, decodeStep0.OrderType, decodeStep0.EncodedOrder, Long, inputStruct.FillAmount)
 	if err != nil {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order0)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order0, m0.OrderHash)
 	}
 
 	decodeStep1, err := ob.DecodeTypeAndEncodedOrder(inputStruct.Data[1])
 	if err != nil {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order1)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order1, common.Hash{})
 	}
 	m1, err := validateOrder(bibliophile, decodeStep1.OrderType, decodeStep1.EncodedOrder, Short, new(big.Int).Neg(inputStruct.FillAmount))
 	if err != nil {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order1)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, Order1, m1.OrderHash)
 	}
 
 	if m0.AmmIndex.Cmp(m1.AmmIndex) != 0 {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNotSameAMM, Generic)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNotSameAMM, Generic, common.Hash{})
 	}
 
 	if m0.Price.Cmp(m1.Price) < 0 {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNoMatch, Generic)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNoMatch, Generic, common.Hash{})
 	}
 
 	minSize := bibliophile.GetMinSizeRequirement(m0.AmmIndex.Int64())
 	if new(big.Int).Mod(inputStruct.FillAmount, minSize).Cmp(big.NewInt(0)) != 0 {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNotMultiple, Generic)
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(ErrNotMultiple, Generic, common.Hash{})
 	}
 
 	fillPriceAndModes, err, element := determineFillPrice(bibliophile, m0, m1)
 	if err != nil {
-		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, element)
+		orderHash := common.Hash{}
+		if element == Order0 {
+			orderHash = m0.OrderHash
+		} else if element == Order1 {
+			orderHash = m1.OrderHash
+		}
+		return getValidateOrdersAndDetermineFillPriceErrorOutput(err, element, orderHash)
 	}
 
 	return ValidateOrdersAndDetermineFillPriceOutput{
@@ -230,16 +236,16 @@ func determineFillPrice(bibliophile b.BibliophileClient, m0, m1 *Metadata) (*Fil
 func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClient, inputStruct *ValidateLiquidationOrderAndDetermineFillPriceInput) ValidateLiquidationOrderAndDetermineFillPriceOutput {
 	fillAmount := new(big.Int).Set(inputStruct.LiquidationAmount)
 	if fillAmount.Sign() <= 0 {
-		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(ErrInvalidFillAmount, Generic)
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(ErrInvalidFillAmount, Generic, common.Hash{})
 	}
 
 	decodeStep0, err := ob.DecodeTypeAndEncodedOrder(inputStruct.Data)
 	if err != nil {
-		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0)
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0, common.Hash{})
 	}
 	m0, err := validateOrder(bibliophile, decodeStep0.OrderType, decodeStep0.EncodedOrder, Liquidation, fillAmount)
 	if err != nil {
-		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0)
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0, m0.OrderHash)
 	}
 
 	if m0.BaseAssetQuantity.Sign() < 0 {
@@ -248,12 +254,12 @@ func ValidateLiquidationOrderAndDetermineFillPrice(bibliophile b.BibliophileClie
 
 	minSize := bibliophile.GetMinSizeRequirement(m0.AmmIndex.Int64())
 	if new(big.Int).Mod(fillAmount, minSize).Cmp(big.NewInt(0)) != 0 {
-		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(ErrNotMultiple, Generic)
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(ErrNotMultiple, Generic, common.Hash{})
 	}
 
 	fillPrice, err := determineLiquidationFillPrice(bibliophile, m0)
 	if err != nil {
-		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0)
+		return getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err, Order0, m0.OrderHash)
 	}
 
 	return ValidateLiquidationOrderAndDetermineFillPriceOutput{
@@ -299,11 +305,7 @@ func validateOrder(bibliophile b.BibliophileClient, orderType ob.OrderType, enco
 		if err != nil {
 			return nil, err
 		}
-		orderHash, err := order.Hash()
-		if err != nil {
-			return nil, err
-		}
-		return validateExecuteLimitOrder(bibliophile, order, side, fillAmount, orderHash)
+		return validateExecuteLimitOrder(bibliophile, order, side, fillAmount)
 	}
 	if orderType == ob.IOC {
 		order, err := ob.DecodeIOCOrder(encodedOrder)
@@ -315,9 +317,13 @@ func validateOrder(bibliophile b.BibliophileClient, orderType ob.OrderType, enco
 	return nil, errors.New("invalid order type")
 }
 
-func validateExecuteLimitOrder(bibliophile b.BibliophileClient, order *ob.LimitOrder, side Side, fillAmount *big.Int, orderHash [32]byte) (metadata *Metadata, err error) {
-	if err := validateLimitOrderLike(bibliophile, &order.BaseOrder, bibliophile.GetOrderFilledAmount(orderHash), OrderStatus(bibliophile.GetOrderStatus(orderHash)), side, fillAmount); err != nil {
+func validateExecuteLimitOrder(bibliophile b.BibliophileClient, order *ob.LimitOrder, side Side, fillAmount *big.Int) (metadata *Metadata, err error) {
+	orderHash, err := order.Hash()
+	if err != nil {
 		return nil, err
+	}
+	if err := validateLimitOrderLike(bibliophile, &order.BaseOrder, bibliophile.GetOrderFilledAmount(orderHash), OrderStatus(bibliophile.GetOrderStatus(orderHash)), side, fillAmount); err != nil {
+		return &Metadata{OrderHash: orderHash}, err
 	}
 	return &Metadata{
 		AmmIndex:          order.AmmIndex,
@@ -332,18 +338,18 @@ func validateExecuteLimitOrder(bibliophile b.BibliophileClient, order *ob.LimitO
 }
 
 func validateExecuteIOCOrder(bibliophile b.BibliophileClient, order *ob.IOCOrder, side Side, fillAmount *big.Int) (metadata *Metadata, err error) {
-	if ob.OrderType(order.OrderType) != ob.IOC {
-		return nil, errors.New("not ioc order")
-	}
-	if order.ExpireAt.Uint64() < bibliophile.GetTimeStamp() {
-		return nil, errors.New("ioc expired")
-	}
 	orderHash, err := order.Hash()
 	if err != nil {
 		return nil, err
 	}
+	if ob.OrderType(order.OrderType) != ob.IOC {
+		return &Metadata{OrderHash: orderHash}, errors.New("not ioc order")
+	}
+	if order.ExpireAt.Uint64() < bibliophile.GetTimeStamp() {
+		return &Metadata{OrderHash: orderHash}, errors.New("ioc expired")
+	}
 	if err := validateLimitOrderLike(bibliophile, &order.BaseOrder, bibliophile.IOC_GetOrderFilledAmount(orderHash), OrderStatus(bibliophile.IOC_GetOrderStatus(orderHash)), side, fillAmount); err != nil {
-		return nil, err
+		return &Metadata{OrderHash: orderHash}, err
 	}
 	return &Metadata{
 		AmmIndex:          order.AmmIndex,
@@ -475,7 +481,7 @@ func formatOrder(orderBytes []byte) interface{} {
 	return nil
 }
 
-func getValidateOrdersAndDetermineFillPriceErrorOutput(err error, element BadElement) ValidateOrdersAndDetermineFillPriceOutput {
+func getValidateOrdersAndDetermineFillPriceErrorOutput(err error, element BadElement, orderHash common.Hash) ValidateOrdersAndDetermineFillPriceOutput {
 	// need to provide an empty res because PackValidateOrdersAndDetermineFillPriceOutput fails if FillPrice is nil, and if res.Instructions[0].AmmIndex is nil
 	emptyRes := IOrderHandlerMatchingValidationRes{
 		Instructions: [2]IClearingHouseInstruction{
@@ -492,11 +498,13 @@ func getValidateOrdersAndDetermineFillPriceErrorOutput(err error, element BadEle
 		// should always be true
 		errorString = err.Error()
 	}
-
+	if (element == Order0 || element == Order1) && orderHash != (common.Hash{}) {
+		emptyRes.Instructions[element].OrderHash = orderHash
+	}
 	return ValidateOrdersAndDetermineFillPriceOutput{Err: errorString, Element: uint8(element), Res: emptyRes}
 }
 
-func getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err error, element BadElement) ValidateLiquidationOrderAndDetermineFillPriceOutput {
+func getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err error, element BadElement, orderHash common.Hash) ValidateLiquidationOrderAndDetermineFillPriceOutput {
 	emptyRes := IOrderHandlerLiquidationMatchingValidationRes{
 		Instruction:  IClearingHouseInstruction{AmmIndex: big.NewInt(0)},
 		OrderType:    0,
@@ -510,6 +518,8 @@ func getValidateLiquidationOrderAndDetermineFillPriceErrorOutput(err error, elem
 		// should always be true
 		errorString = err.Error()
 	}
-
+	if element == Order0 && orderHash != (common.Hash{}) {
+		emptyRes.Instruction.OrderHash = orderHash
+	}
 	return ValidateLiquidationOrderAndDetermineFillPriceOutput{Err: errorString, Element: uint8(element), Res: emptyRes}
 }

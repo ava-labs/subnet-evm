@@ -156,7 +156,7 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 		}
 		orderId := event.Topics[1]
 		if !removed {
-			log.Info("OrderMatchingError", "args", args, "orderId", orderId.String(), "number", event.BlockNumber)
+			log.Info("OrderMatchingError", "args", args, "orderId", orderId.String(), "TxHash", event.TxHash, "number", event.BlockNumber)
 			if err := cep.database.SetOrderStatus(orderId, Execution_Failed, args["err"].(string), event.BlockNumber); err != nil {
 				log.Error("error in SetOrderStatus", "method", "OrderMatchingError", "err", err)
 				return

@@ -437,8 +437,10 @@ func TestValidateExecuteIOCOrder(t *testing.T) {
 				ReduceOnly:        false,
 			},
 		}
-		_, err := validateExecuteIOCOrder(mockBibliophile, &order, Long, big.NewInt(10))
+		m, err := validateExecuteIOCOrder(mockBibliophile, &order, Long, big.NewInt(10))
 		assert.EqualError(t, err, "not ioc order")
+		hash, _ := order.Hash()
+		assert.Equal(t, m.OrderHash, hash)
 	})
 
 	t.Run("ioc expired", func(t *testing.T) {
@@ -458,8 +460,10 @@ func TestValidateExecuteIOCOrder(t *testing.T) {
 		}
 		mockBibliophile.EXPECT().GetTimeStamp().Return(uint64(1000))
 
-		_, err := validateExecuteIOCOrder(mockBibliophile, &order, Long, big.NewInt(10))
+		m, err := validateExecuteIOCOrder(mockBibliophile, &order, Long, big.NewInt(10))
 		assert.EqualError(t, err, "ioc expired")
+		hash, _ := order.Hash()
+		assert.Equal(t, m.OrderHash, hash)
 	})
 
 	t.Run("valid order", func(t *testing.T) {
@@ -485,8 +489,16 @@ func TestValidateExecuteIOCOrder(t *testing.T) {
 		mockBibliophile.EXPECT().IOC_GetOrderStatus(hash).Return(int64(1))
 		mockBibliophile.EXPECT().IOC_GetBlockPlaced(hash).Return(big.NewInt(21))
 
-		_, err := validateExecuteIOCOrder(mockBibliophile, &order, Long, big.NewInt(10))
+		m, err := validateExecuteIOCOrder(mockBibliophile, &order, Long, big.NewInt(10))
 		assert.Nil(t, err)
+		assertMetadataEquality(t, &Metadata{
+			AmmIndex:          new(big.Int).Set(order.AmmIndex),
+			Trader:            trader,
+			BaseAssetQuantity: new(big.Int).Set(order.BaseAssetQuantity),
+			BlockPlaced:       big.NewInt(21),
+			Price:             new(big.Int).Set(order.Price),
+			OrderHash:         hash,
+		}, m)
 	})
 
 	t.Run("valid order - reduce only", func(t *testing.T) {

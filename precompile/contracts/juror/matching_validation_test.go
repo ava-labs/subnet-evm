@@ -232,7 +232,7 @@ func TestValidateExecuteLimitOrder(t *testing.T) {
 		mockBibliophile.EXPECT().GetBlockPlaced(orderHash).Return(blockPlaced).Times(1)                              // placed
 		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order.AmmIndex.Int64()).Return(marketAddress).Times(1) // placed
 
-		m, err := validateExecuteLimitOrder(mockBibliophile, order, Long, fillAmount, orderHash)
+		m, err := validateExecuteLimitOrder(mockBibliophile, order, Long, fillAmount)
 		assert.Nil(t, err)
 		assertMetadataEquality(t, &Metadata{
 			AmmIndex:          new(big.Int).Set(order.AmmIndex),
@@ -242,6 +242,18 @@ func TestValidateExecuteLimitOrder(t *testing.T) {
 			Price:             new(big.Int).Set(order.Price),
 			OrderHash:         orderHash,
 		}, m)
+	})
+
+	t.Run("validateExecuteLimitOrder returns orderHash even when validation fails", func(t *testing.T) {
+		orderHash, err := order.Hash()
+		assert.Nil(t, err)
+
+		mockBibliophile.EXPECT().GetOrderFilledAmount(orderHash).Return(filledAmount).Times(1)
+		mockBibliophile.EXPECT().GetOrderStatus(orderHash).Return(int64(2)).Times(1) // Filled
+
+		m, err := validateExecuteLimitOrder(mockBibliophile, order, Long, fillAmount)
+		assert.EqualError(t, err, ErrInvalidOrder.Error())
+		assert.Equal(t, orderHash, m.OrderHash)
 	})
 }
 
