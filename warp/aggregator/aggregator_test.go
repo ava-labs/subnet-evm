@@ -393,16 +393,9 @@ func TestAggregateSignatures(t *testing.T) {
 				client := NewMockSignatureGetter(ctrl)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, _ ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
-						select {
-						case <-ctx.Done():
-							err := ctx.Err()
-							require.ErrorIs(t, err, context.Canceled)
-							return nil, err
-						default:
-							// cancel the context and return the signature
-							cancel()
-							return sig1, nil
-						}
+						// cancel the context and return the signature
+						cancel()
+						return sig1, nil
 					},
 				)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).DoAndReturn(
