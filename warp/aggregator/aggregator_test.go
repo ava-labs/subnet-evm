@@ -407,28 +407,20 @@ func TestAggregateSignatures(t *testing.T) {
 				)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, _ ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
-						select {
-						case <-ctx.Done():
-							err := ctx.Err()
-							require.ErrorIs(t, err, context.Canceled)
-							return nil, err
-						default:
-							// We should not be able to get this signature since context cancelled in another go routine
-							return sig2, nil
-						}
+						// Should not be able to grab another signature since context was cancelled in another go routine
+						<-ctx.Done()
+						err := ctx.Err()
+						require.ErrorIs(t, err, context.Canceled)
+						return nil, err
 					},
 				)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, _ ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
-						select {
-						case <-ctx.Done():
-							err := ctx.Err()
-							require.ErrorIs(t, err, context.Canceled)
-							return nil, err
-						default:
-							// We should not be able to get this signature since context cancelled in another go routine
-							return sig3, nil
-						}
+						// Should not be able to grab another signature since context was cancelled in another go routine
+						<-ctx.Done()
+						err := ctx.Err()
+						require.ErrorIs(t, err, context.Canceled)
+						return nil, err
 					},
 				)
 				return New(subnetID, state, client)
@@ -478,6 +470,10 @@ func TestAggregateSignatures(t *testing.T) {
 			require := require.New(t)
 
 			ctx, cancel := tt.contextWithCancelFunc()
+			// Guarantees that cancel is called preventing memory leak
+			if cancel != nil {
+				defer cancel()
+			}
 			a := tt.aggregatorFunc(ctrl, cancel)
 
 			res, err := a.AggregateSignatures(ctx, tt.unsignedMsg, tt.quorumNum)
