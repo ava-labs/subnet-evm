@@ -19,27 +19,23 @@ describe("IWarpMessenger", function () {
   let contract: Contract
   before(async function () {
     senderAddress = process.env["SENDER_ADDRESS"];
-    destAddress = process.env["DESTINATION_ADDRESS"];
     owner = await ethers.getSigner(senderAddress);
     contract = await ethers.getContractAt("IWarpMessenger", WARP_ADDRESS, owner)
   });
 
   it("contract should be to send warp message", async function () {
-    let destId = process.env["DESTINATION_CHAIN_ID"];
     let payload = process.env["PAYLOAD"];
     let expectedUnsignedMessage = process.env["EXPECTED_UNSIGNED_MESSAGE"];
-    let destIdHex = "0x" + destId.toString().padStart(32, "0");
-    expect(ethers.utils.isHexString(destIdHex)).to.be.true;
     let payloadHex = "0x" + payload.toString()
     expect(ethers.utils.isHexString(payloadHex)).to.be.true;
     let unsignedMessageHex = "0x" + expectedUnsignedMessage.toString()
     expect(ethers.utils.isHexString(unsignedMessageHex)).to.be.true;
 
-    console.log(`Sending warp message to chain: ${destIdHex}, address: ${destAddress} with payload ${payloadHex}`);
+    console.log(`Sending warp message with payload ${payloadHex}, unsigned message ${unsignedMessageHex}`);
 
-    await expect(contract.sendWarpMessage(destIdHex, destAddress, payloadHex))
-    .to.emit(contract, 'SendWarpMessage')
-    .withArgs(destIdHex, destAddress, senderAddress, unsignedMessageHex);
+    await expect(contract.sendWarpMessage(payloadHex))
+      .to.emit(contract, 'SendWarpMessage')
+      .withArgs(senderAddress, unsignedMessageHex);
   })
 
   it("should be able to fetch correct blockchain ID", async function () {

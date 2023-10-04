@@ -395,7 +395,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		rpcURI := toRPCURI(chainAURIs[0], blockchainIDA.String())
 		senderAddress := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
-		destinationAddress := common.HexToAddress("0x0550000000000000000000000000000000000000")
 		addressedPayload, err := warpPayload.NewAddressedPayload(
 			senderAddress,
 			payload,
@@ -410,9 +409,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		os.Setenv("SENDER_ADDRESS", senderAddress.Hex())
 		os.Setenv("SOURCE_CHAIN_ID", blockchainIDA.Hex())
-		os.Setenv("DESTINATION_CHAIN_ID", blockchainIDB.Hex())
 		os.Setenv("PAYLOAD", common.Bytes2Hex(payload))
-		os.Setenv("DESTINATION_ADDRESS", destinationAddress.Hex())
 		os.Setenv("EXPECTED_UNSIGNED_MESSAGE", hex.EncodeToString(expectedUnsignedMessage.Bytes()))
 		runWarpHardhatTests(ctx, rpcURI, cmdPath, testPath)
 
