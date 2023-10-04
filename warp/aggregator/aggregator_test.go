@@ -470,7 +470,7 @@ func TestAggregateSignatures(t *testing.T) {
 			require := require.New(t)
 
 			ctx, cancel := tt.contextWithCancelFunc()
-			// Guarantees that cancel is called preventing memory leak
+			// Guarantees that cancel is called preventing goroutine leak
 			if cancel != nil {
 				defer cancel()
 			}
