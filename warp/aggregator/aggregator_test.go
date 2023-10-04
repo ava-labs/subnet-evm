@@ -384,7 +384,6 @@ func TestAggregateSignatures(t *testing.T) {
 				return ctx, cancel
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, cancel context.CancelFunc) *Aggregator {
-				// defer cancel()
 				state := validators.NewMockState(ctrl)
 				state.EXPECT().GetCurrentHeight(gomock.Any()).Return(pChainHeight, nil)
 				state.EXPECT().GetValidatorSet(gomock.Any(), gomock.Any(), gomock.Any()).Return(
