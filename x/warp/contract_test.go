@@ -167,6 +167,8 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	warpMessagePredicateBytes := predicate.PackPredicate(warpMessage.Bytes())
 	getVerifiedWarpMsg, err := PackGetVerifiedWarpMessage(0)
 	require.NoError(t, err)
+	noFailures := set.NewBits().Bytes()
+	require.Len(t, noFailures, 0)
 
 	tests := map[string]testutils.PrecompileTest{
 		"get message success": {
@@ -176,7 +178,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)),
 			ReadOnly:    false,
@@ -208,7 +210,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,
@@ -233,7 +235,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{{}, warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(1).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)),
 			ReadOnly:    false,
@@ -252,11 +254,36 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				return res
 			}(),
 		},
+		"get message failure non-zero index": {
+			Caller: callerAddr,
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackGetVerifiedWarpMessage(1)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return input
+			},
+			BeforeHook: func(t testing.TB, state contract.StateDB) {
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{{}, warpMessagePredicateBytes})
+			},
+			SetupBlockContext: func(mbc *contract.MockBlockContext) {
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0, 1).Bytes())
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost,
+			ReadOnly:    false,
+			ExpectedRes: func() []byte {
+				res, err := PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{Valid: false})
+				if err != nil {
+					panic(err)
+				}
+				return res
+			}(),
+		},
 		"get non-existent message": {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,
@@ -275,7 +302,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)),
 			ReadOnly:    true,
@@ -298,7 +325,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpMsg },
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    true,
@@ -327,7 +354,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)) - 1,
 			ReadOnly:    false,
@@ -340,7 +367,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessage.Bytes()})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessage.Bytes())),
 			ReadOnly:    false,
@@ -353,7 +380,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicate.PackPredicate([]byte{1, 2, 3})})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(32),
 			ReadOnly:    false,
@@ -371,7 +398,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicate.PackPredicate(warpMessage.Bytes())})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(160),
 			ReadOnly:    false,
@@ -431,6 +458,8 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	warpMessagePredicateBytes := predicate.PackPredicate(warpMessage.Bytes())
 	getVerifiedWarpBlockHash, err := PackGetVerifiedWarpBlockHash(0)
 	require.NoError(t, err)
+	noFailures := set.NewBits().Bytes()
+	require.Len(t, noFailures, 0)
 
 	tests := map[string]testutils.PrecompileTest{
 		"get message success": {
@@ -440,7 +469,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)),
 			ReadOnly:    false,
@@ -471,7 +500,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,
@@ -496,7 +525,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{{}, warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(1).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)),
 			ReadOnly:    false,
@@ -514,11 +543,36 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				return res
 			}(),
 		},
+		"get message failure non-zero index": {
+			Caller: callerAddr,
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackGetVerifiedWarpBlockHash(1)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return input
+			},
+			BeforeHook: func(t testing.TB, state contract.StateDB) {
+				state.SetPredicateStorageSlots(ContractAddress, [][]byte{{}, warpMessagePredicateBytes})
+			},
+			SetupBlockContext: func(mbc *contract.MockBlockContext) {
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0, 1).Bytes())
+			},
+			SuppliedGas: GetVerifiedWarpMessageBaseCost,
+			ReadOnly:    false,
+			ExpectedRes: func() []byte {
+				res, err := PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{Valid: false})
+				if err != nil {
+					panic(err)
+				}
+				return res
+			}(),
+		},
 		"get non-existent message": {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    false,
@@ -537,7 +591,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)),
 			ReadOnly:    true,
@@ -559,7 +613,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller:  callerAddr,
 			InputFn: func(t testing.TB) []byte { return getVerifiedWarpBlockHash },
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits().Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
 			ReadOnly:    true,
@@ -588,7 +642,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessagePredicateBytes})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessagePredicateBytes)) - 1,
 			ReadOnly:    false,
@@ -601,7 +655,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{warpMessage.Bytes()})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(len(warpMessage.Bytes())),
 			ReadOnly:    false,
@@ -614,7 +668,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicate.PackPredicate([]byte{1, 2, 3})})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(32),
 			ReadOnly:    false,
@@ -632,7 +686,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 				state.SetPredicateStorageSlots(ContractAddress, [][]byte{predicate.PackPredicate(warpMessage.Bytes())})
 			},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(set.NewBits(0).Bytes())
+				mbc.EXPECT().GetPredicateResults(common.Hash{}, ContractAddress).Return(noFailures)
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(160),
 			ReadOnly:    false,
