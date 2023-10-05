@@ -142,7 +142,7 @@ func TestCheckPredicate(t *testing.T) {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
 				arg := common.Hash{1}
 				predicater.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
-				predicater.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes1)
+				predicater.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes1, nil)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicater,
 				}
@@ -188,7 +188,7 @@ func TestCheckPredicate(t *testing.T) {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
 				arg := common.Hash{1}
 				predicater.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
-				predicater.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes1)
+				predicater.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg[:]}).Return(predicateResultBytes1, nil)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicater,
 					addr2: predicater,
@@ -215,11 +215,11 @@ func TestCheckPredicate(t *testing.T) {
 				predicate1 := precompileconfig.NewMockPredicater(ctrl)
 				arg1 := common.Hash{1}
 				predicate1.EXPECT().PredicateGas(arg1[:]).Return(uint64(0), nil).Times(2)
-				predicate1.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg1[:]}).Return(predicateResultBytes1)
+				predicate1.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg1[:]}).Return(predicateResultBytes1, nil)
 				predicate2 := precompileconfig.NewMockPredicater(ctrl)
 				arg2 := common.Hash{2}
 				predicate2.EXPECT().PredicateGas(arg2[:]).Return(uint64(0), nil).Times(2)
-				predicate2.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg2[:]}).Return(predicateResultBytes2)
+				predicate2.EXPECT().VerifyPredicate(gomock.Any(), [][]byte{arg2[:]}).Return(predicateResultBytes2, nil)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicate1,
 					addr2: predicate2,

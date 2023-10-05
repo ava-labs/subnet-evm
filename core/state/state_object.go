@@ -48,7 +48,37 @@ func (c Code) String() string {
 	return string(c) //strings.Join(Disassemble(c), " ")
 }
 
-type Storage map[common.Hash]common.Hash
+type Key string
+
+func (k Key) Bytes() []byte {
+	return []byte(k)
+}
+
+func (k Key) AsHash() common.Hash {
+	return common.BytesToHash(k.Bytes())
+}
+
+func HashToKey(hash common.Hash) Key {
+	return Key(hash[:])
+}
+
+type Val string
+
+func (v Val) Bytes() []byte {
+	return []byte(v)
+}
+
+func (v Val) AsHash() common.Hash {
+	return common.BytesToHash(v.Bytes())
+}
+
+func HashToVal(hash common.Hash) Val {
+	return Val(hash[:])
+}
+
+var EmptyVal = Val("")
+
+type Storage map[Key]Val
 
 func (s Storage) String() (str string) {
 	for key, value := range s {
@@ -184,7 +214,7 @@ func (s *stateObject) getTrie(db Database) (Trie, error) {
 }
 
 // GetState retrieves a value from the account storage trie.
-func (s *stateObject) GetState(db Database, key common.Hash) common.Hash {
+func (s *stateObject) GetState(db Database, key Key) Val {
 	// If we have a dirty value for this state entry, return it
 	value, dirty := s.dirtyStorage[key]
 	if dirty {
@@ -195,7 +225,7 @@ func (s *stateObject) GetState(db Database, key common.Hash) common.Hash {
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
-func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
+func (s *stateObject) GetCommittedState(db Database, key Key) Val {
 	// If we have a pending write or clean cached, return that
 	if value, pending := s.pendingStorage[key]; pending {
 		return value
@@ -210,7 +240,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 	//      have been handles via pendingStorage above.
 	//   2) we don't have new values, and can deliver empty response back
 	if _, destructed := s.db.stateObjectsDestruct[s.address]; destructed {
-		return common.Hash{}
+		return EmptyVal
 	}
 	// If no live objects are available, attempt to use snapshots
 	var (
@@ -230,7 +260,7 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		tr, err := s.getTrie(db)
 		if err != nil {
 			s.setError(err)
-			return common.Hash{}
+			return EmptyVal
 		}
 		enc, err = tr.TryGet(key.Bytes())
 		if metrics.EnabledExpensive {
@@ -238,23 +268,23 @@ func (s *stateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		}
 		if err != nil {
 			s.setError(err)
-			return common.Hash{}
+			return EmptyVal
 		}
 	}
-	var value common.Hash
+	var value Val
 	if len(enc) > 0 {
 		_, content, _, err := rlp.Split(enc)
 		if err != nil {
 			s.setError(err)
 		}
-		value.SetBytes(content)
+		value = Val(content)
 	}
 	s.originStorage[key] = value
 	return value
 }
 
 // SetState updates a value in account storage.
-func (s *stateObject) SetState(db Database, key, value common.Hash) {
+func (s *stateObject) SetState(db Database, key Key, value Val) {
 	// If the new value is the same as old, don't set
 	prev := s.GetState(db, key)
 	if prev == value {
@@ -269,7 +299,7 @@ func (s *stateObject) SetState(db Database, key, value common.Hash) {
 	s.setState(key, value)
 }
 
-func (s *stateObject) setState(key, value common.Hash) {
+func (s *stateObject) setState(key Key, value Val) {
 	s.dirtyStorage[key] = value
 }
 
@@ -280,7 +310,7 @@ func (s *stateObject) finalise(prefetch bool) {
 	for key, value := range s.dirtyStorage {
 		s.pendingStorage[key] = value
 		if value != s.originStorage[key] {
-			slotsToPrefetch = append(slotsToPrefetch, common.CopyBytes(key[:])) // Copy needed for closure
+			slotsToPrefetch = append(slotsToPrefetch, common.CopyBytes(key.Bytes())) // Copy needed for closure
 		}
 	}
 	if s.db.prefetcher != nil && prefetch && len(slotsToPrefetch) > 0 && s.data.Root != types.EmptyRootHash {
@@ -324,16 +354,17 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 		s.originStorage[key] = value
 
 		var v []byte
-		if (value == common.Hash{}) {
-			if err := tr.TryDelete(key[:]); err != nil {
+		trimmedVal := common.TrimLeftZeroes(value.Bytes())
+		if len(trimmedVal) == 0 {
+			if err := tr.TryDelete(key.Bytes()); err != nil {
 				s.setError(err)
 				return nil, err
 			}
 			s.db.StorageDeleted += 1
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
-			v, _ = rlp.EncodeToBytes(common.TrimLeftZeroes(value[:]))
-			if err := tr.TryUpdate(key[:], v); err != nil {
+			v, _ = rlp.EncodeToBytes(common.TrimLeftZeroes(value.Bytes()))
+			if err := tr.TryUpdate(key.Bytes(), v); err != nil {
 				s.setError(err)
 				return nil, err
 			}
@@ -348,9 +379,9 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 					s.db.snapStorage[s.addrHash] = storage
 				}
 			}
-			storage[crypto.HashData(hasher, key[:])] = v // v will be nil if it's deleted
+			storage[crypto.HashData(hasher, key.Bytes())] = v // v will be nil if it's deleted
 		}
-		usedStorage = append(usedStorage, common.CopyBytes(key[:])) // Copy needed for closure
+		usedStorage = append(usedStorage, common.CopyBytes(key.Bytes())) // Copy needed for closure
 	}
 	if s.db.prefetcher != nil {
 		s.db.prefetcher.used(s.addrHash, s.data.Root, usedStorage)

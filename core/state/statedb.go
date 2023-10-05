@@ -365,9 +365,25 @@ func (s *StateDB) GetCodeHash(addr common.Address) common.Hash {
 func (s *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetState(s.db, hash)
+		return stateObject.GetState(s.db, HashToKey(hash)).AsHash()
 	}
 	return common.Hash{}
+}
+
+// GetStateVariableLength is similar to GetState, except that is allows
+// for a variable length key returns a variable length value instead of
+// the fixed length of common.Hash.
+func (s *StateDB) GetStateVariableLength(addr common.Address, key string) string {
+	stateObject := s.getStateObject(addr)
+	if stateObject != nil {
+		val := string(stateObject.GetState(s.db, Key(key)))
+		if val != string(EmptyVal) {
+			// remove the first byte, which is the prefix we added to preserve
+			// left-padded zeros.
+			return val[1:]
+		}
+	}
+	return string(EmptyVal)
 }
 
 // GetProof returns the Merkle proof for a given account.
@@ -403,7 +419,7 @@ func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, 
 func (s *StateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetCommittedState(s.db, hash)
+		return stateObject.GetCommittedState(s.db, HashToKey(hash)).AsHash()
 	}
 	return common.Hash{}
 }
@@ -480,7 +496,21 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.SetState(s.db, key, value)
+		stateObject.SetState(s.db, HashToKey(key), HashToVal(value))
+	}
+}
+
+// SetStateVariableLength is similar to SetState, except that is allows
+// for a variable length key and value to be stored in the storage trie
+// instead of the fixed length of common.Hash.
+func (s *StateDB) SetStateVariableLength(addr common.Address, key, value string) {
+	stateObject := s.GetOrNewStateObject(addr)
+	if value != string(EmptyVal) {
+		// add a non-zero prefix to the value to preserve left-zero padding on value
+		value = "1" + value
+	}
+	if stateObject != nil {
+		stateObject.SetState(s.db, Key(key), Val(value))
 	}
 }
 
@@ -495,7 +525,10 @@ func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common
 	s.stateObjectsDestruct[addr] = struct{}{}
 	stateObject := s.GetOrNewStateObject(addr)
 	for k, v := range storage {
-		stateObject.SetState(s.db, k, v)
+		// convert the provided storage to variable key length format
+		// Note: We could push the conversion to the caller and require
+		// [Key] as storage's key type. However, this seems simpler for now.
+		stateObject.SetState(s.db, HashToKey(k), HashToVal(v))
 	}
 }
 
@@ -709,7 +742,7 @@ func (s *StateDB) CreateAccount(addr common.Address) {
 	}
 }
 
-func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) error {
+func (db *StateDB) ForEachStorage(addr common.Address, cb func(key Key, value Val) bool) error {
 	so := db.getStateObject(addr)
 	if so == nil {
 		return nil
@@ -721,7 +754,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 	it := trie.NewIterator(tr.NodeIterator(nil))
 
 	for it.Next() {
-		key := common.BytesToHash(db.trie.GetKey(it.Key))
+		key := Key(db.trie.GetKey(it.Key))
 		if value, dirty := so.dirtyStorage[key]; dirty {
 			if !cb(key, value) {
 				return nil
@@ -734,7 +767,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 			if err != nil {
 				return err
 			}
-			if !cb(key, common.BytesToHash(content)) {
+			if !cb(key, Val(content)) {
 				return nil
 			}
 		}
@@ -1274,4 +1307,12 @@ func (s *StateDB) convertAccountSet(set map[common.Address]struct{}) map[common.
 // SetPredicateStorageSlots sets the predicate storage slots for the given address
 func (s *StateDB) SetPredicateStorageSlots(address common.Address, predicates [][]byte) {
 	s.predicateStorageSlots[address] = predicates
+}
+
+func (s *StateDB) TxHash() common.Hash {
+	return s.thash
+}
+
+func (s *StateDB) GetNumLogs(txHash common.Hash) int {
+	return len(s.logs[txHash])
 }

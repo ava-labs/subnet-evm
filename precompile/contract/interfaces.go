@@ -28,6 +28,7 @@ type StateDB interface {
 
 	GetBalance(common.Address) *big.Int
 	AddBalance(common.Address, *big.Int)
+	SubBalance(common.Address, *big.Int)
 
 	CreateAccount(common.Address)
 	Exist(common.Address) bool
@@ -44,6 +45,11 @@ type StateDB interface {
 
 	Snapshot() int
 	RevertToSnapshot(int)
+
+	TxHash() common.Hash
+	GetNumLogs(txHash common.Hash) int
+	GetStateVariableLength(common.Address, string) string
+	SetStateVariableLength(common.Address, string, string)
 }
 
 // AccessibleState defines the interface exposed to stateful precompile contracts

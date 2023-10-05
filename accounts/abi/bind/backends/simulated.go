@@ -280,7 +280,7 @@ func (b *SimulatedBackend) StorageAt(ctx context.Context, contract common.Addres
 	}
 
 	val := stateDB.GetState(contract, key)
-	return val[:], nil
+	return val.Bytes(), nil
 }
 
 // TransactionReceipt returns the receipt of a transaction.

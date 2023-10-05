@@ -28,7 +28,8 @@ ACK_GINKGO_RC=true ginkgo build ./tests/load ./tests/warp
 # Use "--ginkgo.focus" to select tests.
 TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" ginkgo run -procs=5 tests/precompile \
   --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+  --ginkgo.label-filter ${GINKGO_LABEL_FILTER:-""} \
+  --ginkgo.focus ${GINKGO_FOCUS:-""}
 
 ./tests/load/load.test \
   --ginkgo.vv \

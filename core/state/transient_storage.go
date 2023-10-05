@@ -43,7 +43,8 @@ func (t transientStorage) Set(addr common.Address, key, value common.Hash) {
 	if _, ok := t[addr]; !ok {
 		t[addr] = make(Storage)
 	}
-	t[addr][key] = value
+	k, v := HashToKey(key), HashToVal(value)
+	t[addr][k] = v
 }
 
 // Get gets the transient storage for `key` at the given `addr`.
@@ -52,7 +53,7 @@ func (t transientStorage) Get(addr common.Address, key common.Hash) common.Hash 
 	if !ok {
 		return common.Hash{}
 	}
-	return val[key]
+	return val[HashToKey(key)].AsHash()
 }
 
 // Copy does a deep copy of the transientStorage

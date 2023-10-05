@@ -108,9 +108,7 @@ func CreateSubnetsSuite(genesisFiles map[string]string) *SubnetSuite {
 	return &globalSuite
 }
 
-// CreateNewSubnet creates a new subnet and Subnet-EVM blockchain with the given genesis file.
-// returns the ID of the new created blockchain.
-func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
+func MakeDefaultWallet(ctx context.Context) wallet.Wallet {
 	kc := secp256k1fx.NewKeychain(genesis.EWOQKey)
 
 	// MakeWallet fetches the available UTXOs owned by [kc] on the network
@@ -121,7 +119,13 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 		EthKeychain:  kc,
 	})
 	gomega.Expect(err).Should(gomega.BeNil())
+	return wallet
+}
 
+// CreateNewSubnet creates a new subnet and Subnet-EVM blockchain with the given genesis file.
+// returns the ID of the new created blockchain.
+func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
+	wallet := MakeDefaultWallet(ctx)
 	pWallet := wallet.P()
 
 	owner := &secp256k1fx.OutputOwners{

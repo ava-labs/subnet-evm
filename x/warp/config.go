@@ -198,7 +198,7 @@ func (c *Config) verifyPredicate(predicateContext *precompileconfig.PredicateCon
 }
 
 // VerifyPredicate verifies the predicate represents a valid signed and properly formatted Avalanche Warp Message.
-func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, predicates [][]byte) []byte {
+func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, predicates [][]byte) ([]byte, error) {
 	resultBitSet := set.NewBits()
 
 	for predicateIndex, predicateBytes := range predicates {
@@ -206,5 +206,5 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 			resultBitSet.Add(predicateIndex)
 		}
 	}
-	return resultBitSet.Bytes()
+	return resultBitSet.Bytes(), nil
 }

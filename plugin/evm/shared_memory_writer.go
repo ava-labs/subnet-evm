@@ -12,7 +12,9 @@ import (
 var _ precompileconfig.SharedMemoryWriter = &sharedMemoryWriter{}
 
 type sharedMemoryWriter struct {
-	requests map[ids.ID]*atomic.Requests
+	requests    map[ids.ID]*atomic.Requests
+	requestsLen int
+	numRequests int
 }
 
 func NewSharedMemoryWriter() *sharedMemoryWriter {
@@ -23,9 +25,11 @@ func NewSharedMemoryWriter() *sharedMemoryWriter {
 
 func (s *sharedMemoryWriter) AddSharedMemoryRequests(chainID ids.ID, requests *atomic.Requests) {
 	mergeAtomicOpsToMap(s.requests, chainID, requests)
+	s.requestsLen += len(requests.PutRequests) + len(requests.RemoveRequests)
+	s.numRequests++
 }
 
-// mergeAtomicOps merges atomic ops for [chainID] represented by [requests]
+// mergeAtomicOpsToMap merges atomic ops for [chainID] represented by [requests]
 // to the [output] map provided.
 func mergeAtomicOpsToMap(output map[ids.ID]*atomic.Requests, chainID ids.ID, requests *atomic.Requests) {
 	if request, exists := output[chainID]; exists {

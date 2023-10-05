@@ -52,8 +52,11 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
 		// there's no need to check if the predicate exists here.
 		predicaterContract := rules.Predicaters[address]
-		res := predicaterContract.VerifyPredicate(predicateContext, predicates)
-		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res)
+		res, err := predicaterContract.VerifyPredicate(predicateContext, predicates)
+		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res, "err", err)
+		if err != nil {
+			return nil, err
+		}
 		predicateResults[address] = res
 	}
 

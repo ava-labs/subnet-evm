@@ -21,12 +21,13 @@ import (
 func TestHandlePrecompileAccept(t *testing.T) {
 	require := require.New(t)
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	db := memdb.New()
+	sharedMemorySyncer := NewMockSharedMemorySyncer(ctrl)
 	vm := &VM{
-		chaindb:     Database{db},
-		chainConfig: params.TestChainConfig,
+		chaindb:            Database{db},
+		chainConfig:        params.TestChainConfig,
+		sharedMemorySyncer: sharedMemorySyncer,
 	}
 
 	precompileAddr := common.Address{0x05}
@@ -90,5 +91,6 @@ func TestHandlePrecompileAccept(t *testing.T) {
 			precompileAddr: mockAccepter,
 		},
 	}
-	require.NoError(blk.handlePrecompileAccept(rules, nil))
+	sharedMemorySyncer.EXPECT().IncLastApplied(0)
+	require.NoError(blk.handlePrecompileAccept(rules, &sharedMemoryWriter{}))
 }

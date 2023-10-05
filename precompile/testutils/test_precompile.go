@@ -50,6 +50,8 @@ type PrecompileTest struct {
 	// ChainConfig is the chain config to use for the precompile's block context
 	// If nil, the default chain config will be used.
 	ChainConfig precompileconfig.ChainConfig
+
+	SnowCtx *snow.Context
 }
 
 type PrecompileRunparams struct {
@@ -107,6 +109,9 @@ func (test PrecompileTest) setup(t testing.TB, module modules.Module, state cont
 		blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 	}
 	snowContext := snow.DefaultContextTest()
+	if test.SnowCtx != nil {
+		snowContext = test.SnowCtx
+	}
 
 	accessibleState := contract.NewMockAccessibleState(ctrl)
 	accessibleState.EXPECT().GetStateDB().Return(state).AnyTimes()
