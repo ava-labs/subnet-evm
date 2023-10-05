@@ -419,6 +419,12 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		unsignedMsg, err := warp.UnpackSendWarpEventDataToMessage(txLog.Data)
 		gomega.Expect(err).Should(gomega.BeNil())
 
+		expectedTopics := []common.Hash{
+			warp.WarpABI.Events["SendWarpMessage"].ID,
+			senderAddress.Hash(),
+			common.Hash(expectedUnsignedMessage.ID()),
+		}
+		gomega.Expect(expectedTopics).Should(gomega.Equal(txLog.Topics))
 		// Set local variables for the duration of the test
 		unsignedWarpMessageID = unsignedMsg.ID()
 		unsignedWarpMsg = unsignedMsg
