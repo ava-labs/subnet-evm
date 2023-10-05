@@ -12,8 +12,8 @@ import (
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
-	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	engCommon "github.com/ava-labs/avalanchego/snow/engine/common"
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
@@ -22,9 +22,9 @@ import (
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/sharedmemory"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/utils/codec"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -32,13 +32,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupVMWithSharedMemory(t *testing.T) (*snow.Context, *VM, chan engCommon.Message, *atomic.Memory) {
+func setupVMWithSharedMemory(t *testing.T) (*snow.Context, *VM, chan commonEng.Message, *atomic.Memory) {
 	t.Helper()
 	// create genesis with the shared memory precompile enabled
 	genesis := &core.Genesis{}
-	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONSubnetEVM)))
+	require.NoError(t, genesis.UnmarshalJSON([]byte(genesisJSONDUpgrade)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		sharedmemory.ConfigKey: sharedmemory.NewConfig(common.Big0),
+		sharedmemory.ConfigKey: sharedmemory.NewConfig(utils.NewUint64(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(t, err)
@@ -47,6 +47,7 @@ func setupVMWithSharedMemory(t *testing.T) (*snow.Context, *VM, chan engCommon.M
 
 	// initialize and configure the VM
 	vm := &VM{}
+	appSender := &commonEng.SenderTest{T: t}
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
@@ -55,8 +56,8 @@ func setupVMWithSharedMemory(t *testing.T) (*snow.Context, *VM, chan engCommon.M
 		nil,
 		nil,
 		issuer,
-		[]*engCommon.Fx{},
-		nil,
+		[]*commonEng.Fx{},
+		appSender,
 	)
 	require.NoError(t, err)
 
@@ -301,16 +302,25 @@ func (it importTest) run(t *testing.T) {
 		numBlocks  = 2
 		txPerBlock = 2
 		gap        = uint64(2)
-		tempDB     = memorydb.New()
-		genesis    = vm.ethConfig.Genesis.ToBlock(tempDB)
+		genesis    = vm.ethConfig.Genesis
 	)
-	blocks, allReceipts, err := core.GenerateChain(vm.chainConfig, genesis, dummy.NewETHFaker(), tempDB, numBlocks, gap, func(n int, b *core.BlockGen) {
+	_, blocks, allReceipts, err := core.GenerateChainWithGenesis(genesis, dummy.NewETHFaker(), numBlocks, gap, func(n int, gen *core.BlockGen) {
+		r := predicate.NewResults()
 		// Block must have proper coinbase address to pass syntactic validation
-		b.SetCoinbase(constants.BlackholeAddr)
+		gen.SetCoinbase(constants.BlackholeAddr)
 		for i := 0; i < txPerBlock; i++ {
 			// Each tx will attempt to spend the same UTXO
-			b.AddTx(mkTx(uint64(n*txPerBlock+i), common.Big0))
+			tx := mkTx(uint64(n*txPerBlock+i), common.Big0)
+			gen.AddTx(tx)
+			r.SetTxResults(tx.Hash(), map[common.Address][]byte{
+				sharedmemory.ContractAddress: nil,
+			})
 		}
+		b, err := r.Bytes()
+		if err != nil {
+			t.Fatal(err)
+		}
+		gen.AppendExtra(b)
 	})
 	require.NoError(err)
 	require.Len(blocks, numBlocks)
@@ -332,11 +342,14 @@ func (it importTest) run(t *testing.T) {
 	vm.blockChain.SubscribeLogsEvent(logsCh)
 
 	// Now we can verify these blocks
-	vmBlks := make([]snowman.Block, len(blocks))
+	vmBlks := make([]*Block, len(blocks))
+	proposerCtx := &block.Context{
+		PChainHeight: 0,
+	}
 	for i, blk := range blocks {
 		ctx := context.Background()
 		vmBlks[i] = vm.newBlock(blk)
-		require.NoError(vmBlks[i].Verify(ctx))
+		require.NoError(vmBlks[i].VerifyWithContext(ctx, proposerCtx))
 		require.NoError(vm.SetPreference(ctx, vmBlks[i].ID()))
 
 		// The block should process as head in the tx pool as well.

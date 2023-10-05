@@ -7,23 +7,32 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
 )
+
+var ErrCannotAddManagersBeforeDUpgrade = fmt.Errorf("cannot add managers before DUpgrade")
 
 // AllowListConfig specifies the initial set of addresses with Admin or Enabled roles.
 type AllowListConfig struct {
 	AdminAddresses   []common.Address `json:"adminAddresses,omitempty"`   // initial admin addresses
+	ManagerAddresses []common.Address `json:"managerAddresses,omitempty"` // initial manager addresses
 	EnabledAddresses []common.Address `json:"enabledAddresses,omitempty"` // initial enabled addresses
 }
 
 // Configure initializes the address space of [precompileAddr] by initializing the role of each of
 // the addresses in [AllowListAdmins].
-func (c *AllowListConfig) Configure(state contract.StateDB, precompileAddr common.Address) error {
+func (c *AllowListConfig) Configure(chainConfig precompileconfig.ChainConfig, precompileAddr common.Address, state contract.StateDB, blockContext contract.ConfigurationBlockContext) error {
 	for _, enabledAddr := range c.EnabledAddresses {
 		SetAllowListRole(state, precompileAddr, enabledAddr, EnabledRole)
 	}
 	for _, adminAddr := range c.AdminAddresses {
 		SetAllowListRole(state, precompileAddr, adminAddr, AdminRole)
+	}
+	// Verify() should have been called before Configure()
+	// so we know manager role is activated
+	for _, managerAddr := range c.ManagerAddresses {
+		SetAllowListRole(state, precompileAddr, managerAddr, ManagerRole)
 	}
 	return nil
 }
@@ -35,6 +44,7 @@ func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 	}
 
 	return areEqualAddressLists(c.AdminAddresses, other.AdminAddresses) &&
+		areEqualAddressLists(c.ManagerAddresses, other.ManagerAddresses) &&
 		areEqualAddressLists(c.EnabledAddresses, other.EnabledAddresses)
 }
 
@@ -52,7 +62,7 @@ func areEqualAddressLists(current []common.Address, other []common.Address) bool
 }
 
 // Verify returns an error if there is an overlapping address between admin and enabled roles
-func (c *AllowListConfig) Verify() error {
+func (c *AllowListConfig) Verify(chainConfig precompileconfig.ChainConfig, upgrade precompileconfig.Upgrade) error {
 	addressMap := make(map[common.Address]Role) // tracks which addresses we have seen and their role
 
 	// check for duplicates in enabled list
@@ -73,6 +83,29 @@ func (c *AllowListConfig) Verify() error {
 			}
 		}
 		addressMap[adminAddr] = AdminRole
+	}
+
+	if len(c.ManagerAddresses) != 0 && upgrade.Timestamp() != nil {
+		// If the config attempts to activate a manager before the DUpgrade, fail verification
+		timestamp := *upgrade.Timestamp()
+		if !chainConfig.IsDUpgrade(timestamp) {
+			return ErrCannotAddManagersBeforeDUpgrade
+		}
+	}
+
+	// check for overlap between admin and manager lists or duplicates in manager list
+	for _, managerAddr := range c.ManagerAddresses {
+		if role, ok := addressMap[managerAddr]; ok {
+			switch role {
+			case ManagerRole:
+				return fmt.Errorf("duplicate address in manager list: %s", managerAddr)
+			case AdminRole:
+				return fmt.Errorf("cannot set address as both admin and manager: %s", managerAddr)
+			case EnabledRole:
+				return fmt.Errorf("cannot set address as both enabled and manager: %s", managerAddr)
+			}
+		}
+		addressMap[managerAddr] = ManagerRole
 	}
 
 	return nil

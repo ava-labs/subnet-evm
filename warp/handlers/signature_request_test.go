@@ -12,7 +12,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
-	"github.com/ava-labs/avalanchego/utils/hashing"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/warp"
@@ -26,20 +25,21 @@ func TestSignatureHandler(t *testing.T) {
 	blsSecretKey, err := bls.NewSecretKey()
 	require.NoError(t, err)
 
-	snowCtx.WarpSigner = avalancheWarp.NewSigner(blsSecretKey, snowCtx.ChainID)
-	warpBackend := warp.NewWarpBackend(snowCtx, database, 100)
+	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
+	backend := warp.NewBackend(warpSigner, database, 100)
 
-	msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.ChainID, snowCtx.CChainID, []byte("test"))
+	msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, []byte("test"))
 	require.NoError(t, err)
 
-	messageID := hashing.ComputeHash256Array(msg.Bytes())
-	require.NoError(t, warpBackend.AddMessage(msg))
-	signature, err := warpBackend.GetSignature(messageID)
+	messageID := msg.ID()
+	require.NoError(t, backend.AddMessage(msg))
+	signature, err := backend.GetSignature(messageID)
 	require.NoError(t, err)
 	unknownMessageID := ids.GenerateTestID()
 
+	emptySignature := [bls.SignatureLen]byte{}
 	mockHandlerStats := &stats.MockSignatureRequestHandlerStats{}
-	signatureRequestHandler := NewSignatureRequestHandler(warpBackend, message.Codec, mockHandlerStats)
+	signatureRequestHandler := NewSignatureRequestHandler(backend, message.Codec, mockHandlerStats)
 
 	tests := map[string]struct {
 		setup       func() (request message.SignatureRequest, expectedResponse []byte)
@@ -62,7 +62,7 @@ func TestSignatureHandler(t *testing.T) {
 			setup: func() (request message.SignatureRequest, expectedResponse []byte) {
 				return message.SignatureRequest{
 					MessageID: unknownMessageID,
-				}, nil
+				}, emptySignature[:]
 			},
 			verifyStats: func(t *testing.T, stats *stats.MockSignatureRequestHandlerStats) {
 				require.EqualValues(t, 1, mockHandlerStats.SignatureRequestCount)

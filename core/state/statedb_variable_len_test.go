@@ -35,7 +35,7 @@ func TestVariableLengthKeys(t *testing.T) {
 	// Test that the value is persisted
 	root, err := state.Commit(false, false)
 	require.NoError(err)
-	err = state.Database().TrieDB().Commit(root, false, nil)
+	err = state.Database().TrieDB().Commit(root, false)
 	require.NoError(err)
 
 	state, err = New(root, NewDatabase(db), nil)

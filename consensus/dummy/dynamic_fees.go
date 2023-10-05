@@ -22,16 +22,17 @@ import (
 func CalcBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, parent *types.Header, timestamp uint64) ([]byte, *big.Int, error) {
 	// If the current block is the first EIP-1559 block, or it is the genesis block
 	// return the initial slice and initial base fee.
-	isSubnetEVM := config.IsSubnetEVM(new(big.Int).SetUint64(parent.Time))
-	extraDataSize := params.ExtraDataSize
+	isSubnetEVM := config.IsSubnetEVM(parent.Time)
+	extraDataSize := params.DynamicFeeExtraDataSize
 
 	if !isSubnetEVM || parent.Number.Cmp(common.Big0) == 0 {
 		initialSlice := make([]byte, extraDataSize)
 		return initialSlice, feeConfig.MinBaseFee, nil
 	}
-	if len(parent.Extra) != extraDataSize {
-		return nil, nil, fmt.Errorf("expected length of parent extra data to be %d, but found %d", extraDataSize, len(parent.Extra))
+	if len(parent.Extra) < extraDataSize {
+		return nil, nil, fmt.Errorf("expected length of parent extra data to be >= %d, but found %d", extraDataSize, len(parent.Extra))
 	}
+	dynamicFeeWindow := parent.Extra[:params.DynamicFeeExtraDataSize]
 
 	if timestamp < parent.Time {
 		return nil, nil, fmt.Errorf("cannot calculate base fee for timestamp (%d) prior to parent timestamp (%d)", timestamp, parent.Time)
@@ -40,7 +41,7 @@ func CalcBaseFee(config *params.ChainConfig, feeConfig commontype.FeeConfig, par
 
 	// roll the window over by the difference between the timestamps to generate
 	// the new rollup window.
-	newRollupWindow, err := rollLongWindow(parent.Extra, int(roll))
+	newRollupWindow, err := rollLongWindow(dynamicFeeWindow, int(roll))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -249,7 +250,7 @@ func calcBlockGasCost(
 //
 // This function will return nil for all return values prior to Subnet EVM.
 func MinRequiredTip(config *params.ChainConfig, header *types.Header) (*big.Int, error) {
-	if !config.IsSubnetEVM(new(big.Int).SetUint64(header.Time)) {
+	if !config.IsSubnetEVM(header.Time) {
 		return nil, nil
 	}
 	if header.BaseFee == nil {

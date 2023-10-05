@@ -27,6 +27,11 @@ type stateProvider interface {
 	StateAt(root common.Hash) (*state.StateDB, error)
 }
 
+type SharedMemorySyncer interface {
+	SyncSharedMemoryToState(stateRoot common.Hash) error
+	IncLastApplied(numLogs int) error
+}
+
 type sharedMemorySyncer struct {
 	metadataDB    database.Database
 	versionDB     *versiondb.Database
@@ -38,13 +43,14 @@ type sharedMemorySyncer struct {
 
 func newSharedMemorySyncer(
 	metadataDB database.Database, versionDB *versiondb.Database, stateProvider stateProvider, sharedMemory atomic.SharedMemory,
-) *sharedMemorySyncer {
-	return &sharedMemorySyncer{
+) (*sharedMemorySyncer, error) {
+	s := &sharedMemorySyncer{
 		metadataDB:    metadataDB,
 		stateProvider: stateProvider,
 		sharedMemory:  sharedMemory,
 		versionDB:     versionDB,
 	}
+	return s, s.initialize()
 }
 
 func (s *sharedMemorySyncer) initialize() error {
@@ -60,7 +66,7 @@ func (s *sharedMemorySyncer) initialize() error {
 	return nil
 }
 
-func (s *sharedMemorySyncer) syncSharedMemoryToState(stateRoot common.Hash) error {
+func (s *sharedMemorySyncer) SyncSharedMemoryToState(stateRoot common.Hash) error {
 	// Get the state at [stateRoot]
 	stateDB, err := s.stateProvider.StateAt(stateRoot)
 	if err != nil {
@@ -115,7 +121,7 @@ func (s *sharedMemorySyncer) applyOps(serialNumber uint64, ops map[ids.ID]*atomi
 	return nil
 }
 
-func (s *sharedMemorySyncer) incLastApplied(numLogs int) error {
+func (s *sharedMemorySyncer) IncLastApplied(numLogs int) error {
 	s.lastApplied += uint64(numLogs)
 	return s.putLastApplied(s.lastApplied)
 }

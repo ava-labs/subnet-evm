@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/handlers/stats"
@@ -23,12 +24,12 @@ type SignatureRequestHandler interface {
 
 // signatureRequestHandler implements the SignatureRequestHandler interface
 type signatureRequestHandler struct {
-	backend warp.WarpBackend
+	backend warp.Backend
 	codec   codec.Manager
 	stats   stats.SignatureRequestHandlerStats
 }
 
-func NewSignatureRequestHandler(backend warp.WarpBackend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) SignatureRequestHandler {
+func NewSignatureRequestHandler(backend warp.Backend, codec codec.Manager, stats stats.SignatureRequestHandlerStats) SignatureRequestHandler {
 	return &signatureRequestHandler{
 		backend: backend,
 		codec:   codec,
@@ -54,10 +55,11 @@ func (s *signatureRequestHandler) OnSignatureRequest(ctx context.Context, nodeID
 	if err != nil {
 		log.Debug("Unknown warp signature requested", "messageID", signatureRequest.MessageID)
 		s.stats.IncSignatureMiss()
-		return nil, nil
+		signature = [bls.SignatureLen]byte{}
+	} else {
+		s.stats.IncSignatureHit()
 	}
 
-	s.stats.IncSignatureHit()
 	response := message.SignatureResponse{Signature: signature}
 	responseBytes, err := s.codec.Marshal(message.Version, &response)
 	if err != nil {

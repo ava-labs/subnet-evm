@@ -289,7 +289,8 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 		return nil, remainingGas, err
 	}
 
-	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
+	// TODO: update and support multiple utxos
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress, 0)
 	if !exists {
 		return nil, remainingGas, fmt.Errorf("no predicate available to import, caller %s, input: 0x%x, suppliedGas: %d", caller, input, suppliedGas)
 	}
@@ -339,7 +340,7 @@ func importAVAX(accessibleState contract.AccessibleState, caller common.Address,
 	}
 
 	// Ensure that the locktime of the UTXO has passed
-	if blockTimestamp := accessibleState.GetBlockContext().Timestamp().Uint64(); transferOut.Locktime > blockTimestamp {
+	if blockTimestamp := accessibleState.GetBlockContext().Timestamp(); transferOut.Locktime > blockTimestamp {
 		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.InputID(), transferOut.Locktime, blockTimestamp)
 	}
 	// Confirm that the threshold is 1
@@ -432,7 +433,7 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	if err != nil {
 		return nil, remainingGas, err
 	}
-	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress)
+	predicateBytes, exists := accessibleState.GetStateDB().GetPredicateStorageSlots(ContractAddress, 0)
 	if !exists {
 		return nil, remainingGas, fmt.Errorf("no predicate available to import, caller %s, input: 0x%x, suppliedGas: %d", caller, input, suppliedGas)
 	}
@@ -490,7 +491,7 @@ func importUTXO(accessibleState contract.AccessibleState, caller common.Address,
 	}
 
 	// Ensure that the locktime of the UTXO has passed
-	if blockTimestamp := accessibleState.GetBlockContext().Timestamp().Uint64(); transferOut.Locktime > blockTimestamp {
+	if blockTimestamp := accessibleState.GetBlockContext().Timestamp(); transferOut.Locktime > blockTimestamp {
 		return nil, remainingGas, fmt.Errorf("specified UTXO %s has a timestamp %d after current block timestamp %d", specifiedUTXO.InputID(), transferOut.Locktime, blockTimestamp)
 	}
 	// Confirm that the threshold is 1

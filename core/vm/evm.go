@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"math/big"
 	"sync/atomic"
-	"time"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/subnet-evm/constants"
@@ -38,6 +37,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -111,12 +112,15 @@ type BlockContext struct {
 	Transfer TransferFunc
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
+	// PredicateResults are the results of predicate verification available throughout the EVM's execution.
+	// PredicateResults may be nil if it is not encoded in the block's header.
+	PredicateResults *predicate.Results
 
 	// Block information
 	Coinbase    common.Address // Provides information for COINBASE
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int       // Provides information for TIME
+	Time        uint64         // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
 	BaseFee     *big.Int       // Provides information for BASEFEE
 }
@@ -125,8 +129,15 @@ func (b *BlockContext) Number() *big.Int {
 	return b.BlockNumber
 }
 
-func (b *BlockContext) Timestamp() *big.Int {
+func (b *BlockContext) Timestamp() uint64 {
 	return b.Time
+}
+
+func (b *BlockContext) GetPredicateResults(txHash common.Hash, address common.Address) []byte {
+	if b.PredicateResults == nil {
+		return nil
+	}
+	return b.PredicateResults.GetResults(txHash, address)
 }
 
 // TxContext provides the EVM with information about a transaction.
@@ -185,7 +196,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		chainConfig: chainConfig,
 		chainRules:  chainConfig.AvalancheRules(blockCtx.BlockNumber, blockCtx.Time),
 	}
-	evm.interpreter = NewEVMInterpreter(evm, config)
+	evm.interpreter = NewEVMInterpreter(evm)
 	return evm
 }
 
@@ -227,6 +238,13 @@ func (evm *EVM) Interpreter() *EVMInterpreter {
 	return evm.interpreter
 }
 
+// SetBlockContext updates the block context of the EVM.
+func (evm *EVM) SetBlockContext(blockCtx BlockContext) {
+	evm.Context = blockCtx
+	num := blockCtx.BlockNumber
+	evm.chainRules = evm.chainConfig.AvalancheRules(num, blockCtx.Time)
+}
+
 // Call executes the contract associated with the addr with the given input as
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
@@ -252,7 +270,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 			if evm.Config.Debug {
 				if evm.depth == 0 {
 					evm.Config.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
-					evm.Config.Tracer.CaptureEnd(ret, 0, 0, nil)
+					evm.Config.Tracer.CaptureEnd(ret, 0, nil)
 				} else {
 					evm.Config.Tracer.CaptureEnter(CALL, caller.Address(), addr, input, gas, value)
 					evm.Config.Tracer.CaptureExit(ret, 0, nil)
@@ -268,9 +286,9 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if evm.Config.Debug {
 		if evm.depth == 0 {
 			evm.Config.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
-			defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
-				evm.Config.Tracer.CaptureEnd(ret, startGas-gas, time.Since(startTime), err)
-			}(gas, time.Now())
+			defer func(startGas uint64) { // Lazy evaluation of the parameters
+				evm.Config.Tracer.CaptureEnd(ret, startGas-gas, err)
+			}(gas)
 		} else {
 			// Handle tracer events for entering and exiting a call frame
 			evm.Config.Tracer.CaptureEnter(CALL, caller.Address(), addr, input, gas, value)
@@ -313,11 +331,6 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	return ret, gas, err
 }
 
-// CallFromPrecompile invokes Call to execute the contract with the given input parameters.
-func (evm *EVM) CallFromPrecompile(caller common.Address, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	return evm.Call(AccountRef(caller), addr, input, gas, value)
-}
-
 // CallCode executes the contract associated with the addr with the given input
 // as parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
@@ -340,7 +353,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, gas, vmerrs.ErrInsufficientBalance
 	}
-	var snapshot = evm.StateDB.Snapshot()
+	snapshot := evm.StateDB.Snapshot()
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
 	if evm.Config.Debug {
@@ -381,11 +394,15 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, gas, vmerrs.ErrDepth
 	}
-	var snapshot = evm.StateDB.Snapshot()
+	snapshot := evm.StateDB.Snapshot()
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
 	if evm.Config.Debug {
-		evm.Config.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, nil)
+		// NOTE: caller must, at all times be a contract. It should never happen
+		// that caller is something other than a Contract.
+		parent := caller.(*Contract)
+		// DELEGATECALL inherits value from parent call
+		evm.Config.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, parent.value)
 		defer func(startGas uint64) {
 			evm.Config.Tracer.CaptureExit(ret, startGas-gas, err)
 		}(gas)
@@ -425,7 +442,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	// after all empty accounts were deleted, so this is not required. However, if we omit this,
 	// then certain tests start failing; stRevertTest/RevertPrecompiledTouchExactOOG.json.
 	// We could change this, but for now it's left for legacy reasons
-	var snapshot = evm.StateDB.Snapshot()
+	snapshot := evm.StateDB.Snapshot()
 
 	// We do an AddBalance of zero here, just in order to trigger a touch.
 	// This doesn't matter on Mainnet, where all empties are gone at the time of Byzantium,
@@ -541,8 +558,6 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 		}
 	}
 
-	start := time.Now()
-
 	ret, err := evm.interpreter.Run(contract, nil, false)
 
 	// Check whether the max code size has been exceeded, assign err if the case.
@@ -580,7 +595,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 
 	if evm.Config.Debug {
 		if evm.depth == 0 {
-			evm.Config.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			evm.Config.Tracer.CaptureEnd(ret, gas-contract.Gas, err)
 		} else {
 			evm.Config.Tracer.CaptureExit(ret, gas-contract.Gas, err)
 		}
@@ -606,3 +621,6 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
+
+// GetChainConfig implements AccessibleState
+func (evm *EVM) GetChainConfig() precompileconfig.ChainConfig { return evm.chainConfig }

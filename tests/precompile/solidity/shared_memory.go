@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/components/avax"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
@@ -40,20 +41,24 @@ var _ = ginkgo.Describe("[Shared Memory]", ginkgo.Ordered, func() {
 
 		// CreateNewSubnet returns the same length of blockchainIDs as genesisFilePaths passed in or errors
 		// so we do not check the length here
-		blockchainIDs, avaxAssetID := utils.CreateNewSubnet(ctx, []string{genesisFilePath, genesisFilePath})
-		blockchainA := blockchainIDs[0]
-		blockchainB := blockchainIDs[1]
-		err := os.Setenv("BLOCKCHAIN_ID_A", blockchainA.Hex())
+		subnetSuite := utils.CreateSubnetsSuite(map[string]string{
+			"subnet_a": genesisFilePath,
+			"subnet_b": genesisFilePath,
+		})
+		blockchainA := subnetSuite.GetBlockchainID("subnet_a")
+		blockchainB := subnetSuite.GetBlockchainID("subnet_b")
+		err := os.Setenv("BLOCKCHAIN_ID_A", blockchainA)
 		gomega.Expect(err).Should(gomega.BeNil())
-		err = os.Setenv("BLOCKCHAIN_ID_B", blockchainB.Hex())
+		err = os.Setenv("BLOCKCHAIN_ID_B", blockchainB)
 		gomega.Expect(err).Should(gomega.BeNil())
-		uriChainA := fmt.Sprintf(
-			"%s/ext/bc/%s/rpc", utils.DefaultLocalNodeURI, blockchainA.String())
 
+		testDir := "./contracts"
 		// Execute export tests
-		utils.RunHardhatTests("shared_memory_export", uriChainA)
+		utils.RunHardhatTests(ctx, blockchainA, testDir, "shared_memory_export")
 
 		// Dial RPC to blockchainA to fetch logs
+		uriChainA := fmt.Sprintf(
+			"%s/ext/bc/%s/rpc", utils.DefaultLocalNodeURI, blockchainA)
 		client, err := ethclient.Dial(uriChainA)
 		gomega.Expect(err).Should(gomega.BeNil())
 		defer client.Close()
@@ -70,6 +75,7 @@ var _ = ginkgo.Describe("[Shared Memory]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(logs).Should(gomega.HaveLen(2))
 
+		avaxAssetID := utils.MakeDefaultWallet(ctx).P().AVAXAssetID()
 		for idx, log := range logs {
 			// TODO: I am going to calculate the predicate bytes here now to
 			// close the loop on testing. We should have a design that does not
@@ -102,8 +108,10 @@ var _ = ginkgo.Describe("[Shared Memory]", ginkgo.Ordered, func() {
 				common.Bytes2Hex(utxoID[:]))
 			gomega.Expect(err).Should(gomega.BeNil())
 
+			blockchainAID, err := ids.FromString(blockchainA)
+			gomega.Expect(err).Should(gomega.BeNil())
 			predicate := &sharedmemory.AtomicPredicate{
-				SourceChain:   blockchainA,
+				SourceChain:   blockchainAID,
 				ImportedUTXOs: []*avax.UTXO{parsedUTXO},
 			}
 			predicateBytes, err := codec.Codec.Marshal(
@@ -117,8 +125,6 @@ var _ = ginkgo.Describe("[Shared Memory]", ginkgo.Ordered, func() {
 		}
 
 		// Import the UTXOs on blockchainB
-		uriChainB := fmt.Sprintf(
-			"%s/ext/bc/%s/rpc", utils.DefaultLocalNodeURI, blockchainB.String())
-		utils.RunHardhatTests("shared_memory_import", uriChainB)
+		utils.RunHardhatTests(ctx, blockchainB, testDir, "shared_memory_import")
 	})
 })

@@ -40,10 +40,10 @@ func (*configurator) MakeConfig() precompileconfig.Config {
 }
 
 // Configure configures [state] with the desired admins based on [configIface].
-func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, blockContext contract.BlockContext) error {
+func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, blockContext contract.ConfigurationBlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
-		return fmt.Errorf("incorrect config %T: %v", config, config)
+		return fmt.Errorf("expected config type %T, got %T: %v", &Config{}, cfg, cfg)
 	}
 	// Store the initial fee config into the state when the fee manager activates.
 	if config.InitialFeeConfig != nil {
@@ -57,5 +57,5 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompilec
 			return fmt.Errorf("cannot configure fee config in chain config: %w", err)
 		}
 	}
-	return config.AllowListConfig.Configure(state, ContractAddress)
+	return config.AllowListConfig.Configure(chainConfig, ContractAddress, state, blockContext)
 }

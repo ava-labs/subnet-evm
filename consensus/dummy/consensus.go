@@ -107,8 +107,6 @@ func (self *DummyEngine) verifyCoinbase(config *params.ChainConfig, header *type
 }
 
 func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, header *types.Header, parent *types.Header, chain consensus.ChainHeaderReader) error {
-	timestamp := new(big.Int).SetUint64(header.Time)
-
 	// Verify that the gas limit is <= 2^63-1
 	if header.GasLimit > params.MaxGasLimit {
 		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
@@ -126,7 +124,7 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 	if err != nil {
 		return err
 	}
-	if config.IsSubnetEVM(timestamp) {
+	if config.IsSubnetEVM(header.Time) {
 		expectedGasLimit := feeConfig.GasLimit.Uint64()
 		if header.GasLimit != expectedGasLimit {
 			return fmt.Errorf("expected gas limit to be %d, but found %d", expectedGasLimit, header.GasLimit)
@@ -158,7 +156,7 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 	if err != nil {
 		return fmt.Errorf("failed to calculate base fee: %w", err)
 	}
-	if !bytes.Equal(expectedRollupWindowBytes, header.Extra) {
+	if len(header.Extra) < len(expectedRollupWindowBytes) || !bytes.Equal(expectedRollupWindowBytes, header.Extra[:len(expectedRollupWindowBytes)]) {
 		return fmt.Errorf("expected rollup window bytes: %x, found %x", expectedRollupWindowBytes, header.Extra)
 	}
 	if header.BaseFee == nil {
@@ -194,23 +192,23 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 
 // modified from consensus.go
 func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, uncle bool) error {
-	var (
-		config    = chain.Config()
-		timestamp = new(big.Int).SetUint64(header.Time)
-	)
+	config := chain.Config()
 	// Ensure that we do not verify an uncle
 	if uncle {
 		return errUnclesUnsupported
 	}
-	// Ensure that the header's extra-data section is of a reasonable size
-	if !config.IsSubnetEVM(timestamp) {
+	switch {
+	case config.IsDUpgrade(header.Time):
+		if len(header.Extra) < params.DynamicFeeExtraDataSize {
+			return fmt.Errorf("expected extra-data field length >= %d, found %d", params.DynamicFeeExtraDataSize, len(header.Extra))
+		}
+	case config.IsSubnetEVM(header.Time):
+		if len(header.Extra) != params.DynamicFeeExtraDataSize {
+			return fmt.Errorf("expected extra-data field to be: %d, but found %d", params.DynamicFeeExtraDataSize, len(header.Extra))
+		}
+	default:
 		if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 			return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
-		}
-	} else {
-		expectedExtraDataSize := params.ExtraDataSize
-		if len(header.Extra) != expectedExtraDataSize {
-			return fmt.Errorf("expected extra-data field to be: %d, but found %d", expectedExtraDataSize, len(header.Extra))
 		}
 	}
 	// Ensure gas-related header fields are correct
@@ -332,7 +330,7 @@ func (self *DummyEngine) verifyBlockFee(
 }
 
 func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *types.Block, parent *types.Header, state *state.StateDB, receipts []*types.Receipt) error {
-	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(block.Time())) {
+	if chain.Config().IsSubnetEVM(block.Time()) {
 		// we use the parent to determine the fee config
 		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)
@@ -371,7 +369,7 @@ func (self *DummyEngine) Finalize(chain consensus.ChainHeaderReader, block *type
 func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, state *state.StateDB, txs []*types.Transaction,
 	uncles []*types.Header, receipts []*types.Receipt,
 ) (*types.Block, error) {
-	if chain.Config().IsSubnetEVM(new(big.Int).SetUint64(header.Time)) {
+	if chain.Config().IsSubnetEVM(header.Time) {
 		// we use the parent to determine the fee config
 		// since the current block has not been finalized yet.
 		feeConfig, _, err := chain.GetFeeConfigAt(parent)

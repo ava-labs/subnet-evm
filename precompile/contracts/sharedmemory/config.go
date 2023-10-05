@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
@@ -22,9 +21,9 @@ import (
 )
 
 var (
-	_ precompileconfig.Config               = &Config{}
-	_ precompileconfig.Accepter             = &Config{}
-	_ precompileconfig.PrecompilePredicater = &Config{}
+	_ precompileconfig.Config     = &Config{}
+	_ precompileconfig.Accepter   = &Config{}
+	_ precompileconfig.Predicater = &Config{}
 )
 
 // Config implements the precompileconfig.Config interface and
@@ -37,7 +36,7 @@ type Config struct {
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
 // SharedMemory.
-func NewConfig(blockTimestamp *big.Int) *Config {
+func NewConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 	}
@@ -45,7 +44,7 @@ func NewConfig(blockTimestamp *big.Int) *Config {
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables SharedMemory.
-func NewDisableConfig(blockTimestamp *big.Int) *Config {
+func NewDisableConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
@@ -59,7 +58,7 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
-func (c *Config) Verify() error {
+func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom verify code for Config here
 	// and return an error accordingly
@@ -116,6 +115,11 @@ func acceptedLogsToSharedMemoryOps(snowCtx *snow.Context, txHash common.Hash, lo
 	}
 }
 
+func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
+	// TODO: implement
+	return 0, nil
+}
+
 // TODO: consider changing this to specify a single UTXO and allowing the predicate to unmarshal a slice
 // of pairs (SourceChainID, UTXO)
 type AtomicPredicate struct {
@@ -129,7 +133,7 @@ type AtomicPredicate struct {
 // have not been consumed yet.
 // VerifyPredicate is called before the transaction execution, so it is up to the precompile implementation to validate
 // that the caller has permission to consume the UTXO and how consuming the UTXO works.
-func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PrecompilePredicateContext, predicateBytes []byte) error {
+func (c *Config) verifyPredicate(predicateContext *precompileconfig.PredicateContext, predicateBytes []byte) error {
 	predicateBytes, err := utils.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return fmt.Errorf("failed to unpack shared memory predicate: %w", err)
@@ -185,4 +189,17 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PrecompilePr
 	}
 
 	return nil
+}
+
+func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, predicatesBytes [][]byte) ([]byte, error) {
+	// TODO: make this work for more than 1 predicate / utxo
+	if len(predicatesBytes) != 1 {
+		return nil, fmt.Errorf("shared memory precompile only supports 1 predicate")
+	}
+	for _, predicateBytes := range predicatesBytes {
+		if err := c.verifyPredicate(predicateContext, predicateBytes); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }

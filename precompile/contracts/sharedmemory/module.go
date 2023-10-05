@@ -23,7 +23,7 @@ const ConfigKey = "sharedMemoryConfig"
 // ContractAddress is the defined address of the precompile contract.
 // This should be unique across all precompile contracts.
 // See params/precompile_modules.go for registered precompile contracts and more information.
-var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000005") // SET A SUITABLE HEX ADDRESS HERE
+var ContractAddress = common.HexToAddress("0x0200000000000000000000000000000000000006") // SET A SUITABLE HEX ADDRESS HERE
 
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{
@@ -53,7 +53,7 @@ func (*configurator) MakeConfig() precompileconfig.Config {
 // This function is called by the EVM once per precompile contract activation.
 // You can use this function to set up your precompile contract's initial state,
 // by using the [cfg] config and [state] stateDB.
-func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, _ contract.BlockContext) error {
+func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, _ contract.ConfigurationBlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)

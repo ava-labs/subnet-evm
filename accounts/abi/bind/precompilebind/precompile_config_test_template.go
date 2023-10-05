@@ -11,16 +11,17 @@ const tmplSourcePrecompileConfigTestGo = `
 package {{.Package}}
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	"github.com/ava-labs/subnet-evm/utils"
 	{{- if .Contract.AllowList}}
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 
 	"github.com/ethereum/go-ethereum/common"
 	{{- end}}
+	"go.uber.org/mock/gomock"
 )
 
 // TestVerify tests the verification of Config.
@@ -28,16 +29,22 @@ func TestVerify(t *testing.T) {
 	{{- if .Contract.AllowList}}
 	admins := []common.Address{allowlist.TestAdminAddr}
 	enableds := []common.Address{allowlist.TestEnabledAddr}
+	managers := []common.Address{allowlist.TestManagerAddr}
 	{{- end}}
 	tests := map[string]testutils.ConfigVerifyTest{
 		"valid config": {
-			Config: NewConfig(big.NewInt(3){{- if .Contract.AllowList}}, admins, enableds{{- end}}),
+			Config: NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
+			ChainConfig: func() precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+				return config
+			}(),
 			ExpectedError: "",
 		},
 		// CUSTOM CODE STARTS HERE
 		// Add your own Verify tests here, e.g.:
 		// "your custom test name": {
-		// 	Config: NewConfig(big.NewInt(3), {{- if .Contract.AllowList}} admins, enableds{{- end}}),
+		// 	Config: NewConfig(utils.NewUint64(3), {{- if .Contract.AllowList}} admins, enableds, managers{{- end}}),
 		// 	ExpectedError: ErrYourCustomError.Error(),
 		// },
 	}
@@ -59,26 +66,27 @@ func TestEqual(t *testing.T) {
 	{{- if .Contract.AllowList}}
 	admins := []common.Address{allowlist.TestAdminAddr}
 	enableds := []common.Address{allowlist.TestEnabledAddr}
+	managers := []common.Address{allowlist.TestManagerAddr}
 	{{- end}}
 	tests := map[string]testutils.ConfigEqualTest{
 		"non-nil config and nil other": {
-			Config:   NewConfig(big.NewInt(3){{- if .Contract.AllowList}}, admins, enableds{{- end}}),
+			Config:   NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds,managers{{- end}}),
 			Other:    nil,
 			Expected: false,
 		},
 		"different type": {
-			Config:   NewConfig(big.NewInt(3){{- if .Contract.AllowList}}, admins, enableds{{- end}}),
-			Other:    precompileconfig.NewNoopStatefulPrecompileConfig(),
+			Config:   NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
+			Other:    precompileconfig.NewMockConfig(gomock.NewController(t)),
 			Expected: false,
 		},
 		"different timestamp": {
-			Config:   NewConfig(big.NewInt(3){{- if .Contract.AllowList}}, admins, enableds{{- end}}),
-			Other:    NewConfig(big.NewInt(4){{- if .Contract.AllowList}}, admins, enableds{{- end}}),
+			Config:   NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
+			Other:    NewConfig(utils.NewUint64(4){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
 			Expected: false,
 		},
 		"same config": {
-			Config: NewConfig(big.NewInt(3){{- if .Contract.AllowList}}, admins, enableds{{- end}}),
-			Other: NewConfig(big.NewInt(3){{- if .Contract.AllowList}}, admins, enableds{{- end}}),
+			Config: NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
+			Other: NewConfig(utils.NewUint64(3){{- if .Contract.AllowList}}, admins, enableds, managers{{- end}}),
 			Expected: true,
 		},
 		// CUSTOM CODE STARTS HERE
