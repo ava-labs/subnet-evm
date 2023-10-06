@@ -201,9 +201,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetVerifiedWarpMessage(1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return input
 			},
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
@@ -226,9 +224,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetVerifiedWarpMessage(1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return input
 			},
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
@@ -258,9 +254,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetVerifiedWarpMessage(1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return input
 			},
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
@@ -417,9 +411,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				res, err := PackGetVerifiedWarpMessage(math.MaxInt32 + 1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return res
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
@@ -430,9 +422,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				res, err := PackGetVerifiedWarpMessage(1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return res[:len(res)-2]
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
@@ -491,9 +481,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetVerifiedWarpBlockHash(1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return input
 			},
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
@@ -516,9 +504,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetVerifiedWarpBlockHash(1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return input
 			},
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
@@ -547,9 +533,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				input, err := PackGetVerifiedWarpBlockHash(1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return input
 			},
 			BeforeHook: func(t testing.TB, state contract.StateDB) {
@@ -705,9 +689,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				res, err := PackGetVerifiedWarpBlockHash(math.MaxInt32 + 1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return res
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
@@ -718,9 +700,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			Caller: callerAddr,
 			InputFn: func(t testing.TB) []byte {
 				res, err := PackGetVerifiedWarpBlockHash(1)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				return res[:len(res)-2]
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost,
