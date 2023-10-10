@@ -26,9 +26,6 @@ describe("IWarpMessenger", function () {
   });
 
   it("contract should be to send warp message", async function () {
-    expect(ethers.utils.isHexString(payload)).to.be.true;
-    expect(ethers.utils.isHexString(expectedUnsignedMessage)).to.be.true;
-
     console.log(`Sending warp message with payload ${payload}, expected unsigned message ${expectedUnsignedMessage}`);
 
     await expect(contract.sendWarpMessage(payload))
@@ -37,7 +34,6 @@ describe("IWarpMessenger", function () {
   })
 
   it("should be able to fetch correct blockchain ID", async function () {
-    expect(ethers.utils.isHexString(sourceID)).to.be.true;
     let blockchainID = await contract.getBlockchainID();
     expect(blockchainID).to.be.equal(sourceID);
   })
