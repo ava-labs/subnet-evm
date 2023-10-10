@@ -115,7 +115,7 @@ TxPredicateResults
 
 ### Maximum Size
 
-Results has a maximum size of 1MB enforced by the codec. The maximum actual size depends on how much data the available Precompile predicates may put into the results / the gas cost they charge and the block gas limit.
+Results has a maximum size of 1MB enforced by the codec. The actual size depends on how much data the Precompile predicates may put into the results, the gas cost they charge, and the block gas limit.
 
 The Results maximum size should comfortably exceed the maximum value that could happen in practice, so that a correct block builder will not attempt to build a block and fail to marshal the predicate results using the codec.
 
