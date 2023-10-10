@@ -9,11 +9,11 @@ import {
 import { ethers } from "hardhat"
 
 const WARP_ADDRESS = "0x0200000000000000000000000000000000000005";
-var senderAddress: string
+let senderAddress =  process.env["SENDER_ADDRESS"];
 // Expected to be a hex string
-var payload: string
-var expectedUnsignedMessage: string
-var sourceID: string
+let payload = process.env["PAYLOAD"];
+let expectedUnsignedMessage = process.env["EXPECTED_UNSIGNED_MESSAGE"];
+let sourceID = process.env["SOURCE_CHAIN_ID"];
 
 describe("IWarpMessenger", function () {
   this.timeout("30s")
@@ -21,13 +21,8 @@ describe("IWarpMessenger", function () {
   let owner: SignerWithAddress
   let contract: Contract
   before(async function () {
-    senderAddress = process.env["SENDER_ADDRESS"];
     owner = await ethers.getSigner(senderAddress);
     contract = await ethers.getContractAt("IWarpMessenger", WARP_ADDRESS, owner)
-
-    payload = process.env["PAYLOAD"];
-    expectedUnsignedMessage = process.env["EXPECTED_UNSIGNED_MESSAGE"];
-    sourceID = process.env["SOURCE_CHAIN_ID"];
   });
 
   it("contract should be to send warp message", async function () {
