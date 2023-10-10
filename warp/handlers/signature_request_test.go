@@ -52,7 +52,7 @@ func TestSignatureHandler(t *testing.T) {
 				require.EqualValues(t, 1, stats.signatureRequest.Count())
 				require.EqualValues(t, 1, stats.signatureHit.Count())
 				require.EqualValues(t, 0, stats.signatureMiss.Count())
-				require.Greater(t, stats.signatureProcessingTime.Value(), time.Duration(0))
+				require.Greater(t, stats.signatureRequestDuration.Value(), time.Duration(0))
 			},
 		},
 		"unknown": {
@@ -65,7 +65,7 @@ func TestSignatureHandler(t *testing.T) {
 				require.EqualValues(t, 1, stats.signatureRequest.Count())
 				require.EqualValues(t, 0, stats.signatureHit.Count())
 				require.EqualValues(t, 1, stats.signatureMiss.Count())
-				require.Greater(t, stats.signatureProcessingTime.Value(), time.Duration(0))
+				require.Greater(t, stats.signatureRequestDuration.Value(), time.Duration(0))
 			},
 		},
 	}
