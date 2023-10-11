@@ -56,7 +56,7 @@ func GetTotalNotionalPositionAndUnrealizedPnl(hState *HubbleState, userState *Us
 	return notionalPosition, unrealizedPnl
 }
 
-func GetOptimalPnl(hState *HubbleState, position *Position, margin *big.Int, market Market, marginMode MarginMode) (notionalPosition *big.Int, uPnL *big.Int) {
+func GetOptimalPnlDeprecated(hState *HubbleState, position *Position, margin *big.Int, market Market, marginMode MarginMode) (notionalPosition *big.Int, uPnL *big.Int) {
 	if position == nil || position.Size.Sign() == 0 {
 		return big.NewInt(0), big.NewInt(0)
 	}
@@ -79,6 +79,34 @@ func GetOptimalPnl(hState *HubbleState, position *Position, margin *big.Int, mar
 
 	if (marginMode == Maintenance_Margin && oracleBasedMF.Cmp(midPriceBasedMF) == 1) || // for liquidations
 		(marginMode == Min_Allowable_Margin && oracleBasedMF.Cmp(midPriceBasedMF) == -1) { // for increasing leverage
+		return oracleBasedNotional, oracleBasedUnrealizedPnl
+	}
+	return notionalPosition, unrealizedPnl
+}
+
+func GetOptimalPnl(hState *HubbleState, position *Position, margin *big.Int, market Market, marginMode MarginMode) (notionalPosition *big.Int, uPnL *big.Int) {
+	if position == nil || position.Size.Sign() == 0 {
+		return big.NewInt(0), big.NewInt(0)
+	}
+
+	// based on last price
+	notionalPosition, unrealizedPnl, _ := GetPositionMetadata(
+		hState.MidPrices[market],
+		position.OpenNotional,
+		position.Size,
+		margin,
+	)
+
+	// based on oracle price
+	oracleBasedNotional, oracleBasedUnrealizedPnl, _ := GetPositionMetadata(
+		hState.OraclePrices[market],
+		position.OpenNotional,
+		position.Size,
+		margin,
+	)
+
+	if (marginMode == Maintenance_Margin && oracleBasedUnrealizedPnl.Cmp(unrealizedPnl) == 1) || // for liquidations
+		(marginMode == Min_Allowable_Margin && oracleBasedUnrealizedPnl.Cmp(unrealizedPnl) == -1) { // for increasing leverage
 		return oracleBasedNotional, oracleBasedUnrealizedPnl
 	}
 	return notionalPosition, unrealizedPnl
