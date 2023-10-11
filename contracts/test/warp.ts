@@ -16,8 +16,6 @@ let expectedUnsignedMessage = process.env["EXPECTED_UNSIGNED_MESSAGE"];
 let sourceID = process.env["SOURCE_CHAIN_ID"];
 
 describe("IWarpMessenger", function () {
-  this.timeout("30s")
-
   let owner: SignerWithAddress
   let contract: Contract
   before(async function () {
