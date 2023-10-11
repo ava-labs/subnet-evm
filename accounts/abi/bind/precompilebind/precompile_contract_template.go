@@ -108,22 +108,21 @@ var (
 {{- end}}
 
 {{range .Contract.Events}}
-	{{$hasData := false}}
-	{{range .Normalized.Inputs}}
-		{{ if not .Indexed}}
-			{{ $hasData = true}}
-		{{end}}
-	{{end}}
-	{{if $hasData }}
-		// {{$contract.Type}}{{.Normalized.Name}} represents a {{.Normalized.Name}} non-indexed event data raised by the {{$contract.Type}} contract.
-		type {{.Normalized.Name}}EventData struct {
-			{{- range .Normalized.Inputs}}
-				{{- if not .Indexed}}
-					{{capitalise .Name}} {{bindtype .Type $structs}}
-				{{- end}}
+	{{$event := .}}
+	{{$createdStruct := false}}
+	{{- range .Normalized.Inputs}}
+	{{- if not .Indexed}}
+	{{- if not $createdStruct}}
+	{{$createdStruct = true}}
+		// {{$contract.Type}}{{$event.Normalized.Name}} represents a {{$event.Normalized.Name}} non-indexed event data raised by the {{$contract.Type}} contract.
+		type {{$event.Normalized.Name}}EventData struct {
 			{{- end}}
-		}
-	{{end}}
+			{{capitalise .Name}} {{bindtype .Type $structs}}
+	{{- end}}
+	{{- end}}
+	{{- if $createdStruct}}
+	}
+{{- end}}
 {{end}}
 
 {{- range .Contract.Funcs}}
@@ -196,7 +195,7 @@ accessibleState.GetStateDB().AddLog(
 )
 */
 func Pack{{.Normalized.Name}}Event({{range .Normalized.Inputs}} {{if .Indexed}}{{decapitalise .Name}} {{bindtopictype .Type $structs}},{{end}}{{end}}{{if $hasData}} data {{.Normalized.Name}}EventData{{end}}) ([]common.Hash, []byte, error) {
-	return {{$contract.Type}}ABI.PackEvent("{{.Original.Name}}", {{range .Normalized.Inputs}}{{if .Indexed}}{{decapitalise .Name}},{{end}}{{end}}{{if $hasData }}data{{end}})
+	return {{$contract.Type}}ABI.PackEvent("{{.Original.Name}}"{{range .Normalized.Inputs}},{{if .Indexed}}{{decapitalise .Name}}{{else}}data.{{capitalise .Name}}{{end}}{{end}})
 }
 {{ if $hasData }}
 // Unpack{{.Normalized.Name}}EventData attempts to unpack non-indexed [dataBytes].
