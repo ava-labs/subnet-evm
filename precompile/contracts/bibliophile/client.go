@@ -178,11 +178,11 @@ func (b *bibliophileClient) GetReduceOnlyAmount(trader common.Address, ammIndex 
 }
 
 func (b *bibliophileClient) GetAvailableMargin(trader common.Address) *big.Int {
-	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader)
+	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader, b.GetTimeStamp())
 }
 
 func (b *bibliophileClient) GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int) {
-	output := getNotionalPositionAndMargin(b.accessibleState.GetStateDB(), &GetNotionalPositionAndMarginInput{Trader: trader, IncludeFundingPayments: includeFundingPayments, Mode: mode})
+	output := getNotionalPositionAndMargin(b.accessibleState.GetStateDB(), &GetNotionalPositionAndMarginInput{Trader: trader, IncludeFundingPayments: includeFundingPayments, Mode: mode}, b.GetTimeStamp())
 	return output.NotionalPosition, output.Margin
 }
 

@@ -30,7 +30,7 @@ func GetClearingHouseVariables(stateDB contract.StateDB, trader common.Address) 
 		Trader:                 trader,
 		IncludeFundingPayments: false,
 		Mode:                   0,
-	})
+	}, 0 /* use new algorithm */)
 	totalFunding := GetTotalFunding(stateDB, &trader)
 	positionSizes := getPosSizes(stateDB, &trader)
 	underlyingPrices := GetUnderlyingPrices(stateDB)
@@ -131,7 +131,7 @@ func GetAMMVariables(stateDB contract.StateDB, ammAddress common.Address, ammInd
 	minAllowableMargin := GetMinAllowableMargin(stateDB)
 	takerFee := GetTakerFee(stateDB)
 	totalMargin := GetNormalizedMargin(stateDB, trader)
-	availableMargin := GetAvailableMargin(stateDB, trader)
+	availableMargin := GetAvailableMargin(stateDB, trader, 0)
 	reduceOnlyAmount := getReduceOnlyAmount(stateDB, trader, big.NewInt(ammIndex))
 	longOpenOrdersAmount := getLongOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
 	shortOpenOrdersAmount := getShortOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
