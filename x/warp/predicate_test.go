@@ -42,7 +42,7 @@ var (
 	// valid unsigned warp message used throughout testing
 	unsignedMsg *avalancheWarp.UnsignedMessage
 	// valid addressed payload
-	addressedPayload      *avalancheWarpPayload.AddressedPayload
+	addressedPayload      *avalancheWarpPayload.AddressedCall
 	addressedPayloadBytes []byte
 	// blsSignatures of [unsignedMsg] from each of [testVdrs]
 	blsSignatures []*bls.Signature
@@ -82,7 +82,7 @@ func init() {
 
 	var err error
 	addr := ids.GenerateTestShortID()
-	addressedPayload, err = avalancheWarpPayload.NewAddressedPayload(
+	addressedPayload, err = avalancheWarpPayload.NewAddressedCall(
 		addr[:],
 		[]byte{1, 2, 3},
 	)

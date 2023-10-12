@@ -718,7 +718,7 @@ func TestPackEvents(t *testing.T) {
 	payload := []byte("mcsorley")
 	networkID := uint32(54321)
 
-	addressedPayload, err := avalancheWarpPayload.NewAddressedPayload(
+	addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
 		sourceAddress.Bytes(),
 		payload,
 	)

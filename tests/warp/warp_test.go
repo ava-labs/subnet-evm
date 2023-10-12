@@ -21,6 +21,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	avalancheWarpPayload "github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
@@ -30,7 +31,6 @@ import (
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
-	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -377,8 +377,8 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		rpcURI := toRPCURI(chainAURIs[0], blockchainIDA.String())
 		senderAddress := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
-		addressedPayload, err := warpPayload.NewAddressedPayload(
-			senderAddress,
+		addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
+			senderAddress.Bytes(),
 			payload,
 		)
 		gomega.Expect(err).Should(gomega.BeNil())
