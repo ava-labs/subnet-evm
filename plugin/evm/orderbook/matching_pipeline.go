@@ -63,7 +63,7 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	}
 
 	// check nextSamplePITime
-	if isSamplePITime(pipeline.db.GetNextSamplePITime()) {
+	if isSamplePITime(pipeline.db.GetNextSamplePITime(), pipeline.db.GetSamplePIAttemptedTime()) {
 		log.Info("MatchingPipeline:isSamplePITime")
 		err := pipeline.lotp.ExecuteSamplePITx()
 		if err != nil {
@@ -328,13 +328,13 @@ func isFundingPaymentTime(nextFundingTime uint64) bool {
 	return now >= nextFundingTime
 }
 
-func isSamplePITime(nextSamplePITime uint64) bool {
+func isSamplePITime(nextSamplePITime, lastAttempt uint64) bool {
 	if nextSamplePITime == 0 {
 		return false
 	}
 
 	now := uint64(time.Now().Unix())
-	return now >= nextSamplePITime
+	return now >= nextSamplePITime && now >= lastAttempt+5 // give 5 secs for the tx to be mined
 }
 
 func executeFundingPayment(lotp LimitOrderTxProcessor) error {

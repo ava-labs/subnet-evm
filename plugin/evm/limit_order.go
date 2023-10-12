@@ -383,6 +383,9 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 		cev.ProcessEvents(logsToRemove)
 	}
 
+	// these SHOULD be re-populated while loading from snapshot
+	memoryDBCopy.LongOrders = nil
+	memoryDBCopy.ShortOrders = nil
 	snapshot := orderbook.Snapshot{
 		Data:                memoryDBCopy,
 		AcceptedBlockNumber: acceptedBlockNumber,

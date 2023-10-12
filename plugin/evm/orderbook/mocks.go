@@ -151,6 +151,12 @@ func (db *MockLimitOrderDatabase) GetTraderInfo(trader common.Address) *Trader {
 	return &Trader{}
 }
 
+func (db *MockLimitOrderDatabase) GetSamplePIAttemptedTime() uint64 {
+	return 0
+}
+
+func (db *MockLimitOrderDatabase) SignalSamplePIAttempted(time uint64) {}
+
 type MockLimitOrderTxProcessor struct {
 	mock.Mock
 }
