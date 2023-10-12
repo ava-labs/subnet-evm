@@ -136,7 +136,7 @@ func TestSendWarpMessage(t *testing.T) {
 
 				unsignedWarpMsg, err := UnpackSendWarpEventDataToMessage(logData)
 				require.NoError(t, err)
-				addressedPayload, err := avalancheWarpPayload.ParseAddressedPayload(unsignedWarpMsg.Payload)
+				addressedPayload, err := avalancheWarpPayload.ParseAddressedCall(unsignedWarpMsg.Payload)
 				require.NoError(t, err)
 
 				require.Equal(t, common.BytesToAddress(addressedPayload.SourceAddress), callerAddr)
@@ -155,7 +155,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	sourceAddress := common.HexToAddress("0x456789")
 	sourceChainID := ids.GenerateTestID()
 	packagedPayloadBytes := []byte("mcsorley")
-	addressedPayload, err := avalancheWarpPayload.NewAddressedPayload(
+	addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
 		sourceAddress.Bytes(),
 		packagedPayloadBytes,
 	)
@@ -439,7 +439,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	callerAddr := common.HexToAddress("0x0123")
 	sourceChainID := ids.GenerateTestID()
 	blockHash := ids.GenerateTestID()
-	blockHashPayload, err := avalancheWarpPayload.NewBlockHashPayload(blockHash)
+	blockHashPayload, err := avalancheWarpPayload.NewHash(blockHash)
 	require.NoError(t, err)
 	unsignedWarpMsg, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(t, err)

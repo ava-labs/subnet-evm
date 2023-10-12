@@ -129,7 +129,7 @@ func TestValidateWarpMessage(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
 	payload := []byte{1, 2, 3}
-	addressedPayload, err := avalancheWarpPayload.NewAddressedPayload(
+	addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
 		sourceAddress.Bytes(),
 		payload,
 	)
@@ -155,7 +155,7 @@ func TestValidateInvalidWarpMessage(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
 	payload := []byte{1, 2, 3}
-	addressedPayload, err := avalancheWarpPayload.NewAddressedPayload(
+	addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
 		sourceAddress.Bytes(),
 		payload,
 	)
@@ -177,7 +177,7 @@ func TestValidateWarpBlockHash(t *testing.T) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	blockHash := ids.GenerateTestID()
-	blockHashPayload, err := avalancheWarpPayload.NewBlockHashPayload(blockHash)
+	blockHashPayload, err := avalancheWarpPayload.NewHash(blockHash)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(testNetworkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(err)
@@ -198,7 +198,7 @@ func TestValidateInvalidWarpBlockHash(t *testing.T) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	blockHash := ids.GenerateTestID()
-	blockHashPayload, err := avalancheWarpPayload.NewBlockHashPayload(blockHash)
+	blockHashPayload, err := avalancheWarpPayload.NewHash(blockHash)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(testNetworkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(err)
@@ -391,7 +391,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 
 	payload := utils.RandomBytes(100)
 
-	addressedPayload, err := avalancheWarpPayload.NewAddressedPayload(
+	addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
 		testEthAddrs[0].Bytes(),
 		payload,
 	)

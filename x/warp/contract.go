@@ -233,7 +233,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		sourceAddress = caller
 	)
 
-	addressedPayload, err := avalancheWarpPayload.NewAddressedPayload(
+	addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
 		sourceAddress.Bytes(),
 		payload,
 	)
