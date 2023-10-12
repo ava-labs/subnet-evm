@@ -14,7 +14,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	avalancheWarpPayload "github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
@@ -136,7 +136,7 @@ func TestSendWarpMessage(t *testing.T) {
 
 				unsignedWarpMsg, err := UnpackSendWarpEventDataToMessage(logData)
 				require.NoError(t, err)
-				addressedPayload, err := avalancheWarpPayload.ParseAddressedCall(unsignedWarpMsg.Payload)
+				addressedPayload, err := payload.ParseAddressedCall(unsignedWarpMsg.Payload)
 				require.NoError(t, err)
 
 				require.Equal(t, common.BytesToAddress(addressedPayload.SourceAddress), callerAddr)
@@ -155,7 +155,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 	sourceAddress := common.HexToAddress("0x456789")
 	sourceChainID := ids.GenerateTestID()
 	packagedPayloadBytes := []byte("mcsorley")
-	addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
+	addressedPayload, err := payload.NewAddressedCall(
 		sourceAddress.Bytes(),
 		packagedPayloadBytes,
 	)
@@ -439,7 +439,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 	callerAddr := common.HexToAddress("0x0123")
 	sourceChainID := ids.GenerateTestID()
 	blockHash := ids.GenerateTestID()
-	blockHashPayload, err := avalancheWarpPayload.NewHash(blockHash)
+	blockHashPayload, err := payload.NewHash(blockHash)
 	require.NoError(t, err)
 	unsignedWarpMsg, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(t, err)
@@ -715,12 +715,12 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 func TestPackEvents(t *testing.T) {
 	sourceChainID := ids.GenerateTestID()
 	sourceAddress := common.HexToAddress("0x0123")
-	payload := []byte("mcsorley")
+	payloadData := []byte("mcsorley")
 	networkID := uint32(54321)
 
-	addressedPayload, err := avalancheWarpPayload.NewAddressedCall(
+	addressedPayload, err := payload.NewAddressedCall(
 		sourceAddress.Bytes(),
-		payload,
+		payloadData,
 	)
 	require.NoError(t, err)
 

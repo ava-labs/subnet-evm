@@ -8,7 +8,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	avalancheWarpPayload "github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -100,7 +100,7 @@ func (addressedPayloadHandler) packFailed() []byte {
 }
 
 func (addressedPayloadHandler) handleMessage(warpMessage *warp.Message) ([]byte, error) {
-	addressedPayload, err := avalancheWarpPayload.ParseAddressedCall(warpMessage.UnsignedMessage.Payload)
+	addressedPayload, err := payload.ParseAddressedCall(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
 	}
@@ -121,7 +121,7 @@ func (blockHashHandler) packFailed() []byte {
 }
 
 func (blockHashHandler) handleMessage(warpMessage *warp.Message) ([]byte, error) {
-	blockHashPayload, err := avalancheWarpPayload.ParseHash(warpMessage.UnsignedMessage.Payload)
+	blockHashPayload, err := payload.ParseHash(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidBlockHashPayload, err)
 	}

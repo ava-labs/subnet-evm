@@ -18,7 +18,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	avalancheWarpPayload "github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
@@ -42,7 +42,7 @@ var (
 	// valid unsigned warp message used throughout testing
 	unsignedMsg *avalancheWarp.UnsignedMessage
 	// valid addressed payload
-	addressedPayload      *avalancheWarpPayload.AddressedCall
+	addressedPayload      *payload.AddressedCall
 	addressedPayloadBytes []byte
 	// blsSignatures of [unsignedMsg] from each of [testVdrs]
 	blsSignatures []*bls.Signature
@@ -82,7 +82,7 @@ func init() {
 
 	var err error
 	addr := ids.GenerateTestShortID()
-	addressedPayload, err = avalancheWarpPayload.NewAddressedCall(
+	addressedPayload, err = payload.NewAddressedCall(
 		addr[:],
 		[]byte{1, 2, 3},
 	)
