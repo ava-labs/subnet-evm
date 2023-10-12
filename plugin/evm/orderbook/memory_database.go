@@ -257,8 +257,8 @@ func (db *InMemoryDatabase) LoadFromSnapshot(snapshot Snapshot) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	if snapshot.Data == nil || snapshot.Data.Orders == nil || snapshot.Data.LongOrders == nil || snapshot.Data.ShortOrders == nil ||
-		snapshot.Data.TraderMap == nil || snapshot.Data.LastPrice == nil {
+	if snapshot.Data == nil || snapshot.Data.Orders == nil || snapshot.Data.TraderMap == nil || snapshot.Data.LastPrice == nil ||
+		snapshot.Data.CumulativePremiumFraction == nil {
 		return fmt.Errorf("invalid snapshot; snapshot=%+v", snapshot)
 	}
 
