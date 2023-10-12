@@ -40,6 +40,8 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 )
 
+var errNoAnonymousEvent = errors.New("event type must not be anonymous")
+
 // BindedFiles contains the generated binding file contents.
 // This is used to return the contents in a expandable way.
 type BindedFiles struct {
@@ -167,6 +169,24 @@ func verifyABI(abiData string) error {
 	if len(evmABI.Methods) == 0 {
 		return errors.New("no ABI methods found")
 	}
+
+	for _, event := range evmABI.Events {
+		if event.Anonymous {
+			return fmt.Errorf("%w: %s", errNoAnonymousEvent, event.Name)
+		}
+		eventNames := make(map[string]bool)
+		for _, arg := range event.Inputs {
+			if bind.IsKeyWord(arg.Name) {
+				return fmt.Errorf("event input name %s is a keyword", arg.Name)
+			}
+			name := abi.ToCamelCase(arg.Name)
+			if eventNames[name] {
+				return fmt.Errorf("normalized event input name is duplicated: %s", name)
+			}
+			eventNames[name] = true
+		}
+	}
+
 	for _, method := range evmABI.Methods {
 		names := make(map[string]bool)
 		for _, input := range method.Inputs {

@@ -211,9 +211,15 @@ func TestPackUnpack{{.Normalized.Name}}EventData(t *testing.T) {
 	// CUSTOM CODE STARTS HERE
 	// set test inputs with proper values here
 	{{- range .Normalized.Inputs}}
-		{{if .Indexed}}{{decapitalise .Name}}Input := {{bindtypenew .Type $structs}}{{end}}
+		{{if .Indexed}}var {{decapitalise .Name}}Input {{bindtype .Type $structs}} = {{bindtypenew .Type $structs}}{{end}}
 	{{- end}}
-	{{if $hasData}} dataInput := {{.Normalized.Name}}EventData{{end}}{}
+	{{if $hasData}} dataInput := {{.Normalized.Name}}EventData{{end}}{
+		{{- range .Normalized.Inputs}}
+			{{- if not .Indexed}}
+				{{capitalise .Name}}: {{bindtypenew .Type $structs}},
+			{{- end}}
+		{{- end}}
+	}
 
 	_, data, err := Pack{{.Normalized.Name}}Event(
 		{{- range .Normalized.Inputs}}

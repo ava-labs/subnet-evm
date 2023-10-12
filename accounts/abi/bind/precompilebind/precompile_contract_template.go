@@ -194,7 +194,7 @@ accessibleState.GetStateDB().AddLog(
 	accessibleState.GetBlockContext().Number().Uint64(),
 )
 */
-func Pack{{.Normalized.Name}}Event({{range .Normalized.Inputs}} {{if .Indexed}}{{decapitalise .Name}} {{bindtopictype .Type $structs}},{{end}}{{end}}{{if $hasData}} data {{.Normalized.Name}}EventData{{end}}) ([]common.Hash, []byte, error) {
+func Pack{{.Normalized.Name}}Event({{range .Normalized.Inputs}} {{if .Indexed}}{{decapitalise .Name}} {{bindtype .Type $structs}},{{end}}{{end}}{{if $hasData}} data {{.Normalized.Name}}EventData{{end}}) ([]common.Hash, []byte, error) {
 	return {{$contract.Type}}ABI.PackEvent("{{.Original.Name}}"{{range .Normalized.Inputs}},{{if .Indexed}}{{decapitalise .Name}}{{else}}data.{{capitalise .Name}}{{end}}{{end}})
 }
 {{ if $hasData }}
