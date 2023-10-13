@@ -166,7 +166,7 @@ type UpgradeConfig struct {
 	// Config for optional timestamps that enable network upgrades.
 	// Note: if OptionalUpgrades is specified in the JSON all previously activated
 	// forks must be present or upgradeBytes will be rejected.
-	OptionalNetworkUpgrades *OptionalNetworkUpgrades `json:"networkUpgrades,omitempty"`
+	OptionalNetworkUpgrades *OptionalNetworkUpgrades
 
 	// Config for modifying state as a network upgrade.
 	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`
@@ -444,17 +444,17 @@ func (c *ChainConfig) Verify() error {
 	return nil
 }
 
-type Fork struct {
-	name      string   `serialize:"true"`
-	block     *big.Int `serialize:"true"` // some go-ethereum forks use block numbers
-	timestamp *uint64  `serialize:"true"` // Avalanche forks use timestamps
-	optional  bool     `serialize:"true"` // if true, the fork may be nil and next fork is still allowed
+type fork struct {
+	name      string
+	block     *big.Int // some go-ethereum forks use block numbers
+	timestamp *uint64  // Avalanche forks use timestamps
+	optional  bool     // if true, the fork may be nil and next fork is still allowed
 }
 
 // CheckConfigForkOrder checks that we don't "skip" any forks, geth isn't pluggable enough
 // to guarantee that forks can be implemented in a different order than on official networks
 func (c *ChainConfig) CheckConfigForkOrder() error {
-	ethForks := []Fork{
+	ethForks := []fork{
 		{name: "homesteadBlock", block: c.HomesteadBlock},
 		{name: "eip150Block", block: c.EIP150Block},
 		{name: "eip155Block", block: c.EIP155Block},
@@ -493,8 +493,8 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 
 // checkForks checks that forks are enabled in order and returns an error if not
 // [blockFork] is true if the fork is a block number fork, false if it is a timestamp fork
-func checkForks(forks []Fork, blockFork bool) error {
-	lastFork := Fork{}
+func checkForks(forks []fork, blockFork bool) error {
+	lastFork := fork{}
 	for _, cur := range forks {
 		if blockFork && cur.block != nil && common.Big0.Cmp(cur.block) != 0 {
 			return errNonGenesisForkByHeight

@@ -4,6 +4,8 @@
 package params
 
 import (
+	"math/big"
+
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
@@ -50,21 +52,44 @@ func (m *MandatoryNetworkUpgrades) CheckMandatoryCompatible(newcfg *MandatoryNet
 	return nil
 }
 
-func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []Fork {
-	return []Fork{
+func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
+	return []fork{
 		{name: "subnetEVMTimestamp", timestamp: m.SubnetEVMTimestamp},
 		{name: "dUpgradeTimestamp", timestamp: m.DUpgradeTimestamp},
 	}
 }
 
+type OptionalFork struct {
+	Name      string  `json:"name" serialize:"true"`
+	Block     big.Int `json:"block" serialize:"true"`
+	Timestamp uint64  `json:"timestamp" serialize:"true"`
+}
+
 type OptionalNetworkUpgrades struct {
-	Updates []Fork `json:"serialize,omitempty" serialize:"true"`
+	OptionalNetworkUpgrades []OptionalFork `json:"networkUpgrades,omitempty" serialize:"true"`
 }
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
 	return nil
 }
 
-func (n *OptionalNetworkUpgrades) optionalForkOrder() []Fork {
-	return n.Updates
+func (n *OptionalNetworkUpgrades) optionalForkOrder() []fork {
+	forks := make([]fork, len(n.OptionalNetworkUpgrades))
+	for i, n := range n.OptionalNetworkUpgrades {
+		var block *big.Int
+		var timestamp *uint64
+		if n.Block.BitLen() > 0 {
+			block = &n.Block
+		}
+		if n.Timestamp != 0 {
+			timestamp = &n.Timestamp
+		}
+		forks[i] = fork{
+			name:      n.Name,
+			block:     block,
+			timestamp: timestamp,
+			optional:  true,
+		}
+	}
+	return []fork{}
 }

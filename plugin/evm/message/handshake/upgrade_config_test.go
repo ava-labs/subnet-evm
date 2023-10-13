@@ -35,6 +35,10 @@ func TestSerialize(t *testing.T) {
 	config3, err := ParseUpgradeConfigMessage(message2.Bytes)
 	require.NoError(t, err)
 
+	message3, err := UpgradeConfigToNetworkMessage(config3)
+	require.NoError(t, err)
+
 	require.Equal(t, config, config3)
 	require.Equal(t, message.Hash, message2.Hash)
+	require.Equal(t, message2.Hash, message3.Hash)
 }
