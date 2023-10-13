@@ -13,9 +13,9 @@
     "muirGlacierBlock": 0,
     "subnetEVMTimestamp": 0,
     "feeConfig": {
-      "gasLimit": 250000000,
+      "gasLimit": 200000000,
       "minBaseFee": 1000000000,
-      "targetGas": 300000000,
+      "targetGas": 400000000,
       "baseFeeChangeDenominator": 48,
       "minBlockGasCost": 0,
       "maxBlockGasCost": 10000000,
