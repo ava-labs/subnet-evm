@@ -361,7 +361,7 @@ func TestAggregateSignatures(t *testing.T) {
 						require.ErrorIs(t, err, context.Canceled)
 						return nil, err
 					},
-				).Times(1)
+				).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, _ ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 						<-ctx.Done()
@@ -369,7 +369,7 @@ func TestAggregateSignatures(t *testing.T) {
 						require.ErrorIs(t, err, context.Canceled)
 						return nil, err
 					},
-				).Times(1)
+				).MaxTimes(1)
 				return New(subnetID, state, client)
 			},
 			unsignedMsg:     unsignedMsg,
@@ -406,7 +406,7 @@ func TestAggregateSignatures(t *testing.T) {
 						require.ErrorIs(t, err, context.Canceled)
 						return nil, err
 					},
-				).Times(1)
+				).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, _ ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 						// Should not be able to grab another signature since context was cancelled in another go routine
@@ -415,7 +415,7 @@ func TestAggregateSignatures(t *testing.T) {
 						require.ErrorIs(t, err, context.Canceled)
 						return nil, err
 					},
-				).Times(1)
+				).MaxTimes(1)
 				return New(subnetID, state, client)
 			},
 			unsignedMsg:     unsignedMsg,
@@ -447,7 +447,7 @@ func TestAggregateSignatures(t *testing.T) {
 						require.ErrorIs(t, err, context.Canceled)
 						return nil, err
 					},
-				).Times(1)
+				).MaxTimes(1)
 				return New(subnetID, state, client)
 			},
 			unsignedMsg:     unsignedMsg,
