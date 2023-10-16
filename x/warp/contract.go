@@ -287,7 +287,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		return nil, remainingGas, err
 	}
 
-	// Return an empty output and the remaining gas
+	// Return the packed message ID and the remaining gas
 	return packed, remainingGas, nil
 }
 
