@@ -8,11 +8,11 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 
 	_ "embed"
 
@@ -200,8 +200,8 @@ func UnpackSendWarpMessageInput(input []byte) ([]byte, error) {
 }
 
 // PackSendWarpMessage packs [inputStruct] of type []byte into the appropriate arguments for sendWarpMessage.
-func PackSendWarpMessage(payload []byte) ([]byte, error) {
-	return WarpABI.Pack("sendWarpMessage", payload)
+func PackSendWarpMessage(payloadData []byte) ([]byte, error) {
+	return WarpABI.Pack("sendWarpMessage", payloadData)
 }
 
 // PackSendWarpMessageOutput attempts to pack given messageID of type common.Hash
@@ -240,7 +240,7 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 	// unpack the arguments
-	payload, err := UnpackSendWarpMessageInput(input)
+	payloadData, err := UnpackSendWarpMessageInput(input)
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidSendInput, err)
 	}
@@ -250,9 +250,9 @@ func sendWarpMessage(accessibleState contract.AccessibleState, caller common.Add
 		sourceAddress = caller
 	)
 
-	addressedPayload, err := warpPayload.NewAddressedPayload(
-		sourceAddress,
-		payload,
+	addressedPayload, err := payload.NewAddressedCall(
+		sourceAddress.Bytes(),
+		payloadData,
 	)
 	if err != nil {
 		return nil, remainingGas, err
