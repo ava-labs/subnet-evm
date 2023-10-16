@@ -111,18 +111,19 @@ var (
 	{{$event := .}}
 	{{$createdStruct := false}}
 	{{- range .Normalized.Inputs}}
-	{{- if not .Indexed}}
-	{{- if not $createdStruct}}
-	{{$createdStruct = true}}
-		// {{$contract.Type}}{{$event.Normalized.Name}} represents a {{$event.Normalized.Name}} non-indexed event data raised by the {{$contract.Type}} contract.
-		type {{$event.Normalized.Name}}EventData struct {
-			{{- end}}
-			{{capitalise .Name}} {{bindtype .Type $structs}}
+		{{- if .Indexed}}
+			{{ continue }}
+		{{- end}}
+		{{- if not $createdStruct}}
+			{{$createdStruct = true}}
+			// {{$contract.Type}}{{$event.Normalized.Name}} represents a {{$event.Normalized.Name}} non-indexed event data raised by the {{$contract.Type}} contract.
+			type {{$event.Normalized.Name}}EventData struct {
+		{{- end}}
+		{{capitalise .Name}} {{bindtype .Type $structs}}
+		{{- end}}
+		{{- if $createdStruct}}
+		}
 	{{- end}}
-	{{- end}}
-	{{- if $createdStruct}}
-	}
-{{- end}}
 {{end}}
 
 {{- range .Contract.Funcs}}
@@ -190,7 +191,7 @@ if err != nil {
 accessibleState.GetStateDB().AddLog(
 	ContractAddress,
 	topics,
-	{{if $hasData}}data{{else}}[]byte{} // no undindexed data{{end}},
+	{{if $hasData}}data{{else}}[]byte{} // no unindexed data{{end}},
 	accessibleState.GetBlockContext().Number().Uint64(),
 )
 */
