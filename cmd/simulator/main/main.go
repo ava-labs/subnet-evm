@@ -20,10 +20,7 @@ func main() {
 	// Start profiling
 	f, err := os.Create("load_test.prof")
 	if err != nil {
-
-		fmt.Println(err)
-		return
-
+		os.Exit(1)
 	}
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
