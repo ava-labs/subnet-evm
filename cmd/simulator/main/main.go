@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/pprof"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
@@ -16,6 +17,17 @@ import (
 )
 
 func main() {
+	// Start profiling
+	f, err := os.Create("load_test.prof")
+	if err != nil {
+
+		fmt.Println(err)
+		return
+
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
 	fs := config.BuildFlagSet()
 	v, err := config.BuildViper(fs, os.Args[1:])
 	if errors.Is(err, pflag.ErrHelp) {
