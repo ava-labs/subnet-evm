@@ -630,31 +630,27 @@ func TestPrecompileBind(t *testing.T) {
 			if err != nil {
 				t.Fatalf("test %d: failed to generate binding: %v", i, err)
 			}
-			if tt.expectAllowlist {
-				require.Contains(t, bindedFiles.Contract, "allowlist.CreateAllowListFunctions(", "generated contract does not contain AllowListFunctions")
-			} else {
-				require.NotContains(t, bindedFiles.Contract, "allowlist.CreateAllowListFunctions(", "generated contract contains AllowListFunctions")
-			}
+
 			precompilePath := filepath.Join(pkg, tt.name)
 			if err := os.MkdirAll(precompilePath, 0o700); err != nil {
 				t.Fatalf("failed to create package: %v", err)
 			}
-			// change address to a suitable one for testing
-			bindedFiles.Module = strings.Replace(bindedFiles.Module, `common.HexToAddress("{ASUITABLEHEXADDRESS}")`, `common.HexToAddress("0x03000000000000000000000000000000000000ff")`, 1)
-			if err = os.WriteFile(filepath.Join(precompilePath, "module.go"), []byte(bindedFiles.Module), 0o600); err != nil {
-				t.Fatalf("test %d: failed to write binding: %v", i, err)
-			}
-			if err = os.WriteFile(filepath.Join(precompilePath, "config.go"), []byte(bindedFiles.Config), 0o600); err != nil {
-				t.Fatalf("test %d: failed to write binding: %v", i, err)
-			}
-			if err = os.WriteFile(filepath.Join(precompilePath, "contract.go"), []byte(bindedFiles.Contract), 0o600); err != nil {
-				t.Fatalf("test %d: failed to write binding: %v", i, err)
-			}
-			if err = os.WriteFile(filepath.Join(precompilePath, "config_test.go"), []byte(bindedFiles.ConfigTest), 0o600); err != nil {
-				t.Fatalf("test %d: failed to write binding: %v", i, err)
-			}
-			if err = os.WriteFile(filepath.Join(precompilePath, "contract_test.go"), []byte(bindedFiles.ContractTest), 0o600); err != nil {
-				t.Fatalf("test %d: failed to write binding: %v", i, err)
+			for _, file := range bindedFiles {
+				switch file.FileName {
+				case ContractFileName:
+					// check if the allowlist functions are generated
+					if tt.expectAllowlist {
+						require.Contains(t, file.Content, "allowlist.CreateAllowListFunctions(", "generated contract does not contain AllowListFunctions")
+					} else {
+						require.NotContains(t, file.Content, "allowlist.CreateAllowListFunctions(", "generated contract contains AllowListFunctions")
+					}
+				case ModuleFileName:
+					// change address to a suitable one for testing
+					file.Content = strings.Replace(file.Content, `common.HexToAddress("{ASUITABLEHEXADDRESS}")`, `common.HexToAddress("0x03000000000000000000000000000000000000ff")`, 1)
+				}
+				if err = os.WriteFile(filepath.Join(precompilePath, file.FileName), []byte(file.Content), 0o600); err != nil {
+					t.Fatalf("test %d: failed to write binding: %v", i, err)
+				}
 			}
 			if err = os.WriteFile(filepath.Join(precompilePath, "contract.abi"), []byte(tt.abi), 0o600); err != nil {
 				t.Fatalf("test %d: failed to write binding: %v", i, err)

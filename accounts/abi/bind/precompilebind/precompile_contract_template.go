@@ -107,25 +107,6 @@ var (
 	}
 {{- end}}
 
-{{range .Contract.Events}}
-	{{$event := .}}
-	{{$createdStruct := false}}
-	{{- range .Normalized.Inputs}}
-		{{- if .Indexed}}
-			{{ continue }}
-		{{- end}}
-		{{- if not $createdStruct}}
-			{{$createdStruct = true}}
-			// {{$contract.Type}}{{$event.Normalized.Name}} represents a {{$event.Normalized.Name}} non-indexed event data raised by the {{$contract.Type}} contract.
-			type {{$event.Normalized.Name}}EventData struct {
-		{{- end}}
-		{{capitalise .Name}} {{bindtype .Type $structs}}
-		{{- end}}
-		{{- if $createdStruct}}
-		}
-	{{- end}}
-{{end}}
-
 {{- range .Contract.Funcs}}
 {{ if len .Normalized.Inputs | lt 1}}
 type {{capitalise .Normalized.Name}}Input struct{
@@ -154,60 +135,6 @@ func Get{{.Contract.Type}}AllowListStatus(stateDB contract.StateDB, address comm
 func Set{{.Contract.Type}}AllowListStatus(stateDB contract.StateDB, address common.Address, role allowlist.Role) {
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
-{{end}}
-
-{{range .Contract.Events}}
-{{$hasData := false}}
-{{range .Normalized.Inputs}}
-{{ if not .Indexed}}
-{{ $hasData = true}}
-{{end}}
-{{end}}
-// Pack{{.Normalized.Name}}Event packs the event into the appropriate arguments for {{.Original.Name}}.
-// It returns topic hashes and the encoded non-indexed data.
-/* NOTE: Events can only be emitted in state-changing functions. So you cannot use events in read-only (view) functions.
-Events are generally emitted at the end of a state-changing function.
-Events are emitted with AddLog method of the StateDB. The AddLog method takes 4 arguments:
-	1. Address of the contract that emitted the event.
-	2. Topic hashes of the event.
-	3. Encoded non-indexed data of the event.
-	4. Block number at which the event was emitted.
-The first argument is the address of the contract that emitted the event.
-Topics can be at most 4 elements, the first topic is the hash of the event signature and the rest are the indexed event arguments. There can be at most 3 indexed arguments.
-Topics cannot be fully unpacked into their original values since they're 32-bytes hashes.
-The non-indexed arguments are encoded using the ABI encoding scheme. The non-indexed arguments can be unpacked into their original values.
-You can use the following code to emit an event:
-topics, data, err := Pack{{.Normalized.Name}}Event(
-	{{- range .Normalized.Inputs}}
-	{{- if .Indexed}}
-	{{ decapitalise .Name}},
-	{{- end}}
-	{{- end}}
-	{{- if $hasData}}data,{{- end}}
-)
-if err != nil {
-	return nil, remainingGas, err
-}
-accessibleState.GetStateDB().AddLog(
-	ContractAddress,
-	topics,
-	{{if $hasData}}data{{else}}[]byte{} // no unindexed data{{end}},
-	accessibleState.GetBlockContext().Number().Uint64(),
-)
-*/
-func Pack{{.Normalized.Name}}Event({{range .Normalized.Inputs}} {{if .Indexed}}{{decapitalise .Name}} {{bindtype .Type $structs}},{{end}}{{end}}{{if $hasData}} data {{.Normalized.Name}}EventData{{end}}) ([]common.Hash, []byte, error) {
-	return {{$contract.Type}}ABI.PackEvent("{{.Original.Name}}"{{range .Normalized.Inputs}},{{if .Indexed}}{{decapitalise .Name}}{{else}}data.{{capitalise .Name}}{{end}}{{end}})
-}
-{{ if $hasData }}
-// Unpack{{.Normalized.Name}}EventData attempts to unpack non-indexed [dataBytes].
-func Unpack{{.Normalized.Name}}EventData(dataBytes []byte) ({{.Normalized.Name}}EventData, error) {
-	eventData := {{.Normalized.Name}}EventData{}
-	err := {{$contract.Type}}ABI.UnpackIntoInterface(&eventData, "{{.Original.Name}}", dataBytes)
-	return eventData, err
-}
-{{else}}
-// Unpack{{.Normalized.Name}}Event won't be generated because the event does not have any non-indexed data.
-{{end}}
 {{end}}
 
 {{range .Contract.Funcs}}
