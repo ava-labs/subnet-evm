@@ -66,9 +66,9 @@ func TestSendWarpMessage(t *testing.T) {
 
 	warpSendMessageInput, err := warp.PackSendWarpMessage(payloadData)
 	require.NoError(err)
-	addressedPayload, err := warpPayload.NewAddressedPayload(
-		testEthAddrs[0],
-		payload,
+	addressedPayload, err := payload.NewAddressedCall(
+		testEthAddrs[0].Bytes(),
+		payloadData,
 	)
 	require.NoError(err)
 	expectedUnsignedMessage, err := avalancheWarp.NewUnsignedMessage(
