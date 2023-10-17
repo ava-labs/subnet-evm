@@ -69,7 +69,8 @@ func NewPrecompileBindFile(fileName string, content string, isTest bool) Precomp
 	}
 }
 
-// PrecompileBind generates a Go binding for a precompiled contract. It returns a struct of file names and their contents.
+// PrecompileBind generates a Go binding for a precompiled contract. It returns a slice of
+// PrecompileBindFile structs containing the file name and its contents.
 func PrecompileBind(types []string, abiData string, bytecodes []string, fsigs []map[string]string, pkg string, lang bind.Lang, libs map[string]string, aliases map[string]string, abifilename string, generateTests bool) ([]PrecompileBindFile, error) {
 	// create hooks
 	configHook := createPrecompileHook(abifilename, tmplSourcePrecompileConfigGo)
