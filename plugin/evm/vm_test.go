@@ -3391,7 +3391,7 @@ func TestOutOfBandWarpMessagesVM(t *testing.T) {
 			dbManager,
 			genesisBytes,
 			[]byte(""),
-			[]byte(configJSON),
+			configJSON,
 			issuer,
 			[]*commonEng.Fx{},
 			nil,
