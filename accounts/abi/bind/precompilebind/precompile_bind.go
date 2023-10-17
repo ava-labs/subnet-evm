@@ -35,7 +35,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -198,33 +197,32 @@ func verifyABI(abiData string) error {
 		if event.Anonymous {
 			return fmt.Errorf("%w: %s", errNoAnonymousEvent, event.Name)
 		}
-		eventNames := set.NewSet[string](len(event.Inputs))
+		eventNames := make(map[string]bool)
 		for _, arg := range event.Inputs {
 			if bind.IsKeyWord(arg.Name) {
 				return fmt.Errorf("event input name %s is a keyword", arg.Name)
 			}
 			name := abi.ToCamelCase(arg.Name)
-			if eventNames.Contains(name) {
+			if eventNames[name] {
 				return fmt.Errorf("normalized event input name is duplicated: %s", name)
 			}
-			eventNames.Add(name)
+			eventNames[name] = true
 		}
 	}
 
 	for _, method := range evmABI.Methods {
-		names := set.NewSet[string](len(evmABI.Methods))
+		names := make(map[string]bool)
 		for _, input := range method.Inputs {
 			if bind.IsKeyWord(input.Name) {
 				return fmt.Errorf("input name %s is a keyword", input.Name)
 			}
 			name := abi.ToCamelCase(input.Name)
-			if names.Contains(name) {
+			if names[name] {
 				return fmt.Errorf("normalized input name is duplicated: %s", name)
 			}
-			names.Add(name)
+			names[name] = true
 		}
-
-		names.Clear()
+		names = make(map[string]bool)
 		for _, output := range method.Outputs {
 			if output.Name == "" {
 				return fmt.Errorf("ABI outputs for %s require a name to generate the precompile binding, re-generate the ABI from a Solidity source file with all named outputs", method.Name)
@@ -233,10 +231,10 @@ func verifyABI(abiData string) error {
 				return fmt.Errorf("output name %s is a keyword", output.Name)
 			}
 			name := abi.ToCamelCase(output.Name)
-			if names.Contains(name) {
+			if names[name] {
 				return fmt.Errorf("normalized output name is duplicated: %s", name)
 			}
-			names.Add(name)
+			names[name] = true
 		}
 	}
 
