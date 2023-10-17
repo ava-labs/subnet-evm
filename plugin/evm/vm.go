@@ -19,6 +19,7 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
+	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -146,14 +147,15 @@ var (
 )
 
 var (
-	errEmptyBlock                    = errors.New("empty block")
-	errUnsupportedFXs                = errors.New("unsupported feature extensions")
-	errInvalidBlock                  = errors.New("invalid block")
-	errInvalidNonce                  = errors.New("invalid nonce")
-	errUnclesUnsupported             = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
-	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
+	errEmptyBlock                       = errors.New("empty block")
+	errUnsupportedFXs                   = errors.New("unsupported feature extensions")
+	errInvalidBlock                     = errors.New("invalid block")
+	errInvalidNonce                     = errors.New("invalid nonce")
+	errUnclesUnsupported                = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM              = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM         = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errInvalidHeaderPredicateResults    = errors.New("invalid header predicate results")
+	errInvalidOutOfBandWarpMessageBytes = errors.New("invalid warp message bytes")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -478,6 +480,15 @@ func (vm *VM) Initialize(
 		if err := vm.warpBackend.Clear(); err != nil {
 			return fmt.Errorf("failed to prune warpDB: %w", err)
 		}
+	}
+
+	// parse and cache valid off-chain warp messages to warp backend
+	for _, messageBytes := range vm.config.OutOfBandWarpMessagesBytes {
+		unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(messageBytes)
+		if err != nil {
+			return errInvalidOutOfBandWarpMessageBytes
+		}
+		vm.warpBackend.CacheMessage(unsignedMessage)
 	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {

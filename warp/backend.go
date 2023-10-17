@@ -31,6 +31,9 @@ type Backend interface {
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
 
+	// CacheMessage adds [unsignedMessage] to the warp backend message cache
+	CacheMessage(unsignedMessage *avalancheWarp.UnsignedMessage)
+
 	// Clear clears the entire db
 	Clear() error
 }
@@ -79,6 +82,11 @@ func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) err
 	b.signatureCache.Put(messageID, signature)
 	log.Debug("Adding warp message to backend", "messageID", messageID)
 	return nil
+}
+
+func (b *backend) CacheMessage(unsignedMessage *avalancheWarp.UnsignedMessage) {
+	b.messageCache.Put(unsignedMessage.ID(), unsignedMessage)
+	log.Debug("Adding warp message to cache", "messageID", unsignedMessage.ID())
 }
 
 func (b *backend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {

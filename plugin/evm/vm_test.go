@@ -3332,3 +3332,99 @@ func TestSignatureRequestsToVM(t *testing.T) {
 		})
 	}
 }
+
+func TestOutOfBandWarpMessagesVM(t *testing.T) {
+	require := require.New(t)
+	invalidMsgBytes := []byte{0, 1, 2}
+	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+		testNetworkID,
+		testCChainID,
+		[]byte("payload"),
+	)
+	require.NoError(err)
+	msgBytes := unsignedMessage.Bytes()
+
+	unsignedMessage1, err := avalancheWarp.NewUnsignedMessage(
+		testNetworkID,
+		testCChainID,
+		[]byte("payload1"),
+	)
+	require.NoError(err)
+	msgBytes1 := unsignedMessage1.Bytes()
+
+	type OutOfBandWarpMessageTest struct {
+		messagesBytes [][]byte
+		expectedErr   error
+	}
+	tests := map[string]OutOfBandWarpMessageTest{
+		"invalid unparsed warp message bytes": {
+			messagesBytes: [][]byte{invalidMsgBytes},
+			expectedErr:   errInvalidOutOfBandWarpMessageBytes,
+		},
+		"valid unparsed warp message bytes": {
+			messagesBytes: [][]byte{msgBytes},
+			expectedErr:   nil,
+		},
+		"multiple valid unparsed message bytes": {
+			messagesBytes: [][]byte{msgBytes, msgBytes1},
+			expectedErr:   nil,
+		},
+		"multiple valid/invalid unparsed message bytes": {
+			messagesBytes: [][]byte{msgBytes, invalidMsgBytes},
+			expectedErr:   errInvalidOutOfBandWarpMessageBytes,
+		},
+	}
+
+	TestOutOfBandWarpMessages := func(test OutOfBandWarpMessageTest) {
+		vm := &VM{}
+		ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSONSubnetEVM)
+		config := map[string][][]byte{
+			"out-of-band-warp-messages": test.messagesBytes,
+		}
+
+		configJSON, err := json.Marshal(config)
+		require.NoError(err)
+
+		err = vm.Initialize(
+			context.Background(),
+			ctx,
+			dbManager,
+			genesisBytes,
+			[]byte(""),
+			[]byte(configJSON),
+			issuer,
+			[]*commonEng.Fx{},
+			nil,
+		)
+
+		require.ErrorIs(err, test.expectedErr)
+		if test.expectedErr != nil {
+			return
+		}
+
+		defer func() {
+			err := vm.Shutdown(context.Background())
+			require.NoError(err)
+		}()
+
+		// Check that the out-of-band warp messages were cached properly and retrievable
+		for _, messageBytes := range test.messagesBytes {
+			unsignedWarpMessage, err := avalancheWarp.ParseUnsignedMessage(messageBytes)
+			require.NoError(err)
+			expectedSignature, err := vm.ctx.WarpSigner.Sign(unsignedWarpMessage)
+			require.NoError(err)
+
+			// On VM initializtion out of band warp messages were put into the message cache
+			signature, err := vm.warpBackend.GetSignature(unsignedWarpMessage.ID())
+			require.NoError(err)
+			require.Equal(([bls.SignatureLen]byte)(expectedSignature), signature)
+		}
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Each iteration runs the TestOutOfBandWarpMessages function so vm can shut down properly
+			TestOutOfBandWarpMessages(test)
+		})
+	}
+}
