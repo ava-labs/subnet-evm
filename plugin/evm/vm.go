@@ -147,15 +147,15 @@ var (
 )
 
 var (
-	errEmptyBlock                       = errors.New("empty block")
-	errUnsupportedFXs                   = errors.New("unsupported feature extensions")
-	errInvalidBlock                     = errors.New("invalid block")
-	errInvalidNonce                     = errors.New("invalid nonce")
-	errUnclesUnsupported                = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM              = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM         = errors.New("nil blockGasCost is invalid after subnetEVM")
-	errInvalidHeaderPredicateResults    = errors.New("invalid header predicate results")
-	errInvalidOutOfBandWarpMessageBytes = errors.New("invalid warp message bytes")
+	errEmptyBlock                      = errors.New("empty block")
+	errUnsupportedFXs                  = errors.New("unsupported feature extensions")
+	errInvalidBlock                    = errors.New("invalid block")
+	errInvalidNonce                    = errors.New("invalid nonce")
+	errUnclesUnsupported               = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM             = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM        = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errInvalidHeaderPredicateResults   = errors.New("invalid header predicate results")
+	errInvalidOffChainWarpMessageBytes = errors.New("invalid off-chain warp message bytes")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -483,12 +483,12 @@ func (vm *VM) Initialize(
 	}
 
 	// parse and cache valid off-chain warp messages to warp backend
-	for _, messageBytes := range vm.config.OutOfBandWarpMessagesBytes {
+	for _, messageBytes := range vm.config.OffChainWarpMessagesBytes {
 		unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(messageBytes)
 		if err != nil {
-			return errInvalidOutOfBandWarpMessageBytes
+			return errInvalidOffChainWarpMessageBytes
 		}
-		vm.warpBackend.CacheMessage(unsignedMessage)
+		vm.warpBackend.PutMessage(unsignedMessage)
 	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {

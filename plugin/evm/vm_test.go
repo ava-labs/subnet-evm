@@ -3333,7 +3333,7 @@ func TestSignatureRequestsToVM(t *testing.T) {
 	}
 }
 
-func TestOutOfBandWarpMessagesVM(t *testing.T) {
+func TestOffChainWarpMessagesVM(t *testing.T) {
 	require := require.New(t)
 	invalidMsgBytes := []byte{0, 1, 2}
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
@@ -3352,14 +3352,14 @@ func TestOutOfBandWarpMessagesVM(t *testing.T) {
 	require.NoError(err)
 	msgBytes1 := unsignedMessage1.Bytes()
 
-	type OutOfBandWarpMessageTest struct {
+	type OffChainWarpMessageTest struct {
 		messagesBytes [][]byte
 		expectedErr   error
 	}
-	tests := map[string]OutOfBandWarpMessageTest{
+	tests := map[string]OffChainWarpMessageTest{
 		"invalid unparsed warp message bytes": {
 			messagesBytes: [][]byte{invalidMsgBytes},
-			expectedErr:   errInvalidOutOfBandWarpMessageBytes,
+			expectedErr:   errInvalidOffChainWarpMessageBytes,
 		},
 		"valid unparsed warp message bytes": {
 			messagesBytes: [][]byte{msgBytes},
@@ -3371,15 +3371,15 @@ func TestOutOfBandWarpMessagesVM(t *testing.T) {
 		},
 		"multiple valid/invalid unparsed message bytes": {
 			messagesBytes: [][]byte{msgBytes, invalidMsgBytes},
-			expectedErr:   errInvalidOutOfBandWarpMessageBytes,
+			expectedErr:   errInvalidOffChainWarpMessageBytes,
 		},
 	}
 
-	TestOutOfBandWarpMessages := func(test OutOfBandWarpMessageTest) {
+	TestOffChainWarpMessages := func(test OffChainWarpMessageTest) {
 		vm := &VM{}
 		ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSONSubnetEVM)
 		config := map[string][][]byte{
-			"out-of-band-warp-messages": test.messagesBytes,
+			"off-chain-warp-messages": test.messagesBytes,
 		}
 
 		configJSON, err := json.Marshal(config)
@@ -3424,7 +3424,7 @@ func TestOutOfBandWarpMessagesVM(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// Each iteration runs the TestOutOfBandWarpMessages function so vm can shut down properly
-			TestOutOfBandWarpMessages(test)
+			TestOffChainWarpMessages(test)
 		})
 	}
 }

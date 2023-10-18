@@ -191,10 +191,10 @@ type Config struct {
 	// Database Settings
 	InspectDatabase bool `json:"inspect-database"` // Inspects the database on startup if enabled.
 
-	// OutOfBandWarpMessagesBytes represent off-chain warp messages (in bytes) a validator is willing to sign
+	// OffChainWarpMessagesBytes represent off-chain warp messages (in bytes) a validator is willing to sign.
 	// These messages are not tied to on-chain events and are particularly useful for implementing a unified
 	// upgrade mechanism for critical smart contracts on the chain.
-	OutOfBandWarpMessagesBytes [][]byte `json:"out-of-band-warp-messages"`
+	OffChainWarpMessagesBytes [][]byte `json:"off-chain-warp-messages"`
 
 	// SkipUpgradeCheck disables checking that upgrades must take place before the last
 	// accepted block. Skipping this check is useful when a node operator does not update
