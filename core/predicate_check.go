@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/predicate"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 var ErrMissingPredicateContext = errors.New("missing predicate context")
@@ -36,25 +36,30 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 	}
 
 	// Prepare the predicate storage slots from the transaction's access list
-	predicateArguments := predicate.PreparePredicateStorageSlots(rules, tx.AccessList())
-
-	// If there are no predicates to verify, return early and skip requiring the proposervm block
-	// context to be populated.
-	if len(predicateArguments) == 0 {
-		return predicateResults, nil
-	}
-
-	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
-		return nil, ErrMissingPredicateContext
-	}
-
-	for address, predicates := range predicateArguments {
-		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
-		// there's no need to check if the predicate exists here.
-		predicaterContract := rules.Predicaters[address]
-		res := predicaterContract.VerifyPredicate(predicateContext, predicates)
-		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res)
-		predicateResults[address] = res
+	for _, el := range tx.AccessList() {
+		predicaterContract, exists := rules.Predicaters[el.Address]
+		if !exists {
+			continue
+		}
+		if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
+			return nil, ErrMissingPredicateContext
+		}
+		verified := predicaterContract.VerifyPredicate(predicateContext, utils.HashSliceToBytes(el.StorageKeys))
+		// Add bitset only if predicate is not verified
+		if !verified {
+			resultBitSet := set.NewBits()
+			currentResult, ok := predicateResults[el.Address]
+			if ok {
+				resultBitSet = set.BitsFromBytes(currentResult)
+			}
+			currentIndex := resultBitSet.Len()
+			resultBitSet.Add(currentIndex)
+			predicateResults[el.Address] = resultBitSet.Bytes()
+		}
+		// fill with empty result
+		if _, ok := predicateResults[el.Address]; !ok {
+			predicateResults[el.Address] = []byte{}
+		}
 	}
 
 	return predicateResults, nil

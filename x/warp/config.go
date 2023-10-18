@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -183,7 +182,9 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	return totalGas, nil
 }
 
-func (c *Config) verifyPredicate(predicateContext *precompileconfig.PredicateContext, predicateBytes []byte) bool {
+// VerifyPredicate computes indices of predicates that failed verification as a bitset then returns the result
+// as a byte slice.
+func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, predicateBytes []byte) bool {
 	unpackedPredicateBytes, err := predicate.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return false
@@ -195,17 +196,4 @@ func (c *Config) verifyPredicate(predicateContext *precompileconfig.PredicateCon
 		return false
 	}
 	return c.verifyWarpMessage(predicateContext, warpMessage)
-}
-
-// VerifyPredicate computes indices of predicates that failed verification as a bitset then returns the result
-// as a byte slice.
-func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, predicates [][]byte) []byte {
-	resultBitSet := set.NewBits()
-
-	for predicateIndex, predicateBytes := range predicates {
-		if !c.verifyPredicate(predicateContext, predicateBytes) {
-			resultBitSet.Add(predicateIndex)
-		}
-	}
-	return resultBitSet.Bytes()
 }
