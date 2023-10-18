@@ -16,25 +16,33 @@ import (
 
 const (
 	initialRetryFetchSignatureDelay = 100 * time.Millisecond
+	maxRetryFetchSignatureDelay     = 5 * time.Second
 	retryBackoffFactor              = 2
 )
 
-var _ SignatureBackend = (*NetworkSigner)(nil)
+var _ SignatureGetter = (*NetworkSignatureGetter)(nil)
 
-type NetworkClient interface {
-	SendAppRequest(nodeID ids.NodeID, message []byte) ([]byte, error)
+// SignatureGetter defines the minimum network interface to perform signature aggregation
+type SignatureGetter interface {
+	// GetSignature attempts to fetch a BLS Signature from [nodeID] for [unsignedWarpMessage]
+	GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error)
 }
 
-// NetworkSigner fetches warp signatures on behalf of the aggregator using VM App-Specific Messaging
-type NetworkSigner struct {
+type NetworkClient interface {
+	SendAppRequest(ctx context.Context, nodeID ids.NodeID, message []byte) ([]byte, error)
+}
+
+// NetworkSignatureGetter fetches warp signatures on behalf of the
+// aggregator using VM App-Specific Messaging
+type NetworkSignatureGetter struct {
 	Client NetworkClient
 }
 
-// FetchWarpSignature attempts to fetch a BLS Signature of [unsignedWarpMessage] from [nodeID] until it succeeds or receives an invalid response
+// GetSignature attempts to fetch a BLS Signature of [unsignedWarpMessage] from [nodeID] until it succeeds or receives an invalid response
 //
 // Note: this function will continue attempting to fetch the signature from [nodeID] until it receives an invalid value or [ctx] is cancelled.
 // The caller is responsible to cancel [ctx] if it no longer needs to fetch this signature.
-func (s *NetworkSigner) FetchWarpSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
+func (s *NetworkSignatureGetter) GetSignature(ctx context.Context, nodeID ids.NodeID, unsignedWarpMessage *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {
 	signatureReq := message.SignatureRequest{
 		MessageID: unsignedWarpMessage.ID(),
 	}
@@ -44,31 +52,40 @@ func (s *NetworkSigner) FetchWarpSignature(ctx context.Context, nodeID ids.NodeI
 	}
 
 	delay := initialRetryFetchSignatureDelay
-	for ctx.Err() == nil {
-		signatureRes, err := s.Client.SendAppRequest(nodeID, signatureReqBytes)
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	for {
+		signatureRes, err := s.Client.SendAppRequest(ctx, nodeID, signatureReqBytes)
 		// If the client fails to retrieve a response perform an exponential backoff.
 		// Note: it is up to the caller to ensure that [ctx] is eventually cancelled
 		if err != nil {
+			// Wait until the retry delay has elapsed before retrying.
+			if !timer.Stop() {
+				<-timer.C
+			}
+			timer.Reset(delay)
+
 			select {
 			case <-ctx.Done():
-				break
-			case <-time.After(delay):
+				return nil, ctx.Err()
+			case <-timer.C:
 			}
+
+			// Exponential backoff.
 			delay *= retryBackoffFactor
+			if delay > maxRetryFetchSignatureDelay {
+				delay = maxRetryFetchSignatureDelay
+			}
 			continue
 		}
-
 		var response message.SignatureResponse
 		if _, err := message.Codec.Unmarshal(signatureRes, &response); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal signature res: %w", err)
 		}
-
 		blsSignature, err := bls.SignatureFromBytes(response.Signature[:])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse signature from res: %w", err)
 		}
 		return blsSignature, nil
 	}
-
-	return nil, fmt.Errorf("ctx expired fetching signature for message %s from %s: %w", unsignedWarpMessage.ID(), nodeID, ctx.Err())
 }

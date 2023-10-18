@@ -7,11 +7,13 @@ package warp
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/api/info"
@@ -19,14 +21,15 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
@@ -39,9 +42,20 @@ import (
 const fundedKeyStr = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
 
 var (
-	config              = runner.NewDefaultANRConfig()
-	manager             = runner.NewNetworkManager(config)
-	warpChainConfigPath string
+	config                         = runner.NewDefaultANRConfig()
+	manager                        = runner.NewNetworkManager(config)
+	warpChainConfigPath            string
+	unsignedWarpMsg                *avalancheWarp.UnsignedMessage
+	unsignedWarpMessageID          ids.ID
+	signedWarpMsg                  *avalancheWarp.Message
+	blockchainIDA, blockchainIDB   ids.ID
+	chainAURIs, chainBURIs         []string
+	chainAWSClient, chainBWSClient ethclient.Client
+	chainID                        = big.NewInt(99999)
+	fundedKey                      *ecdsa.PrivateKey
+	fundedAddress                  common.Address
+	testPayload                    = []byte{1, 2, 3}
+	txSigner                       = types.LatestSignerForChainID(chainID)
 )
 
 func TestE2E(t *testing.T) {
@@ -108,7 +122,8 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	// Issue transactions to activate the proposerVM fork on the receiving chain
 	chainID := big.NewInt(99999)
-	fundedKey, err := crypto.HexToECDSA(fundedKeyStr)
+	fundedKey, err = crypto.HexToECDSA(fundedKeyStr)
+	fundedAddress = crypto.PubkeyToAddress(fundedKey.PublicKey)
 	gomega.Expect(err).Should(gomega.BeNil())
 	subnetB := manager.GetSubnets()[1]
 	subnetBDetails, ok := manager.GetSubnet(subnetB)
@@ -121,6 +136,35 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	err = utils.IssueTxsToActivateProposerVMFork(ctx, chainID, fundedKey, client)
 	gomega.Expect(err).Should(gomega.BeNil())
+
+	subnetIDs := manager.GetSubnets()
+	gomega.Expect(len(subnetIDs)).Should(gomega.Equal(2))
+
+	subnetA := subnetIDs[0]
+	subnetADetails, ok := manager.GetSubnet(subnetA)
+	gomega.Expect(ok).Should(gomega.BeTrue())
+	blockchainIDA = subnetADetails.BlockchainID
+	gomega.Expect(len(subnetADetails.ValidatorURIs)).Should(gomega.Equal(5))
+	chainAURIs = append(chainAURIs, subnetADetails.ValidatorURIs...)
+
+	subnetB = subnetIDs[1]
+	subnetBDetails, ok = manager.GetSubnet(subnetB)
+	gomega.Expect(ok).Should(gomega.BeTrue())
+	blockchainIDB = subnetBDetails.BlockchainID
+	gomega.Expect(len(subnetBDetails.ValidatorURIs)).Should(gomega.Equal(5))
+	chainBURIs = append(chainBURIs, subnetBDetails.ValidatorURIs...)
+
+	log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA, "blockchainIDB", blockchainIDB)
+
+	chainAWSURI := toWebsocketURI(chainAURIs[0], blockchainIDA.String())
+	log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
+	chainAWSClient, err = ethclient.Dial(chainAWSURI)
+	gomega.Expect(err).Should(gomega.BeNil())
+
+	chainBWSURI := toWebsocketURI(chainBURIs[0], blockchainIDB.String())
+	log.Info("Creating ethclient for blockchainB", "wsURI", chainBWSURI)
+	chainBWSClient, err = ethclient.Dial(chainBWSURI)
+	gomega.Expect(err).Should(gomega.BeNil())
 })
 
 var _ = ginkgo.AfterSuite(func() {
@@ -131,64 +175,9 @@ var _ = ginkgo.AfterSuite(func() {
 })
 
 var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
-	var (
-		unsignedWarpMsg                *avalancheWarp.UnsignedMessage
-		unsignedWarpMessageID          ids.ID
-		signedWarpMsg                  *avalancheWarp.Message
-		blockchainIDA, blockchainIDB   ids.ID
-		chainAURIs, chainBURIs         []string
-		chainAWSClient, chainBWSClient ethclient.Client
-		chainID                        = big.NewInt(99999)
-		fundedKey                      *ecdsa.PrivateKey
-		fundedAddress                  common.Address
-		payload                        = []byte{1, 2, 3}
-		txSigner                       = types.LatestSignerForChainID(chainID)
-		err                            error
-	)
-
-	fundedKey, err = crypto.HexToECDSA(fundedKeyStr)
-	if err != nil {
-		panic(err)
-	}
-	fundedAddress = crypto.PubkeyToAddress(fundedKey.PublicKey)
-
-	ginkgo.It("Setup URIs", ginkgo.Label("Warp", "SetupWarp"), func() {
-		subnetIDs := manager.GetSubnets()
-		gomega.Expect(len(subnetIDs)).Should(gomega.Equal(2))
-
-		subnetA := subnetIDs[0]
-		subnetADetails, ok := manager.GetSubnet(subnetA)
-		gomega.Expect(ok).Should(gomega.BeTrue())
-		blockchainIDA = subnetADetails.BlockchainID
-		gomega.Expect(len(subnetADetails.ValidatorURIs)).Should(gomega.Equal(5))
-		chainAURIs = append(chainAURIs, subnetADetails.ValidatorURIs...)
-
-		subnetB := subnetIDs[1]
-		subnetBDetails, ok := manager.GetSubnet(subnetB)
-		gomega.Expect(ok).Should(gomega.BeTrue())
-		blockchainIDB := subnetBDetails.BlockchainID
-		gomega.Expect(len(subnetBDetails.ValidatorURIs)).Should(gomega.Equal(5))
-		chainBURIs = append(chainBURIs, subnetBDetails.ValidatorURIs...)
-
-		log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA, "blockchainIDB", blockchainIDB)
-
-		chainAWSURI := toWebsocketURI(chainAURIs[0], blockchainIDA.String())
-		log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
-		chainAWSClient, err = ethclient.Dial(chainAWSURI)
-		gomega.Expect(err).Should(gomega.BeNil())
-
-		chainBWSURI := toWebsocketURI(chainBURIs[0], blockchainIDB.String())
-		log.Info("Creating ethclient for blockchainB", "wsURI", chainBWSURI)
-		chainBWSClient, err = ethclient.Dial(chainBWSURI)
-		gomega.Expect(err).Should(gomega.BeNil())
-
-	})
-
 	// Send a transaction to Subnet A to issue a Warp Message to Subnet B
 	ginkgo.It("Send Message from A to B", ginkgo.Label("Warp", "SendWarp"), func() {
 		ctx := context.Background()
-
-		gomega.Expect(err).Should(gomega.BeNil())
 
 		log.Info("Subscribing to new heads")
 		newHeads := make(chan *types.Header, 10)
@@ -199,11 +188,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		startingNonce, err := chainAWSClient.NonceAt(ctx, fundedAddress, nil)
 		gomega.Expect(err).Should(gomega.BeNil())
 
-		packedInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
-			DestinationChainID: common.Hash(blockchainIDB),
-			DestinationAddress: fundedAddress,
-			Payload:            payload,
-		})
+		packedInput, err := warp.PackSendWarpMessage(testPayload)
 		gomega.Expect(err).Should(gomega.BeNil())
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainID,
@@ -237,7 +222,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		// the log extracted from the last block.
 		txLog := logs[0]
 		log.Info("Parsing logData as unsigned warp message")
-		unsignedMsg, err := avalancheWarp.ParseUnsignedMessage(txLog.Data)
+		unsignedMsg, err := warp.UnpackSendWarpEventDataToMessage(txLog.Data)
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		// Set local variables for the duration of the test
@@ -345,7 +330,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		packedInput, err := warp.PackGetVerifiedWarpMessage(0)
 		gomega.Expect(err).Should(gomega.BeNil())
-		tx := predicateutils.NewPredicateTx(
+		tx := predicate.NewPredicateTx(
 			chainID,
 			nonce,
 			&warp.Module.Address,
@@ -380,4 +365,42 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(receipt.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful))
 	})
+
+	ginkgo.It("Send Message from A to B from Hardhat", ginkgo.Label("Warp", "IWarpMessenger", "SendWarpMessage"), func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		log.Info("Subscribing to new heads")
+		newHeads := make(chan *types.Header, 10)
+		sub, err := chainAWSClient.SubscribeNewHead(ctx, newHeads)
+		gomega.Expect(err).Should(gomega.BeNil())
+		defer sub.Unsubscribe()
+
+		rpcURI := toRPCURI(chainAURIs[0], blockchainIDA.String())
+		senderAddress := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
+		addressedPayload, err := payload.NewAddressedCall(
+			senderAddress.Bytes(),
+			testPayload,
+		)
+		gomega.Expect(err).Should(gomega.BeNil())
+		expectedUnsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+			1337,
+			blockchainIDA,
+			addressedPayload.Bytes(),
+		)
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		os.Setenv("SENDER_ADDRESS", senderAddress.Hex())
+		os.Setenv("SOURCE_CHAIN_ID", "0x"+blockchainIDA.Hex())
+		os.Setenv("PAYLOAD", "0x"+common.Bytes2Hex(testPayload))
+		os.Setenv("EXPECTED_UNSIGNED_MESSAGE", "0x"+hex.EncodeToString(expectedUnsignedMessage.Bytes()))
+
+		cmdPath := "./contracts"
+		// test path is relative to the cmd path
+		testPath := "./test/warp.ts"
+		utils.RunHardhatTestsCustomURI(ctx, rpcURI, cmdPath, testPath)
+	})
 })
+
+func toRPCURI(uri string, blockchainID string) string {
+	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
+}

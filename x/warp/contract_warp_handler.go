@@ -8,10 +8,10 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 )
@@ -45,15 +45,24 @@ type messageHandler interface {
 	handleMessage(msg *warp.Message) ([]byte, error)
 }
 
-func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, remainingGas uint64, handler messageHandler) ([]byte, uint64, error) {
-	warpIndex, err := UnpackGetVerifiedWarpMessageInput(input)
+func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, suppliedGas uint64, handler messageHandler) ([]byte, uint64, error) {
+	remainingGas, err := contract.DeductGas(suppliedGas, GetVerifiedWarpMessageBaseCost)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+
+	warpIndexInput, err := UnpackGetVerifiedWarpMessageInput(input)
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidIndexInput, err)
 	}
+	if warpIndexInput > math.MaxInt32 {
+		return nil, remainingGas, fmt.Errorf("%w: larger than MaxInt32", errInvalidIndexInput)
+	}
+	warpIndex := int(warpIndexInput) // This conversion is safe even if int is 32 bits because we checked above.
 	state := accessibleState.GetStateDB()
 	predicateBytes, exists := state.GetPredicateStorageSlots(ContractAddress, warpIndex)
 	predicateResults := accessibleState.GetBlockContext().GetPredicateResults(state.GetTxHash(), ContractAddress)
-	valid := exists && set.BitsFromBytes(predicateResults).Contains(int(warpIndex))
+	valid := exists && !set.BitsFromBytes(predicateResults).Contains(warpIndex)
 	if !valid {
 		return handler.packFailed(), remainingGas, nil
 	}
@@ -69,7 +78,7 @@ func handleWarpMessage(accessibleState contract.AccessibleState, input []byte, r
 	}
 	// Note: since the predicate is verified in advance of execution, the precompile should not
 	// hit an error during execution.
-	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
+	unpackedPredicateBytes, err := predicate.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return nil, remainingGas, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
 	}
@@ -91,16 +100,14 @@ func (addressedPayloadHandler) packFailed() []byte {
 }
 
 func (addressedPayloadHandler) handleMessage(warpMessage *warp.Message) ([]byte, error) {
-	addressedPayload, err := warpPayload.ParseAddressedPayload(warpMessage.UnsignedMessage.Payload)
+	addressedPayload, err := payload.ParseAddressedCall(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidAddressedPayload, err)
 	}
 	return PackGetVerifiedWarpMessageOutput(GetVerifiedWarpMessageOutput{
 		Message: WarpMessage{
 			SourceChainID:       common.Hash(warpMessage.SourceChainID),
-			OriginSenderAddress: addressedPayload.SourceAddress,
-			DestinationChainID:  addressedPayload.DestinationChainID,
-			DestinationAddress:  addressedPayload.DestinationAddress,
+			OriginSenderAddress: common.BytesToAddress(addressedPayload.SourceAddress),
 			Payload:             addressedPayload.Payload,
 		},
 		Valid: true,
@@ -114,14 +121,14 @@ func (blockHashHandler) packFailed() []byte {
 }
 
 func (blockHashHandler) handleMessage(warpMessage *warp.Message) ([]byte, error) {
-	blockHashPayload, err := warpPayload.ParseBlockHashPayload(warpMessage.UnsignedMessage.Payload)
+	blockHashPayload, err := payload.ParseHash(warpMessage.UnsignedMessage.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errInvalidBlockHashPayload, err)
 	}
 	return PackGetVerifiedWarpBlockHashOutput(GetVerifiedWarpBlockHashOutput{
 		WarpBlockHash: WarpBlockHash{
 			SourceChainID: common.Hash(warpMessage.SourceChainID),
-			BlockHash:     blockHashPayload.BlockHash,
+			BlockHash:     common.BytesToHash(blockHashPayload.Hash[:]),
 		},
 		Valid: true,
 	})

@@ -4,21 +4,15 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
-        "name": "destinationChainID",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "destinationAddress",
-        "type": "address"
-      },
-      {
-        "indexed": true,
         "internalType": "address",
         "name": "sender",
         "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "messageID",
+        "type": "bytes32"
       },
       {
         "indexed": false,
@@ -102,16 +96,6 @@
             "type": "address"
           },
           {
-            "internalType": "bytes32",
-            "name": "destinationChainID",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "address",
-            "name": "destinationAddress",
-            "type": "address"
-          },
-          {
             "internalType": "bytes",
             "name": "payload",
             "type": "bytes"
@@ -133,23 +117,19 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "destinationChainID",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "destinationAddress",
-        "type": "address"
-      },
-      {
         "internalType": "bytes",
         "name": "payload",
         "type": "bytes"
       }
     ],
     "name": "sendWarpMessage",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "messageID",
+        "type": "bytes32"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   }

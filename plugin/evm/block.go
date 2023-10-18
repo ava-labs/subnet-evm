@@ -13,13 +13,13 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/precompile/results"
-	"github.com/ava-labs/subnet-evm/warp/payload"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/x/warp"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -132,7 +132,7 @@ func (b *Block) handlePrecompileAccept(rules *params.Rules, sharedMemoryWriter *
 
 	// If Warp is enabled, add the block hash as an unsigned message to the warp backend.
 	if rules.IsPrecompileEnabled(warp.ContractAddress) {
-		blockHashPayload, err := payload.NewBlockHashPayload(b.ethBlock.Hash())
+		blockHashPayload, err := payload.NewHash(ids.ID(b.ethBlock.Hash()))
 		if err != nil {
 			return fmt.Errorf("failed to create block hash payload: %w", err)
 		}
@@ -200,7 +200,7 @@ func (b *Block) Verify(context.Context) error {
 
 // ShouldVerifyWithContext implements the block.WithVerifyContext interface
 func (b *Block) ShouldVerifyWithContext(context.Context) (bool, error) {
-	predicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Predicates
+	predicates := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp()).Predicaters
 	// Short circuit early if there are no predicates to verify
 	if len(predicates) == 0 {
 		return false, nil
@@ -269,19 +269,19 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 	rules := b.vm.chainConfig.AvalancheRules(b.ethBlock.Number(), b.ethBlock.Timestamp())
 
 	switch {
-	case !rules.IsDUpgrade && rules.PredicatesExist():
+	case !rules.IsDUpgrade && rules.PredicatersExist():
 		return errors.New("cannot enable predicates before DUpgrade activation")
 	case !rules.IsDUpgrade:
 		return nil
 	}
 
-	predicateResults := results.NewPredicateResults()
+	predicateResults := predicate.NewResults()
 	for _, tx := range b.ethBlock.Transactions() {
 		results, err := core.CheckPredicates(rules, predicateContext, tx)
 		if err != nil {
 			return err
 		}
-		predicateResults.SetTxPredicateResults(tx.Hash(), results)
+		predicateResults.SetTxResults(tx.Hash(), results)
 	}
 	// TODO: document required gas constraints to ensure marshalling predicate results does not error
 	predicateResultsBytes, err := predicateResults.Bytes()
@@ -289,16 +289,12 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		return fmt.Errorf("failed to marshal predicate results: %w", err)
 	}
 	extraData := b.ethBlock.Extra()
-	if len(extraData) < params.DynamicFeeExtraDataSize {
-		return fmt.Errorf("header extra data too short for predicate verification found: %d, required: %d", len(extraData), params.DynamicFeeExtraDataSize)
+	headerPredicateResultsBytes, err := predicate.GetPredicateResultBytes(extraData)
+	if err != nil {
+		return err
 	}
-	headerPredicateResultsBytes := extraData[params.DynamicFeeExtraDataSize:]
 	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
-		parsedResults, err := results.ParsePredicateResults(headerPredicateResultsBytes)
-		if err != nil {
-			return err
-		}
-		return fmt.Errorf("%w (remote: %x %v local: %x %v)", errInvalidHeaderPredicateResults, headerPredicateResultsBytes, parsedResults, predicateResultsBytes, predicateResults)
+		return fmt.Errorf("%w (remote: %x local: %x)", errInvalidHeaderPredicateResults, headerPredicateResultsBytes, predicateResultsBytes)
 	}
 	return nil
 }
