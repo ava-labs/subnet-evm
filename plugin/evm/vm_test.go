@@ -3407,14 +3407,14 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 			require.NoError(err)
 		}()
 
-		// Check that the out-of-band warp messages were cached properly and retrievable
+		// Check that the off-chain warp messages were cached properly and retrievable
 		for _, messageBytes := range test.messagesBytes {
 			unsignedWarpMessage, err := avalancheWarp.ParseUnsignedMessage(messageBytes)
 			require.NoError(err)
 			expectedSignature, err := vm.ctx.WarpSigner.Sign(unsignedWarpMessage)
 			require.NoError(err)
 
-			// On VM initializtion out of band warp messages were put into the message cache
+			// On VM initializtion off-chain warp messages were put into the message cache
 			signature, err := vm.warpBackend.GetSignature(unsignedWarpMessage.ID())
 			require.NoError(err)
 			require.Equal(([bls.SignatureLen]byte)(expectedSignature), signature)
@@ -3423,7 +3423,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			// Each iteration runs the TestOutOfBandWarpMessages function so vm can shut down properly
+			// Each iteration runs the TestOffChainWarpMessages function so vm can shut down properly
 			TestOffChainWarpMessages(test)
 		})
 	}
