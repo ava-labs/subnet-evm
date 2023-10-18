@@ -30,7 +30,7 @@ var (
 	errOverflowSignersGasCost  = errors.New("overflow calculating warp signers gas cost")
 	errInvalidPredicateBytes   = errors.New("cannot unpack predicate bytes")
 	errInvalidWarpMsg          = errors.New("cannot unpack warp message")
-	errInvalidWarpMsgPayoad    = errors.New("cannot unpack warp message payload")
+	errInvalidWarpMsgPayload   = errors.New("cannot unpack warp message payload")
 	errInvalidAddressedPayload = errors.New("cannot unpack addressed payload")
 	errInvalidBlockHashPayload = errors.New("cannot unpack block hash payload")
 	errCannotGetNumSigners     = errors.New("cannot fetch num signers from warp message")
@@ -172,7 +172,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	}
 	_, err = payload.Parse(warpMessage.Payload)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsgPayoad, err)
+		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsgPayload, err)
 	}
 
 	numSigners, err := warpMessage.Signature.NumSigners()

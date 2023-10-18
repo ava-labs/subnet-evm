@@ -395,7 +395,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 		},
 		StorageSlots: [][]byte{predicateBytes},
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:       errInvalidWarpMsgPayoad,
+		GasErr:       errInvalidWarpMsgPayload,
 	}
 
 	test.Run(t)
