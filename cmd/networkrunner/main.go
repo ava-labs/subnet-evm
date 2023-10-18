@@ -14,10 +14,15 @@ import (
 	"syscall"
 
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
+	"github.com/ava-labs/subnet-evm/interfaces"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
+	"github.com/ava-labs/subnet-evm/x/warp"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -28,6 +33,10 @@ var (
 	config              = runner.NewDefaultANRConfig()
 	manager             = runner.NewNetworkManager(config)
 	warpChainConfigPath string
+
+	chainID     = big.NewInt(99999)
+	testPayload = []byte{1, 2, 3}
+	txSigner    = types.LatestSignerForChainID(chainID)
 )
 
 func toWebsocketURI(uri string, blockchainID string) string {
@@ -181,9 +190,75 @@ func setup(ctx context.Context) {
 
 	chainAWSURI := toWebsocketURI(chainAURIs[0], blockchainIDA.String())
 	log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
+	chainAWSClient, err := ethclient.Dial(chainAWSURI)
+	if err != nil {
+		panic(err)
+	}
 
-	chainBWSURI := toWebsocketURI(chainBURIs[0], blockchainIDB.String())
-	log.Info("Creating ethclient for blockchainB", "wsURI", chainBWSURI)
+	log.Info("Subscribing to new heads")
+	newHeads := make(chan *types.Header, 10)
+	sub, err := chainAWSClient.SubscribeNewHead(ctx, newHeads)
+	if err != nil {
+		panic(err)
+	}
+	defer sub.Unsubscribe()
+
+	startingNonce, err := chainAWSClient.NonceAt(ctx, fundedAddress, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	packedInput, err := warp.PackSendWarpMessage(testPayload)
+	if err != nil {
+		panic(err)
+	}
+
+	go listenForLogs(ctx, newHeads, chainAWSClient)
+
+	for i := startingNonce; i < 1000; i++ {
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   chainID,
+			Nonce:     i,
+			To:        &warp.Module.Address,
+			Gas:       200_000,
+			GasFeeCap: big.NewInt(225 * params.GWei),
+			GasTipCap: big.NewInt(params.GWei),
+			Value:     common.Big0,
+			Data:      packedInput,
+		})
+		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
+		if err != nil {
+			panic(err)
+		}
+		log.Info("Sending sendWarpMessage transaction", "txHash", signedTx.Hash())
+		err = chainAWSClient.SendTransaction(ctx, signedTx)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func listenForLogs(ctx context.Context, newHeads chan *types.Header, chainAWSClient ethclient.Client) {
+	for {
+		newHead := <-newHeads
+		blockHash := newHead.Hash()
+
+		logs, err := chainAWSClient.FilterLogs(ctx, interfaces.FilterQuery{
+			BlockHash: &blockHash,
+			Addresses: []common.Address{warp.Module.Address},
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		for _, ethLog := range logs {
+			log.Info("received ethLog",
+				"address", ethLog.Address,
+				"blockNumber", ethLog.BlockNumber,
+				"txIndex", ethLog.TxIndex,
+			)
+		}
+	}
 }
 
 func shutdown() {
