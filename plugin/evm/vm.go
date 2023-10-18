@@ -483,8 +483,7 @@ func (vm *VM) Initialize(
 	}
 
 	// parse and cache valid off-chain warp messages to warp backend
-	for _, message := range vm.config.OffChainWarpMessages {
-		messageBytes := []byte(message)
+	for _, messageBytes := range vm.config.OffChainWarpMessagesBytes {
 		unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(messageBytes)
 		if err != nil {
 			return errInvalidOffChainWarpMessageBytes

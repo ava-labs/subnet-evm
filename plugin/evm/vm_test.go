@@ -3353,33 +3353,33 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 	msgBytes1 := unsignedMessage1.Bytes()
 
 	type OffChainWarpMessageTest struct {
-		messages    []string
-		expectedErr error
+		messagesBytes [][]byte
+		expectedErr   error
 	}
 	tests := map[string]OffChainWarpMessageTest{
 		"invalid unparsed warp message bytes": {
-			messages:    []string{string(invalidMsgBytes)},
-			expectedErr: errInvalidOffChainWarpMessageBytes,
+			messagesBytes: [][]byte{invalidMsgBytes},
+			expectedErr:   errInvalidOffChainWarpMessageBytes,
 		},
 		"valid unparsed warp message bytes": {
-			messages:    []string{string(msgBytes)},
-			expectedErr: nil,
+			messagesBytes: [][]byte{msgBytes},
+			expectedErr:   nil,
 		},
 		"multiple valid unparsed message bytes": {
-			messages:    []string{string(msgBytes), string(msgBytes1)},
-			expectedErr: nil,
+			messagesBytes: [][]byte{msgBytes, msgBytes1},
+			expectedErr:   nil,
 		},
 		"multiple valid/invalid unparsed message bytes": {
-			messages:    []string{string(msgBytes), string(invalidMsgBytes)},
-			expectedErr: errInvalidOffChainWarpMessageBytes,
+			messagesBytes: [][]byte{msgBytes, invalidMsgBytes},
+			expectedErr:   errInvalidOffChainWarpMessageBytes,
 		},
 	}
 
 	TestOffChainWarpMessages := func(test OffChainWarpMessageTest) {
 		vm := &VM{}
 		ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSONSubnetEVM)
-		config := map[string][]string{
-			"off-chain-warp-messages": test.messages,
+		config := map[string][][]byte{
+			"off-chain-warp-messages": test.messagesBytes,
 		}
 
 		configJSON, err := json.Marshal(config)
@@ -3408,8 +3408,8 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 		}()
 
 		// Check that the out-of-band warp messages were cached properly and retrievable
-		for _, message := range test.messages {
-			unsignedWarpMessage, err := avalancheWarp.ParseUnsignedMessage([]byte(message))
+		for _, messageBytes := range test.messagesBytes {
+			unsignedWarpMessage, err := avalancheWarp.ParseUnsignedMessage(messageBytes)
 			require.NoError(err)
 			expectedSignature, err := vm.ctx.WarpSigner.Sign(unsignedWarpMessage)
 			require.NoError(err)
