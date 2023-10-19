@@ -386,3 +386,39 @@ func TestSetRewardAddressLogging(t *testing.T) {
 	require.Len(allLogs, 1)
 	require.Equal(expectedTopic, allLogs[0].Topics)
 }
+
+func TestAllowFeeRecipientsLogging(t *testing.T) {
+	require := require.New(t)
+	ctrl := gomock.NewController(t)
+
+	blockContext := contract.NewMockBlockContext(ctrl)
+	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
+	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
+
+	baseState := state.NewTestStateDB(t)
+	accessibleState := contract.NewMockAccessibleState(ctrl)
+	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
+	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+
+	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
+
+	_, _, err := allowFeeRecipients(
+		accessibleState,
+		allowlist.TestAdminAddr,
+		Module.Address,
+		nil,
+		AllowFeeRecipientsGasCost,
+		false,
+	)
+	require.NoError(err)
+
+	// Check logs are stored in state
+	expectedTopic := []common.Hash{
+		RewardManagerABI.Events["AllowFeeRecipients"].ID,
+		allowlist.TestAdminAddr.Hash(),
+	}
+
+	allLogs := baseState.(*state.StateDB).Logs()
+	require.Len(allLogs, 1)
+	require.Equal(expectedTopic, allLogs[0].Topics)
+}
