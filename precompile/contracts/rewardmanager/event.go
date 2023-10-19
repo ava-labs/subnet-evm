@@ -42,6 +42,14 @@ func PackAllowFeeRecipientsEvent(sender common.Address) ([]common.Hash, []byte, 
 
 // UnpackAllowFeeRecipientsEvent won't be generated because the event does not have any non-indexed data.
 
+// PackDisableRewardsEvent packs the event into the appropriate arguments for DisableRewards.
+// It returns topic hashes and the encoded non-indexed data.
+func PackDisableRewardsEvent(sender common.Address) ([]common.Hash, []byte, error) {
+	return RewardManagerABI.PackEvent("DisableRewards", sender)
+}
+
+// UnpackDisableRewardsEvent won't be generated because the event does not have any non-indexed data.
+
 // PackRewardAddressEvent packs the event into the appropriate arguments for RewardAddress.
 // It returns topic hashes and the encoded non-indexed data.
 func PackRewardAddressEvent(sender common.Address, reward common.Address) ([]common.Hash, []byte, error) {

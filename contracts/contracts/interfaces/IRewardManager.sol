@@ -7,6 +7,8 @@ interface IRewardManager is IAllowList {
 
   event AllowFeeRecipients(address indexed sender);
 
+  event DisableRewards(address indexed sender);
+
   // setRewardAddress sets the reward address to the given address
   function setRewardAddress(address addr) external;
 

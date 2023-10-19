@@ -291,6 +291,18 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
+	// Add a log to be handled if this action is finalized.
+	topics, data, err := PackDisableRewardsEvent(caller)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(
+		ContractAddress,
+		topics,
+		data,
+		accessibleState.GetBlockContext().Number().Uint64(),
+	)
+
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
 }
