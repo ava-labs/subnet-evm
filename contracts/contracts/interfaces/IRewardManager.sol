@@ -3,6 +3,10 @@ pragma solidity ^0.8.0;
 import "./IAllowList.sol";
 
 interface IRewardManager is IAllowList {
+  event RewardAddress(address indexed sender, address indexed reward);
+
+  event AllowFeeRecipients(address indexed sender);
+
   // setRewardAddress sets the reward address to the given address
   function setRewardAddress(address addr) external;
 
@@ -17,6 +21,4 @@ interface IRewardManager is IAllowList {
 
   // areFeeRecipientsAllowed returns true if fee recipients are allowed
   function areFeeRecipientsAllowed() external view returns (bool isAllowed);
-
-  event RewardAddress(address indexed sender, address indexed reward);
 }

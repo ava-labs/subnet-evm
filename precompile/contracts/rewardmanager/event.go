@@ -34,6 +34,14 @@ accessibleState.GetStateDB().AddLog(
 )
 */
 
+// PackAllowFeeRecipientsEvent packs the event into the appropriate arguments for AllowFeeRecipients.
+// It returns topic hashes and the encoded non-indexed data.
+func PackAllowFeeRecipientsEvent(sender common.Address) ([]common.Hash, []byte, error) {
+	return RewardManagerABI.PackEvent("AllowFeeRecipients", sender)
+}
+
+// UnpackAllowFeeRecipientsEvent won't be generated because the event does not have any non-indexed data.
+
 // PackRewardAddressEvent packs the event into the appropriate arguments for RewardAddress.
 // It returns topic hashes and the encoded non-indexed data.
 func PackRewardAddressEvent(sender common.Address, reward common.Address) ([]common.Hash, []byte, error) {

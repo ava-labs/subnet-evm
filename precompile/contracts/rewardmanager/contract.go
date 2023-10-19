@@ -21,15 +21,14 @@ import (
 )
 
 const (
-	AllowFeeRecipientsGasCost      uint64 = (contract.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
-	AreFeeRecipientsAllowedGasCost uint64 = allowlist.ReadAllowListGasCost
-	CurrentRewardAddressGasCost    uint64 = allowlist.ReadAllowListGasCost
-	DisableRewardsGasCost          uint64 = (contract.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
-
 	DuplicatedLogGas      uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
 	DuplicatedLogTopicGas uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
 
-	SetRewardAddressGasCost uint64 = DuplicatedLogGas + 2*DuplicatedLogTopicGas + (contract.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
+	AllowFeeRecipientsGasCost      uint64 = DuplicatedLogGas + DuplicatedLogTopicGas + contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost // logging cost + write 1 slot + read allow list
+	AreFeeRecipientsAllowedGasCost uint64 = allowlist.ReadAllowListGasCost
+	CurrentRewardAddressGasCost    uint64 = allowlist.ReadAllowListGasCost
+	DisableRewardsGasCost          uint64 = (contract.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost                                            // write 1 slot + read allow list
+	SetRewardAddressGasCost        uint64 = DuplicatedLogGas + 2*DuplicatedLogTopicGas + contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost // logging cost + write 1 slot + read allow list
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -104,6 +103,18 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 	// this function does not return an output, leave this one as is
 	EnableAllowFeeRecipients(stateDB)
 	packedOutput := []byte{}
+
+	// Add a log to be handled if this action is finalized.
+	topics, data, err := PackAllowFeeRecipientsEvent(caller)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(
+		ContractAddress,
+		topics,
+		data,
+		accessibleState.GetBlockContext().Number().Uint64(),
+	)
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
