@@ -17,4 +17,6 @@ interface IRewardManager is IAllowList {
 
   // areFeeRecipientsAllowed returns true if fee recipients are allowed
   function areFeeRecipientsAllowed() external view returns (bool isAllowed);
+
+  event RewardAddress(address indexed sender, address indexed reward);
 }

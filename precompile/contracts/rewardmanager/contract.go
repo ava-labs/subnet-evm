@@ -192,8 +192,8 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 	}
 	// attempts to unpack [input] into the arguments to the SetRewardAddressInput.
 	// Assumes that [input] does not include selector
-	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackSetRewardAddressInput(input)
+	// You can use unpacked [rewardAddress] variable in your code
+	rewardAddress, err := UnpackSetRewardAddressInput(input)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -208,12 +208,23 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotSetRewardAddress, caller)
 	}
 	// allow list code ends here.
-
-	if err := StoreRewardAddress(stateDB, inputStruct); err != nil {
+	if err := StoreRewardAddress(stateDB, rewardAddress); err != nil {
 		return nil, remainingGas, err
 	}
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
+
+	// Add a log to be handled if this action is finalized.
+	topics, data, err := PackRewardAddressEvent(caller, rewardAddress)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(
+		ContractAddress,
+		topics,
+		data,
+		accessibleState.GetBlockContext().Number().Uint64(),
+	)
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
