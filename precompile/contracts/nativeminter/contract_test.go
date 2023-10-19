@@ -4,7 +4,9 @@
 package nativeminter
 
 import (
+	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -14,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 var tests = map[string]testutils.PrecompileTest{
@@ -166,4 +169,47 @@ func TestContractNativeMinterRun(t *testing.T) {
 
 func BenchmarkContractNativeMinter(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
+}
+
+func TestNativeMinterLogging(t *testing.T) {
+	require := require.New(t)
+	ctrl := gomock.NewController(t)
+
+	blockContext := contract.NewMockBlockContext(ctrl)
+	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
+	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
+
+	baseState := state.NewTestStateDB(t)
+	accessibleState := contract.NewMockAccessibleState(ctrl)
+	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
+	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+
+	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
+
+	to, amount := common.HexToAddress("0x0123"), new(big.Int).SetInt64(2023)
+
+	input, err := PackMintInput(to, amount)
+	require.NoError(err)
+
+	_, _, err = mintNativeCoin(
+		accessibleState,
+		allowlist.TestAdminAddr,
+		Module.Address,
+		input,
+		MintGasCost,
+		false,
+	)
+	require.NoError(err)
+
+	// Check logs are stored in state
+	expectedTopic := []common.Hash{
+		NativeManagerABI.Events["RewardAddress"].ID,
+		allowlist.TestAdminAddr.Hash(),
+		to.Hash(),
+		common.BigToHash(amount),
+	}
+
+	allLogs := baseState.(*state.StateDB).Logs()
+	require.Len(allLogs, 1)
+	require.Equal(expectedTopic, allLogs[0].Topics)
 }

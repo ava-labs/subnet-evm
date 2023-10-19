@@ -4,6 +4,7 @@
 package nativeminter
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
@@ -20,10 +21,18 @@ const (
 
 	mintInputLen = common.HashLength + common.HashLength
 
-	MintGasCost = 30_000
+	DuplicatedLogGas      uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
+	DuplicatedLogTopicGas uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
+
+	MintGasCost = DuplicatedLogGas + 3*DuplicatedLogTopicGas + 30_000
 )
 
 var (
+	// NativeMinterRawABI contains the raw ABI of RewardManager contract.
+	//go:embed contract.abi
+	NativeMinterRawABI string
+	NativeManagerABI   = contract.ParseABI(NativeMinterRawABI)
+
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
 	ContractNativeMinterPrecompile contract.StatefulPrecompiledContract = createNativeMinterPrecompile()
 
