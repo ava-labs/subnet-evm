@@ -15,10 +15,10 @@ import (
 var _ Client = (*client)(nil)
 
 type Client interface {
-	// GetSignature requests the BLS signature associated with a messageID
-	GetSignature(ctx context.Context, messageID ids.ID) ([]byte, error)
-	// GetAggregateSignature requests the aggregate signature associated with messageID
-	GetAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) ([]byte, error)
+	// GetMessageSignature requests the BLS signature associated with a messageID
+	GetMessageSignature(ctx context.Context, messageID ids.ID) ([]byte, error)
+	// GetMessageAggregateSignature requests the aggregate signature associated with messageID
+	GetMessageAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) ([]byte, error)
 }
 
 // client implementation for interacting with EVM [chain]
@@ -37,17 +37,17 @@ func NewClient(uri, chain string) (Client, error) {
 	}, nil
 }
 
-func (c *client) GetSignature(ctx context.Context, messageID ids.ID) ([]byte, error) {
+func (c *client) GetMessageSignature(ctx context.Context, messageID ids.ID) ([]byte, error) {
 	var res hexutil.Bytes
-	if err := c.client.CallContext(ctx, &res, "warp_getSignature", messageID); err != nil {
+	if err := c.client.CallContext(ctx, &res, "warp_getMessageSignature", messageID); err != nil {
 		return nil, fmt.Errorf("call to warp_getSignature failed. err: %w", err)
 	}
 	return res, nil
 }
 
-func (c *client) GetAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) ([]byte, error) {
+func (c *client) GetMessageAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) ([]byte, error) {
 	var res hexutil.Bytes
-	if err := c.client.CallContext(ctx, &res, "warp_getAggregateSignature", messageID, quorumNum); err != nil {
+	if err := c.client.CallContext(ctx, &res, "warp_getMessageAggregateSignature", messageID, quorumNum); err != nil {
 		return nil, fmt.Errorf("call to warp_getAggregateSignature failed. err: %w", err)
 	}
 	return res, nil

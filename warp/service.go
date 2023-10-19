@@ -25,17 +25,26 @@ func NewAPI(backend Backend, aggregator *aggregator.Aggregator) *API {
 	}
 }
 
-// GetSignature returns the BLS signature associated with a messageID.
-func (a *API) GetSignature(ctx context.Context, messageID ids.ID) (hexutil.Bytes, error) {
-	signature, err := a.backend.GetSignature(messageID)
+// GetMessageSignature returns the BLS signature associated with a messageID.
+func (a *API) GetMessageSignature(ctx context.Context, messageID ids.ID) (hexutil.Bytes, error) {
+	signature, err := a.backend.GetMessageSignature(messageID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get signature for with error %w", err)
+		return nil, fmt.Errorf("failed to get signature for message %s with error %w", messageID, err)
 	}
 	return signature[:], nil
 }
 
-// GetAggregateSignature fetches the aggregate signature for the requested [messageID]
-func (a *API) GetAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) (signedMessageBytes hexutil.Bytes, err error) {
+// GetBlockSignature returns the BLS signature associated with a blockID.
+func (a *API) GetBlockSignature(ctx context.Context, blockID ids.ID) (hexutil.Bytes, error) {
+	signature, err := a.backend.GetBlockSignature(blockID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get signature for block %s with error %w", blockID, err)
+	}
+	return signature[:], nil
+}
+
+// GetMessageAggregateSignature fetches the aggregate signature for the requested [messageID]
+func (a *API) GetMessageAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) (signedMessageBytes hexutil.Bytes, err error) {
 	unsignedMessage, err := a.backend.GetMessage(messageID)
 	if err != nil {
 		return nil, err

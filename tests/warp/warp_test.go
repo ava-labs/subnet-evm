@@ -261,7 +261,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 			client, err := warpBackend.NewClient(uri, blockchainIDA.String())
 			gomega.Expect(err).Should(gomega.BeNil())
 			log.Info("Fetching warp signature from node")
-			rawSignatureBytes, err := client.GetSignature(ctx, unsignedWarpMessageID)
+			rawSignatureBytes, err := client.GetMessageSignature(ctx, unsignedWarpMessageID)
 			gomega.Expect(err).Should(gomega.BeNil())
 
 			blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes)
@@ -310,7 +310,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 
 		// Specify WarpQuorumDenominator to retrieve signatures from every validator
-		signedWarpMessageBytes, err := client.GetAggregateSignature(ctx, unsignedWarpMessageID, params.WarpQuorumDenominator)
+		signedWarpMessageBytes, err := client.GetMessageAggregateSignature(ctx, unsignedWarpMessageID, params.WarpQuorumDenominator)
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(signedWarpMessageBytes).Should(gomega.Equal(signedWarpMsg.Bytes()))
 	})
