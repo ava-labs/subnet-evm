@@ -25,7 +25,11 @@ const (
 	AreFeeRecipientsAllowedGasCost uint64 = allowlist.ReadAllowListGasCost
 	CurrentRewardAddressGasCost    uint64 = allowlist.ReadAllowListGasCost
 	DisableRewardsGasCost          uint64 = (contract.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
-	SetRewardAddressGasCost        uint64 = (contract.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
+
+	DuplicatedLogGas      uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
+	DuplicatedLogTopicGas uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
+
+	SetRewardAddressGasCost uint64 = DuplicatedLogGas + 2*DuplicatedLogTopicGas + (contract.WriteGasCostPerSlot) + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
