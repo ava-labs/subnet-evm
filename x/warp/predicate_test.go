@@ -544,7 +544,6 @@ func TestWarpMultiplePredicates(t *testing.T) {
 				ExpectedRes:    valid,
 			}
 		}
-
 	}
 	testutils.RunPredicateTests(t, tests)
 }

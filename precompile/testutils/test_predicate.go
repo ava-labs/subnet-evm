@@ -29,11 +29,10 @@ func (test PredicateTest) Run(t testing.TB) {
 	predicate := test.Config.(precompileconfig.Predicater)
 
 	predicateGas, predicateGasErr := predicate.PredicateGas(test.PredicateBytes)
+	require.ErrorIs(predicateGasErr, test.GasErr)
 	if test.GasErr != nil {
-		require.ErrorIs(predicateGasErr, test.GasErr)
 		return
 	}
-	require.NoError(predicateGasErr)
 
 	require.Equal(test.Gas, predicateGas)
 
