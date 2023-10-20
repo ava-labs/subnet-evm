@@ -278,7 +278,6 @@ func TestAggregateSignatures(t *testing.T) {
 				return ctx, cancel
 			},
 			aggregatorFunc: func(ctrl *gomock.Controller, cancel context.CancelFunc) *Aggregator {
-
 				client := NewMockSignatureGetter(ctrl)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).DoAndReturn(
 					func(ctx context.Context, _ ids.NodeID, _ *avalancheWarp.UnsignedMessage) (*bls.Signature, error) {

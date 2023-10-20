@@ -378,7 +378,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		)
 		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
-		nonce++
 		txBytes, err := signedTx.MarshalBinary()
 		gomega.Expect(err).Should(gomega.BeNil())
 		log.Info("Sending getVerifiedWarpMessage transaction", "txHash", signedTx.Hash(), "txBytes", common.Bytes2Hex(txBytes))
