@@ -5,29 +5,38 @@ package warp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/warp/aggregator"
+	"github.com/ava-labs/subnet-evm/warp/validators"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/log"
 )
+
+var errNoValidators = errors.New("cannot aggregate signatures from subnet with no validators")
 
 // API introduces snowman specific functionality to the evm
 type API struct {
-	networkID     uint32
-	sourceChainID ids.ID
-	backend       Backend
-	aggregator    *aggregator.Aggregator
+	networkID                     uint32
+	sourceSubnetID, sourceChainID ids.ID
+	backend                       Backend
+	state                         *validators.State
+	client                        peer.NetworkClient
 }
 
-func NewAPI(networkID uint32, sourceChainID ids.ID, backend Backend, aggregator *aggregator.Aggregator) *API {
+func NewAPI(networkID uint32, sourceSubnetID ids.ID, sourceChainID ids.ID, state *validators.State, backend Backend, client peer.NetworkClient) *API {
 	return &API{
-		networkID:     networkID,
-		sourceChainID: sourceChainID,
-		backend:       backend,
-		aggregator:    aggregator,
+		networkID:      networkID,
+		sourceSubnetID: sourceChainID,
+		sourceChainID:  sourceChainID,
+		backend:        backend,
+		state:          state,
+		client:         client,
 	}
 }
 
@@ -55,15 +64,7 @@ func (a *API) GetMessageAggregateSignature(ctx context.Context, messageID ids.ID
 	if err != nil {
 		return nil, err
 	}
-
-	signatureResult, err := a.aggregator.AggregateSignatures(ctx, unsignedMessage, quorumNum)
-	if err != nil {
-		return nil, err
-	}
-	// TODO: return the signature and total weight as well to the caller for more complete details
-	// Need to decide on the best UI for this and write up documentation with the potential
-	// gotchas that could impact signed messages becoming invalid.
-	return hexutil.Bytes(signatureResult.Message.Bytes()), nil
+	return a.aggregateSignatures(ctx, unsignedMessage, quorumNum)
 }
 
 // GetBlockAggregateSignature fetches the aggregate signature for the requested [blockID]
@@ -77,7 +78,29 @@ func (a *API) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, qu
 		return nil, err
 	}
 
-	signatureResult, err := a.aggregator.AggregateSignatures(ctx, unsignedMessage, quorumNum)
+	return a.aggregateSignatures(ctx, unsignedMessage, quorumNum)
+}
+
+func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *warp.UnsignedMessage, quorumNum uint64) (hexutil.Bytes, error) {
+	pChainHeight, err := a.state.GetCurrentHeight(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("Fetching signature",
+		"a.subnetID", a.sourceSubnetID,
+		"height", pChainHeight,
+	)
+	validators, totalWeight, err := warp.GetCanonicalValidatorSet(ctx, a.state, pChainHeight, a.sourceSubnetID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get validator set: %w", err)
+	}
+	if len(validators) == 0 {
+		return nil, fmt.Errorf("%w (SubnetID: %s, Height: %d)", errNoValidators, a.sourceSubnetID, pChainHeight)
+	}
+
+	agg := aggregator.New(aggregator.NewSignatureGetter(a.client), validators, totalWeight)
+	signatureResult, err := agg.AggregateSignatures(ctx, unsignedMessage, quorumNum)
 	if err != nil {
 		return nil, err
 	}

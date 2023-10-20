@@ -39,6 +39,12 @@ type NetworkSignatureGetter struct {
 	Client NetworkClient
 }
 
+func NewSignatureGetter(client NetworkClient) *NetworkSignatureGetter {
+	return &NetworkSignatureGetter{
+		Client: client,
+	}
+}
+
 // GetSignature attempts to fetch a BLS Signature of [unsignedWarpMessage] from [nodeID] until it succeeds or receives an invalid response
 //
 // Note: this function will continue attempting to fetch the signature from [nodeID] until it receives an invalid value or [ctx] is cancelled.

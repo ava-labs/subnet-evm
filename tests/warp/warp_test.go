@@ -18,8 +18,7 @@ import (
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/api/info"
 	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/crypto/bls"
-	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/vms/platformvm"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -31,6 +30,7 @@ import (
 	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
+	"github.com/ava-labs/subnet-evm/warp/aggregator"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -45,10 +45,16 @@ var (
 	config                         = runner.NewDefaultANRConfig()
 	manager                        = runner.NewNetworkManager(config)
 	warpChainConfigPath            string
+	networkID                      uint32
 	unsignedWarpMsg                *avalancheWarp.UnsignedMessage
 	unsignedWarpMessageID          ids.ID
 	signedWarpMsg                  *avalancheWarp.Message
+	warpBlockID                    ids.ID
+	warpBlockHashPayload           *payload.Hash
+	warpBlockHashUnsignedMsg       *avalancheWarp.UnsignedMessage
+	warpBlockHashSignedMsg         *avalancheWarp.Message
 	blockchainIDA, blockchainIDB   ids.ID
+	subnetIDA, subnetIDB           ids.ID
 	chainAURIs, chainBURIs         []string
 	chainAWSClient, chainBWSClient ethclient.Client
 	chainID                        = big.NewInt(99999)
@@ -144,17 +150,23 @@ var _ = ginkgo.BeforeSuite(func() {
 	subnetADetails, ok := manager.GetSubnet(subnetA)
 	gomega.Expect(ok).Should(gomega.BeTrue())
 	blockchainIDA = subnetADetails.BlockchainID
+	subnetIDA = subnetADetails.SubnetID
 	gomega.Expect(len(subnetADetails.ValidatorURIs)).Should(gomega.Equal(5))
 	chainAURIs = append(chainAURIs, subnetADetails.ValidatorURIs...)
+
+	infoClient := info.NewClient(chainAURIs[0])
+	networkID, err = infoClient.GetNetworkID(context.Background())
+	gomega.Expect(err).Should(gomega.BeNil())
 
 	subnetB = subnetIDs[1]
 	subnetBDetails, ok = manager.GetSubnet(subnetB)
 	gomega.Expect(ok).Should(gomega.BeTrue())
 	blockchainIDB = subnetBDetails.BlockchainID
+	subnetIDB = subnetBDetails.SubnetID
 	gomega.Expect(len(subnetBDetails.ValidatorURIs)).Should(gomega.Equal(5))
 	chainBURIs = append(chainBURIs, subnetBDetails.ValidatorURIs...)
 
-	log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA, "blockchainIDB", blockchainIDB)
+	log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA, "subnetIDA", subnetIDA, "blockchainIDB", blockchainIDB, "subnetIDB", subnetIDB)
 
 	chainAWSURI := toWebsocketURI(chainAURIs[0], blockchainIDA.String())
 	log.Info("Creating ethclient for blockchainA", "wsURI", chainAWSURI)
@@ -210,6 +222,13 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		newHead := <-newHeads
 		blockHash := newHead.Hash()
 
+		log.Info("Constructing warp block hash unsigned message", "blockHash", blockHash)
+		warpBlockID = ids.ID(blockHash) // Set warpBlockID to construct a warp message containing a block hash payload later
+		warpBlockHashPayload, err = payload.NewHash(warpBlockID)
+		gomega.Expect(err).Should(gomega.BeNil())
+		warpBlockHashUnsignedMsg, err = avalancheWarp.NewUnsignedMessage(networkID, blockchainIDA, warpBlockHashPayload.Bytes())
+		gomega.Expect(err).Should(gomega.BeNil())
+
 		log.Info("Fetching relevant warp logs from the newly produced block")
 		logs, err := chainAWSClient.FilterLogs(ctx, interfaces.FilterQuery{
 			BlockHash: &blockHash,
@@ -256,48 +275,43 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 	ginkgo.It("Aggregate Warp Signature via API", ginkgo.Label("Warp", "ReceiveWarp", "AggregateWarpManually"), func() {
 		ctx := context.Background()
 
-		blsSignatures := make([]*bls.Signature, 0, len(chainAURIs))
-		for i, uri := range chainAURIs {
+		warpAPIs := make(map[ids.NodeID]warpBackend.Client, len(chainAURIs))
+		for _, uri := range chainAURIs {
 			client, err := warpBackend.NewClient(uri, blockchainIDA.String())
 			gomega.Expect(err).Should(gomega.BeNil())
 			log.Info("Fetching warp signature from node")
-			rawSignatureBytes, err := client.GetMessageSignature(ctx, unsignedWarpMessageID)
-			gomega.Expect(err).Should(gomega.BeNil())
-
-			blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes)
-			gomega.Expect(err).Should(gomega.BeNil())
 
 			infoClient := info.NewClient(uri)
-			nodeID, blsSigner, err := infoClient.GetNodeID(ctx)
+			nodeID, _, err := infoClient.GetNodeID(ctx)
 			gomega.Expect(err).Should(gomega.BeNil())
-
-			blsSignatures = append(blsSignatures, blsSignature)
-
-			blsPublicKey := blsSigner.Key()
-			log.Info("Verifying BLS Signature from node", "nodeID", nodeID, "nodeIndex", i)
-			gomega.Expect(bls.Verify(blsPublicKey, blsSignature, unsignedWarpMsg.Bytes())).Should(gomega.BeTrue())
+			warpAPIs[nodeID] = client
 		}
 
-		blsAggregatedSignature, err := bls.AggregateSignatures(blsSignatures)
+		pChainClient := platformvm.NewClient(chainAURIs[0])
+		pChainHeight, err := pChainClient.GetHeight(ctx)
 		gomega.Expect(err).Should(gomega.BeNil())
-
-		signersBitSet := set.NewBits()
-		for i := 0; i < len(blsSignatures); i++ {
-			signersBitSet.Add(i)
-		}
-		warpSignature := &avalancheWarp.BitSetSignature{
-			Signers: signersBitSet.Bytes(),
-		}
-
-		blsAggregatedSignatureBytes := bls.SignatureToBytes(blsAggregatedSignature)
-		copy(warpSignature.Signature[:], blsAggregatedSignatureBytes)
-
-		warpMsg, err := avalancheWarp.NewMessage(
-			unsignedWarpMsg,
-			warpSignature,
-		)
+		validators, err := pChainClient.GetValidatorsAt(ctx, subnetIDA, pChainHeight)
 		gomega.Expect(err).Should(gomega.BeNil())
-		signedWarpMsg = warpMsg
+		totalWeight := uint64(0)
+		warpValidators := make([]*avalancheWarp.Validator, 0, len(validators))
+		for nodeID, validator := range validators {
+			warpValidators = append(warpValidators, &avalancheWarp.Validator{
+				PublicKey: validator.PublicKey,
+				Weight:    validator.Weight,
+				NodeIDs:   []ids.NodeID{nodeID},
+			})
+			totalWeight += validator.Weight
+		}
+
+		apiSignatureGetter := warpBackend.NewAPIFetcher(warpAPIs)
+		signatureResult, err := aggregator.New(apiSignatureGetter, warpValidators, totalWeight).AggregateSignatures(ctx, unsignedWarpMsg, 100)
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(signatureResult.SignatureWeight).Should(gomega.Equal(signatureResult.TotalWeight))
+		gomega.Expect(signatureResult.SignatureWeight).Should(gomega.Equal(totalWeight))
+
+		signedWarpMsg = signatureResult.Message
+
+		// TODO: aggregate signatures for block hash payload and deliver it
 	})
 
 	// Aggregate a Warp Signature using the node's Signature Aggregation API call and verifying that its output matches the
