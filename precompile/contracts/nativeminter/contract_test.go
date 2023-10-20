@@ -4,7 +4,9 @@
 package nativeminter
 
 import (
+	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -217,52 +219,44 @@ func BenchmarkContractNativeMinter(b *testing.B) {
 
 func TestNativeMinterLogging(t *testing.T) {
 	require := require.New(t)
-	// ctrl := gomock.NewController(t)
+	ctrl := gomock.NewController(t)
 
-	// blockContext := contract.NewMockBlockContext(ctrl)
-	// blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
-	// blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
+	blockContext := contract.NewMockBlockContext(ctrl)
+	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
+	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 
-	// config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-	// config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+	config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+	config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 
-	// baseState := state.NewTestStateDB(t)
-	// accessibleState := contract.NewMockAccessibleState(ctrl)
-	// accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
-	// accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
-	// accessibleState.EXPECT().GetChainConfig().Return(config)
+	baseState := state.NewTestStateDB(t)
+	accessibleState := contract.NewMockAccessibleState(ctrl)
+	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
+	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+	accessibleState.EXPECT().GetChainConfig().Return(config).AnyTimes()
 
-	// allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
+	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
 
 	to, amount := allowlist.TestNoRoleAddr, common.Big1
 
 	input, err := PackMintNativeCoin(to, amount)
 	require.NoError(err)
+	input = input[4:] // drop selector
 
-	resTo, resAmount, err := UnpackMintNativeCoinInput(input, true)
+	_, _, err = mintNativeCoin(
+		accessibleState,
+		allowlist.TestAdminAddr,
+		Module.Address,
+		input,
+		MintGasCost,
+		false,
+	)
 	require.NoError(err)
-	require.Equal(resTo, to)
-	require.Equal(resAmount, amount)
 
-	// _, _, err = mintNativeCoin(
-	// 	accessibleState,
-	// 	allowlist.TestAdminAddr,
-	// 	Module.Address,
-	// 	input,
-	// 	MintGasCost,
-	// 	false,
-	// )
-	// require.NoError(err)
+	// Check logs are stored in state
+	expectedTopics, _, err := PackMintNativeCoinEvent(allowlist.TestAdminAddr, to, amount)
+	require.NoError(err)
 
-	// // Check logs are stored in state
-	// expectedTopic := []common.Hash{
-	// 	NativeMinterABI.Events["MintNativeCoin"].ID,
-	// 	allowlist.TestAdminAddr.Hash(),
-	// 	to.Hash(),
-	// 	common.BigToHash(amount),
-	// }
-
-	// allLogs := baseState.(*state.StateDB).Logs()
-	// require.Len(allLogs, 1)
-	// require.Equal(expectedTopic, allLogs[0].Topics)
+	allLogs := baseState.(*state.StateDB).Logs()
+	require.Len(allLogs, 1)
+	require.Equal(expectedTopics, allLogs[0].Topics)
 }

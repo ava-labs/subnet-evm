@@ -106,6 +106,19 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 	}
 
 	stateDB.AddBalance(to, amount)
+
+	// Add a log to be handled if this action is finalized.
+	topics, data, err := PackMintNativeCoinEvent(caller, to, amount)
+	if err != nil {
+		return nil, remainingGas, err
+	}
+	accessibleState.GetStateDB().AddLog(
+		ContractAddress,
+		topics,
+		data,
+		accessibleState.GetBlockContext().Number().Uint64(),
+	)
+
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
 }
