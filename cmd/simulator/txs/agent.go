@@ -106,10 +106,13 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				if !moreTxs {
 					break L
 				}
-				issuanceIndividualStart := time.Now()
-				txMap[tx.Hash()] = issuanceIndividualStart
 
 				eg.Go(func() error {
+					mu.Lock()
+					issuanceIndividualStart := time.Now()
+					txMap[tx.Hash()] = issuanceIndividualStart
+					mu.Unlock()
+
 					if err := a.worker.IssueTx(ctx, tx); err != nil {
 						mu.Lock()
 						defer mu.Unlock()
