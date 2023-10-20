@@ -225,16 +225,20 @@ func TestNativeMinterLogging(t *testing.T) {
 	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
 	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 
+	config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+	config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+
 	baseState := state.NewTestStateDB(t)
 	accessibleState := contract.NewMockAccessibleState(ctrl)
 	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
 	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+	accessibleState.EXPECT().GetChainConfig().Return(config)
 
 	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
 
 	to, amount := common.HexToAddress("0x0123"), new(big.Int).SetInt64(2023)
 
-	input, err := PackMintInput(to, amount)
+	input, err := PackMintNativeCoin(to, amount)
 	require.NoError(err)
 
 	_, _, err = mintNativeCoin(
@@ -249,7 +253,7 @@ func TestNativeMinterLogging(t *testing.T) {
 
 	// Check logs are stored in state
 	expectedTopic := []common.Hash{
-		NativeManagerABI.Events["RewardAddress"].ID,
+		NativeMinterABI.Events["MintNativeCoin"].ID,
 		allowlist.TestAdminAddr.Hash(),
 		to.Hash(),
 		common.BigToHash(amount),
