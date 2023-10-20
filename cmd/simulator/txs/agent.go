@@ -7,11 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 )
 
 type THash interface {
@@ -88,9 +91,12 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 			txs     = make([]T, 0, a.n)
 			tx      T
 			moreTxs bool
+			mu      = &sync.Mutex{}
+			eg      = errgroup.Group{}
 		)
 		// Start issuance batch
 		issuedStart := time.Now()
+		eg.SetLimit(100) // limit outbound pending requests
 	L:
 		for i := uint64(0); i < a.n; i++ {
 			select {
@@ -102,14 +108,28 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				}
 				issuanceIndividualStart := time.Now()
 				txMap[tx.Hash()] = issuanceIndividualStart
-				if err := a.worker.IssueTx(ctx, tx); err != nil {
-					return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
-				}
-				issuanceIndividualDuration := time.Since(issuanceIndividualStart)
-				m.IssuanceTxTimes.Observe(issuanceIndividualDuration.Seconds())
-				txs = append(txs, tx)
+
+				eg.Go(func() error {
+					if err := a.worker.IssueTx(ctx, tx); err != nil {
+						mu.Lock()
+						defer mu.Unlock()
+						return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
+					}
+					issuanceIndividualDuration := time.Since(issuanceIndividualStart)
+					m.IssuanceTxTimes.Observe(issuanceIndividualDuration.Seconds())
+
+					mu.Lock()
+					defer mu.Unlock()
+					txs = append(txs, tx)
+					return nil
+				})
 			}
 		}
+
+		if err := eg.Wait(); err != nil {
+			return err
+		}
+
 		// Get the batch's issuance time and add it to totalIssuedTime
 		issuedDuration := time.Since(issuedStart)
 		log.Info("Issuance Batch Done", "batch", batchI, "time", issuedDuration.Seconds())
