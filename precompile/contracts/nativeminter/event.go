@@ -41,7 +41,7 @@ accessibleState.GetStateDB().AddLog(
 // PackMintNativeCoinEvent packs the event into the appropriate arguments for MintNativeCoin.
 // It returns topic hashes and the encoded non-indexed data.
 func PackMintNativeCoinEvent(sender common.Address, addr common.Address, amount *big.Int) ([]common.Hash, []byte, error) {
-	return NativeManagerABI.PackEvent("MintNativeCoin", sender, addr, amount)
+	return NativeMinterABI.PackEvent("MintNativeCoin", sender, addr, amount)
 }
 
 // UnpackMintNativeCoinEvent won't be generated because the event does not have any non-indexed data.
