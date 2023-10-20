@@ -400,7 +400,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 	})
 
 	// Verify successful delivery of the Avalanche Warp Block Hash from Chain A to Chain B
-	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
+	ginkgo.It("Verify Block Hash from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
 		ctx := context.Background()
 
 		log.Info("Subscribing to new heads")

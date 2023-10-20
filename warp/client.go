@@ -17,7 +17,7 @@ var _ Client = (*client)(nil)
 type Client interface {
 	GetMessageSignature(ctx context.Context, messageID ids.ID) ([]byte, error)
 	GetMessageAggregateSignature(ctx context.Context, messageID ids.ID, quorumNum uint64) ([]byte, error)
-	GetBlockSignatureSignature(ctx context.Context, blockID ids.ID) ([]byte, error)
+	GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error)
 	GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, quorumNum uint64) ([]byte, error)
 }
 
@@ -53,7 +53,7 @@ func (c *client) GetMessageAggregateSignature(ctx context.Context, messageID ids
 	return res, nil
 }
 
-func (c *client) GetBlockSignatureSignature(ctx context.Context, blockID ids.ID) ([]byte, error) {
+func (c *client) GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte, error) {
 	var res hexutil.Bytes
 	if err := c.client.CallContext(ctx, &res, "warp_getBlockSignature", blockID); err != nil {
 		return nil, fmt.Errorf("call to warp_getBlockSignature failed. err: %w", err)
