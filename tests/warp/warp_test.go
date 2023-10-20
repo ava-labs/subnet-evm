@@ -311,12 +311,16 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 
 		signedWarpMsg = signatureResult.Message
 
-		// TODO: aggregate signatures for block hash payload and deliver it
+		signatureResult, err = aggregator.New(apiSignatureGetter, warpValidators, totalWeight).AggregateSignatures(ctx, warpBlockHashUnsignedMsg, 100)
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(signatureResult.SignatureWeight).Should(gomega.Equal(signatureResult.TotalWeight))
+		gomega.Expect(signatureResult.SignatureWeight).Should(gomega.Equal(totalWeight))
+		warpBlockHashSignedMsg = signatureResult.Message
 	})
 
-	// Aggregate a Warp Signature using the node's Signature Aggregation API call and verifying that its output matches the
+	// Aggregate a Warp Message Signature using the node's Signature Aggregation API call and verifying that its output matches the
 	// the manual construction
-	ginkgo.It("Aggregate Warp Signature via Aggregator", ginkgo.Label("Warp", "ReceiveWarp", "AggregatorWarp"), func() {
+	ginkgo.It("Aggregate Warp Message Signature via Aggregator", ginkgo.Label("Warp", "ReceiveWarp", "AggregatorWarp"), func() {
 		ctx := context.Background()
 
 		// Verify that the signature aggregation matches the results of manually constructing the warp message
@@ -327,6 +331,21 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		signedWarpMessageBytes, err := client.GetMessageAggregateSignature(ctx, unsignedWarpMessageID, params.WarpQuorumDenominator)
 		gomega.Expect(err).Should(gomega.BeNil())
 		gomega.Expect(signedWarpMessageBytes).Should(gomega.Equal(signedWarpMsg.Bytes()))
+	})
+
+	// Aggregate a Warp Block Signature using the node's Signature Aggregation API call and verifying that its output matches the
+	// the manual construction
+	ginkgo.It("Aggregate Warp Block Signature via Aggregator", ginkgo.Label("Warp", "ReceiveWarp", "AggregatorWarp"), func() {
+		ctx := context.Background()
+
+		// Verify that the signature aggregation matches the results of manually constructing the warp message
+		client, err := warpBackend.NewClient(chainAURIs[0], blockchainIDA.String())
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		// Specify WarpQuorumDenominator to retrieve signatures from every validator
+		signedWarpBlockBytes, err := client.GetBlockAggregateSignature(ctx, warpBlockID, params.WarpQuorumDenominator)
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(signedWarpBlockBytes).Should(gomega.Equal(warpBlockHashSignedMsg.Bytes()))
 	})
 
 	// Verify successful delivery of the Avalanche Warp Message from Chain A to Chain B
@@ -359,9 +378,61 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		)
 		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
 		gomega.Expect(err).Should(gomega.BeNil())
+		nonce++
 		txBytes, err := signedTx.MarshalBinary()
 		gomega.Expect(err).Should(gomega.BeNil())
 		log.Info("Sending getVerifiedWarpMessage transaction", "txHash", signedTx.Hash(), "txBytes", common.Bytes2Hex(txBytes))
+		err = chainBWSClient.SendTransaction(ctx, signedTx)
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		log.Info("Waiting for new block confirmation")
+		newHead := <-newHeads
+		blockHash := newHead.Hash()
+		log.Info("Fetching relevant warp logs and receipts from new block")
+		logs, err := chainBWSClient.FilterLogs(ctx, interfaces.FilterQuery{
+			BlockHash: &blockHash,
+			Addresses: []common.Address{warp.Module.Address},
+		})
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(len(logs)).Should(gomega.Equal(0))
+		receipt, err := chainBWSClient.TransactionReceipt(ctx, signedTx.Hash())
+		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(receipt.Status).Should(gomega.Equal(types.ReceiptStatusSuccessful))
+	})
+
+	// Verify successful delivery of the Avalanche Warp Block Hash from Chain A to Chain B
+	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
+		ctx := context.Background()
+
+		log.Info("Subscribing to new heads")
+		newHeads := make(chan *types.Header, 10)
+		sub, err := chainBWSClient.SubscribeNewHead(ctx, newHeads)
+		gomega.Expect(err).Should(gomega.BeNil())
+		defer sub.Unsubscribe()
+
+		nonce, err := chainBWSClient.NonceAt(ctx, fundedAddress, nil)
+		gomega.Expect(err).Should(gomega.BeNil())
+
+		packedInput, err := warp.PackGetVerifiedWarpBlockHash(0)
+		gomega.Expect(err).Should(gomega.BeNil())
+		tx := predicate.NewPredicateTx(
+			chainID,
+			nonce,
+			&warp.Module.Address,
+			5_000_000,
+			big.NewInt(225*params.GWei),
+			big.NewInt(params.GWei),
+			common.Big0,
+			packedInput,
+			types.AccessList{},
+			warp.ContractAddress,
+			warpBlockHashSignedMsg.Bytes(),
+		)
+		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
+		gomega.Expect(err).Should(gomega.BeNil())
+		txBytes, err := signedTx.MarshalBinary()
+		gomega.Expect(err).Should(gomega.BeNil())
+		log.Info("Sending getVerifiedWarpBlockHash transaction", "txHash", signedTx.Hash(), "txBytes", common.Bytes2Hex(txBytes))
 		err = chainBWSClient.SendTransaction(ctx, signedTx)
 		gomega.Expect(err).Should(gomega.BeNil())
 
