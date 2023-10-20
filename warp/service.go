@@ -32,7 +32,7 @@ type API struct {
 func NewAPI(networkID uint32, sourceSubnetID ids.ID, sourceChainID ids.ID, state *validators.State, backend Backend, client peer.NetworkClient) *API {
 	return &API{
 		networkID:      networkID,
-		sourceSubnetID: sourceChainID,
+		sourceSubnetID: sourceSubnetID,
 		sourceChainID:  sourceChainID,
 		backend:        backend,
 		state:          state,
