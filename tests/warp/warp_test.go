@@ -292,6 +292,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		validators, err := pChainClient.GetValidatorsAt(ctx, subnetIDA, pChainHeight)
 		gomega.Expect(err).Should(gomega.BeNil())
+		gomega.Expect(len(validators)).Should(gomega.Equal(5))
 		totalWeight := uint64(0)
 		warpValidators := make([]*avalancheWarp.Validator, 0, len(validators))
 		for nodeID, validator := range validators {
@@ -303,6 +304,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 			totalWeight += validator.Weight
 		}
 
+		log.Info("Aggregating signatures from validator set", "numValidators", len(warpValidators), "totalWeight", totalWeight)
 		apiSignatureGetter := warpBackend.NewAPIFetcher(warpAPIs)
 		signatureResult, err := aggregator.New(apiSignatureGetter, warpValidators, totalWeight).AggregateSignatures(ctx, unsignedWarpMsg, 100)
 		gomega.Expect(err).Should(gomega.BeNil())
@@ -316,6 +318,8 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(signatureResult.SignatureWeight).Should(gomega.Equal(signatureResult.TotalWeight))
 		gomega.Expect(signatureResult.SignatureWeight).Should(gomega.Equal(totalWeight))
 		warpBlockHashSignedMsg = signatureResult.Message
+
+		log.Info("Aggregated signatures for warp messages", "signedWarpMsg", common.Bytes2Hex(signedWarpMsg.Bytes()), "warpBlockHashSignedMsg", common.Bytes2Hex(warpBlockHashSignedMsg.Bytes()))
 	})
 
 	// Aggregate a Warp Message Signature using the node's Signature Aggregation API call and verifying that its output matches the
