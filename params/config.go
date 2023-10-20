@@ -166,7 +166,7 @@ type UpgradeConfig struct {
 	// Config for optional timestamps that enable network upgrades.
 	// Note: if OptionalUpgrades is specified in the JSON all previously activated
 	// forks must be present or upgradeBytes will be rejected.
-	OptionalNetworkUpgrades *OptionalNetworkUpgrades
+	OptionalNetworkUpgrades *OptionalNetworkUpgrades `json:"networkUpgrades,omitempty"`
 
 	// Config for modifying state as a network upgrade.
 	StateUpgrades []StateUpgrade `json:"stateUpgrades,omitempty"`

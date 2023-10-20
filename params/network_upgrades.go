@@ -60,13 +60,29 @@ func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
 }
 
 type OptionalFork struct {
-	Name      string  `json:"name" serialize:"true"`
-	Block     big.Int `json:"block" serialize:"true"`
-	Timestamp uint64  `json:"timestamp" serialize:"true"`
+	Block     *big.Int `json:"block" serialize:"true"`
+	Timestamp *uint64  `json:"timestamp" serialize:"true"`
+}
+
+func (m *OptionalFork) ToFork(name string) fork {
+	var block *big.Int
+	var timestamp *uint64
+	if m.Block != nil {
+		block = m.Block
+	}
+	if m.Timestamp != nil {
+		timestamp = m.Timestamp
+	}
+	return fork{
+		name:      name,
+		block:     block,
+		timestamp: timestamp,
+		optional:  true,
+	}
 }
 
 type OptionalNetworkUpgrades struct {
-	OptionalNetworkUpgrades []OptionalFork `json:"networkUpgrades,omitempty" serialize:"true"`
+	Test *OptionalFork `json:"test,omitempty" serialize:"true,omitempty"`
 }
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
@@ -74,22 +90,9 @@ func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetwor
 }
 
 func (n *OptionalNetworkUpgrades) optionalForkOrder() []fork {
-	forks := make([]fork, len(n.OptionalNetworkUpgrades))
-	for i, n := range n.OptionalNetworkUpgrades {
-		var block *big.Int
-		var timestamp *uint64
-		if n.Block.BitLen() > 0 {
-			block = &n.Block
-		}
-		if n.Timestamp != 0 {
-			timestamp = &n.Timestamp
-		}
-		forks[i] = fork{
-			name:      n.Name,
-			block:     block,
-			timestamp: timestamp,
-			optional:  true,
-		}
+	forks := make([]fork, 0)
+	if n.Test != nil {
+		forks = append(forks, n.Test.ToFork("test"))
 	}
-	return []fork{}
+	return forks
 }

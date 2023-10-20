@@ -15,11 +15,9 @@ type rawPrecompileUpgrade struct {
 }
 
 type networkUpgradeConfigMessage struct {
-	OptionalNetworkUpgrades params.OptionalNetworkUpgrades `serialize:"true"`
-
+	OptionalNetworkUpgrades *params.OptionalNetworkUpgrades `serialize:"true,omitempty"`
 	// Config for modifying state as a network upgrade.
 	StateUpgrades []params.StateUpgrade `serialize:"true"`
-
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []rawPrecompileUpgrade `serialize:"true"`
 }
@@ -64,7 +62,7 @@ func ParseUpgradeConfigMessage(bytes []byte) (*params.UpgradeConfig, error) {
 	}
 
 	return &params.UpgradeConfig{
-		OptionalNetworkUpgrades: &config.OptionalNetworkUpgrades,
+		OptionalNetworkUpgrades: config.OptionalNetworkUpgrades,
 		StateUpgrades:           config.StateUpgrades,
 		PrecompileUpgrades:      PrecompileUpgrades,
 	}, nil
@@ -92,13 +90,8 @@ func UpgradeConfigToNetworkMessage(config *params.UpgradeConfig) (*UpgradeConfig
 		})
 	}
 
-	optionalNetworkUpgrades := config.OptionalNetworkUpgrades
-	if optionalNetworkUpgrades == nil {
-		optionalNetworkUpgrades = &params.OptionalNetworkUpgrades{}
-	}
-
 	wrappedConfig := networkUpgradeConfigMessage{
-		OptionalNetworkUpgrades: *optionalNetworkUpgrades,
+		OptionalNetworkUpgrades: config.OptionalNetworkUpgrades,
 		StateUpgrades:           config.StateUpgrades,
 		PrecompileUpgrades:      PrecompileUpgrades,
 	}
