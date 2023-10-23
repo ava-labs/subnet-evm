@@ -191,7 +191,7 @@ type Config struct {
 	// Database Settings
 	InspectDatabase bool `json:"inspect-database"` // Inspects the database on startup if enabled.
 
-	// OffChainWarpMessagesBytes represent off-chain warp messages a validator is willing to sign.
+	// OffChainWarpMessagesBytes represent off-chain warp messages (represented in hex) a validator is willing to sign.
 	// These messages are not tied to on-chain events and are particularly useful for implementing a unified
 	// upgrade mechanism for critical smart contracts on the chain.
 	OffChainWarpMessages []string `json:"off-chain-warp-messages"`
