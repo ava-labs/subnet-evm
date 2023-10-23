@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
 )
 
 type THash interface {
@@ -103,8 +104,11 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 				issuanceIndividualStart := time.Now()
 				txMap[tx.Hash()] = issuanceIndividualStart
 				if err := a.worker.IssueTx(ctx, tx); err != nil {
-					return fmt.Errorf("failed to issue transaction %d: %w", len(txs), err)
+					log.Warn("failed to issue transaction",
+						"len(txs)", len(txs), "err", err)
+					continue
 				}
+
 				issuanceIndividualDuration := time.Since(issuanceIndividualStart)
 				m.IssuanceTxTimes.Observe(issuanceIndividualDuration.Seconds())
 				txs = append(txs, tx)
