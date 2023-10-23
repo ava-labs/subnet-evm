@@ -5,6 +5,7 @@ package evm
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -484,8 +485,12 @@ func (vm *VM) Initialize(
 	}
 
 	// parse and cache valid off-chain warp messages to warp backend
-	for _, messageBytes := range vm.config.OffChainWarpMessagesBytes {
-		unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(messageBytes)
+	for _, message := range vm.config.OffChainWarpMessages {
+		messageByte, err := hex.DecodeString(message)
+		if err != nil {
+			return errInvalidOffChainWarpMessageBytes
+		}
+		unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(messageByte)
 		if err != nil {
 			return errInvalidOffChainWarpMessageBytes
 		}
