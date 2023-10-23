@@ -62,6 +62,7 @@ var (
 	fundedAddress                  common.Address
 	testPayload                    = []byte{1, 2, 3}
 	txSigner                       = types.LatestSignerForChainID(chainID)
+	nodesPerSubnet                 = 5
 )
 
 func TestE2E(t *testing.T) {
@@ -82,15 +83,12 @@ var _ = ginkgo.BeforeSuite(func() {
 	var err error
 	// Name 10 new validators (which should have BLS key registered)
 	subnetANodeNames := make([]string, 0)
-	subnetBNodeNames := []string{}
-	for i := 1; i <= 10; i++ {
-		n := fmt.Sprintf("node%d-bls", i)
-		if i <= 5 {
-			subnetANodeNames = append(subnetANodeNames, n)
-		} else {
-			subnetBNodeNames = append(subnetBNodeNames, n)
-		}
+	subnetBNodeNames := make([]string, 0)
+	for i := 0; i < nodesPerSubnet; i++ {
+		subnetANodeNames = append(subnetANodeNames, fmt.Sprintf("node%d-subnetA-bls", i))
+		subnetBNodeNames = append(subnetBNodeNames, fmt.Sprintf("node%d-subnetB-bls", i))
 	}
+
 	f, err := os.CreateTemp(os.TempDir(), "config.json")
 	gomega.Expect(err).Should(gomega.BeNil())
 	_, err = f.Write([]byte(`{"warp-api-enabled": true}`))
@@ -151,7 +149,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(ok).Should(gomega.BeTrue())
 	blockchainIDA = subnetADetails.BlockchainID
 	subnetIDA = subnetADetails.SubnetID
-	gomega.Expect(len(subnetADetails.ValidatorURIs)).Should(gomega.Equal(5))
+	gomega.Expect(len(subnetADetails.ValidatorURIs)).Should(gomega.Equal(nodesPerSubnet))
 	chainAURIs = append(chainAURIs, subnetADetails.ValidatorURIs...)
 
 	infoClient := info.NewClient(chainAURIs[0])
@@ -163,7 +161,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(ok).Should(gomega.BeTrue())
 	blockchainIDB = subnetBDetails.BlockchainID
 	subnetIDB = subnetBDetails.SubnetID
-	gomega.Expect(len(subnetBDetails.ValidatorURIs)).Should(gomega.Equal(5))
+	gomega.Expect(len(subnetBDetails.ValidatorURIs)).Should(gomega.Equal(nodesPerSubnet))
 	chainBURIs = append(chainBURIs, subnetBDetails.ValidatorURIs...)
 
 	log.Info("Created URIs for both subnets", "ChainAURIs", chainAURIs, "ChainBURIs", chainBURIs, "blockchainIDA", blockchainIDA, "subnetIDA", subnetIDA, "blockchainIDB", blockchainIDB, "subnetIDB", subnetIDB)
@@ -291,7 +289,7 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		gomega.Expect(err).Should(gomega.BeNil())
 		validators, err := pChainClient.GetValidatorsAt(ctx, subnetIDA, pChainHeight)
 		gomega.Expect(err).Should(gomega.BeNil())
-		gomega.Expect(len(validators)).Should(gomega.Equal(5))
+		gomega.Expect(len(validators)).Should(gomega.Equal(nodesPerSubnet))
 		totalWeight := uint64(0)
 		warpValidators := make([]*avalancheWarp.Validator, 0, len(validators))
 		for nodeID, validator := range validators {
