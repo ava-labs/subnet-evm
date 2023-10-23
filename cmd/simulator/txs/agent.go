@@ -6,7 +6,6 @@ package txs
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -121,10 +120,11 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 
 		// Wait for txs in this batch to confirm
 		confirmedStart := time.Now()
-		for i, tx := range txs {
+		for _, tx := range txs {
 			confirmedIndividualStart := time.Now()
 			if err := a.worker.ConfirmTx(ctx, tx); err != nil {
-				return fmt.Errorf("failed to await transaction %d: %w", i, err)
+				log.Warn("failed to await transaction", "hash", tx.Hash(), "err", err)
+				continue
 			}
 			confirmationIndividualDuration := time.Since(confirmedIndividualStart)
 			issuanceToConfirmationIndividualDuration := time.Since(txMap[tx.Hash()])
