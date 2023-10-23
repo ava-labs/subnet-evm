@@ -64,7 +64,7 @@ func (c *client) GetBlockSignature(ctx context.Context, blockID ids.ID) ([]byte,
 func (c *client) GetBlockAggregateSignature(ctx context.Context, blockID ids.ID, quorumNum uint64) ([]byte, error) {
 	var res hexutil.Bytes
 	if err := c.client.CallContext(ctx, &res, "warp_getBlockAggregateSignature", blockID, quorumNum); err != nil {
-		return nil, fmt.Errorf("call to warp_getBlockAggre failed. err: %w", err)
+		return nil, fmt.Errorf("call to warp_getBlockAggregateSignature failed. err: %w", err)
 	}
 	return res, nil
 }

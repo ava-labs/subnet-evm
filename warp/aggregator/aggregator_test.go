@@ -91,7 +91,7 @@ func TestAggregateSignatures(t *testing.T) {
 			aggregatorFunc: func(ctrl *gomock.Controller, _ context.CancelFunc) *Aggregator {
 				client := NewMockSignatureGetter(ctrl)
 				client.EXPECT().GetSignature(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest).Times(len(vdrs))
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   1,
@@ -107,7 +107,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(sig1, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(nil, errTest).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest).Times(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   35, // Require >1/3 of weight
@@ -123,7 +123,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(sig1, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(sig2, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest).Times(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   69, // Require >2/3 of weight
@@ -139,7 +139,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(sig1, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(sig2, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nil, errTest).MaxTimes(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       65, // Require <2/3 of weight
@@ -156,7 +156,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(sig1, nil).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(sig2, nil).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil).MaxTimes(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       100, // Require all weight
@@ -173,7 +173,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(nonVdrSig, nil).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(sig2, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil).Times(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       64,
@@ -190,7 +190,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(nonVdrSig, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(nonVdrSig, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(nonVdrSig, nil).Times(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   1,
@@ -206,7 +206,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(nonVdrSig, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(nonVdrSig, nil).Times(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil).Times(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg: unsignedMsg,
 			quorumNum:   40,
@@ -222,7 +222,7 @@ func TestAggregateSignatures(t *testing.T) {
 				client.EXPECT().GetSignature(gomock.Any(), nodeID1, gomock.Any()).Return(nonVdrSig, nil).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID2, gomock.Any()).Return(nil, errTest).MaxTimes(1)
 				client.EXPECT().GetSignature(gomock.Any(), nodeID3, gomock.Any()).Return(sig3, nil).Times(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       30,
@@ -264,7 +264,7 @@ func TestAggregateSignatures(t *testing.T) {
 						return nil, err
 					},
 				).MaxTimes(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       60, // Require 2/3 validators
@@ -304,7 +304,7 @@ func TestAggregateSignatures(t *testing.T) {
 						return nil, err
 					},
 				).MaxTimes(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       33, // 1/3 Should have gotten one signature before cancellation
@@ -330,7 +330,7 @@ func TestAggregateSignatures(t *testing.T) {
 						return nil, err
 					},
 				).MaxTimes(1)
-				return New(client, vdrs, vdrWeight*3)
+				return New(client, vdrs, vdrWeight*uint64(len(vdrs)))
 			},
 			unsignedMsg:     unsignedMsg,
 			quorumNum:       60, // Require 2/3 validators

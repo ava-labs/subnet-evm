@@ -3273,7 +3273,6 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	require.True(calledSendCrossChainAppResponseFn, "sendCrossChainAppResponseFn was not called")
 }
 
-// TODO: add Block signature request test
 func TestMessageSignatureRequestsToVM(t *testing.T) {
 	_, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
 

@@ -279,7 +279,6 @@ var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
 		for _, uri := range chainAURIs {
 			client, err := warpBackend.NewClient(uri, blockchainIDA.String())
 			gomega.Expect(err).Should(gomega.BeNil())
-			log.Info("Fetching warp signature from node")
 
 			infoClient := info.NewClient(uri)
 			nodeID, _, err := infoClient.GetNodeID(ctx)
