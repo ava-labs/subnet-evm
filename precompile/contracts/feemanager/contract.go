@@ -231,16 +231,19 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 	}
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackFeeConfigEvent(caller, FeeConfigEventData{
-		GasLimit:                 feeConfig.GasLimit,
-		TargetBlockRate:          new(big.Int).SetUint64(feeConfig.TargetBlockRate),
-		MinBaseFee:               feeConfig.MinBaseFee,
-		TargetGas:                feeConfig.TargetGas,
-		BaseFeeChangeDenominator: feeConfig.BaseFeeChangeDenominator,
-		MinBlockGasCost:          feeConfig.MinBlockGasCost,
-		MaxBlockGasCost:          feeConfig.MaxBlockGasCost,
-		BlockGasCostStep:         feeConfig.BlockGasCostStep,
-	})
+	topics, data, err := PackFeeConfigEvent(
+		caller,
+		FeeConfigEventData{
+			GasLimit:                 feeConfig.GasLimit,
+			TargetBlockRate:          new(big.Int).SetUint64(feeConfig.TargetBlockRate),
+			MinBaseFee:               feeConfig.MinBaseFee,
+			TargetGas:                feeConfig.TargetGas,
+			BaseFeeChangeDenominator: feeConfig.BaseFeeChangeDenominator,
+			MinBlockGasCost:          feeConfig.MinBlockGasCost,
+			MaxBlockGasCost:          feeConfig.MaxBlockGasCost,
+			BlockGasCostStep:         feeConfig.BlockGasCostStep,
+		},
+	)
 	if err != nil {
 		return nil, remainingGas, err
 	}

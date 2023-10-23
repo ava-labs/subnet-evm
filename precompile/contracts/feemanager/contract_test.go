@@ -6,6 +6,7 @@ package feemanager
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -332,4 +333,72 @@ func TestFeeManager(t *testing.T) {
 
 func BenchmarkFeeManager(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
+}
+
+func TestFeeConfigLogging(t *testing.T) {
+	require := require.New(t)
+	ctrl := gomock.NewController(t)
+
+	blockContext := contract.NewMockBlockContext(ctrl)
+	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
+	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
+
+	config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+	config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+
+	baseState := state.NewTestStateDB(t)
+	accessibleState := contract.NewMockAccessibleState(ctrl)
+	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
+	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+	accessibleState.EXPECT().GetChainConfig().Return(config).AnyTimes()
+
+	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
+
+	feeCfg := FeeConfigEventData{
+		GasLimit:                 new(big.Int).SetUint64(2023),
+		TargetBlockRate:          new(big.Int).SetUint64(2024),
+		MinBaseFee:               new(big.Int).SetUint64(2025),
+		TargetGas:                new(big.Int).SetUint64(2026),
+		BaseFeeChangeDenominator: new(big.Int).SetUint64(2027),
+		MinBlockGasCost:          new(big.Int).SetUint64(2028),
+		MaxBlockGasCost:          new(big.Int).SetUint64(2029),
+		BlockGasCostStep:         new(big.Int).SetUint64(2030),
+	}
+	input, err := PackSetFeeConfig(commontype.FeeConfig{
+		GasLimit:                 feeCfg.GasLimit,
+		TargetBlockRate:          feeCfg.TargetBlockRate.Uint64(),
+		MinBaseFee:               feeCfg.MinBaseFee,
+		TargetGas:                feeCfg.TargetGas,
+		BaseFeeChangeDenominator: feeCfg.BaseFeeChangeDenominator,
+		MinBlockGasCost:          feeCfg.MinBlockGasCost,
+		MaxBlockGasCost:          feeCfg.MaxBlockGasCost,
+		BlockGasCostStep:         feeCfg.BlockGasCostStep,
+	})
+	require.NoError(err)
+	input = input[4:] // drop selector
+
+	_, _, err = setFeeConfig(
+		accessibleState,
+		allowlist.TestAdminAddr,
+		Module.Address,
+		input,
+		SetFeeConfigGasCost,
+		false,
+	)
+	require.NoError(err)
+
+	// Check logs are stored in state
+	expectedTopic := []common.Hash{
+		FeeManagerABI.Events["FeeConfig"].ID,
+		allowlist.TestAdminAddr.Hash(),
+	}
+
+	allLogs := baseState.(*state.StateDB).Logs()
+	require.Len(allLogs, 1)
+	require.Equal(expectedTopic, allLogs[0].Topics)
+
+	logData := allLogs[0].Data
+	resFeeConfig, err := UnpackFeeConfigEventData(logData)
+	require.NoError(err)
+	require.Equal(feeCfg, resFeeConfig)
 }
