@@ -149,15 +149,15 @@ var (
 )
 
 var (
-	errEmptyBlock                      = errors.New("empty block")
-	errUnsupportedFXs                  = errors.New("unsupported feature extensions")
-	errInvalidBlock                    = errors.New("invalid block")
-	errInvalidNonce                    = errors.New("invalid nonce")
-	errUnclesUnsupported               = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM             = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM        = errors.New("nil blockGasCost is invalid after subnetEVM")
-	errInvalidHeaderPredicateResults   = errors.New("invalid header predicate results")
-	errInvalidOffChainWarpMessageBytes = errors.New("invalid off-chain warp message bytes")
+	errEmptyBlock                    = errors.New("empty block")
+	errUnsupportedFXs                = errors.New("unsupported feature extensions")
+	errInvalidBlock                  = errors.New("invalid block")
+	errInvalidNonce                  = errors.New("invalid nonce")
+	errUnclesUnsupported             = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
+	errInvalidOffChainWarpMessage    = errors.New("invalid off-chain warp message")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -488,11 +488,11 @@ func (vm *VM) Initialize(
 	for _, message := range vm.config.OffChainWarpMessages {
 		messageByte, err := hex.DecodeString(message)
 		if err != nil {
-			return errInvalidOffChainWarpMessageBytes
+			return errInvalidOffChainWarpMessage
 		}
 		unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(messageByte)
 		if err != nil {
-			return errInvalidOffChainWarpMessageBytes
+			return errInvalidOffChainWarpMessage
 		}
 		vm.warpBackend.PutMessage(unsignedMessage)
 	}

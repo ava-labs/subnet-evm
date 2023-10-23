@@ -3360,7 +3360,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 	tests := map[string]OffChainWarpMessageTest{
 		"invalid unparsed warp message": {
 			messages:    []string{invalidMsg},
-			expectedErr: errInvalidOffChainWarpMessageBytes,
+			expectedErr: errInvalidOffChainWarpMessage,
 		},
 		"valid unparsed warp message": {
 			messages:    []string{msg},
@@ -3372,7 +3372,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 		},
 		"multiple valid/invalid unparsed message": {
 			messages:    []string{msg, invalidMsg},
-			expectedErr: errInvalidOffChainWarpMessageBytes,
+			expectedErr: errInvalidOffChainWarpMessage,
 		},
 	}
 
