@@ -4,19 +4,15 @@
 package rewardmanager
 
 import (
-	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 )
@@ -80,6 +76,33 @@ var (
 				require.True(t, isFeeRecipients)
 			},
 		},
+
+		"log set fee recipients if D fork is active": {
+			Caller:     allowlist.TestEnabledAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackAllowFeeRecipients()
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: AllowFeeRecipientsGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check logs are stored in state
+				expectedTopic := []common.Hash{
+					RewardManagerABI.Events["FeeRecipientsAllowed"].ID,
+					allowlist.TestEnabledAddr.Hash(),
+				}
+
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Len(t, allLogs, 1)
+				require.Equal(t, expectedTopic, allLogs[0].Topics)
+				require.Zero(t, allLogs[0].Data)
+			},
+		},
+
 		"set reward address from enabled succeeds": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -133,6 +156,32 @@ var (
 				require.False(t, isFeeRecipients)
 			},
 		},
+		"log change reward address if D fork is active": {
+			Caller:     allowlist.TestManagerAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackSetRewardAddress(rewardAddress)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: SetRewardAddressGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check logs are stored in state
+				expectedTopic := []common.Hash{
+					RewardManagerABI.Events["RewardAddressChanged"].ID,
+					allowlist.TestManagerAddr.Hash(),
+					rewardAddress.Hash(),
+				}
+
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Len(t, allLogs, 1)
+				require.Equal(t, expectedTopic, allLogs[0].Topics)
+				require.Zero(t, allLogs[0].Data)
+			},
+		},
 		"disable rewards from manager succeeds": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -167,6 +216,31 @@ var (
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.False(t, isFeeRecipients)
 				require.Equal(t, constants.BlackholeAddr, address)
+			},
+		},
+		"log disable rewards if D fork is active": {
+			Caller:     allowlist.TestManagerAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackDisableRewards()
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: DisableRewardsGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check logs are stored in state
+				expectedTopic := []common.Hash{
+					RewardManagerABI.Events["RewardsDisabled"].ID,
+					allowlist.TestManagerAddr.Hash(),
+				}
+
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Len(t, allLogs, 1)
+				require.Equal(t, expectedTopic, allLogs[0].Topics)
+				require.Zero(t, allLogs[0].Data)
 			},
 		},
 		"get current reward address from no role succeeds": {
@@ -345,132 +419,4 @@ func TestRewardManagerRun(t *testing.T) {
 
 func BenchmarkRewardManager(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
-}
-
-func TestSetRewardAddressLogging(t *testing.T) {
-	require := require.New(t)
-	ctrl := gomock.NewController(t)
-
-	blockContext := contract.NewMockBlockContext(ctrl)
-	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
-	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
-
-	chainConfig := precompileconfig.NewMockChainConfig(ctrl)
-	chainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(true)
-
-	baseState := state.NewTestStateDB(t)
-	accessibleState := contract.NewMockAccessibleState(ctrl)
-	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
-	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
-	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
-
-	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
-
-	rewardAddress = common.HexToAddress("0x0123")
-	input, err := PackCurrentRewardAddressOutput(rewardAddress)
-	require.NoError(err)
-
-	_, _, err = setRewardAddress(
-		accessibleState,
-		allowlist.TestAdminAddr,
-		Module.Address,
-		input,
-		SetRewardAddressGasCost,
-		false,
-	)
-	require.NoError(err)
-
-	// Check logs are stored in state
-	expectedTopic := []common.Hash{
-		RewardManagerABI.Events["RewardAddressChanged"].ID,
-		allowlist.TestAdminAddr.Hash(),
-		rewardAddress.Hash(),
-	}
-
-	allLogs := baseState.(*state.StateDB).Logs()
-	require.Len(allLogs, 1)
-	require.Equal(expectedTopic, allLogs[0].Topics)
-	require.Zero(allLogs[0].Data)
-}
-
-func TestAllowFeeRecipientsLogging(t *testing.T) {
-	require := require.New(t)
-	ctrl := gomock.NewController(t)
-
-	blockContext := contract.NewMockBlockContext(ctrl)
-	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
-	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
-
-	chainConfig := precompileconfig.NewMockChainConfig(ctrl)
-	chainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(true)
-
-	baseState := state.NewTestStateDB(t)
-	accessibleState := contract.NewMockAccessibleState(ctrl)
-	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
-	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
-	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
-
-	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
-
-	_, _, err := allowFeeRecipients(
-		accessibleState,
-		allowlist.TestAdminAddr,
-		Module.Address,
-		nil,
-		AllowFeeRecipientsGasCost,
-		false,
-	)
-	require.NoError(err)
-
-	// Check logs are stored in state
-	expectedTopic := []common.Hash{
-		RewardManagerABI.Events["FeeRecipientsAllowed"].ID,
-		allowlist.TestAdminAddr.Hash(),
-	}
-
-	allLogs := baseState.(*state.StateDB).Logs()
-	require.Len(allLogs, 1)
-	require.Equal(expectedTopic, allLogs[0].Topics)
-	require.Zero(allLogs[0].Data)
-}
-
-func TestDisableRewardsLogging(t *testing.T) {
-	require := require.New(t)
-	ctrl := gomock.NewController(t)
-
-	blockContext := contract.NewMockBlockContext(ctrl)
-	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
-	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
-
-	chainConfig := precompileconfig.NewMockChainConfig(ctrl)
-	chainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(true)
-
-	baseState := state.NewTestStateDB(t)
-	accessibleState := contract.NewMockAccessibleState(ctrl)
-	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
-	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
-	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
-
-	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
-
-	_, _, err := disableRewards(
-		accessibleState,
-		allowlist.TestAdminAddr,
-		Module.Address,
-		nil,
-		AllowFeeRecipientsGasCost,
-		false,
-	)
-	require.NoError(err)
-
-	// Check logs are stored in state
-	expectedTopic := []common.Hash{
-		RewardManagerABI.Events["RewardsDisabled"].ID,
-		allowlist.TestAdminAddr.Hash(),
-	}
-
-	allLogs := baseState.(*state.StateDB).Logs()
-	require.Len(allLogs, 1)
-	require.Equal(expectedTopic, allLogs[0].Topics)
-	require.Zero(allLogs[0].Data)
 }
