@@ -3376,7 +3376,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 		},
 	}
 
-	TestOffChainWarpMessages := func(test OffChainWarpMessageTest) {
+	testOffChainWarpMessages := func(test OffChainWarpMessageTest) {
 		vm := &VM{}
 		ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSONSubnetEVM)
 		config := map[string][]string{
@@ -3408,7 +3408,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 			require.NoError(err)
 		}()
 
-		// Check that the off-chain warp messages were cached properly and retrievable
+		// Check that the off-chain warp messages are retrievable
 		for _, message := range test.messages {
 			messageBytes, err := hex.DecodeString(message)
 			require.NoError(err)
@@ -3417,7 +3417,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 			expectedSignature, err := vm.ctx.WarpSigner.Sign(unsignedWarpMessage)
 			require.NoError(err)
 
-			// On VM initializtion off-chain warp messages were put into the message cache
+			// On VM initialization off-chain warp messages were put into the off-chain message map
 			signature, err := vm.warpBackend.GetSignature(unsignedWarpMessage.ID())
 			require.NoError(err)
 			require.Equal(([bls.SignatureLen]byte)(expectedSignature), signature)
@@ -3427,7 +3427,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// Each iteration runs the TestOffChainWarpMessages function so vm can shut down properly
-			TestOffChainWarpMessages(test)
+			testOffChainWarpMessages(test)
 		})
 	}
 }

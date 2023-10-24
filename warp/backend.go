@@ -31,8 +31,8 @@ type Backend interface {
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
 
-	// PutMessage adds [unsignedMessage] to the warp backend message cache
-	PutMessage(unsignedMessage *avalancheWarp.UnsignedMessage)
+	// AddOffChainMessage adds [unsignedMessage] to the warp backend message off-chain map
+	AddOffChainMessage(unsignedMessage *avalancheWarp.UnsignedMessage)
 
 	// Clear clears the entire db
 	Clear() error
@@ -40,19 +40,21 @@ type Backend interface {
 
 // backend implements Backend, keeps track of warp messages, and generates message signatures.
 type backend struct {
-	db             database.Database
-	warpSigner     avalancheWarp.Signer
-	signatureCache *cache.LRU[ids.ID, [bls.SignatureLen]byte]
-	messageCache   *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
+	db                 database.Database
+	warpSigner         avalancheWarp.Signer
+	signatureCache     *cache.LRU[ids.ID, [bls.SignatureLen]byte]
+	messageCache       *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
+	offChainMessageMap map[ids.ID]*avalancheWarp.UnsignedMessage
 }
 
 // NewBackend creates a new Backend, and initializes the signature cache and message tracking database.
 func NewBackend(warpSigner avalancheWarp.Signer, db database.Database, cacheSize int) Backend {
 	return &backend{
-		db:             db,
-		warpSigner:     warpSigner,
-		signatureCache: &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
-		messageCache:   &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: cacheSize},
+		db:                 db,
+		warpSigner:         warpSigner,
+		signatureCache:     &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
+		messageCache:       &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: cacheSize},
+		offChainMessageMap: make(map[ids.ID]*avalancheWarp.UnsignedMessage),
 	}
 }
 
@@ -84,9 +86,9 @@ func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) err
 	return nil
 }
 
-func (b *backend) PutMessage(unsignedMessage *avalancheWarp.UnsignedMessage) {
-	b.messageCache.Put(unsignedMessage.ID(), unsignedMessage)
-	log.Debug("Adding warp message to cache", "messageID", unsignedMessage.ID())
+func (b *backend) AddOffChainMessage(unsignedMessage *avalancheWarp.UnsignedMessage) {
+	b.offChainMessageMap[unsignedMessage.ID()] = unsignedMessage
+	log.Debug("Adding warp message to off-chain message map", "messageID", unsignedMessage.ID())
 }
 
 func (b *backend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
@@ -113,6 +115,10 @@ func (b *backend) GetSignature(messageID ids.ID) ([bls.SignatureLen]byte, error)
 
 func (b *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, error) {
 	if message, ok := b.messageCache.Get(messageID); ok {
+		return message, nil
+	}
+
+	if message, ok := b.offChainMessageMap[messageID]; ok {
 		return message, nil
 	}
 

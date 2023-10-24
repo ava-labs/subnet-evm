@@ -494,7 +494,8 @@ func (vm *VM) Initialize(
 		if err != nil {
 			return errInvalidOffChainWarpMessage
 		}
-		vm.warpBackend.PutMessage(unsignedMessage)
+		vm.warpBackend.AddOffChainMessage(unsignedMessage)
+		log.Info("off chain warp message added successfully")
 	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
