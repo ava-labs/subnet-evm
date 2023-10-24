@@ -483,7 +483,7 @@ func (vm *VM) Initialize(
 		}
 	}
 
-	// parse and cache valid off-chain warp messages to warp backend
+	// parse and add valid off-chain warp messages to warp backend
 	for _, message := range vm.config.OffChainWarpMessages {
 		messageByte, err := hex.DecodeString(message)
 		if err != nil {
