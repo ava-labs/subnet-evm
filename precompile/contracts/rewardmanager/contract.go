@@ -105,7 +105,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 	packedOutput := []byte{}
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackAllowFeeRecipientsEvent(caller)
+	topics, data, err := PackFeeRecipientsAllowedEvent(caller)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -230,7 +230,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 	packedOutput := []byte{}
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackRewardAddressEvent(caller, rewardAddress)
+	topics, data, err := PackRewardAddressChangedEvent(caller, rewardAddress)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -292,7 +292,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 	packedOutput := []byte{}
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackDisableRewardsEvent(caller)
+	topics, data, err := PackRewardsDisabledEvent(caller)
 	if err != nil {
 		return nil, remainingGas, err
 	}

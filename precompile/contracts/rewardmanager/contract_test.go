@@ -377,7 +377,7 @@ func TestSetRewardAddressLogging(t *testing.T) {
 
 	// Check logs are stored in state
 	expectedTopic := []common.Hash{
-		RewardManagerABI.Events["RewardAddress"].ID,
+		RewardManagerABI.Events["RewardAddressChanged"].ID,
 		allowlist.TestAdminAddr.Hash(),
 		rewardAddress.Hash(),
 	}
@@ -414,7 +414,7 @@ func TestAllowFeeRecipientsLogging(t *testing.T) {
 
 	// Check logs are stored in state
 	expectedTopic := []common.Hash{
-		RewardManagerABI.Events["AllowFeeRecipients"].ID,
+		RewardManagerABI.Events["FeeRecipientsAllowed"].ID,
 		allowlist.TestAdminAddr.Hash(),
 	}
 
@@ -450,7 +450,7 @@ func TestDisableRewardsLogging(t *testing.T) {
 
 	// Check logs are stored in state
 	expectedTopic := []common.Hash{
-		RewardManagerABI.Events["DisableRewards"].ID,
+		RewardManagerABI.Events["RewardsDisabled"].ID,
 		allowlist.TestAdminAddr.Hash(),
 	}
 
