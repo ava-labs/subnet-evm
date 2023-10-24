@@ -6,7 +6,6 @@ package feemanager
 import (
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -29,9 +28,30 @@ var (
 		TargetGas:                big.NewInt(15_000_000),
 		BaseFeeChangeDenominator: big.NewInt(36),
 
-		MinBlockGasCost:  big.NewInt(0),
+		MinBlockGasCost:  big.NewInt(1),
 		MaxBlockGasCost:  big.NewInt(1_000_000),
 		BlockGasCostStep: big.NewInt(200_000),
+	}
+	logGasCostFn = func(caller common.Address) uint64 {
+		_, data, err := PackChangeFeeConfigEvent(
+			caller,
+			ChangeFeeConfigEventData{
+				GasLimit:                 testFeeConfig.GasLimit,
+				TargetBlockRate:          new(big.Int).SetUint64(testFeeConfig.TargetBlockRate),
+				MinBaseFee:               testFeeConfig.MinBaseFee,
+				TargetGas:                testFeeConfig.TargetGas,
+				BaseFeeChangeDenominator: testFeeConfig.BaseFeeChangeDenominator,
+				MinBlockGasCost:          testFeeConfig.MinBlockGasCost,
+				MaxBlockGasCost:          testFeeConfig.MaxBlockGasCost,
+				BlockGasCostStep:         testFeeConfig.BlockGasCostStep,
+			},
+		)
+		if err != nil {
+			panic(err)
+		}
+
+		logGasCost := contract.LogTopicGas + contract.LogGas*uint64(len(data))
+		return logGasCost + SetFeeConfigGasCost
 	}
 	testBlockNumber = big.NewInt(7)
 	tests           = map[string]testutils.PrecompileTest{
@@ -57,7 +77,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetFeeConfigGasCost,
+			SuppliedGas: logGasCostFn(allowlist.TestEnabledAddr),
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -74,7 +94,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetFeeConfigGasCost,
+			SuppliedGas: logGasCostFn(allowlist.TestManagerAddr),
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -113,7 +133,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetFeeConfigGasCost,
+			SuppliedGas: logGasCostFn(allowlist.TestAdminAddr),
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
@@ -295,6 +315,28 @@ var (
 				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
 			},
 		},
+		"set config doesn't log before DUpgrade": {
+			Caller:     allowlist.TestEnabledAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			ChainConfigFn: func(t testing.TB) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
+				return config
+			},
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackSetFeeConfig(testFeeConfig)
+				require.NoError(t, err)
+				return input
+			},
+			SuppliedGas: SetFeeConfigGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check no logs are stored in state
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Zero(t, allLogs)
+			},
+		},
 		"set config with extra padded bytes should succeed with DUpgrade": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -310,7 +352,7 @@ var (
 				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			},
-			SuppliedGas: SetFeeConfigGasCost,
+			SuppliedGas: logGasCostFn(allowlist.TestEnabledAddr),
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
@@ -324,6 +366,56 @@ var (
 				require.EqualValues(t, testBlockNumber, lastChangedAt)
 			},
 		},
+		"set config logs after DUpgrade": {
+			Caller:     allowlist.TestEnabledAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackSetFeeConfig(testFeeConfig)
+				require.NoError(t, err)
+
+				input = append(input, make([]byte, 32)...)
+				return input
+			},
+			ChainConfigFn: func(t testing.TB) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+				return config
+			},
+			SuppliedGas: logGasCostFn(allowlist.TestEnabledAddr),
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			SetupBlockContext: func(mbc *contract.MockBlockContext) {
+				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
+				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
+			},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check logs are stored in state
+				expectedTopic := []common.Hash{
+					FeeManagerABI.Events["changeFeeConfig"].ID,
+					allowlist.TestEnabledAddr.Hash(),
+				}
+
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Len(t, allLogs, 1)
+				require.Equal(t, expectedTopic, allLogs[0].Topics)
+
+				expectedFeeCfg := ChangeFeeConfigEventData{
+					GasLimit:                 testFeeConfig.GasLimit,
+					TargetBlockRate:          new(big.Int).SetUint64(testFeeConfig.TargetBlockRate),
+					MinBaseFee:               testFeeConfig.MinBaseFee,
+					TargetGas:                testFeeConfig.TargetGas,
+					BaseFeeChangeDenominator: testFeeConfig.BaseFeeChangeDenominator,
+					MinBlockGasCost:          testFeeConfig.MinBlockGasCost,
+					MaxBlockGasCost:          testFeeConfig.MaxBlockGasCost,
+					BlockGasCostStep:         testFeeConfig.BlockGasCostStep,
+				}
+
+				logData := allLogs[0].Data
+				resFeeConfig, err := UnpackChangeFeeConfigEventData(logData)
+				require.NoError(t, err)
+				require.Equal(t, expectedFeeCfg, resFeeConfig)
+			},
+		},
 	}
 )
 
@@ -333,72 +425,4 @@ func TestFeeManager(t *testing.T) {
 
 func BenchmarkFeeManager(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
-}
-
-func TestFeeConfigLogging(t *testing.T) {
-	require := require.New(t)
-	ctrl := gomock.NewController(t)
-
-	blockContext := contract.NewMockBlockContext(ctrl)
-	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
-	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
-
-	config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-	config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
-
-	baseState := state.NewTestStateDB(t)
-	accessibleState := contract.NewMockAccessibleState(ctrl)
-	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
-	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
-	accessibleState.EXPECT().GetChainConfig().Return(config).AnyTimes()
-
-	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
-
-	feeCfg := FeeConfigEventData{
-		GasLimit:                 new(big.Int).SetUint64(2023),
-		TargetBlockRate:          new(big.Int).SetUint64(2024),
-		MinBaseFee:               new(big.Int).SetUint64(2025),
-		TargetGas:                new(big.Int).SetUint64(2026),
-		BaseFeeChangeDenominator: new(big.Int).SetUint64(2027),
-		MinBlockGasCost:          new(big.Int).SetUint64(2028),
-		MaxBlockGasCost:          new(big.Int).SetUint64(2029),
-		BlockGasCostStep:         new(big.Int).SetUint64(2030),
-	}
-	input, err := PackSetFeeConfig(commontype.FeeConfig{
-		GasLimit:                 feeCfg.GasLimit,
-		TargetBlockRate:          feeCfg.TargetBlockRate.Uint64(),
-		MinBaseFee:               feeCfg.MinBaseFee,
-		TargetGas:                feeCfg.TargetGas,
-		BaseFeeChangeDenominator: feeCfg.BaseFeeChangeDenominator,
-		MinBlockGasCost:          feeCfg.MinBlockGasCost,
-		MaxBlockGasCost:          feeCfg.MaxBlockGasCost,
-		BlockGasCostStep:         feeCfg.BlockGasCostStep,
-	})
-	require.NoError(err)
-	input = input[4:] // drop selector
-
-	_, _, err = setFeeConfig(
-		accessibleState,
-		allowlist.TestAdminAddr,
-		Module.Address,
-		input,
-		SetFeeConfigGasCost,
-		false,
-	)
-	require.NoError(err)
-
-	// Check logs are stored in state
-	expectedTopic := []common.Hash{
-		FeeManagerABI.Events["FeeConfig"].ID,
-		allowlist.TestAdminAddr.Hash(),
-	}
-
-	allLogs := baseState.(*state.StateDB).Logs()
-	require.Len(allLogs, 1)
-	require.Equal(expectedTopic, allLogs[0].Topics)
-
-	logData := allLogs[0].Data
-	resFeeConfig, err := UnpackFeeConfigEventData(logData)
-	require.NoError(err)
-	require.Equal(feeCfg, resFeeConfig)
 }

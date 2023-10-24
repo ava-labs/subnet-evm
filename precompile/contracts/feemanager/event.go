@@ -38,8 +38,8 @@ accessibleState.GetStateDB().AddLog(
 )
 */
 
-// ContractFeeConfig represents a FeeConfig non-indexed event data raised by the Contract contract.
-type FeeConfigEventData struct {
+// ContractChangeFeeConfig represents a ChangeFeeConfig non-indexed event data raised by the Contract contract.
+type ChangeFeeConfigEventData struct {
 	GasLimit                 *big.Int
 	TargetBlockRate          *big.Int
 	MinBaseFee               *big.Int
@@ -50,15 +50,15 @@ type FeeConfigEventData struct {
 	BlockGasCostStep         *big.Int
 }
 
-// PackFeeConfigEvent packs the event into the appropriate arguments for FeeConfig.
+// PackChangeFeeConfigEvent packs the event into the appropriate arguments for changeFeeConfig.
 // It returns topic hashes and the encoded non-indexed data.
-func PackFeeConfigEvent(sender common.Address, data FeeConfigEventData) ([]common.Hash, []byte, error) {
-	return FeeManagerABI.PackEvent("FeeConfig", sender, data.GasLimit, data.TargetBlockRate, data.MinBaseFee, data.TargetGas, data.BaseFeeChangeDenominator, data.MinBlockGasCost, data.MaxBlockGasCost, data.BlockGasCostStep)
+func PackChangeFeeConfigEvent(sender common.Address, data ChangeFeeConfigEventData) ([]common.Hash, []byte, error) {
+	return FeeManagerABI.PackEvent("changeFeeConfig", sender, data.GasLimit, data.TargetBlockRate, data.MinBaseFee, data.TargetGas, data.BaseFeeChangeDenominator, data.MinBlockGasCost, data.MaxBlockGasCost, data.BlockGasCostStep)
 }
 
-// UnpackFeeConfigEventData attempts to unpack non-indexed [dataBytes].
-func UnpackFeeConfigEventData(dataBytes []byte) (FeeConfigEventData, error) {
-	eventData := FeeConfigEventData{}
-	err := FeeManagerABI.UnpackIntoInterface(&eventData, "FeeConfig", dataBytes)
+// UnpackChangeFeeConfigEventData attempts to unpack non-indexed [dataBytes].
+func UnpackChangeFeeConfigEventData(dataBytes []byte) (ChangeFeeConfigEventData, error) {
+	eventData := ChangeFeeConfigEventData{}
+	err := FeeManagerABI.UnpackIntoInterface(&eventData, "changeFeeConfig", dataBytes)
 	return eventData, err
 }

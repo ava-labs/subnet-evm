@@ -35,9 +35,9 @@ const (
 	// [numFeeConfigField] fields in FeeConfig struct
 	feeConfigInputLen = common.HashLength * numFeeConfigField
 
-	SetFeeConfigGasCost     = contract.WriteGasCostPerSlot * (numFeeConfigField + 1) // plus one for setting last changed at
-	GetFeeConfigGasCost     = contract.ReadGasCostPerSlot * numFeeConfigField
-	GetLastChangedAtGasCost = contract.ReadGasCostPerSlot
+	SetFeeConfigGasCost     uint64 = contract.WriteGasCostPerSlot * (numFeeConfigField + 1) // plus one for setting last changed at
+	GetFeeConfigGasCost     uint64 = contract.ReadGasCostPerSlot * numFeeConfigField
+	GetLastChangedAtGasCost uint64 = contract.ReadGasCostPerSlot
 )
 
 var (
@@ -205,7 +205,14 @@ func UnpackSetFeeConfigInput(input []byte, skipLenCheck bool) (commontype.FeeCon
 // setFeeConfig checks if the caller has permissions to set the fee config.
 // The execution function parses [input] into FeeConfig structure and sets contract storage accordingly.
 func setFeeConfig(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, SetFeeConfigGasCost); err != nil {
+	var (
+		isDUpgradeActive = contract.IsDUpgradeActivated(accessibleState)
+		requiredGas      = SetFeeConfigGasCost // Note: not full gas cost; post D-upgrade, event logging must be accounted for
+
+		stateDB = accessibleState.GetStateDB()
+	)
+
+	if remainingGas, err = contract.DeductGas(suppliedGas, requiredGas); err != nil {
 		return nil, 0, err
 	}
 
@@ -213,13 +220,12 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
-	skipLenCheck := contract.IsDUpgradeActivated(accessibleState)
+	skipLenCheck := isDUpgradeActive
 	feeConfig, err := UnpackSetFeeConfigInput(input, skipLenCheck)
 	if err != nil {
 		return nil, remainingGas, err
 	}
 
-	stateDB := accessibleState.GetStateDB()
 	// Verify that the caller is in the allow list and therefore has the right to call this function.
 	callerStatus := GetFeeManagerStatus(stateDB, caller)
 	if !callerStatus.IsEnabled() {
@@ -231,28 +237,36 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 	}
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackFeeConfigEvent(
-		caller,
-		FeeConfigEventData{
-			GasLimit:                 feeConfig.GasLimit,
-			TargetBlockRate:          new(big.Int).SetUint64(feeConfig.TargetBlockRate),
-			MinBaseFee:               feeConfig.MinBaseFee,
-			TargetGas:                feeConfig.TargetGas,
-			BaseFeeChangeDenominator: feeConfig.BaseFeeChangeDenominator,
-			MinBlockGasCost:          feeConfig.MinBlockGasCost,
-			MaxBlockGasCost:          feeConfig.MaxBlockGasCost,
-			BlockGasCostStep:         feeConfig.BlockGasCostStep,
-		},
-	)
-	if err != nil {
-		return nil, remainingGas, err
+	if isDUpgradeActive {
+		topics, data, err := PackChangeFeeConfigEvent(
+			caller,
+			ChangeFeeConfigEventData{
+				GasLimit:                 feeConfig.GasLimit,
+				TargetBlockRate:          new(big.Int).SetUint64(feeConfig.TargetBlockRate),
+				MinBaseFee:               feeConfig.MinBaseFee,
+				TargetGas:                feeConfig.TargetGas,
+				BaseFeeChangeDenominator: feeConfig.BaseFeeChangeDenominator,
+				MinBlockGasCost:          feeConfig.MinBlockGasCost,
+				MaxBlockGasCost:          feeConfig.MaxBlockGasCost,
+				BlockGasCostStep:         feeConfig.BlockGasCostStep,
+			},
+		)
+		if err != nil {
+			return nil, remainingGas, err
+		}
+
+		logGasCost := contract.LogTopicGas + contract.LogGas*uint64(len(data))
+		if remainingGas, err = contract.DeductGas(remainingGas, logGasCost); err != nil {
+			return nil, 0, err
+		}
+
+		stateDB.AddLog(
+			ContractAddress,
+			topics,
+			data,
+			accessibleState.GetBlockContext().Number().Uint64(),
+		)
 	}
-	accessibleState.GetStateDB().AddLog(
-		ContractAddress,
-		topics,
-		data,
-		accessibleState.GetBlockContext().Number().Uint64(),
-	)
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil

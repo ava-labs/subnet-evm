@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "./IAllowList.sol";
 
 interface IFeeManager is IAllowList {
-  event FeeConfig(
+  event changeFeeConfig(
     address indexed sender,
     uint256 gasLimit,
     uint256 targetBlockRate,
