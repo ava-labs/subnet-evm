@@ -111,7 +111,7 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 // Access to the getters/setters is controlled by an allow list for ContractAddress.
 func createNativeMinterPrecompile() contract.StatefulPrecompiledContract {
 	var functions []*contract.StatefulPrecompileFunction
-	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
+	functions = append(functions, allowlist.CreateAllowListFunctions(&NativeMinterABI, ContractAddress)...)
 
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		"mintNativeCoin": mintNativeCoin,

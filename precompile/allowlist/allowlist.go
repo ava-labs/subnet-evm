@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
@@ -104,7 +105,7 @@ func PackReadAllowList(address common.Address) []byte {
 
 // createAllowListRoleSetter returns an execution function for setting the allow list status of the input address argument to [role].
 // This execution function is speciifc to [precompileAddr].
-func createAllowListRoleSetter(precompileAddr common.Address, role Role) contract.RunStatefulPrecompileFunc {
+func createAllowListRoleSetter(precompile *abi.ABI, precompileAddr common.Address, role Role) contract.RunStatefulPrecompileFunc {
 	return func(evm contract.AccessibleState, callerAddr, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
 		if remainingGas, err = contract.DeductGas(suppliedGas, ModifyAllowListGasCost); err != nil {
 			return nil, 0, err
@@ -120,7 +121,10 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			return nil, remainingGas, vmerrs.ErrWriteProtection
 		}
 
-		stateDB := evm.GetStateDB()
+		var (
+			stateDB = evm.GetStateDB()
+			blkCtx  = evm.GetBlockContext()
+		)
 
 		// Verify that the caller is an admin with permission to modify the allow list
 		callerStatus := GetAllowListStatus(stateDB, precompileAddr, callerAddr)
@@ -131,6 +135,34 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 		}
 		SetAllowListRole(stateDB, precompileAddr, modifyAddress, role)
 		// Return an empty output and the remaining gas
+
+		if precompile != nil && contract.IsDUpgradeActivated(evm) { // log events
+			var pack func(contractAbi abi.ABI, sender common.Address, manager common.Address) ([]common.Hash, []byte, error)
+			switch role {
+			case ManagerRole:
+				pack = PackSetManagerEventEvent
+			case AdminRole:
+				pack = PackSetAdminEventEvent
+			case EnabledRole:
+				pack = PackSetEnabledEventEvent
+			case NoRole:
+				pack = PackSetNoneEventEvent
+			default:
+				return nil, remainingGas, fmt.Errorf("unhandled role %s", role)
+			}
+
+			topics, data, err := pack(*precompile, callerAddr, modifyAddress)
+			if err != nil {
+				return nil, remainingGas, err
+			}
+			stateDB.AddLog(
+				precompileAddr,
+				topics,
+				data,
+				blkCtx.Number().Uint64(),
+			)
+		}
+
 		return []byte{}, remainingGas, nil
 	}
 }
@@ -156,9 +188,9 @@ func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrec
 }
 
 // CreateAllowListPrecompile returns a StatefulPrecompiledContract with R/W control of an allow list at [precompileAddr]
-func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulPrecompiledContract {
+func CreateAllowListPrecompile(contractAbi *abi.ABI, precompileAddr common.Address) contract.StatefulPrecompiledContract {
 	// Construct the contract with no fallback function.
-	allowListFuncs := CreateAllowListFunctions(precompileAddr)
+	allowListFuncs := CreateAllowListFunctions(contractAbi, precompileAddr)
 	contract, err := contract.NewStatefulPrecompileContract(nil, allowListFuncs)
 	// TODO Change this to be returned as an error after refactoring this precompile
 	// to use the new precompile template.
@@ -168,11 +200,11 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 	return contract
 }
 
-func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
-	setAdmin := contract.NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AdminRole))
-	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(precompileAddr, ManagerRole), contract.IsDUpgradeActivated)
-	setEnabled := contract.NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, EnabledRole))
-	setNone := contract.NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, NoRole))
+func CreateAllowListFunctions(contractAbi *abi.ABI, precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
+	setAdmin := contract.NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(contractAbi, precompileAddr, AdminRole))
+	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(contractAbi, precompileAddr, ManagerRole), contract.IsDUpgradeActivated)
+	setEnabled := contract.NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(contractAbi, precompileAddr, EnabledRole))
+	setNone := contract.NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(contractAbi, precompileAddr, NoRole))
 	read := contract.NewStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
 
 	return []*contract.StatefulPrecompileFunction{setAdmin, setManager, setEnabled, setNone, read}

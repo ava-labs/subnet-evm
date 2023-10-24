@@ -349,7 +349,7 @@ func getFeeConfigLastChangedAt(accessibleState contract.AccessibleState, caller 
 // Access to the getters/setters is controlled by an allow list for ContractAddress.
 func createFeeManagerPrecompile() contract.StatefulPrecompiledContract {
 	var functions []*contract.StatefulPrecompileFunction
-	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
+	functions = append(functions, allowlist.CreateAllowListFunctions(&FeeManagerABI, ContractAddress)...)
 
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		"getFeeConfig":              getFeeConfig,
