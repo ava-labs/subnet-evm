@@ -8,11 +8,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 )
@@ -76,7 +79,31 @@ var (
 				require.True(t, isFeeRecipients)
 			},
 		},
+		"no log set fee recipients if D fork is not active": {
+			Caller:     allowlist.TestEnabledAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackAllowFeeRecipients()
+				require.NoError(t, err)
 
+				return input
+			},
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
+				mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
+				mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
+				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
+				return mockChainConfig
+			},
+			SuppliedGas: AllowFeeRecipientsGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check no logs are stored in state
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Zero(t, allLogs)
+			},
+		},
 		"log set fee recipients if D fork is active": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -102,7 +129,6 @@ var (
 				require.Zero(t, allLogs[0].Data)
 			},
 		},
-
 		"set reward address from enabled succeeds": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -154,6 +180,31 @@ var (
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.Equal(t, rewardAddress, address)
 				require.False(t, isFeeRecipients)
+			},
+		},
+		"no log change reward address if D fork is not active": {
+			Caller:     allowlist.TestManagerAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackSetRewardAddress(rewardAddress)
+				require.NoError(t, err)
+
+				return input
+			},
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
+				mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
+				mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
+				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
+				return mockChainConfig
+			},
+			SuppliedGas: SetRewardAddressGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check no logs are stored in state
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Zero(t, allLogs, 0)
 			},
 		},
 		"log change reward address if D fork is active": {
@@ -216,6 +267,31 @@ var (
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.False(t, isFeeRecipients)
 				require.Equal(t, constants.BlackholeAddr, address)
+			},
+		},
+		"no log disable rewards if D fork is not active": {
+			Caller:     allowlist.TestManagerAddr,
+			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackDisableRewards()
+				require.NoError(t, err)
+
+				return input
+			},
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				mockChainConfig := precompileconfig.NewMockChainConfig(ctrl)
+				mockChainConfig.EXPECT().GetFeeConfig().AnyTimes().Return(commontype.ValidTestFeeConfig)
+				mockChainConfig.EXPECT().AllowedFeeRecipients().AnyTimes().Return(false)
+				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
+				return mockChainConfig
+			},
+			SuppliedGas: DisableRewardsGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check logs are not stored in state
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Zero(t, allLogs)
 			},
 		},
 		"log disable rewards if D fork is active": {
