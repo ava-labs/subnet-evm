@@ -6,12 +6,14 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -203,7 +205,87 @@ func setup(ctx context.Context) {
 	}
 	defer sub.Unsubscribe()
 
+	log.Info("Subscribing to pending txs")
+	newPendingTxs := make(chan *common.Hash, 10)
+	sub, err = chainAWSClient.SubscribeNewPendingTransactions(ctx, newPendingTxs)
+	if err != nil {
+		panic(err)
+	}
+	defer sub.Unsubscribe()
+
 	startingNonce, err := chainAWSClient.NonceAt(ctx, fundedAddress, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create 7 accounts
+	keys := make([]*ecdsa.PrivateKey, 7)
+	accs := make([]common.Address, len(keys))
+
+	for i := 0; i < len(keys); i++ {
+		keys[i], err = crypto.GenerateKey()
+		if err != nil {
+			panic(err)
+		}
+		accs[i] = crypto.PubkeyToAddress(keys[i].PublicKey)
+	}
+
+	// Fund those accounts
+	for i := 0; i < len(keys); i++ {
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   chainID,
+			Nonce:     startingNonce + uint64(i),
+			To:        &accs[i],
+			Gas:       200_000,
+			GasFeeCap: big.NewInt(225 * params.GWei),
+			GasTipCap: big.NewInt(params.GWei),
+			Value:     new(big.Int).Mul(big.NewInt(100_000), big.NewInt(params.Ether)),
+		})
+		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
+		if err != nil {
+			panic(err)
+		}
+		log.Info("Funding account", "account", accs[i], "txHash", signedTx.Hash())
+		err = chainAWSClient.SendTransaction(ctx, signedTx)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	targetNonce := startingNonce + uint64(len(keys))
+	for targetNonce != startingNonce {
+		log.Info("Blocking until all accounts are funded")
+		startingNonce, err = chainAWSClient.NonceAt(ctx, fundedAddress, nil)
+		if err != nil {
+			panic(err)
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	for i := 0; i < len(keys); i++ {
+		bal, err := chainAWSClient.BalanceAt(ctx, accs[i], nil)
+		if err != nil {
+			panic(err)
+		}
+		log.Info("Account balance", "account", accs[i], "balance", bal)
+	}
+
+	go listenForLogs(ctx, newHeads, chainAWSClient)
+	go listenForPendingTxs(ctx, newPendingTxs, chainAWSClient)
+
+	time.Sleep(5 * time.Second)
+
+	go spamWarpMessages(ctx, chainAWSClient, fundedKey, fundedAddress, 50)
+
+	for i := 0; i < len(keys); i++ {
+		go spamWarpMessages(ctx, chainAWSClient, keys[i], accs[i], 50)
+	}
+}
+
+func spamWarpMessages(ctx context.Context, client ethclient.Client, key *ecdsa.PrivateKey, addr common.Address, numTxs uint64) {
+	log.Info("spamming network with warp messages", "addr", addr, "numTxs", numTxs)
+
+	startingNonce, err := client.NonceAt(ctx, addr, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -213,12 +295,10 @@ func setup(ctx context.Context) {
 		panic(err)
 	}
 
-	go listenForLogs(ctx, newHeads, chainAWSClient)
-
-	for i := startingNonce; i < 1000; i++ {
+	for i := uint64(0); i < numTxs; i++ {
 		tx := types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainID,
-			Nonce:     i,
+			Nonce:     startingNonce + i,
 			To:        &warp.Module.Address,
 			Gas:       200_000,
 			GasFeeCap: big.NewInt(225 * params.GWei),
@@ -226,15 +306,21 @@ func setup(ctx context.Context) {
 			Value:     common.Big0,
 			Data:      packedInput,
 		})
-		signedTx, err := types.SignTx(tx, txSigner, fundedKey)
+		signedTx, err := types.SignTx(tx, txSigner, key)
 		if err != nil {
 			panic(err)
 		}
-		log.Info("Sending sendWarpMessage transaction", "txHash", signedTx.Hash())
-		err = chainAWSClient.SendTransaction(ctx, signedTx)
+		err = client.SendTransaction(ctx, signedTx)
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+func listenForPendingTxs(ctx context.Context, newPendingTxs chan *common.Hash, client ethclient.Client) {
+	for {
+		newPendingTx := <-newPendingTxs
+		log.Info("new pending tx", "txHash", newPendingTx)
 	}
 }
 
@@ -242,6 +328,8 @@ func listenForLogs(ctx context.Context, newHeads chan *types.Header, chainAWSCli
 	for {
 		newHead := <-newHeads
 		blockHash := newHead.Hash()
+
+		log.Info("new block", "blockHash", blockHash)
 
 		logs, err := chainAWSClient.FilterLogs(ctx, interfaces.FilterQuery{
 			BlockHash: &blockHash,
