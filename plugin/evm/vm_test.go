@@ -3426,7 +3426,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			// Each iteration runs the TestOffChainWarpMessages function so vm can shut down properly
+			// Each iteration runs the testOffChainWarpMessages function so vm can shut down properly
 			testOffChainWarpMessages(test)
 		})
 	}
