@@ -229,6 +229,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotSetRewardAddress, caller)
 	}
 	// allow list code ends here.
+
 	if err := StoreRewardAddress(stateDB, rewardAddress); err != nil {
 		return nil, remainingGas, err
 	}
@@ -299,6 +300,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotDisableRewards, caller)
 	}
 	// allow list code ends here.
+
 	DisableFeeRewards(stateDB)
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
