@@ -59,7 +59,6 @@ type backend struct {
 	messageSignatureCache *cache.LRU[ids.ID, [bls.SignatureLen]byte]
 	blockSignatureCache   *cache.LRU[ids.ID, [bls.SignatureLen]byte]
 	messageCache          *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
-	signatureCache        *cache.LRU[ids.ID, [bls.SignatureLen]byte]
 	offChainMessageMap    map[ids.ID]*avalancheWarp.UnsignedMessage
 }
 
@@ -74,7 +73,6 @@ func NewBackend(networkID uint32, sourceChainID ids.ID, warpSigner avalancheWarp
 		messageSignatureCache: &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
 		blockSignatureCache:   &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
 		messageCache:          &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: cacheSize},
-		signatureCache:        &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
 		offChainMessageMap:    make(map[ids.ID]*avalancheWarp.UnsignedMessage),
 	}
 }
