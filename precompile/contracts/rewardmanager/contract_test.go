@@ -32,7 +32,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
+			SuppliedGas: PostDForkAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotAllowFeeRecipients.Error(),
 		},
@@ -45,7 +45,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetRewardAddressGasCost,
+			SuppliedGas: PostDForkSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotSetRewardAddress.Error(),
 		},
@@ -58,7 +58,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: DisableRewardsGasCost,
+			SuppliedGas: PostForkDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotDisableRewards.Error(),
 		},
@@ -71,7 +71,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
+			SuppliedGas: PostDForkAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -95,7 +95,7 @@ var (
 				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
 				return mockChainConfig
 			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
+			SuppliedGas: PreDForkAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -113,7 +113,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
+			SuppliedGas: PostDForkAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -138,7 +138,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetRewardAddressGasCost,
+			SuppliedGas: PostDForkSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -156,7 +156,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
+			SuppliedGas: PostDForkAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -173,7 +173,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetRewardAddressGasCost,
+			SuppliedGas: PostDForkSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -198,7 +198,7 @@ var (
 				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
 				return mockChainConfig
 			},
-			SuppliedGas: SetRewardAddressGasCost,
+			SuppliedGas: PreDForkSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -216,7 +216,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetRewardAddressGasCost,
+			SuppliedGas: PostDForkSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -242,7 +242,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: DisableRewardsGasCost,
+			SuppliedGas: PostForkDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -260,7 +260,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: DisableRewardsGasCost,
+			SuppliedGas: PostForkDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -285,7 +285,7 @@ var (
 				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
 				return mockChainConfig
 			},
-			SuppliedGas: DisableRewardsGasCost,
+			SuppliedGas: PreForkDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -303,7 +303,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: DisableRewardsGasCost,
+			SuppliedGas: PostForkDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -417,7 +417,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
+			SuppliedGas: PostDForkAllowFeeRecipientsGasCost,
 			ReadOnly:    true,
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
@@ -430,7 +430,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetRewardAddressGasCost,
+			SuppliedGas: PostDForkSetRewardAddressGasCost,
 			ReadOnly:    true,
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
@@ -443,7 +443,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: SetRewardAddressGasCost - 1,
+			SuppliedGas: PostDForkSetRewardAddressGasCost - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
@@ -456,7 +456,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: AllowFeeRecipientsGasCost - 1,
+			SuppliedGas: PostDForkAllowFeeRecipientsGasCost - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},

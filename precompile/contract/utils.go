@@ -18,6 +18,9 @@ import (
 const (
 	WriteGasCostPerSlot = 20_000
 	ReadGasCostPerSlot  = 5_000
+
+	DuplicatedLogGas      uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
+	DuplicatedLogTopicGas uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
 )
 
 var functionSignatureRegex = regexp.MustCompile(`\w+\((\w*|(\w+,)+\w+)\)`)
