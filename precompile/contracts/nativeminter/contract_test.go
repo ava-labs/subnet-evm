@@ -4,9 +4,7 @@
 package nativeminter
 
 import (
-	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -30,7 +28,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    false,
 		ExpectedErr: ErrCannotMint.Error(),
 	},
@@ -43,7 +41,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -71,7 +69,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -87,7 +85,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -103,7 +101,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -119,7 +117,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    true,
 		ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 	},
@@ -132,7 +130,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    true,
 		ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 	},
@@ -145,7 +143,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    true,
 		ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 	},
@@ -158,7 +156,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost - 1,
+		SuppliedGas: UpgradedMintGasCost - 1,
 		ReadOnly:    false,
 		ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 	},
@@ -183,6 +181,28 @@ var tests = map[string]testutils.PrecompileTest{
 		ReadOnly:    false,
 		ExpectedErr: ErrInvalidLen.Error(),
 	},
+	"mint doesn't log if D fork is not active": {
+		Caller:     allowlist.TestEnabledAddr,
+		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+		ChainConfigFn: func(t testing.TB) precompileconfig.ChainConfig {
+			config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+			config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
+			return config
+		},
+		InputFn: func(t testing.TB) []byte {
+			input, err := PackMintNativeCoin(allowlist.TestEnabledAddr, common.Big1)
+			require.NoError(t, err)
+			return input
+		},
+		SuppliedGas: MintGasCost,
+		ReadOnly:    false,
+		ExpectedRes: []byte{},
+		AfterHook: func(t testing.TB, baseState contract.StateDB) {
+			// Check no logs are stored in state
+			allLogs := baseState.(*state.StateDB).Logs()
+			require.Zero(t, allLogs)
+		},
+	},
 	"mint with extra padded bytes should succeed with DUpgrade": {
 		Caller:     allowlist.TestEnabledAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -201,10 +221,41 @@ var tests = map[string]testutils.PrecompileTest{
 			return input
 		},
 		ExpectedRes: []byte{},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: UpgradedMintGasCost,
 		ReadOnly:    false,
 		AfterHook: func(t testing.TB, state contract.StateDB) {
 			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
+		},
+	},
+	"mint does log if D fork is active": {
+		Caller:     allowlist.TestEnabledAddr,
+		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
+		ChainConfigFn: func(t testing.TB) precompileconfig.ChainConfig {
+			config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
+			config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+			return config
+		},
+		InputFn: func(t testing.TB) []byte {
+			input, err := PackMintNativeCoin(allowlist.TestEnabledAddr, common.Big1)
+			require.NoError(t, err)
+
+			// Add extra bytes to the end of the input
+			input = append(input, make([]byte, 32)...)
+
+			return input
+		},
+		SuppliedGas: UpgradedMintGasCost,
+		ReadOnly:    false,
+		ExpectedRes: []byte{},
+		AfterHook: func(t testing.TB, baseState contract.StateDB) {
+			// Check logs are stored in state
+			expectedTopics, _, err := PackCoinMintedEvent(allowlist.TestEnabledAddr, allowlist.TestEnabledAddr, common.Big1)
+			require.NoError(t, err)
+
+			allLogs := baseState.(*state.StateDB).Logs()
+			require.Len(t, allLogs, 1)
+			require.Equal(t, expectedTopics, allLogs[0].Topics)
+			require.Zero(t, allLogs[0].Data)
 		},
 	},
 }
@@ -215,48 +266,4 @@ func TestContractNativeMinterRun(t *testing.T) {
 
 func BenchmarkContractNativeMinter(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
-}
-
-func TestNativeMinterLogging(t *testing.T) {
-	require := require.New(t)
-	ctrl := gomock.NewController(t)
-
-	blockContext := contract.NewMockBlockContext(ctrl)
-	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
-	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
-
-	config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-	config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
-
-	baseState := state.NewTestStateDB(t)
-	accessibleState := contract.NewMockAccessibleState(ctrl)
-	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
-	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
-	accessibleState.EXPECT().GetChainConfig().Return(config).AnyTimes()
-
-	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
-
-	to, amount := allowlist.TestNoRoleAddr, common.Big1
-
-	input, err := PackMintNativeCoin(to, amount)
-	require.NoError(err)
-	input = input[4:] // drop selector
-
-	_, _, err = mintNativeCoin(
-		accessibleState,
-		allowlist.TestAdminAddr,
-		Module.Address,
-		input,
-		MintGasCost,
-		false,
-	)
-	require.NoError(err)
-
-	// Check logs are stored in state
-	expectedTopics, _, err := PackMintNativeCoinEvent(allowlist.TestAdminAddr, to, amount)
-	require.NoError(err)
-
-	allLogs := baseState.(*state.StateDB).Logs()
-	require.Len(allLogs, 1)
-	require.Equal(expectedTopics, allLogs[0].Topics)
 }

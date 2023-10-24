@@ -18,10 +18,8 @@ import (
 const (
 	mintInputLen = common.HashLength + common.HashLength
 
-	DuplicatedLogGas      uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
-	DuplicatedLogTopicGas uint64 = 375 // TODO: duplicated from params/protocol_params.go to avoid import cycle in tests.
-
-	MintGasCost = DuplicatedLogGas + 3*DuplicatedLogTopicGas + 30_000
+	MintGasCost         uint64 = 20_000
+	UpgradedMintGasCost uint64 = 3*contract.LogTopicGas + MintGasCost
 )
 
 type MintNativeCoinInput struct {
@@ -79,7 +77,15 @@ func UnpackMintNativeCoinInput(input []byte, skipLenCheck bool) (common.Address,
 // mintNativeCoin checks if the caller is permissioned for minting operation.
 // The execution function parses the [input] into native coin amount and receiver address.
 func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	if remainingGas, err = contract.DeductGas(suppliedGas, MintGasCost); err != nil {
+	var (
+		isDUpgradeActive = contract.IsDUpgradeActivated(accessibleState)
+		requiredGas      = MintGasCost
+	)
+
+	if isDUpgradeActive {
+		requiredGas = UpgradedMintGasCost
+	}
+	if remainingGas, err = contract.DeductGas(suppliedGas, requiredGas); err != nil {
 		return nil, 0, err
 	}
 
@@ -87,7 +93,7 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
-	skipLenCheck := contract.IsDUpgradeActivated(accessibleState)
+	skipLenCheck := isDUpgradeActive
 	to, amount, err := UnpackMintNativeCoinInput(input, skipLenCheck)
 	if err != nil {
 		return nil, remainingGas, err
@@ -108,16 +114,18 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 	stateDB.AddBalance(to, amount)
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackMintNativeCoinEvent(caller, to, amount)
-	if err != nil {
-		return nil, remainingGas, err
+	if isDUpgradeActive {
+		topics, data, err := PackCoinMintedEvent(caller, to, amount)
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		accessibleState.GetStateDB().AddLog(
+			ContractAddress,
+			topics,
+			data,
+			accessibleState.GetBlockContext().Number().Uint64(),
+		)
 	}
-	accessibleState.GetStateDB().AddLog(
-		ContractAddress,
-		topics,
-		data,
-		accessibleState.GetBlockContext().Number().Uint64(),
-	)
 
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
