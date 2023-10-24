@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 )
@@ -354,10 +355,14 @@ func TestSetRewardAddressLogging(t *testing.T) {
 	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
 	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 
+	chainConfig := precompileconfig.NewMockChainConfig(ctrl)
+	chainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(true)
+
 	baseState := state.NewTestStateDB(t)
 	accessibleState := contract.NewMockAccessibleState(ctrl)
 	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
 	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
 
 	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
 
@@ -385,6 +390,7 @@ func TestSetRewardAddressLogging(t *testing.T) {
 	allLogs := baseState.(*state.StateDB).Logs()
 	require.Len(allLogs, 1)
 	require.Equal(expectedTopic, allLogs[0].Topics)
+	require.Zero(allLogs[0].Data)
 }
 
 func TestAllowFeeRecipientsLogging(t *testing.T) {
@@ -395,10 +401,14 @@ func TestAllowFeeRecipientsLogging(t *testing.T) {
 	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
 	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 
+	chainConfig := precompileconfig.NewMockChainConfig(ctrl)
+	chainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(true)
+
 	baseState := state.NewTestStateDB(t)
 	accessibleState := contract.NewMockAccessibleState(ctrl)
 	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
 	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
 
 	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
 
@@ -421,6 +431,7 @@ func TestAllowFeeRecipientsLogging(t *testing.T) {
 	allLogs := baseState.(*state.StateDB).Logs()
 	require.Len(allLogs, 1)
 	require.Equal(expectedTopic, allLogs[0].Topics)
+	require.Zero(allLogs[0].Data)
 }
 
 func TestDisableRewardsLogging(t *testing.T) {
@@ -431,10 +442,14 @@ func TestDisableRewardsLogging(t *testing.T) {
 	blockContext.EXPECT().Number().Return(big.NewInt(0)).AnyTimes()
 	blockContext.EXPECT().Timestamp().Return(uint64(time.Now().Unix())).AnyTimes()
 
+	chainConfig := precompileconfig.NewMockChainConfig(ctrl)
+	chainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(true)
+
 	baseState := state.NewTestStateDB(t)
 	accessibleState := contract.NewMockAccessibleState(ctrl)
 	accessibleState.EXPECT().GetStateDB().Return(baseState).AnyTimes()
 	accessibleState.EXPECT().GetBlockContext().Return(blockContext).AnyTimes()
+	accessibleState.EXPECT().GetChainConfig().Return(chainConfig).AnyTimes()
 
 	allowlist.SetAllowListRole(baseState, Module.Address, allowlist.TestAdminAddr, allowlist.AdminRole)
 
@@ -457,4 +472,5 @@ func TestDisableRewardsLogging(t *testing.T) {
 	allLogs := baseState.(*state.StateDB).Logs()
 	require.Len(allLogs, 1)
 	require.Equal(expectedTopic, allLogs[0].Topics)
+	require.Zero(allLogs[0].Data)
 }

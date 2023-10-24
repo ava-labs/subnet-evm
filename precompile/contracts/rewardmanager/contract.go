@@ -105,16 +105,22 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 	packedOutput := []byte{}
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackFeeRecipientsAllowedEvent(caller)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-	accessibleState.GetStateDB().AddLog(
-		ContractAddress,
-		topics,
-		data,
-		accessibleState.GetBlockContext().Number().Uint64(),
+	var (
+		chainCfg = accessibleState.GetChainConfig()
+		blkCtx   = accessibleState.GetBlockContext()
 	)
+	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+		topics, data, err := PackFeeRecipientsAllowedEvent(caller)
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		stateDB.AddLog(
+			ContractAddress,
+			topics,
+			data,
+			blkCtx.Number().Uint64(),
+		)
+	}
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
@@ -230,16 +236,22 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 	packedOutput := []byte{}
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackRewardAddressChangedEvent(caller, rewardAddress)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-	accessibleState.GetStateDB().AddLog(
-		ContractAddress,
-		topics,
-		data,
-		accessibleState.GetBlockContext().Number().Uint64(),
+	var (
+		chainCfg = accessibleState.GetChainConfig()
+		blkCtx   = accessibleState.GetBlockContext()
 	)
+	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+		topics, data, err := PackRewardAddressChangedEvent(caller, rewardAddress)
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		stateDB.AddLog(
+			ContractAddress,
+			topics,
+			data,
+			blkCtx.Number().Uint64(),
+		)
+	}
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
@@ -292,16 +304,22 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 	packedOutput := []byte{}
 
 	// Add a log to be handled if this action is finalized.
-	topics, data, err := PackRewardsDisabledEvent(caller)
-	if err != nil {
-		return nil, remainingGas, err
-	}
-	accessibleState.GetStateDB().AddLog(
-		ContractAddress,
-		topics,
-		data,
-		accessibleState.GetBlockContext().Number().Uint64(),
+	var (
+		chainCfg = accessibleState.GetChainConfig()
+		blkCtx   = accessibleState.GetBlockContext()
 	)
+	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+		topics, data, err := PackRewardsDisabledEvent(caller)
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		stateDB.AddLog(
+			ContractAddress,
+			topics,
+			data,
+			blkCtx.Number().Uint64(),
+		)
+	}
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
