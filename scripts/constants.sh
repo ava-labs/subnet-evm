@@ -25,8 +25,6 @@ fi
 
 echo "Using branch: ${CURRENT_BRANCH}"
 
-BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${AVALANCHEGO_VERSION}-Subnet-EVM-${CURRENT_BRANCH}"}
-
 # Static compilation
 STATIC_LD_FLAGS=''
 if [ "${STATIC_COMPILATION:-}" = 1 ]; then
