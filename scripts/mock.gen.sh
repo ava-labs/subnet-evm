@@ -19,6 +19,8 @@ if ! command -v go-license &>/dev/null; then
   go install -v github.com/palantir/go-license@v1.25.0
 fi
 
+source ./scripts/constants.sh
+
 # tuples of (source interface import path, comma-separated interface names, output file path)
 input="scripts/mocks.mockgen.txt"
 while IFS= read -r line; do
