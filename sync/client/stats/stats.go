@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/coreth/metrics"
+	"github.com/ava-labs/coreth/plugin/evm/message"
 )
 
 var (
@@ -99,7 +99,14 @@ func (c *clientSyncerStats) GetMetric(msgIntf message.Request) (MessageMetric, e
 	case message.CodeRequest:
 		return c.codeRequestMetric, nil
 	case message.LeafsRequest:
-		return c.stateTrieLeavesMetric, nil
+		switch msg.NodeType {
+		case message.StateTrieNode:
+			return c.stateTrieLeavesMetric, nil
+		case message.AtomicTrieNode:
+			return c.atomicTrieLeavesMetric, nil
+		default:
+			return nil, fmt.Errorf("invalid leafs request for node type: %T", msg.NodeType)
+		}
 	default:
 		return nil, fmt.Errorf("attempted to get metric for invalid request with type %T", msg)
 	}

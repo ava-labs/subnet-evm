@@ -4,18 +4,18 @@
 package statesync
 
 import (
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state/snapshot"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 // writeAccountSnapshot stores the account represented by [acc] to the snapshot at [accHash], using
 // SlimAccountRLP format (omitting empty code/storage).
 func writeAccountSnapshot(db ethdb.KeyValueWriter, accHash common.Hash, acc types.StateAccount) {
-	slimAccount := snapshot.SlimAccountRLP(acc.Nonce, acc.Balance, acc.Root, acc.CodeHash)
+	slimAccount := snapshot.SlimAccountRLP(acc.Nonce, acc.Balance, acc.Root, acc.CodeHash, acc.IsMultiCoin)
 	rawdb.WriteAccountSnapshot(db, accHash, slimAccount)
 }
 

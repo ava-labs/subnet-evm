@@ -29,7 +29,7 @@ package vm
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/params"
 )
 
 type (
@@ -62,7 +62,9 @@ var (
 	byzantiumInstructionSet        = newByzantiumInstructionSet()
 	constantinopleInstructionSet   = newConstantinopleInstructionSet()
 	istanbulInstructionSet         = newIstanbulInstructionSet()
-	subnetEVMInstructionSet        = newSubnetEVMInstructionSet()
+	apricotPhase1InstructionSet    = newApricotPhase1InstructionSet()
+	apricotPhase2InstructionSet    = newApricotPhase2InstructionSet()
+	apricotPhase3InstructionSet    = newApricotPhase3InstructionSet()
 	dUpgradeInstructionSet         = newDUpgradeInstructionSet()
 )
 
@@ -87,26 +89,46 @@ func validate(jt JumpTable) JumpTable {
 	return jt
 }
 
-// newDUpgradeInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg, subnet-evm, d-upgrade instructions.
 func newDUpgradeInstructionSet() JumpTable {
-	instructionSet := newSubnetEVMInstructionSet()
+	instructionSet := newApricotPhase3InstructionSet()
 	enable3855(&instructionSet) // PUSH0 instruction
 	enable3860(&instructionSet) // Limit and meter initcode
 	return validate(instructionSet)
 }
 
-// newSubnetEVMInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg, subnet-evm instructions.
-func newSubnetEVMInstructionSet() JumpTable {
-	instructionSet := newIstanbulInstructionSet()
-	enable2929(&instructionSet)
+// newApricotPhase3InstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul, petersburg, apricotPhase1, 2, and 3 instructions.
+func newApricotPhase3InstructionSet() JumpTable {
+	instructionSet := newApricotPhase2InstructionSet()
 	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
 	return validate(instructionSet)
 }
 
+// newApricotPhase1InstructionSet returns the frontier,
+// homestead, byzantium, constantinople petersburg,
+// istanbul, and apricotPhase1 instructions.
+func newApricotPhase2InstructionSet() JumpTable {
+	instructionSet := newApricotPhase1InstructionSet()
+
+	enable2929(&instructionSet)
+	enableAP2(&instructionSet)
+
+	return validate(instructionSet)
+}
+
+// newApricotPhase1InstructionSet returns the frontier,
+// homestead, byzantium, constantinople petersburg,
+// and istanbul instructions.
+func newApricotPhase1InstructionSet() JumpTable {
+	instructionSet := newIstanbulInstructionSet()
+
+	enableAP1(&instructionSet)
+
+	return validate(instructionSet)
+}
+
 // newIstanbulInstructionSet returns the frontier,
-// homestead, byzantium, contantinople and petersburg instructions.
+// homestead, byzantium, constantinople and petersburg instructions.
 func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 
@@ -118,7 +140,7 @@ func newIstanbulInstructionSet() JumpTable {
 }
 
 // newConstantinopleInstructionSet returns the frontier, homestead,
-// byzantium and contantinople instructions.
+// byzantium and constantinople instructions.
 func newConstantinopleInstructionSet() JumpTable {
 	instructionSet := newByzantiumInstructionSet()
 	instructionSet[SHL] = &operation{
@@ -207,6 +229,7 @@ func newTangerineWhistleInstructionSet() JumpTable {
 	instructionSet[SLOAD].constantGas = params.SloadGasEIP150
 	instructionSet[EXTCODECOPY].constantGas = params.ExtcodeCopyBaseEIP150
 	instructionSet[CALL].constantGas = params.CallGasEIP150
+	instructionSet[CALLEX].constantGas = params.CallGasEIP150
 	instructionSet[CALLCODE].constantGas = params.CallGasEIP150
 	instructionSet[DELEGATECALL].constantGas = params.CallGasEIP150
 	return validate(instructionSet)
@@ -388,6 +411,12 @@ func newFrontierInstructionSet() JumpTable {
 			constantGas: params.BalanceGasFrontier,
 			minStack:    minStack(1, 1),
 			maxStack:    maxStack(1, 1),
+		},
+		BALANCEMC: {
+			execute:     opBalanceMultiCoin,
+			constantGas: params.BalanceGasFrontier,
+			minStack:    minStack(2, 1),
+			maxStack:    maxStack(2, 1),
 		},
 		ORIGIN: {
 			execute:     opOrigin,
@@ -1009,6 +1038,14 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:    minStack(7, 1),
 			maxStack:    maxStack(7, 1),
 			memorySize:  memoryCall,
+		},
+		CALLEX: {
+			execute:     opCallExpert,
+			constantGas: params.CallGasFrontier,
+			dynamicGas:  gasCall,
+			minStack:    minStack(9, 1),
+			maxStack:    maxStack(9, 1),
+			memorySize:  memoryCallExpert,
 		},
 		CALLCODE: {
 			execute:     opCallCode,

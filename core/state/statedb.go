@@ -34,13 +34,13 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/predicate"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state/snapshot"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/metrics"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/trie"
+	"github.com/ava-labs/coreth/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
@@ -91,8 +91,10 @@ type StateDB struct {
 	// DB error.
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
-	// during a database read is memoized here and will eventually be returned
-	// by StateDB.Commit.
+	// during a database read is memoized here and will eventually be
+	// returned by StateDB.Commit. Notably, this error is also shared
+	// by all cached state objects in case the database failure occurs
+	// when accessing state of accounts.
 	dbErr error
 
 	// The refund counter, also used by state transitioning.
@@ -107,9 +109,6 @@ type StateDB struct {
 
 	// Per-transaction access list
 	accessList *accessList
-	// Ordered storage slots to be used in predicate verification as set in the tx access list.
-	// Only set in PrepareAccessList, and un-modified through execution.
-	predicateStorageSlots map[common.Address][][]byte
 
 	// Transient storage
 	transientStorage transientStorage
@@ -159,20 +158,19 @@ func NewWithSnapshot(root common.Hash, db Database, snap snapshot.Snapshot) (*St
 		return nil, err
 	}
 	sdb := &StateDB{
-		db:                    db,
-		trie:                  tr,
-		originalRoot:          root,
-		stateObjects:          make(map[common.Address]*stateObject),
-		stateObjectsPending:   make(map[common.Address]struct{}),
-		stateObjectsDirty:     make(map[common.Address]struct{}),
-		stateObjectsDestruct:  make(map[common.Address]struct{}),
-		logs:                  make(map[common.Hash][]*types.Log),
-		preimages:             make(map[common.Hash][]byte),
-		journal:               newJournal(),
-		predicateStorageSlots: make(map[common.Address][][]byte),
-		accessList:            newAccessList(),
-		transientStorage:      newTransientStorage(),
-		hasher:                crypto.NewKeccakState(),
+		db:                   db,
+		trie:                 tr,
+		originalRoot:         root,
+		stateObjects:         make(map[common.Address]*stateObject),
+		stateObjectsPending:  make(map[common.Address]struct{}),
+		stateObjectsDirty:    make(map[common.Address]struct{}),
+		stateObjectsDestruct: make(map[common.Address]struct{}),
+		logs:                 make(map[common.Hash][]*types.Log),
+		preimages:            make(map[common.Hash][]byte),
+		journal:              newJournal(),
+		accessList:           newAccessList(),
+		transientStorage:     newTransientStorage(),
+		hasher:               crypto.NewKeccakState(),
 	}
 	if snap != nil {
 		if snap.Root() != root {
@@ -214,20 +212,12 @@ func (s *StateDB) setError(err error) {
 	}
 }
 
+// Error returns the memorized database failure occurred earlier.
 func (s *StateDB) Error() error {
 	return s.dbErr
 }
 
-// AddLog adds a log with the specified parameters to the statedb
-// Note: blockNumber is a required argument because StateDB does not
-// know the current block number.
-func (s *StateDB) AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64) {
-	log := &types.Log{
-		Address:     addr,
-		Topics:      topics,
-		Data:        data,
-		BlockNumber: blockNumber,
-	}
+func (s *StateDB) AddLog(log *types.Log) {
 	s.journal.append(addLogChange{txhash: s.thash})
 
 	log.TxHash = s.thash
@@ -254,18 +244,6 @@ func (s *StateDB) Logs() []*types.Log {
 		logs = append(logs, lgs...)
 	}
 	return logs
-}
-
-// GetLogData returns the underlying data from each log included in the StateDB
-// Test helper function.
-func (s *StateDB) GetLogData() [][]byte {
-	var logData [][]byte
-	for _, lgs := range s.logs {
-		for _, log := range lgs {
-			logData = append(logData, common.CopyBytes(log.Data))
-		}
-	}
-	return logData
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
@@ -323,6 +301,15 @@ func (s *StateDB) GetBalance(addr common.Address) *big.Int {
 	return new(big.Int).Set(common.Big0)
 }
 
+// Retrieve the balance from the given address or 0 if object not found
+func (s *StateDB) GetBalanceMultiCoin(addr common.Address, coinID common.Hash) *big.Int {
+	stateObject := s.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.BalanceMultiCoin(coinID, s.db)
+	}
+	return new(big.Int).Set(common.Big0)
+}
+
 func (s *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
@@ -365,6 +352,7 @@ func (s *StateDB) GetCodeHash(addr common.Address) common.Hash {
 func (s *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
+		NormalizeStateKey(&hash)
 		return stateObject.GetState(s.db, hash)
 	}
 	return common.Hash{}
@@ -403,6 +391,16 @@ func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, 
 func (s *StateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
+		return stateObject.GetCommittedState(s.db, hash)
+	}
+	return common.Hash{}
+}
+
+// GetCommittedStateAP1 retrieves a value from the given account's committed storage trie.
+func (s *StateDB) GetCommittedStateAP1(addr common.Address, hash common.Hash) common.Hash {
+	stateObject := s.getStateObject(addr)
+	if stateObject != nil {
+		NormalizeStateKey(&hash)
 		return stateObject.GetCommittedState(s.db, hash)
 	}
 	return common.Hash{}
@@ -463,6 +461,29 @@ func (s *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 	}
 }
 
+// AddBalance adds amount to the account associated with addr.
+func (s *StateDB) AddBalanceMultiCoin(addr common.Address, coinID common.Hash, amount *big.Int) {
+	stateObject := s.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.AddBalanceMultiCoin(coinID, amount, s.db)
+	}
+}
+
+// SubBalance subtracts amount from the account associated with addr.
+func (s *StateDB) SubBalanceMultiCoin(addr common.Address, coinID common.Hash, amount *big.Int) {
+	stateObject := s.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SubBalanceMultiCoin(coinID, amount, s.db)
+	}
+}
+
+func (s *StateDB) SetBalanceMultiCoin(addr common.Address, coinID common.Hash, amount *big.Int) {
+	stateObject := s.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetBalanceMultiCoin(coinID, amount, s.db)
+	}
+}
+
 func (s *StateDB) SetNonce(addr common.Address, nonce uint64) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
@@ -480,6 +501,7 @@ func (s *StateDB) SetCode(addr common.Address, code []byte) {
 func (s *StateDB) SetState(addr common.Address, key, value common.Hash) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
+		NormalizeStateKey(&key)
 		stateObject.SetState(s.db, key, value)
 	}
 }
@@ -528,13 +550,11 @@ func (s *StateDB) SetTransientState(addr common.Address, key, value common.Hash)
 	if prev == value {
 		return
 	}
-
 	s.journal.append(transientStorageChange{
 		account:  &addr,
 		key:      key,
 		prevalue: prev,
 	})
-
 	s.setTransientState(addr, key, value)
 }
 
@@ -561,7 +581,7 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	}
 	// Encode the account and update the account trie
 	addr := obj.Address()
-	if err := s.trie.TryUpdateAccount(addr, &obj.data); err != nil {
+	if err := s.trie.UpdateAccount(addr, &obj.data); err != nil {
 		s.setError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
 	}
 
@@ -570,7 +590,7 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	// enough to track account updates at commit time, deletions need tracking
 	// at transaction boundary level to ensure we capture state clearing.
 	if s.snap != nil {
-		s.snapAccounts[obj.addrHash] = snapshot.SlimAccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash)
+		s.snapAccounts[obj.addrHash] = snapshot.SlimAccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash, obj.data.IsMultiCoin)
 	}
 }
 
@@ -582,7 +602,7 @@ func (s *StateDB) deleteStateObject(obj *stateObject) {
 	}
 	// Delete the account from the trie
 	addr := obj.Address()
-	if err := s.trie.TryDeleteAccount(addr); err != nil {
+	if err := s.trie.DeleteAccount(addr); err != nil {
 		s.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
 	}
 }
@@ -619,10 +639,11 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 				return nil
 			}
 			data = &types.StateAccount{
-				Nonce:    acc.Nonce,
-				Balance:  acc.Balance,
-				CodeHash: acc.CodeHash,
-				Root:     common.BytesToHash(acc.Root),
+				Nonce:       acc.Nonce,
+				Balance:     acc.Balance,
+				CodeHash:    acc.CodeHash,
+				IsMultiCoin: acc.IsMultiCoin,
+				Root:        common.BytesToHash(acc.Root),
 			}
 			if len(data.CodeHash) == 0 {
 				data.CodeHash = types.EmptyCodeHash.Bytes()
@@ -636,7 +657,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 	if data == nil {
 		start := time.Now()
 		var err error
-		data, err = s.trie.TryGetAccount(addr)
+		data, err = s.trie.GetAccount(addr)
 		if metrics.EnabledExpensive {
 			s.AccountReads += time.Since(start)
 		}
@@ -742,19 +763,6 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 	return nil
 }
 
-// copyPredicateStorageSlots creates a deep copy of the provided predicateStorageSlots map.
-func copyPredicateStorageSlots(predicateStorageSlots map[common.Address][][]byte) map[common.Address][][]byte {
-	res := make(map[common.Address][][]byte, len(predicateStorageSlots))
-	for address, predicates := range predicateStorageSlots {
-		copiedPredicates := make([][]byte, len(predicates))
-		for i, predicateBytes := range predicates {
-			copiedPredicates[i] = common.CopyBytes(predicateBytes)
-		}
-		res[address] = copiedPredicates
-	}
-	return res
-}
-
 // Copy creates a deep, independent copy of the state.
 // Snapshots of the copied state cannot be applied to the copy.
 func (s *StateDB) Copy() *StateDB {
@@ -829,7 +837,6 @@ func (s *StateDB) Copy() *StateDB {
 	// in the middle of a transaction.
 	state.accessList = s.accessList.Copy()
 	state.transientStorage = s.transientStorage.Copy()
-	state.predicateStorageSlots = copyPredicateStorageSlots(s.predicateStorageSlots)
 
 	// If there's a prefetcher running, make an inactive copy of it that can
 	// only access data but does not actively preload (since the user will not
@@ -845,13 +852,13 @@ func (s *StateDB) Copy() *StateDB {
 		state.snap = s.snap
 
 		// deep copy needed
-		state.snapAccounts = make(map[common.Hash][]byte)
+		state.snapAccounts = make(map[common.Hash][]byte, len(s.snapAccounts))
 		for k, v := range s.snapAccounts {
 			state.snapAccounts[k] = v
 		}
-		state.snapStorage = make(map[common.Hash]map[common.Hash][]byte)
+		state.snapStorage = make(map[common.Hash]map[common.Hash][]byte, len(s.snapStorage))
 		for k, v := range s.snapStorage {
-			temp := make(map[common.Hash][]byte)
+			temp := make(map[common.Hash][]byte, len(v))
 			for kk, vv := range v {
 				temp[kk] = vv
 			}
@@ -933,7 +940,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 		addressesToPrefetch = append(addressesToPrefetch, common.CopyBytes(addr[:])) // Copy needed for closure
 	}
 	if s.prefetcher != nil && len(addressesToPrefetch) > 0 {
-		s.prefetcher.prefetch(common.Hash{}, s.originalRoot, addressesToPrefetch)
+		s.prefetcher.prefetch(common.Hash{}, s.originalRoot, common.Address{}, addressesToPrefetch)
 	}
 	// Invalidate journal because reverting across transactions is not allowed.
 	s.clearJournalAndRefund()
@@ -1031,6 +1038,7 @@ func (s *StateDB) CommitWithSnap(deleteEmptyObjects bool, snaps *snapshot.Tree, 
 
 // Commit writes the state to the underlying in-memory trie database.
 func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHash, parentHash common.Hash, referenceRoot bool) (common.Hash, error) {
+	// Short circuit in case any database failure occurred earlier.
 	if s.dbErr != nil {
 		return common.Hash{}, fmt.Errorf("commit aborted due to earlier error: %v", s.dbErr)
 	}
@@ -1043,9 +1051,9 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 		accountTrieNodesDeleted int
 		storageTrieNodesUpdated int
 		storageTrieNodesDeleted int
-		nodes                   = trie.NewMergedNodeSet()
+		nodes                   = trienode.NewMergedNodeSet()
+		codeWriter              = s.db.DiskDB().NewBatch()
 	)
-	codeWriter := s.db.DiskDB().NewBatch()
 	for addr := range s.stateObjectsDirty {
 		if obj := s.stateObjects[addr]; !obj.deleted {
 			// Write any contract code associated with the state object
@@ -1058,7 +1066,7 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 			if err != nil {
 				return common.Hash{}, err
 			}
-			// Merge the dirty nodes of storage trie into global set
+			// Merge the dirty nodes of storage trie into global set.
 			if set != nil {
 				if err := nodes.Merge(set); err != nil {
 					return common.Hash{}, err
@@ -1137,11 +1145,11 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 	if root != origin {
 		start := time.Now()
 		if referenceRoot {
-			if err := s.db.TrieDB().UpdateAndReferenceRoot(nodes, root); err != nil {
+			if err := s.db.TrieDB().UpdateAndReferenceRoot(root, origin, nodes); err != nil {
 				return common.Hash{}, err
 			}
 		} else {
-			if err := s.db.TrieDB().Update(nodes); err != nil {
+			if err := s.db.TrieDB().Update(root, origin, nodes); err != nil {
 				return common.Hash{}, err
 			}
 		}
@@ -1156,18 +1164,18 @@ func (s *StateDB) commit(deleteEmptyObjects bool, snaps *snapshot.Tree, blockHas
 // Prepare handles the preparatory steps for executing a state transition with.
 // This method must be invoked before state transition.
 //
-// Berlin fork:
+// Berlin fork (aka ApricotPhase2):
 // - Add sender to access list (2929)
 // - Add destination to access list (2929)
 // - Add precompiles to access list (2929)
 // - Add the contents of the optional tx access list (2930)
 //
 // Potential EIPs:
-// - Reset access list (Berlin)
+// - Reset access list (Berlin/ApricotPhase2)
 // - Add coinbase to access list (EIP-3651/DUpgrade)
 // - Reset transient storage (EIP-1153)
 func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
-	if rules.IsSubnetEVM {
+	if rules.IsApricotPhase2 {
 		// Clear out any leftover from previous executions
 		al := newAccessList()
 		s.accessList = al
@@ -1189,8 +1197,6 @@ func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, d
 		if rules.IsDUpgrade { // EIP-3651: warm coinbase
 			al.AddAddress(coinbase)
 		}
-
-		s.predicateStorageSlots = predicate.PreparePredicateStorageSlots(rules, list)
 	}
 	// Reset transient storage at the beginning of transaction execution
 	s.transientStorage = newTransientStorage()
@@ -1231,35 +1237,9 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 	return s.accessList.Contains(addr, slot)
 }
 
-// GetTxHash returns the current tx hash on the StateDB set by SetTxContext.
-func (s *StateDB) GetTxHash() common.Hash {
-	return s.thash
-}
-
-// GetPredicateStorageSlots returns the storage slots associated with the address, index pair.
-// A list of access tuples can be included within transaction types post EIP-2930. The address
-// is declared directly on the access tuple and the index is the i'th occurrence of an access
-// tuple with the specified address.
-//
-// Ex. AccessList[[AddrA, Predicate1], [AddrB, Predicate2], [AddrA, Predicate3]]
-// In this case, the caller could retrieve predicates 1-3 with the following calls:
-// GetPredicateStorageSlots(AddrA, 0) -> Predicate1
-// GetPredicateStorageSlots(AddrB, 0) -> Predicate2
-// GetPredicateStorageSlots(AddrA, 1) -> Predicate3
-func (s *StateDB) GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool) {
-	predicates, exists := s.predicateStorageSlots[address]
-	if !exists {
-		return nil, false
-	}
-	if index >= len(predicates) {
-		return nil, false
-	}
-	return predicates[index], true
-}
-
 // convertAccountSet converts a provided account set from address keyed to hash keyed.
 func (s *StateDB) convertAccountSet(set map[common.Address]struct{}) map[common.Hash]struct{} {
-	ret := make(map[common.Hash]struct{})
+	ret := make(map[common.Hash]struct{}, len(set))
 	for addr := range set {
 		obj, exist := s.stateObjects[addr]
 		if !exist {
@@ -1269,9 +1249,4 @@ func (s *StateDB) convertAccountSet(set map[common.Address]struct{}) map[common.
 		}
 	}
 	return ret
-}
-
-// SetPredicateStorageSlots sets the predicate storage slots for the given address
-func (s *StateDB) SetPredicateStorageSlots(address common.Address, predicates [][]byte) {
-	s.predicateStorageSlots[address] = predicates
 }

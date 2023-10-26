@@ -32,25 +32,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/internal/version"
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/state/snapshot"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/internal/version"
+	"github.com/ava-labs/coreth/metrics"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/event"
@@ -81,14 +79,12 @@ var (
 	blockValidationTimer        = metrics.NewRegisteredCounter("chain/block/validations/state", nil)
 	blockWriteTimer             = metrics.NewRegisteredCounter("chain/block/writes", nil)
 
-	acceptorQueueGauge            = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
-	acceptorWorkTimer             = metrics.NewRegisteredCounter("chain/acceptor/work", nil)
-	acceptorWorkCount             = metrics.NewRegisteredCounter("chain/acceptor/work/count", nil)
-	lastAcceptedBlockBaseFeeGauge = metrics.NewRegisteredGauge("chain/block/fee/basefee", nil)
-	blockTotalFeesGauge           = metrics.NewRegisteredGauge("chain/block/fee/total", nil)
-	processedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
-	acceptedBlockGasUsedCounter   = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
-	badBlockCounter               = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
+	acceptorQueueGauge           = metrics.NewRegisteredGauge("chain/acceptor/queue/size", nil)
+	acceptorWorkTimer            = metrics.NewRegisteredCounter("chain/acceptor/work", nil)
+	acceptorWorkCount            = metrics.NewRegisteredCounter("chain/acceptor/work/count", nil)
+	processedBlockGasUsedCounter = metrics.NewRegisteredCounter("chain/block/gas/used/processed", nil)
+	acceptedBlockGasUsedCounter  = metrics.NewRegisteredCounter("chain/block/gas/used/accepted", nil)
+	badBlockCounter              = metrics.NewRegisteredCounter("chain/block/bad/count", nil)
 
 	txUnindexTimer      = metrics.NewRegisteredCounter("chain/txs/unindex", nil)
 	acceptedTxsCounter  = metrics.NewRegisteredCounter("chain/txs/accepted", nil)
@@ -104,13 +100,11 @@ var (
 )
 
 const (
-	bodyCacheLimit           = 256
-	blockCacheLimit          = 256
-	receiptsCacheLimit       = 32
-	txLookupCacheLimit       = 1024
-	feeConfigCacheLimit      = 256
-	coinbaseConfigCacheLimit = 256
-	badBlockLimit            = 10
+	bodyCacheLimit     = 256
+	blockCacheLimit    = 256
+	receiptsCacheLimit = 32
+	txLookupCacheLimit = 1024
+	badBlockLimit      = 10
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	//
@@ -145,20 +139,6 @@ const (
 	// clean cache's underlying fastcache.
 	trieCleanCacheStatsNamespace = "trie/memcache/clean/fastcache"
 )
-
-// cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
-// in order to cache them together.
-type cacheableFeeConfig struct {
-	feeConfig     commontype.FeeConfig
-	lastChangedAt *big.Int
-}
-
-// cacheableCoinbaseConfig encapsulates coinbase address itself and allowFeeRecipient flag,
-// in order to cache them together.
-type cacheableCoinbaseConfig struct {
-	coinbaseAddress    common.Address
-	allowFeeRecipients bool
-}
 
 // CacheConfig contains the configuration values for the trie database
 // that's resident in a blockchain.
@@ -239,15 +219,13 @@ type BlockChain struct {
 
 	currentBlock atomic.Pointer[types.Header] // Current head of the block chain
 
-	bodyCache           *lru.Cache[common.Hash, *types.Body]                // Cache for the most recent block bodies
-	receiptsCache       *lru.Cache[common.Hash, []*types.Receipt]           // Cache for the most recent receipts per block
-	blockCache          *lru.Cache[common.Hash, *types.Block]               // Cache for the most recent entire blocks
-	txLookupCache       *lru.Cache[common.Hash, *rawdb.LegacyTxLookupEntry] // Cache for the most recent transaction lookup data.
-	badBlocks           *lru.Cache[common.Hash, *badBlock]                  // Cache for bad blocks
-	feeConfigCache      *lru.Cache[common.Hash, *cacheableFeeConfig]        // Cache for the most recent feeConfig lookup data.
-	coinbaseConfigCache *lru.Cache[common.Hash, *cacheableCoinbaseConfig]   // Cache for the most recent coinbaseConfig lookup data.
+	bodyCache     *lru.Cache[common.Hash, *types.Body]                // Cache for the most recent block bodies
+	receiptsCache *lru.Cache[common.Hash, []*types.Receipt]           // Cache for the most recent receipts per block
+	blockCache    *lru.Cache[common.Hash, *types.Block]               // Cache for the most recent entire blocks
+	txLookupCache *lru.Cache[common.Hash, *rawdb.LegacyTxLookupEntry] // Cache for the most recent transaction lookup data.
+	badBlocks     *lru.Cache[common.Hash, *badBlock]                  // Cache for bad blocks
 
-	running int32 // 0 if chain is running, 1 when stopped
+	stopping atomic.Bool // false if chain is running, true when stopped
 
 	engine     consensus.Engine
 	validator  Validator  // Block and state validator interface
@@ -336,23 +314,21 @@ func NewBlockChain(
 	log.Info("")
 
 	bc := &BlockChain{
-		chainConfig:         chainConfig,
-		cacheConfig:         cacheConfig,
-		db:                  db,
-		triedb:              triedb,
-		bodyCache:           lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
-		receiptsCache:       lru.NewCache[common.Hash, []*types.Receipt](receiptsCacheLimit),
-		blockCache:          lru.NewCache[common.Hash, *types.Block](blockCacheLimit),
-		txLookupCache:       lru.NewCache[common.Hash, *rawdb.LegacyTxLookupEntry](txLookupCacheLimit),
-		badBlocks:           lru.NewCache[common.Hash, *badBlock](badBlockLimit),
-		feeConfigCache:      lru.NewCache[common.Hash, *cacheableFeeConfig](feeConfigCacheLimit),
-		coinbaseConfigCache: lru.NewCache[common.Hash, *cacheableCoinbaseConfig](coinbaseConfigCacheLimit),
-		engine:              engine,
-		vmConfig:            vmConfig,
-		senderCacher:        NewTxSenderCacher(runtime.NumCPU()),
-		acceptorQueue:       make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
-		quit:                make(chan struct{}),
-		acceptedLogsCache:   NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
+		chainConfig:       chainConfig,
+		cacheConfig:       cacheConfig,
+		db:                db,
+		triedb:            triedb,
+		bodyCache:         lru.NewCache[common.Hash, *types.Body](bodyCacheLimit),
+		receiptsCache:     lru.NewCache[common.Hash, []*types.Receipt](receiptsCacheLimit),
+		blockCache:        lru.NewCache[common.Hash, *types.Block](blockCacheLimit),
+		txLookupCache:     lru.NewCache[common.Hash, *rawdb.LegacyTxLookupEntry](txLookupCacheLimit),
+		badBlocks:         lru.NewCache[common.Hash, *badBlock](badBlockLimit),
+		engine:            engine,
+		vmConfig:          vmConfig,
+		senderCacher:      NewTxSenderCacher(runtime.NumCPU()),
+		acceptorQueue:     make(chan *types.Block, cacheConfig.AcceptorQueueLimit),
+		quit:              make(chan struct{}),
+		acceptedLogsCache: NewFIFOCache[common.Hash, [][]*types.Log](cacheConfig.AcceptedCacheSize),
 	}
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
@@ -935,14 +911,14 @@ func (bc *BlockChain) ValidateCanonicalChain() error {
 	return nil
 }
 
-// stop stops the blockchain service. If any imports are currently in progress
+// stopWithoutSaving stops the blockchain service. If any imports are currently in progress
 // it will abort them using the procInterrupt. This method stops all running
 // goroutines, but does not do all the post-stop work of persisting data.
 // OBS! It is generally recommended to use the Stop method!
 // This method has been exposed to allow tests to stop the blockchain while simulating
 // a crash.
 func (bc *BlockChain) stopWithoutSaving() {
-	if !atomic.CompareAndSwapInt32(&bc.running, 0, 1) {
+	if !bc.stopping.CompareAndSwap(false, true) {
 		return
 	}
 
@@ -979,8 +955,8 @@ func (bc *BlockChain) Stop() {
 	}
 	log.Info("State manager shut down", "t", time.Since(start))
 	// Flush the collected preimages to disk
-	if err := bc.stateCache.TrieDB().CommitPreimages(); err != nil {
-		log.Error("Failed to commit trie preimages", "err", err)
+	if err := bc.stateCache.TrieDB().Close(); err != nil {
+		log.Error("Failed to close trie db", "err", err)
 	}
 
 	log.Info("Blockchain stopped")
@@ -1085,45 +1061,7 @@ func (bc *BlockChain) Accept(block *types.Block) error {
 	bc.addAcceptorQueue(block)
 	acceptedBlockGasUsedCounter.Inc(int64(block.GasUsed()))
 	acceptedTxsCounter.Inc(int64(len(block.Transactions())))
-	if baseFee := block.BaseFee(); baseFee != nil {
-		lastAcceptedBlockBaseFeeGauge.Update(baseFee.Int64())
-	}
-	total, err := TotalFees(block, bc.GetReceiptsByHash(block.Hash()))
-	if err != nil {
-		log.Error(fmt.Sprintf("TotalFees error: %s", err))
-	} else {
-		blockTotalFeesGauge.Update(total.Int64())
-	}
 	return nil
-}
-
-// TotalFees computes total consumed fees in wei. Block transactions and receipts have to have the same order.
-func TotalFees(block *types.Block, receipts []*types.Receipt) (*big.Int, error) {
-	baseFee := block.BaseFee()
-	feesWei := new(big.Int)
-	if len(block.Transactions()) != len(receipts) {
-		return nil, errors.New("mismatch between total number of transactions and receipts")
-	}
-	for i, tx := range block.Transactions() {
-		var minerFee *big.Int
-		if baseFee == nil {
-			// legacy block, no baseFee
-			minerFee = tx.GasPrice()
-		} else {
-			minerFee = new(big.Int).Add(baseFee, tx.EffectiveGasTipValue(baseFee))
-		}
-		feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), minerFee))
-	}
-	return feesWei, nil
-}
-
-// TotalFees computes total consumed fees in ether. Block transactions and receipts have to have the same order.
-func TotalFeesFloat(block *types.Block, receipts []*types.Receipt) (*big.Float, error) {
-	total, err := TotalFees(block, receipts)
-	if err != nil {
-		return nil, err
-	}
-	return new(big.Float).Quo(new(big.Float).SetInt(total), new(big.Float).SetInt(big.NewInt(params.Ether))), nil
 }
 
 func (bc *BlockChain) Reject(block *types.Block) error {

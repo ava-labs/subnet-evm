@@ -31,7 +31,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/coreth/core/rawdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	bloomfilter "github.com/holiman/bloomfilter/v2"
@@ -137,6 +137,6 @@ func (bloom *stateBloom) Delete(key []byte) error { panic("not supported") }
 // reports whether the key is contained.
 // - If it says yes, the key may be contained
 // - If it says no, the key is definitely not contained.
-func (bloom *stateBloom) Contain(key []byte) (bool, error) {
-	return bloom.bloom.Contains(stateBloomHasher(key)), nil
+func (bloom *stateBloom) Contain(key []byte) bool {
+	return bloom.bloom.Contains(stateBloomHasher(key))
 }

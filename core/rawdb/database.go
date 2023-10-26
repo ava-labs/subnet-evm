@@ -34,9 +34,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/ethdb/leveldb"
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/ethdb/leveldb"
+	"github.com/ava-labs/coreth/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/olekukonko/tablewriter"
@@ -113,9 +113,15 @@ type OpenOptions struct {
 //
 //	                      type == null          type != null
 //	                   +----------------------------------------
-//	db is non-existent |  leveldb default  |  specified type
-//	db is existent     |  from db          |  specified type (if compatible)
+//	db is non-existent |  pebble default  |  specified type
+//	db is existent     |  from db         |  specified type (if compatible)
 func openKeyValueDatabase(o OpenOptions) (ethdb.Database, error) {
+	// Reject any unsupported database type
+	if len(o.Type) != 0 && o.Type != dbLeveldb && o.Type != dbPebble {
+		return nil, fmt.Errorf("unknown db.engine %v", o.Type)
+	}
+	// Retrieve any pre-existing database's type and use that or the requested one
+	// as long as there's no conflict between the two types
 	existingDb := hasPreexistingDb(o.Directory)
 	if len(existingDb) != 0 && len(o.Type) != 0 && o.Type != existingDb {
 		return nil, fmt.Errorf("db.engine choice was %v but found pre-existing %v database in specified data directory", o.Type, existingDb)
@@ -128,12 +134,19 @@ func openKeyValueDatabase(o OpenOptions) (ethdb.Database, error) {
 			return nil, errors.New("db.engine 'pebble' not supported on this platform")
 		}
 	}
-	if len(o.Type) != 0 && o.Type != dbLeveldb {
-		return nil, fmt.Errorf("unknown db.engine %v", o.Type)
+	if o.Type == dbLeveldb || existingDb == dbLeveldb {
+		log.Info("Using leveldb as the backing database")
+		return NewLevelDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
 	}
-	log.Info("Using leveldb as the backing database")
-	// Use leveldb, either as default (no explicit choice), or pre-existing, or chosen explicitly
-	return NewLevelDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
+	// No pre-existing database, no user-requested one either. Default to Pebble
+	// on supported platforms and LevelDB on anything else.
+	if PebbleEnabled {
+		log.Info("Defaulting to pebble as the backing database")
+		return NewPebbleDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
+	} else {
+		log.Info("Defaulting to leveldb as the backing database")
+		return NewLevelDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
+	}
 }
 
 // Open opens both a disk-based key-value database such as leveldb or pebble, but also
@@ -253,8 +266,6 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		case bytes.HasPrefix(key, PreimagePrefix) && len(key) == (len(PreimagePrefix)+common.HashLength):
 			preimages.Add(size)
 		case bytes.HasPrefix(key, configPrefix) && len(key) == (len(configPrefix)+common.HashLength):
-			metadata.Add(size)
-		case bytes.HasPrefix(key, upgradeConfigPrefix) && len(key) == (len(upgradeConfigPrefix)+common.HashLength):
 			metadata.Add(size)
 		case bytes.HasPrefix(key, bloomBitsPrefix) && len(key) == (len(bloomBitsPrefix)+10+common.HashLength):
 			bloomBits.Add(size)

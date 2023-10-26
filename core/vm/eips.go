@@ -30,8 +30,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -159,6 +159,20 @@ func enable2929(jt *JumpTable) {
 	// factor here
 	jt[SELFDESTRUCT].constantGas = params.SelfdestructGasEIP150
 	jt[SELFDESTRUCT].dynamicGas = gasSelfdestructEIP2929
+}
+
+// enableAP1 disables gas refunds for SSTORE and SELFDESTRUCT. It is very
+// similar to EIP-3298: Removal of Refunds [DRAFT]
+// (https://eips.ethereum.org/EIPS/eip-3298).
+func enableAP1(jt *JumpTable) {
+	jt[SSTORE].dynamicGas = gasSStoreAP1
+	jt[SELFDESTRUCT].dynamicGas = gasSelfdestructAP1
+	jt[CALLEX].dynamicGas = gasCallExpertAP1
+}
+
+func enableAP2(jt *JumpTable) {
+	jt[BALANCEMC] = &operation{execute: opUndefined, maxStack: maxStack(0, 0)}
+	jt[CALLEX] = &operation{execute: opUndefined, maxStack: maxStack(0, 0)}
 }
 
 // enable3198 applies EIP-3198 (BASEFEE Opcode)

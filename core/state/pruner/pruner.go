@@ -37,11 +37,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state/snapshot"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -163,9 +163,7 @@ func prune(maindb ethdb.Database, stateBloom *stateBloom, bloomPath string, star
 			if isCode {
 				checkKey = codeKey
 			}
-			if ok, err := stateBloom.Contain(checkKey); err != nil {
-				return err
-			} else if ok {
+			if stateBloom.Contain(checkKey) {
 				continue
 			}
 			count += 1
@@ -436,8 +434,8 @@ const warningLog = `
 
 WARNING!
 
-The clean trie cache is not found. Please delete it by yourself after the
-pruning. Remember don't start the Subnet-EVM without deleting the clean trie cache
+The clean trie cache is not found. Please delete it by yourself after the 
+pruning. Remember don't start the Coreth without deleting the clean trie cache
 otherwise the entire database may be damaged!
 
 Check the configuration option "offline-pruning-enabled" for more details.

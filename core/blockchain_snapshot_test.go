@@ -37,13 +37,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -79,7 +79,7 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 	// Initialize a fresh chain
 	var (
 		gspec = &Genesis{
-			BaseFee: big.NewInt(params.TestInitialBaseFee),
+			BaseFee: big.NewInt(params.ApricotPhase3InitialBaseFee),
 			Config:  params.TestChainConfig,
 		}
 		engine = dummy.NewFullFaker()

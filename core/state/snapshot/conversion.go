@@ -36,10 +36,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -381,7 +381,7 @@ func stackTrieGenerate(db ethdb.KeyValueWriter, scheme string, owner common.Hash
 	}
 	t := trie.NewStackTrieWithOwner(nodeWriter, owner)
 	for leaf := range in {
-		t.TryUpdate(leaf.key[:], leaf.value)
+		t.Update(leaf.key[:], leaf.value)
 	}
 	var root common.Hash
 	if db == nil {

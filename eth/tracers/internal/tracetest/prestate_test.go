@@ -34,12 +34,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/tests"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/tracers"
+	"github.com/ava-labs/coreth/tests"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -72,6 +72,10 @@ func TestPrestateTracer(t *testing.T) {
 
 func TestPrestateWithDiffModeTracer(t *testing.T) {
 	testPrestateDiffTracer("prestateTracer", "prestate_tracer_with_diff_mode", t)
+}
+
+func TestPrestateWithDiffModeANTTracer(t *testing.T) {
+	testPrestateDiffTracer("prestateTracer", "prestate_tracer_ant", t)
 }
 
 func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
@@ -110,14 +114,16 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 					GasPrice: tx.GasPrice(),
 				}
 				context = vm.BlockContext{
-					CanTransfer: core.CanTransfer,
-					Transfer:    core.Transfer,
-					Coinbase:    test.Context.Miner,
-					BlockNumber: blockNumber,
-					Time:        uint64(test.Context.Time),
-					Difficulty:  (*big.Int)(test.Context.Difficulty),
-					GasLimit:    uint64(test.Context.GasLimit),
-					BaseFee:     test.Genesis.BaseFee,
+					CanTransfer:       core.CanTransfer,
+					CanTransferMC:     core.CanTransferMC,
+					Transfer:          core.Transfer,
+					TransferMultiCoin: core.TransferMultiCoin,
+					Coinbase:          test.Context.Miner,
+					BlockNumber:       blockNumber,
+					Time:              uint64(test.Context.Time),
+					Difficulty:        (*big.Int)(test.Context.Difficulty),
+					GasLimit:          uint64(test.Context.GasLimit),
+					BaseFee:           test.Genesis.BaseFee,
 				}
 				_, statedb = tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
 			)
@@ -125,7 +131,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+			evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
 			msg, err := core.TransactionToMessage(tx, signer, nil)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)

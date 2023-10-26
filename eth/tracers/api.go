@@ -38,16 +38,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/internal/ethapi"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/tracers/logger"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/internal/ethapi"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
@@ -127,34 +127,10 @@ func NewFileTracerAPI(backend Backend) *FileTracerAPI {
 	return &FileTracerAPI{baseAPI{backend: backend}}
 }
 
-type chainContext struct {
-	api *baseAPI
-	ctx context.Context
-}
-
-func (context *chainContext) Engine() consensus.Engine {
-	return context.api.backend.Engine()
-}
-
-func (context *chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
-	header, err := context.api.backend.HeaderByNumber(context.ctx, rpc.BlockNumber(number))
-	if err != nil {
-		return nil
-	}
-	if header.Hash() == hash {
-		return header
-	}
-	header, err = context.api.backend.HeaderByHash(context.ctx, hash)
-	if err != nil {
-		return nil
-	}
-	return header
-}
-
 // chainContext constructs the context reader which is used by the evm for reading
 // the necessary chain context.
 func (api *baseAPI) chainContext(ctx context.Context) core.ChainContext {
-	return &chainContext{api: api, ctx: ctx}
+	return ethapi.NewChainContext(ctx, api.backend)
 }
 
 // blockByNumber is the wrapper of the chain access function offered by the backend.
@@ -227,6 +203,7 @@ type StdTraceConfig struct {
 
 // txTraceResult is the result of a single transaction trace.
 type txTraceResult struct {
+	TxHash common.Hash `json:"txHash"`           // transaction hash
 	Result interface{} `json:"result,omitempty"` // Trace results produced by the tracer
 	Error  string      `json:"error,omitempty"`  // Trace failure produced by the tracer
 }
@@ -333,13 +310,13 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 					}
 					res, err := api.traceTx(ctx, msg, txctx, blockCtx, task.statedb, config)
 					if err != nil {
-						task.results[i] = &txTraceResult{Error: err.Error()}
+						task.results[i] = &txTraceResult{TxHash: tx.Hash(), Error: err.Error()}
 						log.Warn("Tracing failed", "hash", tx.Hash(), "block", task.block.NumberU64(), "err", err)
 						break
 					}
 					// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
 					task.statedb.Finalise(api.backend.ChainConfig().IsEIP158(task.block.Number()))
-					task.results[i] = &txTraceResult{Result: res}
+					task.results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
 				}
 				// Tracing state is used up, queue it for de-referencing. Note the
 				// state is the parent state of trace block, use block.number-1 as
@@ -686,7 +663,7 @@ func (api *baseAPI) traceBlock(ctx context.Context, block *types.Block, config *
 		if err != nil {
 			return nil, err
 		}
-		results[i] = &txTraceResult{Result: res}
+		results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
 		// Finalize the state so any modifications are written to the trie
 		// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
 		statedb.Finalise(is158)
@@ -727,10 +704,10 @@ func (api *baseAPI) traceBlockParallel(ctx context.Context, block *types.Block, 
 				}
 				res, err := api.traceTx(ctx, msg, txctx, blockCtx, task.statedb, config)
 				if err != nil {
-					results[task.index] = &txTraceResult{Error: err.Error()}
+					results[task.index] = &txTraceResult{TxHash: txs[task.index].Hash(), Error: err.Error()}
 					continue
 				}
-				results[task.index] = &txTraceResult{Result: res}
+				results[task.index] = &txTraceResult{TxHash: txs[task.index].Hash(), Result: res}
 			}
 		}()
 	}
@@ -852,7 +829,6 @@ func (api *FileTracerAPI) standardTraceBlockToFile(ctx context.Context, block *t
 			// Swap out the noop logger to the standard tracer
 			writer = bufio.NewWriter(dump)
 			vmConf = vm.Config{
-				Debug:                   true,
 				Tracer:                  logger.NewJSONLogger(&logConfig, writer),
 				EnablePreimageRecording: true,
 			}
@@ -1012,7 +988,7 @@ func (api *baseAPI) traceTx(ctx context.Context, message *core.Message, txctx *C
 			return nil, err
 		}
 	}
-	vmenv := vm.NewEVM(vmctx, txContext, statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
+	vmenv := vm.NewEVM(vmctx, txContext, statedb, api.backend.ChainConfig(), vm.Config{Tracer: tracer, NoBaseFee: true})
 
 	// Define a meaningful timeout of a single transaction trace
 	if config.Timeout != nil {
@@ -1063,12 +1039,50 @@ func overrideConfig(original *params.ChainConfig, override *params.ChainConfig) 
 	*copy = *original
 	canon := true
 
-	if timestamp := override.SubnetEVMTimestamp; timestamp != nil {
-		copy.SubnetEVMTimestamp = timestamp
+	// Apply network upgrades (after Berlin) to the copy.
+	// Note in coreth, ApricotPhase2 is the "equivalent" to Berlin.
+	if timestamp := override.ApricotPhase2BlockTimestamp; timestamp != nil {
+		copy.ApricotPhase2BlockTimestamp = timestamp
 		canon = false
 	}
-	if timestamp := override.DUpgradeTimestamp; timestamp != nil {
-		copy.DUpgradeTimestamp = timestamp
+	if timestamp := override.ApricotPhase3BlockTimestamp; timestamp != nil {
+		copy.ApricotPhase3BlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.ApricotPhase4BlockTimestamp; timestamp != nil {
+		copy.ApricotPhase4BlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.ApricotPhase5BlockTimestamp; timestamp != nil {
+		copy.ApricotPhase5BlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.ApricotPhasePre6BlockTimestamp; timestamp != nil {
+		copy.ApricotPhasePre6BlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.ApricotPhase6BlockTimestamp; timestamp != nil {
+		copy.ApricotPhase6BlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.ApricotPhasePost6BlockTimestamp; timestamp != nil {
+		copy.ApricotPhasePost6BlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.BanffBlockTimestamp; timestamp != nil {
+		copy.BanffBlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.CortinaBlockTimestamp; timestamp != nil {
+		copy.CortinaBlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.DUpgradeBlockTimestamp; timestamp != nil {
+		copy.DUpgradeBlockTimestamp = timestamp
+		canon = false
+	}
+	if timestamp := override.CancunTime; timestamp != nil {
+		copy.CancunTime = timestamp
 		canon = false
 	}
 

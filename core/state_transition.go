@@ -31,12 +31,10 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	cmath "github.com/ethereum/go-ethereum/common/math"
 )
@@ -77,10 +75,10 @@ func (result *ExecutionResult) Revert() []byte {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, rules params.Rules) (uint64, error) {
+func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, isHomestead, isEIP2028 bool, isEIP3860 bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
-	if isContractCreation && rules.IsHomestead {
+	if isContractCreation && isHomestead {
 		gas = params.TxGasContractCreation
 	} else {
 		gas = params.TxGas
@@ -97,7 +95,7 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		}
 		// Make sure we don't exceed uint64 for all data combinations
 		nonZeroGas := params.TxDataNonZeroGasFrontier
-		if rules.IsIstanbul {
+		if isEIP2028 {
 			nonZeroGas = params.TxDataNonZeroGasEIP2028
 		}
 		if (math.MaxUint64-gas)/nonZeroGas < nz {
@@ -111,7 +109,7 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		}
 		gas += z * params.TxDataZeroGas
 
-		if isContractCreation && rules.IsDUpgrade {
+		if isContractCreation && isEIP3860 {
 			lenWords := toWordSize(dataLen)
 			if (math.MaxUint64-gas)/params.InitCodeWordGas < lenWords {
 				return 0, ErrGasUintOverflow
@@ -120,55 +118,9 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		}
 	}
 	if accessList != nil {
-		accessListGas, err := accessListGas(rules, accessList)
-		if err != nil {
-			return 0, err
-		}
-		totalGas, overflow := cmath.SafeAdd(gas, accessListGas)
-		if overflow {
-			return 0, ErrGasUintOverflow
-		}
-		gas = totalGas
-	}
-
-	return gas, nil
-}
-
-func accessListGas(rules params.Rules, accessList types.AccessList) (uint64, error) {
-	var gas uint64
-	if !rules.PredicatersExist() {
 		gas += uint64(len(accessList)) * params.TxAccessListAddressGas
 		gas += uint64(accessList.StorageKeys()) * params.TxAccessListStorageKeyGas
-		return gas, nil
 	}
-
-	for _, accessTuple := range accessList {
-		address := accessTuple.Address
-		predicaterContract, ok := rules.Predicaters[address]
-		if !ok {
-			// Previous access list gas calculation does not use safemath because an overflow would not be possible with
-			// the size of access lists that could be included in a block and standard access list gas costs.
-			// Therefore, we only check for overflow when adding to [totalGas], which could include the sum of values
-			// returned by a predicate.
-			accessTupleGas := params.TxAccessListAddressGas + uint64(len(accessTuple.StorageKeys))*params.TxAccessListStorageKeyGas
-			totalGas, overflow := cmath.SafeAdd(gas, accessTupleGas)
-			if overflow {
-				return 0, ErrGasUintOverflow
-			}
-			gas = totalGas
-		} else {
-			predicateGas, err := predicaterContract.PredicateGas(utils.HashSliceToBytes(accessTuple.StorageKeys))
-			if err != nil {
-				return 0, err
-			}
-			totalGas, overflow := cmath.SafeAdd(gas, predicateGas)
-			if overflow {
-				return 0, ErrGasUintOverflow
-			}
-			gas = totalGas
-		}
-	}
-
 	return gas, nil
 }
 
@@ -195,7 +147,7 @@ type Message struct {
 	Data       []byte
 	AccessList types.AccessList
 
-	// When SkipAccountCheckss is true, the message nonce is not checked against the
+	// When SkipAccountChecks is true, the message nonce is not checked against the
 	// account nonce in state. It also disables checking that the sender is an EOA.
 	// This field will be set to true for operations like RPC eth_call.
 	SkipAccountChecks bool
@@ -332,18 +284,10 @@ func (st *StateTransition) preCheck() error {
 		if vm.IsProhibited(msg.From) {
 			return fmt.Errorf("%w: address %v", vmerrs.ErrAddrProhibited, msg.From)
 		}
-
-		// Check that the sender is on the tx allow list if enabled
-		if st.evm.ChainConfig().IsPrecompileEnabled(txallowlist.ContractAddress, st.evm.Context.Time) {
-			txAllowListRole := txallowlist.GetTxAllowListStatus(st.state, msg.From)
-			if !txAllowListRole.IsEnabled() {
-				return fmt.Errorf("%w: %s", vmerrs.ErrSenderAddressNotAllowListed, msg.From)
-			}
-		}
 	}
 
 	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
-	if st.evm.ChainConfig().IsSubnetEVM(st.evm.Context.Time) {
+	if st.evm.ChainConfig().IsApricotPhase3(st.evm.Context.Time) {
 		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
 		if !st.evm.Config.NoBaseFee || msg.GasFeeCap.BitLen() > 0 || msg.GasTipCap.BitLen() > 0 {
 			if l := msg.GasFeeCap.BitLen(); l > 256 {
@@ -386,19 +330,19 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// 1. the nonce of the message caller is correct
 	// 2. caller has enough balance to cover transaction fee(gaslimit * gasprice)
 	// 3. the amount of gas required is available in the block
-	// 4. the message caller is on the tx allow list (if enabled)
-	// 5. the purchased gas is enough to cover intrinsic usage
-	// 6. there is no overflow when calculating intrinsic gas
-	// 7. caller has enough balance to cover asset transfer for **topmost** call
+	// 4. the purchased gas is enough to cover intrinsic usage
+	// 5. there is no overflow when calculating intrinsic gas
+	// 6. caller has enough balance to cover asset transfer for **topmost** call
 
-	// Check clauses 1-4, buy gas if everything is correct
+	// Check clauses 1-3, buy gas if everything is correct
 	if err := st.preCheck(); err != nil {
 		return nil, err
 	}
-	if st.evm.Config.Debug {
-		st.evm.Config.Tracer.CaptureTxStart(st.initialGas)
+
+	if tracer := st.evm.Config.Tracer; tracer != nil {
+		tracer.CaptureTxStart(st.initialGas)
 		defer func() {
-			st.evm.Config.Tracer.CaptureTxEnd(st.gasRemaining)
+			tracer.CaptureTxEnd(st.gasRemaining)
 		}()
 	}
 
@@ -410,7 +354,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	)
 
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules)
+	gas, err := IntrinsicGas(msg.Data, msg.AccessList, contractCreation, rules.IsHomestead, rules.IsIstanbul, rules.IsDUpgrade)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +374,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
+	// - prepare accessList(post-berlin/ApricotPhase2)
 	// - reset transient storage(eip 1153)
 	st.state.Prepare(rules, msg.From, st.evm.Context.Coinbase, msg.To, vm.ActivePrecompiles(rules), msg.AccessList)
 
@@ -445,7 +389,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, msg.Value)
 	}
-	st.refundGas(rules.IsSubnetEVM)
+	st.refundGas(rules.IsApricotPhase1)
 	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), msg.GasPrice))
 
 	return &ExecutionResult{
@@ -455,9 +399,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}, nil
 }
 
-func (st *StateTransition) refundGas(subnetEVM bool) {
+func (st *StateTransition) refundGas(apricotPhase1 bool) {
 	// Inspired by: https://gist.github.com/holiman/460f952716a74eeb9ab358bb1836d821#gistcomment-3642048
-	if !subnetEVM {
+	if !apricotPhase1 {
 		// Apply refund counter, capped to half of the used gas.
 		refund := st.gasUsed() / 2
 		if refund > st.state.GetRefund() {

@@ -31,9 +31,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -100,16 +100,24 @@ func testRlpIterator(t *testing.T, txs, uncles, datasize int) {
 	}
 	// Check that txs exist
 	if !it.Next() {
-		t.Fatal("expected two elems, got zero")
+		t.Fatal("expected four elems, got zero")
 	}
 	txdata := it.Value()
 	// Check that uncles exist
 	if !it.Next() {
-		t.Fatal("expected two elems, got one")
+		t.Fatal("expected four elems, got one")
+	}
+	// Check that version exist
+	if !it.Next() {
+		t.Fatal("expected four elems, got two")
+	}
+	// Check that extdata exist
+	if !it.Next() {
+		t.Fatal("expected four elems, got three")
 	}
 	// No more after that
 	if it.Next() {
-		t.Fatal("expected only two elems, got more")
+		t.Fatal("expected only four elems, got more")
 	}
 	txIt, err := rlp.NewListIterator(txdata)
 	if err != nil {

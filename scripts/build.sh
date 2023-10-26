@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-go_version_minimum="1.20.8"
+go_version_minimum="1.18.1"
 
 go_version() {
     go version | sed -nE -e 's/[^0-9.]+([0-9.]+).+/\1/p'
@@ -15,7 +15,7 @@ version_lt() {
     local ver1=$1
     local ver2=$2
     # Reverse sort the versions, if the 1st item != ver1 then ver1 < ver2
-    if [[ $(echo -e -n "$ver1\n$ver2\n" | sort -rV | head -n1) != "$ver1" ]]; then
+    if  [[ $(echo -e -n "$ver1\n$ver2\n" | sort -rV | head -n1) != "$ver1" ]]; then
         return 0
     else
         return 1
@@ -23,31 +23,31 @@ version_lt() {
 }
 
 if version_lt "$(go_version)" "$go_version_minimum"; then
-    echo "SubnetEVM requires Go >= $go_version_minimum, Go $(go_version) found." >&2
+    echo "Coreth requires Go >= $go_version_minimum, Go $(go_version) found." >&2
     exit 1
 fi
 
-# Root directory
-SUBNET_EVM_PATH=$(
-    cd "$(dirname "${BASH_SOURCE[0]}")"
-    cd .. && pwd
-)
+# Coreth root directory
+CORETH_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd .. && pwd )
 
 # Load the versions
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
+source "$CORETH_PATH"/scripts/versions.sh
 
 # Load the constants
-source "$SUBNET_EVM_PATH"/scripts/constants.sh
+source "$CORETH_PATH"/scripts/constants.sh
 
 if [[ $# -eq 1 ]]; then
-    BINARY_PATH=$1
-elif [[ $# -eq 0 ]]; then
-    BINARY_PATH="$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
-else
-    echo "Invalid arguments to build subnet-evm. Requires zero (default location) or one argument to specify binary location."
+    binary_path=$1
+elif [[ $# -ne 0 ]]; then
+    echo "Invalid arguments to build coreth. Requires either no arguments (default) or one arguments to specify binary location."
     exit 1
 fi
 
-# Build Subnet EVM, which is run as a subprocess
-echo "Building Subnet EVM @ GitCommit: $SUBNET_EVM_COMMIT at $BINARY_PATH"
-go build -ldflags "-X github.com/ava-labs/subnet-evm/plugin/evm.GitCommit=$SUBNET_EVM_COMMIT $STATIC_LD_FLAGS" -o "$BINARY_PATH" "plugin/"*.go
+# Check if CORETH_COMMIT is set, if not retrieve the last commit from the repo.
+# This is used in the Dockerfile to allow a commit hash to be passed in without
+# including the .git/ directory within the Docker image.
+coreth_commit=${CORETH_COMMIT:-$( git rev-list -1 HEAD )}
+
+# Build Coreth, which is run as a subprocess
+echo "Building Coreth @ GitCommit: $coreth_commit"
+go build -ldflags "-X github.com/ava-labs/coreth/plugin/evm.GitCommit=$coreth_commit" -o "$binary_path" "plugin/"*.go

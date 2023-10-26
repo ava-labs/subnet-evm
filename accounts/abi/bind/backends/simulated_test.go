@@ -37,12 +37,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/interfaces"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/accounts/abi"
+	"github.com/ava-labs/coreth/accounts/abi/bind"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/interfaces"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -75,8 +75,7 @@ func TestSimulatedBackend(t *testing.T) {
 	code := `6060604052600a8060106000396000f360606040526008565b00`
 	var gas uint64 = 3000000
 	tx := types.NewContractCreation(0, big.NewInt(0), gas, gasPrice, common.FromHex(code))
-	signer := types.NewLondonSigner(big.NewInt(1337))
-	tx, _ = types.SignTx(tx, signer, key)
+	tx, _ = types.SignTx(tx, types.HomesteadSigner{}, key)
 
 	err = sim.SendTransaction(context.Background(), tx)
 	if err != nil {
@@ -1226,7 +1225,7 @@ Example contract to test event emission:
 		function Call() public { emit Called(); }
 	}
 */
-// The fork tests are commented out because transactions are not indexed in subnet-evm until they are marked
+// The fork tests are commented out because transactions are not indexed in coreth until they are marked
 // as accepted, which breaks the logic of these tests.
 // const callableAbi = "[{\"anonymous\":false,\"inputs\":[],\"name\":\"Called\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"Call\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 

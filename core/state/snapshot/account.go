@@ -30,7 +30,7 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/coreth/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -40,17 +40,19 @@ import (
 // or slim-snapshot format which replaces the empty root and code hash as nil
 // byte slice.
 type Account struct {
-	Nonce    uint64
-	Balance  *big.Int
-	Root     []byte
-	CodeHash []byte
+	Nonce       uint64
+	Balance     *big.Int
+	Root        []byte
+	CodeHash    []byte
+	IsMultiCoin bool
 }
 
 // SlimAccount converts a state.Account content into a slim snapshot account
-func SlimAccount(nonce uint64, balance *big.Int, root common.Hash, codehash []byte) Account {
+func SlimAccount(nonce uint64, balance *big.Int, root common.Hash, codehash []byte, isMultiCoin bool) Account {
 	slim := Account{
-		Nonce:   nonce,
-		Balance: balance,
+		Nonce:       nonce,
+		Balance:     balance,
+		IsMultiCoin: isMultiCoin,
 	}
 	if root != types.EmptyRootHash {
 		slim.Root = root[:]
@@ -63,8 +65,8 @@ func SlimAccount(nonce uint64, balance *big.Int, root common.Hash, codehash []by
 
 // SlimAccountRLP converts a state.Account content into a slim snapshot
 // version RLP encoded.
-func SlimAccountRLP(nonce uint64, balance *big.Int, root common.Hash, codehash []byte) []byte {
-	data, err := rlp.EncodeToBytes(SlimAccount(nonce, balance, root, codehash))
+func SlimAccountRLP(nonce uint64, balance *big.Int, root common.Hash, codehash []byte, isMultiCoin bool) []byte {
+	data, err := rlp.EncodeToBytes(SlimAccount(nonce, balance, root, codehash, isMultiCoin))
 	if err != nil {
 		panic(err)
 	}

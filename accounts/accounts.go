@@ -31,8 +31,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/interfaces"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/interfaces"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"golang.org/x/crypto/sha3"

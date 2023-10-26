@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/coreth/metrics"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -47,6 +47,17 @@ func (g gatherer) Gather() ([]*dto.MetricFamily, error) {
 				Metric: []*dto.Metric{{
 					Counter: &dto.Counter{
 						Value: &valFloat,
+					},
+				}},
+			})
+		case metrics.CounterFloat64:
+			val := m.Snapshot().Count()
+			mfs = append(mfs, &dto.MetricFamily{
+				Name: &name,
+				Type: dto.MetricType_COUNTER.Enum(),
+				Metric: []*dto.Metric{{
+					Counter: &dto.Counter{
+						Value: &val,
 					},
 				}},
 			})

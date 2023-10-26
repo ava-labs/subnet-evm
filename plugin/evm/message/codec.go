@@ -27,7 +27,8 @@ func init() {
 	errs := wrappers.Errs{}
 	errs.Add(
 		// Gossip types
-		c.RegisterType(TxsGossip{}),
+		c.RegisterType(AtomicTxGossip{}),
+		c.RegisterType(EthTxsGossip{}),
 
 		// Types for state sync frontier consensus
 		c.RegisterType(SyncSummary{}),
@@ -39,11 +40,6 @@ func init() {
 		c.RegisterType(LeafsResponse{}),
 		c.RegisterType(CodeRequest{}),
 		c.RegisterType(CodeResponse{}),
-
-		// Warp request types
-		c.RegisterType(MessageSignatureRequest{}),
-		c.RegisterType(BlockSignatureRequest{}),
-		c.RegisterType(SignatureResponse{}),
 
 		Codec.RegisterCodec(Version, c),
 	)

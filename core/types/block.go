@@ -86,26 +86,38 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"`
 	Nonce       BlockNonce     `json:"nonce"`
+	ExtDataHash common.Hash    `json:"extDataHash"      gencodec:"required"`
 
 	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
 	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
 
-	// BlockGasCost was added by SubnetEVM and is ignored in legacy
+	// ExtDataGasUsed was added by Apricot Phase 4 and is ignored in legacy
+	// headers.
+	//
+	// It is not a uint64 like GasLimit or GasUsed because it is not possible to
+	// correctly encode this field optionally with uint64.
+	ExtDataGasUsed *big.Int `json:"extDataGasUsed" rlp:"optional"`
+
+	// BlockGasCost was added by Apricot Phase 4 and is ignored in legacy
 	// headers.
 	BlockGasCost *big.Int `json:"blockGasCost" rlp:"optional"`
+
+	// ExcessDataGas was added by EIP-4844 and is ignored in legacy headers.
+	ExcessDataGas *big.Int `json:"excessDataGas" rlp:"optional"`
 }
 
 // field type overrides for gencodec
 type headerMarshaling struct {
-	Difficulty   *hexutil.Big
-	Number       *hexutil.Big
-	GasLimit     hexutil.Uint64
-	GasUsed      hexutil.Uint64
-	Time         hexutil.Uint64
-	Extra        hexutil.Bytes
-	BaseFee      *hexutil.Big
-	BlockGasCost *hexutil.Big
-	Hash         common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
+	Difficulty     *hexutil.Big
+	Number         *hexutil.Big
+	GasLimit       hexutil.Uint64
+	GasUsed        hexutil.Uint64
+	Time           hexutil.Uint64
+	Extra          hexutil.Bytes
+	BaseFee        *hexutil.Big
+	ExtDataGasUsed *hexutil.Big
+	BlockGasCost   *hexutil.Big
+	Hash           common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 }
 
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
@@ -142,6 +154,8 @@ func (h *Header) EmptyReceipts() bool {
 type Body struct {
 	Transactions []*Transaction
 	Uncles       []*Header
+	Version      uint32
+	ExtData      *[]byte `rlp:"nil"`
 }
 
 // Block represents an entire block in the Ethereum blockchain.
@@ -150,6 +164,10 @@ type Block struct {
 	uncles       []*Header
 	transactions Transactions
 
+	// Coreth specific data structures to support atomic transactions
+	version uint32
+	extdata *[]byte
+
 	// caches
 	hash atomic.Value
 	size atomic.Value
@@ -157,9 +175,11 @@ type Block struct {
 
 // "external" block encoding. used for eth protocol, etc.
 type extblock struct {
-	Header *Header
-	Txs    []*Transaction
-	Uncles []*Header
+	Header  *Header
+	Txs     []*Transaction
+	Uncles  []*Header
+	Version uint32
+	ExtData *[]byte `rlp:"nil"`
 }
 
 // NewBlock creates a new block. The input data is copied,
@@ -170,7 +190,8 @@ type extblock struct {
 // are ignored and set to values derived from the given txs, uncles
 // and receipts.
 func NewBlock(
-	header *Header, txs []*Transaction, uncles []*Header, receipts []*Receipt, hasher TrieHasher,
+	header *Header, txs []*Transaction, uncles []*Header, receipts []*Receipt,
+	hasher TrieHasher, extdata []byte, recalc bool,
 ) *Block {
 	b := &Block{header: CopyHeader(header)}
 
@@ -200,6 +221,7 @@ func NewBlock(
 		}
 	}
 
+	b.setExtData(extdata, recalc)
 	return b
 }
 
@@ -223,6 +245,9 @@ func CopyHeader(h *Header) *Header {
 	if h.BaseFee != nil {
 		cpy.BaseFee = new(big.Int).Set(h.BaseFee)
 	}
+	if h.ExtDataGasUsed != nil {
+		cpy.ExtDataGasUsed = new(big.Int).Set(h.ExtDataGasUsed)
+	}
 	if h.BlockGasCost != nil {
 		cpy.BlockGasCost = new(big.Int).Set(h.BlockGasCost)
 	}
@@ -240,17 +265,51 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 	if err := s.Decode(&eb); err != nil {
 		return err
 	}
-	b.header, b.uncles, b.transactions = eb.Header, eb.Uncles, eb.Txs
+	b.header, b.uncles, b.transactions, b.version, b.extdata = eb.Header, eb.Uncles, eb.Txs, eb.Version, eb.ExtData
 	b.size.Store(rlp.ListSize(size))
 	return nil
+}
+
+func (b *Block) setExtDataHelper(data *[]byte, recalc bool) {
+	if data == nil {
+		b.setExtData(nil, recalc)
+		return
+	}
+	b.setExtData(*data, recalc)
+}
+
+func (b *Block) setExtData(data []byte, recalc bool) {
+	_data := make([]byte, len(data))
+	b.extdata = &_data
+	copy(*b.extdata, data)
+	if recalc {
+		b.header.ExtDataHash = CalcExtDataHash(*b.extdata)
+	}
+}
+
+func (b *Block) ExtData() []byte {
+	if b.extdata == nil {
+		return nil
+	}
+	return *b.extdata
+}
+
+func (b *Block) SetVersion(ver uint32) {
+	b.version = ver
+}
+
+func (b *Block) Version() uint32 {
+	return b.version
 }
 
 // EncodeRLP serializes b into the Ethereum RLP block format.
 func (b *Block) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, extblock{
-		Header: b.header,
-		Txs:    b.transactions,
-		Uncles: b.uncles,
+		Header:  b.header,
+		Txs:     b.transactions,
+		Uncles:  b.uncles,
+		Version: b.version,
+		ExtData: b.extdata,
 	})
 }
 
@@ -294,6 +353,13 @@ func (b *Block) BaseFee() *big.Int {
 	return new(big.Int).Set(b.header.BaseFee)
 }
 
+func (b *Block) ExtDataGasUsed() *big.Int {
+	if b.header.ExtDataGasUsed == nil {
+		return nil
+	}
+	return new(big.Int).Set(b.header.ExtDataGasUsed)
+}
+
 func (b *Block) BlockGasCost() *big.Int {
 	if b.header.BlockGasCost == nil {
 		return nil
@@ -304,7 +370,7 @@ func (b *Block) BlockGasCost() *big.Int {
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
 // Body returns the non-header content of the block.
-func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles} }
+func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles, b.version, b.extdata} }
 
 // Size returns the true RLP encoded storage size of the block, either by encoding
 // and returning it, or returning a previously cached value.
@@ -323,6 +389,13 @@ type writeCounter uint64
 func (c *writeCounter) Write(b []byte) (int, error) {
 	*c += writeCounter(len(b))
 	return len(b), nil
+}
+
+func CalcExtDataHash(extdata []byte) common.Hash {
+	if len(extdata) == 0 {
+		return EmptyExtDataHash
+	}
+	return rlpHash(extdata)
 }
 
 func CalcUncleHash(uncles []*Header) common.Hash {
@@ -345,16 +418,18 @@ func (b *Block) WithSeal(header *Header) *Block {
 }
 
 // WithBody returns a new block with the given transaction and uncle contents.
-func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
+func (b *Block) WithBody(transactions []*Transaction, uncles []*Header, version uint32, extdata *[]byte) *Block {
 	block := &Block{
 		header:       CopyHeader(b.header),
 		transactions: make([]*Transaction, len(transactions)),
 		uncles:       make([]*Header, len(uncles)),
+		version:      version,
 	}
 	copy(block.transactions, transactions)
 	for i := range uncles {
 		block.uncles[i] = CopyHeader(uncles[i])
 	}
+	block.setExtDataHelper(extdata, false)
 	return block
 }
 

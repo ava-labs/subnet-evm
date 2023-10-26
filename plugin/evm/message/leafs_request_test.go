@@ -4,9 +4,13 @@
 package message
 
 import (
+	"bytes"
+	"context"
 	"encoding/base64"
 	"math/rand"
 	"testing"
+
+	"github.com/ava-labs/avalanchego/ids"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -29,13 +33,14 @@ func TestMarshalLeafsRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	leafsRequest := LeafsRequest{
-		Root:  common.BytesToHash([]byte("im ROOTing for ya")),
-		Start: startBytes,
-		End:   endBytes,
-		Limit: 1024,
+		Root:     common.BytesToHash([]byte("im ROOTing for ya")),
+		Start:    startBytes,
+		End:      endBytes,
+		Limit:    1024,
+		NodeType: StateTrieNode,
 	}
 
-	base64LeafsRequest := "AAAAAAAAAAAAAAAAAAAAAABpbSBST09UaW5nIGZvciB5YQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIFL9/AchgmVPFj9fD5piHXKVZsdNEAN8TXu7BAfR4sZJAAAAIIGFWthoHQ2G0ekeABZ5OctmlNLEIqzSCKAHKTlIf2mZBAA="
+	base64LeafsRequest := "AAAAAAAAAAAAAAAAAAAAAABpbSBST09UaW5nIGZvciB5YQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIFL9/AchgmVPFj9fD5piHXKVZsdNEAN8TXu7BAfR4sZJAAAAIIGFWthoHQ2G0ekeABZ5OctmlNLEIqzSCKAHKTlIf2mZBAAB"
 
 	leafsRequestBytes, err := Codec.Marshal(Version, leafsRequest)
 	assert.NoError(t, err)
@@ -48,6 +53,7 @@ func TestMarshalLeafsRequest(t *testing.T) {
 	assert.Equal(t, leafsRequest.Start, l.Start)
 	assert.Equal(t, leafsRequest.End, l.End)
 	assert.Equal(t, leafsRequest.Limit, l.Limit)
+	assert.Equal(t, leafsRequest.NodeType, l.NodeType)
 }
 
 // TestMarshalLeafsResponse asserts that the structure or serialization logic hasn't changed, primarily to
@@ -101,4 +107,102 @@ func TestMarshalLeafsResponse(t *testing.T) {
 	assert.Equal(t, leafsResponse.Vals, l.Vals)
 	assert.False(t, l.More) // make sure it is not serialized
 	assert.Equal(t, leafsResponse.ProofVals, l.ProofVals)
+}
+
+func TestLeafsRequestValidation(t *testing.T) {
+	mockRequestHandler := &mockHandler{}
+
+	tests := map[string]struct {
+		request        LeafsRequest
+		assertResponse func(t *testing.T)
+	}{
+		"node type StateTrieNode": {
+			request: LeafsRequest{
+				Root:     common.BytesToHash([]byte("some hash goes here")),
+				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+				Limit:    10,
+				NodeType: StateTrieNode,
+			},
+			assertResponse: func(t *testing.T) {
+				assert.True(t, mockRequestHandler.handleStateTrieCalled)
+				assert.False(t, mockRequestHandler.handleAtomicTrieCalled)
+				assert.False(t, mockRequestHandler.handleBlockRequestCalled)
+				assert.False(t, mockRequestHandler.handleCodeRequestCalled)
+			},
+		},
+		"node type AtomicTrieNode": {
+			request: LeafsRequest{
+				Root:     common.BytesToHash([]byte("some hash goes here")),
+				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+				Limit:    10,
+				NodeType: AtomicTrieNode,
+			},
+			assertResponse: func(t *testing.T) {
+				assert.False(t, mockRequestHandler.handleStateTrieCalled)
+				assert.True(t, mockRequestHandler.handleAtomicTrieCalled)
+				assert.False(t, mockRequestHandler.handleBlockRequestCalled)
+				assert.False(t, mockRequestHandler.handleCodeRequestCalled)
+			},
+		},
+		"unknown node type": {
+			request: LeafsRequest{
+				Root:     common.BytesToHash([]byte("some hash goes here")),
+				Start:    bytes.Repeat([]byte{0x00}, common.HashLength),
+				End:      bytes.Repeat([]byte{0xff}, common.HashLength),
+				Limit:    10,
+				NodeType: NodeType(11),
+			},
+			assertResponse: func(t *testing.T) {
+				assert.False(t, mockRequestHandler.handleStateTrieCalled)
+				assert.False(t, mockRequestHandler.handleAtomicTrieCalled)
+				assert.False(t, mockRequestHandler.handleBlockRequestCalled)
+				assert.False(t, mockRequestHandler.handleCodeRequestCalled)
+			},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, _ = test.request.Handle(context.Background(), ids.GenerateTestNodeID(), 1, mockRequestHandler)
+			test.assertResponse(t)
+			mockRequestHandler.reset()
+		})
+	}
+}
+
+var _ RequestHandler = &mockHandler{}
+
+type mockHandler struct {
+	handleStateTrieCalled,
+	handleAtomicTrieCalled,
+	handleBlockRequestCalled,
+	handleCodeRequestCalled bool
+}
+
+func (m *mockHandler) HandleStateTrieLeafsRequest(context.Context, ids.NodeID, uint32, LeafsRequest) ([]byte, error) {
+	m.handleStateTrieCalled = true
+	return nil, nil
+}
+
+func (m *mockHandler) HandleAtomicTrieLeafsRequest(context.Context, ids.NodeID, uint32, LeafsRequest) ([]byte, error) {
+	m.handleAtomicTrieCalled = true
+	return nil, nil
+}
+
+func (m *mockHandler) HandleBlockRequest(context.Context, ids.NodeID, uint32, BlockRequest) ([]byte, error) {
+	m.handleBlockRequestCalled = true
+	return nil, nil
+}
+
+func (m *mockHandler) HandleCodeRequest(context.Context, ids.NodeID, uint32, CodeRequest) ([]byte, error) {
+	m.handleCodeRequestCalled = true
+	return nil, nil
+}
+
+func (m *mockHandler) reset() {
+	m.handleStateTrieCalled = false
+	m.handleAtomicTrieCalled = false
+	m.handleBlockRequestCalled = false
+	m.handleCodeRequestCalled = false
 }

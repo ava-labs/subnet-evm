@@ -31,13 +31,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/constants"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -46,23 +45,18 @@ import (
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
 	benchInsertChain(b, false, nil)
 }
-
 func BenchmarkInsertChain_empty_diskdb(b *testing.B) {
 	benchInsertChain(b, true, nil)
 }
-
 func BenchmarkInsertChain_valueTx_memdb(b *testing.B) {
 	benchInsertChain(b, false, genValueTx(0))
 }
-
 func BenchmarkInsertChain_valueTx_diskdb(b *testing.B) {
 	benchInsertChain(b, true, genValueTx(0))
 }
-
 func BenchmarkInsertChain_valueTx_100kB_memdb(b *testing.B) {
 	benchInsertChain(b, false, genValueTx(100*1024))
 }
-
 func BenchmarkInsertChain_valueTx_100kB_diskdb(b *testing.B) {
 	benchInsertChain(b, true, genValueTx(100*1024))
 }
@@ -70,15 +64,12 @@ func BenchmarkInsertChain_valueTx_100kB_diskdb(b *testing.B) {
 func BenchmarkInsertChain_ring200_memdb(b *testing.B) {
 	benchInsertChain(b, false, genTxRing(200))
 }
-
 func BenchmarkInsertChain_ring200_diskdb(b *testing.B) {
 	benchInsertChain(b, true, genTxRing(200))
 }
-
 func BenchmarkInsertChain_ring1000_memdb(b *testing.B) {
 	benchInsertChain(b, false, genTxRing(1000))
 }
-
 func BenchmarkInsertChain_ring1000_diskdb(b *testing.B) {
 	benchInsertChain(b, true, genTxRing(1000))
 }
@@ -97,8 +88,9 @@ func genValueTx(nbytes int) func(int, *BlockGen) {
 	return func(i int, gen *BlockGen) {
 		toaddr := common.Address{}
 		data := make([]byte, nbytes)
-		gas, _ := IntrinsicGas(data, nil, false, params.Rules{}) // Disable Istanbul and EIP-2028 for this test
-		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), toaddr, big.NewInt(1), gas, big.NewInt(225000000000), data), types.HomesteadSigner{}, benchRootKey)
+		gas, _ := IntrinsicGas(data, nil, false, false, false, false)
+		signer := types.MakeSigner(gen.config, big.NewInt(int64(i)), gen.header.Time)
+		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), toaddr, big.NewInt(1), gas, big.NewInt(225000000000), data), signer, benchRootKey)
 		gen.AddTx(tx)
 	}
 }
@@ -127,6 +119,7 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 	return func(i int, gen *BlockGen) {
 		block := gen.PrevBlock(i - 1)
 		gas := block.GasLimit()
+		signer := types.MakeSigner(gen.config, big.NewInt(int64(i)), gen.header.Time)
 		for {
 			gas -= params.TxGas
 			if gas < params.TxGas {
@@ -141,7 +134,7 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 				big.NewInt(225000000000),
 				nil,
 			)
-			tx, _ = types.SignTx(tx, types.HomesteadSigner{}, ringKeys[from])
+			tx, _ = types.SignTx(tx, signer, ringKeys[from])
 			gen.AddTx(tx)
 			from = to
 		}
@@ -169,11 +162,11 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 		Config: params.TestChainConfig,
 		Alloc:  GenesisAlloc{benchRootAddr: {Balance: benchRootFunds}},
 	}
-	_, chain, _, _ := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), b.N, 10, gen)
+	_, chain, _, _ := GenerateChainWithGenesis(gspec, dummy.NewFaker(), b.N, 10, gen)
 
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	chainman, _ := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+	chainman, _ := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewFaker(), vm.Config{}, common.Hash{}, false)
 	defer chainman.Stop()
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -185,47 +178,36 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 func BenchmarkChainRead_header_10k(b *testing.B) {
 	benchReadChain(b, false, 10000)
 }
-
 func BenchmarkChainRead_full_10k(b *testing.B) {
 	benchReadChain(b, true, 10000)
 }
-
 func BenchmarkChainRead_header_100k(b *testing.B) {
 	benchReadChain(b, false, 100000)
 }
-
 func BenchmarkChainRead_full_100k(b *testing.B) {
 	benchReadChain(b, true, 100000)
 }
-
 func BenchmarkChainRead_header_500k(b *testing.B) {
 	benchReadChain(b, false, 500000)
 }
-
 func BenchmarkChainRead_full_500k(b *testing.B) {
 	benchReadChain(b, true, 500000)
 }
-
 func BenchmarkChainWrite_header_10k(b *testing.B) {
 	benchWriteChain(b, false, 10000)
 }
-
 func BenchmarkChainWrite_full_10k(b *testing.B) {
 	benchWriteChain(b, true, 10000)
 }
-
 func BenchmarkChainWrite_header_100k(b *testing.B) {
 	benchWriteChain(b, false, 100000)
 }
-
 func BenchmarkChainWrite_full_100k(b *testing.B) {
 	benchWriteChain(b, true, 100000)
 }
-
 func BenchmarkChainWrite_header_500k(b *testing.B) {
 	benchWriteChain(b, false, 500000)
 }
-
 func BenchmarkChainWrite_full_500k(b *testing.B) {
 	benchWriteChain(b, true, 500000)
 }
@@ -236,7 +218,7 @@ func makeChainForBench(db ethdb.Database, full bool, count uint64) {
 	var hash common.Hash
 	for n := uint64(0); n < count; n++ {
 		header := &types.Header{
-			Coinbase:    constants.BlackholeAddr,
+			Coinbase:    common.Address{},
 			Number:      big.NewInt(int64(n)),
 			ParentHash:  hash,
 			Difficulty:  big.NewInt(1),
@@ -302,7 +284,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 			if full {
 				hash := header.Hash()
 				rawdb.ReadBody(db, hash, n)
-				rawdb.ReadReceipts(db, hash, n, chain.Config())
+				rawdb.ReadReceipts(db, hash, n, header.Time, chain.Config())
 			}
 		}
 		chain.Stop()

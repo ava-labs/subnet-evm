@@ -13,9 +13,9 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/sync/client/stats"
+	"github.com/ava-labs/coreth/ethdb/memorydb"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/sync/client/stats"
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/version"
@@ -24,11 +24,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/peer"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/peer"
+	"github.com/ava-labs/coreth/plugin/evm/message"
+	"github.com/ava-labs/coreth/trie"
 )
 
 const (
@@ -325,14 +325,14 @@ func (c *client) get(ctx context.Context, request message.Request, parseFn parse
 			start    time.Time = time.Now()
 		)
 		if len(c.stateSyncNodes) == 0 {
-			response, nodeID, err = c.networkClient.SendAppRequestAny(ctx, StateSyncVersion, requestBytes)
+			response, nodeID, err = c.networkClient.SendAppRequestAny(StateSyncVersion, requestBytes)
 		} else {
 			// get the next nodeID using the nodeIdx offset. If we're out of nodes, loop back to 0
 			// we do this every attempt to ensure we get a different node each time if possible.
 			nodeIdx := atomic.AddUint32(&c.stateSyncNodeIdx, 1)
 			nodeID = c.stateSyncNodes[nodeIdx%uint32(len(c.stateSyncNodes))]
 
-			response, err = c.networkClient.SendAppRequest(ctx, nodeID, requestBytes)
+			response, err = c.networkClient.SendAppRequest(nodeID, requestBytes)
 		}
 		metric.UpdateRequestLatency(time.Since(start))
 

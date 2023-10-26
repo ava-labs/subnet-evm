@@ -36,7 +36,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/accounts"
+	"github.com/ava-labs/coreth/accounts"
 	"github.com/cespare/cp"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
@@ -60,7 +60,7 @@ var (
 	}
 )
 
-// waitWatcherStart waits up to 1s for the keystore watcher to start.
+// waitWatcherStarts waits up to 1s for the keystore watcher to start.
 func waitWatcherStart(ks *KeyStore) bool {
 	// On systems where file watch is not supported, just return "ok".
 	if !ks.cache.watcher.enabled() {

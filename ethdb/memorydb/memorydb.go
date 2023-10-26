@@ -33,7 +33,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ava-labs/subnet-evm/ethdb"
+	"github.com/ava-labs/coreth/ethdb"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -243,6 +243,9 @@ func (b *batch) Write() error {
 	b.db.lock.Lock()
 	defer b.db.lock.Unlock()
 
+	if b.db.db == nil {
+		return errMemorydbClosed
+	}
 	for _, keyvalue := range b.writes {
 		if keyvalue.delete {
 			delete(b.db.db, string(keyvalue.key))

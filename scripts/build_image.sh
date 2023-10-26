@@ -5,20 +5,16 @@ set -o nounset
 set -o pipefail
 
 # Avalanche root directory
-SUBNET_EVM_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd .. && pwd )
+CORETH_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd .. && pwd )
 
 # Load the versions
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
+source "$CORETH_PATH"/scripts/versions.sh
 
 # Load the constants
-source "$SUBNET_EVM_PATH"/scripts/constants.sh
+source "$CORETH_PATH"/scripts/constants.sh
 
-echo "Building Docker Image: $DOCKERHUB_REPO:$BUILD_IMAGE_ID based of $AVALANCHEGO_VERSION"
-docker build -t "$DOCKERHUB_REPO:$BUILD_IMAGE_ID" "$SUBNET_EVM_PATH" -f "$SUBNET_EVM_PATH/Dockerfile" \
-  --build-arg AVALANCHE_VERSION="$AVALANCHEGO_VERSION" \
-  --build-arg SUBNET_EVM_COMMIT="$SUBNET_EVM_COMMIT" \
-  --build-arg CURRENT_BRANCH="$CURRENT_BRANCH"
-
-if [[ ${PUSH_DOCKER_IMAGE:-""} == "true" ]]; then
-  docker push $DOCKERHUB_REPO:$BUILD_IMAGE_ID
-fi
+echo "Building Docker Image: $dockerhub_repo:$build_image_id based of $avalanche_version"
+docker build -t "$dockerhub_repo:$build_image_id" "$CORETH_PATH" -f "$CORETH_PATH/Dockerfile" \
+  --build-arg AVALANCHE_VERSION="$avalanche_version" \
+  --build-arg CORETH_COMMIT="$coreth_commit" \
+  --build-arg CURRENT_BRANCH="$current_branch"

@@ -34,11 +34,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -519,7 +519,7 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	// Initialize a fresh chain
 	var (
 		gspec = &Genesis{
-			BaseFee: big.NewInt(params.TestInitialBaseFee),
+			BaseFee: big.NewInt(params.ApricotPhase3InitialBaseFee),
 			Config:  params.TestChainConfig,
 		}
 		engine = dummy.NewFullFaker()
@@ -537,6 +537,7 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	if err != nil {
 		t.Fatalf("Failed to create chain: %v", err)
 	}
+	defer chain.Stop()
 	lastAcceptedHash := chain.GetBlockByNumber(0).Hash()
 
 	// If sidechain blocks are needed, make a light chain and import it

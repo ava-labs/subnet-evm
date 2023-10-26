@@ -38,7 +38,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/accounts"
+	"github.com/ava-labs/coreth/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"

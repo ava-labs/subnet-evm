@@ -114,6 +114,9 @@ type (
 		account *common.Address
 		prev    *big.Int
 	}
+	multiCoinEnable struct {
+		account *common.Address
+	}
 	nonceChange struct {
 		account *common.Address
 		prev    uint64
@@ -201,6 +204,14 @@ func (ch balanceChange) revert(s *StateDB) {
 }
 
 func (ch balanceChange) dirtied() *common.Address {
+	return ch.account
+}
+
+func (ch multiCoinEnable) revert(s *StateDB) {
+	s.getStateObject(*ch.account).data.IsMultiCoin = false
+}
+
+func (ch multiCoinEnable) dirtied() *common.Address {
 	return ch.account
 }
 

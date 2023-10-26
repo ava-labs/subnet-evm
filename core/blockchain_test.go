@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/state/pruner"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/state/pruner"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/tracers/logger"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fsnotify/fsnotify"
@@ -62,7 +62,7 @@ func createBlockChain(
 		db,
 		cacheConfig,
 		gspec,
-		dummy.NewCoinbaseFaker(),
+		dummy.NewDummyEngine(&TestCallbacks),
 		vm.Config{},
 		lastAcceptedHash,
 		false,
@@ -355,16 +355,14 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 			return blockchain, nil
 		}
 
-		targetRoot := blockchain.LastAcceptedBlock().Root()
-		if targetRoot == blockchain.Genesis().Root() {
-			return blockchain, nil
-		}
-
-		tempDir := t.TempDir()
 		if err := blockchain.CleanBlockRootsAboveLastAccepted(); err != nil {
 			return nil, err
 		}
+		// get the target root to prune to before stopping the blockchain
+		targetRoot := blockchain.LastAcceptedBlock().Root()
+		blockchain.Stop()
 
+		tempDir := t.TempDir()
 		prunerConfig := pruner.Config{
 			Datadir:   tempDir,
 			BloomSize: 256,
@@ -383,8 +381,8 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 		return createBlockChain(db, pruningConfig, gspec, lastAcceptedHash)
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.Name, func(t *testing.T) {
-			tt := tt
 			t.Parallel()
 			tt.testFunc(t, create)
 		})
@@ -403,7 +401,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -469,6 +467,7 @@ func testRepopulateMissingTriesParallel(t *testing.T, parallelism int) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer blockchain.Stop()
 
 	for _, block := range chain {
 		if !blockchain.HasState(block.Root()) {
@@ -513,7 +512,7 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	// Ensure that key1 has some funds in the genesis block.
 	genesisBalance := big.NewInt(1000000)
 	gspec := &Genesis{
-		Config: &params.ChainConfig{HomesteadBlock: new(big.Int), FeeConfig: params.DefaultFeeConfig},
+		Config: &params.ChainConfig{HomesteadBlock: new(big.Int)},
 		Alloc:  GenesisAlloc{addr1: {Balance: genesisBalance}},
 	}
 
@@ -627,9 +626,6 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 
 // TODO: simplify the unindexer logic and this test.
 func TestTransactionIndices(t *testing.T) {
-	if os.Getenv("RUN_FLAKY_TESTS") != "true" {
-		t.Skip("FLAKY")
-	}
 	// Configure and generate a sample block chain
 	require := require.New(t)
 	var (
@@ -644,14 +640,14 @@ func TestTransactionIndices(t *testing.T) {
 		}
 		signer = types.LatestSigner(gspec.Config)
 	)
-	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewFaker(), 128, 10, func(i int, block *BlockGen) {
+	genDb, blocks, _, err := GenerateChainWithGenesis(gspec, dummy.NewDummyEngine(&TestCallbacks), 128, 10, func(i int, block *BlockGen) {
 		tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr1), addr2, big.NewInt(10000), params.TxGas, nil, nil), signer, key1)
 		require.NoError(err)
 		block.AddTx(tx)
 	})
 	require.NoError(err)
 
-	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewFaker(), genDb, 10, 10, nil)
+	blocks2, _, err := GenerateChain(gspec.Config, blocks[len(blocks)-1], dummy.NewDummyEngine(&TestCallbacks), genDb, 10, 10, nil)
 	require.NoError(err)
 
 	check := func(tail *uint64, chain *BlockChain) {
@@ -783,9 +779,9 @@ func TestCanonicalHashMarker(t *testing.T) {
 			gspec = &Genesis{
 				Config:  params.TestChainConfig,
 				Alloc:   GenesisAlloc{},
-				BaseFee: big.NewInt(params.TestInitialBaseFee),
+				BaseFee: big.NewInt(params.ApricotPhase3InitialBaseFee),
 			}
-			engine = dummy.NewCoinbaseFaker()
+			engine = dummy.NewFaker()
 		)
 		_, forkA, _, err := GenerateChainWithGenesis(gspec, engine, c.forkA, 10, func(i int, gen *BlockGen) {})
 		if err != nil {
@@ -878,7 +874,7 @@ func TestTxLookupBlockChain(t *testing.T) {
 func TestCreateThenDeletePreByzantium(t *testing.T) {
 	// We want to use pre-byzantium rules where we have intermediate state roots
 	// between transactions.
-	config := *params.TestPreSubnetEVMConfig
+	config := *params.TestLaunchConfig
 	config.ByzantiumBlock = nil
 	config.ConstantinopleBlock = nil
 	config.PetersburgBlock = nil
@@ -958,6 +954,7 @@ func testCreateThenDelete(t *testing.T, config *params.ChainConfig) {
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
+	defer chain.Stop()
 	// Import the blocks
 	for _, block := range blocks {
 		if _, err := chain.InsertChain([]*types.Block{block}); err != nil {
@@ -1044,6 +1041,7 @@ func TestTransientStorageReset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
+	defer chain.Stop()
 	// Import the blocks
 	if _, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("failed to insert into chain: %v", err)
@@ -1064,7 +1062,7 @@ func TestEIP3651(t *testing.T) {
 	var (
 		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
 		bb     = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
-		engine = dummy.NewCoinbaseFaker()
+		engine = dummy.NewFaker()
 
 		// A sender who makes transactions, has some funds
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -1132,6 +1130,7 @@ func TestEIP3651(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
+	defer chain.Stop()
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}

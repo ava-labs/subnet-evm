@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/core/txpool"
+	"github.com/ava-labs/coreth/params"
 
 	"github.com/ava-labs/avalanchego/snow"
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/coreth/core"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -28,6 +28,7 @@ type blockBuilder struct {
 	chainConfig *params.ChainConfig
 
 	txPool   *txpool.TxPool
+	mempool  *Mempool
 	gossiper Gossiper
 
 	shutdownChan <-chan struct{}
@@ -56,6 +57,7 @@ func (vm *VM) NewBlockBuilder(notifyBuildBlockChan chan<- commonEng.Message) *bl
 		ctx:                  vm.ctx,
 		chainConfig:          vm.chainConfig,
 		txPool:               vm.txPool,
+		mempool:              vm.mempool,
 		gossiper:             vm.gossiper,
 		shutdownChan:         vm.shutdownChan,
 		shutdownWg:           &vm.shutdownWg,
@@ -101,7 +103,7 @@ func (b *blockBuilder) handleGenerateBlock() {
 // into a block.
 func (b *blockBuilder) needToBuild() bool {
 	size := b.txPool.PendingSize()
-	return size > 0
+	return size > 0 || b.mempool.Len() > 0
 }
 
 // markBuilding adds a PendingTxs message to the toEngine channel.
@@ -157,11 +159,24 @@ func (b *blockBuilder) awaitSubmittedTxs() {
 				b.signalTxsReady()
 
 				if b.gossiper != nil && len(ethTxsEvent.Txs) > 0 {
-					// [GossipTxs] will block unless [gossiper.txsToGossipChan] (an
+					// [GossipEthTxs] will block unless [gossiper.ethTxsToGossipChan] (an
 					// unbuffered channel) is listened on
-					if err := b.gossiper.GossipTxs(ethTxsEvent.Txs); err != nil {
+					if err := b.gossiper.GossipEthTxs(ethTxsEvent.Txs); err != nil {
 						log.Warn(
 							"failed to gossip new eth transactions",
+							"err", err,
+						)
+					}
+				}
+			case <-b.mempool.Pending:
+				log.Trace("New atomic Tx detected, trying to generate a block")
+				b.signalTxsReady()
+
+				newTxs := b.mempool.GetNewTxs()
+				if b.gossiper != nil && len(newTxs) > 0 {
+					if err := b.gossiper.GossipAtomicTxs(newTxs); err != nil {
+						log.Warn(
+							"failed to gossip new atomic transactions",
 							"err", err,
 						)
 					}

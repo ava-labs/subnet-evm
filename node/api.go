@@ -27,8 +27,8 @@
 package node
 
 import (
-	"github.com/ava-labs/subnet-evm/internal/debug"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/internal/debug"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -56,7 +56,7 @@ type web3API struct {
 
 // ClientVersion returns the node name
 func (s *web3API) ClientVersion() string {
-	return s.stack.config.SubnetEVMVersion
+	return s.stack.config.CorethVersion
 }
 
 // Sha3 applies the ethereum sha3 implementation on the input.

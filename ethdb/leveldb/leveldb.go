@@ -37,8 +37,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/metrics"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/metrics"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/syndtr/goleveldb/leveldb"

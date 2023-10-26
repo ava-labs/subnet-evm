@@ -33,10 +33,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -168,9 +168,9 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 	}
 	// Now attempt to fill in default value depending on whether London is active or not.
 	head := b.CurrentHeader()
-	if b.ChainConfig().IsSubnetEVM(head.Time) {
+	if b.ChainConfig().IsApricotPhase3(head.Time) {
 		// London is active, set maxPriorityFeePerGas and maxFeePerGas.
-		if err := args.setSubnetEVMFeeDefault(ctx, head, b); err != nil {
+		if err := args.setApricotPhase3FeeDefault(ctx, head, b); err != nil {
 			return err
 		}
 	} else {
@@ -188,8 +188,8 @@ func (args *TransactionArgs) setFeeDefaults(ctx context.Context, b feeBackend) e
 	return nil
 }
 
-// setSubnetEVMFeeDefault fills in reasonable default fee values for unspecified fields.
-func (args *TransactionArgs) setSubnetEVMFeeDefault(ctx context.Context, head *types.Header, b feeBackend) error {
+// setApricotPhase3FeeDefault fills in reasonable default fee values for unspecified fields.
+func (args *TransactionArgs) setApricotPhase3FeeDefault(ctx context.Context, head *types.Header, b feeBackend) error {
 	// Set maxPriorityFeePerGas if it is missing.
 	if args.MaxPriorityFeePerGas == nil {
 		tip, err := b.SuggestGasTipCap(ctx)
@@ -236,7 +236,7 @@ func (args *TransactionArgs) ToMessage(globalGasCap uint64, baseFee *big.Int) (*
 		gas = uint64(*args.Gas)
 	}
 	if globalGasCap != 0 && globalGasCap < gas {
-		log.Info("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
+		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
 		gas = globalGasCap
 	}
 	var (

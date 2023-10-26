@@ -11,8 +11,8 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/ids"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/ava-labs/coreth/plugin/evm/message"
+	"github.com/ava-labs/coreth/sync/handlers/stats"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -80,7 +80,7 @@ func (b *BlockRequestHandler) OnBlockRequest(ctx context.Context, nodeID ids.Nod
 
 		buf := new(bytes.Buffer)
 		if err := block.EncodeRLP(buf); err != nil {
-			log.Error("failed to RLP encode block", "hash", block.Hash(), "height", block.NumberU64(), "err", err)
+			log.Warn("failed to RLP encode block", "hash", block.Hash(), "height", block.NumberU64(), "err", err)
 			return nil, nil
 		}
 
@@ -100,7 +100,7 @@ func (b *BlockRequestHandler) OnBlockRequest(ctx context.Context, nodeID ids.Nod
 	}
 	responseBytes, err := b.codec.Marshal(message.Version, response)
 	if err != nil {
-		log.Error("failed to marshal BlockResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "hash", blockRequest.Hash, "parents", blockRequest.Parents, "blocksLen", len(response.Blocks), "err", err)
+		log.Warn("failed to marshal BlockResponse, dropping request", "nodeID", nodeID, "requestID", requestID, "hash", blockRequest.Hash, "parents", blockRequest.Parents, "blocksLen", len(response.Blocks), "err", err)
 		return nil, nil
 	}
 

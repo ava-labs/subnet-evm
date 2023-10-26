@@ -29,15 +29,17 @@ package bind_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/interfaces"
+	"github.com/ava-labs/coreth/accounts/abi"
+	"github.com/ava-labs/coreth/accounts/abi/bind"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/interfaces"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -195,6 +197,23 @@ func TestUnpackIndexedStringTyLogIntoMap(t *testing.T) {
 	unpackAndCheck(t, bc, expectedReceivedMap, mockLog)
 }
 
+func TestUnpackAnonymousLogIntoMap(t *testing.T) {
+	mockLog := newMockLog(nil, common.HexToHash("0x0"))
+
+	abiString := `[{"anonymous":false,"inputs":[{"indexed":false,"name":"amount","type":"uint256"}],"name":"received","type":"event"}]`
+	parsedAbi, _ := abi.JSON(strings.NewReader(abiString))
+	bc := bind.NewBoundContract(common.HexToAddress("0x0"), parsedAbi, nil, nil, nil)
+
+	var received map[string]interface{}
+	err := bc.UnpackLogIntoMap(received, "received", mockLog)
+	if err == nil {
+		t.Error("unpacking anonymous event is not supported")
+	}
+	if err.Error() != "no event signature" {
+		t.Errorf("expected error 'no event signature', got '%s'", err)
+	}
+}
+
 func TestUnpackIndexedSliceTyLogIntoMap(t *testing.T) {
 	sliceBytes, err := rlp.EncodeToBytes([]string{"name1", "name2", "name3", "name4"})
 	if err != nil {
@@ -291,6 +310,80 @@ func TestUnpackIndexedBytesTyLogIntoMap(t *testing.T) {
 		"memo":    []byte{88},
 	}
 	unpackAndCheck(t, bc, expectedReceivedMap, mockLog)
+}
+
+func TestTransactNativeAssetCallNilAssetAmount(t *testing.T) {
+	assert := assert.New(t)
+	mt := &mockTransactor{}
+	bc := bind.NewBoundContract(common.Address{}, abi.ABI{}, nil, mt, nil)
+	opts := &bind.TransactOpts{
+		Signer: mockSign,
+	}
+	// fails if asset amount is nil
+	opts.NativeAssetCall = &bind.NativeAssetCallOpts{
+		AssetID:     common.Hash{},
+		AssetAmount: nil,
+	}
+	_, err := bc.Transact(opts, "")
+	assert.ErrorIs(err, bind.ErrNilAssetAmount)
+}
+
+func TestTransactNativeAssetCallNonZeroValue(t *testing.T) {
+	assert := assert.New(t)
+	mt := &mockTransactor{}
+	bc := bind.NewBoundContract(common.Address{}, abi.ABI{}, nil, mt, nil)
+	opts := &bind.TransactOpts{
+		Signer: mockSign,
+	}
+	opts.NativeAssetCall = &bind.NativeAssetCallOpts{
+		AssetID:     common.Hash{},
+		AssetAmount: big.NewInt(11),
+	}
+	// fails if value > 0
+	opts.Value = big.NewInt(11)
+	_, err := bc.Transact(opts, "")
+	assert.Equal(err.Error(), fmt.Sprintf("value must be 0 when performing native asset call, found %v", opts.Value))
+	// fails if value < 0
+	opts.Value = big.NewInt(-11)
+	_, err = bc.Transact(opts, "")
+	assert.Equal(err.Error(), fmt.Sprintf("value must be 0 when performing native asset call, found %v", opts.Value))
+}
+
+func TestTransactNativeAssetCall(t *testing.T) {
+	assert := assert.New(t)
+	json := `[{"type":"function","name":"method","inputs":[{"type":"uint256" },{"type":"string"}]}]`
+	parsed, err := abi.JSON(strings.NewReader(json))
+	assert.Nil(err)
+	mt := &mockTransactor{}
+	contractAddr := common.Address{11}
+	bc := bind.NewBoundContract(contractAddr, parsed, nil, mt, nil)
+	opts := &bind.TransactOpts{
+		Signer: mockSign,
+	}
+	// normal call tx
+	methodName := "method"
+	arg1 := big.NewInt(22)
+	arg2 := "33"
+	normalCallTx, err := bc.Transact(opts, methodName, arg1, arg2)
+	assert.Nil(err)
+	// native asset call tx
+	assetID := common.Hash{44}
+	assetAmount := big.NewInt(55)
+	opts.NativeAssetCall = &bind.NativeAssetCallOpts{
+		AssetID:     assetID,
+		AssetAmount: assetAmount,
+	}
+	nativeCallTx, err := bc.Transact(opts, methodName, arg1, arg2)
+	assert.Nil(err)
+	// verify transformations
+	assert.Equal(vm.NativeAssetCallAddr, *nativeCallTx.To())
+	unpackedAddr, unpackedAssetID, unpackedAssetAmount, unpackedData, err := vm.UnpackNativeAssetCallInput(nativeCallTx.Data())
+	assert.Nil(err)
+	assert.NotEmpty(unpackedData)
+	assert.Equal(unpackedData, normalCallTx.Data())
+	assert.Equal(unpackedAddr, contractAddr)
+	assert.Equal(unpackedAssetID, assetID)
+	assert.Equal(unpackedAssetAmount, assetAmount)
 }
 
 func TestTransactGasFee(t *testing.T) {

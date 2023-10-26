@@ -14,15 +14,16 @@ import (
 )
 
 const (
-	// TxMsgSoftCapSize is the ideal size of encoded transaction bytes we send in
-	// any [Txs] message. We do not limit inbound messages to
+	// EthMsgSoftCapSize is the ideal size of encoded transaction bytes we send in
+	// any [EthTxsGossip] or [AtomicTxGossip] message. We do not limit inbound messages to
 	// this size, however. Max inbound message size is enforced by the codec
 	// (512KB).
-	TxMsgSoftCapSize = 64 * units.KiB
+	EthMsgSoftCapSize = 64 * units.KiB
 )
 
 var (
-	_ GossipMessage = TxsGossip{}
+	_ GossipMessage = AtomicTxGossip{}
+	_ GossipMessage = EthTxsGossip{}
 
 	errUnexpectedCodecVersion = errors.New("unexpected codec version")
 )
@@ -35,16 +36,28 @@ type GossipMessage interface {
 	Handle(handler GossipHandler, nodeID ids.NodeID) error
 }
 
-type TxsGossip struct {
+type AtomicTxGossip struct {
+	Tx []byte `serialize:"true"`
+}
+
+func (msg AtomicTxGossip) Handle(handler GossipHandler, nodeID ids.NodeID) error {
+	return handler.HandleAtomicTx(nodeID, msg)
+}
+
+func (msg AtomicTxGossip) String() string {
+	return fmt.Sprintf("AtomicTxGossip(Len=%d)", len(msg.Tx))
+}
+
+type EthTxsGossip struct {
 	Txs []byte `serialize:"true"`
 }
 
-func (msg TxsGossip) Handle(handler GossipHandler, nodeID ids.NodeID) error {
-	return handler.HandleTxs(nodeID, msg)
+func (msg EthTxsGossip) Handle(handler GossipHandler, nodeID ids.NodeID) error {
+	return handler.HandleEthTxs(nodeID, msg)
 }
 
-func (msg TxsGossip) String() string {
-	return fmt.Sprintf("TxsGossip(Len=%d)", len(msg.Txs))
+func (msg EthTxsGossip) String() string {
+	return fmt.Sprintf("EthTxsGossip(Len=%d)", len(msg.Txs))
 }
 
 func ParseGossipMessage(codec codec.Manager, bytes []byte) (GossipMessage, error) {

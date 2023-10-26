@@ -30,17 +30,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/constants"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -81,11 +79,6 @@ func (b *BlockGen) SetExtra(data []byte) {
 	b.header.Extra = data
 }
 
-// AppendExtra appends data to the extra data field of the generated block.
-func (b *BlockGen) AppendExtra(data []byte) {
-	b.header.Extra = append(b.header.Extra, data...)
-}
-
 // SetNonce sets the nonce field of the generated block.
 func (b *BlockGen) SetNonce(nonce types.BlockNonce) {
 	b.header.Nonce = nonce
@@ -110,8 +103,7 @@ func (b *BlockGen) addTx(bc *BlockChain, vmConfig vm.Config, tx *types.Transacti
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.SetTxContext(tx.Hash(), len(b.txs))
-	blockContext := NewEVMBlockContext(b.header, bc, &b.header.Coinbase)
-	receipt, err := ApplyTransaction(b.config, bc, blockContext, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vmConfig)
+	receipt, err := ApplyTransaction(b.config, bc, &b.header.Coinbase, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vmConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -317,6 +309,15 @@ func makeHeader(chain consensus.ChainReader, config *params.ChainConfig, parent 
 		time = parent.Time() + gap
 	}
 
+	var gasLimit uint64
+	if config.IsCortina(time) {
+		gasLimit = params.CortinaGasLimit
+	} else if config.IsApricotPhase1(time) {
+		gasLimit = params.ApricotPhase1GasLimit
+	} else {
+		gasLimit = CalcGasLimit(parent.GasUsed(), parent.GasLimit(), parent.GasLimit(), parent.GasLimit())
+	}
+
 	header := &types.Header{
 		Root:       state.IntermediateRoot(chain.Config().IsEIP158(parent.Number())),
 		ParentHash: parent.Hash(),
@@ -327,23 +328,16 @@ func makeHeader(chain consensus.ChainReader, config *params.ChainConfig, parent 
 			Difficulty: parent.Difficulty(),
 			UncleHash:  parent.UncleHash(),
 		}),
-		Number: new(big.Int).Add(parent.Number(), common.Big1),
-		Time:   time,
+		GasLimit: gasLimit,
+		Number:   new(big.Int).Add(parent.Number(), common.Big1),
+		Time:     time,
 	}
-
-	if chain.Config().IsSubnetEVM(time) {
-		feeConfig, _, err := chain.GetFeeConfigAt(parent.Header())
+	if chain.Config().IsApricotPhase3(time) {
+		var err error
+		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(chain.Config(), parent.Header(), time)
 		if err != nil {
 			panic(err)
 		}
-
-		header.GasLimit = feeConfig.GasLimit.Uint64()
-		header.Extra, header.BaseFee, err = dummy.CalcBaseFee(chain.Config(), feeConfig, parent.Header(), time)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		header.GasLimit = CalcGasLimit(parent.GasUsed(), parent.GasLimit(), parent.GasLimit(), parent.GasLimit())
 	}
 	return header
 }
@@ -362,10 +356,3 @@ func (cr *fakeChainReader) GetHeaderByNumber(number uint64) *types.Header       
 func (cr *fakeChainReader) GetHeaderByHash(hash common.Hash) *types.Header          { return nil }
 func (cr *fakeChainReader) GetHeader(hash common.Hash, number uint64) *types.Header { return nil }
 func (cr *fakeChainReader) GetBlock(hash common.Hash, number uint64) *types.Block   { return nil }
-func (cr *fakeChainReader) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return cr.config.FeeConfig, nil, nil
-}
-
-func (cr *fakeChainReader) GetCoinbaseAt(parent *types.Header) (common.Address, bool, error) {
-	return constants.BlackholeAddr, cr.config.AllowFeeRecipients, nil
-}

@@ -29,8 +29,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -41,6 +41,10 @@ type StateDB interface {
 	SubBalance(common.Address, *big.Int)
 	AddBalance(common.Address, *big.Int)
 	GetBalance(common.Address) *big.Int
+
+	SubBalanceMultiCoin(common.Address, common.Hash, *big.Int)
+	AddBalanceMultiCoin(common.Address, common.Hash, *big.Int)
+	GetBalanceMultiCoin(common.Address, common.Hash) *big.Int
 
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
@@ -55,6 +59,7 @@ type StateDB interface {
 	GetRefund() uint64
 
 	GetCommittedState(common.Address, common.Hash) common.Hash
+	GetCommittedStateAP1(common.Address, common.Hash) common.Hash
 	GetState(common.Address, common.Hash) common.Hash
 	SetState(common.Address, common.Hash, common.Hash)
 
@@ -63,7 +68,6 @@ type StateDB interface {
 
 	Suicide(common.Address) bool
 	HasSuicided(common.Address) bool
-	Finalise(deleteEmptyObjects bool)
 
 	// Exist reports whether the given account exists in state.
 	// Notably this should also return true for suicided accounts.
@@ -85,16 +89,8 @@ type StateDB interface {
 	RevertToSnapshot(int)
 	Snapshot() int
 
-	AddLog(addr common.Address, topics []common.Hash, data []byte, blockNumber uint64)
-	GetLogData() [][]byte
-	GetPredicateStorageSlots(address common.Address, index int) ([]byte, bool)
-	SetPredicateStorageSlots(address common.Address, predicates [][]byte)
-
-	GetTxHash() common.Hash
-
+	AddLog(*types.Log)
 	AddPreimage(common.Hash, []byte)
-
-	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) error
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM

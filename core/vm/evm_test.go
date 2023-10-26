@@ -11,25 +11,14 @@ import (
 )
 
 func TestIsProhibited(t *testing.T) {
-	// reserved addresses (coreth)
+	// reserved addresses
 	assert.True(t, IsProhibited(common.HexToAddress("0x0100000000000000000000000000000000000000")))
 	assert.True(t, IsProhibited(common.HexToAddress("0x0100000000000000000000000000000000000010")))
 	assert.True(t, IsProhibited(common.HexToAddress("0x01000000000000000000000000000000000000f0")))
 	assert.True(t, IsProhibited(common.HexToAddress("0x01000000000000000000000000000000000000ff")))
-	// reserved addresses (subnet-evm)
-	assert.True(t, IsProhibited(common.HexToAddress("0x0200000000000000000000000000000000000000")))
-	assert.True(t, IsProhibited(common.HexToAddress("0x0200000000000000000000000000000000000010")))
-	assert.True(t, IsProhibited(common.HexToAddress("0x02000000000000000000000000000000000000f0")))
-	assert.True(t, IsProhibited(common.HexToAddress("0x02000000000000000000000000000000000000ff")))
-	// reserved addresses (custom precompiles)
-	assert.True(t, IsProhibited(common.HexToAddress("0x0300000000000000000000000000000000000000")))
-	assert.True(t, IsProhibited(common.HexToAddress("0x0300000000000000000000000000000000000010")))
-	assert.True(t, IsProhibited(common.HexToAddress("0x03000000000000000000000000000000000000f0")))
-	assert.True(t, IsProhibited(common.HexToAddress("0x03000000000000000000000000000000000000ff")))
 
 	// allowed for use
 	assert.False(t, IsProhibited(common.HexToAddress("0x00000000000000000000000000000000000000ff")))
 	assert.False(t, IsProhibited(common.HexToAddress("0x0100000000000000000000000000000000000100")))
-	assert.False(t, IsProhibited(common.HexToAddress("0x0200000000000000000000000000000000000100")))
-	assert.False(t, IsProhibited(common.HexToAddress("0x0300000000000000000000000000000000000100")))
+	assert.False(t, IsProhibited(common.HexToAddress("0x0200000000000000000000000000000000000000")))
 }

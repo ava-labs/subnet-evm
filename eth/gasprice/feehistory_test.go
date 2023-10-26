@@ -32,12 +32,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -45,7 +45,7 @@ func TestFeeHistory(t *testing.T) {
 	var cases = []struct {
 		pending      bool
 		maxCallBlock uint64
-		maxBlock     int
+		maxBlock     uint64
 		count        uint64
 		last         rpc.BlockNumber
 		percent      []float64
@@ -81,7 +81,7 @@ func TestFeeHistory(t *testing.T) {
 			MaxBlockHistory:     c.maxBlock,
 		}
 		tip := big.NewInt(1 * params.GWei)
-		backend := newTestBackendFakerEngine(t, params.TestChainConfig, 32, func(i int, b *core.BlockGen) {
+		backend := newTestBackendFakerEngine(t, params.TestChainConfig, 32, common.Big0, func(i int, b *core.BlockGen) {
 			signer := types.LatestSigner(params.TestChainConfig)
 
 			b.SetCoinbase(common.Address{1})

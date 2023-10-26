@@ -30,11 +30,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -60,7 +60,7 @@ func ExampleGenerateChain() {
 	// each block and adds different features to gen based on the
 	// block index.
 	signer := types.HomesteadSigner{}
-	_, chain, _, err := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), 3, 10, func(i int, gen *BlockGen) {
+	_, chain, _, err := GenerateChainWithGenesis(gspec, dummy.NewFaker(), 3, 10, func(i int, gen *BlockGen) {
 		switch i {
 		case 0:
 			// In block 1, addr1 sends addr2 some ether.
@@ -81,7 +81,7 @@ func ExampleGenerateChain() {
 	}
 
 	// Import the chain. This runs all block validation rules.
-	blockchain, _ := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+	blockchain, _ := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewFaker(), vm.Config{}, common.Hash{}, false)
 	defer blockchain.Stop()
 
 	if i, err := blockchain.InsertChain(chain); err != nil {

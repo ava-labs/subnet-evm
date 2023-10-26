@@ -29,12 +29,11 @@ package miner
 
 import (
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/txpool"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
@@ -64,8 +63,8 @@ func (miner *Miner) SetEtherbase(addr common.Address) {
 	miner.worker.setEtherbase(addr)
 }
 
-func (miner *Miner) GenerateBlock(predicateContext *precompileconfig.PredicateContext) (*types.Block, error) {
-	return miner.worker.commitNewWork(predicateContext)
+func (miner *Miner) GenerateBlock() (*types.Block, error) {
+	return miner.worker.commitNewWork()
 }
 
 // SubscribePendingLogs starts delivering logs from pending transactions

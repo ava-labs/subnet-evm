@@ -8,15 +8,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/assert"
 )
-
-var testMinBaseFee = big.NewInt(75_000_000_000)
 
 func testRollup(t *testing.T, longs []uint64, roll int) {
 	slice := make([]byte, len(longs)*8)
@@ -96,24 +93,27 @@ func TestRollupWindow(t *testing.T) {
 }
 
 type blockDefinition struct {
-	timestamp uint64
-	gasUsed   uint64
+	timestamp      uint64
+	gasUsed        uint64
+	extDataGasUsed *big.Int
 }
 
 type test struct {
-	baseFee   *big.Int
-	genBlocks func() []blockDefinition
-	minFee    *big.Int
+	extraData      []byte
+	baseFee        *big.Int
+	genBlocks      func() []blockDefinition
+	minFee, maxFee *big.Int
 }
 
 func TestDynamicFees(t *testing.T) {
 	spacedTimestamps := []uint64{1, 1, 2, 5, 15, 120}
-
 	var tests []test = []test{
 		// Test minimal gas usage
 		{
-			baseFee: nil,
-			minFee:  testMinBaseFee,
+			extraData: nil,
+			baseFee:   nil,
+			minFee:    big.NewInt(params.ApricotPhase3MinBaseFee),
+			maxFee:    big.NewInt(params.ApricotPhase3MaxBaseFee),
 			genBlocks: func() []blockDefinition {
 				blocks := make([]blockDefinition, 0, len(spacedTimestamps))
 				for _, timestamp := range spacedTimestamps {
@@ -127,23 +127,10 @@ func TestDynamicFees(t *testing.T) {
 		},
 		// Test overflow handling
 		{
-			baseFee: nil,
-			minFee:  testMinBaseFee,
-			genBlocks: func() []blockDefinition {
-				blocks := make([]blockDefinition, 0, len(spacedTimestamps))
-				for _, timestamp := range spacedTimestamps {
-					blocks = append(blocks, blockDefinition{
-						timestamp: timestamp,
-						gasUsed:   math.MaxUint64,
-					})
-				}
-				return blocks
-			},
-		},
-		// Test update increase handling
-		{
-			baseFee: big.NewInt(50_000_000_000),
-			minFee:  testMinBaseFee,
+			extraData: nil,
+			baseFee:   nil,
+			minFee:    big.NewInt(params.ApricotPhase3MinBaseFee),
+			maxFee:    big.NewInt(params.ApricotPhase3MaxBaseFee),
 			genBlocks: func() []blockDefinition {
 				blocks := make([]blockDefinition, 0, len(spacedTimestamps))
 				for _, timestamp := range spacedTimestamps {
@@ -156,8 +143,10 @@ func TestDynamicFees(t *testing.T) {
 			},
 		},
 		{
-			baseFee: nil,
-			minFee:  testMinBaseFee,
+			extraData: nil,
+			baseFee:   nil,
+			minFee:    big.NewInt(params.ApricotPhase3MinBaseFee),
+			maxFee:    big.NewInt(params.ApricotPhase3MaxBaseFee),
 			genBlocks: func() []blockDefinition {
 				return []blockDefinition{
 					{
@@ -210,25 +199,16 @@ func testDynamicFeesStaysWithinRange(t *testing.T, test test) {
 		GasUsed: initialBlock.gasUsed,
 		Number:  big.NewInt(0),
 		BaseFee: test.baseFee,
+		Extra:   test.extraData,
 	}
 
 	for index, block := range blocks[1:] {
-		testFeeConfig := commontype.FeeConfig{
-			GasLimit:        big.NewInt(8_000_000),
-			TargetBlockRate: 2, // in seconds
-
-			MinBaseFee:               test.minFee,
-			TargetGas:                big.NewInt(15_000_000),
-			BaseFeeChangeDenominator: big.NewInt(36),
-
-			MinBlockGasCost:  big.NewInt(0),
-			MaxBlockGasCost:  big.NewInt(1_000_000),
-			BlockGasCostStep: big.NewInt(200_000),
-		}
-
-		nextExtraData, nextBaseFee, err := CalcBaseFee(params.TestChainConfig, testFeeConfig, header, block.timestamp)
+		nextExtraData, nextBaseFee, err := CalcBaseFee(params.TestApricotPhase3Config, header, block.timestamp)
 		if err != nil {
 			t.Fatalf("Failed to calculate base fee at index %d: %s", index, err)
+		}
+		if nextBaseFee.Cmp(test.maxFee) > 0 {
+			t.Fatalf("Expected fee to stay less than %d, but found %d", test.maxFee, nextBaseFee)
 		}
 		if nextBaseFee.Cmp(test.minFee) < 0 {
 			t.Fatalf("Expected fee to stay greater than %d, but found %d", test.minFee, nextBaseFee)
@@ -296,7 +276,7 @@ func TestSelectBigWithinBounds(t *testing.T) {
 		lower, value, upper, expected *big.Int
 	}
 
-	tests := map[string]test{
+	var tests = map[string]test{
 		"value within bounds": {
 			lower:    big.NewInt(0),
 			value:    big.NewInt(5),
@@ -339,6 +319,122 @@ func TestSelectBigWithinBounds(t *testing.T) {
 	}
 }
 
+// TestCalcBaseFeeAP4 confirms that the inclusion of ExtDataGasUsage increases
+// the base fee.
+func TestCalcBaseFeeAP4(t *testing.T) {
+	events := []struct {
+		block             blockDefinition
+		extDataFeeGreater bool
+	}{
+		{
+			block: blockDefinition{
+				timestamp:      1,
+				gasUsed:        1_000_000,
+				extDataGasUsed: big.NewInt(100_000),
+			},
+		},
+		{
+			block: blockDefinition{
+				timestamp:      3,
+				gasUsed:        1_000_000,
+				extDataGasUsed: big.NewInt(10_000),
+			},
+			extDataFeeGreater: true,
+		},
+		{
+			block: blockDefinition{
+				timestamp:      5,
+				gasUsed:        2_000_000,
+				extDataGasUsed: big.NewInt(50_000),
+			},
+			extDataFeeGreater: true,
+		},
+		{
+			block: blockDefinition{
+				timestamp:      5,
+				gasUsed:        6_000_000,
+				extDataGasUsed: big.NewInt(50_000),
+			},
+			extDataFeeGreater: true,
+		},
+		{
+			block: blockDefinition{
+				timestamp:      7,
+				gasUsed:        6_000_000,
+				extDataGasUsed: big.NewInt(0),
+			},
+			extDataFeeGreater: true,
+		},
+		{
+			block: blockDefinition{
+				timestamp:      1000,
+				gasUsed:        6_000_000,
+				extDataGasUsed: big.NewInt(0),
+			},
+		},
+		{
+			block: blockDefinition{
+				timestamp:      1001,
+				gasUsed:        6_000_000,
+				extDataGasUsed: big.NewInt(10_000),
+			},
+		},
+		{
+			block: blockDefinition{
+				timestamp:      1002,
+				gasUsed:        6_000_000,
+				extDataGasUsed: big.NewInt(0),
+			},
+			extDataFeeGreater: true,
+		},
+	}
+
+	header := &types.Header{
+		Time:    0,
+		GasUsed: 1_000_000,
+		Number:  big.NewInt(0),
+		BaseFee: big.NewInt(225 * params.GWei),
+		Extra:   nil,
+	}
+	extDataHeader := &types.Header{
+		Time:    0,
+		GasUsed: 1_000_000,
+		Number:  big.NewInt(0),
+		BaseFee: big.NewInt(225 * params.GWei),
+		Extra:   nil,
+		// ExtDataGasUsage is set to be nil to ensure CalcBaseFee can handle the
+		// AP3/AP4 boundary.
+	}
+
+	for index, event := range events {
+		block := event.block
+		nextExtraData, nextBaseFee, err := CalcBaseFee(params.TestApricotPhase4Config, header, block.timestamp)
+		assert.NoError(t, err)
+		log.Info("Update", "baseFee", nextBaseFee)
+		header = &types.Header{
+			Time:    block.timestamp,
+			GasUsed: block.gasUsed,
+			Number:  big.NewInt(int64(index) + 1),
+			BaseFee: nextBaseFee,
+			Extra:   nextExtraData,
+		}
+
+		nextExtraData, nextBaseFee, err = CalcBaseFee(params.TestApricotPhase4Config, extDataHeader, block.timestamp)
+		assert.NoError(t, err)
+		log.Info("Update", "baseFee (w/extData)", nextBaseFee)
+		extDataHeader = &types.Header{
+			Time:           block.timestamp,
+			GasUsed:        block.gasUsed,
+			Number:         big.NewInt(int64(index) + 1),
+			BaseFee:        nextBaseFee,
+			Extra:          nextExtraData,
+			ExtDataGasUsed: block.extDataGasUsed,
+		}
+
+		assert.Equal(t, event.extDataFeeGreater, extDataHeader.BaseFee.Cmp(header.BaseFee) == 1, "unexpected cmp for index %d", index)
+	}
+}
+
 func TestCalcBlockGasCost(t *testing.T) {
 	tests := map[string]struct {
 		parentBlockGasCost      *big.Int
@@ -350,7 +446,7 @@ func TestCalcBlockGasCost(t *testing.T) {
 			parentBlockGasCost: nil,
 			parentTime:         1,
 			currentTime:        1,
-			expected:           params.DefaultFeeConfig.MinBlockGasCost,
+			expected:           ApricotPhase4MinBlockGasCost,
 		},
 		"Same timestamp from 0": {
 			parentBlockGasCost: big.NewInt(0),
@@ -429,10 +525,10 @@ func TestCalcBlockGasCost(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			assert.Zero(t, test.expected.Cmp(calcBlockGasCost(
-				params.DefaultFeeConfig.TargetBlockRate,
-				params.DefaultFeeConfig.MinBlockGasCost,
-				params.DefaultFeeConfig.MaxBlockGasCost,
-				testBlockGasCostStep,
+				ApricotPhase4TargetBlockRate,
+				ApricotPhase4MinBlockGasCost,
+				ApricotPhase4MaxBlockGasCost,
+				ApricotPhase4BlockGasCostStep,
 				test.parentBlockGasCost,
 				test.parentTime,
 				test.currentTime,

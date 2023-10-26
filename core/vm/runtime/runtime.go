@@ -30,10 +30,11 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -62,20 +63,22 @@ type Config struct {
 func setDefaults(cfg *Config) {
 	if cfg.ChainConfig == nil {
 		cfg.ChainConfig = &params.ChainConfig{
-			ChainID:             big.NewInt(1),
-			HomesteadBlock:      new(big.Int),
-			EIP150Block:         new(big.Int),
-			EIP150Hash:          common.Hash{},
-			EIP155Block:         new(big.Int),
-			EIP158Block:         new(big.Int),
-			ByzantiumBlock:      new(big.Int),
-			ConstantinopleBlock: new(big.Int),
-			PetersburgBlock:     new(big.Int),
-			IstanbulBlock:       new(big.Int),
-			MuirGlacierBlock:    new(big.Int),
-			MandatoryNetworkUpgrades: params.MandatoryNetworkUpgrades{
-				SubnetEVMTimestamp: new(uint64),
-			},
+			ChainID:                     big.NewInt(1),
+			HomesteadBlock:              new(big.Int),
+			DAOForkBlock:                new(big.Int),
+			DAOForkSupport:              false,
+			EIP150Block:                 new(big.Int),
+			EIP155Block:                 new(big.Int),
+			EIP158Block:                 new(big.Int),
+			ByzantiumBlock:              new(big.Int),
+			ConstantinopleBlock:         new(big.Int),
+			PetersburgBlock:             new(big.Int),
+			IstanbulBlock:               new(big.Int),
+			MuirGlacierBlock:            new(big.Int),
+			ApricotPhase1BlockTimestamp: new(uint64),
+			ApricotPhase2BlockTimestamp: new(uint64),
+			ApricotPhase3BlockTimestamp: new(uint64),
+			ApricotPhase4BlockTimestamp: new(uint64),
 		}
 	}
 
@@ -100,7 +103,7 @@ func setDefaults(cfg *Config) {
 		}
 	}
 	if cfg.BaseFee == nil {
-		cfg.BaseFee = new(big.Int).Set(params.DefaultFeeConfig.MinBaseFee)
+		cfg.BaseFee = big.NewInt(params.ApricotPhase3InitialBaseFee)
 	}
 }
 
@@ -116,7 +119,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		cfg.State, _ = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
@@ -125,7 +128,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		rules   = cfg.ChainConfig.AvalancheRules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
+	// - prepare accessList(post-berlin/ApricotPhase2)
 	// - reset transient storage(eip 1153)
 	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
 
@@ -151,7 +154,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		cfg.State, _ = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	}
 	var (
 		vmenv  = NewEnv(cfg)
@@ -159,7 +162,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		rules  = cfg.ChainConfig.AvalancheRules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
+	// - prepare accessList(post-berlin/ApricotPhase2)
 	// - reset transient storage(eip 1153)
 	cfg.State.Prepare(rules, cfg.Origin, cfg.Coinbase, nil, vm.ActivePrecompiles(rules), nil)
 
@@ -188,7 +191,7 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 		rules   = cfg.ChainConfig.AvalancheRules(vmenv.Context.BlockNumber, vmenv.Context.Time)
 	)
 	// Execute the preparatory steps for state transition which includes:
-	// - prepare accessList(post-berlin)
+	// - prepare accessList(post-berlin/ApricotPhase2)
 	// - reset transient storage(eip 1153)
 	statedb.Prepare(rules, cfg.Origin, cfg.Coinbase, &address, vm.ActivePrecompiles(rules), nil)
 

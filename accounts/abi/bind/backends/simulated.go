@@ -34,23 +34,23 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/eth"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ava-labs/coreth/eth"
+	"github.com/ava-labs/coreth/vmerrs"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/bloombits"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/filters"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/interfaces"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/accounts/abi"
+	"github.com/ava-labs/coreth/accounts/abi/bind"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/bloombits"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/filters"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/interfaces"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -115,10 +115,8 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 		Alloc:    alloc,
 	}
 	cacheConfig := &core.CacheConfig{}
-	blockchain, err := core.NewBlockChain(database, cacheConfig, &genesis, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create simulated blockchain: %v", err))
-	}
+	blockchain, _ := core.NewBlockChain(database, cacheConfig, &genesis, dummy.NewFaker(), vm.Config{}, common.Hash{}, false)
+
 	backend := &SimulatedBackend{
 		database:   database,
 		blockchain: blockchain,
@@ -583,7 +581,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call interfaces.Call
 			if transfer == nil {
 				transfer = new(big.Int)
 			}
-			log.Info("Gas estimation capped by limited funds", "original", hi, "balance", balance,
+			log.Warn("Gas estimation capped by limited funds", "original", hi, "balance", balance,
 				"sent", transfer, "feecap", feeCap, "fundable", allowance)
 			hi = allowance.Uint64()
 		}
@@ -610,6 +608,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call interfaces.Call
 	for lo+1 < hi {
 		mid := (hi + lo) / 2
 		failed, _, err := executable(mid)
+
 		// If the error is not nil(consensus error), it means the provided message
 		// call or transaction will never be accepted no matter how much gas it is
 		// assigned. Return the error directly, don't struggle any more
@@ -650,7 +649,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call interfaces.Cal
 		return nil, errors.New("both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified")
 	}
 	head := b.blockchain.CurrentHeader()
-	if !b.blockchain.Config().IsSubnetEVM(head.Time) {
+	if !b.blockchain.Config().IsApricotPhase3(head.Time) {
 		// If there's no basefee, then it must be a non-1559 execution
 		if call.GasPrice == nil {
 			call.GasPrice = new(big.Int)
@@ -723,7 +722,7 @@ func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 		return errors.New("could not fetch parent")
 	}
 	// Check transaction validity
-	signer := types.NewLondonSigner(b.blockchain.Config().ChainID)
+	signer := types.MakeSigner(b.blockchain.Config(), block.Number(), block.Time())
 	sender, err := types.Sender(signer, tx)
 	if err != nil {
 		return fmt.Errorf("invalid transaction: %v", err)
@@ -940,7 +939,11 @@ func (fb *filterBackend) GetReceipts(ctx context.Context, hash common.Hash) (typ
 	if number == nil {
 		return nil, nil
 	}
-	return rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config()), nil
+	header := rawdb.ReadHeader(fb.db, hash, *number)
+	if header == nil {
+		return nil, nil
+	}
+	return rawdb.ReadReceipts(fb.db, hash, *number, header.Time, fb.bc.Config()), nil
 }
 
 func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash, number uint64) ([][]*types.Log, error) {

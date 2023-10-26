@@ -19,17 +19,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/tests"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/tests"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rlp"
 
 	// Force-load the native, to trigger registration
-	"github.com/ava-labs/subnet-evm/eth/tracers"
+	"github.com/ava-labs/coreth/eth/tracers"
 )
 
 // flatCallTrace is the result of a callTracerParity run.
@@ -116,7 +116,7 @@ func flatCallTracerTestRunner(tracerName string, filename string, dirPath string
 	if err != nil {
 		return fmt.Errorf("failed to create call tracer: %v", err)
 	}
-	evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+	evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
 
 	msg, err := core.TransactionToMessage(tx, signer, nil)
 	if err != nil {
@@ -133,8 +133,8 @@ func flatCallTracerTestRunner(tracerName string, filename string, dirPath string
 	if err != nil {
 		return fmt.Errorf("failed to retrieve trace result: %v", err)
 	}
-	ret := new([]flatCallTrace)
-	if err := json.Unmarshal(res, ret); err != nil {
+	ret := make([]flatCallTrace, 0)
+	if err := json.Unmarshal(res, &ret); err != nil {
 		return fmt.Errorf("failed to unmarshal trace result: %v", err)
 	}
 	if !jsonEqualFlat(ret, test.Result) {

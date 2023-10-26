@@ -33,11 +33,11 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/trie"
+	"github.com/ava-labs/coreth/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
@@ -297,15 +297,16 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		accountHash := common.BytesToHash(accIt.Key)
 
 		var acc struct {
-			Nonce    uint64
-			Balance  *big.Int
-			Root     common.Hash
-			CodeHash []byte
+			Nonce       uint64
+			Balance     *big.Int
+			Root        common.Hash
+			CodeHash    []byte
+			IsMultiCoin bool
 		}
 		if err := rlp.DecodeBytes(accIt.Value, &acc); err != nil {
 			log.Crit("Invalid account encountered during snapshot creation", "err", err)
 		}
-		data := SlimAccountRLP(acc.Nonce, acc.Balance, acc.Root, acc.CodeHash)
+		data := SlimAccountRLP(acc.Nonce, acc.Balance, acc.Root, acc.CodeHash, acc.IsMultiCoin)
 
 		// If the account is not yet in-progress, write it out
 		if accMarker == nil || !bytes.Equal(accountHash[:], accMarker) {

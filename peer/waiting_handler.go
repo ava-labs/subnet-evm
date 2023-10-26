@@ -4,7 +4,7 @@
 package peer
 
 import (
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/coreth/plugin/evm/message"
 )
 
 var _ message.ResponseHandler = &waitingResponseHandler{}
@@ -34,10 +34,5 @@ func (w *waitingResponseHandler) OnFailure() error {
 
 // newWaitingResponseHandler returns new instance of the waitingResponseHandler
 func newWaitingResponseHandler() *waitingResponseHandler {
-	return &waitingResponseHandler{
-		// Make buffer length 1 so that OnResponse can complete
-		// even if no goroutine is waiting on the channel (i.e.
-		// the context of a request is cancelled.)
-		responseChan: make(chan []byte, 1),
-	}
+	return &waitingResponseHandler{responseChan: make(chan []byte)}
 }

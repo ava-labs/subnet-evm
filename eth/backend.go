@@ -34,27 +34,27 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
-	"github.com/ava-labs/subnet-evm/accounts"
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/bloombits"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state/pruner"
-	"github.com/ava-labs/subnet-evm/core/txpool"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/ethconfig"
-	"github.com/ava-labs/subnet-evm/eth/filters"
-	"github.com/ava-labs/subnet-evm/eth/gasprice"
-	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/internal/ethapi"
-	"github.com/ava-labs/subnet-evm/internal/shutdowncheck"
-	"github.com/ava-labs/subnet-evm/miner"
-	"github.com/ava-labs/subnet-evm/node"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/accounts"
+	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/bloombits"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state/pruner"
+	"github.com/ava-labs/coreth/core/txpool"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/ethconfig"
+	"github.com/ava-labs/coreth/eth/filters"
+	"github.com/ava-labs/coreth/eth/gasprice"
+	"github.com/ava-labs/coreth/eth/tracers"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/internal/ethapi"
+	"github.com/ava-labs/coreth/internal/shutdowncheck"
+	"github.com/ava-labs/coreth/miner"
+	"github.com/ava-labs/coreth/node"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -117,6 +117,7 @@ func roundUpCacheSize(input int, allocSize int) int {
 func New(
 	stack *node.Node,
 	config *Config,
+	cb *dummy.ConsensusCallbacks,
 	chainDb ethdb.Database,
 	settings Settings,
 	lastAcceptedHash common.Hash,
@@ -153,7 +154,7 @@ func New(
 		chainDb:           chainDb,
 		eventMux:          new(event.TypeMux),
 		accountManager:    stack.AccountManager(),
-		engine:            dummy.NewFakerWithClock(clock),
+		engine:            dummy.NewDummyEngine(cb),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		etherbase:         config.Miner.Etherbase,
@@ -172,7 +173,7 @@ func New(
 
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
-			return nil, fmt.Errorf("database version is v%d, Subnet-EVM %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
+			return nil, fmt.Errorf("database version is v%d, Coreth %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
 		} else if bcVersion == nil || *bcVersion < core.BlockChainVersion {
 			log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
 			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
@@ -215,11 +216,6 @@ func New(
 	if err != nil {
 		return nil, err
 	}
-
-	// Free airdrop data to save memory usage
-	defer func() {
-		config.Genesis.AirdropData = nil
-	}()
 
 	if err := eth.handleOfflinePruning(cacheConfig, config.Genesis, vmConfig, lastAcceptedHash); err != nil {
 		return nil, err
@@ -360,12 +356,9 @@ func (s *Ethereum) Stop() error {
 
 	// Clean shutdown marker as the last thing before closing db
 	s.shutdownTracker.Stop()
-	log.Info("Stopped shutdownTracker")
 
 	s.chainDb.Close()
-	log.Info("Closed chaindb")
 	s.eventMux.Stop()
-	log.Info("Stopped EventMux")
 	return nil
 }
 

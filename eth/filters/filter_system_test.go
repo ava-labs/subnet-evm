@@ -37,17 +37,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/bloombits"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/interfaces"
-	"github.com/ava-labs/subnet-evm/internal/ethapi"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/bloombits"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/interfaces"
+	"github.com/ava-labs/coreth/internal/ethapi"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/stretchr/testify/require"
@@ -127,7 +127,9 @@ func (b *testBackend) GetBody(ctx context.Context, hash common.Hash, number rpc.
 
 func (b *testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
 	if number := rawdb.ReadHeaderNumber(b.db, hash); number != nil {
-		return rawdb.ReadReceipts(b.db, hash, *number, params.TestChainConfig), nil
+		if header := rawdb.ReadHeader(b.db, hash, *number); header != nil {
+			return rawdb.ReadReceipts(b.db, hash, *number, header.Time, params.TestChainConfig), nil
+		}
 	}
 	return nil, nil
 }
@@ -221,7 +223,7 @@ func TestBlockSubscription(t *testing.T) {
 		api          = NewFilterAPI(sys)
 		genesis      = &core.Genesis{
 			Config:  params.TestChainConfig,
-			BaseFee: big.NewInt(1),
+			BaseFee: big.NewInt(params.ApricotPhase4MinBaseFee),
 		}
 		_, chain, _, _ = core.GenerateChainWithGenesis(genesis, dummy.NewFaker(), 10, 10, func(i int, b *core.BlockGen) {})
 		chainEvents    = []core.ChainEvent{}

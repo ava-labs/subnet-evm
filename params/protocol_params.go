@@ -34,6 +34,8 @@ const (
 	MaxGasLimit          uint64 = 0x7fffffffffffffff // Maximum the gas limit (2^63-1).
 	GenesisGasLimit      uint64 = 4712388            // Gas limit of the Genesis block.
 
+	// Note: MaximumExtraDataSize has been reduced to 32 in Geth, but is kept the same in Coreth for
+	// backwards compatibility.
 	MaximumExtraDataSize  uint64 = 64    // Maximum size extra data may be after Genesis.
 	ExpByteGas            uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.
 	SloadGas              uint64 = 50    // Multiplied by the number of 32-byte words that are copied (round up) for any *COPY operation and added.
@@ -160,6 +162,19 @@ const (
 	Bls12381PairingPerPairGas uint64 = 23000  // Per-point pair gas price for BLS12-381 elliptic curve pairing check
 	Bls12381MapG1Gas          uint64 = 5500   // Gas price for BLS12-381 mapping field element to G1 operation
 	Bls12381MapG2Gas          uint64 = 110000 // Gas price for BLS12-381 mapping field element to G2 operation
+
+	BlobTxDataGasPerBlob             = 1 << 17 // Gas consumption of a single data blob (== blob byte size)
+	BlobTxMinDataGasprice            = 1       // Minimum gas price for data blobs
+	BlobTxDataGaspriceUpdateFraction = 2225652 // Controls the maximum rate of change for data gas price
+
+	// Avalanche Stateful Precompile Params
+	// Gas price for native asset balance lookup. Based on the cost of an SLOAD operation since native
+	// asset balances are kept in state storage.
+	AssetBalanceApricot uint64 = 2100
+	// Gas price for native asset call. This gas price reflects the additional work done for the native
+	// asset transfer itself, which is a write to state storage. The cost of creating a new account and
+	// normal value transfer is assessed separately from this cost.
+	AssetCallApricot uint64 = 20000
 )
 
 // Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations

@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/coreth/core/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -18,8 +18,9 @@ type MockTrieDB struct {
 	LastCommit      common.Hash
 }
 
-func (t *MockTrieDB) Dereference(root common.Hash) {
+func (t *MockTrieDB) Dereference(root common.Hash) error {
 	t.LastDereference = root
+	return nil
 }
 func (t *MockTrieDB) Commit(root common.Hash, report bool) error {
 	t.LastCommit = root
@@ -44,7 +45,7 @@ func TestCappedMemoryTrieWriter(t *testing.T) {
 				Root:   common.BigToHash(bigI),
 				Number: bigI,
 			},
-			nil, nil, nil, nil,
+			nil, nil, nil, nil, nil, true,
 		)
 
 		assert.NoError(w.InsertTrie(block))
@@ -83,7 +84,7 @@ func TestNoPruningTrieWriter(t *testing.T) {
 				Root:   common.BigToHash(bigI),
 				Number: bigI,
 			},
-			nil, nil, nil, nil,
+			nil, nil, nil, nil, nil, true,
 		)
 
 		assert.NoError(w.InsertTrie(block))

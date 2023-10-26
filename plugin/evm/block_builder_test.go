@@ -8,40 +8,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/coreth/params"
 
 	"github.com/ava-labs/avalanchego/snow"
 )
 
-func attemptAwait(t *testing.T, wg *sync.WaitGroup, delay time.Duration) {
-	ticker := make(chan struct{})
-
-	// Wait for [wg] and then close [ticket] to indicate that
-	// the wait group has finished.
-	go func() {
-		wg.Wait()
-		close(ticker)
-	}()
-
-	select {
-	case <-time.After(delay):
-		t.Fatal("Timed out waiting for wait group to complete")
-	case <-ticker:
-		// The wait group completed without issue
-	}
-}
-
 func TestBlockBuilderShutsDown(t *testing.T) {
 	shutdownChan := make(chan struct{})
 	wg := &sync.WaitGroup{}
-	config := *params.TestChainConfig
-
-	config.SubnetEVMTimestamp = utils.TimeToNewUint64(time.Now().Add(time.Hour))
-
 	builder := &blockBuilder{
 		ctx:          snow.DefaultContextTest(),
-		chainConfig:  &config,
+		chainConfig:  params.TestChainConfig,
 		shutdownChan: shutdownChan,
 		shutdownWg:   wg,
 	}

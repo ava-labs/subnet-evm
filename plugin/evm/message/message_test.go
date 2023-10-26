@@ -13,14 +13,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestMarshalTxs asserts that the structure or serialization logic hasn't changed, primarily to
+// TestMarshalAtomicTx asserts that the structure or serialization logic hasn't changed, primarily to
 // ensure compatibility with the network.
-func TestMarshalTxs(t *testing.T) {
+func TestMarshalAtomicTx(t *testing.T) {
 	assert := assert.New(t)
 
-	base64EthTxGossip := "AAAAAAAAAAAABGJsYWg="
+	base64AtomicTxGossip := "AAAAAAAAAAAABGJsYWg="
 	msg := []byte("blah")
-	builtMsg := TxsGossip{
+	builtMsg := AtomicTxGossip{
+		Tx: msg,
+	}
+	builtMsgBytes, err := BuildGossipMessage(Codec, builtMsg)
+	assert.NoError(err)
+	assert.Equal(base64AtomicTxGossip, base64.StdEncoding.EncodeToString(builtMsgBytes))
+
+	parsedMsgIntf, err := ParseGossipMessage(Codec, builtMsgBytes)
+	assert.NoError(err)
+
+	parsedMsg, ok := parsedMsgIntf.(AtomicTxGossip)
+	assert.True(ok)
+
+	assert.Equal(msg, parsedMsg.Tx)
+}
+
+// TestMarshalEthTxs asserts that the structure or serialization logic hasn't changed, primarily to
+// ensure compatibility with the network.
+func TestMarshalEthTxs(t *testing.T) {
+	assert := assert.New(t)
+
+	base64EthTxGossip := "AAAAAAABAAAABGJsYWg="
+	msg := []byte("blah")
+	builtMsg := EthTxsGossip{
 		Txs: msg,
 	}
 	builtMsgBytes, err := BuildGossipMessage(Codec, builtMsg)
@@ -30,16 +53,16 @@ func TestMarshalTxs(t *testing.T) {
 	parsedMsgIntf, err := ParseGossipMessage(Codec, builtMsgBytes)
 	assert.NoError(err)
 
-	parsedMsg, ok := parsedMsgIntf.(TxsGossip)
+	parsedMsg, ok := parsedMsgIntf.(EthTxsGossip)
 	assert.True(ok)
 
 	assert.Equal(msg, parsedMsg.Txs)
 }
 
-func TestTxsTooLarge(t *testing.T) {
+func TestEthTxsTooLarge(t *testing.T) {
 	assert := assert.New(t)
 
-	builtMsg := TxsGossip{
+	builtMsg := EthTxsGossip{
 		Txs: utils.RandomBytes(1024 * units.KiB),
 	}
 	_, err := BuildGossipMessage(Codec, builtMsg)

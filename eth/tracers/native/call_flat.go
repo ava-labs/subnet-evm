@@ -33,9 +33,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/tracers"
+	"github.com/ava-labs/coreth/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -140,7 +140,9 @@ func newFlatCallTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Trace
 		}
 	}
 
-	tracer, err := tracers.DefaultDirectory.New("callTracer", ctx, cfg)
+	// Create inner call tracer with default configuration, don't forward
+	// the OnlyTopCall or WithLog to inner for now
+	tracer, err := tracers.DefaultDirectory.New("callTracer", ctx, nil)
 	if err != nil {
 		return nil, err
 	}

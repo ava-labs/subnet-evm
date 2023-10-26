@@ -34,9 +34,9 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -229,9 +229,10 @@ func (d *hashToHumanReadable) Reset() {
 	d.data = make([]byte, 0)
 }
 
-func (d *hashToHumanReadable) Update(i []byte, i2 []byte) {
+func (d *hashToHumanReadable) Update(i []byte, i2 []byte) error {
 	l := fmt.Sprintf("%x %x\n", i, i2)
 	d.data = append(d.data, []byte(l)...)
+	return nil
 }
 
 func (d *hashToHumanReadable) Hash() common.Hash {

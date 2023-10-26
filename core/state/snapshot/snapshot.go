@@ -32,14 +32,13 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/metrics"
+	"github.com/ava-labs/coreth/trie"
+	"github.com/ava-labs/coreth/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -772,7 +771,7 @@ func (t *Tree) Rebuild(blockHash, root common.Hash) {
 		case *diffLayer:
 			// If the layer is a simple diff, simply mark as stale
 			layer.lock.Lock()
-			atomic.StoreUint32(&layer.stale, 1)
+			layer.stale.Store(true)
 			layer.lock.Unlock()
 
 		default:

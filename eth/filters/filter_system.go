@@ -30,18 +30,19 @@ package filters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/bloombits"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/interfaces"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/bloombits"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/interfaces"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -322,7 +323,7 @@ func (es *EventSystem) SubscribeLogs(crit interfaces.FilterQuery, logs chan []*t
 	if from >= 0 && to == rpc.LatestBlockNumber {
 		return es.subscribeLogs(crit, logs), nil
 	}
-	return nil, fmt.Errorf("invalid from and to block combination: from > to")
+	return nil, errors.New("invalid from and to block combination: from > to")
 }
 
 func (es *EventSystem) SubscribeAcceptedLogs(crit interfaces.FilterQuery, logs chan []*types.Log) (*Subscription, error) {

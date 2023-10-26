@@ -15,14 +15,14 @@ import (
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/eth"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
-	syncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/sync/statesync"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state/snapshot"
+	"github.com/ava-labs/coreth/eth"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/plugin/evm/message"
+	syncclient "github.com/ava-labs/coreth/sync/client"
+	"github.com/ava-labs/coreth/sync/statesync"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -53,6 +53,7 @@ type stateSyncClientConfig struct {
 	metadataDB      database.Database
 	acceptedBlockDB database.Database
 	db              *versiondb.Database
+	atomicBackend   AtomicBackend
 
 	client syncclient.Client
 
@@ -149,8 +150,13 @@ func (client *stateSyncerClient) stateSync(ctx context.Context) error {
 		return err
 	}
 
-	// Sync the EVM trie.
-	return client.syncStateTrie(ctx)
+	// Sync the EVM trie and then the atomic trie. These steps could be done
+	// in parallel or in the opposite order. Keeping them serial for simplicity for now.
+	if err := client.syncStateTrie(ctx); err != nil {
+		return err
+	}
+
+	return client.syncAtomicTrie(ctx)
 }
 
 // acceptSyncSummary returns true if sync will be performed and launches the state sync process
@@ -258,7 +264,7 @@ func (client *stateSyncerClient) syncBlocks(ctx context.Context, fromHash common
 		}
 		blocks, err := client.client.GetBlocks(ctx, nextHash, nextHeight, parentsPerRequest)
 		if err != nil {
-			log.Error("could not get blocks from peer", "err", err, "nextHash", nextHash, "remaining", i+1)
+			log.Warn("could not get blocks from peer", "err", err, "nextHash", nextHash, "remaining", i+1)
 			return err
 		}
 		for _, block := range blocks {
@@ -273,6 +279,20 @@ func (client *stateSyncerClient) syncBlocks(ctx context.Context, fromHash common
 	}
 	log.Info("fetched blocks from peer", "total", parentsToGet)
 	return batch.Write()
+}
+
+func (client *stateSyncerClient) syncAtomicTrie(ctx context.Context) error {
+	log.Info("atomic tx: sync starting", "root", client.syncSummary.AtomicRoot)
+	atomicSyncer, err := client.atomicBackend.Syncer(client.client, client.syncSummary.AtomicRoot, client.syncSummary.BlockNumber, client.stateSyncRequestSize)
+	if err != nil {
+		return err
+	}
+	if err := atomicSyncer.Start(ctx); err != nil {
+		return err
+	}
+	err = <-atomicSyncer.Done()
+	log.Info("atomic tx: sync finished", "root", client.syncSummary.AtomicRoot, "err", err)
+	return err
 }
 
 func (client *stateSyncerClient) syncStateTrie(ctx context.Context) error {
@@ -352,7 +372,17 @@ func (client *stateSyncerClient) finishSync() error {
 		return fmt.Errorf("error updating vm markers, height=%d, hash=%s, err=%w", block.NumberU64(), block.Hash(), err)
 	}
 
-	return client.state.SetLastAcceptedBlock(evmBlock)
+	if err := client.state.SetLastAcceptedBlock(evmBlock); err != nil {
+		return err
+	}
+
+	// the chain state is already restored, and from this point on
+	// the block synced to is the accepted block. the last operation
+	// is updating shared memory with the atomic trie.
+	// ApplyToSharedMemory does this, and even if the VM is stopped
+	// (gracefully or ungracefully), since MarkApplyToSharedMemoryCursor
+	// is called, VM will resume ApplyToSharedMemory on Initialize.
+	return client.atomicBackend.ApplyToSharedMemory(block.NumberU64())
 }
 
 // updateVMMarkers updates the following markers in the VM's database
@@ -362,6 +392,13 @@ func (client *stateSyncerClient) finishSync() error {
 // - updates lastAcceptedKey
 // - removes state sync progress markers
 func (client *stateSyncerClient) updateVMMarkers() error {
+	// Mark the previously last accepted block for the shared memory cursor, so that we will execute shared
+	// memory operations from the previously last accepted block to [vm.syncSummary] when ApplyToSharedMemory
+	// is called.
+	if err := client.atomicBackend.MarkApplyToSharedMemoryCursor(client.lastAcceptedHeight); err != nil {
+		return err
+	}
+	client.atomicBackend.SetLastAccepted(client.syncSummary.BlockHash)
 	if err := client.acceptedBlockDB.Put(lastAcceptedKey, client.syncSummary.BlockHash[:]); err != nil {
 		return err
 	}

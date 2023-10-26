@@ -32,21 +32,20 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/accounts"
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/bloombits"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/gasprice"
-	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/accounts"
+	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/bloombits"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/gasprice"
+	"github.com/ava-labs/coreth/eth/tracers"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 )
@@ -97,10 +96,6 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 	}
 
 	return b.eth.blockchain.GetHeaderByNumber(uint64(number)), nil
-}
-
-func (b *EthAPIBackend) GetFeeConfigAt(parent *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return b.eth.blockchain.GetFeeConfigAt(parent)
 }
 
 func (b *EthAPIBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
@@ -270,13 +265,18 @@ func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash, number ui
 	return b.eth.blockchain.GetLogs(hash, number), nil
 }
 
-func (b *EthAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config) (*vm.EVM, func() error, error) {
+func (b *EthAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) (*vm.EVM, func() error) {
 	if vmConfig == nil {
 		vmConfig = b.eth.blockchain.GetVMConfig()
 	}
 	txContext := core.NewEVMTxContext(msg)
-	context := core.NewEVMBlockContext(header, b.eth.BlockChain(), nil)
-	return vm.NewEVM(context, txContext, state, b.eth.blockchain.Config(), *vmConfig), state.Error, nil
+	var context vm.BlockContext
+	if blockCtx != nil {
+		context = *blockCtx
+	} else {
+		context = core.NewEVMBlockContext(header, b.eth.BlockChain(), nil)
+	}
+	return vm.NewEVM(context, txContext, state, b.eth.blockchain.Config(), *vmConfig), state.Error
 }
 
 func (b *EthAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {

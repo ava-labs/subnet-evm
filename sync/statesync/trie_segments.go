@@ -11,11 +11,12 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	syncclient "github.com/ava-labs/subnet-evm/sync/client"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/plugin/evm/message"
+	syncclient "github.com/ava-labs/coreth/sync/client"
+	"github.com/ava-labs/coreth/trie"
+	"github.com/ava-labs/coreth/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -196,7 +197,7 @@ func (t *trieToSync) segmentFinished(ctx context.Context, idx int) error {
 			}
 			// update the stack trie and cap the batch it writes to.
 			value := common.CopyBytes(it.Value())
-			if err := t.stackTrie.TryUpdate(it.Key(), value); err != nil {
+			if err := t.stackTrie.Update(it.Key(), value); err != nil {
 				return err
 			}
 			if t.batch.ValueSize() > t.sync.batchSize {
@@ -347,6 +348,7 @@ func (t *trieSegment) String() string {
 func (t *trieSegment) Root() common.Hash                  { return t.trie.root }
 func (t *trieSegment) Account() common.Hash               { return t.trie.account }
 func (t *trieSegment) End() []byte                        { return t.end }
+func (t *trieSegment) NodeType() message.NodeType         { return message.StateTrieNode }
 func (t *trieSegment) OnStart() (bool, error)             { return t.trie.task.OnStart() }
 func (t *trieSegment) OnFinish(ctx context.Context) error { return t.trie.segmentFinished(ctx, t.idx) }
 

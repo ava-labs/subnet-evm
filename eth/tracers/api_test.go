@@ -39,18 +39,18 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/internal/ethapi"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/coreth/consensus"
+	"github.com/ava-labs/coreth/consensus/dummy"
+	"github.com/ava-labs/coreth/core"
+	"github.com/ava-labs/coreth/core/rawdb"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/core/vm"
+	"github.com/ava-labs/coreth/eth/tracers/logger"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/internal/ethapi"
+	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/coreth/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -76,7 +76,7 @@ type testBackend struct {
 func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i int, b *core.BlockGen)) *testBackend {
 	backend := &testBackend{
 		chainConfig: gspec.Config,
-		engine:      dummy.NewFakerWithMode(dummy.Mode{ModeSkipBlockFee: true, ModeSkipCoinbase: true}),
+		engine:      dummy.NewETHFaker(),
 		chaindb:     rawdb.NewMemoryDatabase(),
 	}
 	// Generate blocks for testing
@@ -211,13 +211,12 @@ func TestTraceCall(t *testing.T) {
 	// Initialize test accounts
 	accounts := newAccounts(3)
 	genesis := &core.Genesis{
-		Config: params.TestSubnetEVMConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use SubnetEVM here so tests pass.
+		Config: params.TestBanffChainConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use Banff here so tests pass.
 		Alloc: core.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
-		},
-	}
+		}}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
 	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
@@ -404,12 +403,14 @@ func TestTraceBlock(t *testing.T) {
 	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
+	var txHash common.Hash
 	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
 		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
 		b.AddTx(tx)
+		txHash = tx.Hash()
 	})
 	defer backend.chain.Stop()
 	api := NewAPI(backend)
@@ -428,7 +429,7 @@ func TestTraceBlock(t *testing.T) {
 		// Trace head block
 		{
 			blockNumber: rpc.BlockNumber(genBlocks),
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHash),
 		},
 		// Trace non-existent block
 		{
@@ -438,12 +439,12 @@ func TestTraceBlock(t *testing.T) {
 		// Trace latest block
 		{
 			blockNumber: rpc.LatestBlockNumber,
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHash),
 		},
 		// Trace pending block
 		{
 			blockNumber: rpc.PendingBlockNumber,
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHash),
 		},
 	}
 	for i, tc := range testSuite {
@@ -476,7 +477,7 @@ func TestTracingWithOverrides(t *testing.T) {
 	accounts := newAccounts(3)
 	storageAccount := common.Address{0x13, 37}
 	genesis := &core.Genesis{
-		Config: params.TestSubnetEVMConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use SubnetEVM here so tests pass.
+		Config: params.TestCortinaChainConfig, // TODO: go-ethereum has not enabled Shanghai yet, so we use Cortina here so tests pass.
 		Alloc: core.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
@@ -856,8 +857,8 @@ func TestTraceChain(t *testing.T) {
 	signer := types.HomesteadSigner{}
 
 	var (
-		ref   uint32 // total refs has made
-		rel   uint32 // total rels has made
+		ref   atomic.Uint32 // total refs has made
+		rel   atomic.Uint32 // total rels has made
 		nonce uint64
 	)
 	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
@@ -870,11 +871,11 @@ func TestTraceChain(t *testing.T) {
 			nonce += 1
 		}
 	})
-	backend.refHook = func() { atomic.AddUint32(&ref, 1) }
-	backend.relHook = func() { atomic.AddUint32(&rel, 1) }
+	backend.refHook = func() { ref.Add(1) }
+	backend.relHook = func() { rel.Add(1) }
 	api := NewAPI(backend)
 
-	single := `{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}`
+	single := `{"txHash":"0x0000000000000000000000000000000000000000000000000000000000000000","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}`
 	var cases = []struct {
 		start  uint64
 		end    uint64
@@ -884,7 +885,8 @@ func TestTraceChain(t *testing.T) {
 		{10, 20, nil}, // the middle chain range, blocks [11, 20]
 	}
 	for _, c := range cases {
-		ref, rel = 0, 0 // clean up the counters
+		ref.Store(0)
+		rel.Store(0)
 
 		from, _ := api.blockByNumber(context.Background(), rpc.BlockNumber(c.start))
 		to, _ := api.blockByNumber(context.Background(), rpc.BlockNumber(c.end))
@@ -892,16 +894,17 @@ func TestTraceChain(t *testing.T) {
 
 		next := c.start + 1
 		for result := range resCh {
-			if next != uint64(result.Block) {
-				t.Error("Unexpected tracing block")
+			if have, want := uint64(result.Block), next; have != want {
+				t.Fatalf("unexpected tracing block, have %d want %d", have, want)
 			}
-			if len(result.Traces) != int(next) {
-				t.Error("Unexpected tracing result")
+			if have, want := len(result.Traces), int(next); have != want {
+				t.Fatalf("unexpected result length, have %d want %d", have, want)
 			}
 			for _, trace := range result.Traces {
+				trace.TxHash = common.Hash{}
 				blob, _ := json.Marshal(trace)
-				if string(blob) != single {
-					t.Error("Unexpected tracing result")
+				if have, want := string(blob), single; have != want {
+					t.Fatalf("unexpected tracing result, have\n%v\nwant:\n%v", have, want)
 				}
 			}
 			next += 1
@@ -909,8 +912,9 @@ func TestTraceChain(t *testing.T) {
 		if next != c.end+1 {
 			t.Error("Missing tracing block")
 		}
-		if ref != rel {
-			t.Errorf("Ref and deref actions are not equal, ref %d rel %d", ref, rel)
+
+		if nref, nrel := ref.Load(), rel.Load(); nref != nrel {
+			t.Errorf("Ref and deref actions are not equal, ref %d rel %d", nref, nrel)
 		}
 	}
 }

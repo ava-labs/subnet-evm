@@ -4,7 +4,6 @@
 package peer
 
 import (
-	"context"
 	"errors"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -24,15 +23,15 @@ type NetworkClient interface {
 	// node version greater than or equal to minVersion.
 	// Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
 	// the request should be retried.
-	SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error)
+	SendAppRequestAny(minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error)
 
 	// SendAppRequest synchronously sends request to the selected nodeID
 	// Returns response bytes, and ErrRequestFailed if the request should be retried.
-	SendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error)
+	SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, error)
 
 	// SendCrossChainRequest sends a request to a specific blockchain running on this node.
 	// Returns response bytes, and ErrRequestFailed if the request failed.
-	SendCrossChainRequest(ctx context.Context, chainID ids.ID, request []byte) ([]byte, error)
+	SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error)
 
 	// Gossip sends given gossip message to peers
 	Gossip(gossip []byte) error
@@ -60,59 +59,45 @@ func NewNetworkClient(network Network) NetworkClient {
 // node version greater than or equal to minVersion.
 // Returns response bytes, the ID of the chosen peer, and ErrRequestFailed if
 // the request should be retried.
-func (c *client) SendAppRequestAny(ctx context.Context, minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
+func (c *client) SendAppRequestAny(minVersion *version.Application, request []byte) ([]byte, ids.NodeID, error) {
 	waitingHandler := newWaitingResponseHandler()
-	nodeID, err := c.network.SendAppRequestAny(ctx, minVersion, request, waitingHandler)
+	nodeID, err := c.network.SendAppRequestAny(minVersion, request, waitingHandler)
 	if err != nil {
 		return nil, nodeID, err
 	}
-
-	select {
-	case <-ctx.Done():
-		return nil, nodeID, ctx.Err()
-	case response := <-waitingHandler.responseChan:
-		if waitingHandler.failed {
-			return nil, nodeID, ErrRequestFailed
-		}
-		return response, nodeID, nil
+	response := <-waitingHandler.responseChan
+	if waitingHandler.failed {
+		return nil, nodeID, ErrRequestFailed
 	}
+	return response, nodeID, nil
 }
 
 // SendAppRequest synchronously sends request to the specified nodeID
 // Returns response bytes and ErrRequestFailed if the request should be retried.
-func (c *client) SendAppRequest(ctx context.Context, nodeID ids.NodeID, request []byte) ([]byte, error) {
+func (c *client) SendAppRequest(nodeID ids.NodeID, request []byte) ([]byte, error) {
 	waitingHandler := newWaitingResponseHandler()
-	if err := c.network.SendAppRequest(ctx, nodeID, request, waitingHandler); err != nil {
+	if err := c.network.SendAppRequest(nodeID, request, waitingHandler); err != nil {
 		return nil, err
 	}
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case response := <-waitingHandler.responseChan:
-		if waitingHandler.failed {
-			return nil, ErrRequestFailed
-		}
-		return response, nil
+	response := <-waitingHandler.responseChan
+	if waitingHandler.failed {
+		return nil, ErrRequestFailed
 	}
+	return response, nil
 }
 
 // SendCrossChainRequest synchronously sends request to the specified chainID
 // Returns response bytes and ErrRequestFailed if the request should be retried.
-func (c *client) SendCrossChainRequest(ctx context.Context, chainID ids.ID, request []byte) ([]byte, error) {
+func (c *client) SendCrossChainRequest(chainID ids.ID, request []byte) ([]byte, error) {
 	waitingHandler := newWaitingResponseHandler()
-	if err := c.network.SendCrossChainRequest(ctx, chainID, request, waitingHandler); err != nil {
+	if err := c.network.SendCrossChainRequest(chainID, request, waitingHandler); err != nil {
 		return nil, err
 	}
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case response := <-waitingHandler.responseChan:
-		if waitingHandler.failed {
-			return nil, ErrRequestFailed
-		}
-		return response, nil
+	response := <-waitingHandler.responseChan
+	if waitingHandler.failed {
+		return nil, ErrRequestFailed
 	}
+	return response, nil
 }
 
 func (c *client) Gossip(gossip []byte) error {

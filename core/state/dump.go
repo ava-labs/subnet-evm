@@ -31,8 +31,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/trie"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
@@ -59,14 +59,15 @@ type DumpCollector interface {
 
 // DumpAccount represents an account in the state.
 type DumpAccount struct {
-	Balance   string                 `json:"balance"`
-	Nonce     uint64                 `json:"nonce"`
-	Root      hexutil.Bytes          `json:"root"`
-	CodeHash  hexutil.Bytes          `json:"codeHash"`
-	Code      hexutil.Bytes          `json:"code,omitempty"`
-	Storage   map[common.Hash]string `json:"storage,omitempty"`
-	Address   *common.Address        `json:"address,omitempty"` // Address only present in iterative (line-by-line) mode
-	SecureKey hexutil.Bytes          `json:"key,omitempty"`     // If we don't have address, we can output the key
+	Balance     string                 `json:"balance"`
+	Nonce       uint64                 `json:"nonce"`
+	Root        hexutil.Bytes          `json:"root"`
+	CodeHash    hexutil.Bytes          `json:"codeHash"`
+	Code        hexutil.Bytes          `json:"code,omitempty"`
+	IsMultiCoin bool                   `json:"isMultiCoin"`
+	Storage     map[common.Hash]string `json:"storage,omitempty"`
+	Address     *common.Address        `json:"address,omitempty"` // Address only present in iterative (line-by-line) mode
+	SecureKey   hexutil.Bytes          `json:"key,omitempty"`     // If we don't have address, we can output the key
 
 }
 
@@ -115,14 +116,15 @@ type iterativeDump struct {
 // OnAccount implements DumpCollector interface
 func (d iterativeDump) OnAccount(addr *common.Address, account DumpAccount) {
 	dumpAccount := &DumpAccount{
-		Balance:   account.Balance,
-		Nonce:     account.Nonce,
-		Root:      account.Root,
-		CodeHash:  account.CodeHash,
-		Code:      account.Code,
-		Storage:   account.Storage,
-		SecureKey: account.SecureKey,
-		Address:   addr,
+		Balance:     account.Balance,
+		Nonce:       account.Nonce,
+		Root:        account.Root,
+		CodeHash:    account.CodeHash,
+		IsMultiCoin: account.IsMultiCoin,
+		Code:        account.Code,
+		Storage:     account.Storage,
+		SecureKey:   account.SecureKey,
+		Address:     addr,
 	}
 	d.Encode(dumpAccount)
 }
@@ -157,11 +159,12 @@ func (s *StateDB) DumpToCollector(c DumpCollector, conf *DumpConfig) (nextKey []
 			panic(err)
 		}
 		account := DumpAccount{
-			Balance:   data.Balance.String(),
-			Nonce:     data.Nonce,
-			Root:      data.Root[:],
-			CodeHash:  data.CodeHash,
-			SecureKey: it.Key,
+			Balance:     data.Balance.String(),
+			Nonce:       data.Nonce,
+			Root:        data.Root[:],
+			CodeHash:    data.CodeHash,
+			IsMultiCoin: data.IsMultiCoin,
+			SecureKey:   it.Key,
 		}
 		var (
 			addrBytes = s.trie.GetKey(it.Key)

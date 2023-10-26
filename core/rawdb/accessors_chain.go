@@ -32,9 +32,9 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/coreth/core/types"
+	"github.com/ava-labs/coreth/ethdb"
+	"github.com/ava-labs/coreth/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -385,7 +385,7 @@ func ReadRawReceipts(db ethdb.Reader, hash common.Hash, number uint64) types.Rec
 // The current implementation populates these metadata fields by reading the receipts'
 // corresponding block body, so if the block body is not found it will return nil even
 // if the receipt itself is stored.
-func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, config *params.ChainConfig) types.Receipts {
+func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, time uint64, config *params.ChainConfig) types.Receipts {
 	// We're deriving many fields from the block body, retrieve beside the receipt
 	receipts := ReadRawReceipts(db, hash, number)
 	if receipts == nil {
@@ -403,7 +403,7 @@ func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, config *para
 	} else {
 		baseFee = header.BaseFee
 	}
-	if err := receipts.DeriveFields(config, hash, number, header.Time, baseFee, body.Transactions); err != nil {
+	if err := receipts.DeriveFields(config, hash, number, time, baseFee, body.Transactions); err != nil {
 		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
 		return nil
 	}
@@ -518,7 +518,7 @@ func ReadBlock(db ethdb.Reader, hash common.Hash, number uint64) *types.Block {
 	if body == nil {
 		return nil
 	}
-	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles)
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles, body.Version, body.ExtData)
 }
 
 // WriteBlock serializes a block into the database, header and body separately.
