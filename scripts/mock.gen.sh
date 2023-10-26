@@ -2,6 +2,12 @@
 
 set -euo pipefail
 
+# Root directory
+SUBNET_EVM_PATH=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  cd .. && pwd
+)
+
 if ! [[ "$0" =~ scripts/mock.gen.sh ]]; then
   echo "must be run from repository root"
   exit 255
@@ -19,7 +25,8 @@ if ! command -v go-license &>/dev/null; then
   go install -v github.com/palantir/go-license@v1.25.0
 fi
 
-source ./scripts/constants.sh
+# Load the constants
+source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 # tuples of (source interface import path, comma-separated interface names, output file path)
 input="scripts/mocks.mockgen.txt"
