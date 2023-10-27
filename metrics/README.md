@@ -7,7 +7,7 @@ Read more about what different metric types mean - https://metrics.dropwizard.io
 
 Go port of Coda Hale's Metrics library: <https://github.com/dropwizard/metrics>.
 
-Documentation: <https://godoc.org/github.com/rcrowley/go-metrics>.
+Documentation: <https://pkg.go.dev/github.com/rcrowley/go-metrics>.
 
 Usage
 -----

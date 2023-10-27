@@ -28,6 +28,6 @@ avalanche subnet configure hubblenet --subnet-config subnet.json --config .avala
 
 # use the same avalanchego version as the one used in subnet-evm
 # use tee to keep showing outut while storing in a var
-OUTPUT=$(avalanche subnet deploy hubblenet -l --avalanchego-version v1.10.11 --config .avalanche-cli.json | tee /dev/fd/2)
+OUTPUT=$(avalanche subnet deploy hubblenet -l --avalanchego-version v1.10.14 --config .avalanche-cli.json | tee /dev/fd/2)
 
 setStatus

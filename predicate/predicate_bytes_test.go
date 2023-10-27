@@ -8,33 +8,9 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/utils"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/stretchr/testify/require"
 )
-
-func testBytesToHashSlice(t testing.TB, b []byte) {
-	hashSlice := BytesToHashSlice(b)
-
-	copiedBytes := HashSliceToBytes(hashSlice)
-
-	if len(b)%32 == 0 {
-		require.Equal(t, b, copiedBytes)
-	} else {
-		require.Equal(t, b, copiedBytes[:len(b)])
-		// Require that any additional padding is all zeroes
-		padding := copiedBytes[len(b):]
-		require.Equal(t, bytes.Repeat([]byte{0x00}, len(padding)), padding)
-	}
-}
-
-func FuzzHashSliceToBytes(f *testing.F) {
-	for i := 0; i < 100; i++ {
-		f.Add(utils.RandomBytes(i))
-	}
-
-	f.Fuzz(func(t *testing.T, b []byte) {
-		testBytesToHashSlice(t, b)
-	})
-}
 
 func testPackPredicate(t testing.TB, b []byte) {
 	packedPredicate := PackPredicate(b)
@@ -72,4 +48,19 @@ func TestUnpackInvalidPredicate(t *testing.T) {
 			require.Error(err, "Predicate length %d, Padding length %d (0x%x)", len(validPredicate), len(padding), invalidPredicate)
 		}
 	}
+}
+
+func TestPredicateResultsBytes(t *testing.T) {
+	require := require.New(t)
+	dataTooShort := utils.RandomBytes(params.DynamicFeeExtraDataSize - 1)
+	_, ok := GetPredicateResultBytes(dataTooShort)
+	require.False(ok)
+
+	preDUPgradeData := utils.RandomBytes(params.DynamicFeeExtraDataSize)
+	_, ok = GetPredicateResultBytes(preDUPgradeData)
+	require.False(ok)
+	postDUpgradeData := utils.RandomBytes(params.DynamicFeeExtraDataSize + 2)
+	resultBytes, ok := GetPredicateResultBytes(postDUpgradeData)
+	require.True(ok)
+	require.Equal(resultBytes, postDUpgradeData[params.DynamicFeeExtraDataSize:])
 }

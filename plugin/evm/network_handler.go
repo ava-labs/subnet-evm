@@ -16,7 +16,6 @@ import (
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/warp"
 	warpHandlers "github.com/ava-labs/subnet-evm/warp/handlers"
-	warpStats "github.com/ava-labs/subnet-evm/warp/handlers/stats"
 )
 
 var _ message.RequestHandler = &networkHandler{}
@@ -25,7 +24,7 @@ type networkHandler struct {
 	stateTrieLeafsRequestHandler *syncHandlers.LeafsRequestHandler
 	blockRequestHandler          *syncHandlers.BlockRequestHandler
 	codeRequestHandler           *syncHandlers.CodeRequestHandler
-	signatureRequestHandler      warpHandlers.SignatureRequestHandler
+	signatureRequestHandler      *warpHandlers.SignatureRequestHandler
 }
 
 // newNetworkHandler constructs the handler for serving network requests.
@@ -41,7 +40,7 @@ func newNetworkHandler(
 		stateTrieLeafsRequestHandler: syncHandlers.NewLeafsRequestHandler(evmTrieDB, provider, networkCodec, syncStats),
 		blockRequestHandler:          syncHandlers.NewBlockRequestHandler(provider, networkCodec, syncStats),
 		codeRequestHandler:           syncHandlers.NewCodeRequestHandler(diskDB, networkCodec, syncStats),
-		signatureRequestHandler:      warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec, warpStats.NewStats()),
+		signatureRequestHandler:      warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec),
 	}
 }
 
@@ -57,6 +56,10 @@ func (n networkHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID
 	return n.codeRequestHandler.OnCodeRequest(ctx, nodeID, requestID, codeRequest)
 }
 
-func (n networkHandler) HandleSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, signatureRequest message.SignatureRequest) ([]byte, error) {
-	return n.signatureRequestHandler.OnSignatureRequest(ctx, nodeID, requestID, signatureRequest)
+func (n networkHandler) HandleMessageSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, messageSignatureRequest message.MessageSignatureRequest) ([]byte, error) {
+	return n.signatureRequestHandler.OnMessageSignatureRequest(ctx, nodeID, requestID, messageSignatureRequest)
+}
+
+func (n networkHandler) HandleBlockSignatureRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, blockSignatureRequest message.BlockSignatureRequest) ([]byte, error) {
+	return n.signatureRequestHandler.OnBlockSignatureRequest(ctx, nodeID, requestID, blockSignatureRequest)
 }

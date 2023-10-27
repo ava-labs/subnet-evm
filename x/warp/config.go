@@ -10,9 +10,10 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
+	"github.com/ava-labs/subnet-evm/predicate"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -29,9 +30,11 @@ var (
 	errOverflowSignersGasCost  = errors.New("overflow calculating warp signers gas cost")
 	errInvalidPredicateBytes   = errors.New("cannot unpack predicate bytes")
 	errInvalidWarpMsg          = errors.New("cannot unpack warp message")
+	errInvalidWarpMsgPayload   = errors.New("cannot unpack warp message payload")
 	errInvalidAddressedPayload = errors.New("cannot unpack addressed payload")
 	errInvalidBlockHashPayload = errors.New("cannot unpack block hash payload")
 	errCannotGetNumSigners     = errors.New("cannot fetch num signers from warp message")
+	errWarpCannotBeActivated   = errors.New("warp cannot be activated before DUpgrade")
 )
 
 // Config implements the precompileconfig.Config interface and
@@ -72,8 +75,15 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
-func (c *Config) Verify(precompileconfig.ChainConfig) error {
-	// TODO: return an error if Warp is enabled before DUpgrade
+func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
+	if c.Timestamp() != nil {
+		// If Warp attempts to activate before the DUpgrade, fail verification
+		timestamp := *c.Timestamp()
+		if !chainConfig.IsDUpgrade(timestamp) {
+			return errWarpCannotBeActivated
+		}
+	}
+
 	if c.QuorumNumerator > params.WarpQuorumDenominator {
 		return fmt.Errorf("cannot specify quorum numerator (%d) > quorum denominator (%d)", c.QuorumNumerator, params.WarpQuorumDenominator)
 	}
@@ -96,7 +106,7 @@ func (c *Config) Equal(s precompileconfig.Config) bool {
 }
 
 func (c *Config) Accept(acceptCtx *precompileconfig.AcceptContext, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error {
-	unsignedMessage, err := warp.ParseUnsignedMessage(logData)
+	unsignedMessage, err := UnpackSendWarpEventDataToMessage(logData)
 	if err != nil {
 		return fmt.Errorf("failed to parse warp log data into unsigned message (TxHash: %s, LogIndex: %d): %w", txHash, logIndex, err)
 	}
@@ -139,6 +149,8 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.PredicateC
 // 2. Size of the message
 // 3. Number of signers
 // 4. TODO: Lookup of the validator set
+//
+// If the payload of the warp message fails parsing, return a non-nil error invalidating the transaction.
 func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	totalGas := GasCostPerSignatureVerification
 	bytesGasCost, overflow := math.SafeMul(GasCostPerWarpMessageBytes, uint64(len(predicateBytes)))
@@ -150,13 +162,17 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 		return 0, fmt.Errorf("overflow adding bytes gas cost of size %d", len(predicateBytes))
 	}
 
-	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
+	unpackedPredicateBytes, err := predicate.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", errInvalidPredicateBytes, err)
 	}
 	warpMessage, err := warp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
 		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
+	}
+	_, err = payload.Parse(warpMessage.Payload)
+	if err != nil {
+		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsgPayload, err)
 	}
 
 	numSigners, err := warpMessage.Signature.NumSigners()
@@ -176,11 +192,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 }
 
 func (c *Config) verifyPredicate(predicateContext *precompileconfig.PredicateContext, predicateBytes []byte) bool {
-	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
-		return false
-	}
-
-	unpackedPredicateBytes, err := predicateutils.UnpackPredicate(predicateBytes)
+	unpackedPredicateBytes, err := predicate.UnpackPredicate(predicateBytes)
 	if err != nil {
 		return false
 	}
@@ -193,12 +205,13 @@ func (c *Config) verifyPredicate(predicateContext *precompileconfig.PredicateCon
 	return c.verifyWarpMessage(predicateContext, warpMessage)
 }
 
-// VerifyPredicate verifies the predicate represents a valid signed and properly formatted Avalanche Warp Message.
+// VerifyPredicate computes indices of predicates that failed verification as a bitset then returns the result
+// as a byte slice.
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, predicates [][]byte) []byte {
 	resultBitSet := set.NewBits()
 
 	for predicateIndex, predicateBytes := range predicates {
-		if c.verifyPredicate(predicateContext, predicateBytes) {
+		if !c.verifyPredicate(predicateContext, predicateBytes) {
 			resultBitSet.Add(predicateIndex)
 		}
 	}
