@@ -1,0 +1,17 @@
+{
+    "pruning-enabled": false,
+    "snowman-api-enabled": true,
+    "local-txs-enabled": true,
+    "priority-regossip-frequency": "1s",
+    "tx-regossip-max-size": 32,
+    "priority-regossip-max-txs": 32,
+    "priority-regossip-txs-per-address": 20,
+    "priority-regossip-addresses": ["0x8747adFCE380492ec7e9b78761Ec7C87F5Cd3d4F"],
+    "continuous-profiler-dir": "/home/ubuntu/.avalanchego/profiles/hubblenet/continuous/",
+    "continuous-profiler-max-files": 200,
+    "continuous-profiler-frequency": "10m",
+    "coreth-admin-api-enabled": true,
+    "eth-apis": ["public-eth","public-eth-filter","net","web3","internal-public-eth","internal-public-blockchain","internal-public-transaction-pool","internal-public-debug","internal-private-debug","internal-public-tx-pool","internal-public-account","debug-tracer"],
+    "trading-api-enabled": true,
+    "testing-api-enabled": true
+}
