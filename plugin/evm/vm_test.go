@@ -3341,15 +3341,16 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 
 	payload0, err := payload.NewHash(ids.GenerateTestID())
 	require.NoError(err)
-	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+	unsignedMessage0, err := avalancheWarp.NewUnsignedMessage(
 		testNetworkID,
 		testCChainID,
 		payload0.Bytes(),
 	)
 	require.NoError(err)
-	msg0 := hexutil.Bytes(unsignedMessage.Bytes())
+	msg0 := hexutil.Bytes(unsignedMessage0.Bytes())
 
 	payload1, err := payload.NewHash(ids.GenerateTestID())
+	require.NoError(err)
 	unsignedMessage1, err := avalancheWarp.NewUnsignedMessage(
 		testNetworkID,
 		testCChainID,
