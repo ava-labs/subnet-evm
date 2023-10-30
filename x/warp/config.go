@@ -29,12 +29,12 @@ var (
 var (
 	errOverflowSignersGasCost  = errors.New("overflow calculating warp signers gas cost")
 	errInvalidPredicateBytes   = errors.New("cannot unpack predicate bytes")
-	errInvalidWarpMsg          = errors.New("cannot unpack warp message")
-	errInvalidWarpMsgPayload   = errors.New("cannot unpack warp message payload")
 	errInvalidAddressedPayload = errors.New("cannot unpack addressed payload")
 	errInvalidBlockHashPayload = errors.New("cannot unpack block hash payload")
 	errCannotGetNumSigners     = errors.New("cannot fetch num signers from warp message")
 	errWarpCannotBeActivated   = errors.New("warp cannot be activated before DUpgrade")
+	ErrInvalidWarpMsg          = errors.New("cannot unpack warp message")
+	ErrInvalidWarpMsgPayload   = errors.New("cannot unpack warp message payload")
 )
 
 // Config implements the precompileconfig.Config interface and
@@ -168,11 +168,11 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	}
 	warpMessage, err := warp.ParseMessage(unpackedPredicateBytes)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsg, err)
+		return 0, fmt.Errorf("%w: %s", ErrInvalidWarpMsg, err)
 	}
 	_, err = payload.Parse(warpMessage.Payload)
 	if err != nil {
-		return 0, fmt.Errorf("%w: %s", errInvalidWarpMsgPayload, err)
+		return 0, fmt.Errorf("%w: %s", ErrInvalidWarpMsgPayload, err)
 	}
 
 	numSigners, err := warpMessage.Signature.NumSigners()

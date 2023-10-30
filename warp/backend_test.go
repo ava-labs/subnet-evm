@@ -33,7 +33,8 @@ func TestClearDB(t *testing.T) {
 	sk, err := bls.NewSecretKey()
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	backendIntf := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500)
+	backendIntf, err := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, nil)
+	require.NoError(t, err)
 	backend, ok := backendIntf.(*backend)
 	require.True(t, ok)
 
@@ -76,7 +77,8 @@ func TestAddAndGetValidMessage(t *testing.T) {
 	sk, err := bls.NewSecretKey()
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	backend := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500)
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, nil)
+	require.NoError(t, err)
 
 	// Create a new unsigned message and add it to the warp backend.
 	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, testPayload)
@@ -100,7 +102,8 @@ func TestAddAndGetUnknownMessage(t *testing.T) {
 	sk, err := bls.NewSecretKey()
 	require.NoError(t, err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	backend := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500)
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, nil)
+	require.NoError(t, err)
 	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, testPayload)
 	require.NoError(t, err)
 
@@ -133,7 +136,8 @@ func TestGetBlockSignature(t *testing.T) {
 	sk, err := bls.NewSecretKey()
 	require.NoError(err)
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
-	backend := NewBackend(networkID, sourceChainID, warpSigner, testVM, db, 500)
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, testVM, db, 500, nil)
+	require.NoError(err)
 
 	blockHashPayload, err := payload.NewHash(blkID)
 	require.NoError(err)
@@ -158,8 +162,8 @@ func TestZeroSizedCache(t *testing.T) {
 	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
 
 	// Verify zero sized cache works normally, because the lru cache will be initialized to size 1 for any size parameter <= 0.
-	backend := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 0)
-
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 0, nil)
+	require.NoError(t, err)
 	// Create a new unsigned message and add it to the warp backend.
 	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, testPayload)
 	require.NoError(t, err)

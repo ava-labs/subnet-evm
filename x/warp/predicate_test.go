@@ -350,7 +350,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 		},
 		StorageSlots: [][]byte{predicateBytes},
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:       errInvalidWarpMsg,
+		GasErr:       ErrInvalidWarpMsg,
 		PredicateRes: set.NewBits(0).Bytes(), // Won't be reached
 	}
 
@@ -395,7 +395,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 		},
 		StorageSlots: [][]byte{predicateBytes},
 		Gas:          GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
-		GasErr:       errInvalidWarpMsgPayload,
+		GasErr:       ErrInvalidWarpMsgPayload,
 	}
 
 	test.Run(t)

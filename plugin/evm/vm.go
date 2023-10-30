@@ -5,7 +5,6 @@ package evm
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,7 +20,6 @@ import (
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -156,7 +154,6 @@ var (
 	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
 	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
 	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
-	errInvalidOffChainWarpMessage    = errors.New("invalid off-chain warp message")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -474,27 +471,16 @@ func (vm *VM) Initialize(
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// initialize warp backend
-	vm.warpBackend = warp.NewBackend(vm.ctx.NetworkID, vm.ctx.ChainID, vm.ctx.WarpSigner, vm, vm.warpDB, warpSignatureCacheSize)
+	vm.warpBackend, err = warp.NewBackend(vm.ctx.NetworkID, vm.ctx.ChainID, vm.ctx.WarpSigner, vm, vm.warpDB, warpSignatureCacheSize, vm.config.OffChainWarpMessages)
+	if err != nil {
+		return fmt.Errorf("failed to initialize warp backend: %w", err)
+	}
 
 	// clear warpdb on initialization if config enabled
 	if vm.config.PruneWarpDB {
 		if err := vm.warpBackend.Clear(); err != nil {
 			return fmt.Errorf("failed to prune warpDB: %w", err)
 		}
-	}
-
-	// parse and add valid off-chain warp messages to warp backend
-	for _, message := range vm.config.OffChainWarpMessages {
-		messageByte, err := hex.DecodeString(message)
-		if err != nil {
-			return errInvalidOffChainWarpMessage
-		}
-		unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(messageByte)
-		if err != nil {
-			return errInvalidOffChainWarpMessage
-		}
-		vm.warpBackend.AddOffChainMessage(unsignedMessage)
-		log.Info("off-chain warp message added successfully")
 	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {

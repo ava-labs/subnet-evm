@@ -30,7 +30,8 @@ func TestMessageSignatureHandler(t *testing.T) {
 	require.NoError(t, err)
 
 	warpSigner := avalancheWarp.NewSigner(blsSecretKey, snowCtx.NetworkID, snowCtx.ChainID)
-	backend := warp.NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, &block.TestVM{TestVM: common.TestVM{T: t}}, database, 100)
+	backend, err := warp.NewBackend(snowCtx.NetworkID, snowCtx.ChainID, warpSigner, &block.TestVM{TestVM: common.TestVM{T: t}}, database, 100, nil)
+	require.NoError(t, err)
 
 	msg, err := avalancheWarp.NewUnsignedMessage(snowCtx.NetworkID, snowCtx.ChainID, []byte("test"))
 	require.NoError(t, err)
@@ -130,14 +131,16 @@ func TestBlockSignatureHandler(t *testing.T) {
 			return nil, errors.New("invalid blockID")
 		},
 	}
-	backend := warp.NewBackend(
+	backend, err := warp.NewBackend(
 		snowCtx.NetworkID,
 		snowCtx.ChainID,
 		warpSigner,
 		testVM,
 		database,
 		100,
+		nil,
 	)
+	require.NoError(t, err)
 
 	signature, err := backend.GetBlockSignature(blkID)
 	require.NoError(t, err)

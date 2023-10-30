@@ -5,6 +5,7 @@ package warp
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -16,6 +17,8 @@ import (
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/ethdb"
+	"github.com/ava-labs/subnet-evm/x/warp"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -42,9 +45,6 @@ type Backend interface {
 	// GetMessage retrieves the [unsignedMessage] from the warp backend database if available
 	GetMessage(messageHash ids.ID) (*avalancheWarp.UnsignedMessage, error)
 
-	// AddOffChainMessage adds [unsignedMessage] to the warp backend message off-chain map
-	AddOffChainMessage(unsignedMessage *avalancheWarp.UnsignedMessage)
-
 	// Clear clears the entire db
 	Clear() error
 }
@@ -63,8 +63,9 @@ type backend struct {
 }
 
 // NewBackend creates a new Backend, and initializes the signature cache and message tracking database.
-func NewBackend(networkID uint32, sourceChainID ids.ID, warpSigner avalancheWarp.Signer, blockClient BlockClient, db database.Database, cacheSize int) Backend {
-	return &backend{
+// It returns an error if [offChainMessages] is invalid.
+func NewBackend(networkID uint32, sourceChainID ids.ID, warpSigner avalancheWarp.Signer, blockClient BlockClient, db database.Database, cacheSize int, offChainMessages []hexutil.Bytes) (Backend, error) {
+	backend := &backend{
 		networkID:             networkID,
 		sourceChainID:         sourceChainID,
 		db:                    db,
@@ -75,6 +76,15 @@ func NewBackend(networkID uint32, sourceChainID ids.ID, warpSigner avalancheWarp
 		messageCache:          &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: cacheSize},
 		offChainMessageMap:    make(map[ids.ID]*avalancheWarp.UnsignedMessage),
 	}
+
+	for _, message := range offChainMessages {
+		err := backend.addOffChainMessage(message)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return backend, nil
 }
 
 func (b *backend) Clear() error {
@@ -104,11 +114,6 @@ func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) err
 	b.messageSignatureCache.Put(messageID, signature)
 	log.Debug("Adding warp message to backend", "messageID", messageID)
 	return nil
-}
-
-func (b *backend) AddOffChainMessage(unsignedMessage *avalancheWarp.UnsignedMessage) {
-	b.offChainMessageMap[unsignedMessage.ID()] = unsignedMessage
-	log.Debug("Adding warp message to off-chain message map", "messageID", unsignedMessage.ID())
 }
 
 func (b *backend) GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte, error) {
@@ -187,4 +192,20 @@ func (b *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, 
 	b.messageCache.Put(messageID, unsignedMessage)
 
 	return unsignedMessage, nil
+}
+
+// addOffChainMessage parses the message and payload and adds to off-chain map if valid
+func (b *backend) addOffChainMessage(message hexutil.Bytes) error {
+	unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(message)
+	if err != nil {
+		return fmt.Errorf("%w: %s", warp.ErrInvalidWarpMsg, err)
+	}
+	_, err = payload.Parse(unsignedMessage.Payload)
+	if err != nil {
+		return fmt.Errorf("%w: %s", warp.ErrInvalidWarpMsgPayload, err)
+	}
+
+	log.Info("Adding warp message to off-chain message map", "messageID", unsignedMessage.ID(), "decrypted warp message", hex.EncodeToString(unsignedMessage.Bytes()))
+	b.offChainMessageMap[unsignedMessage.ID()] = unsignedMessage
+	return nil
 }

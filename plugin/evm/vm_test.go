@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -64,9 +63,11 @@ import (
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
+	"github.com/ava-labs/subnet-evm/x/warp"
 
 	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 )
 
 var (
@@ -3336,50 +3337,70 @@ func TestMessageSignatureRequestsToVM(t *testing.T) {
 
 func TestOffChainWarpMessagesVM(t *testing.T) {
 	require := require.New(t)
-	invalidMsg := hex.EncodeToString([]byte{0, 1, 2})
+	invalidMsg := hexutil.Bytes([]byte{0, 1, 2})
+
+	payload0, err := payload.NewHash(ids.GenerateTestID())
+	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
 		testNetworkID,
 		testCChainID,
-		[]byte("payload"),
+		payload0.Bytes(),
 	)
 	require.NoError(err)
-	msg := hex.EncodeToString(unsignedMessage.Bytes())
+	msg0 := hexutil.Bytes(unsignedMessage.Bytes())
 
+	payload1, err := payload.NewHash(ids.GenerateTestID())
 	unsignedMessage1, err := avalancheWarp.NewUnsignedMessage(
 		testNetworkID,
 		testCChainID,
-		[]byte("payload1"),
+		payload1.Bytes(),
 	)
 	require.NoError(err)
-	msg1 := hex.EncodeToString(unsignedMessage1.Bytes())
+	msg1 := hexutil.Bytes(unsignedMessage1.Bytes())
+
+	unsignedMessage2, err := avalancheWarp.NewUnsignedMessage(
+		testNetworkID,
+		testCChainID,
+		[]byte("invalid payload"),
+	)
+	require.NoError(err)
+	invalidMsgPayload := hexutil.Bytes(unsignedMessage2.Bytes())
 
 	type OffChainWarpMessageTest struct {
-		messages    []string
+		messages    []hexutil.Bytes
 		expectedErr error
 	}
 	tests := map[string]OffChainWarpMessageTest{
-		"invalid unparsed warp message": {
-			messages:    []string{invalidMsg},
-			expectedErr: errInvalidOffChainWarpMessage,
+		"invalid warp message": {
+			messages:    []hexutil.Bytes{invalidMsg},
+			expectedErr: warp.ErrInvalidWarpMsg,
 		},
-		"valid unparsed warp message": {
-			messages:    []string{msg},
+		"invalid warp payload": {
+			messages:    []hexutil.Bytes{invalidMsgPayload},
+			expectedErr: warp.ErrInvalidWarpMsgPayload,
+		},
+		"valid warp message": {
+			messages:    []hexutil.Bytes{msg0},
 			expectedErr: nil,
 		},
-		"multiple valid unparsed message": {
-			messages:    []string{msg, msg1},
+		"multiple valid message": {
+			messages:    []hexutil.Bytes{msg0, msg1},
 			expectedErr: nil,
 		},
-		"multiple valid/invalid unparsed message": {
-			messages:    []string{msg, invalidMsg},
-			expectedErr: errInvalidOffChainWarpMessage,
+		"multiple valid/invalid message": {
+			messages:    []hexutil.Bytes{msg0, invalidMsg},
+			expectedErr: warp.ErrInvalidWarpMsg,
+		},
+		"multiple invalid payload/valid message": {
+			messages:    []hexutil.Bytes{invalidMsgPayload, msg1},
+			expectedErr: warp.ErrInvalidWarpMsgPayload,
 		},
 	}
 
 	testOffChainWarpMessages := func(test OffChainWarpMessageTest) {
 		vm := &VM{}
 		ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSONSubnetEVM)
-		config := map[string][]string{
+		config := map[string][]hexutil.Bytes{
 			"off-chain-warp-messages": test.messages,
 		}
 
@@ -3397,7 +3418,6 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 			[]*commonEng.Fx{},
 			nil,
 		)
-
 		require.ErrorIs(err, test.expectedErr)
 		if test.expectedErr != nil {
 			return
@@ -3410,14 +3430,12 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 
 		// Check that the off-chain warp messages are retrievable
 		for _, message := range test.messages {
-			messageBytes, err := hex.DecodeString(message)
-			require.NoError(err)
-			unsignedWarpMessage, err := avalancheWarp.ParseUnsignedMessage(messageBytes)
+			unsignedWarpMessage, err := avalancheWarp.ParseUnsignedMessage(message)
 			require.NoError(err)
 			expectedSignature, err := vm.ctx.WarpSigner.Sign(unsignedWarpMessage)
 			require.NoError(err)
 
-			// On VM initialization off-chain warp messages were put into the off-chain message map
+			// On warp backend initialization off-chain warp messages were put into the off-chain message map
 			signature, err := vm.warpBackend.GetMessageSignature(unsignedWarpMessage.ID())
 			require.NoError(err)
 			require.Equal(([bls.SignatureLen]byte)(expectedSignature), signature)

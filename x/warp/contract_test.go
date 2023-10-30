@@ -395,7 +395,7 @@ func TestGetVerifiedWarpMessage(t *testing.T) {
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(32),
 			ReadOnly:    false,
-			ExpectedErr: errInvalidWarpMsg.Error(),
+			ExpectedErr: ErrInvalidWarpMsg.Error(),
 		},
 		"get message invalid addressed payload": {
 			Caller:  callerAddr,
@@ -673,7 +673,7 @@ func TestGetVerifiedWarpBlockHash(t *testing.T) {
 			},
 			SuppliedGas: GetVerifiedWarpMessageBaseCost + GasCostPerWarpMessageBytes*uint64(32),
 			ReadOnly:    false,
-			ExpectedErr: errInvalidWarpMsg.Error(),
+			ExpectedErr: ErrInvalidWarpMsg.Error(),
 		},
 		"get message invalid block hash payload": {
 			Caller:  callerAddr,

@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/spf13/cast"
 )
 
@@ -191,10 +192,9 @@ type Config struct {
 	// Database Settings
 	InspectDatabase bool `json:"inspect-database"` // Inspects the database on startup if enabled.
 
-	// OffChainWarpMessagesBytes represent off-chain warp messages (represented in hex) a validator is willing to sign.
-	// These messages are not tied to on-chain events and are particularly useful for implementing a unified
-	// upgrade mechanism for critical smart contracts on the chain.
-	OffChainWarpMessages []string `json:"off-chain-warp-messages"`
+	// OffChainWarpMessagesBytes represent off-chain warp messages a validator is willing to sign.
+	// These messages are not tied to on-chain events.
+	OffChainWarpMessages []hexutil.Bytes `json:"off-chain-warp-messages"`
 
 	// SkipUpgradeCheck disables checking that upgrades must take place before the last
 	// accepted block. Skipping this check is useful when a node operator does not update
