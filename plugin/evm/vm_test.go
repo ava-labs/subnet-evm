@@ -1569,7 +1569,7 @@ func TestUncleBlock(t *testing.T) {
 		blkDEthBlock.Transactions(),
 		uncles,
 		nil,
-		new(trie.Trie),
+		trie.NewStackTrie(nil),
 	)
 	uncleBlock := vm2.newBlock(uncleEthBlock)
 
@@ -1892,7 +1892,7 @@ func TestFutureBlock(t *testing.T) {
 		internalBlkA.ethBlock.Transactions(),
 		nil,
 		nil,
-		new(trie.Trie),
+		trie.NewStackTrie(nil),
 	)
 
 	futureBlock := vm.newBlock(modifiedBlock)
@@ -2703,7 +2703,7 @@ func TestAllowFeeRecipientDisabled(t *testing.T) {
 		internalBlk.ethBlock.Transactions(),
 		nil,
 		nil,
-		new(trie.Trie),
+		trie.NewStackTrie(nil),
 	)
 
 	modifiedBlk := vm.newBlock(modifiedBlock)
