@@ -3339,6 +3339,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 	require := require.New(t)
 	invalidMsg := hexutil.Bytes([]byte{0, 1, 2})
 
+	// valid message 1
 	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
 	payloadData := []byte{1, 2, 3}
 	addressedPayload, err := payload.NewAddressedCall(
@@ -3354,6 +3355,7 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 	require.NoError(err)
 	msg1 := hexutil.Bytes(unsignedMessage1.Bytes())
 
+	// valid message 2
 	payloadData2 := []byte{4, 5, 6}
 	addressedPayload2, err := payload.NewAddressedCall(
 		sourceAddress.Bytes(),
