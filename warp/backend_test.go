@@ -20,7 +20,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -205,7 +204,7 @@ func TestOffChainMessages(t *testing.T) {
 	expectedSig, err := warpSigner.Sign(unsignedMessage)
 	require.NoError(err)
 
-	offChainMessages := []hexutil.Bytes{hexutil.Bytes(unsignedMessage.Bytes())}
+	offChainMessages := [][]byte{unsignedMessage.Bytes()}
 	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 0, offChainMessages)
 	require.NoError(err)
 
@@ -219,13 +218,13 @@ func TestOffChainMessages(t *testing.T) {
 	unsignedMessage, err = avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, invalidPayload)
 	require.NoError(err)
 
-	offChainMessages = []hexutil.Bytes{hexutil.Bytes(unsignedMessage.Bytes())}
+	offChainMessages = [][]byte{unsignedMessage.Bytes()}
 	_, err = NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, offChainMessages)
 	require.ErrorIs(err, warp.ErrInvalidWarpMsgPayload)
 
 	// invalid msg
 	unsignedInvalidMessage := []byte{0, 1, 2}
-	offChainMessages = []hexutil.Bytes{hexutil.Bytes(unsignedInvalidMessage)}
+	offChainMessages = [][]byte{unsignedInvalidMessage}
 	_, err = NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, offChainMessages)
 	require.ErrorIs(err, warp.ErrInvalidWarpMsg)
 }
@@ -234,20 +233,6 @@ func TestOffChainBlockMessages(t *testing.T) {
 	require := require.New(t)
 
 	blkID := ids.GenerateTestID()
-	testVM := &block.TestVM{
-		TestVM: avalancheCommon.TestVM{T: t},
-		GetBlockF: func(ctx context.Context, i ids.ID) (snowman.Block, error) {
-			if i == blkID {
-				return &snowman.TestBlock{
-					TestDecidable: choices.TestDecidable{
-						IDV:     blkID,
-						StatusV: choices.Accepted,
-					},
-				}, nil
-			}
-			return nil, errors.New("invalid blockID")
-		},
-	}
 	db := memdb.New()
 
 	sk, err := bls.NewSecretKey()
@@ -262,8 +247,8 @@ func TestOffChainBlockMessages(t *testing.T) {
 	expectedSig, err := warpSigner.Sign(unsignedMessage)
 	require.NoError(err)
 
-	offChainMessages := []hexutil.Bytes{hexutil.Bytes(unsignedMessage.Bytes())}
-	backend, err := NewBackend(networkID, sourceChainID, warpSigner, testVM, db, 500, offChainMessages)
+	offChainMessages := [][]byte{unsignedMessage.Bytes()}
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, offChainMessages)
 	require.NoError(err)
 
 	signature, err := backend.GetBlockSignature(blkID)
@@ -276,7 +261,7 @@ func TestOffChainBlockMessages(t *testing.T) {
 	unsignedMessage, err = avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, hashPayload.Hash[:])
 	require.NoError(err)
 
-	offChainMessages = []hexutil.Bytes{hexutil.Bytes(unsignedMessage.Bytes())}
+	offChainMessages = [][]byte{unsignedMessage.Bytes()}
 	_, err = NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, offChainMessages)
 	require.ErrorIs(err, warp.ErrInvalidWarpMsgPayload)
 }

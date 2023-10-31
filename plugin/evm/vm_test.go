@@ -3379,9 +3379,21 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 	require.NoError(err)
 	invalidMsgPayload := hexutil.Bytes(unsignedMessage3.Bytes())
 
+	// block message
+	blockHashPayload, err := payload.NewHash(ids.GenerateTestID())
+	require.NoError(err)
+	unsignedMessage4, err := avalancheWarp.NewUnsignedMessage(
+		testNetworkID,
+		testCChainID,
+		blockHashPayload.Bytes(),
+	)
+	require.NoError(err)
+	blockMsg := hexutil.Bytes(unsignedMessage4.Bytes())
+
 	type OffChainWarpMessageTest struct {
-		messages    []hexutil.Bytes
-		expectedErr error
+		messages     []hexutil.Bytes
+		blockMessage bool
+		expectedErr  error
 	}
 	tests := map[string]OffChainWarpMessageTest{
 		"invalid message": {
@@ -3407,6 +3419,11 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 		"multiple invalid payload/valid message": {
 			messages:    []hexutil.Bytes{invalidMsgPayload, msg1},
 			expectedErr: warp.ErrInvalidWarpMsgPayload,
+		},
+		"block message": {
+			messages:     []hexutil.Bytes{blockMsg},
+			blockMessage: true,
+			expectedErr:  nil,
 		},
 	}
 
@@ -3447,6 +3464,13 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 			require.NoError(err)
 			expectedSignature, err := vm.ctx.WarpSigner.Sign(unsignedWarpMessage)
 			require.NoError(err)
+
+			// Block messages should not be retrievable from GetMessageSignature
+			if test.blockMessage {
+				_, err := vm.warpBackend.GetMessageSignature(unsignedWarpMessage.ID())
+				require.ErrorContains(err, "failed to get warp message")
+				continue
+			}
 
 			// On warp backend initialization off-chain warp messages were put into the off-chain message map
 			signature, err := vm.warpBackend.GetMessageSignature(unsignedWarpMessage.ID())

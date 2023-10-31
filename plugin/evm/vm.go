@@ -57,6 +57,7 @@ import (
 	_ "github.com/ava-labs/subnet-evm/precompile/registry"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -471,7 +472,8 @@ func (vm *VM) Initialize(
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// initialize warp backend
-	vm.warpBackend, err = warp.NewBackend(vm.ctx.NetworkID, vm.ctx.ChainID, vm.ctx.WarpSigner, vm, vm.warpDB, warpSignatureCacheSize, vm.config.OffChainWarpMessages)
+	offChainWarpMessages := convertToByteSlice(vm.config.OffChainWarpMessages)
+	vm.warpBackend, err = warp.NewBackend(vm.ctx.NetworkID, vm.ctx.ChainID, vm.ctx.WarpSigner, vm, vm.warpDB, warpSignatureCacheSize, offChainWarpMessages)
 	if err != nil {
 		return fmt.Errorf("failed to initialize warp backend: %w", err)
 	}
@@ -1091,4 +1093,13 @@ func getMandatoryNetworkUpgrades(networkID uint32) (params.MandatoryNetworkUpgra
 	default:
 		return params.LocalNetworkUpgrades, false
 	}
+}
+
+func convertToByteSlice(hexutilSlice []hexutil.Bytes) [][]byte {
+	bytesSlice := make([][]byte, len(hexutilSlice))
+	for i, hexutilBytes := range hexutilSlice {
+		bytesSlice[i] = []byte(hexutilBytes)
+	}
+
+	return bytesSlice
 }

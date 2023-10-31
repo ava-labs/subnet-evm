@@ -18,7 +18,6 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/x/warp"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -60,11 +59,12 @@ type backend struct {
 	blockSignatureCache   *cache.LRU[ids.ID, [bls.SignatureLen]byte]
 	messageCache          *cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]
 	offChainMessageMap    map[ids.ID]*avalancheWarp.UnsignedMessage
+	offChainBlockMap      map[ids.ID]*avalancheWarp.UnsignedMessage
 }
 
 // NewBackend creates a new Backend, and initializes the signature cache and message tracking database.
 // It returns an error if [offChainMessages] is invalid.
-func NewBackend(networkID uint32, sourceChainID ids.ID, warpSigner avalancheWarp.Signer, blockClient BlockClient, db database.Database, cacheSize int, offChainMessages []hexutil.Bytes) (Backend, error) {
+func NewBackend(networkID uint32, sourceChainID ids.ID, warpSigner avalancheWarp.Signer, blockClient BlockClient, db database.Database, cacheSize int, offChainMessages [][]byte) (Backend, error) {
 	backend := &backend{
 		networkID:             networkID,
 		sourceChainID:         sourceChainID,
@@ -75,6 +75,7 @@ func NewBackend(networkID uint32, sourceChainID ids.ID, warpSigner avalancheWarp
 		blockSignatureCache:   &cache.LRU[ids.ID, [bls.SignatureLen]byte]{Size: cacheSize},
 		messageCache:          &cache.LRU[ids.ID, *avalancheWarp.UnsignedMessage]{Size: cacheSize},
 		offChainMessageMap:    make(map[ids.ID]*avalancheWarp.UnsignedMessage),
+		offChainBlockMap:      make(map[ids.ID]*avalancheWarp.UnsignedMessage),
 	}
 
 	for _, message := range offChainMessages {
@@ -144,6 +145,11 @@ func (b *backend) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, err
 		return sig, nil
 	}
 
+	// Force sign off-chain block message
+	if unsignedMessage, ok := b.offChainBlockMap[blockID]; ok {
+		return b.signAndCacheBlockMessage(blockID, unsignedMessage)
+	}
+
 	block, err := b.blockClient.GetBlock(context.TODO(), blockID)
 	if err != nil {
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to get block %s: %w", blockID, err)
@@ -152,27 +158,16 @@ func (b *backend) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, err
 		return [bls.SignatureLen]byte{}, fmt.Errorf("block %s was not accepted", blockID)
 	}
 
-	var signature [bls.SignatureLen]byte
-	unsignedMessage, ok := b.offChainMessageMap[blockID]
-	if !ok {
-		blockHashPayload, err := payload.NewHash(blockID)
-		if err != nil {
-			return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new block hash payload: %w", err)
-		}
-		unsignedMessage, err = avalancheWarp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
-		if err != nil {
-			return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new unsigned warp message: %w", err)
-		}
-	}
-
-	sig, err := b.warpSigner.Sign(unsignedMessage)
+	blockHashPayload, err := payload.NewHash(blockID)
 	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new block hash payload: %w", err)
+	}
+	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
+	if err != nil {
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new unsigned warp message: %w", err)
 	}
 
-	copy(signature[:], sig)
-	b.blockSignatureCache.Put(blockID, signature)
-	return signature, nil
+	return b.signAndCacheBlockMessage(blockID, unsignedMessage)
 }
 
 func (b *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, error) {
@@ -199,37 +194,38 @@ func (b *backend) GetMessage(messageID ids.ID) (*avalancheWarp.UnsignedMessage, 
 }
 
 // addOffChainMessage parses the message and payload and adds to off-chain map if valid
-func (b *backend) addOffChainMessage(message hexutil.Bytes) error {
+func (b *backend) addOffChainMessage(message []byte) error {
 	unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(message)
 	if err != nil {
 		return fmt.Errorf("%w: %s", warp.ErrInvalidWarpMsg, err)
 	}
 
-	id, err := parsePayload(unsignedMessage)
+	messagePayload, err := payload.Parse(unsignedMessage.Payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", warp.ErrInvalidWarpMsgPayload, err)
 	}
 
-	log.Info("Adding warp message to off-chain message map", "messageID", unsignedMessage.ID(), "decrypted warp message", hex.EncodeToString(unsignedMessage.Bytes()))
-	b.offChainMessageMap[id] = unsignedMessage
+	switch messagePayload := messagePayload.(type) {
+	case *payload.Hash:
+		b.offChainBlockMap[messagePayload.Hash] = unsignedMessage
+		log.Info("Adding warp message to off-chain block map", "blockID", messagePayload.Hash, "decrypted warp message", hex.EncodeToString(unsignedMessage.Bytes()))
+	default:
+		b.offChainMessageMap[unsignedMessage.ID()] = unsignedMessage
+		log.Info("Adding warp message to off-chain message map", "messageID", unsignedMessage.ID(), "decrypted warp message", hex.EncodeToString(unsignedMessage.Bytes()))
+	}
+
 	return nil
 }
 
-// parsePayload parses the payload of an unsigned message and returns the ID of the valid payload.
-// If the payload is a valid block hash, it returns the block ID; otherwise, it returns the unsigned message ID.
-// It returns ErrInvalidWarpMsgPayload on an invalid payload.
-func parsePayload(unsignedMessage *avalancheWarp.UnsignedMessage) (ids.ID, error) {
-	id := unsignedMessage.ID()
+func (b *backend) signAndCacheBlockMessage(blockID ids.ID, unsignedMessage *avalancheWarp.UnsignedMessage) ([bls.SignatureLen]byte, error) {
+	var signature [bls.SignatureLen]byte
 
-	blockHashPayload, err := payload.ParseHash(unsignedMessage.Payload)
-	if err == nil {
-		id = blockHashPayload.Hash
-	} else {
-		_, err = payload.Parse(unsignedMessage.Payload)
-		if err != nil {
-			return ids.Empty, fmt.Errorf("%w: %s", warp.ErrInvalidWarpMsgPayload, err)
-		}
+	sig, err := b.warpSigner.Sign(unsignedMessage)
+	if err != nil {
+		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
 	}
 
-	return id, nil
+	copy(signature[:], sig)
+	b.blockSignatureCache.Put(blockID, signature)
+	return signature, nil
 }
