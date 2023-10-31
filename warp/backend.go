@@ -215,6 +215,9 @@ func (b *backend) addOffChainMessage(message hexutil.Bytes) error {
 	return nil
 }
 
+// parsePayload parses the payload of an unsigned message and returns the ID of the valid payload.
+// If the payload is a valid block hash, it returns the block ID; otherwise, it returns the unsigned message ID.
+// It returns ErrInvalidWarpMsgPayload on an invalid payload.
 func parsePayload(unsignedMessage *avalancheWarp.UnsignedMessage) (ids.ID, error) {
 	id := unsignedMessage.ID()
 

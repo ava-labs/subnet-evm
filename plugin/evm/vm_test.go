@@ -3382,15 +3382,15 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 		expectedErr error
 	}
 	tests := map[string]OffChainWarpMessageTest{
-		"invalid warp message": {
+		"invalid message": {
 			messages:    []hexutil.Bytes{invalidMsg},
 			expectedErr: warp.ErrInvalidWarpMsg,
 		},
-		"invalid warp payload": {
+		"invalid payload": {
 			messages:    []hexutil.Bytes{invalidMsgPayload},
 			expectedErr: warp.ErrInvalidWarpMsgPayload,
 		},
-		"valid warp message": {
+		"valid message": {
 			messages:    []hexutil.Bytes{msg1},
 			expectedErr: nil,
 		},
