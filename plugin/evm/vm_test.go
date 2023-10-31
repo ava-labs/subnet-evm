@@ -3339,33 +3339,43 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 	require := require.New(t)
 	invalidMsg := hexutil.Bytes([]byte{0, 1, 2})
 
-	payload0, err := payload.NewHash(ids.GenerateTestID())
-	require.NoError(err)
-	unsignedMessage0, err := avalancheWarp.NewUnsignedMessage(
-		testNetworkID,
-		testCChainID,
-		payload0.Bytes(),
+	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
+	payloadData := []byte{1, 2, 3}
+	addressedPayload, err := payload.NewAddressedCall(
+		sourceAddress.Bytes(),
+		payloadData,
 	)
-	require.NoError(err)
-	msg0 := hexutil.Bytes(unsignedMessage0.Bytes())
-
-	payload1, err := payload.NewHash(ids.GenerateTestID())
 	require.NoError(err)
 	unsignedMessage1, err := avalancheWarp.NewUnsignedMessage(
 		testNetworkID,
 		testCChainID,
-		payload1.Bytes(),
+		addressedPayload.Bytes(),
 	)
 	require.NoError(err)
 	msg1 := hexutil.Bytes(unsignedMessage1.Bytes())
 
+	payloadData2 := []byte{4, 5, 6}
+	addressedPayload2, err := payload.NewAddressedCall(
+		sourceAddress.Bytes(),
+		payloadData2,
+	)
+	require.NoError(err)
 	unsignedMessage2, err := avalancheWarp.NewUnsignedMessage(
+		testNetworkID,
+		testCChainID,
+		addressedPayload2.Bytes(),
+	)
+	require.NoError(err)
+	msg2 := hexutil.Bytes(unsignedMessage2.Bytes())
+
+	// invalid payload warp message
+	unsignedMessage3, err := avalancheWarp.NewUnsignedMessage(
 		testNetworkID,
 		testCChainID,
 		[]byte("invalid payload"),
 	)
 	require.NoError(err)
-	invalidMsgPayload := hexutil.Bytes(unsignedMessage2.Bytes())
+	invalidMsgPayload := hexutil.Bytes(unsignedMessage3.Bytes())
 
 	type OffChainWarpMessageTest struct {
 		messages    []hexutil.Bytes
@@ -3381,15 +3391,15 @@ func TestOffChainWarpMessagesVM(t *testing.T) {
 			expectedErr: warp.ErrInvalidWarpMsgPayload,
 		},
 		"valid warp message": {
-			messages:    []hexutil.Bytes{msg0},
+			messages:    []hexutil.Bytes{msg1},
 			expectedErr: nil,
 		},
 		"multiple valid message": {
-			messages:    []hexutil.Bytes{msg0, msg1},
+			messages:    []hexutil.Bytes{msg2, msg1},
 			expectedErr: nil,
 		},
 		"multiple valid/invalid message": {
-			messages:    []hexutil.Bytes{msg0, invalidMsg},
+			messages:    []hexutil.Bytes{msg1, invalidMsg},
 			expectedErr: warp.ErrInvalidWarpMsg,
 		},
 		"multiple invalid payload/valid message": {

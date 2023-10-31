@@ -153,14 +153,18 @@ func (b *backend) GetBlockSignature(blockID ids.ID) ([bls.SignatureLen]byte, err
 	}
 
 	var signature [bls.SignatureLen]byte
-	blockHashPayload, err := payload.NewHash(blockID)
-	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new block hash payload: %w", err)
+	unsignedMessage, ok := b.offChainMessageMap[blockID]
+	if !ok {
+		blockHashPayload, err := payload.NewHash(blockID)
+		if err != nil {
+			return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new block hash payload: %w", err)
+		}
+		unsignedMessage, err = avalancheWarp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
+		if err != nil {
+			return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new unsigned warp message: %w", err)
+		}
 	}
-	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(b.networkID, b.sourceChainID, blockHashPayload.Bytes())
-	if err != nil {
-		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to create new unsigned warp message: %w", err)
-	}
+
 	sig, err := b.warpSigner.Sign(unsignedMessage)
 	if err != nil {
 		return [bls.SignatureLen]byte{}, fmt.Errorf("failed to sign warp message: %w", err)
@@ -200,12 +204,29 @@ func (b *backend) addOffChainMessage(message hexutil.Bytes) error {
 	if err != nil {
 		return fmt.Errorf("%w: %s", warp.ErrInvalidWarpMsg, err)
 	}
-	_, err = payload.Parse(unsignedMessage.Payload)
+
+	id, err := parsePayload(unsignedMessage)
 	if err != nil {
-		return fmt.Errorf("%w: %s", warp.ErrInvalidWarpMsgPayload, err)
+		return err
 	}
 
 	log.Info("Adding warp message to off-chain message map", "messageID", unsignedMessage.ID(), "decrypted warp message", hex.EncodeToString(unsignedMessage.Bytes()))
-	b.offChainMessageMap[unsignedMessage.ID()] = unsignedMessage
+	b.offChainMessageMap[id] = unsignedMessage
 	return nil
+}
+
+func parsePayload(unsignedMessage *avalancheWarp.UnsignedMessage) (ids.ID, error) {
+	id := unsignedMessage.ID()
+
+	blockHashPayload, err := payload.ParseHash(unsignedMessage.Payload)
+	if err == nil {
+		id = blockHashPayload.Hash
+	} else {
+		_, err = payload.Parse(unsignedMessage.Payload)
+		if err != nil {
+			return ids.Empty, fmt.Errorf("%w: %s", warp.ErrInvalidWarpMsgPayload, err)
+		}
+	}
+
+	return id, nil
 }

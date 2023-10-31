@@ -12,12 +12,15 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	"github.com/ava-labs/avalanchego/snow/engine/common"
+	avalancheCommon "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/subnet-evm/x/warp"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -118,7 +121,7 @@ func TestGetBlockSignature(t *testing.T) {
 
 	blkID := ids.GenerateTestID()
 	testVM := &block.TestVM{
-		TestVM: common.TestVM{T: t},
+		TestVM: avalancheCommon.TestVM{T: t},
 		GetBlockF: func(ctx context.Context, i ids.ID) (snowman.Block, error) {
 			if i == blkID {
 				return &snowman.TestBlock{
@@ -178,4 +181,102 @@ func TestZeroSizedCache(t *testing.T) {
 	expectedSig, err := warpSigner.Sign(unsignedMsg)
 	require.NoError(t, err)
 	require.Equal(t, expectedSig, signature[:])
+}
+
+func TestOffChainMessages(t *testing.T) {
+	require := require.New(t)
+
+	db := memdb.New()
+	sk, err := bls.NewSecretKey()
+	require.NoError(err)
+	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
+
+	// valid message
+	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
+	payloadData := []byte{1, 2, 3}
+	addressedPayload, err := payload.NewAddressedCall(
+		sourceAddress.Bytes(),
+		payloadData,
+	)
+	require.NoError(err)
+
+	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, addressedPayload.Bytes())
+	require.NoError(err)
+	expectedSig, err := warpSigner.Sign(unsignedMessage)
+	require.NoError(err)
+
+	offChainMessages := []hexutil.Bytes{hexutil.Bytes(unsignedMessage.Bytes())}
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, nil, db, 0, offChainMessages)
+	require.NoError(err)
+
+	signature, err := backend.GetMessageSignature(unsignedMessage.ID())
+	require.NoError(err)
+	require.Equal(expectedSig, signature[:])
+
+	// invalid payload
+	invalidPayload := []byte{0, 1, 2}
+	require.NoError(err)
+	unsignedMessage, err = avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, invalidPayload)
+	require.NoError(err)
+
+	offChainMessages = []hexutil.Bytes{hexutil.Bytes(unsignedMessage.Bytes())}
+	_, err = NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, offChainMessages)
+	require.ErrorIs(err, warp.ErrInvalidWarpMsgPayload)
+
+	// invalid msg
+	unsignedInvalidMessage := []byte{0, 1, 2}
+	offChainMessages = []hexutil.Bytes{hexutil.Bytes(unsignedInvalidMessage)}
+	_, err = NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, offChainMessages)
+	require.ErrorIs(err, warp.ErrInvalidWarpMsg)
+}
+
+func TestOffChainBlockMessages(t *testing.T) {
+	require := require.New(t)
+
+	blkID := ids.GenerateTestID()
+	testVM := &block.TestVM{
+		TestVM: avalancheCommon.TestVM{T: t},
+		GetBlockF: func(ctx context.Context, i ids.ID) (snowman.Block, error) {
+			if i == blkID {
+				return &snowman.TestBlock{
+					TestDecidable: choices.TestDecidable{
+						IDV:     blkID,
+						StatusV: choices.Accepted,
+					},
+				}, nil
+			}
+			return nil, errors.New("invalid blockID")
+		},
+	}
+	db := memdb.New()
+
+	sk, err := bls.NewSecretKey()
+	require.NoError(err)
+	warpSigner := avalancheWarp.NewSigner(sk, networkID, sourceChainID)
+
+	// valid block hash
+	blockHashPayload, err := payload.NewHash(blkID)
+	require.NoError(err)
+	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, blockHashPayload.Bytes())
+	require.NoError(err)
+	expectedSig, err := warpSigner.Sign(unsignedMessage)
+	require.NoError(err)
+
+	offChainMessages := []hexutil.Bytes{hexutil.Bytes(unsignedMessage.Bytes())}
+	backend, err := NewBackend(networkID, sourceChainID, warpSigner, testVM, db, 500, offChainMessages)
+	require.NoError(err)
+
+	signature, err := backend.GetBlockSignature(blkID)
+	require.NoError(err)
+	require.Equal(expectedSig, signature[:])
+
+	// invalid block hash
+	hashPayload, err := payload.NewHash(ids.GenerateTestID())
+	require.NoError(err)
+	unsignedMessage, err = avalancheWarp.NewUnsignedMessage(networkID, sourceChainID, hashPayload.Hash[:])
+	require.NoError(err)
+
+	offChainMessages = []hexutil.Bytes{hexutil.Bytes(unsignedMessage.Bytes())}
+	_, err = NewBackend(networkID, sourceChainID, warpSigner, nil, db, 500, offChainMessages)
+	require.ErrorIs(err, warp.ErrInvalidWarpMsgPayload)
 }
