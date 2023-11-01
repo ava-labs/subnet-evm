@@ -6,10 +6,10 @@
   "priority-regossip-max-txs": 32,
   "priority-regossip-txs-per-address": 20,
   "priority-regossip-addresses": ["0x8747adFCE380492ec7e9b78761Ec7C87F5Cd3d4F"],
-  "continuous-profiler-dir": "/home/ubuntu/.avalanchego/profiles/hubblenet/continuous/",
+  "continuous-profiler-dir": "/var/avalanche/profiles/hubblenet/continuous/",
   "continuous-profiler-max-files": 200,
   "continuous-profiler-frequency": "10m",
-  "validator-private-key-file": "/home/ubuntu/validator.pk",
-  "feeRecipient": "<insert address corresponding to private key above>",
+  "validator-private-key-file": "/var/avalanche/validator.pk",
+  "feeRecipient": "0xa5e31FbE901362Cc93b6fdab99DB9741c673a942",
   "is-validator": true
 }

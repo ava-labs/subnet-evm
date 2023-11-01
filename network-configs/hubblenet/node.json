@@ -1,0 +1,5 @@
+{
+    "profile-continuous-enabled": true,
+    "profile-continuous-max-files": 100,
+    "profile-dir": "/var/avalanche/profiles/continuous/"
+}
