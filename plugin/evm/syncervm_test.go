@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ava-labs/avalanchego/database/manager"
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
@@ -386,7 +386,7 @@ type syncVMSetup struct {
 	fundedAccounts map[*keystore.Key]*types.StateAccount
 
 	syncerVM         *VM
-	syncerDBManager  manager.Manager
+	syncerDBManager  database.Database
 	syncerEngineChan <-chan commonEng.Message
 }
 

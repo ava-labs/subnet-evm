@@ -15,7 +15,7 @@ type rawPrecompileUpgrade struct {
 }
 
 type networkUpgradeConfigMessage struct {
-	OptionalNetworkUpgrades *params.OptionalNetworkUpgrades `serialize:"true,omitempty"`
+	OptionalNetworkUpgrades *params.OptionalNetworkUpgrades `serialize:"true,nullable"`
 	// Config for modifying state as a network upgrade.
 	StateUpgrades []params.StateUpgrade `serialize:"true"`
 	// Config for enabling and disabling precompiles as network upgrades.

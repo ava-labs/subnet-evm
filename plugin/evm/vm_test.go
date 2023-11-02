@@ -26,7 +26,8 @@ import (
 
 	"github.com/ava-labs/avalanchego/api/keystore"
 	"github.com/ava-labs/avalanchego/chains/atomic"
-	"github.com/ava-labs/avalanchego/database/manager"
+	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
@@ -158,7 +159,7 @@ func setupGenesis(
 	t *testing.T,
 	genesisJSON string,
 ) (*snow.Context,
-	manager.Manager,
+	database.Database,
 	[]byte,
 	chan commonEng.Message,
 	*atomic.Memory,
@@ -169,7 +170,7 @@ func setupGenesis(
 	genesisBytes := buildGenesisTest(t, genesisJSON)
 	ctx := NewContext()
 
-	baseDBManager := manager.NewMemDB(&version.Semantic{
+	baseDBManager := memdb.New(&version.Semantic{
 		Major: 1,
 		Minor: 4,
 		Patch: 5,
@@ -183,7 +184,7 @@ func setupGenesis(
 	// The caller of this function is responsible for unlocking.
 	ctx.Lock.Lock()
 
-	userKeystore := keystore.New(logging.NoLog{}, manager.NewMemDB(&version.Semantic{
+	userKeystore := keystore.New(logging.NoLog{}, memdb.New(&version.Semantic{
 		Major: 1,
 		Minor: 4,
 		Patch: 5,
@@ -208,7 +209,7 @@ func GenesisVM(t *testing.T,
 	configJSON string,
 	upgradeJSON string,
 ) (chan commonEng.Message,
-	*VM, manager.Manager,
+	*VM, database.Database,
 	*commonEng.SenderTest,
 ) {
 	vm := &VM{}

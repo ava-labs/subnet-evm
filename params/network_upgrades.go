@@ -82,7 +82,7 @@ func (m *OptionalFork) ToFork(name string) fork {
 }
 
 type OptionalNetworkUpgrades struct {
-	Test *OptionalFork `json:"test,omitempty" serialize:"true,omitempty"`
+	Test *OptionalFork `json:"test,omitempty" serialize:"true,nullable"`
 }
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
