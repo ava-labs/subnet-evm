@@ -80,7 +80,7 @@ func (result *ExecutionResult) Revert() []byte {
 func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, rules params.Rules) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
-	if isContractCreation && rules.IsHomestead {
+	if isContractCreation && rules.IsIstanbul {
 		gas = params.TxGasContractCreation
 	} else {
 		gas = params.TxGas
