@@ -173,6 +173,10 @@ func (b *SimulatedBackend) Commit(accept bool) common.Hash {
 	return blockHash
 }
 
+func (b *SimulatedBackend) GetInternalDB() *ethdb.Database {
+	return &b.database
+}
+
 // Rollback aborts all pending transactions, reverting to the last committed state.
 func (b *SimulatedBackend) Rollback() {
 	b.mu.Lock()

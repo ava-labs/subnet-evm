@@ -87,6 +87,8 @@ func BenchmarkTrie(t *testing.B) {
 	case <-time.After(2 * time.Second):
 		t.Errorf("test timeout waiting for function call")
 	}
+
+	vm.GetInternalDB() // Maybe we would needs this?
 }
 
 func createVM(t *testing.B, name string) (*backends.SimulatedBackend, common.Address) {
