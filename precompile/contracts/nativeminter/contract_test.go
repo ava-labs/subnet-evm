@@ -4,8 +4,12 @@
 package nativeminter
 
 import (
+	"fmt"
+	"math/big"
+	"math/rand"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -14,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -213,4 +218,54 @@ func TestContractNativeMinterRun(t *testing.T) {
 
 func BenchmarkContractNativeMinter(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
+}
+
+func TestPackUnpackMintNativeCoinInput(t *testing.T) {
+	// Test PackMintNativeCoin, UnpackMintNativeCoinInput
+	// for 1000 random addresses and amounts
+	for i := 0; i < 1000; i++ {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		amount := new(big.Int).SetInt64(rand.Int63())
+		testUnpackAndPacks(t, addr, amount)
+	}
+
+	// Some edge cases
+	testUnpackAndPacks(t, common.Address{}, common.Big0)
+	testUnpackAndPacks(t, common.Address{}, common.Big1)
+	testUnpackAndPacks(t, common.Address{}, math.MaxBig256)
+	testUnpackAndPacks(t, common.Address{}, math.MaxBig256.Sub(math.MaxBig256, common.Big1))
+	testUnpackAndPacks(t, common.Address{}, math.MaxBig256.Add(math.MaxBig256, common.Big1))
+	testUnpackAndPacks(t, constants.BlackholeAddr, common.Big2)
+
+	input, err := PackMintNativeCoin(constants.BlackholeAddr, common.Big2)
+	require.NoError(t, err)
+	// exclude 4 bytes for function selector
+	input = input[4:]
+	// add extra padded bytes
+	input = append(input, make([]byte, 32)...)
+
+	_, _, err = UnpackMintNativeCoinInput(input, false)
+	require.ErrorIs(t, err, ErrInvalidLen)
+
+	addr, amount, err := UnpackMintNativeCoinInput(input, true)
+	require.NoError(t, err)
+	require.Equal(t, constants.BlackholeAddr, addr)
+	require.Equal(t, common.Big2.Bytes(), amount.Bytes())
+}
+
+func testUnpackAndPacks(t *testing.T, addr common.Address, amount *big.Int) {
+	t.Helper()
+	t.Run(fmt.Sprintf("TestUnpackAndPacks, addr: %s, amount: %s", addr.String(), amount.String()), func(t *testing.T) {
+		input, err := PackMintNativeCoin(addr, amount)
+		require.NoError(t, err)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+
+		unpackedAddr, unpackedAmount, err := UnpackMintNativeCoinInput(input, true)
+		require.NoError(t, err)
+
+		require.EqualValues(t, addr, unpackedAddr)
+		require.Equal(t, amount.Bytes(), unpackedAmount.Bytes())
+	})
 }
