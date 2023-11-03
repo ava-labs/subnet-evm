@@ -32,7 +32,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: AllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotAllowFeeRecipients.Error(),
 		},
@@ -45,7 +45,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotSetRewardAddress.Error(),
 		},
@@ -58,7 +58,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedDisableRewardsGasCost,
+			SuppliedGas: DisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotDisableRewards.Error(),
 		},
@@ -71,7 +71,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -113,7 +113,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -138,7 +138,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -156,7 +156,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -173,7 +173,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -216,7 +216,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -242,7 +242,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedDisableRewardsGasCost,
+			SuppliedGas: DisableRewardsGasCost + RewardsDisabledEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -260,7 +260,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedDisableRewardsGasCost,
+			SuppliedGas: DisableRewardsGasCost + RewardsDisabledEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -303,7 +303,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedDisableRewardsGasCost,
+			SuppliedGas: DisableRewardsGasCost + RewardsDisabledEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -417,7 +417,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: AllowFeeRecipientsGasCost,
 			ReadOnly:    true,
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
@@ -430,7 +430,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    true,
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
@@ -443,7 +443,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost - 1,
+			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
@@ -456,7 +456,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost - 1,
+			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},

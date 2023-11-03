@@ -105,11 +105,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 
 	// Add a log to be handled if this action is finalized.
 	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
-		eventGasCost, err := GetFeeRecipientsAllowedEventGasCost()
-		if err != nil {
-			return nil, remainingGas, err
-		}
-		if remainingGas, err = contract.DeductGas(suppliedGas, eventGasCost); err != nil {
+		if remainingGas, err = contract.DeductGas(remainingGas, FeeRecipientsAllowedEventGasCost); err != nil {
 			return nil, 0, err
 		}
 		topics, data, err := PackFeeRecipientsAllowedEvent(caller)
@@ -216,8 +212,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		blkCtx   = accessibleState.GetBlockContext()
 	)
 
-	requiredGas := SetRewardAddressGasCost
-	if remainingGas, err = contract.DeductGas(suppliedGas, requiredGas); err != nil {
+	if remainingGas, err = contract.DeductGas(suppliedGas, SetRewardAddressGasCost); err != nil {
 		return nil, 0, err
 	}
 	if readOnly {
@@ -244,11 +239,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 
 	// Add a log to be handled if this action is finalized.
 	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
-		eventGasCost, err := GetRewardAddressChangedEventGasCost()
-		if err != nil {
-			return nil, remainingGas, err
-		}
-		if remainingGas, err = contract.DeductGas(suppliedGas, eventGasCost); err != nil {
+		if remainingGas, err = contract.DeductGas(remainingGas, RewardAddressChangedEventGasCost); err != nil {
 			return nil, 0, err
 		}
 		topics, data, err := PackRewardAddressChangedEvent(caller, rewardAddress)
@@ -302,8 +293,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 		blkCtx   = accessibleState.GetBlockContext()
 	)
 
-	requiredGas := DisableRewardsGasCost
-	if remainingGas, err = contract.DeductGas(suppliedGas, requiredGas); err != nil {
+	if remainingGas, err = contract.DeductGas(suppliedGas, DisableRewardsGasCost); err != nil {
 		return nil, 0, err
 	}
 
@@ -325,11 +315,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 
 	// Add a log to be handled if this action is finalized.
 	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
-		eventGasCost, err := GetRewardsDisabledEventGasCost()
-		if err != nil {
-			return nil, remainingGas, err
-		}
-		if remainingGas, err = contract.DeductGas(suppliedGas, eventGasCost); err != nil {
+		if remainingGas, err = contract.DeductGas(remainingGas, RewardsDisabledEventGasCost); err != nil {
 			return nil, 0, err
 		}
 
