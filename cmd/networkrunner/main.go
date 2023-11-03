@@ -275,10 +275,10 @@ func setup(ctx context.Context) {
 
 	time.Sleep(5 * time.Second)
 
-	go spamWarpMessages(ctx, chainAWSClient, fundedKey, fundedAddress, 50)
+	go spamWarpMessages(ctx, chainAWSClient, fundedKey, fundedAddress, 1000)
 
 	for i := 0; i < len(keys); i++ {
-		go spamWarpMessages(ctx, chainAWSClient, keys[i], accs[i], 50)
+		go spamWarpMessages(ctx, chainAWSClient, keys[i], accs[i], 1000)
 	}
 }
 
@@ -325,27 +325,26 @@ func listenForPendingTxs(ctx context.Context, newPendingTxs chan *common.Hash, c
 }
 
 func listenForLogs(ctx context.Context, newHeads chan *types.Header, chainAWSClient ethclient.Client) {
-	for {
-		newHead := <-newHeads
-		blockHash := newHead.Hash()
-
-		log.Info("new block", "blockHash", blockHash)
-
-		logs, err := chainAWSClient.FilterLogs(ctx, interfaces.FilterQuery{
-			BlockHash: &blockHash,
+	logCh := make(chan types.Log, 1)
+	sub, err := chainAWSClient.SubscribeFilterLogs(
+		ctx,
+		interfaces.FilterQuery{
 			Addresses: []common.Address{warp.Module.Address},
-		})
+		},
+		logCh,
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer sub.Unsubscribe()
+
+	for ethLog := range logCh {
+		blk, err := chainAWSClient.BlockByNumber(ctx, big.NewInt(int64(ethLog.BlockNumber)))
 		if err != nil {
 			panic(err)
 		}
 
-		for _, ethLog := range logs {
-			log.Info("received ethLog",
-				"address", ethLog.Address,
-				"blockNumber", ethLog.BlockNumber,
-				"txIndex", ethLog.TxIndex,
-			)
-		}
+		log.Info("new block", "blockNumber", ethLog.BlockNumber, "gasUsed", blk.GasUsed(), "gasLimit", blk.GasLimit())
 	}
 }
 
