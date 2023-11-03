@@ -21,6 +21,7 @@ const (
 
 	LogGas      uint64 = 375 // from params/protocol_params.go
 	LogTopicGas uint64 = 375 // from params/protocol_params.go
+	LogDataGas  uint64 = 8   // from params/protocol_params.go
 )
 
 var functionSignatureRegex = regexp.MustCompile(`\w+\((\w*|(\w+,)+\w+)\)`)
