@@ -21,17 +21,11 @@ import (
 )
 
 const (
-	AllowFeeRecipientsGasCost         uint64 = contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
-	UpgradedAllowFeeRecipientsGasCost uint64 = contract.LogTopicGas + contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost
-
+	AllowFeeRecipientsGasCost      uint64 = contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
 	AreFeeRecipientsAllowedGasCost uint64 = allowlist.ReadAllowListGasCost
 	CurrentRewardAddressGasCost    uint64 = allowlist.ReadAllowListGasCost
-
-	DisableRewardsGasCost         uint64 = contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
-	UpgradedDisableRewardsGasCost uint64 = contract.LogTopicGas + contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost
-
-	SetRewardAddressGasCost         uint64 = contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
-	UpgradedSetRewardAddressGasCost uint64 = 2*contract.LogTopicGas + contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost
+	DisableRewardsGasCost          uint64 = contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
+	SetRewardAddressGasCost        uint64 = contract.WriteGasCostPerSlot + allowlist.ReadAllowListGasCost // write 1 slot + read allow list
 )
 
 // Singleton StatefulPrecompiledContract and signatures.
@@ -89,11 +83,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 		blkCtx   = accessibleState.GetBlockContext()
 	)
 
-	requiredGas := AllowFeeRecipientsGasCost
-	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
-		requiredGas = UpgradedAllowFeeRecipientsGasCost
-	}
-	if remainingGas, err = contract.DeductGas(suppliedGas, requiredGas); err != nil {
+	if remainingGas, err = contract.DeductGas(suppliedGas, AllowFeeRecipientsGasCost); err != nil {
 		return nil, 0, err
 	}
 
@@ -113,12 +103,15 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 	}
 	// allow list code ends here.
 
-	// this function does not return an output, leave this one as is
-	EnableAllowFeeRecipients(stateDB)
-	packedOutput := []byte{}
-
 	// Add a log to be handled if this action is finalized.
 	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+		eventGasCost, err := GetFeeRecipientsAllowedEventGasCost()
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		if remainingGas, err = contract.DeductGas(suppliedGas, eventGasCost); err != nil {
+			return nil, 0, err
+		}
 		topics, data, err := PackFeeRecipientsAllowedEvent(caller)
 		if err != nil {
 			return nil, remainingGas, err
@@ -130,6 +123,10 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 			blkCtx.Number().Uint64(),
 		)
 	}
+
+	EnableAllowFeeRecipients(stateDB)
+	// this function does not return an output, leave this one as is
+	packedOutput := []byte{}
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
@@ -220,9 +217,6 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 	)
 
 	requiredGas := SetRewardAddressGasCost
-	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
-		requiredGas = UpgradedSetRewardAddressGasCost
-	}
 	if remainingGas, err = contract.DeductGas(suppliedGas, requiredGas); err != nil {
 		return nil, 0, err
 	}
@@ -248,14 +242,15 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 	}
 	// allow list code ends here.
 
-	if err := StoreRewardAddress(stateDB, rewardAddress); err != nil {
-		return nil, remainingGas, err
-	}
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
-
 	// Add a log to be handled if this action is finalized.
 	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+		eventGasCost, err := GetRewardAddressChangedEventGasCost()
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		if remainingGas, err = contract.DeductGas(suppliedGas, eventGasCost); err != nil {
+			return nil, 0, err
+		}
 		topics, data, err := PackRewardAddressChangedEvent(caller, rewardAddress)
 		if err != nil {
 			return nil, remainingGas, err
@@ -267,6 +262,12 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 			blkCtx.Number().Uint64(),
 		)
 	}
+
+	if err := StoreRewardAddress(stateDB, rewardAddress); err != nil {
+		return nil, remainingGas, err
+	}
+	// this function does not return an output, leave this one as is
+	packedOutput := []byte{}
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil
@@ -302,9 +303,6 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 	)
 
 	requiredGas := DisableRewardsGasCost
-	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
-		requiredGas = UpgradedDisableRewardsGasCost
-	}
 	if remainingGas, err = contract.DeductGas(suppliedGas, requiredGas); err != nil {
 		return nil, 0, err
 	}
@@ -325,12 +323,16 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 	}
 	// allow list code ends here.
 
-	DisableFeeRewards(stateDB)
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
-
 	// Add a log to be handled if this action is finalized.
 	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+		eventGasCost, err := GetRewardsDisabledEventGasCost()
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		if remainingGas, err = contract.DeductGas(suppliedGas, eventGasCost); err != nil {
+			return nil, 0, err
+		}
+
 		topics, data, err := PackRewardsDisabledEvent(caller)
 		if err != nil {
 			return nil, remainingGas, err
@@ -342,6 +344,10 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 			blkCtx.Number().Uint64(),
 		)
 	}
+
+	DisableFeeRewards(stateDB)
+	// this function does not return an output, leave this one as is
+	packedOutput := []byte{}
 
 	// Return the packed output and the remaining gas
 	return packedOutput, remainingGas, nil

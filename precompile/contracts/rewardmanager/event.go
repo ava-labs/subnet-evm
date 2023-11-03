@@ -4,7 +4,21 @@
 
 package rewardmanager
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ethereum/go-ethereum/common"
+)
+
+// GetFeeRecipientsAllowedEventGasCost returns the gas cost of the event.
+// The gas cost of an event is the base gas cost + the gas cost of the topics + the gas cost of the non-indexed data.
+// The base gas cost and the gas cost of per topics are fixed and can be found in the contract package.
+// The gas cost of the non-indexed data depends on the data type and the data size.
+func GetFeeRecipientsAllowedEventGasCost() (uint64, error) {
+	gas := contract.LogGas // base gas cost
+	// Add topics gas cost (1 topics)
+	gas += contract.LogTopicGas * 1
+	return gas, nil
+}
 
 // PackFeeRecipientsAllowedEvent packs the event into the appropriate arguments for FeeRecipientsAllowed.
 // It returns topic hashes and the encoded non-indexed data.
@@ -12,10 +26,32 @@ func PackFeeRecipientsAllowedEvent(sender common.Address) ([]common.Hash, []byte
 	return RewardManagerABI.PackEvent("FeeRecipientsAllowed", sender)
 }
 
+// GetRewardAddressChangedEventGasCost returns the gas cost of the event.
+// The gas cost of an event is the base gas cost + the gas cost of the topics + the gas cost of the non-indexed data.
+// The base gas cost and the gas cost of per topics are fixed and can be found in the contract package.
+// The gas cost of the non-indexed data depends on the data type and the data size.
+func GetRewardAddressChangedEventGasCost() (uint64, error) {
+	gas := contract.LogGas // base gas cost
+	// Add topics gas cost (2 topics)
+	gas += contract.LogTopicGas * 2
+	return gas, nil
+}
+
 // PackRewardAddressChangedEvent packs the event into the appropriate arguments for RewardAddressChanged.
 // It returns topic hashes and the encoded non-indexed data.
 func PackRewardAddressChangedEvent(sender common.Address, rewardAddress common.Address) ([]common.Hash, []byte, error) {
 	return RewardManagerABI.PackEvent("RewardAddressChanged", sender, rewardAddress)
+}
+
+// GetRewardsDisabledEventGasCost returns the gas cost of the event.
+// The gas cost of an event is the base gas cost + the gas cost of the topics + the gas cost of the non-indexed data.
+// The base gas cost and the gas cost of per topics are fixed and can be found in the contract package.
+// The gas cost of the non-indexed data depends on the data type and the data size.
+func GetRewardsDisabledEventGasCost() (uint64, error) {
+	gas := contract.LogGas // base gas cost
+	// Add topics gas cost (1 topics)
+	gas += contract.LogTopicGas * 1
+	return gas, nil
 }
 
 // PackRewardsDisabledEvent packs the event into the appropriate arguments for RewardsDisabled.
