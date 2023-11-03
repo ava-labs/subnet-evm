@@ -93,7 +93,7 @@ accessibleState.GetStateDB().AddLog(
 				// TODO: calculate gas cost for packing the data.{{decapitalise .Name}} according to the type.
 				// Keep in mind that the data here will be encoded using the ABI encoding scheme.
 				// So the computation cost might change according to the data type + data size and should be charged accordingly.
-				// i.e gas += LogDataGas * uint64(len({{decapitalise .Name}}))
+				// i.e gas += LogDataGas * uint64(len(data.{{decapitalise .Name}}))
 				gas += contract.LogDataGas // * ...
 				// CUSTOM CODE ENDS HERE
 			{{- end}}
