@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
@@ -126,6 +127,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.PredicateC
 		quorumNumerator = c.QuorumNumerator
 	}
 
+	startTime := time.Now()
 	log.Debug("verifying warp message", "warpMsg", warpMsg, "quorumNum", quorumNumerator, "quorumDenom", params.WarpQuorumDenominator)
 	if err := warpMsg.Signature.Verify(
 		context.Background(),
@@ -140,6 +142,7 @@ func (c *Config) verifyWarpMessage(predicateContext *precompileconfig.PredicateC
 		return false
 	}
 
+	log.Debug("verifying warp message took", time.Since(startTime).Milliseconds(), "milliseconds")
 	return true
 }
 

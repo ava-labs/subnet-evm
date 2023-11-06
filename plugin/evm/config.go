@@ -41,7 +41,7 @@ const (
 	defaultPriorityRegossipMaxTxs                     = 32
 	defaultPriorityRegossipTxsPerAddress              = 16
 	defaultOfflinePruningBloomFilterSize       uint64 = 512 // Default size (MB) for the offline pruner to use
-	defaultLogLevel                                   = "info"
+	defaultLogLevel                                   = "debug"
 	defaultLogJSONFormat                              = false
 	defaultMaxOutboundActiveRequests                  = 16
 	defaultMaxOutboundActiveCrossChainRequests        = 64

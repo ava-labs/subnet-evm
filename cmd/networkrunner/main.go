@@ -339,12 +339,10 @@ func listenForLogs(ctx context.Context, newHeads chan *types.Header, chainAWSCli
 	defer sub.Unsubscribe()
 
 	for ethLog := range logCh {
-		blk, err := chainAWSClient.BlockByNumber(ctx, big.NewInt(int64(ethLog.BlockNumber)))
+		_, err := chainAWSClient.BlockByNumber(ctx, big.NewInt(int64(ethLog.BlockNumber)))
 		if err != nil {
 			panic(err)
 		}
-
-		log.Info("new block", "blockNumber", ethLog.BlockNumber, "gasUsed", blk.GasUsed(), "gasLimit", blk.GasLimit())
 	}
 }
 
