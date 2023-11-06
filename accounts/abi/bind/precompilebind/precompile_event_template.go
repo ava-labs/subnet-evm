@@ -79,14 +79,13 @@ accessibleState.GetStateDB().AddLog(
 	// The gas cost of an event is the base gas cost + the gas cost of the topics + the gas cost of the non-indexed data.
 	// The base gas cost and the gas cost of per topics are fixed and can be found in the contract package.
 	// The gas cost of the non-indexed data depends on the data type and the data size.
-	func Get{{.Normalized.Name}}EventGasCost({{if $createdDataStruct}} data {{.Normalized.Name}}EventData{{end}}) (uint64, error) {
+	func Get{{.Normalized.Name}}EventGasCost({{if $createdDataStruct}} data {{.Normalized.Name}}EventData{{end}}) uint64 {
 		gas := contract.LogGas // base gas cost
 		{{if $topicCount | lt 0}}
 		// Add topics gas cost ({{$topicCount}} topics)
 		gas += contract.LogTopicGas * {{$topicCount}}
 		{{end}}
 
-		{{$createdDataStruct = true}}
 		{{range .Normalized.Inputs}}
 			{{- if not .Indexed}}
 				// CUSTOM CODE STARTS HERE
@@ -101,7 +100,7 @@ accessibleState.GetStateDB().AddLog(
 
 		// CUSTOM CODE STARTS HERE
 		// TODO: do any additional gas cost calculation here (only if needed)
-		return gas, nil
+		return gas
 	}
 
 	// Pack{{.Normalized.Name}}Event packs the event into the appropriate arguments for {{.Original.Name}}.
