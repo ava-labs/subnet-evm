@@ -954,12 +954,14 @@ func TestTraceBlockPrecompileActivation(t *testing.T) {
 	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
+	txHashes := make([]common.Hash, genBlocks)
 	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
 		//    fee:   0 wei
 		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
 		b.AddTx(tx)
+		txHashes[i] = tx.Hash()
 	})
 	defer backend.chain.Stop()
 	api := NewAPI(backend)
@@ -973,32 +975,32 @@ func TestTraceBlockPrecompileActivation(t *testing.T) {
 		// Trace head block
 		{
 			blockNumber: rpc.BlockNumber(genBlocks),
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHashes[genBlocks-1]),
 		},
 		// Trace block before activation
 		{
 			blockNumber: rpc.BlockNumber(activateAllowlistBlock - 1),
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHashes[activateAllowlistBlock-2]),
 		},
 		// Trace block activation
 		{
 			blockNumber: rpc.BlockNumber(activateAllowlistBlock),
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHashes[activateAllowlistBlock-1]),
 		},
 		// Trace block after activation
 		{
 			blockNumber: rpc.BlockNumber(activateAllowlistBlock + 1),
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHashes[activateAllowlistBlock]),
 		},
 		// Trace block deactivation
 		{
 			blockNumber: rpc.BlockNumber(deactivateAllowlistBlock),
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHashes[deactivateAllowlistBlock-1]),
 		},
 		// Trace block after deactivation
 		{
 			blockNumber: rpc.BlockNumber(deactivateAllowlistBlock + 1),
-			want:        `[{"result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`,
+			want:        fmt.Sprintf(`[{"txHash":"%v","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}]`, txHashes[deactivateAllowlistBlock]),
 		},
 	}
 	for i, tc := range testSuite {
