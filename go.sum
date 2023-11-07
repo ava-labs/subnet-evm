@@ -65,8 +65,12 @@ github.com/ava-labs/avalanche-network-runner v1.7.3-0.20231026153158-2931f8a448d
 github.com/ava-labs/avalanche-network-runner v1.7.3-0.20231026153158-2931f8a448d9/go.mod h1:M9FC+xU4hQU3Botux8V8j574YETeX6tMvxiOmqLfl5c=
 github.com/ava-labs/avalanchego v1.10.14 h1:1jTMrikYD49Pb64ZLUi2z2BnNGLzIGip4fValq6/YfE=
 github.com/ava-labs/avalanchego v1.10.14/go.mod h1:En/ti2xoxQqJuN6t9ne2ogckU9leuZzTjl5mbEsfjTc=
+github.com/ava-labs/avalanchego v1.10.15 h1:GQ1bkwgKnv5D/yUwXUjWPFqx1cWrf35WOaHSykHUXyE=
+github.com/ava-labs/avalanchego v1.10.15/go.mod h1:fHTzxKZOMdM0n4EEXDDR0V3Ieb/Jnz7PM8zAsJRsh2U=
 github.com/ava-labs/coreth v0.12.7-rc.1 h1:fvjow2Jqkq1RNtW4v2Kx0DdTVp+3+fCY421TxpDDRfM=
 github.com/ava-labs/coreth v0.12.7-rc.1/go.mod h1:sNbwitXv4AhLvWpSqy6V8yzkhGFeWBQFD31/xiRDJ5M=
+github.com/ava-labs/coreth v0.12.8-rc.1 h1:tvJcxQTQzxIQqx8TnrxdyMhZYbdsMaiy6AEiOyjvaa4=
+github.com/ava-labs/coreth v0.12.8-rc.1/go.mod h1:GBH5SxHZdScSp95IijDs9+Gxw/QDIWvfoLKiJMNYLsE=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
