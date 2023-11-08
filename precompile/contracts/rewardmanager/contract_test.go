@@ -32,7 +32,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: PostDUpgradeAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotAllowFeeRecipients.Error(),
 		},
@@ -45,7 +45,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: PostDUpgradeSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotSetRewardAddress.Error(),
 		},
@@ -58,7 +58,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedDisableRewardsGasCost,
+			SuppliedGas: PostDUpgradeDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotDisableRewards.Error(),
 		},
@@ -71,7 +71,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: PostDUpgradeAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -79,7 +79,7 @@ var (
 				require.True(t, isFeeRecipients)
 			},
 		},
-		"no log set fee recipients if D fork is not active": {
+		"no log set fee recipients if DUpgrade is not active": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -95,7 +95,7 @@ var (
 				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
 				return mockChainConfig
 			},
-			SuppliedGas: AllowFeeRecipientsGasCost,
+			SuppliedGas: PreDUpgradeAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -104,7 +104,7 @@ var (
 				require.Zero(t, allLogs)
 			},
 		},
-		"log set fee recipients if D fork is active": {
+		"log set fee recipients if DUpgrade is active": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -113,7 +113,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: PostDUpgradeAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -138,7 +138,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: PostDUpgradeSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -156,7 +156,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: PostDUpgradeAllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -173,7 +173,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: PostDUpgradeSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -182,7 +182,7 @@ var (
 				require.False(t, isFeeRecipients)
 			},
 		},
-		"no log change reward address if D fork is not active": {
+		"no log change reward address if DUpgrade is not active": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -198,7 +198,7 @@ var (
 				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
 				return mockChainConfig
 			},
-			SuppliedGas: SetRewardAddressGasCost,
+			SuppliedGas: PreDUpgradeSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -207,7 +207,7 @@ var (
 				require.Zero(t, allLogs, 0)
 			},
 		},
-		"log change reward address if D fork is active": {
+		"log change reward address if DUpgrade is active": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -216,7 +216,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: PostDUpgradeSetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -242,7 +242,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedDisableRewardsGasCost,
+			SuppliedGas: PostDUpgradeDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -260,7 +260,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedDisableRewardsGasCost,
+			SuppliedGas: PostDUpgradeDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -269,7 +269,7 @@ var (
 				require.Equal(t, constants.BlackholeAddr, address)
 			},
 		},
-		"no log disable rewards if D fork is not active": {
+		"no log disable rewards if DUpgrade is not active": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -285,7 +285,7 @@ var (
 				mockChainConfig.EXPECT().IsDUpgrade(gomock.Any()).AnyTimes().Return(false)
 				return mockChainConfig
 			},
-			SuppliedGas: DisableRewardsGasCost,
+			SuppliedGas: PreDUpgradeDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -294,7 +294,7 @@ var (
 				require.Zero(t, allLogs)
 			},
 		},
-		"log disable rewards if D fork is active": {
+		"log disable rewards if DUpgrade is active": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -303,7 +303,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedDisableRewardsGasCost,
+			SuppliedGas: PostDUpgradeDisableRewardsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
@@ -417,7 +417,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost,
+			SuppliedGas: PostDUpgradeAllowFeeRecipientsGasCost,
 			ReadOnly:    true,
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
@@ -430,7 +430,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost,
+			SuppliedGas: PostDUpgradeSetRewardAddressGasCost,
 			ReadOnly:    true,
 			ExpectedErr: vmerrs.ErrWriteProtection.Error(),
 		},
@@ -443,7 +443,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedSetRewardAddressGasCost - 1,
+			SuppliedGas: PostDUpgradeSetRewardAddressGasCost - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
@@ -456,7 +456,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: UpgradedAllowFeeRecipientsGasCost - 1,
+			SuppliedGas: PostDUpgradeAllowFeeRecipientsGasCost - 1,
 			ReadOnly:    false,
 			ExpectedErr: vmerrs.ErrOutOfGas.Error(),
 		},
