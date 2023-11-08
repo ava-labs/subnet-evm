@@ -2821,7 +2821,7 @@ func TestRewardManagerPrecompileSetRewardAddress(t *testing.T) {
 	data, err := rewardmanager.PackSetRewardAddress(testAddr)
 	require.NoError(t, err)
 
-	gas := 21000 + 240 + rewardmanager.PreDUpgradeSetRewardAddressGasCost // 21000 for tx, 240 for tx data
+	gas := 21000 + 240 + rewardmanager.SetRewardAddressGasCost // 21000 for tx, 240 for tx data
 
 	tx := types.NewTransaction(uint64(0), rewardmanager.ContractAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 
@@ -2959,7 +2959,7 @@ func TestRewardManagerPrecompileAllowFeeRecipients(t *testing.T) {
 	data, err := rewardmanager.PackAllowFeeRecipients()
 	require.NoError(t, err)
 
-	gas := 21000 + 240 + rewardmanager.PreDUpgradeAllowFeeRecipientsGasCost // 21000 for tx, 240 for tx data
+	gas := 21000 + 240 + rewardmanager.AllowFeeRecipientsGasCost // 21000 for tx, 240 for tx data
 
 	tx := types.NewTransaction(uint64(0), rewardmanager.ContractAddress, big.NewInt(1), gas, big.NewInt(testMinGasPrice), data)
 

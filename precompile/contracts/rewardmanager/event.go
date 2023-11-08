@@ -4,7 +4,16 @@
 
 package rewardmanager
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ethereum/go-ethereum/common"
+)
+
+const (
+	FeeRecipientsAllowedEventGasCost = contract.LogGas + contract.LogTopicGas*1
+	RewardAddressChangedEventGasCost = contract.LogGas + contract.LogTopicGas*2
+	RewardsDisabledEventGasCost      = contract.LogGas + contract.LogTopicGas*1
+)
 
 // PackFeeRecipientsAllowedEvent packs the event into the appropriate arguments for FeeRecipientsAllowed.
 // It returns topic hashes and the encoded non-indexed data.
