@@ -192,9 +192,7 @@ func (self *DummyEngine) verifyHeaderGasFields(config *params.ChainConfig, heade
 
 // modified from consensus.go
 func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header *types.Header, parent *types.Header, uncle bool) error {
-	var (
-		config = chain.Config()
-	)
+	config := chain.Config()
 	// Ensure that we do not verify an uncle
 	if uncle {
 		return errUnclesUnsupported
@@ -205,9 +203,8 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 			return fmt.Errorf("expected extra-data field length >= %d, found %d", params.DynamicFeeExtraDataSize, len(header.Extra))
 		}
 	case config.IsSubnetEVM(header.Time):
-		expectedExtraDataSize := params.DynamicFeeExtraDataSize
-		if len(header.Extra) != expectedExtraDataSize {
-			return fmt.Errorf("expected extra-data field to be: %d, but found %d", expectedExtraDataSize, len(header.Extra))
+		if len(header.Extra) != params.DynamicFeeExtraDataSize {
+			return fmt.Errorf("expected extra-data field to be: %d, but found %d", params.DynamicFeeExtraDataSize, len(header.Extra))
 		}
 	default:
 		if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
@@ -235,6 +232,14 @@ func (self *DummyEngine) verifyHeader(chain consensus.ChainHeaderReader, header 
 	// Verify that the block number is parent's +1
 	if diff := new(big.Int).Sub(header.Number, parent.Number); diff.Cmp(big.NewInt(1)) != 0 {
 		return consensus.ErrInvalidNumber
+	}
+	// Verify the existence / non-existence of excessDataGas
+	cancun := chain.Config().IsCancun(header.Time)
+	if cancun && header.ExcessDataGas == nil {
+		return errors.New("missing excessDataGas")
+	}
+	if !cancun && header.ExcessDataGas != nil {
+		return fmt.Errorf("invalid excessDataGas: have %d, expected nil", header.ExcessDataGas)
 	}
 	return nil
 }
@@ -403,7 +408,7 @@ func (self *DummyEngine) FinalizeAndAssemble(chain consensus.ChainHeaderReader, 
 
 	// Header seems complete, assemble into a block and return
 	return types.NewBlock(
-		header, txs, uncles, receipts, new(trie.Trie),
+		header, txs, uncles, receipts, trie.NewStackTrie(nil),
 	), nil
 }
 

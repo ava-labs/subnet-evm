@@ -514,7 +514,7 @@ func TestPrecompileBind(t *testing.T) {
 	// Create a temporary workspace for the test suite
 	ws := t.TempDir()
 
-	pkg := filepath.Join(ws, "bindtest")
+	pkg := filepath.Join(ws, "precompilebindtest")
 	if err := os.MkdirAll(pkg, 0o700); err != nil {
 		t.Fatalf("failed to create package: %v", err)
 	}
@@ -581,7 +581,7 @@ func TestPrecompileBind(t *testing.T) {
 		})
 	}
 
-	moder := exec.Command(gocmd, "mod", "init", "bindtest")
+	moder := exec.Command(gocmd, "mod", "init", "precompilebindtest")
 	moder.Dir = pkg
 	if out, err := moder.CombinedOutput(); err != nil {
 		t.Fatalf("failed to convert binding test to modules: %v\n%s", err, out)
@@ -592,7 +592,7 @@ func TestPrecompileBind(t *testing.T) {
 	if out, err := replacer.CombinedOutput(); err != nil {
 		t.Fatalf("failed to replace binding test dependency to current source tree: %v\n%s", err, out)
 	}
-	tidier := exec.Command(gocmd, "mod", "tidy", "-compat=1.19")
+	tidier := exec.Command(gocmd, "mod", "tidy", "-compat=1.20")
 	tidier.Dir = pkg
 	if out, err := tidier.CombinedOutput(); err != nil {
 		t.Fatalf("failed to tidy Go module file: %v\n%s", err, out)

@@ -21,15 +21,15 @@ import (
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/predicate"
 	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
-	warpPayload "github.com/ava-labs/subnet-evm/warp/payload"
 	"github.com/ava-labs/subnet-evm/x/warp"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -62,13 +62,20 @@ func TestSendWarpMessage(t *testing.T) {
 	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
 	defer logsSub.Unsubscribe()
 
-	payload := utils.RandomBytes(100)
+	payloadData := utils.RandomBytes(100)
 
-	warpSendMessageInput, err := warp.PackSendWarpMessage(warp.SendWarpMessageInput{
-		DestinationChainID: common.Hash(vm.ctx.CChainID),
-		DestinationAddress: testEthAddrs[1],
-		Payload:            payload,
-	})
+	warpSendMessageInput, err := warp.PackSendWarpMessage(payloadData)
+	require.NoError(err)
+	addressedPayload, err := payload.NewAddressedCall(
+		testEthAddrs[0].Bytes(),
+		payloadData,
+	)
+	require.NoError(err)
+	expectedUnsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+		vm.ctx.NetworkID,
+		vm.ctx.ChainID,
+		addressedPayload.Bytes(),
+	)
 	require.NoError(err)
 
 	// Submit a transaction to trigger sending a warp message
@@ -90,30 +97,33 @@ func TestSendWarpMessage(t *testing.T) {
 	// Verify that the constructed block contains the expected log with an unsigned warp message in the log data
 	ethBlock1 := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	require.Len(ethBlock1.Transactions(), 1)
-	receipts := rawdb.ReadReceipts(vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), vm.chainConfig)
+	receipts := rawdb.ReadReceipts(vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), ethBlock1.Time(), vm.chainConfig)
 	require.Len(receipts, 1)
 
 	require.Len(receipts[0].Logs, 1)
 	expectedTopics := []common.Hash{
 		warp.WarpABI.Events["SendWarpMessage"].ID,
-		common.Hash(vm.ctx.CChainID),
-		testEthAddrs[1].Hash(),
 		testEthAddrs[0].Hash(),
+		common.Hash(expectedUnsignedMessage.ID()),
 	}
 	require.Equal(expectedTopics, receipts[0].Logs[0].Topics)
 	logData := receipts[0].Logs[0].Data
-	unsignedMessage, err := avalancheWarp.ParseUnsignedMessage(logData)
+	unsignedMessage, err := warp.UnpackSendWarpEventDataToMessage(logData)
 	require.NoError(err)
 	unsignedMessageID := unsignedMessage.ID()
 
 	// Verify the signature cannot be fetched before the block is accepted
-	_, err = vm.warpBackend.GetSignature(unsignedMessageID)
+	_, err = vm.warpBackend.GetMessageSignature(unsignedMessageID)
+	require.Error(err)
+	_, err = vm.warpBackend.GetBlockSignature(blk.ID())
 	require.Error(err)
 
 	require.NoError(vm.SetPreference(context.Background(), blk.ID()))
 	require.NoError(blk.Accept(context.Background()))
 	vm.blockChain.DrainAcceptorQueue()
-	rawSignatureBytes, err := vm.warpBackend.GetSignature(unsignedMessageID)
+
+	// Verify the message signature after accepting the block.
+	rawSignatureBytes, err := vm.warpBackend.GetMessageSignature(unsignedMessageID)
 	require.NoError(err)
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(err)
@@ -126,7 +136,21 @@ func TestSendWarpMessage(t *testing.T) {
 		require.Fail("Failed to read accepted logs from subscription")
 	}
 
-	// Verify the produced signature is valid
+	// Verify the produced message signature is valid
+	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
+
+	// Verify the blockID will now be signed by the backend and produces a valid signature.
+	rawSignatureBytes, err = vm.warpBackend.GetBlockSignature(blk.ID())
+	require.NoError(err)
+	blsSignature, err = bls.SignatureFromBytes(rawSignatureBytes[:])
+	require.NoError(err)
+
+	blockHashPayload, err := payload.NewHash(blk.ID())
+	require.NoError(err)
+	unsignedMessage, err = avalancheWarp.NewUnsignedMessage(vm.ctx.NetworkID, vm.ctx.ChainID, blockHashPayload.Bytes())
+	require.NoError(err)
+
+	// Verify the produced message signature is valid
 	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
 }
 
@@ -134,14 +158,10 @@ func TestValidateWarpMessage(t *testing.T) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
-	destinationChainID := ids.GenerateTestID()
-	destinationAddress := common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87")
-	payload := []byte{1, 2, 3}
-	addressedPayload, err := warpPayload.NewAddressedPayload(
-		sourceAddress,
-		common.Hash(destinationChainID),
-		destinationAddress,
-		payload,
+	payloadData := []byte{1, 2, 3}
+	addressedPayload, err := payload.NewAddressedCall(
+		sourceAddress.Bytes(),
+		payloadData,
 	)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(testNetworkID, sourceChainID, addressedPayload.Bytes())
@@ -153,9 +173,7 @@ func TestValidateWarpMessage(t *testing.T) {
 		uint32(0),
 		sourceChainID,
 		sourceAddress,
-		destinationChainID,
-		destinationAddress,
-		payload,
+		payloadData,
 	)
 	require.NoError(err)
 
@@ -166,14 +184,10 @@ func TestValidateInvalidWarpMessage(t *testing.T) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	sourceAddress := common.HexToAddress("0x376c47978271565f56DEB45495afa69E59c16Ab2")
-	destinationChainID := ids.GenerateTestID()
-	destinationAddress := common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87")
-	payload := []byte{1, 2, 3}
-	addressedPayload, err := warpPayload.NewAddressedPayload(
-		sourceAddress,
-		common.Hash(destinationChainID),
-		destinationAddress,
-		payload,
+	payloadData := []byte{1, 2, 3}
+	addressedPayload, err := payload.NewAddressedCall(
+		sourceAddress.Bytes(),
+		payloadData,
 	)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(testNetworkID, sourceChainID, addressedPayload.Bytes())
@@ -193,7 +207,7 @@ func TestValidateWarpBlockHash(t *testing.T) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	blockHash := ids.GenerateTestID()
-	blockHashPayload, err := warpPayload.NewBlockHashPayload(common.Hash(blockHash))
+	blockHashPayload, err := payload.NewHash(blockHash)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(testNetworkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(err)
@@ -214,7 +228,7 @@ func TestValidateInvalidWarpBlockHash(t *testing.T) {
 	require := require.New(t)
 	sourceChainID := ids.GenerateTestID()
 	blockHash := ids.GenerateTestID()
-	blockHashPayload, err := warpPayload.NewBlockHashPayload(common.Hash(blockHash))
+	blockHashPayload, err := payload.NewHash(blockHash)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(testNetworkID, sourceChainID, blockHashPayload.Bytes())
 	require.NoError(err)
@@ -316,7 +330,7 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 	exampleWarpAddress := crypto.CreateAddress(testEthAddrs[0], 0)
 
 	tx, err := types.SignTx(
-		predicateutils.NewPredicateTx(
+		predicate.NewPredicateTx(
 			vm.chainConfig.ChainID,
 			1,
 			&exampleWarpAddress,
@@ -405,13 +419,11 @@ func TestReceiveWarpMessage(t *testing.T) {
 	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
 	defer logsSub.Unsubscribe()
 
-	payload := utils.RandomBytes(100)
+	payloadData := utils.RandomBytes(100)
 
-	addressedPayload, err := warpPayload.NewAddressedPayload(
-		testEthAddrs[0],
-		common.Hash(vm.ctx.CChainID),
-		testEthAddrs[1],
-		payload,
+	addressedPayload, err := payload.NewAddressedCall(
+		testEthAddrs[0].Bytes(),
+		payloadData,
 	)
 	require.NoError(err)
 	unsignedMessage, err := avalancheWarp.NewUnsignedMessage(
@@ -482,7 +494,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	getWarpMsgInput, err := warp.PackGetVerifiedWarpMessage(0)
 	require.NoError(err)
 	getVerifiedWarpMessageTx, err := types.SignTx(
-		predicateutils.NewPredicateTx(
+		predicate.NewPredicateTx(
 			vm.chainConfig.ChainID,
 			0,
 			&warp.Module.Address,
@@ -549,9 +561,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 		Message: warp.WarpMessage{
 			SourceChainID:       common.Hash(vm.ctx.ChainID),
 			OriginSenderAddress: testEthAddrs[0],
-			DestinationChainID:  common.Hash(vm.ctx.CChainID),
-			DestinationAddress:  testEthAddrs[1],
-			Payload:             payload,
+			Payload:             payloadData,
 		},
 		Valid: true,
 	})

@@ -46,7 +46,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/precompile/results"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
@@ -76,7 +76,7 @@ type environment struct {
 	// The results are accumulated as transactions are executed by the miner and set on the BlockContext.
 	// If a transaction is dropped, its results must explicitly be removed from predicateResults in the same
 	// way that the gas pool and state is reset.
-	predicateResults *results.PredicateResults
+	predicateResults *predicate.Results
 
 	start time.Time // Time that block building began
 }
@@ -240,7 +240,7 @@ func (w *worker) createCurrentEnvironment(predicateContext *precompileconfig.Pre
 		gasPool:          new(core.GasPool).AddGas(header.GasLimit),
 		rules:            w.chainConfig.AvalancheRules(header.Number, header.Time),
 		predicateContext: predicateContext,
-		predicateResults: results.NewPredicateResults(),
+		predicateResults: predicate.NewResults(),
 		start:            tstart,
 	}, nil
 }
@@ -258,7 +258,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 			log.Debug("Transaction predicate failed verification in miner", "tx", tx.Hash(), "err", err)
 			return nil, err
 		}
-		env.predicateResults.SetTxPredicateResults(tx.Hash(), results)
+		env.predicateResults.SetTxResults(tx.Hash(), results)
 
 		blockContext = core.NewEVMBlockContextWithPredicateResults(env.header, w.chain, &coinbase, env.predicateResults)
 	} else {
@@ -269,7 +269,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 	if err != nil {
 		env.state.RevertToSnapshot(snap)
 		env.gasPool.SetGas(gp)
-		env.predicateResults.DeleteTxPredicateResults(tx.Hash())
+		env.predicateResults.DeleteTxResults(tx.Hash())
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)
@@ -316,35 +316,20 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 
 		_, err := w.commitTransaction(env, tx, coinbase)
 		switch {
-		case errors.Is(err, core.ErrGasLimitReached):
-			// Pop the current out-of-gas transaction without shifting in the next from the account
-			log.Trace("Gas limit exceeded for current block", "sender", from)
-			txs.Pop()
-
 		case errors.Is(err, core.ErrNonceTooLow):
 			// New head notification data race between the transaction pool and miner, shift
 			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())
 			txs.Shift()
 
-		case errors.Is(err, core.ErrNonceTooHigh):
-			// Reorg notification data race between the transaction pool and miner, skip account =
-			log.Trace("Skipping account with high nonce", "sender", from, "nonce", tx.Nonce())
-			txs.Pop()
-
 		case errors.Is(err, nil):
 			env.tcount++
 			txs.Shift()
 
-		case errors.Is(err, types.ErrTxTypeNotSupported):
-			// Pop the unsupported transaction without shifting in the next from the account
-			log.Trace("Skipping unsupported transaction type", "sender", from, "type", tx.Type())
-			txs.Pop()
-
 		default:
-			// Strange error, discard the transaction and get the next in line (note, the
-			// nonce-too-high clause will prevent us from executing in vain).
+			// Transaction is regarded as invalid, drop all consecutive transactions from
+			// the same sender because of `nonce-too-high` clause.
 			log.Debug("Transaction failed, account skipped", "hash", tx.Hash(), "err", err)
-			txs.Shift()
+			txs.Pop()
 		}
 	}
 }
@@ -352,8 +337,6 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
 func (w *worker) commit(env *environment) (*types.Block, error) {
-	// Deep copy receipts here to avoid interaction between different tasks.
-	receipts := copyReceipts(env.receipts)
 	if env.rules.IsDUpgrade {
 		predicateResultsBytes, err := env.predicateResults.Bytes()
 		if err != nil {
@@ -361,6 +344,8 @@ func (w *worker) commit(env *environment) (*types.Block, error) {
 		}
 		env.header.Extra = append(env.header.Extra, predicateResultsBytes...)
 	}
+	// Deep copy receipts here to avoid interaction between different tasks.
+	receipts := copyReceipts(env.receipts)
 	block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.parent, env.state, env.txs, nil, receipts)
 	if err != nil {
 		return nil, err

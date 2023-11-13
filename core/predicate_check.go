@@ -4,15 +4,18 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	predicateutils "github.com/ava-labs/subnet-evm/utils/predicate"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
+
+var ErrMissingPredicateContext = errors.New("missing predicate context")
 
 // CheckPredicates verifies the predicates of [tx] and returns the result. Returning an error invalidates the block.
 func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) (map[common.Address][]byte, error) {
@@ -28,25 +31,28 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 
 	predicateResults := make(map[common.Address][]byte)
 	// Short circuit early if there are no precompile predicates to verify
-	if len(rules.Predicates) == 0 {
+	if len(rules.Predicaters) == 0 {
 		return predicateResults, nil
 	}
-	predicateArguments := make(map[common.Address][][]byte)
-	for _, accessTuple := range tx.AccessList() {
-		address := accessTuple.Address
-		_, ok := rules.Predicates[address]
-		if !ok {
-			continue
-		}
 
-		predicateArguments[address] = append(predicateArguments[address], predicateutils.HashSliceToBytes(accessTuple.StorageKeys))
+	// Prepare the predicate storage slots from the transaction's access list
+	predicateArguments := predicate.PreparePredicateStorageSlots(rules, tx.AccessList())
+
+	// If there are no predicates to verify, return early and skip requiring the proposervm block
+	// context to be populated.
+	if len(predicateArguments) == 0 {
+		return predicateResults, nil
+	}
+
+	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
+		return nil, ErrMissingPredicateContext
 	}
 
 	for address, predicates := range predicateArguments {
 		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
 		// there's no need to check if the predicate exists here.
-		predicate := rules.Predicates[address]
-		res := predicate.VerifyPredicate(predicateContext, predicates)
+		predicaterContract := rules.Predicaters[address]
+		res := predicaterContract.VerifyPredicate(predicateContext, predicates)
 		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res)
 		predicateResults[address] = res
 	}

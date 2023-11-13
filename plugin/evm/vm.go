@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,8 @@ import (
 	"time"
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
+	"github.com/ava-labs/avalanchego/network/p2p"
+	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -39,7 +42,6 @@ import (
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/warp"
-	"github.com/ava-labs/subnet-evm/warp/aggregator"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 
 	// Force-load tracer engine to trigger registration
@@ -62,7 +64,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/avalanchego/database/manager"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
@@ -70,7 +71,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	cjson "github.com/ava-labs/avalanchego/utils/json"
 	"github.com/ava-labs/avalanchego/utils/perms"
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
@@ -101,6 +101,30 @@ const (
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
 	chainStateMetricsPrefix = "chain_state"
+
+	// p2p app protocols
+	txGossipProtocol = 0x0
+
+	// gossip constants
+	txGossipBloomMaxItems          = 8 * 1024
+	txGossipBloomFalsePositiveRate = 0.01
+	txGossipMaxFalsePositiveRate   = 0.05
+	txGossipTargetResponseSize     = 20 * units.KiB
+	maxValidatorSetStaleness       = time.Minute
+	throttlingPeriod               = 10 * time.Second
+	throttlingLimit                = 2
+	gossipFrequency                = 10 * time.Second
+)
+
+var (
+	txGossipConfig = gossip.Config{
+		Namespace: "eth_tx_gossip",
+		PollSize:  10,
+	}
+	txGossipHandlerConfig = gossip.HandlerConfig{
+		Namespace:          "eth_tx_gossip",
+		TargetResponseSize: txGossipTargetResponseSize,
+	}
 )
 
 // Define the API endpoints for the VM
@@ -152,6 +176,8 @@ var legacyApiNames = map[string]string{
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
+	// [cancel] may be nil until [snow.NormalOp] starts
+	cancel context.CancelFunc
 	// *chain.State helps to implement the VM interface by wrapping blocks
 	// with an efficient caching layer.
 	*chain.State
@@ -206,8 +232,12 @@ type VM struct {
 	client       peer.NetworkClient
 	networkCodec codec.Manager
 
+	validators *p2p.Validators
+	router     *p2p.Router
+
 	// Metrics
 	multiGatherer avalanchegoMetrics.MultiGatherer
+	sdkMetrics    *prometheus.Registry
 
 	bootstrapped bool
 
@@ -218,14 +248,14 @@ type VM struct {
 
 	// Avalanche Warp Messaging backend
 	// Used to serve BLS signatures of warp messages over RPC
-	warpBackend warp.WarpBackend
+	warpBackend warp.Backend
 }
 
 // Initialize implements the snowman.ChainVM interface
 func (vm *VM) Initialize(
 	_ context.Context,
 	chainCtx *snow.Context,
-	dbManager manager.Manager,
+	db database.Database,
 	genesisBytes []byte,
 	upgradeBytes []byte,
 	configBytes []byte,
@@ -242,7 +272,6 @@ func (vm *VM) Initialize(
 	if err := vm.config.Validate(); err != nil {
 		return err
 	}
-
 	vm.ctx = chainCtx
 
 	// Create logger
@@ -269,17 +298,16 @@ func (vm *VM) Initialize(
 
 	vm.toEngine = toEngine
 	vm.shutdownChan = make(chan struct{}, 1)
-	baseDB := dbManager.Current().Database
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, baseDB)}
-	vm.db = versiondb.New(baseDB)
+	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, db)}
+	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	// Note warpDB is not part of versiondb because it is not necessary
 	// that warp signatures are committed to the database atomically with
 	// the last accepted block.
-	vm.warpDB = prefixdb.New(warpPrefix, baseDB)
+	vm.warpDB = prefixdb.New(warpPrefix, db)
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -432,12 +460,14 @@ func (vm *VM) Initialize(
 	}
 
 	// initialize peer network
+	vm.validators = p2p.NewValidators(vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
+	vm.router = p2p.NewRouter(vm.ctx.Log, appSender, vm.sdkMetrics, "p2p")
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
+	vm.Network = peer.NewNetwork(vm.router, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// initialize warp backend
-	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
+	vm.warpBackend = warp.NewBackend(vm.ctx.NetworkID, vm.ctx.ChainID, vm.ctx.WarpSigner, vm, vm.warpDB, warpSignatureCacheSize)
 
 	// clear warpdb on initialization if config enabled
 	if vm.config.PruneWarpDB {
@@ -457,11 +487,15 @@ func (vm *VM) Initialize(
 }
 
 func (vm *VM) initializeMetrics() error {
+	vm.sdkMetrics = prometheus.NewRegistry()
 	vm.multiGatherer = avalanchegoMetrics.NewMultiGatherer()
 	// If metrics are enabled, register the default metrics regitry
 	if metrics.Enabled {
 		gatherer := subnetEVMPrometheus.Gatherer(metrics.DefaultRegistry)
 		if err := vm.multiGatherer.Register(ethMetricsPrefix, gatherer); err != nil {
+			return err
+		}
+		if err := vm.multiGatherer.Register("sdk", vm.sdkMetrics); err != nil {
 			return err
 		}
 		// Register [multiGatherer] after registerers have been registered to it
@@ -607,8 +641,10 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 		}
 		return nil
 	case snow.NormalOp:
-		// Initialize gossip handling once we enter normal operation as there is no need to handle mempool gossip before this point.
-		vm.initBlockBuilding()
+		// Initialize goroutines related to block building once we enter normal operation as there is no need to handle mempool gossip before this point.
+		if err := vm.initBlockBuilding(); err != nil {
+			return fmt.Errorf("failed to initialize block building: %w", err)
+		}
 		vm.bootstrapped = true
 		return nil
 	default:
@@ -617,13 +653,68 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 }
 
 // initBlockBuilding starts goroutines to manage block building
-func (vm *VM) initBlockBuilding() {
+func (vm *VM) initBlockBuilding() error {
+	ctx, cancel := context.WithCancel(context.TODO())
+	vm.cancel = cancel
+
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
 	gossipStats := NewGossipStats()
 	vm.gossiper = vm.createGossiper(gossipStats)
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
+
+	txPool, err := NewGossipTxPool(vm.txPool)
+	if err != nil {
+		return err
+	}
+	vm.shutdownWg.Add(1)
+	go func() {
+		txPool.Subscribe(ctx)
+		vm.shutdownWg.Done()
+	}()
+
+	var txGossipHandler p2p.Handler
+
+	txGossipHandler, err = gossip.NewHandler[*GossipTx](txPool, txGossipHandlerConfig, vm.sdkMetrics)
+	if err != nil {
+		return err
+	}
+	txGossipHandler = &p2p.ValidatorHandler{
+		ValidatorSet: vm.validators,
+		Handler: &p2p.ThrottlerHandler{
+			Throttler: p2p.NewSlidingWindowThrottler(throttlingPeriod, throttlingLimit),
+			Handler:   txGossipHandler,
+		},
+	}
+	txGossipClient, err := vm.router.RegisterAppProtocol(txGossipProtocol, txGossipHandler, vm.validators)
+	if err != nil {
+		return err
+	}
+	var ethTxGossiper gossip.Gossiper
+	ethTxGossiper, err = gossip.NewPullGossiper[GossipTx, *GossipTx](
+		txGossipConfig,
+		vm.ctx.Log,
+		txPool,
+		txGossipClient,
+		vm.sdkMetrics,
+	)
+	if err != nil {
+		return err
+	}
+	txGossiper := gossip.ValidatorGossiper{
+		Gossiper:   ethTxGossiper,
+		NodeID:     vm.ctx.NodeID,
+		Validators: vm.validators,
+	}
+
+	vm.shutdownWg.Add(1)
+	go func() {
+		gossip.Every(ctx, vm.ctx.Log, txGossiper, gossipFrequency)
+		vm.shutdownWg.Done()
+	}()
+
+	return nil
 }
 
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
@@ -654,6 +745,9 @@ func (vm *VM) setCrossChainAppRequestHandler() {
 func (vm *VM) Shutdown(context.Context) error {
 	if vm.ctx == nil {
 		return nil
+	}
+	if vm.cancel != nil {
+		vm.cancel()
 	}
 	vm.Network.Shutdown()
 	if err := vm.StateSyncClient.Shutdown(); err != nil {
@@ -795,26 +889,15 @@ func (vm *VM) Version(context.Context) (string, error) {
 //   - The handler's functionality is defined by [service]
 //     [service] should be a gorilla RPC service (see https://www.gorillatoolkit.org/pkg/rpc/v2)
 //   - The name of the service is [name]
-//   - The LockOption is the first element of [lockOption]
-//     By default the LockOption is WriteLock
-//     [lockOption] should have either 0 or 1 elements. Elements beside the first are ignored.
-func newHandler(name string, service interface{}, lockOption ...commonEng.LockOption) (*commonEng.HTTPHandler, error) {
+func newHandler(name string, service interface{}) (http.Handler, error) {
 	server := avalancheRPC.NewServer()
 	server.RegisterCodec(avalancheJSON.NewCodec(), "application/json")
 	server.RegisterCodec(avalancheJSON.NewCodec(), "application/json;charset=UTF-8")
-	if err := server.RegisterService(service, name); err != nil {
-		return nil, err
-	}
-
-	var lock commonEng.LockOption = commonEng.WriteLock
-	if len(lockOption) != 0 {
-		lock = lockOption[0]
-	}
-	return &commonEng.HTTPHandler{LockOptions: lock, Handler: server}, nil
+	return server, server.RegisterService(service, name)
 }
 
 // CreateHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler, error) {
+func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	handler := rpc.NewServer(vm.config.APIMaxDuration.Duration)
 	enabledAPIs := vm.config.EthAPIs()
 	if err := attachEthService(handler, vm.eth.APIs(), enabledAPIs); err != nil {
@@ -825,7 +908,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	if err != nil {
 		return nil, fmt.Errorf("failed to get primary alias for chain due to %w", err)
 	}
-	apis := make(map[string]*commonEng.HTTPHandler)
+	apis := make(map[string]http.Handler)
 	if vm.config.AdminAPIEnabled {
 		adminAPI, err := newHandler("admin", NewAdminService(vm, os.ExpandEnv(fmt.Sprintf("%s_subnet_evm_performance_%s", vm.config.AdminAPIDir, primaryAlias))))
 		if err != nil {
@@ -843,44 +926,34 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	}
 
 	if vm.config.WarpAPIEnabled {
-		warpAggregator := aggregator.NewAggregator(vm.ctx.SubnetID, warpValidators.NewState(vm.ctx), &aggregator.NetworkSigner{Client: vm.client})
-		if err := handler.RegisterName("warp", warp.NewWarpAPI(vm.warpBackend, warpAggregator)); err != nil {
+		validatorsState := warpValidators.NewState(vm.ctx)
+		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx.NetworkID, vm.ctx.SubnetID, vm.ctx.ChainID, validatorsState, vm.warpBackend, vm.client)); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
 	}
 
 	log.Info(fmt.Sprintf("Enabled APIs: %s", strings.Join(enabledAPIs, ", ")))
-	apis[ethRPCEndpoint] = &commonEng.HTTPHandler{
-		LockOptions: commonEng.NoLock,
-		Handler:     handler,
-	}
-	apis[ethWSEndpoint] = &commonEng.HTTPHandler{
-		LockOptions: commonEng.NoLock,
-		Handler: handler.WebsocketHandlerWithDuration(
-			[]string{"*"},
-			vm.config.APIMaxDuration.Duration,
-			vm.config.WSCPURefillRate.Duration,
-			vm.config.WSCPUMaxStored.Duration,
-		),
-	}
+	apis[ethRPCEndpoint] = handler
+	apis[ethWSEndpoint] = handler.WebsocketHandlerWithDuration(
+		[]string{"*"},
+		vm.config.APIMaxDuration.Duration,
+		vm.config.WSCPURefillRate.Duration,
+		vm.config.WSCPUMaxStored.Duration,
+	)
 
 	return apis, nil
 }
 
 // CreateStaticHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateStaticHandlers(context.Context) (map[string]*commonEng.HTTPHandler, error) {
-	server := avalancheRPC.NewServer()
-	codec := cjson.NewCodec()
-	server.RegisterCodec(codec, "application/json")
-	server.RegisterCodec(codec, "application/json;charset=UTF-8")
-	serviceName := "subnetevm"
-	if err := server.RegisterService(&StaticService{}, serviceName); err != nil {
+func (vm *VM) CreateStaticHandlers(context.Context) (map[string]http.Handler, error) {
+	handler := rpc.NewServer(0)
+	if err := handler.RegisterName("static", &StaticService{}); err != nil {
 		return nil, err
 	}
 
-	return map[string]*commonEng.HTTPHandler{
-		"/rpc": {LockOptions: commonEng.NoLock, Handler: server},
+	return map[string]http.Handler{
+		"/rpc": handler,
 	}, nil
 }
 
