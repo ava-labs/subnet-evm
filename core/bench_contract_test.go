@@ -31,14 +31,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 var (
@@ -49,55 +45,27 @@ var (
 )
 
 func BenchmarkTrie(t *testing.B) {
-	benchTrieInserts(t, "test", 5000, false)
+	benchInsertChain(t, true, generateTx(5000))
 }
 
 func generateTx(elements int64) func(int, *BlockGen) {
 	return func(i int, gen *BlockGen) {
 		gasPrice := big.NewInt(225000000000)
-		tx := types.NewContractCreation(gen.TxNonce(benchRootAddr), big.NewInt(0), 3000000, gasPrice, common.FromHex(stressBinStr))
+		nonce := gen.TxNonce(benchRootAddr)
+		tx := types.NewContractCreation(nonce, big.NewInt(0), 3000000, gasPrice, common.FromHex(stressBinStr))
 		tx, _ = types.SignTx(tx, signer, testKey)
-		addr := gen.AddTx(tx).ContractAddress
+		sender, _ := types.Sender(signer, tx)
+		gen.AddTx(tx)
+
+		contractAddr := crypto.CreateAddress(sender, nonce)
 
 		stressABI := contract.ParseABI(stressABIStr)
 		txPayload, _ := stressABI.Pack(
 			"writeValues",
 			big.NewInt(elements),
 		)
-		tx = types.NewTransaction(gen.TxNonce(benchRootAddr), addr, big.NewInt(0), 3000000, gasPrice, txPayload)
+		tx = types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr, big.NewInt(0), 3000000, gasPrice, txPayload)
 		tx, _ = types.SignTx(tx, signer, testKey)
 		gen.AddTx(tx)
-	}
-}
-
-func benchTrieInserts(b *testing.B, name string, elements int64, disk bool) {
-	// Create the database in memory or in a temporary directory.
-	var db ethdb.Database
-	var err error
-	if !disk {
-		db = rawdb.NewMemoryDatabase()
-	} else {
-		dir := b.TempDir()
-		db, err = rawdb.NewLevelDBDatabase(dir, 128, 128, "", false)
-		if err != nil {
-			b.Fatalf("cannot create temporary database: %v", err)
-		}
-		defer db.Close()
-	}
-
-	gspec := &Genesis{
-		Config: params.TestChainConfig,
-		Alloc:  GenesisAlloc{benchRootAddr: {Balance: benchRootFunds}},
-	}
-
-	_, chain, _, _ := GenerateChainWithGenesis(gspec, dummy.NewCoinbaseFaker(), b.N, 10, generateTx(elements))
-
-	// Time the insertion of the new chain.
-	// State and blocks are stored in the same DB.
-	chainman, _ := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
-	defer chainman.Stop()
-
-	if i, err := chainman.InsertChain(chain); err != nil {
-		b.Fatalf("insert error (block %d): %v\n", i, err)
 	}
 }

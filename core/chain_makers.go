@@ -105,7 +105,7 @@ func (b *BlockGen) SetDifficulty(diff *big.Int) {
 // customized rules.
 // - bc:       enables the ability to query historical block hashes for BLOCKHASH
 // - vmConfig: extends the flexibility for customizing evm rules, e.g. enable extra EIPs
-func (b *BlockGen) addTx(bc *BlockChain, vmConfig vm.Config, tx *types.Transaction) *types.Receipt {
+func (b *BlockGen) addTx(bc *BlockChain, vmConfig vm.Config, tx *types.Transaction) {
 	if b.gasPool == nil {
 		b.SetCoinbase(common.Address{})
 	}
@@ -117,8 +117,6 @@ func (b *BlockGen) addTx(bc *BlockChain, vmConfig vm.Config, tx *types.Transacti
 	}
 	b.txs = append(b.txs, tx)
 	b.receipts = append(b.receipts, receipt)
-
-	return receipt
 }
 
 // AddTx adds a transaction to the generated block. If no coinbase has
@@ -129,8 +127,8 @@ func (b *BlockGen) addTx(bc *BlockChain, vmConfig vm.Config, tx *types.Transacti
 // further limitations on the content of transactions that can be
 // added. Notably, contract code relying on the BLOCKHASH instruction
 // will panic during execution.
-func (b *BlockGen) AddTx(tx *types.Transaction) *types.Receipt {
-	return b.addTx(nil, vm.Config{}, tx)
+func (b *BlockGen) AddTx(tx *types.Transaction) {
+	b.addTx(nil, vm.Config{}, tx)
 }
 
 // AddTxWithChain adds a transaction to the generated block. If no coinbase has
