@@ -58,17 +58,30 @@ func generateTx(blocks int, elements int64) func(int, *BlockGen) {
 		big.NewInt(elements),
 	)
 
+	gasTx := uint64(22000)
+	gasCreation := uint64(70000)
+
 	return func(i int, gen *BlockGen) {
+		block := gen.PrevBlock(i - 1)
+		gas := block.GasLimit()
+
 		if !deployedContract {
 			nonce := gen.TxNonce(benchRootAddr)
-			tx, _ := types.SignTx(types.NewContractCreation(nonce, big.NewInt(0), 3000000, gasPrice, common.FromHex(stressBinStr)), signer, testKey)
+			tx, _ := types.SignTx(types.NewContractCreation(nonce, big.NewInt(0), gasCreation, gasPrice, common.FromHex(stressBinStr)), signer, testKey)
 			sender, _ := types.Sender(signer, tx)
 			gen.AddTx(tx)
 			contractAddr = crypto.CreateAddress(sender, nonce)
 			deployedContract = true
+			gas -= gasCreation
 		}
 
-		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr, big.NewInt(0), 3000000, gasPrice, txPayload), signer, testKey)
-		gen.AddTx(tx)
+		for {
+			gas -= gasTx
+			if gas < gasTx {
+				break
+			}
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr, big.NewInt(0), gasTx, gasPrice, txPayload), signer, testKey)
+			gen.AddTx(tx)
+		}
 	}
 }
