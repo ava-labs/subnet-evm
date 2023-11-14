@@ -45,27 +45,30 @@ var (
 )
 
 func BenchmarkTrie(t *testing.B) {
-	benchInsertChain(t, true, generateTx(5000))
+	benchInsertChain(t, true, generateTx(100, 5000))
 }
 
-func generateTx(elements int64) func(int, *BlockGen) {
+func generateTx(blocks int, elements int64) func(int, *BlockGen) {
+	var contractAddr common.Address
+	deployedContract := false
+	gasPrice := big.NewInt(225000000000)
+	stressABI := contract.ParseABI(stressABIStr)
+	txPayload, _ := stressABI.Pack(
+		"writeValues",
+		big.NewInt(elements),
+	)
+
 	return func(i int, gen *BlockGen) {
-		gasPrice := big.NewInt(225000000000)
-		nonce := gen.TxNonce(benchRootAddr)
-		tx := types.NewContractCreation(nonce, big.NewInt(0), 3000000, gasPrice, common.FromHex(stressBinStr))
-		tx, _ = types.SignTx(tx, signer, testKey)
-		sender, _ := types.Sender(signer, tx)
-		gen.AddTx(tx)
+		if !deployedContract {
+			nonce := gen.TxNonce(benchRootAddr)
+			tx, _ := types.SignTx(types.NewContractCreation(nonce, big.NewInt(0), 3000000, gasPrice, common.FromHex(stressBinStr)), signer, testKey)
+			sender, _ := types.Sender(signer, tx)
+			gen.AddTx(tx)
+			contractAddr = crypto.CreateAddress(sender, nonce)
+			deployedContract = true
+		}
 
-		contractAddr := crypto.CreateAddress(sender, nonce)
-
-		stressABI := contract.ParseABI(stressABIStr)
-		txPayload, _ := stressABI.Pack(
-			"writeValues",
-			big.NewInt(elements),
-		)
-		tx = types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr, big.NewInt(0), 3000000, gasPrice, txPayload)
-		tx, _ = types.SignTx(tx, signer, testKey)
+		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr, big.NewInt(0), 3000000, gasPrice, txPayload), signer, testKey)
 		gen.AddTx(tx)
 	}
 }
