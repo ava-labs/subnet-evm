@@ -51,3 +51,6 @@ cmd/simulator/simulator
 
 # goreleaser
 dist/
+
+# fuzz testing
+**/testdata
