@@ -1,0 +1,14 @@
+{
+    "precompileUpgrades": [
+        {
+            "jurorConfig": {
+                "blockTimestamp": 1699950600
+            }
+        },
+        {
+            "ticksConfig": {
+                "blockTimestamp": 1699950600
+            }
+        }
+    ]
+}

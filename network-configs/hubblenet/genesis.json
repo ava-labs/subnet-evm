@@ -38,12 +38,6 @@
       "rewardManagerConfig": {
         "blockTimestamp": 0,
         "adminAddresses": ["0x8747adFCE380492ec7e9b78761Ec7C87F5Cd3d4F"]
-      },
-      "jurorConfig": {
-        "blockTimestamp": 0
-      },
-      "ticksConfig": {
-        "blockTimestamp": 0
       }
     },
     "alloc": {
