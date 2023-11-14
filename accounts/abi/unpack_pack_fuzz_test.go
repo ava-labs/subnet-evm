@@ -270,34 +270,35 @@ func FuzzPackFixedArrayBytes32(f *testing.F) {
 
 func testPackType(t *testing.T, typeName string, val interface{}, stringVal string) {
 	t.Logf("Testing type \"%s\", value: %v, stringVal: '%s'", typeName, val, stringVal)
+	require := require.New(t)
 	abiType, err := NewType(typeName, "", nil)
-	require.NoError(t, err)
+	require.NoError(err)
 	abiArg := Argument{
 		Name: "test",
 		Type: abiType,
 	}
 	abiArgs := Arguments{abiArg}
 	packed, err := abiArgs.Pack(val)
-	require.NoError(t, err)
+	require.NoError(err)
 	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	// Initialize the JS VM
 	ctx, ethersScript, err := initializeJSVM(t, iso, codeCache)
 	defer ctx.Close()
-	require.NoError(t, err)
+	require.NoError(err)
 	// Run the ethers script to load
 	_, err = ethersScript.Run(ctx)
-	require.NoError(t, err)
+	require.NoError(err)
 	// Run the encode script
 	script := fmt.Sprintf(jsEncodeCallFn, abiType.String(), stringVal)
 
 	t.Logf("Running script: %s", script)
 	result, err := ctx.RunScript(script, "main.js")
-	require.NoError(t, err)
+	require.NoError(err)
 
-	require.Equal(t, "0x"+common.Bytes2Hex(packed), result.String())
+	require.Equal("0x"+common.Bytes2Hex(packed), result.String())
 }
 
 func wrapQuote(s string) string {
-	return fmt.Sprintf(`"%s"`, s)
+	return fmt.Sprintf("%q", s)
 }
