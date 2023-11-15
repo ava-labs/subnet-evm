@@ -20,7 +20,7 @@ for file in ${files}; do
   for func in ${funcs}; do
     echo "Fuzzing $func in $file"
     parentDir=$(dirname $file)
-    go test $parentDir -run=$func -fuzz=$func -fuzztime=${fuzzTime}s
+    go test $parentDir -run=$func -fuzz=$func -fuzztime=${fuzzTime}s -tags fuzz
     # If any of the fuzz tests fail, return exit code 1
     if [ $? -ne 0 ]; then
       failed=true
