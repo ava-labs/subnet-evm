@@ -1,5 +1,9 @@
 // (c) 2019-2023, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
+
+//go:build fuzz
+// +build fuzz
+
 package abi
 
 import (
