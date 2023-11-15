@@ -45,7 +45,7 @@ var (
 )
 
 func BenchmarkTrie(t *testing.B) {
-	benchInsertChain(t, true, stressTestTrieDb(100, 10, 5000))
+	benchInsertChain(t, true, stressTestTrieDb(100, 100, 5000))
 }
 
 func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64) func(int, *BlockGen) {
@@ -73,11 +73,8 @@ func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64) func(
 
 	return func(i int, gen *BlockGen) {
 		if len(contractTxs) != deployedContracts {
-			block := gen.PrevBlock(i - 1)
-			gas := block.GasLimit()
-			for ; deployedContracts < len(contractTxs) && gasCreation < gas; deployedContracts++ {
+			for ; deployedContracts < len(contractTxs); deployedContracts++ {
 				gen.AddTx(contractTxs[deployedContracts])
-				gas -= gasCreation
 			}
 			return
 		}
