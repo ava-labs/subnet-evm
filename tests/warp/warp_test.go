@@ -120,6 +120,15 @@ var _ = ginkgo.BeforeSuite(func() {
 					Participants: subnetBNodeNames,
 				},
 			},
+			{
+				VmName:      evm.IDStr,
+				Genesis:     "./tests/precompile/genesis/warp.json",
+				ChainConfig: warpChainConfigPath,
+				SubnetSpec: &rpcpb.SubnetSpec{
+					SubnetConfig: "",
+					Participants: nil,
+				},
+			},
 		},
 	)
 	gomega.Expect(err).Should(gomega.BeNil())
