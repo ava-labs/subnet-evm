@@ -45,12 +45,31 @@ import (
 const fundedKeyStr = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027" // addr: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 
 var (
-	config              = runner.NewDefaultANRConfig()
-	manager             = runner.NewNetworkManager(config)
-	warpChainConfigPath string
-	testPayload         = []byte{1, 2, 3}
-	nodesPerSubnet      = 5
-	warpTableEntries    []ginkgo.TableEntry
+	config                                                            = runner.NewDefaultANRConfig()
+	manager                                                           = runner.NewNetworkManager(config)
+	warpChainConfigPath                                               string
+	testPayload                                                       = []byte{1, 2, 3}
+	nodesPerSubnet                                                    = 5
+	fundedKey                                                         *ecdsa.PrivateKey
+	subnetA, subnetB, cChainSubnetDetails, subnetWithFullValidatorSet *runner.Subnet
+	// I need to construct table entries prior to ginkgo tree construction, but the parameters I'm using are a bunch of
+	warpTableEntries = []ginkgo.TableEntry{
+		ginkgo.Entry("Subnet <-> Subnet", func() *warpTest {
+			return newWarpTest(context.Background(), subnetA, fundedKey, subnetB, fundedKey)
+		}),
+		ginkgo.Entry("Small Subnet -> C-Chain", func() *warpTest {
+			return newWarpTest(context.Background(), subnetA, fundedKey, cChainSubnetDetails, fundedKey)
+		}),
+		ginkgo.Entry("C-Chain -> Small Subnet", func() *warpTest {
+			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
+		}),
+		ginkgo.Entry("Large Subnet <-> C-Chain", func() *warpTest {
+			return newWarpTest(context.Background(), subnetWithFullValidatorSet, fundedKey, cChainSubnetDetails, fundedKey)
+		}),
+		ginkgo.Entry("C-Chain <-> Large Subnet", func() *warpTest {
+			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetWithFullValidatorSet, fundedKey)
+		}),
+	}
 )
 
 func TestE2E(t *testing.T) {
@@ -120,17 +139,14 @@ var _ = ginkgo.BeforeSuite(func() {
 			},
 		},
 	)
-	gomega.Expect(err).Should(gomega.BeNil())
+	require.NoError(err)
 
-	fundedKey, err := crypto.HexToECDSA(fundedKeyStr)
+	fundedKey, err = crypto.HexToECDSA(fundedKeyStr)
 	require.NoError(err)
 	subnetIDs := manager.GetSubnets()
 
 	var (
-		subnetA                           *runner.Subnet
-		subnetB                           *runner.Subnet
 		subnetsWithSubsetOfPrimarynetwork []*runner.Subnet
-		subnetWithFullValidatorSet        *runner.Subnet
 	)
 	for _, subnetID := range subnetIDs {
 		subnetDetails, ok := manager.GetSubnet(subnetID)
@@ -150,25 +166,18 @@ var _ = ginkgo.BeforeSuite(func() {
 	cChainBlockchainID, err := infoClient.GetBlockchainID(ctx, "C")
 	require.NoError(err)
 
-	cChainSubnetDetails := &runner.Subnet{
+	cChainSubnetDetails = &runner.Subnet{
 		SubnetID:      constants.PrimaryNetworkID,
 		BlockchainID:  cChainBlockchainID,
 		ValidatorURIs: subnetWithFullValidatorSet.ValidatorURIs,
 	}
-
-	warpTableEntries = []ginkgo.TableEntry{
-		ginkgo.Entry("Subnet <-> Subnet", newWarpTest(ctx, subnetA, fundedKey, subnetB, fundedKey)),
-		ginkgo.Entry("Small Subnet -> C-Chain", newWarpTest(ctx, subnetA, fundedKey, cChainSubnetDetails, fundedKey)),
-		ginkgo.Entry("C-Chain -> Small Subnet", newWarpTest(ctx, cChainSubnetDetails, fundedKey, subnetA, fundedKey)),
-		ginkgo.Entry("Large Subnet <-> C-Chain", newWarpTest(ctx, subnetWithFullValidatorSet, fundedKey, cChainSubnetDetails, fundedKey)),
-		ginkgo.Entry("C-Chain <-> Large Subnet", newWarpTest(ctx, cChainSubnetDetails, fundedKey, subnetWithFullValidatorSet, fundedKey)),
-	}
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	gomega.Expect(manager).ShouldNot(gomega.BeNil())
-	gomega.Expect(manager.TeardownNetwork()).Should(gomega.BeNil())
-	gomega.Expect(os.Remove(warpChainConfigPath)).Should(gomega.BeNil())
+	require := require.New(ginkgo.GinkgoT())
+	require.NotNil(manager)
+	require.NoError(manager.TeardownNetwork())
+	require.NoError(os.Remove(warpChainConfigPath))
 	// TODO: bootstrap an additional node (covering all of the subnets) after the test)
 })
 
@@ -554,7 +563,9 @@ func toRPCURI(uri string, blockchainID string) string {
 	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
 }
 
-var _ = ginkgo.DescribeTable("[Warp]", func(w *warpTest) {
+var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
+	w := gen()
+
 	// Send a transaction to Subnet A to issue a Warp Message to Subnet B
 	ginkgo.It("Send Message from A to B", ginkgo.Label("Warp", "SendWarp"), func() {
 		w.sendMessageFromSubnetA()
