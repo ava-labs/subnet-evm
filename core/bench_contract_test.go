@@ -45,42 +45,45 @@ var (
 )
 
 func BenchmarkTrie(t *testing.B) {
-	benchInsertChain(t, true, generateTx(100, 5000))
+	benchInsertChain(t, true, stressTestTrieDb(100, 10, 5000))
 }
 
-func generateTx(blocks int, elements int64) func(int, *BlockGen) {
-	var contractAddr common.Address
-	deployedContract := false
+func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64) func(int, *BlockGen) {
+	contractAddr := make([]common.Address, numContracts)
+	contractTxs := make([]*types.Transaction, numContracts)
+
 	gasPrice := big.NewInt(225000000000)
+	gasTx := uint64(22000)
+	gasCreation := uint64(70000)
+	deployedContracts := 0
+
+	for i := 0; i < numContracts; i++ {
+		nonce := uint64(i)
+		tx, _ := types.SignTx(types.NewContractCreation(nonce, big.NewInt(0), gasCreation, gasPrice, common.FromHex(stressBinStr)), signer, testKey)
+		sender, _ := types.Sender(signer, tx)
+		contractTxs[i] = tx
+		contractAddr[i] = crypto.CreateAddress(sender, nonce)
+	}
+
 	stressABI := contract.ParseABI(stressABIStr)
 	txPayload, _ := stressABI.Pack(
 		"writeValues",
 		big.NewInt(elements),
 	)
 
-	gasTx := uint64(22000)
-	gasCreation := uint64(70000)
-
 	return func(i int, gen *BlockGen) {
-		block := gen.PrevBlock(i - 1)
-		gas := block.GasLimit()
-
-		if !deployedContract {
-			nonce := gen.TxNonce(benchRootAddr)
-			tx, _ := types.SignTx(types.NewContractCreation(nonce, big.NewInt(0), gasCreation, gasPrice, common.FromHex(stressBinStr)), signer, testKey)
-			sender, _ := types.Sender(signer, tx)
-			gen.AddTx(tx)
-			contractAddr = crypto.CreateAddress(sender, nonce)
-			deployedContract = true
-			gas -= gasCreation
+		if len(contractTxs) != deployedContracts {
+			block := gen.PrevBlock(i - 1)
+			gas := block.GasLimit()
+			for ; deployedContracts < len(contractTxs) && gasCreation < gas; deployedContracts++ {
+				gen.AddTx(contractTxs[deployedContracts])
+				gas -= gasCreation
+			}
+			return
 		}
 
-		for {
-			gas -= gasTx
-			if gas < gasTx {
-				break
-			}
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr, big.NewInt(0), gasTx, gasPrice, txPayload), signer, testKey)
+		for e := 0; e < callsPerBlock; e++ {
+			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr[i%deployedContracts], big.NewInt(0), gasTx, gasPrice, txPayload), signer, testKey)
 			gen.AddTx(tx)
 		}
 	}
