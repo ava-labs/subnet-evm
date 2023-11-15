@@ -18,6 +18,8 @@ import (
 	"github.com/ava-labs/avalanche-network-runner/rpcpb"
 	"github.com/ava-labs/avalanchego/api/info"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/snow/validators"
+	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
@@ -315,9 +317,17 @@ func (w *warpTest) aggregateSignaturesViaAPI() {
 	pChainClient := platformvm.NewClient(w.subnetAURIs[0])
 	pChainHeight, err := pChainClient.GetHeight(ctx)
 	require.NoError(err)
-	validators, err := pChainClient.GetValidatorsAt(ctx, w.subnetA.SubnetID, pChainHeight)
+	// If the source subnet is the Primary Network, then we only need to aggregate signatures from the receiving
+	// subnet's validator set instead of the entire Primary Network.
+	var validators map[ids.NodeID]*validators.GetValidatorOutput
+	if w.subnetA.SubnetID == constants.PrimaryNetworkID {
+		validators, err = pChainClient.GetValidatorsAt(ctx, w.subnetB.SubnetID, pChainHeight)
+	} else {
+		validators, err = pChainClient.GetValidatorsAt(ctx, w.subnetA.SubnetID, pChainHeight)
+	}
 	require.NoError(err)
 	require.Len(validators, nodesPerSubnet, "expected validators at height to equal number specified to network constructor")
+
 	totalWeight := uint64(0)
 	warpValidators := make([]*avalancheWarp.Validator, 0, len(validators))
 	for nodeID, validator := range validators {
