@@ -11,7 +11,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set/v2 v2.1.0
 	github.com/docker/docker v1.6.2
-	github.com/dop251/goja v0.0.0-20231027120936-b396bb4c349d
+	github.com/dop251/goja v0.0.0-20230605162241-28ee0ee714f3
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/fsnotify/fsnotify v1.6.0
