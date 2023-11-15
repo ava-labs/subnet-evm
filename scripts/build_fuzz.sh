@@ -13,10 +13,10 @@ SUBNET_EVM_PATH=$(
 source "$SUBNET_EVM_PATH"/scripts/constants.sh
 
 fuzzTime=${1:-1}
-files=$(grep -r --include='**_test.go' --files-with-matches 'func Fuzz' .)
+files=$(ggrep -r --include='**_test.go' --files-with-matches 'func Fuzz' .)
 failed=false
 for file in ${files}; do
-  funcs=$(grep -oP 'func \K(Fuzz\w*)' $file)
+  funcs=$(ggrep -oP 'func \K(Fuzz\w*)' $file)
   for func in ${funcs}; do
     echo "Fuzzing $func in $file"
     parentDir=$(dirname $file)

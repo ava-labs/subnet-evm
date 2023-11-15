@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -27,26 +28,8 @@ const jsEncodeCallFn = `encodeValue("%s", %s)`
 var (
 	codeCache          *v8go.CompilerCachedData
 	precompiledScripts string
+	cacheLock          sync.Mutex
 )
-
-func init() {
-	ethersBytes, err := os.ReadFile("ethers.min.js")
-	if err != nil {
-		panic(fmt.Errorf("Error reading ethers.min.js file: %w", err))
-	}
-	globalInjectionScript := "var global = (function(){ return this; }).call(null);"
-
-	precompiledScripts = globalInjectionScript + string(ethersBytes) + jsEncodeValueFn
-
-	iso := v8go.NewIsolate()
-	defer iso.Dispose()
-	script, err := iso.CompileUnboundScript(precompiledScripts, "ethers.js", v8go.CompileOptions{})
-	if err != nil {
-		panic(fmt.Errorf("Error compiling ethers.js script: %w", err))
-	}
-
-	codeCache = script.CreateCodeCache()
-}
 
 func initializeJSVM(t *testing.T, iso *v8go.Isolate, cache *v8go.CompilerCachedData) (*v8go.Context, *v8go.UnboundScript, error) {
 	ctx := v8go.NewContext(iso)
@@ -268,8 +251,37 @@ func FuzzPackFixedArrayBytes32(f *testing.F) {
 	})
 }
 
+func preCacheScript() error {
+	ethersBytes, err := os.ReadFile("ethers.min.js")
+	if err != nil {
+		panic(fmt.Errorf("Error reading ethers.min.js file: %w", err))
+	}
+	globalInjectionScript := "var global = (function(){ return this; }).call(null);"
+
+	precompiledScripts = globalInjectionScript + string(ethersBytes) + jsEncodeValueFn
+
+	iso := v8go.NewIsolate()
+	defer iso.Dispose()
+	script, err := iso.CompileUnboundScript(precompiledScripts, "ethers.js", v8go.CompileOptions{})
+	if err != nil {
+		return fmt.Errorf("Error compiling ethers.js script: %w", err)
+	}
+
+	codeCache = script.CreateCodeCache()
+	return nil
+}
+
 func testPackType(t *testing.T, typeName string, val interface{}, stringVal string) {
 	t.Logf("Testing type \"%s\", value: %v, stringVal: '%s'", typeName, val, stringVal)
+	cacheLock.Lock()
+	if codeCache == nil {
+		err := preCacheScript()
+		if err != nil {
+			cacheLock.Unlock()
+			t.Fatal(err)
+		}
+	}
+	cacheLock.Unlock()
 	require := require.New(t)
 	abiType, err := NewType(typeName, "", nil)
 	require.NoError(err)
