@@ -42,15 +42,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const fundedKeyStr = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027"
+const fundedKeyStr = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027" // addr: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 
 var (
-	config                 = runner.NewDefaultANRConfig()
-	manager                = runner.NewNetworkManager(config)
-	warpChainConfigPath    string
-	testPayload            = []byte{1, 2, 3}
-	nodesPerSubnet         = 5
-	subnetToSubnetWarpTest *warpTest
+	config              = runner.NewDefaultANRConfig()
+	manager             = runner.NewNetworkManager(config)
+	warpChainConfigPath string
+	testPayload         = []byte{1, 2, 3}
+	nodesPerSubnet      = 5
+	warpTableEntries    []ginkgo.TableEntry
 )
 
 func TestE2E(t *testing.T) {
@@ -109,28 +109,67 @@ var _ = ginkgo.BeforeSuite(func() {
 					Participants: subnetBNodeNames,
 				},
 			},
+			{
+				VmName:      evm.IDStr,
+				Genesis:     "./tests/precompile/genesis/warp.json",
+				ChainConfig: warpChainConfigPath,
+				SubnetSpec: &rpcpb.SubnetSpec{
+					SubnetConfig: "",
+					Participants: nil, // Empty indicates that all participants should be included.
+				},
+			},
 		},
 	)
 	gomega.Expect(err).Should(gomega.BeNil())
 
 	fundedKey, err := crypto.HexToECDSA(fundedKeyStr)
 	require.NoError(err)
-	subnets := manager.GetSubnets()
-	subnetIDA := subnets[0]
-	subnetIDB := subnets[1]
-	subnetA, ok := manager.GetSubnet(subnetIDA)
-	gomega.Expect(ok).Should(gomega.BeTrue())
-	subnetB, ok := manager.GetSubnet(subnetIDB)
-	gomega.Expect(ok).Should(gomega.BeTrue())
+	subnetIDs := manager.GetSubnets()
 
-	subnetToSubnetWarpTest = newWarpTest(ctx, subnetA, fundedKey, subnetB, fundedKey)
+	var (
+		subnetA                           *runner.Subnet
+		subnetB                           *runner.Subnet
+		subnetsWithSubsetOfPrimarynetwork []*runner.Subnet
+		subnetWithFullValidatorSet        *runner.Subnet
+	)
+	for _, subnetID := range subnetIDs {
+		subnetDetails, ok := manager.GetSubnet(subnetID)
+		require.True(ok)
+		if len(subnetDetails.ValidatorURIs) == 15 {
+			subnetWithFullValidatorSet = subnetDetails
+		} else {
+			subnetsWithSubsetOfPrimarynetwork = append(subnetsWithSubsetOfPrimarynetwork, subnetDetails)
+		}
+	}
+	require.NotNil(subnetWithFullValidatorSet)
+	require.Len(subnetsWithSubsetOfPrimarynetwork, 2)
+	subnetA = subnetsWithSubsetOfPrimarynetwork[0]
+	subnetB = subnetsWithSubsetOfPrimarynetwork[1]
+
+	infoClient := info.NewClient(subnetWithFullValidatorSet.ValidatorURIs[0])
+	cChainBlockchainID, err := infoClient.GetBlockchainID(ctx, "C")
+	require.NoError(err)
+
+	cChainSubnetDetails := &runner.Subnet{
+		SubnetID:      constants.PrimaryNetworkID,
+		BlockchainID:  cChainBlockchainID,
+		ValidatorURIs: subnetWithFullValidatorSet.ValidatorURIs,
+	}
+
+	warpTableEntries = []ginkgo.TableEntry{
+		ginkgo.Entry("Subnet <-> Subnet", newWarpTest(ctx, subnetA, fundedKey, subnetB, fundedKey)),
+		ginkgo.Entry("Small Subnet -> C-Chain", newWarpTest(ctx, subnetA, fundedKey, cChainSubnetDetails, fundedKey)),
+		ginkgo.Entry("C-Chain -> Small Subnet", newWarpTest(ctx, cChainSubnetDetails, fundedKey, subnetA, fundedKey)),
+		ginkgo.Entry("Large Subnet <-> C-Chain", newWarpTest(ctx, subnetWithFullValidatorSet, fundedKey, cChainSubnetDetails, fundedKey)),
+		ginkgo.Entry("C-Chain <-> Large Subnet", newWarpTest(ctx, cChainSubnetDetails, fundedKey, subnetWithFullValidatorSet, fundedKey)),
+	}
 })
 
 var _ = ginkgo.AfterSuite(func() {
 	gomega.Expect(manager).ShouldNot(gomega.BeNil())
 	gomega.Expect(manager.TeardownNetwork()).Should(gomega.BeNil())
 	gomega.Expect(os.Remove(warpChainConfigPath)).Should(gomega.BeNil())
-	// TODO: bootstrap an additional node to ensure that we can bootstrap the test data correctly
+	// TODO: bootstrap an additional node (covering all of the subnets) after the test)
 })
 
 type warpTest struct {
@@ -164,11 +203,6 @@ type warpTest struct {
 	addressedCallUnsignedMessage *avalancheWarp.UnsignedMessage
 	addressedCallSignedMessage   *avalancheWarp.Message
 }
-
-// aggregate signatures
-// deliver
-// verify block hash
-// send message using HardHat
 
 func newWarpTest(ctx context.Context, subnetA *runner.Subnet, subnetAFundedKey *ecdsa.PrivateKey, subnetB *runner.Subnet, subnetBFundedKey *ecdsa.PrivateKey) *warpTest {
 	require := require.New(ginkgo.GinkgoT())
@@ -516,38 +550,38 @@ func (w *warpTest) executeHardHatTest() {
 	utils.RunHardhatTestsCustomURI(ctx, rpcURI, cmdPath, testPath)
 }
 
-var _ = ginkgo.Describe("[Warp]", ginkgo.Ordered, func() {
+func toRPCURI(uri string, blockchainID string) string {
+	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
+}
+
+var _ = ginkgo.DescribeTable("[Warp]", func(w *warpTest) {
 	// Send a transaction to Subnet A to issue a Warp Message to Subnet B
 	ginkgo.It("Send Message from A to B", ginkgo.Label("Warp", "SendWarp"), func() {
-		subnetToSubnetWarpTest.sendMessageFromSubnetA()
+		w.sendMessageFromSubnetA()
 	})
 
 	// Aggregate a Warp Signature by sending an API request to each node requesting its signature and manually
 	// constructing a valid Avalanche Warp Message
 	ginkgo.It("Aggregate Warp Signature via API", ginkgo.Label("Warp", "ReceiveWarp", "AggregateWarpManually"), func() {
-		subnetToSubnetWarpTest.aggregateSignaturesViaAPI()
+		w.aggregateSignaturesViaAPI()
 	})
 
 	// Aggregate signature via the p2p API for the AddressedCall and BlockHash payload Warp Messages
 	ginkgo.It("Aggregate AddressedCall and BlockPayload Signatures via Aggregator", ginkgo.Label("Warp", "ReceiveWarp", "AggregatorWarp"), func() {
-		subnetToSubnetWarpTest.aggregateSignatures()
+		w.aggregateSignatures()
 	})
 
 	// Verify successful delivery of the Avalanche Warp Message from Chain A to Chain B
 	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
-		subnetToSubnetWarpTest.deliverAddressedCallToSubnetB()
+		w.deliverAddressedCallToSubnetB()
 	})
 
 	// Verify successful delivery of the Avalanche Warp Block Hash from Chain A to Chain B
 	ginkgo.It("Verify Block Hash from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
-		subnetToSubnetWarpTest.deliverBlockHashPayload()
+		w.deliverBlockHashPayload()
 	})
 
 	ginkgo.It("Send Message from A to B from Hardhat", ginkgo.Label("Warp", "IWarpMessenger", "SendWarpMessage"), func() {
-		subnetToSubnetWarpTest.executeHardHatTest()
+		w.executeHardHatTest()
 	})
-})
-
-func toRPCURI(uri string, blockchainID string) string {
-	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
-}
+}, warpTableEntries)

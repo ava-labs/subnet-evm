@@ -208,6 +208,9 @@ func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct
 		n.ANRConfig.AvalancheGoExecPath,
 		runner_sdk.WithPluginDir(n.ANRConfig.PluginDir),
 		runner_sdk.WithGlobalNodeConfig(n.ANRConfig.GlobalNodeConfig),
+		runner_sdk.WithChainConfigs(map[string]string{
+			"C": `{"warp-api-enabled": true}`,
+		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start ANR network: %w", err)
