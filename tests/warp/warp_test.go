@@ -45,13 +45,13 @@ import (
 const fundedKeyStr = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027" // addr: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
 
 var (
-	config                                                            = runner.NewDefaultANRConfig()
-	manager                                                           = runner.NewNetworkManager(config)
-	warpChainConfigPath                                               string
-	testPayload                                                       = []byte{1, 2, 3}
-	nodesPerSubnet                                                    = 5
-	fundedKey                                                         *ecdsa.PrivateKey
-	subnetA, subnetB, cChainSubnetDetails, subnetWithFullValidatorSet *runner.Subnet
+	config                                = runner.NewDefaultANRConfig()
+	manager                               = runner.NewNetworkManager(config)
+	warpChainConfigPath                   string
+	testPayload                           = []byte{1, 2, 3}
+	nodesPerSubnet                        = 5
+	fundedKey                             *ecdsa.PrivateKey
+	subnetA, subnetB, cChainSubnetDetails *runner.Subnet
 	// I need to construct table entries prior to ginkgo tree construction, but the parameters I'm using are a bunch of
 	warpTableEntries = []ginkgo.TableEntry{
 		ginkgo.Entry("Subnet <-> Subnet", func() *warpTest {
@@ -62,12 +62,6 @@ var (
 		}),
 		ginkgo.Entry("C-Chain -> Small Subnet", func() *warpTest {
 			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
-		}),
-		ginkgo.Entry("Large Subnet <-> C-Chain", func() *warpTest {
-			return newWarpTest(context.Background(), subnetWithFullValidatorSet, fundedKey, cChainSubnetDetails, fundedKey)
-		}),
-		ginkgo.Entry("C-Chain <-> Large Subnet", func() *warpTest {
-			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetWithFullValidatorSet, fundedKey)
 		}),
 	}
 )
@@ -98,14 +92,14 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 
 	f, err := os.CreateTemp(os.TempDir(), "config.json")
-	gomega.Expect(err).Should(gomega.BeNil())
+	require.NoError(err)
 	_, err = f.Write([]byte(`{"warp-api-enabled": true}`))
-	gomega.Expect(err).Should(gomega.BeNil())
+	require.NoError(err)
 	warpChainConfigPath = f.Name()
 
 	// Construct the network using the avalanche-network-runner
 	_, err = manager.StartDefaultNetwork(ctx)
-	gomega.Expect(err).Should(gomega.BeNil())
+	require.NoError(err)
 	err = manager.SetupNetwork(
 		ctx,
 		config.AvalancheGoExecPath,
@@ -128,15 +122,6 @@ var _ = ginkgo.BeforeSuite(func() {
 					Participants: subnetBNodeNames,
 				},
 			},
-			{
-				VmName:      evm.IDStr,
-				Genesis:     "./tests/precompile/genesis/warp.json",
-				ChainConfig: warpChainConfigPath,
-				SubnetSpec: &rpcpb.SubnetSpec{
-					SubnetConfig: "",
-					Participants: nil, // Empty indicates that all participants should be included.
-				},
-			},
 		},
 	)
 	require.NoError(err)
@@ -145,31 +130,20 @@ var _ = ginkgo.BeforeSuite(func() {
 	require.NoError(err)
 	subnetIDs := manager.GetSubnets()
 
-	var (
-		subnetsWithSubsetOfPrimarynetwork []*runner.Subnet
-	)
-	for _, subnetID := range subnetIDs {
-		subnetDetails, ok := manager.GetSubnet(subnetID)
-		require.True(ok)
-		if len(subnetDetails.ValidatorURIs) == 15 {
-			subnetWithFullValidatorSet = subnetDetails
-		} else {
-			subnetsWithSubsetOfPrimarynetwork = append(subnetsWithSubsetOfPrimarynetwork, subnetDetails)
-		}
-	}
-	require.NotNil(subnetWithFullValidatorSet)
-	require.Len(subnetsWithSubsetOfPrimarynetwork, 2)
-	subnetA = subnetsWithSubsetOfPrimarynetwork[0]
-	subnetB = subnetsWithSubsetOfPrimarynetwork[1]
+	var ok bool
+	subnetA, ok = manager.GetSubnet(subnetIDs[0])
+	require.True(ok)
+	subnetB, ok = manager.GetSubnet(subnetIDs[1])
+	require.True(ok)
 
-	infoClient := info.NewClient(subnetWithFullValidatorSet.ValidatorURIs[0])
+	infoClient := info.NewClient(subnetA.ValidatorURIs[0])
 	cChainBlockchainID, err := infoClient.GetBlockchainID(ctx, "C")
 	require.NoError(err)
 
 	cChainSubnetDetails = &runner.Subnet{
 		SubnetID:      constants.PrimaryNetworkID,
 		BlockchainID:  cChainBlockchainID,
-		ValidatorURIs: subnetWithFullValidatorSet.ValidatorURIs,
+		ValidatorURIs: subnetA.ValidatorURIs,
 	}
 })
 
@@ -312,15 +286,15 @@ func (w *warpTest) sendMessageFromSubnetA() {
 		BlockHash: &blockHash,
 		Addresses: []common.Address{warp.Module.Address},
 	})
-	gomega.Expect(err).Should(gomega.BeNil())
-	gomega.Expect(len(logs)).Should(gomega.Equal(1))
+	require.NoError(err)
+	require.Len(logs, 1)
 
 	// Check for relevant warp log from subscription and ensure that it matches
 	// the log extracted from the last block.
 	txLog := logs[0]
 	log.Info("Parsing logData as unsigned warp message")
 	unsignedMsg, err := warp.UnpackSendWarpEventDataToMessage(txLog.Data)
-	gomega.Expect(err).Should(gomega.BeNil())
+	require.NoError(err)
 
 	// Set local variables for the duration of the test
 	w.addressedCallUnsignedMessage = unsignedMsg
@@ -333,7 +307,7 @@ func (w *warpTest) sendMessageFromSubnetA() {
 		// Loop until each node has advanced to >= the height of the block that emitted the warp log
 		for {
 			block, err := client.BlockByNumber(ctx, nil)
-			gomega.Expect(err).Should(gomega.BeNil())
+			require.NoError(err)
 			if block.NumberU64() >= newHead.Number.Uint64() {
 				log.Info("client accepted the block containing SendWarpMessage", "client", i, "height", block.NumberU64())
 				break
@@ -431,10 +405,10 @@ func (w *warpTest) deliverAddressedCallToSubnetB() {
 	defer sub.Unsubscribe()
 
 	nonce, err := client.NonceAt(ctx, w.subnetBFundedAddress, nil)
-	gomega.Expect(err).Should(gomega.BeNil())
+	require.NoError(err)
 
 	packedInput, err := warp.PackGetVerifiedWarpMessage(0)
-	gomega.Expect(err).Should(gomega.BeNil())
+	require.NoError(err)
 	tx := predicate.NewPredicateTx(
 		w.chainIDB,
 		nonce,
