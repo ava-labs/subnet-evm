@@ -3264,4 +3264,3 @@ func TestCrossChainMessagestoVM(t *testing.T) {
 	require.NoError(err)
 	require.True(calledSendCrossChainAppResponseFn, "sendCrossChainAppResponseFn was not called")
 }
-
