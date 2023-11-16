@@ -408,6 +408,12 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 				failed = err
 				break
 			}
+			// Apply upgrades here for the next, parent is [block]
+			err = core.ApplyUpgrades(api.backend.ChainConfig(), &block.Header().Time, next, statedb)
+			if err != nil {
+				failed = err
+				break
+			}
 			// Clean out any pending release functions of trace state. Note this
 			// step must be done after constructing tracing state, because the
 			// tracing state of block next depends on the parent state and construction

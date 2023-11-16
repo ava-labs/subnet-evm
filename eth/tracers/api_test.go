@@ -237,7 +237,7 @@ func TestTraceCall(t *testing.T) {
 	})
 	defer backend.teardown()
 	api := NewAPI(backend)
-	var testSuite = []struct {
+	testSuite := []struct {
 		blockNumber rpc.BlockNumber
 		call        ethapi.TransactionArgs
 		config      *TraceCallConfig
@@ -278,7 +278,7 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: fmt.Errorf("block #%d not found", genBlocks+1),
-			//expect:    nil,
+			// expect:    nil,
 		},
 		// Standard JSON trace upon the latest block
 		{
@@ -424,7 +424,7 @@ func TestTraceBlock(t *testing.T) {
 	defer backend.chain.Stop()
 	api := NewAPI(backend)
 
-	var testSuite = []struct {
+	testSuite := []struct {
 		blockNumber rpc.BlockNumber
 		config      *TraceConfig
 		want        string
@@ -518,7 +518,7 @@ func TestTracingWithOverrides(t *testing.T) {
 		Failed      bool
 		ReturnValue string
 	}
-	var testSuite = []struct {
+	testSuite := []struct {
 		blockNumber rpc.BlockNumber
 		call        ethapi.TransactionArgs
 		config      *TraceCallConfig
@@ -575,7 +575,7 @@ func TestTracingWithOverrides(t *testing.T) {
 				Data: newRPCBytes(common.Hex2Bytes("8381f58a")), // call number()
 			},
 			config: &TraceCallConfig{
-				//Tracer: &tracer,
+				// Tracer: &tracer,
 				StateOverrides: &ethapi.StateOverride{
 					randomAccounts[2].addr: ethapi.OverrideAccount{
 						Code:      newRPCBytes(common.Hex2Bytes("6080604052348015600f57600080fd5b506004361060285760003560e01c80638381f58a14602d575b600080fd5b60336049565b6040518082815260200191505060405180910390f35b6000548156fea2646970667358221220eab35ffa6ab2adfe380772a48b8ba78e82a1b820a18fcb6f59aa4efb20a5f60064736f6c63430007040033")),
@@ -667,7 +667,7 @@ func TestTracingWithOverrides(t *testing.T) {
 					},
 				},
 			},
-			//want: `{"gas":46900,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000000539"}`,
+			// want: `{"gas":46900,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000000539"}`,
 			want: `{"gas":44100,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000000001"}`,
 		},
 		{ // No state override
@@ -692,7 +692,7 @@ func TestTracingWithOverrides(t *testing.T) {
 							byte(vm.MSTORE),
 							// RETURN (0, 32)
 							byte(vm.PUSH1), 32,
-							byte(vm.PUSH1), 00,
+							byte(vm.PUSH1), 0o0,
 							byte(vm.RETURN),
 						}),
 					},
@@ -727,7 +727,7 @@ func TestTracingWithOverrides(t *testing.T) {
 							byte(vm.MSTORE),
 							// RETURN (0, 32)
 							byte(vm.PUSH1), 32,
-							byte(vm.PUSH1), 00,
+							byte(vm.PUSH1), 0o0,
 							byte(vm.RETURN),
 						}),
 						State: newStates(
@@ -765,7 +765,7 @@ func TestTracingWithOverrides(t *testing.T) {
 							byte(vm.MSTORE),
 							// RETURN (0, 32)
 							byte(vm.PUSH1), 32,
-							byte(vm.PUSH1), 00,
+							byte(vm.PUSH1), 0o0,
 							byte(vm.RETURN),
 						}),
 						StateDiff: &map[common.Hash]common.Hash{
@@ -885,7 +885,7 @@ func TestTraceChain(t *testing.T) {
 	api := NewAPI(backend)
 
 	single := `{"txHash":"0x0000000000000000000000000000000000000000000000000000000000000000","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}`
-	var cases = []struct {
+	cases := []struct {
 		start  uint64
 		end    uint64
 		config *TraceConfig
@@ -942,8 +942,8 @@ func TestTraceBlockPrecompileActivation(t *testing.T) {
 			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
 		},
 	}
-	// assumes gap is 10 sec, means 3 block away
 	activateAllowlistBlock := 3
+	// assumes gap is 10 sec
 	activateAllowListTime := uint64(activateAllowlistBlock * 10)
 	activateTxAllowListConfig := params.PrecompileUpgrade{
 		Config: txallowlist.NewConfig(&activateAllowListTime, []common.Address{accounts[0].addr}, nil, nil),
@@ -1033,6 +1033,7 @@ func TestTraceBlockPrecompileActivation(t *testing.T) {
 		}
 	}
 }
+
 func TestTraceTransactionPrecompileActivation(t *testing.T) {
 	t.Parallel()
 
@@ -1047,8 +1048,8 @@ func TestTraceTransactionPrecompileActivation(t *testing.T) {
 			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
 		},
 	}
-	// assumes gap is 10 sec, means 2 block away
 	activateAllowlistBlock := uint64(2)
+	// assumes gap is 10 sec
 	activateAllowListTime := activateAllowlistBlock * 10
 	activateTxAllowListConfig := params.PrecompileUpgrade{
 		Config: txallowlist.NewConfig(&activateAllowListTime, []common.Address{accounts[0].addr}, nil, nil),
@@ -1095,5 +1096,101 @@ func TestTraceTransactionPrecompileActivation(t *testing.T) {
 			eq := reflect.DeepEqual(have, expected)
 			require.True(eq)
 		})
+	}
+}
+
+func TestTraceChainPrecompileActivation(t *testing.T) {
+	// Initialize test accounts
+	// Note: the balances in this test have been increased compared to go-ethereum.
+	accounts := newAccounts(3)
+	copyConfig := *params.TestChainConfig
+	genesis := &core.Genesis{
+		Config: &copyConfig,
+		Alloc: core.GenesisAlloc{
+			accounts[0].addr: {Balance: big.NewInt(5 * params.Ether)},
+			accounts[1].addr: {Balance: big.NewInt(5 * params.Ether)},
+			accounts[2].addr: {Balance: big.NewInt(5 * params.Ether)},
+		},
+	}
+	activateAllowlistBlock := uint64(20)
+	// assumes gap is 10 sec
+	activateAllowListTime := activateAllowlistBlock * 10
+	activateTxAllowListConfig := params.PrecompileUpgrade{
+		Config: txallowlist.NewConfig(&activateAllowListTime, []common.Address{accounts[0].addr}, nil, nil),
+	}
+
+	deactivateAllowlistBlock := activateAllowlistBlock + 10
+	deactivateAllowListTime := deactivateAllowlistBlock * 10
+	deactivateTxAllowListConfig := params.PrecompileUpgrade{
+		Config: txallowlist.NewDisableConfig(&deactivateAllowListTime),
+	}
+
+	genesis.Config.PrecompileUpgrades = []params.PrecompileUpgrade{
+		activateTxAllowListConfig,
+		deactivateTxAllowListConfig,
+	}
+	genBlocks := 50
+	signer := types.HomesteadSigner{}
+
+	var (
+		ref   atomic.Uint32 // total refs has made
+		rel   atomic.Uint32 // total rels has made
+		nonce uint64
+	)
+	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
+		// Transfer from account[0] to account[1]
+		//    value: 1000 wei
+		//    fee:   0 wei
+		for j := 0; j < i+1; j++ {
+			tx, _ := types.SignTx(types.NewTransaction(nonce, accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
+			b.AddTx(tx)
+			nonce += 1
+		}
+	})
+	backend.refHook = func() { ref.Add(1) }
+	backend.relHook = func() { rel.Add(1) }
+	api := NewAPI(backend)
+
+	single := `{"txHash":"0x0000000000000000000000000000000000000000000000000000000000000000","result":{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}}`
+	cases := []struct {
+		start  uint64
+		end    uint64
+		config *TraceConfig
+	}{
+		{0, 50, nil},  // the entire chain range, blocks [1, 50]
+		{10, 20, nil}, // the middle chain range, blocks [11, 20]
+	}
+	for _, c := range cases {
+		ref.Store(0)
+		rel.Store(0)
+
+		from, _ := api.blockByNumber(context.Background(), rpc.BlockNumber(c.start))
+		to, _ := api.blockByNumber(context.Background(), rpc.BlockNumber(c.end))
+		resCh := api.traceChain(from, to, c.config, nil)
+
+		next := c.start + 1
+		for result := range resCh {
+			if have, want := uint64(result.Block), next; have != want {
+				t.Fatalf("unexpected tracing block, have %d want %d", have, want)
+			}
+			if have, want := len(result.Traces), int(next); have != want {
+				t.Fatalf("unexpected result length, have %d want %d", have, want)
+			}
+			for _, trace := range result.Traces {
+				trace.TxHash = common.Hash{}
+				blob, _ := json.Marshal(trace)
+				if have, want := string(blob), single; have != want {
+					t.Fatalf("unexpected tracing result, have\n%v\nwant:\n%v", have, want)
+				}
+			}
+			next += 1
+		}
+		if next != c.end+1 {
+			t.Error("Missing tracing block")
+		}
+
+		if nref, nrel := ref.Load(), rel.Load(); nref != nrel {
+			t.Errorf("Ref and deref actions are not equal, ref %d rel %d", nref, nrel)
+		}
 	}
 }
