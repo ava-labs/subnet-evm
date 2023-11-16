@@ -54,6 +54,7 @@ import (
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 )
@@ -1191,6 +1192,130 @@ func TestTraceChainPrecompileActivation(t *testing.T) {
 
 		if nref, nrel := ref.Load(), rel.Load(); nref != nrel {
 			t.Errorf("Ref and deref actions are not equal, ref %d rel %d", nref, nrel)
+		}
+	}
+}
+
+func TestTraceCallWithOverridesStateUpgrade(t *testing.T) {
+	t.Parallel()
+
+	// Initialize test accounts
+	accounts := newAccounts(3)
+	copyConfig := *params.TestChainConfig
+	genesis := &core.Genesis{
+		Config: &copyConfig,
+		Alloc: core.GenesisAlloc{
+			accounts[0].addr: {Balance: big.NewInt(5 * params.Ether)},
+			accounts[1].addr: {Balance: big.NewInt(5 * params.Ether)},
+			accounts[2].addr: {Balance: big.NewInt(5 * params.Ether)},
+		},
+	}
+	activateStateUpgradeBlock := uint64(2)
+	// assumes gap is 10 sec
+	activateStateUpgradeTime := activateStateUpgradeBlock * 10
+	activateStateUpgradeConfig := params.StateUpgrade{
+		BlockTimestamp: &activateStateUpgradeTime,
+		StateUpgradeAccounts: map[common.Address]params.StateUpgradeAccount{
+			accounts[2].addr: {
+				// deplete all balance
+				BalanceChange: (*math.HexOrDecimal256)(new(big.Int).Neg(big.NewInt(5 * params.Ether))),
+			},
+		},
+	}
+
+	genesis.Config.StateUpgrades = []params.StateUpgrade{
+		activateStateUpgradeConfig,
+	}
+	genBlocks := 3
+	// assumes gap is 10 sec
+	signer := types.HomesteadSigner{}
+	fastForwardTime := activateStateUpgradeTime + 10
+	backend := newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
+		// Transfer from account[0] to account[1]
+		//    value: 1000 wei
+		//    fee:   0 wei
+		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
+		b.AddTx(tx)
+	})
+	defer backend.teardown()
+	api := NewAPI(backend)
+	testSuite := []struct {
+		blockNumber rpc.BlockNumber
+		call        ethapi.TransactionArgs
+		config      *TraceCallConfig
+		expectErr   error
+		expect      string
+	}{
+		{
+			blockNumber: rpc.BlockNumber(0),
+			call: ethapi.TransactionArgs{
+				From:  &accounts[0].addr,
+				To:    &accounts[1].addr,
+				Value: (*hexutil.Big)(big.NewInt(1000)),
+			},
+			config:    nil,
+			expectErr: nil,
+			expect:    `{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}`,
+		},
+		{
+			blockNumber: rpc.BlockNumber(activateStateUpgradeBlock - 1),
+			call: ethapi.TransactionArgs{
+				From:  &accounts[2].addr,
+				To:    &accounts[1].addr,
+				Value: (*hexutil.Big)(big.NewInt(1000)),
+			},
+			config:    nil,
+			expectErr: nil,
+			expect:    `{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}`,
+		},
+		{
+			blockNumber: rpc.BlockNumber(activateStateUpgradeBlock + 1),
+			call: ethapi.TransactionArgs{
+				From:  &accounts[2].addr,
+				To:    &accounts[1].addr,
+				Value: (*hexutil.Big)(big.NewInt(1000)),
+			},
+			config:    nil,
+			expectErr: core.ErrInsufficientFunds,
+			expect:    `{"gas":21000,"failed":true,"returnValue":"","structLogs":[]}`,
+		},
+		{
+			blockNumber: rpc.BlockNumber(activateStateUpgradeBlock - 1),
+			call: ethapi.TransactionArgs{
+				From:  &accounts[2].addr,
+				To:    &accounts[1].addr,
+				Value: (*hexutil.Big)(big.NewInt(1000)),
+			},
+			config: &TraceCallConfig{
+				BlockOverrides: &ethapi.BlockOverrides{
+					Time: (*hexutil.Uint64)(&fastForwardTime),
+				},
+			},
+			expectErr: core.ErrInsufficientFunds,
+			expect:    `{"gas":21000,"failed":true,"returnValue":"","structLogs":[]}`,
+		},
+	}
+	for i, testspec := range testSuite {
+		result, err := api.TraceCall(context.Background(), testspec.call, rpc.BlockNumberOrHash{BlockNumber: &testspec.blockNumber}, testspec.config)
+		if testspec.expectErr != nil {
+			require.ErrorIs(t, err, testspec.expectErr, "test %d", i)
+			continue
+		} else {
+			if err != nil {
+				t.Errorf("test %d: expect no error, got %v", i, err)
+				continue
+			}
+			var have *logger.ExecutionResult
+			if err := json.Unmarshal(result.(json.RawMessage), &have); err != nil {
+				t.Errorf("test %d: failed to unmarshal result %v", i, err)
+			}
+			var want *logger.ExecutionResult
+			if err := json.Unmarshal([]byte(testspec.expect), &want); err != nil {
+				t.Errorf("test %d: failed to unmarshal result %v", i, err)
+			}
+			if !reflect.DeepEqual(have, want) {
+				t.Errorf("test %d: result mismatch, want %v, got %v", i, testspec.expect, string(result.(json.RawMessage)))
+			}
 		}
 	}
 }
