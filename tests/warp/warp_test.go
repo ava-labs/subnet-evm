@@ -238,6 +238,19 @@ func newWarpTest(ctx context.Context, subnetA *runner.Subnet, subnetAFundedKey *
 	return warpTest
 }
 
+func (w *warpTest) getBlockHashAndNumberFromTxReceipt(ctx context.Context, client ethclient.Client, tx *types.Transaction) (common.Hash, uint64) {
+	// To support both Coreth and Subnet-EVM, we fetch the block hash from the transaction receipt
+	// since hashing the block header returned via API results in a different block hash (due to modified block format).
+	require := require.New(ginkgo.GinkgoT())
+	for {
+		require.NoError(ctx.Err())
+		receipt, err := client.TransactionReceipt(ctx, tx.Hash())
+		if err == nil {
+			return receipt.BlockHash, receipt.BlockNumber.Uint64()
+		}
+	}
+}
+
 func (w *warpTest) sendMessageFromSubnetA() {
 	ctx := context.Background()
 	require := require.New(ginkgo.GinkgoT())
@@ -271,8 +284,10 @@ func (w *warpTest) sendMessageFromSubnetA() {
 	require.NoError(err)
 
 	log.Info("Waiting for new block confirmation")
-	newHead := <-newHeads
-	blockHash := newHead.Hash()
+	<-newHeads
+	receiptCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	blockHash, blockNumber := w.getBlockHashAndNumberFromTxReceipt(receiptCtx, client, signedTx)
 
 	log.Info("Constructing warp block hash unsigned message", "blockHash", blockHash)
 	w.blockID = ids.ID(blockHash) // Set blockID to construct a warp message containing a block hash payload later
@@ -308,7 +323,7 @@ func (w *warpTest) sendMessageFromSubnetA() {
 		for {
 			block, err := client.BlockByNumber(ctx, nil)
 			require.NoError(err)
-			if block.NumberU64() >= newHead.Number.Uint64() {
+			if block.NumberU64() >= blockNumber {
 				log.Info("client accepted the block containing SendWarpMessage", "client", i, "height", block.NumberU64())
 				break
 			}
@@ -430,8 +445,11 @@ func (w *warpTest) deliverAddressedCallToSubnetB() {
 	require.NoError(client.SendTransaction(ctx, signedTx))
 
 	log.Info("Waiting for new block confirmation")
-	newHead := <-newHeads
-	blockHash := newHead.Hash()
+	<-newHeads
+	receiptCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	blockHash, _ := w.getBlockHashAndNumberFromTxReceipt(receiptCtx, client, signedTx)
+
 	log.Info("Fetching relevant warp logs and receipts from new block")
 	logs, err := client.FilterLogs(ctx, interfaces.FilterQuery{
 		BlockHash: &blockHash,
@@ -482,8 +500,10 @@ func (w *warpTest) deliverBlockHashPayload() {
 	require.NoError(err)
 
 	log.Info("Waiting for new block confirmation")
-	newHead := <-newHeads
-	blockHash := newHead.Hash()
+	<-newHeads
+	receiptCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	blockHash, _ := w.getBlockHashAndNumberFromTxReceipt(receiptCtx, client, signedTx)
 	log.Info("Fetching relevant warp logs and receipts from new block")
 	logs, err := client.FilterLogs(ctx, interfaces.FilterQuery{
 		BlockHash: &blockHash,
