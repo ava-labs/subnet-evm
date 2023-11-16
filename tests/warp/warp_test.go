@@ -404,12 +404,16 @@ func (w *warpTest) aggregateSignatures() {
 	require.NoError(err)
 
 	log.Info("Fetching addressed call aggregate signature via p2p API")
-	signedWarpMessageBytes, err := client.GetMessageAggregateSignature(ctx, w.addressedCallSignedMessage.ID(), params.WarpQuorumDenominator, w.subnetA.SubnetID.String())
+	subnetIDStr := ""
+	if w.subnetA.SubnetID == constants.PrimaryNetworkID {
+		subnetIDStr = w.subnetB.SubnetID.String()
+	}
+	signedWarpMessageBytes, err := client.GetMessageAggregateSignature(ctx, w.addressedCallSignedMessage.ID(), params.WarpQuorumDenominator, subnetIDStr)
 	require.NoError(err)
 	require.Equal(w.addressedCallSignedMessage.Bytes(), signedWarpMessageBytes)
 
 	log.Info("Fetching block payload aggregate signature via p2p API")
-	signedWarpBlockBytes, err := client.GetBlockAggregateSignature(ctx, w.blockID, params.WarpQuorumDenominator, w.subnetA.SubnetID.String())
+	signedWarpBlockBytes, err := client.GetBlockAggregateSignature(ctx, w.blockID, params.WarpQuorumDenominator, subnetIDStr)
 	require.NoError(err)
 	require.Equal(w.blockPayloadSignedMessage.Bytes(), signedWarpBlockBytes)
 }
