@@ -140,10 +140,13 @@ var _ = ginkgo.BeforeSuite(func() {
 	cChainBlockchainID, err := infoClient.GetBlockchainID(ctx, "C")
 	require.NoError(err)
 
+	allURIs, err := manager.GetAllURIs(ctx)
+	require.NoError(err)
+
 	cChainSubnetDetails = &runner.Subnet{
 		SubnetID:      constants.PrimaryNetworkID,
 		BlockchainID:  cChainBlockchainID,
-		ValidatorURIs: subnetA.ValidatorURIs,
+		ValidatorURIs: allURIs,
 	}
 })
 

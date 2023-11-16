@@ -343,6 +343,10 @@ func (n *NetworkManager) GetSubnet(subnetID ids.ID) (*Subnet, bool) {
 	return nil, false
 }
 
+func (n *NetworkManager) GetAllURIs(ctx context.Context) ([]string, error) {
+	return n.anrClient.URIs(ctx)
+}
+
 func RegisterFiveNodeSubnetRun() func() *Subnet {
 	var (
 		config   = NewDefaultANRConfig()
