@@ -508,24 +508,12 @@ func (w *warpTest) executeHardHatTest() {
 	require.NoError(err)
 	defer sub.Unsubscribe()
 
-	rpcURI := toRPCURI(w.subnetAURIs[0], w.subnetA.BlockchainID.String())
-	senderAddress := common.HexToAddress("0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC")
-	addressedPayload, err := payload.NewAddressedCall(
-		senderAddress.Bytes(),
-		testPayload,
-	)
-	require.NoError(err)
-	expectedUnsignedMessage, err := avalancheWarp.NewUnsignedMessage(
-		1337,
-		w.subnetA.BlockchainID,
-		addressedPayload.Bytes(),
-	)
-	require.NoError(err)
+	rpcURI := toRPCURI(w.subnetBURIs[0], w.subnetA.BlockchainID.String())
 
-	os.Setenv("SENDER_ADDRESS", senderAddress.Hex())
+	os.Setenv("SENDER_ADDRESS", crypto.PubkeyToAddress(fundedKey.PublicKey).Hex())
 	os.Setenv("SOURCE_CHAIN_ID", "0x"+w.subnetA.BlockchainID.Hex())
 	os.Setenv("PAYLOAD", "0x"+common.Bytes2Hex(testPayload))
-	os.Setenv("EXPECTED_UNSIGNED_MESSAGE", "0x"+hex.EncodeToString(expectedUnsignedMessage.Bytes()))
+	os.Setenv("EXPECTED_UNSIGNED_MESSAGE", "0x"+hex.EncodeToString(w.addressedCallUnsignedMessage.Bytes()))
 
 	cmdPath := "./contracts"
 	// test path is relative to the cmd path
