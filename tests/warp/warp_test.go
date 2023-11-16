@@ -404,12 +404,12 @@ func (w *warpTest) aggregateSignatures() {
 	require.NoError(err)
 
 	log.Info("Fetching addressed call aggregate signature via p2p API")
-	signedWarpMessageBytes, err := client.GetMessageAggregateSignature(ctx, w.addressedCallSignedMessage.ID(), params.WarpQuorumDenominator)
+	signedWarpMessageBytes, err := client.GetMessageAggregateSignature(ctx, w.addressedCallSignedMessage.ID(), params.WarpQuorumDenominator, w.subnetA.SubnetID.String())
 	require.NoError(err)
 	require.Equal(w.addressedCallSignedMessage.Bytes(), signedWarpMessageBytes)
 
 	log.Info("Fetching block payload aggregate signature via p2p API")
-	signedWarpBlockBytes, err := client.GetBlockAggregateSignature(ctx, w.blockID, params.WarpQuorumDenominator)
+	signedWarpBlockBytes, err := client.GetBlockAggregateSignature(ctx, w.blockID, params.WarpQuorumDenominator, w.subnetA.SubnetID.String())
 	require.NoError(err)
 	require.Equal(w.blockPayloadSignedMessage.Bytes(), signedWarpBlockBytes)
 }
@@ -565,7 +565,7 @@ var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
 	w.aggregateSignaturesViaAPI()
 
 	log.Info("Aggregating signatures via p2p aggregator")
-	// w.aggregateSignatures()
+	w.aggregateSignatures()
 
 	log.Info("Delivering addressed call payload to Subnet B")
 	w.deliverAddressedCallToSubnetB()
