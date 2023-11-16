@@ -531,7 +531,7 @@ func (w *warpTest) executeHardHatTest() {
 	chainID, err := client.ChainID(ctx)
 	require.NoError(err)
 
-	rpcURI := toRPCURI(w.subnetBURIs[0], w.subnetA.BlockchainID.String())
+	rpcURI := toRPCURI(w.subnetAURIs[0], w.subnetA.BlockchainID.String())
 
 	os.Setenv("SENDER_ADDRESS", crypto.PubkeyToAddress(fundedKey.PublicKey).Hex())
 	os.Setenv("SOURCE_CHAIN_ID", "0x"+w.subnetA.BlockchainID.Hex())
