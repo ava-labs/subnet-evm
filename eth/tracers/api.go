@@ -791,6 +791,11 @@ func (api *FileTracerAPI) standardTraceBlockToFile(ctx context.Context, block *t
 	}
 	defer release()
 
+	err = core.ApplyUpgrades(api.backend.ChainConfig(), &parent.Header().Time, block, statedb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure precompiles in block tracing %v", err)
+	}
+
 	// Retrieve the tracing configurations, or use default values
 	var (
 		logConfig logger.Config
