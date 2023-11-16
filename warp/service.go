@@ -87,10 +87,6 @@ func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *warp.Uns
 		return nil, err
 	}
 
-	log.Debug("Fetching signature",
-		"a.subnetID", a.sourceSubnetID,
-		"height", pChainHeight,
-	)
 	validators, totalWeight, err := warp.GetCanonicalValidatorSet(ctx, a.state, pChainHeight, a.sourceSubnetID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get validator set: %w", err)
@@ -98,6 +94,13 @@ func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *warp.Uns
 	if len(validators) == 0 {
 		return nil, fmt.Errorf("%w (SubnetID: %s, Height: %d)", errNoValidators, a.sourceSubnetID, pChainHeight)
 	}
+
+	log.Debug("Fetching signature",
+		"sourceSubnetID", a.sourceSubnetID,
+		"height", pChainHeight,
+		"numValidators", len(validators),
+		"totalWeight", totalWeight,
+	)
 
 	agg := aggregator.New(aggregator.NewSignatureGetter(a.client), validators, totalWeight)
 	signatureResult, err := agg.AggregateSignatures(ctx, unsignedMessage, quorumNum)

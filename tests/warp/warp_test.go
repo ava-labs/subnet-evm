@@ -93,7 +93,10 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	f, err := os.CreateTemp(os.TempDir(), "config.json")
 	require.NoError(err)
-	_, err = f.Write([]byte(`{"warp-api-enabled": true}`))
+	_, err = f.Write([]byte(`{
+		"warp-api-enabled": true,
+		"log-level": "debug"
+	}`))
 	require.NoError(err)
 	warpChainConfigPath = f.Name()
 
