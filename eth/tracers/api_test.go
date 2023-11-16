@@ -1094,7 +1094,7 @@ func TestTraceTransactionPrecompileActivation(t *testing.T) {
 				StructLogs:  []logger.StructLogRes{},
 			}
 			eq := reflect.DeepEqual(have, expected)
-			require.True(eq)
+			require.True(eq, "have %v, want %v", have, expected)
 		})
 	}
 }
