@@ -973,7 +973,25 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 		if err := config.StateOverrides.Apply(statedb); err != nil {
 			return nil, err
 		}
+		// this is a bit of a hack, but we need to apply the block overrides to precompile upgrades.
+		// difference here can activate/deactivate precompiles.
+		doApplyUpgrades := false
+		originalTime := block.Time()
+		if config.BlockOverrides != nil && config.BlockOverrides.Time != nil {
+			modifiedTime := uint64(*config.BlockOverrides.Time)
+			if modifiedTime > originalTime {
+				doApplyUpgrades = true
+			}
+		}
+
 		config.BlockOverrides.Apply(&vmctx)
+		if doApplyUpgrades {
+			// Apply upgrades here as if the block was mined at the modified time.
+			err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, &vmctx, statedb)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 	// Execute the trace
 	msg, err := args.ToMessage(api.backend.RPCGasCap(), block.BaseFee())
