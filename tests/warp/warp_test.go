@@ -540,33 +540,21 @@ func toRPCURI(uri string, blockchainID string) string {
 var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
 	w := gen()
 
-	// Send a transaction to Subnet A to issue a Warp Message to Subnet B
-	ginkgo.It("Send Message from A to B", ginkgo.Label("Warp", "SendWarp"), func() {
-		w.sendMessageFromSubnetA()
-	})
+	log.Info("Sending message from A to B")
+	w.sendMessageFromSubnetA()
 
-	// Aggregate a Warp Signature by sending an API request to each node requesting its signature and manually
-	// constructing a valid Avalanche Warp Message
-	ginkgo.It("Aggregate Warp Signature via API", ginkgo.Label("Warp", "ReceiveWarp", "AggregateWarpManually"), func() {
-		w.aggregateSignaturesViaAPI()
-	})
+	log.Info("Aggregating signatures via API")
+	w.aggregateSignaturesViaAPI()
 
-	// Aggregate signature via the p2p API for the AddressedCall and BlockHash payload Warp Messages
-	ginkgo.It("Aggregate AddressedCall and BlockPayload Signatures via Aggregator", ginkgo.Label("Warp", "ReceiveWarp", "AggregatorWarp"), func() {
-		w.aggregateSignatures()
-	})
+	log.Info("Aggregating signatures via p2p aggregator")
+	w.aggregateSignatures()
 
-	// Verify successful delivery of the Avalanche Warp Message from Chain A to Chain B
-	ginkgo.It("Verify Message from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
-		w.deliverAddressedCallToSubnetB()
-	})
+	log.Info("Delivering addressed call payload to Subnet B")
+	w.deliverAddressedCallToSubnetB()
 
-	// Verify successful delivery of the Avalanche Warp Block Hash from Chain A to Chain B
-	ginkgo.It("Verify Block Hash from A to B", ginkgo.Label("Warp", "VerifyMessage"), func() {
-		w.deliverBlockHashPayload()
-	})
+	log.Info("Delivering block hash payload to Subnet B")
+	w.deliverBlockHashPayload()
 
-	ginkgo.It("Send Message from A to B from Hardhat", ginkgo.Label("Warp", "IWarpMessenger", "SendWarpMessage"), func() {
-		w.executeHardHatTest()
-	})
+	log.Info("Executing HardHat test")
+	w.executeHardHatTest()
 }, warpTableEntries)
