@@ -562,6 +562,11 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 	}
 	defer release()
 
+	err = core.ApplyUpgrades(api.backend.ChainConfig(), &parent.Header().Time, block, statedb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure precompiles in block tracing %v", err)
+	}
+
 	var (
 		roots              []common.Hash
 		signer             = types.MakeSigner(api.backend.ChainConfig(), block.Number(), block.Time())
