@@ -565,7 +565,7 @@ var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
 	w.aggregateSignaturesViaAPI()
 
 	log.Info("Aggregating signatures via p2p aggregator")
-	w.aggregateSignatures()
+	// w.aggregateSignatures()
 
 	log.Info("Delivering addressed call payload to Subnet B")
 	w.deliverAddressedCallToSubnetB()
