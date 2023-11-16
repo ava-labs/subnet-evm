@@ -422,7 +422,7 @@ func (w *warpTest) deliverAddressedCallToSubnetB() {
 		warp.ContractAddress,
 		w.addressedCallSignedMessage.Bytes(),
 	)
-	signedTx, err := types.SignTx(tx, w.chainASigner, w.subnetAFundedKey)
+	signedTx, err := types.SignTx(tx, w.chainBSigner, w.subnetBFundedKey)
 	require.NoError(err)
 	txBytes, err := signedTx.MarshalBinary()
 	require.NoError(err)
