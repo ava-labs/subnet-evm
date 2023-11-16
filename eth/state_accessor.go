@@ -215,6 +215,13 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 	if err != nil {
 		return nil, vm.BlockContext{}, nil, nil, err
 	}
+
+	// Apply upgrades to the parent state
+	err = core.ApplyUpgrades(eth.blockchain.Config(), &parent.Header().Time, block, statedb)
+	if err != nil {
+		return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("failed to configure precompiles %v", err)
+	}
+
 	if txIndex == 0 && len(block.Transactions()) == 0 {
 		return nil, vm.BlockContext{}, statedb, release, nil
 	}

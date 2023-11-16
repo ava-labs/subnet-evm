@@ -55,6 +55,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -185,6 +186,12 @@ func (b *testBackend) StateAtTransaction(ctx context.Context, block *types.Block
 	if err != nil {
 		return nil, vm.BlockContext{}, nil, nil, errStateNotFound
 	}
+	// Apply upgrades to the parent state
+	err = core.ApplyUpgrades(b.chainConfig, &parent.Header().Time, block, statedb)
+	if err != nil {
+		return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("failed to configure precompiles %v", err)
+	}
+
 	if txIndex == 0 && len(block.Transactions()) == 0 {
 		return nil, vm.BlockContext{}, statedb, release, nil
 	}
@@ -1024,5 +1031,69 @@ func TestTraceBlockPrecompileActivation(t *testing.T) {
 		if string(have) != want {
 			t.Errorf("test %d, result mismatch, have\n%v\n, want\n%v\n", i, string(have), want)
 		}
+	}
+}
+func TestTraceTransactionPrecompileActivation(t *testing.T) {
+	t.Parallel()
+
+	// Initialize test accounts
+	accounts := newAccounts(3)
+	copyConfig := *params.TestChainConfig
+	genesis := &core.Genesis{
+		Config: &copyConfig,
+		Alloc: core.GenesisAlloc{
+			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
+			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
+			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
+		},
+	}
+	// assumes gap is 10 sec, means 2 block away
+	activateAllowlistBlock := uint64(2)
+	activateAllowListTime := activateAllowlistBlock * 10
+	activateTxAllowListConfig := params.PrecompileUpgrade{
+		Config: txallowlist.NewConfig(&activateAllowListTime, []common.Address{accounts[0].addr}, nil, nil),
+	}
+
+	deactivateAllowlistBlock := activateAllowlistBlock + 2
+	deactivateAllowListTime := deactivateAllowlistBlock * 10
+	deactivateTxAllowListConfig := params.PrecompileUpgrade{
+		Config: txallowlist.NewDisableConfig(&deactivateAllowListTime),
+	}
+
+	genesis.Config.PrecompileUpgrades = []params.PrecompileUpgrade{
+		activateTxAllowListConfig,
+		deactivateTxAllowListConfig,
+	}
+	signer := types.HomesteadSigner{}
+	blockNoTxMap := make(map[uint64]common.Hash)
+
+	backend := newTestBackend(t, 5, genesis, func(i int, b *core.BlockGen) {
+		// Transfer from account[0] to account[1]
+		//    value: 1000 wei
+		//    fee:   0 wei
+		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, new(big.Int).Add(b.BaseFee(), big.NewInt(int64(500*params.GWei))), nil), signer, accounts[0].key)
+		b.AddTx(tx)
+		blockNoTxMap[uint64(i)] = tx.Hash()
+	})
+
+	defer backend.chain.Stop()
+	api := NewAPI(backend)
+	for i, target := range blockNoTxMap {
+		t.Run(fmt.Sprintf("blockNumber %d", i), func(t *testing.T) {
+			result, err := api.TraceTransaction(context.Background(), target, nil)
+			require := require.New(t)
+			require.NoError(err)
+			var have *logger.ExecutionResult
+			err = json.Unmarshal(result.(json.RawMessage), &have)
+			require.NoError(err)
+			expected := &logger.ExecutionResult{
+				Gas:         params.TxGas,
+				Failed:      false,
+				ReturnValue: "",
+				StructLogs:  []logger.StructLogRes{},
+			}
+			eq := reflect.DeepEqual(have, expected)
+			require.True(eq)
+		})
 	}
 }
