@@ -265,7 +265,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction, coin
 		blockContext = core.NewEVMBlockContext(env.header, w.chain, &coinbase)
 	}
 
-	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, blockContext, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
+	receipt, _, err := core.ApplyTransaction(w.chainConfig, w.chain, blockContext, env.gasPool, env.state, env.header, tx, &env.header.GasUsed, *w.chain.GetVMConfig())
 	if err != nil {
 		env.state.RevertToSnapshot(snap)
 		env.gasPool.SetGas(gp)

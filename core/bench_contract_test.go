@@ -28,6 +28,7 @@ package core
 
 import (
 	_ "embed"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -45,16 +46,15 @@ var (
 )
 
 func BenchmarkTrie(t *testing.B) {
-	benchInsertChain(t, true, stressTestTrieDb(100, 100, 5000))
+	benchInsertChain(t, true, stressTestTrieDb(100, 6, 50, 1202102))
 }
 
-func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64) func(int, *BlockGen) {
+func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64, gasTxLimit uint64) func(int, *BlockGen) {
 	contractAddr := make([]common.Address, numContracts)
 	contractTxs := make([]*types.Transaction, numContracts)
 
 	gasPrice := big.NewInt(225000000000)
-	gasTx := uint64(22000)
-	gasCreation := uint64(70000)
+	gasCreation := uint64(258000)
 	deployedContracts := 0
 
 	for i := 0; i < numContracts; i++ {
@@ -73,15 +73,27 @@ func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64) func(
 
 	return func(i int, gen *BlockGen) {
 		if len(contractTxs) != deployedContracts {
-			for ; deployedContracts < len(contractTxs); deployedContracts++ {
-				gen.AddTx(contractTxs[deployedContracts])
+			block := gen.PrevBlock(i - 1)
+			gas := block.GasLimit()
+			for ; deployedContracts < len(contractTxs) && gasCreation < gas; deployedContracts++ {
+				if receipt, err := gen.AddTxOrFail(contractTxs[deployedContracts]); err != nil {
+					fmt.Printf("\nBlock: %d\nReceipt: %+v\n", i, receipt)
+					panic(err)
+				}
+				gas -= gasCreation
 			}
 			return
 		}
 
 		for e := 0; e < callsPerBlock; e++ {
-			tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr[i%deployedContracts], big.NewInt(0), gasTx, gasPrice, txPayload), signer, testKey)
-			gen.AddTx(tx)
+			tx, err := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr[i%deployedContracts], big.NewInt(0), gasTxLimit, gasPrice, txPayload), signer, testKey)
+			if err != nil {
+				panic(err)
+			}
+			if receipt, err := gen.AddTxOrFail(tx); err != nil {
+				fmt.Printf("\nBlock: %d\nIter: %d\nReceipt: %+v\n", i, e, receipt)
+				panic(err)
+			}
 		}
 	}
 }
