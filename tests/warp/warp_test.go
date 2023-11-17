@@ -23,6 +23,8 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
@@ -555,6 +557,46 @@ func (w *warpTest) executeHardHatTest() {
 	utils.RunHardhatTestsCustomURI(ctx, rpcURI, cmdPath, testPath)
 }
 
+func (w *warpTest) bulkSendWarpMessages() {
+	require := require.New(ginkgo.GinkgoT())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	const (
+		numWorkers   = 5
+		txsPerWorker = 10
+		batchSize    = 10
+	)
+
+	keys := make([]*key.Key, 0, numWorkers)
+	prefundedKey := key.CreateKey(fundedKey)
+	keys = append(keys, prefundedKey)
+	for i := 1; i < numWorkers; i++ {
+		newKey, err := key.Generate()
+		require.NoError(err)
+		keys = append(keys, newKey)
+	}
+
+	loader := load.New(keys, w.subnetAClients, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
+		data, err := warp.PackSendWarpMessage([]byte("hola"))
+		if err != nil {
+			return nil, err
+		}
+		tx := types.NewTx(&types.DynamicFeeTx{
+			ChainID:   w.chainIDA,
+			Nonce:     nonce,
+			To:        &warp.Module.Address,
+			Gas:       200_000,
+			GasFeeCap: big.NewInt(225 * params.GWei),
+			GasTipCap: big.NewInt(params.GWei),
+			Value:     common.Big0,
+			Data:      data,
+		})
+		return types.SignTx(tx, w.chainASigner, key)
+	}, numWorkers, txsPerWorker, batchSize, "9000")
+	require.NoError(loader.Execute(ctx))
+}
+
 func toRPCURI(uri string, blockchainID string) string {
 	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
 }
@@ -579,4 +621,7 @@ var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
 
 	log.Info("Executing HardHat test")
 	w.executeHardHatTest()
+
+	log.Info("Executing bulk warp send")
+	w.bulkSendWarpMessages()
 }, warpTableEntries)

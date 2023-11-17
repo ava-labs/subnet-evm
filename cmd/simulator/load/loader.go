@@ -36,6 +36,77 @@ const (
 	MetricsEndpoint = "/metrics" // Endpoint for the Prometheus Metrics Server
 )
 
+type Loader struct {
+	clients      []ethclient.Client
+	keys         []*key.Key
+	gen          func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error)
+	numWorkers   int
+	txsPerWorker uint64
+	batchSize    uint64
+	metricsPort  string
+}
+
+func New(
+	keys []*key.Key,
+	clients []ethclient.Client,
+	gen func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error),
+	numWorkers int,
+	txsPerWorker uint64,
+	batchSize uint64,
+	metricsPort string,
+) *Loader {
+	return &Loader{
+		clients:      clients,
+		keys:         keys,
+		gen:          gen,
+		numWorkers:   numWorkers,
+		txsPerWorker: txsPerWorker,
+		batchSize:    batchSize,
+		metricsPort:  metricsPort,
+	}
+}
+
+func (l *Loader) Execute(ctx context.Context) error {
+	reg := prometheus.NewRegistry()
+	m := metrics.NewMetrics(reg)
+
+	keys := make([]*ecdsa.PrivateKey, len(l.keys))
+	for i := 0; i < len(l.keys); i++ {
+		keys[i] = l.keys[i].PrivKey
+	}
+
+	txSequences, err := txs.GenerateTxSequences(ctx, l.gen, l.clients[0], keys, l.txsPerWorker)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Constructing tx agents...", "numAgents", l.numWorkers)
+	agents := make([]txs.Agent[*types.Transaction], 0, l.numWorkers)
+	for i := 0; i < l.numWorkers; i++ {
+		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, l.clients[i], ethcrypto.PubkeyToAddress(l.keys[i].PrivKey.PublicKey)), l.batchSize, m))
+	}
+
+	log.Info("Starting tx agents...")
+	eg := errgroup.Group{}
+	for _, agent := range agents {
+		agent := agent
+		eg.Go(func() error {
+			return agent.Execute(ctx)
+		})
+	}
+
+	go startMetricsServer(ctx, l.metricsPort, reg)
+
+	log.Info("Waiting for tx agents...")
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	log.Info("Tx agents completed successfully.")
+
+	printOutputFromMetricsServer(l.metricsPort)
+	return nil
+}
+
 // ExecuteLoader creates txSequences from [config] and has txAgents execute the specified simulation.
 func ExecuteLoader(ctx context.Context, config config.Config) error {
 	if config.Timeout > 0 {
@@ -128,7 +199,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	log.Info("Creating transaction sequences...")
 	txGenerator := func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
 		addr := ethcrypto.PubkeyToAddress(key.PublicKey)
-		tx, err := types.SignNewTx(key, signer, &types.DynamicFeeTx{
+		return types.SignNewTx(key, signer, &types.DynamicFeeTx{
 			ChainID:   chainID,
 			Nonce:     nonce,
 			GasTipCap: gasTipCap,
@@ -138,41 +209,10 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 			Data:      nil,
 			Value:     common.Big0,
 		})
-		if err != nil {
-			return nil, err
-		}
-		return tx, nil
-	}
-	txSequences, err := txs.GenerateTxSequences(ctx, txGenerator, clients[0], pks, config.TxsPerWorker)
-	if err != nil {
-		return err
 	}
 
-	log.Info("Constructing tx agents...", "numAgents", config.Workers)
-	agents := make([]txs.Agent[*types.Transaction], 0, config.Workers)
-	for i := 0; i < config.Workers; i++ {
-		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, clients[i], senders[i]), config.BatchSize, m))
-	}
-
-	log.Info("Starting tx agents...")
-	eg := errgroup.Group{}
-	for _, agent := range agents {
-		agent := agent
-		eg.Go(func() error {
-			return agent.Execute(ctx)
-		})
-	}
-
-	go startMetricsServer(ctx, metricsPort, reg)
-
-	log.Info("Waiting for tx agents...")
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-	log.Info("Tx agents completed successfully.")
-
-	printOutputFromMetricsServer(metricsPort)
-	return nil
+	loader := New(keys, clients, txGenerator, config.Workers, config.TxsPerWorker, config.BatchSize, metricsPort)
+	return loader.Execute(ctx)
 }
 
 func startMetricsServer(ctx context.Context, metricsPort string, reg *prometheus.Registry) {
