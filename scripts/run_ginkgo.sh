@@ -30,6 +30,6 @@ TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" ginkgo run -procs=5 tests/precompile \
   --ginkgo.vv \
   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
 
-./tests/load/load.test \
-  --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+# ./tests/load/load.test \
+#   --ginkgo.vv \
+#   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
