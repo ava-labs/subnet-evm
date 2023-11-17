@@ -950,15 +950,16 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 	vmctx := core.NewEVMBlockContext(block.Header(), api.chainContext(ctx), nil)
 	// Apply the customization rules if required.
 	if config != nil {
-		if err := config.StateOverrides.Apply(statedb); err != nil {
-			return nil, err
-		}
-
 		originalTime := block.Time()
 		config.BlockOverrides.Apply(&vmctx)
 		// Apply upgrades here as if the block was mined at the modified time.
+		// Should be applied before the state overrides.
 		err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, &vmctx, statedb)
 		if err != nil {
+			return nil, err
+		}
+
+		if err := config.StateOverrides.Apply(statedb); err != nil {
 			return nil, err
 		}
 	}
