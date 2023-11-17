@@ -952,7 +952,7 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 	if config != nil {
 		originalTime := block.Time()
 		config.BlockOverrides.Apply(&vmctx)
-		// Apply upgrades here as if the block was mined at the modified time.
+		// Apply all relevant upgrades from [originalTime] to the block time set in the override.
 		// Should be applied before the state overrides.
 		err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, &vmctx, statedb)
 		if err != nil {
