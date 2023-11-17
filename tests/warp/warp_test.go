@@ -57,10 +57,10 @@ var (
 		ginkgo.Entry("Subnet <-> Subnet", func() *warpTest {
 			return newWarpTest(context.Background(), subnetA, fundedKey, subnetB, fundedKey)
 		}),
-		ginkgo.Entry("Small Subnet -> C-Chain", func() *warpTest {
+		ginkgo.Entry("Subnet -> C-Chain", func() *warpTest {
 			return newWarpTest(context.Background(), subnetA, fundedKey, cChainSubnetDetails, fundedKey)
 		}),
-		ginkgo.Entry("C-Chain -> Small Subnet", func() *warpTest {
+		ginkgo.Entry("C-Chain -> Subnet", func() *warpTest {
 			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
 		}),
 	}
