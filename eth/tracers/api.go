@@ -97,6 +97,7 @@ type Backend interface {
 	Engine() consensus.Engine
 	ChainDb() ethdb.Database
 	StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, StateReleaseFunc, error)
+	StateAtNextBlock(ctx context.Context, parent, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, StateReleaseFunc, error)
 	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (*core.Message, vm.BlockContext, *state.StateDB, StateReleaseFunc, error)
 }
 
@@ -403,13 +404,7 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 				s1, s2 := statedb.Database().TrieDB().Size()
 				preferDisk = s1+s2 > defaultTracechainMemLimit
 			}
-			statedb, release, err = api.backend.StateAtBlock(ctx, block, reexec, statedb, false, preferDisk)
-			if err != nil {
-				failed = err
-				break
-			}
-			// Apply upgrades here for the next, parent is [block]
-			err = core.ApplyUpgrades(api.backend.ChainConfig(), &block.Header().Time, next, statedb)
+			statedb, release, err = api.backend.StateAtNextBlock(ctx, block, next, reexec, statedb, false, preferDisk)
 			if err != nil {
 				failed = err
 				break
@@ -556,16 +551,11 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
+	statedb, release, err := api.backend.StateAtNextBlock(ctx, parent, block, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-
-	err = core.ApplyUpgrades(api.backend.ChainConfig(), &parent.Header().Time, block, statedb)
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure precompiles in block tracing %v", err)
-	}
 
 	var (
 		roots              []common.Hash
@@ -638,16 +628,11 @@ func (api *baseAPI) traceBlock(ctx context.Context, block *types.Block, config *
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
+	statedb, release, err := api.backend.StateAtNextBlock(ctx, parent, block, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-
-	err = core.ApplyUpgrades(api.backend.ChainConfig(), &parent.Header().Time, block, statedb)
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure precompiles in block tracing %v", err)
-	}
 
 	// JS tracers have high overhead. In this case run a parallel
 	// process that generates states in one thread and traces txes
@@ -785,16 +770,11 @@ func (api *FileTracerAPI) standardTraceBlockToFile(ctx context.Context, block *t
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
+	statedb, release, err := api.backend.StateAtNextBlock(ctx, parent, block, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-
-	err = core.ApplyUpgrades(api.backend.ChainConfig(), &parent.Header().Time, block, statedb)
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure precompiles in block tracing %v", err)
-	}
 
 	// Retrieve the tracing configurations, or use default values
 	var (
@@ -973,24 +953,13 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 		if err := config.StateOverrides.Apply(statedb); err != nil {
 			return nil, err
 		}
-		// this is a bit of a hack, but we need to apply the block overrides to precompile upgrades.
-		// difference here can activate/deactivate precompiles.
-		doApplyUpgrades := false
-		originalTime := block.Time()
-		if config.BlockOverrides != nil && config.BlockOverrides.Time != nil {
-			modifiedTime := uint64(*config.BlockOverrides.Time)
-			if modifiedTime > originalTime {
-				doApplyUpgrades = true
-			}
-		}
 
+		originalTime := block.Time()
 		config.BlockOverrides.Apply(&vmctx)
-		if doApplyUpgrades {
-			// Apply upgrades here as if the block was mined at the modified time.
-			err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, &vmctx, statedb)
-			if err != nil {
-				return nil, err
-			}
+		// Apply upgrades here as if the block was mined at the modified time.
+		err = core.ApplyUpgrades(api.backend.ChainConfig(), &originalTime, &vmctx, statedb)
+		if err != nil {
+			return nil, err
 		}
 	}
 	// Execute the trace
