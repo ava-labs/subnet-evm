@@ -23,8 +23,16 @@ type networkUpgradeConfigMessage struct {
 }
 
 type UpgradeConfigMessage struct {
-	Bytes []byte
-	Hash  []byte
+	bytes []byte
+	hash  []byte
+}
+
+func (u *UpgradeConfigMessage) Bytes() []byte {
+	return u.bytes
+}
+
+func (u *UpgradeConfigMessage) ID() []byte {
+	return u.hash
 }
 
 // Attempts to parse a networkUpgradeConfigMessage from a []byte
@@ -34,7 +42,7 @@ type UpgradeConfigMessage struct {
 // UpgradeConfigToNetworkMessage).
 //
 // The function returns a reference of *params.UpgradeConfig
-func ParseUpgradeConfigMessage(bytes []byte) (*params.UpgradeConfig, error) {
+func NewUpgradeConfigMessageFromBytes(bytes []byte) (*params.UpgradeConfig, error) {
 	var config networkUpgradeConfigMessage
 	version, err := Codec.Unmarshal(bytes, &config)
 	if err != nil {
@@ -77,7 +85,7 @@ func ParseUpgradeConfigMessage(bytes []byte) (*params.UpgradeConfig, error) {
 // Since params.UpgradeConfig should never change without a node reloading, it
 // is safe to call this function once and store its output globally to re-use
 // multiple times
-func UpgradeConfigToNetworkMessage(config *params.UpgradeConfig) (*UpgradeConfigMessage, error) {
+func NewUpgradeConfigMessage(config *params.UpgradeConfig) (*UpgradeConfigMessage, error) {
 	PrecompileUpgrades := make([]rawPrecompileUpgrade, 0)
 	for _, precompileConfig := range config.PrecompileUpgrades {
 		bytes, err := Codec.Marshal(Version, precompileConfig.Config)
@@ -102,11 +110,8 @@ func UpgradeConfigToNetworkMessage(config *params.UpgradeConfig) (*UpgradeConfig
 	}
 
 	hash := crypto.Keccak256(bytes)
-	var firstBytes [8]byte
-	copy(firstBytes[:], hash[:8])
-
 	return &UpgradeConfigMessage{
-		Bytes: bytes,
-		Hash:  hash,
+		bytes: bytes,
+		hash:  hash[:8],
 	}, nil
 }

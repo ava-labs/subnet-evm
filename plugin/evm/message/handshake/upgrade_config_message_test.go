@@ -14,7 +14,7 @@ import (
 func TestSerialize(t *testing.T) {
 	var t0 uint64 = 0
 	var t1 uint64 = 1
-	message, err := UpgradeConfigToNetworkMessage(&params.UpgradeConfig{
+	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
 		PrecompileUpgrades: []params.PrecompileUpgrade{
 			{
 				Config: nativeminter.NewConfig(&t0, nil, nil, nil, nil), // enable at genesis
@@ -26,19 +26,19 @@ func TestSerialize(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	config, err := ParseUpgradeConfigMessage(message.Bytes)
+	config, err := NewUpgradeConfigMessageFromBytes(message.Bytes())
 	require.NoError(t, err)
 
-	message2, err := UpgradeConfigToNetworkMessage(config)
+	message2, err := NewUpgradeConfigMessage(config)
 	require.NoError(t, err)
 
-	config3, err := ParseUpgradeConfigMessage(message2.Bytes)
+	config3, err := NewUpgradeConfigMessageFromBytes(message2.Bytes())
 	require.NoError(t, err)
 
-	message3, err := UpgradeConfigToNetworkMessage(config3)
+	message3, err := NewUpgradeConfigMessage(config3)
 	require.NoError(t, err)
 
 	require.Equal(t, config, config3)
-	require.Equal(t, message.Hash, message2.Hash)
-	require.Equal(t, message2.Hash, message3.Hash)
+	require.Equal(t, message.hash, message2.hash)
+	require.Equal(t, message2.hash, message3.hash)
 }
