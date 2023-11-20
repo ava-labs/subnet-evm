@@ -26,7 +26,7 @@ var _ precompileconfig.Config = &Config{}
 // adds specific configuration for {{.Contract.Type}}.
 type Config struct {
 	{{- if .Contract.AllowList}}
-	allowlist.AllowListConfig
+	allowlist.AllowListConfig ` + "`" + `serialize:"true"` + "`" + `
 	{{- end}}
 	precompileconfig.Upgrade
 	// CUSTOM CODE STARTS HERE
