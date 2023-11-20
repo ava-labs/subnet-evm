@@ -98,26 +98,6 @@ func (b *BlockGen) SetDifficulty(diff *big.Int) {
 	b.header.Difficulty = diff
 }
 
-func (b *BlockGen) AddTxOrFail(tx *types.Transaction) (*types.Receipt, error) {
-	if b.gasPool == nil {
-		b.SetCoinbase(common.Address{})
-	}
-	b.statedb.SetTxContext(tx.Hash(), len(b.txs))
-	blockContext := NewEVMBlockContext(b.header, nil, &b.header.Coinbase)
-	receipt, result, err := ApplyTransaction(b.config, nil, blockContext, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	b.txs = append(b.txs, tx)
-	b.receipts = append(b.receipts, receipt)
-
-	if result.Err != nil {
-		return receipt, result.Err
-	}
-	return receipt, nil
-}
-
 // addTx adds a transaction to the generated block. If no coinbase has
 // been set, the block's coinbase is set to the zero address.
 //
@@ -131,7 +111,7 @@ func (b *BlockGen) addTx(bc *BlockChain, vmConfig vm.Config, tx *types.Transacti
 	}
 	b.statedb.SetTxContext(tx.Hash(), len(b.txs))
 	blockContext := NewEVMBlockContext(b.header, bc, &b.header.Coinbase)
-	receipt, _, err := ApplyTransaction(b.config, bc, blockContext, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vmConfig)
+	receipt, err := ApplyTransaction(b.config, bc, blockContext, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vmConfig)
 	if err != nil {
 		panic(err)
 	}
