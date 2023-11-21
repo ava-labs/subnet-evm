@@ -628,6 +628,8 @@ func (w *warpTest) warpLoad() {
 		subnetIDStr = w.subnetB.SubnetID.String()
 	}
 
+	time.Sleep(10 * time.Second)
+
 	warpDeliverSequences, err := txs.GenerateTxSequences(ctx, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
 		// Wait for the next warp send log
 		warpLog := <-logs
@@ -638,7 +640,7 @@ func (w *warpTest) warpLoad() {
 		}
 		log.Info("Fetching addressed call aggregate signature via p2p API")
 
-		signedWarpMessageBytes, err := warpClient.GetMessageAggregateSignature(ctx, unsignedMessage.ID(), params.WarpQuorumDenominator, subnetIDStr)
+		signedWarpMessageBytes, err := warpClient.GetMessageAggregateSignature(ctx, unsignedMessage.ID(), params.WarpDefaultQuorumNumerator, subnetIDStr)
 		if err != nil {
 			return nil, err
 		}
