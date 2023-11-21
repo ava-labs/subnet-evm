@@ -566,9 +566,9 @@ func (w *warpTest) warpLoad() {
 	defer cancel()
 
 	var (
-		numWorkers           = len(w.subnetAClients)
-		txsPerWorker  uint64 = 10
-		batchSize     uint64 = 10
+		numWorkers           = len(w.subnetAClients[:2])
+		txsPerWorker  uint64 = 2
+		batchSize     uint64 = 1
 		subnetAClient        = w.subnetAClients[0]
 	)
 
@@ -587,6 +587,9 @@ func (w *warpTest) warpLoad() {
 	// ms := loadMetrics.Serve(ctx, "8082", "/metrics")
 
 	keys, err := load.DistributeFunds(ctx, subnetAClient, keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
+	require.NoError(err)
+
+	_, err = load.DistributeFunds(ctx, w.subnetBClients[0], keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
 	require.NoError(err)
 
 	workers := make([]txs.Worker[*types.Transaction], 0, len(keys))
@@ -660,7 +663,7 @@ func (w *warpTest) warpLoad() {
 			signedWarpMessageBytes,
 		)
 		return types.SignTx(tx, w.chainBSigner, key)
-	}, w.subnetAClients[0], privateKeys, txsPerWorker, true)
+	}, w.subnetBClients[0], privateKeys, txsPerWorker, true)
 	require.NoError(err)
 	warpDeliverLoader := load.New(workers, warpDeliverSequences, batchSize, loadMetrics)
 
