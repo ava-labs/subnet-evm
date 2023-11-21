@@ -75,12 +75,6 @@ func (a issueNAgent[T]) Execute(ctx context.Context) error {
 		totalConfirmedTime time.Duration
 	)
 
-	defer func() {
-		if err := a.worker.Close(ctx); err != nil {
-			log.Error("error trying to close worker: %w", "err", err)
-		}
-	}()
-
 	// Start time for execution
 	start := time.Now()
 	for {

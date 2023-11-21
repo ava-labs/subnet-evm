@@ -584,8 +584,7 @@ func (w *warpTest) warpLoad() {
 	}
 
 	loadMetrics := metrics.NewDefaultMetrics()
-	ms := loadMetrics.Serve(ctx, "8082", "/metrics")
-	defer ms.Print()
+	// ms := loadMetrics.Serve(ctx, "8082", "/metrics")
 
 	keys, err := load.DistributeFunds(ctx, subnetAClient, keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
 	require.NoError(err)
@@ -673,6 +672,7 @@ func (w *warpTest) warpLoad() {
 		return warpDeliverLoader.Execute(ctx)
 	})
 	require.NoError(eg.Wait())
+	// ms.Print()
 }
 
 func toRPCURI(uri string, blockchainID string) string {
