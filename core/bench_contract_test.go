@@ -163,7 +163,8 @@ func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, element
 		}
 
 		for e := 0; e < callsPerBlock; e++ {
-			tx, err := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr[i%deployedContracts], big.NewInt(0), gasTxLimit, gasPrice, txPayload), signer, testKey)
+			contractId := (i + e) % deployedContracts
+			tx, err := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr[contractId], big.NewInt(0), gasTxLimit, gasPrice, txPayload), signer, testKey)
 			require.NoError(err)
 			_, err = gen.AddTxOrFail(tx)
 			require.NoError(err)
