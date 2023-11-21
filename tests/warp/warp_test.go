@@ -584,6 +584,8 @@ func (w *warpTest) warpLoad() {
 	}
 
 	loadMetrics := metrics.NewDefaultMetrics()
+	ms := loadMetrics.Serve(ctx, "8082", "/metrics")
+	defer ms.Print()
 
 	keys, err := load.DistributeFunds(ctx, subnetAClient, keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
 	require.NoError(err)
