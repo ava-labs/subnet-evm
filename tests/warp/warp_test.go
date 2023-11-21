@@ -44,7 +44,6 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/errgroup"
 )
 
 const fundedKeyStr = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027" // addr: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
@@ -562,8 +561,7 @@ func (w *warpTest) executeHardHatTest() {
 
 func (w *warpTest) warpLoad() {
 	require := require.New(ginkgo.GinkgoT())
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
+	ctx := context.Background()
 
 	var (
 		numWorkers           = len(w.subnetAClients[:2])
@@ -584,7 +582,6 @@ func (w *warpTest) warpLoad() {
 	}
 
 	loadMetrics := metrics.NewDefaultMetrics()
-	// ms := loadMetrics.Serve(ctx, "8082", "/metrics")
 
 	keys, err := load.DistributeFunds(ctx, subnetAClient, keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
 	require.NoError(err)
@@ -615,6 +612,7 @@ func (w *warpTest) warpLoad() {
 	}, w.subnetAClients[0], privateKeys, txsPerWorker, false)
 	require.NoError(err)
 	warpSendLoader := load.New(workers, warpSendSequences, batchSize, loadMetrics)
+	require.NoError(warpSendLoader.Execute(ctx))
 
 	logs := make(chan types.Log, numWorkers*int(txsPerWorker))
 	sub, err := subnetAClient.SubscribeFilterLogs(ctx, interfaces.FilterQuery{
@@ -666,16 +664,7 @@ func (w *warpTest) warpLoad() {
 	}, w.subnetBClients[0], privateKeys, txsPerWorker, true)
 	require.NoError(err)
 	warpDeliverLoader := load.New(workers, warpDeliverSequences, batchSize, loadMetrics)
-
-	eg := errgroup.Group{}
-	eg.Go(func() error {
-		return warpSendLoader.Execute(ctx)
-	})
-	eg.Go(func() error {
-		return warpDeliverLoader.Execute(ctx)
-	})
-	require.NoError(eg.Wait())
-	// ms.Print()
+	require.NoError(warpDeliverLoader.Execute(ctx))
 }
 
 func toRPCURI(uri string, blockchainID string) string {
