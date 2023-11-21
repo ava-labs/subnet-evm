@@ -28,7 +28,6 @@ package core
 
 import (
 	_ "embed"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -39,6 +38,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -49,7 +49,7 @@ var (
 )
 
 func BenchmarkTrie(t *testing.B) {
-	benchInsertChain(t, true, stressTestTrieDb(100, 6, 50, 1202102))
+	benchInsertChain(t, true, stressTestTrieDb(t, 100, 6, 50, 1202102))
 }
 
 func applyTransactionAndGetResult(msg *Message, config *params.ChainConfig, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (*types.Receipt, *ExecutionResult, error) {
@@ -127,7 +127,8 @@ func (b *BlockGen) AddTxOrFail(tx *types.Transaction) (*types.Receipt, error) {
 	return receipt, nil
 }
 
-func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64, gasTxLimit uint64) func(int, *BlockGen) {
+func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, elements int64, gasTxLimit uint64) func(int, *BlockGen) {
+	require := require.New(t)
 	contractAddr := make([]common.Address, numContracts)
 	contractTxs := make([]*types.Transaction, numContracts)
 
@@ -154,10 +155,8 @@ func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64, gasTx
 			block := gen.PrevBlock(i - 1)
 			gas := block.GasLimit()
 			for ; deployedContracts < len(contractTxs) && gasCreation < gas; deployedContracts++ {
-				if receipt, err := gen.AddTxOrFail(contractTxs[deployedContracts]); err != nil {
-					fmt.Printf("\nBlock: %d\nReceipt: %+v\n", i, receipt)
-					panic(err)
-				}
+				_, err := gen.AddTxOrFail(contractTxs[deployedContracts])
+				require.NoError(err)
 				gas -= gasCreation
 			}
 			return
@@ -165,13 +164,9 @@ func stressTestTrieDb(numContracts int, callsPerBlock int, elements int64, gasTx
 
 		for e := 0; e < callsPerBlock; e++ {
 			tx, err := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr[i%deployedContracts], big.NewInt(0), gasTxLimit, gasPrice, txPayload), signer, testKey)
-			if err != nil {
-				panic(err)
-			}
-			if receipt, err := gen.AddTxOrFail(tx); err != nil {
-				fmt.Printf("\nBlock: %d\nIter: %d\nReceipt: %+v\n", i, e, receipt)
-				panic(err)
-			}
+			require.NoError(err)
+			_, err = gen.AddTxOrFail(tx)
+			require.NoError(err)
 		}
 	}
 }
