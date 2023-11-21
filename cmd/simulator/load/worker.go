@@ -81,3 +81,59 @@ func (tw *singleAddressTxWorker) Close(ctx context.Context) error {
 	close(tw.newHeads)
 	return nil
 }
+
+type txReceiptWorker struct {
+	client ethclient.Client
+
+	sub      interfaces.Subscription
+	newHeads chan *types.Header
+}
+
+// NewSingleAddressTxWorker creates and returns a txReceiptWorker
+func NewTxReceiptWorker(ctx context.Context, client ethclient.Client) *txReceiptWorker {
+	newHeads := make(chan *types.Header)
+	tw := &txReceiptWorker{
+		client:   client,
+		newHeads: newHeads,
+	}
+
+	sub, err := client.SubscribeNewHead(ctx, newHeads)
+	if err != nil {
+		log.Debug("failed to subscribe new heads, falling back to polling", "err", err)
+	} else {
+		tw.sub = sub
+	}
+
+	return tw
+}
+
+func (tw *txReceiptWorker) IssueTx(ctx context.Context, tx *types.Transaction) error {
+	return tw.client.SendTransaction(ctx, tx)
+}
+
+func (tw *txReceiptWorker) ConfirmTx(ctx context.Context, tx *types.Transaction) error {
+	for {
+		select {
+		case <-tw.newHeads:
+		case <-time.After(time.Second):
+		case <-ctx.Done():
+			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), tx.Nonce(), ctx.Err())
+		}
+
+		txReceipt, err := tw.client.TransactionReceipt(ctx, tx.Hash())
+		if err != nil {
+			log.Debug("no tx receipt", "txHash", tx.Hash(), "nonce", tx.Nonce(), "err", err)
+			continue
+		}
+		log.Debug("fetched tx receipt", "receipt", txReceipt)
+		return nil
+	}
+}
+
+func (tw *txReceiptWorker) Close(ctx context.Context) error {
+	if tw.sub != nil {
+		tw.sub.Unsubscribe()
+	}
+	close(tw.newHeads)
+	return nil
+}

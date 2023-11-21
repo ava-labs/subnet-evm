@@ -25,6 +25,8 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
@@ -42,6 +44,7 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 const fundedKeyStr = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027" // addr: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
@@ -557,28 +560,40 @@ func (w *warpTest) executeHardHatTest() {
 	utils.RunHardhatTestsCustomURI(ctx, rpcURI, cmdPath, testPath)
 }
 
-func (w *warpTest) bulkSendWarpMessages() {
+func (w *warpTest) warpLoad() {
 	require := require.New(ginkgo.GinkgoT())
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	const (
-		numWorkers   = 5
-		txsPerWorker = 10
-		batchSize    = 10
+	var (
+		numWorkers           = len(w.subnetAClients)
+		txsPerWorker  uint64 = 10
+		batchSize     uint64 = 10
+		subnetAClient        = w.subnetAClients[0]
 	)
 
 	keys := make([]*key.Key, 0, numWorkers)
+	privateKeys := make([]*ecdsa.PrivateKey, 0, numWorkers)
 	prefundedKey := key.CreateKey(fundedKey)
 	keys = append(keys, prefundedKey)
 	for i := 1; i < numWorkers; i++ {
 		newKey, err := key.Generate()
 		require.NoError(err)
 		keys = append(keys, newKey)
+		privateKeys = append(privateKeys, newKey.PrivKey)
 	}
 
-	loader := load.New(keys, w.subnetAClients, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
-		data, err := warp.PackSendWarpMessage([]byte("hola"))
+	loadMetrics := metrics.NewDefaultMetrics()
+
+	keys, err := load.DistributeFunds(ctx, subnetAClient, keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
+	require.NoError(err)
+
+	workers := make([]txs.Worker[*types.Transaction], 0, len(keys))
+	for i, key := range keys {
+		workers = append(workers, load.NewSingleAddressTxWorker(ctx, w.subnetAClients[i], crypto.PubkeyToAddress(key.PrivKey.PublicKey)))
+	}
+	warpSendSequences, err := txs.GenerateTxSequences(ctx, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
+		data, err := warp.PackSendWarpMessage([]byte(fmt.Sprintf("Jets %d-%d Dolphins", key.X.Int64(), nonce)))
 		if err != nil {
 			return nil, err
 		}
@@ -593,8 +608,69 @@ func (w *warpTest) bulkSendWarpMessages() {
 			Data:      data,
 		})
 		return types.SignTx(tx, w.chainASigner, key)
-	}, numWorkers, txsPerWorker, batchSize, "9000")
-	require.NoError(loader.Execute(ctx))
+	}, w.subnetAClients[0], privateKeys, txsPerWorker, false)
+	require.NoError(err)
+	warpSendLoader := load.New(workers, warpSendSequences, batchSize, loadMetrics)
+
+	logs := make(chan types.Log, numWorkers*int(txsPerWorker))
+	sub, err := subnetAClient.SubscribeFilterLogs(ctx, interfaces.FilterQuery{
+		Addresses: []common.Address{warp.Module.Address},
+	}, logs)
+	require.NoError(err)
+	defer sub.Unsubscribe()
+
+	warpClient, err := warpBackend.NewClient(w.subnetAURIs[0], w.subnetA.BlockchainID.String())
+	require.NoError(err)
+	subnetIDStr := ""
+	if w.subnetA.SubnetID == constants.PrimaryNetworkID {
+		subnetIDStr = w.subnetB.SubnetID.String()
+	}
+
+	warpDeliverSequences, err := txs.GenerateTxSequences(ctx, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
+		// Wait for the next warp send log
+		warpLog := <-logs
+
+		unsignedMessage, err := warp.UnpackSendWarpEventDataToMessage(warpLog.Data)
+		if err != nil {
+			return nil, err
+		}
+		log.Info("Fetching addressed call aggregate signature via p2p API")
+
+		signedWarpMessageBytes, err := warpClient.GetMessageAggregateSignature(ctx, unsignedMessage.ID(), params.WarpQuorumDenominator, subnetIDStr)
+		if err != nil {
+			return nil, err
+		}
+
+		packedInput, err := warp.PackGetVerifiedWarpMessage(0)
+		if err != nil {
+			return nil, err
+		}
+		tx := predicate.NewPredicateTx(
+			w.chainIDB,
+			nonce,
+			&warp.Module.Address,
+			5_000_000,
+			big.NewInt(225*params.GWei),
+			big.NewInt(params.GWei),
+			common.Big0,
+			packedInput,
+			types.AccessList{},
+			warp.ContractAddress,
+			signedWarpMessageBytes,
+		)
+		return types.SignTx(tx, w.chainBSigner, key)
+	}, w.subnetAClients[0], privateKeys, txsPerWorker, true)
+	require.NoError(err)
+	warpDeliverLoader := load.New(workers, warpDeliverSequences, batchSize, loadMetrics)
+
+	eg := errgroup.Group{}
+	eg.Go(func() error {
+		return warpSendLoader.Execute(ctx)
+	})
+	eg.Go(func() error {
+		return warpDeliverLoader.Execute(ctx)
+	})
+	require.NoError(eg.Wait())
 }
 
 func toRPCURI(uri string, blockchainID string) string {
@@ -622,6 +698,6 @@ var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
 	log.Info("Executing HardHat test")
 	w.executeHardHatTest()
 
-	log.Info("Executing bulk warp send")
-	w.bulkSendWarpMessages()
+	log.Info("Executing warp load test")
+	w.warpLoad()
 }, warpTableEntries)

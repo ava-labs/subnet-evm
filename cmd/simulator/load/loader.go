@@ -6,15 +6,11 @@ package load
 import (
 	"context"
 	"crypto/ecdsa"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
@@ -27,8 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -36,54 +30,32 @@ const (
 	MetricsEndpoint = "/metrics" // Endpoint for the Prometheus Metrics Server
 )
 
-type Loader struct {
-	clients      []ethclient.Client
-	keys         []*key.Key
-	gen          func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error)
-	numWorkers   int
-	txsPerWorker uint64
-	batchSize    uint64
-	metricsPort  string
+type Loader[T txs.THash] struct {
+	clients     []txs.Worker[T]
+	txSequences []txs.TxSequence[T]
+	batchSize   uint64
+	metrics     *metrics.Metrics
 }
 
-func New(
-	keys []*key.Key,
-	clients []ethclient.Client,
-	gen func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error),
-	numWorkers int,
-	txsPerWorker uint64,
+func New[T txs.THash](
+	clients []txs.Worker[T],
+	txSequences []txs.TxSequence[T],
 	batchSize uint64,
-	metricsPort string,
-) *Loader {
-	return &Loader{
-		clients:      clients,
-		keys:         keys,
-		gen:          gen,
-		numWorkers:   numWorkers,
-		txsPerWorker: txsPerWorker,
-		batchSize:    batchSize,
-		metricsPort:  metricsPort,
+	metrics *metrics.Metrics,
+) *Loader[T] {
+	return &Loader[T]{
+		clients:     clients,
+		txSequences: txSequences,
+		batchSize:   batchSize,
+		metrics:     metrics,
 	}
 }
 
-func (l *Loader) Execute(ctx context.Context) error {
-	reg := prometheus.NewRegistry()
-	m := metrics.NewMetrics(reg)
-
-	keys := make([]*ecdsa.PrivateKey, len(l.keys))
-	for i := 0; i < len(l.keys); i++ {
-		keys[i] = l.keys[i].PrivKey
-	}
-
-	txSequences, err := txs.GenerateTxSequences(ctx, l.gen, l.clients[0], keys, l.txsPerWorker)
-	if err != nil {
-		return err
-	}
-
-	log.Info("Constructing tx agents...", "numAgents", l.numWorkers)
-	agents := make([]txs.Agent[*types.Transaction], 0, l.numWorkers)
-	for i := 0; i < l.numWorkers; i++ {
-		agents = append(agents, txs.NewIssueNAgent[*types.Transaction](txSequences[i], NewSingleAddressTxWorker(ctx, l.clients[i], ethcrypto.PubkeyToAddress(l.keys[i].PrivKey.PublicKey)), l.batchSize, m))
+func (l *Loader[T]) Execute(ctx context.Context) error {
+	log.Info("Constructing tx agents...", "numAgents", len(l.txSequences))
+	agents := make([]txs.Agent[T], 0, len(l.txSequences))
+	for i := 0; i < len(l.txSequences); i++ {
+		agents = append(agents, txs.NewIssueNAgent(l.txSequences[i], l.clients[i], l.batchSize, l.metrics))
 	}
 
 	log.Info("Starting tx agents...")
@@ -95,15 +67,11 @@ func (l *Loader) Execute(ctx context.Context) error {
 		})
 	}
 
-	go startMetricsServer(ctx, l.metricsPort, reg)
-
 	log.Info("Waiting for tx agents...")
 	if err := eg.Wait(); err != nil {
 		return err
 	}
 	log.Info("Tx agents completed successfully.")
-
-	printOutputFromMetricsServer(l.metricsPort)
 	return nil
 }
 
@@ -132,6 +100,9 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		// Cancel the child context and end all processes
 		cancel()
 	}()
+
+	m := metrics.NewDefaultMetrics()
+	ms := m.Serve(ctx, strconv.Itoa(int(config.MetricsPort)), MetricsEndpoint)
 
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
@@ -166,11 +137,6 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	// to fund gas for all of their transactions.
 	maxFeeCap := new(big.Int).Mul(big.NewInt(params.GWei), big.NewInt(config.MaxFeeCap))
 	minFundsPerAddr := new(big.Int).Mul(maxFeeCap, big.NewInt(int64(config.TxsPerWorker*params.TxGas)))
-
-	// Create metrics
-	reg := prometheus.NewRegistry()
-	m := metrics.NewMetrics(reg)
-	metricsPort := strconv.Itoa(int(config.MetricsPort))
 
 	log.Info("Distributing funds", "numTxsPerWorker", config.TxsPerWorker, "minFunds", minFundsPerAddr)
 	keys, err = DistributeFunds(ctx, clients[0], keys, config.Workers, minFundsPerAddr, m)
@@ -211,51 +177,17 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		})
 	}
 
-	loader := New(keys, clients, txGenerator, config.Workers, config.TxsPerWorker, config.BatchSize, metricsPort)
-	return loader.Execute(ctx)
-}
-
-func startMetricsServer(ctx context.Context, metricsPort string, reg *prometheus.Registry) {
-	// Create a prometheus server to expose individual tx metrics
-	server := &http.Server{
-		Addr: fmt.Sprintf(":%s", metricsPort),
-	}
-
-	// Start up go routine to listen for SIGINT notifications to gracefully shut down server
-	go func() {
-		// Blocks until signal is received
-		<-ctx.Done()
-
-		if err := server.Shutdown(ctx); err != nil {
-			log.Error("Metrics server error: %v", err)
-		}
-		log.Info("Received a SIGINT signal: Gracefully shutting down metrics server")
-	}()
-
-	// Start metrics server
-	http.Handle(MetricsEndpoint, promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
-	log.Info(fmt.Sprintf("Metrics Server: localhost:%s%s", metricsPort, MetricsEndpoint))
-	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		log.Error("Metrics server error: %v", err)
-	}
-}
-
-func printOutputFromMetricsServer(metricsPort string) {
-	// Get response from server
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%s%s", metricsPort, MetricsEndpoint))
+	txSequences, err := txs.GenerateTxSequences(ctx, txGenerator, clients[0], pks, config.TxsPerWorker, false)
 	if err != nil {
-		log.Error("cannot get response from metrics servers", "err", err)
-		return
+		return err
 	}
-	// Read response body
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("cannot read response body", "err", err)
-		return
+
+	workers := make([]txs.Worker[*types.Transaction], 0, len(clients))
+	for i, client := range clients {
+		workers = append(workers, NewSingleAddressTxWorker(ctx, client, ethcrypto.PubkeyToAddress(pks[i].PublicKey)))
 	}
-	// Print out formatted individual metrics
-	parts := strings.Split(string(respBody), "\n")
-	for _, s := range parts {
-		fmt.Printf("       \t\t\t%s\n", s)
-	}
+	loader := New(workers, txSequences, config.BatchSize, m)
+	err = loader.Execute(ctx)
+	ms.Print() // Print regardless of execution error
+	return err
 }
