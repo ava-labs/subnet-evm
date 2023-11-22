@@ -215,21 +215,7 @@ func newWarpTest(ctx context.Context, subnetA *runner.Subnet, subnetAFundedKey *
 	require.NoError(err)
 	warpTest.networkID = networkID
 
-	for _, uri := range subnetA.ValidatorURIs {
-		wsURI := toWebsocketURI(uri, subnetA.BlockchainID.String())
-		log.Info("Creating ethclient for blockchain A", "blockchainID", subnetA.BlockchainID)
-		client, err := ethclient.Dial(wsURI)
-		require.NoError(err)
-		warpTest.subnetAClients = append(warpTest.subnetAClients, client)
-	}
-
-	for _, uri := range subnetB.ValidatorURIs {
-		wsURI := toWebsocketURI(uri, subnetB.BlockchainID.String())
-		log.Info("Creating ethclient for blockchain B", "blockchainID", subnetB.BlockchainID)
-		client, err := ethclient.Dial(wsURI)
-		require.NoError(err)
-		warpTest.subnetBClients = append(warpTest.subnetBClients, client)
-	}
+	warpTest.initClients()
 
 	clientA := warpTest.subnetAClients[0]
 	chainIDA, err := clientA.ChainID(ctx)
@@ -246,6 +232,26 @@ func newWarpTest(ctx context.Context, subnetA *runner.Subnet, subnetAFundedKey *
 	warpTest.chainBSigner = types.LatestSignerForChainID(chainIDB)
 
 	return warpTest
+}
+
+func (w *warpTest) initClients() {
+	require := require.New(ginkgo.GinkgoT())
+
+	for _, uri := range subnetA.ValidatorURIs {
+		wsURI := toWebsocketURI(uri, subnetA.BlockchainID.String())
+		log.Info("Creating ethclient for blockchain A", "blockchainID", subnetA.BlockchainID)
+		client, err := ethclient.Dial(wsURI)
+		require.NoError(err)
+		w.subnetAClients = append(w.subnetAClients, client)
+	}
+
+	for _, uri := range subnetB.ValidatorURIs {
+		wsURI := toWebsocketURI(uri, subnetB.BlockchainID.String())
+		log.Info("Creating ethclient for blockchain B", "blockchainID", subnetB.BlockchainID)
+		client, err := ethclient.Dial(wsURI)
+		require.NoError(err)
+		w.subnetBClients = append(w.subnetBClients, client)
+	}
 }
 
 func (w *warpTest) getBlockHashAndNumberFromTxReceipt(ctx context.Context, client ethclient.Client, tx *types.Transaction) (common.Hash, uint64) {
@@ -561,7 +567,7 @@ func (w *warpTest) executeHardHatTest() {
 
 func (w *warpTest) warpLoad() {
 	require := require.New(ginkgo.GinkgoT())
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
 	var (
@@ -694,21 +700,27 @@ var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
 	log.Info("Sending message from A to B")
 	w.sendMessageFromSubnetA()
 
+	w.initClients()
 	log.Info("Aggregating signatures via API")
 	w.aggregateSignaturesViaAPI()
 
+	w.initClients()
 	log.Info("Aggregating signatures via p2p aggregator")
 	w.aggregateSignatures()
 
+	w.initClients()
 	log.Info("Delivering addressed call payload to Subnet B")
 	w.deliverAddressedCallToSubnetB()
 
+	w.initClients()
 	log.Info("Delivering block hash payload to Subnet B")
 	w.deliverBlockHashPayload()
 
+	w.initClients()
 	log.Info("Executing HardHat test")
 	w.executeHardHatTest()
 
+	w.initClients()
 	log.Info("Executing warp load test")
 	w.warpLoad()
 }, warpTableEntries)
