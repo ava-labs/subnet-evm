@@ -31,10 +31,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -50,81 +47,6 @@ var (
 
 func BenchmarkTrie(t *testing.B) {
 	benchInsertChain(t, true, stressTestTrieDb(t, 100, 6, 50, 1202102))
-}
-
-func applyTransactionAndGetResult(msg *Message, config *params.ChainConfig, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (*types.Receipt, *ExecutionResult, error) {
-	// Create a new context to be used in the EVM environment.
-	txContext := NewEVMTxContext(msg)
-	evm.Reset(txContext, statedb)
-
-	// Apply the transaction to the current state (included in the env).
-	result, err := ApplyMessage(evm, msg, gp)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Update the state with pending changes.
-	var root []byte
-	if config.IsByzantium(blockNumber) {
-		statedb.Finalise(true)
-	} else {
-		root = statedb.IntermediateRoot(config.IsEIP158(blockNumber)).Bytes()
-	}
-	*usedGas += result.UsedGas
-
-	// Create a new receipt for the transaction, storing the intermediate root and gas used
-	// by the tx.
-	receipt := &types.Receipt{Type: tx.Type(), PostState: root, CumulativeGasUsed: *usedGas}
-	if result.Failed() {
-		receipt.Status = types.ReceiptStatusFailed
-	} else {
-		receipt.Status = types.ReceiptStatusSuccessful
-	}
-	receipt.TxHash = tx.Hash()
-	receipt.GasUsed = result.UsedGas
-
-	// If the transaction created a contract, store the creation address in the receipt.
-	if msg.To == nil {
-		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
-	}
-
-	// Set the receipt logs and create the bloom filter.
-	receipt.Logs = statedb.GetLogs(tx.Hash(), blockNumber.Uint64(), blockHash)
-	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-	receipt.BlockHash = blockHash
-	receipt.BlockNumber = blockNumber
-	receipt.TransactionIndex = uint(statedb.TxIndex())
-	return receipt, result, err
-}
-
-func ApplyTransactionAndGetResult(config *params.ChainConfig, bc ChainContext, blockContext vm.BlockContext, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, *ExecutionResult, error) {
-	msg, err := TransactionToMessage(tx, types.MakeSigner(config, header.Number, header.Time), header.BaseFee)
-	if err != nil {
-		return nil, nil, err
-	}
-	// Create a new context to be used in the EVM environment
-	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, config, cfg)
-	return applyTransactionAndGetResult(msg, config, gp, statedb, header.Number, header.Hash(), tx, usedGas, vmenv)
-}
-
-func (b *BlockGen) AddTxOrFail(tx *types.Transaction) (*types.Receipt, error) {
-	if b.gasPool == nil {
-		b.SetCoinbase(common.Address{})
-	}
-	b.statedb.SetTxContext(tx.Hash(), len(b.txs))
-	blockContext := NewEVMBlockContext(b.header, nil, &b.header.Coinbase)
-	receipt, result, err := ApplyTransactionAndGetResult(b.config, nil, blockContext, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	b.txs = append(b.txs, tx)
-	b.receipts = append(b.receipts, receipt)
-
-	if result.Err != nil {
-		return receipt, result.Err
-	}
-	return receipt, nil
 }
 
 func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, elements int64, gasTxLimit uint64) func(int, *BlockGen) {
@@ -155,8 +77,8 @@ func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, element
 			block := gen.PrevBlock(i - 1)
 			gas := block.GasLimit()
 			for ; deployedContracts < len(contractTxs) && gasCreation < gas; deployedContracts++ {
-				_, err := gen.AddTxOrFail(contractTxs[deployedContracts])
-				require.NoError(err)
+				gen.AddTx(contractTxs[deployedContracts])
+				require.Equal(gen.receipts[len(gen.receipts)-1].Status, types.ReceiptStatusSuccessful, "Execution of last transaction failed")
 				gas -= gasCreation
 			}
 			return
@@ -166,7 +88,8 @@ func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, element
 			contractId := (i + e) % deployedContracts
 			tx, err := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr[contractId], big.NewInt(0), gasTxLimit, gasPrice, txPayload), signer, testKey)
 			require.NoError(err)
-			_, err = gen.AddTxOrFail(tx)
+			gen.AddTx(tx)
+			require.Equal(gen.receipts[len(gen.receipts)-1].Status, types.ReceiptStatusSuccessful, "Execution of last transaction failed")
 			require.NoError(err)
 		}
 	}
