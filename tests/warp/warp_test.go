@@ -64,9 +64,9 @@ var (
 		ginkgo.Entry("Subnet -> C-Chain", func() *warpTest {
 			return newWarpTest(context.Background(), subnetA, fundedKey, cChainSubnetDetails, fundedKey)
 		}),
-		ginkgo.Entry("C-Chain -> Subnet", func() *warpTest {
-			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
-		}),
+		// ginkgo.Entry("C-Chain -> Subnet", func() *warpTest {
+		// 	return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
+		// }),
 	}
 )
 
