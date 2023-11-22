@@ -237,6 +237,7 @@ func newWarpTest(ctx context.Context, subnetA *runner.Subnet, subnetAFundedKey *
 func (w *warpTest) initClients() {
 	require := require.New(ginkgo.GinkgoT())
 
+	w.subnetAClients = make([]ethclient.Client, 0, len(w.subnetAClients))
 	for _, uri := range subnetA.ValidatorURIs {
 		wsURI := toWebsocketURI(uri, subnetA.BlockchainID.String())
 		log.Info("Creating ethclient for blockchain A", "blockchainID", subnetA.BlockchainID)
@@ -245,6 +246,7 @@ func (w *warpTest) initClients() {
 		w.subnetAClients = append(w.subnetAClients, client)
 	}
 
+	w.subnetBClients = make([]ethclient.Client, 0, len(w.subnetBClients))
 	for _, uri := range subnetB.ValidatorURIs {
 		wsURI := toWebsocketURI(uri, subnetB.BlockchainID.String())
 		log.Info("Creating ethclient for blockchain B", "blockchainID", subnetB.BlockchainID)
@@ -614,7 +616,11 @@ func (w *warpTest) warpLoad() {
 		Addresses: []common.Address{warp.Module.Address},
 	}, logs)
 	require.NoError(err)
-	defer sub.Unsubscribe()
+	defer func() {
+		sub.Unsubscribe()
+		err := <-sub.Err()
+		require.NoError(err)
+	}()
 
 	log.Info("Generating tx sequence to send warp messages...")
 	warpSendSequences, err := txs.GenerateTxSequences(ctx, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
