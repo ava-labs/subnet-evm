@@ -211,6 +211,7 @@ func (n *NetworkManager) StartDefaultNetwork(ctx context.Context) (<-chan struct
 	opts := []runner_sdk.OpOption{
 		runner_sdk.WithPluginDir(n.ANRConfig.PluginDir),
 		runner_sdk.WithGlobalNodeConfig(n.ANRConfig.GlobalNodeConfig),
+		runner_sdk.WithBlsGenesisValidators(true),
 	}
 	if len(n.ANRConfig.GlobalCChainConfig) != 0 {
 		opts = append(opts, runner_sdk.WithChainConfigs(map[string]string{
