@@ -60,6 +60,7 @@ func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transa
 		}
 		tw.acceptedNonce = acceptedNonce
 
+		log.Info("trying to confirm tx", "txHash", tx.Hash(), "txNonce", txNonce, "acceptedNonce", tw.acceptedNonce)
 		// If the is less than what has already been accepted, the transaction is confirmed
 		if txNonce < tw.acceptedNonce {
 			return nil
