@@ -60,7 +60,13 @@ func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, element
 
 	for i := 0; i < numContracts; i++ {
 		nonce := uint64(i)
-		tx, _ := types.SignTx(types.NewContractCreation(nonce, big.NewInt(0), gasCreation, gasPrice, common.FromHex(stressBinStr)), signer, testKey)
+		tx, _ := types.SignTx(types.NewTx(&types.LegacyTx{
+			Nonce:    nonce,
+			Value:    big.NewInt(0),
+			Gas:      gasCreation,
+			GasPrice: gasPrice,
+			Data:     common.FromHex(stressBinStr),
+		}), signer, testKey)
 		sender, _ := types.Sender(signer, tx)
 		contractTxs[i] = tx
 		contractAddr[i] = crypto.CreateAddress(sender, nonce)
@@ -86,7 +92,14 @@ func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, element
 
 		for e := 0; e < callsPerBlock; e++ {
 			contractId := (i + e) % deployedContracts
-			tx, err := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), contractAddr[contractId], big.NewInt(0), gasTxLimit, gasPrice, txPayload), signer, testKey)
+			tx, err := types.SignTx(types.NewTx(&types.LegacyTx{
+				Nonce:    gen.TxNonce(benchRootAddr),
+				To:       &contractAddr[contractId],
+				Value:    big.NewInt(0),
+				Gas:      gasTxLimit,
+				GasPrice: gasPrice,
+				Data:     txPayload,
+			}), signer, testKey)
 			require.NoError(err)
 			gen.AddTx(tx)
 			require.Equal(gen.receipts[len(gen.receipts)-1].Status, types.ReceiptStatusSuccessful, "Execution of last transaction failed")
