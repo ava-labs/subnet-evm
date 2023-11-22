@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/cmd/simulator/config"
 	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
@@ -73,6 +74,49 @@ func (l *Loader[T]) Execute(ctx context.Context) error {
 	}
 	log.Info("Tx agents completed successfully.")
 	return nil
+}
+
+// ConfirmReachedTip finds the max height any client has reached and then ensures every client
+// reaches at least that height.
+//
+// This allows the network to continue to roll forward and creates a synchronization point to ensure
+// that every client in the loader has reached at least the max height observed of any client at
+// the time this function was called.
+func (l *Loader[T]) ConfirmReachedTip(ctx context.Context) error {
+	maxHeight := uint64(0)
+	for i, client := range l.clients {
+		latestHeight, err := client.LatestHeight(ctx)
+		if err != nil {
+			return fmt.Errorf("client %d failed to get latest height: %w", i, err)
+		}
+		if latestHeight > maxHeight {
+			maxHeight = latestHeight
+		}
+	}
+
+	eg := errgroup.Group{}
+	for i, client := range l.clients {
+		i := i
+		client := client
+		eg.Go(func() error {
+			for {
+				latestHeight, err := client.LatestHeight(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to get latest height from client %d: %w", i, err)
+				}
+				if latestHeight >= maxHeight {
+					return nil
+				}
+				select {
+				case <-ctx.Done():
+					return fmt.Errorf("failed to get latest height from client %d: %w", i, ctx.Err())
+				case <-time.After(time.Second):
+				}
+			}
+		})
+	}
+
+	return eg.Wait()
 }
 
 // ExecuteLoader creates txSequences from [config] and has txAgents execute the specified simulation.

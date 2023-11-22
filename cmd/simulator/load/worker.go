@@ -52,6 +52,14 @@ func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transa
 	txNonce := tx.Nonce()
 
 	for {
+		// Update the worker's accepted nonce, so we can check on the next iteration
+		// if the transaction has been accepted.
+		acceptedNonce, err := tw.client.NonceAt(ctx, tw.address, nil)
+		if err != nil {
+			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), txNonce, err)
+		}
+		tw.acceptedNonce = acceptedNonce
+
 		// If the is less than what has already been accepted, the transaction is confirmed
 		if txNonce < tw.acceptedNonce {
 			return nil
@@ -63,15 +71,11 @@ func (tw *singleAddressTxWorker) ConfirmTx(ctx context.Context, tx *types.Transa
 		case <-ctx.Done():
 			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), txNonce, ctx.Err())
 		}
-
-		// Update the worker's accepted nonce, so we can check on the next iteration
-		// if the transaction has been accepted.
-		acceptedNonce, err := tw.client.NonceAt(ctx, tw.address, nil)
-		if err != nil {
-			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), txNonce, err)
-		}
-		tw.acceptedNonce = acceptedNonce
 	}
+}
+
+func (tw *singleAddressTxWorker) LatestHeight(ctx context.Context) (uint64, error) {
+	return tw.client.BlockNumber(ctx)
 }
 
 func (tw *singleAddressTxWorker) Close(ctx context.Context) error {
@@ -113,21 +117,23 @@ func (tw *txReceiptWorker) IssueTx(ctx context.Context, tx *types.Transaction) e
 
 func (tw *txReceiptWorker) ConfirmTx(ctx context.Context, tx *types.Transaction) error {
 	for {
+		_, err := tw.client.TransactionReceipt(ctx, tx.Hash())
+		if err == nil {
+			return nil
+		}
+		log.Debug("no tx receipt", "txHash", tx.Hash(), "nonce", tx.Nonce(), "err", err)
+
 		select {
 		case <-tw.newHeads:
 		case <-time.After(time.Second):
 		case <-ctx.Done():
 			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), tx.Nonce(), ctx.Err())
 		}
-
-		txReceipt, err := tw.client.TransactionReceipt(ctx, tx.Hash())
-		if err != nil {
-			log.Debug("no tx receipt", "txHash", tx.Hash(), "nonce", tx.Nonce(), "err", err)
-			continue
-		}
-		log.Debug("fetched tx receipt", "receipt", txReceipt)
-		return nil
 	}
+}
+
+func (tw *txReceiptWorker) LatestHeight(ctx context.Context) (uint64, error) {
+	return tw.client.BlockNumber(ctx)
 }
 
 func (tw *txReceiptWorker) Close(ctx context.Context) error {
