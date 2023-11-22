@@ -602,12 +602,12 @@ func (w *warpTest) warpLoad() {
 
 	log.Info("Creating workers for each subnet...")
 	chainAWorkers := make([]txs.Worker[*types.Transaction], 0, len(keys))
-	for i, key := range keys {
-		chainAWorkers = append(chainAWorkers, load.NewSingleAddressTxWorker(ctx, w.subnetAClients[i], crypto.PubkeyToAddress(key.PrivKey.PublicKey)))
+	for i := range keys {
+		chainAWorkers = append(chainAWorkers, load.NewTxReceiptWorker(ctx, w.subnetAClients[i]))
 	}
 	chainBWorkers := make([]txs.Worker[*types.Transaction], 0, len(keys))
-	for i, key := range keys {
-		chainBWorkers = append(chainBWorkers, load.NewSingleAddressTxWorker(ctx, w.subnetBClients[i], crypto.PubkeyToAddress(key.PrivKey.PublicKey)))
+	for i := range keys {
+		chainBWorkers = append(chainBWorkers, load.NewTxReceiptWorker(ctx, w.subnetBClients[i]))
 	}
 
 	log.Info("Subscribing to warp send events on subnetA")
