@@ -566,7 +566,7 @@ func (w *warpTest) warpLoad() {
 
 	var (
 		numWorkers           = 5
-		txsPerWorker  uint64 = 100
+		txsPerWorker  uint64 = 10
 		batchSize     uint64 = 10
 		subnetAClient        = w.subnetAClients[0]
 	)
