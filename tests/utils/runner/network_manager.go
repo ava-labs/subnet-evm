@@ -71,7 +71,7 @@ func NewDefaultANRConfig() ANRConfig {
 		}`,
 		GlobalCChainConfig: `{
 			"warp-api-enabled": true,
-			"log-level": "debug"
+			"log-level": "info"
 		}`,
 	}
 	// If AVALANCHEGO_BUILD_PATH is populated, override location set by GOPATH

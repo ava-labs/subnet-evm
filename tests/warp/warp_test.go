@@ -589,9 +589,13 @@ func (w *warpTest) warpLoad() {
 	_, err = load.DistributeFunds(ctx, w.subnetBClients[0], keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
 	require.NoError(err)
 
-	workers := make([]txs.Worker[*types.Transaction], 0, len(keys))
+	chainAWorkers := make([]txs.Worker[*types.Transaction], 0, len(keys))
 	for i, key := range keys {
-		workers = append(workers, load.NewSingleAddressTxWorker(ctx, w.subnetAClients[i], crypto.PubkeyToAddress(key.PrivKey.PublicKey)))
+		chainAWorkers = append(chainAWorkers, load.NewSingleAddressTxWorker(ctx, w.subnetAClients[i], crypto.PubkeyToAddress(key.PrivKey.PublicKey)))
+	}
+	chainBWorkers := make([]txs.Worker[*types.Transaction], 0, len(keys))
+	for i, key := range keys {
+		chainBWorkers = append(chainBWorkers, load.NewSingleAddressTxWorker(ctx, w.subnetBClients[i], crypto.PubkeyToAddress(key.PrivKey.PublicKey)))
 	}
 	warpSendSequences, err := txs.GenerateTxSequences(ctx, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
 		data, err := warp.PackSendWarpMessage([]byte(fmt.Sprintf("Jets %d-%d Dolphins", key.X.Int64(), nonce)))
@@ -611,7 +615,7 @@ func (w *warpTest) warpLoad() {
 		return types.SignTx(tx, w.chainASigner, key)
 	}, w.subnetAClients[0], privateKeys, txsPerWorker, false)
 	require.NoError(err)
-	warpSendLoader := load.New(workers, warpSendSequences, batchSize, loadMetrics)
+	warpSendLoader := load.New(chainAWorkers, warpSendSequences, batchSize, loadMetrics)
 	require.NoError(warpSendLoader.Execute(ctx))
 
 	logs := make(chan types.Log, numWorkers*int(txsPerWorker))
@@ -665,7 +669,7 @@ func (w *warpTest) warpLoad() {
 		return types.SignTx(tx, w.chainBSigner, key)
 	}, w.subnetBClients[0], privateKeys, txsPerWorker, true)
 	require.NoError(err)
-	warpDeliverLoader := load.New(workers, warpDeliverSequences, batchSize, loadMetrics)
+	warpDeliverLoader := load.New(chainBWorkers, warpDeliverSequences, batchSize, loadMetrics)
 	require.NoError(warpDeliverLoader.Execute(ctx))
 }
 
