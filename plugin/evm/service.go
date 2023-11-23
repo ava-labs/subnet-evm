@@ -11,12 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-// test constants
-const (
-	GenesisTestAddr = "0x751a0b96e1042bee789452ecb20253fba40dbe85"
-	GenesisTestKey  = "0xabd71b35d559563fea757f0f5edbde286fb8c043105b15abb7cd57189306d7d1"
-)
-
 // SnowmanAPI introduces snowman specific functionality to the evm
 type SnowmanAPI struct{ vm *VM }
 
@@ -39,7 +33,6 @@ func (api *SnowmanAPI) GetAcceptedFront(ctx context.Context) (*GetAcceptedFrontR
 // IssueBlock to the chain
 func (api *SnowmanAPI) IssueBlock(ctx context.Context) error {
 	log.Info("Issuing a new block")
-
 	api.vm.builder.signalTxsReady()
 	return nil
 }
