@@ -336,53 +336,89 @@ func TestCheckPredicatesOutput(t *testing.T) {
 		isValidPredicate bool
 	}
 	type resultTest struct {
+		name        string
 		expectedRes map[common.Address][]byte
 		testTuple   []testTuple
 	}
-	for name, test := range map[string]resultTest{
-		"two addresses mixed predicates": {
+	tests := []resultTest{
+		{name: "no predicates", expectedRes: map[common.Address][]byte{}},
+		{
+			name: "one address one predicate",
 			testTuple: []testTuple{
-				{
-					address:          addr1,
-					isValidPredicate: true,
-				},
-				{
-					address:          addr2,
-					isValidPredicate: false,
-				},
-				{
-					address:          addr1,
-					isValidPredicate: false,
-				},
-				{
-					address:          addr1,
-					isValidPredicate: false,
-				},
-				{
-					address:          addr2,
-					isValidPredicate: true,
-				},
-				{
-					address:          addr2,
-					isValidPredicate: true,
-				},
-				{
-					address:          addr2,
-					isValidPredicate: false,
-				},
-				{
-					address:          addr2,
-					isValidPredicate: true,
-				},
+				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{
-				addr1: {3},
-				addr2: {3},
-			},
+			expectedRes: map[common.Address][]byte{addr1: {}},
 		},
-	} {
-		test := test
-		t.Run(name, func(t *testing.T) {
+		{
+			name: "one address one invalid predicate",
+			testTuple: []testTuple{
+				{address: addr1, isValidPredicate: false},
+			},
+			expectedRes: map[common.Address][]byte{addr1: {1}},
+		},
+		{
+			name: "one address two invalid predicates",
+			testTuple: []testTuple{
+				{address: addr1, isValidPredicate: false},
+				{address: addr1, isValidPredicate: false},
+			},
+			expectedRes: map[common.Address][]byte{addr1: {3}},
+		},
+		{
+			name: "one address two mixed predicates",
+			testTuple: []testTuple{
+				{address: addr1, isValidPredicate: true},
+				{address: addr1, isValidPredicate: false},
+			},
+			expectedRes: map[common.Address][]byte{addr1: {2}},
+		},
+		{
+			name: "one address mixed predicates",
+			testTuple: []testTuple{
+				{address: addr1, isValidPredicate: true},
+				{address: addr1, isValidPredicate: false},
+				{address: addr1, isValidPredicate: false},
+				{address: addr1, isValidPredicate: true},
+			},
+			expectedRes: map[common.Address][]byte{addr1: {6}},
+		},
+		{
+			name: "two addresses mixed predicates",
+			testTuple: []testTuple{
+				{address: addr1, isValidPredicate: true},
+				{address: addr2, isValidPredicate: false},
+				{address: addr1, isValidPredicate: false},
+				{address: addr1, isValidPredicate: false},
+				{address: addr2, isValidPredicate: true},
+				{address: addr2, isValidPredicate: true},
+				{address: addr2, isValidPredicate: false},
+				{address: addr2, isValidPredicate: true},
+			},
+			expectedRes: map[common.Address][]byte{addr1: {6}, addr2: {9}},
+		},
+		{
+			name: "two addresses all valid predicates",
+			testTuple: []testTuple{
+				{address: addr1, isValidPredicate: true},
+				{address: addr2, isValidPredicate: true},
+				{address: addr1, isValidPredicate: true},
+				{address: addr1, isValidPredicate: true},
+			},
+			expectedRes: map[common.Address][]byte{addr1: {}, addr2: {}},
+		},
+		{
+			name: "two addresses all invalid predicates",
+			testTuple: []testTuple{
+				{address: addr1, isValidPredicate: false},
+				{address: addr2, isValidPredicate: false},
+				{address: addr1, isValidPredicate: false},
+				{address: addr1, isValidPredicate: false},
+			},
+			expectedRes: map[common.Address][]byte{addr1: {7}, addr2: {1}},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 			// Create the rules from TestChainConfig and update the predicates based on the test params
 			rules := params.TestChainConfig.AvalancheRules(common.Big0, 0)
