@@ -4,14 +4,18 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -321,11 +325,15 @@ func TestCheckPredicate(t *testing.T) {
 	}
 }
 
+var (
+	validHash   = common.Hash{1}
+	invalidHash = common.Hash{2}
+)
+
 func TestCheckPredicatesOutput(t *testing.T) {
 	addr1 := common.HexToAddress("0xaa")
 	addr2 := common.HexToAddress("0xbb")
-	validHash := common.Hash{1}
-	invalidHash := common.Hash{2}
+
 	predicateContext := &precompileconfig.PredicateContext{
 		ProposerVMBlockCtx: &block.Context{
 			PChainHeight: 10,
@@ -452,9 +460,65 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				AccessList: txAccessList,
 				Gas:        53000,
 			})
+
+			oldPredicateRes, err := CheckPredicatesTest(predicateContext, tx)
+			require.NoError(err)
+			require.Equal(test.expectedRes, oldPredicateRes)
+
 			predicateRes, err := CheckPredicates(rules, predicateContext, tx)
 			require.NoError(err)
 			require.Equal(test.expectedRes, predicateRes)
 		})
 	}
+}
+
+func VerifyPredicateTest(predicateContext *precompileconfig.PredicateContext, predicates [][]byte) []byte {
+	resultBitSet := set.NewBits()
+
+	for predicateIndex, predicateBytes := range predicates {
+		if bytes.Equal(predicateBytes, invalidHash[:]) {
+			resultBitSet.Add(predicateIndex)
+		}
+	}
+	return resultBitSet.Bytes()
+}
+
+func CheckPredicatesTest(predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) (map[common.Address][]byte, error) {
+	// Check that the transaction can cover its IntrinsicGas (including the gas required by the predicate) before
+	// verifying the predicate.
+
+	predicateResults := make(map[common.Address][]byte)
+	// Short circuit early if there are no precompile predicates to verify
+
+	// Prepare the predicate storage slots from the transaction's access list
+	predicateArguments := PreparePredicateStorageSlotsTest(tx.AccessList())
+
+	// If there are no predicates to verify, return early and skip requiring the proposervm block
+	// context to be populated.
+	if len(predicateArguments) == 0 {
+		return predicateResults, nil
+	}
+
+	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
+		return nil, ErrMissingPredicateContext
+	}
+
+	for address, predicates := range predicateArguments {
+		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
+		// there's no need to check if the predicate exists here.
+		res := VerifyPredicateTest(predicateContext, predicates)
+		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res)
+		predicateResults[address] = res
+	}
+
+	return predicateResults, nil
+}
+
+func PreparePredicateStorageSlotsTest(list types.AccessList) map[common.Address][][]byte {
+	predicateStorageSlots := make(map[common.Address][][]byte)
+	for _, el := range list {
+		predicateStorageSlots[el.Address] = append(predicateStorageSlots[el.Address], utils.HashSliceToBytes(el.StorageKeys))
+	}
+
+	return predicateStorageSlots
 }
