@@ -32,21 +32,21 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 
 	predicateResults := make(map[common.Address][]byte)
 	// Short circuit early if there are no precompile predicates to verify
-	if len(rules.Predicaters) == 0 {
+	if !rules.PredicatersExist() {
 		return predicateResults, nil
 	}
 
-	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
-		return nil, ErrMissingPredicateContext
-	}
-
 	predicateIndexes := make(map[common.Address]int)
-	// Prepare the predicate storage slots from the transaction's access list
 	for _, al := range tx.AccessList() {
 		address := al.Address
 		predicaterContract, exists := rules.Predicaters[address]
 		if !exists {
 			continue
+		}
+		// Invariant: We should return this error only if there is a predicate in txs.
+		// If there is no predicate in txs, we should just return an empry result with no error.
+		if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
+			return nil, ErrMissingPredicateContext
 		}
 		verified := predicaterContract.VerifyPredicate(predicateContext, utils.HashSliceToBytes(al.StorageKeys))
 		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "verified", verified)
