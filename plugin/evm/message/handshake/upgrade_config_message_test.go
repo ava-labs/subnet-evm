@@ -82,7 +82,6 @@ func TestWithAddress(t *testing.T) {
 }
 
 func TestWithAddressAndMint(t *testing.T) {
-
 	var t0 uint64 = 2
 	var t1 uint64 = 1001
 	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
