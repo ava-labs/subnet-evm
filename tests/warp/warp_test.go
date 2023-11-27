@@ -58,15 +58,18 @@ var (
 	subnetA, subnetB, cChainSubnetDetails *runner.Subnet
 	// I need to construct table entries prior to ginkgo tree construction, but the parameters I'm using are a bunch of
 	warpTableEntries = []ginkgo.TableEntry{
-		ginkgo.Entry("Subnet <-> Subnet", func() *warpTest {
+		ginkgo.Entry("Subnet -> Subnet", func() *warpTest {
 			return newWarpTest(context.Background(), subnetA, fundedKey, subnetB, fundedKey)
 		}),
 		ginkgo.Entry("Subnet -> C-Chain", func() *warpTest {
 			return newWarpTest(context.Background(), subnetA, fundedKey, cChainSubnetDetails, fundedKey)
 		}),
-		// ginkgo.Entry("C-Chain -> Subnet", func() *warpTest {
-		// 	return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
-		// }),
+		ginkgo.Entry("C-Chain -> Subnet", func() *warpTest {
+			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
+		}),
+		ginkgo.Entry("C-Chain -> C-Chain", func() *warpTest {
+			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, cChainSubnetDetails, fundedKey)
+		}),
 	}
 )
 
@@ -369,6 +372,7 @@ func (w *warpTest) aggregateSignaturesViaAPI() {
 	require.NoError(err)
 	// If the source subnet is the Primary Network, then we only need to aggregate signatures from the receiving
 	// subnet's validator set instead of the entire Primary Network.
+	// If the destination turns out to be the Primary Network as well, then this is a no-op.
 	var validators map[ids.NodeID]*validators.GetValidatorOutput
 	if w.subnetA.SubnetID == constants.PrimaryNetworkID {
 		validators, err = pChainClient.GetValidatorsAt(ctx, w.subnetB.SubnetID, pChainHeight)
