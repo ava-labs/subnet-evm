@@ -330,8 +330,6 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 }
 
 func TestChainConfigMarshalWithUpgradesAndOptionalUpgrade(t *testing.T) {
-	block := big.NewInt(0)
-	ts := uint64(102)
 	config := ChainConfigWithUpgradesJSON{
 		ChainConfig: ChainConfig{
 			ChainID:             big.NewInt(1),
@@ -353,12 +351,6 @@ func TestChainConfigMarshalWithUpgradesAndOptionalUpgrade(t *testing.T) {
 			GenesisPrecompiles: Precompiles{},
 		},
 		UpgradeConfig: UpgradeConfig{
-			OptionalNetworkUpgrades: &OptionalNetworkUpgrades{
-				Test: &OptionalFork{
-					Block:     block,
-					Timestamp: &ts,
-				},
-			},
 			PrecompileUpgrades: []PrecompileUpgrade{
 				{
 					Config: txallowlist.NewConfig(utils.NewUint64(100), nil, nil, nil),
@@ -392,12 +384,6 @@ func TestChainConfigMarshalWithUpgradesAndOptionalUpgrade(t *testing.T) {
 		"subnetEVMTimestamp": 0,
 		"dUpgradeTimestamp": 0,
 		"upgrades": {
-			"networkUpgrades": {
-				"test": {
-					"block": 0,
-					"timestamp": 102
-				}
-			},
 			"precompileUpgrades": [
 				{
 					"txAllowListConfig": {

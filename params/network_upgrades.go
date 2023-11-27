@@ -4,8 +4,6 @@
 package params
 
 import (
-	"math/big"
-
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
@@ -67,29 +65,25 @@ func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
 }
 
 type OptionalFork struct {
-	Block     *big.Int `json:"block" serialize:"true"`
-	Timestamp *uint64  `json:"timestamp" serialize:"true"`
+	Timestamp *uint64 `json:"timestamp" serialize:"true"`
 }
 
 func (m *OptionalFork) ToFork(name string) fork {
-	var block *big.Int
 	var timestamp *uint64
-	if m.Block != nil {
-		block = m.Block
-	}
 	if m.Timestamp != nil {
 		timestamp = m.Timestamp
 	}
 	return fork{
 		name:      name,
-		block:     block,
 		timestamp: timestamp,
+		block:     nil,
 		optional:  true,
 	}
 }
 
 type OptionalNetworkUpgrades struct {
-	Test *OptionalFork `json:"test,omitempty" serialize:"true,nullable"`
+	// This is an example of a configuration.
+	//FeatureConfig *OptionalFork `json:"test,omitempty" serialize:"true,nullable"`
 }
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
@@ -98,8 +92,13 @@ func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetwor
 
 func (n *OptionalNetworkUpgrades) optionalForkOrder() []fork {
 	forks := make([]fork, 0)
-	if n.Test != nil {
-		forks = append(forks, n.Test.ToFork("test"))
-	}
+	/*
+		// This block of code should be added for each property inside OptionalNetworkUpgrades
+		// Each property should have a test like https://github.com/ava-labs/subnet-evm/blob/c261ce270d16db5351b1e1ec5e128a3d23fe6a9c/params/config_test.go#L357-L360
+		if n.FeatureConfig != nil {
+			forks = append(forks, FeatureConfig.ToFork("featureConfig"))
+		}
+
+	*/
 	return forks
 }
