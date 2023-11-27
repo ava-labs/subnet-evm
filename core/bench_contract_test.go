@@ -39,9 +39,9 @@ import (
 )
 
 var (
-	//go:embed TrieStressTest.bin
+	//go:embed trietest/TrieStressTest.bin
 	stressBinStr string
-	//go:embed TrieStressTest.abi
+	//go:embed trietest/TrieStressTest.abi
 	stressABIStr string
 )
 
@@ -80,6 +80,12 @@ func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, element
 
 	return func(i int, gen *BlockGen) {
 		if len(contractTxs) != deployedContracts {
+			// This is the first stage of the bench, the preparation stage, at
+			// this state the requested amount of smart contract will be
+			// deployed to be used in the second stage
+			//
+			// This block will be executed until all contracts are deployed, the
+			// code will make sure that enough instances are deployed per block
 			block := gen.PrevBlock(i - 1)
 			gas := block.GasLimit()
 			for ; deployedContracts < len(contractTxs) && gasCreation < gas; deployedContracts++ {
@@ -90,6 +96,7 @@ func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, element
 			return
 		}
 
+		// Benchmark itself, this is the second stage
 		for e := 0; e < callsPerBlock; e++ {
 			contractId := (i + e) % deployedContracts
 			tx, err := types.SignTx(types.NewTx(&types.LegacyTx{
