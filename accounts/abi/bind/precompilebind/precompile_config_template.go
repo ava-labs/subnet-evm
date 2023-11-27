@@ -26,9 +26,13 @@ var _ precompileconfig.Config = &Config{}
 // adds specific configuration for {{.Contract.Type}}.
 type Config struct {
 	{{- if .Contract.AllowList}}
+	// Serialize allowList to let nodes exchange information about their
+	// precompile configs
 	allowlist.AllowListConfig ` + "`" + `serialize:"true"` + "`" + `
 	{{- end}}
-	precompileconfig.Upgrade
+	// Serialize the Upgrade config to let nodes exchange information about
+	// their precompile configs
+	precompileconfig.Upgrade ` + "`" + `serialize:"true"` + "`" + `
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom fields for Config here
 }
