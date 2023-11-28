@@ -254,6 +254,13 @@ func TestPackUnpackMintNativeCoinInput(t *testing.T) {
 	require.Equal(t, common.Big2.Bytes(), amount.Bytes())
 }
 
+func TestSignatures(t *testing.T) {
+	// Test that the mintNativeCoin signature is correct
+	mintSignature := contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
+	abiMintNativeCoin := NativeMinterABI.Methods["mintNativeCoin"]
+	require.Equal(t, mintSignature, abiMintNativeCoin.ID)
+}
+
 func testUnpackAndPacks(t *testing.T, addr common.Address, amount *big.Int) {
 	t.Helper()
 	t.Run(fmt.Sprintf("TestUnpackAndPacks, addr: %s, amount: %s", addr.String(), amount.String()), func(t *testing.T) {
