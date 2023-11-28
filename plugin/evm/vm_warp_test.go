@@ -66,6 +66,17 @@ func TestSendWarpMessage(t *testing.T) {
 
 	warpSendMessageInput, err := warp.PackSendWarpMessage(payloadData)
 	require.NoError(err)
+	addressedPayload, err := payload.NewAddressedCall(
+		testEthAddrs[0].Bytes(),
+		payloadData,
+	)
+	require.NoError(err)
+	expectedUnsignedMessage, err := avalancheWarp.NewUnsignedMessage(
+		vm.ctx.NetworkID,
+		vm.ctx.ChainID,
+		addressedPayload.Bytes(),
+	)
+	require.NoError(err)
 
 	// Submit a transaction to trigger sending a warp message
 	tx0 := types.NewTransaction(uint64(0), warp.ContractAddress, big.NewInt(1), 100_000, big.NewInt(testMinGasPrice), warpSendMessageInput)
@@ -86,13 +97,14 @@ func TestSendWarpMessage(t *testing.T) {
 	// Verify that the constructed block contains the expected log with an unsigned warp message in the log data
 	ethBlock1 := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	require.Len(ethBlock1.Transactions(), 1)
-	receipts := rawdb.ReadReceipts(vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), vm.chainConfig)
+	receipts := rawdb.ReadReceipts(vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), ethBlock1.Time(), vm.chainConfig)
 	require.Len(receipts, 1)
 
 	require.Len(receipts[0].Logs, 1)
 	expectedTopics := []common.Hash{
 		warp.WarpABI.Events["SendWarpMessage"].ID,
 		testEthAddrs[0].Hash(),
+		common.Hash(expectedUnsignedMessage.ID()),
 	}
 	require.Equal(expectedTopics, receipts[0].Logs[0].Topics)
 	logData := receipts[0].Logs[0].Data
@@ -101,13 +113,17 @@ func TestSendWarpMessage(t *testing.T) {
 	unsignedMessageID := unsignedMessage.ID()
 
 	// Verify the signature cannot be fetched before the block is accepted
-	_, err = vm.warpBackend.GetSignature(unsignedMessageID)
+	_, err = vm.warpBackend.GetMessageSignature(unsignedMessageID)
+	require.Error(err)
+	_, err = vm.warpBackend.GetBlockSignature(blk.ID())
 	require.Error(err)
 
 	require.NoError(vm.SetPreference(context.Background(), blk.ID()))
 	require.NoError(blk.Accept(context.Background()))
 	vm.blockChain.DrainAcceptorQueue()
-	rawSignatureBytes, err := vm.warpBackend.GetSignature(unsignedMessageID)
+
+	// Verify the message signature after accepting the block.
+	rawSignatureBytes, err := vm.warpBackend.GetMessageSignature(unsignedMessageID)
 	require.NoError(err)
 	blsSignature, err := bls.SignatureFromBytes(rawSignatureBytes[:])
 	require.NoError(err)
@@ -120,7 +136,21 @@ func TestSendWarpMessage(t *testing.T) {
 		require.Fail("Failed to read accepted logs from subscription")
 	}
 
-	// Verify the produced signature is valid
+	// Verify the produced message signature is valid
+	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
+
+	// Verify the blockID will now be signed by the backend and produces a valid signature.
+	rawSignatureBytes, err = vm.warpBackend.GetBlockSignature(blk.ID())
+	require.NoError(err)
+	blsSignature, err = bls.SignatureFromBytes(rawSignatureBytes[:])
+	require.NoError(err)
+
+	blockHashPayload, err := payload.NewHash(blk.ID())
+	require.NoError(err)
+	unsignedMessage, err = avalancheWarp.NewUnsignedMessage(vm.ctx.NetworkID, vm.ctx.ChainID, blockHashPayload.Bytes())
+	require.NoError(err)
+
+	// Verify the produced message signature is valid
 	require.True(bls.Verify(vm.ctx.PublicKey, blsSignature, unsignedMessage.Bytes()))
 }
 
