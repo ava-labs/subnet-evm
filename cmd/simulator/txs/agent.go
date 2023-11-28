@@ -32,7 +32,6 @@ type Worker[T THash] interface {
 	IssueTx(ctx context.Context, tx T) error
 	ConfirmTx(ctx context.Context, tx T) error
 	LatestHeight(ctx context.Context) (uint64, error)
-	Close(ctx context.Context) error
 }
 
 // Execute the work of the given agent.

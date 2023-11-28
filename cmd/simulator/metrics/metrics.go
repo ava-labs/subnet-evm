@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -62,9 +61,8 @@ type MetricsServer struct {
 	metricsPort     string
 	metricsEndpoint string
 
-	cancel   context.CancelFunc
-	stopOnce sync.Once
-	stopCh   chan struct{}
+	cancel context.CancelFunc
+	stopCh chan struct{}
 }
 
 func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint string) *MetricsServer {
@@ -106,10 +104,8 @@ func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint
 }
 
 func (ms *MetricsServer) Shutdown() {
-	ms.stopOnce.Do(func() {
-		ms.cancel()
-		<-ms.stopCh
-	})
+	ms.cancel()
+	<-ms.stopCh
 }
 
 func (ms *MetricsServer) Print() {

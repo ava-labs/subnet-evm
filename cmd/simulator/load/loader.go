@@ -31,6 +31,10 @@ const (
 	MetricsEndpoint = "/metrics" // Endpoint for the Prometheus Metrics Server
 )
 
+// Loader executes a series of worker/tx sequence pairs.
+// Each worker/txSequence pair issues [batchSize] transactions, confirms all
+// of them as accepted, and then moves to the next batch until the txSequence
+// is exhausted.
 type Loader[T txs.THash] struct {
 	clients     []txs.Worker[T]
 	txSequences []txs.TxSequence[T]
