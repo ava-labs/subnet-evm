@@ -147,6 +147,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 
 	m := metrics.NewDefaultMetrics()
 	ms := m.Serve(ctx, strconv.Itoa(int(config.MetricsPort)), MetricsEndpoint)
+	defer ms.Shutdown()
 
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))

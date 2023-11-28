@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -60,9 +61,14 @@ func NewMetrics(reg *prometheus.Registry) *Metrics {
 type MetricsServer struct {
 	metricsPort     string
 	metricsEndpoint string
+
+	cancel   context.CancelFunc
+	stopOnce sync.Once
+	stopCh   chan struct{}
 }
 
 func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint string) *MetricsServer {
+	ctx, cancel := context.WithCancel(ctx)
 	// Create a prometheus server to expose individual tx metrics
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%s", metricsPort),
@@ -80,16 +86,30 @@ func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint
 	}()
 
 	// Start metrics server
-	http.Handle(metricsEndpoint, promhttp.HandlerFor(m.reg, promhttp.HandlerOpts{Registry: m.reg}))
-	log.Info(fmt.Sprintf("Metrics Server: localhost:%s%s", metricsPort, metricsEndpoint))
-	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		log.Error("Metrics server error: %v", err)
-	}
-
-	return &MetricsServer{
+	ms := &MetricsServer{
 		metricsPort:     metricsPort,
 		metricsEndpoint: metricsEndpoint,
+		stopCh:          make(chan struct{}),
+		cancel:          cancel,
 	}
+	go func() {
+		defer close(ms.stopCh)
+
+		http.Handle(metricsEndpoint, promhttp.HandlerFor(m.reg, promhttp.HandlerOpts{Registry: m.reg}))
+		log.Info(fmt.Sprintf("Metrics Server: localhost:%s%s", metricsPort, metricsEndpoint))
+		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			log.Error("Metrics server error: %v", err)
+		}
+	}()
+
+	return ms
+}
+
+func (ms *MetricsServer) Shutdown() {
+	ms.stopOnce.Do(func() {
+		ms.cancel()
+		<-ms.stopCh
+	})
 }
 
 func (ms *MetricsServer) Print() {
