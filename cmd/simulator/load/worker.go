@@ -79,15 +79,13 @@ func (tw *ethereumTxWorker) confirmTxByNonce(ctx context.Context, tx *types.Tran
 	txNonce := tx.Nonce()
 
 	for {
-		// Update the worker's accepted nonce, so we can check on the next iteration
-		// if the transaction has been accepted.
 		acceptedNonce, err := tw.client.NonceAt(ctx, tw.address, nil)
 		if err != nil {
 			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), txNonce, err)
 		}
 		tw.acceptedNonce = acceptedNonce
 
-		log.Info("trying to confirm tx", "txHash", tx.Hash(), "txNonce", txNonce, "acceptedNonce", tw.acceptedNonce)
+		log.Debug("confirming tx", "txHash", tx.Hash(), "txNonce", txNonce, "acceptedNonce", tw.acceptedNonce)
 		// If the is less than what has already been accepted, the transaction is confirmed
 		if txNonce < tw.acceptedNonce {
 			return nil
