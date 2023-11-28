@@ -70,11 +70,9 @@ var (
 		ginkgo.Entry("C-Chain -> SubnetA", func() *warpTest {
 			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
 		}),
-		// C-Chain -> C-Chain fails since the genesis validators hold a majority of stake weight and do not have a BLS Public Key
-		// registered in th genesis. This test case can be enabled after the genesis validators are updated to include a BLS Key.
-		// ginkgo.Entry("C-Chain -> C-Chain", func() *warpTest {
-		// 	return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, cChainSubnetDetails, fundedKey)
-		// }),
+		ginkgo.Entry("C-Chain -> C-Chain", func() *warpTest {
+			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, cChainSubnetDetails, fundedKey)
+		}),
 	}
 )
 
