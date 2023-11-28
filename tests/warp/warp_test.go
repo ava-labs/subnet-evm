@@ -58,18 +58,23 @@ var (
 	subnetA, subnetB, cChainSubnetDetails *runner.Subnet
 	// I need to construct table entries prior to ginkgo tree construction, but the parameters I'm using are a bunch of
 	warpTableEntries = []ginkgo.TableEntry{
-		ginkgo.Entry("Subnet -> Subnet", func() *warpTest {
+		ginkgo.Entry("SubnetA -> SubnetB", func() *warpTest {
 			return newWarpTest(context.Background(), subnetA, fundedKey, subnetB, fundedKey)
 		}),
-		ginkgo.Entry("Subnet -> C-Chain", func() *warpTest {
+		ginkgo.Entry("SubnetA -> SubnetA", func() *warpTest {
+			return newWarpTest(context.Background(), subnetA, fundedKey, subnetA, fundedKey)
+		}),
+		ginkgo.Entry("SubnetA -> C-Chain", func() *warpTest {
 			return newWarpTest(context.Background(), subnetA, fundedKey, cChainSubnetDetails, fundedKey)
 		}),
-		ginkgo.Entry("C-Chain -> Subnet", func() *warpTest {
+		ginkgo.Entry("C-Chain -> SubnetA", func() *warpTest {
 			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, subnetA, fundedKey)
 		}),
-		ginkgo.Entry("C-Chain -> C-Chain", func() *warpTest {
-			return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, cChainSubnetDetails, fundedKey)
-		}),
+		// C-Chain -> C-Chain fails since the genesis validators hold a majority of stake weight and do not have a BLS Public Key
+		// registered in th genesis. This test case can be enabled after the genesis validators are updated to include a BLS Key.
+		// ginkgo.Entry("C-Chain -> C-Chain", func() *warpTest {
+		// 	return newWarpTest(context.Background(), cChainSubnetDetails, fundedKey, cChainSubnetDetails, fundedKey)
+		// }),
 	}
 )
 
