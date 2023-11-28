@@ -25,11 +25,11 @@ import (
 // Note: currently assumes one blockchain per subnet
 type Subnet struct {
 	// SubnetID is the txID of the transaction that created the subnet
-	SubnetID ids.ID
+	SubnetID ids.ID `json:"subnetID"`
 	// Current ANR assumes one blockchain per subnet, so we have a single blockchainID here
-	BlockchainID ids.ID
+	BlockchainID ids.ID `json:"blockchainID"`
 	// ValidatorURIs is the base URIs for each participant of the Subnet
-	ValidatorURIs []string
+	ValidatorURIs []string `json:"validatorURIs"`
 }
 
 type ANRConfig struct {
