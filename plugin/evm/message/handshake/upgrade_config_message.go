@@ -6,6 +6,7 @@ package handshake
 import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -24,14 +25,14 @@ type networkUpgradeConfigMessage struct {
 
 type UpgradeConfigMessage struct {
 	bytes []byte
-	hash  []byte
+	hash  common.Hash
 }
 
 func (u *UpgradeConfigMessage) Bytes() []byte {
 	return u.bytes
 }
 
-func (u *UpgradeConfigMessage) ID() []byte {
+func (u *UpgradeConfigMessage) ID() common.Hash {
 	return u.hash
 }
 
@@ -109,9 +110,9 @@ func NewUpgradeConfigMessage(config *params.UpgradeConfig) (*UpgradeConfigMessag
 		return nil, err
 	}
 
-	hash := crypto.Keccak256(bytes)
+	hash := crypto.Keccak256Hash(bytes)
 	return &UpgradeConfigMessage{
 		bytes: bytes,
-		hash:  hash[:8],
+		hash:  hash,
 	}, nil
 }
