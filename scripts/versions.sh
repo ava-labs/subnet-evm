@@ -2,8 +2,6 @@
 
 # Don't export them as they're used in the context of other calls
 AVALANCHE_VERSION=${AVALANCHE_VERSION:-'dc2373ff'} # C-Chain Warp Support
-
-AVALANCHEGO_VERSION=${AVALANCHEGO_VERSION:-$AVALANCHE_VERSION}
 GINKGO_VERSION=${GINKGO_VERSION:-'v2.2.0'}
 
 # This won't be used, but it's here to make code syncs easier
