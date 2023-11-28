@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Don't export them as they're used in the context of other calls
-AVALANCHE_VERSION=${AVALANCHE_VERSION:-'56cee2d5'} # C-Chain Warp Support
+AVALANCHE_VERSION=${AVALANCHE_VERSION:-'dc2373ff'} # C-Chain Warp Support
 
 AVALANCHEGO_VERSION=${AVALANCHEGO_VERSION:-$AVALANCHE_VERSION}
 GINKGO_VERSION=${GINKGO_VERSION:-'v2.2.0'}

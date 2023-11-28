@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanche-network-runner v1.7.3-0.20231116020523-8784accd9981
-	github.com/ava-labs/avalanchego v1.10.16-0.20231117161700-56cee2d5306b
+	github.com/ava-labs/avalanchego v1.10.17-rc.0.0.20231128154554-dc2373ffc60f
 	github.com/cespare/cp v0.1.0
 	github.com/cockroachdb/pebble v0.0.0-20230209160836-829675f94811
 	github.com/davecgh/go-spew v1.1.1
@@ -57,7 +57,7 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
-	github.com/ava-labs/coreth v0.12.8-rc.1.0.20231117155152-dea508eaead1 // indirect
+	github.com/ava-labs/coreth v0.12.9-rc.5.0.20231128153049-8b12e57f4666 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.7.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
@@ -142,9 +142,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.11.0 // indirect
 	go.opentelemetry.io/otel/trace v1.11.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
-	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
+	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df // indirect
 	golang.org/x/mod v0.11.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
