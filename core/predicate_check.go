@@ -44,7 +44,7 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 			continue
 		}
 		// Invariant: We should return this error only if there is a predicate in txs.
-		// If there is no predicate in txs, we should just return an empry result with no error.
+		// If there is no predicate in txs, we should just return an empty result with no error.
 		if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
 			return nil, ErrMissingPredicateContext
 		}
