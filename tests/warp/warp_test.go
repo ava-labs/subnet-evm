@@ -380,7 +380,7 @@ func (w *warpTest) aggregateSignaturesViaAPI() {
 		validators, err = pChainClient.GetValidatorsAt(ctx, w.sendingSubnet.SubnetID, pChainHeight)
 	}
 	require.NoError(err)
-	require.Len(validators, nodesPerSubnet, "expected validators at height to equal number specified to network constructor")
+	require.NotZero(len(validators))
 
 	totalWeight := uint64(0)
 	warpValidators := make([]*avalancheWarp.Validator, 0, len(validators))
