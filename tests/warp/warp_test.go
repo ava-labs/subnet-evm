@@ -56,8 +56,7 @@ var (
 	nodesPerSubnet                        = 5
 	fundedKey                             *ecdsa.PrivateKey
 	subnetA, subnetB, cChainSubnetDetails *runner.Subnet
-	// I need to construct table entries prior to ginkgo tree construction, but the parameters I'm using are a bunch of
-	warpTableEntries = []ginkgo.TableEntry{
+	warpTableEntries                      = []ginkgo.TableEntry{
 		ginkgo.Entry("SubnetA -> SubnetB", func() *warpTest {
 			return newWarpTest(context.Background(), subnetA, fundedKey, subnetB, fundedKey)
 		}),
@@ -75,6 +74,31 @@ var (
 		}),
 	}
 )
+
+var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
+	w := gen()
+
+	log.Info("Sending message from A to B")
+	w.sendMessageFromSendingSubnet()
+
+	log.Info("Aggregating signatures via API")
+	w.aggregateSignaturesViaAPI()
+
+	log.Info("Aggregating signatures via p2p aggregator")
+	w.aggregateSignatures()
+
+	log.Info("Delivering addressed call payload to receiving subnet")
+	w.deliverAddressedCallToReceivingSubnet()
+
+	log.Info("Delivering block hash payload to receiving subnet")
+	w.deliverBlockHashPayload()
+
+	log.Info("Executing HardHat test")
+	w.executeHardHatTest()
+
+	log.Info("Executing warp load test")
+	w.warpLoad()
+}, warpTableEntries)
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -263,8 +287,10 @@ func (w *warpTest) initClients() {
 }
 
 func (w *warpTest) getBlockHashAndNumberFromTxReceipt(ctx context.Context, client ethclient.Client, tx *types.Transaction) (common.Hash, uint64) {
-	// To support both Coreth and Subnet-EVM, we fetch the block hash from the transaction receipt
-	// since hashing the block header returned via API results in a different block hash (due to modified block format).
+	// This uses the Subnet-EVM client to fetch a block from Coreth (when testing the C-Chain), so we use this
+	// hack to ensure we can get the correct block hash.
+	// If we simply fetch the latest block, then it will calculate an incorrect block hash from the returned block data
+	// due to small differences in the block format.
 	require := require.New(ginkgo.GinkgoT())
 	for {
 		require.NoError(ctx.Err())
@@ -706,28 +732,3 @@ func (w *warpTest) warpLoad() {
 func toRPCURI(uri string, blockchainID string) string {
 	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
 }
-
-var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
-	w := gen()
-
-	log.Info("Sending message from A to B")
-	w.sendMessageFromSendingSubnet()
-
-	log.Info("Aggregating signatures via API")
-	w.aggregateSignaturesViaAPI()
-
-	log.Info("Aggregating signatures via p2p aggregator")
-	w.aggregateSignatures()
-
-	log.Info("Delivering addressed call payload to receiving subnet")
-	w.deliverAddressedCallToReceivingSubnet()
-
-	log.Info("Delivering block hash payload to receiving subnet")
-	w.deliverBlockHashPayload()
-
-	log.Info("Executing HardHat test")
-	w.executeHardHatTest()
-
-	log.Info("Executing warp load test")
-	w.warpLoad()
-}, warpTableEntries)
