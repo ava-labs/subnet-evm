@@ -39,9 +39,9 @@ import (
 )
 
 var (
-	//go:embed trietest/TrieStressTest.bin
+	//go:embed TrieStressTest.bin
 	stressBinStr string
-	//go:embed trietest/TrieStressTest.abi
+	//go:embed TrieStressTest.abi
 	stressABIStr string
 )
 
