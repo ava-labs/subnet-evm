@@ -110,7 +110,6 @@ func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, element
 			require.NoError(err)
 			gen.AddTx(tx)
 			require.Equal(gen.receipts[len(gen.receipts)-1].Status, types.ReceiptStatusSuccessful, "Execution of last transaction failed")
-			require.NoError(err)
 		}
 	}
 }
