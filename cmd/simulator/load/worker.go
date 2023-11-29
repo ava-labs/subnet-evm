@@ -120,11 +120,3 @@ func (tw *ethereumTxWorker) confirmTxByReceipt(ctx context.Context, tx *types.Tr
 func (tw *ethereumTxWorker) LatestHeight(ctx context.Context) (uint64, error) {
 	return tw.client.BlockNumber(ctx)
 }
-
-func (tw *ethereumTxWorker) Close(ctx context.Context) error {
-	if tw.sub != nil {
-		tw.sub.Unsubscribe()
-	}
-	close(tw.newHeads)
-	return nil
-}
