@@ -44,7 +44,6 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/errgroup"
 )
 
 const fundedKeyStr = "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027" // addr: 0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC
@@ -675,7 +674,10 @@ func (w *warpTest) warpLoad() {
 		return types.SignTx(tx, w.sendingSubnetSigner, key)
 	}, w.sendingSubnetClients[0], privateKeys, txsPerWorker, false)
 	require.NoError(err)
+	log.Info("Executing warp send loader...")
 	warpSendLoader := load.New(chainAWorkers, warpSendSequences, batchSize, loadMetrics)
+	require.NoError(warpSendLoader.Execute(ctx))
+	require.NoError(warpSendLoader.ConfirmReachedTip(ctx))
 
 	warpClient, err := warpBackend.NewClient(w.sendingSubnetURIs[0], w.sendingSubnet.BlockchainID.String())
 	require.NoError(err)
@@ -684,7 +686,7 @@ func (w *warpTest) warpLoad() {
 		subnetIDStr = w.receivingSubnet.SubnetID.String()
 	}
 
-	log.Info("Generating warp deliver sequences...")
+	log.Info("Executing warp delivery sequences...")
 	warpDeliverSequences, err := txs.GenerateTxSequences(ctx, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
 		// Wait for the next warp send log
 		warpLog := <-logs
@@ -722,25 +724,9 @@ func (w *warpTest) warpLoad() {
 	require.NoError(err)
 	log.Info("Executing warp delivery...")
 	warpDeliverLoader := load.New(chainBWorkers, warpDeliverSequences, batchSize, loadMetrics)
-
-	eg := errgroup.Group{}
-
-	eg.Go(func() error {
-		if err := warpSendLoader.Execute(ctx); err != nil {
-			return err
-		}
-		return warpSendLoader.ConfirmReachedTip(ctx)
-	})
-
-	eg.Go(func() error {
-		if err := warpDeliverLoader.Execute(ctx); err != nil {
-			return err
-		}
-		return warpDeliverLoader.ConfirmReachedTip(ctx)
-	})
-
-	require.NoError(eg.Wait())
-	log.Info("Completed warp load test successfully.")
+	require.NoError(warpDeliverLoader.Execute(ctx))
+	require.NoError(warpSendLoader.ConfirmReachedTip(ctx))
+	log.Info("Completed warp delivery successfully.")
 }
 
 func toRPCURI(uri string, blockchainID string) string {
