@@ -198,8 +198,7 @@ func (c *Config) PredicateGas(predicateBytes []byte) (uint64, error) {
 	return totalGas, nil
 }
 
-// VerifyPredicate computes indices of predicates that failed verification as a bitset then returns the result
-// as a byte slice.
+// VerifyPredicate returns whether the predicate described by [predicateBytes] passes verification.
 func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateContext, predicateBytes []byte) bool {
 	unpackedPredicateBytes, err := predicate.UnpackPredicate(predicateBytes)
 	if err != nil {

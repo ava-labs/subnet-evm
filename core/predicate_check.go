@@ -11,7 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -36,39 +36,32 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 		return predicateResults, nil
 	}
 
-	predicateIndexes := make(map[common.Address]int)
-	for _, al := range tx.AccessList() {
-		address := al.Address
-		predicaterContract, exists := rules.Predicaters[address]
-		if !exists {
-			continue
-		}
-		// Invariant: We should return this error only if there is a predicate in txs.
-		// If there is no predicate in txs, we should just return an empty result with no error.
-		if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
-			return nil, ErrMissingPredicateContext
-		}
-		verified := predicaterContract.VerifyPredicate(predicateContext, utils.HashSliceToBytes(al.StorageKeys))
-		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "verified", verified)
-		// Add bitset only if predicate is not verified
-		if !verified {
-			resultBitSet := set.NewBits()
-			currentResult, ok := predicateResults[address]
-			if ok {
-				resultBitSet = set.BitsFromBytes(currentResult)
-			}
-			// this will default to 0 if the address is not in the map
-			currentIndex := predicateIndexes[address]
-			resultBitSet.Add(currentIndex)
-			predicateResults[address] = resultBitSet.Bytes()
-		}
-		// add an empty byte to indicate that the predicate was verified
-		// for the address
-		if _, ok := predicateResults[address]; !ok {
-			predicateResults[address] = []byte{}
-		}
-		predicateIndexes[address]++
+	// Prepare the predicate storage slots from the transaction's access list
+	predicateArguments := predicate.PreparePredicateStorageSlots(rules, tx.AccessList())
+
+	// If there are no predicates to verify, return early and skip requiring the proposervm block
+	// context to be populated.
+	if len(predicateArguments) == 0 {
+		return predicateResults, nil
 	}
 
+	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
+		return nil, ErrMissingPredicateContext
+	}
+
+	for address, predicates := range predicateArguments {
+		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
+		// there's no need to check if the predicate exists here.
+		predicaterContract := rules.Predicaters[address]
+		bitset := set.NewBits()
+		for i, predicate := range predicates {
+			if !predicaterContract.VerifyPredicate(predicateContext, predicate) {
+				bitset.Add(i)
+			}
+		}
+		res := bitset.Bytes()
+		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res)
+		predicateResults[address] = res
+	}
 	return predicateResults, nil
 }
