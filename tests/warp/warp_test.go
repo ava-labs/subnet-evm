@@ -676,6 +676,7 @@ func (w *warpTest) warpLoad() {
 	require.NoError(err)
 	log.Info("Executing warp send loader...")
 	warpSendLoader := load.New(chainAWorkers, warpSendSequences, batchSize, loadMetrics)
+	// TODO: execute send and receive loaders concurrently.
 	require.NoError(warpSendLoader.Execute(ctx))
 	require.NoError(warpSendLoader.ConfirmReachedTip(ctx))
 
