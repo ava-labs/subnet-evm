@@ -288,9 +288,8 @@ func (w *warpTest) initClients() {
 
 func (w *warpTest) getBlockHashAndNumberFromTxReceipt(ctx context.Context, client ethclient.Client, tx *types.Transaction) (common.Hash, uint64) {
 	// This uses the Subnet-EVM client to fetch a block from Coreth (when testing the C-Chain), so we use this
-	// hack to ensure we can get the correct block hash.
-	// If we simply fetch the latest block, then it will calculate an incorrect block hash from the returned block data
-	// due to small differences in the block format.
+	// workaround to get the correct block hash. Note the client recalculates the block hash locally, which results
+	// in a different block hash due to small differences in the block format.
 	require := require.New(ginkgo.GinkgoT())
 	for {
 		require.NoError(ctx.Err())
