@@ -59,7 +59,7 @@ func NewSecure(stateRoot common.Hash, owner common.Hash, root common.Hash, db *D
 //
 // StateTrie is not safe for concurrent use.
 type StateTrie struct {
-	trie             Trie
+	trie             ITrie
 	preimages        *preimageStore
 	hashKeyBuf       [common.HashLength]byte
 	secKeyCache      map[string][]byte
@@ -79,7 +79,7 @@ func NewStateTrie(id *ID, db *Database) (*StateTrie, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &StateTrie{trie: *trie, preimages: db.preimages}, nil
+	return &StateTrie{trie: trie, preimages: db.preimages}, nil
 }
 
 // MustGet returns the value for key stored in the trie.
@@ -123,14 +123,6 @@ func (t *StateTrie) GetAccountByHash(addrHash common.Hash) (*types.StateAccount,
 	ret := new(types.StateAccount)
 	err = rlp.DecodeBytes(res, ret)
 	return ret, err
-}
-
-// GetNode attempts to retrieve a trie node by compact-encoded path. It is not
-// possible to use keybyte-encoding as the path might contain odd nibbles.
-// If the specified trie node is not in the trie, nil will be returned.
-// If a trie node is not found in the database, a MissingNodeError is returned.
-func (t *StateTrie) GetNode(path []byte) ([]byte, int, error) {
-	return t.trie.GetNode(path)
 }
 
 // MustUpdate associates key with value in the trie. Subsequent calls to
@@ -248,7 +240,7 @@ func (t *StateTrie) Hash() common.Hash {
 // Copy returns a copy of StateTrie.
 func (t *StateTrie) Copy() *StateTrie {
 	return &StateTrie{
-		trie:        *t.trie.Copy(),
+		trie:        t.trie.ICopy(),
 		preimages:   t.preimages,
 		secKeyCache: t.secKeyCache,
 	}
