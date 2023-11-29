@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -73,4 +74,26 @@ func BenchmarkAllowList(b *testing.B) {
 		ConfigKey:    "dummy",
 	}
 	BenchPrecompileWithAllowList(b, dummyModule, state.NewTestStateDB, nil)
+}
+
+func TestSignatures(t *testing.T) {
+	setAdminSignature := contract.CalculateFunctionSelector("setAdmin(address)")
+	setAdminABI := AllowListABI.Methods["setAdmin"]
+	require.Equal(t, setAdminSignature, setAdminABI.ID)
+
+	setManagerSignature := contract.CalculateFunctionSelector("setManager(address)")
+	setManagerABI := AllowListABI.Methods["setManager"]
+	require.Equal(t, setManagerSignature, setManagerABI.ID)
+
+	setEnabledSignature := contract.CalculateFunctionSelector("setEnabled(address)")
+	setEnabledABI := AllowListABI.Methods["setEnabled"]
+	require.Equal(t, setEnabledSignature, setEnabledABI.ID)
+
+	setNoneSignature := contract.CalculateFunctionSelector("setNone(address)")
+	setNoneABI := AllowListABI.Methods["setNone"]
+	require.Equal(t, setNoneSignature, setNoneABI.ID)
+
+	readAllowlistSignature := contract.CalculateFunctionSelector("readAllowList(address)")
+	readAllowlistABI := AllowListABI.Methods["readAllowList"]
+	require.Equal(t, readAllowlistSignature, readAllowlistABI.ID)
 }

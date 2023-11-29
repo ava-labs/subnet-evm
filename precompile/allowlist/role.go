@@ -61,6 +61,10 @@ func (r Role) CanModify(from, target Role) bool {
 	}
 }
 
+func (r Role) Bytes() []byte {
+	return common.Hash(r).Bytes()
+}
+
 // String returns a string representation of [r].
 func (r Role) String() string {
 	switch r {

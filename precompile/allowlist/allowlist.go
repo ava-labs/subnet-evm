@@ -4,6 +4,7 @@
 package allowlist
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 
@@ -17,12 +18,6 @@ import (
 // in the storage trie.
 
 const (
-	SetAdminFuncKey      = "setAdmin"
-	SetManagerFuncKey    = "setManager"
-	SetEnabledFuncKey    = "setEnabled"
-	SetNoneFuncKey       = "setNone"
-	ReadAllowListFuncKey = "readAllowList"
-
 	ModifyAllowListGasCost = contract.WriteGasCostPerSlot
 	ReadAllowListGasCost   = contract.ReadGasCostPerSlot
 
@@ -30,14 +25,6 @@ const (
 )
 
 var (
-	AllowListFuncKeys = []string{
-		SetAdminFuncKey,
-		SetManagerFuncKey,
-		SetEnabledFuncKey,
-		SetNoneFuncKey,
-		ReadAllowListFuncKey,
-	}
-
 	// AllowList function signatures
 	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
 	setManagerSignature    = contract.CalculateFunctionSelector("setManager(address)")
@@ -46,6 +33,12 @@ var (
 	readAllowListSignature = contract.CalculateFunctionSelector("readAllowList(address)")
 	// Error returned when an invalid write is attempted
 	ErrCannotModifyAllowList = errors.New("cannot modify allow list")
+
+	// AllowListRawABI contains the raw ABI of AllowList library interface.
+	//go:embed allowlist.abi
+	AllowListRawABI string
+
+	AllowListABI = contract.ParseABI(AllowListRawABI)
 )
 
 // GetAllowListStatus returns the allow list role of [address] for the precompile
@@ -94,12 +87,43 @@ func PackModifyAllowList(address common.Address, role Role) ([]byte, error) {
 	return input, nil
 }
 
-// PackReadAllowList packs [address] into the input data to the read allow list function
-func PackReadAllowList(address common.Address) []byte {
-	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
-	input = append(input, readAllowListSignature...)
-	input = append(input, address.Hash().Bytes()...)
-	return input
+func getAllowListFunctionSelector(role Role) (string, error) {
+	switch role {
+	case AdminRole:
+		return "setAdmin", nil
+	case ManagerRole:
+		return "setManager", nil
+	case EnabledRole:
+		return "setEnabled", nil
+	case NoRole:
+		return "setNone", nil
+	default:
+		return "", fmt.Errorf("unknown role: %s", role)
+	}
+}
+
+func PackModifyAllowListV2(address common.Address, role Role) ([]byte, error) {
+	funcName, err := getAllowListFunctionSelector(role)
+	if err != nil {
+		return nil, fmt.Errorf("cannot pack modify list input with invalid role: %s", role)
+	}
+
+	return AllowListABI.Pack(funcName, address)
+}
+
+func UnpackModifyAllowListInput(input []byte, r Role) (common.Address, error) {
+	if len(input) != allowListInputLen {
+		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
+	}
+
+	funcName, err := getAllowListFunctionSelector(r)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	var modifyAddress common.Address
+	err = AllowListABI.UnpackInputIntoInterface(&modifyAddress, funcName, input)
+	return modifyAddress, err
 }
 
 // createAllowListRoleSetter returns an execution function for setting the allow list status of the input address argument to [role].
@@ -110,11 +134,11 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			return nil, 0, err
 		}
 
-		if len(input) != allowListInputLen {
-			return nil, remainingGas, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
-		}
+		modifyAddress, err := UnpackModifyAllowListInput(input, role)
 
-		modifyAddress := common.BytesToAddress(input)
+		if err != nil {
+			return nil, remainingGas, err
+		}
 
 		if readOnly {
 			return nil, remainingGas, vmerrs.ErrWriteProtection
@@ -135,6 +159,24 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 	}
 }
 
+// PackReadAllowList packs [address] into the input data to the read allow list function
+func PackReadAllowList(address common.Address) []byte {
+	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
+	input = append(input, readAllowListSignature...)
+	input = append(input, address.Hash().Bytes()...)
+	return input
+}
+
+func UnpackReadAllowListInput(input []byte) (common.Address, error) {
+	if len(input) != allowListInputLen {
+		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
+	}
+
+	var modifyAddress common.Address
+	err := AllowListABI.UnpackInputIntoInterface(&modifyAddress, "readAllowList", input)
+	return modifyAddress, err
+}
+
 // createReadAllowList returns an execution function that reads the allow list for the given [precompileAddr].
 // The execution function parses the input into a single address and returns the 32 byte hash that specifies the
 // designated role of that address
@@ -144,14 +186,13 @@ func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrec
 			return nil, 0, err
 		}
 
-		if len(input) != allowListInputLen {
-			return nil, remainingGas, fmt.Errorf("invalid input length for read allow list: %d", len(input))
+		readAddress, err := UnpackReadAllowListInput(input)
+		if err != nil {
+			return nil, remainingGas, err
 		}
 
-		readAddress := common.BytesToAddress(input)
 		role := GetAllowListStatus(evm.GetStateDB(), precompileAddr, readAddress)
-		roleBytes := common.Hash(role).Bytes()
-		return roleBytes, remainingGas, nil
+		return role.Bytes(), remainingGas, nil
 	}
 }
 
@@ -160,8 +201,6 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 	// Construct the contract with no fallback function.
 	allowListFuncs := CreateAllowListFunctions(precompileAddr)
 	contract, err := contract.NewStatefulPrecompileContract(nil, allowListFuncs)
-	// TODO Change this to be returned as an error after refactoring this precompile
-	// to use the new precompile template.
 	if err != nil {
 		panic(err)
 	}
@@ -169,11 +208,45 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 }
 
 func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
-	setAdmin := contract.NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AdminRole))
-	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(precompileAddr, ManagerRole), contract.IsDUpgradeActivated)
-	setEnabled := contract.NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, EnabledRole))
-	setNone := contract.NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, NoRole))
-	read := contract.NewStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
+	var functions []*contract.StatefulPrecompileFunction
 
-	return []*contract.StatefulPrecompileFunction{setAdmin, setManager, setEnabled, setNone, read}
+	type precompileFn struct {
+		fn        contract.RunStatefulPrecompileFunc
+		activator contract.ActivationFunc
+	}
+
+	abiFunctionMap := map[string]precompileFn{
+		"setAdmin": {
+			fn: createAllowListRoleSetter(precompileAddr, AdminRole),
+		},
+		"setEnabled": {
+			fn: createAllowListRoleSetter(precompileAddr, EnabledRole),
+		},
+		"setNone": {
+			fn: createAllowListRoleSetter(precompileAddr, NoRole),
+		},
+		"readAllowList": {
+			fn: createReadAllowList(precompileAddr),
+		},
+		"setManager": {
+			fn:        createAllowListRoleSetter(precompileAddr, ManagerRole),
+			activator: contract.IsDUpgradeActivated,
+		},
+	}
+
+	for name, function := range abiFunctionMap {
+		method, ok := AllowListABI.Methods[name]
+		if !ok {
+			panic(fmt.Errorf("given method (%s) does not exist in the ABI", name))
+		}
+		var spFn *contract.StatefulPrecompileFunction
+		if function.activator != nil {
+			spFn = contract.NewStatefulPrecompileFunctionWithActivator(method.ID, function.fn, function.activator)
+		} else {
+			spFn = contract.NewStatefulPrecompileFunction(method.ID, function.fn)
+		}
+		functions = append(functions, spFn)
+	}
+
+	return functions
 }
