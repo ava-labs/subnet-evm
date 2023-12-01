@@ -15,7 +15,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -543,10 +542,12 @@ func setupCheckPredicatesOutput(t *testing.B, addrSize int, tupleSizePerAddr int
 		bigIndex := big.NewInt(int64(i))
 		addr := common.BigToAddress(bigIndex)
 		rules.Predicaters[addr] = predicater
-		testTuples = append(testTuples, testTuple{
-			address:          addr,
-			isValidPredicate: i%2 == 0,
-		})
+		for k := 0; k < tupleSizePerAddr; k++ {
+			testTuples = append(testTuples, testTuple{
+				address:          addr,
+				isValidPredicate: k%2 == 0,
+			})
+		}
 	}
 
 	predicateContext := &precompileconfig.PredicateContext{
@@ -621,51 +622,4 @@ func BenchmarkPredicateCheckOld(b *testing.B) {
 			})
 		}
 	}
-}
-
-func CheckPredicatesOld(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) (map[common.Address][]byte, error) {
-	// Check that the transaction can cover its IntrinsicGas (including the gas required by the predicate) before
-	// verifying the predicate.
-	intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, rules)
-	if err != nil {
-		return nil, err
-	}
-	if tx.Gas() < intrinsicGas {
-		return nil, fmt.Errorf("%w for predicate verification (%d) < intrinsic gas (%d)", ErrIntrinsicGas, tx.Gas(), intrinsicGas)
-	}
-
-	predicateResults := make(map[common.Address][]byte)
-	// Short circuit early if there are no precompile predicates to verify
-	if !rules.PredicatersExist() {
-		return predicateResults, nil
-	}
-
-	// Prepare the predicate storage slots from the transaction's access list
-	predicateArguments := predicate.PreparePredicateStorageSlots(rules, tx.AccessList())
-
-	// If there are no predicates to verify, return early and skip requiring the proposervm block
-	// context to be populated.
-	if len(predicateArguments) == 0 {
-		return predicateResults, nil
-	}
-
-	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
-		return nil, ErrMissingPredicateContext
-	}
-
-	for address, predicates := range predicateArguments {
-		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
-		// there's no need to check if the predicate exists here.
-		predicaterContract := rules.Predicaters[address]
-		bitset := set.NewBits()
-		for i, predicate := range predicates {
-			if !predicaterContract.VerifyPredicate(predicateContext, predicate) {
-				bitset.Add(i)
-			}
-		}
-		res := bitset.Bytes()
-		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res)
-		predicateResults[address] = res
-	}
-	return predicateResults, nil
 }
