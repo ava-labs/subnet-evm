@@ -6,6 +6,8 @@ package core
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
@@ -13,6 +15,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -521,4 +524,148 @@ func PreparePredicateStorageSlotsTest(list types.AccessList) map[common.Address]
 	}
 
 	return predicateStorageSlots
+}
+
+func setupCheckPredicatesOutput(t *testing.B, addrSize int, tupleSizePerAddr int) (params.Rules, *precompileconfig.PredicateContext, *types.Transaction) {
+	type testTuple struct {
+		address          common.Address
+		isValidPredicate bool
+	}
+
+	predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
+	predicater.EXPECT().VerifyPredicate(gomock.Any(), validHash[:]).Return(true).AnyTimes()
+	predicater.EXPECT().VerifyPredicate(gomock.Any(), invalidHash[:]).Return(false).AnyTimes()
+	predicater.EXPECT().PredicateGas(gomock.Any()).Return(uint64(0), nil).AnyTimes()
+	rules := params.TestChainConfig.AvalancheRules(common.Big0, 0)
+
+	testTuples := make([]testTuple, 0)
+	for i := 0; i < addrSize; i++ {
+		bigIndex := big.NewInt(int64(i))
+		addr := common.BigToAddress(bigIndex)
+		rules.Predicaters[addr] = predicater
+		testTuples = append(testTuples, testTuple{
+			address:          addr,
+			isValidPredicate: i%2 == 0,
+		})
+	}
+
+	predicateContext := &precompileconfig.PredicateContext{
+		ProposerVMBlockCtx: &block.Context{
+			PChainHeight: 10,
+		},
+	}
+
+	var txAccessList types.AccessList
+	for _, tuple := range testTuples {
+		// Create the rules from TestChainConfig and update the predicates based on the test params
+		predicateHash := invalidHash
+		if tuple.isValidPredicate {
+			predicateHash = validHash
+		}
+		txAccessList = append(txAccessList, types.AccessTuple{
+			Address: tuple.address,
+			StorageKeys: []common.Hash{
+				predicateHash,
+			}})
+	}
+
+	tx := types.NewTx(&types.DynamicFeeTx{
+		AccessList: txAccessList,
+		Gas:        53000,
+	})
+
+	return rules, predicateContext, tx
+}
+
+func runBenchmarkCheckPredicates(b *testing.B, rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction, useOld bool) {
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var predicateRes map[common.Address][]byte
+		var err error
+		if useOld {
+			predicateRes, err = CheckPredicatesOld(rules, predicateContext, tx)
+		} else {
+			predicateRes, err = CheckPredicates(rules, predicateContext, tx)
+		}
+		require.NoError(b, err)
+		require.NotNil(b, predicateRes)
+	}
+}
+
+func BenchmarkPredicateCheck(b *testing.B) {
+	// addrSize, predicatePerAddrNum
+	addrSizes := []int{1, 10, 100, 1000}
+	predicatePerAddr := []int{1, 10, 100, 1000}
+
+	for _, addrSize := range addrSizes {
+		for _, predicatePerAddrSize := range predicatePerAddr {
+			b.Run(fmt.Sprintf("addressNum_%d_predicatePerAddr_%d_predicateCheck", addrSize, predicatePerAddrSize), func(b *testing.B) {
+				rules, context, tx := setupCheckPredicatesOutput(b, addrSize, predicatePerAddrSize)
+				runBenchmarkCheckPredicates(b, rules, context, tx, false)
+			})
+		}
+	}
+}
+
+func BenchmarkPredicateCheckOld(b *testing.B) {
+	// addrSize, predicatePerAddrNum
+	addrSizes := []int{1, 10, 100, 1000}
+	predicatePerAddr := []int{1, 10, 100, 1000}
+
+	for _, addrSize := range addrSizes {
+		for _, predicatePerAddrSize := range predicatePerAddr {
+			b.Run(fmt.Sprintf("addressNum_%d_predicatePerAddr_%d_predicateCheck", addrSize, predicatePerAddrSize), func(b *testing.B) {
+				rules, context, tx := setupCheckPredicatesOutput(b, addrSize, predicatePerAddrSize)
+				runBenchmarkCheckPredicates(b, rules, context, tx, true)
+			})
+		}
+	}
+}
+
+func CheckPredicatesOld(rules params.Rules, predicateContext *precompileconfig.PredicateContext, tx *types.Transaction) (map[common.Address][]byte, error) {
+	// Check that the transaction can cover its IntrinsicGas (including the gas required by the predicate) before
+	// verifying the predicate.
+	intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, rules)
+	if err != nil {
+		return nil, err
+	}
+	if tx.Gas() < intrinsicGas {
+		return nil, fmt.Errorf("%w for predicate verification (%d) < intrinsic gas (%d)", ErrIntrinsicGas, tx.Gas(), intrinsicGas)
+	}
+
+	predicateResults := make(map[common.Address][]byte)
+	// Short circuit early if there are no precompile predicates to verify
+	if !rules.PredicatersExist() {
+		return predicateResults, nil
+	}
+
+	// Prepare the predicate storage slots from the transaction's access list
+	predicateArguments := predicate.PreparePredicateStorageSlots(rules, tx.AccessList())
+
+	// If there are no predicates to verify, return early and skip requiring the proposervm block
+	// context to be populated.
+	if len(predicateArguments) == 0 {
+		return predicateResults, nil
+	}
+
+	if predicateContext == nil || predicateContext.ProposerVMBlockCtx == nil {
+		return nil, ErrMissingPredicateContext
+	}
+
+	for address, predicates := range predicateArguments {
+		// Since [address] is only added to [predicateArguments] when there's a valid predicate in the ruleset
+		// there's no need to check if the predicate exists here.
+		predicaterContract := rules.Predicaters[address]
+		bitset := set.NewBits()
+		for i, predicate := range predicates {
+			if !predicaterContract.VerifyPredicate(predicateContext, predicate) {
+				bitset.Add(i)
+			}
+		}
+		res := bitset.Bytes()
+		log.Debug("predicate verify", "tx", tx.Hash(), "address", address, "res", res)
+		predicateResults[address] = res
+	}
+	return predicateResults, nil
 }
