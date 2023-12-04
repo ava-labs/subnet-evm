@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
+	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -347,14 +348,14 @@ func TestCheckPredicatesOutput(t *testing.T) {
 			testTuple: []testTuple{
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{addr1: {}},
+			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes()},
 		},
 		{
 			name: "one address one invalid predicate",
 			testTuple: []testTuple{
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address][]byte{addr1: {1}},
+			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(0)},
 		},
 		{
 			name: "one address two invalid predicates",
@@ -362,7 +363,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address][]byte{addr1: {3}},
+			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(0, 1)},
 		},
 		{
 			name: "one address two mixed predicates",
@@ -370,7 +371,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: true},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address][]byte{addr1: {2}},
+			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(1)},
 		},
 		{
 			name: "one address mixed predicates",
@@ -380,7 +381,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{addr1: {6}},
+			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(1, 2)},
 		},
 		{
 			name: "two addresses mixed predicates",
@@ -394,7 +395,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr2, isValidPredicate: false},
 				{address: addr2, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{addr1: {6}, addr2: {9}},
+			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(1, 2), addr2: getBitsetBytes(0, 3)},
 		},
 		{
 			name: "two addresses all valid predicates",
@@ -404,7 +405,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: true},
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{addr1: {}, addr2: {}},
+			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(), addr2: getBitsetBytes()},
 		},
 		{
 			name: "two addresses all invalid predicates",
@@ -414,7 +415,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address][]byte{addr1: {7}, addr2: {1}},
+			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(0, 1, 2), addr2: getBitsetBytes(0)},
 		},
 	}
 	for _, test := range tests {
@@ -424,14 +425,16 @@ func TestCheckPredicatesOutput(t *testing.T) {
 			rules := params.TestChainConfig.AvalancheRules(common.Big0, 0)
 			predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
 			predicater.EXPECT().PredicateGas(gomock.Any()).Return(uint64(0), nil).Times(len(test.testTuple))
-			validPredicateCount := 0
 
 			var txAccessList types.AccessList
 			for _, tuple := range test.testTuple {
-				predicateHash := invalidHash
+				var predicateHash common.Hash
 				if tuple.isValidPredicate {
-					validPredicateCount++
 					predicateHash = validHash
+					predicater.EXPECT().VerifyPredicate(gomock.Any(), validHash[:]).Return(true)
+				} else {
+					predicateHash = invalidHash
+					predicater.EXPECT().VerifyPredicate(gomock.Any(), invalidHash[:]).Return(false)
 				}
 				txAccessList = append(txAccessList, types.AccessTuple{
 					Address: tuple.address,
@@ -441,9 +444,6 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				})
 			}
 
-			invalidPredicateCount := len(test.testTuple) - validPredicateCount
-			predicater.EXPECT().VerifyPredicate(gomock.Any(), validHash[:]).Return(true).Times(validPredicateCount)
-			predicater.EXPECT().VerifyPredicate(gomock.Any(), invalidHash[:]).Return(false).Times(invalidPredicateCount)
 			rules.Predicaters[addr1] = predicater
 			rules.Predicaters[addr2] = predicater
 
@@ -457,4 +457,12 @@ func TestCheckPredicatesOutput(t *testing.T) {
 			require.Equal(test.expectedRes, predicateRes)
 		})
 	}
+}
+
+func getBitsetBytes(indexes ...int) []byte {
+	s := set.NewBits()
+	for _, i := range indexes {
+		s.Add(i)
+	}
+	return s.Bytes()
 }

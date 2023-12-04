@@ -350,7 +350,6 @@ func TestInvalidWarpMessage(t *testing.T) {
 		PredicateBytes: predicateBytes,
 		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:         errInvalidWarpMsg,
-		ExpectedRes:    true, // Won't be reached
 	}
 
 	test.Run(t)
@@ -440,7 +439,6 @@ func TestInvalidBitSet(t *testing.T) {
 		PredicateBytes: predicateBytes,
 		Gas:            GasCostPerSignatureVerification + uint64(len(predicateBytes))*GasCostPerWarpMessageBytes + uint64(numKeys)*GasCostPerWarpSigner,
 		GasErr:         errCannotGetNumSigners,
-		ExpectedRes:    true, // Won't be reached
 	}
 
 	test.Run(t)
