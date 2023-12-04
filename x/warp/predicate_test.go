@@ -560,7 +560,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 	// Add cases with default quorum
 	for _, numSigners := range []int{nonDefaultQuorumNumerator, nonDefaultQuorumNumerator + 1, 99, 100, 101} {
 		predicateBytes := createPredicate(numSigners)
-		// The predicate is valid iff the number of signers is gte the required numerator and does not exceed the denominator.
+		// The predicate is valid iff the number of signers is >= the required numerator and does not exceed the denominator.
 		isValid := numSigners >= nonDefaultQuorumNumerator && numSigners <= int(params.WarpQuorumDenominator)
 
 		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)
