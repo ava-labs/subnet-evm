@@ -467,7 +467,7 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 		int(params.WarpQuorumDenominator) + 1,
 	} {
 		predicateBytes := createPredicate(numSigners)
-		// The predicate is valid iff the number of signers is gte the required numerator and does not exceed the denominator.
+		// The predicate is valid iff the number of signers is >= the required numerator and does not exceed the denominator.
 		isValid := numSigners >= int(params.WarpDefaultQuorumNumerator) && numSigners <= int(params.WarpQuorumDenominator)
 
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
