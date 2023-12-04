@@ -348,14 +348,14 @@ func TestCheckPredicatesOutput(t *testing.T) {
 			testTuple: []testTuple{
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes()},
+			expectedRes: map[common.Address][]byte{addr1: set.NewBits().Bytes()},
 		},
 		{
 			name: "one address one invalid predicate",
 			testTuple: []testTuple{
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(0)},
+			expectedRes: map[common.Address][]byte{addr1: set.NewBits(0).Bytes()},
 		},
 		{
 			name: "one address two invalid predicates",
@@ -363,7 +363,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(0, 1)},
+			expectedRes: map[common.Address][]byte{addr1: set.NewBits(0, 1).Bytes()},
 		},
 		{
 			name: "one address two mixed predicates",
@@ -371,7 +371,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: true},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(1)},
+			expectedRes: map[common.Address][]byte{addr1: set.NewBits(1).Bytes()},
 		},
 		{
 			name: "one address mixed predicates",
@@ -381,7 +381,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(1, 2)},
+			expectedRes: map[common.Address][]byte{addr1: set.NewBits(1, 2).Bytes()},
 		},
 		{
 			name: "two addresses mixed predicates",
@@ -395,7 +395,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr2, isValidPredicate: false},
 				{address: addr2, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(1, 2), addr2: getBitsetBytes(0, 3)},
+			expectedRes: map[common.Address][]byte{addr1: set.NewBits(1, 2).Bytes(), addr2: set.NewBits(0, 3).Bytes()},
 		},
 		{
 			name: "two addresses all valid predicates",
@@ -405,7 +405,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: true},
 				{address: addr1, isValidPredicate: true},
 			},
-			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(), addr2: getBitsetBytes()},
+			expectedRes: map[common.Address][]byte{addr1: set.NewBits().Bytes(), addr2: set.NewBits().Bytes()},
 		},
 		{
 			name: "two addresses all invalid predicates",
@@ -415,7 +415,7 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				{address: addr1, isValidPredicate: false},
 				{address: addr1, isValidPredicate: false},
 			},
-			expectedRes: map[common.Address][]byte{addr1: getBitsetBytes(0, 1, 2), addr2: getBitsetBytes(0)},
+			expectedRes: map[common.Address][]byte{addr1: set.NewBits(0, 1, 2).Bytes(), addr2: set.NewBits(0).Bytes()},
 		},
 	}
 	for _, test := range tests {
@@ -457,12 +457,4 @@ func TestCheckPredicatesOutput(t *testing.T) {
 			require.Equal(test.expectedRes, predicateRes)
 		})
 	}
-}
-
-func getBitsetBytes(indexes ...int) []byte {
-	s := set.NewBits()
-	for _, i := range indexes {
-		s.Add(i)
-	}
-	return s.Bytes()
 }
