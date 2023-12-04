@@ -64,26 +64,9 @@ func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
 	}
 }
 
-type OptionalFork struct {
-	Timestamp *uint64 `json:"timestamp" serialize:"true"`
-}
-
-func (m *OptionalFork) ToFork(name string) fork {
-	var timestamp *uint64
-	if m.Timestamp != nil {
-		timestamp = m.Timestamp
-	}
-	return fork{
-		name:      name,
-		timestamp: timestamp,
-		block:     nil,
-		optional:  true,
-	}
-}
-
 type OptionalNetworkUpgrades struct {
 	// This is an example of a configuration.
-	//FeatureConfig *OptionalFork `json:"test,omitempty" serialize:"true,nullable"`
+	//FeatureConfig *uint64 `json:"test,omitempty" serialize:"true,nullable"`
 }
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
@@ -91,14 +74,7 @@ func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetwor
 }
 
 func (n *OptionalNetworkUpgrades) optionalForkOrder() []fork {
-	forks := make([]fork, 0)
-	/*
-		// This block of code should be added for each property inside OptionalNetworkUpgrades
-		// Each property should have a test like https://github.com/ava-labs/subnet-evm/blob/c261ce270d16db5351b1e1ec5e128a3d23fe6a9c/params/config_test.go#L357-L360
-		if n.FeatureConfig != nil {
-			forks = append(forks, FeatureConfig.ToFork("featureConfig"))
-		}
-
-	*/
-	return forks
+	return []fork{
+		// {name: "foo", timestamp: n.FooBar},
+	}
 }
