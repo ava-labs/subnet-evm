@@ -25,11 +25,6 @@ const (
 )
 
 var (
-	// AllowList function signatures
-	setAdminSignature   = contract.CalculateFunctionSelector("setAdmin(address)")
-	setManagerSignature = contract.CalculateFunctionSelector("setManager(address)")
-	setEnabledSignature = contract.CalculateFunctionSelector("setEnabled(address)")
-	setNoneSignature    = contract.CalculateFunctionSelector("setNone(address)")
 	// Error returned when an invalid write is attempted
 	ErrCannotModifyAllowList = errors.New("cannot modify allow list")
 
@@ -62,66 +57,19 @@ func SetAllowListRole(stateDB contract.StateDB, precompileAddr, address common.A
 	stateDB.SetState(precompileAddr, addressKey, common.Hash(role))
 }
 
-// PackModifyAllowList packs [address] and [role] into the appropriate arguments for modifying the allow list.
-// Note: [role] is not packed in the input value returned, but is instead used as a selector for the function
-// selector that should be encoded in the input.
 func PackModifyAllowList(address common.Address, role Role) ([]byte, error) {
-	// function selector (4 bytes) + hash for address
-	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
-
-	switch role {
-	case AdminRole:
-		input = append(input, setAdminSignature...)
-	case ManagerRole:
-		input = append(input, setManagerSignature...)
-	case EnabledRole:
-		input = append(input, setEnabledSignature...)
-	case NoRole:
-		input = append(input, setNoneSignature...)
-	default:
-		return nil, fmt.Errorf("cannot pack modify list input with invalid role: %s", role)
-	}
-
-	input = append(input, address.Hash().Bytes()...)
-	return input, nil
-}
-
-func getAllowListFunctionSelector(role Role) (string, error) {
-	switch role {
-	case AdminRole:
-		return "setAdmin", nil
-	case ManagerRole:
-		return "setManager", nil
-	case EnabledRole:
-		return "setEnabled", nil
-	case NoRole:
-		return "setNone", nil
-	default:
-		return "", fmt.Errorf("unknown role: %s", role)
-	}
-}
-
-func PackModifyAllowListV2(address common.Address, role Role) ([]byte, error) {
-	funcName, err := getAllowListFunctionSelector(role)
-	if err != nil {
-		return nil, fmt.Errorf("cannot pack modify list input with invalid role: %s", role)
-	}
-
+	funcName := getAllowListFunctionSelector(role)
 	return AllowListABI.Pack(funcName, address)
 }
 
-func UnpackModifyAllowListInput(input []byte, r Role) (common.Address, error) {
-	if len(input) != allowListInputLen {
+func UnpackModifyAllowListInput(input []byte, r Role, skipLenCheck bool) (common.Address, error) {
+	if !skipLenCheck && len(input) != allowListInputLen {
 		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
 	}
 
-	funcName, err := getAllowListFunctionSelector(r)
-	if err != nil {
-		return common.Address{}, err
-	}
-
+	funcName := getAllowListFunctionSelector(r)
 	var modifyAddress common.Address
-	err = AllowListABI.UnpackInputIntoInterface(&modifyAddress, funcName, input)
+	err := AllowListABI.UnpackInputIntoInterface(&modifyAddress, funcName, input)
 	return modifyAddress, err
 }
 
@@ -133,7 +81,8 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			return nil, 0, err
 		}
 
-		modifyAddress, err := UnpackModifyAllowListInput(input, role)
+		skipLenCheck := contract.IsDUpgradeActivated(evm)
+		modifyAddress, err := UnpackModifyAllowListInput(input, role, skipLenCheck)
 
 		if err != nil {
 			return nil, remainingGas, err
@@ -213,19 +162,19 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 	}
 
 	abiFunctionMap := map[string]precompileFn{
-		"setAdmin": {
+		getAllowListFunctionSelector(AdminRole): {
 			fn: createAllowListRoleSetter(precompileAddr, AdminRole),
 		},
-		"setEnabled": {
+		getAllowListFunctionSelector(EnabledRole): {
 			fn: createAllowListRoleSetter(precompileAddr, EnabledRole),
 		},
-		"setNone": {
+		getAllowListFunctionSelector(NoRole): {
 			fn: createAllowListRoleSetter(precompileAddr, NoRole),
 		},
 		"readAllowList": {
 			fn: createReadAllowList(precompileAddr),
 		},
-		"setManager": {
+		getAllowListFunctionSelector(ManagerRole): {
 			fn:        createAllowListRoleSetter(precompileAddr, ManagerRole),
 			activator: contract.IsDUpgradeActivated,
 		},
@@ -246,4 +195,19 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 	}
 
 	return functions
+}
+
+func getAllowListFunctionSelector(role Role) string {
+	switch role {
+	case AdminRole:
+		return "setAdmin"
+	case ManagerRole:
+		return "setManager"
+	case EnabledRole:
+		return "setEnabled"
+	case NoRole:
+		return "setNone"
+	default:
+		panic("unknown role")
+	}
 }

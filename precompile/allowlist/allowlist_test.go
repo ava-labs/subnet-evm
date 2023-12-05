@@ -130,7 +130,6 @@ func TestPackReadAllowlistTest(f *testing.T) {
 func testPackReadAllowlistTest(t *testing.T, address common.Address) {
 	t.Helper()
 	t.Run(fmt.Sprintf("TestPackReadAllowlistTest, address %v", address), func(t *testing.T) {
-		// Test PackGetFeeConfigOutputV2, UnpackGetFeeConfigOutputV2
 		input, err := PackReadAllowList(address)
 		require.NoError(t, err)
 		// exclude 4 bytes for function selector
@@ -141,7 +140,6 @@ func testPackReadAllowlistTest(t *testing.T, address common.Address) {
 
 		require.Equal(t, address, unpacked)
 
-		// Test PackGetFeeConfigOutput, UnpackGetFeeConfigOutput
 		input = OldPackReadAllowList(address)
 		// exclude 4 bytes for function selector
 		input = input[4:]
@@ -153,7 +151,6 @@ func testPackReadAllowlistTest(t *testing.T, address common.Address) {
 		require.Equal(t, address, unpacked)
 
 		// // now mix and match
-		// Test PackGetFeeConfigOutput, PackGetFeeConfigOutputV2
 		input, err = PackReadAllowList(address)
 		// exclude 4 bytes for function selector
 		input = input[4:]
@@ -163,7 +160,6 @@ func testPackReadAllowlistTest(t *testing.T, address common.Address) {
 		input2 = input2[4:]
 		require.Equal(t, input, input2)
 
-		// // Test UnpackGetFeeConfigOutput, UnpackGetFeeConfigOutputV2
 		unpacked, err = UnpackReadAllowListInput(input2, false)
 		require.NoError(t, err)
 		unpacked2, err := OldUnpackReadAllowList(input)
@@ -185,4 +181,119 @@ func OldUnpackReadAllowList(input []byte) (common.Address, error) {
 		return common.Address{}, fmt.Errorf("invalid input length for read allow list: %d", len(input))
 	}
 	return common.BytesToAddress(input), nil
+}
+
+func FuzzPackModifyAllowListTest(f *testing.F) {
+	f.Add(common.Address{}.Bytes(), uint(0))
+	key, _ := crypto.GenerateKey()
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	f.Add(addr.Bytes(), uint(0))
+	f.Fuzz(func(t *testing.T, b []byte, roleIndex uint) {
+		testPackModifyAllowListTest(t, common.BytesToAddress(b), getRole(roleIndex))
+	})
+}
+
+func FuzzPackModifyAllowlistTestSkipCheck(f *testing.F) {
+	f.Fuzz(func(t *testing.T, b []byte) {
+		res, err := UnpackModifyAllowListInput(b, AdminRole, false)
+		oldRes, oldErr := OldUnpackModifyAllowList(b, AdminRole)
+		if oldErr != nil {
+			require.ErrorContains(t, err, oldErr.Error())
+		} else {
+			require.NoError(t, err)
+		}
+		require.Equal(t, oldRes, res)
+	})
+}
+
+func testPackModifyAllowListTest(t *testing.T, address common.Address, role Role) {
+	t.Helper()
+	t.Run(fmt.Sprintf("TestPackModifyAllowlistTest, address %v, role %s", address, role.String()), func(t *testing.T) {
+		input, err := PackModifyAllowList(address, role)
+		require.NoError(t, err)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+
+		unpacked, err := UnpackModifyAllowListInput(input, role, false)
+		require.NoError(t, err)
+
+		require.Equal(t, address, unpacked)
+
+		input, err = OldPackModifyAllowList(address, role)
+		require.NoError(t, err)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+		require.NoError(t, err)
+
+		unpacked, err = OldUnpackModifyAllowList(input, role)
+		require.NoError(t, err)
+
+		require.Equal(t, address, unpacked)
+
+		// now mix and match
+		input, err = PackModifyAllowList(address, role)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+		require.NoError(t, err)
+		input2, err := OldPackModifyAllowList(address, role)
+		require.NoError(t, err)
+		// exclude 4 bytes for function selector
+		input2 = input2[4:]
+		require.Equal(t, input, input2)
+
+		unpacked, err = UnpackModifyAllowListInput(input2, role, false)
+		require.NoError(t, err)
+		unpacked2, err := OldUnpackModifyAllowList(input, role)
+		require.NoError(t, err)
+		require.Equal(t, unpacked, unpacked2)
+	})
+}
+
+func OldPackModifyAllowList(address common.Address, role Role) ([]byte, error) {
+	// AllowList function signatures
+	setAdminSignature := contract.CalculateFunctionSelector("setAdmin(address)")
+	setManagerSignature := contract.CalculateFunctionSelector("setManager(address)")
+	setEnabledSignature := contract.CalculateFunctionSelector("setEnabled(address)")
+	setNoneSignature := contract.CalculateFunctionSelector("setNone(address)")
+	// function selector (4 bytes) + hash for address
+	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
+
+	switch role {
+	case AdminRole:
+		input = append(input, setAdminSignature...)
+	case ManagerRole:
+		input = append(input, setManagerSignature...)
+	case EnabledRole:
+		input = append(input, setEnabledSignature...)
+	case NoRole:
+		input = append(input, setNoneSignature...)
+	default:
+		return nil, fmt.Errorf("cannot pack modify list input with invalid role: %s", role)
+	}
+
+	input = append(input, address.Hash().Bytes()...)
+	return input, nil
+}
+
+func OldUnpackModifyAllowList(input []byte, role Role) (common.Address, error) {
+	if len(input) != allowListInputLen {
+		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
+	}
+	return common.BytesToAddress(input), nil
+}
+
+func getRole(roleIndex uint) Role {
+	index := roleIndex % 4
+	switch index {
+	case 0:
+		return NoRole
+	case 1:
+		return EnabledRole
+	case 2:
+		return AdminRole
+	case 3:
+		return ManagerRole
+	default:
+		panic("unknown role")
+	}
 }
