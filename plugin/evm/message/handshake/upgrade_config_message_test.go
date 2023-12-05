@@ -25,13 +25,13 @@ import (
 func assertConversions(t *testing.T, message *UpgradeConfigMessage, err error) {
 	require.NoError(t, err)
 
-	config, err := NewUpgradeConfigMessageFromBytes(message.Bytes())
+	config, err := UpgradeConfigFromBytes(message.Bytes())
 	require.NoError(t, err)
 
 	message2, err := NewUpgradeConfigMessage(config)
 	require.NoError(t, err)
 
-	config3, err := NewUpgradeConfigMessageFromBytes(message2.Bytes())
+	config3, err := UpgradeConfigFromBytes(message2.Bytes())
 	require.NoError(t, err)
 
 	message3, err := NewUpgradeConfigMessage(config3)
@@ -104,4 +104,31 @@ func TestWithAddressAndMint(t *testing.T) {
 		},
 	})
 	assertConversions(t, message, err)
+}
+
+func Test(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+	config := params.UpgradeConfig{
+		StateUpgrades: []params.StateUpgrade{
+			{
+				BlockTimestamp:       &t0,
+				StateUpgradeAccounts: map[common.Address]params.StateUpgradeAccount{},
+			},
+			{
+				BlockTimestamp: &t1,
+				StateUpgradeAccounts: map[common.Address]params.StateUpgradeAccount{
+					common.HexToAddress("00c1f1a2"): params.StateUpgradeAccount{
+						Code:          common.Hex2Bytes("0fc01e"),
+						BalanceChange: math.NewHexOrDecimal256(643),
+					},
+				},
+			},
+		},
+	}
+	message, err := NewUpgradeConfigMessage(&config)
+	require.NoError(t, err)
+	configFromBytes, err := UpgradeConfigFromBytes(message.Bytes())
+	require.NoError(t, err)
+	require.Equal(t, &config, configFromBytes)
 }

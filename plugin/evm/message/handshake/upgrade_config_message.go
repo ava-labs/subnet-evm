@@ -4,24 +4,12 @@
 package handshake
 
 import (
+	"encoding/json"
+
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
-
-type rawPrecompileUpgrade struct {
-	Key   string `serialize:"true"`
-	Bytes []byte `serialize:"true"`
-}
-
-type networkUpgradeConfigMessage struct {
-	OptionalNetworkUpgrades *params.OptionalNetworkUpgrades `serialize:"true,nullable"`
-	// Config for modifying state as a network upgrade.
-	StateUpgrades []params.StateUpgrade `serialize:"true"`
-	// Config for enabling and disabling precompiles as network upgrades.
-	PrecompileUpgrades []rawPrecompileUpgrade `serialize:"true"`
-}
 
 type UpgradeConfigMessage struct {
 	bytes []byte
@@ -36,45 +24,32 @@ func (u *UpgradeConfigMessage) ID() common.Hash {
 	return u.hash
 }
 
-// Attempts to parse a networkUpgradeConfigMessage from a []byte
-//
-// This function attempts to parse a stream of bytes as a
-// networkUpgradeConfigMessage (as serialized from
-// UpgradeConfigToNetworkMessage).
+// Attempts to parse a params.UpgradeConfig from a []byte
 //
 // The function returns a reference of *params.UpgradeConfig
-func NewUpgradeConfigMessageFromBytes(bytes []byte) (*params.UpgradeConfig, error) {
-	var config networkUpgradeConfigMessage
-	version, err := Codec.Unmarshal(bytes, &config)
+func UpgradeConfigFromBytes(bytes []byte) (*params.UpgradeConfig, error) {
+	var upgradeConfig params.UpgradeConfig
+	err := json.Unmarshal(bytes, &upgradeConfig)
 	if err != nil {
 		return nil, err
 	}
-	if version != Version {
-		return nil, ErrInvalidVersion
-	}
 
-	var PrecompileUpgrades []params.PrecompileUpgrade
-	for _, precompileUpgrade := range config.PrecompileUpgrades {
-		module, ok := modules.GetPrecompileModule(precompileUpgrade.Key)
-		if !ok {
-			return nil, ErrUnknowPrecompile
-		}
-		preCompile := module.MakeConfig()
-		version, err := Codec.Unmarshal(precompileUpgrade.Bytes, preCompile)
-		if version != Version {
-			return nil, ErrInvalidVersion
-		}
-		if err != nil {
-			return nil, err
-		}
-		PrecompileUpgrades = append(PrecompileUpgrades, params.PrecompileUpgrade{Config: preCompile})
-	}
+	return &upgradeConfig, nil
+}
 
-	return &params.UpgradeConfig{
-		OptionalNetworkUpgrades: config.OptionalNetworkUpgrades,
-		StateUpgrades:           config.StateUpgrades,
-		PrecompileUpgrades:      PrecompileUpgrades,
-	}, nil
+// Encodes any object to JSON with a deterministic output. All the keys, even
+// into inner objects, are sorted alphabetically.
+func DeterministicJsonEncoding(object interface{}) ([]byte, error) {
+	bytes, err := json.Marshal(object)
+	if err != nil {
+		return nil, err
+	}
+	var temporaryObject interface{}
+	err = json.Unmarshal(bytes, &temporaryObject)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(temporaryObject)
 }
 
 // Wraps an instance of *params.UpgradeConfig
@@ -87,25 +62,7 @@ func NewUpgradeConfigMessageFromBytes(bytes []byte) (*params.UpgradeConfig, erro
 // is safe to call this function once and store its output globally to re-use
 // multiple times
 func NewUpgradeConfigMessage(config *params.UpgradeConfig) (*UpgradeConfigMessage, error) {
-	PrecompileUpgrades := make([]rawPrecompileUpgrade, 0)
-	for _, precompileConfig := range config.PrecompileUpgrades {
-		bytes, err := Codec.Marshal(Version, precompileConfig.Config)
-		if err != nil {
-			return nil, err
-		}
-		PrecompileUpgrades = append(PrecompileUpgrades, rawPrecompileUpgrade{
-			Key:   precompileConfig.Key(),
-			Bytes: bytes,
-		})
-	}
-
-	wrappedConfig := networkUpgradeConfigMessage{
-		OptionalNetworkUpgrades: config.OptionalNetworkUpgrades,
-		StateUpgrades:           config.StateUpgrades,
-		PrecompileUpgrades:      PrecompileUpgrades,
-	}
-
-	bytes, err := Codec.Marshal(Version, wrappedConfig)
+	bytes, err := DeterministicJsonEncoding(config)
 	if err != nil {
 		return nil, err
 	}
