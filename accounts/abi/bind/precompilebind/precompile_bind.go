@@ -149,7 +149,7 @@ func createPrecompileHook(abifilename string, template string) bind.BindHook {
 }
 
 func allowListEnabled(funcs map[string]*bind.TmplMethod) bool {
-	for key, _ := range allowlist.AllowListABI.Methods {
+	for key := range allowlist.AllowListABI.Methods {
 		if _, ok := funcs[key]; !ok {
 			return false
 		}
