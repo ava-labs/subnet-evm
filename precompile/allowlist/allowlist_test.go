@@ -78,7 +78,7 @@ func BenchmarkAllowList(b *testing.B) {
 	BenchPrecompileWithAllowList(b, dummyModule, state.NewTestStateDB, nil)
 }
 
-func TestSignatures(t *testing.T) {
+func TestFunctionSignatures(t *testing.T) {
 	require := require.New(t)
 	setAdminSignature := contract.CalculateFunctionSelector("setAdmin(address)")
 	setAdminABI := AllowListABI.Methods["setAdmin"]

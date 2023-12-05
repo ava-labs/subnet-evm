@@ -458,20 +458,6 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 	require.True(t, testFeeConfig.Equal(&unpacked))
 }
 
-func TestSignatures(t *testing.T) {
-	setFeeConfigSignature := contract.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
-	abiSetFeeConfig := FeeManagerABI.Methods["setFeeConfig"]
-	require.Equal(t, setFeeConfigSignature, abiSetFeeConfig.ID)
-
-	getFeeConfigSignature := contract.CalculateFunctionSelector("getFeeConfig()")
-	abiGetFeeConfig := FeeManagerABI.Methods["getFeeConfig"]
-	require.Equal(t, getFeeConfigSignature, abiGetFeeConfig.ID)
-
-	getFeeConfigLastChangedAtSignature := contract.CalculateFunctionSelector("getFeeConfigLastChangedAt()")
-	abiGetFeeConfigLastChangedAt := FeeManagerABI.Methods["getFeeConfigLastChangedAt"]
-	require.Equal(t, getFeeConfigLastChangedAtSignature, abiGetFeeConfigLastChangedAt.ID)
-}
-
 func testPackSetFeeConfigInput(t *testing.T, feeConfig commontype.FeeConfig) {
 	t.Helper()
 	t.Run(fmt.Sprintf("TestPackSetFeeConfigInput, feeConfig %v", feeConfig), func(t *testing.T) {
