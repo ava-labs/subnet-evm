@@ -41,10 +41,10 @@ func TestTxGossip(t *testing.T) {
 	// sender for the peer requesting gossip from [vm]
 	ctrl := gomock.NewController(t)
 	peerSender := common.NewMockSender(ctrl)
-	router := p2p.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
+	router := p2p.NewRouter(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
 
 	// we're only making client requests, so we don't need a server handler
-	client, err := router.NewAppProtocol(txGossipProtocol, nil)
+	client, err := router.RegisterAppProtocol(txGossipProtocol, nil, nil)
 	require.NoError(err)
 
 	emptyBloomFilter, err := gossip.NewBloomFilter(txGossipBloomMaxItems, txGossipBloomFalsePositiveRate)

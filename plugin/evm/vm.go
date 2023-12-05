@@ -233,7 +233,7 @@ type VM struct {
 	networkCodec codec.Manager
 
 	validators *p2p.Validators
-	network    *p2p.Network
+	router     *p2p.Router
 
 	// Metrics
 	multiGatherer avalanchegoMetrics.MultiGatherer
@@ -460,10 +460,10 @@ func (vm *VM) Initialize(
 	}
 
 	// initialize peer network
-	vm.network = p2p.NewNetwork(vm.ctx.Log, appSender, vm.sdkMetrics, "p2p")
-	vm.validators = p2p.NewValidators(vm.network.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
+	vm.validators = p2p.NewValidators(vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
+	vm.router = p2p.NewRouter(vm.ctx.Log, appSender, vm.sdkMetrics, "p2p")
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(vm.network, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
+	vm.Network = peer.NewNetwork(vm.router, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// initialize warp backend
@@ -687,7 +687,7 @@ func (vm *VM) initBlockBuilding() error {
 			Handler:   txGossipHandler,
 		},
 	}
-	txGossipClient, err := vm.network.NewAppProtocol(txGossipProtocol, txGossipHandler)
+	txGossipClient, err := vm.router.RegisterAppProtocol(txGossipProtocol, txGossipHandler, vm.validators)
 	if err != nil {
 		return err
 	}
