@@ -4,6 +4,7 @@
 package allowlist
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -11,6 +12,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,4 +98,91 @@ func TestSignatures(t *testing.T) {
 	readAllowlistSignature := contract.CalculateFunctionSelector("readAllowList(address)")
 	readAllowlistABI := AllowListABI.Methods["readAllowList"]
 	require.Equal(t, readAllowlistSignature, readAllowlistABI.ID)
+}
+
+func FuzzPackReadAllowlistTest(f *testing.F) {
+	f.Add(common.Address{}.Bytes())
+	key, _ := crypto.GenerateKey()
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	f.Add(addr.Bytes())
+	f.Fuzz(func(t *testing.T, b []byte) {
+		testPackReadAllowlistTest(t, common.BytesToAddress(b))
+	})
+}
+
+func FuzzPackReadAllowlistTestSkipCheck(f *testing.F) {
+	f.Fuzz(func(t *testing.T, b []byte) {
+		res, err := UnpackReadAllowListInput(b, false)
+		oldRes, oldErr := OldUnpackReadAllowList(b)
+		if oldErr != nil {
+			require.ErrorContains(t, err, oldErr.Error())
+		} else {
+			require.NoError(t, err)
+		}
+		require.Equal(t, oldRes, res)
+	})
+}
+
+func TestPackReadAllowlistTest(f *testing.T) {
+	testPackReadAllowlistTest(f, common.Address{})
+}
+
+func testPackReadAllowlistTest(t *testing.T, address common.Address) {
+	t.Helper()
+	t.Run(fmt.Sprintf("TestPackReadAllowlistTest, address %v", address), func(t *testing.T) {
+		// Test PackGetFeeConfigOutputV2, UnpackGetFeeConfigOutputV2
+		input, err := PackReadAllowList(address)
+		require.NoError(t, err)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+
+		unpacked, err := UnpackReadAllowListInput(input, false)
+		require.NoError(t, err)
+
+		require.Equal(t, address, unpacked)
+
+		// Test PackGetFeeConfigOutput, UnpackGetFeeConfigOutput
+		input = OldPackReadAllowList(address)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+		require.NoError(t, err)
+
+		unpacked, err = OldUnpackReadAllowList(input)
+		require.NoError(t, err)
+
+		require.Equal(t, address, unpacked)
+
+		// // now mix and match
+		// Test PackGetFeeConfigOutput, PackGetFeeConfigOutputV2
+		input, err = PackReadAllowList(address)
+		// exclude 4 bytes for function selector
+		input = input[4:]
+		require.NoError(t, err)
+		input2 := OldPackReadAllowList(address)
+		// exclude 4 bytes for function selector
+		input2 = input2[4:]
+		require.Equal(t, input, input2)
+
+		// // Test UnpackGetFeeConfigOutput, UnpackGetFeeConfigOutputV2
+		unpacked, err = UnpackReadAllowListInput(input2, false)
+		require.NoError(t, err)
+		unpacked2, err := OldUnpackReadAllowList(input)
+		require.NoError(t, err)
+		require.Equal(t, unpacked, unpacked2)
+	})
+}
+
+func OldPackReadAllowList(address common.Address) []byte {
+	readAllowListSignature := contract.CalculateFunctionSelector("readAllowList(address)")
+	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
+	input = append(input, readAllowListSignature...)
+	input = append(input, address.Hash().Bytes()...)
+	return input
+}
+
+func OldUnpackReadAllowList(input []byte) (common.Address, error) {
+	if len(input) != allowListInputLen {
+		return common.Address{}, fmt.Errorf("invalid input length for read allow list: %d", len(input))
+	}
+	return common.BytesToAddress(input), nil
 }

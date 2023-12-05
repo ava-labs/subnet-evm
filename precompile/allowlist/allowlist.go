@@ -26,11 +26,10 @@ const (
 
 var (
 	// AllowList function signatures
-	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
-	setManagerSignature    = contract.CalculateFunctionSelector("setManager(address)")
-	setEnabledSignature    = contract.CalculateFunctionSelector("setEnabled(address)")
-	setNoneSignature       = contract.CalculateFunctionSelector("setNone(address)")
-	readAllowListSignature = contract.CalculateFunctionSelector("readAllowList(address)")
+	setAdminSignature   = contract.CalculateFunctionSelector("setAdmin(address)")
+	setManagerSignature = contract.CalculateFunctionSelector("setManager(address)")
+	setEnabledSignature = contract.CalculateFunctionSelector("setEnabled(address)")
+	setNoneSignature    = contract.CalculateFunctionSelector("setNone(address)")
 	// Error returned when an invalid write is attempted
 	ErrCannotModifyAllowList = errors.New("cannot modify allow list")
 
@@ -160,16 +159,13 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 }
 
 // PackReadAllowList packs [address] into the input data to the read allow list function
-func PackReadAllowList(address common.Address) []byte {
-	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
-	input = append(input, readAllowListSignature...)
-	input = append(input, address.Hash().Bytes()...)
-	return input
+func PackReadAllowList(address common.Address) ([]byte, error) {
+	return AllowListABI.Pack("readAllowList", address)
 }
 
-func UnpackReadAllowListInput(input []byte) (common.Address, error) {
-	if len(input) != allowListInputLen {
-		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
+func UnpackReadAllowListInput(input []byte, skipLenCheck bool) (common.Address, error) {
+	if !skipLenCheck && len(input) != allowListInputLen {
+		return common.Address{}, fmt.Errorf("invalid input length for read allow list: %d", len(input))
 	}
 
 	var modifyAddress common.Address
@@ -186,7 +182,8 @@ func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrec
 			return nil, 0, err
 		}
 
-		readAddress, err := UnpackReadAllowListInput(input)
+		skipLenCheck := contract.IsDUpgradeActivated(evm)
+		readAddress, err := UnpackReadAllowListInput(input, skipLenCheck)
 		if err != nil {
 			return nil, remainingGas, err
 		}
