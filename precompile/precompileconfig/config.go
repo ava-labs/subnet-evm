@@ -49,7 +49,7 @@ type PredicateContext struct {
 // rely on this. Designed for use only by precompiles that ship with subnet-evm.
 type Predicater interface {
 	PredicateGas(predicateBytes []byte) (uint64, error)
-	VerifyPredicate(predicateContext *PredicateContext, predicateBytes []byte) bool
+	VerifyPredicate(predicateContext *PredicateContext, predicateBytes []byte) error
 }
 
 // SharedMemoryWriter defines an interface to allow a precompile's Accepter to write operations

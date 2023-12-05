@@ -55,7 +55,7 @@ func CheckPredicates(rules params.Rules, predicateContext *precompileconfig.Pred
 		predicaterContract := rules.Predicaters[address]
 		bitset := set.NewBits()
 		for i, predicate := range predicates {
-			if !predicaterContract.VerifyPredicate(predicateContext, predicate) {
+			if err := predicaterContract.VerifyPredicate(predicateContext, predicate); err != nil {
 				bitset.Add(i)
 			}
 		}

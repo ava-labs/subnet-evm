@@ -20,7 +20,7 @@ type PredicateTest struct {
 	PredicateBytes []byte
 	Gas            uint64
 	GasErr         error
-	ExpectedRes    bool
+	ExpectedErr    error
 }
 
 func (test PredicateTest) Run(t testing.TB) {
@@ -37,7 +37,7 @@ func (test PredicateTest) Run(t testing.TB) {
 	require.Equal(test.Gas, predicateGas)
 
 	predicateRes := predicate.VerifyPredicate(test.PredicateContext, test.PredicateBytes)
-	require.Equal(test.ExpectedRes, predicateRes)
+	require.ErrorIs(predicateRes, test.ExpectedErr)
 }
 
 func RunPredicateTests(t *testing.T, predicateTests map[string]PredicateTest) {

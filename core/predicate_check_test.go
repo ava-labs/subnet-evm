@@ -141,7 +141,7 @@ func TestCheckPredicate(t *testing.T) {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
 				arg := common.Hash{1}
 				predicater.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
-				predicater.EXPECT().VerifyPredicate(gomock.Any(), arg[:]).Return(true)
+				predicater.EXPECT().VerifyPredicate(gomock.Any(), arg[:]).Return(nil)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicater,
 				}
@@ -187,7 +187,7 @@ func TestCheckPredicate(t *testing.T) {
 				predicater := precompileconfig.NewMockPredicater(gomock.NewController(t))
 				arg := common.Hash{1}
 				predicater.EXPECT().PredicateGas(arg[:]).Return(uint64(0), nil).Times(2)
-				predicater.EXPECT().VerifyPredicate(gomock.Any(), arg[:]).Return(true)
+				predicater.EXPECT().VerifyPredicate(gomock.Any(), arg[:]).Return(nil)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicater,
 					addr2: predicater,
@@ -214,11 +214,11 @@ func TestCheckPredicate(t *testing.T) {
 				predicate1 := precompileconfig.NewMockPredicater(ctrl)
 				arg1 := common.Hash{1}
 				predicate1.EXPECT().PredicateGas(arg1[:]).Return(uint64(0), nil).Times(2)
-				predicate1.EXPECT().VerifyPredicate(gomock.Any(), arg1[:]).Return(true)
+				predicate1.EXPECT().VerifyPredicate(gomock.Any(), arg1[:]).Return(nil)
 				predicate2 := precompileconfig.NewMockPredicater(ctrl)
 				arg2 := common.Hash{2}
 				predicate2.EXPECT().PredicateGas(arg2[:]).Return(uint64(0), nil).Times(2)
-				predicate2.EXPECT().VerifyPredicate(gomock.Any(), arg2[:]).Return(false)
+				predicate2.EXPECT().VerifyPredicate(gomock.Any(), arg2[:]).Return(testErr)
 				return map[common.Address]precompileconfig.Predicater{
 					addr1: predicate1,
 					addr2: predicate2,
@@ -323,6 +323,7 @@ func TestCheckPredicate(t *testing.T) {
 }
 
 func TestCheckPredicatesOutput(t *testing.T) {
+	testErr := errors.New("test error")
 	addr1 := common.HexToAddress("0xaa")
 	addr2 := common.HexToAddress("0xbb")
 	validHash := common.Hash{1}
@@ -431,10 +432,10 @@ func TestCheckPredicatesOutput(t *testing.T) {
 				var predicateHash common.Hash
 				if tuple.isValidPredicate {
 					predicateHash = validHash
-					predicater.EXPECT().VerifyPredicate(gomock.Any(), validHash[:]).Return(true)
+					predicater.EXPECT().VerifyPredicate(gomock.Any(), validHash[:]).Return(nil)
 				} else {
 					predicateHash = invalidHash
-					predicater.EXPECT().VerifyPredicate(gomock.Any(), invalidHash[:]).Return(false)
+					predicater.EXPECT().VerifyPredicate(gomock.Any(), invalidHash[:]).Return(testErr)
 				}
 				txAccessList = append(txAccessList, types.AccessTuple{
 					Address: tuple.address,
