@@ -79,25 +79,26 @@ func BenchmarkAllowList(b *testing.B) {
 }
 
 func TestSignatures(t *testing.T) {
+	require := require.New(t)
 	setAdminSignature := contract.CalculateFunctionSelector("setAdmin(address)")
 	setAdminABI := AllowListABI.Methods["setAdmin"]
-	require.Equal(t, setAdminSignature, setAdminABI.ID)
+	require.Equal(setAdminSignature, setAdminABI.ID)
 
 	setManagerSignature := contract.CalculateFunctionSelector("setManager(address)")
 	setManagerABI := AllowListABI.Methods["setManager"]
-	require.Equal(t, setManagerSignature, setManagerABI.ID)
+	require.Equal(setManagerSignature, setManagerABI.ID)
 
 	setEnabledSignature := contract.CalculateFunctionSelector("setEnabled(address)")
 	setEnabledABI := AllowListABI.Methods["setEnabled"]
-	require.Equal(t, setEnabledSignature, setEnabledABI.ID)
+	require.Equal(setEnabledSignature, setEnabledABI.ID)
 
 	setNoneSignature := contract.CalculateFunctionSelector("setNone(address)")
 	setNoneABI := AllowListABI.Methods["setNone"]
-	require.Equal(t, setNoneSignature, setNoneABI.ID)
+	require.Equal(setNoneSignature, setNoneABI.ID)
 
 	readAllowlistSignature := contract.CalculateFunctionSelector("readAllowList(address)")
 	readAllowlistABI := AllowListABI.Methods["readAllowList"]
-	require.Equal(t, readAllowlistSignature, readAllowlistABI.ID)
+	require.Equal(readAllowlistSignature, readAllowlistABI.ID)
 }
 
 func FuzzPackReadAllowlistTest(f *testing.F) {
@@ -112,14 +113,15 @@ func FuzzPackReadAllowlistTest(f *testing.F) {
 
 func FuzzPackReadAllowlistTestSkipCheck(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
+		require := require.New(t)
 		res, err := UnpackReadAllowListInput(b, false)
 		oldRes, oldErr := OldUnpackReadAllowList(b)
 		if oldErr != nil {
-			require.ErrorContains(t, err, oldErr.Error())
+			require.ErrorContains(err, oldErr.Error())
 		} else {
-			require.NoError(t, err)
+			require.NoError(err)
 		}
-		require.Equal(t, oldRes, res)
+		require.Equal(oldRes, res)
 	})
 }
 
@@ -129,42 +131,43 @@ func TestPackReadAllowlistTest(f *testing.T) {
 
 func testPackReadAllowlistTest(t *testing.T, address common.Address) {
 	t.Helper()
+	require := require.New(t)
 	t.Run(fmt.Sprintf("TestPackReadAllowlistTest, address %v", address), func(t *testing.T) {
 		input, err := PackReadAllowList(address)
-		require.NoError(t, err)
+		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input = input[4:]
 
 		unpacked, err := UnpackReadAllowListInput(input, false)
-		require.NoError(t, err)
+		require.NoError(err)
 
-		require.Equal(t, address, unpacked)
+		require.Equal(address, unpacked)
 
 		input = OldPackReadAllowList(address)
 		// exclude 4 bytes for function selector
 		input = input[4:]
-		require.NoError(t, err)
+		require.NoError(err)
 
 		unpacked, err = OldUnpackReadAllowList(input)
-		require.NoError(t, err)
+		require.NoError(err)
 
-		require.Equal(t, address, unpacked)
+		require.Equal(address, unpacked)
 
 		// // now mix and match
 		input, err = PackReadAllowList(address)
 		// exclude 4 bytes for function selector
 		input = input[4:]
-		require.NoError(t, err)
+		require.NoError(err)
 		input2 := OldPackReadAllowList(address)
 		// exclude 4 bytes for function selector
 		input2 = input2[4:]
-		require.Equal(t, input, input2)
+		require.Equal(input, input2)
 
 		unpacked, err = UnpackReadAllowListInput(input2, false)
-		require.NoError(t, err)
+		require.NoError(err)
 		unpacked2, err := OldUnpackReadAllowList(input)
-		require.NoError(t, err)
-		require.Equal(t, unpacked, unpacked2)
+		require.NoError(err)
+		require.Equal(unpacked, unpacked2)
 	})
 }
 
@@ -195,57 +198,59 @@ func FuzzPackModifyAllowListTest(f *testing.F) {
 
 func FuzzPackModifyAllowlistTestSkipCheck(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
+		require := require.New(t)
 		res, err := UnpackModifyAllowListInput(b, AdminRole, false)
 		oldRes, oldErr := OldUnpackModifyAllowList(b, AdminRole)
 		if oldErr != nil {
-			require.ErrorContains(t, err, oldErr.Error())
+			require.ErrorContains(err, oldErr.Error())
 		} else {
-			require.NoError(t, err)
+			require.NoError(err)
 		}
-		require.Equal(t, oldRes, res)
+		require.Equal(oldRes, res)
 	})
 }
 
 func testPackModifyAllowListTest(t *testing.T, address common.Address, role Role) {
 	t.Helper()
+	require := require.New(t)
 	t.Run(fmt.Sprintf("TestPackModifyAllowlistTest, address %v, role %s", address, role.String()), func(t *testing.T) {
 		input, err := PackModifyAllowList(address, role)
-		require.NoError(t, err)
+		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input = input[4:]
 
 		unpacked, err := UnpackModifyAllowListInput(input, role, false)
-		require.NoError(t, err)
+		require.NoError(err)
 
-		require.Equal(t, address, unpacked)
+		require.Equal(address, unpacked)
 
 		input, err = OldPackModifyAllowList(address, role)
-		require.NoError(t, err)
+		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input = input[4:]
-		require.NoError(t, err)
+		require.NoError(err)
 
 		unpacked, err = OldUnpackModifyAllowList(input, role)
-		require.NoError(t, err)
+		require.NoError(err)
 
-		require.Equal(t, address, unpacked)
+		require.Equal(address, unpacked)
 
 		// now mix and match
 		input, err = PackModifyAllowList(address, role)
 		// exclude 4 bytes for function selector
 		input = input[4:]
-		require.NoError(t, err)
+		require.NoError(err)
 		input2, err := OldPackModifyAllowList(address, role)
-		require.NoError(t, err)
+		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input2 = input2[4:]
-		require.Equal(t, input, input2)
+		require.Equal(input, input2)
 
 		unpacked, err = UnpackModifyAllowListInput(input2, role, false)
-		require.NoError(t, err)
+		require.NoError(err)
 		unpacked2, err := OldUnpackModifyAllowList(input, role)
-		require.NoError(t, err)
-		require.Equal(t, unpacked, unpacked2)
+		require.NoError(err)
+		require.Equal(unpacked, unpacked2)
 	})
 }
 
@@ -280,6 +285,15 @@ func OldUnpackModifyAllowList(input []byte, role Role) (common.Address, error) {
 		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
 	}
 	return common.BytesToAddress(input), nil
+}
+
+func FuzzPackReadAllowListOutputTest(f *testing.F) {
+	f.Fuzz(func(t *testing.T, roleIndex uint) {
+		role := getRole(roleIndex)
+		packedOutput, err := PackReadAllowListOutput(role.Big())
+		require.NoError(t, err)
+		require.Equal(t, packedOutput, role.Bytes())
+	})
 }
 
 func getRole(roleIndex uint) Role {

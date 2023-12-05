@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/vmerrs"
@@ -54,7 +55,7 @@ func SetAllowListRole(stateDB contract.StateDB, precompileAddr, address common.A
 	// and [addressKey] hash. It means that any reusage of the [addressKey] for different value
 	// conflicts with the same slot [role] is stored.
 	// Precompile implementations must use a different key than [addressKey]
-	stateDB.SetState(precompileAddr, addressKey, common.Hash(role))
+	stateDB.SetState(precompileAddr, addressKey, role.Hash())
 }
 
 func PackModifyAllowList(address common.Address, role Role) ([]byte, error) {
@@ -122,6 +123,10 @@ func UnpackReadAllowListInput(input []byte, skipLenCheck bool) (common.Address, 
 	return modifyAddress, err
 }
 
+func PackReadAllowListOutput(roleNumber *big.Int) ([]byte, error) {
+	return AllowListABI.PackOutput("readAllowList", roleNumber)
+}
+
 // createReadAllowList returns an execution function that reads the allow list for the given [precompileAddr].
 // The execution function parses the input into a single address and returns the 32 byte hash that specifies the
 // designated role of that address
@@ -131,14 +136,18 @@ func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrec
 			return nil, 0, err
 		}
 
-		skipLenCheck := contract.IsDUpgradeActivated(evm)
-		readAddress, err := UnpackReadAllowListInput(input, skipLenCheck)
+		isDUpgrade := contract.IsDUpgradeActivated(evm)
+		readAddress, err := UnpackReadAllowListInput(input, isDUpgrade)
 		if err != nil {
 			return nil, remainingGas, err
 		}
 
 		role := GetAllowListStatus(evm.GetStateDB(), precompileAddr, readAddress)
-		return role.Bytes(), remainingGas, nil
+		packedOutput, err := PackReadAllowListOutput(role.Big())
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		return packedOutput, remainingGas, nil
 	}
 }
 
