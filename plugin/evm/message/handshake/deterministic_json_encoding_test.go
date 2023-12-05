@@ -1,6 +1,7 @@
 package handshake
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -33,8 +34,12 @@ func TestDeterministicJsonEncoding(t *testing.T) {
 		},
 	}
 
+	regularBytes, err := json.Marshal(object)
+	require.NoError(t, err)
+
 	bytes, err := DeterministicJsonEncoding(object)
 	require.NoError(t, err)
+	require.NotEqual(t, regularBytes, bytes)
 	require.Equal(
 		t,
 		"{\"Z-field\":1,\"a-field\":{\"field\":{\"a\":\"a\",\"test\":\"a\",\"z\":\"a\"}},\"b-field\":{\"a\":\"a\",\"test\":\"a\",\"z\":\"a\"}}",
