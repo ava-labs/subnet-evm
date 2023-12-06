@@ -84,8 +84,8 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
-	skipLenCheck := contract.IsDUpgradeActivated(accessibleState)
-	to, amount, err := UnpackMintNativeCoinInput(input, skipLenCheck)
+	// We skip the fixed length check with DUpgrade
+	to, amount, err := UnpackMintNativeCoinInput(input, contract.IsDUpgradeActivated(accessibleState))
 	if err != nil {
 		return nil, remainingGas, err
 	}

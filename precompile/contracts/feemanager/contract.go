@@ -213,8 +213,8 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
-	skipLenCheck := contract.IsDUpgradeActivated(accessibleState)
-	feeConfig, err := UnpackSetFeeConfigInput(input, skipLenCheck)
+	// We skip the fixed length check with DUpgrade
+	feeConfig, err := UnpackSetFeeConfigInput(input, contract.IsDUpgradeActivated(accessibleState))
 	if err != nil {
 		return nil, remainingGas, err
 	}
