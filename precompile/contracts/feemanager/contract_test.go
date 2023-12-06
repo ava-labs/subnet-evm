@@ -23,6 +23,10 @@ import (
 )
 
 var (
+	setFeeConfigSignature              = contract.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
+	getFeeConfigSignature              = contract.CalculateFunctionSelector("getFeeConfig()")
+	getFeeConfigLastChangedAtSignature = contract.CalculateFunctionSelector("getFeeConfigLastChangedAt()")
+
 	testFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
 		TargetBlockRate: 2, // in seconds
@@ -458,16 +462,13 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 	require.True(t, testFeeConfig.Equal(&unpacked))
 }
 
-func TestSignatures(t *testing.T) {
-	setFeeConfigSignature := contract.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
+func TestFunctionSignatures(t *testing.T) {
 	abiSetFeeConfig := FeeManagerABI.Methods["setFeeConfig"]
 	require.Equal(t, setFeeConfigSignature, abiSetFeeConfig.ID)
 
-	getFeeConfigSignature := contract.CalculateFunctionSelector("getFeeConfig()")
 	abiGetFeeConfig := FeeManagerABI.Methods["getFeeConfig"]
 	require.Equal(t, getFeeConfigSignature, abiGetFeeConfig.ID)
 
-	getFeeConfigLastChangedAtSignature := contract.CalculateFunctionSelector("getFeeConfigLastChangedAt()")
 	abiGetFeeConfigLastChangedAt := FeeManagerABI.Methods["getFeeConfigLastChangedAt"]
 	require.Equal(t, getFeeConfigLastChangedAtSignature, abiGetFeeConfigLastChangedAt.ID)
 }
