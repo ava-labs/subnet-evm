@@ -108,8 +108,9 @@ func getBlockchainID(accessibleState contract.AccessibleState, caller common.Add
 
 // UnpackGetVerifiedWarpBlockHashInput attempts to unpack [input] into the uint32 type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackGetVerifiedWarpBlockHashInput(input []byte) (uint32, error) {
-	res, err := WarpABI.UnpackInput("getVerifiedWarpBlockHash", input)
+// if [useStrictMode] is true, it will return an error if the length of [input] is not divisible by 32
+func UnpackGetVerifiedWarpBlockHashInput(input []byte, useStrictMode bool) (uint32, error) {
+	res, err := WarpABI.UnpackInput("getVerifiedWarpBlockHash", input, useStrictMode)
 	if err != nil {
 		return 0, err
 	}
@@ -149,7 +150,9 @@ func getVerifiedWarpBlockHash(accessibleState contract.AccessibleState, caller c
 // UnpackGetVerifiedWarpMessageInput attempts to unpack [input] into the uint32 type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackGetVerifiedWarpMessageInput(input []byte) (uint32, error) {
-	res, err := WarpABI.UnpackInput("getVerifiedWarpMessage", input)
+	// We don't use strict mode here because it was disabled with the DUpgrade.
+	// And Warp is will be deployed after the DUpgrade.
+	res, err := WarpABI.UnpackInput("getVerifiedWarpMessage", input, false)
 	if err != nil {
 		return 0, err
 	}
@@ -191,7 +194,9 @@ func getVerifiedWarpMessage(accessibleState contract.AccessibleState, caller com
 // UnpackSendWarpMessageInput attempts to unpack [input] as []byte
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackSendWarpMessageInput(input []byte) ([]byte, error) {
-	res, err := WarpABI.UnpackInput("sendWarpMessage", input)
+	// We don't use strict mode here because it was disabled with the DUpgrade.
+	// And Warp is will be deployed after the DUpgrade.
+	res, err := WarpABI.UnpackInput("sendWarpMessage", input, false)
 	if err != nil {
 		return []byte{}, err
 	}

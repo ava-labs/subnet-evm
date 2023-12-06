@@ -245,10 +245,10 @@ func TestPackUnpackMintNativeCoinInput(t *testing.T) {
 	// add extra padded bytes
 	input = append(input, make([]byte, 32)...)
 
-	_, _, err = UnpackMintNativeCoinInput(input, false)
+	_, _, err = UnpackMintNativeCoinInput(input, true)
 	require.ErrorIs(t, err, ErrInvalidLen)
 
-	addr, amount, err := UnpackMintNativeCoinInput(input, true)
+	addr, amount, err := UnpackMintNativeCoinInput(input, false)
 	require.NoError(t, err)
 	require.Equal(t, constants.BlackholeAddr, addr)
 	require.Equal(t, common.Big2.Bytes(), amount.Bytes())

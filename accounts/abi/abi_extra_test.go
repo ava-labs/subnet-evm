@@ -36,10 +36,33 @@ func TestUnpackInputIntoInterface(t *testing.T) {
 
 	// Unpack into interface
 	var v inputType
-	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:]) // skips 4 byte selector
+	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:], true) // skips 4 byte selector
 	require.NoError(t, err)
 
 	// Verify unpacked values match input
+	require.Equal(t, v.Amount, input.Amount)
+	require.EqualValues(t, v.Amount, input.Amount)
+	require.True(t, bytes.Equal(v.Memo, input.Memo))
+
+	// add 32-bytes extra padding to data
+	// this should work because it is divisible by 32
+	data = append(data, make([]byte, 32)...)
+	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:], true)
+	require.NoError(t, err)
+	// Verify unpacked values match input
+	require.Equal(t, v.Amount, input.Amount)
+	require.EqualValues(t, v.Amount, input.Amount)
+	require.True(t, bytes.Equal(v.Memo, input.Memo))
+
+	// add 33-bytes extra padding to data
+	// this should fail because it is not divisible by 32
+	data = append(data, make([]byte, 33)...)
+	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:], true)
+	require.ErrorContains(t, err, "abi: improperly formatted input:")
+
+	// this should not fail because we don't use strict mode
+	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:], false)
+	require.NoError(t, err)
 	require.Equal(t, v.Amount, input.Amount)
 	require.EqualValues(t, v.Amount, input.Amount)
 	require.True(t, bytes.Equal(v.Memo, input.Memo))
