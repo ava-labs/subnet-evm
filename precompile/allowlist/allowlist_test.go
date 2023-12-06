@@ -21,6 +21,13 @@ var (
 	_ contract.Configurator   = &dummyConfigurator{}
 
 	dummyAddr = common.Address{1}
+
+	// AllowList function signatures
+	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
+	setManagerSignature    = contract.CalculateFunctionSelector("setManager(address)")
+	setEnabledSignature    = contract.CalculateFunctionSelector("setEnabled(address)")
+	setNoneSignature       = contract.CalculateFunctionSelector("setNone(address)")
+	readAllowListSignature = contract.CalculateFunctionSelector("readAllowList(address)")
 )
 
 type dummyConfig struct {
@@ -80,30 +87,26 @@ func BenchmarkAllowList(b *testing.B) {
 
 func TestFunctionSignatures(t *testing.T) {
 	require := require.New(t)
-	setAdminSignature := contract.CalculateFunctionSelector("setAdmin(address)")
 	setAdminABI := AllowListABI.Methods["setAdmin"]
 	require.Equal(setAdminSignature, setAdminABI.ID)
 
-	setManagerSignature := contract.CalculateFunctionSelector("setManager(address)")
 	setManagerABI := AllowListABI.Methods["setManager"]
 	require.Equal(setManagerSignature, setManagerABI.ID)
 
-	setEnabledSignature := contract.CalculateFunctionSelector("setEnabled(address)")
 	setEnabledABI := AllowListABI.Methods["setEnabled"]
 	require.Equal(setEnabledSignature, setEnabledABI.ID)
 
-	setNoneSignature := contract.CalculateFunctionSelector("setNone(address)")
 	setNoneABI := AllowListABI.Methods["setNone"]
 	require.Equal(setNoneSignature, setNoneABI.ID)
 
-	readAllowlistSignature := contract.CalculateFunctionSelector("readAllowList(address)")
 	readAllowlistABI := AllowListABI.Methods["readAllowList"]
-	require.Equal(readAllowlistSignature, readAllowlistABI.ID)
+	require.Equal(readAllowListSignature, readAllowlistABI.ID)
 }
 
 func FuzzPackReadAllowlistTest(f *testing.F) {
 	f.Add(common.Address{}.Bytes())
-	key, _ := crypto.GenerateKey()
+	key, err := crypto.GenerateKey()
+	require.NoError(f, err)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	f.Add(addr.Bytes())
 	f.Fuzz(func(t *testing.T, b []byte) {
@@ -133,36 +136,33 @@ func testPackReadAllowlistTest(t *testing.T, address common.Address) {
 	t.Helper()
 	require := require.New(t)
 	t.Run(fmt.Sprintf("TestPackReadAllowlistTest, address %v", address), func(t *testing.T) {
+		// use new Pack/Unpack methods
 		input, err := PackReadAllowList(address)
 		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input = input[4:]
-
 		unpacked, err := UnpackReadAllowListInput(input, false)
 		require.NoError(err)
-
 		require.Equal(address, unpacked)
 
+		// use old Pack/Unpack methods
 		input = OldPackReadAllowList(address)
 		// exclude 4 bytes for function selector
 		input = input[4:]
 		require.NoError(err)
-
 		unpacked, err = OldUnpackReadAllowList(input)
 		require.NoError(err)
-
 		require.Equal(address, unpacked)
 
-		// // now mix and match
+		// now mix and match old and new methods
 		input, err = PackReadAllowList(address)
+		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input = input[4:]
-		require.NoError(err)
 		input2 := OldPackReadAllowList(address)
 		// exclude 4 bytes for function selector
 		input2 = input2[4:]
 		require.Equal(input, input2)
-
 		unpacked, err = UnpackReadAllowListInput(input2, false)
 		require.NoError(err)
 		unpacked2, err := OldUnpackReadAllowList(input)
@@ -172,7 +172,6 @@ func testPackReadAllowlistTest(t *testing.T, address common.Address) {
 }
 
 func OldPackReadAllowList(address common.Address) []byte {
-	readAllowListSignature := contract.CalculateFunctionSelector("readAllowList(address)")
 	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
 	input = append(input, readAllowListSignature...)
 	input = append(input, address.Hash().Bytes()...)
@@ -188,7 +187,8 @@ func OldUnpackReadAllowList(input []byte) (common.Address, error) {
 
 func FuzzPackModifyAllowListTest(f *testing.F) {
 	f.Add(common.Address{}.Bytes(), uint(0))
-	key, _ := crypto.GenerateKey()
+	key, err := crypto.GenerateKey()
+	require.NoError(f, err)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
 	f.Add(addr.Bytes(), uint(0))
 	f.Fuzz(func(t *testing.T, b []byte, roleIndex uint) {
@@ -214,16 +214,16 @@ func testPackModifyAllowListTest(t *testing.T, address common.Address, role Role
 	t.Helper()
 	require := require.New(t)
 	t.Run(fmt.Sprintf("TestPackModifyAllowlistTest, address %v, role %s", address, role.String()), func(t *testing.T) {
+		// use new Pack/Unpack methods
 		input, err := PackModifyAllowList(address, role)
 		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input = input[4:]
-
 		unpacked, err := UnpackModifyAllowListInput(input, role, false)
 		require.NoError(err)
-
 		require.Equal(address, unpacked)
 
+		// use old Pack/Unpack methods
 		input, err = OldPackModifyAllowList(address, role)
 		require.NoError(err)
 		// exclude 4 bytes for function selector
@@ -235,17 +235,16 @@ func testPackModifyAllowListTest(t *testing.T, address common.Address, role Role
 
 		require.Equal(address, unpacked)
 
-		// now mix and match
+		// now mix and match new and old methods
 		input, err = PackModifyAllowList(address, role)
+		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input = input[4:]
-		require.NoError(err)
 		input2, err := OldPackModifyAllowList(address, role)
 		require.NoError(err)
 		// exclude 4 bytes for function selector
 		input2 = input2[4:]
 		require.Equal(input, input2)
-
 		unpacked, err = UnpackModifyAllowListInput(input2, role, false)
 		require.NoError(err)
 		unpacked2, err := OldUnpackModifyAllowList(input, role)
@@ -255,11 +254,6 @@ func testPackModifyAllowListTest(t *testing.T, address common.Address, role Role
 }
 
 func OldPackModifyAllowList(address common.Address, role Role) ([]byte, error) {
-	// AllowList function signatures
-	setAdminSignature := contract.CalculateFunctionSelector("setAdmin(address)")
-	setManagerSignature := contract.CalculateFunctionSelector("setManager(address)")
-	setEnabledSignature := contract.CalculateFunctionSelector("setEnabled(address)")
-	setNoneSignature := contract.CalculateFunctionSelector("setNone(address)")
 	// function selector (4 bytes) + hash for address
 	input := make([]byte, 0, contract.SelectorLen+common.HashLength)
 

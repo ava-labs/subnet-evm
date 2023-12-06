@@ -82,8 +82,8 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			return nil, 0, err
 		}
 
-		skipLenCheck := contract.IsDUpgradeActivated(evm)
-		modifyAddress, err := UnpackModifyAllowListInput(input, role, skipLenCheck)
+		// We skip the fixed length check with DUpgrade
+		modifyAddress, err := UnpackModifyAllowListInput(input, role, contract.IsDUpgradeActivated(evm))
 
 		if err != nil {
 			return nil, remainingGas, err
@@ -136,8 +136,8 @@ func createReadAllowList(precompileAddr common.Address) contract.RunStatefulPrec
 			return nil, 0, err
 		}
 
-		isDUpgrade := contract.IsDUpgradeActivated(evm)
-		readAddress, err := UnpackReadAllowListInput(input, isDUpgrade)
+		// We skip the fixed length check with DUpgrade
+		readAddress, err := UnpackReadAllowListInput(input, contract.IsDUpgradeActivated(evm))
 		if err != nil {
 			return nil, remainingGas, err
 		}
