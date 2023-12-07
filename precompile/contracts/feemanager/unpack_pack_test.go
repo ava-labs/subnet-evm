@@ -168,11 +168,11 @@ func TestPackSetFeeConfigInputEdgeCases(t *testing.T) {
 		_, _ = PackSetFeeConfig(commontype.FeeConfig{})
 	})
 	// These should err
-	_, err := UnpackSetFeeConfigInput([]byte{123}, false)
+	_, err := UnpackSetFeeConfigInput([]byte{123}, true)
 	require.ErrorIs(t, err, ErrInvalidLen)
 
-	_, err = UnpackSetFeeConfigInput([]byte{123}, true)
-	require.ErrorContains(t, err, "abi: improperly formatted input")
+	_, err = UnpackSetFeeConfigInput([]byte{123}, false)
+	require.ErrorContains(t, err, "length insufficient")
 
 	_, err = OldUnpackFeeConfig([]byte{123})
 	require.ErrorIs(t, err, ErrInvalidLen)
@@ -183,13 +183,13 @@ func TestPackSetFeeConfigInputEdgeCases(t *testing.T) {
 	// exclude 4 bytes for function selector
 	input = input[4:]
 	// add extra padded bytes
-	input = append(input, make([]byte, 32)...)
+	input = append(input, make([]byte, 33)...)
 	_, err = OldUnpackFeeConfig(input)
 	require.ErrorIs(t, err, ErrInvalidLen)
-	_, err = UnpackSetFeeConfigInput(input, false)
+	_, err = UnpackSetFeeConfigInput(input, true)
 	require.ErrorIs(t, err, ErrInvalidLen)
 
-	unpacked, err := UnpackSetFeeConfigInput(input, true)
+	unpacked, err := UnpackSetFeeConfigInput(input, false)
 	require.NoError(t, err)
 	require.True(t, testFeeConfig.Equal(&unpacked))
 }
@@ -266,7 +266,7 @@ func testOldPackSetFeeConfigInputEqual(t *testing.T, feeConfig commontype.FeeCon
 		require.Equal(t, input, input2)
 
 		value, err := OldUnpackFeeConfig(input)
-		unpacked, err2 := UnpackSetFeeConfigInput(input, false)
+		unpacked, err2 := UnpackSetFeeConfigInput(input, true)
 		if err != nil {
 			require.ErrorContains(t, err2, err.Error())
 			return

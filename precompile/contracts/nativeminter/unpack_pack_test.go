@@ -51,18 +51,20 @@ func TestUnpackMintNativeCoinInputEdgeCases(t *testing.T) {
 	_, _, err = OldUnpackMintNativeCoinInput(input)
 	require.ErrorIs(t, err, ErrInvalidLen)
 
-	_, _, err = UnpackMintNativeCoinInput(input, false)
+	_, _, err = UnpackMintNativeCoinInput(input, true)
 	require.ErrorIs(t, err, ErrInvalidLen)
 
-	addr, value, err := UnpackMintNativeCoinInput(input, true)
+	addr, value, err := UnpackMintNativeCoinInput(input, false)
 	require.NoError(t, err)
 	require.Equal(t, constants.BlackholeAddr, addr)
 	require.Equal(t, common.Big2.Bytes(), value.Bytes())
 
 	input = append(input, make([]byte, 1)...)
 	// now it is not divisible by 32
-	_, _, err = UnpackMintNativeCoinInput(input, true)
-	require.Error(t, err)
+	addr, value, err = UnpackMintNativeCoinInput(input, false)
+	require.NoError(t, err)
+	require.Equal(t, constants.BlackholeAddr, addr)
+	require.Equal(t, common.Big2.Bytes(), value.Bytes())
 }
 
 func TestFunctionSignatures(t *testing.T) {
@@ -85,7 +87,7 @@ func testOldPackMintNativeCoinEqual(t *testing.T, addr common.Address, amount *b
 
 		input = input[4:]
 		to, assetAmount, err := OldUnpackMintNativeCoinInput(input)
-		unpackedAddr, unpackedAmount, err2 := UnpackMintNativeCoinInput(input, false)
+		unpackedAddr, unpackedAmount, err2 := UnpackMintNativeCoinInput(input, true)
 		if err != nil {
 			require.ErrorContains(t, err2, err.Error())
 			return
