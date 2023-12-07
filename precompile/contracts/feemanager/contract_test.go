@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -341,44 +342,91 @@ func BenchmarkFeeManager(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
 }
 
-func TestPackUnpackGetFeeConfigOutput(t *testing.T) {
-	for i := 0; i < 1000; i++ {
+func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
+	f.Fuzz(func(t *testing.T, bigIntBytes []byte, blockRate uint64) {
+		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		feeConfig := commontype.FeeConfig{
-			GasLimit:        big.NewInt(rand.Int63()),
-			TargetBlockRate: rand.Uint64(),
-
-			MinBaseFee:               big.NewInt(rand.Int63()),
-			TargetGas:                big.NewInt(rand.Int63()),
-			BaseFeeChangeDenominator: big.NewInt(rand.Int63()),
-
-			MinBlockGasCost:  big.NewInt(rand.Int63()),
-			MaxBlockGasCost:  big.NewInt(rand.Int63()),
-			BlockGasCostStep: big.NewInt(rand.Int63()),
+			GasLimit:                 bigIntVal,
+			TargetBlockRate:          blockRate,
+			MinBaseFee:               bigIntVal,
+			TargetGas:                bigIntVal,
+			BaseFeeChangeDenominator: bigIntVal,
+			MinBlockGasCost:          bigIntVal,
+			MaxBlockGasCost:          bigIntVal,
+			BlockGasCostStep:         bigIntVal,
 		}
+		doCheckOutputs := true
+		// we can only check if outputs are correct if the value is less than MaxUint256
+		// otherwise the value will be truncated when packed,
+		// and thus unpacked output will not be equal to the value
+		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
+			doCheckOutputs = false
+		}
+		testOldPackGetFeeConfigOutputEqual(t, feeConfig, doCheckOutputs)
+	})
+}
 
-		testGetFeeConfigOutput(t, feeConfig)
-	}
-	// Some edge cases
-	testGetFeeConfigOutput(t, testFeeConfig)
-	// should panic
+func TestPackUnpackGetFeeConfigOutputEdgeCases(t *testing.T) {
+	testOldPackGetFeeConfigOutputEqual(t, testFeeConfig, true)
+	// These should panic
+	require.Panics(t, func() {
+		_, _ = OldPackFeeConfig(commontype.FeeConfig{})
+	})
 	require.Panics(t, func() {
 		_, _ = PackGetFeeConfigOutput(commontype.FeeConfig{})
 	})
 
-	_, err := UnpackGetFeeConfigOutput([]byte{})
+	unpacked, err := OldUnpackFeeConfig([]byte{})
+	require.ErrorIs(t, err, ErrInvalidLen)
+	unpacked2, err := UnpackGetFeeConfigOutput([]byte{}, false)
+	require.ErrorIs(t, err, ErrInvalidLen)
+	require.Equal(t, unpacked, unpacked2)
+
+	_, err = UnpackGetFeeConfigOutput([]byte{}, true)
+	require.Error(t, err)
+
+	// Test for extra padded bytes
+	input, err := PackGetFeeConfigOutput(testFeeConfig)
+	require.NoError(t, err)
+	// add extra padded bytes
+	input = append(input, make([]byte, 32)...)
+	_, err = OldUnpackFeeConfig(input)
+	require.ErrorIs(t, err, ErrInvalidLen)
+	_, err = UnpackGetFeeConfigOutput([]byte{}, false)
+	require.ErrorIs(t, err, ErrInvalidLen)
+
+	_, err = UnpackGetFeeConfigOutput(input, true)
+	require.NoError(t, err)
+
+	// now it's now divisible by 32
+	input = append(input, make([]byte, 1)...)
+	_, err = UnpackGetFeeConfigOutput(input, true)
 	require.Error(t, err)
 }
 
-func testGetFeeConfigOutput(t *testing.T, feeConfig commontype.FeeConfig) {
+func testOldPackGetFeeConfigOutputEqual(t *testing.T, feeConfig commontype.FeeConfig, checkOutputs bool) {
 	t.Helper()
 	t.Run(fmt.Sprintf("TestGetFeeConfigOutput, feeConfig %v", feeConfig), func(t *testing.T) {
-		input, err := PackGetFeeConfigOutput(feeConfig)
-		require.NoError(t, err)
+		input, err := OldPackFeeConfig(feeConfig)
+		input2, err2 := PackGetFeeConfigOutput(feeConfig)
+		if err != nil {
+			require.ErrorContains(t, err2, err.Error())
+			return
+		}
+		require.NoError(t, err2)
+		require.Equal(t, input, input2)
 
-		unpacked, err := UnpackGetFeeConfigOutput(input)
-		require.NoError(t, err)
-
-		require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
+		config, err := OldUnpackFeeConfig(input)
+		unpacked, err2 := UnpackGetFeeConfigOutput(input, false)
+		if err != nil {
+			require.ErrorContains(t, err2, err.Error())
+			return
+		}
+		require.NoError(t, err2)
+		require.True(t, config.Equal(&unpacked), "not equal: config %v, unpacked %v", feeConfig, unpacked)
+		if checkOutputs {
+			require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
+		}
 	})
 }
 
@@ -433,7 +481,6 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 		testPackSetFeeConfigInput(t, feeConfig)
 	}
 	// Some edge cases
-	// Some edge cases
 	testPackSetFeeConfigInput(t, testFeeConfig)
 	// These should panic
 	require.Panics(t, func() {
@@ -486,4 +533,64 @@ func testPackSetFeeConfigInput(t *testing.T, feeConfig commontype.FeeConfig) {
 
 		require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
 	})
+}
+
+func OldPackFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
+	return packFeeConfigHelper(feeConfig, false)
+}
+
+func OldUnpackFeeConfig(input []byte) (commontype.FeeConfig, error) {
+	if len(input) != feeConfigInputLen {
+		return commontype.FeeConfig{}, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
+	}
+	feeConfig := commontype.FeeConfig{}
+	for i := minFeeConfigFieldKey; i <= numFeeConfigField; i++ {
+		listIndex := i - 1
+		packedElement := contract.PackedHash(input, listIndex)
+		switch i {
+		case gasLimitKey:
+			feeConfig.GasLimit = new(big.Int).SetBytes(packedElement)
+		case targetBlockRateKey:
+			feeConfig.TargetBlockRate = new(big.Int).SetBytes(packedElement).Uint64()
+		case minBaseFeeKey:
+			feeConfig.MinBaseFee = new(big.Int).SetBytes(packedElement)
+		case targetGasKey:
+			feeConfig.TargetGas = new(big.Int).SetBytes(packedElement)
+		case baseFeeChangeDenominatorKey:
+			feeConfig.BaseFeeChangeDenominator = new(big.Int).SetBytes(packedElement)
+		case minBlockGasCostKey:
+			feeConfig.MinBlockGasCost = new(big.Int).SetBytes(packedElement)
+		case maxBlockGasCostKey:
+			feeConfig.MaxBlockGasCost = new(big.Int).SetBytes(packedElement)
+		case blockGasCostStepKey:
+			feeConfig.BlockGasCostStep = new(big.Int).SetBytes(packedElement)
+		default:
+			// This should never encounter an unknown fee config key
+			panic(fmt.Sprintf("unknown fee config key: %d", i))
+		}
+	}
+	return feeConfig, nil
+}
+
+func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]byte, error) {
+	hashes := []common.Hash{
+		common.BigToHash(feeConfig.GasLimit),
+		common.BigToHash(new(big.Int).SetUint64(feeConfig.TargetBlockRate)),
+		common.BigToHash(feeConfig.MinBaseFee),
+		common.BigToHash(feeConfig.TargetGas),
+		common.BigToHash(feeConfig.BaseFeeChangeDenominator),
+		common.BigToHash(feeConfig.MinBlockGasCost),
+		common.BigToHash(feeConfig.MaxBlockGasCost),
+		common.BigToHash(feeConfig.BlockGasCostStep),
+	}
+
+	if useSelector {
+		res := make([]byte, len(setFeeConfigSignature)+feeConfigInputLen)
+		err := contract.PackOrderedHashesWithSelector(res, setFeeConfigSignature, hashes)
+		return res, err
+	}
+
+	res := make([]byte, len(hashes)*common.HashLength)
+	err := contract.PackOrderedHashes(res, hashes)
+	return res, err
 }

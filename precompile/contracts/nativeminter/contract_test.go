@@ -224,7 +224,7 @@ func BenchmarkContractNativeMinter(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
 }
 
-func addEdgeCases(f *testing.F) *testing.F {
+func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	key, err := crypto.GenerateKey()
 	require.NoError(f, err)
 	addr := crypto.PubkeyToAddress(key.PublicKey)
@@ -235,18 +235,20 @@ func addEdgeCases(f *testing.F) *testing.F {
 	f.Add(testAddrBytes, new(big.Int).Sub(abi.MaxUint256, common.Big1).Bytes())
 	f.Add(testAddrBytes, new(big.Int).Add(abi.MaxUint256, common.Big1).Bytes())
 	f.Add(constants.BlackholeAddr.Bytes(), common.Big2.Bytes())
-	return f
-}
-
-func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
-	f = addEdgeCases(f)
 	f.Fuzz(func(t *testing.T, b []byte, bigIntBytes []byte) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
-		testOldPackMintNativeCoinEqualTest(t, common.BytesToAddress(b), bigIntVal)
+		doCheckOutputs := true
+		// we can only check if outputs are correct if the value is less than MaxUint256
+		// otherwise the value will be truncated when packed,
+		// and thus unpacked output will not be equal to the value
+		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
+			doCheckOutputs = false
+		}
+		testOldPackMintNativeCoinEqual(t, common.BytesToAddress(b), bigIntVal, doCheckOutputs)
 	})
 }
 
-func TestUnpackMintNativeCoinInputLenCheck(t *testing.T) {
+func TestUnpackMintNativeCoinInputEdgeCases(t *testing.T) {
 	input, err := PackMintNativeCoin(constants.BlackholeAddr, common.Big2)
 	require.NoError(t, err)
 	// exclude 4 bytes for function selector
@@ -264,6 +266,11 @@ func TestUnpackMintNativeCoinInputLenCheck(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, constants.BlackholeAddr, addr)
 	require.Equal(t, common.Big2.Bytes(), value.Bytes())
+
+	input = append(input, make([]byte, 1)...)
+	// now it is not divisible by 32
+	_, _, err = UnpackMintNativeCoinInput(input, true)
+	require.Error(t, err)
 }
 
 func TestFunctionSignatures(t *testing.T) {
@@ -272,7 +279,7 @@ func TestFunctionSignatures(t *testing.T) {
 	require.Equal(t, mintSignature, abiMintNativeCoin.ID)
 }
 
-func testOldPackMintNativeCoinEqualTest(t *testing.T, addr common.Address, amount *big.Int) {
+func testOldPackMintNativeCoinEqual(t *testing.T, addr common.Address, amount *big.Int, checkOutputs bool) {
 	t.Helper()
 	t.Run(fmt.Sprintf("TestUnpackAndPacks, addr: %s, amount: %s", addr.String(), amount.String()), func(t *testing.T) {
 		input, err := OldPackMintNativeCoinInput(addr, amount)
@@ -284,8 +291,9 @@ func testOldPackMintNativeCoinEqualTest(t *testing.T, addr common.Address, amoun
 		require.NoError(t, err2)
 		require.Equal(t, input, input2)
 
+		input = input[4:]
 		to, assetAmount, err := OldUnpackMintNativeCoinInput(input)
-		unpackedAddr, unpackedAmount, err2 := UnpackMintNativeCoinInput(input2, false)
+		unpackedAddr, unpackedAmount, err2 := UnpackMintNativeCoinInput(input, false)
 		if err != nil {
 			require.ErrorContains(t, err2, err.Error())
 			return
@@ -293,6 +301,10 @@ func testOldPackMintNativeCoinEqualTest(t *testing.T, addr common.Address, amoun
 		require.NoError(t, err2)
 		require.Equal(t, to, unpackedAddr)
 		require.Equal(t, assetAmount.Bytes(), unpackedAmount.Bytes())
+		if checkOutputs {
+			require.Equal(t, addr, to)
+			require.Equal(t, amount.Bytes(), assetAmount.Bytes())
+		}
 	})
 }
 
