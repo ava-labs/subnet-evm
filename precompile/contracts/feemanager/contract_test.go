@@ -4,9 +4,7 @@
 package feemanager
 
 import (
-	"fmt"
 	"math/big"
-	"math/rand"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -17,12 +15,15 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
 var (
+	setFeeConfigSignature              = contract.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
+	getFeeConfigSignature              = contract.CalculateFunctionSelector("getFeeConfig()")
+	getFeeConfigLastChangedAtSignature = contract.CalculateFunctionSelector("getFeeConfigLastChangedAt()")
+
 	testFeeConfig = commontype.FeeConfig{
 		GasLimit:        big.NewInt(8_000_000),
 		TargetBlockRate: 2, // in seconds
@@ -335,140 +336,4 @@ func TestFeeManager(t *testing.T) {
 
 func BenchmarkFeeManager(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
-}
-
-func TestPackUnpackGetFeeConfigOutput(t *testing.T) {
-	for i := 0; i < 1000; i++ {
-		feeConfig := commontype.FeeConfig{
-			GasLimit:        big.NewInt(rand.Int63()),
-			TargetBlockRate: rand.Uint64(),
-
-			MinBaseFee:               big.NewInt(rand.Int63()),
-			TargetGas:                big.NewInt(rand.Int63()),
-			BaseFeeChangeDenominator: big.NewInt(rand.Int63()),
-
-			MinBlockGasCost:  big.NewInt(rand.Int63()),
-			MaxBlockGasCost:  big.NewInt(rand.Int63()),
-			BlockGasCostStep: big.NewInt(rand.Int63()),
-		}
-
-		testGetFeeConfigOutput(t, feeConfig)
-	}
-	// Some edge cases
-	testGetFeeConfigOutput(t, testFeeConfig)
-	// should panic
-	require.Panics(t, func() {
-		_, _ = PackGetFeeConfigOutput(commontype.FeeConfig{})
-	})
-
-	_, err := UnpackGetFeeConfigOutput([]byte{})
-	require.Error(t, err)
-}
-
-func testGetFeeConfigOutput(t *testing.T, feeConfig commontype.FeeConfig) {
-	t.Helper()
-	t.Run(fmt.Sprintf("TestGetFeeConfigOutput, feeConfig %v", feeConfig), func(t *testing.T) {
-		input, err := PackGetFeeConfigOutput(feeConfig)
-		require.NoError(t, err)
-
-		unpacked, err := UnpackGetFeeConfigOutput(input)
-		require.NoError(t, err)
-
-		require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
-	})
-}
-
-func TestGetLastChangedAtOutput(t *testing.T) {
-	// Compare PackGetFeeConfigLastChangedAtOutputV2 vs PackGetLastChangedAtOutput
-	// to see if they are equivalent
-
-	for i := 0; i < 1000; i++ {
-		lastChangedAt := big.NewInt(rand.Int63())
-		testGetLastChangedAtOutput(t, lastChangedAt)
-	}
-	// Some edge cases
-	testGetLastChangedAtOutput(t, big.NewInt(0))
-	testGetLastChangedAtOutput(t, big.NewInt(1))
-	testGetLastChangedAtOutput(t, big.NewInt(2))
-	testGetLastChangedAtOutput(t, math.MaxBig256)
-	testGetLastChangedAtOutput(t, math.MaxBig256.Sub(math.MaxBig256, common.Big1))
-	testGetLastChangedAtOutput(t, math.MaxBig256.Add(math.MaxBig256, common.Big1))
-}
-
-func testGetLastChangedAtOutput(t *testing.T, lastChangedAt *big.Int) {
-	t.Helper()
-	t.Run(fmt.Sprintf("TestGetLastChangedAtOutput, lastChangedAt %v", lastChangedAt), func(t *testing.T) {
-		// Test PackGetFeeConfigLastChangedAtOutputV2, UnpackGetFeeConfigLastChangedAtOutputV2
-		input, err := PackGetFeeConfigLastChangedAtOutput(lastChangedAt)
-		require.NoError(t, err)
-
-		unpacked, err := UnpackGetFeeConfigLastChangedAtOutput(input)
-		require.NoError(t, err)
-
-		require.Zero(t, lastChangedAt.Cmp(unpacked), "not equal: lastChangedAt %v, unpacked %v", lastChangedAt, unpacked)
-	})
-}
-
-func TestPackSetFeeConfigInput(t *testing.T) {
-	// Compare PackSetFeeConfigV2 vs PackSetFeeConfig
-	// to see if they are equivalent
-	for i := 0; i < 1000; i++ {
-		feeConfig := commontype.FeeConfig{
-			GasLimit:        big.NewInt(rand.Int63()),
-			TargetBlockRate: rand.Uint64(),
-
-			MinBaseFee:               big.NewInt(rand.Int63()),
-			TargetGas:                big.NewInt(rand.Int63()),
-			BaseFeeChangeDenominator: big.NewInt(rand.Int63()),
-
-			MinBlockGasCost:  big.NewInt(rand.Int63()),
-			MaxBlockGasCost:  big.NewInt(rand.Int63()),
-			BlockGasCostStep: big.NewInt(rand.Int63()),
-		}
-
-		testPackSetFeeConfigInput(t, feeConfig)
-	}
-	// Some edge cases
-	// Some edge cases
-	testPackSetFeeConfigInput(t, testFeeConfig)
-	// These should panic
-	require.Panics(t, func() {
-		_, _ = PackSetFeeConfig(commontype.FeeConfig{})
-	})
-
-	// These should err
-	_, err := UnpackSetFeeConfigInput([]byte{123}, false)
-	require.ErrorIs(t, err, ErrInvalidLen)
-
-	_, err = UnpackSetFeeConfigInput([]byte{123}, true)
-	require.ErrorContains(t, err, "abi: improperly formatted input")
-
-	// Test for extra padded bytes
-	input, err := PackSetFeeConfig(testFeeConfig)
-	require.NoError(t, err)
-	// exclude 4 bytes for function selector
-	input = input[4:]
-	// add extra padded bytes
-	input = append(input, make([]byte, 32)...)
-	_, err = UnpackSetFeeConfigInput(input, false)
-	require.ErrorIs(t, err, ErrInvalidLen)
-
-	unpacked, err := UnpackSetFeeConfigInput(input, true)
-	require.NoError(t, err)
-	require.True(t, testFeeConfig.Equal(&unpacked))
-}
-
-func testPackSetFeeConfigInput(t *testing.T, feeConfig commontype.FeeConfig) {
-	t.Helper()
-	t.Run(fmt.Sprintf("TestPackSetFeeConfigInput, feeConfig %v", feeConfig), func(t *testing.T) {
-		input, err := PackSetFeeConfig(feeConfig)
-		require.NoError(t, err)
-		// exclude 4 bytes for function selector
-		input = input[4:]
-
-		unpacked, err := UnpackSetFeeConfigInput(input, true)
-		require.NoError(t, err)
-
-		require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
-	})
 }

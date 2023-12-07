@@ -213,8 +213,8 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
-	skipLenCheck := contract.IsDUpgradeActivated(accessibleState)
-	feeConfig, err := UnpackSetFeeConfigInput(input, skipLenCheck)
+	// We skip the fixed length check with DUpgrade
+	feeConfig, err := UnpackSetFeeConfigInput(input, contract.IsDUpgradeActivated(accessibleState))
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -267,7 +267,10 @@ func PackGetFeeConfigOutput(output commontype.FeeConfig) ([]byte, error) {
 
 // UnpackGetFeeConfigOutput attempts to unpack [output] as GetFeeConfigOutput
 // assumes that [output] does not include selector (omits first 4 func signature bytes)
-func UnpackGetFeeConfigOutput(output []byte) (commontype.FeeConfig, error) {
+func UnpackGetFeeConfigOutput(output []byte, skipLenCheck bool) (commontype.FeeConfig, error) {
+	if !skipLenCheck && len(output) != feeConfigInputLen {
+		return commontype.FeeConfig{}, fmt.Errorf("%w: %d", ErrInvalidLen, len(output))
+	}
 	outputStruct := FeeConfigABIStruct{}
 	err := FeeManagerABI.UnpackIntoInterface(&outputStruct, "getFeeConfig", output)
 
