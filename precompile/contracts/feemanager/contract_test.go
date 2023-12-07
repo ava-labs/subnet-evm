@@ -6,7 +6,6 @@ package feemanager
 import (
 	"fmt"
 	"math/big"
-	"math/rand"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
@@ -343,6 +342,12 @@ func BenchmarkFeeManager(b *testing.B) {
 }
 
 func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
+	f.Add([]byte{}, uint64(0))
+	f.Add(big.NewInt(0).Bytes(), uint64(0))
+	f.Add(big.NewInt(1).Bytes(), uint64(math.MaxUint64))
+	f.Add(math.MaxBig256.Bytes(), uint64(0))
+	f.Add(math.MaxBig256.Sub(math.MaxBig256, common.Big1).Bytes(), uint64(0))
+	f.Add(math.MaxBig256.Add(math.MaxBig256, common.Big1).Bytes(), uint64(0))
 	f.Fuzz(func(t *testing.T, bigIntBytes []byte, blockRate uint64) {
 		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		feeConfig := commontype.FeeConfig{
@@ -404,6 +409,49 @@ func TestPackUnpackGetFeeConfigOutputEdgeCases(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestGetFeeConfig(t *testing.T) {
+	// Compare OldPackGetFeeConfigInput vs PackGetFeeConfig
+	// to see if they are equivalent
+	input := OldPackGetFeeConfigInput()
+
+	input2, err := PackGetFeeConfig()
+	require.NoError(t, err)
+
+	require.Equal(t, input, input2)
+}
+
+func TestGetLastChangedAtInput(t *testing.T) {
+	// Compare OldPackGetFeeConfigInput vs PackGetFeeConfigLastChangedAt
+	// to see if they are equivalent
+
+	input := OldPackGetLastChangedAtInput()
+
+	input2, err := PackGetFeeConfigLastChangedAt()
+	require.NoError(t, err)
+
+	require.Equal(t, input, input2)
+}
+
+func FuzzPackGetLastChangedAtOutput(f *testing.F) {
+	f.Add([]byte{})
+	f.Add(big.NewInt(0).Bytes())
+	f.Add(big.NewInt(1).Bytes())
+	f.Add(math.MaxBig256.Bytes())
+	f.Add(math.MaxBig256.Sub(math.MaxBig256, common.Big1).Bytes())
+	f.Add(math.MaxBig256.Add(math.MaxBig256, common.Big1).Bytes())
+	f.Fuzz(func(t *testing.T, bigIntBytes []byte) {
+		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
+		doCheckOutputs := true
+		// we can only check if outputs are correct if the value is less than MaxUint256
+		// otherwise the value will be truncated when packed,
+		// and thus unpacked output will not be equal to the value
+		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
+			doCheckOutputs = false
+		}
+		testOldPackGetLastChangedAtOutputEqual(t, bigIntVal, doCheckOutputs)
+	})
+}
+
 func testOldPackGetFeeConfigOutputEqual(t *testing.T, feeConfig commontype.FeeConfig, checkOutputs bool) {
 	t.Helper()
 	t.Run(fmt.Sprintf("TestGetFeeConfigOutput, feeConfig %v", feeConfig), func(t *testing.T) {
@@ -430,69 +478,77 @@ func testOldPackGetFeeConfigOutputEqual(t *testing.T, feeConfig commontype.FeeCo
 	})
 }
 
-func TestGetLastChangedAtOutput(t *testing.T) {
-	// Compare PackGetFeeConfigLastChangedAtOutputV2 vs PackGetLastChangedAtOutput
-	// to see if they are equivalent
-
-	for i := 0; i < 1000; i++ {
-		lastChangedAt := big.NewInt(rand.Int63())
-		testGetLastChangedAtOutput(t, lastChangedAt)
-	}
-	// Some edge cases
-	testGetLastChangedAtOutput(t, big.NewInt(0))
-	testGetLastChangedAtOutput(t, big.NewInt(1))
-	testGetLastChangedAtOutput(t, big.NewInt(2))
-	testGetLastChangedAtOutput(t, math.MaxBig256)
-	testGetLastChangedAtOutput(t, math.MaxBig256.Sub(math.MaxBig256, common.Big1))
-	testGetLastChangedAtOutput(t, math.MaxBig256.Add(math.MaxBig256, common.Big1))
-}
-
-func testGetLastChangedAtOutput(t *testing.T, lastChangedAt *big.Int) {
+func testOldPackGetLastChangedAtOutputEqual(t *testing.T, blockNumber *big.Int, checkOutputs bool) {
 	t.Helper()
-	t.Run(fmt.Sprintf("TestGetLastChangedAtOutput, lastChangedAt %v", lastChangedAt), func(t *testing.T) {
-		// Test PackGetFeeConfigLastChangedAtOutputV2, UnpackGetFeeConfigLastChangedAtOutputV2
-		input, err := PackGetFeeConfigLastChangedAtOutput(lastChangedAt)
-		require.NoError(t, err)
+	t.Run(fmt.Sprintf("TestGetLastChangedAtOutput, blockNumber %v", blockNumber), func(t *testing.T) {
+		input := OldPackGetLastChangedAtOutput(blockNumber)
+		input2, err2 := PackGetFeeConfigLastChangedAtOutput(blockNumber)
+		require.NoError(t, err2)
+		require.Equal(t, input, input2)
 
-		unpacked, err := UnpackGetFeeConfigLastChangedAtOutput(input)
-		require.NoError(t, err)
-
-		require.Zero(t, lastChangedAt.Cmp(unpacked), "not equal: lastChangedAt %v, unpacked %v", lastChangedAt, unpacked)
+		value, err := OldUnpackGetLastChangedAtOutput(input)
+		unpacked, err2 := UnpackGetFeeConfigLastChangedAtOutput(input)
+		if err != nil {
+			require.ErrorContains(t, err2, err.Error())
+			return
+		}
+		require.NoError(t, err2)
+		require.True(t, value.Cmp(unpacked) == 0, "not equal: value %v, unpacked %v", value, unpacked)
+		if checkOutputs {
+			require.True(t, blockNumber.Cmp(unpacked) == 0, "not equal: blockNumber %v, unpacked %v", blockNumber, unpacked)
+		}
 	})
 }
 
-func TestPackSetFeeConfigInput(t *testing.T) {
-	// Compare PackSetFeeConfigV2 vs PackSetFeeConfig
-	// to see if they are equivalent
-	for i := 0; i < 1000; i++ {
+func FuzzPackSetFeeConfigEqualTest(f *testing.F) {
+	f.Add([]byte{}, uint64(0))
+	f.Add(big.NewInt(0).Bytes(), uint64(0))
+	f.Add(big.NewInt(1).Bytes(), uint64(math.MaxUint64))
+	f.Add(math.MaxBig256.Bytes(), uint64(0))
+	f.Add(math.MaxBig256.Sub(math.MaxBig256, common.Big1).Bytes(), uint64(0))
+	f.Add(math.MaxBig256.Add(math.MaxBig256, common.Big1).Bytes(), uint64(0))
+	f.Fuzz(func(t *testing.T, bigIntBytes []byte, blockRate uint64) {
+		bigIntVal := new(big.Int).SetBytes(bigIntBytes)
 		feeConfig := commontype.FeeConfig{
-			GasLimit:        big.NewInt(rand.Int63()),
-			TargetBlockRate: rand.Uint64(),
-
-			MinBaseFee:               big.NewInt(rand.Int63()),
-			TargetGas:                big.NewInt(rand.Int63()),
-			BaseFeeChangeDenominator: big.NewInt(rand.Int63()),
-
-			MinBlockGasCost:  big.NewInt(rand.Int63()),
-			MaxBlockGasCost:  big.NewInt(rand.Int63()),
-			BlockGasCostStep: big.NewInt(rand.Int63()),
+			GasLimit:                 bigIntVal,
+			TargetBlockRate:          blockRate,
+			MinBaseFee:               bigIntVal,
+			TargetGas:                bigIntVal,
+			BaseFeeChangeDenominator: bigIntVal,
+			MinBlockGasCost:          bigIntVal,
+			MaxBlockGasCost:          bigIntVal,
+			BlockGasCostStep:         bigIntVal,
 		}
+		doCheckOutputs := true
+		// we can only check if outputs are correct if the value is less than MaxUint256
+		// otherwise the value will be truncated when packed,
+		// and thus unpacked output will not be equal to the value
+		if bigIntVal.Cmp(abi.MaxUint256) > 0 {
+			doCheckOutputs = false
+		}
+		testOldPackSetFeeConfigInputEqual(t, feeConfig, doCheckOutputs)
+	})
+}
 
-		testPackSetFeeConfigInput(t, feeConfig)
-	}
+func TestPackSetFeeConfigInputEdgeCases(t *testing.T) {
 	// Some edge cases
-	testPackSetFeeConfigInput(t, testFeeConfig)
+	testOldPackSetFeeConfigInputEqual(t, testFeeConfig, true)
 	// These should panic
+	require.Panics(t, func() {
+		_, _ = OldPackSetFeeConfig(commontype.FeeConfig{})
+	})
 	require.Panics(t, func() {
 		_, _ = PackSetFeeConfig(commontype.FeeConfig{})
 	})
-
 	// These should err
 	_, err := UnpackSetFeeConfigInput([]byte{123}, false)
 	require.ErrorIs(t, err, ErrInvalidLen)
 
 	_, err = UnpackSetFeeConfigInput([]byte{123}, true)
 	require.ErrorContains(t, err, "abi: improperly formatted input")
+
+	_, err = OldUnpackFeeConfig([]byte{123})
+	require.ErrorIs(t, err, ErrInvalidLen)
 
 	// Test for extra padded bytes
 	input, err := PackSetFeeConfig(testFeeConfig)
@@ -501,6 +557,8 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 	input = input[4:]
 	// add extra padded bytes
 	input = append(input, make([]byte, 32)...)
+	_, err = OldUnpackFeeConfig(input)
+	require.ErrorIs(t, err, ErrInvalidLen)
 	_, err = UnpackSetFeeConfigInput(input, false)
 	require.ErrorIs(t, err, ErrInvalidLen)
 
@@ -520,18 +578,29 @@ func TestFunctionSignatures(t *testing.T) {
 	require.Equal(t, getFeeConfigLastChangedAtSignature, abiGetFeeConfigLastChangedAt.ID)
 }
 
-func testPackSetFeeConfigInput(t *testing.T, feeConfig commontype.FeeConfig) {
+func testOldPackSetFeeConfigInputEqual(t *testing.T, feeConfig commontype.FeeConfig, checkOutputs bool) {
 	t.Helper()
-	t.Run(fmt.Sprintf("TestPackSetFeeConfigInput, feeConfig %v", feeConfig), func(t *testing.T) {
-		input, err := PackSetFeeConfig(feeConfig)
-		require.NoError(t, err)
-		// exclude 4 bytes for function selector
-		input = input[4:]
+	t.Run(fmt.Sprintf("TestSetFeeConfigInput, feeConfig %v", feeConfig), func(t *testing.T) {
+		input, err := OldPackSetFeeConfig(feeConfig)
+		input2, err2 := PackSetFeeConfig(feeConfig)
+		if err != nil {
+			require.ErrorContains(t, err2, err.Error())
+			return
+		}
+		require.NoError(t, err2)
+		require.Equal(t, input, input2)
 
-		unpacked, err := UnpackSetFeeConfigInput(input, true)
-		require.NoError(t, err)
-
-		require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
+		value, err := OldUnpackFeeConfig(input)
+		unpacked, err2 := UnpackSetFeeConfigInput(input, false)
+		if err != nil {
+			require.ErrorContains(t, err2, err.Error())
+			return
+		}
+		require.NoError(t, err2)
+		require.True(t, value.Equal(&unpacked), "not equal: value %v, unpacked %v", value, unpacked)
+		if checkOutputs {
+			require.True(t, feeConfig.Equal(&unpacked), "not equal: feeConfig %v, unpacked %v", feeConfig, unpacked)
+		}
 	})
 }
 
@@ -593,4 +662,27 @@ func packFeeConfigHelper(feeConfig commontype.FeeConfig, useSelector bool) ([]by
 	res := make([]byte, len(hashes)*common.HashLength)
 	err := contract.PackOrderedHashes(res, hashes)
 	return res, err
+}
+
+// PackGetFeeConfigInput packs the getFeeConfig signature
+func OldPackGetFeeConfigInput() []byte {
+	return getFeeConfigSignature
+}
+
+// PackGetLastChangedAtInput packs the getFeeConfigLastChangedAt signature
+func OldPackGetLastChangedAtInput() []byte {
+	return getFeeConfigLastChangedAtSignature
+}
+
+func OldPackGetLastChangedAtOutput(lastChangedAt *big.Int) []byte {
+	return common.BigToHash(lastChangedAt).Bytes()
+}
+
+func OldUnpackGetLastChangedAtOutput(input []byte) (*big.Int, error) {
+	return new(big.Int).SetBytes(input), nil
+}
+
+func OldPackSetFeeConfig(feeConfig commontype.FeeConfig) ([]byte, error) {
+	// function selector (4 bytes) + input(feeConfig)
+	return packFeeConfigHelper(feeConfig, true)
 }
