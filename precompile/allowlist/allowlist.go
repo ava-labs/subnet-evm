@@ -59,7 +59,7 @@ func SetAllowListRole(stateDB contract.StateDB, precompileAddr, address common.A
 }
 
 func PackModifyAllowList(address common.Address, role Role) ([]byte, error) {
-	funcName := getAllowListFunctionSelector(role)
+	funcName := role.GetSetterFunctionName()
 	return AllowListABI.Pack(funcName, address)
 }
 
@@ -68,7 +68,7 @@ func UnpackModifyAllowListInput(input []byte, r Role, skipLenCheck bool) (common
 		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
 	}
 
-	funcName := getAllowListFunctionSelector(r)
+	funcName := r.GetSetterFunctionName()
 	var modifyAddress common.Address
 	err := AllowListABI.UnpackInputIntoInterface(&modifyAddress, funcName, input)
 	return modifyAddress, err
@@ -171,19 +171,19 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 	}
 
 	abiFunctionMap := map[string]precompileFn{
-		getAllowListFunctionSelector(AdminRole): {
+		AdminRole.GetSetterFunctionName(): {
 			fn: createAllowListRoleSetter(precompileAddr, AdminRole),
 		},
-		getAllowListFunctionSelector(EnabledRole): {
+		EnabledRole.GetSetterFunctionName(): {
 			fn: createAllowListRoleSetter(precompileAddr, EnabledRole),
 		},
-		getAllowListFunctionSelector(NoRole): {
+		NoRole.GetSetterFunctionName(): {
 			fn: createAllowListRoleSetter(precompileAddr, NoRole),
 		},
 		"readAllowList": {
 			fn: createReadAllowList(precompileAddr),
 		},
-		getAllowListFunctionSelector(ManagerRole): {
+		ManagerRole.GetSetterFunctionName(): {
 			fn:        createAllowListRoleSetter(precompileAddr, ManagerRole),
 			activator: contract.IsDUpgradeActivated,
 		},
@@ -204,19 +204,4 @@ func CreateAllowListFunctions(precompileAddr common.Address) []*contract.Statefu
 	}
 
 	return functions
-}
-
-func getAllowListFunctionSelector(role Role) string {
-	switch role {
-	case AdminRole:
-		return "setAdmin"
-	case ManagerRole:
-		return "setManager"
-	case EnabledRole:
-		return "setEnabled"
-	case NoRole:
-		return "setNone"
-	default:
-		panic("unknown role")
-	}
 }
