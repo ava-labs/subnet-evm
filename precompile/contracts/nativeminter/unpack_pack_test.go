@@ -16,6 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
+)
+
 func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	key, err := crypto.GenerateKey()
 	require.NoError(f, err)

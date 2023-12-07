@@ -19,8 +19,6 @@ import (
 )
 
 var (
-	mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
-
 	tests = map[string]testutils.PrecompileTest{
 		"calling mintNativeCoin from NoRole should fail": {
 			Caller:     allowlist.TestNoRoleAddr,

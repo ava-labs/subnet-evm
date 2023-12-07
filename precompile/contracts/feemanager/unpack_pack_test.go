@@ -16,6 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	setFeeConfigSignature              = contract.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
+	getFeeConfigSignature              = contract.CalculateFunctionSelector("getFeeConfig()")
+	getFeeConfigLastChangedAtSignature = contract.CalculateFunctionSelector("getFeeConfigLastChangedAt()")
+)
+
 func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 	f.Add([]byte{}, uint64(0))
 	f.Add(big.NewInt(0).Bytes(), uint64(0))
