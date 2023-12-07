@@ -58,7 +58,7 @@ func PackMintNativeCoin(address common.Address, amount *big.Int) ([]byte, error)
 
 // UnpackMintNativeCoinInput attempts to unpack [input] as address and amount.
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-// if [useStrictMode] is false, it will return an error if the length of [input] is not [mintInputLen]
+// if [useStrictMode] is true, it will return an error if the length of [input] is not [mintInputLen]
 func UnpackMintNativeCoinInput(input []byte, useStrictMode bool) (common.Address, *big.Int, error) {
 	// Initially we had this check to ensure that the input was the correct length.
 	// However solidity does not always pack the input to the correct length, and allows

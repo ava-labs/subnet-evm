@@ -31,41 +31,69 @@ func TestUnpackInputIntoInterface(t *testing.T) {
 		Amount: big.NewInt(100),
 		Memo:   []byte("hello"),
 	}
-	data, err := abi.Pack("receive", input.Sender, input.Amount, input.Memo)
+
+	rawData, err := abi.Pack("receive", input.Sender, input.Amount, input.Memo)
 	require.NoError(t, err)
 
-	// Unpack into interface
-	var v inputType
-	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:], true) // skips 4 byte selector
+	abi, err = JSON(strings.NewReader(TEST_ABI))
 	require.NoError(t, err)
 
-	// Verify unpacked values match input
-	require.Equal(t, v.Amount, input.Amount)
-	require.EqualValues(t, v.Amount, input.Amount)
-	require.True(t, bytes.Equal(v.Memo, input.Memo))
+	for _, test := range []struct {
+		Name                   string
+		ExtraPaddingBytes      int
+		StrictMode             bool
+		ExpectedErrorSubstring string
+	}{
+		{
+			Name:       "No extra padding to input data",
+			StrictMode: true,
+		},
+		{
+			Name:              "Valid input data with 32 extra padding(%32) ",
+			ExtraPaddingBytes: 32,
+			StrictMode:        true,
+		},
+		{
+			Name:              "Valid input data with 64 extra padding(%32)",
+			ExtraPaddingBytes: 64,
+			StrictMode:        true,
+		},
+		{
+			Name:                   "Valid input data with extra padding indivisible by 32",
+			ExtraPaddingBytes:      33,
+			StrictMode:             true,
+			ExpectedErrorSubstring: "abi: improperly formatted input:",
+		},
+		{
+			Name:              "Valid input data with extra padding indivisible by 32, no strict mode",
+			ExtraPaddingBytes: 33,
+			StrictMode:        false,
+		},
+	} {
+		{
+			t.Run(test.Name, func(t *testing.T) {
+				// skip 4 byte selector
+				data := rawData[4:]
+				// Add extra padding to data
+				data = append(data, make([]byte, test.ExtraPaddingBytes)...)
 
-	// add 32-bytes extra padding to data
-	// this should work because it is divisible by 32
-	data = append(data, make([]byte, 32)...)
-	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:], true)
-	require.NoError(t, err)
-	// Verify unpacked values match input
-	require.Equal(t, v.Amount, input.Amount)
-	require.EqualValues(t, v.Amount, input.Amount)
-	require.True(t, bytes.Equal(v.Memo, input.Memo))
+				// Unpack into interface
+				var v inputType
+				err = abi.UnpackInputIntoInterface(&v, "receive", data, test.StrictMode) // skips 4 byte selector
 
-	// add 33-bytes extra padding to data
-	// this should fail because it is not divisible by 32
-	data = append(data, make([]byte, 33)...)
-	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:], true)
-	require.ErrorContains(t, err, "abi: improperly formatted input:")
-
-	// this should not fail because we don't use strict mode
-	err = abi.UnpackInputIntoInterface(&v, "receive", data[4:], false)
-	require.NoError(t, err)
-	require.Equal(t, v.Amount, input.Amount)
-	require.EqualValues(t, v.Amount, input.Amount)
-	require.True(t, bytes.Equal(v.Memo, input.Memo))
+				if test.ExpectedErrorSubstring != "" {
+					require.Error(t, err)
+					require.ErrorContains(t, err, test.ExpectedErrorSubstring)
+				} else {
+					require.NoError(t, err)
+					// Verify unpacked values match input
+					require.Equal(t, v.Amount, input.Amount)
+					require.EqualValues(t, v.Amount, input.Amount)
+					require.True(t, bytes.Equal(v.Memo, input.Memo))
+				}
+			})
+		}
+	}
 }
 
 func TestPackOutput(t *testing.T) {
