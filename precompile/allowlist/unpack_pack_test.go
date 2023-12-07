@@ -13,6 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
+	setManagerSignature    = contract.CalculateFunctionSelector("setManager(address)")
+	setEnabledSignature    = contract.CalculateFunctionSelector("setEnabled(address)")
+	setNoneSignature       = contract.CalculateFunctionSelector("setNone(address)")
+	readAllowListSignature = contract.CalculateFunctionSelector("readAllowList(address)")
+)
+
 func TestFunctionSignatures(t *testing.T) {
 	require := require.New(t)
 	setAdminABI := AllowListABI.Methods["setAdmin"]
