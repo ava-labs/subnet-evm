@@ -3,7 +3,11 @@
 
 package allowlist
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 // 1. NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
 // 2. EnabledRole - allowed to call the precompile
@@ -59,6 +63,18 @@ func (r Role) CanModify(from, target Role) bool {
 	default:
 		return false
 	}
+}
+
+func (r Role) Bytes() []byte {
+	return common.Hash(r).Bytes()
+}
+
+func (r Role) Big() *big.Int {
+	return common.Hash(r).Big()
+}
+
+func (r Role) Hash() common.Hash {
+	return common.Hash(r)
 }
 
 // String returns a string representation of [r].
