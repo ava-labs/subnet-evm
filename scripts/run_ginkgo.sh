@@ -21,7 +21,7 @@ go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 
 TEST_SOURCE_ROOT=$(pwd)
 
-ACK_GINKGO_RC=true ginkgo build ./tests/load ./tests/warp
+ACK_GINKGO_RC=true ginkgo build ./tests/load
 
 # By default, it runs all e2e test cases!
 # Use "--ginkgo.skip" to skip tests.
@@ -31,9 +31,5 @@ TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" ginkgo run -procs=5 tests/precompile \
   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
 
 ./tests/load/load.test \
-  --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
-
-./tests/warp/warp.test \
   --ginkgo.vv \
   --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}

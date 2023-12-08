@@ -13,20 +13,17 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
-	"github.com/ava-labs/subnet-evm/x/warp"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
 var (
@@ -107,7 +104,7 @@ func (b *Block) handlePrecompileAccept(rules *params.Rules, sharedMemoryWriter *
 	}
 
 	// Read receipts from disk
-	receipts := rawdb.ReadReceipts(b.vm.chaindb, b.ethBlock.Hash(), b.ethBlock.NumberU64(), b.vm.chainConfig)
+	receipts := rawdb.ReadReceipts(b.vm.chaindb, b.ethBlock.Hash(), b.ethBlock.NumberU64(), b.ethBlock.Time(), b.vm.chainConfig)
 	// If there are no receipts, ReadReceipts may be nil, so we check the length and confirm the ReceiptHash
 	// is empty to ensure that missing receipts results in an error on accept.
 	if len(receipts) == 0 && b.ethBlock.ReceiptHash() != types.EmptyRootHash {
@@ -124,24 +121,9 @@ func (b *Block) handlePrecompileAccept(rules *params.Rules, sharedMemoryWriter *
 			if !ok {
 				continue
 			}
-			if err := accepter.Accept(acceptCtx, log.TxHash, logIdx, log.Topics, log.Data); err != nil {
+			if err := accepter.Accept(acceptCtx, log.BlockHash, log.BlockNumber, log.TxHash, logIdx, log.Topics, log.Data); err != nil {
 				return err
 			}
-		}
-	}
-
-	// If Warp is enabled, add the block hash as an unsigned message to the warp backend.
-	if rules.IsPrecompileEnabled(warp.ContractAddress) {
-		blockHashPayload, err := payload.NewHash(ids.ID(b.ethBlock.Hash().Bytes()))
-		if err != nil {
-			return fmt.Errorf("failed to create block hash payload: %w", err)
-		}
-		unsignedMessage, err := avalancheWarp.NewUnsignedMessage(b.vm.ctx.NetworkID, b.vm.ctx.ChainID, blockHashPayload.Bytes())
-		if err != nil {
-			return fmt.Errorf("failed to create unsigned message for block hash payload: %w", err)
-		}
-		if err := b.vm.warpBackend.AddMessage(unsignedMessage); err != nil {
-			return fmt.Errorf("failed to add block hash payload unsigned message: %w", err)
 		}
 	}
 
@@ -289,9 +271,9 @@ func (b *Block) verifyPredicates(predicateContext *precompileconfig.PredicateCon
 		return fmt.Errorf("failed to marshal predicate results: %w", err)
 	}
 	extraData := b.ethBlock.Extra()
-	headerPredicateResultsBytes, err := predicate.GetPredicateResultBytes(extraData)
-	if err != nil {
-		return err
+	headerPredicateResultsBytes, ok := predicate.GetPredicateResultBytes(extraData)
+	if !ok {
+		return fmt.Errorf("failed to find predicate results in extra data: %x", extraData)
 	}
 	if !bytes.Equal(headerPredicateResultsBytes, predicateResultsBytes) {
 		return fmt.Errorf("%w (remote: %x local: %x)", errInvalidHeaderPredicateResults, headerPredicateResultsBytes, predicateResultsBytes)

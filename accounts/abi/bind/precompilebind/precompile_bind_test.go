@@ -516,7 +516,9 @@ var bindTests = []struct {
 		`,
 		`[{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"addressTest","type":"address"},{"indexed":true,"internalType":"uint8","name":"intTest","type":"uint8"},{"indexed":false,"internalType":"bytes","name":"bytesTest","type":"bytes"}],"name":"test","type":"event"},{"inputs":[],"name":"eventTest","outputs":[{"internalType":"string","name":"result","type":"string"}],"stateMutability":"view","type":"function"},{"type":"event","name":"empty","inputs":[]},{"type":"event","name":"indexed","inputs":[{"name":"addr","type":"address","indexed":true},{"name":"num","type":"int8","indexed":true}]},{"type":"event","name":"mixed","inputs":[{"name":"addr","type":"address","indexed":true},{"name":"num","type":"int8"}]},{"type":"event","name":"dynamic","inputs":[{"name":"idxStr","type":"string","indexed":true},{"name":"idxDat","type":"bytes","indexed":true},{"name":"str","type":"string"},{"name":"dat","type":"bytes"}]},{"type":"event","name":"unnamed","inputs":[{"name":"","type":"uint8","indexed":true},{"name":"","type":"uint8","indexed":true}]}]`,
 		`"github.com/stretchr/testify/require"
-		 "github.com/ethereum/go-ethereum/common"`,
+		"github.com/ethereum/go-ethereum/common"
+		"github.com/ava-labs/subnet-evm/precompile/contract"
+		`,
 		`
 			testAddr := common.Address{1}
 			testInt := int8(5)
@@ -533,6 +535,8 @@ var bindTests = []struct {
 			unpacked, err := UnpackTestEventData(data)
 			require.NoError(t, err)
 			require.Equal(t, testBytes, unpacked.BytesTest)
+			gasCost := GetTestEventGasCost(testEventData)
+			require.Equal(t, contract.LogGas + 2 * contract.LogTopicGas + contract.LogDataGas, gasCost)
 
 			topics, data, err = PackEmptyEvent()
 			require.NoError(t, err)
@@ -540,6 +544,7 @@ var bindTests = []struct {
 			require.Len(t, topics, 1)
 			require.Equal(t, eventID, topics[0])
 			require.Equal(t, 0, len(data))
+			require.Equal(t, contract.LogGas, GetEmptyEventGasCost())
 
 			topics, data, err = PackIndexedEvent(testAddr, testInt)
 			require.NoError(t, err)
@@ -548,6 +553,7 @@ var bindTests = []struct {
 			require.Equal(t, eventID, topics[0])
 			require.Equal(t, testAddr.Hash(), topics[1])
 			require.Equal(t, 0, len(data))
+			require.Equal(t, contract.LogGas + 2 * contract.LogTopicGas, GetIndexedEventGasCost())
 
 			testMixedData := MixedEventData{
 				Num: testInt,
@@ -561,6 +567,7 @@ var bindTests = []struct {
 			unpackedMixedData, err := UnpackMixedEventData(data)
 			require.NoError(t, err)
 			require.Equal(t, testMixedData, unpackedMixedData)
+			require.Equal(t, contract.LogGas + contract.LogTopicGas + contract.LogDataGas, GetMixedEventGasCost(testMixedData))
 
 			testDynamicData := DynamicEventData{
 				Str:    "test",
@@ -574,6 +581,7 @@ var bindTests = []struct {
 			unpackedDynamicData, err := UnpackDynamicEventData(data)
 			require.NoError(t, err)
 			require.Equal(t, testDynamicData, unpackedDynamicData)
+			require.Equal(t, contract.LogGas + 2 * contract.LogTopicGas + 2 * contract.LogDataGas, GetDynamicEventGasCost(testDynamicData))
 
 			topics, data, err = PackUnnamedEvent(testUint, testUint)
 			require.NoError(t, err)
@@ -581,6 +589,7 @@ var bindTests = []struct {
 			require.Len(t, topics, 3)
 			require.Equal(t, eventID, topics[0])
 			require.Equal(t, 0, len(data))
+			require.Equal(t, contract.LogGas + 2 * contract.LogTopicGas, GetUnnamedEventGasCost())
 	`,
 		"",
 		false,
