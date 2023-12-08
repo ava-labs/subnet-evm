@@ -941,6 +941,14 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 	s.clearJournalAndRefund()
 }
 
+type HashChainTrie interface {
+	SetLastHashed(trie.ITrie)
+}
+
+type WithITrie interface {
+	ITrie() trie.ITrie
+}
+
 // IntermediateRoot computes the current root hash of the state trie.
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
@@ -967,9 +975,23 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	// the account prefetcher. Instead, let's process all the storage updates
 	// first, giving the account prefetches just a few more milliseconds of time
 	// to pull useful data from disk.
+	var lastHashed trie.ITrie
+	setLastHashed := func(tr Trie) {
+		st, ok := tr.(WithITrie)
+		if !ok {
+			return
+		}
+		hct, ok := st.ITrie().(HashChainTrie)
+		if !ok {
+			return
+		}
+		hct.SetLastHashed(lastHashed)
+		lastHashed = st.ITrie()
+	}
+
 	for addr := range s.stateObjectsPending {
 		if obj := s.stateObjects[addr]; !obj.deleted {
-			obj.updateRoot(s.db)
+			obj.updateRoot(s.db, setLastHashed)
 		}
 	}
 	// Now we're about to start to write changes to the trie. The trie is so far
@@ -1001,6 +1023,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountHashes += time.Since(start) }(time.Now())
 	}
+	setLastHashed(s.trie)
 	return s.trie.Hash()
 }
 

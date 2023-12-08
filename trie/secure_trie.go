@@ -66,6 +66,17 @@ type StateTrie struct {
 	secKeyCacheOwner *StateTrie // Pointer to self, replace the key cache on mismatch
 }
 
+func (s *StateTrie) ITrie() ITrie {
+	return s.trie
+}
+
+func NewStateTrieFromInterface(trie ITrie, db *Database) *StateTrie {
+	if db == nil {
+		panic("trie.NewStateTrie called without a database")
+	}
+	return &StateTrie{trie: trie, preimages: db.preimages}
+}
+
 // NewStateTrie creates a trie with an existing root node from a backing database.
 //
 // If root is the zero hash or the sha3 hash of an empty string, the

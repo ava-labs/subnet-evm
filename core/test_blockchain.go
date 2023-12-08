@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
@@ -85,6 +86,9 @@ var tests = []ChainTest{
 }
 
 func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
+	if db, err := mdb.CopyMemDB(db); err == nil {
+		return db, nil
+	}
 	newDB := rawdb.NewMemoryDatabase()
 	iter := db.NewIterator(nil, nil)
 	defer iter.Release()
@@ -158,6 +162,7 @@ func checkBlockChainState(
 	}
 
 	// Copy the database over to prevent any issues when re-using [originalDB] after this call.
+	originalDB = bc.db
 	originalDB, err = copyMemDB(originalDB)
 	if err != nil {
 		t.Fatal(err)
@@ -1614,10 +1619,23 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 		t.Fatal(err)
 	}
 
+	r := state.NewRecording()
+	r.RegisterType((*state.Database)(nil))
+	r.RegisterType((*state.Trie)(nil))
+	blockchain.stateCache = state.NewRecordingDatabase(blockchain.stateCache, r)
+
 	// Insert three blocks into the chain and accept only the first block.
 	if _, err := blockchain.InsertChain(chain); err != nil {
+		for _, op := range r.Ops {
+			fmt.Printf("--> %s\n", op)
+		}
 		t.Fatal(err)
 	}
+
+	for _, op := range r.Ops {
+		fmt.Printf("--> %s\n", op)
+	}
+
 	if err := blockchain.Accept(chain[0]); err != nil {
 		t.Fatal(err)
 	}

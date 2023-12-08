@@ -41,9 +41,9 @@ type Config struct {
 	StatsPrefix string // Prefix for cache stats (disabled if empty)
 }
 
-// backend defines the methods needed to access/update trie nodes in different
+// Backend defines the methods needed to access/update trie nodes in different
 // state scheme.
-type backend interface {
+type Backend interface {
 	// Scheme returns the identifier of used storage scheme.
 	Scheme() string
 
@@ -69,6 +69,16 @@ type backend interface {
 	Close() error
 }
 
+type LegacyBackend interface {
+	Cap(limit common.StorageSize) error
+	Reference(root common.Hash, parent common.Hash)
+	Dereference(root common.Hash)
+}
+
+type Backender interface {
+	Backend() Backend
+}
+
 type cache interface {
 	HasGet([]byte, []byte) ([]byte, bool)
 	Del([]byte)
@@ -84,7 +94,7 @@ type Database struct {
 	diskdb    ethdb.Database // Persistent database to store the snapshot
 	cleans    cache          // Megabytes permitted using for read caches
 	preimages *preimageStore // The store for caching preimages
-	backend   backend        // The backend for managing trie nodes
+	backend   Backend        // The backend for managing trie nodes
 }
 
 // prepare initializes the database with provided configs, but the
@@ -117,7 +127,11 @@ func NewDatabase(diskdb ethdb.Database) *Database {
 // hash-based scheme by default.
 func NewDatabaseWithConfig(diskdb ethdb.Database, config *Config) *Database {
 	db := prepare(diskdb, config)
-	db.backend = hashdb.New(diskdb, db.cleans, mptResolver{})
+	if backender, ok := diskdb.(Backender); ok {
+		db.backend = backender.Backend()
+	} else {
+		db.backend = hashdb.New(diskdb, db.cleans, mptResolver{})
+	}
 	return db
 }
 
@@ -236,7 +250,7 @@ func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, st
 //
 // It's only supported by hash-based database and will return an error for others.
 func (db *Database) Cap(limit common.StorageSize) error {
-	hdb, ok := db.backend.(*hashdb.Database)
+	hdb, ok := db.backend.(LegacyBackend)
 	if !ok {
 		return errors.New("not supported")
 	}
@@ -252,7 +266,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 //
 // It's only supported by hash-based database and will return an error for others.
 func (db *Database) Reference(root common.Hash, parent common.Hash) error {
-	hdb, ok := db.backend.(*hashdb.Database)
+	hdb, ok := db.backend.(LegacyBackend)
 	if !ok {
 		return errors.New("not supported")
 	}
@@ -263,7 +277,7 @@ func (db *Database) Reference(root common.Hash, parent common.Hash) error {
 // Dereference removes an existing reference from a root node. It's only
 // supported by hash-based database and will return an error for others.
 func (db *Database) Dereference(root common.Hash) error {
-	hdb, ok := db.backend.(*hashdb.Database)
+	hdb, ok := db.backend.(LegacyBackend)
 	if !ok {
 		return errors.New("not supported")
 	}

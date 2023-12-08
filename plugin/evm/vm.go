@@ -19,7 +19,9 @@ import (
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
+	"github.com/ava-labs/avalanchego/trace"
 	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/x/merkledb"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -30,6 +32,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
+	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/metrics"
 	subnetEVMPrometheus "github.com/ava-labs/subnet-evm/metrics/prometheus"
 	"github.com/ava-labs/subnet-evm/miner"
@@ -37,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -141,6 +145,7 @@ var (
 	metadataPrefix  = []byte("metadata")
 	warpPrefix      = []byte("warp")
 	ethDBPrefix     = []byte("ethdb")
+	merkleDBPrefix  = []byte("merkledb")
 )
 
 var (
@@ -173,6 +178,18 @@ var legacyApiNames = map[string]string{
 	"private-debug":     "debug",
 }
 
+func (vm *VM) getMerkleDBConfig() merkledb.Config {
+	return merkledb.Config{
+		EvictionBatchSize:         10,
+		HistoryLength:             300,
+		ValueNodeCacheSize:        units.MiB,
+		IntermediateNodeCacheSize: units.MiB,
+		Reg:                       prometheus.NewRegistry(),
+		Tracer:                    trace.Noop,
+		BranchFactor:              merkledb.BranchFactor16,
+	}
+}
+
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
@@ -202,7 +219,7 @@ type VM struct {
 	metadataDB database.Database
 
 	// [chaindb] is the database supplied to the Ethereum backend
-	chaindb Database
+	chaindb ethdb.Database
 
 	// [acceptedBlockDB] is the database to store the last accepted
 	// block.
@@ -301,6 +318,19 @@ func (vm *VM) Initialize(
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
 	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, db)}
+	// Let's instantiate a merkledb while we have the avalanchego database around.
+	if vm.config.MerkleDB {
+		merkleDB, err := merkledb.New(
+			context.Background(),
+			prefixdb.New(merkleDBPrefix, db), // XXX: should this be NewNested?
+			vm.getMerkleDBConfig(),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create merkleDB: %w", err)
+		}
+		vm.chaindb = mdb.NewWithMerkleDB(vm.chaindb, merkleDB)
+	}
+
 	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
@@ -720,6 +750,10 @@ func (vm *VM) initBlockBuilding() error {
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
 // requests.
 func (vm *VM) setAppRequestHandlers() {
+	if vm.config.MerkleDB {
+		log.Warn("merkleDB doesn't support proofs so we can't serve state sync requests")
+		return
+	}
 	// Create separate EVM TrieDB (read only) for serving leafs requests.
 	// We create a separate TrieDB here, so that it has a separate cache from the one
 	// used by the node when processing blocks.
