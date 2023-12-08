@@ -86,7 +86,6 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 	if remainingGas, err = contract.DeductGas(suppliedGas, AllowFeeRecipientsGasCost); err != nil {
 		return nil, 0, err
 	}
-
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
@@ -119,9 +118,8 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 			blkCtx.Number().Uint64(),
 		)
 	}
-
-	EnableAllowFeeRecipients(stateDB)
 	// this function does not return an output, leave this one as is
+	EnableAllowFeeRecipients(stateDB)
 	packedOutput := []byte{}
 
 	// Return the packed output and the remaining gas
@@ -179,13 +177,8 @@ func GetStoredRewardAddress(stateDB contract.StateDB) (common.Address, bool) {
 }
 
 // StoredRewardAddress stores the given [val] under rewardAddressStorageKey.
-func StoreRewardAddress(stateDB contract.StateDB, val common.Address) error {
-	// if input is empty, return an error
-	if val == (common.Address{}) {
-		return ErrEmptyRewardAddress
-	}
+func StoreRewardAddress(stateDB contract.StateDB, val common.Address) {
 	stateDB.SetState(ContractAddress, rewardAddressStorageKey, val.Hash())
-	return nil
 }
 
 // PackSetRewardAddress packs [addr] of type common.Address into the appropriate arguments for setRewardAddress.
@@ -237,6 +230,11 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 	}
 	// allow list code ends here.
 
+	// if input is empty, return an error
+	if rewardAddress == (common.Address{}) {
+		return nil, remainingGas, ErrEmptyRewardAddress
+	}
+
 	// Add a log to be handled if this action is finalized.
 	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
 		if remainingGas, err = contract.DeductGas(remainingGas, RewardAddressChangedEventGasCost); err != nil {
@@ -254,9 +252,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		)
 	}
 
-	if err := StoreRewardAddress(stateDB, rewardAddress); err != nil {
-		return nil, remainingGas, err
-	}
+	StoreRewardAddress(stateDB, rewardAddress)
 	// this function does not return an output, leave this one as is
 	packedOutput := []byte{}
 
@@ -296,7 +292,6 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 	if remainingGas, err = contract.DeductGas(suppliedGas, DisableRewardsGasCost); err != nil {
 		return nil, 0, err
 	}
-
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}

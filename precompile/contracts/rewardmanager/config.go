@@ -48,7 +48,7 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 		DisableFeeRewards(state)
 	} else {
 		// set reward address
-		return StoreRewardAddress(state, i.RewardAddress)
+		StoreRewardAddress(state, i.RewardAddress)
 	}
 	return nil
 }

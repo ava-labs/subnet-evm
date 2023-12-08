@@ -19,9 +19,12 @@ const (
 	WriteGasCostPerSlot = 20_000
 	ReadGasCostPerSlot  = 5_000
 
-	LogGas      uint64 = 375 // from params/protocol_params.go
+	// Per LOG* operation.
+	LogGas uint64 = 375 // from params/protocol_params.go
+	// Multiplied by the * of the LOG*, per LOG transaction.
 	LogTopicGas uint64 = 375 // from params/protocol_params.go
-	LogDataGas  uint64 = 8   // from params/protocol_params.go
+	// Per byte in a LOG* operation's data.
+	LogDataGas uint64 = 8 // from params/protocol_params.go
 )
 
 var functionSignatureRegex = regexp.MustCompile(`\w+\((\w*|(\w+,)+\w+)\)`)
