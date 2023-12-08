@@ -34,7 +34,7 @@ func TestCompareStateDB(t *testing.T) {
 	// Create a merkleDB
 	db := rawdb.NewMemoryDatabase()
 	memDB := memdb.New()
-	merkleDB, err := merkledb.New(context.Background(), memDB, mdb.NewTestConfig())
+	merkleDB, err := merkledb.New(context.Background(), memDB, mdb.NewBasicConfig())
 	require.NoError(err)
 	db2 := mdb.NewWithMerkleDB(db, merkleDB)
 	trieDB2 := trie.NewDatabaseWithConfig(db2, cacheConfig)

@@ -8,25 +8,10 @@ import (
 	"errors"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
-	"github.com/ava-labs/avalanchego/trace"
-	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/x/merkledb"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/prometheus/client_golang/prometheus"
 )
-
-func NewTestConfig() merkledb.Config {
-	return merkledb.Config{
-		EvictionBatchSize:         10,
-		HistoryLength:             300,
-		ValueNodeCacheSize:        units.MiB,
-		IntermediateNodeCacheSize: units.MiB,
-		Reg:                       prometheus.NewRegistry(),
-		Tracer:                    trace.Noop,
-		BranchFactor:              merkledb.BranchFactor16,
-	}
-}
 
 func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	newDB := rawdb.NewMemoryDatabase()
@@ -43,7 +28,7 @@ func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
 
 func copyMerkleDB(db merkledb.MerkleDB) (merkledb.MerkleDB, error) {
 	memDB := memdb.New()
-	newDB, err := merkledb.New(context.Background(), memDB, NewTestConfig())
+	newDB, err := merkledb.New(context.Background(), memDB, NewBasicConfig())
 	if err != nil {
 		return nil, err
 	}

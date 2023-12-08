@@ -9,6 +9,8 @@ import (
 	"sync"
 
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/trace"
+	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/x/merkledb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -16,6 +18,8 @@ import (
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const merkleDBScheme = "merkleDBScheme"
@@ -60,7 +64,6 @@ func (db *WithMerkleDB) Backend() trie.Backend {
 func (db *WithMerkleDB) getParent(root common.Hash) (merkledb.Trie, error) {
 	pending, ok := db.pendingCommits[root]
 	if ok {
-		fmt.Println("got pending commit", root)
 		return pending[0].stack[0], nil
 	}
 	ctx := context.TODO()
@@ -70,7 +73,6 @@ func (db *WithMerkleDB) getParent(root common.Hash) (merkledb.Trie, error) {
 	}
 	hash := toHash(id)
 	if hash == root {
-		fmt.Println("opening from db", root)
 		return db.merkleDB, nil
 	}
 	return nil, fmt.Errorf("unknown root %x", root)
@@ -101,7 +103,6 @@ func (db *WithMerkleDB) OpenStorageTrie(stateRoot common.Hash, addrHash, prev co
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("OpenStorageTrie", stateRoot, addrHash, prev)
 	tr := &merkleDBTrie{
 		parent:    parent,
 		stateRoot: stateRoot,
@@ -138,7 +139,7 @@ func (db *backend) Update(root common.Hash, parent common.Hash, nodes *trienode.
 
 	t := nodes.Sets[common.Hash{}].Commit.(*merkleDBTrie)
 	tvsToCommit := make([]merkledb.TrieView, 0, len(nodes.Sets))
-	fmt.Printf("Update: root=%x parent=%x numTries=%d\n", root, parent, len(nodes.Sets))
+	log.Info("Update", "root", root, "parent", parent, "numTries", len(nodes.Sets))
 
 	for t != nil {
 		tvsToCommit = append(tvsToCommit, t.tv)
@@ -160,7 +161,7 @@ func (db *backend) Update(root common.Hash, parent common.Hash, nodes *trienode.
 func (db *backend) Commit(root common.Hash, report bool) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-	fmt.Printf("Commit: root=%x\n", root)
+	log.Info("Commit", "root", root)
 
 	ctx := context.TODO()
 	dbRootID, err := db.merkleDB.GetAltMerkleRoot(ctx)
@@ -193,7 +194,7 @@ func (db *backend) commit(ctx context.Context, root common.Hash, dbRoot common.H
 			continue
 		}
 
-		fmt.Printf("commit: root=%x <- parent=%x\n", root, commit.parent)
+		log.Info("commit <--", "root", root, "parent", commit.parent)
 		for i := len(commit.stack) - 1; i >= 0; i-- {
 			tv := commit.stack[i]
 			if err := tv.CommitToDB(ctx); err != nil {
@@ -228,3 +229,15 @@ func (db *backend) Cap(limit common.StorageSize) error {
 }
 
 func (db *backend) Reference(root common.Hash, parent common.Hash) {}
+
+func NewBasicConfig() merkledb.Config {
+	return merkledb.Config{
+		EvictionBatchSize:         10,
+		HistoryLength:             300,
+		ValueNodeCacheSize:        units.MiB,
+		IntermediateNodeCacheSize: units.MiB,
+		Reg:                       prometheus.NewRegistry(),
+		Tracer:                    trace.Noop,
+		BranchFactor:              merkledb.BranchFactor16,
+	}
+}

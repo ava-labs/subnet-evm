@@ -290,7 +290,7 @@ func Transition(ctx *cli.Context) error {
 		prestate.Env.Difficulty = prestate.Env.Random
 	}
 	// Run the test and aggregate the result
-	s, result, err := prestate.Apply(vmConfig, chainConfig, txs, ctx.Int64(RewardFlag.Name), getTracer)
+	s, result, err := prestate.Apply(vmConfig, chainConfig, txs, ctx.Int64(RewardFlag.Name), getTracer, ctx.Bool(MerkleDBFlag.Name))
 	if err != nil {
 		return err
 	}

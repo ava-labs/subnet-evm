@@ -229,7 +229,7 @@ func TestPruningBlockChainWithMerkleDB(t *testing.T) {
 		}
 		// Create a merkleDB
 		memDB := memdb.New()
-		merkleDB, err := merkledb.New(context.Background(), memDB, mdb.NewTestConfig())
+		merkleDB, err := merkledb.New(context.Background(), memDB, mdb.NewBasicConfig())
 		if err != nil {
 			panic(err)
 		}

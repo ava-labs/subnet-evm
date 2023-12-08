@@ -27,10 +27,13 @@
 package t8ntool
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"os"
 
+	"github.com/ava-labs/avalanchego/database/memdb"
+	"github.com/ava-labs/avalanchego/x/merkledb"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -38,6 +41,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -113,10 +117,24 @@ type rejectedTx struct {
 	Err   string `json:"error"`
 }
 
+func mkDB(isMerkle bool) ethdb.Database {
+	if !isMerkle {
+		return rawdb.NewMemoryDatabase()
+	}
+	ethDB := rawdb.NewMemoryDatabase()
+	db := memdb.New()
+	merkledb, err := merkledb.New(context.Background(), db, mdb.NewBasicConfig())
+	if err != nil {
+		panic(err)
+	}
+	return mdb.NewWithMerkleDB(ethDB, merkledb)
+}
+
 // Apply applies a set of transactions to a pre-state
 func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	txs types.Transactions, miningReward int64,
-	getTracerFn func(txIndex int, txHash common.Hash) (tracer vm.EVMLogger, err error)) (*state.StateDB, *ExecutionResult, error) {
+	getTracerFn func(txIndex int, txHash common.Hash) (tracer vm.EVMLogger, err error),
+	useMerkleDB bool) (*state.StateDB, *ExecutionResult, error) {
 	// Capture errors for BLOCKHASH operation, if we haven't been supplied the
 	// required blockhashes
 	var hashError error
@@ -132,7 +150,7 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 		return h
 	}
 	var (
-		statedb     = MakePreState(rawdb.NewMemoryDatabase(), pre.Pre)
+		statedb     = MakePreState(mkDB(useMerkleDB), pre.Pre)
 		signer      = types.MakeSigner(chainConfig, new(big.Int).SetUint64(pre.Env.Number), pre.Env.Timestamp)
 		gaspool     = new(core.GasPool)
 		blockHash   = common.Hash{0x13, 0x37}

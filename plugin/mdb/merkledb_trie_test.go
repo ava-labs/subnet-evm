@@ -22,7 +22,7 @@ import (
 func TestMerkleDBTries(t *testing.T) {
 	require := require.New(t)
 	memDB := memdb.New()
-	db, err := merkledb.New(context.Background(), memDB, NewTestConfig())
+	db, err := merkledb.New(context.Background(), memDB, NewBasicConfig())
 	require.NoError(err)
 
 	chaindb := rawdb.NewMemoryDatabase()

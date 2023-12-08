@@ -36,6 +36,11 @@ import (
 )
 
 var (
+	MerkleDBFlag = &cli.BoolFlag{
+		Name:  "merkleDB",
+		Usage: "use merkleDB to run tests",
+		Value: true,
+	}
 	TraceFlag = &cli.BoolFlag{
 		Name:  "trace",
 		Usage: "Output full trace logs to files <txhash>.jsonl",
