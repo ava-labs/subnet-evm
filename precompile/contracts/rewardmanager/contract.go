@@ -78,11 +78,6 @@ func DisableFeeRewards(stateDB contract.StateDB) {
 }
 
 func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	var (
-		chainCfg = accessibleState.GetChainConfig()
-		blkCtx   = accessibleState.GetBlockContext()
-	)
-
 	if remainingGas, err = contract.DeductGas(suppliedGas, AllowFeeRecipientsGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -103,7 +98,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 	// allow list code ends here.
 
 	// Add a log to be handled if this action is finalized.
-	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, FeeRecipientsAllowedEventGasCost); err != nil {
 			return nil, 0, err
 		}
@@ -115,7 +110,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 			ContractAddress,
 			topics,
 			data,
-			blkCtx.Number().Uint64(),
+			accessibleState.GetBlockContext().Number().Uint64(),
 		)
 	}
 	// this function does not return an output, leave this one as is
@@ -200,11 +195,6 @@ func UnpackSetRewardAddressInput(input []byte) (common.Address, error) {
 }
 
 func setRewardAddress(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	var (
-		chainCfg = accessibleState.GetChainConfig()
-		blkCtx   = accessibleState.GetBlockContext()
-	)
-
 	if remainingGas, err = contract.DeductGas(suppliedGas, SetRewardAddressGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -236,7 +226,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 	}
 
 	// Add a log to be handled if this action is finalized.
-	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, RewardAddressChangedEventGasCost); err != nil {
 			return nil, 0, err
 		}
@@ -249,7 +239,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 			ContractAddress,
 			topics,
 			data,
-			blkCtx.Number().Uint64(),
+			accessibleState.GetBlockContext().Number().Uint64(),
 		)
 	}
 
@@ -285,11 +275,6 @@ func PackDisableRewards() ([]byte, error) {
 }
 
 func disableRewards(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
-	var (
-		chainCfg = accessibleState.GetChainConfig()
-		blkCtx   = accessibleState.GetBlockContext()
-	)
-
 	if remainingGas, err = contract.DeductGas(suppliedGas, DisableRewardsGasCost); err != nil {
 		return nil, 0, err
 	}
@@ -310,7 +295,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 	// allow list code ends here.
 
 	// Add a log to be handled if this action is finalized.
-	if chainCfg.IsDUpgrade(blkCtx.Timestamp()) {
+	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, RewardsDisabledEventGasCost); err != nil {
 			return nil, 0, err
 		}
@@ -323,7 +308,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 			ContractAddress,
 			topics,
 			data,
-			blkCtx.Number().Uint64(),
+			accessibleState.GetBlockContext().Number().Uint64(),
 		)
 	}
 
