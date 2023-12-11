@@ -96,14 +96,6 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
 
-	// if there is no address in the state, create one.
-	if !stateDB.Exist(to) {
-		stateDB.CreateAccount(to)
-	}
-
-	stateDB.AddBalance(to, amount)
-
-	// Add a log to be handled if this action is finalized.
 	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, NativeCoinMintedEventGasCost); err != nil {
 			return nil, 0, err
@@ -119,7 +111,12 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 			accessibleState.GetBlockContext().Number().Uint64(),
 		)
 	}
+	// if there is no address in the state, create one.
+	if !stateDB.Exist(to) {
+		stateDB.CreateAccount(to)
+	}
 
+	stateDB.AddBalance(to, amount)
 	// Return an empty output and the remaining gas
 	return []byte{}, remainingGas, nil
 }
