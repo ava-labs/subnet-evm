@@ -97,6 +97,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 	}
 	// allow list code ends here.
 
+	EnableAllowFeeRecipients(stateDB)
 	// Add a log to be handled if this action is finalized.
 	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, FeeRecipientsAllowedEventGasCost); err != nil {
@@ -113,12 +114,9 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 			accessibleState.GetBlockContext().Number().Uint64(),
 		)
 	}
-	// this function does not return an output, leave this one as is
-	EnableAllowFeeRecipients(stateDB)
-	packedOutput := []byte{}
 
 	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	return []byte{}, remainingGas, nil
 }
 
 // PackAreFeeRecipientsAllowed packs the include selector (first 4 func signature bytes).
@@ -225,6 +223,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		return nil, remainingGas, ErrEmptyRewardAddress
 	}
 
+	StoreRewardAddress(stateDB, rewardAddress)
 	// Add a log to be handled if this action is finalized.
 	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, RewardAddressChangedEventGasCost); err != nil {
@@ -243,12 +242,8 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		)
 	}
 
-	StoreRewardAddress(stateDB, rewardAddress)
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
-
 	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	return []byte{}, remainingGas, nil
 }
 
 func currentRewardAddress(accessibleState contract.AccessibleState, caller common.Address, addr common.Address, input []byte, suppliedGas uint64, readOnly bool) (ret []byte, remainingGas uint64, err error) {
@@ -293,13 +288,13 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotDisableRewards, caller)
 	}
 	// allow list code ends here.
+	DisableFeeRewards(stateDB)
 
 	// Add a log to be handled if this action is finalized.
 	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, RewardsDisabledEventGasCost); err != nil {
 			return nil, 0, err
 		}
-
 		topics, data, err := PackRewardsDisabledEvent()
 		if err != nil {
 			return nil, remainingGas, err
@@ -311,13 +306,8 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 			accessibleState.GetBlockContext().Number().Uint64(),
 		)
 	}
-
-	DisableFeeRewards(stateDB)
-	// this function does not return an output, leave this one as is
-	packedOutput := []byte{}
-
 	// Return the packed output and the remaining gas
-	return packedOutput, remainingGas, nil
+	return []byte{}, remainingGas, nil
 }
 
 // createRewardManagerPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
