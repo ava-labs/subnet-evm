@@ -1,14 +1,7 @@
 [
   {
     "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "name": "FeeRecipientsAllowed",
     "type": "event"
   },
@@ -18,13 +11,13 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "sender",
+        "name": "oldRewardAddress",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "rewardAddress",
+        "name": "newRewardAddress",
         "type": "address"
       }
     ],
@@ -33,14 +26,7 @@
   },
   {
     "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
+    "inputs": [],
     "name": "RewardsDisabled",
     "type": "event"
   },

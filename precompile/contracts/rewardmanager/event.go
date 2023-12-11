@@ -10,25 +10,25 @@ import (
 )
 
 const (
-	FeeRecipientsAllowedEventGasCost = contract.LogGas + contract.LogTopicGas*1
-	RewardAddressChangedEventGasCost = contract.LogGas + contract.LogTopicGas*2
-	RewardsDisabledEventGasCost      = contract.LogGas + contract.LogTopicGas*1
+	FeeRecipientsAllowedEventGasCost = contract.LogGas
+	RewardAddressChangedEventGasCost = contract.LogGas + contract.LogTopicGas*1 + contract.ReadGasCostPerSlot // 1 indexed topic + reading oldRewardAddress from state
+	RewardsDisabledEventGasCost      = contract.LogGas
 )
 
 // PackFeeRecipientsAllowedEvent packs the event into the appropriate arguments for FeeRecipientsAllowed.
 // It returns topic hashes and the encoded non-indexed data.
-func PackFeeRecipientsAllowedEvent(sender common.Address) ([]common.Hash, []byte, error) {
-	return RewardManagerABI.PackEvent("FeeRecipientsAllowed", sender)
+func PackFeeRecipientsAllowedEvent() ([]common.Hash, []byte, error) {
+	return RewardManagerABI.PackEvent("FeeRecipientsAllowed")
 }
 
 // PackRewardAddressChangedEvent packs the event into the appropriate arguments for RewardAddressChanged.
 // It returns topic hashes and the encoded non-indexed data.
-func PackRewardAddressChangedEvent(sender common.Address, rewardAddress common.Address) ([]common.Hash, []byte, error) {
-	return RewardManagerABI.PackEvent("RewardAddressChanged", sender, rewardAddress)
+func PackRewardAddressChangedEvent(oldRewardAddress common.Address, newRewardAddress common.Address) ([]common.Hash, []byte, error) {
+	return RewardManagerABI.PackEvent("RewardAddressChanged", oldRewardAddress, newRewardAddress)
 }
 
 // PackRewardsDisabledEvent packs the event into the appropriate arguments for RewardsDisabled.
 // It returns topic hashes and the encoded non-indexed data.
-func PackRewardsDisabledEvent(sender common.Address) ([]common.Hash, []byte, error) {
-	return RewardManagerABI.PackEvent("RewardsDisabled", sender)
+func PackRewardsDisabledEvent() ([]common.Hash, []byte, error) {
+	return RewardManagerABI.PackEvent("RewardsDisabled")
 }

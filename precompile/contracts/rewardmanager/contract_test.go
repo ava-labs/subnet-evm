@@ -120,7 +120,6 @@ var (
 				// Check logs are stored in state
 				expectedTopic := []common.Hash{
 					RewardManagerABI.Events["FeeRecipientsAllowed"].ID,
-					allowlist.TestEnabledAddr.Hash(),
 				}
 
 				allLogs := baseState.(*state.StateDB).Logs()
@@ -218,15 +217,15 @@ var (
 			},
 			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost,
 			ReadOnly:    false,
+			Config:      &Config{},
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, baseState contract.StateDB) {
 				// Check logs are stored in state
 				expectedTopic := []common.Hash{
 					RewardManagerABI.Events["RewardAddressChanged"].ID,
-					allowlist.TestManagerAddr.Hash(),
+					constants.BlackholeAddr.Hash(), // old address is blackhole initially
 					rewardAddress.Hash(),
 				}
-
 				allLogs := baseState.(*state.StateDB).Logs()
 				require.Len(t, allLogs, 1)
 				require.Equal(t, expectedTopic, allLogs[0].Topics)
@@ -310,7 +309,6 @@ var (
 				// Check logs are stored in state
 				expectedTopic := []common.Hash{
 					RewardManagerABI.Events["RewardsDisabled"].ID,
-					allowlist.TestManagerAddr.Hash(),
 				}
 
 				allLogs := baseState.(*state.StateDB).Logs()
