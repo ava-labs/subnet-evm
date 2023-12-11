@@ -41,7 +41,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -69,7 +69,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -85,7 +85,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -101,7 +101,7 @@ var tests = map[string]testutils.PrecompileTest{
 
 			return input
 		},
-		SuppliedGas: MintGasCost,
+		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
 		AfterHook: func(t testing.TB, state contract.StateDB) {
