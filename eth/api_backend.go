@@ -270,13 +270,18 @@ func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash, number ui
 	return b.eth.blockchain.GetLogs(hash, number), nil
 }
 
-func (b *EthAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config) (*vm.EVM, func() error, error) {
+func (b *EthAPIBackend) GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) (*vm.EVM, func() error) {
 	if vmConfig == nil {
 		vmConfig = b.eth.blockchain.GetVMConfig()
 	}
 	txContext := core.NewEVMTxContext(msg)
-	context := core.NewEVMBlockContext(header, b.eth.BlockChain(), nil)
-	return vm.NewEVM(context, txContext, state, b.eth.blockchain.Config(), *vmConfig), state.Error, nil
+	var context vm.BlockContext
+	if blockCtx != nil {
+		context = *blockCtx
+	} else {
+		context = core.NewEVMBlockContext(header, b.eth.BlockChain(), nil)
+	}
+	return vm.NewEVM(context, txContext, state, b.eth.blockchain.Config(), *vmConfig), state.Error
 }
 
 func (b *EthAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
@@ -463,6 +468,10 @@ func (b *EthAPIBackend) GetMaxBlocksPerRequest() int64 {
 
 func (b *EthAPIBackend) StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, tracers.StateReleaseFunc, error) {
 	return b.eth.StateAtBlock(ctx, block, reexec, base, readOnly, preferDisk)
+}
+
+func (b *EthAPIBackend) StateAtNextBlock(ctx context.Context, parent, nextBlock *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, tracers.StateReleaseFunc, error) {
+	return b.eth.StateAtNextBlock(ctx, parent, nextBlock, reexec, base, readOnly, preferDisk)
 }
 
 func (b *EthAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (*core.Message, vm.BlockContext, *state.StateDB, tracers.StateReleaseFunc, error) {
