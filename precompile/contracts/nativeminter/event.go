@@ -7,11 +7,16 @@ package nativeminter
 import (
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// PackCoinMintedEvent packs the event into the appropriate arguments for CoinMinted.
+const (
+	NativeCoinMintedEventGasCost = contract.LogGas + contract.LogTopicGas*2
+)
+
+// PackNativeCoinMintedEvent packs the event into the appropriate arguments for NativeCoinMinted.
 // It returns topic hashes and the encoded non-indexed data.
-func PackCoinMintedEvent(sender common.Address, addr common.Address, amount *big.Int) ([]common.Hash, []byte, error) {
-	return NativeMinterABI.PackEvent("CoinMinted", sender, addr, amount)
+func PackNativeCoinMintedEvent(recipient common.Address, amount *big.Int) ([]common.Hash, []byte, error) {
+	return NativeMinterABI.PackEvent("NativeCoinMinted", recipient, amount)
 }
