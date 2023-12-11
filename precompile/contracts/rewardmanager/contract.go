@@ -223,7 +223,6 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 		return nil, remainingGas, ErrEmptyRewardAddress
 	}
 
-	StoreRewardAddress(stateDB, rewardAddress)
 	// Add a log to be handled if this action is finalized.
 	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, RewardAddressChangedEventGasCost); err != nil {
@@ -241,6 +240,8 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 			accessibleState.GetBlockContext().Number().Uint64(),
 		)
 	}
+
+	StoreRewardAddress(stateDB, rewardAddress)
 
 	// Return the packed output and the remaining gas
 	return []byte{}, remainingGas, nil
