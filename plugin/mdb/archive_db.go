@@ -110,6 +110,13 @@ func (a *archiveTrie) MustGet(key []byte) []byte {
 	return got
 }
 
+func (a *archiveTrie) ICopy() trie.ITrie {
+	return &archiveTrie{
+		reader: a.reader,
+		owner:  a.owner,
+	}
+}
+
 func (a *archiveTrie) Hash() common.Hash { panic("implement me") }
 func (a *archiveTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet) {
 	panic("implement me")
@@ -118,7 +125,6 @@ func (a *archiveTrie) Delete(key []byte) error                     { panic("impl
 func (a *archiveTrie) MustDelete(key []byte)                       { panic("implement me") }
 func (a *archiveTrie) Update(key, value []byte) error              { panic("implement me") }
 func (a *archiveTrie) MustUpdate(key, value []byte)                { panic("implement me") }
-func (a *archiveTrie) ICopy() trie.ITrie                           { panic("implement me") }
 func (a *archiveTrie) NodeIterator(start []byte) trie.NodeIterator { panic("implement me") }
 func (a *archiveTrie) Prove(key []byte, fromLevel uint, proofDb ethdb.KeyValueWriter) error {
 	panic("implement me")

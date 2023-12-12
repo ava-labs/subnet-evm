@@ -140,13 +140,15 @@ const (
 
 var (
 	// Set last accepted key to be longer than the keys used to store accepted block IDs.
-	lastAcceptedKey = []byte("last_accepted_key")
-	acceptedPrefix  = []byte("snowman_accepted")
-	metadataPrefix  = []byte("metadata")
-	warpPrefix      = []byte("warp")
-	ethDBPrefix     = []byte("ethdb")
-	merkleDBPrefix  = []byte("merkledb")
-	archiveDBPrefix = []byte("archivedb")
+	lastAcceptedKey    = []byte("last_accepted_key")
+	acceptedPrefix     = []byte("snowman_accepted")
+	metadataPrefix     = []byte("metadata")
+	warpPrefix         = []byte("warp")
+	ethDBPrefix        = []byte("ethdb")
+	merkleDBPrefix     = []byte("merkledb")
+	merkleDBMetaPrefix = []byte("merkledb_meta")
+	archiveDBPrefix    = []byte("archivedb")
+	merkleDBWipeKey    = []byte("merkledb_wipe")
 )
 
 var (
@@ -181,10 +183,10 @@ var legacyApiNames = map[string]string{
 
 func (vm *VM) getMerkleDBConfig() merkledb.Config {
 	return merkledb.Config{
-		EvictionBatchSize:         10,
-		HistoryLength:             300,
-		ValueNodeCacheSize:        units.MiB,
-		IntermediateNodeCacheSize: units.MiB,
+		HistoryLength:             vm.config.MerkleDBHistoryLength,
+		EvictionBatchSize:         vm.config.MerkleDBEvictionBatchSize,
+		ValueNodeCacheSize:        vm.config.MerkleDBValueNodeCacheSize,
+		IntermediateNodeCacheSize: vm.config.MerkleDBIntermediateNodeCacheSize,
 		Reg:                       prometheus.NewRegistry(),
 		Tracer:                    trace.Noop,
 		BranchFactor:              merkledb.BranchFactor16,
@@ -320,9 +322,29 @@ func (vm *VM) Initialize(
 	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, db)}
 	// Let's instantiate a merkledb while we have the avalanchego database around.
 	if vm.config.MerkleDB {
+		merkleKVStore := prefixdb.New(merkleDBPrefix, db) // XXX: should this be NewNested?
+		merkleMetaStore := prefixdb.New(merkleDBMetaPrefix, db)
+		lastWipe, err := database.GetUInt64(merkleMetaStore, merkleDBWipeKey)
+		if errors.Is(err, database.ErrNotFound) {
+			lastWipe = 0
+		} else if err != nil {
+			return fmt.Errorf("failed to get last wipe: %w", err)
+		}
+		if lastWipe < vm.config.MerkleDBWipe {
+			log.Info("Wiping MerkleDB", "lastWipe", lastWipe, "currentWipe", vm.config.MerkleDBWipe)
+			if err := database.Clear(merkleKVStore, 100*units.MiB); err != nil {
+				return fmt.Errorf("failed to clear merkleDB: %w", err)
+			}
+			if err := database.PutUInt64(merkleMetaStore, merkleDBWipeKey, vm.config.MerkleDBWipe); err != nil {
+				return fmt.Errorf("failed to set last wipe: %w", err)
+			}
+			log.Warn("Wiped MerkleDB", "lastWipe", lastWipe, "currentWipe", vm.config.MerkleDBWipe)
+		}
+
+		log.Warn("Enabling MerkleDB. It is experimental and should not be used in production")
 		merkleDB, err := merkledb.New(
 			context.Background(),
-			prefixdb.New(merkleDBPrefix, db), // XXX: should this be NewNested?
+			merkleKVStore,
 			vm.getMerkleDBConfig(),
 		)
 		if err != nil {
@@ -330,6 +352,7 @@ func (vm *VM) Initialize(
 		}
 		archiveDB := prefixdb.New(archiveDBPrefix, db)
 		vm.chaindb = mdb.NewWithMerkleDB(vm.chaindb, merkleDB, mdb.NewArchiveDB(archiveDB))
+		log.Warn("MerkleDB enabled")
 	}
 
 	vm.db = versiondb.New(db)

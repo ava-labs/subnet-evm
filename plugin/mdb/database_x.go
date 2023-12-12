@@ -133,7 +133,7 @@ func (db *backend) Update(root common.Hash, parent common.Hash, nodes *trienode.
 
 	t := nodes.Sets[common.Hash{}].Commit.(*merkleDBTrie)
 	tvsToCommit := make([]*merkleDBTrie, 0, len(nodes.Sets))
-	log.Info("Update", "root", root, "parent", parent, "numTries", len(nodes.Sets))
+	log.Debug("Update", "root", root, "parent", parent, "numTries", len(nodes.Sets))
 
 	for t != nil {
 		tvsToCommit = append(tvsToCommit, t)

@@ -108,7 +108,7 @@ func (t *merkleDBTrie) MustDelete(key []byte) {
 
 func (t *merkleDBTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet) {
 	root := t.Hash()
-	log.Info("mtree commit", "root", root, "owner", t.owner)
+	log.Debug("mtree commit", "root", root, "owner", t.owner)
 	nodeSet := trienode.NewNodeSet(t.owner)
 	nodeSet.Commit = t
 	return root, nodeSet
@@ -126,7 +126,7 @@ func (t *merkleDBTrie) Hash() common.Hash {
 	}
 	t.hashed = true
 	hash := common.BytesToHash(id[:])
-	log.Info("mtree hash", "root", hash, "owner", t.owner)
+	log.Debug("mtree hash", "root", hash, "owner", t.owner)
 	return hash
 }
 

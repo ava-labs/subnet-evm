@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
@@ -209,7 +210,13 @@ type Config struct {
 	//  * N:   means N block limit [HEAD-N+1, HEAD] and delete extra indexes
 	TxLookupLimit uint64 `json:"tx-lookup-limit"`
 
-	MerkleDB bool `json:"merkle-db"`
+	MerkleDB     bool   `json:"merkle-db"`
+	MerkleDBWipe uint64 `json:"merkle-db-wipe"`
+
+	MerkleDBEvictionBatchSize         uint `json:"merkle-db-eviction-batch-size"`
+	MerkleDBValueNodeCacheSize        uint `json:"merkle-db-value-node-cache-size"`
+	MerkleDBIntermediateNodeCacheSize uint `json:"merkle-db-intermediate-node-cache-size"`
+	MerkleDBHistoryLength             uint `json:"merkle-db-history-length"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -268,6 +275,11 @@ func (c *Config) SetDefaults() {
 	c.StateSyncRequestSize = defaultStateSyncRequestSize
 	c.AllowUnprotectedTxHashes = defaultAllowUnprotectedTxHashes
 	c.AcceptedCacheSize = defaultAcceptedCacheSize
+
+	c.MerkleDBHistoryLength = 256
+	c.MerkleDBEvictionBatchSize = 4 * units.MiB
+	c.MerkleDBValueNodeCacheSize = 4 * units.GiB
+	c.MerkleDBIntermediateNodeCacheSize = 2 * units.GiB
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

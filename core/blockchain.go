@@ -1364,6 +1364,11 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	// entries directly from the trie (much slower).
 	bc.flattenLock.Lock()
 	defer bc.flattenLock.Unlock()
+
+	if number := block.NumberU64(); number%128 == 0 {
+		log.Info("Insert block", "number", number, "hash", block.Hash(), "root", block.Root(), "parentRoot", parent.Root)
+	}
+
 	statedb, err := state.New(parent.Root, bc.stateCache, bc.snaps)
 	if err != nil {
 		return err
