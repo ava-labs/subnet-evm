@@ -200,11 +200,11 @@ func CreateAllowListPrecompile(contractAbi *abi.ABI, precompileAddr common.Addre
 	return contract
 }
 
-func CreateAllowListFunctions(contractAbi *abi.ABI, precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
-	setAdmin := contract.NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(contractAbi, precompileAddr, AdminRole))
-	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(contractAbi, precompileAddr, ManagerRole), contract.IsDUpgradeActivated)
-	setEnabled := contract.NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(contractAbi, precompileAddr, EnabledRole))
-	setNone := contract.NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(contractAbi, precompileAddr, NoRole))
+func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
+	setAdmin := contract.NewStatefulPrecompileFunction(setAdminSignature, createAllowListRoleSetter(precompileAddr, AdminRole))
+	setManager := contract.NewStatefulPrecompileFunctionWithActivator(setManagerSignature, createAllowListRoleSetter(precompileAddr, ManagerRole), contract.IsDUpgradeActivated)
+	setEnabled := contract.NewStatefulPrecompileFunction(setEnabledSignature, createAllowListRoleSetter(precompileAddr, EnabledRole))
+	setNone := contract.NewStatefulPrecompileFunction(setNoneSignature, createAllowListRoleSetter(precompileAddr, NoRole))
 	read := contract.NewStatefulPrecompileFunction(readAllowListSignature, createReadAllowList(precompileAddr))
 
 	return []*contract.StatefulPrecompileFunction{setAdmin, setManager, setEnabled, setNone, read}
