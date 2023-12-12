@@ -1674,7 +1674,6 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 	if _, err := blockchain.InsertChain(chain); err != nil {
 		t.Fatal(err)
 	}
-
 	if err := blockchain.Accept(chain[0]); err != nil {
 		t.Fatal(err)
 	}
