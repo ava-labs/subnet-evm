@@ -9,21 +9,19 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 var tests = map[string]testutils.PrecompileTest{
-	"calling mintNativeCoin from NoRole should fail": {
+	"mint funds from no role fails": {
 		Caller:     allowlist.TestNoRoleAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestNoRoleAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestNoRoleAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
@@ -32,11 +30,11 @@ var tests = map[string]testutils.PrecompileTest{
 		ReadOnly:    false,
 		ExpectedErr: ErrCannotMint.Error(),
 	},
-	"calling mintNativeCoin from Enabled should succeed": {
+	"mint funds from enabled address": {
 		Caller:     allowlist.TestEnabledAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestEnabledAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
@@ -60,11 +58,11 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, common.Big2, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
-	"calling mintNativeCoin from Manager should succeed": {
+	"mint funds from manager role succeeds": {
 		Caller:     allowlist.TestManagerAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestEnabledAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
@@ -76,11 +74,11 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
-	"calling mintNativeCoin from Admin should succeed": {
+	"mint funds from admin address": {
 		Caller:     allowlist.TestAdminAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestAdminAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestAdminAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
@@ -96,7 +94,7 @@ var tests = map[string]testutils.PrecompileTest{
 		Caller:     allowlist.TestAdminAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestAdminAddr, math.MaxBig256)
+			input, err := PackMintInput(allowlist.TestAdminAddr, math.MaxBig256)
 			require.NoError(t, err)
 
 			return input
@@ -112,7 +110,7 @@ var tests = map[string]testutils.PrecompileTest{
 		Caller:     allowlist.TestNoRoleAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestAdminAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestAdminAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
@@ -125,7 +123,7 @@ var tests = map[string]testutils.PrecompileTest{
 		Caller:     allowlist.TestEnabledAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestEnabledAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
@@ -138,7 +136,7 @@ var tests = map[string]testutils.PrecompileTest{
 		Caller:     allowlist.TestAdminAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestAdminAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestAdminAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
@@ -151,7 +149,7 @@ var tests = map[string]testutils.PrecompileTest{
 		Caller:     allowlist.TestAdminAddr,
 		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestEnabledAddr, common.Big1)
+			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 			require.NoError(t, err)
 
 			return input
@@ -159,51 +157,6 @@ var tests = map[string]testutils.PrecompileTest{
 		SuppliedGas: MintGasCost - 1,
 		ReadOnly:    false,
 		ExpectedErr: vmerrs.ErrOutOfGas.Error(),
-	},
-	"mint with extra padded bytes should fail before DUpgrade": {
-		Caller:     allowlist.TestEnabledAddr,
-		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
-		ChainConfigFn: func(t testing.TB) precompileconfig.ChainConfig {
-			config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-			config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
-			return config
-		},
-		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestEnabledAddr, common.Big1)
-			require.NoError(t, err)
-
-			// Add extra bytes to the end of the input
-			input = append(input, make([]byte, 32)...)
-
-			return input
-		},
-		SuppliedGas: MintGasCost,
-		ReadOnly:    false,
-		ExpectedErr: ErrInvalidLen.Error(),
-	},
-	"mint with extra padded bytes should succeed with DUpgrade": {
-		Caller:     allowlist.TestEnabledAddr,
-		BeforeHook: allowlist.SetDefaultRoles(Module.Address),
-		ChainConfigFn: func(t testing.TB) precompileconfig.ChainConfig {
-			config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-			config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
-			return config
-		},
-		InputFn: func(t testing.TB) []byte {
-			input, err := PackMintNativeCoin(allowlist.TestEnabledAddr, common.Big1)
-			require.NoError(t, err)
-
-			// Add extra bytes to the end of the input
-			input = append(input, make([]byte, 32)...)
-
-			return input
-		},
-		ExpectedRes: []byte{},
-		SuppliedGas: MintGasCost,
-		ReadOnly:    false,
-		AfterHook: func(t testing.TB, state contract.StateDB) {
-			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
-		},
 	},
 }
 

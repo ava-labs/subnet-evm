@@ -46,8 +46,6 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 	}
 }
 
-// Key returns the key for the FeeManager precompileconfig.
-// This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*FeeManagerConfig] and it has been configured identical to [c].
@@ -69,7 +67,6 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	return c.InitialFeeConfig.Equal(other.InitialFeeConfig)
 }
 
-// Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	if err := c.AllowListConfig.Verify(chainConfig, c.Upgrade); err != nil {
 		return err

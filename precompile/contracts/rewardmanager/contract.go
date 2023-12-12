@@ -273,7 +273,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 // Access to the getters/setters is controlled by an allow list for [precompileAddr].
 func createRewardManagerPrecompile() contract.StatefulPrecompiledContract {
 	var functions []*contract.StatefulPrecompileFunction
-	functions = append(functions, allowlist.CreateAllowListFunctions(&RewardManagerABI, ContractAddress)...)
+	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
 	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
 		"allowFeeRecipients":      allowFeeRecipients,
 		"areFeeRecipientsAllowed": areFeeRecipientsAllowed,

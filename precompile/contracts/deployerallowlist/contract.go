@@ -10,7 +10,7 @@ import (
 )
 
 // Singleton StatefulPrecompiledContract for W/R access to the contract deployer allow list.
-var ContractDeployerAllowListPrecompile contract.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(nil, ContractAddress)
+var ContractDeployerAllowListPrecompile contract.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(ContractAddress)
 
 // GetContractDeployerAllowListStatus returns the role of [address] for the contract deployer
 // allow list.

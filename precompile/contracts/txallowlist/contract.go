@@ -10,7 +10,7 @@ import (
 )
 
 // Singleton StatefulPrecompiledContract for W/R access to the tx allow list.
-var TxAllowListPrecompile contract.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(nil, ContractAddress)
+var TxAllowListPrecompile contract.StatefulPrecompiledContract = allowlist.CreateAllowListPrecompile(ContractAddress)
 
 // GetTxAllowListStatus returns the role of [address] for the tx allow list.
 func GetTxAllowListStatus(stateDB contract.StateDB, address common.Address) allowlist.Role {
