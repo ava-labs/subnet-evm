@@ -53,6 +53,10 @@ func TestCompareStateDB(t *testing.T) {
 			numKeys:     1,
 			startOffset: 1,
 		},
+		addBalance{
+			addrs:   []common.Address{addr1},
+			balance: big.NewInt(1),
+		},
 	}
 
 	stateRoot := types.EmptyRootHash
@@ -82,7 +86,6 @@ func TestCompareStateDB(t *testing.T) {
 
 		stateRoot = r1
 	}
-
 }
 
 type op interface {
