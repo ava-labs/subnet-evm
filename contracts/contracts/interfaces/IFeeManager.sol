@@ -3,17 +3,17 @@ pragma solidity ^0.8.0;
 import "./IAllowList.sol";
 
 interface IFeeManager is IAllowList {
-  event changeFeeConfig(
-    address indexed sender,
-    uint256 gasLimit,
-    uint256 targetBlockRate,
-    uint256 minBaseFee,
-    uint256 targetGas,
-    uint256 baseFeeChangeDenominator,
-    uint256 minBlockGasCost,
-    uint256 maxBlockGasCost,
-    uint256 blockGasCostStep
-  );
+  struct FeeConfig {
+    uint256 gasLimit;
+    uint256 targetBlockRate;
+    uint256 minBaseFee;
+    uint256 targetGas;
+    uint256 baseFeeChangeDenominator;
+    uint256 minBlockGasCost;
+    uint256 maxBlockGasCost;
+    uint256 blockGasCostStep;
+  }
+  event FeeConfigChanged(FeeConfig oldFeeConfig, FeeConfig newFeeConfig);
 
   // Set fee config fields to contract storage
   function setFeeConfig(

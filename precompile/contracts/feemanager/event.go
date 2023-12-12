@@ -7,36 +7,9 @@ package feemanager
 import (
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )
-
-/* NOTE: Events can only be emitted in state-changing functions. So you cannot use events in read-only (view) functions.
-Events are generally emitted at the end of a state-changing function with AddLog method of the StateDB. The AddLog method takes 4 arguments:
-	1. Address of the contract that emitted the event.
-	2. Topic hashes of the event.
-	3. Encoded non-indexed data of the event.
-	4. Block number at which the event was emitted.
-The first argument is the address of the contract that emitted the event.
-Topics can be at most 4 elements, the first topic is the hash of the event signature and the rest are the indexed event arguments. There can be at most 3 indexed arguments.
-Topics cannot be fully unpacked into their original values since they're 32-bytes hashes.
-The non-indexed arguments are encoded using the ABI encoding scheme. The non-indexed arguments can be unpacked into their original values.
-You can use the following code to emit an event in your state-changing precompile functions (generated packer might be different)):
-topics, data, err := PackMyEvent(
-	topic1,
-	topic2,
-	data1,
-	data2,
-)
-if err != nil {
-	return nil, remainingGas, err
-}
-accessibleState.GetStateDB().AddLog(
-	ContractAddress,
-	topics,
-	data,
-	accessibleState.GetBlockContext().Number().Uint64(),
-)
-*/
 
 // ContractChangeFeeConfig represents a ChangeFeeConfig non-indexed event data raised by the Contract contract.
 type ChangeFeeConfigEventData struct {
@@ -52,13 +25,41 @@ type ChangeFeeConfigEventData struct {
 
 // PackChangeFeeConfigEvent packs the event into the appropriate arguments for changeFeeConfig.
 // It returns topic hashes and the encoded non-indexed data.
-func PackChangeFeeConfigEvent(sender common.Address, data ChangeFeeConfigEventData) ([]common.Hash, []byte, error) {
-	return FeeManagerABI.PackEvent("changeFeeConfig", sender, data.GasLimit, data.TargetBlockRate, data.MinBaseFee, data.TargetGas, data.BaseFeeChangeDenominator, data.MinBlockGasCost, data.MaxBlockGasCost, data.BlockGasCostStep)
+func PackChangeFeeConfigEvent(oldConfig commontype.FeeConfig, newConfig commontype.FeeConfig) ([]common.Hash, []byte, error) {
+	oldConfigC := convertFromCommonConfig(oldConfig)
+	newConfigC := convertFromCommonConfig(newConfig)
+	return FeeManagerABI.PackEvent("FeeConfigChanged", oldConfigC, newConfigC)
 }
 
 // UnpackChangeFeeConfigEventData attempts to unpack non-indexed [dataBytes].
-func UnpackChangeFeeConfigEventData(dataBytes []byte) (ChangeFeeConfigEventData, error) {
-	eventData := ChangeFeeConfigEventData{}
-	err := FeeManagerABI.UnpackIntoInterface(&eventData, "changeFeeConfig", dataBytes)
-	return eventData, err
+func UnpackChangeFeeConfigEventData(dataBytes []byte) (ChangeFeeConfigEventData, ChangeFeeConfigEventData, error) {
+	eventData := make([]ChangeFeeConfigEventData, 2)
+	err := FeeManagerABI.UnpackIntoInterface(&eventData, "FeeConfigChanged", dataBytes)
+	return eventData[0], eventData[1], err
+}
+
+func convertFromCommonConfig(config commontype.FeeConfig) ChangeFeeConfigEventData {
+	return ChangeFeeConfigEventData{
+		GasLimit:                 config.GasLimit,
+		TargetBlockRate:          new(big.Int).SetUint64(config.TargetBlockRate),
+		MinBaseFee:               config.MinBaseFee,
+		TargetGas:                config.TargetGas,
+		BaseFeeChangeDenominator: config.BaseFeeChangeDenominator,
+		MinBlockGasCost:          config.MinBlockGasCost,
+		MaxBlockGasCost:          config.MaxBlockGasCost,
+		BlockGasCostStep:         config.BlockGasCostStep,
+	}
+}
+
+func convertToCommonConfig(config ChangeFeeConfigEventData) commontype.FeeConfig {
+	return commontype.FeeConfig{
+		GasLimit:                 config.GasLimit,
+		TargetBlockRate:          config.TargetBlockRate.Uint64(),
+		MinBaseFee:               config.MinBaseFee,
+		TargetGas:                config.TargetGas,
+		BaseFeeChangeDenominator: config.BaseFeeChangeDenominator,
+		MinBlockGasCost:          config.MinBlockGasCost,
+		MaxBlockGasCost:          config.MaxBlockGasCost,
+		BlockGasCostStep:         config.BlockGasCostStep,
+	}
 }
