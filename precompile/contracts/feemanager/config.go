@@ -4,6 +4,7 @@
 package feemanager
 
 import (
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -76,4 +77,57 @@ func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	}
 
 	return c.InitialFeeConfig.Verify()
+}
+
+func (c *Config) ToBytes() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 32 * 1024,
+	}
+
+	if err := c.AllowListConfig.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	if err := c.Upgrade.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	if c.InitialFeeConfig == nil {
+		p.PackBool(true)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	} else {
+		p.PackBool(false)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		if err := c.InitialFeeConfig.ToBytesWithPacker(&p); err != nil {
+			return nil, err
+		}
+	}
+
+	return p.Bytes, nil
+}
+
+func (c *Config) FromBytes(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+	if err := c.AllowListConfig.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+	if err := c.Upgrade.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+	isNil := p.UnpackBool()
+	if !isNil {
+		c.InitialFeeConfig = &commontype.FeeConfig{}
+		if err := c.InitialFeeConfig.FromBytesWithPacker(&p); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

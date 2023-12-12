@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -141,6 +142,57 @@ func (f *FeeConfig) checkByteLens() error {
 	if isBiggerThanHashLen(f.BlockGasCostStep) {
 		return fmt.Errorf("blockGasCostStep exceeds %d bytes", common.HashLength)
 	}
+	return nil
+}
+
+func (c *FeeConfig) getBigIntToSerialize() []**big.Int {
+	return []**big.Int{
+		&c.GasLimit, &c.MinBaseFee, &c.TargetGas, &c.BaseFeeChangeDenominator,
+		&c.MinBlockGasCost, &c.MaxBlockGasCost, &c.BlockGasCostStep,
+	}
+}
+
+func (c *FeeConfig) ToBytesWithPacker(p *wrappers.Packer) error {
+	for _, bigint := range c.getBigIntToSerialize() {
+		p.PackBool(*bigint == nil)
+		if p.Err != nil {
+			return p.Err
+		}
+		if bigint != nil {
+			p.PackBytes((*bigint).Bytes())
+			if p.Err != nil {
+				return p.Err
+			}
+		}
+	}
+	p.PackLong(c.TargetBlockRate)
+	if p.Err != nil {
+		return p.Err
+	}
+
+	return nil
+}
+
+func (c *FeeConfig) FromBytesWithPacker(p *wrappers.Packer) error {
+	for _, bigint := range c.getBigIntToSerialize() {
+		isNil := p.UnpackBool()
+		if p.Err != nil {
+			return p.Err
+		}
+		if isNil {
+			continue
+		}
+		*bigint = big.NewInt(0).SetBytes(p.UnpackBytes())
+		if p.Err != nil {
+			return p.Err
+		}
+	}
+
+	c.TargetBlockRate = p.UnpackLong()
+	if p.Err != nil {
+		return p.Err
+	}
+
 	return nil
 }
 

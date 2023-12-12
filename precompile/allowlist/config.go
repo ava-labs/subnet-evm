@@ -4,8 +4,11 @@
 package allowlist
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
@@ -35,6 +38,43 @@ func (c *AllowListConfig) Configure(chainConfig precompileconfig.ChainConfig, pr
 		SetAllowListRole(state, precompileAddr, managerAddr, ManagerRole)
 	}
 	return nil
+}
+
+func (c *AllowListConfig) packAddresses(addresses []common.Address, p *wrappers.Packer) error {
+	sort.Slice(addresses, func(i, j int) bool {
+		return bytes.Compare(addresses[i][:], addresses[j][:]) < 0
+	})
+
+	p.PackInt(uint32(len(addresses)))
+	if p.Err != nil {
+		return p.Err
+	}
+
+	for _, address := range addresses {
+		p.PackBytes(address[:])
+		if p.Err != nil {
+			return p.Err
+		}
+	}
+	return nil
+}
+
+func (c *AllowListConfig) unpackAddresses(p *wrappers.Packer) ([]common.Address, error) {
+	length := p.UnpackInt()
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	addresses := make([]common.Address, length)
+	for i := uint32(0); i < length; i++ {
+		bytes := p.UnpackBytes()
+		addresses = append(addresses[:i], common.BytesToAddress(bytes))
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	return addresses, nil
 }
 
 // Equal returns true iff [other] has the same admins in the same order in its allow list.
@@ -107,6 +147,40 @@ func (c *AllowListConfig) Verify(chainConfig precompileconfig.ChainConfig, upgra
 		}
 		addressMap[managerAddr] = ManagerRole
 	}
+
+	return nil
+}
+
+func (c *AllowListConfig) ToBytesWithPacker(p *wrappers.Packer) error {
+	if err := c.packAddresses(c.AdminAddresses, p); err != nil {
+		return err
+	}
+	if err := c.packAddresses(c.ManagerAddresses, p); err != nil {
+		return err
+	}
+	if err := c.packAddresses(c.EnabledAddresses, p); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *AllowListConfig) FromBytesWithPacker(p *wrappers.Packer) error {
+	admins, err := c.unpackAddresses(p)
+	if err != nil {
+		return err
+	}
+	managers, err := c.unpackAddresses(p)
+	if err != nil {
+		return err
+	}
+	enableds, err := c.unpackAddresses(p)
+	if err != nil {
+		return err
+	}
+
+	c.AdminAddresses = admins
+	c.ManagerAddresses = managers
+	c.EnabledAddresses = enableds
 
 	return nil
 }

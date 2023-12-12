@@ -30,6 +30,10 @@ type Config interface {
 	Equal(Config) bool
 	// Verify is called on startup and an error is treated as fatal. Configure can assume the Config has passed verification.
 	Verify(ChainConfig) error
+	// Converts the current configuration to a vector of bytes. This vector of bytes is expected to be deterministic
+	ToBytes() ([]byte, error)
+	// Instantiates an object from a vector of bytes (the output of ToBytes())
+	FromBytes([]byte) error
 }
 
 // PredicateContext is the context passed in to the Predicater interface to verify

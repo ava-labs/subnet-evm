@@ -4,6 +4,7 @@
 package deployerallowlist
 
 import (
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
@@ -56,4 +57,34 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
+}
+
+func (c *Config) ToBytes() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 32 * 1024,
+	}
+
+	if err := c.AllowListConfig.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	if err := c.Upgrade.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	return p.Bytes, nil
+}
+
+func (c *Config) FromBytes(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+	if err := c.AllowListConfig.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+	if err := c.Upgrade.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+	return nil
 }

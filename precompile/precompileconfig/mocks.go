@@ -87,6 +87,15 @@ func (m *MockConfig) EXPECT() *MockConfigMockRecorder {
 	return m.recorder
 }
 
+func (*MockConfig) ToBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (*MockConfig) FromBytes([]byte) error {
+	return nil
+}
+
+
 // Equal mocks base method.
 func (m *MockConfig) Equal(arg0 Config) bool {
 	m.ctrl.T.Helper()

@@ -4,9 +4,12 @@
 package nativeminter
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
+	"sort"
 
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -94,4 +97,68 @@ func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 		}
 	}
 	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
+}
+
+func (c *Config) ToBytes() ([]byte, error) {
+	keys := make([]common.Address, 0)
+	for key := range c.InitialMint {
+		keys = append(keys, key)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return bytes.Compare(keys[i][:], keys[j][:]) < 0
+	})
+
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 32 * 1024,
+	}
+
+	if err := c.AllowListConfig.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	if err := c.Upgrade.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	p.PackInt(uint32(len(keys)))
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	for _, key := range keys {
+		p.PackBytes(key[:])
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		p.PackBytes((*big.Int)(c.InitialMint[key]).Bytes())
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	return p.Bytes, nil
+}
+
+func (c *Config) FromBytes(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+	if err := c.AllowListConfig.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+	if err := c.Upgrade.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+	len := p.UnpackInt()
+	c.InitialMint = make(map[common.Address]*math.HexOrDecimal256, len)
+
+	for i := uint32(0); i < len; i++ {
+		key := common.BytesToAddress(p.UnpackBytes())
+		value := p.UnpackBytes()
+		c.InitialMint[key] = (*math.HexOrDecimal256)(big.NewInt(0).SetBytes(value))
+	}
+
+	return nil
 }

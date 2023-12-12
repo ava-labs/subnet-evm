@@ -39,6 +39,14 @@ func (d *dummyConfig) Equal(cfg precompileconfig.Config) bool {
 	return d.AllowListConfig.Equal(&other.AllowListConfig)
 }
 
+func (*dummyConfig) ToBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (*dummyConfig) FromBytes([]byte) error {
+	return nil
+}
+
 type dummyConfigurator struct{}
 
 func (d *dummyConfigurator) MakeConfig() precompileconfig.Config {

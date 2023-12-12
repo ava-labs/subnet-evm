@@ -3,7 +3,10 @@
 
 package precompileconfig
 
-import "github.com/ava-labs/subnet-evm/utils"
+import (
+	"github.com/ava-labs/avalanchego/utils/wrappers"
+	"github.com/ava-labs/subnet-evm/utils"
+)
 
 // Upgrade contains the timestamp for the upgrade along with
 // a boolean [Disable]. If [Disable] is set, the upgrade deactivates
@@ -30,4 +33,31 @@ func (u *Upgrade) Equal(other *Upgrade) bool {
 		return false
 	}
 	return u.Disable == other.Disable && utils.Uint64PtrEqual(u.BlockTimestamp, other.BlockTimestamp)
+}
+
+func (u *Upgrade) ToBytesWithPacker(p *wrappers.Packer) error {
+	if u.BlockTimestamp == nil {
+		p.PackBool(true)
+	} else {
+		p.PackBool(false)
+		if p.Err != nil {
+			return p.Err
+		}
+		p.PackLong(*u.BlockTimestamp)
+	}
+	if p.Err != nil {
+		return p.Err
+	}
+	p.PackBool(u.Disable)
+	return p.Err
+}
+
+func (u *Upgrade) FromBytesWithPacker(p *wrappers.Packer) error {
+	isNil := p.UnpackBool()
+	if !isNil {
+		timestamp := p.UnpackLong()
+		u.BlockTimestamp = &timestamp
+	}
+	u.Disable = p.UnpackBool()
+	return nil
 }

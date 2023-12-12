@@ -60,10 +60,7 @@ func NewUpgradeConfigMessageFromBytes(bytes []byte) (*params.UpgradeConfig, erro
 			return nil, ErrUnknowPrecompile
 		}
 		preCompile := module.MakeConfig()
-		version, err := Codec.Unmarshal(precompileUpgrade.Bytes, preCompile)
-		if version != Version {
-			return nil, ErrInvalidVersion
-		}
+		err := preCompile.FromBytes(precompileUpgrade.Bytes)
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +86,7 @@ func NewUpgradeConfigMessageFromBytes(bytes []byte) (*params.UpgradeConfig, erro
 func NewUpgradeConfigMessage(config *params.UpgradeConfig) (*UpgradeConfigMessage, error) {
 	PrecompileUpgrades := make([]rawPrecompileUpgrade, 0)
 	for _, precompileConfig := range config.PrecompileUpgrades {
-		bytes, err := Codec.Marshal(Version, precompileConfig.Config)
+		bytes, err := precompileConfig.Config.ToBytes()
 		if err != nil {
 			return nil, err
 		}

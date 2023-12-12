@@ -7,6 +7,7 @@
 package rewardmanager
 
 import (
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -18,6 +19,27 @@ var _ precompileconfig.Config = &Config{}
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients" serialize:"true"`
 	RewardAddress      common.Address `json:"rewardAddress,omitempty" serialize:"true"`
+}
+
+func (u *InitialRewardConfig) ToBytesWithPacker(p *wrappers.Packer) error {
+	p.PackBool(u.AllowFeeRecipients)
+	if p.Err != nil {
+		return p.Err
+	}
+	p.PackBytes(u.RewardAddress[:])
+	return p.Err
+}
+
+func (u *InitialRewardConfig) FromBytesWithPacker(p *wrappers.Packer) error {
+	u.AllowFeeRecipients = p.UnpackBool()
+	if p.Err != nil {
+		return p.Err
+	}
+	u.RewardAddress = common.BytesToAddress(p.UnpackBytes())
+	if p.Err != nil {
+		return p.Err
+	}
+	return nil
 }
 
 func (i *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {
@@ -114,4 +136,54 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	}
 
 	return c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
+}
+
+func (c *Config) ToBytes() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 32 * 1024,
+	}
+
+	if err := c.AllowListConfig.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	if err := c.Upgrade.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	p.PackBool(c.InitialRewardConfig == nil)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	if c.InitialRewardConfig != nil {
+		if err := c.InitialRewardConfig.ToBytesWithPacker(&p); err != nil {
+			return nil, err
+		}
+	}
+
+	return p.Bytes, nil
+}
+
+func (c *Config) FromBytes(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+	if err := c.AllowListConfig.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+	if err := c.Upgrade.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+
+	isNil := p.UnpackBool()
+	if !isNil {
+		c.InitialRewardConfig = &InitialRewardConfig{}
+		if err := c.InitialRewardConfig.FromBytesWithPacker(&p); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

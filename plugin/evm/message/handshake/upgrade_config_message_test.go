@@ -4,10 +4,15 @@
 package handshake
 
 import (
+	"math/big"
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
@@ -96,10 +101,121 @@ func TestWithAddressAndMint(t *testing.T) {
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
 				}, map[common.Address]*math.HexOrDecimal256{
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000010")): math.NewHexOrDecimal256(64),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000090")): math.NewHexOrDecimal256(6402100201021),
 				}), // enable at genesis
 			},
 			{
 				Config: nativeminter.NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	})
+	assertConversions(t, message, err)
+}
+
+func TestWithAddressFeeMinter(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+	var validFeeConfig = commontype.FeeConfig{
+		GasLimit:        big.NewInt(8_000_000),
+		TargetBlockRate: 2, // in seconds
+
+		MinBaseFee:               big.NewInt(25_000_000_000),
+		TargetGas:                big.NewInt(15_000_000),
+		BaseFeeChangeDenominator: big.NewInt(36),
+
+		MinBlockGasCost:  big.NewInt(0),
+		MaxBlockGasCost:  big.NewInt(1_000_000),
+		BlockGasCostStep: big.NewInt(200_000),
+	}
+
+	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: feemanager.NewConfig(&t0, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000030")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
+				}, &validFeeConfig), // enable at genesis
+			},
+			{
+				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	})
+	assertConversions(t, message, err)
+}
+
+func TestWithDepoyerAllowList(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+
+	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: deployerallowlist.NewConfig(&t0, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000030")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
+				}), // enable at genesis
+			},
+			{
+				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	})
+	assertConversions(t, message, err)
+}
+
+func TestWithRewardManager(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+
+	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: rewardmanager.NewConfig(&t0, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000030")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
+				}, nil), // enable at genesis
+			},
+			{
+				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	})
+	assertConversions(t, message, err)
+}
+
+func TestWithRewardManagerWithNil(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+
+	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: rewardmanager.NewConfig(&t0, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000030")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
+				}, &rewardmanager.InitialRewardConfig{
+					AllowFeeRecipients: true,
+				}),
+			},
+			{
+				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
 			},
 		},
 	})

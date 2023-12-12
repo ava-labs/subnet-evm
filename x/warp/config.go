@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/params"
@@ -224,4 +225,35 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 		}
 	}
 	return resultBitSet.Bytes()
+}
+
+func (c *Config) ToBytes() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 32 * 1024,
+	}
+
+	if err := c.Upgrade.ToBytesWithPacker(&p); err != nil {
+		return nil, err
+	}
+
+	p.PackLong(c.QuorumNumerator)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	return p.Bytes, nil
+}
+
+func (c *Config) FromBytes(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+	if err := c.Upgrade.FromBytesWithPacker(&p); err != nil {
+		return err
+	}
+
+	c.QuorumNumerator = p.UnpackLong()
+
+	return p.Err
 }
