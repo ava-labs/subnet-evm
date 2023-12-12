@@ -11,6 +11,8 @@ const tmplSourcePrecompileConfigGo = `
 package {{.Package}}
 
 import (
+	"errors"
+
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	{{- if .Contract.AllowList}}
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
@@ -50,6 +52,14 @@ func NewConfig(blockTimestamp *uint64{{if .Contract.AllowList}}, admins []common
 		{{- end}}
 		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 	}
+}
+
+func (c * Config) ToBytes() ([]byte, error) {
+	return nil, errors.New("implement ToBytes() method")
+}
+
+func (c * Config) FromBytes(bytes []byte) error {
+	return errors.New("implement FromBytes() method")
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
