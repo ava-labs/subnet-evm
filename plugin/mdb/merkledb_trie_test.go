@@ -26,7 +26,7 @@ func TestMerkleDBTries(t *testing.T) {
 	require.NoError(err)
 
 	chaindb := rawdb.NewMemoryDatabase()
-	trieDB := NewWithMerkleDB(chaindb, db)
+	trieDB := NewWithMerkleDB(chaindb, db, nil)
 	// Open at empty
 	stateRoot := types.EmptyRootHash
 	st, err := trieDB.OpenTrie(stateRoot)

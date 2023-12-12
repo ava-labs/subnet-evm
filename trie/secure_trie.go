@@ -70,11 +70,9 @@ func (s *StateTrie) ITrie() ITrie {
 	return s.trie
 }
 
-func NewStateTrieFromInterface(trie ITrie, db *Database) *StateTrie {
-	if db == nil {
-		panic("trie.NewStateTrie called without a database")
-	}
-	return &StateTrie{trie: trie, preimages: db.preimages}
+type TrieOpener interface {
+	OpenTrie(common.Hash) (ITrie, error)
+	OpenStorageTrie(common.Hash, common.Hash, common.Hash) (ITrie, error)
 }
 
 // NewStateTrie creates a trie with an existing root node from a backing database.
@@ -86,6 +84,22 @@ func NewStateTrie(id *ID, db *Database) (*StateTrie, error) {
 	if db == nil {
 		panic("trie.NewStateTrie called without a database")
 	}
+	if opener, ok := db.diskdb.(TrieOpener); ok {
+		var (
+			tr  ITrie
+			err error
+		)
+		if id.Owner == (common.Hash{}) {
+			tr, err = opener.OpenTrie(id.Root)
+		} else {
+			tr, err = opener.OpenStorageTrie(id.StateRoot, id.Owner, id.Root)
+		}
+		if err != nil {
+			return nil, err
+		}
+		return &StateTrie{trie: tr, preimages: db.preimages}, nil
+	}
+
 	trie, err := New(id, db)
 	if err != nil {
 		return nil, err

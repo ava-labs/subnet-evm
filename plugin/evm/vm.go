@@ -146,6 +146,7 @@ var (
 	warpPrefix      = []byte("warp")
 	ethDBPrefix     = []byte("ethdb")
 	merkleDBPrefix  = []byte("merkledb")
+	archiveDBPrefix = []byte("archivedb")
 )
 
 var (
@@ -328,7 +329,8 @@ func (vm *VM) Initialize(
 		if err != nil {
 			return fmt.Errorf("failed to create merkleDB: %w", err)
 		}
-		vm.chaindb = mdb.NewWithMerkleDB(vm.chaindb, merkleDB)
+		archiveDB := prefixdb.New(archiveDBPrefix, db)
+		vm.chaindb = mdb.NewWithMerkleDB(vm.chaindb, merkleDB, mdb.NewArchiveDB(archiveDB))
 	}
 
 	vm.db = versiondb.New(db)

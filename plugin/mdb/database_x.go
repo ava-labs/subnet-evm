@@ -5,6 +5,7 @@ package mdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/ava-labs/avalanchego/trace"
 	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/x/merkledb"
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/trie"
@@ -25,19 +25,22 @@ import (
 const merkleDBScheme = "merkleDBScheme"
 
 var (
-	_ ethdb.Database   = &WithMerkleDB{}
-	_ state.TrieOpener = &WithMerkleDB{}
-	_ trie.Backender   = &WithMerkleDB{}
+	_ ethdb.Database  = &WithMerkleDB{}
+	_ trie.TrieOpener = &WithMerkleDB{}
+	_ trie.Backender  = &WithMerkleDB{}
+
+	ErrUnknownRoot = errors.New("unknown root")
 )
 
 type commit struct {
-	stack  []merkledb.TrieView
+	stack  []*merkleDBTrie
 	parent common.Hash
 }
 
 type WithMerkleDB struct {
 	ethdb.Database
-	merkleDB merkledb.MerkleDB
+	merkleDB  merkledb.MerkleDB
+	archiveDB ArchiveDB
 
 	lock           sync.RWMutex
 	pendingCommits map[common.Hash][]commit
@@ -49,10 +52,11 @@ func toHash(id ids.ID) common.Hash {
 	return common.BytesToHash(id[:])
 }
 
-func NewWithMerkleDB(db ethdb.Database, merkleDB merkledb.MerkleDB) *WithMerkleDB {
+func NewWithMerkleDB(db ethdb.Database, merkleDB merkledb.MerkleDB, archiveDB ArchiveDB) *WithMerkleDB {
 	return &WithMerkleDB{
 		Database:       db,
 		merkleDB:       merkleDB,
+		archiveDB:      archiveDB,
 		pendingCommits: make(map[common.Hash][]commit),
 	}
 }
@@ -64,7 +68,7 @@ func (db *WithMerkleDB) Backend() trie.Backend {
 func (db *WithMerkleDB) getParent(root common.Hash) (merkledb.Trie, error) {
 	pending, ok := db.pendingCommits[root]
 	if ok {
-		return pending[0].stack[0], nil
+		return pending[0].stack[0].tv, nil
 	}
 	ctx := context.TODO()
 	id, err := db.merkleDB.GetAltMerkleRoot(ctx)
@@ -75,32 +79,22 @@ func (db *WithMerkleDB) getParent(root common.Hash) (merkledb.Trie, error) {
 	if hash == root {
 		return db.merkleDB, nil
 	}
-	return nil, fmt.Errorf("unknown root %x", root)
+	return nil, fmt.Errorf("%w: %x", ErrUnknownRoot, root)
 }
 
 func (db *WithMerkleDB) OpenTrie(root common.Hash) (trie.ITrie, error) {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
-
-	parent, err := db.getParent(root)
-	if err != nil {
-		return nil, err
-	}
-	tr := &merkleDBTrie{
-		parent:    parent,
-		stateRoot: root,
-		db:        db,
-	}
-	tr.initialize()
-	return tr, nil
+	return db.OpenStorageTrie(root, common.Hash{}, root)
 }
 
-func (db *WithMerkleDB) OpenStorageTrie(stateRoot common.Hash, addrHash, prev common.Hash) (trie.ITrie, error) {
+func (db *WithMerkleDB) OpenStorageTrie(stateRoot common.Hash, addrHash, root common.Hash) (trie.ITrie, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
 	parent, err := db.getParent(stateRoot)
-	if err != nil {
+	if errors.Is(err, ErrUnknownRoot) && db.archiveDB != nil {
+		// try to open from archive
+		return db.archiveDB.OpenTrie(stateRoot, addrHash, root)
+	} else if err != nil {
 		return nil, err
 	}
 	tr := &merkleDBTrie{
@@ -138,11 +132,11 @@ func (db *backend) Update(root common.Hash, parent common.Hash, nodes *trienode.
 	defer db.lock.Unlock()
 
 	t := nodes.Sets[common.Hash{}].Commit.(*merkleDBTrie)
-	tvsToCommit := make([]merkledb.TrieView, 0, len(nodes.Sets))
+	tvsToCommit := make([]*merkleDBTrie, 0, len(nodes.Sets))
 	log.Info("Update", "root", root, "parent", parent, "numTries", len(nodes.Sets))
 
 	for t != nil {
-		tvsToCommit = append(tvsToCommit, t.tv)
+		tvsToCommit = append(tvsToCommit, t)
 		t = t.hashParent
 	}
 	if len(tvsToCommit) != len(nodes.Sets) {
@@ -194,10 +188,18 @@ func (db *backend) commit(ctx context.Context, root common.Hash, dbRoot common.H
 			continue
 		}
 
+		changes := make([]MapOps, 0, len(commit.stack))
 		log.Info("commit <--", "root", root, "parent", commit.parent)
 		for i := len(commit.stack) - 1; i >= 0; i-- {
-			tv := commit.stack[i]
-			if err := tv.CommitToDB(ctx); err != nil {
+			change := commit.stack[i]
+			if err := change.tv.CommitToDB(ctx); err != nil {
+				return false, err
+			}
+			changes = append(changes, change.vc.MapOps)
+		}
+		if db.archiveDB != nil {
+			// commit to archive
+			if err := db.archiveDB.Commit(root, changes); err != nil {
 				return false, err
 			}
 		}

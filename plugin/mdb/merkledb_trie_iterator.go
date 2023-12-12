@@ -38,7 +38,11 @@ func (t *merkleDBTrie) NodeIterator(start []byte) trie.NodeIterator {
 	startPos := t.prefixBytes(append(start, 0)) // start here to skip the root node
 
 	if !t.hashed {
-		t.Hash()
+		if err := t.hash(); err != nil {
+			return &mdbIterator{
+				it: &database.IteratorError{Err: err},
+			}
+		}
 	}
 	return &mdbIterator{
 		prefix:      prefix,

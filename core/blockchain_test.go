@@ -4,15 +4,12 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/ava-labs/avalanchego/database/memdb"
-	"github.com/ava-labs/avalanchego/x/merkledb"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -22,7 +19,6 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fsnotify/fsnotify"
@@ -115,9 +111,6 @@ func awaitWatcherEventsSubside(watcher *fsnotify.Watcher, subsideTimeout time.Du
 }
 
 func TestTrieCleanJournal(t *testing.T) {
-	if os.Getenv("RUN_FLAKY_TESTS") != "true" {
-		t.Skip("FLAKY")
-	}
 	require := require.New(t)
 	assert := assert.New(t)
 
@@ -205,36 +198,6 @@ func TestArchiveBlockChainSnapsDisabled(t *testing.T) {
 func TestPruningBlockChain(t *testing.T) {
 	createPruningBlockChain := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error) {
 		return createBlockChain(db, pruningConfig, gspec, lastAcceptedHash)
-	}
-	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
-			tt.testFunc(t, createPruningBlockChain)
-		})
-	}
-}
-
-func TestPruningBlockChainWithMerkleDB(t *testing.T) {
-	snapsDisabled := &CacheConfig{
-		TrieCleanLimit:        256,
-		TrieDirtyLimit:        256,
-		TrieDirtyCommitTarget: 20,
-		Pruning:               true, // Enable pruning
-		CommitInterval:        4096,
-		SnapshotLimit:         0, // Disable snapshots
-		AcceptorQueueLimit:    64,
-	}
-	createPruningBlockChain := func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error) {
-		if _, ok := db.(*mdb.WithMerkleDB); ok {
-			return createBlockChain(db, snapsDisabled, gspec, lastAcceptedHash)
-		}
-		// Create a merkleDB
-		memDB := memdb.New()
-		merkleDB, err := merkledb.New(context.Background(), memDB, mdb.NewBasicConfig())
-		if err != nil {
-			panic(err)
-		}
-		withMerkleDB := mdb.NewWithMerkleDB(db, merkleDB)
-		return createBlockChain(withMerkleDB, snapsDisabled, gspec, lastAcceptedHash)
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
@@ -418,6 +381,10 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 		return createBlockChain(db, pruningConfig, gspec, lastAcceptedHash)
 	}
 	for _, tt := range tests {
+		if tt.isMerkleDB() {
+			continue // merkleDB does not support offline pruning
+		}
+
 		tt := tt
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
@@ -663,9 +630,6 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 
 // TODO: simplify the unindexer logic and this test.
 func TestTransactionIndices(t *testing.T) {
-	if os.Getenv("RUN_FLAKY_TESTS") != "true" {
-		t.Skip("FLAKY")
-	}
 	// Configure and generate a sample block chain
 	require := require.New(t)
 	var (

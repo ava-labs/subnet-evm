@@ -172,20 +172,8 @@ type cachingDB struct {
 	triedb        *trie.Database
 }
 
-type TrieOpener interface {
-	OpenTrie(common.Hash) (trie.ITrie, error)
-	OpenStorageTrie(common.Hash, common.Hash, common.Hash) (trie.ITrie, error)
-}
-
 // OpenTrie opens the main account trie at a specific root hash.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
-	if opener, ok := db.disk.(TrieOpener); ok {
-		tr, err := opener.OpenTrie(root)
-		if err != nil {
-			return nil, err
-		}
-		return trie.NewStateTrieFromInterface(tr, db.triedb), nil
-	}
 	tr, err := trie.NewStateTrie(trie.StateTrieID(root), db.triedb)
 	if err != nil {
 		return nil, err
@@ -195,13 +183,6 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 
 // OpenStorageTrie opens the storage trie of an account.
 func (db *cachingDB) OpenStorageTrie(stateRoot common.Hash, addrHash, root common.Hash) (Trie, error) {
-	if opener, ok := db.disk.(TrieOpener); ok {
-		tr, err := opener.OpenStorageTrie(stateRoot, addrHash, root)
-		if err != nil {
-			return nil, err
-		}
-		return trie.NewStateTrieFromInterface(tr, db.triedb), nil
-	}
 	tr, err := trie.NewStateTrie(trie.StorageTrieID(stateRoot, addrHash, root), db.triedb)
 	if err != nil {
 		return nil, err

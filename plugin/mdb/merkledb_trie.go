@@ -116,7 +116,9 @@ func (t *merkleDBTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet)
 
 func (t *merkleDBTrie) Hash() common.Hash {
 	if !t.hashed {
-		t.hash()
+		if err := t.hash(); err != nil {
+			panic(err)
+		}
 	}
 	id, err := t.tv.GetAltMerkleRoot(context.Background())
 	if err != nil {
@@ -128,7 +130,7 @@ func (t *merkleDBTrie) Hash() common.Hash {
 	return hash
 }
 
-func (t *merkleDBTrie) hash() {
+func (t *merkleDBTrie) hash() error {
 	rootPrefix := merkledb.ToKey(t.prefixBytes(nil))
 	parent := t.parent
 	if t.hashParent != nil {
@@ -137,9 +139,10 @@ func (t *merkleDBTrie) hash() {
 
 	tv, err := parent.NewViewWithRootPrefix(context.Background(), t.vc, rootPrefix)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	t.tv = tv
+	return nil
 }
 
 func (t *merkleDBTrie) prefixBytes(key []byte) []byte {

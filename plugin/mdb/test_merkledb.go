@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/x/merkledb"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -26,20 +27,15 @@ func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	return newDB, nil
 }
 
-func copyMerkleDB(db merkledb.MerkleDB) (merkledb.MerkleDB, error) {
-	memDB := memdb.New()
-	newDB, err := merkledb.New(context.Background(), memDB, NewBasicConfig())
-	if err != nil {
-		return nil, err
-	}
-	iter := db.NewIterator()
+func copyDB(src, dst database.Database) error {
+	iter := src.NewIterator()
 	defer iter.Release()
 	for iter.Next() {
-		if err := newDB.Put(iter.Key(), iter.Value()); err != nil {
-			return nil, err
+		if err := dst.Put(iter.Key(), iter.Value()); err != nil {
+			return err
 		}
 	}
-	return newDB, nil
+	return iter.Error()
 }
 
 func CopyMemDB(db ethdb.Database) (ethdb.Database, error) {
@@ -51,9 +47,22 @@ func CopyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	if err != nil {
 		return nil, err
 	}
-	mdbCopy, err := copyMerkleDB(mdb.merkleDB)
+	memDB := memdb.New()
+	newDB, err := merkledb.New(context.Background(), memDB, NewBasicConfig())
 	if err != nil {
 		return nil, err
 	}
-	return NewWithMerkleDB(dbCopy, mdbCopy), nil
+	if err := copyDB(mdb.merkleDB, newDB); err != nil {
+		return nil, err
+	}
+
+	var archiveDBCopy ArchiveDB
+	if archiveDB, ok := mdb.archiveDB.(*archiveDB); ok {
+		memDB := memdb.New()
+		if err := copyDB(archiveDB.db, memDB); err != nil {
+			return nil, err
+		}
+		archiveDBCopy = NewArchiveDB(memDB)
+	}
+	return NewWithMerkleDB(dbCopy, newDB, archiveDBCopy), nil
 }

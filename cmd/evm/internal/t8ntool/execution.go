@@ -127,7 +127,7 @@ func mkDB(isMerkle bool) ethdb.Database {
 	if err != nil {
 		panic(err)
 	}
-	return mdb.NewWithMerkleDB(ethDB, merkledb)
+	return mdb.NewWithMerkleDB(ethDB, merkledb, mdb.NewArchiveDB(memdb.New()))
 }
 
 // Apply applies a set of transactions to a pre-state
