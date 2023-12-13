@@ -38,7 +38,8 @@ func assertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 	}
 	trieAccountLeaves := 0
 
-	trie.AssertTrieConsistency(t, root, serverTrieDB, clientTrieDB, func(key, val []byte) error {
+	rootID := trie.StateTrieID(root)
+	trie.AssertTrieConsistency(t, rootID, serverTrieDB, clientTrieDB, func(key, val []byte) error {
 		trieAccountLeaves++
 		accHash := common.BytesToHash(key)
 		var acc types.StateAccount
@@ -73,7 +74,8 @@ func assertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 		storageTrieLeavesCount := 0
 
 		// check storage trie and storage snapshot consistency
-		trie.AssertTrieConsistency(t, acc.Root, serverTrieDB, clientTrieDB, func(key, val []byte) error {
+		storageID := trie.StorageTrieID(root, accHash, acc.Root)
+		trie.AssertTrieConsistency(t, storageID, serverTrieDB, clientTrieDB, func(key, val []byte) error {
 			storageTrieLeavesCount++
 			snapshotVal := rawdb.ReadStorageSnapshot(clientDB, accHash, common.BytesToHash(key))
 			assert.Equal(t, val, snapshotVal)
