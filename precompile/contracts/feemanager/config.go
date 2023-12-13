@@ -16,9 +16,9 @@ var _ precompileconfig.Config = &Config{}
 // Config implements the StatefulPrecompileConfig interface while adding in the
 // FeeManager specific precompile config.
 type Config struct {
-	allowlist.AllowListConfig `serialize:"true"`
-	precompileconfig.Upgrade  `serialize:"true"`
-	InitialFeeConfig          *commontype.FeeConfig `json:"initialFeeConfig,omitempty" serialize:"true"` // initial fee config to be immediately activated
+	allowlist.AllowListConfig
+	precompileconfig.Upgrade
+	InitialFeeConfig *commontype.FeeConfig `json:"initialFeeConfig,omitempty" ` // initial fee config to be immediately activated
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables

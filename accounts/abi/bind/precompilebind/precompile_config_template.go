@@ -30,11 +30,11 @@ type Config struct {
 	{{- if .Contract.AllowList}}
 	// Serialize allowList to let nodes exchange information about their
 	// precompile configs
-	allowlist.AllowListConfig ` + "`" + `serialize:"true"` + "`" + `
+	allowlist.AllowListConfig
 	{{- end}}
 	// Serialize the Upgrade config to let nodes exchange information about
 	// their precompile configs
-	precompileconfig.Upgrade ` + "`" + `serialize:"true"` + "`" + `
+	precompileconfig.Upgrade
 	// CUSTOM CODE STARTS HERE
 	// Add your own custom fields for Config here
 }

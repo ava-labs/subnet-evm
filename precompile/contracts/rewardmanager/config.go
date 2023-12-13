@@ -17,8 +17,8 @@ import (
 var _ precompileconfig.Config = &Config{}
 
 type InitialRewardConfig struct {
-	AllowFeeRecipients bool           `json:"allowFeeRecipients" serialize:"true"`
-	RewardAddress      common.Address `json:"rewardAddress,omitempty" serialize:"true"`
+	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
+	RewardAddress      common.Address `json:"rewardAddress,omitempty"`
 }
 
 func (u *InitialRewardConfig) ToBytesWithPacker(p *wrappers.Packer) error {
