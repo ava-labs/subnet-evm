@@ -101,8 +101,8 @@ var (
 			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check no logs are stored in state
 				logsTopics, logsData := stateDB.GetLogData()
-				require.Zero(t, logsTopics)
-				require.Zero(t, logsData)
+				require.Len(t, logsTopics, 0)
+				require.Len(t, logsData, 0)
 			},
 		},
 		"log set fee recipients if DUpgrade is active": {
@@ -123,7 +123,7 @@ var (
 				require.Len(t, logsData, 1)
 				topics := logsTopics[0]
 				require.Equal(t, RewardManagerABI.Events["FeeRecipientsAllowed"].ID, topics[0])
-				require.Zero(t, logsData[0])
+				require.Len(t, logsData[0], 0)
 			},
 		},
 		"set reward address from enabled succeeds": {
@@ -201,8 +201,8 @@ var (
 			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check no logs are stored in state
 				logsTopics, logsData := stateDB.GetLogData()
-				require.Zero(t, logsTopics)
-				require.Zero(t, logsData)
+				require.Len(t, logsTopics, 0)
+				require.Len(t, logsData, 0)
 			},
 		},
 		"log change reward address if DUpgrade is active": {
@@ -224,7 +224,7 @@ var (
 				require.Len(t, logsData, 1)
 				topics := logsTopics[0]
 				require.Equal(t, RewardManagerABI.Events["RewardAddressChanged"].ID, topics[0])
-				require.Zero(t, logsData[0])
+				require.Len(t, logsData[0], 0)
 			},
 		},
 		"disable rewards from manager succeeds": {
@@ -285,8 +285,8 @@ var (
 			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check logs are not stored in state
 				topics, data := stateDB.GetLogData()
-				require.Zero(t, topics)
-				require.Zero(t, data)
+				require.Len(t, topics, 0)
+				require.Len(t, data, 0)
 			},
 		},
 		"log disable rewards if DUpgrade is active": {
@@ -307,7 +307,7 @@ var (
 				require.Len(t, logsData, 1)
 				topics := logsTopics[0]
 				require.Equal(t, RewardManagerABI.Events["RewardsDisabled"].ID, topics[0])
-				require.Zero(t, logsData[0])
+				require.Len(t, logsData[0], 0)
 			},
 		},
 		"get current reward address from no role succeeds": {
