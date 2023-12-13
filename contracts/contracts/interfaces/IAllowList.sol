@@ -2,10 +2,10 @@
 pragma solidity ^0.8.0;
 
 interface IAllowList {
-  event AdminAdded(address indexed account);
-  event EnabledAdded(address indexed account);
-  event ManagerAdded(address indexed account);
-  event RoleRemoved(address indexed account);
+  event AdminAdded(address indexed sender, address indexed account);
+  event EnabledAdded(address indexed sender, address indexed account);
+  event ManagerAdded(address indexed sender, address indexed account);
+  event RoleRemoved(address indexed sender, address indexed account);
 
   // Set [addr] to have the admin role over the precompile contract.
   function setAdmin(address addr) external;

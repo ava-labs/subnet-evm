@@ -101,27 +101,27 @@ describe("IAllowList", function () {
     let testAddress = "0x0111000000000000000000000000000000000001"
     await expect(contract.setAdmin(testAddress))
       .to.emit(contract, 'AdminAdded')
-      .withArgs(testAddress)
+      .withArgs(owner.address, testAddress)
   })
 
   it("should emit manager address added event", async function () {
     let testAddress = "0x0222000000000000000000000000000000000002"
     await expect(contract.setManager(testAddress))
       .to.emit(contract, 'ManagerAdded')
-      .withArgs(testAddress)
+      .withArgs(owner.address, testAddress)
   })
 
   it("should emit enabled address added event", async function () {
     let testAddress = "0x0333000000000000000000000000000000000003"
     await expect(contract.setEnabled(testAddress))
       .to.emit(contract, 'EnabledAdded')
-      .withArgs(testAddress)
+      .withArgs(owner.address, testAddress)
   })
 
   it("should emit role removed event", async function () {
     let testAddress = "0x0333000000000000000000000000000000000003"
     await expect(contract.setNone(testAddress))
       .to.emit(contract, 'RoleRemoved')
-      .withArgs(testAddress)
+      .withArgs(owner.address, testAddress)
   })
 })

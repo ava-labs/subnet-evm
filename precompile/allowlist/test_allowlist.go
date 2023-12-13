@@ -539,7 +539,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, TestNoRoleAddr))
 			},
 		},
-		"allowList doesn't log if D fork is not active": {
+		"allowList admin event doesn't log if D fork is not active": {
 			Caller:     TestAdminAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
@@ -562,7 +562,53 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Len(t, data, 0)
 			},
 		},
-		"allowList does log if D fork is active": {
+		"allowList enabled event doesn't log if D fork is not active": {
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(ctrl)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
+				return config
+			},
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackModifyAllowList(TestNoRoleAddr, EnabledRole)
+				require.NoError(t, err)
+				return input
+			},
+			SuppliedGas: ModifyAllowListGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				// Check no logs are stored in state
+				topics, data := stateDB.GetLogData()
+				require.Len(t, topics, 0)
+				require.Len(t, data, 0)
+			},
+		},
+		"allowList role remove event doesn't log if D fork is not active": {
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(ctrl)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
+				return config
+			},
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackModifyAllowList(TestEnabledAddr, NoRole)
+				require.NoError(t, err)
+				return input
+			},
+			SuppliedGas: ModifyAllowListGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				// Check no logs are stored in state
+				topics, data := stateDB.GetLogData()
+				require.Len(t, topics, 0)
+				require.Len(t, data, 0)
+			},
+		},
+		"allowList admin event does log if D fork is active": {
 			Caller:     TestAdminAddr,
 			BeforeHook: SetDefaultRoles(contractAddress),
 			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
@@ -584,9 +630,97 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Len(t, logsTopics, 1)
 				require.Len(t, logsData, 1)
 				topics := logsTopics[0]
-				require.Len(t, topics, 2)
+				require.Len(t, topics, 3)
 				require.Equal(t, topics[0], AllowListABI.Events["AdminAdded"].ID)
-				require.Equal(t, topics[1], TestEnabledAddr.Hash())
+				require.Equal(t, topics[1], TestAdminAddr.Hash())
+				require.Equal(t, topics[2], TestEnabledAddr.Hash())
+				require.Len(t, logsData[0], 0)
+			},
+		},
+		"allowList manager event does log if D fork is active": {
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(ctrl)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+				return config
+			},
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackModifyAllowList(TestEnabledAddr, ManagerRole)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
+				topics := logsTopics[0]
+				require.Len(t, topics, 3)
+				require.Equal(t, topics[0], AllowListABI.Events["ManagerAdded"].ID)
+				require.Equal(t, topics[1], TestAdminAddr.Hash())
+				require.Equal(t, topics[2], TestEnabledAddr.Hash())
+				require.Len(t, logsData[0], 0)
+			},
+		},
+		"allowList enabled event does log if D fork is active": {
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(ctrl)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+				return config
+			},
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackModifyAllowList(TestNoRoleAddr, EnabledRole)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
+				topics := logsTopics[0]
+				require.Len(t, topics, 3)
+				require.Equal(t, topics[0], AllowListABI.Events["EnabledAdded"].ID)
+				require.Equal(t, topics[1], TestAdminAddr.Hash())
+				require.Equal(t, topics[2], TestNoRoleAddr.Hash())
+				require.Len(t, logsData[0], 0)
+			},
+		},
+		"allowList role remove event does log if D fork is active": {
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(ctrl)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+				return config
+			},
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackModifyAllowList(TestEnabledAddr, NoRole)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
+				topics := logsTopics[0]
+				require.Len(t, topics, 3)
+				require.Equal(t, topics[0], AllowListABI.Events["RoleRemoved"].ID)
+				require.Equal(t, topics[1], TestAdminAddr.Hash())
+				require.Equal(t, topics[2], TestEnabledAddr.Hash())
 				require.Len(t, logsData[0], 0)
 			},
 		},

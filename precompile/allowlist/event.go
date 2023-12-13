@@ -10,43 +10,43 @@ import (
 )
 
 const (
-	AllowListEventGasCost = contract.LogGas + contract.LogTopicGas
+	AllowListEventGasCost = contract.LogGas + contract.LogTopicGas*2
 )
 
 // PackAdminAddedEvent packs the event into the appropriate arguments for AdminAdded.
 // It returns topic hashes and the encoded non-indexed data.
-func PackAdminAddedEvent(account common.Address) ([]common.Hash, []byte, error) {
-	return AllowListABI.PackEvent("AdminAdded", account)
+func PackAdminAddedEvent(sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
+	return AllowListABI.PackEvent("AdminAdded", sender, account)
 }
 
 // PackEnabledAddedEvent packs the event into the appropriate arguments for EnabledAdded.
 // It returns topic hashes and the encoded non-indexed data.
-func PackEnabledAddedEvent(account common.Address) ([]common.Hash, []byte, error) {
-	return AllowListABI.PackEvent("EnabledAdded", account)
+func PackEnabledAddedEvent(sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
+	return AllowListABI.PackEvent("EnabledAdded", sender, account)
 }
 
 // PackManagerAddedEvent packs the event into the appropriate arguments for ManagerAdded.
 // It returns topic hashes and the encoded non-indexed data.
-func PackManagerAddedEvent(account common.Address) ([]common.Hash, []byte, error) {
-	return AllowListABI.PackEvent("ManagerAdded", account)
+func PackManagerAddedEvent(sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
+	return AllowListABI.PackEvent("ManagerAdded", sender, account)
 }
 
 // PackRoleRemovedEvent packs the event into the appropriate arguments for RoleRemoved.
 // It returns topic hashes and the encoded non-indexed data.
-func PackRoleRemovedEvent(account common.Address) ([]common.Hash, []byte, error) {
-	return AllowListABI.PackEvent("RoleRemoved", account)
+func PackRoleRemovedEvent(sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
+	return AllowListABI.PackEvent("RoleRemoved", sender, account)
 }
 
-func PackAllowListEvent(role Role, account common.Address) ([]common.Hash, []byte, error) {
+func PackAllowListEvent(role Role, sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
 	switch role {
 	case AdminRole:
-		return PackAdminAddedEvent(account)
+		return PackAdminAddedEvent(sender, account)
 	case ManagerRole:
-		return PackManagerAddedEvent(account)
+		return PackManagerAddedEvent(sender, account)
 	case EnabledRole:
-		return PackEnabledAddedEvent(account)
+		return PackEnabledAddedEvent(sender, account)
 	case NoRole:
-		return PackRoleRemovedEvent(account)
+		return PackRoleRemovedEvent(sender, account)
 	default:
 		panic("invalid role")
 	}
