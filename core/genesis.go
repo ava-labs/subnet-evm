@@ -81,6 +81,9 @@ type Genesis struct {
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
 	BaseFee    *big.Int    `json:"baseFeePerGas"`
+
+	// Force the use of merkleDB in creating genesis, useful for tests
+	MerkleDB bool `json:"merkle-db,omitempty"`
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.

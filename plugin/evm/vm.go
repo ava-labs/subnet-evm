@@ -315,13 +315,24 @@ func (vm *VM) Initialize(
 	// Enable debug-level metrics that might impact runtime performance
 	metrics.EnabledExpensive = vm.config.MetricsExpensiveEnabled
 
+	g := new(core.Genesis)
+	if err := json.Unmarshal(genesisBytes, g); err != nil {
+		return err
+	}
+
+	if g.Config == nil {
+		g.Config = params.SubnetEVMDefaultChainConfig
+	}
+
 	vm.toEngine = toEngine
 	vm.shutdownChan = make(chan struct{}, 1)
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
 	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, db)}
 	// Let's instantiate a merkledb while we have the avalanchego database around.
-	if vm.config.MerkleDB {
+
+	wiped := false
+	if vm.config.MerkleDB || g.MerkleDB {
 		merkleKVStore := prefixdb.New(merkleDBPrefix, db) // XXX: should this be NewNested?
 		merkleMetaStore := prefixdb.New(merkleDBMetaPrefix, db)
 		lastWipe, err := database.GetUInt64(merkleMetaStore, merkleDBWipeKey)
@@ -339,6 +350,7 @@ func (vm *VM) Initialize(
 				return fmt.Errorf("failed to set last wipe: %w", err)
 			}
 			log.Warn("Wiped MerkleDB", "lastWipe", lastWipe, "currentWipe", vm.config.MerkleDBWipe)
+			wiped = true
 		}
 
 		log.Warn("Enabling MerkleDB. It is experimental and should not be used in production")
@@ -370,15 +382,6 @@ func (vm *VM) Initialize(
 			return err
 		}
 		log.Info("Completed database inspection", "elapsed", time.Since(start))
-	}
-
-	g := new(core.Genesis)
-	if err := json.Unmarshal(genesisBytes, g); err != nil {
-		return err
-	}
-
-	if g.Config == nil {
-		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
 	mandatoryNetworkUpgrades, enforce := getMandatoryNetworkUpgrades(chainCtx.NetworkID)
@@ -507,6 +510,12 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return err
 	}
+	if wiped {
+		lastAcceptedHash = vm.genesisHash
+		lastAcceptedHeight = 0
+		log.Warn("Wiped MerkleDB, resetting last accepted block", "lastAcceptedHash", lastAcceptedHash, "lastAcceptedHeight", lastAcceptedHeight)
+	}
+
 	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
 
 	if err := vm.initializeMetrics(); err != nil {

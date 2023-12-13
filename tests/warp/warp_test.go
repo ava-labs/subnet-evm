@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -127,10 +128,16 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	f, err := os.CreateTemp(os.TempDir(), "config.json")
 	require.NoError(err)
-	_, err = f.Write([]byte(`{
+	chainConfig := map[string]interface{}{
 		"warp-api-enabled": true,
-		"log-level": "debug"
-	}`))
+		"log-level":        "debug",
+	}
+	if os.Getenv(utils.UseMerkleDBEnvVar) != "" {
+		chainConfig["merkle-db"] = true
+	}
+	chainConfigBytes, err := json.Marshal(chainConfig)
+	require.NoError(err)
+	_, err = f.Write(chainConfigBytes)
 	require.NoError(err)
 	warpChainConfigPath = f.Name()
 
