@@ -16,9 +16,9 @@ type rawPrecompileUpgrade struct {
 }
 
 type networkUpgradeConfigMessage struct {
-	OptionalNetworkUpgrades *params.OptionalNetworkUpgrades `serialize:"true,nullable"`
+	OptionalNetworkUpgrades *params.OptionalNetworkUpgrades
 	// Config for modifying state as a network upgrade.
-	StateUpgrades []params.StateUpgrade `serialize:"true"`
+	StateUpgrades [][]byte `serialize:"true"`
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []rawPrecompileUpgrade `serialize:"true"`
 }
@@ -36,14 +36,8 @@ func (u *UpgradeConfigMessage) ID() common.Hash {
 	return u.hash
 }
 
-// Attempts to parse a networkUpgradeConfigMessage from a []byte
-//
-// This function attempts to parse a stream of bytes as a
-// networkUpgradeConfigMessage (as serialized from
-// UpgradeConfigToNetworkMessage).
-//
-// The function returns a reference of *params.UpgradeConfig
-func NewUpgradeConfigMessageFromBytes(bytes []byte) (*params.UpgradeConfig, error) {
+// Attempts to parse a `*params.UpgradeConfig` from a []byte
+func NewUpgradeConfigFromBytes(bytes []byte) (*params.UpgradeConfig, error) {
 	var config networkUpgradeConfigMessage
 	version, err := Codec.Unmarshal(bytes, &config)
 	if err != nil {
@@ -67,9 +61,19 @@ func NewUpgradeConfigMessageFromBytes(bytes []byte) (*params.UpgradeConfig, erro
 		PrecompileUpgrades = append(PrecompileUpgrades, params.PrecompileUpgrade{Config: preCompile})
 	}
 
+	var stateUpgrades []params.StateUpgrade
+
+	for _, bytes := range config.StateUpgrades {
+		stateUpgrade := params.StateUpgrade{}
+		if err := stateUpgrade.FromBytes(bytes); err != nil {
+			return nil, err
+		}
+		stateUpgrades = append(stateUpgrades, stateUpgrade)
+	}
+
 	return &params.UpgradeConfig{
 		OptionalNetworkUpgrades: config.OptionalNetworkUpgrades,
-		StateUpgrades:           config.StateUpgrades,
+		StateUpgrades:           stateUpgrades,
 		PrecompileUpgrades:      PrecompileUpgrades,
 	}, nil
 }
@@ -96,9 +100,19 @@ func NewUpgradeConfigMessage(config *params.UpgradeConfig) (*UpgradeConfigMessag
 		})
 	}
 
+	stateUpgrades := make([][]byte, 0)
+
+	for _, config := range config.StateUpgrades {
+		bytes, err := config.ToBytes()
+		if err != nil {
+			return nil, err
+		}
+		stateUpgrades = append(stateUpgrades, bytes)
+	}
+
 	wrappedConfig := networkUpgradeConfigMessage{
 		OptionalNetworkUpgrades: config.OptionalNetworkUpgrades,
-		StateUpgrades:           config.StateUpgrades,
+		StateUpgrades:           stateUpgrades,
 		PrecompileUpgrades:      PrecompileUpgrades,
 	}
 

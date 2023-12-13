@@ -30,13 +30,13 @@ import (
 func assertConversions(t *testing.T, message *UpgradeConfigMessage, err error) {
 	require.NoError(t, err)
 
-	config, err := NewUpgradeConfigMessageFromBytes(message.Bytes())
+	config, err := NewUpgradeConfigFromBytes(message.Bytes())
 	require.NoError(t, err)
 
 	message2, err := NewUpgradeConfigMessage(config)
 	require.NoError(t, err)
 
-	config3, err := NewUpgradeConfigMessageFromBytes(message2.Bytes())
+	config3, err := NewUpgradeConfigFromBytes(message2.Bytes())
 	require.NoError(t, err)
 
 	message3, err := NewUpgradeConfigMessage(config3)
@@ -216,6 +216,45 @@ func TestWithRewardManagerWithNil(t *testing.T) {
 			},
 			{
 				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	})
+	assertConversions(t, message, err)
+}
+
+func TestStateUpgrades(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
+		StateUpgrades: []params.StateUpgrade{
+			{
+				BlockTimestamp: &t0,
+				StateUpgradeAccounts: map[common.Address]params.StateUpgradeAccount{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")): params.StateUpgradeAccount{
+						Code:          []byte{1, 2, 3, 4, 5, 6},
+						BalanceChange: math.NewHexOrDecimal256(99),
+						Storage: map[common.Hash]common.Hash{
+							common.BytesToHash([]byte{1, 2, 4, 5}): common.BytesToHash([]byte{1, 2, 3}),
+						},
+					},
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001000")): params.StateUpgradeAccount{
+						Code:          []byte{1, 2, 9, 93, 4, 5, 6},
+						BalanceChange: math.NewHexOrDecimal256(92312319),
+						Storage: map[common.Hash]common.Hash{
+							common.BytesToHash([]byte{11, 21, 99, 5}): common.BytesToHash([]byte{1, 2, 3}),
+							common.BytesToHash([]byte{1, 21, 99, 5}):  common.BytesToHash([]byte{1, 2, 3}),
+							common.BytesToHash([]byte{1, 2, 99, 5}):   common.BytesToHash([]byte{1, 2, 3}),
+							common.BytesToHash([]byte{1, 2, 4, 5}):    common.BytesToHash([]byte{1, 2, 3}),
+						},
+					},
+				},
+			},
+			{
+				BlockTimestamp: &t1,
+				StateUpgradeAccounts: map[common.Address]params.StateUpgradeAccount{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001000")): params.StateUpgradeAccount{},
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")): params.StateUpgradeAccount{},
+				},
 			},
 		},
 	})

@@ -51,7 +51,7 @@ func (c *AllowListConfig) packAddresses(addresses []common.Address, p *wrappers.
 	}
 
 	for _, address := range addresses {
-		p.PackBytes(address[:])
+		p.PackFixedBytes(address[:])
 		if p.Err != nil {
 			return p.Err
 		}
@@ -67,7 +67,7 @@ func (c *AllowListConfig) unpackAddresses(p *wrappers.Packer) ([]common.Address,
 
 	addresses := make([]common.Address, length)
 	for i := uint32(0); i < length; i++ {
-		bytes := p.UnpackBytes()
+		bytes := p.UnpackFixedBytes(common.AddressLength)
 		addresses = append(addresses[:i], common.BytesToAddress(bytes))
 		if p.Err != nil {
 			return nil, p.Err

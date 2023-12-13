@@ -156,7 +156,13 @@ func (c *Config) FromBytes(bytes []byte) error {
 
 	for i := uint32(0); i < len; i++ {
 		key := common.BytesToAddress(p.UnpackBytes())
+		if p.Err != nil {
+			return p.Err
+		}
 		value := p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
+		}
 		c.InitialMint[key] = (*math.HexOrDecimal256)(big.NewInt(0).SetBytes(value))
 	}
 
