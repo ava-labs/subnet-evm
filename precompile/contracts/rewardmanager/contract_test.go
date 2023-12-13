@@ -122,7 +122,9 @@ var (
 				require.Len(t, logsTopics, 1)
 				require.Len(t, logsData, 1)
 				topics := logsTopics[0]
+				require.Len(t, topics, 2)
 				require.Equal(t, RewardManagerABI.Events["FeeRecipientsAllowed"].ID, topics[0])
+				require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[1])
 				require.Len(t, logsData[0], 0)
 			},
 		},
@@ -223,7 +225,11 @@ var (
 				require.Len(t, logsTopics, 1)
 				require.Len(t, logsData, 1)
 				topics := logsTopics[0]
+				require.Len(t, topics, 4)
 				require.Equal(t, RewardManagerABI.Events["RewardAddressChanged"].ID, topics[0])
+				require.Equal(t, allowlist.TestManagerAddr.Hash(), topics[1])
+				require.Equal(t, constants.BlackholeAddr.Hash(), topics[2])
+				require.Equal(t, rewardAddress.Hash(), topics[3])
 				require.Len(t, logsData[0], 0)
 			},
 		},
@@ -306,7 +312,9 @@ var (
 				require.Len(t, logsTopics, 1)
 				require.Len(t, logsData, 1)
 				topics := logsTopics[0]
+				require.Len(t, topics, 2)
 				require.Equal(t, RewardManagerABI.Events["RewardsDisabled"].ID, topics[0])
+				require.Equal(t, allowlist.TestManagerAddr.Hash(), topics[1])
 				require.Len(t, logsData[0], 0)
 			},
 		},

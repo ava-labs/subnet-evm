@@ -101,7 +101,7 @@ func allowFeeRecipients(accessibleState contract.AccessibleState, caller common.
 		if remainingGas, err = contract.DeductGas(remainingGas, FeeRecipientsAllowedEventGasCost); err != nil {
 			return nil, 0, err
 		}
-		topics, data, err := PackFeeRecipientsAllowedEvent()
+		topics, data, err := PackFeeRecipientsAllowedEvent(caller)
 		if err != nil {
 			return nil, remainingGas, err
 		}
@@ -227,7 +227,7 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 			return nil, 0, err
 		}
 		oldRewardAddress, _ := GetStoredRewardAddress(stateDB)
-		topics, data, err := PackRewardAddressChangedEvent(oldRewardAddress, rewardAddress)
+		topics, data, err := PackRewardAddressChangedEvent(caller, oldRewardAddress, rewardAddress)
 		if err != nil {
 			return nil, remainingGas, err
 		}
@@ -290,7 +290,7 @@ func disableRewards(accessibleState contract.AccessibleState, caller common.Addr
 		if remainingGas, err = contract.DeductGas(remainingGas, RewardsDisabledEventGasCost); err != nil {
 			return nil, 0, err
 		}
-		topics, data, err := PackRewardsDisabledEvent()
+		topics, data, err := PackRewardsDisabledEvent(caller)
 		if err != nil {
 			return nil, remainingGas, err
 		}

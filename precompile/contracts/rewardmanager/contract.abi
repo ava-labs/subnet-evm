@@ -1,13 +1,26 @@
 [
   {
     "anonymous": false,
-    "inputs": [],
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
     "name": "FeeRecipientsAllowed",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
       {
         "indexed": true,
         "internalType": "address",
@@ -26,7 +39,14 @@
   },
   {
     "anonymous": false,
-    "inputs": [],
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
     "name": "RewardsDisabled",
     "type": "event"
   },
