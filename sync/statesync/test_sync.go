@@ -5,6 +5,7 @@ package statesync
 
 import (
 	"bytes"
+	"context"
 	"math/rand"
 	"testing"
 
@@ -13,11 +14,13 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // assertDBConsistency checks [serverTrieDB] and [clientTrieDB] have the same EVM state trie at [root],
@@ -88,6 +91,12 @@ func assertDBConsistency(t testing.TB, root common.Hash, clientDB ethdb.Database
 
 	// Check that the number of accounts in the snapshot matches the number of leaves in the accounts trie
 	assert.Equal(t, trieAccountLeaves, numSnapshotAccounts)
+
+	if wmdb, ok := clientDB.(*mdb.WithMerkleDB); ok {
+		actual, err := wmdb.GetAltMerkleRoot(context.Background())
+		require.NoError(t, err)
+		require.Equal(t, root, actual)
+	}
 }
 
 func fillAccountsWithStorage(t *testing.T, serverDB ethdb.Database, serverTrieDB *trie.Database, root common.Hash, numAccounts int) common.Hash {
