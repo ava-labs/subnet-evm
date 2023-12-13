@@ -44,15 +44,33 @@ func newNetworkHandler(
 	}
 }
 
+func newWarpOnlyHandler(
+	warpBackend warp.Backend,
+	networkCodec codec.Manager,
+) message.RequestHandler {
+	return &networkHandler{
+		signatureRequestHandler: warpHandlers.NewSignatureRequestHandler(warpBackend, networkCodec),
+	}
+}
+
 func (n networkHandler) HandleTrieLeafsRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, leafsRequest message.LeafsRequest) ([]byte, error) {
+	if n.stateTrieLeafsRequestHandler == nil {
+		return nil, nil
+	}
 	return n.stateTrieLeafsRequestHandler.OnLeafsRequest(ctx, nodeID, requestID, leafsRequest)
 }
 
 func (n networkHandler) HandleBlockRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, blockRequest message.BlockRequest) ([]byte, error) {
+	if n.blockRequestHandler == nil {
+		return nil, nil
+	}
 	return n.blockRequestHandler.OnBlockRequest(ctx, nodeID, requestID, blockRequest)
 }
 
 func (n networkHandler) HandleCodeRequest(ctx context.Context, nodeID ids.NodeID, requestID uint32, codeRequest message.CodeRequest) ([]byte, error) {
+	if n.codeRequestHandler == nil {
+		return nil, nil
+	}
 	return n.codeRequestHandler.OnCodeRequest(ctx, nodeID, requestID, codeRequest)
 }
 

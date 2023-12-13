@@ -783,10 +783,6 @@ func (vm *VM) initBlockBuilding() error {
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
 // requests.
 func (vm *VM) setAppRequestHandlers() {
-	if vm.config.MerkleDB {
-		log.Warn("merkleDB doesn't support proofs so we can't serve state sync requests")
-		return
-	}
 	// Create separate EVM TrieDB (read only) for serving leafs requests.
 	// We create a separate TrieDB here, so that it has a separate cache from the one
 	// used by the node when processing blocks.
@@ -798,6 +794,11 @@ func (vm *VM) setAppRequestHandlers() {
 	)
 
 	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
+
+	if vm.config.MerkleDB {
+		log.Warn("merkleDB doesn't support proofs so we can't serve state sync requests")
+		networkHandler = newWarpOnlyHandler(vm.warpBackend, vm.networkCodec)
+	}
 	vm.Network.SetRequestHandler(networkHandler)
 }
 
