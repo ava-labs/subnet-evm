@@ -11,7 +11,7 @@ import (
 
 var testModule = modules.Module{
 	Address:      dummyAddr,
-	Contract:     CreateAllowListPrecompile(nil, dummyAddr),
+	Contract:     CreateAllowListPrecompile(dummyAddr),
 	Configurator: &dummyConfigurator{},
 	ConfigKey:    "dummy",
 }

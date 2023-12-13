@@ -6,6 +6,7 @@ package allowlist
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -35,7 +36,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 
 				return input
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -52,7 +53,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 
 				return input
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -69,7 +70,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 
 				return input
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -260,7 +261,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
 			ReadOnly:    false,
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				res := GetAllowListStatus(state, contractAddress, TestNoRoleAddr)
@@ -276,7 +277,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 
 				return input
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			ExpectedErr: "",
@@ -294,7 +295,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 
 				return input
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			ExpectedErr: "",
@@ -374,7 +375,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 
 				return input
 			},
-			SuppliedGas: ModifyAllowListGasCost,
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -537,6 +538,56 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, TestAdminAddr))
 				require.Equal(t, EnabledRole, GetAllowListStatus(state, contractAddress, TestNoRoleAddr))
+			},
+		},
+		"allowList doesn't log if D fork is not active": {
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(ctrl)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false).AnyTimes()
+				return config
+			},
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackModifyAllowList(TestEnabledAddr, AdminRole)
+				require.NoError(t, err)
+				return input
+			},
+			SuppliedGas: ModifyAllowListGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check no logs are stored in state
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Zero(t, allLogs)
+			},
+		},
+		"allowList does log if D fork is active": {
+			Caller:     TestAdminAddr,
+			BeforeHook: SetDefaultRoles(contractAddress),
+			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
+				config := precompileconfig.NewMockChainConfig(ctrl)
+				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
+				return config
+			},
+			InputFn: func(t testing.TB) []byte {
+				input, err := PackModifyAllowList(TestEnabledAddr, AdminRole)
+				require.NoError(t, err)
+
+				return input
+			},
+			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
+			ReadOnly:    false,
+			ExpectedRes: []byte{},
+			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+				// Check logs are stored in state
+				expectedTopics, _, err := PackAllowListEvent(AdminRole, TestEnabledAddr)
+				require.NoError(t, err)
+
+				allLogs := baseState.(*state.StateDB).Logs()
+				require.Len(t, allLogs, 1)
+				require.Equal(t, expectedTopics, allLogs[0].Topics)
+				require.Zero(t, allLogs[0].Data)
 			},
 		},
 	}

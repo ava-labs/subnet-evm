@@ -58,7 +58,7 @@ func (d *dummyConfigurator) Configure(
 func TestAllowListRun(t *testing.T) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
-		Contract:     CreateAllowListPrecompile(nil, dummyAddr),
+		Contract:     CreateAllowListPrecompile(dummyAddr),
 		Configurator: &dummyConfigurator{},
 		ConfigKey:    "dummy",
 	}
@@ -68,7 +68,7 @@ func TestAllowListRun(t *testing.T) {
 func BenchmarkAllowList(b *testing.B) {
 	dummyModule := modules.Module{
 		Address:      dummyAddr,
-		Contract:     CreateAllowListPrecompile(nil, dummyAddr),
+		Contract:     CreateAllowListPrecompile(dummyAddr),
 		Configurator: &dummyConfigurator{},
 		ConfigKey:    "dummy",
 	}
