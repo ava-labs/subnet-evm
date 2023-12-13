@@ -13,7 +13,7 @@ interface IFeeManager is IAllowList {
     uint256 maxBlockGasCost;
     uint256 blockGasCostStep;
   }
-  event FeeConfigChanged(FeeConfig oldFeeConfig, FeeConfig newFeeConfig);
+  event FeeConfigChanged(address indexed sender, FeeConfig oldFeeConfig, FeeConfig newFeeConfig);
 
   // Set fee config fields to contract storage
   function setFeeConfig(

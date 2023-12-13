@@ -299,11 +299,12 @@ var (
 				require.Len(t, logsData, 1)
 
 				topics := logsTopics[0]
-				require.Len(t, topics, 1)
+				require.Len(t, topics, 2)
 				require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, topics[0])
+				require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[1])
 
 				logData := logsData[0]
-				oldFeeConfig, resFeeConfig, err := UnpackChangeFeeConfigEventData(logData)
+				oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(logData)
 				require.NoError(t, err)
 				oldFeeCfg := convertToCommonConfig(oldFeeConfig)
 				zeroFeeConfig := commontype.FeeConfig{
@@ -333,11 +334,12 @@ func BenchmarkFeeManager(b *testing.B) {
 }
 
 func getGasCost(oldFeeConfig commontype.FeeConfig, feeConfig commontype.FeeConfig) uint64 {
-	_, data, err := PackChangeFeeConfigEvent(oldFeeConfig, feeConfig)
+	// address doesn't matter for gas cost
+	_, data, err := PackFeeConfigChangedEvent(common.Address{}, oldFeeConfig, feeConfig)
 	if err != nil {
 		panic(err)
 	}
 
-	logGasCost := GetFeeConfigGasCost + contract.LogGas + contract.LogDataGas*uint64(len(data))
+	logGasCost := GetFeeConfigGasCost + FeeConfigChangedEventBaseGasCost + contract.LogDataGas*uint64(len(data))
 	return logGasCost + SetFeeConfigGasCost
 }

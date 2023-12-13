@@ -8,8 +8,11 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
+
+const FeeConfigChangedEventBaseGasCost = contract.LogGas + contract.LogTopicGas
 
 // ContractChangeFeeConfig represents a ChangeFeeConfig non-indexed event data raised by the Contract contract.
 type ChangeFeeConfigEventData struct {
@@ -23,16 +26,16 @@ type ChangeFeeConfigEventData struct {
 	BlockGasCostStep         *big.Int
 }
 
-// PackChangeFeeConfigEvent packs the event into the appropriate arguments for changeFeeConfig.
+// PackFeeConfigChangedEvent packs the event into the appropriate arguments for changeFeeConfig.
 // It returns topic hashes and the encoded non-indexed data.
-func PackChangeFeeConfigEvent(oldConfig commontype.FeeConfig, newConfig commontype.FeeConfig) ([]common.Hash, []byte, error) {
+func PackFeeConfigChangedEvent(sender common.Address, oldConfig commontype.FeeConfig, newConfig commontype.FeeConfig) ([]common.Hash, []byte, error) {
 	oldConfigC := convertFromCommonConfig(oldConfig)
 	newConfigC := convertFromCommonConfig(newConfig)
-	return FeeManagerABI.PackEvent("FeeConfigChanged", oldConfigC, newConfigC)
+	return FeeManagerABI.PackEvent("FeeConfigChanged", sender, oldConfigC, newConfigC)
 }
 
-// UnpackChangeFeeConfigEventData attempts to unpack non-indexed [dataBytes].
-func UnpackChangeFeeConfigEventData(dataBytes []byte) (ChangeFeeConfigEventData, ChangeFeeConfigEventData, error) {
+// UnpackFeeConfigChangedEventData attempts to unpack non-indexed [dataBytes].
+func UnpackFeeConfigChangedEventData(dataBytes []byte) (ChangeFeeConfigEventData, ChangeFeeConfigEventData, error) {
 	eventData := make([]ChangeFeeConfigEventData, 2)
 	err := FeeManagerABI.UnpackIntoInterface(&eventData, "FeeConfigChanged", dataBytes)
 	return eventData[0], eventData[1], err

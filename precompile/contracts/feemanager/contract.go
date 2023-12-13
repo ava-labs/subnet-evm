@@ -251,11 +251,12 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 
 	// Add a log to be handled if this action is finalized.
 	if contract.IsDUpgradeActivated(accessibleState) {
-		if remainingGas, err = contract.DeductGas(remainingGas, GetFeeConfigGasCost); err != nil {
+		if remainingGas, err = contract.DeductGas(remainingGas, GetFeeConfigGasCost+FeeConfigChangedEventBaseGasCost); err != nil {
 			return nil, 0, err
 		}
 		oldConfig := GetStoredFeeConfig(stateDB)
-		topics, data, err := PackChangeFeeConfigEvent(
+		topics, data, err := PackFeeConfigChangedEvent(
+			caller,
 			oldConfig,
 			feeConfig,
 		)
@@ -263,8 +264,8 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 			return nil, remainingGas, err
 		}
 
-		logGasCost := contract.LogGas + contract.LogDataGas*uint64(len(data))
-		if remainingGas, err = contract.DeductGas(remainingGas, logGasCost); err != nil {
+		logDataGasCost := uint64(len(data)) * contract.LogDataGas
+		if remainingGas, err = contract.DeductGas(remainingGas, logDataGasCost); err != nil {
 			return nil, 0, err
 		}
 

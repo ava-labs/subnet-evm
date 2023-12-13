@@ -111,6 +111,7 @@ describe("IFeeManager", function () {
       )
       .to.emit(contract, 'FeeConfigChanged')
       .withArgs(
+        owner.address,
         // old config
         [C_FEES.gasLimit, C_FEES.targetBlockRate, C_FEES.minBaseFee, C_FEES.targetGas, C_FEES.baseFeeChangeDenominator, C_FEES.minBlockGasCost, C_FEES.maxBlockGasCost, C_FEES.blockGasCostStep],
         // new config
