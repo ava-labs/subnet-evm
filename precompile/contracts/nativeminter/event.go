@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	NativeCoinMintedEventGasCost = contract.LogGas + contract.LogTopicGas*2
+	NativeCoinMintedEventGasCost = contract.LogGas + contract.LogTopicGas*3
 )
 
 // PackNativeCoinMintedEvent packs the event into the appropriate arguments for NativeCoinMinted.
