@@ -266,10 +266,11 @@ var (
 			SuppliedGas: SetFeeConfigGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check no logs are stored in state
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Zero(t, allLogs)
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 0)
+				require.Len(t, logsData, 0)
 			},
 		},
 		"set config logs after DUpgrade": {
@@ -292,17 +293,16 @@ var (
 				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
 				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
 			},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
-				// Check logs are stored in state
-				expectedTopic := []common.Hash{
-					FeeManagerABI.Events["FeeConfigChanged"].ID,
-				}
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
 
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Len(t, allLogs, 1)
-				require.Equal(t, expectedTopic, allLogs[0].Topics)
+				topics := logsTopics[0]
+				require.Len(t, topics, 1)
+				require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, topics[0])
 
-				logData := allLogs[0].Data
+				logData := logsData[0]
 				oldFeeConfig, resFeeConfig, err := UnpackChangeFeeConfigEventData(logData)
 				require.NoError(t, err)
 				oldFeeCfg := convertToCommonConfig(oldFeeConfig)
