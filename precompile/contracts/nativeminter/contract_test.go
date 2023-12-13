@@ -44,8 +44,8 @@ var tests = map[string]testutils.PrecompileTest{
 		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
-		AfterHook: func(t testing.TB, state contract.StateDB) {
-			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
+		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+			require.Equal(t, common.Big1, stateDB.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
 	"initial mint funds": {
@@ -56,8 +56,8 @@ var tests = map[string]testutils.PrecompileTest{
 				allowlist.TestEnabledAddr: math.NewHexOrDecimal256(2),
 			},
 		},
-		AfterHook: func(t testing.TB, state contract.StateDB) {
-			require.Equal(t, common.Big2, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
+		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+			require.Equal(t, common.Big2, stateDB.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
 	"mint funds from manager role succeeds": {
@@ -72,8 +72,8 @@ var tests = map[string]testutils.PrecompileTest{
 		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
-		AfterHook: func(t testing.TB, state contract.StateDB) {
-			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
+		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+			require.Equal(t, common.Big1, stateDB.GetBalance(allowlist.TestEnabledAddr), "expected minted funds")
 		},
 	},
 	"mint funds from admin address": {
@@ -88,8 +88,8 @@ var tests = map[string]testutils.PrecompileTest{
 		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
-		AfterHook: func(t testing.TB, state contract.StateDB) {
-			require.Equal(t, common.Big1, state.GetBalance(allowlist.TestAdminAddr), "expected minted funds")
+		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+			require.Equal(t, common.Big1, stateDB.GetBalance(allowlist.TestAdminAddr), "expected minted funds")
 		},
 	},
 	"mint max big funds": {
@@ -104,8 +104,8 @@ var tests = map[string]testutils.PrecompileTest{
 		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
-		AfterHook: func(t testing.TB, state contract.StateDB) {
-			require.Equal(t, math.MaxBig256, state.GetBalance(allowlist.TestAdminAddr), "expected minted funds")
+		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+			require.Equal(t, math.MaxBig256, stateDB.GetBalance(allowlist.TestAdminAddr), "expected minted funds")
 		},
 	},
 	"readOnly mint with noRole fails": {
@@ -176,10 +176,11 @@ var tests = map[string]testutils.PrecompileTest{
 		SuppliedGas: MintGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
-		AfterHook: func(t testing.TB, baseState contract.StateDB) {
+		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 			// Check no logs are stored in state
-			allLogs := baseState.(*state.StateDB).Logs()
-			require.Zero(t, allLogs)
+			logsTopics, logsData := stateDB.GetLogData()
+			require.Zero(t, logsTopics)
+			require.Zero(t, logsData)
 		},
 	},
 	"mint does log if D fork is active": {
@@ -193,21 +194,21 @@ var tests = map[string]testutils.PrecompileTest{
 		InputFn: func(t testing.TB) []byte {
 			input, err := PackMintInput(allowlist.TestEnabledAddr, common.Big1)
 			require.NoError(t, err)
-
 			return input
 		},
 		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
-		AfterHook: func(t testing.TB, baseState contract.StateDB) {
-			// Check logs are stored in state
-			expectedTopics, _, err := PackNativeCoinMintedEvent(allowlist.TestEnabledAddr, common.Big1)
-			require.NoError(t, err)
-
-			allLogs := baseState.(*state.StateDB).Logs()
-			require.Len(t, allLogs, 1)
-			require.Equal(t, expectedTopics, allLogs[0].Topics)
-			require.Zero(t, allLogs[0].Data)
+		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+			logsTopics, logsData := stateDB.GetLogData()
+			require.Len(t, logsTopics, 1)
+			require.Len(t, logsData, 1)
+			topics := logsTopics[0]
+			require.Len(t, topics, 3)
+			require.Equal(t, NativeMinterABI.Events["NativeCoinMinted"].ID, topics[0])
+			require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[1])
+			require.Equal(t, common.BigToHash(common.Big1), topics[2])
+			require.Zero(t, logsData[0])
 		},
 	},
 }
