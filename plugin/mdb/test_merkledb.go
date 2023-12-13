@@ -14,7 +14,7 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 )
 
-func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
+func CopyEthDatabase(db ethdb.Database) (ethdb.Database, error) {
 	newDB := rawdb.NewMemoryDatabase()
 	iter := db.NewIterator(nil, nil)
 	defer iter.Release()
@@ -43,7 +43,7 @@ func CopyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	if !ok {
 		return nil, errors.New("not merkleDB")
 	}
-	dbCopy, err := copyMemDB(mdb.Database)
+	dbCopy, err := CopyEthDatabase(mdb.Database)
 	if err != nil {
 		return nil, err
 	}

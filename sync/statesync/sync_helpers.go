@@ -21,7 +21,7 @@ func writeAccountSnapshot(db ethdb.KeyValueWriter, accHash common.Hash, acc type
 
 // writeAccountStorageSnapshotFromTrie iterates the trie at [storageTrie] and copies all entries
 // to the storage snapshot for [accountHash].
-func writeAccountStorageSnapshotFromTrie(batch ethdb.Batch, batchSize int, accountHash common.Hash, storageTrie *trie.Trie) error {
+func writeAccountStorageSnapshotFromTrie(batch ethdb.Batch, batchSize int, accountHash common.Hash, storageTrie *trie.StateTrie) error {
 	it := trie.NewIterator(storageTrie.NodeIterator(nil))
 	for it.Next() {
 		rawdb.WriteStorageSnapshot(batch, accountHash, common.BytesToHash(it.Key), it.Value)

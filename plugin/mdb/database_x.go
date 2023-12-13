@@ -22,7 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const merkleDBScheme = "merkleDBScheme"
+const MerkleDBScheme = "merkleDBScheme"
 
 var (
 	_ ethdb.Database  = &WithMerkleDB{}
@@ -59,6 +59,10 @@ func NewWithMerkleDB(db ethdb.Database, merkleDB merkledb.MerkleDB, archiveDB Ar
 		archiveDB:      archiveDB,
 		pendingCommits: make(map[common.Hash][]commit),
 	}
+}
+
+func (db *WithMerkleDB) MerkleDB() merkledb.MerkleDB {
+	return db.merkleDB
 }
 
 func (db *WithMerkleDB) Backend() trie.Backend {
@@ -155,7 +159,7 @@ func (db *backend) Update(root common.Hash, parent common.Hash, nodes *trienode.
 func (db *backend) Commit(root common.Hash, report bool) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-	log.Info("Commit", "root", root)
+	log.Debug("Commit", "root", root)
 
 	ctx := context.TODO()
 	dbRootID, err := db.merkleDB.GetAltMerkleRoot(ctx)
@@ -189,7 +193,7 @@ func (db *backend) commit(ctx context.Context, root common.Hash, dbRoot common.H
 		}
 
 		changes := make([]MapOps, 0, len(commit.stack))
-		log.Info("commit <--", "root", root, "parent", commit.parent)
+		log.Debug("commit <--", "root", root, "parent", commit.parent)
 		for i := len(commit.stack) - 1; i >= 0; i-- {
 			change := commit.stack[i]
 			if err := change.tv.CommitToDB(ctx); err != nil {
@@ -211,7 +215,7 @@ func (db *backend) commit(ctx context.Context, root common.Hash, dbRoot common.H
 
 // Scheme returns the identifier of used storage scheme.
 func (db *backend) Scheme() string {
-	return merkleDBScheme
+	return MerkleDBScheme
 }
 
 func (db *backend) UpdateAndReferenceRoot(root common.Hash, parent common.Hash, nodes *trienode.MergedNodeSet) error {
@@ -220,6 +224,7 @@ func (db *backend) UpdateAndReferenceRoot(root common.Hash, parent common.Hash, 
 
 // Close closes the trie database backend and releases all held resources.
 func (db *backend) Close() error {
+	log.Info("Closing merkleDB")
 	return db.merkleDB.Close()
 }
 

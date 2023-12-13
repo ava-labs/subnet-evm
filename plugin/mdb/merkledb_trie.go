@@ -51,7 +51,7 @@ func (t *merkleDBTrie) initialize() {
 }
 
 func (t *merkleDBTrie) Get(k []byte) ([]byte, error) {
-	key := t.prefixBytes(k)
+	key := PrefixBytes(t.owner, k)
 	val, ok := t.vc.MapOps[string(key)]
 	if ok {
 		return val.Value(), nil
@@ -69,7 +69,7 @@ func (t *merkleDBTrie) Get(k []byte) ([]byte, error) {
 func (t *merkleDBTrie) Update(k, value []byte) error {
 	k = common.CopyBytes(k)
 	t.hashed = false
-	key := t.prefixBytes(k)
+	key := PrefixBytes(t.owner, k)
 	val := maybe.Nothing[[]byte]()
 	if len(value) > 0 {
 		val = maybe.Some(value)
@@ -81,7 +81,7 @@ func (t *merkleDBTrie) Update(k, value []byte) error {
 
 func (t *merkleDBTrie) Delete(k []byte) error {
 	t.hashed = false
-	key := t.prefixBytes(k)
+	key := PrefixBytes(t.owner, k)
 	t.vc.MapOps[string(key)] = maybe.Nothing[[]byte]()
 	return nil
 }
@@ -131,7 +131,7 @@ func (t *merkleDBTrie) Hash() common.Hash {
 }
 
 func (t *merkleDBTrie) hash() error {
-	rootPrefix := merkledb.ToKey(t.prefixBytes(nil))
+	rootPrefix := merkledb.ToKey(PrefixBytes(t.owner, nil))
 	parent := t.parent
 	if t.hashParent != nil {
 		parent = t.hashParent.tv
@@ -145,11 +145,11 @@ func (t *merkleDBTrie) hash() error {
 	return nil
 }
 
-func (t *merkleDBTrie) prefixBytes(key []byte) []byte {
-	if t.owner == (common.Hash{}) {
+func PrefixBytes(owner common.Hash, key []byte) []byte {
+	if owner == (common.Hash{}) {
 		return key
 	}
-	return append(append(t.owner[:], []byte{0}...), key...)
+	return append(append(owner[:], []byte{0}...), key...)
 }
 
 func (t *merkleDBTrie) ICopy() trie.ITrie {

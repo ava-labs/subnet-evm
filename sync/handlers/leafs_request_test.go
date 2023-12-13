@@ -32,7 +32,7 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 
 	corruptedTrieRoot, _, _ := trie.GenerateTrie(t, trieDB, 100, common.HashLength)
 	// Corrupt [corruptedTrieRoot]
-	trie.CorruptTrie(t, trieDB, corruptedTrieRoot, 5)
+	trie.CorruptTrie(t, trieDB, trie.TrieID(corruptedTrieRoot), 5)
 
 	largeTrieRoot, largeTrieKeys, _ := trie.GenerateTrie(t, trieDB, 10_000, common.HashLength)
 	smallTrieRoot, _, _ := trie.GenerateTrie(t, trieDB, 500, common.HashLength)

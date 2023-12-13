@@ -34,8 +34,8 @@ type mdbIterator struct {
 }
 
 func (t *merkleDBTrie) NodeIterator(start []byte) trie.NodeIterator {
-	prefix := t.prefixBytes(start)
-	startPos := t.prefixBytes(append(start, 0)) // start here to skip the root node
+	prefix := PrefixBytes(t.owner, start)
+	startPos := PrefixBytes(t.owner, append(start, 0)) // start here to skip the root node
 
 	if !t.hashed {
 		if err := t.hash(); err != nil {
@@ -68,7 +68,7 @@ func (it *mdbIterator) LeafBlob() []byte { return it.it.Value() }
 func (it *mdbIterator) LeafKey() []byte  { return it.it.Key()[len(it.prefix):] }
 
 // unimplemented
-func (it *mdbIterator) Hash() common.Hash                      { panic("implement me") }
+func (it *mdbIterator) Hash() common.Hash                      { return common.Hash{} }
 func (it *mdbIterator) Parent() common.Hash                    { panic("implement me") }
 func (it *mdbIterator) Path() []byte                           { panic("implement me") }
 func (it *mdbIterator) NodeBlob() []byte                       { panic("implement me") }

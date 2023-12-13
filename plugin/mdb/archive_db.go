@@ -90,15 +90,8 @@ type archiveTrie struct {
 	owner  common.Hash
 }
 
-func (a *archiveTrie) prefixBytes(key []byte) []byte {
-	if a.owner == (common.Hash{}) {
-		return key
-	}
-	return append(append(a.owner[:], []byte{0}...), key...)
-}
-
 func (a *archiveTrie) Get(k []byte) ([]byte, error) {
-	key := a.prefixBytes(k)
+	key := PrefixBytes(a.owner, k)
 	return a.reader.Get(key)
 }
 

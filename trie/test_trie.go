@@ -102,10 +102,10 @@ func AssertTrieConsistency(t testing.TB, id *ID, a, b *Database, onLeaf func(key
 
 // CorruptTrie deletes every [n]th trie node from the trie given by [root] from the trieDB.
 // Assumes that the trie given by root can be iterated without issue.
-func CorruptTrie(t *testing.T, trieDB *Database, root common.Hash, n int) {
+func CorruptTrie(t *testing.T, trieDB *Database, id *ID, n int) {
 	batch := trieDB.diskdb.NewBatch()
 	// next delete some trie nodes
-	tr, err := New(TrieID(root), trieDB)
+	tr, err := NewStateTrie(id, trieDB)
 	if err != nil {
 		t.Fatal(err)
 	}
