@@ -62,18 +62,18 @@ describe("IRewardManager", function () {
     let testAddress = "0x0444400000000000000000000000000000000004"
     await expect(contract.setRewardAddress(testAddress))
       .to.emit(contract, 'RewardAddressChanged')
-      .withArgs(owner, BLACKHOLE_ADDRESS, testAddress)
+      .withArgs(owner.address, BLACKHOLE_ADDRESS, testAddress)
   })
 
   it("should emit fee recipients allowed event ", async function () {
     await expect(contract.allowFeeRecipients())
       .to.emit(contract, 'FeeRecipientsAllowed')
-      .withArgs(owner)
+      .withArgs(owner.address)
   })
 
   it("should emit rewards disabled event ", async function () {
     await expect(contract.disableRewards())
       .to.emit(contract, 'RewardsDisabled')
-      .withArgs(owner)
+      .withArgs(owner.address)
   })
 })
