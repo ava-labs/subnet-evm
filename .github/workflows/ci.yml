@@ -55,7 +55,7 @@ jobs:
       - run: CURRENT_BRANCH=${{ github.head_ref || github.ref_name }} PUSH_DOCKER_IMAGE=true ./scripts/build_image.sh
         shell: bash
 
-  e2e_test:
+  e2e_test_setup:
     name: e2e tests
     runs-on: ubuntu-latest
     steps:
@@ -87,21 +87,43 @@ jobs:
       - name: Build Subnet-EVM Plugin Binary
         shell: bash
         run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
-      - name: Run E2E Tests
-        shell: bash
-        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/data ./scripts/run_ginkgo.sh
-      - name: Run Warp E2E Tests
-        shell: bash
-        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/data ./scripts/run_ginkgo_warp.sh
-      - name: Run E2E Tests (USE_MERKLE_DB=1)
-        shell: bash
+
+  e2e_test:
+    runs-on: ubuntu-latest
+    needs: e2e_test_setup
+    name: Run E2E Tests
+    steps:
+        - shell: bash
+          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/data ./scripts/run_ginkgo.sh
+  e2e_warp:
+    runs-on: ubuntu-latest
+    needs: e2e_test_setup
+    name: Run Warp E2E Tests
+    steps:
+        - shell: bash
+          run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/data ./scripts/run_ginkgo_warp.sh
+  e2e_test_merkledb:
+    runs-on: ubuntu-latest
+    needs: e2e_test_setup
+    name: Run E2E Tests (USE_MERKLE_DB=1)
+    steps: 
+      - shell: bash
         run: USE_MERKLE_DB=1 AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/data ./scripts/run_ginkgo.sh
-      - name: Run Warp E2E Tests (USE_MERKLE_DB=1)
-        shell: bash
+  e2e_warp_merkledb:
+    runs-on: ubuntu-latest
+    needs: e2e_test_setup
+    name: Run Warp E2E Tests (USE_MERKLE_DB=1)
+    steps: 
+      - shell: bash
         run: USE_MERKLE_DB=1 AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/data ./scripts/run_ginkgo_warp.sh
-      - name: Upload Artifact
-        if: always()
-        uses: actions/upload-artifact@v3
+
+  upload:
+    runs-on: ubuntu-latest
+    needs: [e2e_test, e2e_warp, e2e_test_merkledb, e2e_warp_merkledb]
+    name: Upload Artifact
+    if: always()
+    steps:
+      - uses: actions/upload-artifact@v3
         with:
           name: subnet-evm-e2e-logs
           path: /tmp/network-runner-root-data*/
