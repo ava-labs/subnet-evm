@@ -65,6 +65,14 @@ func (db *WithMerkleDB) MerkleDB() merkledb.MerkleDB {
 	return db.merkleDB
 }
 
+func (db *WithMerkleDB) GetAltMerkleRoot(ctx context.Context) (common.Hash, error) {
+	id, err := db.merkleDB.GetAltMerkleRoot(ctx)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return toHash(id), nil
+}
+
 func (db *WithMerkleDB) Backend() trie.Backend {
 	return (*backend)(db)
 }
@@ -75,11 +83,10 @@ func (db *WithMerkleDB) getParent(root common.Hash) (merkledb.Trie, error) {
 		return pending[0].stack[0].tv, nil
 	}
 	ctx := context.TODO()
-	id, err := db.merkleDB.GetAltMerkleRoot(ctx)
+	hash, err := db.GetAltMerkleRoot(ctx)
 	if err != nil {
 		return nil, err
 	}
-	hash := toHash(id)
 	if hash == root {
 		return db.merkleDB, nil
 	}
