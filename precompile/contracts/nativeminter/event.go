@@ -17,6 +17,6 @@ const (
 
 // PackNativeCoinMintedEvent packs the event into the appropriate arguments for NativeCoinMinted.
 // It returns topic hashes and the encoded non-indexed data.
-func PackNativeCoinMintedEvent(recipient common.Address, amount *big.Int) ([]common.Hash, []byte, error) {
-	return NativeMinterABI.PackEvent("NativeCoinMinted", recipient, amount)
+func PackNativeCoinMintedEvent(sender common.Address, recipient common.Address, amount *big.Int) ([]common.Hash, []byte, error) {
+	return NativeMinterABI.PackEvent("NativeCoinMinted", sender, recipient, amount)
 }

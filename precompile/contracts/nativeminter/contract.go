@@ -100,7 +100,7 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		if remainingGas, err = contract.DeductGas(remainingGas, NativeCoinMintedEventGasCost); err != nil {
 			return nil, 0, err
 		}
-		topics, data, err := PackNativeCoinMintedEvent(to, amount)
+		topics, data, err := PackNativeCoinMintedEvent(caller, to, amount)
 		if err != nil {
 			return nil, remainingGas, err
 		}

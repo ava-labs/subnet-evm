@@ -56,6 +56,6 @@ describe("INativeMinter", function () {
     let amount = 1000
     await expect(contract.mintNativeCoin(testAddress, amount))
       .to.emit(contract, 'NativeCoinMinted')
-      .withArgs(testAddress, amount)
+      .withArgs(owner.address, testAddress, amount)
   })
 })
