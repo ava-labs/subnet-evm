@@ -6,7 +6,6 @@ package allowlist
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -556,10 +555,11 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			SuppliedGas: ModifyAllowListGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check no logs are stored in state
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Zero(t, allLogs)
+				topics, data := stateDB.GetLogData()
+				require.Zero(t, topics)
+				require.Zero(t, data)
 			},
 		},
 		"allowList does log if D fork is active": {
@@ -579,15 +579,15 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			SuppliedGas: ModifyAllowListGasCost + AllowListEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
-				// Check logs are stored in state
-				expectedTopics, _, err := PackAllowListEvent(AdminRole, TestEnabledAddr)
-				require.NoError(t, err)
-
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Len(t, allLogs, 1)
-				require.Equal(t, expectedTopics, allLogs[0].Topics)
-				require.Zero(t, allLogs[0].Data)
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
+				topics := logsTopics[0]
+				require.Len(t, topics, 2)
+				require.Equal(t, topics[0], AllowListABI.Events["AdminAdded"].ID)
+				require.Equal(t, topics[1], TestEnabledAddr.Hash())
+				require.Zero(t, logsData[0])
 			},
 		},
 	}
