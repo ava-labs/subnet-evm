@@ -87,15 +87,6 @@ func (m *MockConfig) EXPECT() *MockConfigMockRecorder {
 	return m.recorder
 }
 
-func (*MockConfig) ToBytes() ([]byte, error) {
-	return nil, nil
-}
-
-func (*MockConfig) FromBytes([]byte) error {
-	return nil
-}
-
-
 // Equal mocks base method.
 func (m *MockConfig) Equal(arg0 Config) bool {
 	m.ctrl.T.Helper()
@@ -108,6 +99,20 @@ func (m *MockConfig) Equal(arg0 Config) bool {
 func (mr *MockConfigMockRecorder) Equal(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Equal", reflect.TypeOf((*MockConfig)(nil).Equal), arg0)
+}
+
+// FromBytes mocks base method.
+func (m *MockConfig) FromBytes(arg0 []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FromBytes", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FromBytes indicates an expected call of FromBytes.
+func (mr *MockConfigMockRecorder) FromBytes(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromBytes", reflect.TypeOf((*MockConfig)(nil).FromBytes), arg0)
 }
 
 // IsDisabled mocks base method.
@@ -150,6 +155,21 @@ func (m *MockConfig) Timestamp() *uint64 {
 func (mr *MockConfigMockRecorder) Timestamp() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Timestamp", reflect.TypeOf((*MockConfig)(nil).Timestamp))
+}
+
+// ToBytes mocks base method.
+func (m *MockConfig) ToBytes() ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ToBytes")
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ToBytes indicates an expected call of ToBytes.
+func (mr *MockConfigMockRecorder) ToBytes() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToBytes", reflect.TypeOf((*MockConfig)(nil).ToBytes))
 }
 
 // Verify mocks base method.
