@@ -179,8 +179,8 @@ var tests = map[string]testutils.PrecompileTest{
 		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 			// Check no logs are stored in state
 			logsTopics, logsData := stateDB.GetLogData()
-			require.Zero(t, logsTopics)
-			require.Zero(t, logsData)
+			require.Len(t, logsTopics, 0)
+			require.Len(t, logsData, 0)
 		},
 	},
 	"mint does log if D fork is active": {
@@ -208,7 +208,7 @@ var tests = map[string]testutils.PrecompileTest{
 			require.Equal(t, NativeMinterABI.Events["NativeCoinMinted"].ID, topics[0])
 			require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[1])
 			require.Equal(t, common.BigToHash(common.Big1), topics[2])
-			require.Zero(t, logsData[0])
+			require.Len(t, logsData[0], 0)
 		},
 	},
 }
