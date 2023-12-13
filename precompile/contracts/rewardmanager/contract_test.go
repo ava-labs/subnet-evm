@@ -98,10 +98,11 @@ var (
 			SuppliedGas: AllowFeeRecipientsGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check no logs are stored in state
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Zero(t, allLogs)
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Zero(t, logsTopics)
+				require.Zero(t, logsData)
 			},
 		},
 		"log set fee recipients if DUpgrade is active": {
@@ -116,16 +117,13 @@ var (
 			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
-				// Check logs are stored in state
-				expectedTopic := []common.Hash{
-					RewardManagerABI.Events["FeeRecipientsAllowed"].ID,
-				}
-
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Len(t, allLogs, 1)
-				require.Equal(t, expectedTopic, allLogs[0].Topics)
-				require.Zero(t, allLogs[0].Data)
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
+				topics := logsTopics[0]
+				require.Equal(t, RewardManagerABI.Events["FeeRecipientsAllowed"].ID, topics[0])
+				require.Zero(t, logsData[0])
 			},
 		},
 		"set reward address from enabled succeeds": {
@@ -200,10 +198,11 @@ var (
 			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check no logs are stored in state
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Zero(t, allLogs, 0)
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Zero(t, logsTopics)
+				require.Zero(t, logsData)
 			},
 		},
 		"log change reward address if DUpgrade is active": {
@@ -219,17 +218,13 @@ var (
 			ReadOnly:    false,
 			Config:      &Config{},
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
-				// Check logs are stored in state
-				expectedTopic := []common.Hash{
-					RewardManagerABI.Events["RewardAddressChanged"].ID,
-					constants.BlackholeAddr.Hash(), // old address is blackhole initially
-					rewardAddress.Hash(),
-				}
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Len(t, allLogs, 1)
-				require.Equal(t, expectedTopic, allLogs[0].Topics)
-				require.Zero(t, allLogs[0].Data)
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
+				topics := logsTopics[0]
+				require.Equal(t, RewardManagerABI.Events["RewardAddressChanged"].ID, topics[0])
+				require.Zero(t, logsData[0])
 			},
 		},
 		"disable rewards from manager succeeds": {
@@ -287,10 +282,11 @@ var (
 			SuppliedGas: SetRewardAddressGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check logs are not stored in state
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Zero(t, allLogs)
+				topics, data := stateDB.GetLogData()
+				require.Zero(t, topics)
+				require.Zero(t, data)
 			},
 		},
 		"log disable rewards if DUpgrade is active": {
@@ -305,16 +301,13 @@ var (
 			SuppliedGas: DisableRewardsGasCost + RewardsDisabledEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, baseState contract.StateDB) {
-				// Check logs are stored in state
-				expectedTopic := []common.Hash{
-					RewardManagerABI.Events["RewardsDisabled"].ID,
-				}
-
-				allLogs := baseState.(*state.StateDB).Logs()
-				require.Len(t, allLogs, 1)
-				require.Equal(t, expectedTopic, allLogs[0].Topics)
-				require.Zero(t, allLogs[0].Data)
+			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
+				logsTopics, logsData := stateDB.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
+				topics := logsTopics[0]
+				require.Equal(t, RewardManagerABI.Events["RewardsDisabled"].ID, topics[0])
+				require.Zero(t, logsData[0])
 			},
 		},
 		"get current reward address from no role succeeds": {
