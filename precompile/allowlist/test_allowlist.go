@@ -558,8 +558,8 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
 				// Check no logs are stored in state
 				topics, data := stateDB.GetLogData()
-				require.Zero(t, len(topics))
-				require.Zero(t, len(data))
+				require.Len(t, topics, 0)
+				require.Len(t, data, 0)
 			},
 		},
 		"allowList does log if D fork is active": {
@@ -587,7 +587,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Len(t, topics, 2)
 				require.Equal(t, topics[0], AllowListABI.Events["AdminAdded"].ID)
 				require.Equal(t, topics[1], TestEnabledAddr.Hash())
-				require.Zero(t, len(logsData[0]))
+				require.Len(t, logsData[0], 0)
 			},
 		},
 	}
