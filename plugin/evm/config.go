@@ -217,6 +217,7 @@ type Config struct {
 	MerkleDBValueNodeCacheSize        uint `json:"merkle-db-value-node-cache-size"`
 	MerkleDBIntermediateNodeCacheSize uint `json:"merkle-db-intermediate-node-cache-size"`
 	MerkleDBHistoryLength             uint `json:"merkle-db-history-length"`
+	MerkleDBVerify                    bool `json:"merkle-db-verify"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled

@@ -44,6 +44,7 @@ type WithMerkleDB struct {
 
 	lock           sync.RWMutex
 	pendingCommits map[common.Hash][]commit
+	refCount       map[common.Hash]int
 }
 
 type backend WithMerkleDB
@@ -58,6 +59,7 @@ func NewWithMerkleDB(db ethdb.Database, merkleDB merkledb.MerkleDB, archiveDB Ar
 		merkleDB:       merkleDB,
 		archiveDB:      archiveDB,
 		pendingCommits: make(map[common.Hash][]commit),
+		refCount:       make(map[common.Hash]int),
 	}
 }
 
@@ -109,10 +111,11 @@ func (db *WithMerkleDB) OpenStorageTrie(stateRoot common.Hash, addrHash, root co
 		return nil, err
 	}
 	tr := &merkleDBTrie{
-		parent:    parent,
-		stateRoot: stateRoot,
-		owner:     addrHash,
-		db:        db,
+		parent:       parent,
+		stateRoot:    stateRoot,
+		owner:        addrHash,
+		db:           db,
+		originalRoot: root,
 	}
 	tr.initialize()
 	return tr, nil
@@ -135,6 +138,17 @@ func (db *backend) Size() common.StorageSize {
 	// panic("implement me")
 }
 
+func (db *backend) UpdateAndReferenceRoot(root common.Hash, parent common.Hash, nodes *trienode.MergedNodeSet) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	if err := db.update(root, parent, nodes); err != nil {
+		return err
+	}
+	db.Reference(root, common.Hash{})
+	return nil
+}
+
 // Update performs a state transition by committing dirty nodes contained
 // in the given set in order to update state from the specified parent to
 // the specified root.
@@ -142,6 +156,10 @@ func (db *backend) Update(root common.Hash, parent common.Hash, nodes *trienode.
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
+	return db.update(root, parent, nodes)
+}
+
+func (db *backend) update(root common.Hash, parent common.Hash, nodes *trienode.MergedNodeSet) error {
 	t := nodes.Sets[common.Hash{}].Commit.(*merkleDBTrie)
 	tvsToCommit := make([]*merkleDBTrie, 0, len(nodes.Sets))
 	log.Debug("Update", "root", root, "parent", parent, "numTries", len(nodes.Sets))
@@ -215,6 +233,7 @@ func (db *backend) commit(ctx context.Context, root common.Hash, dbRoot common.H
 			}
 		}
 		delete(db.pendingCommits, root)
+		delete(db.refCount, root)
 		return true, nil
 	}
 	return false, nil
@@ -225,24 +244,37 @@ func (db *backend) Scheme() string {
 	return MerkleDBScheme
 }
 
-func (db *backend) UpdateAndReferenceRoot(root common.Hash, parent common.Hash, nodes *trienode.MergedNodeSet) error {
-	return db.Update(root, parent, nodes)
-}
-
 // Close closes the trie database backend and releases all held resources.
 func (db *backend) Close() error {
-	log.Info("Closing merkleDB")
-	return db.merkleDB.Close()
+	err := db.merkleDB.Close()
+	log.Info("Closing merkleDB", "err", err)
+	return err
 }
 
 func (db *backend) Dereference(root common.Hash) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	if _, ok := db.refCount[root]; ok {
+		db.refCount[root]--
+		if db.refCount[root] == 0 {
+			delete(db.refCount, root)
+			delete(db.pendingCommits, root)
+		}
+	}
+}
+
+func (db *backend) Reference(root common.Hash, parent common.Hash) {
+	// only care about trie roots, which will reference the meta root aka empty
+	if parent != (common.Hash{}) {
+		return
+	}
+	db.refCount[root]++
 }
 
 func (db *backend) Cap(limit common.StorageSize) error {
 	panic("implement me")
 }
-
-func (db *backend) Reference(root common.Hash, parent common.Hash) {}
 
 func NewBasicConfig() merkledb.Config {
 	return merkledb.Config{

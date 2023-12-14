@@ -104,6 +104,8 @@ var (
 )
 
 const (
+	logOnceEach = 128
+
 	bodyCacheLimit           = 256
 	blockCacheLimit          = 256
 	receiptsCacheLimit       = 32
@@ -592,6 +594,9 @@ func (bc *BlockChain) startAcceptor() {
 		acceptorQueueGauge.Dec(1)
 
 		if err := bc.flattenSnapshot(func() error {
+			if number := next.NumberU64(); number%logOnceEach == 0 {
+				log.Info("Accepting block", "number", number, "hash", next.Hash(), "root", next.Root(), "parentRoot", next.Root)
+			}
 			return bc.stateManager.AcceptTrie(next)
 		}, next.Hash()); err != nil {
 			log.Crit("unable to flatten snapshot from acceptor", "blockHash", next.Hash(), "err", err)
@@ -1365,7 +1370,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	bc.flattenLock.Lock()
 	defer bc.flattenLock.Unlock()
 
-	if number := block.NumberU64(); number%128 == 0 {
+	if number := block.NumberU64(); number%logOnceEach == 0 {
 		log.Info("Insert block", "number", number, "hash", block.Hash(), "root", block.Root(), "parentRoot", parent.Root)
 	}
 

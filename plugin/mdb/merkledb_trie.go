@@ -31,9 +31,10 @@ type merkleDBTrie struct {
 	parent merkledb.Trie
 	tv     merkledb.TrieView
 
-	stateRoot common.Hash
-	owner     common.Hash
-	hashed    bool
+	stateRoot    common.Hash
+	owner        common.Hash
+	originalRoot common.Hash
+	hashed       bool
 
 	db         *WithMerkleDB
 	hashParent *merkleDBTrie
@@ -126,7 +127,14 @@ func (t *merkleDBTrie) Hash() common.Hash {
 	}
 	t.hashed = true
 	hash := common.BytesToHash(id[:])
-	log.Trace("mtree hash", "root", hash, "owner", t.owner)
+	// for k, v := range t.vc.MapOps {
+	// 	vStr := "deleted"
+	// 	if v.HasValue() {
+	// 		vStr = common.Bytes2Hex(v.Value())
+	// 	}
+	// 	log.Debug("mtree change", "key", common.Bytes2Hex([]byte(k)), "value", vStr)
+	// }
+	log.Trace("mtree hash", "root", hash, "owner", t.owner, "originalRoot", t.originalRoot, "numChanges", len(t.vc.MapOps))
 	return hash
 }
 

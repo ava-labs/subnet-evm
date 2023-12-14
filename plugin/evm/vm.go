@@ -363,8 +363,14 @@ func (vm *VM) Initialize(
 			return fmt.Errorf("failed to create merkleDB: %w", err)
 		}
 		archiveDB := prefixdb.New(archiveDBPrefix, db)
-		vm.chaindb = mdb.NewWithMerkleDB(vm.chaindb, merkleDB, mdb.NewArchiveDB(archiveDB))
+		wmdb := mdb.NewWithMerkleDB(vm.chaindb, merkleDB, mdb.NewArchiveDB(archiveDB))
+		vm.chaindb = wmdb
 		log.Warn("MerkleDB enabled")
+		if vm.config.MerkleDBVerify {
+			if err := wmdb.VerifyMerkleRoot(); err != nil {
+				return fmt.Errorf("failed to verify merkleDB: %w", err)
+			}
+		}
 	}
 
 	vm.db = versiondb.New(db)
