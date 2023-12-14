@@ -5,7 +5,6 @@ package mdb
 
 import (
 	"context"
-	"errors"
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/memdb"
@@ -41,7 +40,7 @@ func copyDB(src, dst database.Database) error {
 func CopyMemDB(db ethdb.Database) (ethdb.Database, error) {
 	mdb, ok := db.(*WithMerkleDB)
 	if !ok {
-		return nil, errors.New("not merkleDB")
+		return CopyEthDatabase(db)
 	}
 	dbCopy, err := CopyEthDatabase(mdb.Database)
 	if err != nil {

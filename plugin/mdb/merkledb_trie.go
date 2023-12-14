@@ -126,7 +126,7 @@ func (t *merkleDBTrie) Hash() common.Hash {
 	}
 	t.hashed = true
 	hash := common.BytesToHash(id[:])
-	log.Debug("mtree hash", "root", hash, "owner", t.owner)
+	log.Trace("mtree hash", "root", hash, "owner", t.owner)
 	return hash
 }
 

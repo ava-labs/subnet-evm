@@ -405,13 +405,13 @@ func buildGetter(blocks []*types.Block) handlers.BlockProvider {
 }
 
 func TestGetLeafs(t *testing.T) {
-	rand.Seed(1)
+	rand := rand.New(rand.NewSource(1))
 
 	const leafsLimit = 1024
 
 	trieDB := trie.NewDatabase(memorydb.New())
-	largeTrieRoot, largeTrieKeys, _ := trie.GenerateTrie(t, trieDB, 100_000, common.HashLength)
-	smallTrieRoot, _, _ := trie.GenerateTrie(t, trieDB, leafsLimit, common.HashLength)
+	largeTrieRoot, largeTrieKeys, _ := trie.GenerateTrie(t, rand, trieDB, 100_000, common.HashLength)
+	smallTrieRoot, _, _ := trie.GenerateTrie(t, rand, trieDB, leafsLimit, common.HashLength)
 
 	handler := handlers.NewLeafsRequestHandler(trieDB, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	client := NewClient(&ClientConfig{
@@ -778,10 +778,10 @@ func TestGetLeafs(t *testing.T) {
 }
 
 func TestGetLeafsRetries(t *testing.T) {
-	rand.Seed(1)
+	rand := rand.New(rand.NewSource(1))
 
 	trieDB := trie.NewDatabase(memorydb.New())
-	root, _, _ := trie.GenerateTrie(t, trieDB, 100_000, common.HashLength)
+	root, _, _ := trie.GenerateTrie(t, rand, trieDB, 100_000, common.HashLength)
 
 	handler := handlers.NewLeafsRequestHandler(trieDB, nil, message.Codec, handlerstats.NewNoopHandlerStats())
 	mockNetClient := &mockNetwork{}

@@ -17,27 +17,30 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/sync/handlers/stats"
+	"github.com/ava-labs/subnet-evm/sync/syncutils"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
-	rand.Seed(1)
+	rand := rand.New(rand.NewSource(1))
 	mockHandlerStats := &stats.MockHandlerStats{}
 	memdb := memorydb.New()
 	trieDB := trie.NewDatabase(memdb)
 
-	corruptedTrieRoot, _, _ := trie.GenerateTrie(t, trieDB, 100, common.HashLength)
+	corruptedTrieRoot, _, _ := trie.GenerateTrie(t, rand, trieDB, 100, common.HashLength)
 	// Corrupt [corruptedTrieRoot]
 	trie.CorruptTrie(t, trieDB, trie.TrieID(corruptedTrieRoot), 5)
 
-	largeTrieRoot, largeTrieKeys, _ := trie.GenerateTrie(t, trieDB, 10_000, common.HashLength)
-	smallTrieRoot, _, _ := trie.GenerateTrie(t, trieDB, 500, common.HashLength)
+	largeTrieRoot, largeTrieKeys, _ := trie.GenerateTrie(t, rand, trieDB, 10_000, common.HashLength)
+	smallTrieRoot, _, _ := trie.GenerateTrie(t, rand, trieDB, 500, common.HashLength)
 	accountTrieRoot, accounts := trie.FillAccounts(
 		t,
+		rand,
 		trieDB,
 		common.Hash{},
 		10_000,
@@ -58,11 +61,12 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		smallStorageAccount common.Hash
 	)
 	for key, account := range accounts {
+		addr := crypto.PubkeyToAddress(key.PublicKey)
 		if account.Root == largeTrieRoot {
-			largeStorageAccount = crypto.Keccak256Hash(key.Address[:])
+			largeStorageAccount = crypto.Keccak256Hash(addr[:])
 		}
 		if account.Root == smallTrieRoot {
-			smallStorageAccount = crypto.Keccak256Hash(key.Address[:])
+			smallStorageAccount = crypto.Keccak256Hash(addr[:])
 		}
 		if (largeStorageAccount != common.Hash{}) && (smallStorageAccount != common.Hash{}) {
 			// we can break if we found both accounts of interest to the test
@@ -660,7 +664,8 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx, request := test.prepareTestFn()
 			t.Cleanup(func() {
-				<-snapshot.WipeSnapshot(memdb, true)
+				err := syncutils.ClearPartialDB(memdb)
+				require.NoError(t, err)
 				mockHandlerStats.Reset()
 				snapshotProvider.Snapshot = nil // reset the snapshot to nil
 			})

@@ -5,6 +5,7 @@ package evm
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -24,7 +25,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/utils/set"
 
-	"github.com/ava-labs/subnet-evm/accounts/keystore"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
@@ -33,41 +33,64 @@ import (
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ava-labs/subnet-evm/predicate"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/statesync"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
+var additionalConfig = ""
+
+func TestWithMerkleDB(t *testing.T) {
+	additionalConfig = `,"merkle-db":true`
+	t.Cleanup(func() {
+		additionalConfig = ""
+	})
+
+	tests := []func(t *testing.T){
+		TestSkipStateSync,
+		TestStateSyncFromScratch,
+		// This behavior is not allowed since it is a lot of work to implement
+		// and not necessary for the current use case.
+		// TestStateSyncToggleEnabledToDisabled,
+		TestVMShutdownWhileSyncing,
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("TestSyncWithMerkleDB_%d", i), test)
+	}
+}
+
 func TestSkipStateSync(t *testing.T) {
-	rand.Seed(1)
+	rand := rand.New(rand.NewSource(1))
 	test := syncTest{
 		syncableInterval:   256,
 		stateSyncMinBlocks: 300, // must be greater than [syncableInterval] to skip sync
 		syncMode:           block.StateSyncSkipped,
 	}
-	vmSetup := createSyncServerAndClientVMs(t, test)
+	vmSetup := createSyncServerAndClientVMs(t, rand, test)
 
 	testSyncerVM(t, vmSetup, test)
 }
 
 func TestStateSyncFromScratch(t *testing.T) {
-	rand.Seed(1)
+	rand := rand.New(rand.NewSource(1))
 	test := syncTest{
 		syncableInterval:   256,
 		stateSyncMinBlocks: 50, // must be less than [syncableInterval] to perform sync
 		syncMode:           block.StateSyncStatic,
 	}
-	vmSetup := createSyncServerAndClientVMs(t, test)
+	vmSetup := createSyncServerAndClientVMs(t, rand, test)
 
 	testSyncerVM(t, vmSetup, test)
 }
 
 func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
-	rand.Seed(1)
+	rand := rand.New(rand.NewSource(1))
 	// Hack: registering metrics uses global variables, so we need to disable metrics here so that we can initialize the VM twice.
 	metrics.Enabled = false
 	defer func() {
@@ -102,7 +125,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		},
 		expectedErr: context.Canceled,
 	}
-	vmSetup := createSyncServerAndClientVMs(t, test)
+	vmSetup := createSyncServerAndClientVMs(t, rand, test)
 
 	// Perform sync resulting in early termination.
 	testSyncerVM(t, vmSetup, test)
@@ -123,7 +146,10 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 		return nil
 	}
 	// Disable metrics to prevent duplicate registerer
-	stateSyncDisabledConfigJSON := `{"state-sync-enabled":false}`
+	stateSyncDisabledConfigJSON := fmt.Sprintf(
+		`{"state-sync-enabled":false%s}`,
+		additionalConfig,
+	)
 	if err := syncDisabledVM.Initialize(
 		context.Background(),
 		vmSetup.syncerVM.ctx,
@@ -228,7 +254,7 @@ func TestStateSyncToggleEnabledToDisabled(t *testing.T) {
 }
 
 func TestVMShutdownWhileSyncing(t *testing.T) {
-	t.Skip("FLAKY")
+	rand := rand.New(rand.NewSource(1))
 	var (
 		lock    sync.Mutex
 		vmSetup *syncVMSetup
@@ -254,12 +280,12 @@ func TestVMShutdownWhileSyncing(t *testing.T) {
 		},
 		expectedErr: context.Canceled,
 	}
-	vmSetup = createSyncServerAndClientVMs(t, test)
+	vmSetup = createSyncServerAndClientVMs(t, rand, test)
 	// Perform sync resulting in early termination.
 	testSyncerVM(t, vmSetup, test)
 }
 
-func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
+func createSyncServerAndClientVMs(t *testing.T, rand *rand.Rand, test syncTest) *syncVMSetup {
 	var (
 		require = require.New(t)
 	)
@@ -284,7 +310,7 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
 
 	// make some accounts
 	trieDB := trie.NewDatabase(serverVM.chaindb)
-	root, accounts := statesync.FillAccountsWithOverlappingStorage(t, trieDB, types.EmptyRootHash, 1000, 16)
+	root, accounts := statesync.FillAccountsWithOverlappingStorage(t, rand, trieDB, types.EmptyRootHash, 1000, 16)
 
 	// patch serverVM's lastAcceptedBlock to have the new root
 	// and update the vm's state so the trie with accounts will
@@ -302,7 +328,11 @@ func createSyncServerAndClientVMs(t *testing.T, test syncTest) *syncVMSetup {
 	serverVM.StateSyncServer.(*stateSyncServer).syncableInterval = test.syncableInterval
 
 	// initialise [syncerVM] with blank genesis state
-	stateSyncEnabledJSON := fmt.Sprintf(`{"state-sync-enabled":true, "state-sync-min-blocks": %d}`, test.stateSyncMinBlocks)
+	stateSyncEnabledJSON := fmt.Sprintf(
+		`{"state-sync-enabled":true, "state-sync-min-blocks": %d%s}`,
+		test.stateSyncMinBlocks,
+		additionalConfig,
+	)
 	syncerEngineChan, syncerVM, syncerDB, syncerAppSender := GenesisVM(t, false, genesisJSONLatest, stateSyncEnabledJSON, "")
 	shutdownOnceSyncerVM := &shutdownOnceVM{VM: syncerVM}
 	t.Cleanup(func() {
@@ -359,7 +389,7 @@ type syncVMSetup struct {
 	serverVM        *VM
 	serverAppSender *commonEng.SenderTest
 
-	fundedAccounts map[*keystore.Key]*types.StateAccount
+	fundedAccounts map[*ecdsa.PrivateKey]*types.StateAccount
 
 	syncerVM             *VM
 	syncerDB             database.Database
@@ -445,8 +475,9 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		gen.AppendExtra(b)
 		i := 0
 		for k := range fundedAccounts {
-			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k.PrivateKey)
+			addr := crypto.PubkeyToAddress(k.PublicKey)
+			tx := types.NewTransaction(gen.TxNonce(addr), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k)
 			require.NoError(err)
 			gen.AddTx(signedTx)
 			i++
@@ -467,8 +498,9 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		gen.AppendExtra(b)
 		i := 0
 		for k := range fundedAccounts {
-			tx := types.NewTransaction(gen.TxNonce(k.Address), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
-			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k.PrivateKey)
+			addr := crypto.PubkeyToAddress(k.PublicKey)
+			tx := types.NewTransaction(gen.TxNonce(addr), toAddress, big.NewInt(1), 21000, big.NewInt(testMinGasPrice), nil)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(serverVM.chainConfig.ChainID), k)
 			require.NoError(err)
 			gen.AddTx(signedTx)
 			i++
@@ -520,11 +552,24 @@ func generateAndAcceptBlocks(t *testing.T, vm *VM, numBlocks int, gen func(int, 
 			t.Fatal(err)
 		}
 	}
-	_, _, err := core.GenerateChain(
+
+	// Make a copy of the database to avoid mutating the original
+	// First, force a write to the database to ensure the disk is up to date
+	vm.blockChain.DrainAcceptorQueue()
+	err := vm.blockChain.TrieDB().Commit(vm.blockChain.LastAcceptedBlock().Root(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	copy, err := mdb.CopyMemDB(vm.chaindb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = core.GenerateChain(
 		vm.chainConfig,
 		vm.blockChain.LastAcceptedBlock(),
 		dummy.NewETHFaker(),
-		vm.chaindb,
+		copy,
 		numBlocks,
 		10,
 		func(i int, g *core.BlockGen) {

@@ -4,14 +4,15 @@
 package trie
 
 import (
-	cryptoRand "crypto/rand"
+	"crypto/ecdsa"
 	"encoding/binary"
 	"math/big"
 	"math/rand"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/ava-labs/avalanchego/utils/wrappers"
-	"github.com/ava-labs/subnet-evm/accounts/keystore"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/trie/trienode"
 
@@ -24,13 +25,13 @@ import (
 // Returns the root of the generated trie, the slice of keys inserted into the trie in lexicographical
 // order, and the slice of corresponding values.
 // GenerateTrie reads from [rand] and the caller should call rand.Seed(n) for deterministic results
-func GenerateTrie(t *testing.T, trieDB *Database, numKeys int, keySize int) (common.Hash, [][]byte, [][]byte) {
+func GenerateTrie(t *testing.T, rand *rand.Rand, trieDB *Database, numKeys int, keySize int) (common.Hash, [][]byte, [][]byte) {
 	if keySize < wrappers.LongLen+1 {
 		t.Fatal("key size must be at least 9 bytes (8 bytes for uint64 and 1 random byte)")
 	}
 	testTrie := NewEmpty(trieDB)
 
-	keys, values := FillTrie(t, numKeys, keySize, testTrie)
+	keys, values := FillTrie(t, rand, numKeys, keySize, testTrie)
 
 	// Commit the root to [trieDB]
 	root, nodes := testTrie.Commit(false)
@@ -45,7 +46,7 @@ func GenerateTrie(t *testing.T, trieDB *Database, numKeys int, keySize int) (com
 // FillTrie fills a given trie with [numKeys] number of keys, each of size [keySize]
 // returns inserted keys and values
 // FillTrie reads from [rand] and the caller should call rand.Seed(n) for deterministic results
-func FillTrie(t *testing.T, numKeys int, keySize int, testTrie *Trie) ([][]byte, [][]byte) {
+func FillTrie(t *testing.T, rand *rand.Rand, numKeys int, keySize int, testTrie *Trie) ([][]byte, [][]byte) {
 	keys := make([][]byte, 0, numKeys)
 	values := make([][]byte, 0, numKeys)
 
@@ -133,14 +134,15 @@ func CorruptTrie(t *testing.T, trieDB *Database, id *ID, n int) {
 // [onAccount] is called if non-nil (so the caller can modify the account before it is stored in the secure trie).
 // returns the new trie root and a map of funded keys to StateAccount structs.
 func FillAccounts(
-	t *testing.T, trieDB *Database, root common.Hash, numAccounts int,
+	t *testing.T, r *rand.Rand,
+	trieDB *Database, root common.Hash, numAccounts int,
 	onAccount func(*testing.T, int, types.StateAccount) types.StateAccount,
-) (common.Hash, map[*keystore.Key]*types.StateAccount) {
+) (common.Hash, map[*ecdsa.PrivateKey]*types.StateAccount) {
 	var (
 		minBalance  = big.NewInt(3000000000000000000)
 		randBalance = big.NewInt(1000000000000000000)
 		maxNonce    = 10
-		accounts    = make(map[*keystore.Key]*types.StateAccount, numAccounts)
+		accounts    = make(map[*ecdsa.PrivateKey]*types.StateAccount, numAccounts)
 	)
 
 	tr, err := NewStateTrie(TrieID(root), trieDB)
@@ -150,7 +152,7 @@ func FillAccounts(
 
 	for i := 0; i < numAccounts; i++ {
 		acc := types.StateAccount{
-			Nonce:    uint64(rand.Intn(maxNonce)),
+			Nonce:    uint64(r.Intn(maxNonce)),
 			Balance:  new(big.Int).Add(minBalance, randBalance),
 			CodeHash: types.EmptyCodeHash[:],
 			Root:     types.EmptyRootHash,
@@ -164,12 +166,18 @@ func FillAccounts(
 			t.Fatalf("failed to rlp encode account: %v", err)
 		}
 
-		key, err := keystore.NewKey(cryptoRand.Reader)
+		keyBytes := make([]byte, 32)
+		_, err = r.Read(keyBytes)
+		if err != nil {
+			t.Fatalf("error reading random key bytes: %v", err)
+		}
+		privKey, err := crypto.ToECDSA(keyBytes)
 		if err != nil {
 			t.Fatal(err)
 		}
-		tr.MustUpdate(key.Address[:], accBytes)
-		accounts[key] = &acc
+		addr := crypto.PubkeyToAddress(privKey.PublicKey)
+		tr.MustUpdate(addr[:], accBytes)
+		accounts[privKey] = &acc
 	}
 
 	newRoot, nodes := tr.Commit(false)

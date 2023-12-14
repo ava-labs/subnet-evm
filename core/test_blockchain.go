@@ -135,22 +135,6 @@ func wrapWithMerkleDB(db ethdb.Database) ethdb.Database {
 
 type noWrapMerkle struct{ ethdb.Database }
 
-func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
-	if db, err := mdb.CopyMemDB(db); err == nil {
-		return db, nil
-	}
-	newDB := rawdb.NewMemoryDatabase()
-	iter := db.NewIterator(nil, nil)
-	defer iter.Release()
-	for iter.Next() {
-		if err := newDB.Put(iter.Key(), iter.Value()); err != nil {
-			return nil, err
-		}
-	}
-
-	return newDB, nil
-}
-
 // checkBlockChainState creates a new BlockChain instance and checks that exporting each block from
 // genesis to last accepted from the original instance yields the same last accepted block and state
 // root.
@@ -214,7 +198,7 @@ func checkBlockChainState(
 
 	// Copy the database over to prevent any issues when re-using [originalDB] after this call.
 	originalDB = bc.db
-	originalDB, err = copyMemDB(originalDB)
+	originalDB, err = mdb.CopyMemDB(originalDB)
 	if err != nil {
 		t.Fatal(err)
 	}
