@@ -204,6 +204,21 @@ func (c *UpgradeConfig) MarshalBinary() ([]byte, error) {
 		return nil, p.Err
 	}
 
+	p.PackBool(c.OptionalNetworkUpgrades == nil)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+	if c.OptionalNetworkUpgrades != nil {
+		bytes, err := c.OptionalNetworkUpgrades.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		p.PackBytes(bytes)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
 	for _, precompileConfig := range c.PrecompileUpgrades {
 		bytes, err := precompileConfig.Config.MarshalBinary()
 		if err != nil {
@@ -252,6 +267,18 @@ func (c *UpgradeConfig) UnmarshalBinary(data []byte) error {
 	}
 	if p.Err != nil {
 		return p.Err
+	}
+
+	isNil := p.UnpackBool()
+	if !isNil {
+		c.OptionalNetworkUpgrades = &OptionalNetworkUpgrades{}
+		bytes := p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
+		}
+		if err := c.OptionalNetworkUpgrades.UnmarshalBinary(bytes); err != nil {
+			return nil
+		}
 	}
 
 	for {

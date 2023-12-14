@@ -4,6 +4,8 @@
 package params
 
 import (
+	"errors"
+
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
@@ -67,6 +69,14 @@ func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
 type OptionalNetworkUpgrades struct {
 	// This is an example of a configuration.
 	//FeatureConfig *uint64 `json:"test,omitempty"`
+}
+
+func (m *OptionalNetworkUpgrades) MarshalBinary() ([]byte, error) {
+	return nil, errors.New("implement MarshalBinary() for OptionalNetworkUpgrades")
+}
+
+func (m *OptionalNetworkUpgrades) UnmarshalBinary(data []byte) error {
+	return errors.New("implement UnmarshalBinary() for OptionalNetworkUpgrades")
 }
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
