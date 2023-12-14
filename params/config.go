@@ -27,17 +27,21 @@
 package params
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const maxJSONLen = 64 * 1024 * 1024 // 64MB
@@ -67,6 +71,17 @@ var (
 		MaxBlockGasCost:  big.NewInt(1_000_000),
 		BlockGasCostStep: big.NewInt(200_000),
 	}
+
+	// For UpgradeConfig Marshal/Unmarshal
+	magicHeader              = []byte{0xff}
+	sectionHeaderSizes       = 1
+	precompileHeader         = []byte{0xaa}
+	stateUpdateHeader        = []byte{0xc8}
+	endHeader                = []byte{0}
+	ErrIncorrectHeader       = errors.New("invalid magic header")
+	ErrMalformedConfigHeader = errors.New("malformed config header")
+	ErrUnknowPrecompile      = errors.New("unknown precompile config")
+	MaxMessageSize           = 1 * units.MiB
 )
 
 var (
@@ -169,6 +184,115 @@ type UpgradeConfig struct {
 
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
+}
+
+func (c *UpgradeConfig) Hash() (common.Hash, error) {
+	bytes, err := c.MarshalBinary()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return crypto.Keccak256Hash(bytes), nil
+}
+
+func (c *UpgradeConfig) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: MaxMessageSize,
+	}
+	p.PackFixedBytes(magicHeader)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	for _, precompileConfig := range c.PrecompileUpgrades {
+		bytes, err := precompileConfig.Config.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		p.PackFixedBytes(precompileHeader)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		p.PackStr(precompileConfig.Key())
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		p.PackBytes(bytes)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	for _, config := range c.StateUpgrades {
+		bytes, err := config.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		p.PackFixedBytes(stateUpdateHeader)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		p.PackBytes(bytes)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	p.PackFixedBytes(endHeader)
+
+	return p.Bytes, nil
+}
+
+func (c *UpgradeConfig) UnmarshalBinary(data []byte) error {
+	p := wrappers.Packer{
+		Bytes: data,
+	}
+	if !bytes.Equal(p.UnpackFixedBytes(sectionHeaderSizes), magicHeader) {
+		return ErrIncorrectHeader
+	}
+	if p.Err != nil {
+		return p.Err
+	}
+
+	for {
+		header := p.UnpackFixedBytes(sectionHeaderSizes)
+		if p.Err != nil {
+			return p.Err
+		}
+		if bytes.Equal(header, precompileHeader) {
+			key := p.UnpackStr()
+			if p.Err != nil {
+				return p.Err
+			}
+			config := p.UnpackBytes()
+			if p.Err != nil {
+				return p.Err
+			}
+			module, ok := modules.GetPrecompileModule(key)
+			if !ok {
+				return ErrUnknowPrecompile
+			}
+			preCompile := module.MakeConfig()
+			err := preCompile.UnmarshalBinary(config)
+			if err != nil {
+				return err
+			}
+			c.PrecompileUpgrades = append(c.PrecompileUpgrades, PrecompileUpgrade{Config: preCompile})
+		} else if bytes.Equal(header, stateUpdateHeader) {
+			config := p.UnpackBytes()
+			stateUpgrade := StateUpgrade{}
+			if err := stateUpgrade.UnmarshalBinary(config); err != nil {
+				return err
+			}
+			c.StateUpgrades = append(c.StateUpgrades, stateUpgrade)
+		} else if bytes.Equal(header, endHeader) {
+			break
+		} else {
+			return ErrMalformedConfigHeader
+		}
+	}
+
+	return nil
 }
 
 // AvalancheContext provides Avalanche specific context directly into the EVM.

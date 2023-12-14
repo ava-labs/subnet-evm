@@ -7,6 +7,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -62,7 +63,7 @@ func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 func (c *Config) MarshalBinary() ([]byte, error) {
 	p := wrappers.Packer{
 		Bytes:   []byte{},
-		MaxSize: 32 * 1024,
+		MaxSize: 1 * units.MiB,
 	}
 
 	if err := c.AllowListConfig.ToBytesWithPacker(&p); err != nil {

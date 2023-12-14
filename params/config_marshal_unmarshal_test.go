@@ -1,14 +1,36 @@
-// (c) 2019-2020, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
+// (c) 2019-2020, Ava Labs, Inc.
+//
+// This file is a derived work, based on the go-ethereum library whose original
+// notices appear below.
+//
+// It is distributed under a license compatible with the licensing terms of the
+// original code from which it is derived.
+//
+// Much love to the original authors for their work.
+// **********
+// Copyright 2017 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package handshake
+package params
 
 import (
 	"math/big"
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/nativeminter"
@@ -27,31 +49,35 @@ import (
 // hashing, depite maybe not being identical (some configurations may be in a
 // different order, but our hashing algorithm is resilient to those changes,
 // thanks for our serialization library, which produces always the same output.
-func assertConversions(t *testing.T, message *UpgradeConfigMessage, err error) {
+func assertConversions(t *testing.T, originalConfig *UpgradeConfig) {
+	bytes, err := originalConfig.MarshalBinary()
 	require.NoError(t, err)
 
-	config, err := NewUpgradeConfigFromBytes(message.Bytes())
+	deserializedConfig := UpgradeConfig{}
+	require.NoError(t, deserializedConfig.UnmarshalBinary(bytes))
+
+	twiceDeserialized := UpgradeConfig{}
+	newBytes, err := deserializedConfig.MarshalBinary()
+	require.NoError(t, err)
+	require.NoError(t, twiceDeserialized.UnmarshalBinary(newBytes))
+
+	hash1, err := originalConfig.Hash()
+	require.NoError(t, err)
+	hash2, err := deserializedConfig.Hash()
+	require.NoError(t, err)
+	hash3, err := twiceDeserialized.Hash()
 	require.NoError(t, err)
 
-	message2, err := NewUpgradeConfigMessage(config)
-	require.NoError(t, err)
-
-	config3, err := NewUpgradeConfigFromBytes(message2.Bytes())
-	require.NoError(t, err)
-
-	message3, err := NewUpgradeConfigMessage(config3)
-	require.NoError(t, err)
-
-	require.Equal(t, config, config3)
-	require.Equal(t, message.hash, message2.hash)
-	require.Equal(t, message2.hash, message3.hash)
+	require.Equal(t, deserializedConfig, twiceDeserialized)
+	require.Equal(t, hash1, hash2)
+	require.Equal(t, hash2, hash3)
 }
 
 func TestSerialize(t *testing.T) {
 	var t0 uint64 = 0
 	var t1 uint64 = 1
-	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	config := UpgradeConfig{
+		PrecompileUpgrades: []PrecompileUpgrade{
 			{
 				Config: nativeminter.NewConfig(&t0, nil, nil, nil, nil), // enable at genesis
 			},
@@ -59,15 +85,15 @@ func TestSerialize(t *testing.T) {
 				Config: nativeminter.NewDisableConfig(&t1), // disable at timestamp 1
 			},
 		},
-	})
-	assertConversions(t, message, err)
+	}
+	assertConversions(t, &config)
 }
 
 func TestWithAddress(t *testing.T) {
 	var t0 uint64 = 1
 	var t1 uint64 = 11
-	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	config := UpgradeConfig{
+		PrecompileUpgrades: []PrecompileUpgrade{
 			{
 				Config: nativeminter.NewConfig(&t0, []common.Address{
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
@@ -82,15 +108,15 @@ func TestWithAddress(t *testing.T) {
 				Config: nativeminter.NewDisableConfig(&t1), // disable at timestamp 1
 			},
 		},
-	})
-	assertConversions(t, message, err)
+	}
+	assertConversions(t, &config)
 }
 
 func TestWithAddressAndMint(t *testing.T) {
 	var t0 uint64 = 2
 	var t1 uint64 = 1001
-	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	config := UpgradeConfig{
+		PrecompileUpgrades: []PrecompileUpgrade{
 			{
 				Config: nativeminter.NewConfig(&t0, []common.Address{
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
@@ -108,8 +134,8 @@ func TestWithAddressAndMint(t *testing.T) {
 				Config: nativeminter.NewDisableConfig(&t1), // disable at timestamp 1
 			},
 		},
-	})
-	assertConversions(t, message, err)
+	}
+	assertConversions(t, &config)
 }
 
 func TestWithAddressFeeMinter(t *testing.T) {
@@ -128,8 +154,8 @@ func TestWithAddressFeeMinter(t *testing.T) {
 		BlockGasCostStep: big.NewInt(200_000),
 	}
 
-	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	config := UpgradeConfig{
+		PrecompileUpgrades: []PrecompileUpgrade{
 			{
 				Config: feemanager.NewConfig(&t0, []common.Address{
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
@@ -144,16 +170,16 @@ func TestWithAddressFeeMinter(t *testing.T) {
 				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
 			},
 		},
-	})
-	assertConversions(t, message, err)
+	}
+	assertConversions(t, &config)
 }
 
 func TestWithDepoyerAllowList(t *testing.T) {
 	var t0 uint64 = 2
 	var t1 uint64 = 1001
 
-	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	config := UpgradeConfig{
+		PrecompileUpgrades: []PrecompileUpgrade{
 			{
 				Config: deployerallowlist.NewConfig(&t0, []common.Address{
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
@@ -168,16 +194,16 @@ func TestWithDepoyerAllowList(t *testing.T) {
 				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
 			},
 		},
-	})
-	assertConversions(t, message, err)
+	}
+	assertConversions(t, &config)
 }
 
 func TestWithRewardManager(t *testing.T) {
 	var t0 uint64 = 2
 	var t1 uint64 = 1001
 
-	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	config := UpgradeConfig{
+		PrecompileUpgrades: []PrecompileUpgrade{
 			{
 				Config: rewardmanager.NewConfig(&t0, []common.Address{
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
@@ -192,16 +218,16 @@ func TestWithRewardManager(t *testing.T) {
 				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
 			},
 		},
-	})
-	assertConversions(t, message, err)
+	}
+	assertConversions(t, &config)
 }
 
 func TestWithRewardManagerWithNil(t *testing.T) {
 	var t0 uint64 = 2
 	var t1 uint64 = 1001
 
-	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
-		PrecompileUpgrades: []params.PrecompileUpgrade{
+	config := UpgradeConfig{
+		PrecompileUpgrades: []PrecompileUpgrade{
 			{
 				Config: rewardmanager.NewConfig(&t0, []common.Address{
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
@@ -218,26 +244,26 @@ func TestWithRewardManagerWithNil(t *testing.T) {
 				Config: feemanager.NewDisableConfig(&t1), // disable at timestamp 1
 			},
 		},
-	})
-	assertConversions(t, message, err)
+	}
+	assertConversions(t, &config)
 }
 
 func TestStateUpgrades(t *testing.T) {
 	var t0 uint64 = 2
 	var t1 uint64 = 1001
-	message, err := NewUpgradeConfigMessage(&params.UpgradeConfig{
-		StateUpgrades: []params.StateUpgrade{
+	config := UpgradeConfig{
+		StateUpgrades: []StateUpgrade{
 			{
 				BlockTimestamp: &t0,
-				StateUpgradeAccounts: map[common.Address]params.StateUpgradeAccount{
-					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")): params.StateUpgradeAccount{
+				StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")): StateUpgradeAccount{
 						Code:          []byte{1, 2, 3, 4, 5, 6},
 						BalanceChange: math.NewHexOrDecimal256(99),
 						Storage: map[common.Hash]common.Hash{
 							common.BytesToHash([]byte{1, 2, 4, 5}): common.BytesToHash([]byte{1, 2, 3}),
 						},
 					},
-					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001000")): params.StateUpgradeAccount{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001000")): StateUpgradeAccount{
 						Code:          []byte{1, 2, 9, 93, 4, 5, 6},
 						BalanceChange: math.NewHexOrDecimal256(92312319),
 						Storage: map[common.Hash]common.Hash{
@@ -251,12 +277,12 @@ func TestStateUpgrades(t *testing.T) {
 			},
 			{
 				BlockTimestamp: &t1,
-				StateUpgradeAccounts: map[common.Address]params.StateUpgradeAccount{
-					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001000")): params.StateUpgradeAccount{},
-					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")): params.StateUpgradeAccount{},
+				StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001000")): StateUpgradeAccount{},
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")): StateUpgradeAccount{},
 				},
 			},
 		},
-	})
-	assertConversions(t, message, err)
+	}
+	assertConversions(t, &config)
 }

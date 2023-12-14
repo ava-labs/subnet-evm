@@ -15,6 +15,7 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
@@ -215,7 +216,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 func (c *Config) MarshalBinary() ([]byte, error) {
 	p := wrappers.Packer{
 		Bytes:   []byte{},
-		MaxSize: 32 * 1024,
+		MaxSize: 1 * units.MiB,
 	}
 
 	if err := c.Upgrade.ToBytesWithPacker(&p); err != nil {

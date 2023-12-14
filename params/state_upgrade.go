@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -106,7 +107,7 @@ func (s *StateUpgrade) UnmarshalBinary(bytes []byte) error {
 func (s *StateUpgrade) MarshalBinary() ([]byte, error) {
 	p := wrappers.Packer{
 		Bytes:   []byte{},
-		MaxSize: 32 * 1024,
+		MaxSize: 1 * units.MiB,
 	}
 	p.PackBool(s.BlockTimestamp == nil)
 	if p.Err != nil {
