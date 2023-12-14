@@ -99,7 +99,7 @@ func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
 }
 
-func (c *Config) ToBytes() ([]byte, error) {
+func (c *Config) MarshalBinary() ([]byte, error) {
 	keys := make([]common.Address, 0)
 	for key := range c.InitialMint {
 		keys = append(keys, key)
@@ -141,7 +141,7 @@ func (c *Config) ToBytes() ([]byte, error) {
 	return p.Bytes, nil
 }
 
-func (c *Config) FromBytes(bytes []byte) error {
+func (c *Config) UnmarshalBinary(bytes []byte) error {
 	p := wrappers.Packer{
 		Bytes: bytes,
 	}

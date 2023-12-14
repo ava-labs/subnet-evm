@@ -5,6 +5,8 @@
 package precompileconfig
 
 import (
+	"encoding"
+
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
@@ -17,6 +19,9 @@ import (
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 // be enabled via a network upgrade.
 type Config interface {
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+
 	// Key returns the unique key for the stateful precompile.
 	Key() string
 	// Timestamp returns the timestamp at which this stateful precompile should be enabled.
@@ -30,10 +35,6 @@ type Config interface {
 	Equal(Config) bool
 	// Verify is called on startup and an error is treated as fatal. Configure can assume the Config has passed verification.
 	Verify(ChainConfig) error
-	// Converts the current configuration to a vector of bytes. This vector of bytes is expected to be deterministic
-	ToBytes() ([]byte, error)
-	// Instantiates an object from a vector of bytes (the output of ToBytes())
-	FromBytes([]byte) error
 }
 
 // PredicateContext is the context passed in to the Predicater interface to verify

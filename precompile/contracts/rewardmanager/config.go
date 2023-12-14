@@ -138,7 +138,7 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	return c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
 }
 
-func (c *Config) ToBytes() ([]byte, error) {
+func (c *Config) MarshalBinary() ([]byte, error) {
 	p := wrappers.Packer{
 		Bytes:   []byte{},
 		MaxSize: 32 * 1024,
@@ -166,7 +166,7 @@ func (c *Config) ToBytes() ([]byte, error) {
 	return p.Bytes, nil
 }
 
-func (c *Config) FromBytes(bytes []byte) error {
+func (c *Config) UnmarshalBinary(bytes []byte) error {
 	p := wrappers.Packer{
 		Bytes: bytes,
 	}

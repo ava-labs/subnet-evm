@@ -34,7 +34,7 @@ type StateUpgradeAccount struct {
 	BalanceChange *math.HexOrDecimal256       `json:"balanceChange,omitempty"`
 }
 
-func (s *StateUpgrade) FromBytes(bytes []byte) error {
+func (s *StateUpgrade) UnmarshalBinary(bytes []byte) error {
 	p := wrappers.Packer{
 		Bytes: bytes,
 	}
@@ -103,7 +103,7 @@ func (s *StateUpgrade) FromBytes(bytes []byte) error {
 	return nil
 }
 
-func (s *StateUpgrade) ToBytes() ([]byte, error) {
+func (s *StateUpgrade) MarshalBinary() ([]byte, error) {
 	p := wrappers.Packer{
 		Bytes:   []byte{},
 		MaxSize: 32 * 1024,

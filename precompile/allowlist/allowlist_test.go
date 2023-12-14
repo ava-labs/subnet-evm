@@ -39,11 +39,11 @@ func (d *dummyConfig) Equal(cfg precompileconfig.Config) bool {
 	return d.AllowListConfig.Equal(&other.AllowListConfig)
 }
 
-func (*dummyConfig) ToBytes() ([]byte, error) {
+func (*dummyConfig) MarshalBinary() ([]byte, error) {
 	return nil, nil
 }
 
-func (*dummyConfig) FromBytes([]byte) error {
+func (*dummyConfig) UnmarshalBinary([]byte) error {
 	return nil
 }
 

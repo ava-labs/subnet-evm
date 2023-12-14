@@ -66,7 +66,7 @@ func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
 
 type OptionalNetworkUpgrades struct {
 	// This is an example of a configuration.
-	//FeatureConfig *uint64 `json:"test,omitempty" serialize:"true,nullable"`
+	//FeatureConfig *uint64 `json:"test,omitempty"`
 }
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {

@@ -212,7 +212,7 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	return nil
 }
 
-func (c *Config) ToBytes() ([]byte, error) {
+func (c *Config) MarshalBinary() ([]byte, error) {
 	p := wrappers.Packer{
 		Bytes:   []byte{},
 		MaxSize: 32 * 1024,
@@ -230,7 +230,7 @@ func (c *Config) ToBytes() ([]byte, error) {
 	return p.Bytes, nil
 }
 
-func (c *Config) FromBytes(bytes []byte) error {
+func (c *Config) UnmarshalBinary(bytes []byte) error {
 	p := wrappers.Packer{
 		Bytes: bytes,
 	}

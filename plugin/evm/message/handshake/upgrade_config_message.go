@@ -54,7 +54,7 @@ func NewUpgradeConfigFromBytes(bytes []byte) (*params.UpgradeConfig, error) {
 			return nil, ErrUnknowPrecompile
 		}
 		preCompile := module.MakeConfig()
-		err := preCompile.FromBytes(precompileUpgrade.Bytes)
+		err := preCompile.UnmarshalBinary(precompileUpgrade.Bytes)
 		if err != nil {
 			return nil, err
 		}
@@ -65,7 +65,7 @@ func NewUpgradeConfigFromBytes(bytes []byte) (*params.UpgradeConfig, error) {
 
 	for _, bytes := range config.StateUpgrades {
 		stateUpgrade := params.StateUpgrade{}
-		if err := stateUpgrade.FromBytes(bytes); err != nil {
+		if err := stateUpgrade.UnmarshalBinary(bytes); err != nil {
 			return nil, err
 		}
 		stateUpgrades = append(stateUpgrades, stateUpgrade)
@@ -90,7 +90,7 @@ func NewUpgradeConfigFromBytes(bytes []byte) (*params.UpgradeConfig, error) {
 func NewUpgradeConfigMessage(config *params.UpgradeConfig) (*UpgradeConfigMessage, error) {
 	PrecompileUpgrades := make([]rawPrecompileUpgrade, 0)
 	for _, precompileConfig := range config.PrecompileUpgrades {
-		bytes, err := precompileConfig.Config.ToBytes()
+		bytes, err := precompileConfig.Config.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func NewUpgradeConfigMessage(config *params.UpgradeConfig) (*UpgradeConfigMessag
 	stateUpgrades := make([][]byte, 0)
 
 	for _, config := range config.StateUpgrades {
-		bytes, err := config.ToBytes()
+		bytes, err := config.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}

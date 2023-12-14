@@ -101,20 +101,6 @@ func (mr *MockConfigMockRecorder) Equal(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Equal", reflect.TypeOf((*MockConfig)(nil).Equal), arg0)
 }
 
-// FromBytes mocks base method.
-func (m *MockConfig) FromBytes(arg0 []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromBytes", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// FromBytes indicates an expected call of FromBytes.
-func (mr *MockConfigMockRecorder) FromBytes(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromBytes", reflect.TypeOf((*MockConfig)(nil).FromBytes), arg0)
-}
-
 // IsDisabled mocks base method.
 func (m *MockConfig) IsDisabled() bool {
 	m.ctrl.T.Helper()
@@ -143,6 +129,21 @@ func (mr *MockConfigMockRecorder) Key() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Key", reflect.TypeOf((*MockConfig)(nil).Key))
 }
 
+// MarshalBinary mocks base method.
+func (m *MockConfig) MarshalBinary() ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarshalBinary")
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MarshalBinary indicates an expected call of MarshalBinary.
+func (mr *MockConfigMockRecorder) MarshalBinary() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarshalBinary", reflect.TypeOf((*MockConfig)(nil).MarshalBinary))
+}
+
 // Timestamp mocks base method.
 func (m *MockConfig) Timestamp() *uint64 {
 	m.ctrl.T.Helper()
@@ -157,19 +158,18 @@ func (mr *MockConfigMockRecorder) Timestamp() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Timestamp", reflect.TypeOf((*MockConfig)(nil).Timestamp))
 }
 
-// ToBytes mocks base method.
-func (m *MockConfig) ToBytes() ([]byte, error) {
+// UnmarshalBinary mocks base method.
+func (m *MockConfig) UnmarshalBinary(arg0 []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ToBytes")
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "UnmarshalBinary", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// ToBytes indicates an expected call of ToBytes.
-func (mr *MockConfigMockRecorder) ToBytes() *gomock.Call {
+// UnmarshalBinary indicates an expected call of UnmarshalBinary.
+func (mr *MockConfigMockRecorder) UnmarshalBinary(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToBytes", reflect.TypeOf((*MockConfig)(nil).ToBytes))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmarshalBinary", reflect.TypeOf((*MockConfig)(nil).UnmarshalBinary), arg0)
 }
 
 // Verify mocks base method.

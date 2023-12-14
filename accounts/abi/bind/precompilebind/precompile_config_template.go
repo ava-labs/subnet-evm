@@ -54,12 +54,12 @@ func NewConfig(blockTimestamp *uint64{{if .Contract.AllowList}}, admins []common
 	}
 }
 
-func (c * Config) ToBytes() ([]byte, error) {
+func (c * Config) MarshalBinary() ([]byte, error) {
 	return nil, errors.New("implement ToBytes() method")
 }
 
-func (c * Config) FromBytes(bytes []byte) error {
-	return errors.New("implement FromBytes() method")
+func (c * Config) UnmarshalBinary(bytes []byte) error {
+	return errors.New("implement UnmarshalBinary() method")
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
