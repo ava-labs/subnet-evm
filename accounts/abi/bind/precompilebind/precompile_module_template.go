@@ -50,7 +50,7 @@ func init() {
 }
 
 // MakeConfig returns a new precompile config instance.
-// This is required for Marshal/Unmarshal the precompile config.
+// This is required to Marshal/Unmarshal the precompile config.
 func (*configurator) MakeConfig() precompileconfig.Config {
 	return new(Config)
 }
