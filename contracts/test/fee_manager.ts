@@ -98,7 +98,7 @@ describe("IFeeManager", function () {
     await tx.wait()
   });
 
-  it("should emit fee config changed event ", async function () {
+  it("should emit fee config changed event", async function () {
     await expect(contract.setFeeConfig(
       WAGMI_FEES.gasLimit,
        WAGMI_FEES.targetBlockRate,
