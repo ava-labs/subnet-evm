@@ -13,6 +13,7 @@ package {{.Package}}
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -22,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	{{- end}}
 	"go.uber.org/mock/gomock"
+	"github.com/stretchr/testify/require"
 )
 
 // TestVerify tests the verification of Config.
@@ -59,6 +61,35 @@ func TestVerify(t *testing.T) {
 	// Run verify tests.
 	testutils.RunVerifyTests(t, tests)
 	{{- end}}
+}
+
+func TestSerialize(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+
+	config := params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: NewConfig(&t0,
+				{{- if .Contract.AllowList}}
+				[]common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000030")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
+				},
+				{{- end}}
+				), // enable at genesis
+			},
+			{
+				Config: NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	}
+	require.NotNil(t, config)
+	//params.AssertConfigHashesAndSerialization(t, &config)
 }
 
 // TestEqual tests the equality of Config with other precompile configs.

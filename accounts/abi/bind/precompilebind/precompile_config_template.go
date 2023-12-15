@@ -55,7 +55,7 @@ func NewConfig(blockTimestamp *uint64{{if .Contract.AllowList}}, admins []common
 }
 
 func (c * Config) MarshalBinary() ([]byte, error) {
-	return nil, errors.New("implement ToBytes() method")
+	return nil, errors.New("implement MarshalBinary() method")
 }
 
 func (c * Config) UnmarshalBinary(bytes []byte) error {

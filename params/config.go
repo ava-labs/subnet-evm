@@ -32,6 +32,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"testing"
 
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
@@ -42,6 +43,7 @@ import (
 	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 const maxJSONLen = 64 * 1024 * 1024 // 64MB
@@ -1015,4 +1017,37 @@ func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
 		ChainConfig:   *c,
 		UpgradeConfig: c.UpgradeConfig,
 	}
+}
+
+// Checks if messages have the same hash
+//
+// `message` is the simulation of a configuration being parsed from the local
+// config. `message2` is parsing a message being exchanged through the network
+// (a foreign config), and `message3` is the the deserialization and
+// serialization of the foreign config. All 3 instances should have the same
+// hashing, depite maybe not being identical (some configurations may be in a
+// different order, but our hashing algorithm is resilient to those changes,
+// thanks for our serialization library, which produces always the same output.
+func AssertConfigHashesAndSerialization(t *testing.T, originalConfig *UpgradeConfig) {
+	bytes, err := originalConfig.MarshalBinary()
+	require.NoError(t, err)
+
+	deserializedConfig := UpgradeConfig{}
+	require.NoError(t, deserializedConfig.UnmarshalBinary(bytes))
+
+	twiceDeserialized := UpgradeConfig{}
+	newBytes, err := deserializedConfig.MarshalBinary()
+	require.NoError(t, err)
+	require.NoError(t, twiceDeserialized.UnmarshalBinary(newBytes))
+
+	hash1, err := originalConfig.Hash()
+	require.NoError(t, err)
+	hash2, err := deserializedConfig.Hash()
+	require.NoError(t, err)
+	hash3, err := twiceDeserialized.Hash()
+	require.NoError(t, err)
+
+	require.Equal(t, deserializedConfig, twiceDeserialized)
+	require.Equal(t, hash1, hash2)
+	require.Equal(t, hash2, hash3)
 }
