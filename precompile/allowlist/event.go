@@ -10,7 +10,9 @@ import (
 )
 
 const (
-	AllowListEventGasCost = contract.LogGas + contract.LogTopicGas*2
+	// AllowListEventGasCost is the gas cost of a call to the AllowList contract's event.
+	// It is the base gas cost + the gas cost of the topics (signature, sender, account),
+	AllowListEventGasCost = contract.LogGas + contract.LogTopicGas*3
 )
 
 // PackAdminAddedEvent packs the event into the appropriate arguments for AdminAdded.
@@ -37,6 +39,7 @@ func PackRoleRemovedEvent(sender common.Address, account common.Address) ([]comm
 	return AllowListABI.PackEvent("RoleRemoved", sender, account)
 }
 
+// PackAllowListEvent packs the event into the appropriate arguments for the given role.
 func PackAllowListEvent(role Role, sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
 	switch role {
 	case AdminRole:
