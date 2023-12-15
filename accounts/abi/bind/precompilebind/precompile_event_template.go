@@ -72,7 +72,7 @@ accessibleState.GetStateDB().AddLog(
 		{{capitalise .Name}} {{bindtype .Type $structs}}
 	{{- end}}
 	{{- if $createdDataStruct}}
-		}
+			}
 	{{- end}}
 
 	// Get{{.Normalized.Name}}EventGasCost returns the gas cost of the event.
