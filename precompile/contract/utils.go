@@ -19,11 +19,11 @@ const (
 	WriteGasCostPerSlot = 20_000
 	ReadGasCostPerSlot  = 5_000
 
-	// Per LOG* operation.
+	// Per LOG operation.
 	LogGas uint64 = 375 // from params/protocol_params.go
-	// Multiplied by the * of the LOG*, per LOG transaction.
+	// Gas cost of single topic of the LOG. Should be multiplied by the number of topics.
 	LogTopicGas uint64 = 375 // from params/protocol_params.go
-	// Per byte in a LOG* operation's data.
+	// Per byte cost in a LOG operation's data. Should be multiplied by the byte size of the data.
 	LogDataGas uint64 = 8 // from params/protocol_params.go
 )
 
