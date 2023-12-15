@@ -47,7 +47,7 @@ var (
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotChangeFee.Error(),
 		},
-		"set config from enabled address succeds and emits logs": {
+		"set config from enabled address succeeds and emits logs": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
