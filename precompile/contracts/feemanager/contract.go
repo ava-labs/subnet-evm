@@ -249,7 +249,6 @@ func setFeeConfig(accessibleState contract.AccessibleState, caller common.Addres
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotChangeFee, caller)
 	}
 
-	// Add a log to be handled if this action is finalized.
 	if contract.IsDUpgradeActivated(accessibleState) {
 		if remainingGas, err = contract.DeductGas(remainingGas, GetFeeConfigGasCost+FeeConfigChangedEventBaseGasCost); err != nil {
 			return nil, 0, err
