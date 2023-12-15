@@ -59,7 +59,7 @@ func SetAllowListRole(stateDB contract.StateDB, precompileAddr, address common.A
 }
 
 func PackModifyAllowList(address common.Address, role Role) ([]byte, error) {
-	funcName := getAllowListFunctionSelector(role)
+	funcName := role.GetSetterFunctionName()
 	return AllowListABI.Pack(funcName, address)
 }
 
@@ -68,7 +68,7 @@ func UnpackModifyAllowListInput(input []byte, r Role, useStrictMode bool) (commo
 		return common.Address{}, fmt.Errorf("invalid input length for modifying allow list: %d", len(input))
 	}
 
-	funcName := getAllowListFunctionSelector(r)
+	funcName := r.GetSetterFunctionName()
 	var modifyAddress common.Address
 	err := AllowListABI.UnpackInputIntoInterface(&modifyAddress, funcName, input, useStrictMode)
 	return modifyAddress, err
@@ -167,58 +167,24 @@ func CreateAllowListPrecompile(precompileAddr common.Address) contract.StatefulP
 func CreateAllowListFunctions(precompileAddr common.Address) []*contract.StatefulPrecompileFunction {
 	var functions []*contract.StatefulPrecompileFunction
 
-	type precompileFn struct {
-		fn        contract.RunStatefulPrecompileFunc
-		activator contract.ActivationFunc
-	}
-
-	abiFunctionMap := map[string]precompileFn{
-		getAllowListFunctionSelector(AdminRole): {
-			fn: createAllowListRoleSetter(precompileAddr, AdminRole),
-		},
-		getAllowListFunctionSelector(EnabledRole): {
-			fn: createAllowListRoleSetter(precompileAddr, EnabledRole),
-		},
-		getAllowListFunctionSelector(NoRole): {
-			fn: createAllowListRoleSetter(precompileAddr, NoRole),
-		},
-		"readAllowList": {
-			fn: createReadAllowList(precompileAddr),
-		},
-		getAllowListFunctionSelector(ManagerRole): {
-			fn:        createAllowListRoleSetter(precompileAddr, ManagerRole),
-			activator: contract.IsDUpgradeActivated,
-		},
-	}
-
-	for name, function := range abiFunctionMap {
-		method, ok := AllowListABI.Methods[name]
-		if !ok {
-			panic(fmt.Errorf("given method (%s) does not exist in the ABI", name))
+	for name, method := range AllowListABI.Methods {
+		var fn *contract.StatefulPrecompileFunction
+		switch name {
+		case AdminRole.GetSetterFunctionName():
+			fn = contract.NewStatefulPrecompileFunction(method.ID, createAllowListRoleSetter(precompileAddr, AdminRole))
+		case EnabledRole.GetSetterFunctionName():
+			fn = contract.NewStatefulPrecompileFunction(method.ID, createAllowListRoleSetter(precompileAddr, EnabledRole))
+		case NoRole.GetSetterFunctionName():
+			fn = contract.NewStatefulPrecompileFunction(method.ID, createAllowListRoleSetter(precompileAddr, NoRole))
+		case "readAllowList":
+			fn = contract.NewStatefulPrecompileFunction(method.ID, createReadAllowList(precompileAddr))
+		case ManagerRole.GetSetterFunctionName():
+			fn = contract.NewStatefulPrecompileFunctionWithActivator(method.ID, createAllowListRoleSetter(precompileAddr, ManagerRole), contract.IsDUpgradeActivated)
+		default:
+			panic(fmt.Sprintf("unexpected method name: %s", name))
 		}
-		var spFn *contract.StatefulPrecompileFunction
-		if function.activator != nil {
-			spFn = contract.NewStatefulPrecompileFunctionWithActivator(method.ID, function.fn, function.activator)
-		} else {
-			spFn = contract.NewStatefulPrecompileFunction(method.ID, function.fn)
-		}
-		functions = append(functions, spFn)
+		functions = append(functions, fn)
 	}
 
 	return functions
-}
-
-func getAllowListFunctionSelector(role Role) string {
-	switch role {
-	case AdminRole:
-		return "setAdmin"
-	case ManagerRole:
-		return "setManager"
-	case EnabledRole:
-		return "setEnabled"
-	case NoRole:
-		return "setNone"
-	default:
-		panic("unknown role")
-	}
 }

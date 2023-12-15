@@ -18,13 +18,6 @@ var (
 	_ contract.Configurator   = &dummyConfigurator{}
 
 	dummyAddr = common.Address{1}
-
-	// AllowList function signatures
-	setAdminSignature      = contract.CalculateFunctionSelector("setAdmin(address)")
-	setManagerSignature    = contract.CalculateFunctionSelector("setManager(address)")
-	setEnabledSignature    = contract.CalculateFunctionSelector("setEnabled(address)")
-	setNoneSignature       = contract.CalculateFunctionSelector("setNone(address)")
-	readAllowListSignature = contract.CalculateFunctionSelector("readAllowList(address)")
 )
 
 type dummyConfig struct {

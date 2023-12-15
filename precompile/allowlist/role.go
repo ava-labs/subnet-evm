@@ -77,6 +77,21 @@ func (r Role) Hash() common.Hash {
 	return common.Hash(r)
 }
 
+func (r Role) GetSetterFunctionName() string {
+	switch r {
+	case AdminRole:
+		return "setAdmin"
+	case ManagerRole:
+		return "setManager"
+	case EnabledRole:
+		return "setEnabled"
+	case NoRole:
+		return "setNone"
+	default:
+		panic("unknown role")
+	}
+}
+
 // String returns a string representation of [r].
 func (r Role) String() string {
 	switch r {
