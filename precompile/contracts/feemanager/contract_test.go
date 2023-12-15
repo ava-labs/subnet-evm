@@ -56,7 +56,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: getGasCost(testFeeConfig, testFeeConfig), // total of 224,471 gas
+			SuppliedGas: SetFeeConfigGasCost + FeeConfigChangedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -73,7 +73,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: getGasCost(testFeeConfig, testFeeConfig),
+			SuppliedGas: SetFeeConfigGasCost + FeeConfigChangedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			AfterHook: func(t testing.TB, state contract.StateDB) {
@@ -92,7 +92,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: getGasCost(testFeeConfig, testFeeConfig),
+			SuppliedGas: SetFeeConfigGasCost + FeeConfigChangedEventGasCost,
 			ReadOnly:    false,
 			Config: &Config{
 				InitialFeeConfig: &testFeeConfig,
@@ -112,7 +112,7 @@ var (
 
 				return input
 			},
-			SuppliedGas: getGasCost(testFeeConfig, testFeeConfig),
+			SuppliedGas: SetFeeConfigGasCost + FeeConfigChangedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
@@ -286,7 +286,7 @@ var (
 				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
 				return config
 			},
-			SuppliedGas: getGasCost(testFeeConfig, testFeeConfig),
+			SuppliedGas: SetFeeConfigGasCost + FeeConfigChangedEventGasCost,
 			ReadOnly:    false,
 			ExpectedRes: []byte{},
 			SetupBlockContext: func(mbc *contract.MockBlockContext) {
@@ -306,7 +306,6 @@ var (
 				logData := logsData[0]
 				oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(logData)
 				require.NoError(t, err)
-				oldFeeCfg := convertToCommonConfig(oldFeeConfig)
 				zeroFeeConfig := commontype.FeeConfig{
 					GasLimit:                 new(big.Int),
 					MinBaseFee:               new(big.Int),
@@ -317,9 +316,8 @@ var (
 					MaxBlockGasCost:  new(big.Int),
 					BlockGasCostStep: new(big.Int),
 				}
-				require.True(t, zeroFeeConfig.Equal(&oldFeeCfg), "expected %v, got %v", testFeeConfig, oldFeeCfg)
-				resFeeCfg := convertToCommonConfig(resFeeConfig)
-				require.True(t, testFeeConfig.Equal(&resFeeCfg), "expected %v, got %v", testFeeConfig, resFeeCfg)
+				require.True(t, zeroFeeConfig.Equal(&oldFeeConfig), "expected %v, got %v", testFeeConfig, oldFeeConfig)
+				require.True(t, testFeeConfig.Equal(&resFeeConfig), "expected %v, got %v", testFeeConfig, resFeeConfig)
 			},
 		},
 	}
@@ -331,15 +329,4 @@ func TestFeeManager(t *testing.T) {
 
 func BenchmarkFeeManager(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
-}
-
-func getGasCost(oldFeeConfig commontype.FeeConfig, feeConfig commontype.FeeConfig) uint64 {
-	// address doesn't matter for gas cost
-	_, data, err := PackFeeConfigChangedEvent(common.Address{}, oldFeeConfig, feeConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	logGasCost := GetFeeConfigGasCost + FeeConfigChangedEventBaseGasCost + contract.LogDataGas*uint64(len(data))
-	return logGasCost + SetFeeConfigGasCost
 }

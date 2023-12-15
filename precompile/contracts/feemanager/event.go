@@ -12,10 +12,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-const FeeConfigChangedEventBaseGasCost = contract.LogGas + contract.LogTopicGas
+const FeeConfigChangedEventGasCost = contract.LogGas + contract.LogTopicGas + GetFeeConfigGasCost + 2*(feeConfigInputLen)*contract.LogDataGas
 
-// ContractChangeFeeConfig represents a ChangeFeeConfig non-indexed event data raised by the Contract contract.
-type ChangeFeeConfigEventData struct {
+// changeFeeConfigEventData represents a ChangeFeeConfig non-indexed event data raised by the contract.
+// This represents a different struct than commontype.FeeConfig, because in the contract TargetBlockRate is defined as uint256.
+// uint256 must be unpacked into *big.Int
+type changeFeeConfigEventData struct {
 	GasLimit                 *big.Int
 	TargetBlockRate          *big.Int
 	MinBaseFee               *big.Int
@@ -35,14 +37,17 @@ func PackFeeConfigChangedEvent(sender common.Address, oldConfig commontype.FeeCo
 }
 
 // UnpackFeeConfigChangedEventData attempts to unpack non-indexed [dataBytes].
-func UnpackFeeConfigChangedEventData(dataBytes []byte) (ChangeFeeConfigEventData, ChangeFeeConfigEventData, error) {
-	eventData := make([]ChangeFeeConfigEventData, 2)
+func UnpackFeeConfigChangedEventData(dataBytes []byte) (commontype.FeeConfig, commontype.FeeConfig, error) {
+	eventData := make([]changeFeeConfigEventData, 2)
 	err := FeeManagerABI.UnpackIntoInterface(&eventData, "FeeConfigChanged", dataBytes)
-	return eventData[0], eventData[1], err
+	if err != nil {
+		return commontype.FeeConfig{}, commontype.FeeConfig{}, err
+	}
+	return convertToCommonConfig(eventData[0]), convertToCommonConfig(eventData[1]), err
 }
 
-func convertFromCommonConfig(config commontype.FeeConfig) ChangeFeeConfigEventData {
-	return ChangeFeeConfigEventData{
+func convertFromCommonConfig(config commontype.FeeConfig) changeFeeConfigEventData {
+	return changeFeeConfigEventData{
 		GasLimit:                 config.GasLimit,
 		TargetBlockRate:          new(big.Int).SetUint64(config.TargetBlockRate),
 		MinBaseFee:               config.MinBaseFee,
@@ -54,10 +59,14 @@ func convertFromCommonConfig(config commontype.FeeConfig) ChangeFeeConfigEventDa
 	}
 }
 
-func convertToCommonConfig(config ChangeFeeConfigEventData) commontype.FeeConfig {
+func convertToCommonConfig(config changeFeeConfigEventData) commontype.FeeConfig {
+	var targetBlockRate uint64
+	if config.TargetBlockRate != nil {
+		targetBlockRate = config.TargetBlockRate.Uint64()
+	}
 	return commontype.FeeConfig{
 		GasLimit:                 config.GasLimit,
-		TargetBlockRate:          config.TargetBlockRate.Uint64(),
+		TargetBlockRate:          targetBlockRate,
 		MinBaseFee:               config.MinBaseFee,
 		TargetGas:                config.TargetGas,
 		BaseFeeChangeDenominator: config.BaseFeeChangeDenominator,
