@@ -5,7 +5,7 @@ set -e
 function setStatus() {
     cat <<EOF >local_status.sh
 export CHAIN_ID=$(echo "$OUTPUT" | awk -F'|' '/node1/{print $4}' | awk -F'/' '{print $6}')
-export LOGS_PATH="$(echo "$OUTPUT" | awk -F': ' '/Node log path: /{print $2}')"
+export LOGS_PATH="$(echo "$OUTPUT" | awk -F': ' '/Node logs directory: /{print $2}')"
 EOF
 
     cat <<EOF >~/.hubblenet.json

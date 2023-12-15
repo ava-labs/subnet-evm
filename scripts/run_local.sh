@@ -15,11 +15,11 @@ avalanche network clean
 FILE=/tmp/validator.pk
 if [ ! -f "$FILE" ]
 then
-    echo "$FILE does not exists."
+    echo "$FILE does not exist; creating"
     echo "31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc" > $FILE
 fi
 
-avalanche subnet create hubblenet --force --custom --genesis genesis.json --vm custom_evm.bin --config .avalanche-cli.json
+avalanche subnet create hubblenet --force --custom --genesis genesis.json --custom-vm-path custom_evm.bin --custom-vm-branch main --custom-vm-build-script scripts/build.sh --custom-vm-repo-url https://github.com/hubble-exchange/hubblenet --config .avalanche-cli.json
 
 # configure and add chain.json
 avalanche subnet configure hubblenet --chain-config chain.json --config .avalanche-cli.json

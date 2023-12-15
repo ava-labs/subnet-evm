@@ -244,11 +244,48 @@ func (api *OrderBookAPI) GetDepthForMarket(ctx context.Context, market int) *Mar
 	return getDepthForMarket(api.db, Market(market))
 }
 
+// used by UI
 func (api *OrderBookAPI) StreamDepthUpdateForMarket(ctx context.Context, market int) (*rpc.Subscription, error) {
 	notifier, _ := rpc.NotifierFromContext(ctx)
 	rpcSub := notifier.CreateSubscription()
 
 	ticker := time.NewTicker(1 * time.Second)
+
+	var oldMarketDepth = &MarketDepth{}
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				newMarketDepth := getDepthForMarket(api.db, Market(market))
+				depthUpdate := getUpdateInDepth(newMarketDepth, oldMarketDepth)
+				notifier.Notify(rpcSub.ID, depthUpdate)
+				oldMarketDepth = newMarketDepth
+			case <-notifier.Closed():
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	return rpcSub, nil
+}
+
+// used by UI
+// @todo: this is a duplicate of StreamDepthUpdateForMarket with a param for update frequency. Need to remove the original function later and keep this one.
+func (api *OrderBookAPI) StreamDepthUpdateForMarketAndFreq(ctx context.Context, market int, updateFreq string) (*rpc.Subscription, error) {
+	notifier, _ := rpc.NotifierFromContext(ctx)
+	rpcSub := notifier.CreateSubscription()
+
+	if updateFreq == "" {
+		updateFreq = "1s"
+	}
+
+	duration, err := time.ParseDuration(updateFreq)
+	if err != nil {
+		return nil, fmt.Errorf("invalid update frequency %s", updateFreq)
+	}
+	ticker := time.NewTicker(duration)
 
 	var oldMarketDepth = &MarketDepth{}
 

@@ -204,6 +204,7 @@ func (api *TradingAPI) GetMarginAndPositions(ctx context.Context, trader string)
 	return response, nil
 }
 
+// used by the sdk
 func (api *TradingAPI) StreamDepthUpdateForMarket(ctx context.Context, market int) (*rpc.Subscription, error) {
 	notifier, _ := rpc.NotifierFromContext(ctx)
 	rpcSub := notifier.CreateSubscription()

@@ -1132,6 +1132,7 @@ func deepCopyOrder(order *Order) Order {
 		LifecycleList:           *lifecycleList,
 		BlockNumber:             big.NewInt(0).Set(order.BlockNumber),
 		RawOrder:                order.RawOrder,
+		OrderType:               order.OrderType,
 	}
 }
 
