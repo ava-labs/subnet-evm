@@ -16,6 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
+)
+
 func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	key, err := crypto.GenerateKey()
 	require.NoError(f, err)
@@ -40,29 +44,85 @@ func FuzzPackMintNativeCoinEqualTest(f *testing.F) {
 	})
 }
 
-func TestUnpackMintNativeCoinInputEdgeCases(t *testing.T) {
-	input, err := PackMintNativeCoin(constants.BlackholeAddr, common.Big2)
+func TestUnpackMintNativeCoinInput(t *testing.T) {
+	testInputBytes, err := PackMintNativeCoin(constants.BlackholeAddr, common.Big2)
 	require.NoError(t, err)
 	// exclude 4 bytes for function selector
-	input = input[4:]
-	// add extra padded bytes
-	input = append(input, make([]byte, 32)...)
-
-	_, _, err = OldUnpackMintNativeCoinInput(input)
-	require.ErrorIs(t, err, ErrInvalidLen)
-
-	_, _, err = UnpackMintNativeCoinInput(input, false)
-	require.ErrorIs(t, err, ErrInvalidLen)
-
-	addr, value, err := UnpackMintNativeCoinInput(input, true)
-	require.NoError(t, err)
-	require.Equal(t, constants.BlackholeAddr, addr)
-	require.Equal(t, common.Big2.Bytes(), value.Bytes())
-
-	input = append(input, make([]byte, 1)...)
-	// now it is not divisible by 32
-	_, _, err = UnpackMintNativeCoinInput(input, true)
-	require.Error(t, err)
+	testInputBytes = testInputBytes[4:]
+	tests := []struct {
+		name           string
+		input          []byte
+		skipLenCheck   bool
+		expectedErr    string
+		expectedOldErr string
+		expectedAddr   common.Address
+		expectedAmount *big.Int
+	}{
+		{
+			name:           "empty input",
+			input:          []byte{},
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "empty input skip len check",
+			input:          []byte{},
+			skipLenCheck:   true,
+			expectedErr:    "attempting to unmarshall an empty string",
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes",
+			input:          append(testInputBytes, make([]byte, 32)...),
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes skip len check",
+			input:          append(testInputBytes, make([]byte, 32)...),
+			skipLenCheck:   true,
+			expectedErr:    "",
+			expectedOldErr: ErrInvalidLen.Error(),
+			expectedAddr:   constants.BlackholeAddr,
+			expectedAmount: common.Big2,
+		},
+		{
+			name:           "input with extra bytes (not divisible by 32)",
+			input:          append(testInputBytes, make([]byte, 33)...),
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes (not divisible by 32) skip len check",
+			input:          append(testInputBytes, make([]byte, 33)...),
+			skipLenCheck:   true,
+			expectedErr:    "improperly formatted input",
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			unpackedAddress, unpackedAmount, err := UnpackMintNativeCoinInput(test.input, test.skipLenCheck)
+			if test.expectedErr != "" {
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expectedAddr, unpackedAddress)
+				require.True(t, test.expectedAmount.Cmp(unpackedAmount) == 0, "expected %s, got %s", test.expectedAmount.String(), unpackedAmount.String())
+			}
+			oldUnpackedAddress, oldUnpackedAmount, oldErr := OldUnpackMintNativeCoinInput(test.input)
+			if test.expectedOldErr != "" {
+				require.ErrorContains(t, oldErr, test.expectedOldErr)
+			} else {
+				require.NoError(t, oldErr)
+				require.Equal(t, test.expectedAddr, oldUnpackedAddress)
+				require.True(t, test.expectedAmount.Cmp(oldUnpackedAmount) == 0, "expected %s, got %s", test.expectedAmount.String(), oldUnpackedAmount.String())
+			}
+		})
+	}
 }
 
 func TestFunctionSignatures(t *testing.T) {

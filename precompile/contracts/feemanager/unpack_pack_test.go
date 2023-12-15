@@ -16,6 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	setFeeConfigSignature              = contract.CalculateFunctionSelector("setFeeConfig(uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)")
+	getFeeConfigSignature              = contract.CalculateFunctionSelector("getFeeConfig()")
+	getFeeConfigLastChangedAtSignature = contract.CalculateFunctionSelector("getFeeConfigLastChangedAt()")
+)
+
 func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 	f.Add([]byte{}, uint64(0))
 	f.Add(big.NewInt(0).Bytes(), uint64(0))
@@ -46,42 +52,91 @@ func FuzzPackGetFeeConfigOutputEqualTest(f *testing.F) {
 	})
 }
 
-func TestPackUnpackGetFeeConfigOutputEdgeCases(t *testing.T) {
+func TestOldPackGetFeeConfigOutputEqual(t *testing.T) {
 	testOldPackGetFeeConfigOutputEqual(t, testFeeConfig, true)
-	// These should panic
+}
+func TestPackGetFeeConfigOutputPanic(t *testing.T) {
 	require.Panics(t, func() {
 		_, _ = OldPackFeeConfig(commontype.FeeConfig{})
 	})
 	require.Panics(t, func() {
 		_, _ = PackGetFeeConfigOutput(commontype.FeeConfig{})
 	})
+}
 
-	unpacked, err := OldUnpackFeeConfig([]byte{})
-	require.ErrorIs(t, err, ErrInvalidLen)
-	unpacked2, err := UnpackGetFeeConfigOutput([]byte{}, false)
-	require.ErrorIs(t, err, ErrInvalidLen)
-	require.Equal(t, unpacked, unpacked2)
-
-	_, err = UnpackGetFeeConfigOutput([]byte{}, true)
-	require.Error(t, err)
-
-	// Test for extra padded bytes
-	input, err := PackGetFeeConfigOutput(testFeeConfig)
+func TestPackGetFeeConfigOutput(t *testing.T) {
+	testInputBytes, err := PackGetFeeConfigOutput(testFeeConfig)
 	require.NoError(t, err)
-	// add extra padded bytes
-	input = append(input, make([]byte, 32)...)
-	_, err = OldUnpackFeeConfig(input)
-	require.ErrorIs(t, err, ErrInvalidLen)
-	_, err = UnpackGetFeeConfigOutput([]byte{}, false)
-	require.ErrorIs(t, err, ErrInvalidLen)
-
-	_, err = UnpackGetFeeConfigOutput(input, true)
-	require.NoError(t, err)
-
-	// now it's now divisible by 32
-	input = append(input, make([]byte, 1)...)
-	_, err = UnpackGetFeeConfigOutput(input, true)
-	require.Error(t, err)
+	tests := []struct {
+		name           string
+		input          []byte
+		skipLenCheck   bool
+		expectedErr    string
+		expectedOldErr string
+		expectedOutput commontype.FeeConfig
+	}{
+		{
+			name:           "empty input",
+			input:          []byte{},
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "empty input skip len check",
+			input:          []byte{},
+			skipLenCheck:   true,
+			expectedErr:    "attempting to unmarshall an empty string",
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes",
+			input:          append(testInputBytes, make([]byte, 32)...),
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes skip len check",
+			input:          append(testInputBytes, make([]byte, 32)...),
+			skipLenCheck:   true,
+			expectedErr:    "",
+			expectedOldErr: ErrInvalidLen.Error(),
+			expectedOutput: testFeeConfig,
+		},
+		{
+			name:           "input with extra bytes (not divisible by 32)",
+			input:          append(testInputBytes, make([]byte, 33)...),
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes (not divisible by 32) skip len check",
+			input:          append(testInputBytes, make([]byte, 33)...),
+			skipLenCheck:   true,
+			expectedErr:    "improperly formatted output",
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			unpacked, err := UnpackGetFeeConfigOutput(test.input, test.skipLenCheck)
+			if test.expectedErr != "" {
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
+				require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
+			}
+			oldUnpacked, oldErr := OldUnpackFeeConfig(test.input)
+			if test.expectedOldErr != "" {
+				require.ErrorContains(t, oldErr, test.expectedOldErr)
+			} else {
+				require.NoError(t, oldErr)
+				require.True(t, test.expectedOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.expectedOutput, oldUnpacked)
+			}
+		})
+	}
 }
 
 func TestGetFeeConfig(t *testing.T) {
@@ -157,41 +212,94 @@ func FuzzPackSetFeeConfigEqualTest(f *testing.F) {
 	})
 }
 
-func TestPackSetFeeConfigInputEdgeCases(t *testing.T) {
-	// Some edge cases
+func TestOldPackSetFeeConfigInputEqual(t *testing.T) {
 	testOldPackSetFeeConfigInputEqual(t, testFeeConfig, true)
-	// These should panic
+}
+
+func TestPackSetFeeConfigInputPanic(t *testing.T) {
 	require.Panics(t, func() {
 		_, _ = OldPackSetFeeConfig(commontype.FeeConfig{})
 	})
 	require.Panics(t, func() {
 		_, _ = PackSetFeeConfig(commontype.FeeConfig{})
 	})
-	// These should err
-	_, err := UnpackSetFeeConfigInput([]byte{123}, false)
-	require.ErrorIs(t, err, ErrInvalidLen)
+}
 
-	_, err = UnpackSetFeeConfigInput([]byte{123}, true)
-	require.ErrorContains(t, err, "abi: improperly formatted input")
-
-	_, err = OldUnpackFeeConfig([]byte{123})
-	require.ErrorIs(t, err, ErrInvalidLen)
-
-	// Test for extra padded bytes
-	input, err := PackSetFeeConfig(testFeeConfig)
+func TestPackSetFeeConfigInput(t *testing.T) {
+	testInputBytes, err := PackSetFeeConfig(testFeeConfig)
 	require.NoError(t, err)
 	// exclude 4 bytes for function selector
-	input = input[4:]
-	// add extra padded bytes
-	input = append(input, make([]byte, 32)...)
-	_, err = OldUnpackFeeConfig(input)
-	require.ErrorIs(t, err, ErrInvalidLen)
-	_, err = UnpackSetFeeConfigInput(input, false)
-	require.ErrorIs(t, err, ErrInvalidLen)
-
-	unpacked, err := UnpackSetFeeConfigInput(input, true)
-	require.NoError(t, err)
-	require.True(t, testFeeConfig.Equal(&unpacked))
+	testInputBytes = testInputBytes[4:]
+	tests := []struct {
+		name           string
+		input          []byte
+		skipLenCheck   bool
+		expectedErr    string
+		expectedOldErr string
+		expectedOutput commontype.FeeConfig
+	}{
+		{
+			name:           "empty input",
+			input:          []byte{},
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "empty input skip len check",
+			input:          []byte{},
+			skipLenCheck:   true,
+			expectedErr:    "attempting to unmarshall an empty string",
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes",
+			input:          append(testInputBytes, make([]byte, 32)...),
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes skip len check",
+			input:          append(testInputBytes, make([]byte, 32)...),
+			skipLenCheck:   true,
+			expectedErr:    "",
+			expectedOldErr: ErrInvalidLen.Error(),
+			expectedOutput: testFeeConfig,
+		},
+		{
+			name:           "input with extra bytes (not divisible by 32)",
+			input:          append(testInputBytes, make([]byte, 33)...),
+			skipLenCheck:   false,
+			expectedErr:    ErrInvalidLen.Error(),
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+		{
+			name:           "input with extra bytes (not divisible by 32) skip len check",
+			input:          append(testInputBytes, make([]byte, 33)...),
+			skipLenCheck:   true,
+			expectedErr:    "improperly formatted input",
+			expectedOldErr: ErrInvalidLen.Error(),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			unpacked, err := UnpackSetFeeConfigInput(test.input, test.skipLenCheck)
+			if test.expectedErr != "" {
+				require.ErrorContains(t, err, test.expectedErr)
+			} else {
+				require.NoError(t, err)
+				require.True(t, test.expectedOutput.Equal(&unpacked), "not equal: expectedOutput %v, unpacked %v", test.expectedOutput, unpacked)
+			}
+			oldUnpacked, oldErr := OldUnpackFeeConfig(test.input)
+			if test.expectedOldErr != "" {
+				require.ErrorContains(t, oldErr, test.expectedOldErr)
+			} else {
+				require.NoError(t, oldErr)
+				require.True(t, test.expectedOutput.Equal(&oldUnpacked), "not equal: expectedOutput %v, oldUnpacked %v", test.expectedOutput, oldUnpacked)
+			}
+		})
+	}
 }
 
 func TestFunctionSignatures(t *testing.T) {
