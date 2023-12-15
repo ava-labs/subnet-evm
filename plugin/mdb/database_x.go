@@ -145,7 +145,7 @@ func (db *backend) UpdateAndReferenceRoot(root common.Hash, parent common.Hash, 
 	if err := db.update(root, parent, nodes); err != nil {
 		return err
 	}
-	db.Reference(root, common.Hash{})
+	db.refCount[root]++
 	return nil
 }
 
@@ -176,6 +176,7 @@ func (db *backend) update(root common.Hash, parent common.Hash, nodes *trienode.
 		stack:  tvsToCommit,
 		parent: parent,
 	})
+	db.refCount[parent]++ // keep the parent around
 	return nil
 }
 
@@ -232,6 +233,10 @@ func (db *backend) commit(ctx context.Context, root common.Hash, dbRoot common.H
 				return false, err
 			}
 		}
+
+		for _, commit := range db.pendingCommits[root] {
+			db.dereference(commit.parent)
+		}
 		delete(db.pendingCommits, root)
 		delete(db.refCount, root)
 		return true, nil
@@ -255,16 +260,28 @@ func (db *backend) Dereference(root common.Hash) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	if _, ok := db.refCount[root]; ok {
-		db.refCount[root]--
-		if db.refCount[root] == 0 {
-			delete(db.refCount, root)
-			delete(db.pendingCommits, root)
+	db.dereference(root)
+}
+
+func (db *backend) dereference(root common.Hash) {
+	if _, ok := db.refCount[root]; !ok {
+		return
+	}
+
+	db.refCount[root]--
+	if db.refCount[root] == 0 {
+		delete(db.refCount, root)
+		for _, commit := range db.pendingCommits[root] {
+			db.dereference(commit.parent)
 		}
+		delete(db.pendingCommits, root)
 	}
 }
 
 func (db *backend) Reference(root common.Hash, parent common.Hash) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
 	// only care about trie roots, which will reference the meta root aka empty
 	if parent != (common.Hash{}) {
 		return
