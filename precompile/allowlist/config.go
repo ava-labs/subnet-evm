@@ -4,9 +4,7 @@
 package allowlist
 
 import (
-	"bytes"
 	"fmt"
-	"sort"
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
@@ -41,10 +39,6 @@ func (c *AllowListConfig) Configure(chainConfig precompileconfig.ChainConfig, pr
 }
 
 func (c *AllowListConfig) packAddresses(addresses []common.Address, p *wrappers.Packer) error {
-	sort.Slice(addresses, func(i, j int) bool {
-		return bytes.Compare(addresses[i][:], addresses[j][:]) < 0
-	})
-
 	p.PackInt(uint32(len(addresses)))
 	if p.Err != nil {
 		return p.Err
