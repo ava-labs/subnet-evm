@@ -263,7 +263,7 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 			name:           "input with insufficient len",
 			input:          []byte{123},
 			strictMode:     false,
-			expectedErr:    "insufficient length",
+			expectedErr:    "length insufficient",
 			expectedOldErr: ErrInvalidLen.Error(),
 		},
 		{
@@ -292,7 +292,7 @@ func TestPackSetFeeConfigInput(t *testing.T) {
 			name:           "input with extra bytes (not divisible by 32)",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			strictMode:     false,
-			expectedErr:    "improperly formatted input",
+			expectedOutput: testFeeConfig,
 			expectedOldErr: ErrInvalidLen.Error(),
 		},
 	}

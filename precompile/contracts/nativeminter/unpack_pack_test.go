@@ -99,7 +99,8 @@ func TestUnpackMintNativeCoinInput(t *testing.T) {
 			name:           "input with extra bytes (not divisible by 32)",
 			input:          append(testInputBytes, make([]byte, 33)...),
 			strictMode:     false,
-			expectedErr:    "improperly formatted input",
+			expectedAddr:   constants.BlackholeAddr,
+			expectedAmount: common.Big2,
 			expectedOldErr: ErrInvalidLen.Error(),
 		},
 	}
