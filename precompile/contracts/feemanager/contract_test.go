@@ -47,7 +47,7 @@ var (
 			ReadOnly:    false,
 			ExpectedErr: ErrCannotChangeFee.Error(),
 		},
-		"set config from enabled address": {
+		"set config from enabled address succeds and emits logs": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -62,6 +62,31 @@ var (
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				feeConfig := GetStoredFeeConfig(state)
 				require.Equal(t, testFeeConfig, feeConfig)
+
+				logsTopics, logsData := state.GetLogData()
+				require.Len(t, logsTopics, 1)
+				require.Len(t, logsData, 1)
+
+				topics := logsTopics[0]
+				require.Len(t, topics, 2)
+				require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, topics[0])
+				require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[1])
+
+				logData := logsData[0]
+				oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(logData)
+				require.NoError(t, err)
+				zeroFeeConfig := commontype.FeeConfig{
+					GasLimit:                 new(big.Int),
+					MinBaseFee:               new(big.Int),
+					TargetGas:                new(big.Int),
+					BaseFeeChangeDenominator: new(big.Int),
+
+					MinBlockGasCost:  new(big.Int),
+					MaxBlockGasCost:  new(big.Int),
+					BlockGasCostStep: new(big.Int),
+				}
+				require.True(t, zeroFeeConfig.Equal(&oldFeeConfig), "expected %v, got %v", testFeeConfig, oldFeeConfig)
+				require.True(t, testFeeConfig.Equal(&resFeeConfig), "expected %v, got %v", testFeeConfig, resFeeConfig)
 			},
 		},
 		"set config from manager succeeds": {
@@ -271,53 +296,6 @@ var (
 				logsTopics, logsData := stateDB.GetLogData()
 				require.Len(t, logsTopics, 0)
 				require.Len(t, logsData, 0)
-			},
-		},
-		"set config logs after DUpgrade": {
-			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackSetFeeConfig(testFeeConfig)
-				require.NoError(t, err)
-				return input
-			},
-			ChainConfigFn: func(ctrl *gomock.Controller) precompileconfig.ChainConfig {
-				config := precompileconfig.NewMockChainConfig(ctrl)
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(true).AnyTimes()
-				return config
-			},
-			SuppliedGas: SetFeeConfigGasCost + FeeConfigChangedEventGasCost,
-			ReadOnly:    false,
-			ExpectedRes: []byte{},
-			SetupBlockContext: func(mbc *contract.MockBlockContext) {
-				mbc.EXPECT().Number().Return(testBlockNumber).AnyTimes()
-				mbc.EXPECT().Timestamp().Return(uint64(0)).AnyTimes()
-			},
-			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
-				logsTopics, logsData := stateDB.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-
-				topics := logsTopics[0]
-				require.Len(t, topics, 2)
-				require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, topics[0])
-				require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[1])
-
-				logData := logsData[0]
-				oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(logData)
-				require.NoError(t, err)
-				zeroFeeConfig := commontype.FeeConfig{
-					GasLimit:                 new(big.Int),
-					MinBaseFee:               new(big.Int),
-					TargetGas:                new(big.Int),
-					BaseFeeChangeDenominator: new(big.Int),
-
-					MinBlockGasCost:  new(big.Int),
-					MaxBlockGasCost:  new(big.Int),
-					BlockGasCostStep: new(big.Int),
-				}
-				require.True(t, zeroFeeConfig.Equal(&oldFeeConfig), "expected %v, got %v", testFeeConfig, oldFeeConfig)
-				require.True(t, testFeeConfig.Equal(&resFeeConfig), "expected %v, got %v", testFeeConfig, resFeeConfig)
 			},
 		},
 	}
