@@ -39,51 +39,51 @@ func TestUnpackInputIntoInterface(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, test := range []struct {
-		Name                   string
-		ExtraPaddingBytes      int
-		StrictMode             bool
-		ExpectedErrorSubstring string
+		name                   string
+		extraPaddingBytes      int
+		strictMode             bool
+		expectedErrorSubstring string
 	}{
 		{
-			Name:       "No extra padding to input data",
-			StrictMode: true,
+			name:       "No extra padding to input data",
+			strictMode: true,
 		},
 		{
-			Name:              "Valid input data with 32 extra padding(%32) ",
-			ExtraPaddingBytes: 32,
-			StrictMode:        true,
+			name:              "Valid input data with 32 extra padding(%32) ",
+			extraPaddingBytes: 32,
+			strictMode:        true,
 		},
 		{
-			Name:              "Valid input data with 64 extra padding(%32)",
-			ExtraPaddingBytes: 64,
-			StrictMode:        true,
+			name:              "Valid input data with 64 extra padding(%32)",
+			extraPaddingBytes: 64,
+			strictMode:        true,
 		},
 		{
-			Name:                   "Valid input data with extra padding indivisible by 32",
-			ExtraPaddingBytes:      33,
-			StrictMode:             true,
-			ExpectedErrorSubstring: "abi: improperly formatted input:",
+			name:                   "Valid input data with extra padding indivisible by 32",
+			extraPaddingBytes:      33,
+			strictMode:             true,
+			expectedErrorSubstring: "abi: improperly formatted input:",
 		},
 		{
-			Name:              "Valid input data with extra padding indivisible by 32, no strict mode",
-			ExtraPaddingBytes: 33,
-			StrictMode:        false,
+			name:              "Valid input data with extra padding indivisible by 32, no strict mode",
+			extraPaddingBytes: 33,
+			strictMode:        false,
 		},
 	} {
 		{
-			t.Run(test.Name, func(t *testing.T) {
+			t.Run(test.name, func(t *testing.T) {
 				// skip 4 byte selector
 				data := rawData[4:]
 				// Add extra padding to data
-				data = append(data, make([]byte, test.ExtraPaddingBytes)...)
+				data = append(data, make([]byte, test.extraPaddingBytes)...)
 
 				// Unpack into interface
 				var v inputType
-				err = abi.UnpackInputIntoInterface(&v, "receive", data, test.StrictMode) // skips 4 byte selector
+				err = abi.UnpackInputIntoInterface(&v, "receive", data, test.strictMode) // skips 4 byte selector
 
-				if test.ExpectedErrorSubstring != "" {
+				if test.expectedErrorSubstring != "" {
 					require.Error(t, err)
-					require.ErrorContains(t, err, test.ExpectedErrorSubstring)
+					require.ErrorContains(t, err, test.expectedErrorSubstring)
 				} else {
 					require.NoError(t, err)
 					// Verify unpacked values match input
