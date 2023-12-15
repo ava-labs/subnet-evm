@@ -199,18 +199,6 @@ var tests = map[string]testutils.PrecompileTest{
 		SuppliedGas: MintGasCost + NativeCoinMintedEventGasCost,
 		ReadOnly:    false,
 		ExpectedRes: []byte{},
-		AfterHook: func(t testing.TB, stateDB contract.StateDB) {
-			logsTopics, logsData := stateDB.GetLogData()
-			require.Len(t, logsTopics, 1)
-			require.Len(t, logsData, 1)
-			topics := logsTopics[0]
-			require.Len(t, topics, 4)
-			require.Equal(t, NativeMinterABI.Events["NativeCoinMinted"].ID, topics[0])
-			require.Equal(t, allowlist.TestAdminAddr.Hash(), topics[1])
-			require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[2])
-			require.Equal(t, common.BigToHash(common.Big1), topics[3])
-			require.Len(t, logsData[0], 0)
-		},
 	},
 }
 

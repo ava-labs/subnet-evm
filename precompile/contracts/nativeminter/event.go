@@ -12,11 +12,23 @@ import (
 )
 
 const (
-	NativeCoinMintedEventGasCost = contract.LogGas + contract.LogTopicGas*3
+	// NativeCoinMintedEventGasCost is the gas cost of the NativeCoinMinted event.
+	// It is the base gas cost + the gas cost of the topics (sender, recipient)
+	//  + the gas cost of the non-indexed data (32 bytes for amount).
+	NativeCoinMintedEventGasCost = contract.LogGas + contract.LogTopicGas*2 + contract.LogDataGas*32
 )
 
 // PackNativeCoinMintedEvent packs the event into the appropriate arguments for NativeCoinMinted.
 // It returns topic hashes and the encoded non-indexed data.
 func PackNativeCoinMintedEvent(sender common.Address, recipient common.Address, amount *big.Int) ([]common.Hash, []byte, error) {
 	return NativeMinterABI.PackEvent("NativeCoinMinted", sender, recipient, amount)
+}
+
+// UnpackNativeCoinMintedEventData attempts to unpack non-indexed [dataBytes].
+func UnpackNativeCoinMintedEventData(dataBytes []byte) (*big.Int, error) {
+	var eventData = struct {
+		Amount *big.Int
+	}{}
+	err := NativeMinterABI.UnpackIntoInterface(&eventData, "NativeCoinMinted", dataBytes)
+	return eventData.Amount, err
 }
