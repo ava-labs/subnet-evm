@@ -115,13 +115,22 @@ func (c *Config) MarshalBinary() ([]byte, error) {
 		MaxSize: 1 * units.MiB,
 	}
 
-	if err := c.AllowListConfig.ToBytesWithPacker(&p); err != nil {
+	bytes, err := c.AllowListConfig.MarshalBinary()
+	if err != nil {
 		return nil, err
 	}
 
-	if err := c.Upgrade.ToBytesWithPacker(&p); err != nil {
+	p.PackBytes(bytes)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	bytes, err = c.Upgrade.MarshalBinary()
+	if err != nil {
 		return nil, err
 	}
+
+	p.PackBytes(bytes)
 
 	p.PackInt(uint32(len(keys)))
 	if p.Err != nil {
@@ -146,10 +155,18 @@ func (c *Config) UnmarshalBinary(bytes []byte) error {
 	p := wrappers.Packer{
 		Bytes: bytes,
 	}
-	if err := c.AllowListConfig.FromBytesWithPacker(&p); err != nil {
+	allowList := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	upgrade := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	if err := c.AllowListConfig.UnmarshalBinary(allowList); err != nil {
 		return err
 	}
-	if err := c.Upgrade.FromBytesWithPacker(&p); err != nil {
+	if err := c.Upgrade.UnmarshalBinary(upgrade); err != nil {
 		return err
 	}
 	len := p.UnpackInt()

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -152,28 +153,36 @@ func (c *FeeConfig) getBigIntToSerialize() []**big.Int {
 	}
 }
 
-func (c *FeeConfig) ToBytesWithPacker(p *wrappers.Packer) error {
+func (c *FeeConfig) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+
 	for _, bigint := range c.getBigIntToSerialize() {
 		p.PackBool(*bigint == nil)
 		if p.Err != nil {
-			return p.Err
+			return nil, p.Err
 		}
 		if bigint != nil {
 			p.PackBytes((*bigint).Bytes())
 			if p.Err != nil {
-				return p.Err
+				return nil, p.Err
 			}
 		}
 	}
 	p.PackLong(c.TargetBlockRate)
 	if p.Err != nil {
-		return p.Err
+		return nil, p.Err
 	}
 
-	return nil
+	return p.Bytes, nil
 }
 
-func (c *FeeConfig) FromBytesWithPacker(p *wrappers.Packer) error {
+func (c *FeeConfig) UnmarshalBinary(data []byte) error {
+	p := wrappers.Packer{
+		Bytes: data,
+	}
 	for _, bigint := range c.getBigIntToSerialize() {
 		isNil := p.UnpackBool()
 		if p.Err != nil {

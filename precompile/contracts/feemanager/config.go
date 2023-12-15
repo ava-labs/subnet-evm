@@ -86,12 +86,23 @@ func (c *Config) MarshalBinary() ([]byte, error) {
 		MaxSize: 1 * units.MiB,
 	}
 
-	if err := c.AllowListConfig.ToBytesWithPacker(&p); err != nil {
+	allowList, err := c.AllowListConfig.MarshalBinary()
+	if err != nil {
 		return nil, err
 	}
 
-	if err := c.Upgrade.ToBytesWithPacker(&p); err != nil {
+	upgrade, err := c.Upgrade.MarshalBinary()
+	if err != nil {
 		return nil, err
+	}
+
+	p.PackBytes(allowList)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+	p.PackBytes(upgrade)
+	if p.Err != nil {
+		return nil, p.Err
 	}
 
 	if c.InitialFeeConfig == nil {
@@ -104,28 +115,42 @@ func (c *Config) MarshalBinary() ([]byte, error) {
 		if p.Err != nil {
 			return nil, p.Err
 		}
-		if err := c.InitialFeeConfig.ToBytesWithPacker(&p); err != nil {
+		bytes, err := c.InitialFeeConfig.MarshalBinary()
+		if err != nil {
 			return nil, err
 		}
+		p.PackBytes(bytes)
 	}
 
-	return p.Bytes, nil
+	return p.Bytes, p.Err
 }
 
 func (c *Config) UnmarshalBinary(bytes []byte) error {
 	p := wrappers.Packer{
 		Bytes: bytes,
 	}
-	if err := c.AllowListConfig.FromBytesWithPacker(&p); err != nil {
+	allowList := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	upgrade := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	if err := c.AllowListConfig.UnmarshalBinary(allowList); err != nil {
 		return err
 	}
-	if err := c.Upgrade.FromBytesWithPacker(&p); err != nil {
+	if err := c.Upgrade.UnmarshalBinary(upgrade); err != nil {
 		return err
 	}
 	isNil := p.UnpackBool()
 	if !isNil {
 		c.InitialFeeConfig = &commontype.FeeConfig{}
-		if err := c.InitialFeeConfig.FromBytesWithPacker(&p); err != nil {
+		bytes := p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
+		}
+		if err := c.InitialFeeConfig.UnmarshalBinary(bytes); err != nil {
 			return err
 		}
 	}

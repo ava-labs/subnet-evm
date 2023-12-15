@@ -9,6 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -145,29 +146,36 @@ func (c *AllowListConfig) Verify(chainConfig precompileconfig.ChainConfig, upgra
 	return nil
 }
 
-func (c *AllowListConfig) ToBytesWithPacker(p *wrappers.Packer) error {
-	if err := c.packAddresses(c.AdminAddresses, p); err != nil {
-		return err
+func (c *AllowListConfig) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
 	}
-	if err := c.packAddresses(c.ManagerAddresses, p); err != nil {
-		return err
+	if err := c.packAddresses(c.AdminAddresses, &p); err != nil {
+		return nil, err
 	}
-	if err := c.packAddresses(c.EnabledAddresses, p); err != nil {
-		return err
+	if err := c.packAddresses(c.ManagerAddresses, &p); err != nil {
+		return nil, err
 	}
-	return nil
+	if err := c.packAddresses(c.EnabledAddresses, &p); err != nil {
+		return nil, err
+	}
+	return p.Bytes, nil
 }
 
-func (c *AllowListConfig) FromBytesWithPacker(p *wrappers.Packer) error {
-	admins, err := c.unpackAddresses(p)
+func (c *AllowListConfig) UnmarshalBinary(data []byte) error {
+	p := wrappers.Packer{
+		Bytes: data,
+	}
+	admins, err := c.unpackAddresses(&p)
 	if err != nil {
 		return err
 	}
-	managers, err := c.unpackAddresses(p)
+	managers, err := c.unpackAddresses(&p)
 	if err != nil {
 		return err
 	}
-	enableds, err := c.unpackAddresses(p)
+	enableds, err := c.unpackAddresses(&p)
 	if err != nil {
 		return err
 	}
