@@ -51,7 +51,7 @@ describe("INativeMinter", function () {
     contract = await ethers.getContractAt("INativeMinter", MINT_PRECOMPILE_ADDRESS, owner)
   });
 
-  it("should emit reward address changed event ", async function () {
+  it("should emit NativeCoinMinted event", async function () {
     let testAddress = "0x0444400000000000000000000000000000000004"
     let amount = 1000
     await expect(contract.mintNativeCoin(testAddress, amount))
