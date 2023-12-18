@@ -15,7 +15,7 @@ import (
 // FeeConfigChangedEventGasCost is the gas cost of a FeeConfigChanged event.
 // It is the base gas cost + the gas cost of the topics (signature, sender)
 // and the gas cost of the non-indexed data len(oldConfig) + len(newConfig).
-const FeeConfigChangedEventGasCost = contract.LogGas + contract.LogTopicGas*2 + GetFeeConfigGasCost + 2*(feeConfigInputLen)*contract.LogDataGas
+const FeeConfigChangedEventGasCost = GetFeeConfigGasCost + contract.LogGas + contract.LogTopicGas*2 + 2*(feeConfigInputLen)*contract.LogDataGas
 
 // changeFeeConfigEventData represents a ChangeFeeConfig non-indexed event data raised by the contract.
 // This represents a different struct than commontype.FeeConfig, because in the contract TargetBlockRate is defined as uint256.
