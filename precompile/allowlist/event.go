@@ -51,6 +51,6 @@ func PackAllowListEvent(role Role, sender common.Address, account common.Address
 	case NoRole:
 		return PackRoleRemovedEvent(sender, account)
 	default:
-		panic("invalid role")
+		return nil, nil, ErrInvalidRole
 	}
 }
