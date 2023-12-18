@@ -2,7 +2,7 @@
 // See the file LICENSE for licensing terms.
 
 import { ethers } from "hardhat"
-import { test } from "./utils"
+import { Roles, test } from "./utils"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import {
@@ -62,31 +62,31 @@ describe("IAllowList", function () {
     contract = await ethers.getContractAt("IAllowList", DEPLOYER_ALLOWLIST_ADDRESS, owner)
   });
 
-  it("should emit admin address added event", async function () {
+  it("should emit event after set admin", async function () {
     let testAddress = "0x0111000000000000000000000000000000000001"
     await expect(contract.setAdmin(testAddress))
-      .to.emit(contract, 'AdminAdded')
-      .withArgs(owner.address, testAddress)
+      .to.emit(contract, 'RoleSet')
+      .withArgs(Roles.Admin, testAddress, owner.address, Roles.None)
   })
 
-  it("should emit manager address added event", async function () {
+  it("should emit event after set manager", async function () {
     let testAddress = "0x0222000000000000000000000000000000000002"
     await expect(contract.setManager(testAddress))
-      .to.emit(contract, 'ManagerAdded')
-      .withArgs(owner.address, testAddress)
+      .to.emit(contract, 'RoleSet')
+      .withArgs(Roles.Manager, testAddress, owner.address, Roles.None)
   })
 
-  it("should emit enabled address added event", async function () {
+  it("should emit event after set enabled", async function () {
     let testAddress = "0x0333000000000000000000000000000000000003"
     await expect(contract.setEnabled(testAddress))
-      .to.emit(contract, 'EnabledAdded')
-      .withArgs(owner.address, testAddress)
+      .to.emit(contract, 'RoleSet')
+      .withArgs(Roles.Enabled, testAddress, owner.address, Roles.None)
   })
 
-  it("should emit role removed event", async function () {
+  it("should emit event after set none", async function () {
     let testAddress = "0x0333000000000000000000000000000000000003"
     await expect(contract.setNone(testAddress))
-      .to.emit(contract, 'RoleRemoved')
-      .withArgs(owner.address, testAddress)
+      .to.emit(contract, 'RoleSet')
+      .withArgs(Roles.None, testAddress, owner.address, Roles.Enabled)
   })
 })

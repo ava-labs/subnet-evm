@@ -5,52 +5,33 @@
 package allowlist
 
 import (
+	"math/big"
+
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
 	// AllowListEventGasCost is the gas cost of a call to the AllowList contract's event.
-	// It is the base gas cost + the gas cost of the topics (signature, sender, account),
-	AllowListEventGasCost = contract.LogGas + contract.LogTopicGas*3
+	// It is the base gas cost + the gas cost of the topics (signature, role, account, caller)
+	// and the gas cost of the non-indexed data (oldRole).
+	AllowListEventGasCost = contract.LogGas + contract.LogTopicGas*4 + contract.LogDataGas*32
 )
 
-// PackAdminAddedEvent packs the event into the appropriate arguments for AdminAdded.
+// PackRoleSetEvent packs the event into the appropriate arguments for RoleSet.
 // It returns topic hashes and the encoded non-indexed data.
-func PackAdminAddedEvent(sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
-	return AllowListABI.PackEvent("AdminAdded", sender, account)
+func PackRoleSetEvent(role Role, account common.Address, caller common.Address, oldRole Role) ([]common.Hash, []byte, error) {
+	return AllowListABI.PackEvent("RoleSet", role.Big(), account, caller, oldRole.Big())
 }
 
-// PackEnabledAddedEvent packs the event into the appropriate arguments for EnabledAdded.
-// It returns topic hashes and the encoded non-indexed data.
-func PackEnabledAddedEvent(sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
-	return AllowListABI.PackEvent("EnabledAdded", sender, account)
-}
-
-// PackManagerAddedEvent packs the event into the appropriate arguments for ManagerAdded.
-// It returns topic hashes and the encoded non-indexed data.
-func PackManagerAddedEvent(sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
-	return AllowListABI.PackEvent("ManagerAdded", sender, account)
-}
-
-// PackRoleRemovedEvent packs the event into the appropriate arguments for RoleRemoved.
-// It returns topic hashes and the encoded non-indexed data.
-func PackRoleRemovedEvent(sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
-	return AllowListABI.PackEvent("RoleRemoved", sender, account)
-}
-
-// PackAllowListEvent packs the event into the appropriate arguments for the given role.
-func PackAllowListEvent(role Role, sender common.Address, account common.Address) ([]common.Hash, []byte, error) {
-	switch role {
-	case AdminRole:
-		return PackAdminAddedEvent(sender, account)
-	case ManagerRole:
-		return PackManagerAddedEvent(sender, account)
-	case EnabledRole:
-		return PackEnabledAddedEvent(sender, account)
-	case NoRole:
-		return PackRoleRemovedEvent(sender, account)
-	default:
-		return nil, nil, ErrInvalidRole
+// UnpackRoleSetEventData attempts to unpack non-indexed [dataBytes].
+func UnpackRoleSetEventData(dataBytes []byte) (Role, error) {
+	eventData := struct {
+		OldRole *big.Int
+	}{}
+	err := AllowListABI.UnpackIntoInterface(&eventData, "RoleSet", dataBytes)
+	if err != nil {
+		return Role{}, err
 	}
+	return FromBig(eventData.OldRole)
 }

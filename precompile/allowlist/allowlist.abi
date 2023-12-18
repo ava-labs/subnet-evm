@@ -4,23 +4,16 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "role",
+        "type": "uint256"
       },
       {
         "indexed": true,
         "internalType": "address",
         "name": "account",
         "type": "address"
-      }
-    ],
-    "name": "AdminAdded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
+      },
       {
         "indexed": true,
         "internalType": "address",
@@ -28,51 +21,13 @@
         "type": "address"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldRole",
+        "type": "uint256"
       }
     ],
-    "name": "EnabledAdded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "ManagerAdded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "RoleRemoved",
+    "name": "RoleSet",
     "type": "event"
   },
   {

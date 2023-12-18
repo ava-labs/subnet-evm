@@ -113,7 +113,7 @@ func createAllowListRoleSetter(precompileAddr common.Address, role Role) contrac
 			if remainingGas, err = contract.DeductGas(remainingGas, AllowListEventGasCost); err != nil {
 				return nil, 0, err
 			}
-			topics, data, err := PackAllowListEvent(role, callerAddr, modifyAddress)
+			topics, data, err := PackRoleSetEvent(role, modifyAddress, callerAddr, modifyStatus)
 			if err != nil {
 				return nil, remainingGas, err
 			}

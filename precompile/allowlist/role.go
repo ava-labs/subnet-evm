@@ -110,3 +110,13 @@ func (r Role) String() string {
 		return "UnknownRole"
 	}
 }
+
+func FromBig(b *big.Int) (Role, error) {
+	role := Role(common.BigToHash(b))
+	switch role {
+	case NoRole, EnabledRole, ManagerRole, AdminRole:
+		return role, nil
+	default:
+		return Role{}, ErrInvalidRole
+	}
+}
