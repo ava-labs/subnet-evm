@@ -5,9 +5,7 @@ import { ethers } from "hardhat"
 import { Roles, test } from "./utils"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import {
-  Contract,
-} from "ethers"
+import { Contract } from "ethers"
 
 // make sure this is always an admin for minter precompile
 const ADMIN_ADDRESS = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
