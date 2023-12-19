@@ -181,8 +181,9 @@ func PackSetRewardAddress(addr common.Address) ([]byte, error) {
 
 // UnpackSetRewardAddressInput attempts to unpack [input] into the common.Address type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackSetRewardAddressInput(input []byte) (common.Address, error) {
-	res, err := RewardManagerABI.UnpackInput("setRewardAddress", input)
+// if [useStrictMode] is true, it will return an error if the length of [input] is not divisible by 32
+func UnpackSetRewardAddressInput(input []byte, useStrictMode bool) (common.Address, error) {
+	res, err := RewardManagerABI.UnpackInput("setRewardAddress", input, useStrictMode)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -199,8 +200,9 @@ func setRewardAddress(accessibleState contract.AccessibleState, caller common.Ad
 	}
 	// attempts to unpack [input] into the arguments to the SetRewardAddressInput.
 	// Assumes that [input] does not include selector
-	// You can use unpacked [rewardAddress] variable in your code
-	rewardAddress, err := UnpackSetRewardAddressInput(input)
+	// do not use strict mode after DUpgrade
+	useStrictMode := !contract.IsDUpgradeActivated(accessibleState)
+	rewardAddress, err := UnpackSetRewardAddressInput(input, useStrictMode)
 	if err != nil {
 		return nil, remainingGas, err
 	}
