@@ -5,9 +5,7 @@ import { expect } from "chai"
 import { ethers } from "hardhat"
 import { test } from "./utils"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import {
-  Contract,
-} from "ethers"
+import { Contract } from "ethers"
 
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const FEE_MANAGER = "0x0200000000000000000000000000000000000003"
@@ -57,6 +55,7 @@ describe("ExampleFeeManager", function () {
     "step_lowerMinFeeByOne",
   ])
 })
+
 const C_FEES = {
   gasLimit: 8_000_000, // gasLimit
   targetBlockRate: 2, // targetBlockRate
