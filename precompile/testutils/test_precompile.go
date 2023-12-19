@@ -47,7 +47,7 @@ type PrecompileTest struct {
 	ExpectedRes []byte
 	// ExpectedErr is the expected error returned by the precompile
 	ExpectedErr string
-	// ChainConfig is the chain config to use for the precompile's block context
+	// ChainConfigFn returns the chain config to use for the precompile's block context
 	// If nil, the default chain config will be used.
 	ChainConfigFn func(*gomock.Controller) precompileconfig.ChainConfig
 }
