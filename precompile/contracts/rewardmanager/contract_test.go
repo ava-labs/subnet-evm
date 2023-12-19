@@ -77,9 +77,12 @@ var (
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				_, isFeeRecipients := GetStoredRewardAddress(state)
 				require.True(t, isFeeRecipients)
+
+				logsTopics, logsData := state.GetLogData()
+				assertFeeRecipientsAllowed(t, logsTopics, logsData, allowlist.TestEnabledAddr)
 			},
 		},
-		"no log set fee recipients if DUpgrade is not active": {
+		"set fee recipients should not emit events pre-DUpgrade": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -105,29 +108,6 @@ var (
 				require.Len(t, logsData, 0)
 			},
 		},
-		"log set fee recipients if DUpgrade is active": {
-			Caller:     allowlist.TestEnabledAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackAllowFeeRecipients()
-				require.NoError(t, err)
-
-				return input
-			},
-			SuppliedGas: AllowFeeRecipientsGasCost + FeeRecipientsAllowedEventGasCost,
-			ReadOnly:    false,
-			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
-				logsTopics, logsData := stateDB.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 2)
-				require.Equal(t, RewardManagerABI.Events["FeeRecipientsAllowed"].ID, topics[0])
-				require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[1])
-				require.Len(t, logsData[0], 0)
-			},
-		},
 		"set reward address from enabled succeeds": {
 			Caller:     allowlist.TestEnabledAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -144,6 +124,9 @@ var (
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.Equal(t, rewardAddress, address)
 				require.False(t, isFeeRecipients)
+
+				logsTopics, logsData := state.GetLogData()
+				assertRewardAddressChanged(t, logsTopics, logsData, allowlist.TestEnabledAddr, common.Address{}, rewardAddress)
 			},
 		},
 		"set allow fee recipients from manager succeeds": {
@@ -161,6 +144,9 @@ var (
 			AfterHook: func(t testing.TB, state contract.StateDB) {
 				_, isFeeRecipients := GetStoredRewardAddress(state)
 				require.True(t, isFeeRecipients)
+
+				logsTopics, logsData := state.GetLogData()
+				assertFeeRecipientsAllowed(t, logsTopics, logsData, allowlist.TestManagerAddr)
 			},
 		},
 		"set reward address from manager succeeds": {
@@ -179,9 +165,12 @@ var (
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.Equal(t, rewardAddress, address)
 				require.False(t, isFeeRecipients)
+
+				logsTopics, logsData := state.GetLogData()
+				assertRewardAddressChanged(t, logsTopics, logsData, allowlist.TestManagerAddr, common.Address{}, rewardAddress)
 			},
 		},
-		"no log change reward address if DUpgrade is not active": {
+		"change reward address should not emit events pre-DUpgrade": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -207,32 +196,6 @@ var (
 				require.Len(t, logsData, 0)
 			},
 		},
-		"log change reward address if DUpgrade is active": {
-			Caller:     allowlist.TestManagerAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackSetRewardAddress(rewardAddress)
-				require.NoError(t, err)
-
-				return input
-			},
-			SuppliedGas: SetRewardAddressGasCost + RewardAddressChangedEventGasCost,
-			ReadOnly:    false,
-			Config:      &Config{},
-			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
-				logsTopics, logsData := stateDB.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 4)
-				require.Equal(t, RewardManagerABI.Events["RewardAddressChanged"].ID, topics[0])
-				require.Equal(t, allowlist.TestManagerAddr.Hash(), topics[1])
-				require.Equal(t, constants.BlackholeAddr.Hash(), topics[2])
-				require.Equal(t, rewardAddress.Hash(), topics[3])
-				require.Len(t, logsData[0], 0)
-			},
-		},
 		"disable rewards from manager succeeds": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
@@ -249,6 +212,9 @@ var (
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.False(t, isFeeRecipients)
 				require.Equal(t, constants.BlackholeAddr, address)
+
+				logsTopics, logsData := state.GetLogData()
+				assertRewardsDisabled(t, logsTopics, logsData, allowlist.TestManagerAddr)
 			},
 		},
 		"disable rewards from enabled succeeds": {
@@ -267,9 +233,12 @@ var (
 				address, isFeeRecipients := GetStoredRewardAddress(state)
 				require.False(t, isFeeRecipients)
 				require.Equal(t, constants.BlackholeAddr, address)
+
+				logsTopics, logsData := state.GetLogData()
+				assertRewardsDisabled(t, logsTopics, logsData, allowlist.TestEnabledAddr)
 			},
 		},
-		"no log disable rewards if DUpgrade is not active": {
+		"disable rewards should not emit event pre-DUpgrade": {
 			Caller:     allowlist.TestManagerAddr,
 			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
 			InputFn: func(t testing.TB) []byte {
@@ -293,29 +262,6 @@ var (
 				topics, data := stateDB.GetLogData()
 				require.Len(t, topics, 0)
 				require.Len(t, data, 0)
-			},
-		},
-		"log disable rewards if DUpgrade is active": {
-			Caller:     allowlist.TestManagerAddr,
-			BeforeHook: allowlist.SetDefaultRoles(Module.Address),
-			InputFn: func(t testing.TB) []byte {
-				input, err := PackDisableRewards()
-				require.NoError(t, err)
-
-				return input
-			},
-			SuppliedGas: DisableRewardsGasCost + RewardsDisabledEventGasCost,
-			ReadOnly:    false,
-			ExpectedRes: []byte{},
-			AfterHook: func(t testing.TB, stateDB contract.StateDB) {
-				logsTopics, logsData := stateDB.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 2)
-				require.Equal(t, RewardManagerABI.Events["RewardsDisabled"].ID, topics[0])
-				require.Equal(t, allowlist.TestManagerAddr.Hash(), topics[1])
-				require.Len(t, logsData[0], 0)
 			},
 		},
 		"get current reward address from no role succeeds": {
@@ -494,4 +440,50 @@ func TestRewardManagerRun(t *testing.T) {
 
 func BenchmarkRewardManager(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
+}
+
+func assertRewardAddressChanged(
+	t testing.TB,
+	logsTopics [][]common.Hash,
+	logsData [][]byte,
+	caller,
+	oldAddress,
+	newAddress common.Address) {
+	require.Len(t, logsTopics, 1)
+	require.Len(t, logsData, 1)
+	topics := logsTopics[0]
+	require.Len(t, topics, 4)
+	require.Equal(t, RewardManagerABI.Events["RewardAddressChanged"].ID, topics[0])
+	require.Equal(t, caller.Hash(), topics[1])
+	require.Equal(t, oldAddress.Hash(), topics[2])
+	require.Equal(t, newAddress.Hash(), topics[3])
+	require.Len(t, logsData[0], 0)
+}
+
+func assertRewardsDisabled(
+	t testing.TB,
+	logsTopics [][]common.Hash,
+	logsData [][]byte,
+	caller common.Address) {
+	require.Len(t, logsTopics, 1)
+	require.Len(t, logsData, 1)
+	topics := logsTopics[0]
+	require.Len(t, topics, 2)
+	require.Equal(t, RewardManagerABI.Events["RewardsDisabled"].ID, topics[0])
+	require.Equal(t, caller.Hash(), topics[1])
+	require.Len(t, logsData[0], 0)
+}
+
+func assertFeeRecipientsAllowed(
+	t testing.TB,
+	logsTopics [][]common.Hash,
+	logsData [][]byte,
+	caller common.Address) {
+	require.Len(t, logsTopics, 1)
+	require.Len(t, logsData, 1)
+	topics := logsTopics[0]
+	require.Len(t, topics, 2)
+	require.Equal(t, RewardManagerABI.Events["FeeRecipientsAllowed"].ID, topics[0])
+	require.Equal(t, caller.Hash(), topics[1])
+	require.Len(t, logsData[0], 0)
 }

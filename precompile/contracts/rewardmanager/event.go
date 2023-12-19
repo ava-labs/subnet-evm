@@ -16,7 +16,7 @@ const (
 	// RewardAddressChangedEventGasCost is the gas cost of the RewardAddressChanged event.
 	// It is calculated as the gas cost of the log operation + the gas cost of 3 topic hashes (signature + sender + oldRewardAddress).
 	// + the gas cost of reading old reward address.
-	RewardAddressChangedEventGasCost = contract.LogGas + contract.LogTopicGas*3 + contract.ReadGasCostPerSlot
+	RewardAddressChangedEventGasCost = contract.LogGas + contract.LogTopicGas*4 + contract.ReadGasCostPerSlot
 	// RewardsDisabledEventGasCost is the gas cost of the RewardsDisabled event.
 	// It is calculated as the gas cost of the log operation + the gas cost of 2 topic hashes (signature + sender).
 	RewardsDisabledEventGasCost = contract.LogGas + contract.LogTopicGas*2
