@@ -85,19 +85,7 @@ var (
 				require.Equal(t, testFeeConfig, feeConfig)
 
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-
-				topics := logsTopics[0]
-				require.Len(t, topics, 2)
-				require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, topics[0])
-				require.Equal(t, allowlist.TestEnabledAddr.Hash(), topics[1])
-
-				logData := logsData[0]
-				oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(logData)
-				require.NoError(t, err)
-				require.True(t, zeroFeeConfig.Equal(&oldFeeConfig), "expected %v, got %v", zeroFeeConfig, oldFeeConfig)
-				require.True(t, testFeeConfig.Equal(&resFeeConfig), "expected %v, got %v", testFeeConfig, resFeeConfig)
+				assertFeeEvent(t, logsTopics, logsData, allowlist.TestEnabledAddr, zeroFeeConfig, testFeeConfig)
 			},
 		},
 		"set config from manager succeeds": {
@@ -117,19 +105,7 @@ var (
 				require.Equal(t, testFeeConfig, feeConfig)
 
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-
-				topics := logsTopics[0]
-				require.Len(t, topics, 2)
-				require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, topics[0])
-				require.Equal(t, allowlist.TestManagerAddr.Hash(), topics[1])
-
-				logData := logsData[0]
-				oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(logData)
-				require.NoError(t, err)
-				require.True(t, zeroFeeConfig.Equal(&oldFeeConfig), "expected %v, got %v", zeroFeeConfig, oldFeeConfig)
-				require.True(t, testFeeConfig.Equal(&resFeeConfig), "expected %v, got %v", testFeeConfig, resFeeConfig)
+				assertFeeEvent(t, logsTopics, logsData, allowlist.TestManagerAddr, zeroFeeConfig, testFeeConfig)
 			},
 		},
 		"set invalid config from enabled address": {
@@ -177,19 +153,7 @@ var (
 				require.EqualValues(t, testBlockNumber, lastChangedAt)
 
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-
-				topics := logsTopics[0]
-				require.Len(t, topics, 2)
-				require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, topics[0])
-				require.Equal(t, allowlist.TestAdminAddr.Hash(), topics[1])
-
-				logData := logsData[0]
-				oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(logData)
-				require.NoError(t, err)
-				require.True(t, zeroFeeConfig.Equal(&oldFeeConfig), "expected %v, got %v", zeroFeeConfig, oldFeeConfig)
-				require.True(t, testFeeConfig.Equal(&resFeeConfig), "expected %v, got %v", testFeeConfig, resFeeConfig)
+				assertFeeEvent(t, logsTopics, logsData, allowlist.TestAdminAddr, zeroFeeConfig, testFeeConfig)
 			},
 		},
 		"get fee config from non-enabled address": {
@@ -387,6 +351,9 @@ var (
 				require.Equal(t, testFeeConfig, feeConfig)
 				lastChangedAt := GetFeeConfigLastChangedAt(state)
 				require.EqualValues(t, testBlockNumber, lastChangedAt)
+
+				logsTopics, logsData := state.GetLogData()
+				assertFeeEvent(t, logsTopics, logsData, allowlist.TestEnabledAddr, zeroFeeConfig, testFeeConfig)
 			},
 		},
 		// from https://github.com/ava-labs/subnet-evm/issues/487
@@ -428,6 +395,9 @@ var (
 				require.Equal(t, regressionFeeConfig, feeConfig)
 				lastChangedAt := GetFeeConfigLastChangedAt(state)
 				require.EqualValues(t, testBlockNumber, lastChangedAt)
+
+				logsTopics, logsData := state.GetLogData()
+				assertFeeEvent(t, logsTopics, logsData, allowlist.TestEnabledAddr, zeroFeeConfig, regressionFeeConfig)
 			},
 		},
 		"set config should not emit event before DUpgrade": {
@@ -461,4 +431,27 @@ func TestFeeManager(t *testing.T) {
 
 func BenchmarkFeeManager(b *testing.B) {
 	allowlist.BenchPrecompileWithAllowList(b, Module, state.NewTestStateDB, tests)
+}
+
+func assertFeeEvent(
+	t testing.TB,
+	logsTopics [][]common.Hash,
+	logsData [][]byte,
+	sender common.Address,
+	expectedOldFeeConfig commontype.FeeConfig,
+	expectedNewFeeConfig commontype.FeeConfig,
+) {
+	require.Len(t, logsTopics, 1)
+	require.Len(t, logsData, 1)
+
+	topics := logsTopics[0]
+	require.Len(t, topics, 2)
+	require.Equal(t, FeeManagerABI.Events["FeeConfigChanged"].ID, topics[0])
+	require.Equal(t, sender.Hash(), topics[1])
+
+	logData := logsData[0]
+	oldFeeConfig, resFeeConfig, err := UnpackFeeConfigChangedEventData(logData)
+	require.NoError(t, err)
+	require.True(t, expectedOldFeeConfig.Equal(&oldFeeConfig), "expected %v, got %v", expectedOldFeeConfig, oldFeeConfig)
+	require.True(t, expectedNewFeeConfig.Equal(&resFeeConfig), "expected %v, got %v", expectedNewFeeConfig, resFeeConfig)
 }
