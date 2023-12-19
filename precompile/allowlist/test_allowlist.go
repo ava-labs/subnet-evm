@@ -43,16 +43,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Equal(t, AdminRole, res)
 				// Check logs are stored in state
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 4)
-				require.Equal(t, AllowListABI.Events["RoleSet"].ID, topics[0])
-				require.Equal(t, AdminRole.Hash(), topics[1])
-				require.Equal(t, TestNoRoleAddr.Hash(), topics[2])
-				require.Equal(t, TestAdminAddr.Hash(), topics[3])
-				data := logsData[0]
-				require.Equal(t, NoRole.Bytes(), data)
+				assertSetRoleEvent(t, logsTopics, logsData, AdminRole, TestNoRoleAddr, TestAdminAddr, NoRole)
 			},
 		},
 		"admin set enabled": {
@@ -72,16 +63,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Equal(t, EnabledRole, res)
 				// Check logs are stored in state
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 4)
-				require.Equal(t, AllowListABI.Events["RoleSet"].ID, topics[0])
-				require.Equal(t, EnabledRole.Hash(), topics[1])
-				require.Equal(t, TestNoRoleAddr.Hash(), topics[2])
-				require.Equal(t, TestAdminAddr.Hash(), topics[3])
-				data := logsData[0]
-				require.Equal(t, NoRole.Bytes(), data)
+				assertSetRoleEvent(t, logsTopics, logsData, EnabledRole, TestNoRoleAddr, TestAdminAddr, NoRole)
 			},
 		},
 		"admin set no role": {
@@ -101,16 +83,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Equal(t, NoRole, res)
 				// Check logs are stored in state
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 4)
-				require.Equal(t, AllowListABI.Events["RoleSet"].ID, topics[0])
-				require.Equal(t, NoRole.Hash(), topics[1])
-				require.Equal(t, TestEnabledAddr.Hash(), topics[2])
-				require.Equal(t, TestAdminAddr.Hash(), topics[3])
-				data := logsData[0]
-				require.Equal(t, EnabledRole.Bytes(), data)
+				assertSetRoleEvent(t, logsTopics, logsData, NoRole, TestEnabledAddr, TestAdminAddr, EnabledRole)
 			},
 		},
 		"no role set no role": {
@@ -303,16 +276,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Equal(t, ManagerRole, res)
 				// Check logs are stored in state
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 4)
-				require.Equal(t, AllowListABI.Events["RoleSet"].ID, topics[0])
-				require.Equal(t, ManagerRole.Hash(), topics[1])
-				require.Equal(t, TestNoRoleAddr.Hash(), topics[2])
-				require.Equal(t, TestAdminAddr.Hash(), topics[3])
-				data := logsData[0]
-				require.Equal(t, NoRole.Bytes(), data)
+				assertSetRoleEvent(t, logsTopics, logsData, ManagerRole, TestNoRoleAddr, TestAdminAddr, NoRole)
 			},
 		},
 		"manager set no role to no role": {
@@ -333,16 +297,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 				require.Equal(t, NoRole, res)
 				// Check logs are stored in state
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 4)
-				require.Equal(t, AllowListABI.Events["RoleSet"].ID, topics[0])
-				require.Equal(t, NoRole.Hash(), topics[1])
-				require.Equal(t, TestNoRoleAddr.Hash(), topics[2])
-				require.Equal(t, TestManagerAddr.Hash(), topics[3])
-				data := logsData[0]
-				require.Equal(t, NoRole.Bytes(), data)
+				assertSetRoleEvent(t, logsTopics, logsData, NoRole, TestNoRoleAddr, TestManagerAddr, NoRole)
 			},
 		},
 		"manager set no role to enabled": {
@@ -364,16 +319,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 
 				// Check logs are stored in state
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 4)
-				require.Equal(t, AllowListABI.Events["RoleSet"].ID, topics[0])
-				require.Equal(t, EnabledRole.Hash(), topics[1])
-				require.Equal(t, TestNoRoleAddr.Hash(), topics[2])
-				require.Equal(t, TestManagerAddr.Hash(), topics[3])
-				data := logsData[0]
-				require.Equal(t, NoRole.Bytes(), data)
+				assertSetRoleEvent(t, logsTopics, logsData, EnabledRole, TestNoRoleAddr, TestManagerAddr, NoRole)
 			},
 		},
 		"manager set no role to manager": {
@@ -456,16 +402,7 @@ func AllowListTests(t testing.TB, module modules.Module) map[string]testutils.Pr
 
 				// Check logs are stored in state
 				logsTopics, logsData := state.GetLogData()
-				require.Len(t, logsTopics, 1)
-				require.Len(t, logsData, 1)
-				topics := logsTopics[0]
-				require.Len(t, topics, 4)
-				require.Equal(t, AllowListABI.Events["RoleSet"].ID, topics[0])
-				require.Equal(t, NoRole.Hash(), topics[1])
-				require.Equal(t, TestEnabledAddr.Hash(), topics[2])
-				require.Equal(t, TestManagerAddr.Hash(), topics[3])
-				data := logsData[0]
-				require.Equal(t, EnabledRole.Bytes(), data)
+				assertSetRoleEvent(t, logsTopics, logsData, NoRole, TestEnabledAddr, TestManagerAddr, EnabledRole)
 			},
 		},
 		"manager set admin to no role": {
@@ -759,4 +696,17 @@ func BenchPrecompileWithAllowList(b *testing.B, module modules.Module, newStateD
 			test.Bench(b, module, newStateDB(b))
 		})
 	}
+}
+
+func assertSetRoleEvent(t testing.TB, logsTopics [][]common.Hash, logsData [][]byte, role Role, addr common.Address, caller common.Address, oldRole Role) {
+	require.Len(t, logsTopics, 1)
+	require.Len(t, logsData, 1)
+	topics := logsTopics[0]
+	require.Len(t, topics, 4)
+	require.Equal(t, AllowListABI.Events["RoleSet"].ID, topics[0])
+	require.Equal(t, role.Hash(), topics[1])
+	require.Equal(t, addr.Hash(), topics[2])
+	require.Equal(t, caller.Hash(), topics[3])
+	data := logsData[0]
+	require.Equal(t, oldRole.Bytes(), data)
 }
