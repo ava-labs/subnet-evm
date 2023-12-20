@@ -83,8 +83,8 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Run only once in the first ginkgo process
 	return e2e.NewTestEnvironment(
 		flagVars,
-		newEVMSubnet(subnetAName),
-		newEVMSubnet(subnetBName),
+		newEVMSubnet(subnetAName, "../precompile/genesis/warp.json"),
+		newEVMSubnet(subnetBName, "../precompile/genesis/warp.json"),
 	).Marshal()
 }, func(envBytes []byte) {
 	// Run in every ginkgo process
@@ -712,7 +712,7 @@ func toRPCURI(uri string, blockchainID string) string {
 	return fmt.Sprintf("%s/ext/bc/%s/rpc", uri, blockchainID)
 }
 
-func newEVMSubnet(name string) *tmpnet.Subnet {
+func newEVMSubnet(name string, genesisFile string) *tmpnet.Subnet {
 	key, err := secp256k1.NewPrivateKey()
 	if err != nil {
 		panic(err)
@@ -758,6 +758,23 @@ func newEVMSubnet(name string) *tmpnet.Subnet {
 	})
 	if err != nil {
 		panic(err)
+	}
+
+	if genesisFile != "" {
+		genesisBytes, err = os.ReadFile(genesisFile)
+		if err != nil {
+			panic(err)
+		}
+		// modify the genesis file to include the pre-funded key
+		err = json.Unmarshal(genesisBytes, genesis)
+		if err != nil {
+			panic(err)
+		}
+		genesis.Alloc = map[common.Address]core.GenesisAccount{address: {Balance: balance}}
+		genesisBytes, err = json.Marshal(genesis)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return &tmpnet.Subnet{
