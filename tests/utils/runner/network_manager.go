@@ -5,6 +5,7 @@ package runner
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"os"
 	"time"
@@ -28,6 +29,8 @@ type Subnet struct {
 	SubnetID ids.ID `json:"subnetID"`
 	// Current ANR assumes one blockchain per subnet, so we have a single blockchainID here
 	BlockchainID ids.ID `json:"blockchainID"`
+	// Key funded in the genesis of the blockchain
+	PreFundedKey *ecdsa.PrivateKey
 	// ValidatorURIs is the base URIs for each participant of the Subnet
 	ValidatorURIs []string `json:"validatorURIs"`
 }
