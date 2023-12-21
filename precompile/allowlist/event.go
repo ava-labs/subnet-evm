@@ -15,7 +15,7 @@ const (
 	// AllowListEventGasCost is the gas cost of a call to the AllowList contract's event.
 	// It is the base gas cost + the gas cost of the topics (signature, role, account, caller)
 	// and the gas cost of the non-indexed data (oldRole).
-	AllowListEventGasCost = contract.LogGas + contract.LogTopicGas*4 + contract.LogDataGas*32
+	AllowListEventGasCost = contract.LogGas + contract.LogTopicGas*4 + contract.LogDataGas*common.HashLength
 )
 
 // PackRoleSetEvent packs the event into the appropriate arguments for RoleSet.
