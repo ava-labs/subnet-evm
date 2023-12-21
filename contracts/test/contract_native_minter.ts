@@ -5,9 +5,7 @@ import { ethers } from "hardhat"
 import { test } from "./utils"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import {
-  Contract,
-} from "ethers"
+import { Contract } from "ethers"
 
 const ADMIN_ADDRESS: string = "0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC"
 const MINT_PRECOMPILE_ADDRESS = "0x0200000000000000000000000000000000000001"
