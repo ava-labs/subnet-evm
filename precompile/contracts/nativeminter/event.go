@@ -15,7 +15,7 @@ const (
 	// NativeCoinMintedEventGasCost is the gas cost of the NativeCoinMinted event.
 	// It is the base gas cost + the gas cost of the topics (signature, sender, recipient)
 	// and the gas cost of the non-indexed data (32 bytes for amount).
-	NativeCoinMintedEventGasCost = contract.LogGas + contract.LogTopicGas*3 + contract.LogDataGas*32
+	NativeCoinMintedEventGasCost = contract.LogGas + contract.LogTopicGas*3 + contract.LogDataGas*common.HashLength
 )
 
 // PackNativeCoinMintedEvent packs the event into the appropriate arguments for NativeCoinMinted.
