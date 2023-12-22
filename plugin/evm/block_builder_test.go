@@ -40,7 +40,7 @@ func TestBlockBuilderShutsDown(t *testing.T) {
 	config.SubnetEVMTimestamp = utils.TimeToNewUint64(time.Now().Add(time.Hour))
 
 	builder := &blockBuilder{
-		ctx:          snow.DefaultContextTest(),
+		ctx:          utils.TestSnowContext(),
 		chainConfig:  &config,
 		shutdownChan: shutdownChan,
 		shutdownWg:   wg,
@@ -57,7 +57,7 @@ func TestBlockBuilderSkipsTimerInitialization(t *testing.T) {
 	shutdownChan := make(chan struct{})
 	wg := &sync.WaitGroup{}
 	builder := &blockBuilder{
-		ctx:          snow.DefaultContextTest(),
+		ctx:          utils.TestSnowContext(),
 		chainConfig:  params.TestChainConfig,
 		shutdownChan: shutdownChan,
 		shutdownWg:   wg,
