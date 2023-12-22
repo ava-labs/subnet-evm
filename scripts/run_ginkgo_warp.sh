@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -e
+
+set -euo pipefail
 
 # This script assumes that an AvalancheGo and Subnet-EVM binaries are available in the standard location
 # within the $GOPATH
@@ -19,10 +20,11 @@ source "$SUBNET_EVM_PATH"/scripts/versions.sh
 # to install the ginkgo binary (required for test build and run)
 go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 
-TEST_SOURCE_ROOT=$(pwd)
+EXTRA_ARGS=
+AVALANCHEGO_BUILD_PATH="${AVALANCHEGO_BUILD_PATH:-}"
+if [[ -n "${AVALANCHEGO_BUILD_PATH}" ]]; then
+  EXTRA_ARGS="-- --avalanchego-path=${AVALANCHEGO_BUILD_PATH}/avalanchego --plugin-dir=${AVALANCHEGO_BUILD_PATH}/plugins"
+  echo "Running with extra args: ${EXTRA_ARGS}"
+fi
 
-ACK_GINKGO_RC=true ginkgo build ./tests/warp
-
-./tests/warp/warp.test \
-  --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+ginkgo -vv --label-filter=${GINKGO_LABEL_FILTER:-""} ./tests/warp ${EXTRA_ARGS}
