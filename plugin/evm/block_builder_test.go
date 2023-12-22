@@ -10,8 +10,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/utils"
-
-	"github.com/ava-labs/avalanchego/snow"
 )
 
 func attemptAwait(t *testing.T, wg *sync.WaitGroup, delay time.Duration) {
