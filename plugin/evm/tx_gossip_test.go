@@ -5,20 +5,24 @@ package evm
 
 import (
 	"context"
+	"encoding/binary"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 	"github.com/ava-labs/avalanchego/proto/pb/sdk"
+	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
+	"github.com/ava-labs/coreth/params"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 
@@ -27,23 +31,57 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 )
 
-func TestTxGossip(t *testing.T) {
+func TestEthTxGossip(t *testing.T) {
 	require := require.New(t)
+	ctx := context.Background()
+	snowCtx := snow.DefaultContextTest()
+	validatorState := &validators.TestState{}
+	snowCtx.ValidatorState = validatorState
 
-	// set up prefunded address
-	_, vm, _, sender := GenesisVM(t, true, genesisJSONLatest, "", "")
+	responseSender := &common.FakeSender{
+		SentAppResponse: make(chan []byte, 1),
+	}
+	vm := &VM{
+		p2pSender: responseSender,
+	}
+
+	require.NoError(vm.Initialize(
+		ctx,
+		snowCtx,
+		memdb.New(),
+		[]byte(genesisJSONLatest),
+		nil,
+		nil,
+		make(chan common.Message),
+		nil,
+		&common.SenderTest{},
+	))
+	require.NoError(vm.SetState(ctx, snow.NormalOp))
+
 	defer func() {
-		require.NoError(vm.Shutdown(context.Background()))
+		require.NoError(vm.Shutdown(ctx))
 	}()
 
 	// sender for the peer requesting gossip from [vm]
-	peerSender := &common.SenderTest{}
-	router := p2p.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
+	peerSender := &common.FakeSender{
+		SentAppRequest: make(chan []byte, 1),
+	}
 
-	// we're only making client requests, so we don't need a server handler
-	client, err := router.NewAppProtocol(txGossipProtocol, nil)
+	network, err := p2p.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
 	require.NoError(err)
+	client := network.NewClient(ethTxGossipProtocol)
 
+	// we only accept gossip requests from validators
+	requestingNodeID := ids.GenerateTestNodeID()
+	require.NoError(vm.Network.Connected(ctx, requestingNodeID, nil))
+	validatorState.GetCurrentHeightF = func(context.Context) (uint64, error) {
+		return 0, nil
+	}
+	validatorState.GetValidatorSetF = func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+		return map[ids.NodeID]*validators.GetValidatorOutput{requestingNodeID: nil}, nil
+	}
+
+	// Ask the VM for any new transactions. We should get nothing at first.
 	emptyBloomFilter, err := gossip.NewBloomFilter(txGossipBloomMaxItems, txGossipBloomFalsePositiveRate)
 	require.NoError(err)
 	emptyBloomFilterBytes, err := emptyBloomFilter.Bloom.MarshalBinary()
@@ -57,34 +95,6 @@ func TestTxGossip(t *testing.T) {
 	require.NoError(err)
 
 	wg := &sync.WaitGroup{}
-
-	requestingNodeID := ids.GenerateTestNodeID()
-	peerSender.SendAppRequestF = func(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, appRequestBytes []byte) error {
-		go func() {
-			require.NoError(vm.AppRequest(ctx, requestingNodeID, requestID, time.Time{}, appRequestBytes))
-		}()
-		return nil
-	}
-
-	sender.SendAppResponseF = func(ctx context.Context, nodeID ids.NodeID, requestID uint32, appResponseBytes []byte) error {
-		go func() {
-			require.NoError(router.AppResponse(ctx, nodeID, requestID, appResponseBytes))
-		}()
-		return nil
-	}
-
-	// we only accept gossip requests from validators
-	require.NoError(vm.Network.Connected(context.Background(), requestingNodeID, nil))
-	mockValidatorSet, ok := vm.ctx.ValidatorState.(*validators.TestState)
-	require.True(ok)
-	mockValidatorSet.GetCurrentHeightF = func(context.Context) (uint64, error) {
-		return 0, nil
-	}
-	mockValidatorSet.GetValidatorSetF = func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-		return map[ids.NodeID]*validators.GetValidatorOutput{requestingNodeID: nil}, nil
-	}
-
-	// Ask the VM for any new transactions. We should get nothing at first.
 	wg.Add(1)
 	onResponse := func(_ context.Context, nodeID ids.NodeID, responseBytes []byte, err error) {
 		require.NoError(err)
@@ -94,7 +104,9 @@ func TestTxGossip(t *testing.T) {
 		require.Empty(response.Gossip)
 		wg.Done()
 	}
-	require.NoError(client.AppRequest(context.Background(), set.Set[ids.NodeID]{vm.ctx.NodeID: struct{}{}}, requestBytes, onResponse))
+	require.NoError(client.AppRequest(ctx, set.Of(vm.ctx.NodeID), requestBytes, onResponse))
+	require.NoError(vm.AppRequest(ctx, requestingNodeID, 1, time.Time{}, <-peerSender.SentAppRequest))
+	require.NoError(network.AppResponse(ctx, snowCtx.NodeID, 1, <-responseSender.SentAppResponse))
 	wg.Wait()
 
 	// Issue a tx to the VM
@@ -111,6 +123,7 @@ func TestTxGossip(t *testing.T) {
 	// wait so we aren't throttled by the vm
 	time.Sleep(5 * time.Second)
 
+	marshaller := GossipEthTxMarshaller{}
 	// Ask the VM for new transactions. We should get the newly issued tx.
 	wg.Add(1)
 	onResponse = func(_ context.Context, nodeID ids.NodeID, responseBytes []byte, err error) {
@@ -120,12 +133,127 @@ func TestTxGossip(t *testing.T) {
 		require.NoError(proto.Unmarshal(responseBytes, response))
 		require.Len(response.Gossip, 1)
 
-		gotTx := &GossipTx{}
-		require.NoError(gotTx.Unmarshal(response.Gossip[0]))
+		gotTx, err := marshaller.UnmarshalGossip(response.Gossip[0])
+		require.NoError(err)
 		require.Equal(signedTx.Hash(), gotTx.Tx.Hash())
 
 		wg.Done()
 	}
-	require.NoError(client.AppRequest(context.Background(), set.Set[ids.NodeID]{vm.ctx.NodeID: struct{}{}}, requestBytes, onResponse))
+	require.NoError(client.AppRequest(ctx, set.Of(vm.ctx.NodeID), requestBytes, onResponse))
+	require.NoError(vm.AppRequest(ctx, requestingNodeID, 3, time.Time{}, <-peerSender.SentAppRequest))
+	require.NoError(network.AppResponse(ctx, snowCtx.NodeID, 3, <-responseSender.SentAppResponse))
 	wg.Wait()
+}
+
+func TestEthTxPushGossipOutbound(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+	snowCtx := snow.DefaultContextTest()
+	sender := &common.FakeSender{
+		SentAppGossip: make(chan []byte, 1),
+	}
+
+	vm := &VM{
+		p2pSender:         sender,
+		ethTxPullGossiper: gossip.NoOpGossiper{},
+	}
+
+	require.NoError(vm.Initialize(
+		ctx,
+		snowCtx,
+		memdb.New(),
+		[]byte(genesisJSONLatest),
+		nil,
+		nil,
+		make(chan common.Message),
+		nil,
+		&common.FakeSender{},
+	))
+	require.NoError(vm.SetState(ctx, snow.NormalOp))
+
+	address := testEthAddrs[0]
+	key := testKeys[0]
+	tx := types.NewTransaction(0, address, big.NewInt(10), 100_000, big.NewInt(params.LaunchMinGasPrice), nil)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	require.NoError(err)
+
+	// issue a tx
+	require.NoError(vm.txPool.AddLocal(signedTx))
+
+	sent := <-sender.SentAppGossip
+	got := &sdk.PushGossip{}
+
+	// we should get a message that has the protocol prefix and the gossip
+	// message
+	require.Equal(byte(ethTxGossipProtocol), sent[0])
+	require.NoError(proto.Unmarshal(sent[1:], got))
+
+	marshaller := GossipEthTxMarshaller{}
+	require.Len(got.Gossip, 1)
+	gossipedTx, err := marshaller.UnmarshalGossip(got.Gossip[0])
+	require.NoError(err)
+	require.Equal(ids.ID(signedTx.Hash()), gossipedTx.GossipID())
+}
+
+// Tests that a gossiped tx is added to the mempool and forwarded
+func TestEthTxPushGossipInbound(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+	snowCtx := snow.DefaultContextTest()
+
+	sender := &common.FakeSender{
+		SentAppGossip: make(chan []byte, 1),
+	}
+	vm := &VM{
+		p2pSender:         sender,
+		ethTxPullGossiper: gossip.NoOpGossiper{},
+	}
+
+	require.NoError(vm.Initialize(
+		ctx,
+		snowCtx,
+		memdb.New(),
+		[]byte(genesisJSONLatest),
+		nil,
+		nil,
+		make(chan common.Message),
+		nil,
+		&common.FakeSender{},
+	))
+	require.NoError(vm.SetState(ctx, snow.NormalOp))
+
+	address := testEthAddrs[0]
+	key := testKeys[0]
+	tx := types.NewTransaction(0, address, big.NewInt(10), 100_000, big.NewInt(params.LaunchMinGasPrice), nil)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
+	require.NoError(err)
+
+	marshaller := GossipEthTxMarshaller{}
+	gossipedTx := &GossipEthTx{
+		Tx: signedTx,
+	}
+	gossipedTxBytes, err := marshaller.MarshalGossip(gossipedTx)
+	require.NoError(err)
+
+	inboundGossip := &sdk.PushGossip{
+		Gossip: [][]byte{gossipedTxBytes},
+	}
+
+	inboundGossipBytes, err := proto.Marshal(inboundGossip)
+	require.NoError(err)
+
+	inboundGossipMsg := append(binary.AppendUvarint(nil, ethTxGossipProtocol), inboundGossipBytes...)
+	require.NoError(vm.AppGossip(ctx, ids.EmptyNodeID, inboundGossipMsg))
+
+	forwardedMsg := &sdk.PushGossip{}
+	outboundGossipBytes := <-sender.SentAppGossip
+
+	require.Equal(byte(ethTxGossipProtocol), outboundGossipBytes[0])
+	require.NoError(proto.Unmarshal(outboundGossipBytes[1:], forwardedMsg))
+	require.Len(forwardedMsg.Gossip, 1)
+
+	forwardedTx, err := marshaller.UnmarshalGossip(forwardedMsg.Gossip[0])
+	require.NoError(err)
+	require.Equal(gossipedTx.GossipID(), forwardedTx.GossipID())
+	require.True(vm.txPool.Has(signedTx.Hash()))
 }
