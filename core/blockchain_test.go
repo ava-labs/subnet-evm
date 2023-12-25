@@ -111,9 +111,6 @@ func awaitWatcherEventsSubside(watcher *fsnotify.Watcher, subsideTimeout time.Du
 }
 
 func TestTrieCleanJournal(t *testing.T) {
-	if os.Getenv("RUN_FLAKY_TESTS") != "true" {
-		t.Skip("FLAKY")
-	}
 	require := require.New(t)
 	assert := assert.New(t)
 
@@ -384,6 +381,10 @@ func TestBlockChainOfflinePruningUngracefulShutdown(t *testing.T) {
 		return createBlockChain(db, pruningConfig, gspec, lastAcceptedHash)
 	}
 	for _, tt := range tests {
+		if tt.isMerkleDB() {
+			continue // merkleDB does not support offline pruning
+		}
+
 		tt := tt
 		t.Run(tt.Name, func(t *testing.T) {
 			t.Parallel()
@@ -629,9 +630,6 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 
 // TODO: simplify the unindexer logic and this test.
 func TestTransactionIndices(t *testing.T) {
-	if os.Getenv("RUN_FLAKY_TESTS") != "true" {
-		t.Skip("FLAKY")
-	}
 	// Configure and generate a sample block chain
 	require := require.New(t)
 	var (

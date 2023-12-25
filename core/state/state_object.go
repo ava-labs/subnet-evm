@@ -347,7 +347,7 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 
 // UpdateRoot sets the trie root to the current root hash of. An error
 // will be returned if trie root hash is not computed correctly.
-func (s *stateObject) updateRoot(db Database) {
+func (s *stateObject) updateRoot(db Database, callback func(Trie)) {
 	tr, err := s.updateTrie(db)
 	if err != nil {
 		return
@@ -360,6 +360,7 @@ func (s *stateObject) updateRoot(db Database) {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
 	}
+	callback(tr)
 	s.data.Root = tr.Hash()
 }
 

@@ -81,6 +81,9 @@ type Genesis struct {
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
 	BaseFee    *big.Int    `json:"baseFeePerGas"`
+
+	// Force the use of merkleDB in creating genesis, useful for tests
+	MerkleDB bool `json:"merkle-db,omitempty"`
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -196,7 +199,7 @@ func SetupGenesisBlock(
 	}
 	// We have the genesis block in database but the corresponding state is missing.
 	header := rawdb.ReadHeader(db, stored, 0)
-	if header.Root != types.EmptyRootHash && !rawdb.HasLegacyTrieNode(db, header.Root) {
+	if header.Root != types.EmptyRootHash && !triedb.Initialized(header.Root) {
 		// Ensure the stored genesis matches with the given one.
 		hash := genesis.ToBlock().Hash()
 		if hash != stored {
@@ -319,6 +322,7 @@ func (g *Genesis) toBlock(db ethdb.Database, triedb *trie.Database) *types.Block
 	}
 	root := statedb.IntermediateRoot(false)
 	head.Root = root
+	log.Info("Genesis root", "root", root)
 
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit

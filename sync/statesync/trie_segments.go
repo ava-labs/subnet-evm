@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/ethdb"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -45,8 +47,8 @@ type trieToSync struct {
 
 	// We use a stack trie to hash the leafs and have
 	// a batch used for writing it to disk.
-	batch     ethdb.Batch
-	stackTrie *trie.StackTrie
+	batch     batch
+	stackTrie stackTrie
 
 	// We keep a pointer to the overall sync operation,
 	// used to add segments to the work queue and to
@@ -60,18 +62,79 @@ type trieToSync struct {
 	isMainTrie bool
 }
 
-// NewTrieToSync initializes a trieToSync and restores any previously started segments.
-func NewTrieToSync(sync *stateSync, root common.Hash, account common.Hash, syncTask syncTask) (*trieToSync, error) {
-	batch := sync.db.NewBatch() // TODO: migrate state sync to use database schemes.
+type stackTrie interface {
+	Update(key, value []byte) error
+	Commit() (common.Hash, error)
+}
+
+type batch interface {
+	Write() error
+	ValueSize() int
+	Reset()
+}
+
+var _ batch = &batchWrapper{}
+
+type batchWrapper struct {
+	database.Batch
+}
+
+func (b *batchWrapper) ValueSize() int {
+	return b.Batch.Size()
+}
+
+func (b *batchWrapper) Write() error {
+	return b.Batch.Write()
+}
+
+type stackTrieWrapper struct {
+	*trie.StackTrie
+	batch    database.Batch
+	accounts []common.Hash
+}
+
+func (t *stackTrieWrapper) Update(key, value []byte) error {
+	for _, account := range t.accounts {
+		if err := t.batch.Put(mdb.PrefixBytes(account, key), value); err != nil {
+			return err
+		}
+	}
+
+	return t.StackTrie.Update(key, value)
+}
+
+func (t *stackTrieWrapper) Commit() (common.Hash, error) {
+	return t.Hash(), nil
+}
+
+func createStackTrie(db ethdb.Database, accounts []common.Hash) (stackTrie, batch) {
+	if mdb, ok := db.(*mdb.WithMerkleDB); ok {
+		merkle := mdb.MerkleDB()
+		batch := merkle.NewBatch()
+		st := trie.NewStackTrie(nil)
+		return &stackTrieWrapper{
+			StackTrie: st,
+			batch:     batch,
+			accounts:  accounts,
+		}, &batchWrapper{batch}
+	}
+
+	batch := db.NewBatch() // TODO: migrate state sync to use database schemes.
 	writeFn := func(owner common.Hash, path []byte, hash common.Hash, blob []byte) {
 		rawdb.WriteTrieNode(batch, owner, path, hash, blob, rawdb.HashScheme)
 	}
+	return trie.NewStackTrie(writeFn), batch
+}
+
+// NewTrieToSync initializes a trieToSync and restores any previously started segments.
+func NewTrieToSync(sync *stateSync, root common.Hash, accounts []common.Hash, syncTask syncTask) (*trieToSync, error) {
+	stackTrie, batch := createStackTrie(sync.db, accounts)
 	trieToSync := &trieToSync{
 		sync:         sync,
 		root:         root,
-		account:      account,
+		account:      accounts[0],
 		batch:        batch,
-		stackTrie:    trie.NewStackTrie(writeFn),
+		stackTrie:    stackTrie,
 		isMainTrie:   (root == sync.root),
 		task:         syncTask,
 		segmentsDone: make(map[int]struct{}),

@@ -13,6 +13,8 @@ const (
 	HealthCheckTimeout = 5 * time.Second
 
 	DefaultLocalNodeURI = "http://127.0.0.1:9650"
+
+	UseMerkleDBEnvVar = "USE_MERKLE_DB"
 )
 
 var (

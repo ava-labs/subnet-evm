@@ -16,13 +16,13 @@ import (
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/statesync"
+	"github.com/ava-labs/subnet-evm/sync/syncutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -176,17 +176,11 @@ func (client *stateSyncerClient) acceptSyncSummary(proposedSummary message.SyncS
 			return block.StateSyncSkipped, nil
 		}
 
-		// Wipe the snapshot completely if we are not resuming from an existing sync, so that we do not
-		// use a corrupted snapshot.
-		// Note: this assumes that when the node is started with state sync disabled, the in-progress state
-		// sync marker will be wiped, so we do not accidentally resume progress from an incorrect version
-		// of the snapshot. (if switching between versions that come before this change and back this could
-		// lead to the snapshot not being cleaned up correctly)
-		<-snapshot.WipeSnapshot(client.chaindb, true)
-		// Reset the snapshot generator here so that when state sync completes, snapshots will not attempt to read an
-		// invalid generator.
-		// Note: this must be called after WipeSnapshot is called so that we do not invalidate a partially generated snapshot.
-		snapshot.ResetSnapshotGeneration(client.chaindb)
+		// If we are not resuming a previous sync, we need to wipe the snapshot
+		// so that we do not start a state sync session from a partially wiped snapshot.
+		if err := syncutils.ClearPartialDB(client.chaindb); err != nil {
+			return block.StateSyncSkipped, fmt.Errorf("failed to clear partial db: %w", err)
+		}
 	}
 	client.syncSummary = proposedSummary
 

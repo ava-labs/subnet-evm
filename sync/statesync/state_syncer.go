@@ -98,7 +98,7 @@ func NewStateSyncer(config *StateSyncerConfig) (*stateSync, error) {
 
 	// create a trieToSync for the main trie and mark it as in progress.
 	var err error
-	ss.mainTrie, err = NewTrieToSync(ss, ss.root, common.Hash{}, NewMainTrieTask(ss))
+	ss.mainTrie, err = NewTrieToSync(ss, ss.root, []common.Hash{{}}, NewMainTrieTask(ss))
 	if err != nil {
 		return nil, err
 	}
@@ -178,9 +178,9 @@ func (t *stateSync) storageTrieProducer(ctx context.Context) error {
 			// Arbitrarily use the first account for making requests to the server.
 			// Note: getNextTrie guarantees that if a non-nil storage root is returned, then the
 			// slice of account hashes is non-empty.
-			syncAccount := accounts[0]
+			// syncAccount := accounts[0]
 			// create a trieToSync for the storage trie and mark it as in progress.
-			storageTrie, err := NewTrieToSync(t, root, syncAccount, NewStorageTrieTask(t, root, accounts))
+			storageTrie, err := NewTrieToSync(t, root, accounts, NewStorageTrieTask(t, root, accounts))
 			if err != nil {
 				return err
 			}

@@ -19,7 +19,9 @@ import (
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
+	"github.com/ava-labs/avalanchego/trace"
 	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
+	"github.com/ava-labs/avalanchego/x/merkledb"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -30,6 +32,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
+	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/metrics"
 	subnetEVMPrometheus "github.com/ava-labs/subnet-evm/metrics/prometheus"
 	"github.com/ava-labs/subnet-evm/miner"
@@ -37,6 +40,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
@@ -136,11 +140,15 @@ const (
 
 var (
 	// Set last accepted key to be longer than the keys used to store accepted block IDs.
-	lastAcceptedKey = []byte("last_accepted_key")
-	acceptedPrefix  = []byte("snowman_accepted")
-	metadataPrefix  = []byte("metadata")
-	warpPrefix      = []byte("warp")
-	ethDBPrefix     = []byte("ethdb")
+	lastAcceptedKey    = []byte("last_accepted_key")
+	acceptedPrefix     = []byte("snowman_accepted")
+	metadataPrefix     = []byte("metadata")
+	warpPrefix         = []byte("warp")
+	ethDBPrefix        = []byte("ethdb")
+	merkleDBPrefix     = []byte("merkledb")
+	merkleDBMetaPrefix = []byte("merkledb_meta")
+	archiveDBPrefix    = []byte("archivedb")
+	merkleDBWipeKey    = []byte("merkledb_wipe")
 )
 
 var (
@@ -173,6 +181,18 @@ var legacyApiNames = map[string]string{
 	"private-debug":     "debug",
 }
 
+func (vm *VM) getMerkleDBConfig() merkledb.Config {
+	return merkledb.Config{
+		HistoryLength:             vm.config.MerkleDBHistoryLength,
+		EvictionBatchSize:         vm.config.MerkleDBEvictionBatchSize,
+		ValueNodeCacheSize:        vm.config.MerkleDBValueNodeCacheSize,
+		IntermediateNodeCacheSize: vm.config.MerkleDBIntermediateNodeCacheSize,
+		Reg:                       prometheus.NewRegistry(),
+		Tracer:                    trace.Noop,
+		BranchFactor:              merkledb.BranchFactor16,
+	}
+}
+
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
@@ -202,7 +222,7 @@ type VM struct {
 	metadataDB database.Database
 
 	// [chaindb] is the database supplied to the Ethereum backend
-	chaindb Database
+	chaindb ethdb.Database
 
 	// [acceptedBlockDB] is the database to store the last accepted
 	// block.
@@ -295,11 +315,64 @@ func (vm *VM) Initialize(
 	// Enable debug-level metrics that might impact runtime performance
 	metrics.EnabledExpensive = vm.config.MetricsExpensiveEnabled
 
+	g := new(core.Genesis)
+	if err := json.Unmarshal(genesisBytes, g); err != nil {
+		return err
+	}
+
+	if g.Config == nil {
+		g.Config = params.SubnetEVMDefaultChainConfig
+	}
+
 	vm.toEngine = toEngine
 	vm.shutdownChan = make(chan struct{}, 1)
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
 	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, db)}
+	// Let's instantiate a merkledb while we have the avalanchego database around.
+
+	wiped := false
+	if vm.config.MerkleDB || g.MerkleDB {
+		merkleKVStore := prefixdb.New(merkleDBPrefix, db) // XXX: should this be NewNested?
+		merkleMetaStore := prefixdb.New(merkleDBMetaPrefix, db)
+		lastWipe, err := database.GetUInt64(merkleMetaStore, merkleDBWipeKey)
+		if errors.Is(err, database.ErrNotFound) {
+			lastWipe = 0
+		} else if err != nil {
+			return fmt.Errorf("failed to get last wipe: %w", err)
+		}
+		if lastWipe < vm.config.MerkleDBWipe {
+			log.Info("Wiping MerkleDB", "lastWipe", lastWipe, "currentWipe", vm.config.MerkleDBWipe)
+			if err := database.Clear(merkleKVStore, 100*units.MiB); err != nil {
+				return fmt.Errorf("failed to clear merkleDB: %w", err)
+			}
+			if err := database.PutUInt64(merkleMetaStore, merkleDBWipeKey, vm.config.MerkleDBWipe); err != nil {
+				return fmt.Errorf("failed to set last wipe: %w", err)
+			}
+			log.Warn("Wiped MerkleDB", "lastWipe", lastWipe, "currentWipe", vm.config.MerkleDBWipe)
+			wiped = true
+		}
+
+		log.Warn("Enabling MerkleDB. It is experimental and should not be used in production")
+		merkleDB, err := merkledb.New(
+			context.Background(),
+			merkleKVStore,
+			vm.getMerkleDBConfig(),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create merkleDB: %w", err)
+		}
+		archiveDB := prefixdb.New(archiveDBPrefix, db)
+		wmdb := mdb.NewWithMerkleDB(vm.chaindb, merkleDB, mdb.NewArchiveDB(archiveDB))
+		vm.chaindb = wmdb
+		log.Warn("MerkleDB enabled")
+		if vm.config.MerkleDBVerify {
+			if err := wmdb.VerifyMerkleRoot(); err != nil {
+				return fmt.Errorf("failed to verify merkleDB: %w", err)
+			}
+		}
+	}
+
 	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
@@ -315,15 +388,6 @@ func (vm *VM) Initialize(
 			return err
 		}
 		log.Info("Completed database inspection", "elapsed", time.Since(start))
-	}
-
-	g := new(core.Genesis)
-	if err := json.Unmarshal(genesisBytes, g); err != nil {
-		return err
-	}
-
-	if g.Config == nil {
-		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
 	mandatoryNetworkUpgrades, enforce := getMandatoryNetworkUpgrades(chainCtx.NetworkID)
@@ -452,6 +516,12 @@ func (vm *VM) Initialize(
 	if err != nil {
 		return err
 	}
+	if wiped {
+		lastAcceptedHash = vm.genesisHash
+		lastAcceptedHeight = 0
+		log.Warn("Wiped MerkleDB, resetting last accepted block", "lastAcceptedHash", lastAcceptedHash, "lastAcceptedHeight", lastAcceptedHeight)
+	}
+
 	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
 
 	if err := vm.initializeMetrics(); err != nil {
@@ -730,6 +800,11 @@ func (vm *VM) setAppRequestHandlers() {
 	)
 
 	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
+
+	if vm.config.MerkleDB {
+		log.Warn("merkleDB doesn't support proofs so we can't serve state sync requests")
+		networkHandler = newWarpOnlyHandler(vm.warpBackend, vm.networkCodec)
+	}
 	vm.Network.SetRequestHandler(networkHandler)
 }
 

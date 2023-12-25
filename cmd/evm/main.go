@@ -143,6 +143,7 @@ var stateTransitionCommand = &cli.Command{
 	Usage:   "executes a full state transition",
 	Action:  t8ntool.Transition,
 	Flags: []cli.Flag{
+		t8ntool.MerkleDBFlag,
 		t8ntool.TraceFlag,
 		t8ntool.TraceDisableMemoryFlag,
 		t8ntool.TraceEnableMemoryFlag,

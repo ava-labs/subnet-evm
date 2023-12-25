@@ -145,6 +145,13 @@ func CreateNewSubnet(ctx context.Context, genesisFilePath string) string {
 	err = json.Unmarshal(genesisBytes, genesis)
 	gomega.Expect(err).Should(gomega.BeNil())
 
+	if os.Getenv(UseMerkleDBEnvVar) != "" {
+		log.Info("Enabling MerlkeDB in genesis")
+		genesis.MerkleDB = true
+		genesisBytes, err = json.Marshal(genesis)
+		gomega.Expect(err).Should(gomega.BeNil())
+	}
+
 	log.Info("Creating new Subnet-EVM blockchain", "genesis", genesis)
 	createChainTx, err := pWallet.IssueCreateChainTx(
 		createSubnetTx.ID(),

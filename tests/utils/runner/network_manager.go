@@ -16,6 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/plugin/evm"
+	"github.com/ava-labs/subnet-evm/tests/utils"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -365,6 +366,10 @@ func RegisterFiveNodeSubnetRun() func() *Subnet {
 		var err error
 		_, err = manager.StartDefaultNetwork(ctx)
 		gomega.Expect(err).Should(gomega.BeNil())
+		chainConfig := ""
+		if os.Getenv(utils.UseMerkleDBEnvVar) != "" {
+			chainConfig = `{"merkle-db": true}`
+		}
 		err = manager.SetupNetwork(
 			ctx,
 			config.AvalancheGoExecPath,
@@ -372,7 +377,7 @@ func RegisterFiveNodeSubnetRun() func() *Subnet {
 				{
 					VmName:      evm.IDStr,
 					Genesis:     "./tests/load/genesis/genesis.json",
-					ChainConfig: "",
+					ChainConfig: chainConfig,
 					SubnetSpec: &rpcpb.SubnetSpec{
 						Participants: subnetA,
 					},

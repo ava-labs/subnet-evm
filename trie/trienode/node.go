@@ -84,6 +84,7 @@ type NodeSet struct {
 	Owner   common.Hash
 	Leaves  []*leaf
 	Nodes   map[string]*WithPrev
+	Commit  interface{}
 	updates int // the count of updated and inserted nodes
 	deletes int // the count of deleted nodes
 }

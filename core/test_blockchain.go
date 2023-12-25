@@ -4,11 +4,15 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/ava-labs/avalanchego/database/memdb"
+	"github.com/ava-labs/avalanchego/x/merkledb"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -16,12 +20,14 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,6 +37,14 @@ type ChainTest struct {
 		t *testing.T,
 		create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error),
 	)
+}
+
+func (c ChainTest) isMerkleDB() bool {
+	return strings.HasSuffix(c.Name, "MerkleDB")
+}
+
+func (c ChainTest) nameWithMekleDB() string {
+	return fmt.Sprintf("%sMerkleDB", c.Name)
 }
 
 var tests = []ChainTest{
@@ -84,18 +98,42 @@ var tests = []ChainTest{
 	},
 }
 
-func copyMemDB(db ethdb.Database) (ethdb.Database, error) {
-	newDB := rawdb.NewMemoryDatabase()
-	iter := db.NewIterator(nil, nil)
-	defer iter.Release()
-	for iter.Next() {
-		if err := newDB.Put(iter.Key(), iter.Value()); err != nil {
-			return nil, err
+func init() {
+	newTests := make([]ChainTest, 0, len(tests))
+	for _, test := range tests {
+		newFn := func(t *testing.T, create func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error)) {
+			test.testFunc(t, func(db ethdb.Database, gspec *Genesis, lastAcceptedHash common.Hash) (*BlockChain, error) {
+				log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+				return create(wrapWithMerkleDB(db), gspec, lastAcceptedHash)
+			})
 		}
+		newTest := ChainTest{
+			Name:     test.nameWithMekleDB(),
+			testFunc: newFn,
+		}
+		newTests = append(newTests, newTest)
 	}
 
-	return newDB, nil
+	tests = append(tests, newTests...)
 }
+
+func wrapWithMerkleDB(db ethdb.Database) ethdb.Database {
+	if _, ok := db.(*mdb.WithMerkleDB); ok {
+		return db // avoid wrapping an alredy copied db
+	}
+	if _, ok := db.(*noWrapMerkle); ok {
+		return db // avoid wrapping this db, it's for verification
+	}
+
+	memDB := memdb.New()
+	merkleDB, err := merkledb.New(context.Background(), memDB, mdb.NewBasicConfig())
+	if err != nil {
+		panic(err)
+	}
+	return mdb.NewWithMerkleDB(db, merkleDB, mdb.NewArchiveDB(memdb.New()))
+}
+
+type noWrapMerkle struct{ ethdb.Database }
 
 // checkBlockChainState creates a new BlockChain instance and checks that exporting each block from
 // genesis to last accepted from the original instance yields the same last accepted block and state
@@ -123,7 +161,8 @@ func checkBlockChainState(
 		t.Fatalf("Check state failed for original blockchain due to: %s", err)
 	}
 
-	newBlockChain, err := create(newDB, gspec, common.Hash{})
+	// XXX: hacky way to avoid use of merkleDB in the verifying chain
+	newBlockChain, err := create(&noWrapMerkle{newDB}, gspec, common.Hash{})
 	if err != nil {
 		t.Fatalf("Failed to create new blockchain instance: %s", err)
 	}
@@ -158,7 +197,8 @@ func checkBlockChainState(
 	}
 
 	// Copy the database over to prevent any issues when re-using [originalDB] after this call.
-	originalDB, err = copyMemDB(originalDB)
+	originalDB = bc.db
+	originalDB, err = mdb.CopyMemDB(originalDB)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethdb"
+	"github.com/ava-labs/subnet-evm/plugin/mdb"
 	"github.com/ava-labs/subnet-evm/sync/syncutils"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
@@ -109,12 +110,16 @@ func (s *storageTrieTask) IterateLeafs(seek common.Hash) ethdb.Iterator {
 }
 
 func (s *storageTrieTask) OnStart() (bool, error) {
+	// XXX: for merkleDB skip this optimization for now
+	if _, ok := s.sync.db.(*mdb.WithMerkleDB); ok {
+		return false, nil
+	}
 	// check if this storage root is on disk
 	var firstAccount common.Hash
 	if len(s.accounts) > 0 {
 		firstAccount = s.accounts[0]
 	}
-	storageTrie, err := trie.New(trie.StorageTrieID(s.sync.root, s.root, firstAccount), s.sync.trieDB)
+	storageTrie, err := trie.NewStateTrie(trie.StorageTrieID(s.sync.root, firstAccount, s.root), s.sync.trieDB)
 	if err != nil {
 		return false, nil
 	}
