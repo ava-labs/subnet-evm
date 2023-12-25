@@ -78,6 +78,10 @@ func (t txGossipHandler) AppGossip(ctx context.Context, nodeID ids.NodeID, gossi
 	t.appGossipHandler.AppGossip(ctx, nodeID, gossipBytes)
 }
 
+func (t txGossipHandler) AppRequest(ctx context.Context, nodeID ids.NodeID, deadline time.Time, requestBytes []byte) ([]byte, error) {
+	return t.appRequestHandler.AppRequest(ctx, nodeID, deadline, requestBytes)
+}
+
 func NewGossipEthTxPool(mempool *txpool.TxPool) (*GossipEthTxPool, error) {
 	bloom, err := gossip.NewBloomFilter(txGossipBloomMaxItems, txGossipBloomFalsePositiveRate)
 	if err != nil {
@@ -148,10 +152,7 @@ func (g *GossipEthTxPool) GetFilter() ([]byte, []byte, error) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
-	bloom, err := g.bloom.Bloom.MarshalBinary()
-	salt := g.bloom.Salt
-
-	return bloom, salt[:], err
+	return g.bloom.Marshal()
 }
 
 type GossipEthTxMarshaller struct{}
