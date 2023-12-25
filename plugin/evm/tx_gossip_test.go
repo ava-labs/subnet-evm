@@ -22,7 +22,6 @@ import (
 	agoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
-	"github.com/ava-labs/coreth/params"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 
@@ -174,7 +173,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 
 	address := testEthAddrs[0]
 	key := testKeys[0]
-	tx := types.NewTransaction(0, address, big.NewInt(10), 100_000, big.NewInt(params.LaunchMinGasPrice), nil)
+	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
 	require.NoError(err)
 
@@ -225,7 +224,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 
 	address := testEthAddrs[0]
 	key := testKeys[0]
-	tx := types.NewTransaction(0, address, big.NewInt(10), 100_000, big.NewInt(params.LaunchMinGasPrice), nil)
+	tx := types.NewTransaction(0, address, big.NewInt(10), 21000, big.NewInt(testMinGasPrice), nil)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
 	require.NoError(err)
 

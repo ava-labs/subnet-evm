@@ -73,7 +73,7 @@ func getValidEthTxs(key *ecdsa.PrivateKey, count int, gasPrice *big.Int) []*type
 }
 
 // show that locally issued eth txs are gossiped
-// Note: channel through which coreth mempool push txs to vm is injected here
+// Note: channel through which subnet-evm mempool push txs to vm is injected here
 // to ease up UT, which target only VM behaviors in response to subnet-evm mempool
 // signals
 func TestMempoolEthTxsAddedTxsGossipedAfterActivation(t *testing.T) {
@@ -158,7 +158,7 @@ func TestMempoolEthTxsAddedTxsGossipedAfterActivation(t *testing.T) {
 	errs = vm.txPool.AddRemotesSync(ethTxs)
 	assert.Contains(errs[0].Error(), "already known")
 	assert.Contains(errs[1].Error(), "already known")
-	assert.NoError(errs[2], "failed adding coreth tx to mempool")
+	assert.NoError(errs[2], "failed adding subnet-evm tx to mempool")
 
 	attemptAwait(t, &wg, 5*time.Second)
 }

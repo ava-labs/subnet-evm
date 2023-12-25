@@ -6,7 +6,6 @@ require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanche-network-runner v1.7.4-0.20231127162258-2f3ceed8ae4b
 	github.com/ava-labs/avalanchego v1.10.18-rc.8
-	github.com/ava-labs/coreth v0.12.9-rc.9.0.20231222191417-2e3f762373e9
 	github.com/cespare/cp v0.1.0
 	github.com/cockroachdb/pebble v0.0.0-20230209160836-829675f94811
 	github.com/davecgh/go-spew v1.1.1
@@ -58,6 +57,7 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
+	github.com/ava-labs/coreth v0.12.9-rc.9.0.20231222191417-2e3f762373e9 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.7.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
