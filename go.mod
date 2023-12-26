@@ -2,6 +2,8 @@ module github.com/ava-labs/subnet-evm
 
 go 1.20
 
+replace github.com/ava-labs/avalanchego => github.com/ava-labs/avalanchego v1.10.18-rc.5.0.20231226102214-195a38dc33f5
+
 require (
 	github.com/VictoriaMetrics/fastcache v1.10.0
 	github.com/ava-labs/avalanche-network-runner v1.7.4-0.20231127162258-2f3ceed8ae4b
@@ -57,7 +59,7 @@ require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
-	github.com/ava-labs/coreth v0.12.9-rc.9.0.20231222191417-2e3f762373e9 // indirect
+	github.com/ava-labs/coreth v0.12.9-rc.9.0.20231223200644-ef31047864b7 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.7.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
