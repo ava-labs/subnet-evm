@@ -69,7 +69,6 @@ func newTxGossipHandler[T gossip.Gossipable](
 }
 
 type txGossipHandler struct {
-	p2p.NoOpHandler
 	appGossipHandler  p2p.Handler
 	appRequestHandler p2p.Handler
 }
@@ -80,6 +79,9 @@ func (t txGossipHandler) AppGossip(ctx context.Context, nodeID ids.NodeID, gossi
 
 func (t txGossipHandler) AppRequest(ctx context.Context, nodeID ids.NodeID, deadline time.Time, requestBytes []byte) ([]byte, error) {
 	return t.appRequestHandler.AppRequest(ctx, nodeID, deadline, requestBytes)
+}
+func (t txGossipHandler) CrossChainAppRequest(context.Context, ids.ID, time.Time, []byte) ([]byte, error) {
+	return nil, nil
 }
 
 func NewGossipEthTxPool(mempool *txpool.TxPool) (*GossipEthTxPool, error) {
