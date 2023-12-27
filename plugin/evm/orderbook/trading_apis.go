@@ -213,7 +213,7 @@ func (api *TradingAPI) StreamDepthUpdateForMarket(ctx context.Context, market in
 
 	var oldMarketDepth = &MarketDepth{}
 
-	go func() {
+	go executeFuncAndRecoverPanic(func() {
 		for {
 			select {
 			case <-ticker.C:
@@ -233,7 +233,7 @@ func (api *TradingAPI) StreamDepthUpdateForMarket(ctx context.Context, market in
 				return
 			}
 		}
-	}()
+	}, "panic in StreamDepthUpdateForMarket", RPCPanicsCounter)
 
 	return rpcSub, nil
 }
@@ -268,7 +268,7 @@ func (api *TradingAPI) StreamTraderUpdates(ctx context.Context, trader string, b
 
 	traderFeedCh := make(chan TraderEvent)
 	traderFeedSubscription := traderFeed.Subscribe(traderFeedCh)
-	go func() {
+	go executeFuncAndRecoverPanic(func() {
 		defer traderFeedSubscription.Unsubscribe()
 
 		for {
@@ -281,7 +281,7 @@ func (api *TradingAPI) StreamTraderUpdates(ctx context.Context, trader string, b
 				return
 			}
 		}
-	}()
+	}, "panic in StreamTraderUpdates", RPCPanicsCounter)
 
 	return rpcSub, nil
 }
@@ -293,7 +293,7 @@ func (api *TradingAPI) StreamMarketTrades(ctx context.Context, market Market, bl
 
 	marketFeedCh := make(chan MarketFeedEvent)
 	acceptedLogsSubscription := marketFeed.Subscribe(marketFeedCh)
-	go func() {
+	go executeFuncAndRecoverPanic(func() {
 		defer acceptedLogsSubscription.Unsubscribe()
 
 		for {
@@ -306,7 +306,7 @@ func (api *TradingAPI) StreamMarketTrades(ctx context.Context, market Market, bl
 				return
 			}
 		}
-	}()
+	}, "panic in StreamMarketTrades", RPCPanicsCounter)
 
 	return rpcSub, nil
 }

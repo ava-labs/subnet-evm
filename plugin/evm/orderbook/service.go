@@ -7,16 +7,20 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/eth"
+	"github.com/ava-labs/subnet-evm/metrics"
 	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 type OrderBookAPI struct {
@@ -213,7 +217,7 @@ func (api *OrderBookAPI) NewOrderBookState(ctx context.Context) (*rpc.Subscripti
 
 	rpcSub := notifier.CreateSubscription()
 
-	go func() {
+	go executeFuncAndRecoverPanic(func() {
 		var (
 			headers    = make(chan core.ChainHeadEvent)
 			headersSub event.Subscription
@@ -226,6 +230,7 @@ func (api *OrderBookAPI) NewOrderBookState(ctx context.Context) (*rpc.Subscripti
 			select {
 			case <-headers:
 				orderBookData := api.GetDetailedOrderBookData(ctx)
+				log.Info("New order book state", "orderBookData", orderBookData)
 				notifier.Notify(rpcSub.ID, &orderBookData)
 			case <-rpcSub.Err():
 				headersSub.Unsubscribe()
@@ -235,7 +240,7 @@ func (api *OrderBookAPI) NewOrderBookState(ctx context.Context) (*rpc.Subscripti
 				return
 			}
 		}
-	}()
+	}, "panic in NewOrderBookState", RPCPanicsCounter)
 
 	return rpcSub, nil
 }
@@ -253,7 +258,7 @@ func (api *OrderBookAPI) StreamDepthUpdateForMarket(ctx context.Context, market 
 
 	var oldMarketDepth = &MarketDepth{}
 
-	go func() {
+	go executeFuncAndRecoverPanic(func() {
 		for {
 			select {
 			case <-ticker.C:
@@ -266,7 +271,7 @@ func (api *OrderBookAPI) StreamDepthUpdateForMarket(ctx context.Context, market 
 				return
 			}
 		}
-	}()
+	}, "panic in StreamDepthUpdateForMarket", RPCPanicsCounter)
 
 	return rpcSub, nil
 }
@@ -276,7 +281,6 @@ func (api *OrderBookAPI) StreamDepthUpdateForMarket(ctx context.Context, market 
 func (api *OrderBookAPI) StreamDepthUpdateForMarketAndFreq(ctx context.Context, market int, updateFreq string) (*rpc.Subscription, error) {
 	notifier, _ := rpc.NotifierFromContext(ctx)
 	rpcSub := notifier.CreateSubscription()
-
 	if updateFreq == "" {
 		updateFreq = "1s"
 	}
@@ -289,12 +293,13 @@ func (api *OrderBookAPI) StreamDepthUpdateForMarketAndFreq(ctx context.Context, 
 
 	var oldMarketDepth = &MarketDepth{}
 
-	go func() {
+	go executeFuncAndRecoverPanic(func() {
 		for {
 			select {
 			case <-ticker.C:
 				newMarketDepth := getDepthForMarket(api.db, Market(market))
 				depthUpdate := getUpdateInDepth(newMarketDepth, oldMarketDepth)
+				log.Info("Depth update", "depthUpdate", depthUpdate)
 				notifier.Notify(rpcSub.ID, depthUpdate)
 				oldMarketDepth = newMarketDepth
 			case <-notifier.Closed():
@@ -302,7 +307,7 @@ func (api *OrderBookAPI) StreamDepthUpdateForMarketAndFreq(ctx context.Context, 
 				return
 			}
 		}
-	}()
+	}, "panic in StreamDepthUpdateForMarketAndFreq", RPCPanicsCounter)
 
 	return rpcSub, nil
 }
@@ -371,4 +376,26 @@ type MarketDepth struct {
 	Market Market            `json:"market"`
 	Longs  map[string]string `json:"longs"`
 	Shorts map[string]string `json:"shorts"`
+}
+
+func executeFuncAndRecoverPanic(fn func(), panicMessage string, panicCounter metrics.Counter) {
+	defer func() {
+		if panicInfo := recover(); panicInfo != nil {
+			var errorMessage string
+			switch panicInfo := panicInfo.(type) {
+			case string:
+				errorMessage = fmt.Sprintf("recovered (string) panic: %s", panicInfo)
+			case runtime.Error:
+				errorMessage = fmt.Sprintf("recovered (runtime.Error) panic: %s", panicInfo.Error())
+			case error:
+				errorMessage = fmt.Sprintf("recovered (error) panic: %s", panicInfo.Error())
+			default:
+				errorMessage = fmt.Sprintf("recovered (default) panic: %v", panicInfo)
+			}
+
+			log.Error(panicMessage, "errorMessage", errorMessage, "stack_trace", string(debug.Stack()))
+			panicCounter.Inc(1)
+		}
+	}()
+	fn()
 }
