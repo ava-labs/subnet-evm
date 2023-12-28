@@ -166,7 +166,7 @@ func (n *pushGossiper) queueExecutableTxs(
 }
 
 // queueRegossipTxs finds the best non-priority transactions in the mempool and adds up to
-// [RegossipMaxTxs] of them to [txsToGossip].
+// [RegossipMaxTxs] of them to [ethTxsToGossip].
 func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 	// Fetch all pending transactions
 	pending := n.txPool.Pending(true)

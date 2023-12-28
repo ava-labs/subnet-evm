@@ -5,4 +5,4 @@ AVALANCHE_VERSION=${AVALANCHE_VERSION:-'v1.10.18-rc.8'}
 GINKGO_VERSION=${GINKGO_VERSION:-'v2.2.0'}
 
 # This won't be used, but it's here to make code syncs easier
-LATEST_CORETH_VERSION='0.12.7'
+LATEST_CORETH_VERSION='0.12.10-rc.2'

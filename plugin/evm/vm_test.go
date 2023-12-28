@@ -33,13 +33,14 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	avalancheConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/formatting"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
+
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	accountKeystore "github.com/ava-labs/subnet-evm/accounts/keystore"
@@ -64,12 +65,11 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 
-	avagoconstants "github.com/ava-labs/avalanchego/utils/constants"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 )
 
 var (
-	testNetworkID   uint32 = avagoconstants.UnitTestID
+	testNetworkID   uint32 = avalancheConstants.UnitTestID
 	testCChainID           = ids.ID{'c', 'c', 'h', 'a', 'i', 'n', 't', 'e', 's', 't'}
 	testXChainID           = ids.ID{'t', 'e', 's', 't', 'x'}
 	testMinGasPrice int64  = 225_000_000_000
@@ -204,14 +204,15 @@ func GenesisVM(t *testing.T,
 	*commonEng.SenderTest,
 ) {
 	vm := &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSON)
+	ctx, db, genesisBytes, issuer, _ := setupGenesis(t, genesisJSON)
+	vm.p2pSender = &commonEng.FakeSender{}
 	appSender := &commonEng.SenderTest{T: t}
 	appSender.CantSendAppGossip = true
 	appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
 	err := vm.Initialize(
 		context.Background(),
 		ctx,
-		dbManager,
+		db,
 		genesisBytes,
 		[]byte(upgradeJSON),
 		[]byte(configJSON),
@@ -226,7 +227,7 @@ func GenesisVM(t *testing.T,
 		require.NoError(t, vm.SetState(context.Background(), snow.NormalOp))
 	}
 
-	return issuer, vm, dbManager, appSender
+	return issuer, vm, db, appSender
 }
 
 func TestVMConfig(t *testing.T) {
@@ -291,6 +292,11 @@ func TestVMUpgrades(t *testing.T) {
 		{
 			name:             "Subnet EVM",
 			genesis:          genesisJSONSubnetEVM,
+			expectedGasPrice: big.NewInt(0),
+		},
+		{
+			name:             "DUpgrade",
+			genesis:          genesisJSONDUpgrade,
 			expectedGasPrice: big.NewInt(0),
 		},
 	}
@@ -381,7 +387,7 @@ func issueAndAccept(t *testing.T, issuer <-chan commonEng.Message, vm *VM) snowm
 
 func TestBuildEthTxBlock(t *testing.T) {
 	// reduce block gas cost
-	issuer, vm, dbManager, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
+	issuer, vm, db, _ := GenesisVM(t, true, genesisJSONSubnetEVM, "{\"pruning-enabled\":true}", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -484,7 +490,7 @@ func TestBuildEthTxBlock(t *testing.T) {
 	if err := restartedVM.Initialize(
 		context.Background(),
 		NewContext(),
-		dbManager,
+		db,
 		genesisBytes,
 		[]byte(""),
 		[]byte("{\"pruning-enabled\":true}"),
@@ -1985,14 +1991,14 @@ func TestConfigureLogLevel(t *testing.T) {
 	for _, test := range configTests {
 		t.Run(test.name, func(t *testing.T) {
 			vm := &VM{}
-			ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
+			ctx, db, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
 			appSender := &commonEng.SenderTest{T: t}
 			appSender.CantSendAppGossip = true
 			appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
 			err := vm.Initialize(
 				context.Background(),
 				ctx,
-				dbManager,
+				db,
 				genesisBytes,
 				[]byte(""),
 				[]byte(test.logConfig),
@@ -2356,11 +2362,11 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm := &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, string(genesisJSON))
+	ctx, db, genesisBytes, issuer, _ := setupGenesis(t, string(genesisJSON))
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
-		dbManager,
+		db,
 		genesisBytes,
 		[]byte(""),
 		[]byte(""),
@@ -2387,11 +2393,11 @@ func TestVerifyManagerConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	vm = &VM{}
-	ctx, dbManager, genesisBytes, issuer, _ = setupGenesis(t, string(genesisJSON))
+	ctx, db, genesisBytes, issuer, _ = setupGenesis(t, string(genesisJSON))
 	err = vm.Initialize(
 		context.Background(),
 		ctx,
-		dbManager,
+		db,
 		genesisBytes,
 		upgradeBytesJSON,
 		[]byte(""),
@@ -3045,7 +3051,7 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	metrics.Enabled = false
 	defer func() { metrics.Enabled = true }()
 
-	issuer, vm, dbManager, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, "{\"pruning-enabled\":true}", "")
+	issuer, vm, db, appSender := GenesisVM(t, true, genesisJSONPreSubnetEVM, "{\"pruning-enabled\":true}", "")
 
 	defer func() {
 		if err := vm.Shutdown(context.Background()); err != nil {
@@ -3089,12 +3095,12 @@ func TestSkipChainConfigCheckCompatible(t *testing.T) {
 	require.NoError(t, err)
 
 	// this will not be allowed
-	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, appSender)
+	err = reinitVM.Initialize(context.Background(), vm.ctx, db, genesisWithUpgradeBytes, []byte{}, []byte{}, issuer, []*commonEng.Fx{}, appSender)
 	require.ErrorContains(t, err, "mismatching SubnetEVM fork block timestamp in database")
 
 	// try again with skip-upgrade-check
 	config := []byte("{\"skip-upgrade-check\": true}")
-	err = reinitVM.Initialize(context.Background(), vm.ctx, dbManager, genesisWithUpgradeBytes, []byte{}, config, issuer, []*commonEng.Fx{}, appSender)
+	err = reinitVM.Initialize(context.Background(), vm.ctx, db, genesisWithUpgradeBytes, []byte{}, config, issuer, []*commonEng.Fx{}, appSender)
 	require.NoError(t, err)
 	require.NoError(t, reinitVM.Shutdown(context.Background()))
 }

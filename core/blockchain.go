@@ -168,11 +168,12 @@ type CacheConfig struct {
 	TrieCleanRejournal              time.Duration // Time interval to dump clean cache to disk periodically
 	TrieDirtyLimit                  int           // Memory limit (MB) at which to block on insert and force a flush of dirty trie nodes to disk
 	TrieDirtyCommitTarget           int           // Memory limit (MB) to target for the dirties cache before invoking commit
+	TriePrefetcherParallelism       int           // Max concurrent disk reads trie prefetcher should perform at once
 	CommitInterval                  uint64        // Commit the trie every [CommitInterval] blocks.
 	Pruning                         bool          // Whether to disable trie write caching and GC altogether (archive node)
 	AcceptorQueueLimit              int           // Blocks to queue before blocking during acceptance
 	PopulateMissingTries            *uint64       // If non-nil, sets the starting height for re-generating historical tries.
-	PopulateMissingTriesParallelism int           // Is the number of readers to use when trying to populate missing tries.
+	PopulateMissingTriesParallelism int           // Number of readers to use when trying to populate missing tries.
 	AllowMissingTries               bool          // Whether to allow an archive node to run with pruning enabled
 	SnapshotDelayInit               bool          // Whether to initialize snapshots on startup or wait for external call
 	SnapshotLimit                   int           // Memory allowance (MB) to use for caching snapshot entries in memory
@@ -180,20 +181,22 @@ type CacheConfig struct {
 	Preimages                       bool          // Whether to store preimage of trie key to the disk
 	AcceptedCacheSize               int           // Depth of accepted headers cache and accepted logs cache at the accepted tip
 	TxLookupLimit                   uint64        // Number of recent blocks for which to maintain transaction lookup indices
+	SkipTxIndexing                  bool          // Whether to skip transaction indexing
 
 	SnapshotNoBuild bool // Whether the background generation is allowed
 	SnapshotWait    bool // Wait for snapshot construction on startup. TODO(karalabe): This is a dirty hack for testing, nuke it
 }
 
 var DefaultCacheConfig = &CacheConfig{
-	TrieCleanLimit:        256,
-	TrieDirtyLimit:        256,
-	TrieDirtyCommitTarget: 20, // 20% overhead in memory counting (this targets 16 MB)
-	Pruning:               true,
-	CommitInterval:        4096,
-	AcceptorQueueLimit:    64, // Provides 2 minutes of buffer (2s block target) for a commit delay
-	SnapshotLimit:         256,
-	AcceptedCacheSize:     32,
+	TrieCleanLimit:            256,
+	TrieDirtyLimit:            256,
+	TrieDirtyCommitTarget:     20, // 20% overhead in memory counting (this targets 16 MB)
+	TriePrefetcherParallelism: 16,
+	Pruning:                   true,
+	CommitInterval:            4096,
+	AcceptorQueueLimit:        64, // Provides 2 minutes of buffer (2s block target) for a commit delay
+	SnapshotLimit:             256,
+	AcceptedCacheSize:         32,
 }
 
 // BlockChain represents the canonical chain given a database with a genesis
@@ -507,7 +510,9 @@ func (bc *BlockChain) dispatchTxUnindexer() {
 // - updating the acceptor tip index
 func (bc *BlockChain) writeBlockAcceptedIndices(b *types.Block) error {
 	batch := bc.db.NewBatch()
-	rawdb.WriteTxLookupEntriesByBlock(batch, b)
+	if !bc.cacheConfig.SkipTxIndexing {
+		rawdb.WriteTxLookupEntriesByBlock(batch, b)
+	}
 	if err := rawdb.WriteAcceptorTip(batch, b.Hash()); err != nil {
 		return fmt.Errorf("%w: failed to write acceptor tip key", err)
 	}
@@ -607,6 +612,12 @@ func (bc *BlockChain) startAcceptor() {
 		logs := bc.collectUnflattenedLogs(next, false)
 		bc.acceptedLogsCache.Put(next.Hash(), logs)
 
+		// Update the acceptor tip before sending events to ensure that any client acting based off of
+		// the events observes the updated acceptorTip on subsequent requests
+		bc.acceptorTipLock.Lock()
+		bc.acceptorTip = next
+		bc.acceptorTipLock.Unlock()
+
 		// Update accepted feeds
 		flattenedLogs := types.FlattenLogs(logs)
 		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flattenedLogs})
@@ -617,9 +628,6 @@ func (bc *BlockChain) startAcceptor() {
 			bc.txAcceptedFeed.Send(NewTxsEvent{next.Transactions()})
 		}
 
-		bc.acceptorTipLock.Lock()
-		bc.acceptorTip = next
-		bc.acceptorTipLock.Unlock()
 		bc.acceptorWg.Done()
 
 		acceptorWorkTimer.Inc(time.Since(start).Milliseconds())
@@ -883,7 +891,8 @@ func (bc *BlockChain) ValidateCanonicalChain() error {
 		// Transactions are only indexed beneath the last accepted block, so we only check
 		// that the transactions have been indexed, if we are checking below the last accepted
 		// block.
-		shouldIndexTxs := bc.cacheConfig.TxLookupLimit == 0 || bc.lastAccepted.NumberU64() < current.Number.Uint64()+bc.cacheConfig.TxLookupLimit
+		shouldIndexTxs := !bc.cacheConfig.SkipTxIndexing &&
+			(bc.cacheConfig.TxLookupLimit == 0 || bc.lastAccepted.NumberU64() < current.Number.Uint64()+bc.cacheConfig.TxLookupLimit)
 		if current.Number.Uint64() <= bc.lastAccepted.NumberU64() && shouldIndexTxs {
 			// Ensure that all of the transactions have been stored correctly in the canonical
 			// chain
@@ -1371,7 +1380,7 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	blockStateInitTimer.Inc(time.Since(substart).Milliseconds())
 
 	// Enable prefetching to pull in trie node paths while processing transactions
-	statedb.StartPrefetcher("chain")
+	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
 	activeState = statedb
 
 	// If we have a followup block, run that against the current state to pre-cache
@@ -1746,7 +1755,7 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 	}
 
 	// Enable prefetching to pull in trie node paths while processing transactions
-	statedb.StartPrefetcher("chain")
+	statedb.StartPrefetcher("chain", bc.cacheConfig.TriePrefetcherParallelism)
 	defer func() {
 		statedb.StopPrefetcher()
 	}()
@@ -2152,4 +2161,12 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 
 	bc.initSnapshot(head)
 	return nil
+}
+
+// CacheConfig returns a reference to [bc.cacheConfig]
+//
+// This is used by [miner] to set prefetch parallelism
+// during block building.
+func (bc *BlockChain) CacheConfig() *CacheConfig {
+	return bc.cacheConfig
 }

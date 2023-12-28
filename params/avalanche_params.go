@@ -4,6 +4,9 @@
 package params
 
 const (
+	DynamicFeeExtraDataSize        = 80
+	RollupWindow            uint64 = 10
+
 	WarpDefaultQuorumNumerator uint64 = 67
 	WarpQuorumNumeratorMinimum uint64 = 33
 	WarpQuorumDenominator      uint64 = 100
