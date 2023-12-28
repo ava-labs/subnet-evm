@@ -44,7 +44,6 @@ func (c *AllowListConfig) packAddresses(addresses []common.Address, p *wrappers.
 	if p.Err != nil {
 		return p.Err
 	}
-
 	for _, address := range addresses {
 		p.PackFixedBytes(address[:])
 		if p.Err != nil {

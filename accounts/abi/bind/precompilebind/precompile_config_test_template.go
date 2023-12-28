@@ -89,7 +89,7 @@ func TestSerialize(t *testing.T) {
 		},
 	}
 	require.NotNil(t, config)
-	//params.AssertConfigHashesAndSerialization(t, &config)
+	params.AssertConfigHashesAndSerialization(t, &config)
 }
 
 // TestEqual tests the equality of Config with other precompile configs.

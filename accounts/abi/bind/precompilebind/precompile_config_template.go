@@ -55,7 +55,26 @@ func NewConfig(blockTimestamp *uint64{{if .Contract.AllowList}}, admins []common
 }
 
 func (c * Config) MarshalBinary() ([]byte, error) {
-	return nil, errors.New("implement MarshalBinary() method")
+	p := wrappers.Packer {
+		Bytes: []byte{},
+		MaxSize: 1 * units.MiB
+	}
+	{{- if .Contract.AllowList}}
+	allowBytes, err := c.AllowListConfig.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(allowBytes)
+	if p.Err != nil {
+		return ni, p.Err
+	}
+	{{- end}}
+	upgradeBytes, err := c.Upgrade.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(upgradeBytes)
+	return p.Bytes, p.Err
 }
 
 func (c * Config) UnmarshalBinary(bytes []byte) error {
