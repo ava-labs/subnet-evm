@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
@@ -533,7 +534,7 @@ func TestAreMatchingOrders(t *testing.T) {
 		LifecycleList:           []Lifecycle{Lifecycle{}},
 		BlockNumber:             big.NewInt(21),
 		RawOrder: &LimitOrder{
-			BaseOrder: BaseOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(1),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -557,7 +558,7 @@ func TestAreMatchingOrders(t *testing.T) {
 		LifecycleList:           []Lifecycle{Lifecycle{}},
 		BlockNumber:             big.NewInt(21),
 		RawOrder: &LimitOrder{
-			BaseOrder: BaseOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(1),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(-10),

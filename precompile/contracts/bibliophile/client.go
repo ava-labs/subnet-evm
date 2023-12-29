@@ -21,15 +21,21 @@ type BibliophileClient interface {
 	GetReduceOnlyAmount(trader common.Address, ammIndex *big.Int) *big.Int
 	IsTradingAuthority(trader, senderOrSigner common.Address) bool
 	IsValidator(senderOrSigner common.Address) bool
+
 	// Limit Order
 	GetBlockPlaced(orderHash [32]byte) *big.Int
 	GetOrderFilledAmount(orderHash [32]byte) *big.Int
 	GetOrderStatus(orderHash [32]byte) int64
+
 	// IOC Order
 	IOC_GetBlockPlaced(orderHash [32]byte) *big.Int
 	IOC_GetOrderFilledAmount(orderHash [32]byte) *big.Int
 	IOC_GetOrderStatus(orderHash [32]byte) int64
 	IOC_GetExpirationCap() *big.Int
+
+	// Signed Order
+	GetSignedOrderFilledAmount(orderHash [32]byte) *big.Int
+	GetSignedOrderStatus(orderHash [32]byte) int64
 
 	// AMM
 	GetMinSizeRequirement(marketId int64) *big.Int
@@ -48,6 +54,7 @@ type BibliophileClient interface {
 	GetTimeStamp() uint64
 	GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int)
 	HasReferrer(trader common.Address) bool
+	GetActiveMarketsCount() int64
 }
 
 // Define a structure that will implement the Bibliophile interface
@@ -59,6 +66,18 @@ func NewBibliophileClient(accessibleState contract.AccessibleState) BibliophileC
 	return &bibliophileClient{
 		accessibleState: accessibleState,
 	}
+}
+
+func (b *bibliophileClient) GetSignedOrderFilledAmount(orderHash [32]byte) *big.Int {
+	return GetSignedOrderFilledAmount(b.accessibleState.GetStateDB(), orderHash)
+}
+
+func (b *bibliophileClient) GetSignedOrderStatus(orderHash [32]byte) int64 {
+	return GetSignedOrderStatus(b.accessibleState.GetStateDB(), orderHash)
+}
+
+func (b *bibliophileClient) GetActiveMarketsCount() int64 {
+	return GetActiveMarketsCount(b.accessibleState.GetStateDB())
 }
 
 func (b *bibliophileClient) GetTimeStamp() uint64 {

@@ -8,8 +8,6 @@ import (
 	big "math/big"
 	reflect "reflect"
 
-	hubbleutils "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
-	contract "github.com/ava-labs/subnet-evm/precompile/contract"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -50,6 +48,20 @@ func (m *MockBibliophileClient) GetAcceptableBoundsForLiquidation(marketId int64
 func (mr *MockBibliophileClientMockRecorder) GetAcceptableBoundsForLiquidation(marketId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAcceptableBoundsForLiquidation", reflect.TypeOf((*MockBibliophileClient)(nil).GetAcceptableBoundsForLiquidation), marketId)
+}
+
+// GetActiveMarketsCount mocks base method.
+func (m *MockBibliophileClient) GetActiveMarketsCount() int64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveMarketsCount")
+	ret0, _ := ret[0].(int64)
+	return ret0
+}
+
+// GetActiveMarketsCount indicates an expected call of GetActiveMarketsCount.
+func (mr *MockBibliophileClientMockRecorder) GetActiveMarketsCount() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveMarketsCount", reflect.TypeOf((*MockBibliophileClient)(nil).GetActiveMarketsCount))
 }
 
 // GetAskSize mocks base method.
@@ -134,20 +146,6 @@ func (m *MockBibliophileClient) GetBlockPlaced(orderHash [32]byte) *big.Int {
 func (mr *MockBibliophileClientMockRecorder) GetBlockPlaced(orderHash interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockPlaced", reflect.TypeOf((*MockBibliophileClient)(nil).GetBlockPlaced), orderHash)
-}
-
-// GetCollaterals mocks base method.
-func (m *MockBibliophileClient) GetCollaterals(stateDB contract.StateDB) []hubbleutils.Collateral {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCollaterals", stateDB)
-	ret0, _ := ret[0].([]hubbleutils.Collateral)
-	return ret0
-}
-
-// GetCollaterals indicates an expected call of GetCollaterals.
-func (mr *MockBibliophileClientMockRecorder) GetCollaterals(stateDB interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCollaterals", reflect.TypeOf((*MockBibliophileClient)(nil).GetCollaterals), stateDB)
 }
 
 // GetImpactMarginNotional mocks base method.
@@ -345,6 +343,34 @@ func (m *MockBibliophileClient) GetShortOpenOrdersAmount(trader common.Address, 
 func (mr *MockBibliophileClientMockRecorder) GetShortOpenOrdersAmount(trader, ammIndex interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetShortOpenOrdersAmount", reflect.TypeOf((*MockBibliophileClient)(nil).GetShortOpenOrdersAmount), trader, ammIndex)
+}
+
+// GetSignedOrderFilledAmount mocks base method.
+func (m *MockBibliophileClient) GetSignedOrderFilledAmount(orderHash [32]byte) *big.Int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSignedOrderFilledAmount", orderHash)
+	ret0, _ := ret[0].(*big.Int)
+	return ret0
+}
+
+// GetSignedOrderFilledAmount indicates an expected call of GetSignedOrderFilledAmount.
+func (mr *MockBibliophileClientMockRecorder) GetSignedOrderFilledAmount(orderHash interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSignedOrderFilledAmount", reflect.TypeOf((*MockBibliophileClient)(nil).GetSignedOrderFilledAmount), orderHash)
+}
+
+// GetSignedOrderStatus mocks base method.
+func (m *MockBibliophileClient) GetSignedOrderStatus(orderHash [32]byte) int64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSignedOrderStatus", orderHash)
+	ret0, _ := ret[0].(int64)
+	return ret0
+}
+
+// GetSignedOrderStatus indicates an expected call of GetSignedOrderStatus.
+func (mr *MockBibliophileClientMockRecorder) GetSignedOrderStatus(orderHash interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSignedOrderStatus", reflect.TypeOf((*MockBibliophileClient)(nil).GetSignedOrderStatus), orderHash)
 }
 
 // GetSize mocks base method.

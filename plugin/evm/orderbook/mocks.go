@@ -157,6 +157,14 @@ func (db *MockLimitOrderDatabase) GetSamplePIAttemptedTime() uint64 {
 
 func (db *MockLimitOrderDatabase) SignalSamplePIAttempted(time uint64) {}
 
+func (db *MockLimitOrderDatabase) GetOrderValidationFields(
+	orderId common.Hash,
+	trader common.Address,
+	marketId int,
+) OrderValidationFields {
+	return OrderValidationFields{}
+}
+
 type MockLimitOrderTxProcessor struct {
 	mock.Mock
 }
@@ -291,6 +299,22 @@ func (cs *MockConfigService) GetTakerFee() *big.Int {
 	return big.NewInt(0)
 }
 
+func (cs *MockConfigService) GetPriceMultiplier(market Market) *big.Int {
+	return big.NewInt(1e6)
+}
+
+func (cs *MockConfigService) GetSignedOrderStatus(orderHash common.Hash) int64 {
+	return 0
+}
+
+func (cs *MockConfigService) IsTradingAuthority(trader, signer common.Address) bool {
+	return false
+}
+
 func NewMockConfigService() *MockConfigService {
 	return &MockConfigService{}
+}
+
+func (cs *MockConfigService) GetSignedOrderbookContract() common.Address {
+	return common.Address{}
 }

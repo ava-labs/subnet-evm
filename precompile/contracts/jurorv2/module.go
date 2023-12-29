@@ -18,12 +18,12 @@ var _ contract.Configurator = &configurator{}
 
 // ConfigKey is the key used in json config files to specify this precompile precompileconfig.
 // must be unique across all precompiles.
-const ConfigKey = "jurorConfig"
+const ConfigKey = "jurorV2Config"
 
 // ContractAddress is the defined address of the precompile contract.
 // This should be unique across all precompile contracts.
 // See precompile/registry/registry.go for registered precompile contracts and more information.
-var ContractAddress = common.HexToAddress("0x03000000000000000000000000000000000000a0") // SET A SUITABLE HEX ADDRESS HERE
+var ContractAddress = common.HexToAddress("0x03000000000000000000000000000000000000a2") // SET A SUITABLE HEX ADDRESS HERE
 
 // Module is the precompile module. It is used to register the precompile contract.
 var Module = modules.Module{

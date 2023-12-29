@@ -166,7 +166,7 @@ func ValidateCancelLimitOrder(bibliophile b.BibliophileClient, inputStruct *Vali
 
 func ILimitOrderBookOrderToLimitOrder(o *ILimitOrderBookOrder) *ob.LimitOrder {
 	return &ob.LimitOrder{
-		BaseOrder: ob.BaseOrder{
+		BaseOrder: hu.BaseOrder{
 			AmmIndex:          o.AmmIndex,
 			Trader:            o.Trader,
 			BaseAssetQuantity: o.BaseAssetQuantity,

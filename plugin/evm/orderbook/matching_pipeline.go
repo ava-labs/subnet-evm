@@ -88,6 +88,7 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	orderMap := make(map[Market]*Orders)
 	for _, market := range markets {
 		orderMap[market] = pipeline.fetchOrders(market, hState.OraclePrices[market], cancellableOrderIds, blockNumber)
+		log.Info("orders fetched", "market", market, "LongOrders", orderMap[market].longOrders, "ShortOrders", orderMap[market].shortOrders)
 	}
 	pipeline.runLiquidations(liquidablePositions, orderMap, hState.OraclePrices, marginMap)
 	for _, market := range markets {
@@ -97,6 +98,7 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	}
 
 	orderBookTxsCount := pipeline.lotp.GetOrderBookTxsCount()
+	log.Info("MatchingPipeline:Run", "orderBookTxsCount", orderBookTxsCount)
 	if orderBookTxsCount > 0 {
 		pipeline.lotp.SetOrderBookTxsBlockNumber(blockNumber.Uint64())
 		return true
@@ -120,7 +122,7 @@ func (pipeline *MatchingPipeline) GetActiveMarkets() []Market {
 
 func (pipeline *MatchingPipeline) GetUnderlyingPrices() map[Market]*big.Int {
 	prices := pipeline.configService.GetUnderlyingPrices()
-	log.Info("GetUnderlyingPrices", "prices", prices)
+	// log.Info("GetUnderlyingPrices", "prices", prices)
 	underlyingPrices := make(map[Market]*big.Int)
 	for market, price := range prices {
 		underlyingPrices[Market(market)] = price
@@ -130,7 +132,7 @@ func (pipeline *MatchingPipeline) GetUnderlyingPrices() map[Market]*big.Int {
 
 func (pipeline *MatchingPipeline) GetMidPrices() map[Market]*big.Int {
 	prices := pipeline.configService.GetMidPrices()
-	log.Info("GetMidPrices", "prices", prices)
+	// log.Info("GetMidPrices", "prices", prices)
 	midPrices := make(map[Market]*big.Int)
 	for market, price := range prices {
 		midPrices[Market(market)] = price

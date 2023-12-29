@@ -5,12 +5,14 @@ package orderbook
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/eth"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
@@ -309,4 +311,82 @@ func (api *TradingAPI) StreamMarketTrades(ctx context.Context, market Market, bl
 	}, "panic in StreamMarketTrades", RPCPanicsCounter)
 
 	return rpcSub, nil
+}
+
+type PlaceOrderResponse struct {
+	Success bool `json:"success"`
+}
+
+func (api *TradingAPI) PlaceSignedOrder(ctx context.Context, rawOrder string) (PlaceOrderResponse, error) {
+	// fmt.Println("rawOrder", rawOrder)
+	testData, err := hex.DecodeString(strings.TrimPrefix(rawOrder, "0x"))
+	if err != nil {
+		return PlaceOrderResponse{Success: false}, err
+	}
+	order, err := hu.DecodeSignedOrder(testData)
+	if err != nil {
+		return PlaceOrderResponse{Success: false}, err
+	}
+	// fmt.Println("PostOrder", order)
+
+	marketId := int(order.AmmIndex.Int64())
+	if hu.ChainId == 0 { // set once, will need to restart node if we change
+		hu.SetChainIdAndVerifyingSignedOrdersContract(api.backend.ChainConfig().ChainID.Int64(), api.configService.GetSignedOrderbookContract().String())
+	}
+	orderId, err := order.Hash()
+	if err != nil {
+		return PlaceOrderResponse{Success: false}, err
+	}
+	trader, signer, err := hu.ValidateSignedOrder(
+		order,
+		hu.SignedOrderValidationFields{
+			Now:                uint64(time.Now().Unix()),
+			ActiveMarketsCount: api.configService.GetActiveMarketsCount(),
+			MinSize:            api.configService.getMinSizeRequirement(marketId),
+			PriceMultiplier:    api.configService.GetPriceMultiplier(marketId),
+			Status:             api.configService.GetSignedOrderStatus(orderId),
+		},
+	)
+	if err != nil {
+		return PlaceOrderResponse{Success: false}, err
+	}
+
+	if trader != signer && !api.configService.IsTradingAuthority(trader, signer) {
+		return PlaceOrderResponse{Success: false}, hu.ErrNoTradingAuthority
+	}
+
+	fields := api.db.GetOrderValidationFields(orderId, trader, marketId)
+	// @todo P1 - P3
+	// P4. Post only order shouldn't cross the market
+	if order.PostOnly {
+		orderSide := hu.Side(hu.Long)
+		if order.BaseAssetQuantity.Sign() == -1 {
+			orderSide = hu.Side(hu.Short)
+		}
+		asksHead := fields.AsksHead
+		bidsHead := fields.BidsHead
+		if (orderSide == hu.Side(hu.Short) && bidsHead.Sign() != 0 && order.Price.Cmp(bidsHead) != 1) || (orderSide == hu.Side(hu.Long) && asksHead.Sign() != 0 && order.Price.Cmp(asksHead) != -1) {
+			return PlaceOrderResponse{Success: false}, hu.ErrCrossingMarket
+		}
+	}
+	// @todo P5
+	// @todo gossip order
+
+	// add to db
+	limitOrder := &Order{
+		Id:                      orderId,
+		Market:                  Market(order.AmmIndex.Int64()),
+		PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
+		Trader:                  trader,
+		BaseAssetQuantity:       order.BaseAssetQuantity,
+		FilledBaseAssetQuantity: big.NewInt(0),
+		Price:                   order.Price,
+		Salt:                    order.Salt,
+		ReduceOnly:              order.ReduceOnly,
+		BlockNumber:             big.NewInt(0),
+		RawOrder:                order,
+		OrderType:               Signed,
+	}
+	api.db.Add(limitOrder)
+	return PlaceOrderResponse{Success: true}, nil
 }

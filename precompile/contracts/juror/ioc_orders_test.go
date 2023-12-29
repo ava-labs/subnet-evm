@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	b "github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ethereum/go-ethereum/common"
 	gomock "github.com/golang/mock/gomock"
@@ -428,7 +429,7 @@ func TestValidateExecuteIOCOrder(t *testing.T) {
 		order := orderbook.IOCOrder{
 			OrderType: 0, // incoreect order type
 			ExpireAt:  big.NewInt(1001),
-			BaseOrder: orderbook.BaseOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -449,7 +450,7 @@ func TestValidateExecuteIOCOrder(t *testing.T) {
 		order := orderbook.IOCOrder{
 			OrderType: 1,
 			ExpireAt:  big.NewInt(990),
-			BaseOrder: orderbook.BaseOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -472,7 +473,7 @@ func TestValidateExecuteIOCOrder(t *testing.T) {
 		order := orderbook.IOCOrder{
 			OrderType: 1,
 			ExpireAt:  big.NewInt(1001),
-			BaseOrder: orderbook.BaseOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -507,7 +508,7 @@ func TestValidateExecuteIOCOrder(t *testing.T) {
 		order := orderbook.IOCOrder{
 			OrderType: 1,
 			ExpireAt:  big.NewInt(1001),
-			BaseOrder: orderbook.BaseOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),

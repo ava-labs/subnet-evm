@@ -91,6 +91,9 @@ func getPositionMetadata(price *big.Int, openNotional *big.Int, size *big.Int, m
 }
 
 func prettifyScaledBigInt(number *big.Int, precision int8) string {
+	if number == nil {
+		return "0"
+	}
 	return new(big.Float).Quo(new(big.Float).SetInt(number), big.NewFloat(math.Pow10(int(precision)))).String()
 }
 

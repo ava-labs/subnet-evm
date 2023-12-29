@@ -79,16 +79,13 @@ const (
 	Execution_Failed
 )
 
-type OrderType uint8
+type OrderType = hu.OrderType
 
 const (
-	Limit OrderType = iota
-	IOC
+	Limit  = hu.Limit
+	IOC    = hu.IOC
+	Signed = hu.Signed
 )
-
-func (o OrderType) String() string {
-	return [...]string{"limit", "ioc"}[o]
-}
 
 type Lifecycle struct {
 	BlockNumber uint64
@@ -153,6 +150,9 @@ func (order Order) getExpireAt() *big.Int {
 	if order.OrderType == IOC {
 		return order.RawOrder.(*IOCOrder).ExpireAt
 	}
+	if order.OrderType == Signed {
+		return order.RawOrder.(*hu.SignedOrder).ExpireAt
+	}
 	return big.NewInt(0)
 }
 
@@ -162,11 +162,17 @@ func (order Order) isPostOnly() bool {
 			return rawOrder.PostOnly
 		}
 	}
+	if order.OrderType == Signed {
+		if rawOrder, ok := order.RawOrder.(*hu.SignedOrder); ok {
+			return rawOrder.PostOnly
+		}
+	}
 	return false
 }
 
 func (order Order) String() string {
-	return fmt.Sprintf("Order: Id: %s, OrderType: %s, Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, PostOnly: %v, BlockNumber: %s", order.Id, order.OrderType, order.Market, order.PositionType, order.Trader.String(), prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.isPostOnly(), order.BlockNumber)
+	t := time.Unix(order.getExpireAt().Int64(), 0)
+	return fmt.Sprintf("Order: Id: %s, OrderType: %s, Market: %v, PositionType: %v, UserAddress: %v, BaseAssetQuantity: %s, FilledBaseAssetQuantity: %s, Salt: %v, Price: %s, ReduceOnly: %v, PostOnly: %v, expireAt %s, BlockNumber: %s", order.Id, order.OrderType, order.Market, order.PositionType, order.Trader.String(), prettifyScaledBigInt(order.BaseAssetQuantity, 18), prettifyScaledBigInt(order.FilledBaseAssetQuantity, 18), order.Salt, prettifyScaledBigInt(order.Price, 6), order.ReduceOnly, order.isPostOnly(), t.UTC(), order.BlockNumber)
 }
 
 func (order Order) ToOrderMin() OrderMin {
@@ -246,6 +252,11 @@ type LimitOrderDatabase interface {
 	UpdateLastPremiumFraction(market Market, trader common.Address, lastPremiumFraction *big.Int, cumlastPremiumFraction *big.Int)
 	GetOrderById(orderId common.Hash) *Order
 	GetTraderInfo(trader common.Address) *Trader
+	GetOrderValidationFields(
+		orderId common.Hash,
+		trader common.Address,
+		marketId int,
+	) OrderValidationFields
 }
 
 type Snapshot struct {
@@ -279,6 +290,7 @@ func (db *InMemoryDatabase) Accept(acceptedBlockNumber, blockTimestamp uint64) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
+	log.Info("Accept", "acceptedBlockNumber", acceptedBlockNumber, "blockTimestamp", blockTimestamp)
 	count := db.configService.GetActiveMarketsCount()
 	for m := int64(0); m < count; m++ {
 		longOrders := db.getLongOrdersWithoutLock(Market(m), nil, nil, false)
@@ -286,7 +298,8 @@ func (db *InMemoryDatabase) Accept(acceptedBlockNumber, blockTimestamp uint64) {
 
 		for _, longOrder := range longOrders {
 			status := shouldRemove(acceptedBlockNumber, blockTimestamp, longOrder)
-			if status == CHECK_FOR_MATCHES {
+			log.Info("evaluating order...", "longOrder", longOrder, "status", status)
+			if status == KEEP_IF_MATCHEABLE {
 				matchFound := false
 				for _, shortOrder := range shortOrders {
 					if longOrder.Price.Cmp(shortOrder.Price) < 0 {
@@ -312,7 +325,8 @@ func (db *InMemoryDatabase) Accept(acceptedBlockNumber, blockTimestamp uint64) {
 
 		for _, shortOrder := range shortOrders {
 			status := shouldRemove(acceptedBlockNumber, blockTimestamp, shortOrder)
-			if status == CHECK_FOR_MATCHES {
+			log.Info("Accept", "shortOrder", shortOrder, "status", status)
+			if status == KEEP_IF_MATCHEABLE {
 				matchFound := false
 				for _, longOrder := range longOrders {
 					if longOrder.Price.Cmp(shortOrder.Price) < 0 {
@@ -344,7 +358,7 @@ type OrderStatus uint8
 const (
 	KEEP OrderStatus = iota
 	REMOVE
-	CHECK_FOR_MATCHES
+	KEEP_IF_MATCHEABLE
 )
 
 func shouldRemove(acceptedBlockNumber, blockTimestamp uint64, order Order) OrderStatus {
@@ -355,22 +369,25 @@ func shouldRemove(acceptedBlockNumber, blockTimestamp uint64, order Order) Order
 		return REMOVE
 	}
 
-	if order.OrderType != IOC {
+	if order.OrderType == Limit {
 		return KEEP
 	}
 
-	// 2. if the order is expired
+	// remove if order is expired; valid for both IOC and Signed orders
 	expireAt := order.getExpireAt()
 	if expireAt.Sign() > 0 && expireAt.Int64() < int64(blockTimestamp) {
 		return REMOVE
 	}
 
-	// 3. IOC order can not matched with any order that came after it (same block is allowed)
+	// IOC order can not matched with any order that came after it (same block is allowed)
 	// we can only surely say about orders that came at <= acceptedBlockNumber
-	if order.BlockNumber.Uint64() > acceptedBlockNumber {
-		return KEEP
+	if order.OrderType == IOC {
+		if order.BlockNumber.Uint64() > acceptedBlockNumber {
+			return KEEP
+		}
+		return KEEP_IF_MATCHEABLE
 	}
-	return CHECK_FOR_MATCHES
+	return KEEP
 }
 
 func (db *InMemoryDatabase) SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error {
@@ -430,6 +447,7 @@ func (db *InMemoryDatabase) Add(order *Order) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
+	log.Info("Adding order to memdb", "order", order)
 	order.LifecycleList = append(order.LifecycleList, Lifecycle{order.BlockNumber.Uint64(), Placed, ""})
 	db.AddInSortedArray(order)
 	db.Orders[order.Id] = order
@@ -612,6 +630,7 @@ func (db *InMemoryDatabase) getLongOrdersWithoutLock(market Market, lowerbound *
 	var longOrders []Order
 
 	marketOrders := db.LongOrders[market]
+	// log.Info("getLongOrdersWithoutLock", "marketOrders", marketOrders, "lowerbound", lowerbound, "blockNumber", blockNumber)
 	for _, order := range marketOrders {
 		if lowerbound != nil && order.Price.Cmp(lowerbound) < 0 {
 			// because the long orders are sorted in descending order of price, there is no point in checking further
@@ -657,8 +676,10 @@ func (db *InMemoryDatabase) getShortOrdersWithoutLock(market Market, upperbound 
 }
 
 func (db *InMemoryDatabase) getCleanOrder(order *Order, blockNumber *big.Int) *Order {
+	// log.Info("getCleanOrder", "order", order, "blockNumber", blockNumber)
 	eligibleForExecution := false
 	orderStatus := order.getOrderStatus()
+	// log.Info("getCleanOrder", "orderStatus", orderStatus)
 	switch orderStatus.Status {
 	case Placed:
 		eligibleForExecution = true
@@ -687,6 +708,7 @@ func (db *InMemoryDatabase) getCleanOrder(order *Order, blockNumber *big.Int) *O
 	if expireAt.Sign() == 1 && expireAt.Int64() <= time.Now().Unix() {
 		eligibleForExecution = false
 	}
+	// log.Info("getCleanOrder", "expireAt", expireAt, "eligibleForExecution", eligibleForExecution)
 
 	if eligibleForExecution {
 		if order.ReduceOnly {
@@ -1176,4 +1198,39 @@ func getOrderIdx(orders []*Order, orderId common.Hash) int {
 		}
 	}
 	return -1
+}
+
+type OrderValidationFields struct {
+	Exists   bool
+	PosSize  *big.Int
+	AsksHead *big.Int
+	BidsHead *big.Int
+}
+
+func (db *InMemoryDatabase) GetOrderValidationFields(
+	orderId common.Hash,
+	trader common.Address,
+	marketId int,
+) OrderValidationFields {
+	posSize := big.NewInt(0)
+	if db.TraderMap[trader] != nil && db.TraderMap[trader].Positions[marketId] != nil && db.TraderMap[trader].Positions[marketId].Size != nil {
+		posSize = db.TraderMap[trader].Positions[marketId].Size
+	}
+	asksHead := big.NewInt(0)
+	if len(db.ShortOrders[marketId]) > 0 {
+		asksHead = db.ShortOrders[marketId][0].Price
+	}
+	bidsHead := big.NewInt(0)
+	if len(db.LongOrders[marketId]) > 0 {
+		bidsHead = db.LongOrders[marketId][0].Price
+	}
+	fields := OrderValidationFields{
+		PosSize:  posSize,
+		AsksHead: asksHead,
+		BidsHead: bidsHead,
+	}
+	if db.Orders[orderId] != nil {
+		fields.Exists = true
+	}
+	return fields
 }

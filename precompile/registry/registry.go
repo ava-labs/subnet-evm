@@ -18,6 +18,7 @@ import (
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/rewardmanager"
 
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/juror"
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/jurorv2"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/ticks"
 	_ "github.com/ava-labs/subnet-evm/x/warp"
 	// ADD YOUR PRECOMPILE HERE
@@ -46,6 +47,7 @@ import (
 // ADD YOUR PRECOMPILE HERE
 // juror       = common.HexToAddress("0x03000000000000000000000000000000000000a0")
 // ticks       = common.HexToAddress("0x03000000000000000000000000000000000000a1")
+// jurorV2     = common.HexToAddress("0x03000000000000000000000000000000000000a2")
 
 // GenesisAddress
 // OrderBook		       = common.HexToAddress("0x03000000000000000000000000000000000000b0")

@@ -26,7 +26,7 @@ func TestValidateLimitOrderLike(t *testing.T) {
 	mockBibliophile := b.NewMockBibliophileClient(ctrl)
 
 	trader := common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
-	order := &ob.BaseOrder{
+	order := &hu.BaseOrder{
 		AmmIndex:          big.NewInt(0),
 		Trader:            trader,
 		BaseAssetQuantity: big.NewInt(10),
@@ -106,7 +106,7 @@ func TestValidateLimitOrderLike(t *testing.T) {
 	})
 
 	t.Run("Side=Short", func(t *testing.T) {
-		order := &ob.BaseOrder{
+		order := &hu.BaseOrder{
 			AmmIndex:          big.NewInt(0),
 			Trader:            trader,
 			BaseAssetQuantity: big.NewInt(-10),
@@ -184,7 +184,7 @@ func TestValidateLimitOrderLike(t *testing.T) {
 	})
 
 	t.Run("invalid side", func(t *testing.T) {
-		order := &ob.BaseOrder{
+		order := &hu.BaseOrder{
 			AmmIndex:          big.NewInt(0),
 			Trader:            trader,
 			BaseAssetQuantity: big.NewInt(10),
@@ -208,8 +208,8 @@ func TestValidateExecuteLimitOrder(t *testing.T) {
 	marketAddress := common.HexToAddress("0xa72b463C21dA61cCc86069cFab82e9e8491152a0")
 	trader := common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
 
-	order := &ob.LimitOrder{
-		BaseOrder: ob.BaseOrder{
+	order := &hu.LimitOrder{
+		BaseOrder: hu.BaseOrder{
 			AmmIndex:          big.NewInt(534),
 			Trader:            trader,
 			BaseAssetQuantity: big.NewInt(10),
@@ -682,8 +682,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("invalid fillAmount", func(t *testing.T) {
-		order0 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order0 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -693,8 +693,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 			},
 			PostOnly: false,
 		}
-		order1 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order1 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(-10),
@@ -720,8 +720,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 	})
 
 	t.Run("different amm", func(t *testing.T) {
-		order0 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order0 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -732,8 +732,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 			PostOnly: false,
 		}
 		order0Hash, _ := order0.Hash()
-		order1 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order1 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(1),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(-10),
@@ -768,8 +768,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 	})
 
 	t.Run("price mismatch", func(t *testing.T) {
-		order0 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order0 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -780,8 +780,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 			PostOnly: false,
 		}
 		order0Hash, _ := order0.Hash()
-		order1 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order1 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(-10),
@@ -816,8 +816,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 	})
 
 	t.Run("fillAmount not multiple", func(t *testing.T) {
-		order0 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order0 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -828,8 +828,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 			PostOnly: false,
 		}
 		order0Hash, _ := order0.Hash()
-		order1 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order1 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(-10),
@@ -867,8 +867,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		order0 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order0 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -879,8 +879,8 @@ func TestValidateOrdersAndDetermineFillPrice(t *testing.T) {
 			PostOnly: false,
 		}
 		order0Hash, _ := order0.Hash()
-		order1 := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order1 := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(-10),
@@ -976,8 +976,8 @@ func TestValidateLiquidationOrderAndDetermineFillPrice(t *testing.T) {
 	defer ctrl.Finish()
 
 	t.Run("invalid liquidationAmount", func(t *testing.T) {
-		order := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(10),
@@ -1001,8 +1001,8 @@ func TestValidateLiquidationOrderAndDetermineFillPrice(t *testing.T) {
 	})
 
 	t.Run("fillAmount not multiple", func(t *testing.T) {
-		order := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(-10),
@@ -1034,8 +1034,8 @@ func TestValidateLiquidationOrderAndDetermineFillPrice(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		order := &ob.LimitOrder{
-			BaseOrder: ob.BaseOrder{
+		order := &hu.LimitOrder{
+			BaseOrder: hu.BaseOrder{
 				AmmIndex:          big.NewInt(0),
 				Trader:            trader,
 				BaseAssetQuantity: big.NewInt(-10),

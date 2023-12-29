@@ -328,9 +328,9 @@ func (cep *ContractEventsProcessor) handleIOCOrderBookEvent(event *types.Log) {
 		orderId := event.Topics[2]
 		order := args["order"]
 		if !removed {
-			log.Info("IOCOrder/OrderRejected", "orderId", orderId.String(), "number", event.BlockNumber, "order", order)
+			log.Info("IOCOrder/OrderRejected", "orderId", orderId.String(), "number", event.BlockNumber, "order", order, "err", args["err"])
 		} else {
-			log.Info("IOCOrder/OrderRejected removed", "orderId", orderId.String(), "number", event.BlockNumber, "order", order)
+			log.Info("IOCOrder/OrderRejected removed", "orderId", orderId.String(), "number", event.BlockNumber, "order", order, args["err"])
 		}
 	}
 }

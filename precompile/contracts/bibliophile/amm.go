@@ -80,6 +80,10 @@ func getMultiplier(stateDB contract.StateDB, market common.Address) *big.Int {
 	return stateDB.GetState(market, common.BigToHash(big.NewInt(MULTIPLIER_SLOT))).Big()
 }
 
+func GetMultiplier(stateDB contract.StateDB, marketID int64) *big.Int {
+	return getMultiplier(stateDB, getMarketAddressFromMarketID(marketID, stateDB))
+}
+
 func getUnderlyingAssetAddress(stateDB contract.StateDB, market common.Address) common.Address {
 	return common.BytesToAddress(stateDB.GetState(market, common.BigToHash(big.NewInt(UNDERLYING_ASSET_SLOT))).Bytes())
 }

@@ -96,7 +96,7 @@ func ValidatePlaceIOCorder(bibliophile b.BibliophileClient, inputStruct *Validat
 
 func IImmediateOrCancelOrdersOrderToIOCOrder(order *IImmediateOrCancelOrdersOrder) *ob.IOCOrder {
 	return &ob.IOCOrder{
-		BaseOrder: ob.BaseOrder{
+		BaseOrder: hu.BaseOrder{
 			AmmIndex:          order.AmmIndex,
 			Trader:            order.Trader,
 			BaseAssetQuantity: order.BaseAssetQuantity,
