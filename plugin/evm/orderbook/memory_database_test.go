@@ -433,7 +433,7 @@ func TestGetCancellableOrders(t *testing.T) {
 	availableMargin := getAvailableMargin(_trader, hState)
 	// availableMargin = 40 - 9 - (99 + (10+9+8) * 3)/5 = -5
 	assert.Equal(t, hu.Mul1e6(big.NewInt(-5)), availableMargin)
-	_, ordersToCancel := inMemoryDatabase.GetNaughtyTraders(hState)
+	_, ordersToCancel, _ := inMemoryDatabase.GetNaughtyTraders(hState)
 
 	// t.Log("####", "ordersToCancel", ordersToCancel)
 	assert.Equal(t, 1, len(ordersToCancel)) // only one trader

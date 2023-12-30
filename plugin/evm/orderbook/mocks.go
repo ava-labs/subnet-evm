@@ -116,8 +116,8 @@ func (db *MockLimitOrderDatabase) GetLastPrices() map[Market]*big.Int {
 	return map[Market]*big.Int{}
 }
 
-func (db *MockLimitOrderDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order) {
-	return []LiquidablePosition{}, map[common.Address][]Order{}
+func (db *MockLimitOrderDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order, map[common.Address]*big.Int) {
+	return []LiquidablePosition{}, map[common.Address][]Order{}, map[common.Address]*big.Int{}
 }
 
 func (db *MockLimitOrderDatabase) GetOrderBookData() InMemoryDatabase {
@@ -285,6 +285,10 @@ func (cs *MockConfigService) GetCumulativePremiumFractionAtBlock(market Market, 
 
 func (cs *MockConfigService) GetCollaterals() []hu.Collateral {
 	return []hu.Collateral{{Price: big.NewInt(1e6), Weight: big.NewInt(1e6), Decimals: 6}}
+}
+
+func (cs *MockConfigService) GetTakerFee() *big.Int {
+	return big.NewInt(0)
 }
 
 func NewMockConfigService() *MockConfigService {

@@ -20,7 +20,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			OraclePrices:  map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))},
 			ActiveMarkets: []hu.Market{market},
 		}
-		liquidablePositions, _ := db.GetNaughtyTraders(hState)
+		liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 		assert.Equal(t, 0, len(liquidablePositions))
 	})
 
@@ -44,7 +44,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			ActiveMarkets:     []hu.Market{market},
 			MaintenanceMargin: db.configService.getMaintenanceMargin(),
 		}
-		liquidablePositions, _ := db.GetNaughtyTraders(hState)
+		liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 		assert.Equal(t, 0, len(liquidablePositions))
 	})
 
@@ -109,7 +109,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			marginFraction := calcMarginFraction(_trader, hState)
 			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(new(big.Int).Sub(marginLong, pendingFundingLong), unrealizePnL)), notionalPosition), marginFraction)
 
-			liquidablePositions, _ := db.GetNaughtyTraders(hState)
+			liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 			assert.Equal(t, 0, len(liquidablePositions))
 		})
 
@@ -165,7 +165,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			marginFraction := calcMarginFraction(_trader, hState)
 			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(new(big.Int).Sub(marginLong, pendingFundingLong), unrealizePnL)), notionalPosition), marginFraction)
 
-			liquidablePositions, _ := db.GetNaughtyTraders(hState)
+			liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 			assert.Equal(t, 0, len(liquidablePositions))
 		})
 	})
@@ -228,7 +228,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			marginFraction := calcMarginFraction(_trader, hState)
 			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(new(big.Int).Sub(marginShort, pendingFundingShort), unrealizePnL)), notionalPosition), marginFraction)
 
-			liquidablePositions, _ := db.GetNaughtyTraders(hState)
+			liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 			assert.Equal(t, 0, len(liquidablePositions))
 		})
 
@@ -283,7 +283,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			marginFraction := calcMarginFraction(_trader, hState)
 			assert.Equal(t, new(big.Int).Div(hu.Mul1e6(new(big.Int).Add(new(big.Int).Sub(marginShort, pendingFundingShort), unrealizePnL)), notionalPosition), marginFraction)
 
-			liquidablePositions, _ := db.GetNaughtyTraders(hState)
+			liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 			assert.Equal(t, 0, len(liquidablePositions))
 		})
 	})

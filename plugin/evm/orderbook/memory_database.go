@@ -240,7 +240,7 @@ type LimitOrderDatabase interface {
 	Accept(acceptedBlockNumber uint64, blockTimestamp uint64)
 	SetOrderStatus(orderId common.Hash, status Status, info string, blockNumber uint64) error
 	RevertLastStatus(orderId common.Hash) error
-	GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order)
+	GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order, map[common.Address]*big.Int)
 	GetAllOpenOrdersForTrader(trader common.Address) []Order
 	GetOpenOrdersForTraderByType(trader common.Address, orderType OrderType) []Order
 	UpdateLastPremiumFraction(market Market, trader common.Address, lastPremiumFraction *big.Int, cumlastPremiumFraction *big.Int)
@@ -927,12 +927,13 @@ func determinePositionToLiquidate(trader *Trader, addr common.Address, marginFra
 	return liquidable
 }
 
-func (db *InMemoryDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order) {
+func (db *InMemoryDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]LiquidablePosition, map[common.Address][]Order, map[common.Address]*big.Int) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
 	liquidablePositions := []LiquidablePosition{}
 	ordersToCancel := map[common.Address][]Order{}
+	marginMap := map[common.Address]*big.Int{}
 	count := 0
 
 	// will be updated lazily only if liquidablePositions are found
@@ -962,7 +963,8 @@ func (db *InMemoryDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]Liquida
 		// has orders that might be cancellable
 		availableMargin := hu.GetAvailableMargin(hState, userState)
 		if availableMargin.Sign() == -1 {
-			foundCancellableOrders := db.determineOrdersToCancel(addr, trader, availableMargin, hState.OraclePrices, ordersToCancel)
+			foundCancellableOrders := false
+			foundCancellableOrders, marginMap[addr] = db.determineOrdersToCancel(addr, trader, availableMargin, hState.OraclePrices, ordersToCancel, hState.MinAllowableMargin)
 			if foundCancellableOrders {
 				log.Info("negative available margin", "trader", addr.String(), "availableMargin", prettifyScaledBigInt(availableMargin, 6))
 			} else {
@@ -975,12 +977,16 @@ func (db *InMemoryDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]Liquida
 	}
 	// lower margin fraction positions should be liquidated first
 	sortLiquidableSliceByMarginFraction(liquidablePositions)
-	return liquidablePositions, ordersToCancel
+	return liquidablePositions, ordersToCancel, marginMap
 }
 
 // assumes db.mu.RLock has been held by the caller
-func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader *Trader, availableMargin *big.Int, oraclePrices map[Market]*big.Int, ordersToCancel map[common.Address][]Order) bool {
+func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader *Trader, availableMargin *big.Int, oraclePrices map[Market]*big.Int, ordersToCancel map[common.Address][]Order, minAllowableMargin *big.Int) (bool, *big.Int) {
 	traderOrders := db.getTraderOrders(addr, Limit)
+	if len(traderOrders) == 0 {
+		return false, availableMargin
+	}
+
 	sort.Slice(traderOrders, func(i, j int) bool {
 		// higher diff comes first
 		iDiff := big.NewInt(0).Abs(big.NewInt(0).Sub(traderOrders[i].Price, oraclePrices[traderOrders[i].Market]))
@@ -989,25 +995,24 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 	})
 
 	_availableMargin := new(big.Int).Set(availableMargin)
-	if len(traderOrders) > 0 {
-		// cancel orders until available margin is positive
-		ordersToCancel[addr] = []Order{}
-		for _, order := range traderOrders {
-			// cannot cancel ReduceOnly orders or Market orders because no margin is reserved for them
-			if order.ReduceOnly || order.OrderType != Limit {
-				continue
-			}
-			ordersToCancel[addr] = append(ordersToCancel[addr], order)
-			orderNotional := big.NewInt(0).Abs(hu.Div1e18(hu.Mul(order.GetUnFilledBaseAssetQuantity(), order.Price))) // | size * current price |
-			marginReleased := hu.Div1e6(hu.Mul(orderNotional, db.configService.getMinAllowableMargin()))
-			_availableMargin.Add(_availableMargin, marginReleased)
-			if _availableMargin.Sign() >= 0 {
-				break
-			}
+	// cancel orders until available margin is positive
+	ordersToCancel[addr] = []Order{}
+	foundCancellableOrders := false
+	for _, order := range traderOrders {
+		// @todo how are reduce only orders that are not fillable cancelled?
+		if order.ReduceOnly || order.OrderType != Limit {
+			continue
 		}
-		return true
+		ordersToCancel[addr] = append(ordersToCancel[addr], order)
+		foundCancellableOrders = true
+		orderNotional := big.NewInt(0).Abs(hu.Div1e18(hu.Mul(order.GetUnFilledBaseAssetQuantity(), order.Price))) // | size * current price |
+		marginReleased := hu.Div1e6(hu.Mul(orderNotional, db.configService.getMinAllowableMargin()))
+		_availableMargin.Add(_availableMargin, marginReleased)
+		if _availableMargin.Sign() >= 0 {
+			break
+		}
 	}
-	return false
+	return foundCancellableOrders, _availableMargin
 }
 
 func (db *InMemoryDatabase) getTraderOrders(trader common.Address, orderType OrderType) []Order {

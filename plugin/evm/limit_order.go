@@ -462,6 +462,7 @@ func executeFuncAndRecoverPanic(fn func(), panicMessage string, panicCounter met
 
 			log.Error(panicMessage, "errorMessage", errorMessage, "stack_trace", string(debug.Stack()))
 			panicCounter.Inc(1)
+			orderbook.AllPanicsCounter.Inc(1)
 		}
 	}()
 	fn()

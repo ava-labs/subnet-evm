@@ -24,6 +24,7 @@ type IConfigService interface {
 	GetCumulativePremiumFraction(market Market) *big.Int
 	GetAcceptableBounds(market Market) (*big.Int, *big.Int)
 	GetAcceptableBoundsForLiquidation(market Market) (*big.Int, *big.Int)
+	GetTakerFee() *big.Int
 }
 
 type ConfigService struct {
@@ -101,4 +102,9 @@ func (cs *ConfigService) GetLastPremiumFraction(market Market, trader *common.Ad
 func (cs *ConfigService) GetCumulativePremiumFraction(market Market) *big.Int {
 	markets := bibliophile.GetMarkets(cs.getStateAtCurrentBlock())
 	return bibliophile.GetCumulativePremiumFraction(cs.getStateAtCurrentBlock(), markets[market])
+}
+
+func (cs *ConfigService) GetTakerFee() *big.Int {
+	takerFee := bibliophile.GetTakerFee(cs.getStateAtCurrentBlock())
+	return hu.Div(hu.Mul(takerFee, big.NewInt(8)), big.NewInt(10)) // 20% discount, which is applied to everyone currently
 }

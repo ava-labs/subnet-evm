@@ -25,7 +25,7 @@ func TestRunLiquidations(t *testing.T) {
 		shortOrders := []Order{getShortOrder()}
 
 		orderMap := map[Market]*Orders{market: {longOrders, shortOrders}}
-		pipeline.runLiquidations([]LiquidablePosition{}, orderMap, underlyingPrices)
+		pipeline.runLiquidations([]LiquidablePosition{}, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 		assert.Equal(t, longOrders, orderMap[market].longOrders)
 		assert.Equal(t, shortOrders, orderMap[market].shortOrders)
 		lotp.AssertNotCalled(t, "ExecuteLiquidation", mock.Anything, mock.Anything, mock.Anything)
@@ -40,7 +40,9 @@ func TestRunLiquidations(t *testing.T) {
 			orderMap := map[Market]*Orders{market: {longOrders, shortOrders}}
 
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
-			pipeline.runLiquidations([]LiquidablePosition{getLiquidablePos(traderAddress, LONG, 7)}, orderMap, underlyingPrices)
+			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetTakerFee").Return(big.NewInt(1e5))
+			pipeline.runLiquidations([]LiquidablePosition{getLiquidablePos(traderAddress, LONG, 7)}, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 			assert.Equal(t, longOrders, orderMap[market].longOrders)
 			assert.Equal(t, shortOrders, orderMap[market].shortOrders)
 			lotp.AssertNotCalled(t, "ExecuteLiquidation", mock.Anything, mock.Anything, mock.Anything)
@@ -53,11 +55,13 @@ func TestRunLiquidations(t *testing.T) {
 			shortOrder := getShortOrder()
 			expectedFillAmount := utils.BigIntMinAbs(longOrder.BaseAssetQuantity, liquidablePositions[0].Size)
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
+			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 			lotp.On("ExecuteLiquidation", traderAddress, longOrder, expectedFillAmount).Return(nil)
 
 			orderMap := map[Market]*Orders{market: {[]Order{longOrder}, []Order{shortOrder}}}
 
-			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
+			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 
 			lotp.AssertCalled(t, "ExecuteLiquidation", traderAddress, longOrder, expectedFillAmount)
 			cs.AssertCalled(t, "GetAcceptableBoundsForLiquidation", market)
@@ -75,11 +79,13 @@ func TestRunLiquidations(t *testing.T) {
 
 			expectedFillAmount := utils.BigIntMinAbs(longOrder.BaseAssetQuantity, liquidablePositions[0].Size)
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
+			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 			lotp.On("ExecuteLiquidation", traderAddress, longOrder, expectedFillAmount).Return(nil)
 
 			orderMap := map[Market]*Orders{market: {[]Order{longOrder, longOrder2}, []Order{}}}
 
-			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
+			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 
 			lotp.AssertCalled(t, "ExecuteLiquidation", traderAddress, longOrder, expectedFillAmount)
 			cs.AssertCalled(t, "GetAcceptableBoundsForLiquidation", market)
@@ -99,6 +105,8 @@ func TestRunLiquidations(t *testing.T) {
 			orderMap := map[Market]*Orders{market: {[]Order{longOrder0, longOrder1}, []Order{shortOrder0, shortOrder1}}}
 
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
+			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 			lotp.On("ExecuteLiquidation", traderAddress, orderMap[market].longOrders[0], big.NewInt(5)).Return(nil)
 			lotp.On("ExecuteLiquidation", traderAddress, orderMap[market].longOrders[1], big.NewInt(2)).Return(nil)
 			lotp.On("ExecuteLiquidation", traderAddress1, orderMap[market].longOrders[1], big.NewInt(9)).Return(nil)
@@ -106,7 +114,7 @@ func TestRunLiquidations(t *testing.T) {
 			lotp.On("ExecuteLiquidation", traderAddress1, orderMap[market].shortOrders[0], big.NewInt(1)).Return(nil)
 			lotp.On("ExecuteLiquidation", traderAddress1, orderMap[market].shortOrders[1], big.NewInt(1)).Return(nil)
 
-			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
+			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 			cs.AssertCalled(t, "GetAcceptableBoundsForLiquidation", market)
 
 			lotp.AssertCalled(t, "ExecuteLiquidation", traderAddress, longOrder0, big.NewInt(5))
@@ -144,7 +152,9 @@ func TestRunLiquidations(t *testing.T) {
 			orderMap := map[Market]*Orders{market: {longOrders, shortOrders}}
 
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
-			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
+			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetTakerFee").Return(big.NewInt(1e5))
+			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 			assert.Equal(t, longOrders, orderMap[market].longOrders)
 			assert.Equal(t, shortOrders, orderMap[market].shortOrders)
 			lotp.AssertNotCalled(t, "ExecuteLiquidation", mock.Anything, mock.Anything, mock.Anything)
@@ -157,9 +167,11 @@ func TestRunLiquidations(t *testing.T) {
 			expectedFillAmount := utils.BigIntMinAbs(shortOrder.BaseAssetQuantity, liquidablePositions[0].Size)
 			lotp.On("ExecuteLiquidation", traderAddress, shortOrder, expectedFillAmount).Return(nil)
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
+			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 
 			orderMap := map[Market]*Orders{market: {[]Order{longOrder}, []Order{shortOrder}}}
-			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices)
+			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 
 			lotp.AssertCalled(t, "ExecuteLiquidation", traderAddress, shortOrder, expectedFillAmount)
 			cs.AssertCalled(t, "GetAcceptableBoundsForLiquidation", market)
@@ -171,19 +183,22 @@ func TestRunLiquidations(t *testing.T) {
 }
 
 func TestRunMatchingEngine(t *testing.T) {
+	minAllowableMargin := big.NewInt(1e6)
+	takerFee := big.NewInt(1e6)
+	upperBound := big.NewInt(22)
 	t.Run("when either long or short orders are not present in memorydb", func(t *testing.T) {
 		t.Run("when no short and long orders are present", func(t *testing.T) {
 			_, lotp, pipeline, _, _ := setupDependencies(t)
 			longOrders := make([]Order, 0)
 			shortOrders := make([]Order, 0)
-			pipeline.runMatchingEngine(lotp, longOrders, shortOrders)
+			pipeline.runMatchingEngine(lotp, longOrders, shortOrders, map[common.Address]*big.Int{}, minAllowableMargin, takerFee, upperBound)
 			lotp.AssertNotCalled(t, "ExecuteMatchedOrdersTx", mock.Anything, mock.Anything, mock.Anything)
 		})
 		t.Run("when longOrders are not present but short orders are present", func(t *testing.T) {
 			_, lotp, pipeline, _, _ := setupDependencies(t)
 			longOrders := make([]Order, 0)
 			shortOrders := []Order{getShortOrder()}
-			pipeline.runMatchingEngine(lotp, longOrders, shortOrders)
+			pipeline.runMatchingEngine(lotp, longOrders, shortOrders, map[common.Address]*big.Int{}, minAllowableMargin, takerFee, upperBound)
 			lotp.AssertNotCalled(t, "ExecuteMatchedOrdersTx", mock.Anything, mock.Anything, mock.Anything)
 		})
 		t.Run("when short orders are not present but long orders are present", func(t *testing.T) {
@@ -195,7 +210,7 @@ func TestRunMatchingEngine(t *testing.T) {
 			db.On("GetLongOrders").Return(longOrders)
 			db.On("GetShortOrders").Return(shortOrders)
 			lotp.On("PurgeLocalTx").Return(nil)
-			pipeline.runMatchingEngine(lotp, longOrders, shortOrders)
+			pipeline.runMatchingEngine(lotp, longOrders, shortOrders, map[common.Address]*big.Int{}, minAllowableMargin, takerFee, upperBound)
 			lotp.AssertNotCalled(t, "ExecuteMatchedOrdersTx", mock.Anything, mock.Anything, mock.Anything)
 		})
 	})
@@ -206,7 +221,7 @@ func TestRunMatchingEngine(t *testing.T) {
 			longOrder := getLongOrder()
 			longOrder.Price.Sub(shortOrder.Price, big.NewInt(1))
 
-			pipeline.runMatchingEngine(lotp, []Order{longOrder}, []Order{shortOrder})
+			pipeline.runMatchingEngine(lotp, []Order{longOrder}, []Order{shortOrder}, map[common.Address]*big.Int{}, minAllowableMargin, takerFee, upperBound)
 			lotp.AssertNotCalled(t, "ExecuteMatchedOrdersTx", mock.Anything, mock.Anything, mock.Anything)
 		})
 		t.Run("When longOrder.Price >= shortOrder.Price same", func(t *testing.T) {
@@ -229,9 +244,12 @@ func TestRunMatchingEngine(t *testing.T) {
 
 					fillAmount1 := longOrder1.BaseAssetQuantity
 					fillAmount2 := longOrder2.BaseAssetQuantity
+					marginMap := map[common.Address]*big.Int{
+						common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+					}
 					lotp.On("ExecuteMatchedOrdersTx", longOrder1, shortOrder1, fillAmount1).Return(nil)
 					lotp.On("ExecuteMatchedOrdersTx", longOrder2, shortOrder2, fillAmount2).Return(nil)
-					pipeline.runMatchingEngine(lotp, longOrders, shortOrders)
+					pipeline.runMatchingEngine(lotp, longOrders, shortOrders, marginMap, minAllowableMargin, takerFee, upperBound)
 					lotp.AssertCalled(t, "ExecuteMatchedOrdersTx", longOrder1, shortOrder1, fillAmount1)
 					lotp.AssertCalled(t, "ExecuteMatchedOrdersTx", longOrder2, shortOrder2, fillAmount2)
 				})
@@ -256,7 +274,10 @@ func TestRunMatchingEngine(t *testing.T) {
 					db.On("GetShortOrders").Return(shortOrders)
 					lotp.On("PurgeLocalTx").Return(nil)
 					lotp.On("ExecuteMatchedOrdersTx", longOrder, shortOrder, fillAmount).Return(nil)
-					pipeline.runMatchingEngine(lotp, longOrders, shortOrders)
+					marginMap := map[common.Address]*big.Int{
+						common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+					}
+					pipeline.runMatchingEngine(lotp, longOrders, shortOrders, marginMap, minAllowableMargin, takerFee, upperBound)
 					lotp.AssertCalled(t, "ExecuteMatchedOrdersTx", longOrder, shortOrder, fillAmount)
 				})
 			})
@@ -293,7 +314,10 @@ func TestRunMatchingEngine(t *testing.T) {
 				db.On("GetShortOrders").Return(shortOrders)
 				lotp.On("PurgeLocalTx").Return(nil)
 				log.Info("longOrder1", "longOrder1", longOrder1)
-				pipeline.runMatchingEngine(lotp, longOrders, shortOrders)
+				marginMap := map[common.Address]*big.Int{
+					common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+				}
+				pipeline.runMatchingEngine(lotp, longOrders, shortOrders, marginMap, minAllowableMargin, takerFee, upperBound)
 				log.Info("longOrder1", "longOrder1", longOrder1)
 
 				//During 1st  matching iteration
@@ -492,6 +516,10 @@ func TestMatchLongAndShortOrder(t *testing.T) {
 }
 
 func TestAreMatchingOrders(t *testing.T) {
+	minAllowableMargin := big.NewInt(1e6)
+	takerFee := big.NewInt(1e6)
+	upperBound := big.NewInt(22)
+
 	trader := common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa")
 	longOrder_ := Order{
 		Market:                  1,
@@ -547,7 +575,10 @@ func TestAreMatchingOrders(t *testing.T) {
 		shortOrder := deepCopyOrder(&shortOrder_)
 
 		longOrder.Price = big.NewInt(80)
-		actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+		marginMap := map[common.Address]*big.Int{
+			common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+		}
+		actualFillAmount := areMatchingOrders(longOrder, shortOrder, marginMap, minAllowableMargin, takerFee, upperBound)
 
 		assert.Nil(t, actualFillAmount)
 	})
@@ -565,8 +596,10 @@ func TestAreMatchingOrders(t *testing.T) {
 				OrderType: 1,
 				ExpireAt:  big.NewInt(0),
 			}
-
-			actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+			marginMap := map[common.Address]*big.Int{
+				common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+			}
+			actualFillAmount := areMatchingOrders(longOrder, shortOrder, marginMap, minAllowableMargin, takerFee, upperBound)
 			assert.Nil(t, actualFillAmount)
 		})
 		t.Run("short order is post only", func(t *testing.T) {
@@ -574,8 +607,10 @@ func TestAreMatchingOrders(t *testing.T) {
 			longOrder.BlockNumber = big.NewInt(20)
 
 			shortOrder.RawOrder.(*LimitOrder).PostOnly = true
-
-			actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+			marginMap := map[common.Address]*big.Int{
+				common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+			}
+			actualFillAmount := areMatchingOrders(longOrder, shortOrder, marginMap, minAllowableMargin, takerFee, upperBound)
 			assert.Nil(t, actualFillAmount)
 		})
 	})
@@ -593,8 +628,10 @@ func TestAreMatchingOrders(t *testing.T) {
 				OrderType: 1,
 				ExpireAt:  big.NewInt(0),
 			}
-
-			actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+			marginMap := map[common.Address]*big.Int{
+				common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+			}
+			actualFillAmount := areMatchingOrders(longOrder, shortOrder, marginMap, minAllowableMargin, takerFee, upperBound)
 			assert.Nil(t, actualFillAmount)
 		})
 		t.Run("longOrder is post only", func(t *testing.T) {
@@ -602,8 +639,10 @@ func TestAreMatchingOrders(t *testing.T) {
 			longOrder.BlockNumber = big.NewInt(21)
 
 			longOrder.RawOrder.(*LimitOrder).PostOnly = true
-
-			actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+			marginMap := map[common.Address]*big.Int{
+				common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+			}
+			actualFillAmount := areMatchingOrders(longOrder, shortOrder, marginMap, minAllowableMargin, takerFee, upperBound)
 			assert.Nil(t, actualFillAmount)
 		})
 	})
@@ -613,7 +652,10 @@ func TestAreMatchingOrders(t *testing.T) {
 		shortOrder := deepCopyOrder(&shortOrder_)
 
 		longOrder.FilledBaseAssetQuantity = longOrder.BaseAssetQuantity
-		actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+		marginMap := map[common.Address]*big.Int{
+			common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+		}
+		actualFillAmount := areMatchingOrders(longOrder, shortOrder, marginMap, minAllowableMargin, takerFee, upperBound)
 		assert.Nil(t, actualFillAmount)
 	})
 
@@ -622,7 +664,10 @@ func TestAreMatchingOrders(t *testing.T) {
 		shortOrder := deepCopyOrder(&shortOrder_)
 
 		longOrder.FilledBaseAssetQuantity = big.NewInt(5)
-		actualFillAmount := areMatchingOrders(longOrder, shortOrder)
+		marginMap := map[common.Address]*big.Int{
+			common.HexToAddress("0x22Bb736b64A0b4D4081E103f83bccF864F0404aa"): big.NewInt(1e9), // $1000
+		}
+		actualFillAmount := areMatchingOrders(longOrder, shortOrder, marginMap, minAllowableMargin, takerFee, upperBound)
 		assert.Equal(t, big.NewInt(5), actualFillAmount)
 	})
 }

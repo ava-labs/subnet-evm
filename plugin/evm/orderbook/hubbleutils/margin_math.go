@@ -12,6 +12,7 @@ type HubbleState struct {
 	ActiveMarkets      []Market
 	MinAllowableMargin *big.Int
 	MaintenanceMargin  *big.Int
+	TakerFee           *big.Int
 }
 
 type UserState struct {

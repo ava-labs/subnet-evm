@@ -18,6 +18,7 @@ var (
 	orderBookTransactionsFailureTotalCounter = metrics.NewRegisteredCounter("orderbooktxs/total/failure", nil)
 
 	// panics are recovered but monitored
+	AllPanicsCounter                         = metrics.NewRegisteredCounter("all_panics", nil)
 	RunMatchingPipelinePanicsCounter         = metrics.NewRegisteredCounter("matching_pipeline_panics", nil)
 	HandleHubbleFeedLogsPanicsCounter        = metrics.NewRegisteredCounter("handle_hubble_feed_logs_panics", nil)
 	HandleChainAcceptedLogsPanicsCounter     = metrics.NewRegisteredCounter("handle_chain_accepted_logs_panics", nil)
@@ -32,4 +33,7 @@ var (
 
 	// order id not found while deleting
 	deleteOrderIdNotFoundCounter = metrics.NewRegisteredCounter("delete_order_id_not_found", nil)
+
+	// unquenched liquidations
+	unquenchedLiquidationsCounter = metrics.NewRegisteredCounter("unquenched_liquidations", nil)
 )

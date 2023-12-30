@@ -155,9 +155,10 @@ func (cep *ContractEventsProcessor) handleOrderBookEvent(event *types.Log) {
 			return
 		}
 		orderId := event.Topics[1]
+		errorString := args["err"].(string)
 		if !removed {
 			log.Info("OrderMatchingError", "args", args, "orderId", orderId.String(), "TxHash", event.TxHash, "number", event.BlockNumber)
-			if err := cep.database.SetOrderStatus(orderId, Execution_Failed, args["err"].(string), event.BlockNumber); err != nil {
+			if err := cep.database.SetOrderStatus(orderId, Execution_Failed, errorString, event.BlockNumber); err != nil {
 				log.Error("error in SetOrderStatus", "method", "OrderMatchingError", "err", err)
 				return
 			}
@@ -704,17 +705,32 @@ func (cep *ContractEventsProcessor) updateMetrics(logs []*types.Log) {
 
 		metricName := fmt.Sprintf("%s/%s", "events", event_.Name)
 
-		if !event.Removed {
-			metrics.GetOrRegisterCounter(metricName, nil).Inc(1)
-		} else {
-			metrics.GetOrRegisterCounter(metricName, nil).Dec(1)
-		}
+		metrics.GetOrRegisterCounter(metricName, nil).Inc(1)
 
 		switch event_.Name {
 		case "OrderAccepted":
-			orderAcceptedCount++
+			orderAcceptedCount += 1
 		case "OrderCancelAccepted":
-			orderCancelledCount++
+			orderCancelledCount += 1
+		case "OrderMatchingError":
+			// separate metrics for combination of order type and error string - for more granular analysis
+			args := map[string]interface{}{}
+			err := cep.orderBookABI.UnpackIntoMap(args, "OrderMatchingError", event.Data)
+			if err != nil {
+				log.Error("error in orderBookAbi.UnpackIntoMap", "method", "OrderMatchingError", "err", err)
+				return
+			}
+			orderId := event.Topics[1]
+			errorString := args["err"].(string)
+
+			order := cep.database.GetOrderById(orderId)
+			if order != nil {
+				ordertype := order.OrderType
+				metricName := fmt.Sprintf("%s/%s/%s/%s", "events", "OrderMatchingError", ordertype, utils.RemoveSpacesAndSpecialChars(errorString))
+				metrics.GetOrRegisterCounter(metricName, nil).Inc(1)
+			} else {
+				log.Error("updateMetrics - error in getting order", "event", "OrderMatchingError")
+			}
 		}
 	}
 
