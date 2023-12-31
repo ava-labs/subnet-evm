@@ -16,9 +16,10 @@ func TestGetLiquidableTraders(t *testing.T) {
 	t.Run("When no trader exist", func(t *testing.T) {
 		db := getDatabase()
 		hState := &hu.HubbleState{
-			Assets:        assets,
-			OraclePrices:  map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))},
-			ActiveMarkets: []hu.Market{market},
+			Assets:             assets,
+			OraclePrices:       map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))},
+			ActiveMarkets:      []hu.Market{market},
+			MinAllowableMargin: db.configService.getMinAllowableMargin(),
 		}
 		liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 		assert.Equal(t, 0, len(liquidablePositions))
@@ -38,11 +39,12 @@ func TestGetLiquidableTraders(t *testing.T) {
 			},
 		}
 		hState := &hu.HubbleState{
-			Assets:            assets,
-			OraclePrices:      map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))},
-			MidPrices:         map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(100))},
-			ActiveMarkets:     []hu.Market{market},
-			MaintenanceMargin: db.configService.getMaintenanceMargin(),
+			Assets:             assets,
+			OraclePrices:       map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))},
+			MidPrices:          map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(100))},
+			ActiveMarkets:      []hu.Market{market},
+			MaintenanceMargin:  db.configService.getMaintenanceMargin(),
+			MinAllowableMargin: db.configService.getMinAllowableMargin(),
 		}
 		liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 		assert.Equal(t, 0, len(liquidablePositions))
