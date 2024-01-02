@@ -86,6 +86,6 @@ type ChainConfig interface {
 	GetFeeConfig() commontype.FeeConfig
 	// AllowedFeeRecipients returns true if fee recipients are allowed in the genesis.
 	AllowedFeeRecipients() bool
-	// IsDurango returns true if the time is after the Durango.
+	// IsDurango returns true if the time is after Durango.
 	IsDurango(time uint64) bool
 }
