@@ -78,7 +78,7 @@ func (*Config) Key() string { return ConfigKey }
 // Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	if c.Timestamp() != nil {
-		// If Warp attempts to activate before the Durango, fail verification
+		// If Warp attempts to activate before Durango, fail verification
 		timestamp := *c.Timestamp()
 		if !chainConfig.IsDurango(timestamp) {
 			return errWarpCannotBeActivated
