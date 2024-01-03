@@ -334,7 +334,7 @@ func areMatchingOrders(longOrder, shortOrder Order, marginMap map[common.Address
 }
 
 func getRequiredMargin(order *Order, fillAmount, minAllowableMargin, takerFee, upperBound *big.Int) *big.Int {
-	if order.OrderType != IOC {
+	if order.OrderType != IOC || order.ReduceOnly {
 		return big.NewInt(0) // no extra margin required because for limit orders it is already reserved
 		// @todo change for signed orders
 	}
