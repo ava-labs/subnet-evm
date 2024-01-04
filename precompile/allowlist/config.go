@@ -163,18 +163,18 @@ func (c *AllowListConfig) MarshalBinary() ([]byte, error) {
 }
 
 func (c *AllowListConfig) UnmarshalBinary(data []byte) error {
-	p := wrappers.Packer{
+	p := &wrappers.Packer{
 		Bytes: data,
 	}
-	admins, err := c.unpackAddresses(&p)
+	admins, err := c.unpackAddresses(p)
 	if err != nil {
 		return err
 	}
-	managers, err := c.unpackAddresses(&p)
+	managers, err := c.unpackAddresses(p)
 	if err != nil {
 		return err
 	}
-	enableds, err := c.unpackAddresses(&p)
+	enableds, err := c.unpackAddresses(p)
 	if err != nil {
 		return err
 	}
