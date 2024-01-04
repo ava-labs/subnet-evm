@@ -26,14 +26,14 @@ run_simulator() {
     echo "building simulator"
     pushd ./cmd/simulator
     go build -o ./simulator main/*.go
-    echo 
+    echo
 
     popd
     echo "running simulator from $PWD"
     ./cmd/simulator/simulator \
         --endpoints=$RPC_ENDPOINTS \
         --key-dir=./cmd/simulator/.simulator/keys \
-        --timeout=300s \
+        --timeout=600s \
         --workers=1 \
         --txs-per-worker=50000 \
         --batch-size=50000 \
