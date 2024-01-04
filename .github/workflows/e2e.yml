@@ -47,6 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
       - name: Run E2E Precompile Tests
         shell: bash
         run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/precompile-data ./scripts/run_ginkgo_precompile.sh
@@ -63,6 +65,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
       - name: Run Warp E2E Tests
         shell: bash
         run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/warp-data ./scripts/run_ginkgo_warp.sh
@@ -79,6 +83,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup
     steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
       - name: Run E2E Load Tests
         shell: bash
         run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/load-data ./scripts/run_ginkgo_load.sh
