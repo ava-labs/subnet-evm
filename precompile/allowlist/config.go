@@ -59,10 +59,10 @@ func (c *AllowListConfig) unpackAddresses(p *wrappers.Packer) ([]common.Address,
 		return nil, p.Err
 	}
 
-	addresses := make([]common.Address, length)
+	addresses := make([]common.Address, 0, length)
 	for i := uint32(0); i < length; i++ {
 		bytes := p.UnpackFixedBytes(common.AddressLength)
-		addresses = append(addresses[:i], common.BytesToAddress(bytes))
+		addresses = append(addresses, common.BytesToAddress(bytes))
 		if p.Err != nil {
 			return nil, p.Err
 		}
