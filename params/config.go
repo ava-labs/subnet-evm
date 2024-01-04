@@ -27,7 +27,6 @@
 package params
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -75,13 +74,8 @@ var (
 	}
 
 	// For UpgradeConfig Marshal/Unmarshal
-	sectionHeaderSizes       = 1
-	precompileHeader         = []byte{0xaa}
-	stateUpdateHeader        = []byte{0xc8}
-	endHeader                = []byte{0}
-	ErrMalformedConfigHeader = errors.New("malformed config header")
-	ErrUnknowPrecompile      = errors.New("unknown precompile config")
-	MaxMessageSize           = 1 * units.MiB
+	ErrUnknowPrecompile = errors.New("unknown precompile config")
+	MaxMessageSize      = 1 * units.MiB
 )
 
 var (
@@ -215,14 +209,11 @@ func (c *UpgradeConfig) MarshalBinary() ([]byte, error) {
 		}
 	}
 
+	p.PackInt(uint32(len(c.PrecompileUpgrades)))
 	for _, precompileConfig := range c.PrecompileUpgrades {
 		bytes, err := precompileConfig.Config.MarshalBinary()
 		if err != nil {
 			return nil, err
-		}
-		p.PackFixedBytes(precompileHeader)
-		if p.Err != nil {
-			return nil, p.Err
 		}
 		p.PackStr(precompileConfig.Key())
 		if p.Err != nil {
@@ -234,22 +225,17 @@ func (c *UpgradeConfig) MarshalBinary() ([]byte, error) {
 		}
 	}
 
+	p.PackInt(uint32(len(c.StateUpgrades)))
 	for _, config := range c.StateUpgrades {
 		bytes, err := config.MarshalBinary()
 		if err != nil {
 			return nil, err
-		}
-		p.PackFixedBytes(stateUpdateHeader)
-		if p.Err != nil {
-			return nil, p.Err
 		}
 		p.PackBytes(bytes)
 		if p.Err != nil {
 			return nil, p.Err
 		}
 	}
-
-	p.PackFixedBytes(endHeader)
 
 	return p.Bytes, nil
 }
@@ -270,42 +256,44 @@ func (c *UpgradeConfig) UnmarshalBinary(data []byte) error {
 		}
 	}
 
-	for {
-		header := p.UnpackFixedBytes(sectionHeaderSizes)
+	len := p.UnpackInt()
+	if p.Err != nil {
+		return p.Err
+	}
+
+	for i := uint32(0); i < len; i++ {
+		key := p.UnpackStr()
 		if p.Err != nil {
 			return p.Err
 		}
-		if bytes.Equal(header, precompileHeader) {
-			key := p.UnpackStr()
-			if p.Err != nil {
-				return p.Err
-			}
-			config := p.UnpackBytes()
-			if p.Err != nil {
-				return p.Err
-			}
-			module, ok := modules.GetPrecompileModule(key)
-			if !ok {
-				return ErrUnknowPrecompile
-			}
-			preCompile := module.MakeConfig()
-			err := preCompile.UnmarshalBinary(config)
-			if err != nil {
-				return err
-			}
-			c.PrecompileUpgrades = append(c.PrecompileUpgrades, PrecompileUpgrade{Config: preCompile})
-		} else if bytes.Equal(header, stateUpdateHeader) {
-			config := p.UnpackBytes()
-			stateUpgrade := StateUpgrade{}
-			if err := stateUpgrade.UnmarshalBinary(config); err != nil {
-				return err
-			}
-			c.StateUpgrades = append(c.StateUpgrades, stateUpgrade)
-		} else if bytes.Equal(header, endHeader) {
-			break
-		} else {
-			return ErrMalformedConfigHeader
+		config := p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
 		}
+		module, ok := modules.GetPrecompileModule(key)
+		if !ok {
+			return ErrUnknowPrecompile
+		}
+		preCompile := module.MakeConfig()
+		err := preCompile.UnmarshalBinary(config)
+		if err != nil {
+			return err
+		}
+		c.PrecompileUpgrades = append(c.PrecompileUpgrades, PrecompileUpgrade{Config: preCompile})
+	}
+
+	len = p.UnpackInt()
+	if p.Err != nil {
+		return p.Err
+	}
+
+	for i := uint32(0); i < len; i++ {
+		config := p.UnpackBytes()
+		stateUpgrade := StateUpgrade{}
+		if err := stateUpgrade.UnmarshalBinary(config); err != nil {
+			return err
+		}
+		c.StateUpgrades = append(c.StateUpgrades, stateUpgrade)
 	}
 
 	return nil
