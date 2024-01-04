@@ -9,6 +9,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -118,13 +119,13 @@ func (c *AllowListConfig) MarshalBinary() ([]byte, error) {
 		Bytes:   []byte{},
 		MaxSize: 1 * units.MiB,
 	}
-	if err := contract.PackAddresses(c.AdminAddresses, &p); err != nil {
+	if err := utils.PackAddresses(&p, c.AdminAddresses); err != nil {
 		return nil, err
 	}
-	if err := contract.PackAddresses(c.ManagerAddresses, &p); err != nil {
+	if err := utils.PackAddresses(&p, c.ManagerAddresses); err != nil {
 		return nil, err
 	}
-	if err := contract.PackAddresses(c.EnabledAddresses, &p); err != nil {
+	if err := utils.PackAddresses(&p, c.EnabledAddresses); err != nil {
 		return nil, err
 	}
 	return p.Bytes, nil
@@ -134,15 +135,15 @@ func (c *AllowListConfig) UnmarshalBinary(data []byte) error {
 	p := &wrappers.Packer{
 		Bytes: data,
 	}
-	admins, err := contract.UnpackAddresses(p)
+	admins, err := utils.UnpackAddresses(p)
 	if err != nil {
 		return err
 	}
-	managers, err := contract.UnpackAddresses(p)
+	managers, err := utils.UnpackAddresses(p)
 	if err != nil {
 		return err
 	}
-	enableds, err := contract.UnpackAddresses(p)
+	enableds, err := utils.UnpackAddresses(p)
 	if err != nil {
 		return err
 	}

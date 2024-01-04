@@ -8,10 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ava-labs/subnet-evm/vmerrs"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -63,44 +61,4 @@ func ParseABI(rawABI string) abi.ABI {
 
 func IsDUpgradeActivated(evm AccessibleState) bool {
 	return evm.GetChainConfig().IsDUpgrade(evm.GetBlockContext().Timestamp())
-}
-
-func PackAddresses(addresses []common.Address, p *wrappers.Packer) error {
-	p.PackBool(addresses == nil)
-	if addresses == nil {
-		return nil
-	}
-	p.PackInt(uint32(len(addresses)))
-	if p.Err != nil {
-		return p.Err
-	}
-	for _, address := range addresses {
-		p.PackFixedBytes(address[:])
-		if p.Err != nil {
-			return p.Err
-		}
-	}
-	return nil
-}
-
-func UnpackAddresses(p *wrappers.Packer) ([]common.Address, error) {
-	isNil := p.UnpackBool()
-	if isNil || p.Err != nil {
-		return nil, p.Err
-	}
-	length := p.UnpackInt()
-	if p.Err != nil {
-		return nil, p.Err
-	}
-
-	addresses := make([]common.Address, 0, length)
-	for i := uint32(0); i < length; i++ {
-		bytes := p.UnpackFixedBytes(common.AddressLength)
-		addresses = append(addresses, common.BytesToAddress(bytes))
-		if p.Err != nil {
-			return nil, p.Err
-		}
-	}
-
-	return addresses, nil
 }
