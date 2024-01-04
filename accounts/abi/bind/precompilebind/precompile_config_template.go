@@ -63,7 +63,7 @@ func (c * Config) MarshalBinary() ([]byte, error) {
 	}
 	p.PackBytes(allowBytes)
 	if p.Err != nil {
-		return ni, p.Err
+		return nil, p.Err
 	}
 	{{- end}}
 	upgradeBytes, err := c.Upgrade.MarshalBinary()
