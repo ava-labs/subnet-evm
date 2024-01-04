@@ -39,46 +39,6 @@ func (c *AllowListConfig) Configure(chainConfig precompileconfig.ChainConfig, pr
 	return nil
 }
 
-func (c *AllowListConfig) packAddresses(addresses []common.Address, p *wrappers.Packer) error {
-	p.PackBool(addresses == nil)
-	if addresses == nil {
-		return nil
-	}
-	p.PackInt(uint32(len(addresses)))
-	if p.Err != nil {
-		return p.Err
-	}
-	for _, address := range addresses {
-		p.PackFixedBytes(address[:])
-		if p.Err != nil {
-			return p.Err
-		}
-	}
-	return nil
-}
-
-func (c *AllowListConfig) unpackAddresses(p *wrappers.Packer) ([]common.Address, error) {
-	isNil := p.UnpackBool()
-	if isNil || p.Err != nil {
-		return nil, p.Err
-	}
-	length := p.UnpackInt()
-	if p.Err != nil {
-		return nil, p.Err
-	}
-
-	addresses := make([]common.Address, 0, length)
-	for i := uint32(0); i < length; i++ {
-		bytes := p.UnpackFixedBytes(common.AddressLength)
-		addresses = append(addresses, common.BytesToAddress(bytes))
-		if p.Err != nil {
-			return nil, p.Err
-		}
-	}
-
-	return addresses, nil
-}
-
 // Equal returns true iff [other] has the same admins in the same order in its allow list.
 func (c *AllowListConfig) Equal(other *AllowListConfig) bool {
 	if other == nil {
@@ -158,13 +118,13 @@ func (c *AllowListConfig) MarshalBinary() ([]byte, error) {
 		Bytes:   []byte{},
 		MaxSize: 1 * units.MiB,
 	}
-	if err := c.packAddresses(c.AdminAddresses, &p); err != nil {
+	if err := contract.PackAddresses(c.AdminAddresses, &p); err != nil {
 		return nil, err
 	}
-	if err := c.packAddresses(c.ManagerAddresses, &p); err != nil {
+	if err := contract.PackAddresses(c.ManagerAddresses, &p); err != nil {
 		return nil, err
 	}
-	if err := c.packAddresses(c.EnabledAddresses, &p); err != nil {
+	if err := contract.PackAddresses(c.EnabledAddresses, &p); err != nil {
 		return nil, err
 	}
 	return p.Bytes, nil
@@ -174,15 +134,15 @@ func (c *AllowListConfig) UnmarshalBinary(data []byte) error {
 	p := &wrappers.Packer{
 		Bytes: data,
 	}
-	admins, err := c.unpackAddresses(p)
+	admins, err := contract.UnpackAddresses(p)
 	if err != nil {
 		return err
 	}
-	managers, err := c.unpackAddresses(p)
+	managers, err := contract.UnpackAddresses(p)
 	if err != nil {
 		return err
 	}
-	enableds, err := c.unpackAddresses(p)
+	enableds, err := contract.UnpackAddresses(p)
 	if err != nil {
 		return err
 	}
