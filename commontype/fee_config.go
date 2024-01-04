@@ -146,10 +146,10 @@ func (f *FeeConfig) checkByteLens() error {
 	return nil
 }
 
-func (c *FeeConfig) getBigIntToSerialize() []*big.Int {
-	return []*big.Int{
-		c.GasLimit, c.MinBaseFee, c.TargetGas, c.BaseFeeChangeDenominator,
-		c.MinBlockGasCost, c.MaxBlockGasCost, c.BlockGasCostStep,
+func (c *FeeConfig) getBigIntToSerialize() []**big.Int {
+	return []**big.Int{
+		&c.GasLimit, &c.MinBaseFee, &c.TargetGas, &c.BaseFeeChangeDenominator,
+		&c.MinBlockGasCost, &c.MaxBlockGasCost, &c.BlockGasCostStep,
 	}
 }
 
@@ -160,7 +160,7 @@ func (c *FeeConfig) MarshalBinary() ([]byte, error) {
 	}
 
 	for _, bigint := range c.getBigIntToSerialize() {
-		p.PackBool(bigint == nil)
+		p.PackBool(*bigint == nil)
 		if p.Err != nil {
 			return nil, p.Err
 		}
@@ -191,7 +191,7 @@ func (c *FeeConfig) UnmarshalBinary(data []byte) error {
 		if isNil {
 			continue
 		}
-		*bigint = *big.NewInt(0).SetBytes(p.UnpackBytes())
+		*bigint = big.NewInt(0).SetBytes(p.UnpackBytes())
 		if p.Err != nil {
 			return p.Err
 		}

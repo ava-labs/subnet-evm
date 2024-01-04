@@ -75,12 +75,10 @@ var (
 	}
 
 	// For UpgradeConfig Marshal/Unmarshal
-	magicHeader              = []byte{0xff}
 	sectionHeaderSizes       = 1
 	precompileHeader         = []byte{0xaa}
 	stateUpdateHeader        = []byte{0xc8}
 	endHeader                = []byte{0}
-	ErrIncorrectHeader       = errors.New("invalid magic header")
 	ErrMalformedConfigHeader = errors.New("malformed config header")
 	ErrUnknowPrecompile      = errors.New("unknown precompile config")
 	MaxMessageSize           = 1 * units.MiB
@@ -201,10 +199,6 @@ func (c *UpgradeConfig) MarshalBinary() ([]byte, error) {
 		Bytes:   []byte{},
 		MaxSize: MaxMessageSize,
 	}
-	p.PackFixedBytes(magicHeader)
-	if p.Err != nil {
-		return nil, p.Err
-	}
 
 	p.PackBool(c.OptionalNetworkUpgrades == nil)
 	if p.Err != nil {
@@ -264,13 +258,6 @@ func (c *UpgradeConfig) UnmarshalBinary(data []byte) error {
 	p := wrappers.Packer{
 		Bytes: data,
 	}
-	if !bytes.Equal(p.UnpackFixedBytes(sectionHeaderSizes), magicHeader) {
-		return ErrIncorrectHeader
-	}
-	if p.Err != nil {
-		return p.Err
-	}
-
 	isNil := p.UnpackBool()
 	if !isNil {
 		c.OptionalNetworkUpgrades = &OptionalNetworkUpgrades{}
