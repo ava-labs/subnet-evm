@@ -31,7 +31,7 @@ func (u *InitialRewardConfig) MarshalBinary() ([]byte, error) {
 	if p.Err != nil {
 		return nil, p.Err
 	}
-	p.PackBytes(u.RewardAddress[:])
+	p.PackFixedBytes(u.RewardAddress[:])
 	return p.Bytes, p.Err
 }
 
@@ -43,7 +43,7 @@ func (u *InitialRewardConfig) UnmarshalBinary(data []byte) error {
 	if p.Err != nil {
 		return p.Err
 	}
-	u.RewardAddress = common.BytesToAddress(p.UnpackBytes())
+	u.RewardAddress = common.BytesToAddress(p.UnpackFixedBytes(common.AddressLength))
 	if p.Err != nil {
 		return p.Err
 	}
