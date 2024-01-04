@@ -141,7 +141,7 @@ func (c *Config) MarshalBinary() ([]byte, error) {
 	}
 
 	for _, key := range keys {
-		p.PackBytes(key[:])
+		p.PackFixedBytes(key[:])
 		if p.Err != nil {
 			return nil, p.Err
 		}
@@ -176,7 +176,7 @@ func (c *Config) UnmarshalBinary(bytes []byte) error {
 	c.InitialMint = make(map[common.Address]*math.HexOrDecimal256, len)
 
 	for i := uint32(0); i < len; i++ {
-		key := common.BytesToAddress(p.UnpackBytes())
+		key := common.BytesToAddress(p.UnpackFixedBytes(common.AddressLength))
 		if p.Err != nil {
 			return p.Err
 		}
