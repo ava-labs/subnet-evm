@@ -252,7 +252,7 @@ func (c *UpgradeConfig) UnmarshalBinary(data []byte) error {
 			return p.Err
 		}
 		if err := c.OptionalNetworkUpgrades.UnmarshalBinary(bytes); err != nil {
-			return nil
+			return err
 		}
 	}
 
