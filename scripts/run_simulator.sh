@@ -33,7 +33,7 @@ run_simulator() {
     ./cmd/simulator/simulator \
         --endpoints=$RPC_ENDPOINTS \
         --key-dir=./cmd/simulator/.simulator/keys \
-        --timeout=600s \
+        --timeout=300s \
         --workers=1 \
         --txs-per-worker=50000 \
         --batch-size=50000 \

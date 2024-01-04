@@ -77,11 +77,10 @@ func (tw *ethereumTxWorker) ConfirmTx(ctx context.Context, tx *types.Transaction
 
 func (tw *ethereumTxWorker) confirmTxByNonce(ctx context.Context, tx *types.Transaction) error {
 	txNonce := tx.Nonce()
-
 	for {
 		acceptedNonce, err := tw.client.NonceAt(ctx, tw.address, nil)
 		if err != nil {
-			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), txNonce, err)
+			return fmt.Errorf("failed to get accepted nonce at tx %s nonce %d: %w", tx.Hash(), txNonce, err)
 		}
 		tw.acceptedNonce = acceptedNonce
 
@@ -95,7 +94,7 @@ func (tw *ethereumTxWorker) confirmTxByNonce(ctx context.Context, tx *types.Tran
 		case <-tw.newHeads:
 		case <-time.After(time.Second):
 		case <-ctx.Done():
-			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), txNonce, ctx.Err())
+			return fmt.Errorf("failed to confirm tx %s nonce %d: %w", tx.Hash(), txNonce, ctx.Err())
 		}
 	}
 }
@@ -112,7 +111,7 @@ func (tw *ethereumTxWorker) confirmTxByReceipt(ctx context.Context, tx *types.Tr
 		case <-tw.newHeads:
 		case <-time.After(time.Second):
 		case <-ctx.Done():
-			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), tx.Nonce(), ctx.Err())
+			return fmt.Errorf("failed to confirm receipt tx %s nonce %d: %w", tx.Hash(), tx.Nonce(), ctx.Err())
 		}
 	}
 }
