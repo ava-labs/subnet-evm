@@ -74,7 +74,7 @@ func (c * Config) MarshalBinary() ([]byte, error) {
 }
 
 func (c * Config) UnmarshalBinary(bytes []byte) error {
-	return errors.New("implement UnmarshalBinary() method")
+	panic("implement UnmarshalBinary() method")
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]

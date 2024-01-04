@@ -81,7 +81,7 @@ func TestSerialize(t *testing.T) {
 					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
 				},
 				{{- end}}
-				), // enable at genesis
+				),
 			},
 			{
 				Config: NewDisableConfig(&t1), // disable at timestamp 1
