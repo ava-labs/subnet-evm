@@ -77,7 +77,7 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 		DisableFeeRewards(state)
 	} else {
 		// set reward address
-		return StoreRewardAddress(state, i.RewardAddress)
+		StoreRewardAddress(state, i.RewardAddress)
 	}
 	return nil
 }
@@ -115,8 +115,11 @@ func NewDisableConfig(blockTimestamp *uint64) *Config {
 	}
 }
 
+// Key returns the key for the Contract precompileconfig.
+// This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
 
+// Verify tries to verify Config and returns an error accordingly.
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	if c.InitialRewardConfig != nil {
 		if err := c.InitialRewardConfig.Verify(); err != nil {

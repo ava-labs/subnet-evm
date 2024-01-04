@@ -108,7 +108,7 @@ var (
 	}
 
 	TestChainConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
+		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -130,7 +130,7 @@ var (
 	}
 
 	TestSubnetEVMConfig = &ChainConfig{
-		AvalancheContext:    AvalancheContext{snow.DefaultContextTest()},
+		AvalancheContext:    AvalancheContext{utils.TestSnowContext()},
 		ChainID:             big.NewInt(1),
 		FeeConfig:           DefaultFeeConfig,
 		AllowFeeRecipients:  false,
@@ -151,7 +151,7 @@ var (
 	}
 
 	TestPreSubnetEVMConfig = &ChainConfig{
-		AvalancheContext:         AvalancheContext{snow.DefaultContextTest()},
+		AvalancheContext:         AvalancheContext{utils.TestSnowContext()},
 		ChainID:                  big.NewInt(1),
 		FeeConfig:                DefaultFeeConfig,
 		AllowFeeRecipients:       false,
@@ -261,11 +261,6 @@ func (c *UpgradeConfig) MarshalBinary() ([]byte, error) {
 }
 
 func (c *UpgradeConfig) UnmarshalBinary(data []byte) error {
-	// Add protection and reject any slice of bytes which is bigger than the maxSize.
-	if byteLen := len(data); byteLen > m.maxSize {
-		return 0, fmt.Errorf("%w: %d > %d", ErrUnmarshalTooBig, byteLen, m.maxSize)
-	}
-
 	p := wrappers.Packer{
 		Bytes: data,
 	}

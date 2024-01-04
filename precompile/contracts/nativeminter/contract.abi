@@ -7,85 +7,37 @@
         "internalType": "address",
         "name": "sender",
         "type": "address"
-      }
-    ],
-    "name": "FeeRecipientsAllowed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "oldRewardAddress",
+        "name": "recipient",
         "type": "address"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newRewardAddress",
-        "type": "address"
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
       }
     ],
-    "name": "RewardAddressChanged",
+    "name": "NativeCoinMinted",
     "type": "event"
   },
   {
-    "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
         "internalType": "address",
-        "name": "sender",
+        "name": "addr",
         "type": "address"
-      }
-    ],
-    "name": "RewardsDisabled",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "allowFeeRecipients",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "areFeeRecipientsAllowed",
-    "outputs": [
+      },
       {
-        "internalType": "bool",
-        "name": "isAllowed",
-        "type": "bool"
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "currentRewardAddress",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "rewardAddress",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "disableRewards",
+    "name": "mintNativeCoin",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -157,19 +109,6 @@
       }
     ],
     "name": "setNone",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "addr",
-        "type": "address"
-      }
-    ],
-    "name": "setRewardAddress",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
