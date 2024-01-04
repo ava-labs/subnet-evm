@@ -10,6 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+const BigIntBytesLength = 32
+
 // IncrOne increments bytes value by one
 func IncrOne(bytes []byte) {
 	index := len(bytes) - 1
@@ -50,11 +52,8 @@ func BytesToHashSlice(b []byte) []common.Hash {
 
 func PackBigInt(p *wrappers.Packer, number *big.Int) error {
 	p.PackBool(number == nil)
-	if p.Err != nil {
-		return p.Err
-	}
-	if number != nil {
-		p.PackBytes(number.Bytes())
+	if p.Err == nil && number != nil {
+		p.PackFixedBytes(number.FillBytes(make([]byte, BigIntBytesLength)))
 	}
 
 	return p.Err
@@ -66,7 +65,7 @@ func UnpackBigInt(p *wrappers.Packer) (*big.Int, error) {
 		return nil, p.Err
 	}
 
-	number := big.NewInt(0).SetBytes(p.UnpackBytes())
+	number := big.NewInt(0).SetBytes(p.UnpackFixedBytes(BigIntBytesLength))
 	return number, p.Err
 }
 

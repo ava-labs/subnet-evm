@@ -205,11 +205,6 @@ func (c *FeeConfig) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
-	c.MinBaseFee, err = utils.UnpackBigInt(&p)
-	if err != nil {
-		return err
-	}
-
 	c.TargetGas, err = utils.UnpackBigInt(&p)
 	if err != nil {
 		return err
