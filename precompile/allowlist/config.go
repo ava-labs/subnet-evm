@@ -40,6 +40,10 @@ func (c *AllowListConfig) Configure(chainConfig precompileconfig.ChainConfig, pr
 }
 
 func (c *AllowListConfig) packAddresses(addresses []common.Address, p *wrappers.Packer) error {
+	p.PackBool(addresses == nil)
+	if addresses == nil {
+		return nil
+	}
 	p.PackInt(uint32(len(addresses)))
 	if p.Err != nil {
 		return p.Err
@@ -54,6 +58,10 @@ func (c *AllowListConfig) packAddresses(addresses []common.Address, p *wrappers.
 }
 
 func (c *AllowListConfig) unpackAddresses(p *wrappers.Packer) ([]common.Address, error) {
+	isNil := p.UnpackBool()
+	if isNil || p.Err != nil {
+		return nil, p.Err
+	}
 	length := p.UnpackInt()
 	if p.Err != nil {
 		return nil, p.Err
