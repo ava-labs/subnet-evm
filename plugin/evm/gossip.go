@@ -74,7 +74,7 @@ type txGossipHandler struct {
 }
 
 func (t txGossipHandler) AppGossip(ctx context.Context, nodeID ids.NodeID, gossipBytes []byte) {
-	t.appGossipHandler.AppGossip(ctx, nodeID, gossipBytes)
+	// t.appGossipHandler.AppGossip(ctx, nodeID, gossipBytes)
 }
 
 func (t txGossipHandler) AppRequest(ctx context.Context, nodeID ids.NodeID, deadline time.Time, requestBytes []byte) ([]byte, error) {

@@ -305,7 +305,7 @@ func (n *pushGossiper) awaitEthTxGossip() {
 					)
 				}
 
-				//		n.ethTxGossiper.Add(gossipTxs...)
+				n.ethTxGossiper.Add(gossipTxs...)
 				if err := n.ethTxGossiper.Gossip(context.TODO()); err != nil {
 					log.Warn(
 						"failed to send eth transactions",
