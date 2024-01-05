@@ -94,7 +94,7 @@ func (tw *ethereumTxWorker) confirmTxByNonce(ctx context.Context, tx *types.Tran
 		case <-tw.newHeads:
 		case <-time.After(time.Second):
 		case <-ctx.Done():
-			return fmt.Errorf("failed to confirm tx %s nonce %d: %w", tx.Hash(), txNonce, ctx.Err())
+			return fmt.Errorf("failed to confirm tx %s nonce %d, accepted nonce %d: %w", tx.Hash(), txNonce, tw.acceptedNonce, ctx.Err())
 		}
 	}
 }
