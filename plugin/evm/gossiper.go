@@ -292,8 +292,10 @@ func (n *pushGossiper) awaitEthTxGossip() {
 					)
 				}
 			case txs := <-n.ethTxsToGossipChan:
+				gossipTxs := make([]*GossipEthTx, 0, len(txs))
 				for _, tx := range txs {
 					n.ethTxsToGossip[tx.Hash()] = tx
+					gossipTxs = append(gossipTxs, &GossipEthTx{Tx: tx})
 				}
 				if attempted, err := n.gossipEthTxs(false); err != nil {
 					log.Warn(
@@ -303,12 +305,7 @@ func (n *pushGossiper) awaitEthTxGossip() {
 					)
 				}
 
-				gossipTxs := make([]*GossipEthTx, 0, len(txs))
-				for _, tx := range txs {
-					gossipTxs = append(gossipTxs, &GossipEthTx{Tx: tx})
-				}
-
-				n.ethTxGossiper.Add(gossipTxs...)
+				//		n.ethTxGossiper.Add(gossipTxs...)
 				if err := n.ethTxGossiper.Gossip(context.TODO()); err != nil {
 					log.Warn(
 						"failed to send eth transactions",
