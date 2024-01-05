@@ -78,7 +78,7 @@ func (tw *ethereumTxWorker) ConfirmTx(ctx context.Context, tx *types.Transaction
 func (tw *ethereumTxWorker) confirmTxByNonce(ctx context.Context, tx *types.Transaction) error {
 	txNonce := tx.Nonce()
 	for {
-		acceptedNonce, err := tw.client.NonceAt(ctx, tw.address, nil)
+		acceptedNonce, err := tw.client.AcceptedNonceAt(ctx, tw.address)
 		if err != nil {
 			return fmt.Errorf("failed to get accepted nonce at tx %s nonce %d: %w", tx.Hash(), txNonce, err)
 		}

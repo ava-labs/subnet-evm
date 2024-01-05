@@ -35,8 +35,8 @@ run_simulator() {
         --key-dir=./cmd/simulator/.simulator/keys \
         --timeout=300s \
         --workers=1 \
-        --txs-per-worker=50000 \
-        --batch-size=50000 \
+        --txs-per-worker=5000 \
+        --batch-size=5000 \
         --max-fee-cap=1000000 \
         --max-tip-cap=10000
 }
