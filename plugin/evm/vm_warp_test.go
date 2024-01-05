@@ -16,7 +16,7 @@ import (
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/validators"
-	"github.com/ava-labs/avalanchego/utils"
+	avagoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
@@ -29,9 +29,9 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	"github.com/ava-labs/subnet-evm/predicate"
-	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
-	"github.com/ava-labs/subnet-evm/x/warp"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -47,9 +47,9 @@ var (
 func TestSendWarpMessage(t *testing.T) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDUpgrade)))
+	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		warp.ConfigKey: warp.NewDefaultConfig(utils.NewUint64(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -63,7 +63,7 @@ func TestSendWarpMessage(t *testing.T) {
 	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
 	defer logsSub.Unsubscribe()
 
-	payloadData := utils.RandomBytes(100)
+	payloadData := avagoUtils.RandomBytes(100)
 
 	warpSendMessageInput, err := warp.PackSendWarpMessage(payloadData)
 	require.NoError(err)
@@ -247,9 +247,9 @@ func TestValidateInvalidWarpBlockHash(t *testing.T) {
 func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.UnsignedMessage, validSignature bool, txPayload []byte) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDUpgrade)))
+	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		warp.ConfigKey: warp.NewDefaultConfig(utils.NewUint64(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -404,9 +404,9 @@ func testWarpVMTransaction(t *testing.T, unsignedMessage *avalancheWarp.Unsigned
 func TestReceiveWarpMessage(t *testing.T) {
 	require := require.New(t)
 	genesis := &core.Genesis{}
-	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDUpgrade)))
+	require.NoError(genesis.UnmarshalJSON([]byte(genesisJSONDurango)))
 	genesis.Config.GenesisPrecompiles = params.Precompiles{
-		warp.ConfigKey: warp.NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		warp.ConfigKey: warp.NewDefaultConfig(utils.NewUint64(0)),
 	}
 	genesisJSON, err := genesis.MarshalJSON()
 	require.NoError(err)
@@ -420,7 +420,7 @@ func TestReceiveWarpMessage(t *testing.T) {
 	logsSub := vm.eth.APIBackend.SubscribeAcceptedLogsEvent(acceptedLogsChan)
 	defer logsSub.Unsubscribe()
 
-	payloadData := utils.RandomBytes(100)
+	payloadData := avagoUtils.RandomBytes(100)
 
 	addressedPayload, err := payload.NewAddressedCall(
 		testEthAddrs[0].Bytes(),
