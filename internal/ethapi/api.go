@@ -1854,17 +1854,17 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	// Print a log with full tx details for manual investigations and interventions
 	head := b.CurrentBlock()
 	signer := types.MakeSigner(b.ChainConfig(), head.Number, head.Time)
-	_, err := types.Sender(signer, tx)
+	from, err := types.Sender(signer, tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
-	// if tx.To() == nil {
-	// 	addr := crypto.CreateAddress(from, tx.Nonce())
-	// 	log.Info("Submitted contract creation", "hash", tx.Hash().Hex(), "from", from, "nonce", tx.Nonce(), "contract", addr.Hex(), "value", tx.Value(), "type", tx.Type(), "gasFeeCap", tx.GasFeeCap(), "gasTipCap", tx.GasTipCap(), "gasPrice", tx.GasPrice())
-	// } else {
-	// 	log.Info("Submitted transaction", "hash", tx.Hash().Hex(), "from", from, "nonce", tx.Nonce(), "recipient", tx.To(), "value", tx.Value(), "type", tx.Type(), "gasFeeCap", tx.GasFeeCap(), "gasTipCap", tx.GasTipCap(), "gasPrice", tx.GasPrice())
-	// }
+	if tx.To() == nil {
+		addr := crypto.CreateAddress(from, tx.Nonce())
+		log.Debug("Submitted contract creation", "hash", tx.Hash().Hex(), "from", from, "nonce", tx.Nonce(), "contract", addr.Hex(), "value", tx.Value(), "type", tx.Type(), "gasFeeCap", tx.GasFeeCap(), "gasTipCap", tx.GasTipCap(), "gasPrice", tx.GasPrice())
+	} else {
+		log.Debug("Submitted transaction", "hash", tx.Hash().Hex(), "from", from, "nonce", tx.Nonce(), "recipient", tx.To(), "value", tx.Value(), "type", tx.Type(), "gasFeeCap", tx.GasFeeCap(), "gasTipCap", tx.GasTipCap(), "gasPrice", tx.GasPrice())
+	}
 	return tx.Hash(), nil
 }
 
