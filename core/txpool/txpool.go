@@ -201,8 +201,6 @@ type Config struct {
 // DefaultConfig contains the default configurations for the transaction
 // pool.
 var DefaultConfig = Config{
-	NoLocals: true, // TODO: provide in load test config
-
 	Journal:   "transactions.rlp",
 	Rejournal: time.Hour,
 
