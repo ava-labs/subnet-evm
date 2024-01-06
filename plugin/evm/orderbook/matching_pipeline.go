@@ -219,12 +219,12 @@ func (pipeline *MatchingPipeline) runLiquidations(liquidablePositions []Liquidab
 					break
 				}
 				fillAmount := utils.BigIntMinAbs(liquidable.GetUnfilledSize(), order.GetUnFilledBaseAssetQuantity())
-				requiredMargin := getRequiredMargin(&order, fillAmount, minAllowableMargin, takerFee, liquidationBounds[market].Upperbound)
 				if marginMap[order.Trader] == nil {
 					// compatibility with existing tests
 					marginMap[order.Trader] = big.NewInt(0)
 				}
-				if requiredMargin.Cmp(marginMap[order.Trader]) == 1 {
+				_isExecutable, requiredMargin := isExecutable(&order, fillAmount, minAllowableMargin, takerFee, liquidationBounds[market].Upperbound, marginMap[order.Trader])
+				if !_isExecutable {
 					numOrdersExhausted++
 					continue
 				}
@@ -247,11 +247,11 @@ func (pipeline *MatchingPipeline) runLiquidations(liquidablePositions []Liquidab
 					break
 				}
 				fillAmount := utils.BigIntMinAbs(liquidable.GetUnfilledSize(), order.GetUnFilledBaseAssetQuantity())
-				requiredMargin := getRequiredMargin(&order, fillAmount, minAllowableMargin, takerFee, liquidationBounds[market].Upperbound)
 				if marginMap[order.Trader] == nil {
 					marginMap[order.Trader] = big.NewInt(0)
 				}
-				if requiredMargin.Cmp(marginMap[order.Trader]) == 1 {
+				isExecutable, requiredMargin := isExecutable(&order, fillAmount, minAllowableMargin, takerFee, liquidationBounds[market].Upperbound, marginMap[order.Trader])
+				if !isExecutable {
 					numOrdersExhausted++
 					continue
 				}
@@ -313,31 +313,34 @@ func areMatchingOrders(longOrder, shortOrder Order, marginMap map[common.Address
 		return nil
 	}
 
-	// for ioc orders, check that they have enough margin to execute the trade
-	longMargin := big.NewInt(0)
-	shortMargin := big.NewInt(0)
-	if longOrder.OrderType == IOC {
-		longMargin := getRequiredMargin(&longOrder, fillAmount, minAllowableMargin, takerFee, upperBound)
-		if longMargin.Cmp(marginMap[longOrder.Trader]) == 1 {
-			return nil
-		}
+	_isExecutable, longMargin := isExecutable(&longOrder, fillAmount, minAllowableMargin, takerFee, upperBound, marginMap[longOrder.Trader])
+	if !_isExecutable {
+		return nil
 	}
-	if shortOrder.OrderType == IOC {
-		shortMargin := getRequiredMargin(&shortOrder, fillAmount, minAllowableMargin, takerFee, upperBound)
-		if shortMargin.Cmp(marginMap[shortOrder.Trader]) == 1 {
-			return nil
-		}
+
+	shortMargin := big.NewInt(0)
+	_isExecutable, shortMargin = isExecutable(&shortOrder, fillAmount, minAllowableMargin, takerFee, upperBound, marginMap[longOrder.Trader])
+	if !_isExecutable {
+		return nil
 	}
 	marginMap[longOrder.Trader].Sub(marginMap[longOrder.Trader], longMargin)
 	marginMap[shortOrder.Trader].Sub(marginMap[shortOrder.Trader], shortMargin)
 	return fillAmount
 }
 
-func getRequiredMargin(order *Order, fillAmount, minAllowableMargin, takerFee, upperBound *big.Int) *big.Int {
-	if order.OrderType != IOC || order.ReduceOnly {
-		return big.NewInt(0) // no extra margin required because for limit orders it is already reserved
-		// @todo change for signed orders
+func isExecutable(order *Order, fillAmount, minAllowableMargin, takerFee, upperBound, availableMargin *big.Int) (bool, *big.Int) {
+	if order.OrderType == Limit || order.ReduceOnly {
+		return true, big.NewInt(0) // no extra margin required because for limit orders it is already reserved
 	}
+	if order.OrderType == IOC {
+		requiredMargin := getRequiredMargin(order, fillAmount, minAllowableMargin, takerFee, upperBound)
+		return requiredMargin.Cmp(availableMargin) <= 0, requiredMargin
+	}
+	// @todo add condition for signed orders
+	return false, big.NewInt(0)
+}
+
+func getRequiredMargin(order *Order, fillAmount, minAllowableMargin, takerFee, upperBound *big.Int) *big.Int {
 	price := order.Price
 	if order.BaseAssetQuantity.Sign() == -1 && order.Price.Cmp(upperBound) == -1 {
 		price = upperBound
