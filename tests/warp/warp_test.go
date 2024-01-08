@@ -48,7 +48,6 @@ import (
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
-	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	warpBackend "github.com/ava-labs/subnet-evm/warp"
 	"github.com/ava-labs/subnet-evm/warp/aggregator"
 )
@@ -65,7 +64,7 @@ var (
 
 	genesisPath = filepath.Join(repoRootPath, "tests/precompile/genesis/warp.json")
 
-	subnetA, subnetB, cChainSubnetDetails *runner.Subnet
+	subnetA, subnetB, cChainSubnetDetails *Subnet
 
 	testPayload = []byte{1, 2, 3}
 )
@@ -73,6 +72,18 @@ var (
 func init() {
 	// Configures flags used to configure tmpnet (via SynchronizedBeforeSuite)
 	flagVars = e2e.RegisterFlags()
+}
+
+// subnet provides the basic details of a created subnet
+type Subnet struct {
+	// SubnetID is the txID of the transaction that created the subnet
+	SubnetID ids.ID
+	// For simplicity assume a single blockchain per subnet
+	BlockchainID ids.ID
+	// Key funded in the genesis of the blockchain
+	PreFundedKey *ecdsa.PrivateKey
+	// ValidatorURIs are the base URIs for each participant of the Subnet
+	ValidatorURIs []string
 }
 
 func TestE2E(t *testing.T) {
@@ -109,7 +120,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 
 	tmpnetSubnetA := network.GetSubnet(subnetAName)
 	require.NotNil(tmpnetSubnetA)
-	subnetA = &runner.Subnet{
+	subnetA = &Subnet{
 		SubnetID:      tmpnetSubnetA.SubnetID,
 		BlockchainID:  tmpnetSubnetA.Chains[0].ChainID,
 		PreFundedKey:  tmpnetSubnetA.Chains[0].PreFundedKey.ToECDSA(),
@@ -118,7 +129,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 
 	tmpnetSubnetB := network.GetSubnet(subnetBName)
 	require.NotNil(tmpnetSubnetB)
-	subnetB = &runner.Subnet{
+	subnetB = &Subnet{
 		SubnetID:      tmpnetSubnetB.SubnetID,
 		BlockchainID:  tmpnetSubnetB.Chains[0].ChainID,
 		PreFundedKey:  tmpnetSubnetB.Chains[0].PreFundedKey.ToECDSA(),
@@ -129,7 +140,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	cChainBlockchainID, err := infoClient.GetBlockchainID(e2e.DefaultContext(), "C")
 	require.NoError(err)
 
-	cChainSubnetDetails = &runner.Subnet{
+	cChainSubnetDetails = &Subnet{
 		SubnetID:      constants.PrimaryNetworkID,
 		BlockchainID:  cChainBlockchainID,
 		PreFundedKey:  tmpnet.HardhatKey.ToECDSA(),
@@ -138,7 +149,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = ginkgo.Describe("[Warp]", func() {
-	testFunc := func(sendingSubnet *runner.Subnet, receivingSubnet *runner.Subnet) {
+	testFunc := func(sendingSubnet *Subnet, receivingSubnet *Subnet) {
 		w := newWarpTest(e2e.DefaultContext(), sendingSubnet, receivingSubnet)
 
 		log.Info("Sending message from A to B")
@@ -174,7 +185,7 @@ type warpTest struct {
 	networkID uint32
 
 	// sendingSubnet fields set in the constructor
-	sendingSubnet              *runner.Subnet
+	sendingSubnet              *Subnet
 	sendingSubnetURIs          []string
 	sendingSubnetClients       []ethclient.Client
 	sendingSubnetFundedKey     *ecdsa.PrivateKey
@@ -183,7 +194,7 @@ type warpTest struct {
 	sendingSubnetSigner        types.Signer
 
 	// receivingSubnet fields set in the constructor
-	receivingSubnet              *runner.Subnet
+	receivingSubnet              *Subnet
 	receivingSubnetURIs          []string
 	receivingSubnetClients       []ethclient.Client
 	receivingSubnetFundedKey     *ecdsa.PrivateKey
@@ -201,7 +212,7 @@ type warpTest struct {
 	addressedCallSignedMessage   *avalancheWarp.Message
 }
 
-func newWarpTest(ctx context.Context, sendingSubnet *runner.Subnet, receivingSubnet *runner.Subnet) *warpTest {
+func newWarpTest(ctx context.Context, sendingSubnet *Subnet, receivingSubnet *Subnet) *warpTest {
 	require := require.New(ginkgo.GinkgoT())
 
 	sendingSubnetFundedKey := sendingSubnet.PreFundedKey
