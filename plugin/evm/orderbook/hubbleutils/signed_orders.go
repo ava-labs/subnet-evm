@@ -10,6 +10,7 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
 
@@ -82,14 +83,13 @@ func (order *SignedOrder) DecodeFromRawOrder(rawOrder interface{}) {
 	// fmt.Println("marshalledOrder", string(marshalledOrder))
 	err := json.Unmarshal(marshalledOrder, &order)
 	if err != nil {
-		fmt.Println("err in DecodeFromRawOrder")
-		fmt.Println(err)
+		log.Error("err in DecodeFromRawOrder", "err", err, "rawOrder", rawOrder)
 	}
 }
 
 func (o *SignedOrder) String() string {
 	return fmt.Sprintf(
-		"Order %s, OrderType: %d, ExpireAt: %d, Sig: %s",
+		"Order: %s, OrderType: %d, ExpireAt: %d, Sig: %s",
 		o.LimitOrder.String(),
 		o.OrderType,
 		o.ExpireAt,

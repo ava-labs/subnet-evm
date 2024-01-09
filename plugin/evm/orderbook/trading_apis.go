@@ -5,7 +5,6 @@ package orderbook
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var traderFeed event.Feed
@@ -313,30 +313,18 @@ func (api *TradingAPI) StreamMarketTrades(ctx context.Context, market Market, bl
 	return rpcSub, nil
 }
 
-type PlaceOrderResponse struct {
-	Success bool `json:"success"`
-}
-
-func (api *TradingAPI) PlaceSignedOrder(ctx context.Context, rawOrder string) (PlaceOrderResponse, error) {
-	// fmt.Println("rawOrder", rawOrder)
-	testData, err := hex.DecodeString(strings.TrimPrefix(rawOrder, "0x"))
-	if err != nil {
-		return PlaceOrderResponse{Success: false}, err
-	}
-	order, err := hu.DecodeSignedOrder(testData)
-	if err != nil {
-		return PlaceOrderResponse{Success: false}, err
-	}
-	// fmt.Println("PostOrder", order)
-
-	marketId := int(order.AmmIndex.Int64())
+func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) error {
 	if hu.ChainId == 0 { // set once, will need to restart node if we change
 		hu.SetChainIdAndVerifyingSignedOrdersContract(api.backend.ChainConfig().ChainID.Int64(), api.configService.GetSignedOrderbookContract().String())
 	}
 	orderId, err := order.Hash()
 	if err != nil {
-		return PlaceOrderResponse{Success: false}, err
+		return fmt.Errorf("failed to hash order: %s", err)
 	}
+	if api.db.GetOrderById(orderId) != nil {
+		return hu.ErrOrderAlreadyExists
+	}
+	marketId := int(order.AmmIndex.Int64())
 	trader, signer, err := hu.ValidateSignedOrder(
 		order,
 		hu.SignedOrderValidationFields{
@@ -348,11 +336,11 @@ func (api *TradingAPI) PlaceSignedOrder(ctx context.Context, rawOrder string) (P
 		},
 	)
 	if err != nil {
-		return PlaceOrderResponse{Success: false}, err
+		return err
 	}
 
 	if trader != signer && !api.configService.IsTradingAuthority(trader, signer) {
-		return PlaceOrderResponse{Success: false}, hu.ErrNoTradingAuthority
+		return hu.ErrNoTradingAuthority
 	}
 
 	fields := api.db.GetOrderValidationFields(orderId, trader, marketId)
@@ -366,14 +354,14 @@ func (api *TradingAPI) PlaceSignedOrder(ctx context.Context, rawOrder string) (P
 		asksHead := fields.AsksHead
 		bidsHead := fields.BidsHead
 		if (orderSide == hu.Side(hu.Short) && bidsHead.Sign() != 0 && order.Price.Cmp(bidsHead) != 1) || (orderSide == hu.Side(hu.Long) && asksHead.Sign() != 0 && order.Price.Cmp(asksHead) != -1) {
-			return PlaceOrderResponse{Success: false}, hu.ErrCrossingMarket
+			return hu.ErrCrossingMarket
 		}
 	}
 	// @todo P5
 	// @todo gossip order
 
 	// add to db
-	limitOrder := &Order{
+	signedOrder := &Order{
 		Id:                      orderId,
 		Market:                  Market(order.AmmIndex.Int64()),
 		PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
@@ -387,6 +375,8 @@ func (api *TradingAPI) PlaceSignedOrder(ctx context.Context, rawOrder string) (P
 		RawOrder:                order,
 		OrderType:               Signed,
 	}
-	api.db.Add(limitOrder)
-	return PlaceOrderResponse{Success: true}, nil
+	log.Info("SignedOrder/OrderAccepted", "order", signedOrder)
+	placeSignedOrderCounter.Inc(1)
+	api.db.Add(signedOrder)
+	return nil
 }

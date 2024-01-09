@@ -90,7 +90,6 @@ func ValidateSignedOrder(order *SignedOrder, fields SignedOrderValidationFields)
 
 	// 6. caller will perform the check
 	orderHash, err := order.Hash()
-	// fmt.Println("orderHash", orderHash)
 	if err != nil {
 		return trader, signer, err
 	}

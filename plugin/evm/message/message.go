@@ -39,12 +39,24 @@ type TxsGossip struct {
 	Txs []byte `serialize:"true"`
 }
 
+type SignedOrdersGossip struct {
+	Orders []byte `serialize:"true"`
+}
+
 func (msg TxsGossip) Handle(handler GossipHandler, nodeID ids.NodeID) error {
 	return handler.HandleTxs(nodeID, msg)
 }
 
 func (msg TxsGossip) String() string {
 	return fmt.Sprintf("TxsGossip(Len=%d)", len(msg.Txs))
+}
+
+func (msg SignedOrdersGossip) Handle(handler GossipHandler, nodeID ids.NodeID) error {
+	return handler.HandleSignedOrders(nodeID, msg)
+}
+
+func (msg SignedOrdersGossip) String() string {
+	return fmt.Sprintf("SignedOrdersGossip(BytesLen=%d)", len(msg.Orders))
 }
 
 func ParseGossipMessage(codec codec.Manager, bytes []byte) (GossipMessage, error) {

@@ -20,12 +20,18 @@ var (
 // GossipHandler handles incoming gossip messages
 type GossipHandler interface {
 	HandleTxs(nodeID ids.NodeID, msg TxsGossip) error
+	HandleSignedOrders(nodeID ids.NodeID, msg SignedOrdersGossip) error
 }
 
 type NoopMempoolGossipHandler struct{}
 
 func (NoopMempoolGossipHandler) HandleTxs(nodeID ids.NodeID, _ TxsGossip) error {
 	log.Debug("dropping unexpected Txs message", "peerID", nodeID)
+	return nil
+}
+
+func (NoopMempoolGossipHandler) HandleSignedOrders(nodeID ids.NodeID, _ SignedOrdersGossip) error {
+	log.Debug("dropping unexpected SignedOrdersGossip message", "peerID", nodeID)
 	return nil
 }
 

@@ -25,6 +25,7 @@ var (
 	HandleChainAcceptedEventPanicsCounter    = metrics.NewRegisteredCounter("handle_chain_accepted_event_panics", nil)
 	HandleMatchingPipelineTimerPanicsCounter = metrics.NewRegisteredCounter("handle_matching_pipeline_timer_panics", nil)
 	RPCPanicsCounter                         = metrics.NewRegisteredCounter("rpc_panic", nil)
+	AwaitSignedOrdersGossipPanicsCounter     = metrics.NewRegisteredCounter("await_signed_orders_gossip_panics", nil)
 
 	BuildBlockFailedWithLowBlockGasCounter = metrics.NewRegisteredCounter("build_block_failed_low_block_gas", nil)
 
@@ -36,4 +37,5 @@ var (
 
 	// unquenched liquidations
 	unquenchedLiquidationsCounter = metrics.NewRegisteredCounter("unquenched_liquidations", nil)
+	placeSignedOrderCounter       = metrics.NewRegisteredCounter("place_signed_order", nil)
 )

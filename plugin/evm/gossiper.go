@@ -25,6 +25,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 )
 
 const (
@@ -36,15 +37,30 @@ const (
 	// transactions to other nodes.
 	txsGossipInterval = 500 * time.Millisecond
 
+	// [ordersGossipInterval] is how often we attempt to gossip newly seen
+	// signed orders to other nodes.
+	ordersGossipInterval = 100 * time.Millisecond
+
 	// [minGossipBatchInterval] is the minimum amount of time that must pass
 	// before our last gossip to peers.
 	minGossipBatchInterval = 50 * time.Millisecond
+
+	// [minGossipOrdersBatchInterval] is the minimum amount of time that must pass
+	// before our last gossip to peers.
+	minGossipOrdersBatchInterval = 50 * time.Millisecond
+
+	// [maxSignedOrdersGossipBatchSize] is the maximum number of orders we will
+	// attempt to gossip at once.
+	maxSignedOrdersGossipBatchSize = 100
 )
 
 // Gossiper handles outgoing gossip of transactions
 type Gossiper interface {
 	// GossipTxs sends AppGossip message containing the given [txs]
 	GossipTxs(txs []*types.Transaction) error
+
+	// GossipSignedOrders sends signed orders to the network
+	GossipSignedOrders(orders []*hubbleutils.SignedOrder) error
 }
 
 // pushGossiper is used to gossip transactions to the network
@@ -64,6 +80,10 @@ type pushGossiper struct {
 	shutdownChan    chan struct{}
 	shutdownWg      *sync.WaitGroup
 
+	ordersToGossipChan chan []*hubbleutils.SignedOrder
+	ordersToGossip     []*hubbleutils.SignedOrder
+	lastOrdersGossiped time.Time
+
 	// [recentTxs] prevent us from over-gossiping the
 	// same transaction in a short period of time.
 	recentTxs *cache.LRU[common.Hash, interface{}]
@@ -77,21 +97,24 @@ type pushGossiper struct {
 // based on whether vm.chainConfig.SubnetEVMTimestamp is set
 func (vm *VM) createGossiper(stats GossipStats) Gossiper {
 	net := &pushGossiper{
-		ctx:             vm.ctx,
-		config:          vm.config,
-		client:          vm.client,
-		blockchain:      vm.blockChain,
-		txPool:          vm.txPool,
-		txsToGossipChan: make(chan []*types.Transaction),
-		txsToGossip:     make(map[common.Hash]*types.Transaction),
-		shutdownChan:    vm.shutdownChan,
-		shutdownWg:      &vm.shutdownWg,
-		recentTxs:       &cache.LRU[common.Hash, interface{}]{Size: recentCacheSize},
-		codec:           vm.networkCodec,
-		signer:          types.LatestSigner(vm.blockChain.Config()),
-		stats:           stats,
+		ctx:                vm.ctx,
+		config:             vm.config,
+		client:             vm.client,
+		blockchain:         vm.blockChain,
+		txPool:             vm.txPool,
+		txsToGossipChan:    make(chan []*types.Transaction),
+		txsToGossip:        make(map[common.Hash]*types.Transaction),
+		shutdownChan:       vm.shutdownChan,
+		shutdownWg:         &vm.shutdownWg,
+		ordersToGossipChan: make(chan []*hubbleutils.SignedOrder),
+		ordersToGossip:     []*hubbleutils.SignedOrder{},
+		recentTxs:          &cache.LRU[common.Hash, interface{}]{Size: recentCacheSize},
+		codec:              vm.networkCodec,
+		signer:             types.LatestSigner(vm.blockChain.Config()),
+		stats:              stats,
 	}
 	net.awaitEthTxGossip()
+	net.awaitSignedOrderGossip()
 	return net
 }
 
@@ -398,6 +421,7 @@ func (n *pushGossiper) GossipTxs(txs []*types.Transaction) error {
 
 // GossipHandler handles incoming gossip messages
 type GossipHandler struct {
+	mu     sync.RWMutex
 	vm     *VM
 	txPool *txpool.TxPool
 	stats  GossipReceivedStats

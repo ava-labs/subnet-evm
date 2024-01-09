@@ -1212,6 +1212,9 @@ func (db *InMemoryDatabase) GetOrderValidationFields(
 	trader common.Address,
 	marketId int,
 ) OrderValidationFields {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
 	posSize := big.NewInt(0)
 	if db.TraderMap[trader] != nil && db.TraderMap[trader].Positions[marketId] != nil && db.TraderMap[trader].Positions[marketId].Size != nil {
 		posSize = db.TraderMap[trader].Positions[marketId].Size

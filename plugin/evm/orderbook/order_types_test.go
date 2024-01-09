@@ -138,7 +138,7 @@ func testDecodeLimitOrder(t *testing.T, encodedOrder string, expectedOutput inte
 	fmt.Println(result)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assertLimitOrderEquality(t, expectedOutput.(LimitOrder).BaseOrder, *&result.BaseOrder)
+	assertLimitOrderEquality(t, expectedOutput.(LimitOrder).BaseOrder, result.BaseOrder)
 	assert.Equal(t, expectedOutput.(LimitOrder).PostOnly, result.PostOnly)
 }
 

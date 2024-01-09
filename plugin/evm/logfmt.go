@@ -177,37 +177,3 @@ func escapeString(s string) string {
 	}
 	return strconv.Quote(s)
 }
-
-// formatLogfmtBigInt formats n with thousand separators.
-func formatLogfmtBigInt(n *big.Int) string {
-	if n.IsUint64() {
-		return log.FormatLogfmtUint64(n.Uint64())
-	}
-	if n.IsInt64() {
-		return log.FormatLogfmtInt64(n.Int64())
-	}
-
-	var (
-		text  = n.String()
-		buf   = make([]byte, len(text)+len(text)/3)
-		comma = 0
-		i     = len(buf) - 1
-	)
-	for j := len(text) - 1; j >= 0; j, i = j-1, i-1 {
-		c := text[j]
-
-		switch {
-		case c == '-':
-			buf[i] = c
-		case comma == 3:
-			buf[i] = ','
-			i--
-			comma = 0
-			fallthrough
-		default:
-			buf[i] = c
-			comma++
-		}
-	}
-	return string(buf[i+1:])
-}
