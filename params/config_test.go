@@ -328,3 +328,73 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, config, unmarshalled)
 }
+
+func TestChainConfigMarshalWithUpgradesAndOptionalUpgrade(t *testing.T) {
+	config := ChainConfigWithUpgradesJSON{
+		ChainConfig: ChainConfig{
+			ChainID:             big.NewInt(1),
+			FeeConfig:           DefaultFeeConfig,
+			AllowFeeRecipients:  false,
+			HomesteadBlock:      big.NewInt(0),
+			EIP150Block:         big.NewInt(0),
+			EIP155Block:         big.NewInt(0),
+			EIP158Block:         big.NewInt(0),
+			ByzantiumBlock:      big.NewInt(0),
+			ConstantinopleBlock: big.NewInt(0),
+			PetersburgBlock:     big.NewInt(0),
+			IstanbulBlock:       big.NewInt(0),
+			MuirGlacierBlock:    big.NewInt(0),
+			MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
+				SubnetEVMTimestamp: utils.NewUint64(0),
+			},
+			GenesisPrecompiles: Precompiles{},
+		},
+		UpgradeConfig: UpgradeConfig{
+			PrecompileUpgrades: []PrecompileUpgrade{
+				{
+					Config: txallowlist.NewConfig(utils.NewUint64(100), nil, nil, nil),
+				},
+			},
+		},
+	}
+	result, err := json.Marshal(&config)
+	require.NoError(t, err)
+	expectedJSON := `{
+		"chainId": 1,
+		"feeConfig": {
+			"gasLimit": 8000000,
+			"targetBlockRate": 2,
+			"minBaseFee": 25000000000,
+			"targetGas": 15000000,
+			"baseFeeChangeDenominator": 36,
+			"minBlockGasCost": 0,
+			"maxBlockGasCost": 1000000,
+			"blockGasCostStep": 200000
+		},
+		"homesteadBlock": 0,
+		"eip150Block": 0,
+		"eip155Block": 0,
+		"eip158Block": 0,
+		"byzantiumBlock": 0,
+		"constantinopleBlock": 0,
+		"petersburgBlock": 0,
+		"istanbulBlock": 0,
+		"muirGlacierBlock": 0,
+		"subnetEVMTimestamp": 0,
+		"upgrades": {
+			"precompileUpgrades": [
+				{
+					"txAllowListConfig": {
+						"blockTimestamp": 100
+					}
+				}
+			]
+		}
+	}`
+	require.JSONEq(t, expectedJSON, string(result))
+
+	var unmarshalled ChainConfigWithUpgradesJSON
+	err = json.Unmarshal(result, &unmarshalled)
+	require.NoError(t, err)
+	require.Equal(t, config, unmarshalled)
+}

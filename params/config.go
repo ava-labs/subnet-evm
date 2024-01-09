@@ -31,13 +31,18 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"testing"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 const maxJSONLen = 64 * 1024 * 1024 // 64MB
@@ -67,6 +72,10 @@ var (
 		MaxBlockGasCost:  big.NewInt(1_000_000),
 		BlockGasCostStep: big.NewInt(200_000),
 	}
+
+	// For UpgradeConfig Marshal/Unmarshal
+	ErrUnknowPrecompile = errors.New("unknown precompile config")
+	MaxMessageSize      = 1 * units.MiB
 )
 
 var (
@@ -169,6 +178,125 @@ type UpgradeConfig struct {
 
 	// Config for enabling and disabling precompiles as network upgrades.
 	PrecompileUpgrades []PrecompileUpgrade `json:"precompileUpgrades,omitempty"`
+}
+
+func (c *UpgradeConfig) Hash() (common.Hash, error) {
+	bytes, err := c.MarshalBinary()
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return crypto.Keccak256Hash(bytes), nil
+}
+
+func (c *UpgradeConfig) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: MaxMessageSize,
+	}
+
+	p.PackBool(c.OptionalNetworkUpgrades == nil)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+	if c.OptionalNetworkUpgrades != nil {
+		bytes, err := c.OptionalNetworkUpgrades.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		p.PackBytes(bytes)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	p.PackInt(uint32(len(c.PrecompileUpgrades)))
+	for _, precompileConfig := range c.PrecompileUpgrades {
+		bytes, err := precompileConfig.Config.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		p.PackStr(precompileConfig.Key())
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		p.PackBytes(bytes)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	p.PackInt(uint32(len(c.StateUpgrades)))
+	for _, config := range c.StateUpgrades {
+		bytes, err := config.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		p.PackBytes(bytes)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	return p.Bytes, nil
+}
+
+func (c *UpgradeConfig) UnmarshalBinary(data []byte) error {
+	p := wrappers.Packer{
+		Bytes: data,
+	}
+	isNil := p.UnpackBool()
+	if !isNil {
+		c.OptionalNetworkUpgrades = &OptionalNetworkUpgrades{}
+		bytes := p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
+		}
+		if err := c.OptionalNetworkUpgrades.UnmarshalBinary(bytes); err != nil {
+			return err
+		}
+	}
+
+	len := p.UnpackInt()
+	if p.Err != nil {
+		return p.Err
+	}
+
+	for i := uint32(0); i < len; i++ {
+		key := p.UnpackStr()
+		if p.Err != nil {
+			return p.Err
+		}
+		config := p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
+		}
+		module, ok := modules.GetPrecompileModule(key)
+		if !ok {
+			return ErrUnknowPrecompile
+		}
+		preCompile := module.MakeConfig()
+		err := preCompile.UnmarshalBinary(config)
+		if err != nil {
+			return err
+		}
+		c.PrecompileUpgrades = append(c.PrecompileUpgrades, PrecompileUpgrade{Config: preCompile})
+	}
+
+	len = p.UnpackInt()
+	if p.Err != nil {
+		return p.Err
+	}
+
+	for i := uint32(0); i < len; i++ {
+		config := p.UnpackBytes()
+		stateUpgrade := StateUpgrade{}
+		if err := stateUpgrade.UnmarshalBinary(config); err != nil {
+			return err
+		}
+		c.StateUpgrades = append(c.StateUpgrades, stateUpgrade)
+	}
+
+	return nil
 }
 
 // AvalancheContext provides Avalanche specific context directly into the EVM.
@@ -864,4 +992,25 @@ func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
 		ChainConfig:   *c,
 		UpgradeConfig: c.UpgradeConfig,
 	}
+}
+
+// Take a config and serialize / deserialize it.
+//
+// `originalConfig` is a config given to this function. This function then will
+// serialize it to bytes and create a new object from the bytes
+// (`newConfigFromBytes`).
+func AssertConfigHashesAndSerialization(t *testing.T, originalConfig *UpgradeConfig) {
+	bytes, err := originalConfig.MarshalBinary()
+	require.NoError(t, err)
+
+	newConfigFromBytes := UpgradeConfig{}
+	require.NoError(t, newConfigFromBytes.UnmarshalBinary(bytes))
+
+	hash1, err := originalConfig.Hash()
+	require.NoError(t, err)
+	hash2, err := newConfigFromBytes.Hash()
+	require.NoError(t, err)
+
+	//require.Equal(t, newConfigFromBytes, originalConfig)
+	require.Equal(t, hash1, hash2)
 }

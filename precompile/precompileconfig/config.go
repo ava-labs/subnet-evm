@@ -5,6 +5,8 @@
 package precompileconfig
 
 import (
+	"encoding"
+
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
@@ -17,6 +19,9 @@ import (
 // StatefulPrecompileConfig defines the interface for a stateful precompile to
 // be enabled via a network upgrade.
 type Config interface {
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+
 	// Key returns the unique key for the stateful precompile.
 	Key() string
 	// Timestamp returns the timestamp at which this stateful precompile should be enabled.

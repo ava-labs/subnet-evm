@@ -4,6 +4,8 @@
 package params
 
 import (
+	"errors"
+
 	"github.com/ava-labs/subnet-evm/utils"
 )
 
@@ -64,16 +66,25 @@ func (m *MandatoryNetworkUpgrades) mandatoryForkOrder() []fork {
 	}
 }
 
-// OptionalNetworkUpgrades includes overridable and optional Subnet-EVM network upgrades.
-// These can be specified in genesis and upgrade configs.
-// Timestamps can be different for each subnet network.
-// TODO: once we add the first optional upgrade here, we should uncomment TestVMUpgradeBytesOptionalNetworkUpgrades
-type OptionalNetworkUpgrades struct{}
+type OptionalNetworkUpgrades struct {
+	// This is an example of a configuration.
+	//FeatureConfig *uint64 `json:"test,omitempty"`
+}
+
+func (m *OptionalNetworkUpgrades) MarshalBinary() ([]byte, error) {
+	return nil, errors.New("implement MarshalBinary() for OptionalNetworkUpgrades")
+}
+
+func (m *OptionalNetworkUpgrades) UnmarshalBinary(data []byte) error {
+	return errors.New("implement UnmarshalBinary() for OptionalNetworkUpgrades")
+}
 
 func (n *OptionalNetworkUpgrades) CheckOptionalCompatible(newcfg *OptionalNetworkUpgrades, time uint64) *ConfigCompatError {
 	return nil
 }
 
 func (n *OptionalNetworkUpgrades) optionalForkOrder() []fork {
-	return []fork{}
+	return []fork{
+		// {name: "foo", timestamp: n.FooBar},
+	}
 }

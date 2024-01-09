@@ -4,8 +4,10 @@
 package txallowlist
 
 import (
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -56,4 +58,49 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 
 func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
+}
+
+func (c *Config) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+
+	bytes, err := c.AllowListConfig.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	p.PackBytes(bytes)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	bytes, err = c.Upgrade.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	p.PackBytes(bytes)
+
+	return p.Bytes, nil
+}
+
+func (c *Config) UnmarshalBinary(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+
+	allowList := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	upgrade := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	if err := c.AllowListConfig.UnmarshalBinary(allowList); err != nil {
+		return err
+	}
+	return c.Upgrade.UnmarshalBinary(upgrade)
 }

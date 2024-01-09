@@ -4,9 +4,14 @@
 package params
 
 import (
+	"bytes"
 	"fmt"
+	"math/big"
 	"reflect"
+	"sort"
 
+	"github.com/ava-labs/avalanchego/utils/units"
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -28,6 +33,155 @@ type StateUpgradeAccount struct {
 	Code          hexutil.Bytes               `json:"code,omitempty"`
 	Storage       map[common.Hash]common.Hash `json:"storage,omitempty"`
 	BalanceChange *math.HexOrDecimal256       `json:"balanceChange,omitempty"`
+}
+
+func (s *StateUpgrade) UnmarshalBinary(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+
+	isNil := p.UnpackBool()
+	if p.Err != nil {
+		return p.Err
+	}
+	if !isNil {
+		blockTimestamp := p.UnpackLong()
+		if p.Err != nil {
+			return p.Err
+		}
+		s.BlockTimestamp = &blockTimestamp
+	}
+
+	elements := p.UnpackInt()
+	if p.Err != nil {
+		return p.Err
+	}
+	s.StateUpgradeAccounts = make(map[common.Address]StateUpgradeAccount, elements)
+	for i := uint32(0); i < elements; i++ {
+		address := common.BytesToAddress(p.UnpackFixedBytes(common.AddressLength))
+		if p.Err != nil {
+			return p.Err
+		}
+
+		stateUpgradeAccount := StateUpgradeAccount{}
+		stateUpgradeAccount.Code = p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
+		}
+		isNil := p.UnpackBool()
+		if p.Err != nil {
+			return p.Err
+		}
+		if !isNil {
+			value := p.UnpackBytes()
+			if p.Err != nil {
+				return p.Err
+			}
+			stateUpgradeAccount.BalanceChange = (*math.HexOrDecimal256)(big.NewInt(0).SetBytes(value))
+		}
+
+		storageElements := p.UnpackInt()
+		if p.Err != nil {
+			return p.Err
+		}
+		storage := make(map[common.Hash]common.Hash, storageElements)
+		for e := uint32(0); e < storageElements; e++ {
+			key := common.BytesToHash(p.UnpackFixedBytes(common.HashLength))
+			if p.Err != nil {
+				return p.Err
+			}
+			value := common.BytesToHash(p.UnpackFixedBytes(common.HashLength))
+			if p.Err != nil {
+				return p.Err
+			}
+			storage[key] = value
+		}
+
+		stateUpgradeAccount.Storage = storage
+		s.StateUpgradeAccounts[address] = stateUpgradeAccount
+	}
+
+	return nil
+}
+
+func (s *StateUpgrade) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+	p.PackBool(s.BlockTimestamp == nil)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+	if s.BlockTimestamp != nil {
+		p.PackLong(*s.BlockTimestamp)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	p.PackInt(uint32(len(s.StateUpgradeAccounts)))
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	var addresses []common.Address
+
+	for address := range s.StateUpgradeAccounts {
+		addresses = append(addresses, address)
+	}
+
+	sort.Slice(addresses, func(i, j int) bool {
+		return bytes.Compare(addresses[i][:], addresses[j][:]) < 0
+	})
+
+	for _, address := range addresses {
+		p.PackFixedBytes(address[:])
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		p.PackBytes(s.StateUpgradeAccounts[address].Code)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		p.PackBool(s.StateUpgradeAccounts[address].BalanceChange == nil)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		if s.StateUpgradeAccounts[address].BalanceChange != nil {
+			p.PackBytes((*big.Int)(s.StateUpgradeAccounts[address].BalanceChange).Bytes())
+			if p.Err != nil {
+				return nil, p.Err
+			}
+		}
+
+		p.PackInt(uint32(len(s.StateUpgradeAccounts[address].Storage)))
+		if p.Err != nil {
+			return nil, p.Err
+		}
+
+		var hashes []common.Hash
+		for hash := range s.StateUpgradeAccounts[address].Storage {
+			hashes = append(hashes, hash)
+		}
+		sort.Slice(hashes, func(i, j int) bool {
+			return bytes.Compare(hashes[i][:], hashes[j][:]) < 0
+		})
+
+		for _, hash := range hashes {
+			p.PackFixedBytes(hash[:])
+			if p.Err != nil {
+				return nil, p.Err
+			}
+			bytes := s.StateUpgradeAccounts[address].Storage[hash]
+			p.PackFixedBytes(bytes[:])
+			if p.Err != nil {
+				return nil, p.Err
+			}
+		}
+	}
+
+	return p.Bytes, nil
 }
 
 func (s *StateUpgrade) Equal(other *StateUpgrade) bool {

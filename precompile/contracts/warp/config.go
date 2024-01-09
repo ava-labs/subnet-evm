@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/predicate"
 	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
@@ -214,4 +216,44 @@ func (c *Config) VerifyPredicate(predicateContext *precompileconfig.PredicateCon
 	}
 
 	return nil
+}
+
+func (c *Config) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+
+	bytes, err := c.Upgrade.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(bytes)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	p.PackLong(c.QuorumNumerator)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	return p.Bytes, nil
+}
+
+func (c *Config) UnmarshalBinary(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+	upgrade := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	if err := c.Upgrade.UnmarshalBinary(upgrade); err != nil {
+		return err
+	}
+
+	c.QuorumNumerator = p.UnpackLong()
+
+	return p.Err
 }

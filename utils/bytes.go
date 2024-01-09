@@ -3,7 +3,20 @@
 
 package utils
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ava-labs/avalanchego/utils/wrappers"
+	"github.com/ethereum/go-ethereum/common"
+)
+
+const (
+	BigIntBytesLength = 32
+	BigIntNil         = byte(0)
+	BigIntZero        = byte(1)
+	BigIntNegative    = byte(2)
+	BigIntPositive    = byte(3)
+)
 
 // IncrOne increments bytes value by one
 func IncrOne(bytes []byte) {
@@ -41,4 +54,90 @@ func BytesToHashSlice(b []byte) []common.Hash {
 		copy(hashes[i][:], b[start:])
 	}
 	return hashes
+}
+
+func PackBigInt(p *wrappers.Packer, number *big.Int) error {
+	symbol := BigIntNil
+	if number != nil {
+		switch number.Sign() {
+		case 0:
+			symbol = BigIntZero
+		case -1:
+			symbol = BigIntNegative
+		case 1:
+			symbol = BigIntPositive
+		}
+	}
+
+	p.PackByte(symbol)
+	if p.Err == nil && symbol > 1 {
+		p.PackFixedBytes(number.FillBytes(make([]byte, BigIntBytesLength)))
+	}
+
+	return p.Err
+}
+
+func UnpackBigInt(p *wrappers.Packer) (*big.Int, error) {
+	symbol := p.UnpackByte()
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	switch symbol {
+	case BigIntNil:
+		return nil, nil
+	case BigIntZero:
+		return big.NewInt(0), nil
+	}
+
+	bytes := p.UnpackFixedBytes(BigIntBytesLength)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+	number := big.NewInt(0).SetBytes(bytes)
+
+	if symbol == BigIntNegative {
+		return number.Neg(number), nil
+	}
+	return number, nil
+}
+
+func PackAddresses(p *wrappers.Packer, addresses []common.Address) error {
+	p.PackBool(addresses == nil)
+	if addresses == nil {
+		return nil
+	}
+	p.PackInt(uint32(len(addresses)))
+	if p.Err != nil {
+		return p.Err
+	}
+	for _, address := range addresses {
+		p.PackFixedBytes(address[:])
+		if p.Err != nil {
+			return p.Err
+		}
+	}
+	return nil
+}
+
+func UnpackAddresses(p *wrappers.Packer) ([]common.Address, error) {
+	isNil := p.UnpackBool()
+	if isNil || p.Err != nil {
+		return nil, p.Err
+	}
+	length := p.UnpackInt()
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	addresses := make([]common.Address, 0, length)
+	for i := uint32(0); i < length; i++ {
+		bytes := p.UnpackFixedBytes(common.AddressLength)
+		addresses = append(addresses, common.BytesToAddress(bytes))
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	}
+
+	return addresses, nil
 }

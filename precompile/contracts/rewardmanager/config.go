@@ -7,10 +7,11 @@
 package rewardmanager
 
 import (
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -19,6 +20,34 @@ var _ precompileconfig.Config = &Config{}
 type InitialRewardConfig struct {
 	AllowFeeRecipients bool           `json:"allowFeeRecipients"`
 	RewardAddress      common.Address `json:"rewardAddress,omitempty"`
+}
+
+func (u *InitialRewardConfig) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+	p.PackBool(u.AllowFeeRecipients)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+	p.PackFixedBytes(u.RewardAddress[:])
+	return p.Bytes, p.Err
+}
+
+func (u *InitialRewardConfig) UnmarshalBinary(data []byte) error {
+	p := wrappers.Packer{
+		Bytes: data,
+	}
+	u.AllowFeeRecipients = p.UnpackBool()
+	if p.Err != nil {
+		return p.Err
+	}
+	u.RewardAddress = common.BytesToAddress(p.UnpackFixedBytes(common.AddressLength))
+	if p.Err != nil {
+		return p.Err
+	}
+	return nil
 }
 
 func (i *InitialRewardConfig) Equal(other *InitialRewardConfig) bool {
@@ -118,4 +147,77 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	}
 
 	return c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
+}
+
+func (c *Config) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+
+	bytes, err := c.AllowListConfig.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	p.PackBytes(bytes)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	bytes, err = c.Upgrade.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(bytes)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	p.PackBool(c.InitialRewardConfig == nil)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	if c.InitialRewardConfig != nil {
+		bytes, err := c.InitialRewardConfig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		p.PackBytes(bytes)
+	}
+
+	return p.Bytes, p.Err
+}
+
+func (c *Config) UnmarshalBinary(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+	allowList := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	upgrade := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	if err := c.AllowListConfig.UnmarshalBinary(allowList); err != nil {
+		return err
+	}
+	if err := c.Upgrade.UnmarshalBinary(upgrade); err != nil {
+		return err
+	}
+
+	isNil := p.UnpackBool()
+	if p.Err == nil && !isNil {
+		c.InitialRewardConfig = &InitialRewardConfig{}
+		bytes := p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
+		}
+		return c.InitialRewardConfig.UnmarshalBinary(bytes)
+	}
+
+	return p.Err
 }

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
@@ -87,4 +88,40 @@ func TestEqual(t *testing.T) {
 		},
 	}
 	allowlist.EqualPrecompileWithAllowListTests(t, Module, tests)
+}
+
+func TestSerialize(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+	var validFeeConfig = commontype.FeeConfig{
+		GasLimit:        big.NewInt(8_000_000),
+		TargetBlockRate: 2, // in seconds
+
+		MinBaseFee:               big.NewInt(25_000_000_000),
+		TargetGas:                big.NewInt(15_000_000),
+		BaseFeeChangeDenominator: big.NewInt(36),
+
+		MinBlockGasCost:  big.NewInt(0),
+		MaxBlockGasCost:  big.NewInt(1_000_000),
+		BlockGasCostStep: big.NewInt(200_000),
+	}
+
+	config := params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: NewConfig(&t0, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000030")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
+				}, &validFeeConfig), // enable at genesis
+			},
+			{
+				Config: NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	}
+	params.AssertConfigHashesAndSerialization(t, &config)
 }
