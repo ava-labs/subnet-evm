@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -17,27 +16,27 @@ import (
 func TestVerify(t *testing.T) {
 	tests := map[string]testutils.ConfigVerifyTest{
 		"quorum numerator less than minimum": {
-			Config:        NewConfig(utils.NewUint64(3), params.WarpQuorumNumeratorMinimum-1),
-			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", params.WarpQuorumNumeratorMinimum-1, params.WarpQuorumNumeratorMinimum),
+			Config:        NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum-1),
+			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) < min quorum numerator (%d)", WarpQuorumNumeratorMinimum-1, WarpQuorumNumeratorMinimum),
 		},
 		"quorum numerator greater than quorum denominator": {
-			Config:        NewConfig(utils.NewUint64(3), params.WarpQuorumDenominator+1),
-			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) > quorum denominator (%d)", params.WarpQuorumDenominator+1, params.WarpQuorumDenominator),
+			Config:        NewConfig(utils.NewUint64(3), WarpQuorumDenominator+1),
+			ExpectedError: fmt.Sprintf("cannot specify quorum numerator (%d) > quorum denominator (%d)", WarpQuorumDenominator+1, WarpQuorumDenominator),
 		},
 		"default quorum numerator": {
 			Config: NewDefaultConfig(utils.NewUint64(3)),
 		},
 		"valid quorum numerator 1 less than denominator": {
-			Config: NewConfig(utils.NewUint64(3), params.WarpQuorumDenominator-1),
+			Config: NewConfig(utils.NewUint64(3), WarpQuorumDenominator-1),
 		},
 		"valid quorum numerator 1 more than minimum": {
-			Config: NewConfig(utils.NewUint64(3), params.WarpQuorumNumeratorMinimum+1),
+			Config: NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum+1),
 		},
-		"invalid cannot activated before DUpgrade activation": {
+		"invalid cannot activated before Durango activation": {
 			Config: NewConfig(utils.NewUint64(3), 0),
 			ChainConfig: func() precompileconfig.ChainConfig {
 				config := precompileconfig.NewMockChainConfig(gomock.NewController(t))
-				config.EXPECT().IsDUpgrade(gomock.Any()).Return(false)
+				config.EXPECT().IsDurango(gomock.Any()).Return(false)
 				return config
 			}(),
 			ExpectedError: errWarpCannotBeActivated.Error(),
@@ -67,8 +66,8 @@ func TestEqualWarpConfig(t *testing.T) {
 		},
 
 		"different quorum numerator": {
-			Config:   NewConfig(utils.NewUint64(3), params.WarpQuorumNumeratorMinimum+1),
-			Other:    NewConfig(utils.NewUint64(3), params.WarpQuorumNumeratorMinimum+2),
+			Config:   NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum+1),
+			Other:    NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum+2),
 			Expected: false,
 		},
 
@@ -79,8 +78,8 @@ func TestEqualWarpConfig(t *testing.T) {
 		},
 
 		"same non-default config": {
-			Config:   NewConfig(utils.NewUint64(3), params.WarpQuorumNumeratorMinimum+5),
-			Other:    NewConfig(utils.NewUint64(3), params.WarpQuorumNumeratorMinimum+5),
+			Config:   NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum+5),
+			Other:    NewConfig(utils.NewUint64(3), WarpQuorumNumeratorMinimum+5),
 			Expected: true,
 		},
 	}
