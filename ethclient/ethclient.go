@@ -70,7 +70,7 @@ var (
 type Client interface {
 	Client() *rpc.Client
 	Close()
-	ChainConfig(context.Context) (*params.ChainConfig, error)
+	ChainConfig(context.Context) (*params.ChainConfigWithUpgradesJSON, error)
 	ChainID(context.Context) (*big.Int, error)
 	BlockByHash(context.Context, common.Hash) (*types.Block, error)
 	BlockByNumber(context.Context, *big.Int) (*types.Block, error)
@@ -144,8 +144,8 @@ func (ec *client) Client() *rpc.Client {
 // Blockchain Access
 
 // ChainConfig retrieves the current chain config.
-func (ec *client) ChainConfig(ctx context.Context) (*params.ChainConfig, error) {
-	var result *params.ChainConfig
+func (ec *client) ChainConfig(ctx context.Context) (*params.ChainConfigWithUpgradesJSON, error) {
+	var result *params.ChainConfigWithUpgradesJSON
 	err := ec.c.CallContext(ctx, &result, "eth_getChainConfig")
 	if err != nil {
 		return nil, err
