@@ -23,10 +23,10 @@ COPY . .
 ARG SUBNET_EVM_COMMIT
 ARG CURRENT_BRANCH
 
-RUN export SUBNET_EVM_COMMIT=$SUBNET_EVM_COMMIT && export CURRENT_BRANCH=$CURRENT_BRANCH && ./scripts/build.sh /build/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+RUN export SUBNET_EVM_COMMIT=$SUBNET_EVM_COMMIT && export CURRENT_BRANCH=$CURRENT_BRANCH && ./scripts/build.sh
 
 # ============= Cleanup Stage ================
 FROM avaplatform/avalanchego:$AVALANCHE_VERSION AS builtImage
 
 # Copy the evm binary into the correct location in the container
-COPY --from=builder /build/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy /avalanchego/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+COPY --from=builder /build/subnet-evm /avalanchego/build/plugins/${PLUGIN_FILENAME}

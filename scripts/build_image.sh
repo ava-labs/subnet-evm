@@ -22,7 +22,8 @@ echo "Building Docker Image: $DOCKERHUB_REPO:$BUILD_IMAGE_ID based of $AVALANCHE
 docker build -t "$DOCKERHUB_REPO:$BUILD_IMAGE_ID" "$SUBNET_EVM_PATH" -f "$SUBNET_EVM_PATH/Dockerfile" \
   --build-arg AVALANCHE_VERSION="$AVALANCHE_VERSION" \
   --build-arg SUBNET_EVM_COMMIT="$SUBNET_EVM_COMMIT" \
-  --build-arg CURRENT_BRANCH="$CURRENT_BRANCH"
+  --build-arg CURRENT_BRANCH="$CURRENT_BRANCH" \
+  --build-arg PLUGIN_FILENAME="$PLUGIN_FILENAME"
 
 if [[ ${PUSH_DOCKER_IMAGE:-""} == "true" ]]; then
   docker push $DOCKERHUB_REPO:$BUILD_IMAGE_ID

@@ -38,3 +38,7 @@ fi
 # We use "export" here instead of just setting a bash variable because we need
 # to pass this flag to all child processes spawned by the shell.
 export CGO_CFLAGS="-O2 -D__BLST_PORTABLE__"
+
+export PLUGIN_FILENAME="srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy"
+
+export DEFAULT_BASEDIR="/tmp/avalanchego-release"

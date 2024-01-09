@@ -1,28 +1,26 @@
 #!/usr/bin/env bash
-set -e
 
-# This script assumes that an AvalancheGo and Subnet-EVM binaries are available in the standard location
-# within the $GOPATH
-# The AvalancheGo and PluginDir paths can be specified via the environment variables used in ./scripts/run.sh.
+set -euo pipefail
 
-# Load the versions
-SUBNET_EVM_PATH=$(
-  cd "$(dirname "${BASH_SOURCE[0]}")"
-  cd .. && pwd
-)
+# e.g.,
+# ./scripts/run_ginkgo_load.sh
+# ./scripts/run_ginkgo_load.sh --ginkgo.label-filter=x  # All arguments are supplied to ginkgo
+if ! [[ "$0" =~ scripts/run_ginkgo_load.sh ]]; then
+  echo "must be run from repository root"
+  exit 255
+fi
 
-source "$SUBNET_EVM_PATH"/scripts/constants.sh
+# Ensure avalanchego release is available
+./scripts/install_avalanchego_release.sh
 
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
+# Build subnet-evm
+./scripts/build.sh
 
-# Build ginkgo
-# to install the ginkgo binary (required for test build and run)
+# Ensure the ginkgo version is available
+source ./scripts/versions.sh
+
+# Install the ginkgo binary
 go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 
-TEST_SOURCE_ROOT=$(pwd)
-
-ACK_GINKGO_RC=true ginkgo build ./tests/load
-
-./tests/load/load.test \
-  --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+# Run tests in random order to avoid dependency
+ginkgo --vv --randomize-all ./tests/load -- "${@}"

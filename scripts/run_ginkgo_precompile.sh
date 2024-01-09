@@ -1,29 +1,30 @@
 #!/usr/bin/env bash
-set -e
+
+set -euo pipefail
 
 # This script assumes that an AvalancheGo and Subnet-EVM binaries are available in the standard location
 # within the $GOPATH
 # The AvalancheGo and PluginDir paths can be specified via the environment variables used in ./scripts/run.sh.
 
-# Load the versions
-SUBNET_EVM_PATH=$(
-  cd "$(dirname "${BASH_SOURCE[0]}")"
-  cd .. && pwd
-)
+# e.g.,
+# ./scripts/run_ginkgo_precompile.sh
+# ./scripts/run_ginkgo_precompile.sh --ginkgo.label-filter=x  # All arguments are supplied to ginkgo
+if ! [[ "$0" =~ scripts/run_ginkgo_precompile.sh ]]; then
+  echo "must be run from repository root"
+  exit 255
+fi
 
-source "$SUBNET_EVM_PATH"/scripts/constants.sh
+# Ensure avalanchego release is available
+AVALANCHEGO_BUILD_PATH="TODO(marun)" ./scripts/install_avalanchego_release.sh
 
-source "$SUBNET_EVM_PATH"/scripts/versions.sh
+# Build subnet-evm
+./scripts/build.sh
 
-# Build ginkgo
-# to install the ginkgo binary (required for test build and run)
+# Ensure the ginkgo version is available
+source ./scripts/versions.sh
+
+# Install the ginkgo binary
 go install -v github.com/onsi/ginkgo/v2/ginkgo@${GINKGO_VERSION}
 
-TEST_SOURCE_ROOT=$(pwd)
-
 # By default, it runs all e2e test cases!
-# Use "--ginkgo.skip" to skip tests.
-# Use "--ginkgo.focus" to select tests.
-TEST_SOURCE_ROOT="$TEST_SOURCE_ROOT" ginkgo run -procs=5 tests/precompile \
-  --ginkgo.vv \
-  --ginkgo.label-filter=${GINKGO_LABEL_FILTER:-""}
+TEST_SOURCE_ROOT="${PWD}" ginkgo --vv -procs=5 ./tests/precompile -- "${@}"

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -e
+
+set -euo pipefail
 
 # Load the versions
 SUBNET_EVM_PATH=$(
@@ -16,7 +17,7 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 # https://github.com/ava-labs/avalanchego/releases
 GOARCH=$(go env GOARCH)
 GOOS=$(go env GOOS)
-BASEDIR=${BASEDIR:-"/tmp/avalanchego-release"}
+BASEDIR="${BASEDIR:-${DEFAULT_BASEDIR}}"
 AVALANCHEGO_BUILD_PATH=${AVALANCHEGO_BUILD_PATH:-${BASEDIR}/avalanchego}
 
 mkdir -p ${BASEDIR}
