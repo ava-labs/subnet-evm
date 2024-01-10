@@ -65,7 +65,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/avalanchego/database/manager"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
@@ -73,7 +72,6 @@ import (
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	cjson "github.com/ava-labs/avalanchego/utils/json"
 	"github.com/ava-labs/avalanchego/utils/perms"
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
@@ -251,7 +249,6 @@ type VM struct {
 	networkCodec codec.Manager
 
 	validators *p2p.Validators
-	router     *p2p.Router
 
 	// Metrics
 	multiGatherer avalanchegoMetrics.MultiGatherer
@@ -273,7 +270,7 @@ type VM struct {
 func (vm *VM) Initialize(
 	_ context.Context,
 	chainCtx *snow.Context,
-	dbManager manager.Manager,
+	db database.Database,
 	genesisBytes []byte,
 	upgradeBytes []byte,
 	configBytes []byte,
@@ -290,7 +287,6 @@ func (vm *VM) Initialize(
 	if err := vm.config.Validate(); err != nil {
 		return err
 	}
-
 	vm.ctx = chainCtx
 
 	// Create logger
@@ -317,17 +313,16 @@ func (vm *VM) Initialize(
 
 	vm.toEngine = toEngine
 	vm.shutdownChan = make(chan struct{}, 1)
-	baseDB := dbManager.Current().Database
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, baseDB)}
-	vm.db = versiondb.New(baseDB)
+	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, db)}
+	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
 	// Note warpDB is not part of versiondb because it is not necessary
 	// that warp signatures are committed to the database atomically with
 	// the last accepted block.
-	vm.warpDB = prefixdb.New(warpPrefix, baseDB)
+	vm.warpDB = prefixdb.New(warpPrefix, db)
 	vm.hubbleDB = prefixdb.New(hubbleDBPrefix, vm.db)
 
 	if vm.config.InspectDatabase {
@@ -481,10 +476,10 @@ func (vm *VM) Initialize(
 	}
 
 	// initialize peer network
-	vm.validators = p2p.NewValidators(vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
-	vm.router = p2p.NewRouter(vm.ctx.Log, appSender, vm.sdkMetrics, "p2p")
+	p2pNetwork := p2p.NewNetwork(vm.ctx.Log, appSender, vm.sdkMetrics, "p2p")
+	vm.validators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(vm.router, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
+	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// initialize warp backend
@@ -709,7 +704,7 @@ func (vm *VM) initBlockBuilding() error {
 			Handler:   txGossipHandler,
 		},
 	}
-	txGossipClient, err := vm.router.RegisterAppProtocol(txGossipProtocol, txGossipHandler, vm.validators)
+	txGossipClient, err := vm.Network.NewAppProtocol(txGossipProtocol, txGossipHandler, p2p.WithValidatorSampling(vm.validators))
 	if err != nil {
 		return err
 	}
@@ -947,10 +942,6 @@ func newHandler(name string, service interface{}) (http.Handler, error) {
 	server := avalancheRPC.NewServer()
 	server.RegisterCodec(avalancheJSON.NewCodec(), "application/json")
 	server.RegisterCodec(avalancheJSON.NewCodec(), "application/json;charset=UTF-8")
-	if err := server.RegisterService(service, name); err != nil {
-		return nil, err
-	}
-
 	return server, server.RegisterService(service, name)
 }
 
@@ -1023,17 +1014,13 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 
 // CreateStaticHandlers makes new http handlers that can handle API calls
 func (vm *VM) CreateStaticHandlers(context.Context) (map[string]http.Handler, error) {
-	server := avalancheRPC.NewServer()
-	codec := cjson.NewCodec()
-	server.RegisterCodec(codec, "application/json")
-	server.RegisterCodec(codec, "application/json;charset=UTF-8")
-	serviceName := "subnetevm"
-	if err := server.RegisterService(&StaticService{}, serviceName); err != nil {
+	handler := rpc.NewServer(0)
+	if err := handler.RegisterName("static", &StaticService{}); err != nil {
 		return nil, err
 	}
 
 	return map[string]http.Handler{
-		"/rpc": server,
+		"/rpc": handler,
 	}, nil
 }
 

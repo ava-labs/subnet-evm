@@ -322,36 +322,21 @@ func (w *worker) commitTransactions(env *environment, txs *types.TransactionsByP
 
 		_, err := w.commitTransaction(env, tx, coinbase)
 		switch {
-		case errors.Is(err, core.ErrGasLimitReached):
-			// Pop the current out-of-gas transaction without shifting in the next from the account
-			log.Info("commitTransactions - Gas limit exceeded for current block", "hash", tx.Hash().String(), "sender", from, "pool gas", env.gasPool.Gas(), "gaslimit", tx.Gas(), "GasFeeCap", tx.GasFeeCap().Int64(), "GasPrice", tx.GasPrice().Int64())
-			txs.Pop()
-
 		case errors.Is(err, core.ErrNonceTooLow):
 			// New head notification data race between the transaction pool and miner, shift
 			log.Info("commitTransactions - Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())
 			txs.Shift()
-
-		case errors.Is(err, core.ErrNonceTooHigh):
-			// Reorg notification data race between the transaction pool and miner, skip account =
-			log.Info("commitTransactions - Skipping account with high nonce", "sender", from, "nonce", tx.Nonce())
-			txs.Pop()
 
 		case errors.Is(err, nil):
 			env.tcount++
 			txs.Shift()
 			log.Info("Transaction committed", "hash", tx.Hash().String(), "nonce", tx.Nonce())
 
-		case errors.Is(err, types.ErrTxTypeNotSupported):
-			// Pop the unsupported transaction without shifting in the next from the account
-			log.Info("commitTransactions - Skipping unsupported transaction type", "sender", from, "type", tx.Type())
-			txs.Pop()
-
 		default:
-			// Strange error, discard the transaction and get the next in line (note, the
-			// nonce-too-high clause will prevent us from executing in vain).
-			log.Info("commitTransactions - Transaction failed, account skipped", "hash", tx.Hash(), "err", err)
-			txs.Shift()
+			// Transaction is regarded as invalid, drop all consecutive transactions from
+			// the same sender because of `nonce-too-high` clause.
+			log.Debug("Transaction failed, account skipped", "hash", tx.Hash(), "err", err)
+			txs.Pop()
 		}
 	}
 }

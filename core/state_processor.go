@@ -87,11 +87,14 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 		return nil, nil, 0, err
 	}
 
-	blockContext := NewEVMBlockContext(header, p.bc, nil)
-	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
+	var (
+		context = NewEVMBlockContext(header, p.bc, nil)
+		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
+		signer  = types.MakeSigner(p.config, header.Number, header.Time)
+	)
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
-		msg, err := TransactionToMessage(tx, types.MakeSigner(p.config, header.Number, header.Time), header.BaseFee)
+		msg, err := TransactionToMessage(tx, signer, header.BaseFee)
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
@@ -182,12 +185,11 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 	// This ensures even if precompiles read/write state other than their own they will observe
 	// an identical global state in a deterministic order when they are configured.
 	for _, module := range modules.RegisteredModules() {
-		key := module.ConfigKey
 		for _, activatingConfig := range c.GetActivatingPrecompileConfigs(module.Address, parentTimestamp, blockTimestamp, c.PrecompileUpgrades) {
 			// If this transition activates the upgrade, configure the stateful precompile.
 			// (or deconfigure it if it is being disabled.)
 			if activatingConfig.IsDisabled() {
-				log.Info("Disabling precompile", "name", key)
+				log.Info("Disabling precompile", "name", module.ConfigKey)
 				statedb.Suicide(module.Address)
 				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
 				// This enables re-configuration of the same contract state in the same block.
@@ -195,11 +197,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				module, ok := modules.GetPrecompileModule(key)
-				if !ok {
-					return fmt.Errorf("could not find module for activating precompile, name: %s", key)
-				}
-				log.Info("Activating new precompile", "name", key, "config", activatingConfig)
+				log.Info("Activating new precompile", "name", module.ConfigKey, "config", activatingConfig)
 				// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
 				// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
 				statedb.SetNonce(module.Address, 1)
@@ -208,7 +206,7 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 				// that it does not attempt to invoke a non-existent contract.
 				statedb.SetCode(module.Address, []byte{0x1})
 				if err := module.Configure(c, activatingConfig, statedb, blockContext); err != nil {
-					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", key, err)
+					return fmt.Errorf("could not configure precompile, name: %s, reason: %w", module.ConfigKey, err)
 				}
 			}
 		}

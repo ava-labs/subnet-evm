@@ -27,6 +27,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/predicate"
 	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
@@ -97,7 +98,7 @@ func TestSendWarpMessage(t *testing.T) {
 	// Verify that the constructed block contains the expected log with an unsigned warp message in the log data
 	ethBlock1 := blk.(*chain.BlockWrapper).Block.(*Block).ethBlock
 	require.Len(ethBlock1.Transactions(), 1)
-	receipts := rawdb.ReadReceipts(vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), vm.chainConfig)
+	receipts := rawdb.ReadReceipts(vm.chaindb, ethBlock1.Hash(), ethBlock1.NumberU64(), ethBlock1.Time(), vm.chainConfig)
 	require.Len(receipts, 1)
 
 	require.Len(receipts[0].Logs, 1)
@@ -582,4 +583,120 @@ func TestReceiveWarpMessage(t *testing.T) {
 	txTraceResultBytes, err := json.Marshal(txTraceResult)
 	require.NoError(err)
 	require.JSONEq(string(txTraceResultBytes), string(blockTxTraceResultBytes))
+}
+
+func TestMessageSignatureRequestsToVM(t *testing.T) {
+	_, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+
+	defer func() {
+		err := vm.Shutdown(context.Background())
+		require.NoError(t, err)
+	}()
+
+	// Generate a new warp unsigned message and add to warp backend
+	warpMessage, err := avalancheWarp.NewUnsignedMessage(vm.ctx.NetworkID, vm.ctx.ChainID, []byte{1, 2, 3})
+	require.NoError(t, err)
+
+	// Add the known message and get its signature to confirm.
+	err = vm.warpBackend.AddMessage(warpMessage)
+	require.NoError(t, err)
+	signature, err := vm.warpBackend.GetMessageSignature(warpMessage.ID())
+	require.NoError(t, err)
+
+	tests := map[string]struct {
+		messageID        ids.ID
+		expectedResponse [bls.SignatureLen]byte
+	}{
+		"known": {
+			messageID:        warpMessage.ID(),
+			expectedResponse: signature,
+		},
+		"unknown": {
+			messageID:        ids.GenerateTestID(),
+			expectedResponse: [bls.SignatureLen]byte{},
+		},
+	}
+
+	for name, test := range tests {
+		calledSendAppResponseFn := false
+		appSender.SendAppResponseF = func(ctx context.Context, nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+			calledSendAppResponseFn = true
+			var response message.SignatureResponse
+			_, err := message.Codec.Unmarshal(responseBytes, &response)
+			require.NoError(t, err)
+			require.Equal(t, test.expectedResponse, response.Signature)
+
+			return nil
+		}
+		t.Run(name, func(t *testing.T) {
+			var signatureRequest message.Request = message.MessageSignatureRequest{
+				MessageID: test.messageID,
+			}
+
+			requestBytes, err := message.Codec.Marshal(message.Version, &signatureRequest)
+			require.NoError(t, err)
+
+			// Send the app request and make sure we called SendAppResponseFn
+			deadline := time.Now().Add(60 * time.Second)
+			err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, deadline, requestBytes)
+			require.NoError(t, err)
+			require.True(t, calledSendAppResponseFn)
+		})
+	}
+}
+
+func TestBlockSignatureRequestsToVM(t *testing.T) {
+	_, vm, _, appSender := GenesisVM(t, true, genesisJSONSubnetEVM, "", "")
+
+	defer func() {
+		err := vm.Shutdown(context.Background())
+		require.NoError(t, err)
+	}()
+
+	lastAcceptedID, err := vm.LastAccepted(context.Background())
+	require.NoError(t, err)
+
+	signature, err := vm.warpBackend.GetBlockSignature(lastAcceptedID)
+	require.NoError(t, err)
+
+	tests := map[string]struct {
+		blockID          ids.ID
+		expectedResponse [bls.SignatureLen]byte
+	}{
+		"known": {
+			blockID:          lastAcceptedID,
+			expectedResponse: signature,
+		},
+		"unknown": {
+			blockID:          ids.GenerateTestID(),
+			expectedResponse: [bls.SignatureLen]byte{},
+		},
+	}
+
+	for name, test := range tests {
+		calledSendAppResponseFn := false
+		appSender.SendAppResponseF = func(ctx context.Context, nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+			calledSendAppResponseFn = true
+			var response message.SignatureResponse
+			_, err := message.Codec.Unmarshal(responseBytes, &response)
+			require.NoError(t, err)
+			require.Equal(t, test.expectedResponse, response.Signature)
+
+			return nil
+		}
+		t.Run(name, func(t *testing.T) {
+			var signatureRequest message.Request = message.BlockSignatureRequest{
+				BlockID: test.blockID,
+			}
+
+			requestBytes, err := message.Codec.Marshal(message.Version, &signatureRequest)
+			require.NoError(t, err)
+
+			// Send the app request and make sure we called SendAppResponseFn
+			deadline := time.Now().Add(60 * time.Second)
+			err = vm.Network.AppRequest(context.Background(), ids.GenerateTestNodeID(), 1, deadline, requestBytes)
+			require.NoError(t, err)
+			require.True(t, calledSendAppResponseFn)
+		})
+	}
 }
