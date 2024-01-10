@@ -278,7 +278,7 @@ func (vm *VM) Initialize(
 		alias = vm.ctx.ChainID.String()
 	}
 
-	subnetEVMLogger, err := InitLogger(alias, vm.config.LogLevel, vm.config.LogJSONFormat, vm.ctx.Log)
+	subnetEVMLogger, err := InitLogger(alias, "debug", vm.config.LogJSONFormat, vm.ctx.Log)
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger due to: %w ", err)
 	}
@@ -471,6 +471,7 @@ func (vm *VM) Initialize(
 	vm.client = peer.NewNetworkClient(vm.Network)
 
 	// Initialize warp backend
+	log.Info("Initializing warp backend", "networkID", vm.networkID, "sourceChainID", vm.ctx.ChainID.String(), "chainConfigChainID", vm.chainConfig.ChainID, "offchainWarpMessagesCount", len(vm.config.WarpOffChainMessages))
 	offchainWarpMessages := make([][]byte, len(vm.config.WarpOffChainMessages))
 	for i, hexMsg := range vm.config.WarpOffChainMessages {
 		offchainWarpMessages[i] = []byte(hexMsg)
