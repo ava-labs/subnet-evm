@@ -15,6 +15,7 @@ const (
 	ORDERBOOK_GENESIS_ADDRESS        = "0x03000000000000000000000000000000000000b0"
 	IS_VALIDATOR_SLOT          int64 = 1
 	IS_TRADING_AUTHORITY_SLOT  int64 = 2
+	JUROR_SLOT                 int64 = 3
 	ORDER_HANDLER_STORAGE_SLOT int64 = 5
 )
 
@@ -40,6 +41,10 @@ func IsTradingAuthority(stateDB contract.StateDB, trader, senderOrSigner common.
 func IsValidator(stateDB contract.StateDB, senderOrSigner common.Address) bool {
 	isValidatorMappingSlot := crypto.Keccak256(append(common.LeftPadBytes(senderOrSigner.Bytes(), 32), common.LeftPadBytes(big.NewInt(IS_VALIDATOR_SLOT).Bytes(), 32)...))
 	return stateDB.GetState(common.HexToAddress(ORDERBOOK_GENESIS_ADDRESS), common.BytesToHash(isValidatorMappingSlot)).Big().Cmp(big.NewInt(1)) == 0
+}
+
+func JurorAddress(stateDB contract.StateDB) common.Address {
+	return common.BytesToAddress(stateDB.GetState(common.HexToAddress(ORDERBOOK_GENESIS_ADDRESS), common.BigToHash(new(big.Int).SetInt64(JUROR_SLOT))).Bytes())
 }
 
 // Helper functions

@@ -93,7 +93,7 @@ func ValidatePlaceLimitOrder(bibliophile b.BibliophileClient, inputStruct *Valid
 			response.Err = ErrOpenReduceOnlyOrders.Error()
 			return
 		}
-		availableMargin := bibliophile.GetAvailableMargin(trader)
+		availableMargin := bibliophile.GetAvailableMargin(trader, hu.UpgradeVersionV0orV1(bibliophile.GetTimeStamp()))
 		requiredMargin := getRequiredMargin(bibliophile, order)
 		if availableMargin.Cmp(requiredMargin) == -1 {
 			response.Err = ErrInsufficientMargin.Error()
@@ -154,7 +154,7 @@ func ValidateCancelLimitOrder(bibliophile b.BibliophileClient, inputStruct *Vali
 		return
 	default:
 	}
-	if assertLowMargin && bibliophile.GetAvailableMargin(trader).Sign() != -1 {
+	if assertLowMargin && bibliophile.GetAvailableMargin(trader, hu.UpgradeVersionV0orV1(bibliophile.GetTimeStamp())).Sign() != -1 {
 		response.Err = "Not Low Margin"
 		return
 	}

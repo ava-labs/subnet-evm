@@ -318,3 +318,7 @@ func NewMockConfigService() *MockConfigService {
 func (cs *MockConfigService) GetSignedOrderbookContract() common.Address {
 	return common.Address{}
 }
+
+func (cs *MockConfigService) GetUpgradeVersion() hu.UpgradeVersion {
+	return hu.V2
+}

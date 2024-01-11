@@ -80,6 +80,7 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 		MinAllowableMargin: pipeline.configService.getMinAllowableMargin(),
 		MaintenanceMargin:  pipeline.configService.getMaintenanceMargin(),
 		TakerFee:           pipeline.configService.GetTakerFee(),
+		UpgradeVersion:     pipeline.configService.GetUpgradeVersion(),
 	}
 
 	// build trader map

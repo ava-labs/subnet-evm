@@ -408,17 +408,11 @@ func TestGetCancellableOrders(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), getTotalFunding(_trader, []Market{market}))
 	assert.Equal(t, depositMargin, getNormalisedMargin(_trader, assets))
 
-	// last price based notional = 9 * 10 = 90, pnl = 0, mf = (40-0)/90 = 0.44
 	// oracle price based notional = 9 * 11 = 99, pnl = -9, mf = (40-9)/99 = 0.31
-	// for hu.Min_Allowable_Margin we select the min of 2 hence, oracle based mf
 	notionalPosition, unrealizePnL := getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, hu.Min_Allowable_Margin, priceMap, inMemoryDatabase.GetLastPrices(), []Market{market})
 	assert.Equal(t, hu.Mul1e6(big.NewInt(99)), notionalPosition)
 	assert.Equal(t, hu.Mul1e6(big.NewInt(-9)), unrealizePnL)
 
-	// for hu.Maintenance_Margin we select the max of 2 hence, last price based mf
-	notionalPosition, unrealizePnL = getTotalNotionalPositionAndUnrealizedPnl(_trader, depositMargin, hu.Maintenance_Margin, priceMap, inMemoryDatabase.GetLastPrices(), []Market{market})
-	assert.Equal(t, hu.Mul1e6(big.NewInt(90)), notionalPosition)
-	assert.Equal(t, big.NewInt(0), unrealizePnL)
 	hState := &hu.HubbleState{
 		Assets:             assets,
 		OraclePrices:       priceMap,
@@ -426,9 +420,10 @@ func TestGetCancellableOrders(t *testing.T) {
 		ActiveMarkets:      []Market{market},
 		MinAllowableMargin: inMemoryDatabase.configService.getMinAllowableMargin(),
 		MaintenanceMargin:  inMemoryDatabase.configService.getMaintenanceMargin(),
+		UpgradeVersion:     hu.V2,
 	}
 	marginFraction := calcMarginFraction(_trader, hState)
-	assert.Equal(t, new(big.Int).Div(hu.Mul1e6(depositMargin /* uPnL = 0 */), notionalPosition), marginFraction)
+	assert.Equal(t, new(big.Int).Div(hu.Mul1e6(hu.Add(depositMargin, unrealizePnL)), notionalPosition), marginFraction)
 
 	availableMargin := getAvailableMargin(_trader, hState)
 	// availableMargin = 40 - 9 - (99 + (10+9+8) * 3)/5 = -5

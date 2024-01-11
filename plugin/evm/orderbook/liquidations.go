@@ -73,16 +73,16 @@ type MarginMode = hu.MarginMode
 func getTotalNotionalPositionAndUnrealizedPnl(trader *Trader, margin *big.Int, marginMode MarginMode, oraclePrices map[Market]*big.Int, midPrices map[Market]*big.Int, markets []Market) (*big.Int, *big.Int) {
 	return hu.GetTotalNotionalPositionAndUnrealizedPnl(
 		&hu.HubbleState{
-			OraclePrices:  oraclePrices,
-			MidPrices:     midPrices,
-			ActiveMarkets: markets,
+			OraclePrices:   oraclePrices,
+			MidPrices:      midPrices,
+			ActiveMarkets:  markets,
+			UpgradeVersion: hu.V2,
 		},
 		&hu.UserState{
 			Positions: translatePositions(trader.Positions),
 		},
 		margin,
 		marginMode,
-		0,
 	)
 }
 

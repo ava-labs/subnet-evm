@@ -8,6 +8,7 @@ import (
 	big "math/big"
 	reflect "reflect"
 
+	hubbleutils "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -93,17 +94,17 @@ func (mr *MockBibliophileClientMockRecorder) GetAsksHead(market interface{}) *go
 }
 
 // GetAvailableMargin mocks base method.
-func (m *MockBibliophileClient) GetAvailableMargin(trader common.Address) *big.Int {
+func (m *MockBibliophileClient) GetAvailableMargin(trader common.Address, upgradeVersion hubbleutils.UpgradeVersion) *big.Int {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAvailableMargin", trader)
+	ret := m.ctrl.Call(m, "GetAvailableMargin", trader, upgradeVersion)
 	ret0, _ := ret[0].(*big.Int)
 	return ret0
 }
 
 // GetAvailableMargin indicates an expected call of GetAvailableMargin.
-func (mr *MockBibliophileClientMockRecorder) GetAvailableMargin(trader interface{}) *gomock.Call {
+func (mr *MockBibliophileClientMockRecorder) GetAvailableMargin(trader, upgradeVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAvailableMargin", reflect.TypeOf((*MockBibliophileClient)(nil).GetAvailableMargin), trader)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAvailableMargin", reflect.TypeOf((*MockBibliophileClient)(nil).GetAvailableMargin), trader, upgradeVersion)
 }
 
 // GetBidSize mocks base method.
@@ -261,18 +262,18 @@ func (mr *MockBibliophileClientMockRecorder) GetNextBidPrice(ammAddress, price i
 }
 
 // GetNotionalPositionAndMargin mocks base method.
-func (m *MockBibliophileClient) GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int) {
+func (m *MockBibliophileClient) GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8, upgradeVersion hubbleutils.UpgradeVersion) (*big.Int, *big.Int) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNotionalPositionAndMargin", trader, includeFundingPayments, mode)
+	ret := m.ctrl.Call(m, "GetNotionalPositionAndMargin", trader, includeFundingPayments, mode, upgradeVersion)
 	ret0, _ := ret[0].(*big.Int)
 	ret1, _ := ret[1].(*big.Int)
 	return ret0, ret1
 }
 
 // GetNotionalPositionAndMargin indicates an expected call of GetNotionalPositionAndMargin.
-func (mr *MockBibliophileClientMockRecorder) GetNotionalPositionAndMargin(trader, includeFundingPayments, mode interface{}) *gomock.Call {
+func (mr *MockBibliophileClientMockRecorder) GetNotionalPositionAndMargin(trader, includeFundingPayments, mode, upgradeVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotionalPositionAndMargin", reflect.TypeOf((*MockBibliophileClient)(nil).GetNotionalPositionAndMargin), trader, includeFundingPayments, mode)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNotionalPositionAndMargin", reflect.TypeOf((*MockBibliophileClient)(nil).GetNotionalPositionAndMargin), trader, includeFundingPayments, mode, upgradeVersion)
 }
 
 // GetOrderFilledAmount mocks base method.

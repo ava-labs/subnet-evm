@@ -3,13 +3,14 @@ package bibliophile
 import (
 	"math/big"
 
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type BibliophileClient interface {
 	//margin account
-	GetAvailableMargin(trader common.Address) *big.Int
+	GetAvailableMargin(trader common.Address, upgradeVersion hu.UpgradeVersion) *big.Int
 	//clearing house
 	GetMarketAddressFromMarketID(marketId int64) common.Address
 	GetMinAllowableMargin() *big.Int
@@ -52,7 +53,7 @@ type BibliophileClient interface {
 	GetAcceptableBoundsForLiquidation(marketId int64) (*big.Int, *big.Int)
 
 	GetTimeStamp() uint64
-	GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int)
+	GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8, upgradeVersion hu.UpgradeVersion) (*big.Int, *big.Int)
 	HasReferrer(trader common.Address) bool
 	GetActiveMarketsCount() int64
 }
@@ -196,12 +197,12 @@ func (b *bibliophileClient) GetReduceOnlyAmount(trader common.Address, ammIndex 
 	return getReduceOnlyAmount(b.accessibleState.GetStateDB(), trader, ammIndex)
 }
 
-func (b *bibliophileClient) GetAvailableMargin(trader common.Address) *big.Int {
-	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader, b.GetTimeStamp())
+func (b *bibliophileClient) GetAvailableMargin(trader common.Address, upgradeVersion hu.UpgradeVersion) *big.Int {
+	return GetAvailableMargin(b.accessibleState.GetStateDB(), trader, upgradeVersion)
 }
 
-func (b *bibliophileClient) GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8) (*big.Int, *big.Int) {
-	output := getNotionalPositionAndMargin(b.accessibleState.GetStateDB(), &GetNotionalPositionAndMarginInput{Trader: trader, IncludeFundingPayments: includeFundingPayments, Mode: mode}, b.GetTimeStamp())
+func (b *bibliophileClient) GetNotionalPositionAndMargin(trader common.Address, includeFundingPayments bool, mode uint8, upgradeVersion hu.UpgradeVersion) (*big.Int, *big.Int) {
+	output := getNotionalPositionAndMargin(b.accessibleState.GetStateDB(), &GetNotionalPositionAndMarginInput{Trader: trader, IncludeFundingPayments: includeFundingPayments, Mode: mode}, upgradeVersion)
 	return output.NotionalPosition, output.Margin
 }
 
