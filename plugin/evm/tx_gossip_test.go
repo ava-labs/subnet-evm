@@ -82,9 +82,9 @@ func TestEthTxGossip(t *testing.T) {
 	}
 
 	// Ask the VM for any new transactions. We should get nothing at first.
-	emptyBloomFilter, err := gossip.NewBloomFilter(txGossipBloomMaxItems, txGossipBloomFalsePositiveRate)
+	emptyBloomFilter, err := gossip.NewBloomFilter(txGossipBloomMinTargetElements, txGossipBloomTargetFalsePositiveRate, txGossipBloomResetFalsePositiveRate)
 	require.NoError(err)
-	emptyBloomFilterBytes, _, err := emptyBloomFilter.Marshal()
+	emptyBloomFilterBytes, _ := emptyBloomFilter.Marshal()
 	require.NoError(err)
 	request := &sdk.PullGossipRequest{
 		Filter: emptyBloomFilterBytes,
