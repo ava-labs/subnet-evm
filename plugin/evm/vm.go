@@ -106,7 +106,7 @@ const (
 	ethTxGossipProtocol = 0x0
 
 	// gossip constants
-	txGossipBloomMinTargetElements       = 1024
+	txGossipBloomMinTargetElements       = 8 * 1024
 	txGossipBloomTargetFalsePositiveRate = 0.01
 	txGossipBloomResetFalsePositiveRate  = 0.05
 	txGossipBloomChurnMultiplier         = 3

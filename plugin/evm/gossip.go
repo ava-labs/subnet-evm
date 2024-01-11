@@ -126,7 +126,7 @@ func (g *GossipEthTxPool) Subscribe(ctx context.Context) {
 				}
 
 				if reset {
-					log.Info("resetting bloom filter", "reason", "reached max filled ratio", "optimal elements", optimalElements)
+					log.Debug("resetting bloom filter", "reason", "reached max filled ratio")
 
 					g.mempool.IteratePending(func(tx *types.Transaction) bool {
 						g.bloom.Add(&GossipEthTx{Tx: pendingTx})
@@ -151,7 +151,7 @@ func (g *GossipEthTxPool) Iterate(f func(tx *GossipEthTx) bool) {
 	})
 }
 
-func (g *GossipEthTxPool) GetFilter() ([]byte, []byte, error) {
+func (g *GossipEthTxPool) GetFilter() ([]byte, []byte) {
 	g.lock.RLock()
 	defer g.lock.RUnlock()
 
