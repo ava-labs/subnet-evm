@@ -335,11 +335,10 @@ func isExecutable(order *Order, fillAmount, minAllowableMargin, takerFee, upperB
 	if order.OrderType == Limit || order.ReduceOnly {
 		return true, big.NewInt(0) // no extra margin required because for limit orders it is already reserved
 	}
-	if order.OrderType == IOC {
+	if order.OrderType == IOC || order.OrderType == Signed {
 		requiredMargin := getRequiredMargin(order, fillAmount, minAllowableMargin, takerFee, upperBound)
 		return requiredMargin.Cmp(availableMargin) <= 0, requiredMargin
 	}
-	// @todo add condition for signed orders
 	return false, big.NewInt(0)
 }
 

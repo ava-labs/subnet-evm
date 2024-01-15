@@ -98,6 +98,9 @@ func (o *SignedOrder) String() string {
 }
 
 func (o *SignedOrder) Hash() (hash common.Hash, err error) {
+	if VerifyingContract == "" || ChainId == 0 {
+		return common.Hash{}, fmt.Errorf("ChainId or VerifyingContract not set")
+	}
 	message := map[string]interface{}{
 		"orderType":         strconv.FormatUint(uint64(o.OrderType), 10),
 		"expireAt":          o.ExpireAt.String(),

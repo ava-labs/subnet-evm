@@ -387,6 +387,7 @@ func validateExecuteSignedOrder(bibliophile b.BibliophileClient, order *hu.Signe
 	trader, signer, err := hu.ValidateSignedOrder(
 		order,
 		hu.SignedOrderValidationFields{
+			OrderHash:          orderHash,
 			Now:                bibliophile.GetTimeStamp(),
 			ActiveMarketsCount: bibliophile.GetActiveMarketsCount(),
 			MinSize:            bibliophile.GetMinSizeRequirement(order.AmmIndex.Int64()),
@@ -398,18 +399,13 @@ func validateExecuteSignedOrder(bibliophile b.BibliophileClient, order *hu.Signe
 		return &Metadata{OrderHash: orderHash}, err
 	}
 
+	log.Info("validateExecuteSignedOrder", "trader", trader, "signer", signer, "orderHash", orderHash)
 	if trader != signer && !bibliophile.IsTradingAuthority(trader, signer) {
 		return &Metadata{OrderHash: orderHash}, hu.ErrNoTradingAuthority
 	}
 
 	// M1, M2
-	orderStatus := OrderStatus(bibliophile.GetSignedOrderStatus(orderHash))
-	log.Info("validateExecuteSignedOrder", "orderStatus", orderStatus)
-	if orderStatus == Invalid {
-		// signed orders don't get placed in the contract, so we consider them placed by default
-		orderStatus = Placed
-	}
-	if err := validateLimitOrderLike(bibliophile, &order.BaseOrder, bibliophile.GetSignedOrderFilledAmount(orderHash), orderStatus, side, fillAmount); err != nil {
+	if err := validateLimitOrderLike(bibliophile, &order.BaseOrder, bibliophile.GetSignedOrderFilledAmount(orderHash), Placed, side, fillAmount); err != nil {
 		return &Metadata{OrderHash: orderHash}, err
 	}
 

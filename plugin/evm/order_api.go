@@ -6,6 +6,7 @@ package evm
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"strings"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
@@ -25,24 +26,53 @@ func NewOrderAPI(tradingAPI *orderbook.TradingAPI, vm *VM) *OrderAPI {
 }
 
 type PlaceOrderResponse struct {
-	Success bool `json:"success"`
+	OrderId string `json:"orderId,omitempty"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
 }
 
-func (api *OrderAPI) PlaceSignedOrder(ctx context.Context, rawOrder string) (PlaceOrderResponse, error) {
-	testData, err := hex.DecodeString(strings.TrimPrefix(rawOrder, "0x"))
+type PlaceSignedOrdersResponse struct {
+	Orders []PlaceOrderResponse `json:"orders"`
+}
+
+func (api *OrderAPI) PlaceSignedOrders(ctx context.Context, input string) (PlaceSignedOrdersResponse, error) {
+	// input is a json encoded array of signed orders
+	var rawOrders []string
+	err := json.Unmarshal([]byte(input), &rawOrders)
 	if err != nil {
-		return PlaceOrderResponse{Success: false}, err
-	}
-	order, err := hu.DecodeSignedOrder(testData)
-	if err != nil {
-		return PlaceOrderResponse{Success: false}, err
+		return PlaceSignedOrdersResponse{}, err
 	}
 
-	err = api.tradingAPI.PlaceOrder(order)
-	if err != nil {
-		return PlaceOrderResponse{Success: false}, err
-	}
-	api.vm.gossiper.GossipSignedOrders([]*hu.SignedOrder{order})
+	ordersToGossip := []*hu.SignedOrder{}
+	response := []PlaceOrderResponse{}
+	for _, rawOrder := range rawOrders {
+		orderResponse := PlaceOrderResponse{Success: false}
+		testData, err := hex.DecodeString(strings.TrimPrefix(rawOrder, "0x"))
+		if err != nil {
+			orderResponse.Error = err.Error()
+			response = append(response, orderResponse)
+			continue
+		}
+		order, err := hu.DecodeSignedOrder(testData)
+		if err != nil {
+			orderResponse.Error = err.Error()
+			response = append(response, orderResponse)
+			continue
+		}
 
-	return PlaceOrderResponse{Success: true}, nil
+		orderId, err := api.tradingAPI.PlaceOrder(order)
+		orderResponse.OrderId = orderId.String()
+		if err != nil {
+			orderResponse.Error = err.Error()
+			response = append(response, orderResponse)
+			continue
+		}
+		orderResponse.Success = true
+		response = append(response, orderResponse)
+		ordersToGossip = append(ordersToGossip, order)
+	}
+
+	api.vm.gossiper.GossipSignedOrders(ordersToGossip)
+
+	return PlaceSignedOrdersResponse{Orders: response}, nil
 }

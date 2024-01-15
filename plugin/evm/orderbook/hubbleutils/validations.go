@@ -9,6 +9,7 @@ import (
 )
 
 type SignedOrderValidationFields struct {
+	OrderHash          common.Hash
 	Now                uint64
 	ActiveMarketsCount int64
 	MinSize            *big.Int
@@ -88,12 +89,7 @@ func ValidateSignedOrder(order *SignedOrder, fields SignedOrderValidationFields)
 		return trader, signer, err
 	}
 
-	// 6. caller will perform the check
-	orderHash, err := order.Hash()
-	if err != nil {
-		return trader, signer, err
-	}
-	signer, err = ECRecover(orderHash.Bytes(), order.Sig[:])
+	signer, err = ECRecover(fields.OrderHash.Bytes(), order.Sig[:])
 	// fmt.Println("signer", signer)
 	if err != nil {
 		return trader, signer, err

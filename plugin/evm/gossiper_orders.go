@@ -153,7 +153,7 @@ func (h *GossipHandler) HandleSignedOrders(nodeID ids.NodeID, msg message.Signed
 	// re-gossip orders, but not when we already knew the orders
 	ordersToGossip := make([]*hu.SignedOrder, 0)
 	for _, order := range orders {
-		err := tradingAPI.PlaceOrder(order)
+		_, err := tradingAPI.PlaceOrder(order)
 		if err == nil {
 			h.stats.IncSignedOrdersGossipReceivedNew()
 			ordersToGossip = append(ordersToGossip, order)

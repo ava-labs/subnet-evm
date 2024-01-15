@@ -5,8 +5,10 @@
 package juror
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"testing"
 
@@ -201,7 +203,105 @@ func TestValidateLimitOrderLike(t *testing.T) {
 }
 
 func TestValidateExecuteSignedOrder(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
+	mockBibliophile := b.NewMockBibliophileClient(ctrl)
+
+	t.Run("validateExecuteSignedOrder - long", func(t *testing.T) {
+		hu.SetChainIdAndVerifyingSignedOrdersContract(321123, "0x4c5859f0F772848b2D91F1D83E2Fe57935348029")
+		orderHash := strings.TrimPrefix("0x73d5196ac9576efaccb6e54b193b894e2cc0afd68ce5af519c901fec7e588595", "0x")
+		signature := strings.TrimPrefix("0x3027ae4ab98663490d0facab04c71665e41da867a44b7ddc29e14cb8de3a3cfa12985be54945ce040196b2fcdcc4dafc56f7955ee72628bc9e7a634a7f258ce61c", "0x")
+		sig, err := hex.DecodeString(signature)
+		assert.Nil(t, err)
+		order := &hu.SignedOrder{
+			LimitOrder: hu.LimitOrder{
+				BaseOrder: hu.BaseOrder{
+					AmmIndex:          big.NewInt(0),
+					Trader:            common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
+					BaseAssetQuantity: big.NewInt(5000000000000000000), // 5
+					Price:             big.NewInt(1000000000),
+					Salt:              big.NewInt(1688994806105),
+					ReduceOnly:        false,
+				},
+				PostOnly: true,
+			},
+			OrderType: 2,
+			ExpireAt:  big.NewInt(1688994854),
+			Sig:       sig,
+		}
+		filledAmount := big.NewInt(2000000000000000000) // 2
+		fillAmount := big.NewInt(3000000000000000000)   // 3
+		testValidateExecuteSignedOrder(t, mockBibliophile, order, orderHash, Long, fillAmount, filledAmount)
+	})
+
+	t.Run("validateExecuteSignedOrder - short", func(t *testing.T) {
+		hu.SetChainIdAndVerifyingSignedOrdersContract(321123, "0x809d550fca64d94Bd9F66E60752A544199cfAC3D")
+		orderHash := strings.TrimPrefix("0xee4b26ae386d1c88f89eb2f8b4b4205271576742f5ff4e0488633612f7a9a5e7", "0x")
+		signature := strings.TrimPrefix("0xb2704b73b99f2700ecc90a218f514c254d1f5d46af47117f5317f6cc0348ce962dcfb024c7264fdeb1f1513e4564c2a7cd9c1d0be33d7b934cd5a73b96440eaf1c", "0x")
+		sig, err := hex.DecodeString(signature)
+		assert.Nil(t, err)
+		order := &hu.SignedOrder{
+			LimitOrder: hu.LimitOrder{
+				BaseOrder: hu.BaseOrder{
+					AmmIndex:          big.NewInt(0),
+					Trader:            common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
+					BaseAssetQuantity: big.NewInt(-5000000000000000000), // -5
+					Price:             big.NewInt(1000000000),
+					Salt:              big.NewInt(1688994806105),
+					ReduceOnly:        false,
+				},
+				PostOnly: true,
+			},
+			OrderType: 2,
+			ExpireAt:  big.NewInt(1688994854),
+			Sig:       sig,
+		}
+		filledAmount := big.NewInt(-2000000000000000000) // -2
+		fillAmount := big.NewInt(-3000000000000000000)   // -3
+		testValidateExecuteSignedOrder(t, mockBibliophile, order, orderHash, Short, fillAmount, filledAmount)
+	})
+
+	// t.Run("validateExecuteLimitOrder returns orderHash even when validation fails", func(t *testing.T) {
+	// 	orderHash, err := order.Hash()
+	// 	assert.Nil(t, err)
+
+	// 	mockBibliophile.EXPECT().GetOrderFilledAmount(orderHash).Return(filledAmount).Times(1)
+	// 	mockBibliophile.EXPECT().GetOrderStatus(orderHash).Return(int64(2)).Times(1) // Filled
+
+	// 	m, err := validateExecuteLimitOrder(mockBibliophile, order, Long, fillAmount)
+	// 	assert.EqualError(t, err, ErrInvalidOrder.Error())
+	// 	assert.Equal(t, orderHash, m.OrderHash)
+	// })
+}
+
+func testValidateExecuteSignedOrder(t *testing.T, mockBibliophile *b.MockBibliophileClient, order *hu.SignedOrder, orderHash string, side Side, fillAmount, filledAmount *big.Int) {
+	h, err := order.Hash()
+	assert.Nil(t, err)
+	assert.Equal(t, orderHash, strings.TrimPrefix(h.Hex(), "0x"))
+
+	marketAddress := common.HexToAddress("0xa72b463C21dA61cCc86069cFab82e9e8491152a0")
+	mockBibliophile.EXPECT().GetTimeStamp().Return(order.ExpireAt.Uint64()).Times(1)
+	mockBibliophile.EXPECT().GetActiveMarketsCount().Return(int64(1)).Times(1)
+	mockBibliophile.EXPECT().GetMinSizeRequirement(order.AmmIndex.Int64()).Return(big.NewInt(1e18))
+	mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order.AmmIndex.Int64()).Return(marketAddress).Times(2)
+	mockBibliophile.EXPECT().GetPriceMultiplier(marketAddress).Return(big.NewInt(1e6))
+	mockBibliophile.EXPECT().GetSignedOrderStatus(h).Return(int64(0)).Times(1) // Invalid
+	mockBibliophile.EXPECT().GetSignedOrderFilledAmount(h).Return(filledAmount).Times(1)
+	mockBibliophile.EXPECT().HasReferrer(order.Trader).Return(true).Times(1)
+
+	m, err := validateExecuteSignedOrder(mockBibliophile, order, side, fillAmount)
+	assert.Nil(t, err)
+	assertMetadataEquality(t, &Metadata{
+		AmmIndex:          new(big.Int).Set(order.AmmIndex),
+		Trader:            order.Trader,
+		BaseAssetQuantity: new(big.Int).Set(order.BaseAssetQuantity),
+		BlockPlaced:       big.NewInt(0),
+		Price:             new(big.Int).Set(order.Price),
+		OrderHash:         h,
+		OrderType:         ob.Signed,
+		PostOnly:          true,
+	}, m)
 }
 
 func TestValidateExecuteLimitOrder(t *testing.T) {

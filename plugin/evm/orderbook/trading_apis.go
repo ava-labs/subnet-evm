@@ -313,21 +313,22 @@ func (api *TradingAPI) StreamMarketTrades(ctx context.Context, market Market, bl
 	return rpcSub, nil
 }
 
-func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) error {
+func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	if hu.ChainId == 0 { // set once, will need to restart node if we change
 		hu.SetChainIdAndVerifyingSignedOrdersContract(api.backend.ChainConfig().ChainID.Int64(), api.configService.GetSignedOrderbookContract().String())
 	}
 	orderId, err := order.Hash()
 	if err != nil {
-		return fmt.Errorf("failed to hash order: %s", err)
+		return common.Hash{}, fmt.Errorf("failed to hash order: %s", err)
 	}
 	if api.db.GetOrderById(orderId) != nil {
-		return hu.ErrOrderAlreadyExists
+		return orderId, hu.ErrOrderAlreadyExists
 	}
 	marketId := int(order.AmmIndex.Int64())
 	trader, signer, err := hu.ValidateSignedOrder(
 		order,
 		hu.SignedOrderValidationFields{
+			OrderHash:          orderId,
 			Now:                uint64(time.Now().Unix()),
 			ActiveMarketsCount: api.configService.GetActiveMarketsCount(),
 			MinSize:            api.configService.getMinSizeRequirement(marketId),
@@ -336,11 +337,11 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) error {
 		},
 	)
 	if err != nil {
-		return err
+		return orderId, err
 	}
 
 	if trader != signer && !api.configService.IsTradingAuthority(trader, signer) {
-		return hu.ErrNoTradingAuthority
+		return orderId, hu.ErrNoTradingAuthority
 	}
 
 	fields := api.db.GetOrderValidationFields(orderId, trader, marketId)
@@ -354,7 +355,7 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) error {
 		asksHead := fields.AsksHead
 		bidsHead := fields.BidsHead
 		if (orderSide == hu.Side(hu.Short) && bidsHead.Sign() != 0 && order.Price.Cmp(bidsHead) != 1) || (orderSide == hu.Side(hu.Long) && asksHead.Sign() != 0 && order.Price.Cmp(asksHead) != -1) {
-			return hu.ErrCrossingMarket
+			return orderId, hu.ErrCrossingMarket
 		}
 	}
 	// @todo P5
@@ -378,5 +379,5 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) error {
 	log.Info("SignedOrder/OrderAccepted", "order", signedOrder)
 	placeSignedOrderCounter.Inc(1)
 	api.db.Add(signedOrder)
-	return nil
+	return orderId, nil
 }

@@ -792,7 +792,7 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 		}
 
 		buildBlockTimeHistogram.Update(time.Since(start).Microseconds())
-		log.Info("#### buildBlock complete", "duration", time.Since(start))
+		log.Info("buildBlock complete", "duration", time.Since(start))
 	}(time.Now())
 
 	if proposerVMBlockCtx != nil {
