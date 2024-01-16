@@ -74,7 +74,7 @@ func getNotionalPositionAndMargin(stateDB contract.StateDB, input *GetNotionalPo
 	midPrices := make(map[int]*big.Int, numMarkets)
 	var activeMarketIds []int
 	for i, market := range markets {
-		positions[i] = getPosition(stateDB, getMarketAddressFromMarketID(int64(i), stateDB), &input.Trader)
+		positions[i] = getPosition(stateDB, GetMarketAddressFromMarketID(int64(i), stateDB), &input.Trader)
 		underlyingPrices[i] = getUnderlyingPrice(stateDB, market)
 		midPrices[i] = getMidPrice(stateDB, market)
 		activeMarketIds = append(activeMarketIds, i)
@@ -151,8 +151,8 @@ func getPosSizes(stateDB contract.StateDB, trader *common.Address) []*big.Int {
 	return positionSizes
 }
 
-// getMarketAddressFromMarketID returns the market address for a given marketID
-func getMarketAddressFromMarketID(marketID int64, stateDB contract.StateDB) common.Address {
+// GetMarketAddressFromMarketID returns the market address for a given marketID
+func GetMarketAddressFromMarketID(marketID int64, stateDB contract.StateDB) common.Address {
 	baseStorageSlot := marketsStorageSlot()
 	amm := stateDB.GetState(common.HexToAddress(CLEARING_HOUSE_GENESIS_ADDRESS), common.BigToHash(new(big.Int).Add(baseStorageSlot, big.NewInt(marketID))))
 	return common.BytesToAddress(amm.Bytes())

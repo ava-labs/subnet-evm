@@ -50,12 +50,12 @@ func JurorAddress(stateDB contract.StateDB) common.Address {
 // Helper functions
 
 func GetAcceptableBounds(stateDB contract.StateDB, marketID int64) (upperBound, lowerBound *big.Int) {
-	market := getMarketAddressFromMarketID(marketID, stateDB)
+	market := GetMarketAddressFromMarketID(marketID, stateDB)
 	return calculateBounds(getMaxOraclePriceSpread(stateDB, market), getUnderlyingPrice(stateDB, market), getMultiplier(stateDB, market))
 }
 
 func GetAcceptableBoundsForLiquidation(stateDB contract.StateDB, marketID int64) (upperBound, lowerBound *big.Int) {
-	market := getMarketAddressFromMarketID(marketID, stateDB)
+	market := GetMarketAddressFromMarketID(marketID, stateDB)
 	return calculateBounds(getMaxLiquidationPriceSpread(stateDB, market), getUnderlyingPrice(stateDB, market), getMultiplier(stateDB, market))
 }
 

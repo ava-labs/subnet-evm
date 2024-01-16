@@ -41,6 +41,9 @@ func (db *MockLimitOrderDatabase) GetMarketOrders(market Market) []Order {
 func (db *MockLimitOrderDatabase) Add(order *Order) {
 }
 
+func (db *MockLimitOrderDatabase) AddSignedOrder(order *Order, requiredMargin *big.Int) {
+}
+
 func (db *MockLimitOrderDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64) {
 }
 
@@ -157,12 +160,12 @@ func (db *MockLimitOrderDatabase) GetSamplePIAttemptedTime() uint64 {
 
 func (db *MockLimitOrderDatabase) SignalSamplePIAttempted(time uint64) {}
 
-func (db *MockLimitOrderDatabase) GetOrderValidationFields(
-	orderId common.Hash,
-	trader common.Address,
-	marketId int,
-) OrderValidationFields {
+func (db *MockLimitOrderDatabase) GetOrderValidationFields(orderId common.Hash, order *hu.SignedOrder) OrderValidationFields {
 	return OrderValidationFields{}
+}
+
+func (db *MockLimitOrderDatabase) SampleImpactPrice() (impactBids, impactAsks, midPrices []*big.Int) {
+	return []*big.Int{}, []*big.Int{}, []*big.Int{}
 }
 
 type MockLimitOrderTxProcessor struct {
@@ -299,6 +302,10 @@ func (cs *MockConfigService) GetTakerFee() *big.Int {
 	return big.NewInt(0)
 }
 
+func (cs *MockConfigService) HasReferrer(trader common.Address) bool {
+	return true
+}
+
 func (cs *MockConfigService) GetPriceMultiplier(market Market) *big.Int {
 	return big.NewInt(1e6)
 }
@@ -321,4 +328,12 @@ func (cs *MockConfigService) GetSignedOrderbookContract() common.Address {
 
 func (cs *MockConfigService) GetUpgradeVersion() hu.UpgradeVersion {
 	return hu.V2
+}
+
+func (cs *MockConfigService) GetMarketAddressFromMarketID(marketId int64) common.Address {
+	return common.Address{}
+}
+
+func (cs *MockConfigService) GetImpactMarginNotional(ammAddress common.Address) *big.Int {
+	return big.NewInt(0)
 }

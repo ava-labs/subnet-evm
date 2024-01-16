@@ -209,8 +209,10 @@ func (p *Position) MarshalJSON() ([]byte, error) {
 }
 
 type Margin struct {
-	Reserved  *big.Int                `json:"reserved"`
-	Deposited map[Collateral]*big.Int `json:"deposited"`
+	Available       *big.Int                `json:"available"`
+	Deposited       map[Collateral]*big.Int `json:"deposited"`
+	Reserved        *big.Int                `json:"reserved"`
+	VirtualReserved *big.Int                `json:"virtual"`
 }
 
 type Trader struct {
@@ -223,6 +225,7 @@ type LimitOrderDatabase interface {
 	GetAllOrders() []Order
 	GetMarketOrders(market Market) []Order
 	Add(order *Order)
+	AddSignedOrder(order *Order, requiredMargin *big.Int)
 	Delete(orderId common.Hash)
 	UpdateFilledBaseAssetQuantity(quantity *big.Int, orderId common.Hash, blockNumber uint64)
 	GetLongOrders(market Market, lowerbound *big.Int, blockNumber *big.Int) []Order
@@ -252,11 +255,8 @@ type LimitOrderDatabase interface {
 	UpdateLastPremiumFraction(market Market, trader common.Address, lastPremiumFraction *big.Int, cumlastPremiumFraction *big.Int)
 	GetOrderById(orderId common.Hash) *Order
 	GetTraderInfo(trader common.Address) *Trader
-	GetOrderValidationFields(
-		orderId common.Hash,
-		trader common.Address,
-		marketId int,
-	) OrderValidationFields
+	GetOrderValidationFields(orderId common.Hash, order *hu.SignedOrder) OrderValidationFields
+	SampleImpactPrice() (impactBids, impactAsks, midPrices []*big.Int)
 }
 
 type Snapshot struct {
@@ -444,10 +444,29 @@ func (db *InMemoryDatabase) GetMarketOrders(market Market) []Order {
 }
 
 func (db *InMemoryDatabase) Add(order *Order) {
+	if order.OrderType != Limit && order.OrderType != IOC {
+		log.Error("In Add - order type is not Limit or IOC", "order", order)
+		return
+	}
 	db.mu.Lock()
 	defer db.mu.Unlock()
+	db.addOrderWithoutLock(order)
+}
 
-	log.Info("Adding order to memdb", "order", order)
+func (db *InMemoryDatabase) AddSignedOrder(order *Order, requiredMargin *big.Int) {
+	if order.OrderType != Signed {
+		log.Error("In AddSignedOrder - order type is not Signed", "order", order)
+		return
+	}
+	log.Info("SignedOrder/OrderAccepted", "order", order)
+
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	db.addOrderWithoutLock(order)
+	db.updateVirtualReservedMargin(order.Trader, requiredMargin)
+}
+
+func (db *InMemoryDatabase) addOrderWithoutLock(order *Order) {
 	order.LifecycleList = append(order.LifecycleList, Lifecycle{order.BlockNumber.Uint64(), Placed, ""})
 	db.AddInSortedArray(order)
 	db.Orders[order.Id] = order
@@ -746,6 +765,14 @@ func (db *InMemoryDatabase) UpdateReservedMargin(trader common.Address, addAmoun
 	db.TraderMap[trader].Margin.Reserved.Add(db.TraderMap[trader].Margin.Reserved, addAmount)
 }
 
+func (db *InMemoryDatabase) updateVirtualReservedMargin(trader common.Address, addAmount *big.Int) {
+	if _, ok := db.TraderMap[trader]; !ok {
+		db.TraderMap[trader] = getBlankTrader()
+	}
+
+	db.TraderMap[trader].Margin.VirtualReserved.Add(db.TraderMap[trader].Margin.VirtualReserved, addAmount)
+}
+
 func (db *InMemoryDatabase) UpdatePosition(trader common.Address, market Market, size *big.Int, openNotional *big.Int, isLiquidation bool, blockNumber uint64) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -969,7 +996,7 @@ func (db *InMemoryDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]Liquida
 			ReservedMargin: new(big.Int).Set(trader.Margin.Reserved),
 		}
 		marginFraction := hu.GetMarginFraction(hState, userState)
-		marginMap[addr] = hu.GetAvailableMargin(hState, userState)
+		db.TraderMap[addr].Margin.Available = hu.GetAvailableMargin(hState, userState)
 		if marginFraction.Cmp(hState.MaintenanceMargin) == -1 {
 			log.Info("below maintenanceMargin", "trader", addr.String(), "marginFraction", prettifyScaledBigInt(marginFraction, 6))
 			if len(minSizes) == 0 {
@@ -984,7 +1011,7 @@ func (db *InMemoryDatabase) GetNaughtyTraders(hState *hu.HubbleState) ([]Liquida
 			continue
 		}
 		// has orders that might be cancellable
-		availableMargin := new(big.Int).Set(marginMap[addr])
+		availableMargin := new(big.Int).Set(db.TraderMap[addr].Margin.Available)
 		if availableMargin.Sign() == -1 {
 			foundCancellableOrders := false
 			foundCancellableOrders = db.determineOrdersToCancel(addr, trader, availableMargin, hState.OraclePrices, ordersToCancel, hState.MinAllowableMargin)
@@ -1124,10 +1151,12 @@ func getBlankTrader() *Trader {
 	return &Trader{
 		Positions: map[Market]*Position{},
 		Margin: Margin{
-			Reserved: big.NewInt(0),
+			Available: big.NewInt(0),
 			Deposited: map[Collateral]*big.Int{
 				0: big.NewInt(0),
 			},
+			Reserved:        big.NewInt(0),
+			VirtualReserved: big.NewInt(0),
 		},
 	}
 }
@@ -1201,24 +1230,30 @@ func getOrderIdx(orders []*Order, orderId common.Hash) int {
 }
 
 type OrderValidationFields struct {
-	Exists   bool
-	PosSize  *big.Int
-	AsksHead *big.Int
-	BidsHead *big.Int
+	Exists          bool
+	PosSize         *big.Int
+	AvailableMargin *big.Int
+	AsksHead        *big.Int
+	BidsHead        *big.Int
 }
 
-func (db *InMemoryDatabase) GetOrderValidationFields(
-	orderId common.Hash,
-	trader common.Address,
-	marketId int,
-) OrderValidationFields {
+func (db *InMemoryDatabase) GetOrderValidationFields(orderId common.Hash, order *hu.SignedOrder) OrderValidationFields {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
+	if db.Orders[orderId] != nil {
+		return OrderValidationFields{Exists: true}
+	}
+
+	// trader data
+	trader := order.Trader
+	marketId := int(order.AmmIndex.Int64())
 	posSize := big.NewInt(0)
 	if db.TraderMap[trader] != nil && db.TraderMap[trader].Positions[marketId] != nil && db.TraderMap[trader].Positions[marketId].Size != nil {
 		posSize = db.TraderMap[trader].Positions[marketId].Size
 	}
+
+	// market data
 	asksHead := big.NewInt(0)
 	if len(db.ShortOrders[marketId]) > 0 {
 		asksHead = db.ShortOrders[marketId][0].Price
@@ -1227,13 +1262,70 @@ func (db *InMemoryDatabase) GetOrderValidationFields(
 	if len(db.LongOrders[marketId]) > 0 {
 		bidsHead = db.LongOrders[marketId][0].Price
 	}
-	fields := OrderValidationFields{
-		PosSize:  posSize,
-		AsksHead: asksHead,
-		BidsHead: bidsHead,
+
+	return OrderValidationFields{
+		Exists:          false,
+		PosSize:         posSize,
+		AvailableMargin: hu.Sub(db.TraderMap[trader].Margin.Available /* as fresh as the last matching engine run */, db.TraderMap[trader].Margin.VirtualReserved),
+		AsksHead:        asksHead,
+		BidsHead:        bidsHead,
 	}
-	if db.Orders[orderId] != nil {
-		fields.Exists = true
+}
+
+func (db *InMemoryDatabase) SampleImpactPrice() (impactBids, impactAsks, midPrices []*big.Int) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	count := db.configService.GetActiveMarketsCount()
+	impactBids = make([]*big.Int, count)
+	impactAsks = make([]*big.Int, count)
+	midPrices = make([]*big.Int, count)
+
+	for m := int64(0); m < count; m++ {
+		// @todo make the optimisation to fetch orders only until impactMarginNotional
+		longOrders := db.getLongOrdersWithoutLock(Market(m), nil, nil, true)
+		shortOrders := db.getLongOrdersWithoutLock(Market(m), nil, nil, true)
+		ammAddress := db.configService.GetMarketAddressFromMarketID(m)
+		impactMarginNotional := db.configService.GetImpactMarginNotional(ammAddress)
+		if len(longOrders) == 0 || len(shortOrders) == 0 {
+			impactBids[m] = big.NewInt(0)
+			impactAsks[m] = big.NewInt(0)
+			midPrices[m] = big.NewInt(0)
+			continue
+		}
+		midPrices[m] = hu.Div(hu.Add(longOrders[0].Price, shortOrders[0].Price), new(big.Int).SetInt64(2))
+		impactBids[m] = calculateImpactPrice(longOrders, impactMarginNotional)
+		impactAsks[m] = calculateImpactPrice(shortOrders, impactMarginNotional)
 	}
-	return fields
+	return impactBids, impactAsks, midPrices
+}
+
+func calculateImpactPrice(orders []Order, _impactMarginNotional *big.Int) *big.Int {
+	if _impactMarginNotional.Sign() == 0 {
+		return big.NewInt(0)
+	}
+	impactMarginNotional := new(big.Int).Mul(_impactMarginNotional, big.NewInt(1e12)) // 18 decimals
+	accNotional := big.NewInt(0)                                                      // 18 decimals
+	accBaseQ := big.NewInt(0)                                                         // 18 decimals
+	tick := big.NewInt(0)                                                             // 6 decimals
+	found := false
+	for _, order := range orders {
+		amount := hu.Abs(big.NewInt(0).Sub(order.BaseAssetQuantity, order.FilledBaseAssetQuantity)) // 18 decimals
+		if amount.Sign() == 0 {
+			continue
+		}
+		tick = order.Price
+		accumulator := new(big.Int).Add(accNotional, hu.Div1e6(big.NewInt(0).Mul(amount, tick)))
+		if accumulator.Cmp(impactMarginNotional) >= 0 {
+			found = true // that we have enough liquidity to fill the impactMarginNotional
+			break
+		}
+		accNotional = accumulator
+		accBaseQ.Add(accBaseQ, amount)
+	}
+	if !found {
+		return big.NewInt(0)
+	}
+	baseQAtTick := new(big.Int).Div(hu.Mul1e6(new(big.Int).Sub(impactMarginNotional, accNotional)), tick)
+	return new(big.Int).Div(hu.Mul1e6(impactMarginNotional), new(big.Int).Add(baseQAtTick, accBaseQ)) // return value is in 6 decimals
 }

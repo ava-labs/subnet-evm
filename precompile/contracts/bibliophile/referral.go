@@ -23,7 +23,7 @@ func traderToReferrer(stateDB contract.StateDB, referralContract, trader common.
 	return common.BytesToAddress(stateDB.GetState(referralContract, common.BytesToHash(pos)).Bytes())
 }
 
-func hasReferrer(stateDB contract.StateDB, trader common.Address) bool {
+func HasReferrer(stateDB contract.StateDB, trader common.Address) bool {
 	referralContract := getReferralAddress(stateDB)
 	return !restrictedInvites(stateDB, referralContract) || traderToReferrer(stateDB, referralContract, trader) != common.Address{}
 }

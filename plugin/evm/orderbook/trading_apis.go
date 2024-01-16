@@ -16,7 +16,6 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 var traderFeed event.Feed
@@ -313,6 +312,7 @@ func (api *TradingAPI) StreamMarketTrades(ctx context.Context, market Market, bl
 	return rpcSub, nil
 }
 
+// @todo cache api.configService values to avoid db lookups on every order placement
 func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	if hu.ChainId == 0 { // set once, will need to restart node if we change
 		hu.SetChainIdAndVerifyingSignedOrdersContract(api.backend.ChainConfig().ChainID.Int64(), api.configService.GetSignedOrderbookContract().String())
@@ -321,7 +321,9 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to hash order: %s", err)
 	}
-	if api.db.GetOrderById(orderId) != nil {
+	fields := api.db.GetOrderValidationFields(orderId, order)
+	// P1. Order is not already in memdb
+	if fields.Exists {
 		return orderId, hu.ErrOrderAlreadyExists
 	}
 	marketId := int(order.AmmIndex.Int64())
@@ -339,13 +341,23 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	if err != nil {
 		return orderId, err
 	}
-
 	if trader != signer && !api.configService.IsTradingAuthority(trader, signer) {
 		return orderId, hu.ErrNoTradingAuthority
 	}
 
-	fields := api.db.GetOrderValidationFields(orderId, trader, marketId)
-	// @todo P1 - P3
+	requiredMargin := big.NewInt(0)
+	if !order.ReduceOnly {
+		// P2. Margin is available for non-reduce only orders
+		minAllowableMargin := api.configService.getMinAllowableMargin()
+		// even tho order might be matched at a different price, we reserve margin at the price the order was placed at to keep it simple
+		requiredMargin = hu.GetRequiredMargin(order.Price, order.BaseAssetQuantity, minAllowableMargin, big.NewInt(0))
+		if fields.AvailableMargin.Cmp(requiredMargin) == -1 {
+			return orderId, hu.ErrInsufficientMargin
+		}
+	} else {
+		// @todo P3. Sum of all reduce only orders should not exceed the total position size
+	}
+
 	// P4. Post only order shouldn't cross the market
 	if order.PostOnly {
 		orderSide := hu.Side(hu.Long)
@@ -358,10 +370,13 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 			return orderId, hu.ErrCrossingMarket
 		}
 	}
-	// @todo P5
-	// @todo gossip order
 
-	// add to db
+	// P5. HasReferrer
+	if !api.configService.HasReferrer(order.Trader) {
+		return orderId, hu.ErrNoReferrer
+	}
+
+	// validations passed, add to db
 	signedOrder := &Order{
 		Id:                      orderId,
 		Market:                  Market(order.AmmIndex.Int64()),
@@ -376,8 +391,7 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 		RawOrder:                order,
 		OrderType:               Signed,
 	}
-	log.Info("SignedOrder/OrderAccepted", "order", signedOrder)
 	placeSignedOrderCounter.Inc(1)
-	api.db.Add(signedOrder)
+	api.db.AddSignedOrder(signedOrder, requiredMargin)
 	return orderId, nil
 }

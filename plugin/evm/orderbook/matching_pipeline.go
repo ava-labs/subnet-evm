@@ -347,10 +347,7 @@ func getRequiredMargin(order *Order, fillAmount, minAllowableMargin, takerFee, u
 	if order.BaseAssetQuantity.Sign() == -1 && order.Price.Cmp(upperBound) == -1 {
 		price = upperBound
 	}
-	quoteAsset := hu.Div1e18(hu.Mul(fillAmount, price)) // fillAmount is scaled by 18 decimals
-	requiredMargin := hu.Div1e6(hu.Mul(minAllowableMargin, quoteAsset))
-	_takerFee := hu.Div1e6(hu.Mul(quoteAsset, takerFee))
-	return hu.Add(requiredMargin, _takerFee)
+	return hu.GetRequiredMargin(price, fillAmount, minAllowableMargin, takerFee)
 }
 
 func ExecuteMatchedOrders(lotp LimitOrderTxProcessor, longOrder, shortOrder Order, fillAmount *big.Int) (Order, Order) {

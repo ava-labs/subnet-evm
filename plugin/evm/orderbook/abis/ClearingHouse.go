@@ -85,6 +85,19 @@ var ClearingHouseAbi = []byte(`{"abi": [
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "version",
+        "type": "uint8"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "uint256",
         "name": "idx",
@@ -417,6 +430,29 @@ var ClearingHouseAbi = []byte(`{"abi": [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "impactBids",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "impactAsks",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "midPrice",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "commitLiquiditySample",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "defaultOrderBook",
     "outputs": [
@@ -561,11 +597,6 @@ var ClearingHouseAbi = []byte(`{"abi": [
         "internalType": "address",
         "name": "trader",
         "type": "address"
-      },
-      {
-        "internalType": "int256",
-        "name": "margin",
-        "type": "int256"
       },
       {
         "internalType": "enum IClearingHouse.Mode",
@@ -1062,13 +1093,6 @@ var ClearingHouseAbi = []byte(`{"abi": [
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "samplePI",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

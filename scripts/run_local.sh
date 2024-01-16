@@ -19,15 +19,15 @@ then
     echo "31b571bf6894a248831ff937bb49f7754509fe93bbd2517c9c73c4144c0e97dc" > $FILE
 fi
 
-avalanche subnet create hubblenet --force --custom --genesis genesis.json --vm custom_evm.bin --config .avalanche-cli.json
+avalanche subnet create localnet --force --custom --genesis genesis.json --vm custom_evm.bin --config .avalanche-cli.json
 
 # configure and add chain.json
-avalanche subnet configure hubblenet --chain-config chain.json --config .avalanche-cli.json
-avalanche subnet configure hubblenet --subnet-config subnet.json --config .avalanche-cli.json
-# avalanche subnet configure hubblenet --per-node-chain-config node_config.json --config .avalanche-cli.json
+avalanche subnet configure localnet --chain-config chain.json --config .avalanche-cli.json
+avalanche subnet configure localnet --subnet-config subnet.json --config .avalanche-cli.json
+# avalanche subnet configure localnet --per-node-chain-config node_config.json --config .avalanche-cli.json
 
 # use the same avalanchego version as the one used in subnet-evm
 # use tee to keep showing outut while storing in a var
-OUTPUT=$(avalanche subnet deploy hubblenet -l --avalanchego-version v1.10.17 --config .avalanche-cli.json | tee /dev/fd/2)
+OUTPUT=$(avalanche subnet deploy localnet -l --avalanchego-version v1.10.17 --config .avalanche-cli.json | tee /dev/fd/2)
 
 setStatus

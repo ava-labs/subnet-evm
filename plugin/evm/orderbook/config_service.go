@@ -26,11 +26,15 @@ type IConfigService interface {
 	GetAcceptableBounds(market Market) (*big.Int, *big.Int)
 	GetAcceptableBoundsForLiquidation(market Market) (*big.Int, *big.Int)
 	GetTakerFee() *big.Int
+	HasReferrer(trader common.Address) bool
 
 	GetSignedOrderStatus(orderHash common.Hash) int64
 	IsTradingAuthority(trader, signer common.Address) bool
 	GetSignedOrderbookContract() common.Address
 	GetUpgradeVersion() hu.UpgradeVersion
+
+	GetMarketAddressFromMarketID(marketId int64) common.Address
+	GetImpactMarginNotional(ammAddress common.Address) *big.Int
 }
 
 type ConfigService struct {
@@ -111,6 +115,10 @@ func (cs *ConfigService) GetTakerFee() *big.Int {
 	return hu.Div(hu.Mul(takerFee, big.NewInt(8)), big.NewInt(10)) // 20% discount, which is applied to everyone currently
 }
 
+func (cs *ConfigService) HasReferrer(trader common.Address) bool {
+	return bibliophile.HasReferrer(cs.getStateAtCurrentBlock(), trader)
+}
+
 func (cs *ConfigService) GetSignedOrderStatus(orderHash common.Hash) int64 {
 	return bibliophile.GetSignedOrderStatus(cs.getStateAtCurrentBlock(), orderHash)
 }
@@ -129,4 +137,12 @@ func (cs *ConfigService) GetUpgradeVersion() hu.UpgradeVersion {
 		return hu.V2
 	}
 	return hu.V1
+}
+
+func (cs *ConfigService) GetMarketAddressFromMarketID(marketId int64) common.Address {
+	return bibliophile.GetMarketAddressFromMarketID(marketId, cs.getStateAtCurrentBlock())
+}
+
+func (cs *ConfigService) GetImpactMarginNotional(ammAddress common.Address) *big.Int {
+	return bibliophile.GetImpactMarginNotional(cs.getStateAtCurrentBlock(), ammAddress)
 }

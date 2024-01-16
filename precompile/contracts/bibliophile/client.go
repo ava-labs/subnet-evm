@@ -102,7 +102,7 @@ func (b *bibliophileClient) GetTakerFee() *big.Int {
 }
 
 func (b *bibliophileClient) GetMarketAddressFromMarketID(marketID int64) common.Address {
-	return getMarketAddressFromMarketID(marketID, b.accessibleState.GetStateDB())
+	return GetMarketAddressFromMarketID(marketID, b.accessibleState.GetStateDB())
 }
 
 func (b *bibliophileClient) GetBlockPlaced(orderHash [32]byte) *big.Int {
@@ -162,7 +162,7 @@ func (b *bibliophileClient) GetNextAskPrice(ammAddress common.Address, price *bi
 }
 
 func (b *bibliophileClient) GetImpactMarginNotional(ammAddress common.Address) *big.Int {
-	return getImpactMarginNotional(b.accessibleState.GetStateDB(), ammAddress)
+	return GetImpactMarginNotional(b.accessibleState.GetStateDB(), ammAddress)
 }
 
 func (b *bibliophileClient) GetUpperAndLowerBoundForMarket(marketId int64) (*big.Int, *big.Int) {
@@ -207,5 +207,5 @@ func (b *bibliophileClient) GetNotionalPositionAndMargin(trader common.Address, 
 }
 
 func (b *bibliophileClient) HasReferrer(trader common.Address) bool {
-	return hasReferrer(b.accessibleState.GetStateDB(), trader)
+	return HasReferrer(b.accessibleState.GetStateDB(), trader)
 }

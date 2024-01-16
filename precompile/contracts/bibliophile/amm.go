@@ -45,7 +45,7 @@ func GetCumulativePremiumFraction(stateDB contract.StateDB, market common.Addres
 
 // GetMaxOraclePriceSpread returns the maxOracleSpreadRatio for a given market
 func GetMaxOraclePriceSpread(stateDB contract.StateDB, marketID int64) *big.Int {
-	return getMaxOraclePriceSpread(stateDB, getMarketAddressFromMarketID(marketID, stateDB))
+	return getMaxOraclePriceSpread(stateDB, GetMarketAddressFromMarketID(marketID, stateDB))
 }
 
 func getMaxOraclePriceSpread(stateDB contract.StateDB, market common.Address) *big.Int {
@@ -54,7 +54,7 @@ func getMaxOraclePriceSpread(stateDB contract.StateDB, market common.Address) *b
 
 // GetMaxLiquidationPriceSpread returns the maxOracleSpreadRatio for a given market
 func GetMaxLiquidationPriceSpread(stateDB contract.StateDB, marketID int64) *big.Int {
-	return getMaxLiquidationPriceSpread(stateDB, getMarketAddressFromMarketID(marketID, stateDB))
+	return getMaxLiquidationPriceSpread(stateDB, GetMarketAddressFromMarketID(marketID, stateDB))
 }
 
 func getMaxLiquidationPriceSpread(stateDB contract.StateDB, market common.Address) *big.Int {
@@ -63,7 +63,7 @@ func getMaxLiquidationPriceSpread(stateDB contract.StateDB, market common.Addres
 
 // GetMaxLiquidationRatio returns the maxLiquidationPriceSpread for a given market
 func GetMaxLiquidationRatio(stateDB contract.StateDB, marketID int64) *big.Int {
-	return getMaxLiquidationRatio(stateDB, getMarketAddressFromMarketID(marketID, stateDB))
+	return getMaxLiquidationRatio(stateDB, GetMarketAddressFromMarketID(marketID, stateDB))
 }
 
 func getMaxLiquidationRatio(stateDB contract.StateDB, market common.Address) *big.Int {
@@ -72,7 +72,7 @@ func getMaxLiquidationRatio(stateDB contract.StateDB, market common.Address) *bi
 
 // GetMinSizeRequirement returns the minSizeRequirement for a given market
 func GetMinSizeRequirement(stateDB contract.StateDB, marketID int64) *big.Int {
-	market := getMarketAddressFromMarketID(marketID, stateDB)
+	market := GetMarketAddressFromMarketID(marketID, stateDB)
 	return fromTwosComplement(stateDB.GetState(market, common.BigToHash(big.NewInt(MIN_SIZE_REQUIREMENT_SLOT))).Bytes())
 }
 
@@ -81,7 +81,7 @@ func getMultiplier(stateDB contract.StateDB, market common.Address) *big.Int {
 }
 
 func GetMultiplier(stateDB contract.StateDB, marketID int64) *big.Int {
-	return getMultiplier(stateDB, getMarketAddressFromMarketID(marketID, stateDB))
+	return getMultiplier(stateDB, GetMarketAddressFromMarketID(marketID, stateDB))
 }
 
 func getUnderlyingAssetAddress(stateDB contract.StateDB, market common.Address) common.Address {
@@ -89,7 +89,7 @@ func getUnderlyingAssetAddress(stateDB contract.StateDB, market common.Address) 
 }
 
 func getUnderlyingPriceForMarket(stateDB contract.StateDB, marketID int64) *big.Int {
-	market := getMarketAddressFromMarketID(marketID, stateDB)
+	market := GetMarketAddressFromMarketID(marketID, stateDB)
 	return getUnderlyingPrice(stateDB, market)
 }
 
@@ -135,7 +135,7 @@ func getNextAsk(stateDB contract.StateDB, market common.Address, price *big.Int)
 	return stateDB.GetState(market, asksStorageSlot(price)).Big()
 }
 
-func getImpactMarginNotional(stateDB contract.StateDB, market common.Address) *big.Int {
+func GetImpactMarginNotional(stateDB contract.StateDB, market common.Address) *big.Int {
 	return stateDB.GetState(market, common.BigToHash(big.NewInt(IMPACT_MARGIN_NOTIONAL_SLOT))).Big()
 }
 

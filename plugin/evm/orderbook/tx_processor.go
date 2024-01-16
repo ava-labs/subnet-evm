@@ -128,7 +128,8 @@ func (lotp *limitOrderTxProcessor) ExecuteFundingPaymentTx() error {
 }
 
 func (lotp *limitOrderTxProcessor) ExecuteSamplePITx() error {
-	txHash, err := lotp.executeLocalTx(lotp.clearingHouseContractAddress, lotp.clearingHouseABI, "samplePI")
+	impactBids, impactAsks, midPrices := lotp.memoryDb.SampleImpactPrice()
+	txHash, err := lotp.executeLocalTx(lotp.orderBookContractAddress, lotp.orderBookABI, "commitLiquiditySample", impactBids, impactAsks, midPrices)
 	log.Info("ExecuteSamplePITx", "txHash", txHash.String(), "err", err)
 	if err == nil {
 		lotp.memoryDb.SignalSamplePIAttempted(uint64(time.Now().Unix()))

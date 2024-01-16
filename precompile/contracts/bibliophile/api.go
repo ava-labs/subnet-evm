@@ -136,7 +136,7 @@ func GetAMMVariables(stateDB contract.StateDB, ammAddress common.Address, ammInd
 	reduceOnlyAmount := getReduceOnlyAmount(stateDB, trader, big.NewInt(ammIndex))
 	longOpenOrdersAmount := getLongOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
 	shortOpenOrdersAmount := getShortOpenOrdersAmount(stateDB, trader, big.NewInt(ammIndex))
-	impactMarginNotional := getImpactMarginNotional(stateDB, ammAddress)
+	impactMarginNotional := GetImpactMarginNotional(stateDB, ammAddress)
 	return VariablesReadFromAMMSlots{
 		LastPrice:                 lastPrice,
 		CumulativePremiumFraction: cumulativePremiumFraction,
