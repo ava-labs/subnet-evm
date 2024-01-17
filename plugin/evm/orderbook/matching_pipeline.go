@@ -54,6 +54,9 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	// start fresh and purge all local transactions
 	pipeline.lotp.PurgeOrderBookTxs()
 
+	// remove expired signed orders
+	pipeline.db.RemoveExpiredSignedOrders()
+
 	if isFundingPaymentTime(pipeline.db.GetNextFundingTime()) {
 		log.Info("MatchingPipeline:isFundingPaymentTime")
 		err := executeFundingPayment(pipeline.lotp)
@@ -321,7 +324,7 @@ func areMatchingOrders(longOrder, shortOrder Order, marginMap map[common.Address
 		return nil
 	}
 
-	shortMargin := big.NewInt(0)
+	var shortMargin *big.Int = big.NewInt(0)
 	_isExecutable, shortMargin = isExecutable(&shortOrder, fillAmount, minAllowableMargin, takerFee, upperBound, marginMap[longOrder.Trader])
 	if !_isExecutable {
 		return nil
@@ -335,8 +338,12 @@ func isExecutable(order *Order, fillAmount, minAllowableMargin, takerFee, upperB
 	if order.OrderType == Limit || order.ReduceOnly {
 		return true, big.NewInt(0) // no extra margin required because for limit orders it is already reserved
 	}
-	if order.OrderType == IOC || order.OrderType == Signed {
+	if order.OrderType == IOC {
 		requiredMargin := getRequiredMargin(order, fillAmount, minAllowableMargin, takerFee, upperBound)
+		return requiredMargin.Cmp(availableMargin) <= 0, requiredMargin
+	}
+	if order.OrderType == Signed {
+		requiredMargin := getRequiredMargin(order, fillAmount, minAllowableMargin, big.NewInt(0) /* signed orders are always maker */, upperBound)
 		return requiredMargin.Cmp(availableMargin) <= 0, requiredMargin
 	}
 	return false, big.NewInt(0)

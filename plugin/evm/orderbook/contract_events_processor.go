@@ -15,12 +15,13 @@ import (
 )
 
 type ContractEventsProcessor struct {
-	orderBookABI      abi.ABI
-	limitOrderBookABI abi.ABI
-	iocOrderBookABI   abi.ABI
-	marginAccountABI  abi.ABI
-	clearingHouseABI  abi.ABI
-	database          LimitOrderDatabase
+	orderBookABI       abi.ABI
+	limitOrderBookABI  abi.ABI
+	iocOrderBookABI    abi.ABI
+	signedOrderBookABI abi.ABI
+	marginAccountABI   abi.ABI
+	clearingHouseABI   abi.ABI
+	database           LimitOrderDatabase
 }
 
 func NewContractEventsProcessor(database LimitOrderDatabase) *ContractEventsProcessor {
@@ -49,13 +50,19 @@ func NewContractEventsProcessor(database LimitOrderDatabase) *ContractEventsProc
 		panic(err)
 	}
 
+	signedOrderBookABI, err := abi.FromSolidityJson(string(abis.SignedOrderBookAbi))
+	if err != nil {
+		panic(err)
+	}
+
 	return &ContractEventsProcessor{
-		orderBookABI:      orderBookABI,
-		limitOrderBookABI: limitOrderBookABI,
-		marginAccountABI:  marginAccountABI,
-		clearingHouseABI:  clearingHouseABI,
-		iocOrderBookABI:   iocOrderBookABI,
-		database:          database,
+		orderBookABI:       orderBookABI,
+		limitOrderBookABI:  limitOrderBookABI,
+		marginAccountABI:   marginAccountABI,
+		clearingHouseABI:   clearingHouseABI,
+		iocOrderBookABI:    iocOrderBookABI,
+		signedOrderBookABI: signedOrderBookABI,
+		database:           database,
 	}
 }
 
@@ -98,6 +105,8 @@ func (cep *ContractEventsProcessor) ProcessEvents(logs []*types.Log) {
 			cep.handleLimitOrderBookEvent(event)
 		case IOCOrderBookContractAddress:
 			cep.handleIOCOrderBookEvent(event)
+		case SignedOrderBookContractAddress:
+			cep.handleSignedOrderBookEvent(event)
 		}
 	}
 }
@@ -335,6 +344,35 @@ func (cep *ContractEventsProcessor) handleIOCOrderBookEvent(event *types.Log) {
 	}
 }
 
+func (cep *ContractEventsProcessor) handleSignedOrderBookEvent(event *types.Log) {
+	removed := event.Removed
+	args := map[string]interface{}{}
+	switch event.Topics[0] {
+	// event OrderCancelAccepted(address indexed trader, bytes32 indexed orderHash, uint timestamp);
+	case cep.signedOrderBookABI.Events["OrderCancelAccepted"].ID:
+		err := cep.signedOrderBookABI.UnpackIntoMap(args, "OrderCancelAccepted", event.Data)
+		if err != nil {
+			log.Error("error in signedOrderBookABI.UnpackIntoMap", "method", "OrderCancelAccepted", "err", err)
+			return
+		}
+		orderId := event.Topics[2]
+		if !removed {
+			timestamp := args["timestamp"].(*big.Int)
+			log.Info("SignedOrder/OrderCancelAccepted", "args", args, "orderId", orderId.String(), "number", event.BlockNumber, "timestamp", timestamp)
+			if err := cep.database.SetOrderStatus(orderId, Cancelled, "", event.BlockNumber); err != nil {
+				log.Error("error in SetOrderStatus", "method", "OrderCancelAccepted", "err", err)
+				return
+			}
+		} else {
+			log.Info("SignedOrder/OrderCancelAccepted removed", "args", args, "orderId", orderId.String(), "number", event.BlockNumber)
+			if err := cep.database.RevertLastStatus(orderId); err != nil {
+				log.Error("error in SetOrderStatus", "method", "OrderCancelAccepted", "removed", true, "err", err)
+				return
+			}
+		}
+	}
+}
+
 func (cep *ContractEventsProcessor) handleMarginAccountEvent(event *types.Log) {
 	args := map[string]interface{}{}
 	switch event.Topics[0] {
@@ -546,7 +584,7 @@ func (cep *ContractEventsProcessor) PushToTraderFeed(events []*types.Log, blockS
 			}
 
 		case LimitOrderBookContractAddress:
-			orderType = "limit"
+			orderType = Limit.String()
 			switch event.Topics[0] {
 			case cep.limitOrderBookABI.Events["OrderAccepted"].ID:
 				err := cep.limitOrderBookABI.UnpackIntoMap(args, "OrderAccepted", event.Data)
@@ -596,7 +634,7 @@ func (cep *ContractEventsProcessor) PushToTraderFeed(events []*types.Log, blockS
 			}
 
 		case IOCOrderBookContractAddress:
-			orderType = "ioc"
+			orderType = IOC.String()
 			switch event.Topics[0] {
 			case cep.iocOrderBookABI.Events["OrderAccepted"].ID:
 				err := cep.iocOrderBookABI.UnpackIntoMap(args, "OrderAccepted", event.Data)
@@ -620,6 +658,30 @@ func (cep *ContractEventsProcessor) PushToTraderFeed(events []*types.Log, blockS
 				order := IOCOrder{}
 				order.DecodeFromRawOrder(args["order"])
 				args["order"] = order.Map()
+				orderId = event.Topics[2]
+				trader = getAddressFromTopicHash(event.Topics[1])
+			}
+
+		case SignedOrderBookContractAddress:
+			orderType = Signed.String()
+			switch event.Topics[0] {
+			case cep.signedOrderBookABI.Events["OrderCancelAccepted"].ID:
+				err := cep.signedOrderBookABI.UnpackIntoMap(args, "OrderCancelAccepted", event.Data)
+				if err != nil {
+					log.Error("error in signedOrderBookABI.UnpackIntoMap", "method", "OrderCancelAccepted", "err", err)
+					continue
+				}
+				eventName = "OrderCancelAccepted"
+				orderId = event.Topics[2]
+				trader = getAddressFromTopicHash(event.Topics[1])
+
+			case cep.signedOrderBookABI.Events["OrderCancelRejected"].ID:
+				err := cep.signedOrderBookABI.UnpackIntoMap(args, "OrderCancelRejected", event.Data)
+				if err != nil {
+					log.Error("error in signedOrderBookABI.UnpackIntoMap", "method", "OrderCancelRejected", "err", err)
+					continue
+				}
+				eventName = "OrderCancelRejected"
 				orderId = event.Topics[2]
 				trader = getAddressFromTopicHash(event.Topics[1])
 			}
@@ -696,6 +758,8 @@ func (cep *ContractEventsProcessor) updateMetrics(logs []*types.Log) {
 			contractABI = cep.limitOrderBookABI
 		case IOCOrderBookContractAddress:
 			contractABI = cep.iocOrderBookABI
+		case SignedOrderBookContractAddress:
+			contractABI = cep.signedOrderBookABI
 		}
 
 		event_, err := contractABI.EventByID(event.Topics[0])

@@ -64,6 +64,10 @@ func Mod(a, b *big.Int) *big.Int {
 	return new(big.Int).Mod(a, b)
 }
 
+func Neg(a *big.Int) *big.Int {
+	return new(big.Int).Neg(a)
+}
+
 func Scale(a *big.Int, decimals uint8) *big.Int {
 	return Mul(a, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil))
 }

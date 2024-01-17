@@ -426,29 +426,6 @@ func (lop *limitOrderProcesser) getLogs(fromBlock, toBlock *big.Int) []*types.Lo
 	return logs
 }
 
-func (lop *limitOrderProcesser) UpdateLastPremiumFractionFromStorage() {
-	traderMap := lop.memoryDb.GetOrderBookData().TraderMap
-	count := 0
-	start := time.Now()
-	for traderAddr, trader := range traderMap {
-		for market := range trader.Positions {
-			lastPremiumFraction := lop.configService.GetLastPremiumFraction(market, &traderAddr)
-			cumulativePremiumFraction := lop.configService.GetCumulativePremiumFraction(market)
-			lop.memoryDb.UpdateLastPremiumFraction(market, traderAddr, lastPremiumFraction, cumulativePremiumFraction)
-			count++
-		}
-	}
-
-	orderMap := lop.memoryDb.GetOrderBookData().Orders
-	for orderHash, order := range orderMap {
-		if order.FilledBaseAssetQuantity.CmpAbs(order.BaseAssetQuantity) > 0 {
-			log.Info("Order map cleanup - deleting order", "hash", orderHash.String(), "baseAssetQuantity", order.BaseAssetQuantity, "filledBaseAssetQuantity", order.FilledBaseAssetQuantity)
-			lop.memoryDb.Delete(orderHash)
-		}
-	}
-	log.Info("@@@@ UpdateLastPremiumFractionFromStorage - update complete", "count", count, "time taken", time.Since(start))
-}
-
 func executeFuncAndRecoverPanic(fn func(), panicMessage string, panicCounter metrics.Counter) {
 	defer func() {
 		if panicInfo := recover(); panicInfo != nil {

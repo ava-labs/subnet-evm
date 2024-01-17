@@ -900,3 +900,166 @@ func addLimitOrder(db *InMemoryDatabase) common.Hash {
 	db.Add(&limitOrder)
 	return limitOrder.Id
 }
+
+func TestSampleImpactPrice(t *testing.T) {
+	db := getDatabase()
+	t.Run("insufficient liquidity on both sides", func(t *testing.T) {
+		t.Run("no orders on both sides", func(t *testing.T) {
+			impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+			assert.Equal(t, big.NewInt(0), impactBids[0])
+			assert.Equal(t, big.NewInt(0), impactAsks[0])
+			assert.Equal(t, big.NewInt(0), midPrices[0])
+		})
+		t.Run("no orders on SHORT, insufficient liquidity on LONG", func(t *testing.T) {
+			order1 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(1), big.NewInt(400), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order1)
+			impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+			assert.Equal(t, big.NewInt(0), impactBids[0])
+			assert.Equal(t, big.NewInt(0), impactAsks[0])
+			assert.Equal(t, big.NewInt(0), midPrices[0])
+
+			db.Delete(order1.Id)
+		})
+		t.Run("no orders on LONG, insufficient liquidity on SHORT", func(t *testing.T) {
+			order1 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-1), big.NewInt(400), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order1)
+			impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+			assert.Equal(t, big.NewInt(0), impactBids[0])
+			assert.Equal(t, big.NewInt(0), impactAsks[0])
+			assert.Equal(t, big.NewInt(0), midPrices[0])
+
+			db.Delete(order1.Id)
+		})
+
+		t.Run("insufficient liquidity on both sides", func(t *testing.T) {
+			order1 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(1), big.NewInt(499), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order1)
+			order2 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-1), big.NewInt(400), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order2)
+
+			impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+			assert.Equal(t, big.NewInt(0), impactBids[0])
+			assert.Equal(t, big.NewInt(0), impactAsks[0])
+			assert.Equal(t, big.NewInt(449), midPrices[0])
+
+			db.Delete(order1.Id)
+			db.Delete(order2.Id)
+		})
+	})
+
+	t.Run("insufficient liquidity on 1 side", func(t *testing.T) {
+		db := getDatabase()
+		t.Run("sufficient liquidity on SHORT", func(t *testing.T) {
+			t.Run("no orders on long", func(t *testing.T) {
+				order2 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-1e18), hu.Mul1e6(big.NewInt(500)), Placed, big.NewInt(2), big.NewInt(2))
+				db.Add(&order2)
+				impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+				assert.Equal(t, big.NewInt(0), impactBids[0])
+				assert.Equal(t, hu.Mul1e6(big.NewInt(500)), impactAsks[0])
+				assert.Equal(t, big.NewInt(0), midPrices[0])
+
+				db.Delete(order2.Id)
+			})
+
+			t.Run("insufficient liquidity on LONG", func(t *testing.T) {
+				order1 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(1e18), hu.Mul1e6(big.NewInt(490)), Placed, big.NewInt(2), big.NewInt(2))
+				db.Add(&order1)
+				order2 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-1e18), hu.Mul1e6(big.NewInt(500)), Placed, big.NewInt(2), big.NewInt(2))
+				db.Add(&order2)
+				impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+				assert.Equal(t, big.NewInt(0), impactBids[0])
+				assert.Equal(t, hu.Mul1e6(big.NewInt(500)), impactAsks[0])
+				assert.Equal(t, hu.Mul1e6(big.NewInt(495)), midPrices[0])
+
+				db.Delete(order1.Id)
+				db.Delete(order2.Id)
+			})
+		})
+
+		t.Run("sufficient liquidity on LONG", func(t *testing.T) {
+			t.Run("no orders on short", func(t *testing.T) {
+				order2 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(1e18), hu.Mul1e6(big.NewInt(500)), Placed, big.NewInt(2), big.NewInt(2))
+				db.Add(&order2)
+				impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+				assert.Equal(t, hu.Mul1e6(big.NewInt(500)), impactBids[0])
+				assert.Equal(t, big.NewInt(0), impactAsks[0])
+				assert.Equal(t, big.NewInt(0), midPrices[0])
+
+				db.Delete(order2.Id)
+			})
+
+			t.Run("insufficient liquidity on short", func(t *testing.T) {
+				order1 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(1e18), hu.Mul1e6(big.NewInt(500)), Placed, big.NewInt(2), big.NewInt(2))
+				db.Add(&order1)
+				order2 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-1e18), hu.Mul1e6(big.NewInt(490)), Placed, big.NewInt(2), big.NewInt(2))
+				db.Add(&order2)
+				impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+				assert.Equal(t, hu.Mul1e6(big.NewInt(500)), impactBids[0])
+				assert.Equal(t, big.NewInt(0), impactAsks[0])
+				assert.Equal(t, hu.Mul1e6(big.NewInt(495)), midPrices[0])
+
+				db.Delete(order1.Id)
+				db.Delete(order2.Id)
+			})
+		})
+	})
+
+	t.Run("sufficient liquidity on both sides", func(t *testing.T) {
+		t.Run("just 1 order", func(t *testing.T) {
+			order1 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(1e18), hu.Mul1e6(big.NewInt(500)), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order1)
+			order2 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(-1e18), hu.Mul1e6(big.NewInt(510)), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order2)
+			impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+			assert.Equal(t, hu.Mul1e6(big.NewInt(500)), impactBids[0])
+			assert.Equal(t, hu.Mul1e6(big.NewInt(510)), impactAsks[0])
+			assert.Equal(t, hu.Mul1e6(big.NewInt(505)), midPrices[0])
+
+			db.Delete(order1.Id)
+			db.Delete(order2.Id)
+		})
+
+		t.Run("multiple orders", func(t *testing.T) {
+			// 600*.5 + 520*.1 + 500*.4 = 552
+			// accNotional = 600*.5 + 520*.1 + 500*.296 = 500
+			// impact price = 500/(.5 + .1 + .296) = 558.035714
+			order1 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(5e17), hu.Mul1e6(big.NewInt(600)), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order1)
+			order2 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(1e17), hu.Mul1e6(big.NewInt(520)), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order2)
+			order3 := createLimitOrder(LONG, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(4e17), hu.Mul1e6(big.NewInt(500)), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order3)
+
+			// 700*.5 + 750*.1 + 800*.4 = 745
+			// accNotional = 700*.5 + 750*.1 = 425
+			// impact price = 500/(.5 + .1 + .09375) = 720.720720
+			order4 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(5e17), hu.Mul1e6(big.NewInt(700)), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order4)
+			order5 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(1e17), hu.Mul1e6(big.NewInt(750)), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order5)
+			order6 := createLimitOrder(SHORT, "0x22Bb736b64A0b4D4081E103f83bccF864F0404aa", big.NewInt(4e17), hu.Mul1e6(big.NewInt(800)), Placed, big.NewInt(2), big.NewInt(2))
+			db.Add(&order6)
+
+			impactBids, impactAsks, midPrices := db.SampleImpactPrice()
+
+			assert.Equal(t, big.NewInt(558035714), impactBids[0])
+			assert.Equal(t, big.NewInt(720720720), impactAsks[0])
+			assert.Equal(t, hu.Mul1e6(big.NewInt(650)), midPrices[0])
+
+			db.Delete(order1.Id)
+			db.Delete(order2.Id)
+			db.Delete(order3.Id)
+			db.Delete(order4.Id)
+			db.Delete(order5.Id)
+			db.Delete(order6.Id)
+		})
+	})
+}

@@ -168,6 +168,8 @@ func (db *MockLimitOrderDatabase) SampleImpactPrice() (impactBids, impactAsks, m
 	return []*big.Int{}, []*big.Int{}, []*big.Int{}
 }
 
+func (db *MockLimitOrderDatabase) RemoveExpiredSignedOrders() {}
+
 type MockLimitOrderTxProcessor struct {
 	mock.Mock
 }
@@ -335,5 +337,5 @@ func (cs *MockConfigService) GetMarketAddressFromMarketID(marketId int64) common
 }
 
 func (cs *MockConfigService) GetImpactMarginNotional(ammAddress common.Address) *big.Int {
-	return big.NewInt(0)
+	return big.NewInt(500e6)
 }

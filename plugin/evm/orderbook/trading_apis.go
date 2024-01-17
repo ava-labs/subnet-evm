@@ -350,7 +350,7 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 		// P2. Margin is available for non-reduce only orders
 		minAllowableMargin := api.configService.getMinAllowableMargin()
 		// even tho order might be matched at a different price, we reserve margin at the price the order was placed at to keep it simple
-		requiredMargin = hu.GetRequiredMargin(order.Price, order.BaseAssetQuantity, minAllowableMargin, big.NewInt(0))
+		requiredMargin = hu.GetRequiredMargin(order.Price, hu.Abs(order.BaseAssetQuantity), minAllowableMargin, big.NewInt(0))
 		if fields.AvailableMargin.Cmp(requiredMargin) == -1 {
 			return orderId, hu.ErrInsufficientMargin
 		}
@@ -393,5 +393,32 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	}
 	placeSignedOrderCounter.Inc(1)
 	api.db.AddSignedOrder(signedOrder, requiredMargin)
+
+	// send to trader feed - both for head and accepted block
+	go func() {
+		orderMap := order.Map()
+		orderMap["orderType"] = "signed"
+		orderMap["expireAt"] = order.ExpireAt.String()
+		args := map[string]interface{}{
+			"order": orderMap,
+		}
+
+		traderEvent := TraderEvent{
+			Trader:      trader,
+			Removed:     false,
+			EventName:   "OrderAccepted",
+			Args:        args,
+			BlockStatus: ConfirmationLevelHead,
+			OrderId:     orderId,
+			OrderType:   Signed.String(),
+			Timestamp:   big.NewInt(time.Now().Unix()),
+		}
+
+		traderFeed.Send(traderEvent)
+
+		traderEvent.BlockStatus = ConfirmationLevelAccepted
+		traderFeed.Send(traderEvent)
+	}()
+
 	return orderId, nil
 }
