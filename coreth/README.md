@@ -6,13 +6,18 @@ That is, the VM defines the behavior of the blockchain.
 Coreth (from core Ethereum) is the [Virtual Machine (VM)](https://docs.avax.network/learn/platform-overview#virtual-machines) that defines the Contract Chain (C-Chain).
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client functionality.
 
+## Script Execution
+
+The move from its own repo to a module contained in the subnet-evm repo require that the working directory for script execution be the ./coreth path.
+Attempting to execute coreth scripts from the repository root (e.g. `./coreth/scripts/build.sh`) is not supported.
+
 ## Building
 
 Coreth is a dependency of AvalancheGo which is used to implement the EVM based Virtual Machine for the Avalanche C-Chain. In order to run with a local version of Coreth, users must update their Coreth dependency within AvalancheGo to point to their local Coreth directory. If Coreth and AvalancheGo are at the standard location within your GOPATH, this will look like the following:
 
 ```bash
 cd $GOPATH/src/github.com/ava-labs/avalanchego
-go mod edit -replace github.com/ava-labs/coreth=../coreth
+go mod edit -replace github.com/ava-labs/coreth=../subnet-evm/coreth
 ```
 
 Now that AvalancheGo depends on the local version of Coreth, we can build with the normal build script:
