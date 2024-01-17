@@ -4,4 +4,4 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-golangci-lint run --path-prefix=. --timeout 3m
+golangci-lint run --path-prefix=. --skip-dirs=coreth --timeout 3m

@@ -1,0 +1,103 @@
+name: coreth CI
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'coreth/**'
+  pull_request:
+    paths:
+      - 'coreth/**'
+
+env:
+  go_version: '~1.20.12'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: ./coreth
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.go_version }}
+          check-latest: true
+      - run: ./scripts/lint_allowed_geth_imports.sh
+        shell: bash
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+          working-directory: ./coreth
+          args: --timeout 3m
+  test:
+    name: Golang Unit Tests ${{ matrix.go }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-11.0, ubuntu-20.04, windows-latest]
+    defaults:
+      run:
+        working-directory: ./coreth
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: ${{ env.go_version }}
+        check-latest: true
+    - run: go mod download
+      shell: bash
+    - run: ./scripts/build.sh evm
+      shell: bash
+    - run: ./scripts/build_test.sh
+      shell: bash
+    - run: ./scripts/coverage.sh
+      shell: bash
+  test-race:
+    name: Golang Unit Tests Race Detection ${{ matrix.go }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+    defaults:
+      run:
+        working-directory: ./coreth
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: ${{ env.go_version }}
+        check-latest: true
+    - run: go mod download
+      shell: bash
+    - run: ./scripts/build.sh evm
+      shell: bash
+    - run: ./scripts/build_test.sh -race
+      shell: bash
+  avalanchego_e2e:
+    name: AvalancheGo E2E Tests ${{ matrix.go }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-20.04 ]
+    defaults:
+      run:
+        working-directory: ./coreth
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: ${{ env.go_version }}
+        check-latest: true
+    - name: Run e2e tests
+      run: E2E_SERIAL=1 ./scripts/tests.e2e.sh
+      shell: bash
+    - name: Upload testnet network dir
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: testnet-data
+        path: ~/.tmpnet/networks/1000
