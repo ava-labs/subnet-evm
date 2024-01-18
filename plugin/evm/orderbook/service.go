@@ -299,7 +299,6 @@ func (api *OrderBookAPI) StreamDepthUpdateForMarketAndFreq(ctx context.Context, 
 			case <-ticker.C:
 				newMarketDepth := getDepthForMarket(api.db, Market(market))
 				depthUpdate := getUpdateInDepth(newMarketDepth, oldMarketDepth)
-				log.Info("Depth update", "depthUpdate", depthUpdate)
 				notifier.Notify(rpcSub.ID, depthUpdate)
 				oldMarketDepth = newMarketDepth
 			case <-notifier.Closed():

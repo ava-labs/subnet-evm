@@ -92,7 +92,6 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	orderMap := make(map[Market]*Orders)
 	for _, market := range markets {
 		orderMap[market] = pipeline.fetchOrders(market, hState.OraclePrices[market], cancellableOrderIds, blockNumber)
-		log.Info("orders fetched", "market", market, "LongOrders", orderMap[market].longOrders, "ShortOrders", orderMap[market].shortOrders)
 	}
 	pipeline.runLiquidations(liquidablePositions, orderMap, hState.OraclePrices, marginMap)
 	for _, market := range markets {

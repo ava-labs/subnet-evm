@@ -1,4 +1,4 @@
-package juror
+package jurorv2
 
 import (
 	"errors"
@@ -311,31 +311,31 @@ func validateOrder(bibliophile b.BibliophileClient, orderType ob.OrderType, enco
 	if orderType == ob.Limit {
 		order, err := hu.DecodeLimitOrder(encodedOrder)
 		if err != nil {
-			return nil, err
+			return &Metadata{OrderHash: common.Hash{}}, err
 		}
 		return validateExecuteLimitOrder(bibliophile, order, side, fillAmount)
 	}
 	if orderType == ob.IOC {
 		order, err := hu.DecodeIOCOrder(encodedOrder)
 		if err != nil {
-			return nil, err
+			return &Metadata{OrderHash: common.Hash{}}, err
 		}
 		return validateExecuteIOCOrder(bibliophile, order, side, fillAmount)
 	}
 	if orderType == ob.Signed {
 		order, err := hu.DecodeSignedOrder(encodedOrder)
 		if err != nil {
-			return nil, err
+			return &Metadata{OrderHash: common.Hash{}}, err
 		}
 		return validateExecuteSignedOrder(bibliophile, order, side, fillAmount)
 	}
-	return nil, errors.New("invalid order type")
+	return &Metadata{OrderHash: common.Hash{}}, errors.New("invalid order type")
 }
 
 func validateExecuteLimitOrder(bibliophile b.BibliophileClient, order *ob.LimitOrder, side Side, fillAmount *big.Int) (metadata *Metadata, err error) {
 	orderHash, err := order.Hash()
 	if err != nil {
-		return nil, err
+		return &Metadata{OrderHash: common.Hash{}}, err
 	}
 	if err := validateLimitOrderLike(bibliophile, &order.BaseOrder, bibliophile.GetOrderFilledAmount(orderHash), OrderStatus(bibliophile.GetOrderStatus(orderHash)), side, fillAmount); err != nil {
 		return &Metadata{OrderHash: orderHash}, err
@@ -355,7 +355,7 @@ func validateExecuteLimitOrder(bibliophile b.BibliophileClient, order *ob.LimitO
 func validateExecuteIOCOrder(bibliophile b.BibliophileClient, order *ob.IOCOrder, side Side, fillAmount *big.Int) (metadata *Metadata, err error) {
 	orderHash, err := order.Hash()
 	if err != nil {
-		return nil, err
+		return &Metadata{OrderHash: common.Hash{}}, err
 	}
 	if ob.OrderType(order.OrderType) != ob.IOC {
 		return &Metadata{OrderHash: orderHash}, errors.New("not ioc order")
@@ -381,7 +381,7 @@ func validateExecuteIOCOrder(bibliophile b.BibliophileClient, order *ob.IOCOrder
 func validateExecuteSignedOrder(bibliophile b.BibliophileClient, order *hu.SignedOrder, side Side, fillAmount *big.Int) (metadata *Metadata, err error) {
 	orderHash, err := order.Hash()
 	if err != nil {
-		return nil, err
+		return &Metadata{OrderHash: common.Hash{}}, err
 	}
 
 	trader, signer, err := hu.ValidateSignedOrder(

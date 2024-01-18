@@ -729,7 +729,7 @@ func TestRemovedEvents(t *testing.T) {
 }
 
 func newcep(t *testing.T, db LimitOrderDatabase) *ContractEventsProcessor {
-	return NewContractEventsProcessor(db)
+	return NewContractEventsProcessor(db, common.HexToAddress("0x4c5859f0F772848b2D91F1D83E2Fe57935348029"))
 }
 
 func getABIfromJson(jsonBytes []byte) abi.ABI {

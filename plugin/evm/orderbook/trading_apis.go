@@ -314,9 +314,6 @@ func (api *TradingAPI) StreamMarketTrades(ctx context.Context, market Market, bl
 
 // @todo cache api.configService values to avoid db lookups on every order placement
 func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
-	if hu.ChainId == 0 { // set once, will need to restart node if we change
-		hu.SetChainIdAndVerifyingSignedOrdersContract(api.backend.ChainConfig().ChainID.Int64(), api.configService.GetSignedOrderbookContract().String())
-	}
 	orderId, err := order.Hash()
 	if err != nil {
 		return common.Hash{}, fmt.Errorf("failed to hash order: %s", err)

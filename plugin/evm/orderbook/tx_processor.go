@@ -29,7 +29,6 @@ var MarginAccountContractAddress = common.HexToAddress("0x0300000000000000000000
 var ClearingHouseContractAddress = common.HexToAddress("0x03000000000000000000000000000000000000b2")
 var LimitOrderBookContractAddress = common.HexToAddress("0x03000000000000000000000000000000000000b3")
 var IOCOrderBookContractAddress = common.HexToAddress("0x03000000000000000000000000000000000000b4")
-var SignedOrderBookContractAddress = common.HexToAddress("0x36C02dA8a0983159322a80FFE9F24b1acfF8B570") // @todo: set the correct address
 
 type LimitOrderTxProcessor interface {
 	GetOrderBookTxsCount() uint64

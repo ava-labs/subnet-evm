@@ -299,7 +299,6 @@ func (db *InMemoryDatabase) Accept(acceptedBlockNumber, blockTimestamp uint64) {
 
 		for _, longOrder := range longOrders {
 			status := shouldRemove(acceptedBlockNumber, blockTimestamp, longOrder)
-			log.Info("evaluating order...", "longOrder", longOrder, "status", status)
 			if status == KEEP_IF_MATCHEABLE {
 				matchFound := false
 				for _, shortOrder := range shortOrders {
@@ -326,7 +325,6 @@ func (db *InMemoryDatabase) Accept(acceptedBlockNumber, blockTimestamp uint64) {
 
 		for _, shortOrder := range shortOrders {
 			status := shouldRemove(acceptedBlockNumber, blockTimestamp, shortOrder)
-			log.Info("Accept", "shortOrder", shortOrder, "status", status)
 			if status == KEEP_IF_MATCHEABLE {
 				matchFound := false
 				for _, longOrder := range longOrders {
@@ -1291,10 +1289,21 @@ func (db *InMemoryDatabase) GetOrderValidationFields(orderId common.Hash, order 
 		bidsHead = db.LongOrders[marketId][0].Price
 	}
 
+	availableMargin := big.NewInt(0)
+	if db.TraderMap[trader] != nil {
+		// backwards compatibility
+		if db.TraderMap[trader].Margin.Available == nil {
+			db.TraderMap[trader].Margin.Available = big.NewInt(0)
+		}
+		if db.TraderMap[trader].Margin.VirtualReserved == nil {
+			db.TraderMap[trader].Margin.Available = big.NewInt(0)
+		}
+		availableMargin = hu.Sub(db.TraderMap[trader].Margin.Available /* as fresh as the last matching engine run */, db.TraderMap[trader].Margin.VirtualReserved)
+	}
 	return OrderValidationFields{
 		Exists:          false,
 		PosSize:         posSize,
-		AvailableMargin: hu.Sub(db.TraderMap[trader].Margin.Available /* as fresh as the last matching engine run */, db.TraderMap[trader].Margin.VirtualReserved),
+		AvailableMargin: availableMargin,
 		AsksHead:        asksHead,
 		BidsHead:        bidsHead,
 	}

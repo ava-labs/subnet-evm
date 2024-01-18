@@ -18,6 +18,7 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/filters"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
+	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ava-labs/subnet-evm/utils"
 
 	"github.com/ava-labs/avalanchego/database"
@@ -27,7 +28,7 @@ import (
 
 const (
 	memoryDBSnapshotKey string = "memoryDBSnapshot"
-	snapshotInterval    uint64 = 1000 // save snapshot every 1000 blocks
+	snapshotInterval    uint64 = 10 // save snapshot every 10 blocks
 )
 
 type LimitOrderProcesser interface {
@@ -65,14 +66,17 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownCh
 	configService := orderbook.NewConfigService(blockChain)
 	memoryDb := orderbook.NewInMemoryDatabase(configService)
 	lotp := orderbook.NewLimitOrderTxProcessor(txPool, memoryDb, backend, validatorPrivateKey)
-	contractEventProcessor := orderbook.NewContractEventsProcessor(memoryDb)
+	signedObAddy := configService.GetSignedOrderbookContract()
+	contractEventProcessor := orderbook.NewContractEventsProcessor(memoryDb, signedObAddy)
+	hu.SetChainIdAndVerifyingSignedOrdersContract(backend.ChainConfig().ChainID.Int64(), signedObAddy.String())
 	matchingPipeline := orderbook.NewMatchingPipeline(memoryDb, lotp, configService)
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{})
 	filterAPI := filters.NewFilterAPI(filterSystem)
 
 	// need to register the types for gob encoding because memory DB has an interface field(ContractOrder)
-	gob.Register(&orderbook.LimitOrder{})
-	gob.Register(&orderbook.IOCOrder{})
+	gob.Register(&hu.LimitOrder{})
+	gob.Register(&hu.IOCOrder{})
+	gob.Register(&hu.SignedOrder{})
 	return &limitOrderProcesser{
 		ctx:                     ctx,
 		mu:                      &sync.Mutex{},
@@ -383,7 +387,7 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 			logsToRemove[i].Removed = true
 		}
 
-		cev := orderbook.NewContractEventsProcessor(memoryDBCopy)
+		cev := orderbook.NewContractEventsProcessor(memoryDBCopy, lop.configService.GetSignedOrderbookContract())
 		cev.ProcessEvents(logsToRemove)
 	}
 

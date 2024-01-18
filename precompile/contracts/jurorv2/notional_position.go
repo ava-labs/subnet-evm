@@ -1,4 +1,4 @@
-package juror
+package jurorv2
 
 import (
 	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"

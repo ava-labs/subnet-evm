@@ -1,0 +1,9 @@
+{
+    "precompileUpgrades": [
+        {
+            "jurorV2Config": {
+                "blockTimestamp": 1705583100
+            }
+        }
+    ]
+}
