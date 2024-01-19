@@ -39,6 +39,18 @@ func TestUnmarshalConfig(t *testing.T) {
 			false,
 		},
 		{
+			"nanosecond durations parsed for tx pool lifetime for minutes",
+			[]byte(`{"tx-pool-lifetime": 1800000000000}`),
+			Config{TxPoolLifetime: Duration{30 * time.Minute}},
+			false,
+		},
+		{
+			"nanosecond durations parsed for tx pool lifetime",
+			[]byte(`{"api-max-duration": 5000000000,"tx-pool-lifetime": 7000000000}`),
+			Config{APIMaxDuration: Duration{5 * time.Second}, TxPoolLifetime: Duration{7 * time.Second}},
+			false,
+		},
+		{
 			"bad durations",
 			[]byte(`{"api-max-duration": "bad-duration"}`),
 			Config{},
