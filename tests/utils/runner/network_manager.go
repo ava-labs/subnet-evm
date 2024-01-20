@@ -67,13 +67,11 @@ func NewDefaultANRConfig() ANRConfig {
 		PluginDir:           os.ExpandEnv("$GOPATH/src/github.com/ava-labs/avalanchego/build/plugins"),
 		GlobalNodeConfig: `{
 			"log-level":"info",
-			"log-display-level":"info",
 			"proposervm-use-current-height":true
 		}`,
 		GlobalCChainConfig: `{
 			"warp-api-enabled": true,
-			"log-level": "debug",
-			"log-display-level": "debug"
+			"log-level": "debug"
 		}`,
 	}
 	// If AVALANCHEGO_BUILD_PATH is populated, override location set by GOPATH
