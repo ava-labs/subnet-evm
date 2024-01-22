@@ -1,6 +1,8 @@
 package evm
 
 import (
+	"bytes"
+	"encoding/gob"
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -8,7 +10,6 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm/orderbook"
 	hu "github.com/ava-labs/subnet-evm/plugin/evm/orderbook/hubbleutils"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 func (n *pushGossiper) GossipSignedOrders(orders []*hu.SignedOrder) error {
@@ -85,7 +86,11 @@ func (n *pushGossiper) gossipSignedOrders() (int, error) {
 		return 0, nil
 	}
 
-	return len(selectedOrders), n.sendSignedOrders(selectedOrders)
+	err := n.sendSignedOrders(selectedOrders)
+	if err != nil {
+		n.stats.IncSignedOrdersGossipSendError()
+	}
+	return len(selectedOrders), err
 }
 
 func (n *pushGossiper) sendSignedOrders(orders []*hu.SignedOrder) error {
@@ -93,10 +98,12 @@ func (n *pushGossiper) sendSignedOrders(orders []*hu.SignedOrder) error {
 		return nil
 	}
 
-	ordersBytes, err := rlp.EncodeToBytes(orders)
+	var buf bytes.Buffer
+	err := gob.NewEncoder(&buf).Encode(&orders)
 	if err != nil {
 		return err
 	}
+	ordersBytes := buf.Bytes()
 	msg := message.SignedOrdersGossip{
 		Orders: ordersBytes,
 	}
@@ -136,13 +143,11 @@ func (h *GossipHandler) HandleSignedOrders(nodeID ids.NodeID, msg message.Signed
 	}
 
 	orders := make([]*hu.SignedOrder, 0)
-	if err := rlp.DecodeBytes(msg.Orders, &orders); err != nil {
-		log.Trace(
-			"AppGossip provided invalid orders",
-			"peerID", nodeID,
-			"err", err,
-		)
-		return nil
+	buf := bytes.NewBuffer(msg.Orders)
+	err := gob.NewDecoder(buf).Decode(&orders)
+	if err != nil {
+		log.Error("failed to decode signed orders", "err", err)
+		return err
 	}
 
 	h.stats.IncSignedOrdersGossipReceived(int64(len(orders)))

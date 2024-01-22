@@ -1296,7 +1296,7 @@ func (db *InMemoryDatabase) GetOrderValidationFields(orderId common.Hash, order 
 			db.TraderMap[trader].Margin.Available = big.NewInt(0)
 		}
 		if db.TraderMap[trader].Margin.VirtualReserved == nil {
-			db.TraderMap[trader].Margin.Available = big.NewInt(0)
+			db.TraderMap[trader].Margin.VirtualReserved = big.NewInt(0)
 		}
 		availableMargin = hu.Sub(db.TraderMap[trader].Margin.Available /* as fresh as the last matching engine run */, db.TraderMap[trader].Margin.VirtualReserved)
 	}
