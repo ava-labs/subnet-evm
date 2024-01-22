@@ -151,22 +151,19 @@ func (pipeline *MatchingPipeline) cancelLimitOrders(cancellableOrders map[common
 	cancellableOrderIds := map[common.Hash]struct{}{}
 	// @todo: if there are too many cancellable orders, they might not fit in a single block. Need to adjust for that.
 	for _, orders := range cancellableOrders {
-		if len(orders) > 0 {
-			rawOrders := make([]LimitOrder, len(orders))
-			for i, order := range orders {
-				rawOrder := order.RawOrder.(*LimitOrder)
-				rawOrders[i] = *rawOrder // @todo: make sure only limit orders reach here
-			}
-			log.Info("orders to cancel", "num", len(orders))
-			// cancel max of 30 orders
-			err := pipeline.lotp.ExecuteLimitOrderCancel(rawOrders[0:int(math.Min(float64(len(rawOrders)), 30))]) // change this if the tx gas limit (1.5m) is changed
-			if err != nil {
-				log.Error("Error in ExecuteOrderCancel", "orders", orders, "err", err)
-			} else {
-				for _, order := range orders {
-					cancellableOrderIds[order.Id] = struct{}{}
-				}
-			}
+		if len(orders) == 0 {
+			continue
+		}
+		rawOrders := make([]LimitOrder, 0)
+		for _, order := range orders {
+			rawOrders = append(rawOrders, *order.RawOrder.(*LimitOrder))
+			cancellableOrderIds[order.Id] = struct{}{} // do not attempt to match these orders
+		}
+
+		log.Info("orders to cancel", "num", len(orders))
+		// cancel max of 5 orders. change this if the tx gas limit (1.5m) is changed
+		if err := pipeline.lotp.ExecuteLimitOrderCancel(rawOrders[0:int(math.Min(float64(len(rawOrders)), 5))]); err != nil {
+			log.Error("Error in ExecuteOrderCancel", "orders", orders, "err", err)
 		}
 	}
 	return cancellableOrderIds

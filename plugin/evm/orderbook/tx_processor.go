@@ -39,7 +39,7 @@ type LimitOrderTxProcessor interface {
 	ExecuteSamplePITx() error
 	ExecuteLiquidation(trader common.Address, matchedOrder Order, fillAmount *big.Int) error
 	UpdateMetrics(block *types.Block)
-	ExecuteLimitOrderCancel(orderIds []LimitOrder) error
+	ExecuteLimitOrderCancel(orders []LimitOrder) error
 }
 
 type ValidatorTxFeeConfig struct {

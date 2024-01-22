@@ -35,6 +35,7 @@ type IConfigService interface {
 
 	GetMarketAddressFromMarketID(marketId int64) common.Address
 	GetImpactMarginNotional(ammAddress common.Address) *big.Int
+	GetReduceOnlyAmounts(trader common.Address) []*big.Int
 }
 
 type ConfigService struct {
@@ -145,4 +146,8 @@ func (cs *ConfigService) GetMarketAddressFromMarketID(marketId int64) common.Add
 
 func (cs *ConfigService) GetImpactMarginNotional(ammAddress common.Address) *big.Int {
 	return bibliophile.GetImpactMarginNotional(cs.getStateAtCurrentBlock(), ammAddress)
+}
+
+func (cs *ConfigService) GetReduceOnlyAmounts(trader common.Address) []*big.Int {
+	return bibliophile.GetReduceOnlyAmounts(cs.getStateAtCurrentBlock(), trader)
 }

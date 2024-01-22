@@ -339,3 +339,7 @@ func (cs *MockConfigService) GetMarketAddressFromMarketID(marketId int64) common
 func (cs *MockConfigService) GetImpactMarginNotional(ammAddress common.Address) *big.Int {
 	return big.NewInt(500e6)
 }
+
+func (cs *MockConfigService) GetReduceOnlyAmounts(trader common.Address) []*big.Int {
+	return []*big.Int{big.NewInt(0)}
+}

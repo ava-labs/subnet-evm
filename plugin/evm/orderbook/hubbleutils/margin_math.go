@@ -26,10 +26,11 @@ type HubbleState struct {
 }
 
 type UserState struct {
-	Positions      map[Market]*Position
-	Margins        []*big.Int
-	PendingFunding *big.Int
-	ReservedMargin *big.Int
+	Positions         map[Market]*Position
+	ReduceOnlyAmounts []*big.Int
+	Margins           []*big.Int
+	PendingFunding    *big.Int
+	ReservedMargin    *big.Int
 }
 
 func UpgradeVersionV0orV1(blockTimestamp uint64) UpgradeVersion {
