@@ -60,19 +60,11 @@ func TestGossipSubscribe(t *testing.T) {
 		gossipTxPool.Subscribe(ctx)
 	}()
 
-	// create first eth txes
+	// create eth txs
 	ethTxs := getValidEthTxs(key, 10, big.NewInt(226*params.GWei))
 
-	// Notify VM about first eth txs batch
-	batch1 := ethTxs[:5]
-	errs := txPool.AddRemotesSync(batch1)
-	for _, err := range errs {
-		require.NoError(err, "failed adding subnet-evm tx to remote mempool")
-	}
-
-	// Notify VM about second eth txs batch
-	batch2 := ethTxs[5:]
-	errs = txPool.AddRemotesSync(batch2)
+	// Notify mempool about txs
+	errs := txPool.AddRemotesSync(ethTxs)
 	for _, err := range errs {
 		require.NoError(err, "failed adding subnet-evm tx to remote mempool")
 	}
