@@ -68,7 +68,7 @@ func TestGossipSubscribe(t *testing.T) {
 	for _, err := range errs {
 		require.NoError(err, "failed adding subnet-evm tx to remote mempool")
 	}
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(1 * time.Second)
 	cancel()
 	for i, tx := range ethTxs {
 		gossipable := &GossipEthTx{Tx: tx}
