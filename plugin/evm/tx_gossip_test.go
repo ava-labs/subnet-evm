@@ -85,7 +85,6 @@ func TestEthTxGossip(t *testing.T) {
 	emptyBloomFilter, err := gossip.NewBloomFilter(txGossipBloomMinTargetElements, txGossipBloomTargetFalsePositiveRate, txGossipBloomResetFalsePositiveRate)
 	require.NoError(err)
 	emptyBloomFilterBytes, _ := emptyBloomFilter.Marshal()
-	require.NoError(err)
 	request := &sdk.PullGossipRequest{
 		Filter: emptyBloomFilterBytes,
 		Salt:   agoUtils.RandomBytes(32),
