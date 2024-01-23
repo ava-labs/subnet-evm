@@ -4,7 +4,7 @@ ticks="\`\`\`"
 function showjson(){
   echo "\`$1\`:"
   echo "${ticks}json"
-  cat $1
+  cat "$1"
   echo ""
   echo "$ticks"
 }
@@ -256,7 +256,7 @@ echo ""
 echo "We can make them spit out the data to e.g. \`stdout\` like this:"
 cmd="./evm t8n --input.alloc=./testdata/1/alloc.json --input.txs=./testdata/1/txs.json --input.env=./testdata/1/env.json --output.result=stdout --output.alloc=stdout --state.fork=Berlin"
 tick;echo "$cmd"; tick
-output=`$cmd 2>/dev/null`
+output=$($cmd 2>/dev/null)
 echo "Output:"
 echo "${ticks}json"
 echo "$output"
@@ -294,7 +294,7 @@ showjson ./testdata/5/env.json
 
 echo "When applying this, using a reward of \`0x08\`"
 cmd="./evm t8n --input.alloc=./testdata/5/alloc.json -input.txs=./testdata/5/txs.json --input.env=./testdata/5/env.json  --output.alloc=stdout --state.reward=0x80 --state.fork=Berlin"
-output=`$cmd 2>/dev/null`
+output=$($cmd 2>/dev/null)
 echo "Output:"
 echo "${ticks}json"
 echo "$output"
@@ -314,16 +314,16 @@ echo "The \`BLOCKHASH\` opcode requires blockhashes to be provided by the caller
 echo "If a required blockhash is not provided, the exit code should be \`4\`:"
 echo "Example where blockhashes are provided: "
 demo "./evm t8n --input.alloc=./testdata/3/alloc.json --input.txs=./testdata/3/txs.json --input.env=./testdata/3/env.json  --trace --state.fork=Berlin"
-cmd="cat trace-0-0x72fadbef39cd251a437eea619cfeda752271a5faaaa2147df012e112159ffb81.jsonl | grep BLOCKHASH -C2"
-tick && echo $cmd && tick
+cmd="grep BLOCKHASH -C2 < trace-0-0x72fadbef39cd251a437eea619cfeda752271a5faaaa2147df012e112159ffb81.jsonl"
+tick && echo "$cmd" && tick
 echo "$ticks"
-cat trace-0-0x72fadbef39cd251a437eea619cfeda752271a5faaaa2147df012e112159ffb81.jsonl | grep BLOCKHASH -C2
+$cmd
 echo "$ticks"
 echo ""
 
 echo "In this example, the caller has not provided the required blockhash:"
 cmd="./evm t8n --input.alloc=./testdata/4/alloc.json --input.txs=./testdata/4/txs.json --input.env=./testdata/4/env.json  --trace --state.fork=Berlin"
-tick && echo $cmd && $cmd 2>&1
+tick && echo "$cmd" && "$cmd" 2>&1
 errc=$?
 tick
 echo "Error code: $errc"
@@ -337,7 +337,7 @@ cmd2="./evm t8n --input.alloc=stdin --input.env=./testdata/1/env.json --input.tx
 echo "$ticks"
 echo "$cmd1 | $cmd2"
 output=$($cmd1 | $cmd2 )
-echo $output
+echo "$output"
 echo "$ticks"
 echo "What happened here, is that we first applied two identical transactions, so the second one was rejected. "
 echo "Then, taking the poststate alloc as the input for the next state, we tried again to include"
@@ -356,7 +356,7 @@ echo ""
 echo "The following command takes **json** the transactions in \`./testdata/13/txs.json\` and signs them. After execution, they are output to \`signed_txs.rlp\`.:"
 cmd="./evm t8n --state.fork=London --input.alloc=./testdata/13/alloc.json --input.txs=./testdata/13/txs.json --input.env=./testdata/13/env.json --output.result=alloc_jsontx.json --output.body=signed_txs.rlp"
 echo "$ticks"
-echo $cmd
+echo "$cmd"
 $cmd 2>&1
 echo "$ticks"
 echo ""
@@ -364,20 +364,23 @@ echo "The \`output.body\` is the rlp-list of transactions, encoded in hex and pl
 demo "cat signed_txs.rlp"
 echo "We can use \`rlpdump\` to check what the contents are: "
 echo "$ticks"
-echo "rlpdump -hex \$(cat signed_txs.rlp | jq -r )"
-rlpdump -hex $(cat signed_txs.rlp | jq -r )
+# TODO(marun) Maybe use a set -x in a subshell to ensure the command is printed e.g. (set -x; <cmd>)
+cmd="rlpdump -hex \$(jq -r < signed_txs.rlp)"
+echo "$cmd"
+$cmd
 echo "$ticks"
 echo "Now, we can now use those (or any other already signed transactions), as input, like so: "
 cmd="./evm t8n --state.fork=London --input.alloc=./testdata/13/alloc.json --input.txs=./signed_txs.rlp --input.env=./testdata/13/env.json --output.result=alloc_rlptx.json"
 echo "$ticks"
-echo $cmd
+echo "$cmd"
 $cmd 2>&1
 echo "$ticks"
 echo "You might have noticed that the results from these two invocations were stored in two separate files. "
 echo "And we can now finally check that they match."
 echo "$ticks"
-echo "cat alloc_jsontx.json | jq .stateRoot && cat alloc_rlptx.json | jq .stateRoot"
-cat alloc_jsontx.json | jq .stateRoot && cat alloc_rlptx.json | jq .stateRoot
+cmd="jq .stateRoot < alloc_jsontx.json && jq .stateRoot < alloc_rlptx.json"
+echo "$cmd"
+$cmd
 echo "$ticks"
 
 cat << "EOF"
