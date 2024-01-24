@@ -145,6 +145,7 @@ func (b *backend) GetMessageSignature(messageID ids.ID) ([bls.SignatureLen]byte,
 		return [bls.SignatureLen]byte{}, err
 	}
 
+	log.Info("Signing warp message", "messageID", messageID, "networkID", unsignedMessage.NetworkID, "sourceChainID", unsignedMessage.SourceChainID)
 	var signature [bls.SignatureLen]byte
 	sig, err := b.warpSigner.Sign(unsignedMessage)
 	if err != nil {
