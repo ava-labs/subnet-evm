@@ -99,7 +99,7 @@ func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
 			return fmt.Errorf("%w at index %d as AddressedCall: %w", errParsingOffChainMessage, i, err)
 		}
 		b.offchainAddressedCallMsgs[unsignedMsg.ID()] = unsignedMsg
-		log.Info("Added off-chain message to backend", "messageID", unsignedMsg.ID())
+		log.Info("Added off-chain message to backend", "messageID", unsignedMsg.ID(), "networkID", unsignedMsg.NetworkID, "sourceChainID", unsignedMsg.SourceChainID)
 	}
 
 	return nil
