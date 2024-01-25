@@ -130,7 +130,7 @@ func (b *backend) AddMessage(unsignedMessage *avalancheWarp.UnsignedMessage) err
 
 	copy(signature[:], sig)
 	b.messageSignatureCache.Put(messageID, signature)
-	log.Debug("Adding warp message to backend", "messageID", messageID)
+	log.Info("Adding warp message to backend", "messageID", messageID, "networkID", unsignedMessage.NetworkID, "sourceChainID", unsignedMessage.SourceChainID)
 	return nil
 }
 
