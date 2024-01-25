@@ -95,7 +95,7 @@ func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
 		}
 
 		if unsignedMsg.NetworkID != b.networkID {
-			return fmt.Errorf("%w at index %d: network ID mismatch", avalancheWarp.ErrWrongNetworkID, i)
+			return fmt.Errorf("%w at index %d", avalancheWarp.ErrWrongNetworkID, i)
 		}
 
 		if unsignedMsg.SourceChainID != b.sourceChainID {
