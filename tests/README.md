@@ -2,7 +2,7 @@
 
 The `load/` and `warp/` paths contain end-to-end (e2e) tests that use
 the [tmpnet
-fixture](https://github.com/ava-labs/avalanchego/blob/dev/tests/fixture/tmpnet/README.md). By
+fixture](https://github.com/ava-labs/avalanchego/blob/master/tests/fixture/tmpnet/README.md). By
 default both test suites use the tmpnet fixture to create a temporary
 network that exists for only the duration of their execution.
 
@@ -20,6 +20,9 @@ $ ./build/tmpnetctl start-network \
 
 # From the root of a clone of subnet-evm, execute the warp test suite against the existing network
 $ ginkgo -vv ./tests/warp -- --use-existing-network --network-dir=$HOME/.tmpnet/networks/latest
+
+# To stop the temporary network when no longer needed, execute the following from the root of the clone of avalanchego
+$ ./build/tmpnetctl stop-network --network-dir=$HOME/.tmpnet/networks/latest
 ```
 
 The network started by `tmpnetctl` won't come with subnets configured,
