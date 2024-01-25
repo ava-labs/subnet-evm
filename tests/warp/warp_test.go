@@ -74,7 +74,7 @@ func init() {
 	flagVars = e2e.RegisterFlags()
 }
 
-// subnet provides the basic details of a created subnet
+// Subnet provides the basic details of a created subnet
 type Subnet struct {
 	// SubnetID is the txID of the transaction that created the subnet
 	SubnetID ids.ID
