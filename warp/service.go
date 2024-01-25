@@ -111,11 +111,16 @@ func (a *API) aggregateSignatures(ctx context.Context, unsignedMessage *warp.Uns
 	if len(validators) == 0 {
 		return nil, fmt.Errorf("%w (SubnetID: %s, Height: %d)", errNoValidators, subnetID, pChainHeight)
 	}
+	var nodeIDs []ids.NodeID
+	for _, v := range validators {
+		nodeIDs = append(nodeIDs, v.NodeIDs...)
+	}
 
 	log.Debug("Fetching signature",
 		"sourceSubnetID", subnetID,
 		"height", pChainHeight,
 		"numValidators", len(validators),
+		"nodeIds", nodeIDs,
 		"totalWeight", totalWeight,
 	)
 
