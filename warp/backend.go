@@ -99,7 +99,7 @@ func (b *backend) initOffChainMessages(offchainMessages [][]byte) error {
 		}
 
 		if unsignedMsg.SourceChainID != b.sourceChainID {
-			return fmt.Errorf("%w at index %d: source chain ID mismatch", avalancheWarp.ErrWrongSourceChainID, i)
+			return fmt.Errorf("%w at index %d", avalancheWarp.ErrWrongSourceChainID, i)
 		}
 
 		_, err = payload.ParseAddressedCall(unsignedMsg.Payload)
