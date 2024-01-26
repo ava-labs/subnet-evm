@@ -12,6 +12,9 @@ package {{.Package}}
 
 import (
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/avalanchego/utils/wrappers"
+	"github.com/docker/docker/pkg/units"
+
 	{{- if .Contract.AllowList}}
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 
@@ -46,6 +49,50 @@ func NewConfig(blockTimestamp *uint64{{if .Contract.AllowList}}, admins []common
 		{{- end}}
 		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 	}
+}
+
+func (c * Config) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer {
+		Bytes: []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+	{{- if .Contract.AllowList}}
+	allowBytes, err := c.AllowListConfig.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(allowBytes)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+	{{- end}}
+	upgradeBytes, err := c.Upgrade.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	p.PackBytes(upgradeBytes)
+	return p.Bytes, p.Err
+}
+
+func (c * Config) UnmarshalBinary(bytes []byte) error {
+	p := wrappers.Packer {
+		Bytes: bytes,
+	}
+	{{- if .Contract.AllowList}}
+	allowList := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	if err := c.AllowListConfig.UnmarshalBinary(allowList); err != nil {
+		return err
+	}
+	{{- end}}
+	upgrade := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+
+	return c.Upgrade.UnmarshalBinary(upgrade)
 }
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]

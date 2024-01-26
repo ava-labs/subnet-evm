@@ -4,9 +4,11 @@
 package feemanager
 
 import (
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -79,4 +81,82 @@ func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	}
 
 	return c.InitialFeeConfig.Verify()
+}
+
+func (c *Config) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+
+	allowList, err := c.AllowListConfig.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	upgrade, err := c.Upgrade.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	p.PackBytes(allowList)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+	p.PackBytes(upgrade)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	if c.InitialFeeConfig == nil {
+		p.PackBool(true)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+	} else {
+		p.PackBool(false)
+		if p.Err != nil {
+			return nil, p.Err
+		}
+		bytes, err := c.InitialFeeConfig.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		p.PackBytes(bytes)
+	}
+
+	return p.Bytes, p.Err
+}
+
+func (c *Config) UnmarshalBinary(bytes []byte) error {
+	p := wrappers.Packer{
+		Bytes: bytes,
+	}
+	allowList := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	upgrade := p.UnpackBytes()
+	if p.Err != nil {
+		return p.Err
+	}
+	if err := c.AllowListConfig.UnmarshalBinary(allowList); err != nil {
+		return err
+	}
+	if err := c.Upgrade.UnmarshalBinary(upgrade); err != nil {
+		return err
+	}
+	isNil := p.UnpackBool()
+	if !isNil {
+		c.InitialFeeConfig = &commontype.FeeConfig{}
+		bytes := p.UnpackBytes()
+		if p.Err != nil {
+			return p.Err
+		}
+		if err := c.InitialFeeConfig.UnmarshalBinary(bytes); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -185,3 +185,42 @@ func TestUnmarshalStateUpgradeJSON(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, upgradeConfig, unmarshaledConfig)
 }
+
+func TestSerialize(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+	config := UpgradeConfig{
+		StateUpgrades: []StateUpgrade{
+			{
+				BlockTimestamp: &t0,
+				StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")): StateUpgradeAccount{
+						Code:          []byte{1, 2, 3, 4, 5, 6},
+						BalanceChange: math.NewHexOrDecimal256(99),
+						Storage: map[common.Hash]common.Hash{
+							common.BytesToHash([]byte{1, 2, 4, 5}): common.BytesToHash([]byte{1, 2, 3}),
+						},
+					},
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001000")): StateUpgradeAccount{
+						Code:          []byte{1, 2, 9, 93, 4, 5, 6},
+						BalanceChange: math.NewHexOrDecimal256(92312319),
+						Storage: map[common.Hash]common.Hash{
+							common.BytesToHash([]byte{11, 21, 99, 5}): common.BytesToHash([]byte{1, 2, 3}),
+							common.BytesToHash([]byte{1, 21, 99, 5}):  common.BytesToHash([]byte{1, 2, 3}),
+							common.BytesToHash([]byte{1, 2, 99, 5}):   common.BytesToHash([]byte{1, 2, 3}),
+							common.BytesToHash([]byte{1, 2, 4, 5}):    common.BytesToHash([]byte{1, 2, 3}),
+						},
+					},
+				},
+			},
+			{
+				BlockTimestamp: &t1,
+				StateUpgradeAccounts: map[common.Address]StateUpgradeAccount{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000001000")): StateUpgradeAccount{},
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")): StateUpgradeAccount{},
+				},
+			},
+		},
+	}
+	AssertConfigHashesAndSerialization(t, &config)
+}

@@ -6,6 +6,7 @@ package rewardmanager
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
@@ -78,4 +79,54 @@ func TestEqual(t *testing.T) {
 		},
 	}
 	allowlist.EqualPrecompileWithAllowListTests(t, Module, tests)
+}
+
+func TestSerialize(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+
+	config := params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: NewConfig(&t0, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000030")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
+				}, nil), // enable at genesis
+			},
+			{
+				Config: NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	}
+	params.AssertConfigHashesAndSerialization(t, &config)
+}
+
+func TestSerializeWithNil(t *testing.T) {
+	var t0 uint64 = 2
+	var t1 uint64 = 1001
+
+	config := params.UpgradeConfig{
+		PrecompileUpgrades: []params.PrecompileUpgrade{
+			{
+				Config: NewConfig(&t0, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000020")),
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000030")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000040")),
+				}, []common.Address{
+					common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000050")),
+				}, &InitialRewardConfig{
+					AllowFeeRecipients: true,
+				}),
+			},
+			{
+				Config: NewDisableConfig(&t1), // disable at timestamp 1
+			},
+		},
+	}
+	params.AssertConfigHashesAndSerialization(t, &config)
 }

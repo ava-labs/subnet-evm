@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/docker/docker/pkg/units"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -141,6 +143,98 @@ func (f *FeeConfig) checkByteLens() error {
 	if isBiggerThanHashLen(f.BlockGasCostStep) {
 		return fmt.Errorf("blockGasCostStep exceeds %d bytes", common.HashLength)
 	}
+	return nil
+}
+
+func (c *FeeConfig) MarshalBinary() ([]byte, error) {
+	p := wrappers.Packer{
+		Bytes:   []byte{},
+		MaxSize: 1 * units.MiB,
+	}
+
+	if err := utils.PackBigInt(&p, c.GasLimit); err != nil {
+		return nil, err
+	}
+
+	if err := utils.PackBigInt(&p, c.MinBaseFee); err != nil {
+		return nil, err
+	}
+
+	if err := utils.PackBigInt(&p, c.TargetGas); err != nil {
+		return nil, err
+	}
+
+	if err := utils.PackBigInt(&p, c.BaseFeeChangeDenominator); err != nil {
+		return nil, err
+	}
+
+	if err := utils.PackBigInt(&p, c.MinBlockGasCost); err != nil {
+		return nil, err
+	}
+
+	if err := utils.PackBigInt(&p, c.MaxBlockGasCost); err != nil {
+		return nil, err
+	}
+
+	if err := utils.PackBigInt(&p, c.BlockGasCostStep); err != nil {
+		return nil, err
+	}
+
+	p.PackLong(c.TargetBlockRate)
+	if p.Err != nil {
+		return nil, p.Err
+	}
+
+	return p.Bytes, nil
+}
+
+func (c *FeeConfig) UnmarshalBinary(data []byte) error {
+	p := wrappers.Packer{
+		Bytes: data,
+	}
+
+	var err error
+
+	c.GasLimit, err = utils.UnpackBigInt(&p)
+	if err != nil {
+		return err
+	}
+
+	c.MinBaseFee, err = utils.UnpackBigInt(&p)
+	if err != nil {
+		return err
+	}
+
+	c.TargetGas, err = utils.UnpackBigInt(&p)
+	if err != nil {
+		return err
+	}
+
+	c.BaseFeeChangeDenominator, err = utils.UnpackBigInt(&p)
+	if err != nil {
+		return err
+	}
+
+	c.MinBlockGasCost, err = utils.UnpackBigInt(&p)
+	if err != nil {
+		return err
+	}
+
+	c.MaxBlockGasCost, err = utils.UnpackBigInt(&p)
+	if err != nil {
+		return err
+	}
+
+	c.BlockGasCostStep, err = utils.UnpackBigInt(&p)
+	if err != nil {
+		return err
+	}
+
+	c.TargetBlockRate = p.UnpackLong()
+	if p.Err != nil {
+		return p.Err
+	}
+
 	return nil
 }
 
