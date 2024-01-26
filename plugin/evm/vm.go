@@ -325,8 +325,7 @@ func (vm *VM) Initialize(
 	}
 
 	mandatoryNetworkUpgrades := params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
-	if chainCtx.NetworkID == avalanchegoConstants.MainnetID ||
-		chainCtx.NetworkID == avalanchegoConstants.FujiID {
+	if avalanchegoConstants.ProductionNetworkIDs.Contains(chainCtx.NetworkID) {
 		// We enforce network upgrades here, regardless of the chain config
 		// provided in the genesis file
 		g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
