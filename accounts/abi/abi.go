@@ -198,7 +198,8 @@ func (abi ABI) getArguments(name string, data []byte) (Arguments, error) {
 
 // UnpackInput unpacks the input according to the ABI specification.
 // useStrictMode indicates whether to check the input data length strictly.
-// For general compatibility, useStrictMode should be set to false.
+// By default it was set to true. In order to support the general EVM tool compatibility this
+// should be set to false. This transition (true -> false) should be done with a network upgrade.
 func (abi ABI) UnpackInput(name string, data []byte, useStrictMode bool) ([]interface{}, error) {
 	args, err := abi.getInputs(name, data, useStrictMode)
 	if err != nil {
@@ -220,7 +221,8 @@ func (abi ABI) Unpack(name string, data []byte) ([]interface{}, error) {
 // It performs an additional copy. Please only use, if you want to unpack into a
 // structure that does not strictly conform to the ABI structure (e.g. has additional arguments)
 // useStrictMode indicates whether to check the input data length strictly.
-// For general compatibility, useStrictMode should be set to false.
+// By default it was set to true. In order to support the general EVM tool compatibility this
+// should be set to false. This transition (true -> false) should be done with a network upgrade.
 func (abi ABI) UnpackInputIntoInterface(v interface{}, name string, data []byte, useStrictMode bool) error {
 	args, err := abi.getInputs(name, data, useStrictMode)
 	if err != nil {
