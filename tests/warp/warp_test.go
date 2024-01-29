@@ -93,13 +93,16 @@ func TestE2E(t *testing.T) {
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Run only once in the first ginkgo process
-	return e2e.NewTestEnvironment(
+	env := e2e.NewTestEnvironment(
 		flagVars,
 		utils.NewTmpnetNetwork(
+			tmpnet.DefaultNodeCount,
 			utils.NewTmpnetSubnet(subnetAName, genesisPath),
 			utils.NewTmpnetSubnet(subnetBName, genesisPath),
 		),
-	).Marshal()
+	)
+
+	return env.Marshal()
 }, func(envBytes []byte) {
 	// Run in every ginkgo process
 
