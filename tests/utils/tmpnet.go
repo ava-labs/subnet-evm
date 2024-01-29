@@ -13,11 +13,16 @@ import (
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 )
 
-func NewTmpnetNetwork(subnets ...*tmpnet.Subnet) *tmpnet.Network {
+func NewTmpnetNetwork(count int, subnets ...*tmpnet.Subnet) *tmpnet.Network {
+	nodes := make([]*tmpnet.Node, count)
+	for i := range nodes {
+		nodes[i] = tmpnet.NewNode("")
+	}
 	return &tmpnet.Network{
 		DefaultFlags: tmpnet.FlagsMap{
 			config.ProposerVMUseCurrentHeightKey: true,
 		},
+		Nodes:   nodes,
 		Subnets: subnets,
 	}
 }

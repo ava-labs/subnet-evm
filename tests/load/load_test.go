@@ -26,7 +26,12 @@ import (
 	"github.com/ava-labs/subnet-evm/tests/utils"
 )
 
-const subnetAName = "load-subnet-a"
+const (
+	// The load test requires 5 nodes
+	nodeCount = 5
+
+	subnetAName = "load-subnet-a"
+)
 
 var (
 	flagVars     *e2e.FlagVars
@@ -53,6 +58,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		env = e2e.NewTestEnvironment(
 			flagVars,
 			utils.NewTmpnetNetwork(
+				nodeCount,
 				utils.NewTmpnetSubnet(subnetAName, genesisPath),
 			),
 		)
