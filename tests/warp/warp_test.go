@@ -102,6 +102,10 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		),
 	)
 
+	// TODO(marun) Remove once the avalanchego version contains https://github.com/ava-labs/avalanchego/pull/2675
+	fmt.Printf("\n  A restart is required to ensure chains are configured\n")
+	require.NoError(ginkgo.GinkgoT(), env.GetNetwork().Restart(e2e.DefaultContext(), ginkgo.GinkgoWriter))
+
 	return env.Marshal()
 }, func(envBytes []byte) {
 	// Run in every ginkgo process

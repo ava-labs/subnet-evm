@@ -62,6 +62,10 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 				utils.NewTmpnetSubnet(subnetAName, genesisPath),
 			),
 		)
+
+		// TODO(marun) Remove once the avalanchego version contains https://github.com/ava-labs/avalanchego/pull/2675
+		fmt.Printf("\n  A restart is required to ensure chains are configured\n")
+		require.NoError(env.GetNetwork().Restart(e2e.DefaultContext(), ginkgo.GinkgoWriter))
 	})
 
 	ginkgo.It("basic subnet load test", ginkgo.Label("load"), func() {
