@@ -91,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: subnet-evm-e2e-logs-precompile
-          path: /tmp/network-runner-root-data*/
+          path: /tmp/e2e-test/precompile-data
           retention-days: 5
   e2e_warp:
     name: e2e warp tests
@@ -156,7 +156,7 @@ jobs:
         run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
       - name: Run E2E Load Tests
         shell: bash
-        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/load-data ./scripts/run_ginkgo_load.sh
+        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_load.sh
       - name: Upload tmpnet network dir for load testing
         if: always()
         uses: actions/upload-artifact@v4
