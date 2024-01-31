@@ -163,22 +163,6 @@ func (mr *MockAccessibleStateMockRecorder) GetStateDB() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateDB", reflect.TypeOf((*MockAccessibleState)(nil).GetStateDB))
 }
 
-// NativeAssetCall mocks base method.
-func (m *MockAccessibleState) NativeAssetCall(arg0 common.Address, arg1 []byte, arg2, arg3 uint64, arg4 bool) ([]byte, uint64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NativeAssetCall", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(uint64)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// NativeAssetCall indicates an expected call of NativeAssetCall.
-func (mr *MockAccessibleStateMockRecorder) NativeAssetCall(arg0, arg1, arg2, arg3, arg4 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NativeAssetCall", reflect.TypeOf((*MockAccessibleState)(nil).NativeAssetCall), arg0, arg1, arg2, arg3, arg4)
-}
-
 // MockStateDB is a mock of StateDB interface.
 type MockStateDB struct {
 	ctrl     *gomock.Controller
