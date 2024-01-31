@@ -63,8 +63,6 @@ github.com/ava-labs/avalanche-network-runner v1.7.4-rc.0 h1:xNbCMNqenaDr0bb35j27
 github.com/ava-labs/avalanche-network-runner v1.7.4-rc.0/go.mod h1:B7Ynk/avkCk49CCIWbM4j1UrPlqIi0IHCPAB2MZNvLw=
 github.com/ava-labs/avalanchego v1.10.19-legacy-upgrade-times h1:VWI/+vOP63QzrHK2HFw+So+qK1f8gKGpFmdvrKFzOM8=
 github.com/ava-labs/avalanchego v1.10.19-legacy-upgrade-times/go.mod h1:bxbOXEYGnwz0K6uPsiB56Ig3pQbBfi4P8NOLtRNhNgw=
-github.com/ava-labs/coreth v0.12.10-wip-bloom-metrics h1:uSISbdHpLVlTkwUUqVonMgdX91ePbgP/qJ7iHup9xS4=
-github.com/ava-labs/coreth v0.12.10-wip-bloom-metrics/go.mod h1:bw3pxnF+IBw5SoxAKujUiZPbPimieJHPd9fQWZZ/MOM=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
