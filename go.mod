@@ -1,4 +1,4 @@
-module github.com/ava-labs/coreth
+module github.com/ava-labs/subnet-evm
 
 go 1.20
 

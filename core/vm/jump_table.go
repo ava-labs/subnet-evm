@@ -29,7 +29,7 @@ package vm
 import (
 	"fmt"
 
-	"github.com/ava-labs/coreth/params"
+	"github.com/ava-labs/subnet-evm/params"
 )
 
 type (

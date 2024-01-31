@@ -32,8 +32,8 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/ava-labs/coreth/cmd/evm/internal/t8ntool"
-	"github.com/ava-labs/coreth/internal/flags"
+	"github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool"
+	"github.com/ava-labs/subnet-evm/internal/flags"
 	"github.com/urfave/cli/v2"
 )
 
