@@ -140,7 +140,6 @@ var _ RequestHandler = &mockHandler{}
 
 type mockHandler struct {
 	handleStateTrieCalled,
-	handleAtomicTrieCalled,
 	handleBlockRequestCalled,
 	handleCodeRequestCalled,
 	handleMessageSignatureCalled,
