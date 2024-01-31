@@ -6,8 +6,8 @@ package txallowlist
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/coreth/core/state"
+	"github.com/ava-labs/coreth/precompile/allowlist"
 )
 
 func TestTxAllowListRun(t *testing.T) {

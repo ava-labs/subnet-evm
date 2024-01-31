@@ -12,7 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/warp"
+	"github.com/ava-labs/coreth/precompile/contracts/warp"
 )
 
 type AggregateSignatureResult struct {
