@@ -261,6 +261,9 @@ func (vm *VM) Initialize(
 	fxs []*commonEng.Fx,
 	appSender commonEng.AppSender,
 ) error {
+	if chainCtx.NetworkID == avalanchegoConstants.MainnetID {
+		return errors.New("mainnet is not supported")
+	}
 	vm.config.SetDefaults()
 	if len(configBytes) > 0 {
 		if err := json.Unmarshal(configBytes, &vm.config); err != nil {
