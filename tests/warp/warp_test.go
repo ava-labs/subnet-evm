@@ -23,10 +23,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/platformvm"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
-	"github.com/ava-labs/subnet-evm/cmd/simulator/load"
-	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
-	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
+	warpLoad "github.com/ava-labs/subnet-evm/cmd/simulator/warp"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
 	"github.com/ava-labs/subnet-evm/interfaces"
@@ -78,26 +75,7 @@ var (
 var _ = ginkgo.DescribeTable("[Warp]", func(gen func() *warpTest) {
 	w := gen()
 
-	log.Info("Sending message from A to B")
-	w.sendMessageFromSendingSubnet()
-
-	log.Info("Aggregating signatures via API")
-	w.aggregateSignaturesViaAPI()
-
-	log.Info("Aggregating signatures via p2p aggregator")
-	w.aggregateSignatures()
-
-	log.Info("Delivering addressed call payload to receiving subnet")
-	w.deliverAddressedCallToReceivingSubnet()
-
-	log.Info("Delivering block hash payload to receiving subnet")
-	w.deliverBlockHashPayload()
-
-	log.Info("Executing HardHat test")
-	w.executeHardHatTest()
-
-	log.Info("Executing warp load test")
-	w.warpLoad()
+	w.Execute()
 }, warpTableEntries)
 
 func TestE2E(t *testing.T) {
@@ -284,6 +262,29 @@ func (w *warpTest) initClients() {
 		require.NoError(err)
 		w.receivingSubnetClients = append(w.receivingSubnetClients, client)
 	}
+}
+
+func (w *warpTest) Execute() {
+	log.Info("Sending message from A to B")
+	w.sendMessageFromSendingSubnet()
+
+	log.Info("Aggregating signatures via API")
+	w.aggregateSignaturesViaAPI()
+
+	log.Info("Aggregating signatures via p2p aggregator")
+	w.aggregateSignatures()
+
+	log.Info("Delivering addressed call payload to receiving subnet")
+	w.deliverAddressedCallToReceivingSubnet()
+
+	log.Info("Delivering block hash payload to receiving subnet")
+	w.deliverBlockHashPayload()
+
+	log.Info("Executing HardHat test")
+	w.executeHardHatTest()
+
+	log.Info("Executing warp load test")
+	w.warpLoad()
 }
 
 func (w *warpTest) getBlockHashAndNumberFromTxReceipt(ctx context.Context, client ethclient.Client, tx *types.Transaction) (common.Hash, uint64) {
@@ -600,133 +601,25 @@ func (w *warpTest) executeHardHatTest() {
 }
 
 func (w *warpTest) warpLoad() {
-	require := require.New(ginkgo.GinkgoT())
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
 
-	var (
-		numWorkers           = 5
-		txsPerWorker  uint64 = 10
-		batchSize     uint64 = 10
-		sendingClient        = w.sendingSubnetClients[0]
+	require := require.New(ginkgo.GinkgoT())
+
+	err := warpLoad.ExecuteWarpLoadTest(
+		ctx,
+		w.sendingSubnetURIs[0],
+		w.sendingSubnet.SubnetID,
+		w.sendingSubnet.BlockchainID,
+		w.receivingSubnet.SubnetID,
+		5,
+		10,
+		10,
+		fundedKey,
+		w.sendingSubnetClients,
+		w.receivingSubnetClients,
 	)
-
-	keys := make([]*key.Key, 0, numWorkers)
-	privateKeys := make([]*ecdsa.PrivateKey, 0, numWorkers)
-	prefundedKey := key.CreateKey(fundedKey)
-	keys = append(keys, prefundedKey)
-	for i := 1; i < numWorkers; i++ {
-		newKey, err := key.Generate()
-		require.NoError(err)
-		keys = append(keys, newKey)
-		privateKeys = append(privateKeys, newKey.PrivKey)
-	}
-
-	loadMetrics := metrics.NewDefaultMetrics()
-
-	log.Info("Distributing funds on sending subnet", "numKeys", len(keys))
-	keys, err := load.DistributeFunds(ctx, sendingClient, keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
 	require.NoError(err)
-
-	log.Info("Distributing funds on receiving subnet", "numKeys", len(keys))
-	_, err = load.DistributeFunds(ctx, w.receivingSubnetClients[0], keys, len(keys), new(big.Int).Mul(big.NewInt(100), big.NewInt(params.Ether)), loadMetrics)
-	require.NoError(err)
-
-	log.Info("Creating workers for each subnet...")
-	chainAWorkers := make([]txs.Worker[*types.Transaction], 0, len(keys))
-	for i := range keys {
-		chainAWorkers = append(chainAWorkers, load.NewTxReceiptWorker(ctx, w.sendingSubnetClients[i]))
-	}
-	chainBWorkers := make([]txs.Worker[*types.Transaction], 0, len(keys))
-	for i := range keys {
-		chainBWorkers = append(chainBWorkers, load.NewTxReceiptWorker(ctx, w.receivingSubnetClients[i]))
-	}
-
-	log.Info("Subscribing to warp send events on sending subnet")
-	logs := make(chan types.Log, numWorkers*int(txsPerWorker))
-	sub, err := sendingClient.SubscribeFilterLogs(ctx, interfaces.FilterQuery{
-		Addresses: []common.Address{warp.Module.Address},
-	}, logs)
-	require.NoError(err)
-	defer func() {
-		sub.Unsubscribe()
-		err := <-sub.Err()
-		require.NoError(err)
-	}()
-
-	log.Info("Generating tx sequence to send warp messages...")
-	warpSendSequences, err := txs.GenerateTxSequences(ctx, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
-		data, err := warp.PackSendWarpMessage([]byte(fmt.Sprintf("Jets %d-%d Dolphins", key.X.Int64(), nonce)))
-		if err != nil {
-			return nil, err
-		}
-		tx := types.NewTx(&types.DynamicFeeTx{
-			ChainID:   w.sendingSubnetChainID,
-			Nonce:     nonce,
-			To:        &warp.Module.Address,
-			Gas:       200_000,
-			GasFeeCap: big.NewInt(225 * params.GWei),
-			GasTipCap: big.NewInt(params.GWei),
-			Value:     common.Big0,
-			Data:      data,
-		})
-		return types.SignTx(tx, w.sendingSubnetSigner, key)
-	}, w.sendingSubnetClients[0], privateKeys, txsPerWorker, false)
-	require.NoError(err)
-	log.Info("Executing warp send loader...")
-	warpSendLoader := load.New(chainAWorkers, warpSendSequences, batchSize, loadMetrics)
-	// TODO: execute send and receive loaders concurrently.
-	require.NoError(warpSendLoader.Execute(ctx))
-	require.NoError(warpSendLoader.ConfirmReachedTip(ctx))
-
-	warpClient, err := warpBackend.NewClient(w.sendingSubnetURIs[0], w.sendingSubnet.BlockchainID.String())
-	require.NoError(err)
-	subnetIDStr := ""
-	if w.sendingSubnet.SubnetID == constants.PrimaryNetworkID {
-		subnetIDStr = w.receivingSubnet.SubnetID.String()
-	}
-
-	log.Info("Executing warp delivery sequences...")
-	warpDeliverSequences, err := txs.GenerateTxSequences(ctx, func(key *ecdsa.PrivateKey, nonce uint64) (*types.Transaction, error) {
-		// Wait for the next warp send log
-		warpLog := <-logs
-
-		unsignedMessage, err := warp.UnpackSendWarpEventDataToMessage(warpLog.Data)
-		if err != nil {
-			return nil, err
-		}
-		log.Info("Fetching addressed call aggregate signature via p2p API")
-
-		signedWarpMessageBytes, err := warpClient.GetMessageAggregateSignature(ctx, unsignedMessage.ID(), warp.WarpDefaultQuorumNumerator, subnetIDStr)
-		if err != nil {
-			return nil, err
-		}
-
-		packedInput, err := warp.PackGetVerifiedWarpMessage(0)
-		if err != nil {
-			return nil, err
-		}
-		tx := predicate.NewPredicateTx(
-			w.receivingSubnetChainID,
-			nonce,
-			&warp.Module.Address,
-			5_000_000,
-			big.NewInt(225*params.GWei),
-			big.NewInt(params.GWei),
-			common.Big0,
-			packedInput,
-			types.AccessList{},
-			warp.ContractAddress,
-			signedWarpMessageBytes,
-		)
-		return types.SignTx(tx, w.receivingSubnetSigner, key)
-	}, w.receivingSubnetClients[0], privateKeys, txsPerWorker, true)
-	require.NoError(err)
-	log.Info("Executing warp delivery...")
-	warpDeliverLoader := load.New(chainBWorkers, warpDeliverSequences, batchSize, loadMetrics)
-	require.NoError(warpDeliverLoader.Execute(ctx))
-	require.NoError(warpSendLoader.ConfirmReachedTip(ctx))
-	log.Info("Completed warp delivery successfully.")
 }
 
 func toRPCURI(uri string, blockchainID string) string {
