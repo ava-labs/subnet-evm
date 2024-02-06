@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ethereum/go-ethereum/params"
 )
 
 func TestCalcBlobFee(t *testing.T) {

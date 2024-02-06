@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/vmerrs"
 	"github.com/holiman/uint256"
 )
 
