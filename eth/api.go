@@ -197,7 +197,11 @@ func (api *DebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error) {
 	}
 	var header *types.Header
 	if blockNr.IsAccepted() {
-		header = api.eth.LastAcceptedBlock().Header()
+		if blockNr.IsLatest() && api.eth.APIBackend.IsAllowUnfinalizedQueries() {
+			header = api.eth.blockchain.CurrentHeader()
+		} else {
+			header = api.eth.LastAcceptedBlock().Header()
+		}
 	} else {
 		block := api.eth.blockchain.GetBlockByNumber(uint64(blockNr))
 		if block == nil {
@@ -241,7 +245,11 @@ func (api *DebugAPI) AccountRange(blockNrOrHash rpc.BlockNumberOrHash, start hex
 	if number, ok := blockNrOrHash.Number(); ok {
 		var header *types.Header
 		if number.IsAccepted() {
-			header = api.eth.LastAcceptedBlock().Header()
+			if number.IsLatest() && api.eth.APIBackend.IsAllowUnfinalizedQueries() {
+				header = api.eth.blockchain.CurrentHeader()
+			} else {
+				header = api.eth.LastAcceptedBlock().Header()
+			}
 		} else {
 			block := api.eth.blockchain.GetBlockByNumber(uint64(number))
 			if block == nil {

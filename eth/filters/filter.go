@@ -151,14 +151,38 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 		return nil, nil
 	}
 	var (
-		head = header.Number.Uint64()
-		end  = uint64(f.end)
+		head = header.Number.Int64()
 	)
-	if f.begin < 0 {
-		f.begin = int64(head)
+
+	resolveSpecial := func(number int64) (int64, error) {
+		var hdr *types.Header
+		switch number {
+		case rpc.LatestBlockNumber.Int64():
+			return head, nil
+		case rpc.PendingBlockNumber.Int64():
+			// we should return head here since we've already captured
+			// that we need to get the pending logs in the pending boolean above
+			return head, nil
+		case rpc.FinalizedBlockNumber.Int64():
+			hdr, _ = f.sys.backend.HeaderByNumber(ctx, rpc.FinalizedBlockNumber)
+			if hdr == nil {
+				return 0, errors.New("finalized header not found")
+			}
+		case rpc.SafeBlockNumber.Int64():
+			hdr, _ = f.sys.backend.HeaderByNumber(ctx, rpc.SafeBlockNumber)
+			if hdr == nil {
+				return 0, errors.New("safe header not found")
+			}
+		default:
+			return number, nil
+		}
+		return hdr.Number.Int64(), nil
 	}
-	if f.end < 0 {
-		end = head
+	if f.begin, err = resolveSpecial(f.begin); err != nil {
+		return nil, err
+	}
+	if f.end, err = resolveSpecial(f.end); err != nil {
+		return nil, err
 	}
 
 	// When querying unfinalized data without a populated end block, it is
@@ -167,18 +191,19 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 	// We error in this case to prevent a bad UX where the caller thinks there
 	// are no logs from the specified beginning to end (when in reality there may
 	// be some).
-	if end < uint64(f.begin) {
-		return nil, fmt.Errorf("begin block %d is greater than end block %d", f.begin, end)
+	if f.end < f.begin {
+		return nil, fmt.Errorf("begin block %d is greater than end block %d", f.begin, f.end)
 	}
 
 	// If the requested range of blocks exceeds the maximum number of blocks allowed by the backend
 	// return an error instead of searching for the logs.
-	if maxBlocks := f.sys.backend.GetMaxBlocksPerRequest(); int64(end)-f.begin >= maxBlocks && maxBlocks > 0 {
-		return nil, fmt.Errorf("requested too many blocks from %d to %d, maximum is set to %d", f.begin, int64(end), maxBlocks)
+	if maxBlocks := f.sys.backend.GetMaxBlocksPerRequest(); f.end-f.begin >= maxBlocks && maxBlocks > 0 {
+		return nil, fmt.Errorf("requested too many blocks from %d to %d, maximum is set to %d", f.begin, f.end, maxBlocks)
 	}
 	// Gather all indexed logs, and finish with non indexed ones
 	var (
 		logs           []*types.Log
+		end            = uint64(f.end)
 		size, sections = f.sys.backend.BloomStatus()
 	)
 	if indexed := sections * size; indexed > uint64(f.begin) {

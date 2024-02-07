@@ -72,11 +72,12 @@ type jsonWriter interface {
 type BlockNumber int64
 
 const (
-	SafeBlockNumber     = BlockNumber(-4)
-	AcceptedBlockNumber = BlockNumber(-3)
-	LatestBlockNumber   = BlockNumber(-2)
-	PendingBlockNumber  = BlockNumber(-1)
-	EarliestBlockNumber = BlockNumber(0)
+	SafeBlockNumber      = BlockNumber(-4)
+	FinalizedBlockNumber = BlockNumber(-3)
+	AcceptedBlockNumber  = BlockNumber(-3)
+	LatestBlockNumber    = BlockNumber(-2)
+	PendingBlockNumber   = BlockNumber(-1)
+	EarliestBlockNumber  = BlockNumber(0)
 )
 
 // UnmarshalJSON parses the given JSON fragment into a BlockNumber. It supports:
@@ -156,6 +157,10 @@ func (bn BlockNumber) String() string {
 // IsAccepted returns true if this blockNumber should be treated as a request for the last accepted block
 func (bn BlockNumber) IsAccepted() bool {
 	return bn < EarliestBlockNumber && bn >= SafeBlockNumber
+}
+
+func (bn BlockNumber) IsLatest() bool {
+	return bn == LatestBlockNumber || bn == PendingBlockNumber
 }
 
 type BlockNumberOrHash struct {

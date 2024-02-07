@@ -92,6 +92,9 @@ func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumb
 	// identically.
 	acceptedBlock := b.eth.LastAcceptedBlock()
 	if number.IsAccepted() {
+		if b.IsAllowUnfinalizedQueries() && number.IsLatest() {
+			return b.eth.blockchain.CurrentHeader(), nil
+		}
 		return acceptedBlock.Header(), nil
 	}
 
@@ -156,6 +159,10 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 	// identically.
 	acceptedBlock := b.eth.LastAcceptedBlock()
 	if number.IsAccepted() {
+		if b.IsAllowUnfinalizedQueries() && number.IsLatest() {
+			header := b.eth.blockchain.CurrentBlock()
+			return b.eth.blockchain.GetBlock(header.Hash(), header.Number.Uint64()), nil
+		}
 		return acceptedBlock, nil
 	}
 
