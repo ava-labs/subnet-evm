@@ -768,7 +768,7 @@ func (b *SimulatedBackend) FilterLogs(ctx context.Context, query interfaces.Filt
 			to = query.ToBlock.Int64()
 		}
 		// Construct the range filter
-		filter, _ = b.filterSystem.NewRangeFilter(from, to, query.Addresses, query.Topics)
+		filter = b.filterSystem.NewRangeFilter(from, to, query.Addresses, query.Topics)
 	}
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)

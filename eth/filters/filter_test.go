@@ -102,8 +102,7 @@ func BenchmarkFilters(b *testing.B) {
 	}
 	b.ResetTimer()
 
-	filter, err := sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), []common.Address{addr1, addr2, addr3, addr4}, nil)
-	require.NoError(b, err)
+	filter := sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), []common.Address{addr1, addr2, addr3, addr4}, nil)
 
 	for i := 0; i < b.N; i++ {
 		filter.begin = 0
@@ -191,8 +190,7 @@ func TestFilters(t *testing.T) {
 		rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), receipts[i])
 	}
 
-	filter, err := sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), []common.Address{addr}, [][]common.Hash{{hash1, hash2, hash3, hash4}})
-	require.NoError(t, err)
+	filter := sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), []common.Address{addr}, [][]common.Hash{{hash1, hash2, hash3, hash4}})
 	logs, _ := filter.Logs(context.Background())
 	if len(logs) != 4 {
 		t.Error("expected 4 log, got", len(logs))
@@ -203,46 +201,46 @@ func TestFilters(t *testing.T) {
 		wantHashes []common.Hash
 	}{
 		{
-			mustNewRangeFilter(t, sys, 900, 999, []common.Address{addr}, [][]common.Hash{{hash3}}),
+			sys.NewRangeFilter(900, 999, []common.Address{addr}, [][]common.Hash{{hash3}}),
 			[]common.Hash{hash3},
 		}, {
-			mustNewRangeFilter(t, sys, 990, int64(rpc.LatestBlockNumber), []common.Address{addr}, [][]common.Hash{{hash3}}),
+			sys.NewRangeFilter(990, int64(rpc.LatestBlockNumber), []common.Address{addr}, [][]common.Hash{{hash3}}),
 			[]common.Hash{hash3},
 		}, {
-			mustNewRangeFilter(t, sys, 1, 10, nil, [][]common.Hash{{hash1, hash2}}),
+			sys.NewRangeFilter(1, 10, nil, [][]common.Hash{{hash1, hash2}}),
 			[]common.Hash{hash1, hash2},
 		}, {
-			mustNewRangeFilter(t, sys, 0, int64(rpc.LatestBlockNumber), nil, [][]common.Hash{{common.BytesToHash([]byte("fail"))}}),
+			sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), nil, [][]common.Hash{{common.BytesToHash([]byte("fail"))}}),
 			nil,
 		}, {
-			mustNewRangeFilter(t, sys, 0, int64(rpc.LatestBlockNumber), []common.Address{common.BytesToAddress([]byte("failmenow"))}, nil),
+			sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), []common.Address{common.BytesToAddress([]byte("failmenow"))}, nil),
 			nil,
 		}, {
-			mustNewRangeFilter(t, sys, 0, int64(rpc.LatestBlockNumber), nil, [][]common.Hash{{common.BytesToHash([]byte("fail"))}, {hash1}}),
+			sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), nil, [][]common.Hash{{common.BytesToHash([]byte("fail"))}, {hash1}}),
 			nil,
 		}, {
-			mustNewRangeFilter(t, sys, int64(rpc.LatestBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
 		}, {
 			// Note: modified from go-ethereum since we don't have FinalizedBlock
-			mustNewRangeFilter(t, sys, int64(rpc.AcceptedBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.AcceptedBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
 		}, {
 			// Note: modified from go-ethereum since we don't have FinalizedBlock
-			mustNewRangeFilter(t, sys, int64(rpc.AcceptedBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.AcceptedBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
 		}, {
 			// Note: modified from go-ethereum since we don't have FinalizedBlock
-			mustNewRangeFilter(t, sys, int64(rpc.LatestBlockNumber), -3, nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.LatestBlockNumber), -3, nil, nil), []common.Hash{hash4},
 		}, {
 			// Note: modified from go-ethereum since we don't have SafeBlock
-			mustNewRangeFilter(t, sys, int64(rpc.AcceptedBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.AcceptedBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
 		}, {
 			// Note: modified from go-ethereum since we don't have SafeBlock
-			mustNewRangeFilter(t, sys, int64(rpc.AcceptedBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.AcceptedBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
 		}, {
 			// Note: modified from go-ethereum since we don't have SafeBlock
-			mustNewRangeFilter(t, sys, int64(rpc.LatestBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
 		},
 		{
-			mustNewRangeFilter(t, sys, int64(rpc.PendingBlockNumber), int64(rpc.PendingBlockNumber), nil, nil), nil,
+			sys.NewRangeFilter(int64(rpc.PendingBlockNumber), int64(rpc.PendingBlockNumber), nil, nil), nil,
 		},
 	} {
 		logs, _ := tc.f.Logs(context.Background())
@@ -260,11 +258,4 @@ func TestFilters(t *testing.T) {
 			t.Fatalf("test %d, have %v want %v", i, haveHashes, tc.wantHashes)
 		}
 	}
-}
-
-func mustNewRangeFilter(t *testing.T, sys *FilterSystem, begin, end int64, addresses []common.Address, topics [][]common.Hash) *Filter {
-	t.Helper()
-	f, err := sys.NewRangeFilter(begin, end, addresses, topics)
-	require.NoError(t, err)
-	return f
 }
