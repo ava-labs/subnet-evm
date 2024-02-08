@@ -495,5 +495,5 @@ func (b *EthAPIBackend) MinRequiredTip(ctx context.Context, header *types.Header
 }
 
 func (b *EthAPIBackend) isLatestAndAllowed(number rpc.BlockNumber) bool {
-	return b.IsAllowUnfinalizedQueries() && number.IsLatest()
+	return number.IsLatest() && b.IsAllowUnfinalizedQueries()
 }
