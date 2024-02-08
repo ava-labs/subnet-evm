@@ -911,7 +911,7 @@ func (fb *filterBackend) EventMux() *event.TypeMux { panic("not supported") }
 
 func (fb *filterBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	switch number {
-	case rpc.PendingBlockNumber, rpc.AcceptedBlockNumber:
+	case rpc.PendingBlockNumber, rpc.FinalizedBlockNumber:
 		if block := fb.backend.acceptedBlock; block != nil {
 			return block.Header(), nil
 		}

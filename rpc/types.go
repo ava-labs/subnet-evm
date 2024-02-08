@@ -74,7 +74,6 @@ type BlockNumber int64
 const (
 	SafeBlockNumber      = BlockNumber(-4)
 	FinalizedBlockNumber = BlockNumber(-3)
-	AcceptedBlockNumber  = BlockNumber(-3)
 	LatestBlockNumber    = BlockNumber(-2)
 	PendingBlockNumber   = BlockNumber(-1)
 	EarliestBlockNumber  = BlockNumber(0)
@@ -104,7 +103,7 @@ func (bn *BlockNumber) UnmarshalJSON(data []byte) error {
 		return nil
 	// Include "finalized" as an option for compatibility with FinalizedBlockNumber from geth.
 	case "accepted", "finalized":
-		*bn = AcceptedBlockNumber
+		*bn = FinalizedBlockNumber
 		return nil
 	case "safe":
 		*bn = SafeBlockNumber
@@ -142,7 +141,7 @@ func (bn BlockNumber) String() string {
 		return "latest"
 	case PendingBlockNumber:
 		return "pending"
-	case AcceptedBlockNumber:
+	case FinalizedBlockNumber:
 		return "accepted"
 	case SafeBlockNumber:
 		return "safe"
@@ -202,7 +201,7 @@ func (bnh *BlockNumberOrHash) UnmarshalJSON(data []byte) error {
 		return nil
 	// Include "finalized" as an option for compatibility with FinalizedBlockNumber from geth.
 	case "accepted", "finalized":
-		bn := AcceptedBlockNumber
+		bn := FinalizedBlockNumber
 		bnh.BlockNumber = &bn
 		return nil
 	case "safe":

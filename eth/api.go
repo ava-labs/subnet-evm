@@ -197,7 +197,7 @@ func (api *DebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error) {
 	}
 	var header *types.Header
 	if blockNr.IsAccepted() {
-		if blockNr.IsLatest() && api.eth.APIBackend.IsAllowUnfinalizedQueries() {
+		if api.eth.APIBackend.isLatestAndAllowed(blockNr) {
 			header = api.eth.blockchain.CurrentHeader()
 		} else {
 			header = api.eth.LastAcceptedBlock().Header()
@@ -245,7 +245,7 @@ func (api *DebugAPI) AccountRange(blockNrOrHash rpc.BlockNumberOrHash, start hex
 	if number, ok := blockNrOrHash.Number(); ok {
 		var header *types.Header
 		if number.IsAccepted() {
-			if number.IsLatest() && api.eth.APIBackend.IsAllowUnfinalizedQueries() {
+			if api.eth.APIBackend.isLatestAndAllowed(number) {
 				header = api.eth.blockchain.CurrentHeader()
 			} else {
 				header = api.eth.LastAcceptedBlock().Header()
