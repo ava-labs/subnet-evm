@@ -155,6 +155,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 	)
 
 	resolveSpecial := func(number int64) (int64, error) {
+		var hdr *types.Header
 		switch number {
 		case rpc.LatestBlockNumber.Int64():
 			return head, nil
@@ -163,20 +164,19 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 			// that we need to get the pending logs in the pending boolean above
 			return head, nil
 		case rpc.FinalizedBlockNumber.Int64():
-			hdr, _ := f.sys.backend.HeaderByNumber(ctx, rpc.FinalizedBlockNumber)
+			hdr, _ = f.sys.backend.HeaderByNumber(ctx, rpc.FinalizedBlockNumber)
 			if hdr == nil {
 				return 0, errors.New("finalized header not found")
 			}
-			return hdr.Number.Int64(), nil
 		case rpc.SafeBlockNumber.Int64():
-			hdr, _ := f.sys.backend.HeaderByNumber(ctx, rpc.SafeBlockNumber)
+			hdr, _ = f.sys.backend.HeaderByNumber(ctx, rpc.SafeBlockNumber)
 			if hdr == nil {
 				return 0, errors.New("safe header not found")
 			}
-			return hdr.Number.Int64(), nil
 		default:
 			return number, nil
 		}
+		return hdr.Number.Int64(), nil
 	}
 	if f.begin, err = resolveSpecial(f.begin); err != nil {
 		return nil, err
