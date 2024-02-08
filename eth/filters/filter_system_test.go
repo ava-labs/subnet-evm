@@ -95,7 +95,7 @@ func (b *testBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumbe
 		num  uint64
 	)
 	switch blockNr {
-	case rpc.AcceptedBlockNumber:
+	case rpc.FinalizedBlockNumber:
 		var err error
 		hash, err = rawdb.ReadAcceptorTip(b.db)
 		if err != nil {
