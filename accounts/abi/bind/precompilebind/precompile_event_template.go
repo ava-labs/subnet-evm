@@ -12,7 +12,7 @@ package {{.Package}}
 import (
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ethereum/go-ethereum/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
 )
 

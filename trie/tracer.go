@@ -17,8 +17,8 @@
 package trie
 
 import (
-	"github.com/ava-labs/subnet-evm/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/trie/trienode"
 )
 
 // tracer tracks the changes of trie nodes. During the trie operations,
