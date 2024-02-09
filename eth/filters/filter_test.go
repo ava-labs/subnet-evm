@@ -63,9 +63,9 @@ func BenchmarkFilters(b *testing.B) {
 		addr4   = common.BytesToAddress([]byte("random addresses please"))
 
 		gspec = &core.Genesis{
-			Config:  params.TestChainConfig,
 			Alloc:   core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
 			BaseFee: big.NewInt(1),
+			Config:  params.TestChainConfig,
 		}
 	)
 	defer db.Close()
@@ -94,6 +94,7 @@ func BenchmarkFilters(b *testing.B) {
 	// and then import blocks. TODO(rjl493456442) try to get rid of the
 	// manual database writes.
 	gspec.MustCommit(db)
+
 	for i, block := range chain {
 		rawdb.WriteBlock(db, block)
 		rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
@@ -190,6 +191,11 @@ func TestFilters(t *testing.T) {
 		rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), receipts[i])
 	}
 
+	// Set block 998 as Finalized (-3)
+	// rawdb.WriteFinalizedBlockHash(db, chain[998].Hash())
+	err = rawdb.WriteAcceptorTip(db, chain[998].Hash())
+	require.NoError(t, err)
+
 	filter := sys.NewRangeFilter(0, int64(rpc.LatestBlockNumber), []common.Address{addr}, [][]common.Hash{{hash1, hash2, hash3, hash4}})
 	logs, _ := filter.Logs(context.Background())
 	if len(logs) != 4 {
@@ -221,25 +227,18 @@ func TestFilters(t *testing.T) {
 		}, {
 			sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
 		}, {
-			// Note: modified from go-ethereum since we don't have FinalizedBlock
-			sys.NewRangeFilter(int64(rpc.AcceptedBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.FinalizedBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash3, hash4},
 		}, {
-			// Note: modified from go-ethereum since we don't have FinalizedBlock
-			sys.NewRangeFilter(int64(rpc.AcceptedBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.FinalizedBlockNumber), int64(rpc.FinalizedBlockNumber), nil, nil), []common.Hash{hash3},
 		}, {
-			// Note: modified from go-ethereum since we don't have FinalizedBlock
-			sys.NewRangeFilter(int64(rpc.LatestBlockNumber), -3, nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.FinalizedBlockNumber), nil, nil), nil,
 		}, {
-			// Note: modified from go-ethereum since we don't have SafeBlock
-			sys.NewRangeFilter(int64(rpc.AcceptedBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.SafeBlockNumber), int64(rpc.LatestBlockNumber), nil, nil), nil,
 		}, {
-			// Note: modified from go-ethereum since we don't have SafeBlock
-			sys.NewRangeFilter(int64(rpc.AcceptedBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
+			sys.NewRangeFilter(int64(rpc.SafeBlockNumber), int64(rpc.SafeBlockNumber), nil, nil), nil,
 		}, {
-			// Note: modified from go-ethereum since we don't have SafeBlock
-			sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.AcceptedBlockNumber), nil, nil), []common.Hash{hash4},
-		},
-		{
+			sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.SafeBlockNumber), nil, nil), nil,
+		}, {
 			sys.NewRangeFilter(int64(rpc.PendingBlockNumber), int64(rpc.PendingBlockNumber), nil, nil), nil,
 		},
 	} {
