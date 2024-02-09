@@ -19,8 +19,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/fixture/e2e"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
+	"github.com/ava-labs/avalanchego/utils/set"
 
 	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ava-labs/subnet-evm/tests/utils"
@@ -54,12 +56,13 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 	var env *e2e.TestEnvironment
 
 	ginkgo.BeforeAll(func() {
+		nodes := utils.NewTmpnetNodes(nodeCount)
 		genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
 		env = e2e.NewTestEnvironment(
 			flagVars,
 			utils.NewTmpnetNetwork(
-				nodeCount,
-				utils.NewTmpnetSubnet(subnetAName, genesisPath),
+				nodes,
+				utils.NewTmpnetSubnet(subnetAName, genesisPath, nodes...),
 			),
 		)
 	})
@@ -72,9 +75,14 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		blockchainID := subnet.Chains[0].ChainID
 
 		nodeURIs := tmpnet.GetNodeURIs(network.Nodes)
+		validatorIDs := set.Set[ids.NodeID]{}
+		validatorIDs.Add(subnet.ValidatorIDs...)
 		rpcEndpoints := make([]string, 0, len(nodeURIs))
-		for _, uri := range nodeURIs {
-			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", uri.URI, blockchainID))
+		for _, nodeURI := range nodeURIs {
+			if !validatorIDs.Contains(nodeURI.NodeID) {
+				continue
+			}
+			rpcEndpoints = append(rpcEndpoints, fmt.Sprintf("%s/ext/bc/%s/rpc", nodeURI.URI, blockchainID))
 		}
 		commaSeparatedRPCEndpoints := strings.Join(rpcEndpoints, ",")
 		err := os.Setenv("RPC_ENDPOINTS", commaSeparatedRPCEndpoints)
