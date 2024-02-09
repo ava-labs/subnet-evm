@@ -8,16 +8,23 @@ import (
 	"os"
 
 	"github.com/ava-labs/avalanchego/config"
+	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm"
 )
 
-func NewTmpnetNetwork(count int, subnets ...*tmpnet.Subnet) *tmpnet.Network {
+func NewTmpnetNodes(count int) []*tmpnet.Node {
 	nodes := make([]*tmpnet.Node, count)
 	for i := range nodes {
-		nodes[i] = tmpnet.NewNode("")
+		node := tmpnet.NewNode("")
+		node.EnsureKeys()
+		nodes[i] = node
 	}
+	return nodes
+}
+
+func NewTmpnetNetwork(nodes []*tmpnet.Node, subnets ...*tmpnet.Subnet) *tmpnet.Network {
 	return &tmpnet.Network{
 		DefaultFlags: tmpnet.FlagsMap{
 			config.ProposerVMUseCurrentHeightKey: true,
@@ -29,7 +36,16 @@ func NewTmpnetNetwork(count int, subnets ...*tmpnet.Subnet) *tmpnet.Network {
 
 // Create the configuration that will enable creation and access to a
 // subnet created on a temporary network.
-func NewTmpnetSubnet(name string, genesisPath string) *tmpnet.Subnet {
+func NewTmpnetSubnet(name string, genesisPath string, nodes ...*tmpnet.Node) *tmpnet.Subnet {
+	if len(nodes) == 0 {
+		panic("a subnet must be validated by at least one node")
+	}
+
+	validatorIDs := make([]ids.NodeID, len(nodes))
+	for i, node := range nodes {
+		validatorIDs[i] = node.NodeID
+	}
+
 	genesisBytes, err := os.ReadFile(genesisPath)
 	if err != nil {
 		panic(err)
@@ -53,5 +69,6 @@ func NewTmpnetSubnet(name string, genesisPath string) *tmpnet.Subnet {
 				PreFundedKey: tmpnet.HardhatKey,
 			},
 		},
+		ValidatorIDs: validatorIDs,
 	}
 }
