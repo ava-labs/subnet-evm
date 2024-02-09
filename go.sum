@@ -66,6 +66,8 @@ github.com/ava-labs/avalanchego v1.10.19-legacy-upgrade-times h1:VWI/+vOP63QzrHK
 github.com/ava-labs/avalanchego v1.10.19-legacy-upgrade-times/go.mod h1:bxbOXEYGnwz0K6uPsiB56Ig3pQbBfi4P8NOLtRNhNgw=
 github.com/ava-labs/coreth v0.12.10-wip-bloom-metrics h1:uSISbdHpLVlTkwUUqVonMgdX91ePbgP/qJ7iHup9xS4=
 github.com/ava-labs/coreth v0.12.10-wip-bloom-metrics/go.mod h1:bw3pxnF+IBw5SoxAKujUiZPbPimieJHPd9fQWZZ/MOM=
+github.com/ava-labs/coreth v0.12.11-rc.3.0.20240206012614-9e2559c9bf4d h1:xV6nwtbscKVOX8VRI2fZ3tJtOzob1p6SmJ7ObDcxBz8=
+github.com/ava-labs/coreth v0.12.11-rc.3.0.20240206012614-9e2559c9bf4d/go.mod h1:YEYzy0l/7ig9gKV2P9yxzucnIml1TUa4L8foGQ15KO0=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
