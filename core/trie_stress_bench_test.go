@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/precompile/contract"
 	"github.com/stretchr/testify/require"
 )
@@ -41,6 +42,10 @@ func BenchmarkTrie(t *testing.B) {
 
 func stressTestTrieDb(t *testing.B, numContracts int, callsPerBlock int, elements int64, gasTxLimit uint64) func(int, *BlockGen) {
 	require := require.New(t)
+	config := params.TestChainConfig
+	signer := types.LatestSigner(config)
+	testKey, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+
 	contractAddr := make([]common.Address, numContracts)
 	contractTxs := make([]*types.Transaction, numContracts)
 

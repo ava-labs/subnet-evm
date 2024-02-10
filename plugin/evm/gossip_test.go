@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/txpool"
+	"github.com/ethereum/go-ethereum/core/txpool/legacypool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -46,8 +47,8 @@ func TestGossipSubscribe(t *testing.T) {
 
 	require.NoError(err)
 	txPool := setupPoolWithConfig(t, params.TestChainConfig, addr)
-	defer txPool.Stop()
-	txPool.SetGasPrice(common.Big1)
+	defer txPool.Close()
+	txPool.SetGasTip(common.Big1)
 	txPool.SetMinFee(common.Big0)
 
 	gossipTxPool, err := NewGossipEthTxPool(txPool, prometheus.NewRegistry())
@@ -97,9 +98,12 @@ func setupPoolWithConfig(t *testing.T, config *params.ChainConfig, fundedAddress
 	}
 	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	require.NoError(t, err)
-	testTxPoolConfig := txpool.DefaultConfig
+	testTxPoolConfig := legacypool.DefaultConfig
 	testTxPoolConfig.Journal = ""
-	pool := txpool.NewTxPool(testTxPoolConfig, config, chain)
+	legacyPool := legacypool.New(testTxPoolConfig, chain)
 
-	return pool
+	txPool, err := txpool.New(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), chain, []txpool.SubPool{legacyPool})
+	require.NoError(t, err)
+
+	return txPool
 }

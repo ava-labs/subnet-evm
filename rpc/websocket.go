@@ -201,7 +201,7 @@ func DialWebsocketWithDialer(ctx context.Context, endpoint, origin string, diale
 	if err != nil {
 		return nil, err
 	}
-	return newClient(ctx, connect)
+	return newClient(ctx, cfg, connect)
 }
 
 // DialWebsocket creates a new RPC client that communicates with a JSON-RPC server
@@ -218,7 +218,7 @@ func DialWebsocket(ctx context.Context, endpoint, origin string) (*Client, error
 	if err != nil {
 		return nil, err
 	}
-	return newClient(ctx, connect)
+	return newClient(ctx, cfg, connect)
 }
 
 func newClientTransportWS(endpoint string, cfg *clientConfig) (reconnectFunc, error) {

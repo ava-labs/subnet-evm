@@ -12,6 +12,7 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 
+	"github.com/ethereum/go-ethereum/miner"
 	"github.com/ethereum/go-ethereum/peer"
 
 	"github.com/ava-labs/avalanchego/cache"
@@ -119,13 +120,13 @@ type addrStatus struct {
 func (n *pushGossiper) queueExecutableTxs(
 	state *state.StateDB,
 	baseFee *big.Int,
-	txs map[common.Address]types.Transactions,
+	txs map[common.Address][]*txpool.LazyTransaction,
 	regossipFrequency Duration,
 	maxTxs int,
 	maxAcctTxs int,
 ) types.Transactions {
 	var (
-		stxs     = types.NewTransactionsByPriceAndNonce(n.signer, txs, baseFee)
+		stxs     = miner.NewTransactionsByPriceAndNonce(n.signer, txs, baseFee)
 		statuses = make(map[common.Address]*addrStatus)
 		queued   = make([]*types.Transaction, 0, maxTxs)
 	)
@@ -133,10 +134,15 @@ func (n *pushGossiper) queueExecutableTxs(
 	// Iterate over possible transactions until there are none left or we have
 	// hit the regossip target.
 	for len(queued) < maxTxs {
-		next := stxs.Peek()
-		if next == nil {
+		lazyTx := stxs.Peek()
+		if lazyTx == nil {
 			break
 		}
+		tx := lazyTx.Resolve()
+		if tx == nil {
+			break
+		}
+		next := tx.Tx
 
 		sender, _ := types.Sender(n.signer, next)
 		status, ok := statuses[sender]
@@ -175,7 +181,7 @@ func (n *pushGossiper) queueRegossipTxs() types.Transactions {
 	pending := n.txPool.Pending(true)
 
 	// Split the pending transactions into locals and remotes
-	localTxs := make(map[common.Address]types.Transactions)
+	localTxs := make(map[common.Address][]*txpool.LazyTransaction)
 	remoteTxs := pending
 	for _, account := range n.txPool.Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
@@ -367,7 +373,7 @@ func (n *pushGossiper) gossipEthTxs(force bool) (int, error) {
 	selectedTxs := make([]*types.Transaction, 0)
 	for _, tx := range txs {
 		txHash := tx.Hash()
-		txStatus := n.txPool.Status([]common.Hash{txHash})[0]
+		txStatus := n.txPool.Status(txHash)
 		if txStatus != txpool.TxStatusPending {
 			continue
 		}
@@ -467,7 +473,11 @@ func (h *GossipHandler) HandleEthTxs(nodeID ids.NodeID, msg message.EthTxsGossip
 		return nil
 	}
 	h.stats.IncEthTxsGossipReceived()
-	errs := h.txPool.AddRemotes(txs)
+	wrapped := make([]*txpool.Transaction, len(txs))
+	for i, tx := range txs {
+		wrapped[i] = &txpool.Transaction{Tx: tx}
+	}
+	errs := h.txPool.Add(wrapped, true, false)
 	for i, err := range errs {
 		if err != nil {
 			log.Trace(

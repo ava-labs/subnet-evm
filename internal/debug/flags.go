@@ -19,6 +19,7 @@ package debug
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -306,7 +307,7 @@ func Setup(ctx *cli.Context) error {
 
 		port := ctx.Int(pprofPortFlag.Name)
 
-		address := fmt.Sprintf("%s:%d", listenHost, port)
+		address := net.JoinHostPort(listenHost, fmt.Sprintf("%d", port))
 		StartPProf(address)
 	}
 	if len(logFile) > 0 || rotation {

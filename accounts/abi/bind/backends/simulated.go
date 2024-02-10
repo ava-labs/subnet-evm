@@ -844,7 +844,7 @@ func (b *SimulatedBackend) AdjustTime(adjustment time.Duration) error {
 	}
 	block := b.blockchain.GetBlockByHash(b.acceptedBlock.ParentHash())
 	if block == nil {
-		return fmt.Errorf("could not find parent")
+		return errors.New("could not find parent")
 	}
 
 	blocks, _, _ := core.GenerateChain(b.config, block, dummy.NewFaker(), b.database, 1, 10, func(number int, block *core.BlockGen) {

@@ -388,7 +388,7 @@ func (c *ChainConfig) IsDurango(time uint64) bool {
 
 // IsCancun returns whether [time] represents a block
 // with a timestamp after the Cancun upgrade time.
-func (c *ChainConfig) IsCancun(time uint64) bool {
+func (c *ChainConfig) IsCancun(num *big.Int, time uint64) bool {
 	return utils.IsTimestampForked(c.CancunTime, time)
 }
 
@@ -764,7 +764,7 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 		IsConstantinople: c.IsConstantinople(num),
 		IsPetersburg:     c.IsPetersburg(num),
 		IsIstanbul:       c.IsIstanbul(num),
-		IsCancun:         c.IsCancun(timestamp),
+		IsCancun:         c.IsCancun(num, timestamp),
 	}
 }
 

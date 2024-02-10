@@ -27,6 +27,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/ethereum/go-ethereum/core/txpool"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/utils"
 )
@@ -115,7 +116,7 @@ func TestEthTxGossip(t *testing.T) {
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
 	require.NoError(err)
 
-	errs := vm.txPool.AddLocals([]*types.Transaction{signedTx})
+	errs := vm.txPool.Add([]*txpool.Transaction{{Tx: signedTx}}, true, false)
 	require.Len(errs, 1)
 	require.Nil(errs[0])
 
@@ -177,7 +178,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	require.NoError(err)
 
 	// issue a tx
-	require.NoError(vm.txPool.AddLocal(signedTx))
+	require.NoError(vm.txPool.Add([]*txpool.Transaction{{Tx: signedTx}}, true, false)[0])
 
 	sent := <-sender.SentAppGossip
 	got := &sdk.PushGossip{}
