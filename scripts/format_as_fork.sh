@@ -8,6 +8,8 @@ set -x
 script_dir=$(dirname "$0")
 
 commit_msg_remove_header="format: remove avalanche header"
+commit_msg_remove_upstream="format: remove upstream go-ethereum"
+commit_msg_rename_packages_as_fork="format: rename packages as fork"
 
 make_commit() {
     if git diff-index --cached --quiet HEAD --; then
@@ -19,7 +21,7 @@ make_commit() {
 
 revert_by_message() {
     hash=$(git log --grep="$1" --format="%H" -n 1)    
-    git revert --no-edit $hash
+    git revert --no-edit "$hash"
 }
 
 if git status --porcelain | grep -q '^ M'; then
@@ -27,7 +29,7 @@ if git status --porcelain | grep -q '^ M'; then
     exit 1
 fi
 
-upstream_dirs=$(cat "${script_dir}"/geth-allowed-packages.txt | sed -e 's/"github.com\/ethereum\/go-ethereum\/\(.*\)"/\1/' | xargs)
+upstream_dirs=$(sed -e 's/"github.com\/ethereum\/go-ethereum\/\(.*\)"/\1/' "${script_dir}"/geth-allowed-packages.txt | xargs)
 for dir in ${upstream_dirs}; do
     if [ -d "${dir}" ]; then
         git rm -r "${dir}"
@@ -48,4 +50,4 @@ go mod tidy
 git add -u .
 make_commit "${commit_msg_rename_packages_as_fork}"
 
-revert_by_message "${commit_msg_remove_upstream}"
+revert_by_message "${commit_msg_remove_header}"
