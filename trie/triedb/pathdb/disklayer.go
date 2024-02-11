@@ -217,6 +217,7 @@ func (dl *diskLayer) commit(bottom *diffLayer, force bool) (*diskLayer, error) {
 	return ndl, nil
 }
 
+// nolint: unused
 // revert applies the given state history and return a reverted disk layer.
 func (dl *diskLayer) revert(h *history, loader triestate.TrieLoader) (*diskLayer, error) {
 	if h.meta.root != dl.rootHash() {

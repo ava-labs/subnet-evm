@@ -43,10 +43,12 @@ var (
 	// to not maintain the layer's original state.
 	errSnapshotStale = errors.New("layer stale")
 
+	// nolint: unused
 	// errUnexpectedHistory is returned if an unmatched state history is applied
 	// to the database for state rollback.
 	errUnexpectedHistory = errors.New("unexpected state history")
 
+	// nolint: unused
 	// errStateUnrecoverable is returned if state is required to be reverted to
 	// a destination without associated state history available.
 	errStateUnrecoverable = errors.New("state is unrecoverable")

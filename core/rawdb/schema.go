@@ -57,20 +57,8 @@ var (
 	// snapshotBlockHashKey tracks the block hash of the last snapshot.
 	snapshotBlockHashKey = []byte("SnapshotBlockHash")
 
-	// lastPivotKey tracks the last pivot block used by fast sync (to reenable on sethead).
-	lastPivotKey = []byte("LastPivot")
-
-	// fastTrieProgressKey tracks the number of trie entries imported during fast sync.
-	fastTrieProgressKey = []byte("TrieSync")
-
-	// snapshotDisabledKey flags that the snapshot should not be maintained due to initial sync.
-	snapshotDisabledKey = []byte("SnapshotDisabled")
-
 	// SnapshotRootKey tracks the hash of the last snapshot.
 	SnapshotRootKey = []byte("SnapshotRoot")
-
-	// snapshotJournalKey tracks the in-memory diff layers across restarts.
-	snapshotJournalKey = []byte("SnapshotJournal")
 
 	// snapshotGeneratorKey tracks the snapshot generation marker across restarts.
 	snapshotGeneratorKey = []byte("SnapshotGenerator")

@@ -28,6 +28,7 @@ package pathdb
 
 import "github.com/ava-labs/subnet-evm/metrics"
 
+// nolint: unused
 var (
 	cleanHitMeter   = metrics.NewRegisteredMeter("pathdb/clean/hit", nil)
 	cleanMissMeter  = metrics.NewRegisteredMeter("pathdb/clean/miss", nil)

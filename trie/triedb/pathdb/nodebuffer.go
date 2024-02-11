@@ -131,6 +131,7 @@ func (b *nodebuffer) commit(nodes map[common.Hash]map[string]*trienode.Node) *no
 	return b
 }
 
+// nolint: unused
 // revert is the reverse operation of commit. It also merges the provided nodes
 // into the nodebuffer, the difference is that the provided node set should
 // revert the changes made by the last state transition.
@@ -202,6 +203,7 @@ func (b *nodebuffer) reset() {
 	b.nodes = make(map[common.Hash]map[string]*trienode.Node)
 }
 
+// nolint: unused
 // empty returns an indicator if nodebuffer contains any state transition inside.
 func (b *nodebuffer) empty() bool {
 	return b.layers == 0

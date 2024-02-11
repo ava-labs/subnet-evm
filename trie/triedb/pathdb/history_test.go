@@ -61,6 +61,7 @@ func makeHistory() *history {
 	return newHistory(testutil.RandomHash(), types.EmptyRootHash, 0, randomStateSet(3))
 }
 
+// nolint: unused
 func makeHistories(n int) []*history {
 	var (
 		parent = types.EmptyRootHash
