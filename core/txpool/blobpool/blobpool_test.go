@@ -75,6 +75,7 @@ var testChainConfig *params.ChainConfig
 func init() {
 	testChainConfig = new(params.ChainConfig)
 	*testChainConfig = *params.TestChainConfig
+	testChainConfig.FeeConfig.MinBaseFee = new(big.Int).SetUint64(1)
 
 	testChainConfig.CancunTime = new(uint64)
 	*testChainConfig.CancunTime = uint64(time.Now().Unix())
@@ -111,9 +112,11 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 		mid.Div(mid, big.NewInt(2))
 		parent := &types.Header{
 			Number:   blockNumber,
+			Time:     blockTime,
 			GasLimit: gasLimit,
 			GasUsed:  0,
 			BaseFee:  mid,
+			Extra:    make([]byte, params.DynamicFeeExtraDataSize),
 		}
 		_, baseFee, err := dummy.CalcBaseFee(
 			bc.config, bc.config.FeeConfig, parent, blockTime,
@@ -152,6 +155,7 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 		GasLimit:      gasLimit,
 		BaseFee:       baseFee,
 		ExcessBlobGas: &excessBlobGas,
+		Extra:         make([]byte, params.DynamicFeeExtraDataSize),
 	}
 }
 
@@ -170,7 +174,7 @@ func (bc *testBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
 }
 
 func (bc *testBlockChain) GetFeeConfigAt(header *types.Header) (commontype.FeeConfig, *big.Int, error) {
-	return params.DefaultFeeConfig, nil, nil
+	return bc.config.FeeConfig, nil, nil
 }
 
 // makeAddressReserver is a utility method to sanity check that accounts are

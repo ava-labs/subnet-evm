@@ -252,7 +252,7 @@ func TestFilters(t *testing.T) {
 		}
 	})
 	require.NoError(t, err)
-	bc, err := core.NewBlockChain(db, core.DefaultCacheConfig, gspec, dummy.NewFaker(), vm.Config{}, common.Hash{}, false)
+	bc, err := core.NewBlockChain(db, core.DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, gspec.ToBlock().Hash(), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,11 +315,10 @@ func TestFilters(t *testing.T) {
 			f:   sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.SafeBlockNumber), nil, nil),
 			err: "safe header not found",
 		}, {
-			f:    sys.NewRangeFilter(int64(rpc.PendingBlockNumber), int64(rpc.PendingBlockNumber), nil, nil),
-			want: `[{"address":"0xfe00000000000000000000000000000000000000","topics":["0x0000000000000000000000000000000000000000000000000000746f70696335"],"data":"0x","blockNumber":"0x3e9","transactionHash":"0x4110587c1b8d86edc85dce929a34127f1cb8809515a9f177c91c866de3eb0638","transactionIndex":"0x0","blockHash":"0xc7245899e5817f16fa99cf5ad2d9c1e4b98443a565a673ec9c764640443ef037","logIndex":"0x0","removed":false}]`,
+			f: sys.NewRangeFilter(int64(rpc.PendingBlockNumber), int64(rpc.PendingBlockNumber), nil, nil),
 		}, {
 			f:    sys.NewRangeFilter(int64(rpc.LatestBlockNumber), int64(rpc.PendingBlockNumber), nil, nil),
-			want: `[{"address":"0xfe00000000000000000000000000000000000000","topics":["0x0000000000000000000000000000000000000000000000000000746f70696334"],"data":"0x","blockNumber":"0x3e8","transactionHash":"0x9a87842100a638dfa5da8842b4beda691d2fd77b0c84b57f24ecfa9fb208f747","transactionIndex":"0x0","blockHash":"0xb360bad5265261c075ece02d3bf0e39498a6a76310482cdfd90588748e6c5ee0","logIndex":"0x0","removed":false},{"address":"0xfe00000000000000000000000000000000000000","topics":["0x0000000000000000000000000000000000000000000000000000746f70696335"],"data":"0x","blockNumber":"0x3e9","transactionHash":"0x4110587c1b8d86edc85dce929a34127f1cb8809515a9f177c91c866de3eb0638","transactionIndex":"0x0","blockHash":"0xc7245899e5817f16fa99cf5ad2d9c1e4b98443a565a673ec9c764640443ef037","logIndex":"0x0","removed":false}]`,
+			want: `[{"address":"0xfe00000000000000000000000000000000000000","topics":["0x0000000000000000000000000000000000000000000000000000746f70696334"],"data":"0x","blockNumber":"0x3e8","transactionHash":"0x9a87842100a638dfa5da8842b4beda691d2fd77b0c84b57f24ecfa9fb208f747","transactionIndex":"0x0","blockHash":"0xb360bad5265261c075ece02d3bf0e39498a6a76310482cdfd90588748e6c5ee0","logIndex":"0x0","removed":false}]`,
 		}, {
 			f:   sys.NewRangeFilter(int64(rpc.PendingBlockNumber), int64(rpc.LatestBlockNumber), nil, nil),
 			err: "invalid block range",
@@ -334,6 +333,7 @@ func TestFilters(t *testing.T) {
 		if tc.want == "" && len(logs) == 0 {
 			continue
 		}
+		tc.want = patchWant(t, tc.want, chain)
 		have, err := json.Marshal(logs)
 		if err != nil {
 			t.Fatal(err)
@@ -355,4 +355,23 @@ func TestFilters(t *testing.T) {
 			t.Fatalf("expected context.DeadlineExceeded, got %v", err)
 		}
 	})
+}
+
+func patchWant(t *testing.T, want string, blocks []*types.Block) string {
+	var logs []*types.Log
+	err := json.Unmarshal([]byte(want), &logs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, log := range logs {
+		blockIndex := log.BlockNumber - 1
+		log.BlockHash = blocks[blockIndex].Hash()
+		log.TxHash = blocks[blockIndex].Transactions()[log.TxIndex].Hash()
+	}
+	result, err := json.Marshal(logs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(result)
 }

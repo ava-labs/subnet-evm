@@ -125,6 +125,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 	var (
 		beginPending = f.begin == rpc.PendingBlockNumber.Int64()
 		endPending   = f.end == rpc.PendingBlockNumber.Int64()
+		endSet       = f.end >= 0
 	)
 
 	// special case for pending logs
@@ -178,7 +179,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*types.Log, error) {
 	// We error in this case to prevent a bad UX where the caller thinks there
 	// are no logs from the specified beginning to end (when in reality there may
 	// be some).
-	if f.end < f.begin {
+	if endSet && f.end < f.begin {
 		return nil, fmt.Errorf("begin block %d is greater than end block %d", f.begin, f.end)
 	}
 

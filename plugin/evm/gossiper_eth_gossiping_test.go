@@ -363,7 +363,7 @@ func TestMempoolEthTxsRegossip(t *testing.T) {
 	for i, tx := range ethTxs[10:] {
 		wrapped[i] = &txpool.Transaction{Tx: tx}
 	}
-	errs = vm.txPool.Add(wrapped, false, false)
+	errs = vm.txPool.Add(wrapped, true, false)
 	for _, err := range errs {
 		assert.NoError(err, "failed adding subnet-evm tx to local mempool")
 	}
