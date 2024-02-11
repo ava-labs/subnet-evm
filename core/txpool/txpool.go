@@ -157,6 +157,8 @@ func (p *TxPool) reserver(id int, subpool SubPool) AddressReserver {
 
 // Close terminates the transaction pool and all its subpools.
 func (p *TxPool) Close() error {
+	p.subs.Close()
+
 	var errs []error
 
 	// Terminate the reset loop and wait for it to finish
