@@ -12,8 +12,8 @@ import (
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 
-	"github.com/ethereum/go-ethereum/miner"
-	"github.com/ethereum/go-ethereum/peer"
+	"github.com/ava-labs/subnet-evm/miner"
+	"github.com/ava-labs/subnet-evm/peer"
 
 	"github.com/ava-labs/avalanchego/cache"
 	"github.com/ava-labs/avalanchego/ids"
@@ -23,11 +23,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/txpool"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/core/txpool"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/plugin/evm/message"
 )
 
 const (

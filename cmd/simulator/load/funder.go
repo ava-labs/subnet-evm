@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/cmd/simulator/key"
-	"github.com/ethereum/go-ethereum/cmd/simulator/metrics"
-	"github.com/ethereum/go-ethereum/cmd/simulator/txs"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/key"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/metrics"
+	"github.com/ava-labs/subnet-evm/cmd/simulator/txs"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/ethclient"
+	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
 )
 
 // DistributeFunds ensures that each address in keys has at least [minFundsPerAddr] by sending funds

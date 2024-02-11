@@ -20,13 +20,13 @@ import (
 	"errors"
 	"time"
 
+	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
+	"github.com/ava-labs/subnet-evm/trie/triedb/pathdb"
+	"github.com/ava-labs/subnet-evm/trie/trienode"
+	"github.com/ava-labs/subnet-evm/trie/triestate"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/trie/triedb/hashdb"
-	"github.com/ethereum/go-ethereum/trie/triedb/pathdb"
-	"github.com/ethereum/go-ethereum/trie/trienode"
-	"github.com/ethereum/go-ethereum/trie/triestate"
-	"github.com/ethereum/go-ethereum/utils"
 )
 
 const (

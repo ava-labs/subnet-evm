@@ -13,9 +13,9 @@ package {{.Package}}
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/precompile/contract"
-	"github.com/ethereum/go-ethereum/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 
 	"github.com/ethereum/go-ethereum/common"
 )
