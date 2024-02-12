@@ -72,7 +72,7 @@ type logMarshaling struct {
 	Index       hexutil.Uint
 }
 
-//go:generate go run github.com/ava-labs/subnet-evm/rlp/rlpgen -type rlpLog -out gen_log_rlp.go
+//go:generate go run github.com/ethereum/go-ethereum/rlpgen -type rlpLog -out gen_log_rlp.go
 
 // rlpLog is used to RLP-encode both the consensus and storage formats.
 type rlpLog struct {
