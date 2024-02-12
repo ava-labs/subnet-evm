@@ -5,11 +5,13 @@ package metrics
 
 import (
 	"context"
+	"encoding/csv"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strings"
+	"os"
+	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -108,22 +110,59 @@ func (ms *MetricsServer) Shutdown() {
 	<-ms.stopCh
 }
 
-func (ms *MetricsServer) Print() {
-	// Get response from server
-	resp, err := http.Get(fmt.Sprintf("http://localhost:%s%s", ms.metricsPort, ms.metricsEndpoint))
+func (m *Metrics) Print(outputFile string) error {
+	metrics, err := m.reg.Gather()
 	if err != nil {
-		log.Error("cannot get response from metrics servers", "err", err)
-		return
+		return err
 	}
-	// Read response body
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("cannot read response body", "err", err)
-		return
+	// get output extension
+	outputExt := filepath.Ext(outputFile)
+
+	switch outputExt {
+	case ".json":
+		jsonFile, err := os.Create(outputFile)
+		if err != nil {
+			return err
+		}
+		defer jsonFile.Close()
+
+		if err := json.NewEncoder(jsonFile).Encode(metrics); err != nil {
+			return err
+		}
+	case ".csv":
+		// Convert to CSV
+		csvFile, err := os.Create(outputFile)
+		if err != nil {
+			return err
+		}
+		defer csvFile.Close()
+
+		writer := csv.NewWriter(csvFile)
+		defer writer.Flush()
+
+		// Write header
+		if err := writer.Write([]string{"Type", "Name", "Values"}); err != nil {
+			return err
+		}
+		for _, mf := range metrics {
+			for _, m := range mf.GetMetric() {
+				row := []string{mf.GetType().String(), mf.GetName(), m.String()}
+				if err := writer.Write(row); err != nil {
+					return err
+				}
+			}
+		}
+	case "":
+		// Printout to stdout
+		fmt.Println("*** Metrics ***")
+		for _, mf := range metrics {
+			for _, m := range mf.GetMetric() {
+				fmt.Println(mf.GetName(), m.String())
+			}
+		}
+		fmt.Println("***************")
+	default:
+		return fmt.Errorf("unsupported output file extension: %s", outputExt)
 	}
-	// Print out formatted individual metrics
-	parts := strings.Split(string(respBody), "\n")
-	for _, s := range parts {
-		fmt.Printf("       \t\t\t%s\n", s)
-	}
+	return nil
 }
