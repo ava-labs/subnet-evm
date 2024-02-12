@@ -226,6 +226,7 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 						subpool.Reset(oldHead, newHead)
 					}
 					resetDone <- newHead
+					p.reorgFeed.Send(core.NewTxPoolReorgEvent{Head: newHead})
 				}(oldHead, newHead)
 
 			default:
@@ -242,7 +243,6 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 		case head := <-resetDone:
 			// Previous reset finished, update the old head and allow a new reset
 			oldHead = head
-			p.reorgFeed.Send(core.NewTxPoolReorgEvent{Head: head})
 			<-resetBusy
 
 		case errc = <-p.quit:
