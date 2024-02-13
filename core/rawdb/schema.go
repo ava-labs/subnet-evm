@@ -57,9 +57,6 @@ var (
 	// snapshotBlockHashKey tracks the block hash of the last snapshot.
 	snapshotBlockHashKey = []byte("SnapshotBlockHash")
 
-	// SnapshotRootKey tracks the hash of the last snapshot.
-	SnapshotRootKey = []byte("SnapshotRoot")
-
 	// snapshotGeneratorKey tracks the snapshot generation marker across restarts.
 	snapshotGeneratorKey = []byte("SnapshotGenerator")
 
