@@ -178,7 +178,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	require.NoError(err)
 
 	// issue a tx
-	require.NoError(vm.txPool.Add([]*txpool.Transaction{{Tx: signedTx}}, true, false)[0])
+	require.NoError(vm.txPool.Add([]*txpool.Transaction{{Tx: signedTx}}, true, true)[0])
 
 	sent := <-sender.SentAppGossip
 	got := &sdk.PushGossip{}
