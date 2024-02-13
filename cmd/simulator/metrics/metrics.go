@@ -141,12 +141,12 @@ func (m *Metrics) Print(outputFile string) error {
 		defer writer.Flush()
 
 		// Write header
-		if err := writer.Write([]string{"Type", "Name", "Values"}); err != nil {
+		if err := writer.Write([]string{"Type", "Name", "Description", "Values"}); err != nil {
 			return err
 		}
 		for _, mf := range metrics {
 			for _, m := range mf.GetMetric() {
-				row := []string{mf.GetType().String(), mf.GetName(), m.String()}
+				row := []string{mf.GetType().String(), mf.GetName(), mf.GetHelp(), m.String()}
 				if err := writer.Write(row); err != nil {
 					return err
 				}
@@ -157,7 +157,7 @@ func (m *Metrics) Print(outputFile string) error {
 		fmt.Println("*** Metrics ***")
 		for _, mf := range metrics {
 			for _, m := range mf.GetMetric() {
-				fmt.Println(mf.GetName(), m.String())
+				fmt.Printf("Type: %s, Name: %s, Description: %s, Values: %s\n", mf.GetType().String(), mf.GetName(), mf.GetHelp(), m.String())
 			}
 		}
 		fmt.Println("***************")
