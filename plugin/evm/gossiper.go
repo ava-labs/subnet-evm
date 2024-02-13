@@ -140,7 +140,7 @@ func (n *pushGossiper) queueExecutableTxs(
 		}
 		tx := lazyTx.Resolve()
 		if tx == nil {
-			break
+			continue
 		}
 		next := tx.Tx
 
