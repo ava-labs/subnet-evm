@@ -90,7 +90,7 @@ func (p *StateProcessor) Process(block *types.Block, parent *types.Header, state
 
 	var (
 		context = NewEVMBlockContext(header, p.bc, nil)
-		vmenv   = vm.NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
+		vmenv   = NewEVM(context, vm.TxContext{}, statedb, p.config, cfg)
 		signer  = types.MakeSigner(p.config, header.Number, header.Time)
 	)
 	if beaconRoot := block.BeaconRoot(); beaconRoot != nil {
@@ -179,7 +179,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, blockContext 
 	}
 	// Create a new context to be used in the EVM environment
 	txContext := NewEVMTxContext(msg)
-	vmenv := vm.NewEVM(blockContext, txContext, statedb, config, cfg)
+	vmenv := NewEVM(blockContext, txContext, statedb, config, cfg)
 	return applyTransaction(msg, config, gp, statedb, header.Number, header.Hash(), tx, usedGas, vmenv)
 }
 
