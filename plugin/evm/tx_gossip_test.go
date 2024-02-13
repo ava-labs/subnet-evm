@@ -116,7 +116,7 @@ func TestEthTxGossip(t *testing.T) {
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(vm.chainConfig.ChainID), key)
 	require.NoError(err)
 
-	errs := vm.txPool.Add([]*txpool.Transaction{{Tx: signedTx}}, true, false)
+	errs := vm.txPool.Add([]*txpool.Transaction{{Tx: signedTx}}, true, true)
 	require.Len(errs, 1)
 	require.Nil(errs[0])
 
