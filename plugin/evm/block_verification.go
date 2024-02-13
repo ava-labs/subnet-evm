@@ -141,7 +141,7 @@ func (v blockValidator) SyntacticVerify(b *Block, rules params.Rules) error {
 		}
 	}
 
-	// Verify the existence / non-existence of excessDataGas
+	// Verify the existence / non-existence of excessBlobGas
 	cancun := rules.IsCancun
 	if !cancun && ethHeader.ExcessBlobGas != nil {
 		return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", ethHeader.ExcessBlobGas)
