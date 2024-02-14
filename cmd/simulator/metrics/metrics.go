@@ -5,13 +5,11 @@ package metrics
 
 import (
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/prometheus/client_golang/prometheus"
@@ -115,11 +113,17 @@ func (m *Metrics) Print(outputFile string) error {
 	if err != nil {
 		return err
 	}
-	// get output extension
-	outputExt := filepath.Ext(outputFile)
 
-	switch outputExt {
-	case ".json":
+	if outputFile == "" {
+		// Printout to stdout
+		fmt.Println("*** Metrics ***")
+		for _, mf := range metrics {
+			for _, m := range mf.GetMetric() {
+				fmt.Printf("Type: %s, Name: %s, Description: %s, Values: %s\n", mf.GetType().String(), mf.GetName(), mf.GetHelp(), m.String())
+			}
+		}
+		fmt.Println("***************")
+	} else {
 		jsonFile, err := os.Create(outputFile)
 		if err != nil {
 			return err
@@ -129,40 +133,7 @@ func (m *Metrics) Print(outputFile string) error {
 		if err := json.NewEncoder(jsonFile).Encode(metrics); err != nil {
 			return err
 		}
-	case ".csv":
-		// Convert to CSV
-		csvFile, err := os.Create(outputFile)
-		if err != nil {
-			return err
-		}
-		defer csvFile.Close()
-
-		writer := csv.NewWriter(csvFile)
-		defer writer.Flush()
-
-		// Write header
-		if err := writer.Write([]string{"Type", "Name", "Description", "Values"}); err != nil {
-			return err
-		}
-		for _, mf := range metrics {
-			for _, m := range mf.GetMetric() {
-				row := []string{mf.GetType().String(), mf.GetName(), mf.GetHelp(), m.String()}
-				if err := writer.Write(row); err != nil {
-					return err
-				}
-			}
-		}
-	case "":
-		// Printout to stdout
-		fmt.Println("*** Metrics ***")
-		for _, mf := range metrics {
-			for _, m := range mf.GetMetric() {
-				fmt.Printf("Type: %s, Name: %s, Description: %s, Values: %s\n", mf.GetType().String(), mf.GetName(), mf.GetHelp(), m.String())
-			}
-		}
-		fmt.Println("***************")
-	default:
-		return fmt.Errorf("unsupported output file extension: %s", outputExt)
 	}
+
 	return nil
 }
