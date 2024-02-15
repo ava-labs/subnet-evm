@@ -15,6 +15,7 @@ import (
 const (
 	// ticker frequency for calling signalTxsReady
 	matchingTickerDuration = 5 * time.Second
+	sanitaryTickerDuration = 1 * time.Second
 )
 
 type MatchingPipeline struct {
@@ -23,6 +24,7 @@ type MatchingPipeline struct {
 	lotp           LimitOrderTxProcessor
 	configService  IConfigService
 	MatchingTicker *time.Ticker
+	SanitaryTicker *time.Ticker
 }
 
 func NewMatchingPipeline(
@@ -35,7 +37,12 @@ func NewMatchingPipeline(
 		lotp:           lotp,
 		configService:  configService,
 		MatchingTicker: time.NewTicker(matchingTickerDuration),
+		SanitaryTicker: time.NewTicker(sanitaryTickerDuration),
 	}
+}
+
+func (pipeline *MatchingPipeline) RunSanitization() {
+	pipeline.db.RemoveExpiredSignedOrders()
 }
 
 func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
@@ -53,9 +60,6 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 
 	// start fresh and purge all local transactions
 	pipeline.lotp.PurgeOrderBookTxs()
-
-	// remove expired signed orders
-	pipeline.db.RemoveExpiredSignedOrders()
 
 	if isFundingPaymentTime(pipeline.db.GetNextFundingTime()) {
 		log.Info("MatchingPipeline:isFundingPaymentTime")
@@ -75,16 +79,9 @@ func (pipeline *MatchingPipeline) Run(blockNumber *big.Int) bool {
 	}
 
 	// fetch the underlying price and run the matching engine
-	hState := &hu.HubbleState{
-		Assets:             pipeline.GetCollaterals(),
-		OraclePrices:       pipeline.GetUnderlyingPrices(),
-		MidPrices:          pipeline.GetMidPrices(),
-		ActiveMarkets:      markets,
-		MinAllowableMargin: pipeline.configService.getMinAllowableMargin(),
-		MaintenanceMargin:  pipeline.configService.getMaintenanceMargin(),
-		TakerFee:           pipeline.configService.GetTakerFee(),
-		UpgradeVersion:     pipeline.configService.GetUpgradeVersion(),
-	}
+	hState := hu.HState
+	hState.OraclePrices = pipeline.GetUnderlyingPrices()
+	hState.MidPrices = pipeline.GetMidPrices()
 
 	// build trader map
 	liquidablePositions, ordersToCancel, marginMap := pipeline.db.GetNaughtyTraders(hState)
@@ -208,7 +205,7 @@ func (pipeline *MatchingPipeline) runLiquidations(liquidablePositions []Liquidab
 		liquidationBounds[market] = S{Upperbound: upperbound, Lowerbound: lowerbound}
 	}
 
-	minAllowableMargin := pipeline.configService.getMinAllowableMargin()
+	minAllowableMargin := pipeline.configService.GetMinAllowableMargin()
 	takerFee := pipeline.configService.GetTakerFee()
 	for _, liquidable := range liquidablePositions {
 		market := liquidable.Market

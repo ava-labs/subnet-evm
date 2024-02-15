@@ -21,16 +21,6 @@ type SignedOrder struct {
 	Sig       []byte   `json:"sig"`
 }
 
-var (
-	ChainId           int64
-	VerifyingContract string
-)
-
-func SetChainIdAndVerifyingSignedOrdersContract(chainId int64, verifyingContract string) {
-	ChainId = chainId
-	VerifyingContract = verifyingContract
-}
-
 func (order *SignedOrder) EncodeToABIWithoutType() ([]byte, error) {
 	signedOrderType, err := getOrderType("signed")
 	if err != nil {

@@ -582,7 +582,7 @@ func (db *InMemoryDatabase) deleteOrderWithoutLock(orderId common.Hash) {
 	delete(db.Orders, orderId)
 
 	if order.OrderType == Signed && !order.ReduceOnly {
-		minAllowableMargin := db.configService.getMinAllowableMargin()
+		minAllowableMargin := db.configService.GetMinAllowableMargin()
 		requiredMargin := hu.GetRequiredMargin(order.Price, hu.Abs(order.GetUnFilledBaseAssetQuantity()), minAllowableMargin, big.NewInt(0))
 		db.updateVirtualReservedMargin(order.Trader, hu.Neg(requiredMargin))
 	}
@@ -616,7 +616,7 @@ func (db *InMemoryDatabase) UpdateFilledBaseAssetQuantity(quantity *big.Int, ord
 
 	// only update margin if the order is not reduce-only
 	if order.OrderType == Signed && !order.ReduceOnly {
-		minAllowableMargin := db.configService.getMinAllowableMargin()
+		minAllowableMargin := db.configService.GetMinAllowableMargin()
 		requiredMargin := hu.GetRequiredMargin(order.Price, quantity, minAllowableMargin, big.NewInt(0))
 		db.updateVirtualReservedMargin(order.Trader, hu.Neg(requiredMargin))
 
@@ -1118,7 +1118,7 @@ func (db *InMemoryDatabase) determineOrdersToCancel(addr common.Address, trader 
 			ordersToCancel[addr] = append(ordersToCancel[addr], order)
 			foundCancellableOrders = true
 			orderNotional := big.NewInt(0).Abs(hu.Div1e18(hu.Mul(order.GetUnFilledBaseAssetQuantity(), order.Price))) // | size * current price |
-			marginReleased := hu.Div1e6(hu.Mul(orderNotional, db.configService.getMinAllowableMargin()))
+			marginReleased := hu.Div1e6(hu.Mul(orderNotional, db.configService.GetMinAllowableMargin()))
 			_availableMargin.Add(_availableMargin, marginReleased)
 		}
 	}
@@ -1324,15 +1324,19 @@ func (db *InMemoryDatabase) GetOrderValidationFields(orderId common.Hash, order 
 	}
 
 	availableMargin := big.NewInt(0)
-	if db.TraderMap[trader] != nil {
-		// backwards compatibility
-		if db.TraderMap[trader].Margin.Available == nil {
-			db.TraderMap[trader].Margin.Available = big.NewInt(0)
+	_trader := db.TraderMap[trader]
+	if _trader != nil {
+		hState := hu.HState
+		userState := &hu.UserState{
+			Positions:      translatePositions(_trader.Positions),
+			Margins:        getMargins(_trader, len(hState.Assets)),
+			PendingFunding: getTotalFunding(_trader, hState.ActiveMarkets),
+			ReservedMargin: new(big.Int).Set(_trader.Margin.Reserved),
 		}
-		if db.TraderMap[trader].Margin.VirtualReserved == nil {
-			db.TraderMap[trader].Margin.VirtualReserved = big.NewInt(0)
+		if _trader.Margin.VirtualReserved == nil {
+			_trader.Margin.VirtualReserved = big.NewInt(0)
 		}
-		availableMargin = hu.Sub(db.TraderMap[trader].Margin.Available /* as fresh as the last matching engine run */, db.TraderMap[trader].Margin.VirtualReserved)
+		availableMargin = hu.Sub(hu.GetAvailableMargin(hState, userState), _trader.Margin.VirtualReserved)
 	}
 	return OrderValidationFields{
 		Exists:          false,

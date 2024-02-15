@@ -41,7 +41,7 @@ func TestRunLiquidations(t *testing.T) {
 			orderMap := map[Market]*Orders{market: {longOrders, shortOrders}}
 
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
-			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetMinAllowableMargin").Return(big.NewInt(1e5))
 			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 			pipeline.runLiquidations([]LiquidablePosition{getLiquidablePos(traderAddress, LONG, 7)}, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 			assert.Equal(t, longOrders, orderMap[market].longOrders)
@@ -56,7 +56,7 @@ func TestRunLiquidations(t *testing.T) {
 			shortOrder := getShortOrder()
 			expectedFillAmount := utils.BigIntMinAbs(longOrder.BaseAssetQuantity, liquidablePositions[0].Size)
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
-			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetMinAllowableMargin").Return(big.NewInt(1e5))
 			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 			lotp.On("ExecuteLiquidation", traderAddress, longOrder, expectedFillAmount).Return(nil)
 
@@ -80,7 +80,7 @@ func TestRunLiquidations(t *testing.T) {
 
 			expectedFillAmount := utils.BigIntMinAbs(longOrder.BaseAssetQuantity, liquidablePositions[0].Size)
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
-			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetMinAllowableMargin").Return(big.NewInt(1e5))
 			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 			lotp.On("ExecuteLiquidation", traderAddress, longOrder, expectedFillAmount).Return(nil)
 
@@ -106,7 +106,7 @@ func TestRunLiquidations(t *testing.T) {
 			orderMap := map[Market]*Orders{market: {[]Order{longOrder0, longOrder1}, []Order{shortOrder0, shortOrder1}}}
 
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
-			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetMinAllowableMargin").Return(big.NewInt(1e5))
 			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 			lotp.On("ExecuteLiquidation", traderAddress, orderMap[market].longOrders[0], big.NewInt(5)).Return(nil)
 			lotp.On("ExecuteLiquidation", traderAddress, orderMap[market].longOrders[1], big.NewInt(2)).Return(nil)
@@ -153,7 +153,7 @@ func TestRunLiquidations(t *testing.T) {
 			orderMap := map[Market]*Orders{market: {longOrders, shortOrders}}
 
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
-			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetMinAllowableMargin").Return(big.NewInt(1e5))
 			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 			pipeline.runLiquidations(liquidablePositions, orderMap, underlyingPrices, map[common.Address]*big.Int{})
 			assert.Equal(t, longOrders, orderMap[market].longOrders)
@@ -168,7 +168,7 @@ func TestRunLiquidations(t *testing.T) {
 			expectedFillAmount := utils.BigIntMinAbs(shortOrder.BaseAssetQuantity, liquidablePositions[0].Size)
 			lotp.On("ExecuteLiquidation", traderAddress, shortOrder, expectedFillAmount).Return(nil)
 			cs.On("GetAcceptableBoundsForLiquidation", market).Return(liqUpperBound, liqLowerBound)
-			cs.On("getMinAllowableMargin").Return(big.NewInt(1e5))
+			cs.On("GetMinAllowableMargin").Return(big.NewInt(1e5))
 			cs.On("GetTakerFee").Return(big.NewInt(1e5))
 
 			orderMap := map[Market]*Orders{market: {[]Order{longOrder}, []Order{shortOrder}}}

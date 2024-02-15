@@ -19,7 +19,7 @@ func TestGetLiquidableTraders(t *testing.T) {
 			Assets:             assets,
 			OraclePrices:       map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))},
 			ActiveMarkets:      []hu.Market{market},
-			MinAllowableMargin: db.configService.getMinAllowableMargin(),
+			MinAllowableMargin: db.configService.GetMinAllowableMargin(),
 		}
 		liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 		assert.Equal(t, 0, len(liquidablePositions))
@@ -43,8 +43,8 @@ func TestGetLiquidableTraders(t *testing.T) {
 			OraclePrices:       map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(110))},
 			MidPrices:          map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(100))},
 			ActiveMarkets:      []hu.Market{market},
-			MaintenanceMargin:  db.configService.getMaintenanceMargin(),
-			MinAllowableMargin: db.configService.getMinAllowableMargin(),
+			MaintenanceMargin:  db.configService.GetMaintenanceMargin(),
+			MinAllowableMargin: db.configService.GetMinAllowableMargin(),
 		}
 		liquidablePositions, _, _ := db.GetNaughtyTraders(hState)
 		assert.Equal(t, 0, len(liquidablePositions))
@@ -77,8 +77,8 @@ func TestGetLiquidableTraders(t *testing.T) {
 				OraclePrices:       map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(50))},
 				MidPrices:          map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(49))},
 				ActiveMarkets:      []hu.Market{market},
-				MinAllowableMargin: db.configService.getMinAllowableMargin(),
-				MaintenanceMargin:  db.configService.getMaintenanceMargin(),
+				MinAllowableMargin: db.configService.GetMinAllowableMargin(),
+				MaintenanceMargin:  db.configService.GetMaintenanceMargin(),
 				UpgradeVersion:     hu.V2,
 			}
 			oraclePrices := hState.OraclePrices
@@ -136,8 +136,8 @@ func TestGetLiquidableTraders(t *testing.T) {
 				OraclePrices:       map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(142))},
 				MidPrices:          map[Market]*big.Int{market: hu.Mul1e6(big.NewInt(143))},
 				ActiveMarkets:      []hu.Market{market},
-				MinAllowableMargin: db.configService.getMinAllowableMargin(),
-				MaintenanceMargin:  db.configService.getMaintenanceMargin(),
+				MinAllowableMargin: db.configService.GetMinAllowableMargin(),
+				MaintenanceMargin:  db.configService.GetMaintenanceMargin(),
 			}
 			oraclePrices := hState.OraclePrices
 
@@ -273,8 +273,8 @@ func getPosition(market Market, openNotional *big.Int, size *big.Int, unrealized
 
 func getDatabase() *InMemoryDatabase {
 	configService := NewMockConfigService()
-	configService.Mock.On("getMaintenanceMargin").Return(big.NewInt(1e5))
-	configService.Mock.On("getMinAllowableMargin").Return(big.NewInt(2e5))
+	configService.Mock.On("GetMaintenanceMargin").Return(big.NewInt(1e5))
+	configService.Mock.On("GetMinAllowableMargin").Return(big.NewInt(2e5))
 	configService.Mock.On("getMaxLiquidationRatio").Return(big.NewInt(1e6))
 	configService.Mock.On("getMinSizeRequirement").Return(big.NewInt(1e16))
 

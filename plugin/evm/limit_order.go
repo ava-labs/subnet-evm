@@ -28,7 +28,7 @@ import (
 
 const (
 	memoryDBSnapshotKey string = "memoryDBSnapshot"
-	snapshotInterval    uint64 = 1000 // save snapshot every 1000 blocks
+	snapshotInterval    uint64 = 10 // save snapshot every 1000 blocks
 )
 
 type LimitOrderProcesser interface {
@@ -68,8 +68,20 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownCh
 	lotp := orderbook.NewLimitOrderTxProcessor(txPool, memoryDb, backend, validatorPrivateKey)
 	signedObAddy := configService.GetSignedOrderbookContract()
 	contractEventProcessor := orderbook.NewContractEventsProcessor(memoryDb, signedObAddy)
-	hu.SetChainIdAndVerifyingSignedOrdersContract(backend.ChainConfig().ChainID.Int64(), signedObAddy.String())
+
 	matchingPipeline := orderbook.NewMatchingPipeline(memoryDb, lotp, configService)
+	// if any of the following values are changed, the nodes will need to be restarted
+	hState := &hu.HubbleState{
+		Assets:             matchingPipeline.GetCollaterals(),
+		ActiveMarkets:      matchingPipeline.GetActiveMarkets(),
+		MinAllowableMargin: configService.GetMinAllowableMargin(),
+		MaintenanceMargin:  configService.GetMaintenanceMargin(),
+		TakerFee:           configService.GetTakerFee(),
+		UpgradeVersion:     configService.GetUpgradeVersion(),
+	}
+	hu.SetHubbleState(hState)
+	hu.SetChainIdAndVerifyingSignedOrdersContract(backend.ChainConfig().ChainID.Int64(), signedObAddy.String())
+
 	filterSystem := filters.NewFilterSystem(backend, filters.Config{})
 	filterAPI := filters.NewFilterAPI(filterSystem)
 
@@ -167,6 +179,12 @@ func (lop *limitOrderProcesser) RunMatchingPipeline() {
 			lop.blockBuilder.signalTxsReady()
 		}
 	}, orderbook.RunMatchingPipelinePanicMessage, orderbook.RunMatchingPipelinePanicsCounter)
+}
+
+func (lop *limitOrderProcesser) RunSanitaryPipeline() {
+	executeFuncAndRecoverPanic(func() {
+		lop.matchingPipeline.RunSanitization()
+	}, orderbook.RunSanitaryPipelinePanicMessage, orderbook.RunSanitaryPipelinePanicsCounter)
 }
 
 func (lop *limitOrderProcesser) GetOrderBookAPI() *orderbook.OrderBookAPI {
@@ -318,6 +336,9 @@ func (lop *limitOrderProcesser) runMatchingTimer() {
 			select {
 			case <-lop.matchingPipeline.MatchingTicker.C:
 				lop.RunMatchingPipeline()
+
+			case <-lop.matchingPipeline.SanitaryTicker.C:
+				lop.RunSanitaryPipeline()
 
 			case <-lop.shutdownChan:
 				lop.matchingPipeline.MatchingTicker.Stop()

@@ -254,12 +254,12 @@ func (mcs *MockConfigService) getMaxLiquidationRatio(market Market) *big.Int {
 	return args.Get(0).(*big.Int)
 }
 
-func (mcs *MockConfigService) getMinAllowableMargin() *big.Int {
+func (mcs *MockConfigService) GetMinAllowableMargin() *big.Int {
 	args := mcs.Called()
 	return args.Get(0).(*big.Int)
 }
 
-func (mcs *MockConfigService) getMaintenanceMargin() *big.Int {
+func (mcs *MockConfigService) GetMaintenanceMargin() *big.Int {
 	args := mcs.Called()
 	return args.Get(0).(*big.Int)
 }

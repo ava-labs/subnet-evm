@@ -364,7 +364,7 @@ func TestGetCancellableOrders(t *testing.T) {
 	inMemoryDatabase := getDatabase()
 	getReservedMargin := func(order Order) *big.Int {
 		notional := big.NewInt(0).Abs(big.NewInt(0).Div(big.NewInt(0).Mul(order.BaseAssetQuantity, order.Price), hu.ONE_E_18))
-		return hu.Div1e6(big.NewInt(0).Mul(notional, inMemoryDatabase.configService.getMinAllowableMargin()))
+		return hu.Div1e6(big.NewInt(0).Mul(notional, inMemoryDatabase.configService.GetMinAllowableMargin()))
 	}
 
 	blockNumber1 := big.NewInt(2)
@@ -418,8 +418,8 @@ func TestGetCancellableOrders(t *testing.T) {
 		OraclePrices:       priceMap,
 		MidPrices:          inMemoryDatabase.GetLastPrices(),
 		ActiveMarkets:      []Market{market},
-		MinAllowableMargin: inMemoryDatabase.configService.getMinAllowableMargin(),
-		MaintenanceMargin:  inMemoryDatabase.configService.getMaintenanceMargin(),
+		MinAllowableMargin: inMemoryDatabase.configService.GetMinAllowableMargin(),
+		MaintenanceMargin:  inMemoryDatabase.configService.GetMaintenanceMargin(),
 		UpgradeVersion:     hu.V2,
 	}
 	marginFraction := calcMarginFraction(_trader, hState)

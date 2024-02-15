@@ -20,6 +20,7 @@ var (
 	// panics are recovered but monitored
 	AllPanicsCounter                         = metrics.NewRegisteredCounter("all_panics", nil)
 	RunMatchingPipelinePanicsCounter         = metrics.NewRegisteredCounter("matching_pipeline_panics", nil)
+	RunSanitaryPipelinePanicsCounter         = metrics.NewRegisteredCounter("sanitary_pipeline_panics", nil)
 	HandleHubbleFeedLogsPanicsCounter        = metrics.NewRegisteredCounter("handle_hubble_feed_logs_panics", nil)
 	HandleChainAcceptedLogsPanicsCounter     = metrics.NewRegisteredCounter("handle_chain_accepted_logs_panics", nil)
 	HandleChainAcceptedEventPanicsCounter    = metrics.NewRegisteredCounter("handle_chain_accepted_event_panics", nil)

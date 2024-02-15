@@ -5,6 +5,7 @@ package orderbook
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -345,7 +346,7 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	requiredMargin := big.NewInt(0)
 	if !order.ReduceOnly {
 		// P2. Margin is available for non-reduce only orders
-		minAllowableMargin := api.configService.getMinAllowableMargin()
+		minAllowableMargin := api.configService.GetMinAllowableMargin()
 		// even tho order might be matched at a different price, we reserve margin at the price the order was placed at to keep it simple
 		requiredMargin = hu.GetRequiredMargin(order.Price, hu.Abs(order.BaseAssetQuantity), minAllowableMargin, big.NewInt(0))
 		if fields.AvailableMargin.Cmp(requiredMargin) == -1 {
@@ -353,6 +354,7 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 		}
 	} else {
 		// @todo P3. Sum of all reduce only orders should not exceed the total position size
+		return orderId, errors.New("reduce only orders via makerbook are not supported yet")
 	}
 
 	// P4. Post only order shouldn't cross the market

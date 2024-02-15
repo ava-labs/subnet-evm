@@ -124,8 +124,8 @@ func (api *OrderBookAPI) GetDebugData(ctx context.Context, trader string) GetDeb
 			OraclePrices:       oraclePrices,
 			MidPrices:          midPrices,
 			ActiveMarkets:      markets,
-			MinAllowableMargin: api.configService.getMinAllowableMargin(),
-			MaintenanceMargin:  api.configService.getMaintenanceMargin(),
+			MinAllowableMargin: api.configService.GetMinAllowableMargin(),
+			MaintenanceMargin:  api.configService.GetMaintenanceMargin(),
 		}
 		marginFraction := calcMarginFraction(&trader, hState)
 		availableMargin := getAvailableMargin(&trader, hState)

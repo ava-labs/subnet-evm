@@ -13,8 +13,8 @@ import (
 type IConfigService interface {
 	getMaxLiquidationRatio(market Market) *big.Int
 	getLiquidationSpreadThreshold(market Market) *big.Int
-	getMinAllowableMargin() *big.Int
-	getMaintenanceMargin() *big.Int
+	GetMinAllowableMargin() *big.Int
+	GetMaintenanceMargin() *big.Int
 	getMinSizeRequirement(market Market) *big.Int
 	GetPriceMultiplier(market Market) *big.Int
 	GetActiveMarketsCount() int64
@@ -64,11 +64,11 @@ func (cs *ConfigService) getMaxLiquidationRatio(market Market) *big.Int {
 	return bibliophile.GetMaxLiquidationRatio(cs.getStateAtCurrentBlock(), int64(market))
 }
 
-func (cs *ConfigService) getMinAllowableMargin() *big.Int {
+func (cs *ConfigService) GetMinAllowableMargin() *big.Int {
 	return bibliophile.GetMinAllowableMargin(cs.getStateAtCurrentBlock())
 }
 
-func (cs *ConfigService) getMaintenanceMargin() *big.Int {
+func (cs *ConfigService) GetMaintenanceMargin() *big.Int {
 	return bibliophile.GetMaintenanceMargin(cs.getStateAtCurrentBlock())
 }
 
