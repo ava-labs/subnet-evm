@@ -181,7 +181,7 @@ type ValidatePlaceLimitOrderOutput struct {
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackGetNotionalPositionAndMarginInput(input []byte) (GetNotionalPositionAndMarginInput, error) {
 	inputStruct := GetNotionalPositionAndMarginInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "getNotionalPositionAndMargin", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "getNotionalPositionAndMargin", input, true)
 
 	return inputStruct, err
 }
@@ -228,7 +228,7 @@ func getNotionalPositionAndMargin(accessibleState contract.AccessibleState, call
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackValidateCancelLimitOrderInput(input []byte) (ValidateCancelLimitOrderInput, error) {
 	inputStruct := ValidateCancelLimitOrderInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateCancelLimitOrder", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateCancelLimitOrder", input, true)
 
 	return inputStruct, err
 }
@@ -276,7 +276,7 @@ func validateCancelLimitOrder(accessibleState contract.AccessibleState, caller c
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackValidateLiquidationOrderAndDetermineFillPriceInput(input []byte) (ValidateLiquidationOrderAndDetermineFillPriceInput, error) {
 	inputStruct := ValidateLiquidationOrderAndDetermineFillPriceInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateLiquidationOrderAndDetermineFillPrice", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateLiquidationOrderAndDetermineFillPrice", input, true)
 
 	return inputStruct, err
 }
@@ -324,7 +324,7 @@ func validateLiquidationOrderAndDetermineFillPrice(accessibleState contract.Acce
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackValidateOrdersAndDetermineFillPriceInput(input []byte) (ValidateOrdersAndDetermineFillPriceInput, error) {
 	inputStruct := ValidateOrdersAndDetermineFillPriceInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateOrdersAndDetermineFillPrice", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateOrdersAndDetermineFillPrice", input, true)
 
 	return inputStruct, err
 }
@@ -372,7 +372,7 @@ func validateOrdersAndDetermineFillPrice(accessibleState contract.AccessibleStat
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackValidatePlaceIOCOrderInput(input []byte) (ValidatePlaceIOCOrderInput, error) {
 	inputStruct := ValidatePlaceIOCOrderInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validatePlaceIOCOrder", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validatePlaceIOCOrder", input, true)
 
 	return inputStruct, err
 }
@@ -419,7 +419,7 @@ func validatePlaceIOCOrder(accessibleState contract.AccessibleState, caller comm
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackValidatePlaceLimitOrderInput(input []byte) (ValidatePlaceLimitOrderInput, error) {
 	inputStruct := ValidatePlaceLimitOrderInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validatePlaceLimitOrder", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validatePlaceLimitOrder", input, true)
 
 	return inputStruct, err
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/spf13/cast"
 )
 
@@ -214,6 +215,12 @@ type Config struct {
 	//  * 0:   means no limit
 	//  * N:   means N block limit [HEAD-N+1, HEAD] and delete extra indexes
 	TxLookupLimit uint64 `json:"tx-lookup-limit"`
+
+	// WarpOffChainMessages encodes off-chain messages (unrelated to any on-chain event ie. block or AddressedCall)
+	// that the node should be willing to sign.
+	// Note: only supports AddressedCall payloads as defined here:
+	// https://github.com/ava-labs/avalanchego/tree/7623ffd4be915a5185c9ed5e11fa9be15a6e1f00/vms/platformvm/warp/payload#addressedcall
+	WarpOffChainMessages []hexutil.Bytes `json:"warp-off-chain-messages"`
 
 	// Path to validator private key file
 	ValidatorPrivateKeyFile string `json:"validator-private-key-file"`

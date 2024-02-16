@@ -48,7 +48,6 @@ import (
 	"github.com/ava-labs/subnet-evm/eth/filters"
 	"github.com/ava-labs/subnet-evm/eth/gasprice"
 	"github.com/ava-labs/subnet-evm/eth/tracers"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/internal/shutdowncheck"
 	"github.com/ava-labs/subnet-evm/miner"
@@ -56,6 +55,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -181,7 +181,6 @@ func New(
 	var (
 		vmConfig = vm.Config{
 			EnablePreimageRecording: config.EnablePreimageRecording,
-			AllowUnfinalizedQueries: config.AllowUnfinalizedQueries,
 		}
 		cacheConfig = &core.CacheConfig{
 			TrieCleanLimit:                  config.TrieCleanCache,
@@ -241,6 +240,7 @@ func New(
 		extRPCEnabled:            stack.Config().ExtRPCEnabled(),
 		allowUnprotectedTxs:      config.AllowUnprotectedTxs,
 		allowUnprotectedTxHashes: allowUnprotectedTxHashes,
+		allowUnfinalizedQueries:  config.AllowUnfinalizedQueries,
 		eth:                      eth,
 	}
 	if config.AllowUnprotectedTxs {

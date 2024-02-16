@@ -121,7 +121,7 @@ type ValidateOrdersAndDetermineFillPriceOutput struct {
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackGetNotionalPositionAndMarginInput(input []byte) (GetNotionalPositionAndMarginInput, error) {
 	inputStruct := GetNotionalPositionAndMarginInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "getNotionalPositionAndMargin", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "getNotionalPositionAndMargin", input, true)
 
 	return inputStruct, err
 }
@@ -168,7 +168,7 @@ func getNotionalPositionAndMargin(accessibleState contract.AccessibleState, call
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackValidateLiquidationOrderAndDetermineFillPriceInput(input []byte) (ValidateLiquidationOrderAndDetermineFillPriceInput, error) {
 	inputStruct := ValidateLiquidationOrderAndDetermineFillPriceInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateLiquidationOrderAndDetermineFillPrice", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateLiquidationOrderAndDetermineFillPrice", input, true)
 
 	return inputStruct, err
 }
@@ -216,7 +216,7 @@ func validateLiquidationOrderAndDetermineFillPrice(accessibleState contract.Acce
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackValidateOrdersAndDetermineFillPriceInput(input []byte) (ValidateOrdersAndDetermineFillPriceInput, error) {
 	inputStruct := ValidateOrdersAndDetermineFillPriceInput{}
-	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateOrdersAndDetermineFillPrice", input)
+	err := JurorABI.UnpackInputIntoInterface(&inputStruct, "validateOrdersAndDetermineFillPrice", input, true)
 
 	return inputStruct, err
 }

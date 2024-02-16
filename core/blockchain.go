@@ -46,13 +46,13 @@ import (
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/internal/version"
 	"github.com/ava-labs/subnet-evm/metrics"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -250,11 +250,10 @@ type BlockChain struct {
 
 	stopping atomic.Bool // false if chain is running, true when stopped
 
-	engine     consensus.Engine
-	validator  Validator  // Block and state validator interface
-	prefetcher Prefetcher // Block state prefetcher interface
-	processor  Processor  // Block transaction processor interface
-	vmConfig   vm.Config
+	engine    consensus.Engine
+	validator Validator // Block and state validator interface
+	processor Processor // Block transaction processor interface
+	vmConfig  vm.Config
 
 	lastAccepted *types.Block // Prevents reorgs past this height
 
@@ -357,7 +356,6 @@ func NewBlockChain(
 	}
 	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
-	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
 	bc.processor = NewStateProcessor(chainConfig, bc, engine)
 
 	bc.hc, err = NewHeaderChain(db, chainConfig, cacheConfig, engine)
@@ -608,6 +606,12 @@ func (bc *BlockChain) startAcceptor() {
 		logs := bc.collectUnflattenedLogs(next, false)
 		bc.acceptedLogsCache.Put(next.Hash(), logs)
 
+		// Update the acceptor tip before sending events to ensure that any client acting based off of
+		// the events observes the updated acceptorTip on subsequent requests
+		bc.acceptorTipLock.Lock()
+		bc.acceptorTip = next
+		bc.acceptorTipLock.Unlock()
+
 		// Update accepted feeds
 		flattenedLogs := types.FlattenLogs(logs)
 		bc.chainAcceptedFeed.Send(ChainEvent{Block: next, Hash: next.Hash(), Logs: flattenedLogs})
@@ -618,9 +622,6 @@ func (bc *BlockChain) startAcceptor() {
 			bc.txAcceptedFeed.Send(NewTxsEvent{next.Transactions()})
 		}
 
-		bc.acceptorTipLock.Lock()
-		bc.acceptorTip = next
-		bc.acceptorTipLock.Unlock()
 		bc.acceptorWg.Done()
 
 		acceptorWorkTimer.Inc(time.Since(start).Milliseconds())
@@ -1385,8 +1386,6 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 	statedb.StartPrefetcher("chain")
 	activeState = statedb
 
-	// If we have a followup block, run that against the current state to pre-cache
-	// transactions and probabilistically some of the account/storage trie nodes.
 	// Process block using the parent state as reference point
 	pstart := time.Now()
 	receipts, logs, usedGas, err := bc.processor.Process(block, parent, statedb, bc.vmConfig)

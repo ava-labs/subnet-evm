@@ -20,7 +20,7 @@ import (
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/juror"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/jurorv2"
 	_ "github.com/ava-labs/subnet-evm/precompile/contracts/ticks"
-	_ "github.com/ava-labs/subnet-evm/x/warp"
+	_ "github.com/ava-labs/subnet-evm/precompile/contracts/warp"
 	// ADD YOUR PRECOMPILE HERE
 	// _ "github.com/ava-labs/subnet-evm/precompile/contracts/yourprecompile"
 )

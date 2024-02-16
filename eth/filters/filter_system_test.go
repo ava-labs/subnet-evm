@@ -42,13 +42,12 @@ import (
 	"github.com/ava-labs/subnet-evm/core/bloombits"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ava-labs/subnet-evm/internal/ethapi"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/stretchr/testify/require"
 )
@@ -78,8 +77,8 @@ func (b *testBackend) ChainDb() ethdb.Database {
 	return b.db
 }
 
-func (b *testBackend) GetVMConfig() *vm.Config {
-	return &vm.Config{AllowUnfinalizedQueries: true}
+func (b *testBackend) IsAllowUnfinalizedQueries() bool {
+	return true
 }
 
 func (b *testBackend) GetMaxBlocksPerRequest() int64 {

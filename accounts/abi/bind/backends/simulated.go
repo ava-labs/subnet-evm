@@ -47,13 +47,13 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/core/vm"
 	"github.com/ava-labs/subnet-evm/eth/filters"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -894,8 +894,8 @@ func (fb *filterBackend) SubscribeAcceptedTransactionEvent(ch chan<- core.NewTxs
 	return fb.bc.SubscribeAcceptedTransactionEvent(ch)
 }
 
-func (fb *filterBackend) GetVMConfig() *vm.Config {
-	return fb.bc.GetVMConfig()
+func (fb *filterBackend) IsAllowUnfinalizedQueries() bool {
+	return false
 }
 
 func (fb *filterBackend) LastAcceptedBlock() *types.Block {

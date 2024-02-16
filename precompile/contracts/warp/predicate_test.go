@@ -13,17 +13,16 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/snow/validators"
-	"github.com/ava-labs/avalanchego/utils"
+	agoUtils "github.com/ava-labs/avalanchego/utils"
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/avalanchego/utils/crypto/bls"
 	"github.com/ava-labs/avalanchego/utils/set"
 	avalancheWarp "github.com/ava-labs/avalanchego/vms/platformvm/warp"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp/payload"
-	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ava-labs/subnet-evm/precompile/testutils"
 	"github.com/ava-labs/subnet-evm/predicate"
-	subnetEVMUtils "github.com/ava-labs/subnet-evm/utils"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -31,7 +30,7 @@ import (
 const pChainHeight uint64 = 1337
 
 var (
-	_ utils.Sortable[*testValidator] = (*testValidator)(nil)
+	_ agoUtils.Sortable[*testValidator] = (*testValidator)(nil)
 
 	errTest        = errors.New("non-nil error")
 	networkID      = uint32(54321)
@@ -59,7 +58,7 @@ func init() {
 	for i := 0; i < numTestVdrs; i++ {
 		testVdrs = append(testVdrs, newTestValidator())
 	}
-	utils.Sort(testVdrs)
+	agoUtils.Sort(testVdrs)
 
 	vdrs = map[ids.NodeID]*validators.GetValidatorOutput{
 		testVdrs[0].nodeID: {
@@ -108,8 +107,8 @@ type testValidator struct {
 	vdr    *avalancheWarp.Validator
 }
 
-func (v *testValidator) Less(o *testValidator) bool {
-	return v.vdr.Less(o.vdr)
+func (v *testValidator) Compare(o *testValidator) int {
+	return v.vdr.Compare(o.vdr)
 }
 
 func newTestValidator() *testValidator {
@@ -197,7 +196,7 @@ func createSnowCtx(validatorRanges []validatorRange) *snow.Context {
 		}
 	}
 
-	snowCtx := snow.DefaultContextTest()
+	snowCtx := utils.TestSnowContext()
 	state := &validators.TestState{
 		GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {
 			return sourceSubnetID, nil
@@ -213,7 +212,7 @@ func createSnowCtx(validatorRanges []validatorRange) *snow.Context {
 
 func createValidPredicateTest(snowCtx *snow.Context, numKeys uint64, predicateBytes []byte) testutils.PredicateTest {
 	return testutils.PredicateTest{
-		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
@@ -231,7 +230,7 @@ func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
 	require := require.New(t)
 	numKeys := 10
 	cChainID := ids.GenerateTestID()
-	addressedCall, err := payload.NewAddressedCall(utils.RandomBytes(20), utils.RandomBytes(100))
+	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(err)
 	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(networkID, cChainID, addressedCall.Bytes())
 	require.NoError(err)
@@ -262,7 +261,7 @@ func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
 
 	predicateBytes := predicate.PackPredicate(warpMsg.Bytes())
 
-	snowCtx := snow.DefaultContextTest()
+	snowCtx := utils.TestSnowContext()
 	snowCtx.SubnetID = ids.GenerateTestID()
 	snowCtx.ChainID = ids.GenerateTestID()
 	snowCtx.CChainID = cChainID
@@ -279,7 +278,7 @@ func TestWarpMessageFromPrimaryNetwork(t *testing.T) {
 	}
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
@@ -309,7 +308,7 @@ func TestInvalidPredicatePacking(t *testing.T) {
 	predicateBytes = append(predicateBytes, byte(0x01)) // Invalidate the predicate byte packing
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
@@ -340,7 +339,7 @@ func TestInvalidWarpMessage(t *testing.T) {
 	predicateBytes := predicate.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
@@ -384,7 +383,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 	predicateBytes := predicate.PackPredicate(warpMsgBytes)
 
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
@@ -400,7 +399,7 @@ func TestInvalidAddressedPayload(t *testing.T) {
 }
 
 func TestInvalidBitSet(t *testing.T) {
-	addressedCall, err := payload.NewAddressedCall(utils.RandomBytes(20), utils.RandomBytes(100))
+	addressedCall, err := payload.NewAddressedCall(agoUtils.RandomBytes(20), agoUtils.RandomBytes(100))
 	require.NoError(t, err)
 	unsignedMsg, err := avalancheWarp.NewUnsignedMessage(
 		networkID,
@@ -429,7 +428,7 @@ func TestInvalidBitSet(t *testing.T) {
 	})
 	predicateBytes := predicate.PackPredicate(msg.Bytes())
 	test := testutils.PredicateTest{
-		Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+		Config: NewDefaultConfig(utils.NewUint64(0)),
 		PredicateContext: &precompileconfig.PredicateContext{
 			SnowCtx: snowCtx,
 			ProposerVMBlockCtx: &block.Context{
@@ -457,24 +456,24 @@ func TestWarpSignatureWeightsDefaultQuorumNumerator(t *testing.T) {
 	tests := make(map[string]testutils.PredicateTest)
 	for _, numSigners := range []int{
 		1,
-		int(params.WarpDefaultQuorumNumerator) - 1,
-		int(params.WarpDefaultQuorumNumerator),
-		int(params.WarpDefaultQuorumNumerator) + 1,
-		int(params.WarpQuorumDenominator) - 1,
-		int(params.WarpQuorumDenominator),
-		int(params.WarpQuorumDenominator) + 1,
+		int(WarpDefaultQuorumNumerator) - 1,
+		int(WarpDefaultQuorumNumerator),
+		int(WarpDefaultQuorumNumerator) + 1,
+		int(WarpQuorumDenominator) - 1,
+		int(WarpQuorumDenominator),
+		int(WarpQuorumDenominator) + 1,
 	} {
 		predicateBytes := createPredicate(numSigners)
 		// The predicate is valid iff the number of signers is >= the required numerator and does not exceed the denominator.
 		var expectedErr error
-		if numSigners >= int(params.WarpDefaultQuorumNumerator) && numSigners <= int(params.WarpQuorumDenominator) {
+		if numSigners >= int(WarpDefaultQuorumNumerator) && numSigners <= int(WarpQuorumDenominator) {
 			expectedErr = nil
 		} else {
 			expectedErr = errFailedVerification
 		}
 
 		tests[fmt.Sprintf("default quorum %d signature(s)", numSigners)] = testutils.PredicateTest{
-			Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+			Config: NewDefaultConfig(utils.NewUint64(0)),
 			PredicateContext: &precompileconfig.PredicateContext{
 				SnowCtx: snowCtx,
 				ProposerVMBlockCtx: &block.Context{
@@ -510,7 +509,7 @@ func TestWarpMultiplePredicates(t *testing.T) {
 		{true, true},
 	} {
 		var (
-			numSigners            = int(params.WarpQuorumDenominator)
+			numSigners            = int(WarpQuorumDenominator)
 			invalidPredicateBytes = createPredicate(1)
 			validPredicateBytes   = createPredicate(numSigners)
 		)
@@ -532,7 +531,7 @@ func TestWarpMultiplePredicates(t *testing.T) {
 			}
 
 			tests[fmt.Sprintf("multiple predicates %v", validMessageIndices)] = testutils.PredicateTest{
-				Config: NewDefaultConfig(subnetEVMUtils.NewUint64(0)),
+				Config: NewDefaultConfig(utils.NewUint64(0)),
 				PredicateContext: &precompileconfig.PredicateContext{
 					SnowCtx: snowCtx,
 					ProposerVMBlockCtx: &block.Context{
@@ -562,13 +561,13 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 	tests := make(map[string]testutils.PredicateTest)
 	nonDefaultQuorumNumerator := 50
 	// Ensure this test fails if the DefaultQuroumNumerator is changed to an unexpected value during development
-	require.NotEqual(t, nonDefaultQuorumNumerator, int(params.WarpDefaultQuorumNumerator))
+	require.NotEqual(t, nonDefaultQuorumNumerator, int(WarpDefaultQuorumNumerator))
 	// Add cases with default quorum
 	for _, numSigners := range []int{nonDefaultQuorumNumerator, nonDefaultQuorumNumerator + 1, 99, 100, 101} {
 		predicateBytes := createPredicate(numSigners)
 		// The predicate is valid iff the number of signers is >= the required numerator and does not exceed the denominator.
 		var expectedErr error
-		if numSigners >= nonDefaultQuorumNumerator && numSigners <= int(params.WarpQuorumDenominator) {
+		if numSigners >= nonDefaultQuorumNumerator && numSigners <= int(WarpQuorumDenominator) {
 			expectedErr = nil
 		} else {
 			expectedErr = errFailedVerification
@@ -576,7 +575,7 @@ func TestWarpSignatureWeightsNonDefaultQuorumNumerator(t *testing.T) {
 
 		name := fmt.Sprintf("non-default quorum %d signature(s)", numSigners)
 		tests[name] = testutils.PredicateTest{
-			Config: NewConfig(subnetEVMUtils.NewUint64(0), uint64(nonDefaultQuorumNumerator)),
+			Config: NewConfig(utils.NewUint64(0), uint64(nonDefaultQuorumNumerator)),
 			PredicateContext: &precompileconfig.PredicateContext{
 				SnowCtx: snowCtx,
 				ProposerVMBlockCtx: &block.Context{
@@ -665,7 +664,7 @@ func initWarpPredicateTests() {
 			}
 		}
 
-		snowCtx := snow.DefaultContextTest()
+		snowCtx := utils.TestSnowContext()
 		snowCtx.NetworkID = networkID
 		state := &validators.TestState{
 			GetSubnetIDF: func(ctx context.Context, chainID ids.ID) (ids.ID, error) {

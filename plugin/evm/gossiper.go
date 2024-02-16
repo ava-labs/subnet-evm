@@ -4,11 +4,13 @@
 package evm
 
 import (
+	"context"
 	"math/big"
 	"sync"
 	"time"
 
 	"github.com/ava-labs/avalanchego/codec"
+	"github.com/ava-labs/avalanchego/network/p2p/gossip"
 
 	"github.com/ava-labs/subnet-evm/peer"
 
@@ -33,9 +35,9 @@ const (
 	// in the cache, not entire transactions.
 	recentCacheSize = 512
 
-	// [txsGossipInterval] is how often we attempt to gossip newly seen
+	// [ethTxsGossipInterval] is how often we attempt to gossip newly seen
 	// transactions to other nodes.
-	txsGossipInterval = 500 * time.Millisecond
+	ethTxsGossipInterval = 500 * time.Millisecond
 
 	// [ordersGossipInterval] is how often we attempt to gossip newly seen
 	// signed orders to other nodes.
@@ -56,8 +58,8 @@ const (
 
 // Gossiper handles outgoing gossip of transactions
 type Gossiper interface {
-	// GossipTxs sends AppGossip message containing the given [txs]
-	GossipTxs(txs []*types.Transaction) error
+	// GossipEthTxs sends AppGossip message containing the given [txs]
+	GossipEthTxs(txs []*types.Transaction) error
 
 	// GossipSignedOrders sends signed orders to the network
 	GossipSignedOrders(orders []*hubbleutils.SignedOrder) error
@@ -68,17 +70,18 @@ type pushGossiper struct {
 	ctx    *snow.Context
 	config Config
 
-	client     peer.NetworkClient
-	blockchain *core.BlockChain
-	txPool     *txpool.TxPool
+	client        peer.NetworkClient
+	blockchain    *core.BlockChain
+	txPool        *txpool.TxPool
+	ethTxGossiper gossip.Accumulator[*GossipEthTx]
 
 	// We attempt to batch transactions we need to gossip to avoid runaway
 	// amplification of mempol chatter.
-	txsToGossipChan chan []*types.Transaction
-	txsToGossip     map[common.Hash]*types.Transaction
-	lastGossiped    time.Time
-	shutdownChan    chan struct{}
-	shutdownWg      *sync.WaitGroup
+	ethTxsToGossipChan chan []*types.Transaction
+	ethTxsToGossip     map[common.Hash]*types.Transaction
+	lastGossiped       time.Time
+	shutdownChan       chan struct{}
+	shutdownWg         *sync.WaitGroup
 
 	ordersToGossipChan chan []*hubbleutils.SignedOrder
 	ordersToGossip     []*hubbleutils.SignedOrder
@@ -86,7 +89,7 @@ type pushGossiper struct {
 
 	// [recentTxs] prevent us from over-gossiping the
 	// same transaction in a short period of time.
-	recentTxs *cache.LRU[common.Hash, interface{}]
+	recentEthTxs *cache.LRU[common.Hash, interface{}]
 
 	codec  codec.Manager
 	signer types.Signer
@@ -95,24 +98,27 @@ type pushGossiper struct {
 
 // createGossiper constructs and returns a pushGossiper or noopGossiper
 // based on whether vm.chainConfig.SubnetEVMTimestamp is set
-func (vm *VM) createGossiper(stats GossipStats) Gossiper {
+func (vm *VM) createGossiper(stats GossipStats, ethTxGossiper gossip.Accumulator[*GossipEthTx],
+) Gossiper {
 	net := &pushGossiper{
 		ctx:                vm.ctx,
 		config:             vm.config,
 		client:             vm.client,
 		blockchain:         vm.blockChain,
 		txPool:             vm.txPool,
-		txsToGossipChan:    make(chan []*types.Transaction),
-		txsToGossip:        make(map[common.Hash]*types.Transaction),
+		ethTxsToGossipChan: make(chan []*types.Transaction),
+		ethTxsToGossip:     make(map[common.Hash]*types.Transaction),
 		shutdownChan:       vm.shutdownChan,
 		shutdownWg:         &vm.shutdownWg,
-		ordersToGossipChan: make(chan []*hubbleutils.SignedOrder),
-		ordersToGossip:     []*hubbleutils.SignedOrder{},
-		recentTxs:          &cache.LRU[common.Hash, interface{}]{Size: recentCacheSize},
+		recentEthTxs:       &cache.LRU[common.Hash, interface{}]{Size: recentCacheSize},
 		codec:              vm.networkCodec,
 		signer:             types.LatestSigner(vm.blockChain.Config()),
 		stats:              stats,
+		ethTxGossiper:      ethTxGossiper,
+		ordersToGossipChan: make(chan []*hubbleutils.SignedOrder),
+		ordersToGossip:     []*hubbleutils.SignedOrder{},
 	}
+
 	net.awaitEthTxGossip()
 	net.awaitSignedOrderGossip()
 	return net
@@ -254,12 +260,12 @@ func (n *pushGossiper) queuePriorityRegossipTxs() types.Transactions {
 }
 
 // awaitEthTxGossip periodically gossips transactions that have been queued for
-// gossip at least once every [txsGossipInterval].
+// gossip at least once every [ethTxsGossipInterval].
 func (n *pushGossiper) awaitEthTxGossip() {
 	n.shutdownWg.Add(1)
 	go n.ctx.Log.RecoverAndPanic(func() {
 		var (
-			gossipTicker           = time.NewTicker(txsGossipInterval)
+			gossipTicker           = time.NewTicker(ethTxsGossipInterval)
 			regossipTicker         = time.NewTicker(n.config.RegossipFrequency.Duration)
 			priorityRegossipTicker = time.NewTicker(n.config.PriorityRegossipFrequency.Duration)
 		)
@@ -273,18 +279,24 @@ func (n *pushGossiper) awaitEthTxGossip() {
 		for {
 			select {
 			case <-gossipTicker.C:
-				if attempted, err := n.gossipTxs(false); err != nil {
+				if attempted, err := n.gossipEthTxs(false); err != nil {
 					log.Warn(
 						"failed to send eth transactions",
 						"len(txs)", attempted,
 						"err", err,
 					)
 				}
+				if err := n.ethTxGossiper.Gossip(context.TODO()); err != nil {
+					log.Warn(
+						"failed to send eth transactions",
+						"err", err,
+					)
+				}
 			case <-regossipTicker.C:
 				for _, tx := range n.queueRegossipTxs() {
-					n.txsToGossip[tx.Hash()] = tx
+					n.ethTxsToGossip[tx.Hash()] = tx
 				}
-				if attempted, err := n.gossipTxs(true); err != nil {
+				if attempted, err := n.gossipEthTxs(true); err != nil {
 					log.Warn(
 						"failed to regossip eth transactions",
 						"len(txs)", attempted,
@@ -293,26 +305,41 @@ func (n *pushGossiper) awaitEthTxGossip() {
 				}
 			case <-priorityRegossipTicker.C:
 				for _, tx := range n.queuePriorityRegossipTxs() {
-					n.txsToGossip[tx.Hash()] = tx
+					n.ethTxsToGossip[tx.Hash()] = tx
 				}
-				if attempted, err := n.gossipTxs(true); err != nil {
+				if attempted, err := n.gossipEthTxs(true); err != nil {
 					log.Warn(
 						"failed to regossip priority eth transactions",
 						"len(txs)", attempted,
 						"err", err,
 					)
 				}
-			case txs := <-n.txsToGossipChan:
+			case txs := <-n.ethTxsToGossipChan:
 				for _, tx := range txs {
-					n.txsToGossip[tx.Hash()] = tx
+					n.ethTxsToGossip[tx.Hash()] = tx
 				}
-				if attempted, err := n.gossipTxs(false); err != nil {
+				if attempted, err := n.gossipEthTxs(false); err != nil {
 					log.Warn(
 						"failed to send eth transactions",
 						"len(txs)", attempted,
 						"err", err,
 					)
 				}
+
+				gossipTxs := make([]*GossipEthTx, 0, len(txs))
+				for _, tx := range txs {
+					gossipTxs = append(gossipTxs, &GossipEthTx{Tx: tx})
+				}
+
+				n.ethTxGossiper.Add(gossipTxs...)
+				if err := n.ethTxGossiper.Gossip(context.TODO()); err != nil {
+					log.Warn(
+						"failed to send eth transactions",
+						"len(txs)", len(txs),
+						"err", err,
+					)
+				}
+
 			case <-n.shutdownChan:
 				return
 			}
@@ -320,7 +347,7 @@ func (n *pushGossiper) awaitEthTxGossip() {
 	})
 }
 
-func (n *pushGossiper) sendTxs(txs []*types.Transaction) error {
+func (n *pushGossiper) sendEthTxs(txs []*types.Transaction) error {
 	if len(txs) == 0 {
 		return nil
 	}
@@ -329,7 +356,7 @@ func (n *pushGossiper) sendTxs(txs []*types.Transaction) error {
 	if err != nil {
 		return err
 	}
-	msg := message.TxsGossip{
+	msg := message.EthTxsGossip{
 		Txs: txBytes,
 	}
 	msgBytes, err := message.BuildGossipMessage(n.codec, msg)
@@ -346,15 +373,15 @@ func (n *pushGossiper) sendTxs(txs []*types.Transaction) error {
 	return n.client.Gossip(msgBytes)
 }
 
-func (n *pushGossiper) gossipTxs(force bool) (int, error) {
-	if (!force && time.Since(n.lastGossiped) < minGossipBatchInterval) || len(n.txsToGossip) == 0 {
+func (n *pushGossiper) gossipEthTxs(force bool) (int, error) {
+	if (!force && time.Since(n.lastGossiped) < minGossipBatchInterval) || len(n.ethTxsToGossip) == 0 {
 		return 0, nil
 	}
 	n.lastGossiped = time.Now()
-	txs := make([]*types.Transaction, 0, len(n.txsToGossip))
-	for txHash, tx := range n.txsToGossip {
+	txs := make([]*types.Transaction, 0, len(n.ethTxsToGossip))
+	for _, tx := range n.ethTxsToGossip {
 		txs = append(txs, tx)
-		delete(n.txsToGossip, txHash)
+		delete(n.ethTxsToGossip, tx.Hash())
 	}
 
 	selectedTxs := make([]*types.Transaction, 0)
@@ -372,11 +399,11 @@ func (n *pushGossiper) gossipTxs(force bool) (int, error) {
 		// We check [force] outside of the if statement to avoid an unnecessary
 		// cache lookup.
 		if !force {
-			if _, has := n.recentTxs.Get(txHash); has {
+			if _, has := n.recentEthTxs.Get(txHash); has {
 				continue
 			}
 		}
-		n.recentTxs.Put(txHash, nil)
+		n.recentEthTxs.Put(txHash, nil)
 
 		selectedTxs = append(selectedTxs, tx)
 	}
@@ -390,8 +417,8 @@ func (n *pushGossiper) gossipTxs(force bool) (int, error) {
 	msgTxsSize := uint64(0)
 	for _, tx := range selectedTxs {
 		size := tx.Size()
-		if msgTxsSize+size > message.TxMsgSoftCapSize {
-			if err := n.sendTxs(msgTxs); err != nil {
+		if msgTxsSize+size > message.EthMsgSoftCapSize {
+			if err := n.sendEthTxs(msgTxs); err != nil {
 				return len(selectedTxs), err
 			}
 			msgTxs = msgTxs[:0]
@@ -402,18 +429,18 @@ func (n *pushGossiper) gossipTxs(force bool) (int, error) {
 	}
 
 	// Send any remaining [msgTxs]
-	return len(selectedTxs), n.sendTxs(msgTxs)
+	return len(selectedTxs), n.sendEthTxs(msgTxs)
 }
 
-// GossipTxs enqueues the provided [txs] for gossiping. At some point, the
+// GossipEthTxs enqueues the provided [txs] for gossiping. At some point, the
 // [pushGossiper] will attempt to gossip the provided txs to other nodes
 // (usually right away if not under load).
 //
 // NOTE: We never return a non-nil error from this function but retain the
 // option to do so in case it becomes useful.
-func (n *pushGossiper) GossipTxs(txs []*types.Transaction) error {
+func (n *pushGossiper) GossipEthTxs(txs []*types.Transaction) error {
 	select {
-	case n.txsToGossipChan <- txs:
+	case n.ethTxsToGossipChan <- txs:
 	case <-n.shutdownChan:
 	}
 	return nil
@@ -435,16 +462,16 @@ func NewGossipHandler(vm *VM, stats GossipReceivedStats) *GossipHandler {
 	}
 }
 
-func (h *GossipHandler) HandleTxs(nodeID ids.NodeID, msg message.TxsGossip) error {
+func (h *GossipHandler) HandleEthTxs(nodeID ids.NodeID, msg message.EthTxsGossip) error {
 	log.Trace(
-		"AppGossip called with TxsGossip",
+		"AppGossip called with EthTxsGossip",
 		"peerID", nodeID,
 		"size(txs)", len(msg.Txs),
 	)
 
 	if len(msg.Txs) == 0 {
 		log.Trace(
-			"AppGossip received empty TxsGossip Message",
+			"AppGossip received empty EthTxsGossip Message",
 			"peerID", nodeID,
 		)
 		return nil

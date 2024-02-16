@@ -69,6 +69,7 @@ The Subnet EVM runs in a separate process from the main AvalancheGo process and 
 [v0.5.8] AvalancheGo@v1.10.13-v1.10.14 (Protocol Version: 29)
 [v0.5.9] AvalancheGo@v1.10.15-v1.10.17 (Protocol Version: 30)
 [v0.5.10] AvalancheGo@v1.10.15-v1.10.17 (Protocol Version: 30)
+[v0.5.11] AvalancheGo@v1.10.18-v1.10.18 (Protocol Version: 31)
 ```
 
 ## API
@@ -108,7 +109,7 @@ To support these changes, there have been a number of changes to the SubnetEVM b
 
 ### Clone Subnet-evm
 
-First install Go 1.20.10 or later. Follow the instructions [here](https://go.dev/doc/install). You can verify by running `go version`.
+First install Go 1.20.12 or later. Follow the instructions [here](https://go.dev/doc/install). You can verify by running `go version`.
 
 Set `$GOPATH` environment variable properly for Go to look for Go Workspaces. Please read [this](https://go.dev/doc/code) for details. You can verify by running `echo $GOPATH`.
 
@@ -128,7 +129,7 @@ This will clone and checkout to `master` branch.
 
 ### Run Local Network
 
-To run a local network, it is recommended to use the [avalanche-cli](https://github.com/ava-labs/avalanche-cli#avalanche-cli) to set up an instance of Subnet-EVM on an local Avalanche Network.
+To run a local network, it is recommended to use the [avalanche-cli](https://github.com/ava-labs/avalanche-cli#avalanche-cli) to set up an instance of Subnet-EVM on a local Avalanche Network.
 
 There are two options when using the Avalanche-CLI:
 

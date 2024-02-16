@@ -3,18 +3,25 @@
 
 package allowlist
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"errors"
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 // 1. NoRole - this is equivalent to common.Hash{} and deletes the key from the DB when set
 // 2. EnabledRole - allowed to call the precompile
 // 3. Admin - allowed to both modify the allowlist and call the precompile
-// 4. Manager - allowed to add and remove only enabled addresses and also call the precompile. (only after DUpgrade)
+// 4. Manager - allowed to add and remove only enabled addresses and also call the precompile. (only after Durango)
 var (
 	NoRole      = Role(common.BigToHash(common.Big0))
 	EnabledRole = Role(common.BigToHash(common.Big1))
 	AdminRole   = Role(common.BigToHash(common.Big2))
 	ManagerRole = Role(common.BigToHash(common.Big3))
 	// Roles should be incremented and not changed.
+
+	ErrInvalidRole = errors.New("invalid role")
 )
 
 // Enum constants for valid Role
@@ -61,6 +68,33 @@ func (r Role) CanModify(from, target Role) bool {
 	}
 }
 
+func (r Role) Bytes() []byte {
+	return common.Hash(r).Bytes()
+}
+
+func (r Role) Big() *big.Int {
+	return common.Hash(r).Big()
+}
+
+func (r Role) Hash() common.Hash {
+	return common.Hash(r)
+}
+
+func (r Role) GetSetterFunctionName() (string, error) {
+	switch r {
+	case AdminRole:
+		return "setAdmin", nil
+	case ManagerRole:
+		return "setManager", nil
+	case EnabledRole:
+		return "setEnabled", nil
+	case NoRole:
+		return "setNone", nil
+	default:
+		return "", ErrInvalidRole
+	}
+}
+
 // String returns a string representation of [r].
 func (r Role) String() string {
 	switch r {
@@ -74,5 +108,15 @@ func (r Role) String() string {
 		return "AdminRole"
 	default:
 		return "UnknownRole"
+	}
+}
+
+func FromBig(b *big.Int) (Role, error) {
+	role := Role(common.BigToHash(b))
+	switch role {
+	case NoRole, EnabledRole, ManagerRole, AdminRole:
+		return role, nil
+	default:
+		return Role{}, ErrInvalidRole
 	}
 }

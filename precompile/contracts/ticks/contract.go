@@ -70,7 +70,7 @@ type GetQuoteInput struct {
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackGetBaseQuoteInput(input []byte) (GetBaseQuoteInput, error) {
 	inputStruct := GetBaseQuoteInput{}
-	err := TicksABI.UnpackInputIntoInterface(&inputStruct, "getBaseQuote", input)
+	err := TicksABI.UnpackInputIntoInterface(&inputStruct, "getBaseQuote", input, true)
 
 	return inputStruct, err
 }
@@ -114,7 +114,7 @@ func getBaseQuote(accessibleState contract.AccessibleState, caller common.Addres
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackGetPrevTickInput(input []byte) (GetPrevTickInput, error) {
 	inputStruct := GetPrevTickInput{}
-	err := TicksABI.UnpackInputIntoInterface(&inputStruct, "getPrevTick", input)
+	err := TicksABI.UnpackInputIntoInterface(&inputStruct, "getPrevTick", input, true)
 
 	return inputStruct, err
 }
@@ -161,7 +161,7 @@ func getPrevTick(accessibleState contract.AccessibleState, caller common.Address
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackGetQuoteInput(input []byte) (GetQuoteInput, error) {
 	inputStruct := GetQuoteInput{}
-	err := TicksABI.UnpackInputIntoInterface(&inputStruct, "getQuote", input)
+	err := TicksABI.UnpackInputIntoInterface(&inputStruct, "getQuote", input, true)
 
 	return inputStruct, err
 }
@@ -204,7 +204,7 @@ func getQuote(accessibleState contract.AccessibleState, caller common.Address, a
 // UnpackSampleImpactAskInput attempts to unpack [input] into the common.Address type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackSampleImpactAskInput(input []byte) (common.Address, error) {
-	res, err := TicksABI.UnpackInput("sampleImpactAsk", input)
+	res, err := TicksABI.UnpackInput("sampleImpactAsk", input, true)
 	if err != nil {
 		return *new(common.Address), err
 	}
@@ -252,7 +252,7 @@ func sampleImpactAsk(accessibleState contract.AccessibleState, caller common.Add
 // UnpackSampleImpactBidInput attempts to unpack [input] into the common.Address type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
 func UnpackSampleImpactBidInput(input []byte) (common.Address, error) {
-	res, err := TicksABI.UnpackInput("sampleImpactBid", input)
+	res, err := TicksABI.UnpackInput("sampleImpactBid", input, true)
 	if err != nil {
 		return *new(common.Address), err
 	}
