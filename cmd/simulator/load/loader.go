@@ -158,10 +158,12 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
 	for i := 0; i < config.Workers; i++ {
 		clientURI := config.Endpoints[i%len(config.Endpoints)]
+		fmt.Printf("clientURI %s \n", clientURI)
 		client, err := ethclient.Dial(clientURI)
 		if err != nil {
 			return fmt.Errorf("failed to dial client at %s: %w", clientURI, err)
 		}
+		fmt.Printf("no error dialing client \n")
 		clients = append(clients, client)
 	}
 
