@@ -153,7 +153,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 	metricsCtx := context.Background()
 	ms := m.Serve(metricsCtx, strconv.Itoa(int(config.MetricsPort)), MetricsEndpoint)
 	defer ms.Shutdown()
-
+	fmt.Printf("obtained rpc endpoints %s , len %s \n", config.Endpoints, len(config.Endpoints))
 	// Construct the arguments for the load simulator
 	clients := make([]ethclient.Client, 0, len(config.Endpoints))
 	for i := 0; i < config.Workers; i++ {
