@@ -1640,6 +1640,22 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 	if err := args.setDefaults(ctx, b); err != nil {
 		return nil, 0, nil, err
 	}
+	return CreateAccessList(ctx, b, b.ChainConfig(), header, db, args)
+}
+
+type AccessListBackend interface {
+	GetEVM(ctx context.Context, msg *core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) (*vm.EVM, func() error)
+	RPCGasCap() uint64
+}
+
+type chainConfig interface {
+	AvalancheRules(blockNum *big.Int, timestamp uint64) params.Rules
+}
+
+func CreateAccessList(
+	ctx context.Context, b AccessListBackend, chainConfig chainConfig,
+	header *types.Header, db *state.StateDB, args TransactionArgs,
+) (acl types.AccessList, gasUsed uint64, vmErr error, err error) {
 	var to common.Address
 	if args.To != nil {
 		to = *args.To
@@ -1647,7 +1663,7 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 		to = crypto.CreateAddress(args.from(), uint64(*args.Nonce))
 	}
 	// Retrieve the precompiles since they don't need to be added to the access list
-	precompiles := vm.ActivePrecompiles(b.ChainConfig().AvalancheRules(header.Number, header.Time))
+	precompiles := vm.ActivePrecompiles(chainConfig.AvalancheRules(header.Number, header.Time))
 
 	// Create an initial tracer
 	prevTracer := logger.NewAccessListTracer(nil, args.from(), to, precompiles)
