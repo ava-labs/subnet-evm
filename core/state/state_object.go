@@ -31,7 +31,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"sync"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core/types"
@@ -72,11 +71,6 @@ func (s Storage) Copy() Storage {
 // - Account values as well as storages can be accessed and modified through the object.
 // - Finally, call commit to return the changes of storage trie and update account data.
 type stateObject struct {
-	// dataLock protects the [data] field to prevent a race condition
-	// in the transaction pool tests. TODO remove after re-implementing
-	// tx pool to be synchronous.
-	dataLock sync.RWMutex
-
 	db       *StateDB
 	address  common.Address      // address of ethereum account
 	addrHash common.Hash         // hash of ethereum address of the account
@@ -538,8 +532,6 @@ func (s *stateObject) SetNonce(nonce uint64) {
 }
 
 func (s *stateObject) setNonce(nonce uint64) {
-	s.dataLock.Lock()
-	defer s.dataLock.Unlock()
 	s.data.Nonce = nonce
 }
 
@@ -552,7 +544,5 @@ func (s *stateObject) Balance() *big.Int {
 }
 
 func (s *stateObject) Nonce() uint64 {
-	s.dataLock.RLock()
-	defer s.dataLock.RUnlock()
 	return s.data.Nonce
 }
