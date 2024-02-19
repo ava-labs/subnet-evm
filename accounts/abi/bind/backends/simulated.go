@@ -147,7 +147,7 @@ func (b *SimulatedBackend) Close() error {
 	return nil
 }
 
-// Commit imports all the pending transactions as a single block and starts a
+// Commit imports all the accepted transactions as a single block and starts a
 // fresh new state.
 func (b *SimulatedBackend) Commit(accept bool) common.Hash {
 	b.mu.Lock()
@@ -171,7 +171,7 @@ func (b *SimulatedBackend) Commit(accept bool) common.Hash {
 	return blockHash
 }
 
-// Rollback aborts all pending transactions, reverting to the last committed state.
+// Rollback aborts all accepted transactions, reverting to the last committed state.
 func (b *SimulatedBackend) Rollback() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -206,7 +206,7 @@ func (b *SimulatedBackend) Fork(ctx context.Context, parent common.Hash) error {
 	defer b.mu.Unlock()
 
 	if len(b.acceptedBlock.Transactions()) != 0 {
-		return errors.New("pending block dirty")
+		return errors.New("accepted block dirty")
 	}
 	block, err := b.blockByHash(ctx, parent)
 	if err != nil {
@@ -293,10 +293,10 @@ func (b *SimulatedBackend) TransactionReceipt(ctx context.Context, txHash common
 	return receipt, nil
 }
 
-// TransactionByHash checks the pool of pending transactions in addition to the
-// blockchain. The isPending return value indicates whether the transaction has been
+// TransactionByHash checks the pool of accepted transactions in addition to the
+// blockchain. The isAccepted return value indicates whether the transaction has been
 // mined yet. Note that the transaction may not be part of the canonical chain even if
-// it's not pending.
+// it's not accepted.
 func (b *SimulatedBackend) TransactionByHash(ctx context.Context, txHash common.Hash) (*types.Transaction, bool, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -537,7 +537,7 @@ func (b *SimulatedBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, erro
 	return big.NewInt(1), nil
 }
 
-// EstimateGas executes the requested code against the currently pending block/state and
+// EstimateGas executes the requested code against the currently accepted block/state and
 // returns the used amount of gas.
 func (b *SimulatedBackend) EstimateGas(ctx context.Context, call interfaces.CallMsg) (uint64, error) {
 	b.mu.Lock()
@@ -641,7 +641,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call interfaces.Call
 	return hi, nil
 }
 
-// callContract implements common code between normal and pending contract calls.
+// callContract implements common code between normal and accepted contract calls.
 // state is modified during execution, make sure to copy it if necessary.
 func (b *SimulatedBackend) callContract(ctx context.Context, call interfaces.CallMsg, header *types.Header, stateDB *state.StateDB) (*core.ExecutionResult, error) {
 	// Gas prices post 1559 need to be initialized
@@ -711,7 +711,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call interfaces.Cal
 	return core.ApplyMessage(vmEnv, msg, gasPool)
 }
 
-// SendTransaction updates the pending block to include the given transaction.
+// SendTransaction updates the accepted block to include the given transaction.
 func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
