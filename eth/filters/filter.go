@@ -333,22 +333,26 @@ func (f *Filter) checkMatches(ctx context.Context, header *types.Header) ([]*typ
 
 	unfiltered := types.FlattenLogs(logsList)
 	logs := filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
-	if len(logs) > 0 {
-		// We have matching logs, check if we need to resolve full logs via the light client
-		if logs[0].TxHash == (common.Hash{}) {
-			receipts, err := f.sys.backend.GetReceipts(ctx, header.Hash())
-			if err != nil {
-				return nil, err
-			}
-			unfiltered = unfiltered[:0]
-			for _, receipt := range receipts {
-				unfiltered = append(unfiltered, receipt.Logs...)
-			}
-			logs = filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
-		}
+	if len(logs) == 0 {
+		return nil, nil
+	}
+	// Most backends will deliver un-derived logs, but check nevertheless.
+	if len(logs) > 0 && logs[0].TxHash != (common.Hash{}) {
 		return logs, nil
 	}
-	return nil, nil
+	// We have matching logs, check if we need to resolve full logs via the light client
+	receipts, err := f.sys.backend.GetReceipts(ctx, header.Hash())
+	if err != nil {
+		return nil, err
+	}
+	unfiltered = unfiltered[:0]
+	for _, receipt := range receipts {
+		unfiltered = append(unfiltered, receipt.Logs...)
+	}
+	logs = filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
+
+	return logs, nil
+
 }
 
 func includes(addresses []common.Address, a common.Address) bool {
