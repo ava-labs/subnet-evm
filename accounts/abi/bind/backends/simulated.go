@@ -62,20 +62,16 @@ import (
 var (
 	_ bind.AcceptedContractCaller = (*SimulatedBackend)(nil)
 	_ bind.ContractBackend        = (*SimulatedBackend)(nil)
-	_ bind.ContractFilterer       = (*SimulatedBackend)(nil)
-	_ bind.ContractTransactor     = (*SimulatedBackend)(nil)
 	_ bind.DeployBackend          = (*SimulatedBackend)(nil)
 
-	_ interfaces.ChainReader            = (*SimulatedBackend)(nil)
-	_ interfaces.ChainStateReader       = (*SimulatedBackend)(nil)
-	_ interfaces.TransactionReader      = (*SimulatedBackend)(nil)
-	_ interfaces.TransactionSender      = (*SimulatedBackend)(nil)
-	_ interfaces.ContractCaller         = (*SimulatedBackend)(nil)
-	_ interfaces.GasEstimator           = (*SimulatedBackend)(nil)
-	_ interfaces.GasPricer              = (*SimulatedBackend)(nil)
-	_ interfaces.LogFilterer            = (*SimulatedBackend)(nil)
-	_ interfaces.AcceptedStateReader    = (*SimulatedBackend)(nil)
-	_ interfaces.AcceptedContractCaller = (*SimulatedBackend)(nil)
+	_ interfaces.ChainReader         = (*SimulatedBackend)(nil)
+	_ interfaces.ChainStateReader    = (*SimulatedBackend)(nil)
+	_ interfaces.TransactionReader   = (*SimulatedBackend)(nil)
+	_ interfaces.TransactionSender   = (*SimulatedBackend)(nil)
+	_ interfaces.GasEstimator        = (*SimulatedBackend)(nil)
+	_ interfaces.GasPricer           = (*SimulatedBackend)(nil)
+	_ interfaces.LogFilterer         = (*SimulatedBackend)(nil)
+	_ interfaces.AcceptedStateReader = (*SimulatedBackend)(nil)
 )
 
 var (
