@@ -69,7 +69,8 @@ func (m *Metrics) Serve(ctx context.Context, metricsPort string, metricsEndpoint
 	ctx, cancel := context.WithCancel(ctx)
 	// Create a prometheus server to expose individual tx metrics
 	server := &http.Server{
-		Addr: fmt.Sprintf(":%s", metricsPort),
+		//Addr: fmt.Sprintf(":%s", metricsPort),
+		Addr: fmt.Sprintf("35.162.160.76:%s", metricsPort),
 	}
 
 	// Start up go routine to listen for SIGINT notifications to gracefully shut down server
