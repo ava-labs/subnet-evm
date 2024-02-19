@@ -199,10 +199,7 @@ var (
 	//
 	//The other parameters defined in EIP 2200 are unchanged.
 	// see gasSStoreEIP2200(...) in core/vm/gas_table.go for more info about how EIP 2200 is specified
-
-	// gasSStoreEIP2539 implements gas cost for SSTORE according to EIP-2539
-	// Replace `SSTORE_CLEARS_SCHEDULE` with `SSTORE_RESET_GAS + ACCESS_LIST_STORAGE_KEY_COST` (4,800)
-	gasSStoreEIP3529 = makeGasSStoreFunc()
+	gasSStoreEIP2929 = makeGasSStoreFunc()
 )
 
 // makeSelfdestructGasFn can create the selfdestruct dynamic gas function for EIP-2929 and EIP-2539
