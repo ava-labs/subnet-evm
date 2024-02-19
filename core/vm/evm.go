@@ -194,7 +194,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		StateDB:     statedb,
 		Config:      config,
 		chainConfig: chainConfig,
-		chainRules:  chainConfig.AvalancheRules(blockCtx.BlockNumber, blockCtx.Time),
+		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Time),
 	}
 	evm.interpreter = NewEVMInterpreter(evm)
 	return evm
@@ -242,7 +242,7 @@ func (evm *EVM) Interpreter() *EVMInterpreter {
 func (evm *EVM) SetBlockContext(blockCtx BlockContext) {
 	evm.Context = blockCtx
 	num := blockCtx.BlockNumber
-	evm.chainRules = evm.chainConfig.AvalancheRules(num, blockCtx.Time)
+	evm.chainRules = evm.chainConfig.Rules(num, blockCtx.Time)
 }
 
 // Call executes the contract associated with the addr with the given input as

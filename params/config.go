@@ -153,7 +153,7 @@ var (
 		UpgradeConfig:            UpgradeConfig{},
 	}
 
-	TestRules = TestChainConfig.AvalancheRules(new(big.Int), 0)
+	TestRules = TestChainConfig.Rules(new(big.Int), 0)
 )
 
 func getUpgradeTime(networkID uint32, upgradeTimes map[uint32]time.Time) *uint64 {
@@ -695,9 +695,9 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 	}
 }
 
-// AvalancheRules returns the Avalanche modified rules to support Avalanche
+// Rules returns the Avalanche modified rules to support Avalanche
 // network upgrades
-func (c *ChainConfig) AvalancheRules(blockNum *big.Int, timestamp uint64) Rules {
+func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	rules := c.rules(blockNum, timestamp)
 
 	rules.IsSubnetEVM = c.IsSubnetEVM(timestamp)
