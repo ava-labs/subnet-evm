@@ -28,7 +28,8 @@ import (
 )
 
 const (
-	MetricsEndpoint = "/metrics" // Endpoint for the Prometheus Metrics Server
+	//MetricsEndpoint = "/metrics" // Endpoint for the Prometheus Metrics Server
+	MetricsEndpoint = "/metricsloadtest" // Endpoint for the Prometheus Metrics Server
 )
 
 // Loader executes a series of worker/tx sequence pairs.
