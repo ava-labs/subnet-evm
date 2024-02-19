@@ -17,7 +17,7 @@
 package vm
 
 import (
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/ava-labs/subnet-evm/params"
 )
 
 // LookupInstructionSet returns the instructionset for the fork configured by

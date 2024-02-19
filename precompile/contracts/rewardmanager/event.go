@@ -5,8 +5,8 @@
 package rewardmanager
 
 import (
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/precompile/contract"
 )
 
 const (

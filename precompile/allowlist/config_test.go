@@ -6,7 +6,7 @@ package allowlist
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/precompile/modules"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 )
 
 var testModule = modules.Module{

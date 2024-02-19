@@ -27,10 +27,10 @@
 package node
 
 import (
+	"github.com/ava-labs/subnet-evm/internal/debug"
+	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/internal/debug"
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // apis returns the collection of built-in RPC APIs.

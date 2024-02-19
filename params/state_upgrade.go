@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/utils"
 )
 
 // StateUpgrade describes the modifications to be made to the state during

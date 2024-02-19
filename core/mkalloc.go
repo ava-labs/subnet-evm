@@ -42,7 +42,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/core"
+	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/exp/slices"
 )
