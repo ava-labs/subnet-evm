@@ -5,7 +5,7 @@ package params
 
 import (
 	"github.com/ava-labs/avalanchego/version"
-	"github.com/ava-labs/subnet-evm/utils"
+	"github.com/ethereum/go-ethereum/utils"
 )
 
 // MandatoryNetworkUpgrades contains timestamps that enable mandatory network upgrades.

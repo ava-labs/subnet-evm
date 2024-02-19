@@ -1,4 +1,4 @@
-module github.com/ava-labs/subnet-evm
+module github.com/ethereum/go-ethereum
 
 go 1.21
 

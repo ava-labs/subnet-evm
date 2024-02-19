@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type blockAndState struct {

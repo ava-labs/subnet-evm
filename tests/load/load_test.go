@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/tests/utils/runner"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/tests/utils/runner"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )

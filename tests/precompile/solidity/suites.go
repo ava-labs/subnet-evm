@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/tests/utils"
+	"github.com/ethereum/go-ethereum/tests/utils"
 	ginkgo "github.com/onsi/ginkgo/v2"
 )
 
