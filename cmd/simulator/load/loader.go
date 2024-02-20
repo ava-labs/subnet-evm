@@ -230,7 +230,7 @@ func ExecuteLoader(ctx context.Context, config config.Config) error {
 		})
 	}
 	txSequenceStart := time.Now()
-	txSequences, err := txs.GenerateTxSequences(ctx, txGenerator, clients[0], pks, config.TxsPerWorker, true)
+	txSequences, err := txs.GenerateTxSequences(ctx, txGenerator, clients[0], pks, config.TxsPerWorker, false)
 	if err != nil {
 		return err
 	}
