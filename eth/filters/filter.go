@@ -362,7 +362,6 @@ func (f *Filter) checkMatches(ctx context.Context, header *types.Header) ([]*typ
 	logs = filterLogs(unfiltered, nil, nil, f.addresses, f.topics)
 
 	return logs, nil
-
 }
 
 func includes(addresses []common.Address, a common.Address) bool {
