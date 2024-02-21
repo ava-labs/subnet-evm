@@ -24,10 +24,6 @@ import (
 	"runtime"
 )
 
-const (
-	importBatchSize = 2500
-)
-
 // Fatalf formats a message to standard error and exits the program.
 // The message is also printed to standard output if standard error
 // is redirected to a different file.
