@@ -67,7 +67,7 @@ func getValidEthTxs(key *ecdsa.PrivateKey, count int, gasPrice *big.Int) []*type
 				gasPrice,
 				[]byte(strings.Repeat("aaaaaaaaaa", 100))),
 			types.HomesteadSigner{}, key)
-		tx.SetFirstSeen(time.Now().Add(-1 * time.Minute))
+		tx.SetTime(time.Now().Add(-1 * time.Minute))
 		res[i] = tx
 	}
 	return res

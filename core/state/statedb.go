@@ -312,7 +312,7 @@ func (s *StateDB) AddRefund(gas uint64) {
 }
 
 // SubRefund removes gas from the refund counter.
-// This method will panic if the refund counter goes below zero
+// This method will set the refund counter to 0 if the gas is greater than the current refund.
 func (s *StateDB) SubRefund(gas uint64) {
 	s.journal.append(refundChange{prev: s.refund})
 	if gas > s.refund {

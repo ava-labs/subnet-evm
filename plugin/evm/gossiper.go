@@ -160,7 +160,7 @@ func (n *pushGossiper) queueExecutableTxs(
 		case next.Nonce() < status.nonce:
 			stxs.Shift()
 			continue
-		case next.Nonce() > status.nonce, time.Since(next.FirstSeen()) < regossipFrequency.Duration,
+		case next.Nonce() > status.nonce, time.Since(next.Time()) < regossipFrequency.Duration,
 			status.txsAdded >= maxAcctTxs:
 			stxs.Pop()
 			continue

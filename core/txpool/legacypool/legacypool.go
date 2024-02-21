@@ -707,7 +707,7 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 
 	opts := &txpool.ValidationOptionsWithState{
 		State: pool.currentState,
-		Rules: pool.chainconfig.AvalancheRules(
+		Rules: pool.chainconfig.Rules(
 			pool.currentHead.Load().Number,
 			pool.currentHead.Load().Time,
 		),
