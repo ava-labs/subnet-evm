@@ -28,6 +28,6 @@ avalanche subnet configure localnet --subnet-config subnet.json --config .avalan
 
 # use the same avalanchego version as the one used in subnet-evm
 # use tee to keep showing outut while storing in a var
-OUTPUT=$(avalanche subnet deploy localnet -l --avalanchego-version v1.10.17 --config .avalanche-cli.json | tee /dev/fd/2)
+OUTPUT=$(avalanche subnet deploy localnet -l --avalanchego-version v1.10.19 --config .avalanche-cli.json | tee /dev/fd/2)
 
 setStatus

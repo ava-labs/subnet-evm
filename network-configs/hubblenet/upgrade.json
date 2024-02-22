@@ -9,6 +9,11 @@
             "ticksConfig": {
                 "blockTimestamp": 1699950600
             }
+        },
+        {
+            "jurorV2Config": {
+                "blockTimestamp": 1708686000
+            }
         }
     ]
 }

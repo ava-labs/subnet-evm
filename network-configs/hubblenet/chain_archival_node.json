@@ -11,7 +11,7 @@
     "continuous-profiler-max-files": 200,
     "continuous-profiler-frequency": "10m",
     "admin-api-enabled": true,
-    "eth-apis": ["public-eth","public-eth-filter","net","web3","internal-public-eth","internal-public-blockchain","internal-public-transaction-pool","internal-public-debug","internal-private-debug","internal-public-tx-pool","internal-public-account","debug-tracer"],
+    "eth-apis": ["public-eth","public-eth-filter","net","web3","internal-public-eth","internal-blockchain","internal-transaction","internal-debug","internal-tx-pool","internal-account","debug-tracer"],
     "trading-api-enabled": true,
     "testing-api-enabled": true
 }

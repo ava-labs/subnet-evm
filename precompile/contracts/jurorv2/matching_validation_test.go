@@ -280,6 +280,9 @@ func testValidateExecuteSignedOrder(t *testing.T, mockBibliophile *b.MockBibliop
 	assert.Nil(t, err)
 	assert.Equal(t, orderHash, strings.TrimPrefix(h.Hex(), "0x"))
 
+	encodedOrder, err := order.EncodeToABIWithoutType()
+	assert.Nil(t, err)
+
 	marketAddress := common.HexToAddress("0xa72b463C21dA61cCc86069cFab82e9e8491152a0")
 	mockBibliophile.EXPECT().GetTimeStamp().Return(order.ExpireAt.Uint64()).Times(1)
 	mockBibliophile.EXPECT().GetActiveMarketsCount().Return(int64(1)).Times(1)
@@ -290,7 +293,7 @@ func testValidateExecuteSignedOrder(t *testing.T, mockBibliophile *b.MockBibliop
 	mockBibliophile.EXPECT().GetSignedOrderFilledAmount(h).Return(filledAmount).Times(1)
 	mockBibliophile.EXPECT().HasReferrer(order.Trader).Return(true).Times(1)
 
-	m, err := validateExecuteSignedOrder(mockBibliophile, order, side, fillAmount)
+	m, err := validateOrder(mockBibliophile, ob.Signed, encodedOrder, side, fillAmount)
 	assert.Nil(t, err)
 	assertMetadataEquality(t, &Metadata{
 		AmmIndex:          new(big.Int).Set(order.AmmIndex),
@@ -329,6 +332,8 @@ func TestValidateExecuteLimitOrder(t *testing.T) {
 	t.Run("validateExecuteLimitOrder", func(t *testing.T) {
 		orderHash, err := order.Hash()
 		assert.Nil(t, err)
+		encodedOrder, err := order.EncodeToABIWithoutType()
+		assert.Nil(t, err)
 
 		blockPlaced := big.NewInt(42)
 		mockBibliophile.EXPECT().GetOrderFilledAmount(orderHash).Return(filledAmount).Times(1)
@@ -336,7 +341,7 @@ func TestValidateExecuteLimitOrder(t *testing.T) {
 		mockBibliophile.EXPECT().GetBlockPlaced(orderHash).Return(blockPlaced).Times(1)                              // placed
 		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order.AmmIndex.Int64()).Return(marketAddress).Times(1) // placed
 
-		m, err := validateExecuteLimitOrder(mockBibliophile, order, Long, fillAmount)
+		m, err := validateOrder(mockBibliophile, ob.Limit, encodedOrder, Long, fillAmount)
 		assert.Nil(t, err)
 		assertMetadataEquality(t, &Metadata{
 			AmmIndex:          new(big.Int).Set(order.AmmIndex),
@@ -351,13 +356,92 @@ func TestValidateExecuteLimitOrder(t *testing.T) {
 	t.Run("validateExecuteLimitOrder returns orderHash even when validation fails", func(t *testing.T) {
 		orderHash, err := order.Hash()
 		assert.Nil(t, err)
+		encodedOrder, err := order.EncodeToABIWithoutType()
+		assert.Nil(t, err)
 
 		mockBibliophile.EXPECT().GetOrderFilledAmount(orderHash).Return(filledAmount).Times(1)
 		mockBibliophile.EXPECT().GetOrderStatus(orderHash).Return(int64(2)).Times(1) // Filled
 
-		m, err := validateExecuteLimitOrder(mockBibliophile, order, Long, fillAmount)
+		m, err := validateOrder(mockBibliophile, ob.Limit, encodedOrder, Long, fillAmount)
 		assert.EqualError(t, err, ErrInvalidOrder.Error())
 		assert.Equal(t, orderHash, m.OrderHash)
+	})
+}
+
+func TestValidateExecuteIOCOrder(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBibliophile := b.NewMockBibliophileClient(ctrl)
+	marketAddress := common.HexToAddress("0xa72b463C21dA61cCc86069cFab82e9e8491152a0")
+	trader := common.HexToAddress("0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC")
+
+	order := &hu.IOCOrder{
+		BaseOrder: hu.BaseOrder{
+			AmmIndex:          big.NewInt(534),
+			Trader:            trader,
+			BaseAssetQuantity: big.NewInt(10),
+			Price:             big.NewInt(20),
+			Salt:              big.NewInt(1),
+			ReduceOnly:        false,
+		},
+		OrderType: uint8(ob.IOC),
+		ExpireAt:  big.NewInt(65),
+	}
+	filledAmount := big.NewInt(5)
+	fillAmount := big.NewInt(5)
+
+	t.Run("validateExecuteIOCOrder success", func(t *testing.T) {
+		orderHash, err := order.Hash()
+		assert.Nil(t, err)
+		encodedOrder, err := order.EncodeToABIWithoutType()
+		assert.Nil(t, err)
+
+		blockPlaced := big.NewInt(42)
+		mockBibliophile.EXPECT().IOC_GetOrderFilledAmount(orderHash).Return(filledAmount).Times(1)
+		mockBibliophile.EXPECT().IOC_GetOrderStatus(orderHash).Return(int64(1)).Times(1)                             // placed
+		mockBibliophile.EXPECT().IOC_GetBlockPlaced(orderHash).Return(blockPlaced).Times(1)                          // placed
+		mockBibliophile.EXPECT().GetMarketAddressFromMarketID(order.AmmIndex.Int64()).Return(marketAddress).Times(1) // placed
+		mockBibliophile.EXPECT().GetTimeStamp().Return(uint64(60)).Times(1)                                          // placed
+
+		m, err := validateOrder(mockBibliophile, ob.IOC, encodedOrder, Long, fillAmount)
+		assert.Nil(t, err)
+		assertMetadataEquality(t, &Metadata{
+			AmmIndex:          new(big.Int).Set(order.AmmIndex),
+			Trader:            trader,
+			BaseAssetQuantity: new(big.Int).Set(order.BaseAssetQuantity),
+			BlockPlaced:       blockPlaced,
+			Price:             new(big.Int).Set(order.Price),
+			OrderHash:         orderHash,
+		}, m)
+	})
+
+	t.Run("validateExecuteIOCOrder not ioc order", func(t *testing.T) {
+		order.OrderType = uint8(ob.Limit)
+		orderHash, err := order.Hash()
+		assert.Nil(t, err)
+		encodedOrder, err := order.EncodeToABIWithoutType()
+		assert.Nil(t, err)
+
+		m, err := validateOrder(mockBibliophile, ob.IOC, encodedOrder, Long, fillAmount)
+		assert.NotNil(t, err)
+		assert.Equal(t, err.Error(), "not ioc order")
+		assert.Equal(t, m.OrderHash, orderHash)
+	})
+
+	t.Run("validateExecuteIOCOrder order expires", func(t *testing.T) {
+		order.OrderType = uint8(ob.IOC)
+		orderHash, err := order.Hash()
+		assert.Nil(t, err)
+		encodedOrder, err := order.EncodeToABIWithoutType()
+		assert.Nil(t, err)
+
+		mockBibliophile.EXPECT().GetTimeStamp().Return(uint64(66)).Times(1)
+
+		m, err := validateOrder(mockBibliophile, ob.IOC, encodedOrder, Long, fillAmount)
+		assert.NotNil(t, err)
+		assert.Equal(t, err.Error(), "ioc expired")
+		assert.Equal(t, m.OrderHash, orderHash)
 	})
 }
 
@@ -376,7 +460,7 @@ func TestDetermineFillPrice(t *testing.T) {
 
 	mockBibliophile := b.NewMockBibliophileClient(ctrl)
 
-	oraclePrice := hu.Mul1e6(big.NewInt(20))                                                               // $10
+	oraclePrice := hu.Mul1e6(big.NewInt(20))                                                               // $20
 	spreadLimit := new(big.Int).Mul(big.NewInt(50), big.NewInt(1e4))                                       // 50%
 	upperbound := hu.Div1e6(new(big.Int).Mul(oraclePrice, new(big.Int).Add(big.NewInt(1e6), spreadLimit))) // $10
 	lowerbound := hu.Div1e6(new(big.Int).Mul(oraclePrice, new(big.Int).Sub(big.NewInt(1e6), spreadLimit))) // $30
@@ -659,6 +743,96 @@ func TestDetermineFillPrice(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, FillPriceAndModes{upperbound, Maker, Taker}, *output)
 			})
+		})
+	})
+
+	t.Run("short order came first", func(t *testing.T) {
+		blockPlaced0 := big.NewInt(70)
+		blockPlaced1 := big.NewInt(69)
+		t.Run("short price < long price", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(20)),
+				AmmIndex:    big.NewInt(market),
+				BlockPlaced: blockPlaced0,
+			}
+			m1 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(19)),
+				BlockPlaced: blockPlaced1,
+			}
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err, _ := determineFillPrice(mockBibliophile, m0, m1)
+			assert.Nil(t, err)
+			assert.Equal(t, FillPriceAndModes{m1.Price, Taker, Maker}, *output)
+		})
+		t.Run("short order is IOC", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(20)),
+				AmmIndex:    big.NewInt(market),
+				BlockPlaced: blockPlaced0,
+			}
+			m1 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(19)),
+				BlockPlaced: blockPlaced1,
+				OrderType:   ob.IOC,
+			}
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err, errorOrder := determineFillPrice(mockBibliophile, m0, m1)
+			assert.Nil(t, output)
+			assert.Equal(t, ErrIOCOrderExpired, err)
+			assert.Equal(t, Order1, errorOrder)
+		})
+		t.Run("long order is post only", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(20)),
+				AmmIndex:    big.NewInt(market),
+				BlockPlaced: blockPlaced0,
+				OrderType:   ob.Limit,
+				PostOnly:    true,
+			}
+			m1 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(19)),
+				BlockPlaced: blockPlaced1,
+			}
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err, errorOrder := determineFillPrice(mockBibliophile, m0, m1)
+			assert.Nil(t, output)
+			assert.Equal(t, ErrCrossingMarket, err)
+			assert.Equal(t, Order0, errorOrder)
+		})
+	})
+	t.Run("both orders in the same block", func(t *testing.T) {
+		blockPlaced0 := big.NewInt(69)
+		blockPlaced1 := big.NewInt(69)
+		t.Run("short order = IOC", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(19)),
+				AmmIndex:    big.NewInt(market),
+				BlockPlaced: blockPlaced0,
+			}
+			m1 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(19)),
+				BlockPlaced: blockPlaced1,
+				OrderType:   ob.IOC,
+			}
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err, _ := determineFillPrice(mockBibliophile, m0, m1)
+			assert.Nil(t, err)
+			assert.Equal(t, FillPriceAndModes{m0.Price, Maker, Taker}, *output)
+		})
+		t.Run("short order != IOC", func(t *testing.T) {
+			m0 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(19)),
+				AmmIndex:    big.NewInt(market),
+				BlockPlaced: blockPlaced0,
+			}
+			m1 := &Metadata{
+				Price:       hu.Mul1e6(big.NewInt(19)),
+				BlockPlaced: blockPlaced1,
+			}
+			mockBibliophile.EXPECT().GetUpperAndLowerBoundForMarket(market).Return(upperbound, lowerbound).Times(1)
+			output, err, _ := determineFillPrice(mockBibliophile, m0, m1)
+			assert.Nil(t, err)
+			assert.Equal(t, FillPriceAndModes{m1.Price, Taker, Maker}, *output)
 		})
 	})
 }
