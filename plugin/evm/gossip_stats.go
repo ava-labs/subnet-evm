@@ -18,6 +18,7 @@ type GossipReceivedStats interface {
 	IncEthTxsGossipReceived()
 
 	// new vs. known txs received
+	IncEthTxsGossipReceivedError()
 	IncEthTxsGossipReceivedKnown()
 	IncEthTxsGossipReceivedNew()
 
@@ -57,6 +58,7 @@ type gossipStats struct {
 	ethTxsRegossipQueuedRemote metrics.Counter
 
 	// new vs. known txs received
+	ethTxsGossipReceivedError metrics.Counter
 	ethTxsGossipReceivedKnown metrics.Counter
 	ethTxsGossipReceivedNew   metrics.Counter
 
@@ -84,6 +86,7 @@ func NewGossipStats() GossipStats {
 		ethTxsRegossipQueuedLocal:  metrics.GetOrRegisterCounter("regossip_eth_txs_queued_local_tx_count", nil),
 		ethTxsRegossipQueuedRemote: metrics.GetOrRegisterCounter("regossip_eth_txs_queued_remote_tx_count", nil),
 
+		ethTxsGossipReceivedError: metrics.GetOrRegisterCounter("gossip_eth_txs_received_error", nil),
 		ethTxsGossipReceivedKnown: metrics.GetOrRegisterCounter("gossip_eth_txs_received_known", nil),
 		ethTxsGossipReceivedNew:   metrics.GetOrRegisterCounter("gossip_eth_txs_received_new", nil),
 
@@ -104,6 +107,7 @@ func NewGossipStats() GossipStats {
 func (g *gossipStats) IncEthTxsGossipReceived() { g.ethTxsGossipReceived.Inc(1) }
 
 // new vs. known txs received
+func (g *gossipStats) IncEthTxsGossipReceivedError() { g.ethTxsGossipReceivedError.Inc(1) }
 func (g *gossipStats) IncEthTxsGossipReceivedKnown() { g.ethTxsGossipReceivedKnown.Inc(1) }
 func (g *gossipStats) IncEthTxsGossipReceivedNew()   { g.ethTxsGossipReceivedNew.Inc(1) }
 

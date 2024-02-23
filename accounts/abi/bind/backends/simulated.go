@@ -115,10 +115,8 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 		Alloc:    alloc,
 	}
 	cacheConfig := &core.CacheConfig{}
-	blockchain, err := core.NewBlockChain(database, cacheConfig, &genesis, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create simulated blockchain: %v", err))
-	}
+	blockchain, _ := core.NewBlockChain(database, cacheConfig, &genesis, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
+
 	backend := &SimulatedBackend{
 		database:   database,
 		blockchain: blockchain,
@@ -610,6 +608,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call interfaces.Call
 	for lo+1 < hi {
 		mid := (hi + lo) / 2
 		failed, _, err := executable(mid)
+
 		// If the error is not nil(consensus error), it means the provided message
 		// call or transaction will never be accepted no matter how much gas it is
 		// assigned. Return the error directly, don't struggle any more
@@ -769,7 +768,7 @@ func (b *SimulatedBackend) FilterLogs(ctx context.Context, query interfaces.Filt
 			to = query.ToBlock.Int64()
 		}
 		// Construct the range filter
-		filter, _ = b.filterSystem.NewRangeFilter(from, to, query.Addresses, query.Topics)
+		filter = b.filterSystem.NewRangeFilter(from, to, query.Addresses, query.Topics)
 	}
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)
@@ -912,7 +911,7 @@ func (fb *filterBackend) EventMux() *event.TypeMux { panic("not supported") }
 
 func (fb *filterBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	switch number {
-	case rpc.PendingBlockNumber, rpc.AcceptedBlockNumber:
+	case rpc.PendingBlockNumber, rpc.FinalizedBlockNumber:
 		if block := fb.backend.acceptedBlock; block != nil {
 			return block.Header(), nil
 		}
