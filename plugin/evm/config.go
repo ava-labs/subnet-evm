@@ -63,8 +63,8 @@ const (
 	defaultIsValidator             = false
 	defaultTradingAPIEnabled       = false
 	defaultLoadFromSnapshotEnabled = true
-	defaultSnapshotFilePath        = "/home/ubuntu/.avalanche-cli/snapshot/evm.snapshot"
-	defaultMakerbookDatabasePath   = "/home/ubuntu/.avalanche-cli/evm/makerbook.db"
+	defaultSnapshotFilePath        = "/tmp/snapshot"
+	defaultMakerbookDatabasePath   = "/tmp/makerbook"
 )
 
 var (
