@@ -39,4 +39,7 @@ var (
 	// unquenched liquidations
 	unquenchedLiquidationsCounter = metrics.NewRegisteredCounter("unquenched_liquidations", nil)
 	placeSignedOrderCounter       = metrics.NewRegisteredCounter("place_signed_order", nil)
+
+	// makerbook write failures
+	makerBookWriteFailuresCounter = metrics.NewRegisteredCounter("makerbook_write_failures", nil)
 )

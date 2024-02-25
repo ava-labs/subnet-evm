@@ -8,5 +8,7 @@
   "priority-regossip-addresses": ["0x06CCAD927e6B1d36E219Cb582Af3185D0705f78F"],
   "validator-private-key-file": "/home/ubuntu/validator.pk",
   "feeRecipient": "<insert address corresponding to private key above>",
-  "is-validator": true
+  "is-validator": true,
+  "snapshot-file-path": "/tmp/snapshot",
+  "makerbook-database-path": "/tmp/makerbook"
 }

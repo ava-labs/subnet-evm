@@ -13,5 +13,7 @@
     "admin-api-enabled": true,
     "eth-apis": ["public-eth","public-eth-filter","net","web3","internal-public-eth","internal-blockchain","internal-transaction","internal-debug","internal-tx-pool","internal-account","debug-tracer"],
     "trading-api-enabled": true,
-    "testing-api-enabled": true
+    "testing-api-enabled": true,
+    "snapshot-file-path": "/tmp/snapshot",
+    "makerbook-database-path": "/tmp/makerbook"
 }

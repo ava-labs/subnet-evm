@@ -63,6 +63,8 @@ const (
 	defaultIsValidator             = false
 	defaultTradingAPIEnabled       = false
 	defaultLoadFromSnapshotEnabled = true
+	defaultSnapshotFilePath        = "/home/ubuntu/.avalanche-cli/snapshot/evm.snapshot"
+	defaultMakerbookDatabasePath   = "/home/ubuntu/.avalanche-cli/evm/makerbook.db"
 )
 
 var (
@@ -242,6 +244,12 @@ type Config struct {
 
 	// LoadFromSnapshotEnabled = true if the node should load the memory db from a snapshot
 	LoadFromSnapshotEnabled bool `json:"load-from-snapshot-enabled"`
+
+	// SnapshotFilePath is the path to the file which saves the latest snapshot bytes
+	SnapshotFilePath string `json:"snapshot-file-path"`
+
+	// MakerbookDatabasePath is the path to the file which saves the makerbook orders
+	MakerbookDatabasePath string `json:"makerbook-database-path"`
 }
 
 // EthAPIs returns an array of strings representing the Eth APIs that should be enabled
@@ -306,6 +314,8 @@ func (c *Config) SetDefaults() {
 	c.IsValidator = defaultIsValidator
 	c.TradingAPIEnabled = defaultTradingAPIEnabled
 	c.LoadFromSnapshotEnabled = defaultLoadFromSnapshotEnabled
+	c.SnapshotFilePath = defaultSnapshotFilePath
+	c.MakerbookDatabasePath = defaultMakerbookDatabasePath
 }
 
 func (d *Duration) UnmarshalJSON(data []byte) (err error) {

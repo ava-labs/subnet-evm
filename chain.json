@@ -10,5 +10,7 @@
   "is-validator": true,
   "trading-api-enabled": true,
   "testing-api-enabled": true,
-  "load-from-snapshot-enabled": true
+  "load-from-snapshot-enabled": true,
+  "snapshot-file-path": "/tmp/snapshot",
+  "makerbook-database-path": "/tmp/makerbook"
 }

@@ -5,6 +5,7 @@ package orderbook
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -17,10 +18,12 @@ import (
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 var traderFeed event.Feed
 var marketFeed event.Feed
+var SignedOrderDatabaseFile = ""
 
 type TradingAPI struct {
 	db            LimitOrderDatabase
@@ -340,6 +343,7 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 		return orderId, err
 	}
 	if trader != signer && !api.configService.IsTradingAuthority(trader, signer) {
+		log.Error("not trading authority", "trader", trader.String(), "signer", signer.String())
 		return orderId, hu.ErrNoTradingAuthority
 	}
 
@@ -393,6 +397,10 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	placeSignedOrderCounter.Inc(1)
 	api.db.AddSignedOrder(signedOrder, requiredMargin)
 
+	if len(SignedOrderDatabaseFile) > 0 {
+		go writeOrderToFile(order, orderId)
+	}
+
 	// send to trader feed - both for head and accepted block
 	go func() {
 		orderMap := order.Map()
@@ -420,4 +428,38 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	}()
 
 	return orderId, nil
+}
+
+func writeOrderToFile(order *hu.SignedOrder, orderId common.Hash) {
+	orderMap := order.Map()
+	orderMap["orderType"] = "signed"
+	orderMap["expireAt"] = order.ExpireAt.String()
+	doc := map[string]interface{}{
+		"type":      "OrderAccepted",
+		"timestamp": time.Now().Unix(),
+		"trader":    order.Trader.String(),
+		"orderHash": strings.ToLower(orderId.String()),
+		"orderType": "signed",
+		"order": map[string]interface{}{
+			"orderType":         2,
+			"expireAt":          order.ExpireAt.Uint64(),
+			"ammIndex":          order.AmmIndex.Uint64(),
+			"trader":            order.Trader.String(),
+			"baseAssetQuantity": utils.BigIntToFloat(order.BaseAssetQuantity, 18),
+			"price":             utils.BigIntToFloat(order.Price, 6),
+			"salt":              order.Salt.Int64(),
+			"reduceOnly":        order.ReduceOnly,
+		},
+	}
+	jsonDoc, err := json.Marshal(doc)
+	if err != nil {
+		log.Error("writeOrderToFile: failed to marshal order", "err", err)
+		makerBookWriteFailuresCounter.Inc(1)
+		return
+	}
+	err = utils.AppendToFile(SignedOrderDatabaseFile, jsonDoc)
+	if err != nil {
+		log.Error("writeOrderToFile: failed to write order to file", "err", err)
+		makerBookWriteFailuresCounter.Inc(1)
+	}
 }

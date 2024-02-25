@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"math/big"
+	"os"
 	"runtime"
 	"runtime/debug"
 	"sync"
@@ -58,6 +59,7 @@ type limitOrderProcesser struct {
 	tradingAPIEnabled        bool
 	loadFromSnapshotEnabled  bool
 	snapshotSavedBlockNumber uint64
+	snapshotFilePath         string
 	tradingAPI               *orderbook.TradingAPI
 }
 
@@ -109,6 +111,7 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownCh
 		isValidator:             config.IsValidator,
 		tradingAPIEnabled:       config.TradingAPIEnabled,
 		loadFromSnapshotEnabled: config.LoadFromSnapshotEnabled,
+		snapshotFilePath:        config.SnapshotFilePath,
 	}
 }
 
@@ -128,7 +131,6 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions(blockBuilder *block
 			} else {
 				if acceptedBlockNumber > 0 {
 					fromBlock = big.NewInt(int64(acceptedBlockNumber) + 1)
-					log.Info("ListenAndProcessTransactions - memory DB snapshot loaded", "acceptedBlockNumber", acceptedBlockNumber)
 				} else {
 					// not an error, but unlikely after the blockchain is running for some time
 					log.Warn("ListenAndProcessTransactions - no snapshot found")
@@ -349,6 +351,15 @@ func (lop *limitOrderProcesser) runMatchingTimer() {
 }
 
 func (lop *limitOrderProcesser) loadMemoryDBSnapshot() (acceptedBlockNumber uint64, err error) {
+	// logging is done in the respective functions
+	acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromHubbleDB()
+	if err != nil || acceptedBlockNumber == 0 {
+		acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromFile()
+	}
+	return acceptedBlockNumber, err
+}
+
+func (lop *limitOrderProcesser) loadMemoryDBSnapshotFromHubbleDB() (acceptedBlockNumber uint64, err error) {
 	snapshotFound, err := lop.hubbleDB.Has([]byte(memoryDBSnapshotKey))
 	if err != nil {
 		return acceptedBlockNumber, fmt.Errorf("Error in checking snapshot in hubbleDB: err=%v", err)
@@ -367,13 +378,46 @@ func (lop *limitOrderProcesser) loadMemoryDBSnapshot() (acceptedBlockNumber uint
 	var snapshot orderbook.Snapshot
 	err = gob.NewDecoder(buf).Decode(&snapshot)
 	if err != nil {
-		return acceptedBlockNumber, fmt.Errorf("Error in snapshot parsing; err=%v", err)
+		return acceptedBlockNumber, fmt.Errorf("Error in snapshot parsing from hubbleDB; err=%v", err)
 	}
 
 	if snapshot.AcceptedBlockNumber != nil && snapshot.AcceptedBlockNumber.Uint64() > 0 {
 		err = lop.memoryDb.LoadFromSnapshot(snapshot)
 		if err != nil {
-			return acceptedBlockNumber, fmt.Errorf("Error in loading from snapshot: err=%v", err)
+			return acceptedBlockNumber, fmt.Errorf("Error in loading snapshot from hubbleDB: err=%v", err)
+		} else {
+			log.Info("ListenAndProcessTransactions - memory DB snapshot loaded from hubbleDB", "acceptedBlockNumber", acceptedBlockNumber)
+		}
+
+		return snapshot.AcceptedBlockNumber.Uint64(), nil
+	} else {
+		return acceptedBlockNumber, nil
+	}
+}
+
+func (lop *limitOrderProcesser) loadMemoryDBSnapshotFromFile() (acceptedBlockNumber uint64, err error) {
+	if lop.snapshotFilePath == "" {
+		return acceptedBlockNumber, nil
+	}
+
+	memorySnapshotBytes, err := os.ReadFile(lop.snapshotFilePath)
+	if err != nil {
+		return acceptedBlockNumber, fmt.Errorf("Error in reading snapshot file: err=%v", err)
+	}
+
+	buf := bytes.NewBuffer(memorySnapshotBytes)
+	var snapshot orderbook.Snapshot
+	err = gob.NewDecoder(buf).Decode(&snapshot)
+	if err != nil {
+		return acceptedBlockNumber, fmt.Errorf("Error in snapshot parsing from file; err=%v", err)
+	}
+
+	if snapshot.AcceptedBlockNumber != nil && snapshot.AcceptedBlockNumber.Uint64() > 0 {
+		err = lop.memoryDb.LoadFromSnapshot(snapshot)
+		if err != nil {
+			return acceptedBlockNumber, fmt.Errorf("Error in loading snapshot from file: err=%v", err)
+		} else {
+			log.Info("ListenAndProcessTransactions - memory DB snapshot loaded from file", "acceptedBlockNumber", acceptedBlockNumber)
 		}
 
 		return snapshot.AcceptedBlockNumber.Uint64(), nil
@@ -428,9 +472,19 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 		return fmt.Errorf("error in gob encoding: err=%v", err)
 	}
 
-	err = lop.hubbleDB.Put([]byte(memoryDBSnapshotKey), buf.Bytes())
+	snapshotBytes := buf.Bytes()
+
+	err = lop.hubbleDB.Put([]byte(memoryDBSnapshotKey), snapshotBytes)
 	if err != nil {
 		return fmt.Errorf("Error in saving to DB: err=%v", err)
+	}
+
+	// write to snapshot file
+	if lop.snapshotFilePath != "" {
+		err = os.WriteFile(lop.snapshotFilePath, snapshotBytes, 0644)
+		if err != nil {
+			return fmt.Errorf("Error in writing to snapshot file: err=%v", err)
+		}
 	}
 
 	lop.snapshotSavedBlockNumber = acceptedBlockNumber.Uint64()
