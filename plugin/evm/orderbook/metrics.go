@@ -42,7 +42,4 @@ var (
 
 	// makerbook write failures
 	makerBookWriteFailuresCounter = metrics.NewRegisteredCounter("makerbook_write_failures", nil)
-
-	// snapshot write failures
-	SnapshotWriteFailuresCounter = metrics.NewRegisteredCounter("snapshot_write_failures", nil)
 )

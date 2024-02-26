@@ -1185,6 +1185,7 @@ func (vm *VM) NewLimitOrderProcesser() LimitOrderProcesser {
 		&vm.shutdownWg,
 		vm.eth.APIBackend,
 		vm.blockChain,
+		vm.hubbleDB,
 		validatorPrivateKey,
 		vm.config,
 	)
