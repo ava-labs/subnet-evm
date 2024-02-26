@@ -21,7 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/fsnotify/fsnotify"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,35 +79,6 @@ func TestArchiveBlockChain(t *testing.T) {
 			tt.testFunc(t, createArchiveBlockChain)
 		})
 	}
-}
-
-// awaitWatcherEventsSubside waits for at least one event on [watcher] and then waits
-// for at least [subsideTimeout] before returning
-func awaitWatcherEventsSubside(watcher *fsnotify.Watcher, subsideTimeout time.Duration) {
-	done := make(chan struct{})
-
-	go func() {
-		defer func() {
-			close(done)
-		}()
-
-		select {
-		case <-watcher.Events:
-		case <-watcher.Errors:
-			return
-		}
-
-		for {
-			select {
-			case <-watcher.Events:
-			case <-watcher.Errors:
-				return
-			case <-time.After(subsideTimeout):
-				return
-			}
-		}
-	}()
-	<-done
 }
 
 func TestArchiveBlockChainSnapsDisabled(t *testing.T) {

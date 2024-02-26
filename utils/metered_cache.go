@@ -5,8 +5,6 @@ package utils
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"sync/atomic"
 	"time"
 
@@ -31,20 +29,6 @@ type MeteredCache struct {
 	// count all operations to decide when to update stats
 	ops             uint64
 	updateFrequency uint64
-}
-
-func dirSize(path string) (int64, error) {
-	var size int64
-	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			size += info.Size()
-		}
-		return nil
-	})
-	return size, err
 }
 
 // NewMeteredCache returns a new MeteredCache that will update stats to the
