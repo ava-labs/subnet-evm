@@ -349,7 +349,7 @@ func (lop *limitOrderProcesser) runMatchingTimer() {
 
 func (lop *limitOrderProcesser) loadMemoryDBSnapshotFromFile() (acceptedBlockNumber uint64, err error) {
 	if lop.snapshotFilePath == "" {
-		return acceptedBlockNumber, nil
+		return acceptedBlockNumber, fmt.Errorf("snapshot file path not set")
 	}
 
 	memorySnapshotBytes, err := os.ReadFile(lop.snapshotFilePath)
