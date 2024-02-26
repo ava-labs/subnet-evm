@@ -61,7 +61,9 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 
 		// The load tests are allergic to high levels of evm logging, so leave it at
 		// the default level instead of raising it to debug (as the warp testing does).
-		chainConfig := tmpnet.FlagsMap{}
+		chainConfig := tmpnet.FlagsMap{
+			"log-level": "debug",
+		}
 
 		nodes := utils.NewTmpnetNodes(nodeCount)
 
