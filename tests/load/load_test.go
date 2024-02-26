@@ -59,7 +59,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 	ginkgo.BeforeAll(func() {
 		genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
 
-		// The load tests are allergic to high levels of evm logging, so leave it at
+		// The load tests are flaky at high levels of evm logging, so leave it at
 		// the default level instead of raising it to debug (as the warp testing does).
 		chainConfig := tmpnet.FlagsMap{}
 
