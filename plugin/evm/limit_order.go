@@ -473,12 +473,6 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 	}
 
 	snapshotBytes := buf.Bytes()
-
-	err = lop.hubbleDB.Put([]byte(memoryDBSnapshotKey), snapshotBytes)
-	if err != nil {
-		return fmt.Errorf("Error in saving to DB: err=%v", err)
-	}
-
 	// write to snapshot file
 	if lop.snapshotFilePath != "" {
 		err = os.WriteFile(lop.snapshotFilePath, snapshotBytes, 0644)
