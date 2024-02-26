@@ -90,7 +90,6 @@ type TxPool struct {
 	quit chan chan error         // Quit channel to tear down the head updater
 
 	gasTip    atomic.Pointer[big.Int] // Remember last value set so it can be retrieved
-	headFeed  event.Feed
 	reorgFeed event.Feed
 }
 
