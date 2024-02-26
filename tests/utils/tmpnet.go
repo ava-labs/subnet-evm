@@ -36,7 +36,7 @@ func NewTmpnetNetwork(nodes []*tmpnet.Node, subnets ...*tmpnet.Subnet) *tmpnet.N
 
 // Create the configuration that will enable creation and access to a
 // subnet created on a temporary network.
-func NewTmpnetSubnet(name string, genesisPath string, nodes ...*tmpnet.Node) *tmpnet.Subnet {
+func NewTmpnetSubnet(name string, genesisPath string, chainConfig tmpnet.FlagsMap, nodes ...*tmpnet.Node) *tmpnet.Subnet {
 	if len(nodes) == 0 {
 		panic("a subnet must be validated by at least one node")
 	}
@@ -51,10 +51,7 @@ func NewTmpnetSubnet(name string, genesisPath string, nodes ...*tmpnet.Node) *tm
 		panic(err)
 	}
 
-	configBytes, err := json.Marshal(tmpnet.FlagsMap{
-		"log-level":        "debug",
-		"warp-api-enabled": true,
-	})
+	chainConfigBytes, err := json.Marshal(chainConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +62,7 @@ func NewTmpnetSubnet(name string, genesisPath string, nodes ...*tmpnet.Node) *tm
 			{
 				VMID:         evm.ID,
 				Genesis:      genesisBytes,
-				Config:       string(configBytes),
+				Config:       string(chainConfigBytes),
 				PreFundedKey: tmpnet.HardhatKey,
 			},
 		},
