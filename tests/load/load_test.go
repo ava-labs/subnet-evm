@@ -19,6 +19,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/log"
 
+	"github.com/ava-labs/avalanchego/config"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/fixture/e2e"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
@@ -68,6 +69,11 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 			flagVars,
 			utils.NewTmpnetNetwork(
 				nodes,
+				tmpnet.FlagsMap{
+					// The default tmpnet log level (info/debug) induces too much overhead for load testing.
+					config.LogDisplayLevelKey: "error",
+					config.LogLevelKey:        "info",
+				},
 				utils.NewTmpnetSubnet(subnetAName, genesisPath, chainConfig, nodes...),
 			),
 		)

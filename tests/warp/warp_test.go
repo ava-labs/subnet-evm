@@ -105,6 +105,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 		flagVars,
 		utils.NewTmpnetNetwork(
 			nodes,
+			tmpnet.FlagsMap{},
 			utils.NewTmpnetSubnet(subnetAName, genesisPath, chainConfig, nodes...),
 			utils.NewTmpnetSubnet(subnetBName, genesisPath, chainConfig, nodes...),
 		),
