@@ -369,7 +369,7 @@ func (lop *limitOrderProcesser) loadMemoryDBSnapshotFromFile() (acceptedBlockNum
 		if err != nil {
 			return acceptedBlockNumber, fmt.Errorf("Error in loading snapshot from file: err=%v", err)
 		} else {
-			log.Info("memory DB snapshot loaded from file", "acceptedBlockNumber", acceptedBlockNumber)
+			log.Info("memory DB snapshot loaded from file", "acceptedBlockNumber", snapshot.AcceptedBlockNumber)
 		}
 
 		return snapshot.AcceptedBlockNumber.Uint64(), nil
