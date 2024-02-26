@@ -56,13 +56,19 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 	var env *e2e.TestEnvironment
 
 	ginkgo.BeforeAll(func() {
-		nodes := utils.NewTmpnetNodes(nodeCount)
 		genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
+
+		// The load tests are allergic to high levels of evm logging, so leave it at
+		// the default level instead of raising it to debug (as the warp testing does).
+		chainConfig := tmpnet.FlagsMap{}
+
+		nodes := utils.NewTmpnetNodes(nodeCount)
+
 		env = e2e.NewTestEnvironment(
 			flagVars,
 			utils.NewTmpnetNetwork(
 				nodes,
-				utils.NewTmpnetSubnet(subnetAName, genesisPath, nodes...),
+				utils.NewTmpnetSubnet(subnetAName, genesisPath, chainConfig, nodes...),
 			),
 		)
 	})
