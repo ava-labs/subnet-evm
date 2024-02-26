@@ -409,5 +409,5 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 }
 
 func newMeteredSnapshotCache(size int) *utils.MeteredCache {
-	return utils.NewMeteredCache(size, "", snapshotCacheNamespace, snapshotCacheStatsUpdateFrequency)
+	return utils.NewMeteredCache(size, snapshotCacheNamespace, snapshotCacheStatsUpdateFrequency)
 }

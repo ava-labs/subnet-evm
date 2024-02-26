@@ -116,7 +116,7 @@ func NewDatabase(diskdb ethdb.Database) *Database {
 func NewDatabaseWithConfig(diskdb ethdb.Database, config *Config) *Database {
 	var cleans cache
 	if config != nil && config.Cache != 0 {
-		cleans = utils.NewMeteredCache(config.Cache*1024*1024, "", config.StatsPrefix, cacheStatsUpdateFrequency)
+		cleans = utils.NewMeteredCache(config.Cache*1024*1024, config.StatsPrefix, cacheStatsUpdateFrequency)
 	}
 	db := prepare(diskdb, config)
 	db.backend = hashdb.New(diskdb, cleans, mptResolver{})

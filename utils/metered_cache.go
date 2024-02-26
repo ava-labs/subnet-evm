@@ -12,8 +12,6 @@ import (
 
 	"github.com/VictoriaMetrics/fastcache"
 	"github.com/ava-labs/subnet-evm/metrics"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 // MeteredCache wraps *fastcache.Cache and periodically pulls stats from it.
@@ -52,20 +50,12 @@ func dirSize(path string) (int64, error) {
 // NewMeteredCache returns a new MeteredCache that will update stats to the
 // provided namespace once per each [updateFrequency] operations.
 // Note: if [updateFrequency] is passed as 0, it will be treated as 1.
-func NewMeteredCache(size int, journal string, namespace string, updateFrequency uint64) *MeteredCache {
-	var cache *fastcache.Cache
-	if journal == "" {
-		cache = fastcache.New(size)
-	} else {
-		dirSize, err := dirSize(journal)
-		log.Info("attempting to load cache from disk", "path", journal, "dirSize", common.StorageSize(dirSize), "err", err)
-		cache = fastcache.LoadFromFileOrNew(journal, size)
-	}
+func NewMeteredCache(size int, namespace string, updateFrequency uint64) *MeteredCache {
 	if updateFrequency == 0 {
 		updateFrequency = 1 // avoid division by zero
 	}
 	mc := &MeteredCache{
-		Cache:           cache,
+		Cache:           fastcache.New(size),
 		namespace:       namespace,
 		updateFrequency: updateFrequency,
 	}
