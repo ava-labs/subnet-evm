@@ -352,9 +352,9 @@ func (lop *limitOrderProcesser) runMatchingTimer() {
 
 func (lop *limitOrderProcesser) loadMemoryDBSnapshot() (acceptedBlockNumber uint64, err error) {
 	// logging is done in the respective functions
-	acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromHubbleDB()
+	acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromFile()
 	if err != nil || acceptedBlockNumber == 0 {
-		acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromFile()
+		acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromHubbleDB()
 	}
 	return acceptedBlockNumber, err
 }
