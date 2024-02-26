@@ -87,7 +87,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		blockchainID := subnet.Chains[0].ChainID
 
 		nodeURIs := tmpnet.GetNodeURIs(network.Nodes)
-		validatorIDs := set.Set[ids.NodeID]{}
+		validatorIDs := set.NewSet[ids.NodeID](len(subnet.ValidatorIDs))
 		validatorIDs.Add(subnet.ValidatorIDs...)
 		rpcEndpoints := make([]string, 0, len(nodeURIs))
 		for _, nodeURI := range nodeURIs {
