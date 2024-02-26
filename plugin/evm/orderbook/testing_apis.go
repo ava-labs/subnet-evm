@@ -9,8 +9,8 @@ import (
 	"encoding/gob"
 	"fmt"
 	"math/big"
+	"os"
 
-	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/precompile/contracts/bibliophile"
 	"github.com/ava-labs/subnet-evm/rpc"
@@ -18,18 +18,18 @@ import (
 )
 
 type TestingAPI struct {
-	db            LimitOrderDatabase
-	backend       *eth.EthAPIBackend
-	configService IConfigService
-	hubbleDB      database.Database
+	db               LimitOrderDatabase
+	backend          *eth.EthAPIBackend
+	configService    IConfigService
+	snapshotFilePath string
 }
 
-func NewTestingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService, hubbleDB database.Database) *TestingAPI {
+func NewTestingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService, snapshotFilePath string) *TestingAPI {
 	return &TestingAPI{
-		db:            database,
-		backend:       backend,
-		configService: configService,
-		hubbleDB:      hubbleDB,
+		db:               database,
+		backend:          backend,
+		configService:    configService,
+		snapshotFilePath: snapshotFilePath,
 	}
 }
 
@@ -60,16 +60,16 @@ func (api *TestingAPI) GetOrderBookVars(ctx context.Context, traderAddress strin
 
 func (api *TestingAPI) GetSnapshot(ctx context.Context) (Snapshot, error) {
 	var snapshot Snapshot
-	memoryDBSnapshotKey := "memoryDBSnapshot"
-	memorySnapshotBytes, err := api.hubbleDB.Get([]byte(memoryDBSnapshotKey))
+
+	memorySnapshotBytes, err := os.ReadFile(api.snapshotFilePath)
 	if err != nil {
-		return snapshot, fmt.Errorf("Error in fetching snapshot from hubbleDB; err=%v", err)
+		return snapshot, fmt.Errorf("error in fetching snapshot from hubbleDB; err=%v", err)
 	}
 
 	buf := bytes.NewBuffer(memorySnapshotBytes)
 	err = gob.NewDecoder(buf).Decode(&snapshot)
 	if err != nil {
-		return snapshot, fmt.Errorf("Error in snapshot parsing; err=%v", err)
+		return snapshot, fmt.Errorf("error in snapshot parsing; err=%v", err)
 	}
 
 	return snapshot, nil
