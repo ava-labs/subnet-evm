@@ -238,7 +238,6 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 		case event := <-newHeadCh:
 			// Chain moved forward, store the head for later consumption
 			newHead = event.Block.Header()
-			p.headFeed.Send(core.NewTxPoolHeadEvent{Head: newHead})
 
 		case head := <-resetDone:
 			// Previous reset finished, update the old head and allow a new reset
@@ -434,12 +433,6 @@ func (p *TxPool) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscrip
 		subs = append(subs, sub)
 	}
 	return p.subs.Track(event.JoinSubscriptions(subs...))
-}
-
-// SubscribeNewHeadEvent registers a subscription of NewHeadEvent and
-// starts sending event to the given channel.
-func (p *TxPool) SubscribeNewHeadEvent(ch chan<- core.NewTxPoolHeadEvent) event.Subscription {
-	return p.subs.Track(p.headFeed.Subscribe(ch))
 }
 
 // SubscribeNewReorgEvent registers a subscription of NewReorgEvent and
