@@ -431,6 +431,10 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 	start := time.Now()
 	currentHeadBlock := lop.blockChain.CurrentBlock()
 
+	if lop.snapshotFilePath == "" {
+		return fmt.Errorf("snapshot file path not set")
+	}
+
 	memoryDBCopy, err := lop.memoryDb.GetOrderBookDataCopy()
 	if err != nil {
 		return fmt.Errorf("Error in getting memory DB copy: err=%v", err)
@@ -474,11 +478,9 @@ func (lop *limitOrderProcesser) saveMemoryDBSnapshot(acceptedBlockNumber *big.In
 
 	snapshotBytes := buf.Bytes()
 	// write to snapshot file
-	if lop.snapshotFilePath != "" {
-		err = os.WriteFile(lop.snapshotFilePath, snapshotBytes, 0644)
-		if err != nil {
-			return fmt.Errorf("Error in writing to snapshot file: err=%v", err)
-		}
+	err = os.WriteFile(lop.snapshotFilePath, snapshotBytes, 0644)
+	if err != nil {
+		return fmt.Errorf("Error in writing to snapshot file: err=%v", err)
 	}
 
 	lop.snapshotSavedBlockNumber = acceptedBlockNumber.Uint64()
