@@ -146,7 +146,7 @@ const (
 
 	// trieCleanCacheStatsNamespace is the namespace to surface stats from the trie
 	// clean cache's underlying fastcache.
-	trieCleanCacheStatsNamespace = "trie/memcache/clean/fastcache"
+	trieCleanCacheStatsNamespace = "hashdb/memcache/clean/fastcache"
 )
 
 // cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
