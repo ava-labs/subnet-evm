@@ -386,7 +386,7 @@ func (lop *limitOrderProcesser) loadMemoryDBSnapshotFromHubbleDB() (acceptedBloc
 		if err != nil {
 			return acceptedBlockNumber, fmt.Errorf("Error in loading snapshot from hubbleDB: err=%v", err)
 		} else {
-			log.Info("ListenAndProcessTransactions - memory DB snapshot loaded from hubbleDB", "acceptedBlockNumber", acceptedBlockNumber)
+			log.Info("memory DB snapshot loaded from hubbleDB", "acceptedBlockNumber", snapshot.AcceptedBlockNumber)
 		}
 
 		return snapshot.AcceptedBlockNumber.Uint64(), nil
