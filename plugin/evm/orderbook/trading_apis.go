@@ -23,7 +23,7 @@ import (
 
 var traderFeed event.Feed
 var marketFeed event.Feed
-var SignedOrderDatabaseFile = ""
+var MakerbookDatabaseFile = ""
 
 type TradingAPI struct {
 	db            LimitOrderDatabase
@@ -397,7 +397,7 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	placeSignedOrderCounter.Inc(1)
 	api.db.AddSignedOrder(signedOrder, requiredMargin)
 
-	if len(SignedOrderDatabaseFile) > 0 {
+	if len(MakerbookDatabaseFile) > 0 {
 		go writeOrderToFile(order, orderId)
 	}
 
@@ -457,7 +457,7 @@ func writeOrderToFile(order *hu.SignedOrder, orderId common.Hash) {
 		makerBookWriteFailuresCounter.Inc(1)
 		return
 	}
-	err = utils.AppendToFile(SignedOrderDatabaseFile, jsonDoc)
+	err = utils.AppendToFile(MakerbookDatabaseFile, jsonDoc)
 	if err != nil {
 		log.Error("writeOrderToFile: failed to write order to file", "err", err)
 		makerBookWriteFailuresCounter.Inc(1)

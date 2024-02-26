@@ -1011,7 +1011,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	if err := handler.RegisterName("order", NewOrderAPI(vm.limitOrderProcesser.GetTradingAPI(), vm)); err != nil {
 		return nil, err
 	}
-	orderbook.SignedOrderDatabaseFile = vm.config.MakerbookDatabasePath
+	orderbook.MakerbookDatabaseFile = vm.config.MakerbookDatabasePath
 
 	if err := handler.RegisterName("orderbook", vm.limitOrderProcesser.GetOrderBookAPI()); err != nil {
 		return nil, err

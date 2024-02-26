@@ -270,6 +270,7 @@ func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
 						lop.memoryDb.Accept(snapshotBlockNumber, snapshotBlock.Timestamp())
 						err := lop.saveMemoryDBSnapshot(big.NewInt(int64(snapshotBlockNumber)))
 						if err != nil {
+							orderbook.SnapshotWriteFailuresCounter.Inc(1)
 							log.Error("Error in saving memory DB snapshot", "err", err, "snapshotBlockNumber", snapshotBlockNumber, "current blockNumber", blockNumber, "blockNumberFloor", blockNumberFloor)
 						}
 					}
@@ -351,7 +352,6 @@ func (lop *limitOrderProcesser) runMatchingTimer() {
 }
 
 func (lop *limitOrderProcesser) loadMemoryDBSnapshot() (acceptedBlockNumber uint64, err error) {
-	// logging is done in the respective functions
 	acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromFile()
 	if err != nil || acceptedBlockNumber == 0 {
 		acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromHubbleDB()
