@@ -66,6 +66,8 @@ github.com/ava-labs/avalanchego v1.11.1 h1:NSelfZ/Di8uGCsRoFK32HOR262eHlpUFmAu8p
 github.com/ava-labs/avalanchego v1.11.1/go.mod h1:+UpgT8X2fNN93+iE100efkZL7ePfBRfRdmpJ/i3YnyY=
 github.com/ava-labs/coreth v0.13.0-rc.0 h1:V2l3qj2ek3geKDJAnF2M94mYJK8kg2kePixujfJ0bmk=
 github.com/ava-labs/coreth v0.13.0-rc.0/go.mod h1:eUMbBLDhlZASJjcbf0gIcD2GMn2rRRCUxC8MXLt5QQk=
+github.com/ava-labs/coreth v0.13.0-rc.0.0.20240226211511-13176d7f084a h1:lGE2Gz/Zjd0wXnv7sh61hivWw33YaKLHqcb1+ewKFCM=
+github.com/ava-labs/coreth v0.13.0-rc.0.0.20240226211511-13176d7f084a/go.mod h1:5BZTgDihoDpwLlEcRV1PUsp4TKeXUlxy/kaMW55ozWY=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
