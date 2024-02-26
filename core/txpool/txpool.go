@@ -415,14 +415,8 @@ func (p *TxPool) PendingFrom(addrs []common.Address, enforceTips bool) map[commo
 // IteratePending iterates over [pool.pending] until [f] returns false.
 // The caller must not modify [tx].
 func (p *TxPool) IteratePending(f func(tx *Transaction) bool) {
-	shouldContinue := true
-	callback := func(tx *Transaction) bool {
-		shouldContinue = f(tx)
-		return shouldContinue
-	}
 	for _, subpool := range p.subpools {
-		subpool.IteratePending(callback)
-		if !shouldContinue {
+		if !subpool.IteratePending(f) {
 			return
 		}
 	}

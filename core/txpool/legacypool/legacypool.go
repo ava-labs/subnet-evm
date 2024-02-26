@@ -638,18 +638,19 @@ func (pool *LegacyPool) PendingFrom(addrs []common.Address, enforceTips bool) ma
 }
 
 // IteratePending iterates over [pool.pending] until [f] returns false.
-// The caller must not modify [tx].
-func (pool *LegacyPool) IteratePending(f func(tx *txpool.Transaction) bool) {
+// The caller must not modify [tx]. Returns false if iteration was interrupted.
+func (pool *LegacyPool) IteratePending(f func(tx *txpool.Transaction) bool) bool {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
 	for _, list := range pool.pending {
 		for _, tx := range list.txs.items {
 			if !f(&txpool.Transaction{Tx: tx}) {
-				return
+				return false
 			}
 		}
 	}
+	return true
 }
 
 // Locals retrieves the accounts currently considered local by the pool.
