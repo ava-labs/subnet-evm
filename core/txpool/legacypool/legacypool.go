@@ -1179,16 +1179,6 @@ func (pool *LegacyPool) HasLocal(hash common.Hash) bool {
 	return pool.all.GetLocal(hash) != nil
 }
 
-// RemoveTx removes a single transaction from the queue, moving all subsequent
-// transactions back to the future queue.
-func (pool *LegacyPool) RemoveTx(hash common.Hash) {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
-	// XXX: check that passing true to unreserve is correct
-	pool.removeTx(hash, true, true)
-}
-
 // removeTx removes a single transaction from the queue, moving all subsequent
 // transactions back to the future queue.
 //
