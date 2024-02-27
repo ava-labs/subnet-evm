@@ -65,9 +65,8 @@ var(
 				{{- else}}
 				input, err := Pack{{$func.Normalized.Name}}()
 				{{- end}}
-				SuppliedGas: {{$func.Normalized.Name}}GasCost,
-				ReadOnly:    false,
-				ExpectedErr: {{if $fail}} ErrCannot{{$func.Normalized.Name}}.Error() {{- else}} "" {{- end}},
+				require.NoError(t, err)
+				return input
 			},
 			{{- if not $fail}}
 			// This test is for a successful call. You can set the expected output here.
