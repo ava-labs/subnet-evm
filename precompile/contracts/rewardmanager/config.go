@@ -7,11 +7,10 @@
 package rewardmanager
 
 import (
-	"math/big"
-
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -49,7 +48,7 @@ func (i *InitialRewardConfig) Configure(state contract.StateDB) error {
 		DisableFeeRewards(state)
 	} else {
 		// set reward address
-		return StoreRewardAddress(state, i.RewardAddress)
+		StoreRewardAddress(state, i.RewardAddress)
 	}
 	return nil
 }
@@ -63,12 +62,13 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// RewardManager with the given [admins] and [enableds] as members of the allowlist with [initialConfig] as initial rewards config if specified.
-func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialConfig *InitialRewardConfig) *Config {
+// RewardManager with the given [admins], [enableds] and [managers] as members of the allowlist with [initialConfig] as initial rewards config if specified.
+func NewConfig(blockTimestamp *uint64, admins []common.Address, enableds []common.Address, managers []common.Address, initialConfig *InitialRewardConfig) *Config {
 	return &Config{
 		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
+			ManagerAddresses: managers,
 		},
 		Upgrade:             precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialRewardConfig: initialConfig,
@@ -77,7 +77,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables RewardManager.
-func NewDisableConfig(blockTimestamp *big.Int) *Config {
+func NewDisableConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
@@ -86,15 +86,18 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 	}
 }
 
+// Key returns the key for the Contract precompileconfig.
+// This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
 
-func (c *Config) Verify() error {
+// Verify tries to verify Config and returns an error accordingly.
+func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	if c.InitialRewardConfig != nil {
 		if err := c.InitialRewardConfig.Verify(); err != nil {
 			return err
 		}
 	}
-	return c.AllowListConfig.Verify()
+	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
 }
 
 // Equal returns true if [cfg] is a [*RewardManagerConfig] and it has been configured identical to [c].

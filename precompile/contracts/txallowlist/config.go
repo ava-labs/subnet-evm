@@ -4,8 +4,6 @@
 package txallowlist
 
 import (
-	"math/big"
-
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 	"github.com/ethereum/go-ethereum/common"
@@ -21,12 +19,13 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// TxAllowList with the given [admins] and [enableds] as members of the allowlist.
-func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *Config {
+// TxAllowList with the given [admins], [enableds] and [managers] as members of the allowlist.
+func NewConfig(blockTimestamp *uint64, admins []common.Address, enableds []common.Address, managers []common.Address) *Config {
 	return &Config{
 		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
+			ManagerAddresses: managers,
 		},
 		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 	}
@@ -34,7 +33,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables TxAllowList.
-func NewDisableConfig(blockTimestamp *big.Int) *Config {
+func NewDisableConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
@@ -53,4 +52,8 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 		return false
 	}
 	return c.Upgrade.Equal(&other.Upgrade) && c.AllowListConfig.Equal(&other.AllowListConfig)
+}
+
+func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
+	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
 }

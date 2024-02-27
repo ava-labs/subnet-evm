@@ -16,7 +16,7 @@ import (
 
 var _ precompileconfig.Config = &Config{}
 
-// Config implements the StatefulPrecompileConfig interface while adding in the
+// Config implements the precompileconfig.Config interface while adding in the
 // ContractNativeMinter specific precompile config.
 type Config struct {
 	allowlist.AllowListConfig
@@ -25,12 +25,14 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// ContractNativeMinter with the given [admins] and [enableds] as members of the allowlist. Also mints balances according to [initialMint] when the upgrade activates.
-func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *Config {
+// ContractNativeMinter with the given [admins], [enableds] and [managers] as members of the allowlist.
+// Also mints balances according to [initialMint] when the upgrade activates.
+func NewConfig(blockTimestamp *uint64, admins []common.Address, enableds []common.Address, managers []common.Address, initialMint map[common.Address]*math.HexOrDecimal256) *Config {
 	return &Config{
 		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
+			ManagerAddresses: managers,
 		},
 		Upgrade:     precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 		InitialMint: initialMint,
@@ -39,7 +41,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables ContractNativeMinter.
-func NewDisableConfig(blockTimestamp *big.Int) *Config {
+func NewDisableConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
@@ -47,6 +49,9 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 		},
 	}
 }
+
+// Key returns the key for the ContractNativeMinter precompileconfig.
+// This should be the same key as used in the precompile module.
 func (*Config) Key() string { return ConfigKey }
 
 // Equal returns true if [cfg] is a [*ContractNativeMinterConfig] and it has been configured identical to [c].
@@ -80,7 +85,7 @@ func (c *Config) Equal(cfg precompileconfig.Config) bool {
 	return true
 }
 
-func (c *Config) Verify() error {
+func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	// ensure that all of the initial mint values in the map are non-nil positive values
 	for addr, amount := range c.InitialMint {
 		if amount == nil {
@@ -91,5 +96,5 @@ func (c *Config) Verify() error {
 			return fmt.Errorf("initial mint cannot contain invalid amount %v for address %s", bigIntAmount, addr)
 		}
 	}
-	return c.AllowListConfig.Verify()
+	return c.AllowListConfig.Verify(chainConfig, c.Upgrade)
 }

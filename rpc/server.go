@@ -29,10 +29,10 @@ package rpc
 import (
 	"context"
 	"io"
+	"sync"
 	"sync/atomic"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -55,9 +55,11 @@ const (
 type Server struct {
 	services        serviceRegistry
 	idgen           func() ID
-	run             int32
-	codecs          mapset.Set
 	maximumDuration time.Duration
+
+	mutex  sync.Mutex
+	codecs map[ServerCodec]struct{}
+	run    atomic.Bool
 }
 
 // NewServer creates a new server instance with no registered handlers.
@@ -68,10 +70,10 @@ type Server struct {
 func NewServer(maximumDuration time.Duration) *Server {
 	server := &Server{
 		idgen:           randomIDGenerator(),
-		codecs:          mapset.NewSet(),
-		run:             1,
+		codecs:          make(map[ServerCodec]struct{}),
 		maximumDuration: maximumDuration,
 	}
+	server.run.Store(true)
 	// Register the default service providing meta information about the RPC service such
 	// as the services and methods it offers.
 	rpcService := &RPCService{server}
@@ -95,18 +97,32 @@ func (s *Server) RegisterName(name string, receiver interface{}) error {
 func (s *Server) ServeCodec(codec ServerCodec, options CodecOption, apiMaxDuration, refillRate, maxStored time.Duration) {
 	defer codec.close()
 
-	// Don't serve if server is stopped.
-	if atomic.LoadInt32(&s.run) == 0 {
+	if !s.trackCodec(codec) {
 		return
 	}
-
-	// Add the codec to the set so it can be closed by Stop.
-	s.codecs.Add(codec)
-	defer s.codecs.Remove(codec)
+	defer s.untrackCodec(codec)
 
 	c := initClient(codec, s.idgen, &s.services, apiMaxDuration, refillRate, maxStored)
 	<-codec.closed()
 	c.Close()
+}
+
+func (s *Server) trackCodec(codec ServerCodec) bool {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if !s.run.Load() {
+		return false // Don't serve if server is stopped.
+	}
+	s.codecs[codec] = struct{}{}
+	return true
+}
+
+func (s *Server) untrackCodec(codec ServerCodec) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	delete(s.codecs, codec)
 }
 
 // serveSingleRequest reads and processes a single RPC request from the given codec. This
@@ -114,7 +130,7 @@ func (s *Server) ServeCodec(codec ServerCodec, options CodecOption, apiMaxDurati
 // this mode.
 func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 	// Don't serve if server is stopped.
-	if atomic.LoadInt32(&s.run) == 0 {
+	if !s.run.Load() {
 		return
 	}
 
@@ -126,7 +142,8 @@ func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 	reqs, batch, err := codec.readBatch()
 	if err != nil {
 		if err != io.EOF {
-			codec.writeJSON(ctx, errorMessage(&invalidMessageError{"parse error"}))
+			resp := errorMessage(&invalidMessageError{"parse error"})
+			codec.writeJSON(ctx, resp, true)
 		}
 		return
 	}
@@ -141,12 +158,14 @@ func (s *Server) serveSingleRequest(ctx context.Context, codec ServerCodec) {
 // requests to finish, then closes all codecs which will cancel pending requests and
 // subscriptions.
 func (s *Server) Stop() {
-	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if s.run.CompareAndSwap(true, false) {
 		log.Debug("RPC server shutting down")
-		s.codecs.Each(func(c interface{}) bool {
-			c.(ServerCodec).close()
-			return true
-		})
+		for codec := range s.codecs {
+			codec.close()
+		}
 	}
 }
 

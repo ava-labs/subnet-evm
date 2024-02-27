@@ -63,19 +63,11 @@ var (
 	constantinopleInstructionSet   = newConstantinopleInstructionSet()
 	istanbulInstructionSet         = newIstanbulInstructionSet()
 	subnetEVMInstructionSet        = newSubnetEVMInstructionSet()
+	durangoInstructionSet          = newDurangoInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
 type JumpTable [256]*operation
-
-// newSubnetEVMInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg, subnet-evm instructions.
-func newSubnetEVMInstructionSet() JumpTable {
-	instructionSet := newIstanbulInstructionSet()
-	enable2929(&instructionSet)
-	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
-	return validate(instructionSet)
-}
 
 func validate(jt JumpTable) JumpTable {
 	for i, op := range jt {
@@ -95,8 +87,26 @@ func validate(jt JumpTable) JumpTable {
 	return jt
 }
 
+// newDurangoInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul, petersburg, subnet-evm, durango instructions.
+func newDurangoInstructionSet() JumpTable {
+	instructionSet := newSubnetEVMInstructionSet()
+	enable3855(&instructionSet) // PUSH0 instruction
+	enable3860(&instructionSet) // Limit and meter initcode
+	return validate(instructionSet)
+}
+
+// newSubnetEVMInstructionSet returns the frontier, homestead, byzantium,
+// constantinople, istanbul, petersburg, subnet-evm instructions.
+func newSubnetEVMInstructionSet() JumpTable {
+	instructionSet := newIstanbulInstructionSet()
+	enable2929(&instructionSet)
+	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
+	return validate(instructionSet)
+}
+
 // newIstanbulInstructionSet returns the frontier,
-// homestead, byzantium, contantinople and petersburg instructions.
+// homestead, byzantium, constantinople and petersburg instructions.
 func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 
@@ -108,7 +118,7 @@ func newIstanbulInstructionSet() JumpTable {
 }
 
 // newConstantinopleInstructionSet returns the frontier, homestead,
-// byzantium and contantinople instructions.
+// byzantium and constantinople instructions.
 func newConstantinopleInstructionSet() JumpTable {
 	instructionSet := newByzantiumInstructionSet()
 	instructionSet[SHL] = &operation{
@@ -1031,4 +1041,15 @@ func newFrontierInstructionSet() JumpTable {
 	}
 
 	return validate(tbl)
+}
+
+func copyJumpTable(source *JumpTable) *JumpTable {
+	dest := *source
+	for i, op := range source {
+		if op != nil {
+			opCopy := *op
+			dest[i] = &opCopy
+		}
+	}
+	return &dest
 }

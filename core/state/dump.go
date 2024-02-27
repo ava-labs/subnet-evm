@@ -39,7 +39,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-// DumpConfig is a set of options to control what portions of the statewill be
+// DumpConfig is a set of options to control what portions of the state will be
 // iterated and collected.
 type DumpConfig struct {
 	SkipCode          bool
@@ -54,7 +54,7 @@ type DumpCollector interface {
 	// OnRoot is called with the state root
 	OnRoot(common.Hash)
 	// OnAccount is called once for each account in the trie
-	OnAccount(common.Address, DumpAccount)
+	OnAccount(*common.Address, DumpAccount)
 }
 
 // DumpAccount represents an account in the state.
@@ -82,8 +82,10 @@ func (d *Dump) OnRoot(root common.Hash) {
 }
 
 // OnAccount implements DumpCollector interface
-func (d *Dump) OnAccount(addr common.Address, account DumpAccount) {
-	d.Accounts[addr] = account
+func (d *Dump) OnAccount(addr *common.Address, account DumpAccount) {
+	if addr != nil {
+		d.Accounts[*addr] = account
+	}
 }
 
 // IteratorDump is an implementation for iterating over data.
@@ -99,8 +101,10 @@ func (d *IteratorDump) OnRoot(root common.Hash) {
 }
 
 // OnAccount implements DumpCollector interface
-func (d *IteratorDump) OnAccount(addr common.Address, account DumpAccount) {
-	d.Accounts[addr] = account
+func (d *IteratorDump) OnAccount(addr *common.Address, account DumpAccount) {
+	if addr != nil {
+		d.Accounts[*addr] = account
+	}
 }
 
 // iterativeDump is a DumpCollector-implementation which dumps output line-by-line iteratively.
@@ -109,7 +113,7 @@ type iterativeDump struct {
 }
 
 // OnAccount implements DumpCollector interface
-func (d iterativeDump) OnAccount(addr common.Address, account DumpAccount) {
+func (d iterativeDump) OnAccount(addr *common.Address, account DumpAccount) {
 	dumpAccount := &DumpAccount{
 		Balance:   account.Balance,
 		Nonce:     account.Nonce,
@@ -118,10 +122,7 @@ func (d iterativeDump) OnAccount(addr common.Address, account DumpAccount) {
 		Code:      account.Code,
 		Storage:   account.Storage,
 		SecureKey: account.SecureKey,
-		Address:   nil,
-	}
-	if addr != (common.Address{}) {
-		dumpAccount.Address = &addr
+		Address:   addr,
 	}
 	d.Encode(dumpAccount)
 }
@@ -162,23 +163,32 @@ func (s *StateDB) DumpToCollector(c DumpCollector, conf *DumpConfig) (nextKey []
 			CodeHash:  data.CodeHash,
 			SecureKey: it.Key,
 		}
-		addrBytes := s.trie.GetKey(it.Key)
+		var (
+			addrBytes = s.trie.GetKey(it.Key)
+			addr      = common.BytesToAddress(addrBytes)
+			address   *common.Address
+		)
 		if addrBytes == nil {
 			// Preimage missing
 			missingPreimages++
 			if conf.OnlyWithAddresses {
 				continue
 			}
-			account.SecureKey = it.Key
+		} else {
+			address = &addr
 		}
-		addr := common.BytesToAddress(addrBytes)
 		obj := newObject(s, addr, data)
 		if !conf.SkipCode {
 			account.Code = obj.Code(s.db)
 		}
 		if !conf.SkipStorage {
 			account.Storage = make(map[common.Hash]string)
-			storageIt := trie.NewIterator(obj.getTrie(s.db).NodeIterator(nil))
+			tr, err := obj.getTrie(s.db)
+			if err != nil {
+				log.Error("Failed to load storage trie", "err", err)
+				continue
+			}
+			storageIt := trie.NewIterator(tr.NodeIterator(nil))
 			for storageIt.Next() {
 				_, content, _, err := rlp.Split(storageIt.Value)
 				if err != nil {
@@ -188,7 +198,7 @@ func (s *StateDB) DumpToCollector(c DumpCollector, conf *DumpConfig) (nextKey []
 				account.Storage[common.BytesToHash(s.trie.GetKey(storageIt.Key))] = common.Bytes2Hex(content)
 			}
 		}
-		c.OnAccount(addr, account)
+		c.OnAccount(address, account)
 		accounts++
 		if time.Since(logged) > 8*time.Second {
 			log.Info("Trie dumping in progress", "at", it.Key, "accounts", accounts,

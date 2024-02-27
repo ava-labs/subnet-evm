@@ -12,11 +12,11 @@ import (
 
 	"github.com/ava-labs/avalanchego/utils/wrappers"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	syncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -62,13 +62,16 @@ type trieToSync struct {
 
 // NewTrieToSync initializes a trieToSync and restores any previously started segments.
 func NewTrieToSync(sync *stateSync, root common.Hash, account common.Hash, syncTask syncTask) (*trieToSync, error) {
-	batch := sync.db.NewBatch()
+	batch := sync.db.NewBatch() // TODO: migrate state sync to use database schemes.
+	writeFn := func(owner common.Hash, path []byte, hash common.Hash, blob []byte) {
+		rawdb.WriteTrieNode(batch, owner, path, hash, blob, rawdb.HashScheme)
+	}
 	trieToSync := &trieToSync{
 		sync:         sync,
 		root:         root,
 		account:      account,
 		batch:        batch,
-		stackTrie:    trie.NewStackTrie(batch),
+		stackTrie:    trie.NewStackTrie(writeFn),
 		isMainTrie:   (root == sync.root),
 		task:         syncTask,
 		segmentsDone: make(map[int]struct{}),
@@ -193,7 +196,7 @@ func (t *trieToSync) segmentFinished(ctx context.Context, idx int) error {
 			}
 			// update the stack trie and cap the batch it writes to.
 			value := common.CopyBytes(it.Value())
-			if err := t.stackTrie.TryUpdate(it.Key(), value); err != nil {
+			if err := t.stackTrie.Update(it.Key(), value); err != nil {
 				return err
 			}
 			if t.batch.ValueSize() > t.sync.batchSize {

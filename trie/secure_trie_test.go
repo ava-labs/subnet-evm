@@ -33,21 +33,23 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
+	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/types"
+	"github.com/ava-labs/subnet-evm/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func newEmptySecure() *StateTrie {
-	trie, _ := NewStateTrie(common.Hash{}, common.Hash{}, NewDatabase(memorydb.New()))
+	trie, _ := NewStateTrie(TrieID(types.EmptyRootHash), NewDatabase(rawdb.NewMemoryDatabase()))
 	return trie
 }
 
 // makeTestStateTrie creates a large enough secure trie for testing.
 func makeTestStateTrie() (*Database, *StateTrie, map[string][]byte) {
 	// Create an empty trie
-	triedb := NewDatabase(memorydb.New())
-	trie, _ := NewStateTrie(common.Hash{}, common.Hash{}, triedb)
+	triedb := NewDatabase(rawdb.NewMemoryDatabase())
+	trie, _ := NewStateTrie(TrieID(types.EmptyRootHash), triedb)
 
 	// Fill it with some arbitrary data
 	content := make(map[string][]byte)
@@ -55,28 +57,25 @@ func makeTestStateTrie() (*Database, *StateTrie, map[string][]byte) {
 		// Map the same data under multiple keys
 		key, val := common.LeftPadBytes([]byte{1, i}, 32), []byte{i}
 		content[string(key)] = val
-		trie.Update(key, val)
+		trie.MustUpdate(key, val)
 
 		key, val = common.LeftPadBytes([]byte{2, i}, 32), []byte{i}
 		content[string(key)] = val
-		trie.Update(key, val)
+		trie.MustUpdate(key, val)
 
 		// Add some other data to inflate the trie
 		for j := byte(3); j < 13; j++ {
 			key, val = common.LeftPadBytes([]byte{j, i}, 32), []byte{j, i}
 			content[string(key)] = val
-			trie.Update(key, val)
+			trie.MustUpdate(key, val)
 		}
 	}
-	root, nodes, err := trie.Commit(false)
-	if err != nil {
-		panic(fmt.Errorf("failed to commit trie %v", err))
-	}
-	if err := triedb.Update(NewWithNodeSet(nodes)); err != nil {
+	root, nodes := trie.Commit(false)
+	if err := triedb.Update(root, types.EmptyRootHash, trienode.NewWithNodeSet(nodes)); err != nil {
 		panic(fmt.Errorf("failed to commit db %v", err))
 	}
 	// Re-create the trie based on the new state
-	trie, _ = NewSecure(common.Hash{}, root, triedb)
+	trie, _ = NewStateTrie(TrieID(root), triedb)
 	return triedb, trie, content
 }
 
@@ -94,9 +93,9 @@ func TestSecureDelete(t *testing.T) {
 	}
 	for _, val := range vals {
 		if val.v != "" {
-			trie.Update([]byte(val.k), []byte(val.v))
+			trie.MustUpdate([]byte(val.k), []byte(val.v))
 		} else {
-			trie.Delete([]byte(val.k))
+			trie.MustDelete([]byte(val.k))
 		}
 	}
 	hash := trie.Hash()
@@ -108,13 +107,13 @@ func TestSecureDelete(t *testing.T) {
 
 func TestSecureGetKey(t *testing.T) {
 	trie := newEmptySecure()
-	trie.Update([]byte("foo"), []byte("bar"))
+	trie.MustUpdate([]byte("foo"), []byte("bar"))
 
 	key := []byte("foo")
 	value := []byte("bar")
 	seckey := crypto.Keccak256(key)
 
-	if !bytes.Equal(trie.Get(key), value) {
+	if !bytes.Equal(trie.MustGet(key), value) {
 		t.Errorf("Get did not return bar")
 	}
 	if k := trie.GetKey(seckey); !bytes.Equal(k, key) {
@@ -131,7 +130,7 @@ func TestStateTrieConcurrency(t *testing.T) {
 	for i := 0; i < threads; i++ {
 		tries[i] = trie.Copy()
 	}
-	// Start a batch of goroutines interactng with the trie
+	// Start a batch of goroutines interacting with the trie
 	pend := new(sync.WaitGroup)
 	pend.Add(threads)
 	for i := 0; i < threads; i++ {
@@ -141,15 +140,15 @@ func TestStateTrieConcurrency(t *testing.T) {
 			for j := byte(0); j < 255; j++ {
 				// Map the same data under multiple keys
 				key, val := common.LeftPadBytes([]byte{byte(index), 1, j}, 32), []byte{j}
-				tries[index].Update(key, val)
+				tries[index].MustUpdate(key, val)
 
 				key, val = common.LeftPadBytes([]byte{byte(index), 2, j}, 32), []byte{j}
-				tries[index].Update(key, val)
+				tries[index].MustUpdate(key, val)
 
 				// Add some other data to inflate the trie
 				for k := byte(3); k < 13; k++ {
 					key, val = common.LeftPadBytes([]byte{byte(index), k, j}, 32), []byte{k, j}
-					tries[index].Update(key, val)
+					tries[index].MustUpdate(key, val)
 				}
 			}
 			tries[index].Commit(false)

@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/ethdb"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/crypto/sha3"
 )
@@ -44,9 +44,10 @@ func (h *testHasher) Reset() {
 	h.hasher.Reset()
 }
 
-func (h *testHasher) Update(key, val []byte) {
+func (h *testHasher) Update(key, val []byte) error {
 	h.hasher.Write(key)
 	h.hasher.Write(val)
+	return nil
 }
 
 func (h *testHasher) Hash() common.Hash {

@@ -35,15 +35,18 @@ func init() {
 	}
 }
 
+// MakeConfig returns a new precompile config instance.
+// This is required to Marshal/Unmarshal the precompile config.
 func (*configurator) MakeConfig() precompileconfig.Config {
 	return new(Config)
 }
 
-// Configure configures [state] with the initial state for the precompile.
-func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, _ contract.BlockContext) error {
+// Configure configures [state] with the given [cfg] precompileconfig.
+// This function is called by the EVM once per precompile contract activation.
+func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, blockContext contract.ConfigurationBlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
-		return fmt.Errorf("incorrect config %T: %v", config, config)
+		return fmt.Errorf("expected config type %T, got %T: %v", &Config{}, cfg, cfg)
 	}
-	return config.AllowListConfig.Configure(state, ContractAddress)
+	return config.AllowListConfig.Configure(chainConfig, ContractAddress, state, blockContext)
 }

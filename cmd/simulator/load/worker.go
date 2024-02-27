@@ -10,102 +10,113 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/ethclient"
+	"github.com/ava-labs/subnet-evm/interfaces"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 )
 
-type Worker struct {
-	client  ethclient.Client
-	address common.Address
-	txs     []*types.Transaction
+type ethereumTxWorker struct {
+	client ethclient.Client
+
+	acceptedNonce uint64
+	address       common.Address
+
+	sub      interfaces.Subscription
+	newHeads chan *types.Header
 }
 
-// NewWorker creates a new worker that will issue the sequence of transactions from the given address
-//
-// Assumes that all transactions are from the same address, ordered by nonce, and this worker has exclusive access
-// to issuance of transactions from the underlying private key.
-func NewWorker(client ethclient.Client, address common.Address, txs []*types.Transaction) *Worker {
-	return &Worker{
-		client:  client,
-		address: address,
-		txs:     txs,
-	}
-}
-
-func (w *Worker) ExecuteTxsFromAddress(ctx context.Context) error {
-	log.Info("Executing txs", "numTxs", len(w.txs))
-	for i, tx := range w.txs {
-		start := time.Now()
-		err := w.client.SendTransaction(ctx, tx)
-		if err != nil {
-			return fmt.Errorf("failed to issue tx %d: %w", i, err)
-		}
-		log.Info("execute tx", "tx", tx.Hash(), "nonce", tx.Nonce(), "duration", time.Since(start))
-	}
-	return nil
-}
-
-// AwaitTxs awaits for the nonce of the last transaction issued by the worker to be confirmed or
-// rejected by the network.
-//
-// Assumes that a non-zero number of transactions were already generated and that they were issued
-// by this worker.
-func (w *Worker) AwaitTxs(ctx context.Context) error {
-	nonce := w.txs[len(w.txs)-1].Nonce()
-
+// NewSingleAddressTxWorker creates and returns a new ethereumTxWorker that confirms transactions by checking the latest
+// nonce of [address] and assuming any transaction with a lower nonce was already accepted.
+func NewSingleAddressTxWorker(ctx context.Context, client ethclient.Client, address common.Address) *ethereumTxWorker {
 	newHeads := make(chan *types.Header)
-	defer close(newHeads)
+	tw := &ethereumTxWorker{
+		client:   client,
+		address:  address,
+		newHeads: newHeads,
+	}
 
-	sub, err := w.client.SubscribeNewHead(ctx, newHeads)
+	sub, err := client.SubscribeNewHead(ctx, newHeads)
 	if err != nil {
 		log.Debug("failed to subscribe new heads, falling back to polling", "err", err)
 	} else {
-		defer sub.Unsubscribe()
+		tw.sub = sub
 	}
+
+	return tw
+}
+
+// NewTxReceiptWorker creates and returns a new ethereumTxWorker that confirms transactions by checking for the
+// corresponding transaction receipt.
+func NewTxReceiptWorker(ctx context.Context, client ethclient.Client) *ethereumTxWorker {
+	newHeads := make(chan *types.Header)
+	tw := &ethereumTxWorker{
+		client:   client,
+		newHeads: newHeads,
+	}
+
+	sub, err := client.SubscribeNewHead(ctx, newHeads)
+	if err != nil {
+		log.Debug("failed to subscribe new heads, falling back to polling", "err", err)
+	} else {
+		tw.sub = sub
+	}
+
+	return tw
+}
+
+func (tw *ethereumTxWorker) IssueTx(ctx context.Context, tx *types.Transaction) error {
+	return tw.client.SendTransaction(ctx, tx)
+}
+
+func (tw *ethereumTxWorker) ConfirmTx(ctx context.Context, tx *types.Transaction) error {
+	if tw.address == (common.Address{}) {
+		return tw.confirmTxByReceipt(ctx, tx)
+	}
+	return tw.confirmTxByNonce(ctx, tx)
+}
+
+func (tw *ethereumTxWorker) confirmTxByNonce(ctx context.Context, tx *types.Transaction) error {
+	txNonce := tx.Nonce()
 
 	for {
+		acceptedNonce, err := tw.client.NonceAt(ctx, tw.address, nil)
+		if err != nil {
+			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), txNonce, err)
+		}
+		tw.acceptedNonce = acceptedNonce
+
+		log.Debug("confirming tx", "txHash", tx.Hash(), "txNonce", txNonce, "acceptedNonce", tw.acceptedNonce)
+		// If the is less than what has already been accepted, the transaction is confirmed
+		if txNonce < tw.acceptedNonce {
+			return nil
+		}
+
 		select {
-		case <-newHeads:
+		case <-tw.newHeads:
 		case <-time.After(time.Second):
 		case <-ctx.Done():
-			return fmt.Errorf("failed to await nonce: %w", ctx.Err())
+			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), txNonce, ctx.Err())
 		}
+	}
+}
 
-		currentNonce, err := w.client.NonceAt(ctx, w.address, nil)
-		if err != nil {
-			log.Warn("failed to get nonce", "err", err)
-		}
-		if currentNonce >= nonce {
+func (tw *ethereumTxWorker) confirmTxByReceipt(ctx context.Context, tx *types.Transaction) error {
+	for {
+		_, err := tw.client.TransactionReceipt(ctx, tx.Hash())
+		if err == nil {
 			return nil
-		} else {
-			log.Info("fetched nonce", "awaiting", nonce, "currentNonce", currentNonce)
+		}
+		log.Debug("no tx receipt", "txHash", tx.Hash(), "nonce", tx.Nonce(), "err", err)
+
+		select {
+		case <-tw.newHeads:
+		case <-time.After(time.Second):
+		case <-ctx.Done():
+			return fmt.Errorf("failed to await tx %s nonce %d: %w", tx.Hash(), tx.Nonce(), ctx.Err())
 		}
 	}
 }
 
-// ConfirmAllTransactions iterates over every transaction of this worker and confirms it
-// via eth_getTransactionByHash
-func (w *Worker) ConfirmAllTransactions(ctx context.Context) error {
-	for i, tx := range w.txs {
-		_, isPending, err := w.client.TransactionByHash(ctx, tx.Hash())
-		if err != nil {
-			return fmt.Errorf("failed to confirm tx at index %d: %s", i, tx.Hash())
-		}
-		if isPending {
-			return fmt.Errorf("failed to confirm tx at index %d: pending", i)
-		}
-	}
-	log.Info("Confirmed all transactions")
-	return nil
-}
-
-// Execute issues and confirms all transactions for the worker.
-func (w *Worker) Execute(ctx context.Context) error {
-	if err := w.ExecuteTxsFromAddress(ctx); err != nil {
-		return err
-	}
-	if err := w.AwaitTxs(ctx); err != nil {
-		return err
-	}
-	return w.ConfirmAllTransactions(ctx)
+func (tw *ethereumTxWorker) LatestHeight(ctx context.Context) (uint64, error) {
+	return tw.client.BlockNumber(ctx)
 }

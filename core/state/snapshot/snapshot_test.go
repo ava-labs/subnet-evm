@@ -27,6 +27,7 @@
 package snapshot
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -34,6 +35,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -41,7 +43,7 @@ import (
 // randomHash generates a random blob of data and returns it as a hash.
 func randomHash() common.Hash {
 	var hash common.Hash
-	if n, err := rand.Read(hash[:]); n != common.HashLength || err != nil {
+	if n, err := crand.Read(hash[:]); n != common.HashLength || err != nil {
 		panic(err)
 	}
 	return hash
@@ -54,7 +56,7 @@ func randomAccount() []byte {
 		Balance:  big.NewInt(rand.Int63()),
 		Nonce:    rand.Uint64(),
 		Root:     root[:],
-		CodeHash: emptyCode[:],
+		CodeHash: types.EmptyCodeHash[:],
 	}
 	data, _ := rlp.EncodeToBytes(a)
 	return data
@@ -119,7 +121,7 @@ func TestDiskLayerExternalInvalidationFullFlatten(t *testing.T) {
 	if err := snaps.Flatten(common.HexToHash("0x02")); err != nil {
 		t.Fatalf("failed to merge diff layer onto disk: %v", err)
 	}
-	// Since the base layer was modified, ensure that data retrieval on the external reference fail
+	// Since the base layer was modified, ensure that data retrievals on the external reference fail
 	if acc, err := ref.Account(common.HexToHash("0x01")); err != ErrSnapshotStale {
 		t.Errorf("stale reference returned account: %v (err: %v)", acc, err)
 	}
@@ -166,7 +168,7 @@ func TestDiskLayerExternalInvalidationPartialFlatten(t *testing.T) {
 	if err := snaps.Flatten(common.HexToHash("0x02")); err != nil {
 		t.Fatalf("Failed to flatten diff layer onto disk: %v", err)
 	}
-	// Since the base layer was modified, ensure that data retrieval on the external reference fails
+	// Since the base layer was modified, ensure that data retrieval on the external reference fail
 	if acc, err := ref.Account(common.HexToHash("0x01")); err != ErrSnapshotStale {
 		t.Errorf("stale reference returned account: %v (err: %v)", acc, err)
 	}
@@ -185,6 +187,10 @@ func TestDiskLayerExternalInvalidationPartialFlatten(t *testing.T) {
 // be returned with junk data. This version of the test retains the bottom diff
 // layer to check the usual mode of operation where the accumulator is retained.
 func TestDiffLayerExternalInvalidationPartialFlatten(t *testing.T) {
+	// Un-commenting this triggers the bloom set to be deterministic. The values below
+	// were used to trigger the flaw described in https://github.com/ethereum/go-ethereum/issues/27254.
+	// bloomDestructHasherOffset, bloomAccountHasherOffset, bloomStorageHasherOffset = 14, 24, 5
+
 	// Create an empty base layer and a snapshot tree out of it
 	snaps := NewTestTree(rawdb.NewMemoryDatabase(), common.HexToHash("0x01"), common.HexToHash("0xff01"))
 	// Commit three diffs on top and retrieve a reference to the bottommost
@@ -212,7 +218,7 @@ func TestDiffLayerExternalInvalidationPartialFlatten(t *testing.T) {
 	if err := snaps.Flatten(common.HexToHash("0x02")); err != nil {
 		t.Fatal(err)
 	}
-	// Since the accumulator diff layer was modified, ensure that data retrieval on the external reference fails
+	// Since the accumulator diff layer was modified, ensure that data retrievals on the external reference fail
 	if acc, err := ref.Account(common.HexToHash("0x01")); err != ErrSnapshotStale {
 		t.Errorf("stale reference returned account: %v (err: %v)", acc, err)
 	}

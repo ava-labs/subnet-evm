@@ -48,6 +48,7 @@ const (
 
 	Keccak256Gas     uint64 = 30 // Once per KECCAK256 operation.
 	Keccak256WordGas uint64 = 6  // Once per word of the KECCAK256 operation's data.
+	InitCodeWordGas  uint64 = 2  // Once per word of the init code when creating a contract.
 
 	SstoreSetGas    uint64 = 20000 // Once per SSTORE operation.
 	SstoreResetGas  uint64 = 5000  // Once per SSTORE operation if the zeroness changes from zero.
@@ -129,7 +130,8 @@ const (
 	// Introduced in Tangerine Whistle (Eip 150)
 	CreateBySelfdestructGas uint64 = 25000
 
-	MaxCodeSize = 24576 // Maximum bytecode to permit for a contract
+	MaxCodeSize     = 24576           // Maximum bytecode to permit for a contract
+	MaxInitCodeSize = 2 * MaxCodeSize // Maximum initcode to permit in a creation transaction and create instructions
 
 	// Precompiled contract gas prices
 
@@ -158,6 +160,10 @@ const (
 	Bls12381PairingPerPairGas uint64 = 23000  // Per-point pair gas price for BLS12-381 elliptic curve pairing check
 	Bls12381MapG1Gas          uint64 = 5500   // Gas price for BLS12-381 mapping field element to G1 operation
 	Bls12381MapG2Gas          uint64 = 110000 // Gas price for BLS12-381 mapping field element to G2 operation
+
+	BlobTxDataGasPerBlob             = 1 << 17 // Gas consumption of a single data blob (== blob byte size)
+	BlobTxMinDataGasprice            = 1       // Minimum gas price for data blobs
+	BlobTxDataGaspriceUpdateFraction = 2225652 // Controls the maximum rate of change for data gas price
 )
 
 // Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations

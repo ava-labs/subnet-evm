@@ -45,8 +45,18 @@ The Subnet EVM runs in a separate process from the main AvalancheGo process and 
 [v0.4.11] AvalancheGo@v1.9.10-v1.9.16 (Protocol Version: 24)
 [v0.4.12] AvalancheGo@v1.9.10-v1.9.16 (Protocol Version: 24)
 [v0.5.0] AvalancheGo@v1.10.0 (Protocol Version: 25)
-[v0.5.1] AvalancheGo@v1.10.1-v1.10.3 (Protocol Version: 26)
-[v0.5.2] AvalancheGo@v1.10.1-v1.10.3 (Protocol Version: 26)
+[v0.5.1] AvalancheGo@v1.10.1-v1.10.4 (Protocol Version: 26)
+[v0.5.2] AvalancheGo@v1.10.1-v1.10.4 (Protocol Version: 26)
+[v0.5.3] AvalancheGo@v1.10.5-v1.10.8 (Protocol Version: 27)
+[v0.5.4] AvalancheGo@v1.10.9-v1.10.12 (Protocol Version: 28)
+[v0.5.5] AvalancheGo@v1.10.9-v1.10.12 (Protocol Version: 28)
+[v0.5.6] AvalancheGo@v1.10.9-v1.10.12 (Protocol Version: 28)
+[v0.5.7] AvalancheGo@v1.10.13-v1.10.14 (Protocol Version: 29)
+[v0.5.8] AvalancheGo@v1.10.13-v1.10.14 (Protocol Version: 29)
+[v0.5.9] AvalancheGo@v1.10.15-v1.10.17 (Protocol Version: 30)
+[v0.5.10] AvalancheGo@v1.10.15-v1.10.17 (Protocol Version: 30)
+[v0.5.11] AvalancheGo@v1.10.18-v1.10.19 (Protocol Version: 31)
+[v0.6.0] AvalancheGo@v1.11.0 (Protocol Version: 33)
 ```
 
 ## API
@@ -59,11 +69,12 @@ The Subnet EVM supports the following API namespaces:
 - `debug`
 
 Only the `eth` namespace is enabled by default.
-Full documentation for the C-Chain's API can be found [here.](https://docs.avax.network/apis/avalanchego/apis/c-chain)
+Subnet EVM is a simplified version of [Coreth VM (C-Chain)](https://github.com/ava-labs/coreth).
+Full documentation for the C-Chain's API can be found [here](https://docs.avax.network/apis/avalanchego/apis/c-chain).
 
 ## Compatibility
 
-The Subnet EVM is compatible with almost all Ethereum tooling, including [Remix](https://docs.avax.network/dapps/smart-contracts/deploy-a-smart-contract-on-avalanche-using-remix-and-metamask/), [Metamask](https://docs.avax.network/dapps/smart-contracts/deploy-a-smart-contract-on-avalanche-using-remix-and-metamask/) and [Truffle](https://docs.avax.network/dapps/smart-contracts/using-truffle-with-the-avalanche-c-chain/).
+The Subnet EVM is compatible with almost all Ethereum tooling, including [Remix](https://docs.avax.network/build/dapp/smart-contracts/remix-deploy), [Metamask](https://docs.avax.network/build/dapp/chain-settings), and [Foundry](https://docs.avax.network/build/dapp/smart-contracts/toolchains/foundry).
 
 ## Differences Between Subnet EVM and Coreth
 
@@ -85,9 +96,9 @@ To support these changes, there have been a number of changes to the SubnetEVM b
 
 ### Clone Subnet-evm
 
-First install Go 1.19.6 or later. Follow the instructions [here](https://golang.org/doc/install). You can verify by running `go version`.
+First install Go 1.21.7 or later. Follow the instructions [here](https://go.dev/doc/install). You can verify by running `go version`.
 
-Set `$GOPATH` environment variable properly for Go to look for Go Workspaces. Please read [this](https://go.dev/doc/gopath_code) for details. You can verify by running `echo $GOPATH`.
+Set `$GOPATH` environment variable properly for Go to look for Go Workspaces. Please read [this](https://go.dev/doc/code) for details. You can verify by running `echo $GOPATH`.
 
 As a few software will be installed into `$GOPATH/bin`, please make sure that `$GOPATH/bin` is in your `$PATH`, otherwise, you may get error running the commands below.
 
@@ -105,7 +116,7 @@ This will clone and checkout to `master` branch.
 
 ### Run Local Network
 
-To run a local network, it is recommended to use the [avalanche-cli](https://github.com/ava-labs/avalanche-cli#avalanche-cli) to set up an instance of Subnet-EVM on an local Avalanche Network.
+To run a local network, it is recommended to use the [avalanche-cli](https://github.com/ava-labs/avalanche-cli#avalanche-cli) to set up an instance of Subnet-EVM on a local Avalanche Network.
 
 There are two options when using the Avalanche-CLI:
 

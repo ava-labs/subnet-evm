@@ -4,6 +4,7 @@
 package nativeminter
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"math/big"
@@ -15,20 +16,28 @@ import (
 )
 
 const (
-	mintInputAddressSlot = iota
-	mintInputAmountSlot
-
 	mintInputLen = common.HashLength + common.HashLength
 
 	MintGasCost = 30_000
 )
 
+type MintNativeCoinInput struct {
+	Addr   common.Address
+	Amount *big.Int
+}
+
 var (
 	// Singleton StatefulPrecompiledContract for minting native assets by permissioned callers.
 	ContractNativeMinterPrecompile contract.StatefulPrecompiledContract = createNativeMinterPrecompile()
 
-	mintSignature = contract.CalculateFunctionSelector("mintNativeCoin(address,uint256)") // address, amount
 	ErrCannotMint = errors.New("non-enabled cannot mint")
+	ErrInvalidLen = errors.New("invalid input length for minting")
+
+	// NativeMinterRawABI contains the raw ABI of NativeMinter contract.
+	//go:embed contract.abi
+	NativeMinterRawABI string
+
+	NativeMinterABI = contract.ParseABI(NativeMinterRawABI)
 )
 
 // GetContractNativeMinterStatus returns the role of [address] for the minter list.
@@ -42,28 +51,26 @@ func SetContractNativeMinterStatus(stateDB contract.StateDB, address common.Addr
 	allowlist.SetAllowListRole(stateDB, ContractAddress, address, role)
 }
 
-// PackMintInput packs [address] and [amount] into the appropriate arguments for minting operation.
-// Assumes that [amount] can be represented by 32 bytes.
-func PackMintInput(address common.Address, amount *big.Int) ([]byte, error) {
-	// function selector (4 bytes) + input(hash for address + hash for amount)
-	res := make([]byte, contract.SelectorLen+mintInputLen)
-	err := contract.PackOrderedHashesWithSelector(res, mintSignature, []common.Hash{
-		address.Hash(),
-		common.BigToHash(amount),
-	})
-
-	return res, err
+// PackMintNativeCoin packs [address] and [amount] into the appropriate arguments for mintNativeCoin.
+func PackMintNativeCoin(address common.Address, amount *big.Int) ([]byte, error) {
+	return NativeMinterABI.Pack("mintNativeCoin", address, amount)
 }
 
-// UnpackMintInput attempts to unpack [input] into the arguments to the mint precompile
-// assumes that [input] does not include selector (omits first 4 bytes in PackMintInput)
-func UnpackMintInput(input []byte) (common.Address, *big.Int, error) {
-	if len(input) != mintInputLen {
-		return common.Address{}, nil, fmt.Errorf("invalid input length for minting: %d", len(input))
+// UnpackMintNativeCoinInput attempts to unpack [input] as address and amount.
+// assumes that [input] does not include selector (omits first 4 func signature bytes)
+// if [useStrictMode] is true, it will return an error if the length of [input] is not [mintInputLen]
+func UnpackMintNativeCoinInput(input []byte, useStrictMode bool) (common.Address, *big.Int, error) {
+	// Initially we had this check to ensure that the input was the correct length.
+	// However solidity does not always pack the input to the correct length, and allows
+	// for extra padding bytes to be added to the end of the input. Therefore, we have removed
+	// this check with Durango. We still need to keep this check for backwards compatibility.
+	if useStrictMode && len(input) != mintInputLen {
+		return common.Address{}, nil, fmt.Errorf("%w: %d", ErrInvalidLen, len(input))
 	}
-	to := common.BytesToAddress(contract.PackedHash(input, mintInputAddressSlot))
-	assetAmount := new(big.Int).SetBytes(contract.PackedHash(input, mintInputAmountSlot))
-	return to, assetAmount, nil
+	inputStruct := MintNativeCoinInput{}
+	err := NativeMinterABI.UnpackInputIntoInterface(&inputStruct, "mintNativeCoin", input, useStrictMode)
+
+	return inputStruct.Addr, inputStruct.Amount, err
 }
 
 // mintNativeCoin checks if the caller is permissioned for minting operation.
@@ -77,7 +84,8 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
 
-	to, amount, err := UnpackMintInput(input)
+	useStrictMode := !contract.IsDurangoActivated(accessibleState)
+	to, amount, err := UnpackMintNativeCoinInput(input, useStrictMode)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -89,6 +97,21 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 		return nil, remainingGas, fmt.Errorf("%w: %s", ErrCannotMint, caller)
 	}
 
+	if contract.IsDurangoActivated(accessibleState) {
+		if remainingGas, err = contract.DeductGas(remainingGas, NativeCoinMintedEventGasCost); err != nil {
+			return nil, 0, err
+		}
+		topics, data, err := PackNativeCoinMintedEvent(caller, to, amount)
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		stateDB.AddLog(
+			ContractAddress,
+			topics,
+			data,
+			accessibleState.GetBlockContext().Number().Uint64(),
+		)
+	}
 	// if there is no address in the state, create one.
 	if !stateDB.Exist(to) {
 		stateDB.CreateAccount(to)
@@ -99,20 +122,27 @@ func mintNativeCoin(accessibleState contract.AccessibleState, caller common.Addr
 	return []byte{}, remainingGas, nil
 }
 
-// createNativeMinterPrecompile returns a StatefulPrecompiledContract for native coin minting. The precompile
-// is accessed controlled by an allow list at [precompileAddr].
+// createNativeMinterPrecompile returns a StatefulPrecompiledContract with getters and setters for the precompile.
+// Access to the getters/setters is controlled by an allow list for ContractAddress.
 func createNativeMinterPrecompile() contract.StatefulPrecompiledContract {
-	enabledFuncs := allowlist.CreateAllowListFunctions(ContractAddress)
+	var functions []*contract.StatefulPrecompileFunction
+	functions = append(functions, allowlist.CreateAllowListFunctions(ContractAddress)...)
 
-	mintFunc := contract.NewStatefulPrecompileFunction(mintSignature, mintNativeCoin)
+	abiFunctionMap := map[string]contract.RunStatefulPrecompileFunc{
+		"mintNativeCoin": mintNativeCoin,
+	}
 
-	enabledFuncs = append(enabledFuncs, mintFunc)
+	for name, function := range abiFunctionMap {
+		method, ok := NativeMinterABI.Methods[name]
+		if !ok {
+			panic(fmt.Errorf("given method (%s) does not exist in the ABI", name))
+		}
+		functions = append(functions, contract.NewStatefulPrecompileFunction(method.ID, function))
+	}
 	// Construct the contract with no fallback function.
-	contract, err := contract.NewStatefulPrecompileContract(nil, enabledFuncs)
-	// TODO: Change this to be returned as an error after refactoring this precompile
-	// to use the new precompile template.
+	statefulContract, err := contract.NewStatefulPrecompileContract(nil, functions)
 	if err != nil {
 		panic(err)
 	}
-	return contract
+	return statefulContract
 }

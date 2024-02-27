@@ -12,19 +12,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/set"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/codec/linearcodec"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/version"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	ethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 var (
@@ -49,11 +51,15 @@ var (
 
 	_ message.CrossChainRequest        = &ExampleCrossChainRequest{}
 	_ message.CrossChainRequestHandler = &testCrossChainHandler{}
+
+	_ p2p.Handler = &testSDKHandler{}
 )
 
 func TestNetworkDoesNotConnectToItself(t *testing.T) {
 	selfNodeID := ids.GenerateTestNodeID()
-	n := NewNetwork(nil, nil, nil, selfNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	n := NewNetwork(p2pNetwork, nil, nil, nil, selfNodeID, 1, 1)
 	assert.NoError(t, n.Connected(context.Background(), selfNodeID, defaultPeerVersion))
 	assert.EqualValues(t, 0, n.Size())
 }
@@ -63,7 +69,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 	senderWg := &sync.WaitGroup{}
 	var net Network
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			nodeID, _ := nodes.Pop()
 			senderWg.Add(1)
 			go func() {
@@ -89,7 +95,9 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
-	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 16, 16)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 16, 16)
 	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
 	client := NewNetworkClient(net)
 	nodeID := ids.GenerateTestNodeID()
@@ -111,7 +119,7 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, _, err := client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+			responseBytes, _, err := client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -128,6 +136,37 @@ func TestRequestAnyRequestsRoutingAndResponse(t *testing.T) {
 	assert.Equal(t, totalCalls, int(atomic.LoadUint32(&callNum)))
 }
 
+func TestAppRequestOnCtxCancellation(t *testing.T) {
+	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	sender := testAppSender{
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+			return nil
+		},
+		sendAppResponseFn: func(nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+			return nil
+		},
+	}
+
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net := NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
+
+	requestMessage := HelloRequest{Message: "this is a request"}
+	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
+	assert.NoError(t, err)
+
+	nodeID := ids.GenerateTestNodeID()
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel context prior to sending
+	cancel()
+	client := NewNetworkClient(net)
+	_, err = client.SendAppRequest(ctx, nodeID, requestBytes)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
 func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	callNum := uint32(0)
 	senderWg := &sync.WaitGroup{}
@@ -135,7 +174,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	var lock sync.Mutex
 	contactedNodes := make(map[ids.NodeID]struct{})
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			nodeID, _ := nodes.Pop()
 			lock.Lock()
 			contactedNodes[nodeID] = struct{}{}
@@ -164,7 +203,9 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
-	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 16, 16)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 16, 16)
 	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
 	client := NewNetworkClient(net)
 
@@ -196,7 +237,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 			defer wg.Done()
 			requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 			assert.NoError(t, err)
-			responseBytes, err := client.SendAppRequest(nodeID, requestBytes)
+			responseBytes, err := client.SendAppRequest(context.Background(), nodeID, requestBytes)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -218,7 +259,7 @@ func TestRequestRequestsRoutingAndResponse(t *testing.T) {
 	}
 
 	// ensure empty nodeID is not allowed
-	_, err := client.SendAppRequest(ids.EmptyNodeID, []byte("hello there"))
+	_, err = client.SendAppRequest(context.Background(), ids.EmptyNodeID, []byte("hello there"))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot send request to empty nodeID")
 }
@@ -230,7 +271,7 @@ func TestAppRequestOnShutdown(t *testing.T) {
 		called bool
 	)
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
 			wg.Add(1)
 			go func() {
 				called = true
@@ -244,7 +285,9 @@ func TestAppRequestOnShutdown(t *testing.T) {
 
 	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
-	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	client := NewNetworkClient(net)
 	nodeID := ids.GenerateTestNodeID()
 	require.NoError(t, net.Connected(context.Background(), nodeID, defaultPeerVersion))
@@ -257,7 +300,7 @@ func TestAppRequestOnShutdown(t *testing.T) {
 		defer wg.Done()
 		requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
 		require.NoError(t, err)
-		responseBytes, _, err := client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+		responseBytes, _, err := client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 		require.Error(t, err, ErrRequestFailed)
 		require.Nil(t, responseBytes)
 	}()
@@ -265,14 +308,94 @@ func TestAppRequestOnShutdown(t *testing.T) {
 	require.True(t, called)
 }
 
+func TestAppRequestAnyOnCtxCancellation(t *testing.T) {
+	codecManager := buildCodec(t, HelloRequest{}, HelloResponse{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	type reqInfo struct {
+		nodeID    ids.NodeID
+		requestID uint32
+	}
+	sentAppRequest := make(chan reqInfo, 1)
+
+	sender := testAppSender{
+		sendAppRequestFn: func(ctx context.Context, nodes set.Set[ids.NodeID], requestID uint32, requestBytes []byte) error {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+
+			assert.Len(t, nodes, 1)
+			sentAppRequest <- reqInfo{
+				nodeID:    nodes.List()[0],
+				requestID: requestID,
+			}
+			return nil
+		},
+		sendAppResponseFn: func(nodeID ids.NodeID, requestID uint32, responseBytes []byte) error {
+			return nil
+		},
+	}
+
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net := NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetRequestHandler(&HelloGreetingRequestHandler{codec: codecManager})
+	assert.NoError(t,
+		net.Connected(
+			context.Background(),
+			ids.GenerateTestNodeID(),
+			version.CurrentApp,
+		),
+	)
+
+	requestMessage := HelloRequest{Message: "this is a request"}
+	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
+	assert.NoError(t, err)
+
+	// cancel context prior to sending
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	client := NewNetworkClient(net)
+	_, _, err = client.SendAppRequestAny(ctx, defaultPeerVersion, requestBytes)
+	assert.ErrorIs(t, err, context.Canceled)
+	// Assert we didn't send anything
+	select {
+	case <-sentAppRequest:
+		assert.FailNow(t, "should not have sent request")
+	default:
+	}
+
+	// Cancel context after sending
+	assert.Empty(t, net.(*network).outstandingRequestHandlers) // no outstanding requests
+	ctx, cancel = context.WithCancel(context.Background())
+	doneChan := make(chan struct{})
+	go func() {
+		_, _, err = client.SendAppRequestAny(ctx, defaultPeerVersion, requestBytes)
+		assert.ErrorIs(t, err, context.Canceled)
+		close(doneChan)
+	}()
+	// Wait until we've "sent" the app request over the network
+	// before cancelling context.
+	sentAppRequestInfo := <-sentAppRequest
+	assert.Len(t, net.(*network).outstandingRequestHandlers, 1)
+	cancel()
+	<-doneChan
+	// Should still be able to process a response after cancelling.
+	assert.Len(t, net.(*network).outstandingRequestHandlers, 1) // context cancellation SendAppRequestAny failure doesn't clear
+	err = net.AppResponse(context.Background(), sentAppRequestInfo.nodeID, sentAppRequestInfo.requestID, []byte{})
+	assert.NoError(t, err)
+	assert.Empty(t, net.(*network).outstandingRequestHandlers) // Received response
+}
+
 func TestRequestMinVersion(t *testing.T) {
 	callNum := uint32(0)
 	nodeID := ids.GenerateTestNodeID()
 	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
 
 	var net Network
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], reqID uint32, messageBytes []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], reqID uint32, messageBytes []byte) error {
 			atomic.AddUint32(&callNum, 1)
 			assert.True(t, nodes.Contains(nodeID), "request nodes should contain expected nodeID")
 			assert.Len(t, nodes, 1, "request nodes should contain exactly one node")
@@ -292,8 +415,9 @@ func TestRequestMinVersion(t *testing.T) {
 	}
 
 	// passing nil as codec works because the net.AppRequest is never called
-	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
-	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 16)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 16)
 	client := NewNetworkClient(net)
 	requestMessage := TestMessage{Message: "this is a request"}
 	requestBytes, err := message.RequestToBytes(codecManager, requestMessage)
@@ -303,6 +427,7 @@ func TestRequestMinVersion(t *testing.T) {
 			context.Background(),
 			nodeID,
 			&version.Application{
+				Name:  version.Client,
 				Major: 1,
 				Minor: 7,
 				Patch: 1,
@@ -312,18 +437,20 @@ func TestRequestMinVersion(t *testing.T) {
 
 	// ensure version does not match
 	responseBytes, _, err := client.SendAppRequestAny(
+		context.Background(),
 		&version.Application{
+			Name:  version.Client,
 			Major: 2,
 			Minor: 0,
 			Patch: 0,
 		},
 		requestBytes,
 	)
-	assert.Equal(t, err.Error(), "no peers found matching version avalanche/2.0.0 out of 1 peers")
+	assert.Equal(t, err.Error(), "no peers found matching version avalanchego/2.0.0 out of 1 peers")
 	assert.Nil(t, responseBytes)
 
 	// ensure version matches and the request goes through
-	responseBytes, _, err = client.SendAppRequestAny(defaultPeerVersion, requestBytes)
+	responseBytes, _, err = client.SendAppRequestAny(context.Background(), defaultPeerVersion, requestBytes)
 	assert.NoError(t, err)
 
 	var response TestMessage
@@ -337,7 +464,7 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 	var net Network
 	responded := false
 	sender := testAppSender{
-		sendAppRequestFn: func(nodes set.Set[ids.NodeID], reqID uint32, message []byte) error {
+		sendAppRequestFn: func(_ context.Context, nodes set.Set[ids.NodeID], reqID uint32, message []byte) error {
 			return nil
 		},
 		sendAppResponseFn: func(nodeID ids.NodeID, reqID uint32, message []byte) error {
@@ -356,7 +483,9 @@ func TestOnRequestHonoursDeadline(t *testing.T) {
 		processingDuration: 500 * time.Millisecond,
 	}
 
-	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	net.SetRequestHandler(requestHandler)
 	nodeID := ids.GenerateTestNodeID()
 
@@ -396,7 +525,9 @@ func TestGossip(t *testing.T) {
 	}
 
 	gossipHandler := &testGossipHandler{}
-	clientNetwork = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	clientNetwork = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(gossipHandler)
 
 	assert.NoError(t, clientNetwork.Connected(context.Background(), nodeID, defaultPeerVersion))
@@ -423,7 +554,9 @@ func TestHandleInvalidMessages(t *testing.T) {
 	requestID := uint32(1)
 	sender := testAppSender{}
 
-	clientNetwork := NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	clientNetwork := NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(message.NoopMempoolGossipHandler{})
 	clientNetwork.SetRequestHandler(&testRequestHandler{})
 
@@ -457,12 +590,11 @@ func TestHandleInvalidMessages(t *testing.T) {
 	assert.NoError(t, clientNetwork.AppRequest(context.Background(), nodeID, requestID, time.Now().Add(time.Second), garbageResponse))
 	assert.NoError(t, clientNetwork.AppRequest(context.Background(), nodeID, requestID, time.Now().Add(time.Second), emptyResponse))
 	assert.NoError(t, clientNetwork.AppRequest(context.Background(), nodeID, requestID, time.Now().Add(time.Second), nilResponse))
-	assert.NoError(t, clientNetwork.AppResponse(context.Background(), nodeID, requestID, gossipMsg))
-	assert.NoError(t, clientNetwork.AppResponse(context.Background(), nodeID, requestID, requestMessage))
-	assert.NoError(t, clientNetwork.AppResponse(context.Background(), nodeID, requestID, garbageResponse))
-	assert.NoError(t, clientNetwork.AppResponse(context.Background(), nodeID, requestID, emptyResponse))
-	assert.NoError(t, clientNetwork.AppResponse(context.Background(), nodeID, requestID, nilResponse))
-	assert.NoError(t, clientNetwork.AppRequestFailed(context.Background(), nodeID, requestID))
+	assert.ErrorIs(t, p2p.ErrUnrequestedResponse, clientNetwork.AppResponse(context.Background(), nodeID, requestID, gossipMsg))
+	assert.ErrorIs(t, p2p.ErrUnrequestedResponse, clientNetwork.AppResponse(context.Background(), nodeID, requestID, requestMessage))
+	assert.ErrorIs(t, p2p.ErrUnrequestedResponse, clientNetwork.AppResponse(context.Background(), nodeID, requestID, garbageResponse))
+	assert.ErrorIs(t, p2p.ErrUnrequestedResponse, clientNetwork.AppResponse(context.Background(), nodeID, requestID, emptyResponse))
+	assert.ErrorIs(t, p2p.ErrUnrequestedResponse, clientNetwork.AppResponse(context.Background(), nodeID, requestID, nilResponse))
 }
 
 func TestNetworkPropagatesRequestHandlerError(t *testing.T) {
@@ -473,7 +605,9 @@ func TestNetworkPropagatesRequestHandlerError(t *testing.T) {
 	requestID := uint32(1)
 	sender := testAppSender{}
 
-	clientNetwork := NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	clientNetwork := NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	clientNetwork.SetGossipHandler(message.NoopMempoolGossipHandler{})
 	clientNetwork.SetRequestHandler(&testRequestHandler{err: errors.New("fail")}) // Return an error from the request handler
 
@@ -513,7 +647,9 @@ func TestCrossChainAppRequest(t *testing.T) {
 		},
 	}
 
-	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	net.SetCrossChainRequestHandler(&testCrossChainHandler{codec: crossChainCodecManager})
 	client := NewNetworkClient(net)
 
@@ -525,7 +661,7 @@ func TestCrossChainAppRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
-	responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+	responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 	assert.NoError(t, err)
 
 	var response ExampleCrossChainResponse
@@ -533,6 +669,40 @@ func TestCrossChainAppRequest(t *testing.T) {
 		t.Fatal("unexpected error during unmarshal", err)
 	}
 	assert.Equal(t, "this is an example response", response.Response)
+}
+
+func TestCrossChainAppRequestOnCtxCancellation(t *testing.T) {
+	codecManager := buildCodec(t, TestMessage{})
+	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
+
+	sender := testAppSender{
+		sendCrossChainAppRequestFn: func(requestingChainID ids.ID, requestID uint32, requestBytes []byte) error {
+			return nil
+		},
+		sendCrossChainAppResponseFn: func(respondingChainID ids.ID, requestID uint32, responseBytes []byte) error {
+			return nil
+		},
+	}
+
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net := NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	net.SetCrossChainRequestHandler(&testCrossChainHandler{codec: crossChainCodecManager})
+
+	exampleCrossChainRequest := ExampleCrossChainRequest{
+		Message: "hello this is an example request",
+	}
+
+	crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
+	assert.NoError(t, err)
+
+	chainID := ids.ID(ethcommon.BytesToHash([]byte{1, 2, 3, 4, 5}))
+	ctx, cancel := context.WithCancel(context.Background())
+	// cancel context prior to sending
+	cancel()
+	client := NewNetworkClient(net)
+	_, err = client.SendCrossChainRequest(ctx, chainID, crossChainRequest)
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
@@ -568,7 +738,9 @@ func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
 
 	codecManager := buildCodec(t, TestMessage{})
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
-	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	net.SetCrossChainRequestHandler(&testCrossChainHandler{codec: crossChainCodecManager})
 	client := NewNetworkClient(net)
 
@@ -591,7 +763,7 @@ func TestCrossChainRequestRequestsRoutingAndResponse(t *testing.T) {
 			defer requestWg.Done()
 			crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
 			assert.NoError(t, err)
-			responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+			responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 			assert.NoError(t, err)
 			assert.NotNil(t, responseBytes)
 
@@ -628,7 +800,9 @@ func TestCrossChainRequestOnShutdown(t *testing.T) {
 	}
 	codecManager := buildCodec(t, TestMessage{})
 	crossChainCodecManager := buildCodec(t, ExampleCrossChainRequest{}, ExampleCrossChainResponse{})
-	net = NewNetwork(sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, nil, prometheus.NewRegistry(), "")
+	require.NoError(t, err)
+	net = NewNetwork(p2pNetwork, sender, codecManager, crossChainCodecManager, ids.EmptyNodeID, 1, 1)
 	client := NewNetworkClient(net)
 
 	exampleCrossChainRequest := ExampleCrossChainRequest{
@@ -641,7 +815,7 @@ func TestCrossChainRequestOnShutdown(t *testing.T) {
 		defer wg.Done()
 		crossChainRequest, err := buildCrossChainRequest(crossChainCodecManager, exampleCrossChainRequest)
 		require.NoError(t, err)
-		responseBytes, err := client.SendCrossChainRequest(chainID, crossChainRequest)
+		responseBytes, err := client.SendCrossChainRequest(context.Background(), chainID, crossChainRequest)
 		require.ErrorIs(t, err, ErrRequestFailed)
 		require.Nil(t, responseBytes)
 	}()
@@ -649,9 +823,71 @@ func TestCrossChainRequestOnShutdown(t *testing.T) {
 	require.True(t, called)
 }
 
+func TestNetworkAppRequestAfterShutdown(t *testing.T) {
+	require := require.New(t)
+
+	net := NewNetwork(nil, nil, nil, nil, ids.EmptyNodeID, 1, 0)
+	net.Shutdown()
+
+	require.NoError(net.SendAppRequest(context.Background(), ids.GenerateTestNodeID(), nil, nil))
+	require.NoError(net.SendAppRequest(context.Background(), ids.GenerateTestNodeID(), nil, nil))
+}
+
+func TestNetworkCrossChainAppRequestAfterShutdown(t *testing.T) {
+	require := require.New(t)
+
+	net := NewNetwork(nil, nil, nil, nil, ids.EmptyNodeID, 0, 1)
+	net.Shutdown()
+
+	require.NoError(net.SendCrossChainRequest(context.Background(), ids.GenerateTestID(), nil, nil))
+	require.NoError(net.SendCrossChainRequest(context.Background(), ids.GenerateTestID(), nil, nil))
+}
+
+func TestNetworkRouting(t *testing.T) {
+	require := require.New(t)
+	sender := &testAppSender{
+		sendAppRequestFn: func(_ context.Context, s set.Set[ids.NodeID], u uint32, bytes []byte) error {
+			return nil
+		},
+		sendAppResponseFn: func(id ids.NodeID, u uint32, bytes []byte) error {
+			return nil
+		},
+	}
+	protocol := 0
+	handler := &testSDKHandler{}
+	p2pNetwork, err := p2p.NewNetwork(logging.NoLog{}, sender, prometheus.NewRegistry(), "")
+	require.NoError(err)
+	require.NoError(p2pNetwork.AddHandler(uint64(protocol), handler))
+
+	networkCodec := codec.NewManager(0)
+	crossChainCodec := codec.NewManager(0)
+
+	network := NewNetwork(
+		p2pNetwork,
+		nil,
+		networkCodec,
+		crossChainCodec,
+		ids.EmptyNodeID,
+		1,
+		1,
+	)
+
+	nodeID := ids.GenerateTestNodeID()
+	foobar := append([]byte{byte(protocol)}, []byte("foobar")...)
+	err = network.AppRequest(context.Background(), nodeID, 0, time.Time{}, foobar)
+	require.NoError(err)
+	require.True(handler.appRequested)
+
+	err = network.AppResponse(context.Background(), ids.GenerateTestNodeID(), 0, foobar)
+	require.ErrorIs(err, p2p.ErrUnrequestedResponse)
+
+	err = network.AppRequestFailed(context.Background(), nodeID, 0, common.ErrTimeout)
+	require.ErrorIs(err, p2p.ErrUnrequestedResponse)
+}
+
 func buildCodec(t *testing.T, types ...interface{}) codec.Manager {
 	codecManager := codec.NewDefaultManager()
-	c := linearcodec.NewDefault()
+	c := linearcodec.NewDefault(time.Time{})
 	for _, typ := range types {
 		assert.NoError(t, c.RegisterType(typ))
 	}
@@ -676,7 +912,7 @@ func buildCrossChainRequest(codec codec.Manager, msg message.CrossChainRequest) 
 type testAppSender struct {
 	sendCrossChainAppRequestFn  func(ids.ID, uint32, []byte) error
 	sendCrossChainAppResponseFn func(ids.ID, uint32, []byte) error
-	sendAppRequestFn            func(set.Set[ids.NodeID], uint32, []byte) error
+	sendAppRequestFn            func(context.Context, set.Set[ids.NodeID], uint32, []byte) error
 	sendAppResponseFn           func(ids.NodeID, uint32, []byte) error
 	sendAppGossipFn             func([]byte) error
 }
@@ -693,8 +929,8 @@ func (t testAppSender) SendAppGossipSpecific(context.Context, set.Set[ids.NodeID
 	panic("not implemented")
 }
 
-func (t testAppSender) SendAppRequest(_ context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, message []byte) error {
-	return t.sendAppRequestFn(nodeIDs, requestID, message)
+func (t testAppSender) SendAppRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, message []byte) error {
+	return t.sendAppRequestFn(ctx, nodeIDs, requestID, message)
 }
 
 func (t testAppSender) SendAppResponse(_ context.Context, nodeID ids.NodeID, requestID uint32, message []byte) error {
@@ -703,6 +939,14 @@ func (t testAppSender) SendAppResponse(_ context.Context, nodeID ids.NodeID, req
 
 func (t testAppSender) SendAppGossip(_ context.Context, message []byte) error {
 	return t.sendAppGossipFn(message)
+}
+
+func (t testAppSender) SendAppError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
+	panic("not implemented")
+}
+
+func (t testAppSender) SendCrossChainAppError(ctx context.Context, chainID ids.ID, requestID uint32, errorCode int32, errorMessage string) error {
+	panic("not implemented")
 }
 
 type HelloRequest struct {
@@ -774,7 +1018,7 @@ type HelloGossip struct {
 }
 
 func (h HelloGossip) Handle(handler message.GossipHandler, nodeID ids.NodeID) error {
-	return handler.HandleTxs(nodeID, message.TxsGossip{})
+	return handler.HandleEthTxs(nodeID, message.EthTxsGossip{})
 }
 
 func (h HelloGossip) String() string {
@@ -791,7 +1035,7 @@ type testGossipHandler struct {
 	nodeID   ids.NodeID
 }
 
-func (t *testGossipHandler) HandleTxs(nodeID ids.NodeID, msg message.TxsGossip) error {
+func (t *testGossipHandler) HandleEthTxs(nodeID ids.NodeID, msg message.EthTxsGossip) error {
 	t.received = true
 	t.nodeID = nodeID
 	return nil
@@ -843,4 +1087,23 @@ type testCrossChainHandler struct {
 
 func (t *testCrossChainHandler) HandleCrossChainRequest(ctx context.Context, requestingChainID ids.ID, requestID uint32, exampleRequest message.CrossChainRequest) ([]byte, error) {
 	return t.codec.Marshal(message.Version, ExampleCrossChainResponse{Response: "this is an example response"})
+}
+
+type testSDKHandler struct {
+	appRequested bool
+}
+
+func (t *testSDKHandler) AppGossip(ctx context.Context, nodeID ids.NodeID, gossipBytes []byte) {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (t *testSDKHandler) AppRequest(ctx context.Context, nodeID ids.NodeID, deadline time.Time, requestBytes []byte) ([]byte, error) {
+	t.appRequested = true
+	return nil, nil
+}
+
+func (t *testSDKHandler) CrossChainAppRequest(ctx context.Context, chainID ids.ID, deadline time.Time, requestBytes []byte) ([]byte, error) {
+	// TODO implement me
+	panic("implement me")
 }

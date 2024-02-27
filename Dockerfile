@@ -5,8 +5,7 @@
 ARG AVALANCHE_VERSION
 
 # ============= Compilation Stage ================
-FROM golang:1.19.6-buster AS builder
-RUN apt-get update && apt-get install -y --no-install-recommends bash=5.0-4 make=4.2.1-1.2 gcc=4:8.3.0-1 musl-dev=1.1.21-2 ca-certificates=20200601~deb10u2 linux-headers-amd64
+FROM golang:1.21.7-bullseye AS builder
 
 WORKDIR /build
 
@@ -15,7 +14,7 @@ WORKDIR /build
 COPY go.mod go.sum avalanchego* ./
 
 # Download avalanche dependencies using go mod
-RUN go mod download && go mod tidy -compat=1.19
+RUN go mod download && go mod tidy -compat=1.21
 
 # Copy the code into the container
 COPY . .

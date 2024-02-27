@@ -60,7 +60,7 @@ func FuzzHashSliceToBytes(f *testing.F) {
 		f.Add(utils.RandomBytes(i))
 	}
 
-	f.Fuzz(func(t *testing.T, a []byte) {
-		testBytesToHashSlice(t, a)
+	f.Fuzz(func(t *testing.T, b []byte) {
+		testBytesToHashSlice(t, b)
 	})
 }

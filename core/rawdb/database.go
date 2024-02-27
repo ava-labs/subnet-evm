@@ -28,14 +28,16 @@ package rawdb
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/ethdb"
-	"github.com/ava-labs/subnet-evm/ethdb/leveldb"
-	"github.com/ava-labs/subnet-evm/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/ethdb/leveldb"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/olekukonko/tablewriter"
 )
@@ -43,6 +45,83 @@ import (
 // nofreezedb is a database wrapper that disables freezer data retrievals.
 type nofreezedb struct {
 	ethdb.KeyValueStore
+}
+
+// HasAncient returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) HasAncient(kind string, number uint64) (bool, error) {
+	return false, errNotSupported
+}
+
+// Ancient returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) Ancient(kind string, number uint64) ([]byte, error) {
+	return nil, errNotSupported
+}
+
+// AncientRange returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) AncientRange(kind string, start, max, maxByteSize uint64) ([][]byte, error) {
+	return nil, errNotSupported
+}
+
+// Ancients returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) Ancients() (uint64, error) {
+	return 0, errNotSupported
+}
+
+// Tail returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) Tail() (uint64, error) {
+	return 0, errNotSupported
+}
+
+// AncientSize returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) AncientSize(kind string) (uint64, error) {
+	return 0, errNotSupported
+}
+
+// ModifyAncients is not supported.
+func (db *nofreezedb) ModifyAncients(func(ethdb.AncientWriteOp) error) (int64, error) {
+	return 0, errNotSupported
+}
+
+// TruncateHead returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) TruncateHead(items uint64) error {
+	return errNotSupported
+}
+
+// TruncateTail returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) TruncateTail(items uint64) error {
+	return errNotSupported
+}
+
+// Sync returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) Sync() error {
+	return errNotSupported
+}
+
+func (db *nofreezedb) ReadAncients(fn func(reader ethdb.AncientReaderOp) error) (err error) {
+	// Unlike other ancient-related methods, this method does not return
+	// errNotSupported when invoked.
+	// The reason for this is that the caller might want to do several things:
+	// 1. Check if something is in freezer,
+	// 2. If not, check leveldb.
+	//
+	// This will work, since the ancient-checks inside 'fn' will return errors,
+	// and the leveldb work will continue.
+	//
+	// If we instead were to return errNotSupported here, then the caller would
+	// have to explicitly check for that, having an extra clause to do the
+	// non-ancient operations.
+	return fn(db)
+}
+
+// MigrateTable processes the entries in a given table in sequence
+// converting them to a new format if they're of an old format.
+func (db *nofreezedb) MigrateTable(kind string, convert convertLegacyFn) error {
+	return errNotSupported
+}
+
+// AncientDatadir returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) AncientDatadir() (string, error) {
+	return "", errNotSupported
 }
 
 // NewDatabase creates a high level database on top of a given key-value data
@@ -71,7 +150,93 @@ func NewLevelDBDatabase(file string, cache int, handles int, namespace string, r
 	if err != nil {
 		return nil, err
 	}
+	log.Info("Using LevelDB as the backing database")
 	return NewDatabase(db), nil
+}
+
+const (
+	dbPebble  = "pebble"
+	dbLeveldb = "leveldb"
+)
+
+// hasPreexistingDb checks the given data directory whether a database is already
+// instantiated at that location, and if so, returns the type of database (or the
+// empty string).
+func hasPreexistingDb(path string) string {
+	if _, err := os.Stat(filepath.Join(path, "CURRENT")); err != nil {
+		return "" // No pre-existing db
+	}
+	if matches, err := filepath.Glob(filepath.Join(path, "OPTIONS*")); len(matches) > 0 || err != nil {
+		if err != nil {
+			panic(err) // only possible if the pattern is malformed
+		}
+		return dbPebble
+	}
+	return dbLeveldb
+}
+
+// OpenOptions contains the options to apply when opening a database.
+// OBS: If AncientsDirectory is empty, it indicates that no freezer is to be used.
+type OpenOptions struct {
+	Type      string // "leveldb" | "pebble"
+	Directory string // the datadir
+	Namespace string // the namespace for database relevant metrics
+	Cache     int    // the capacity(in megabytes) of the data caching
+	Handles   int    // number of files to be open simultaneously
+	ReadOnly  bool
+}
+
+// openKeyValueDatabase opens a disk-based key-value database, e.g. leveldb or pebble.
+//
+//	                      type == null          type != null
+//	                   +----------------------------------------
+//	db is non-existent |  pebble default  |  specified type
+//	db is existent     |  from db         |  specified type (if compatible)
+func openKeyValueDatabase(o OpenOptions) (ethdb.Database, error) {
+	// Reject any unsupported database type
+	if len(o.Type) != 0 && o.Type != dbLeveldb && o.Type != dbPebble {
+		return nil, fmt.Errorf("unknown db.engine %v", o.Type)
+	}
+	// Retrieve any pre-existing database's type and use that or the requested one
+	// as long as there's no conflict between the two types
+	existingDb := hasPreexistingDb(o.Directory)
+	if len(existingDb) != 0 && len(o.Type) != 0 && o.Type != existingDb {
+		return nil, fmt.Errorf("db.engine choice was %v but found pre-existing %v database in specified data directory", o.Type, existingDb)
+	}
+	if o.Type == dbPebble || existingDb == dbPebble {
+		if PebbleEnabled {
+			log.Info("Using pebble as the backing database")
+			return NewPebbleDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
+		} else {
+			return nil, errors.New("db.engine 'pebble' not supported on this platform")
+		}
+	}
+	if o.Type == dbLeveldb || existingDb == dbLeveldb {
+		log.Info("Using leveldb as the backing database")
+		return NewLevelDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
+	}
+	// No pre-existing database, no user-requested one either. Default to Pebble
+	// on supported platforms and LevelDB on anything else.
+	if PebbleEnabled {
+		log.Info("Defaulting to pebble as the backing database")
+		return NewPebbleDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
+	} else {
+		log.Info("Defaulting to leveldb as the backing database")
+		return NewLevelDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
+	}
+}
+
+// Open opens both a disk-based key-value database such as leveldb or pebble, but also
+// integrates it with a freezer database -- if the AncientDir option has been
+// set on the provided OpenOptions.
+// The passed o.AncientDir indicates the path of root ancient directory where
+// the chain freezer can be opened.
+func Open(o OpenOptions) (ethdb.Database, error) {
+	kvdb, err := openKeyValueDatabase(o)
+	if err != nil {
+		return nil, err
+	}
+	return kvdb, nil
 }
 
 type counter uint64
@@ -175,7 +340,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			accountSnaps.Add(size)
 		case bytes.HasPrefix(key, SnapshotStoragePrefix) && len(key) == (len(SnapshotStoragePrefix)+2*common.HashLength):
 			storageSnaps.Add(size)
-		case bytes.HasPrefix(key, preimagePrefix) && len(key) == (len(preimagePrefix)+common.HashLength):
+		case bytes.HasPrefix(key, PreimagePrefix) && len(key) == (len(PreimagePrefix)+common.HashLength):
 			preimages.Add(size)
 		case bytes.HasPrefix(key, configPrefix) && len(key) == (len(configPrefix)+common.HashLength):
 			metadata.Add(size)
@@ -185,16 +350,6 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			bloomBits.Add(size)
 		case bytes.HasPrefix(key, BloomBitsIndexPrefix):
 			bloomBits.Add(size)
-		case bytes.HasPrefix(key, []byte("clique-")) && len(key) == 7+common.HashLength:
-			cliqueSnaps.Add(size)
-		case bytes.HasPrefix(key, []byte("cht-")) ||
-			bytes.HasPrefix(key, []byte("chtIndexV2-")) ||
-			bytes.HasPrefix(key, []byte("chtRootV2-")): // Canonical hash trie
-			chtTrieNodes.Add(size)
-		case bytes.HasPrefix(key, []byte("blt-")) ||
-			bytes.HasPrefix(key, []byte("bltIndex-")) ||
-			bytes.HasPrefix(key, []byte("bltRoot-")): // Bloomtrie sub
-			bloomTrieNodes.Add(size)
 		case bytes.HasPrefix(key, syncStorageTriesPrefix) && len(key) == syncStorageTriesKeyLength:
 			syncProgress.Add(size)
 		case bytes.HasPrefix(key, syncSegmentsPrefix) && len(key) == syncSegmentsKeyLength:
@@ -258,18 +413,22 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 	if unaccounted.size > 0 {
 		log.Error("Database contains unaccounted data", "size", unaccounted.size, "count", unaccounted.count)
 	}
-
 	return nil
 }
 
-// ClearPrefix removes all keys in db that begin with prefix
-func ClearPrefix(db ethdb.KeyValueStore, prefix []byte) error {
+// ClearPrefix removes all keys in db that begin with prefix and match an
+// expected key length. [keyLen] should include the length of the prefix.
+func ClearPrefix(db ethdb.KeyValueStore, prefix []byte, keyLen int) error {
 	it := db.NewIterator(prefix, nil)
 	defer it.Release()
 
 	batch := db.NewBatch()
 	for it.Next() {
 		key := common.CopyBytes(it.Key())
+		if len(key) != keyLen {
+			// avoid deleting keys that do not match the expected length
+			continue
+		}
 		if err := batch.Delete(key); err != nil {
 			return err
 		}

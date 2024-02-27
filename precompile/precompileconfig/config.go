@@ -5,13 +5,12 @@
 package precompileconfig
 
 import (
-	"math/big"
-
 	"github.com/ava-labs/avalanchego/chains/atomic"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
 	"github.com/ava-labs/avalanchego/vms/platformvm/warp"
+	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -24,51 +23,35 @@ type Config interface {
 	// 1) 0 indicates that the precompile should be enabled from genesis.
 	// 2) n indicates that the precompile should be enabled in the first block with timestamp >= [n].
 	// 3) nil indicates that the precompile is never enabled.
-	Timestamp() *big.Int
+	Timestamp() *uint64
 	// IsDisabled returns true if this network upgrade should disable the precompile.
 	IsDisabled() bool
 	// Equal returns true if the provided argument configures the same precompile with the same parameters.
 	Equal(Config) bool
 	// Verify is called on startup and an error is treated as fatal. Configure can assume the Config has passed verification.
-	Verify() error
+	Verify(ChainConfig) error
 }
 
-// PrecompilePredicateContext is the context passed in to the PrecompilePredicater interface.
-type PrecompilePredicateContext struct {
-	SnowCtx *snow.Context
-}
-
-// PrecompilePredicater is an optional interface for StatefulPrecompileContracts to implement.
-// If implemented, the predicate will be enforced on every transaction in a block, prior to
-// the block's execution.
-// If VerifyPredicate returns an error, the block will fail verification with no further processing.
-// WARNING: If you are implementing a custom precompile, beware that subnet-evm
-// will not maintain backwards compatibility of this interface and your code should not
-// rely on this. Designed for use only by precompiles that ship with subnet-evm.
-type PrecompilePredicater interface {
-	VerifyPredicate(predicateContext *PrecompilePredicateContext, storageSlots []byte) error
-}
-
-// ProposerPredicateContext is the context passed in to the ProposerPredicater interface to verify
+// PredicateContext is the context passed in to the Predicater interface to verify
 // a precompile predicate within a specific ProposerVM wrapper.
-type ProposerPredicateContext struct {
-	PrecompilePredicateContext
+type PredicateContext struct {
+	SnowCtx *snow.Context
 	// ProposerVMBlockCtx defines the ProposerVM context the predicate is verified within
 	ProposerVMBlockCtx *block.Context
 }
 
-// ProposerPredicater is an optional interface for StatefulPrecompiledContracts to implement.
-// If implemented, the predicate will be enforced on every transaction in a block, prior to
-// the block's execution.
-// If VerifyPredicate returns an error, the block will fail verification with no further processing.
-// Note: ProposerVMBlockCtx is guaranteed to be non-nil.
-// Precompiles should use ProposerPredicater instead of PrecompilePredicater iff their execution
-// depends on the ProposerVM Block Context.
-// WARNING: If you are implementing a custom precompile, beware that subnet-evm
-// will not maintain backwards compatibility of this interface and your code should not
-// rely on this. Designed for use only by precompiles that ship with subnet-evm.
-type ProposerPredicater interface {
-	VerifyPredicate(proposerPredicateContext *ProposerPredicateContext, storageSlots []byte) error
+// Predicater is an optional interface for StatefulPrecompileContracts to implement.
+// If implemented, the predicate will be called for each predicate included in the
+// access list of a transaction.
+// PredicateGas will be called while calculating the IntrinsicGas of a transaction
+// causing it to be dropped if the total gas goes above the tx gas limit.
+// VerifyPredicate is used to populate a bit set of predicates verified prior to
+// block execution, which can be accessed via the StateDB during execution.
+// The bitset is stored in the block, so that historical blocks can be re-verified
+// without calling VerifyPredicate.
+type Predicater interface {
+	PredicateGas(predicateBytes []byte) (uint64, error)
+	VerifyPredicate(predicateContext *PredicateContext, predicateBytes []byte) error
 }
 
 // SharedMemoryWriter defines an interface to allow a precompile's Accepter to write operations
@@ -94,5 +77,17 @@ type AcceptContext struct {
 // will not maintain backwards compatibility of this interface and your code should not
 // rely on this. Designed for use only by precompiles that ship with subnet-evm.
 type Accepter interface {
-	Accept(acceptCtx *AcceptContext, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
+	Accept(acceptCtx *AcceptContext, blockHash common.Hash, blockNumber uint64, txHash common.Hash, logIndex int, topics []common.Hash, logData []byte) error
+}
+
+// ChainContext defines an interface that provides information to a stateful precompile
+// about the chain configuration. The precompile can access this information to initialize
+// its state.
+type ChainConfig interface {
+	// GetFeeConfig returns the original FeeConfig that was set in the genesis.
+	GetFeeConfig() commontype.FeeConfig
+	// AllowedFeeRecipients returns true if fee recipients are allowed in the genesis.
+	AllowedFeeRecipients() bool
+	// IsDurango returns true if the time is after Durango.
+	IsDurango(time uint64) bool
 }

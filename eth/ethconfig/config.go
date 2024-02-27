@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/eth/gasprice"
 	"github.com/ava-labs/subnet-evm/miner"
 	"github.com/ethereum/go-ethereum/common"
@@ -52,18 +53,19 @@ var DefaultConfig = NewDefaultConfig()
 
 func NewDefaultConfig() Config {
 	return Config{
-		NetworkId:             1,
-		TrieCleanCache:        512,
-		TrieDirtyCache:        256,
-		TrieDirtyCommitTarget: 20,
-		SnapshotCache:         256,
-		AcceptedCacheSize:     32,
-		Miner:                 miner.Config{},
-		TxPool:                core.DefaultTxPoolConfig,
-		RPCGasCap:             25000000,
-		RPCEVMTimeout:         5 * time.Second,
-		GPO:                   DefaultFullGPOConfig,
-		RPCTxFeeCap:           1,
+		NetworkId:                 1,
+		TrieCleanCache:            512,
+		TrieDirtyCache:            256,
+		TrieDirtyCommitTarget:     20,
+		TriePrefetcherParallelism: 16,
+		SnapshotCache:             256,
+		AcceptedCacheSize:         32,
+		Miner:                     miner.Config{},
+		TxPool:                    txpool.DefaultConfig,
+		RPCGasCap:                 25000000,
+		RPCEVMTimeout:             5 * time.Second,
+		GPO:                       DefaultFullGPOConfig,
+		RPCTxFeeCap:               1, // 1 AVAX
 	}
 }
 
@@ -85,7 +87,7 @@ type Config struct {
 	PopulateMissingTriesParallelism int     // Number of concurrent readers to use when re-populating missing tries on startup.
 	AllowMissingTries               bool    // Whether to allow an archival node to run with pruning enabled and corrupt a complete index.
 	SnapshotDelayInit               bool    // Whether snapshot tree should be initialized on startup or delayed until explicit call
-	SnapshotAsync                   bool    // Whether to generate the initial snapshot in async mode
+	SnapshotWait                    bool    // Whether to wait for the initial snapshot generation
 	SnapshotVerify                  bool    // Whether to verify generated snapshots
 	SkipSnapshotRebuild             bool    // Whether to skip rebuilding the snapshot in favor of returning an error (only set to true for tests)
 
@@ -93,13 +95,14 @@ type Config struct {
 	SkipBcVersionCheck bool `toml:"-"`
 
 	// TrieDB and snapshot options
-	TrieCleanCache        int
-	TrieCleanJournal      string
-	TrieCleanRejournal    time.Duration
-	TrieDirtyCache        int
-	TrieDirtyCommitTarget int
-	SnapshotCache         int
-	Preimages             bool
+	TrieCleanCache            int
+	TrieCleanJournal          string
+	TrieCleanRejournal        time.Duration
+	TrieDirtyCache            int
+	TrieDirtyCommitTarget     int
+	TriePrefetcherParallelism int
+	SnapshotCache             int
+	Preimages                 bool
 
 	// AcceptedCacheSize is the depth of accepted headers cache and accepted
 	// logs cache at the accepted tip.
@@ -109,7 +112,7 @@ type Config struct {
 	Miner miner.Config
 
 	// Transaction pool options
-	TxPool core.TxPoolConfig
+	TxPool txpool.Config
 
 	// Gas Price Oracle options
 	GPO gasprice.Config
@@ -155,4 +158,9 @@ type Config struct {
 	//  * 0:   means no limit
 	//  * N:   means N block limit [HEAD-N+1, HEAD] and delete extra indexes
 	TxLookupLimit uint64
+
+	// SkipTxIndexing skips indexing transactions.
+	// This is useful for validators that don't need to index transactions.
+	// TxLookupLimit can be still used to control unindexing old transactions.
+	SkipTxIndexing bool
 }

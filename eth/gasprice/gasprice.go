@@ -42,26 +42,26 @@ import (
 	"github.com/ava-labs/subnet-evm/precompile/contracts/feemanager"
 	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
 	// DefaultMaxCallBlockHistory is the number of blocks that can be fetched in
 	// a single call to eth_feeHistory.
-	DefaultMaxCallBlockHistory uint64 = 2048
+	DefaultMaxCallBlockHistory = 2048
 	// DefaultMaxBlockHistory is the number of blocks from the last accepted
 	// block that can be fetched in eth_feeHistory.
 	//
 	// DefaultMaxBlockHistory is chosen to be a value larger than the required
 	// fee lookback window that MetaMask uses (20k blocks).
-	DefaultMaxBlockHistory int = 25_000
+	DefaultMaxBlockHistory = 25_000
 	// DefaultFeeHistoryCacheSize is chosen to be some value larger than
 	// [DefaultMaxBlockHistory] to ensure all block lookups can be cached when
 	// serving a fee history query.
-	DefaultFeeHistoryCacheSize int = 30_000
+	DefaultFeeHistoryCacheSize = 30_000
 )
 
 var (
@@ -86,7 +86,7 @@ type Config struct {
 	MaxCallBlockHistory uint64
 	// MaxBlockHistory specifies the furthest back behind the last accepted block that can
 	// be requested by fee history.
-	MaxBlockHistory int
+	MaxBlockHistory uint64
 	MaxPrice        *big.Int `toml:",omitempty"`
 	MinPrice        *big.Int `toml:",omitempty"`
 	MinGasUsed      *big.Int `toml:",omitempty"`
@@ -127,8 +127,8 @@ type Oracle struct {
 	checkBlocks, percentile int
 	maxLookbackSeconds      uint64
 	maxCallBlockHistory     uint64
-	maxBlockHistory         int
-	historyCache            *lru.Cache
+	maxBlockHistory         uint64
+	historyCache            *lru.Cache[uint64, *slimBlock]
 	feeInfoProvider         *feeInfoProvider
 }
 
@@ -179,7 +179,7 @@ func NewOracle(backend OracleBackend, config Config) (*Oracle, error) {
 		log.Warn("Sanitizing invalid gasprice oracle max block history", "provided", config.MaxBlockHistory, "updated", maxBlockHistory)
 	}
 
-	cache, _ := lru.New(DefaultFeeHistoryCacheSize)
+	cache := lru.NewCache[uint64, *slimBlock](DefaultFeeHistoryCacheSize)
 	headEvent := make(chan core.ChainHeadEvent, 1)
 	backend.SubscribeChainHeadEvent(headEvent)
 	go func() {
@@ -318,7 +318,7 @@ func (oracle *Oracle) suggestDynamicFees(ctx context.Context) (*big.Int, *big.In
 		feeLastChangedAt *big.Int
 		feeConfig        commontype.FeeConfig
 	)
-	if oracle.backend.ChainConfig().IsPrecompileEnabled(feemanager.ContractAddress, new(big.Int).SetUint64(head.Time)) {
+	if oracle.backend.ChainConfig().IsPrecompileEnabled(feemanager.ContractAddress, head.Time) {
 		feeConfig, feeLastChangedAt, err = oracle.backend.GetFeeConfigAt(head)
 		if err != nil {
 			return nil, nil, err

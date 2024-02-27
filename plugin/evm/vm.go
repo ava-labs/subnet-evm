@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,12 +17,16 @@ import (
 	"time"
 
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
+	"github.com/ava-labs/avalanchego/network/p2p"
+	"github.com/ava-labs/avalanchego/network/p2p/gossip"
+	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/eth"
 	"github.com/ava-labs/subnet-evm/eth/ethconfig"
@@ -32,17 +37,20 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
 	"github.com/ava-labs/subnet-evm/sync/client/stats"
 	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ava-labs/subnet-evm/warp"
+	warpValidators "github.com/ava-labs/subnet-evm/warp/validators"
 
 	// Force-load tracer engine to trigger registration
 	//
 	// We must import this package (not referenced elsewhere) so that the native "callTracer"
 	// is added to a map of client-accessible tracers. In geth, this is done
 	// inside of cmd/geth.
+	_ "github.com/ava-labs/subnet-evm/eth/tracers/js"
 	_ "github.com/ava-labs/subnet-evm/eth/tracers/native"
 
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
@@ -50,6 +58,7 @@ import (
 	_ "github.com/ava-labs/subnet-evm/precompile/registry"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -57,7 +66,6 @@ import (
 
 	"github.com/ava-labs/avalanchego/codec"
 	"github.com/ava-labs/avalanchego/database"
-	"github.com/ava-labs/avalanchego/database/manager"
 	"github.com/ava-labs/avalanchego/database/prefixdb"
 	"github.com/ava-labs/avalanchego/database/versiondb"
 	"github.com/ava-labs/avalanchego/ids"
@@ -65,10 +73,10 @@ import (
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/snowman/block"
-	cjson "github.com/ava-labs/avalanchego/utils/json"
 	"github.com/ava-labs/avalanchego/utils/perms"
 	"github.com/ava-labs/avalanchego/utils/profiler"
 	"github.com/ava-labs/avalanchego/utils/timer/mockable"
+	"github.com/ava-labs/avalanchego/utils/units"
 	"github.com/ava-labs/avalanchego/vms/components/chain"
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
@@ -78,30 +86,47 @@ import (
 
 var (
 	_ block.ChainVM                      = &VM{}
-	_ block.HeightIndexedChainVM         = &VM{}
 	_ block.BuildBlockWithContextChainVM = &VM{}
+	_ block.StateSyncableVM              = &VM{}
+	_ statesyncclient.EthBlockParser     = &VM{}
 )
 
 const (
 	// Max time from current time allowed for blocks, before they're considered future blocks
 	// and fail verification
-	maxFutureBlockTime = 10 * time.Second
-
-	decidedCacheSize       = 100
+	maxFutureBlockTime     = 10 * time.Second
+	decidedCacheSize       = 10 * units.MiB
 	missingCacheSize       = 50
-	unverifiedCacheSize    = 50
+	unverifiedCacheSize    = 5 * units.MiB
+	bytesToIDCacheSize     = 5 * units.MiB
 	warpSignatureCacheSize = 500
 
 	// Prefixes for metrics gatherers
 	ethMetricsPrefix        = "eth"
 	chainStateMetricsPrefix = "chain_state"
+
+	// p2p app protocols
+	ethTxGossipProtocol = 0x0
+
+	// gossip constants
+	txGossipBloomMinTargetElements       = 8 * 1024
+	txGossipBloomTargetFalsePositiveRate = 0.01
+	txGossipBloomResetFalsePositiveRate  = 0.05
+	txGossipBloomChurnMultiplier         = 3
+	txGossipTargetMessageSize            = 20 * units.KiB
+	maxValidatorSetStaleness             = time.Minute
+	txGossipThrottlingPeriod             = 10 * time.Second
+	txGossipThrottlingLimit              = 2
+	gossipFrequency                      = 10 * time.Second
+	txGossipPollSize                     = 10
 )
 
 // Define the API endpoints for the VM
 const (
-	adminEndpoint  = "/admin"
-	ethRPCEndpoint = "/rpc"
-	ethWSEndpoint  = "/ws"
+	adminEndpoint        = "/admin"
+	ethRPCEndpoint       = "/rpc"
+	ethWSEndpoint        = "/ws"
+	ethTxGossipNamespace = "eth_tx_gossip"
 )
 
 var (
@@ -114,14 +139,14 @@ var (
 )
 
 var (
-	errEmptyBlock                 = errors.New("empty block")
-	errUnsupportedFXs             = errors.New("unsupported feature extensions")
-	errInvalidBlock               = errors.New("invalid block")
-	errInvalidNonce               = errors.New("invalid nonce")
-	errUnclesUnsupported          = errors.New("uncles unsupported")
-	errNilBaseFeeSubnetEVM        = errors.New("nil base fee is invalid after subnetEVM")
-	errNilBlockGasCostSubnetEVM   = errors.New("nil blockGasCost is invalid after subnetEVM")
-	errSubnetEVMUpgradeNotEnabled = errors.New("SubnetEVM upgrade is not enabled in genesis")
+	errEmptyBlock                    = errors.New("empty block")
+	errUnsupportedFXs                = errors.New("unsupported feature extensions")
+	errInvalidBlock                  = errors.New("invalid block")
+	errInvalidNonce                  = errors.New("invalid nonce")
+	errUnclesUnsupported             = errors.New("uncles unsupported")
+	errNilBaseFeeSubnetEVM           = errors.New("nil base fee is invalid after subnetEVM")
+	errNilBlockGasCostSubnetEVM      = errors.New("nil blockGasCost is invalid after subnetEVM")
+	errInvalidHeaderPredicateResults = errors.New("invalid header predicate results")
 )
 
 // legacyApiNames maps pre geth v1.10.20 api names to their updated counterparts.
@@ -146,6 +171,8 @@ var legacyApiNames = map[string]string{
 // VM implements the snowman.ChainVM interface
 type VM struct {
 	ctx *snow.Context
+	// [cancel] may be nil until [snow.NormalOp] starts
+	cancel context.CancelFunc
 	// *chain.State helps to implement the VM interface by wrapping blocks
 	// with an efficient caching layer.
 	*chain.State
@@ -159,7 +186,7 @@ type VM struct {
 
 	// pointers to eth constructs
 	eth        *eth.Ethereum
-	txPool     *core.TxPool
+	txPool     *txpool.TxPool
 	blockChain *core.BlockChain
 	miner      *miner.Miner
 
@@ -170,7 +197,7 @@ type VM struct {
 	metadataDB database.Database
 
 	// [chaindb] is the database supplied to the Ethereum backend
-	chaindb Database
+	chaindb ethdb.Database
 
 	// [acceptedBlockDB] is the database to store the last accepted
 	// block.
@@ -200,8 +227,11 @@ type VM struct {
 	client       peer.NetworkClient
 	networkCodec codec.Manager
 
+	validators *p2p.Validators
+
 	// Metrics
 	multiGatherer avalanchegoMetrics.MultiGatherer
+	sdkMetrics    *prometheus.Registry
 
 	bootstrapped bool
 
@@ -212,14 +242,20 @@ type VM struct {
 
 	// Avalanche Warp Messaging backend
 	// Used to serve BLS signatures of warp messages over RPC
-	warpBackend warp.WarpBackend
+	warpBackend warp.Backend
+
+	// Initialize only sets these if nil so they can be overridden in tests
+	p2pSender          commonEng.AppSender
+	ethTxGossipHandler p2p.Handler
+	ethTxPullGossiper  gossip.Gossiper
+	ethTxPushGossiper  gossip.Accumulator[*GossipEthTx]
 }
 
 // Initialize implements the snowman.ChainVM interface
 func (vm *VM) Initialize(
 	_ context.Context,
 	chainCtx *snow.Context,
-	dbManager manager.Manager,
+	db database.Database,
 	genesisBytes []byte,
 	upgradeBytes []byte,
 	configBytes []byte,
@@ -236,7 +272,6 @@ func (vm *VM) Initialize(
 	if err := vm.config.Validate(); err != nil {
 		return err
 	}
-
 	vm.ctx = chainCtx
 
 	// Create logger
@@ -263,14 +298,16 @@ func (vm *VM) Initialize(
 
 	vm.toEngine = toEngine
 	vm.shutdownChan = make(chan struct{}, 1)
-	baseDB := dbManager.Current().Database
 	// Use NewNested rather than New so that the structure of the database
 	// remains the same regardless of the provided baseDB type.
-	vm.chaindb = Database{prefixdb.NewNested(ethDBPrefix, baseDB)}
-	vm.db = versiondb.New(baseDB)
+	vm.chaindb = rawdb.NewDatabase(Database{prefixdb.NewNested(ethDBPrefix, db)})
+	vm.db = versiondb.New(db)
 	vm.acceptedBlockDB = prefixdb.New(acceptedPrefix, vm.db)
 	vm.metadataDB = prefixdb.New(metadataPrefix, vm.db)
-	vm.warpDB = prefixdb.New(warpPrefix, vm.db)
+	// Note warpDB is not part of versiondb because it is not necessary
+	// that warp signatures are committed to the database atomically with
+	// the last accepted block.
+	vm.warpDB = prefixdb.New(warpPrefix, db)
 
 	if vm.config.InspectDatabase {
 		start := time.Now()
@@ -288,6 +325,19 @@ func (vm *VM) Initialize(
 
 	if g.Config == nil {
 		g.Config = params.SubnetEVMDefaultChainConfig
+	}
+
+	mandatoryNetworkUpgrades := params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
+	if avalanchegoConstants.ProductionNetworkIDs.Contains(chainCtx.NetworkID) {
+		// We enforce network upgrades here, regardless of the chain config
+		// provided in the genesis file
+		g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
+	} else {
+		// If we are not enforcing, then apply those only if they are not
+		// already set in the genesis file
+		if g.Config.MandatoryNetworkUpgrades == (params.MandatoryNetworkUpgrades{}) {
+			g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
+		}
 	}
 
 	// Load airdrop file if provided
@@ -308,8 +358,28 @@ func (vm *VM) Initialize(
 		g.Config.FeeConfig = params.DefaultFeeConfig
 	}
 
+	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
+	// Initializing the chain will verify upgradeBytes are compatible with existing values.
+	// This should be called before g.Verify().
+	if len(upgradeBytes) > 0 {
+		var upgradeConfig params.UpgradeConfig
+		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
+			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
+		}
+		g.Config.UpgradeConfig = upgradeConfig
+	}
+
+	if err := g.Verify(); err != nil {
+		return fmt.Errorf("failed to verify genesis: %w", err)
+	}
+
 	vm.ethConfig = ethconfig.NewDefaultConfig()
 	vm.ethConfig.Genesis = g
+	// NetworkID here is different than Avalanche's NetworkID.
+	// Avalanche's NetworkID represents the Avalanche network is running on
+	// like Fuji, Mainnet, Local, etc.
+	// The NetworkId here is kept same as ChainID to be compatible with
+	// Ethereum tooling.
 	vm.ethConfig.NetworkId = g.Config.ChainID.Uint64()
 
 	// Set minimum price for mining and default gas price oracle value to the min
@@ -339,13 +409,14 @@ func (vm *VM) Initialize(
 	vm.ethConfig.TrieCleanRejournal = vm.config.TrieCleanRejournal.Duration
 	vm.ethConfig.TrieDirtyCache = vm.config.TrieDirtyCache
 	vm.ethConfig.TrieDirtyCommitTarget = vm.config.TrieDirtyCommitTarget
+	vm.ethConfig.TriePrefetcherParallelism = vm.config.TriePrefetcherParallelism
 	vm.ethConfig.SnapshotCache = vm.config.SnapshotCache
 	vm.ethConfig.AcceptorQueueLimit = vm.config.AcceptorQueueLimit
 	vm.ethConfig.PopulateMissingTries = vm.config.PopulateMissingTries
 	vm.ethConfig.PopulateMissingTriesParallelism = vm.config.PopulateMissingTriesParallelism
 	vm.ethConfig.AllowMissingTries = vm.config.AllowMissingTries
 	vm.ethConfig.SnapshotDelayInit = vm.config.StateSyncEnabled
-	vm.ethConfig.SnapshotAsync = vm.config.SnapshotAsync
+	vm.ethConfig.SnapshotWait = vm.config.SnapshotWait
 	vm.ethConfig.SnapshotVerify = vm.config.SnapshotVerify
 	vm.ethConfig.OfflinePruning = vm.config.OfflinePruning
 	vm.ethConfig.OfflinePruningBloomFilterSize = vm.config.OfflinePruningBloomFilterSize
@@ -354,6 +425,7 @@ func (vm *VM) Initialize(
 	vm.ethConfig.SkipUpgradeCheck = vm.config.SkipUpgradeCheck
 	vm.ethConfig.AcceptedCacheSize = vm.config.AcceptedCacheSize
 	vm.ethConfig.TxLookupLimit = vm.config.TxLookupLimit
+	vm.ethConfig.SkipTxIndexing = vm.config.SkipTxIndexing
 
 	// Create directory for offline pruning
 	if len(vm.ethConfig.OfflinePruningDataDirectory) != 0 {
@@ -376,45 +448,49 @@ func (vm *VM) Initialize(
 	vm.chainConfig = g.Config
 	vm.networkID = vm.ethConfig.NetworkId
 
-	// TODO: remove SkipSubnetEVMUpgradeCheck after next network upgrade
-	if !vm.config.SkipSubnetEVMUpgradeCheck {
-		// check that subnetEVM upgrade is enabled from genesis before upgradeBytes
-		if !vm.chainConfig.IsSubnetEVM(common.Big0) {
-			return errSubnetEVMUpgradeNotEnabled
-		}
-	}
-
-	// Apply upgradeBytes (if any) by unmarshalling them into [chainConfig.UpgradeConfig].
-	// Initializing the chain will verify upgradeBytes are compatible with existing values.
-	if len(upgradeBytes) > 0 {
-		var upgradeConfig params.UpgradeConfig
-		if err := json.Unmarshal(upgradeBytes, &upgradeConfig); err != nil {
-			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
-		}
-		vm.chainConfig.UpgradeConfig = upgradeConfig
-	}
-
 	// create genesisHash after applying upgradeBytes in case
 	// upgradeBytes modifies genesis.
-	vm.genesisHash = vm.ethConfig.Genesis.ToBlock(nil).Hash()
-
+	vm.genesisHash = vm.ethConfig.Genesis.ToBlock().Hash() // must create genesis hash before [vm.readLastAccepted]
 	lastAcceptedHash, lastAcceptedHeight, err := vm.readLastAccepted()
 	if err != nil {
 		return err
 	}
-	log.Info("reading accepted block db", "lastAcceptedHash", lastAcceptedHash)
+	log.Info(fmt.Sprintf("lastAccepted = %s", lastAcceptedHash))
 
 	if err := vm.initializeMetrics(); err != nil {
 		return err
 	}
 
 	// initialize peer network
+	if vm.p2pSender == nil {
+		vm.p2pSender = appSender
+	}
+
+	p2pNetwork, err := p2p.NewNetwork(vm.ctx.Log, vm.p2pSender, vm.sdkMetrics, "p2p")
+	if err != nil {
+		return fmt.Errorf("failed to initialize p2p network: %w", err)
+	}
+	vm.validators = p2p.NewValidators(p2pNetwork.Peers, vm.ctx.Log, vm.ctx.SubnetID, vm.ctx.ValidatorState, maxValidatorSetStaleness)
 	vm.networkCodec = message.Codec
-	vm.Network = peer.NewNetwork(appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
+	vm.Network = peer.NewNetwork(p2pNetwork, appSender, vm.networkCodec, message.CrossChainCodec, chainCtx.NodeID, vm.config.MaxOutboundActiveRequests, vm.config.MaxOutboundActiveCrossChainRequests)
 	vm.client = peer.NewNetworkClient(vm.Network)
 
-	// initialize warp backend
-	vm.warpBackend = warp.NewWarpBackend(vm.ctx, vm.warpDB, warpSignatureCacheSize)
+	// Initialize warp backend
+	offchainWarpMessages := make([][]byte, len(vm.config.WarpOffChainMessages))
+	for i, hexMsg := range vm.config.WarpOffChainMessages {
+		offchainWarpMessages[i] = []byte(hexMsg)
+	}
+	vm.warpBackend, err = warp.NewBackend(vm.ctx.NetworkID, vm.ctx.ChainID, vm.ctx.WarpSigner, vm, vm.warpDB, warpSignatureCacheSize, offchainWarpMessages)
+	if err != nil {
+		return err
+	}
+
+	// clear warpdb on initialization if config enabled
+	if vm.config.PruneWarpDB {
+		if err := vm.warpBackend.Clear(); err != nil {
+			return fmt.Errorf("failed to prune warpDB: %w", err)
+		}
+	}
 
 	if err := vm.initializeChain(lastAcceptedHash, vm.ethConfig); err != nil {
 		return err
@@ -427,11 +503,15 @@ func (vm *VM) Initialize(
 }
 
 func (vm *VM) initializeMetrics() error {
+	vm.sdkMetrics = prometheus.NewRegistry()
 	vm.multiGatherer = avalanchegoMetrics.NewMultiGatherer()
 	// If metrics are enabled, register the default metrics regitry
 	if metrics.Enabled {
 		gatherer := subnetEVMPrometheus.Gatherer(metrics.DefaultRegistry)
 		if err := vm.multiGatherer.Register(ethMetricsPrefix, gatherer); err != nil {
+			return err
+		}
+		if err := vm.multiGatherer.Register("sdk", vm.sdkMetrics); err != nil {
 			return err
 		}
 		// Register [multiGatherer] after registerers have been registered to it
@@ -545,6 +625,7 @@ func (vm *VM) initChainState(lastAcceptedBlock *types.Block) error {
 		DecidedCacheSize:      decidedCacheSize,
 		MissingCacheSize:      missingCacheSize,
 		UnverifiedCacheSize:   unverifiedCacheSize,
+		BytesToIDCacheSize:    bytesToIDCacheSize,
 		GetBlockIDAtHeight:    vm.GetBlockIDAtHeight,
 		GetBlock:              vm.getBlock,
 		UnmarshalBlock:        vm.parseBlock,
@@ -576,8 +657,10 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 		}
 		return nil
 	case snow.NormalOp:
-		// Initialize gossip handling once we enter normal operation as there is no need to handle mempool gossip before this point.
-		vm.initBlockBuilding()
+		// Initialize goroutines related to block building once we enter normal operation as there is no need to handle mempool gossip before this point.
+		if err := vm.initBlockBuilding(); err != nil {
+			return fmt.Errorf("failed to initialize block building: %w", err)
+		}
 		vm.bootstrapped = true
 		return nil
 	default:
@@ -586,13 +669,86 @@ func (vm *VM) SetState(_ context.Context, state snow.State) error {
 }
 
 // initBlockBuilding starts goroutines to manage block building
-func (vm *VM) initBlockBuilding() {
+func (vm *VM) initBlockBuilding() error {
+	ctx, cancel := context.WithCancel(context.TODO())
+	vm.cancel = cancel
+
+	ethTxGossipMarshaller := GossipEthTxMarshaller{}
+
+	ethTxGossipClient := vm.Network.NewClient(ethTxGossipProtocol, p2p.WithValidatorSampling(vm.validators))
+
+	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
+	if err != nil {
+		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
+	}
+
+	if vm.ethTxPushGossiper == nil {
+		vm.ethTxPushGossiper = gossip.NewPushGossiper[*GossipEthTx](
+			ethTxGossipMarshaller,
+			ethTxGossipClient,
+			ethTxGossipMetrics,
+			txGossipTargetMessageSize,
+		)
+	}
+
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
 	gossipStats := NewGossipStats()
-	vm.gossiper = vm.createGossiper(gossipStats)
+	vm.gossiper = vm.createGossiper(gossipStats, vm.ethTxPushGossiper)
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)
 	vm.builder.awaitSubmittedTxs()
 	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
+
+	ethTxPool, err := NewGossipEthTxPool(vm.txPool, vm.sdkMetrics)
+	if err != nil {
+		return err
+	}
+	vm.shutdownWg.Add(1)
+	go func() {
+		ethTxPool.Subscribe(ctx)
+		vm.shutdownWg.Done()
+	}()
+
+	if vm.ethTxGossipHandler == nil {
+		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
+			vm.ctx.Log,
+			ethTxGossipMarshaller,
+			ethTxPool,
+			ethTxGossipMetrics,
+			txGossipTargetMessageSize,
+			txGossipThrottlingPeriod,
+			txGossipThrottlingLimit,
+			vm.validators,
+		)
+	}
+
+	if err := vm.Network.AddHandler(ethTxGossipProtocol, vm.ethTxGossipHandler); err != nil {
+		return err
+	}
+
+	if vm.ethTxPullGossiper == nil {
+		ethTxPullGossiper := gossip.NewPullGossiper[*GossipEthTx](
+			vm.ctx.Log,
+			ethTxGossipMarshaller,
+			ethTxPool,
+			ethTxGossipClient,
+			ethTxGossipMetrics,
+			txGossipPollSize,
+		)
+
+		vm.ethTxPullGossiper = gossip.ValidatorGossiper{
+			Gossiper:   ethTxPullGossiper,
+			NodeID:     vm.ctx.NodeID,
+			Validators: vm.validators,
+		}
+	}
+
+	vm.shutdownWg.Add(1)
+	go func() {
+		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, gossipFrequency)
+		vm.shutdownWg.Done()
+	}()
+
+	return nil
 }
 
 // setAppRequestHandlers sets the request handlers for the VM to serve state sync
@@ -608,7 +764,7 @@ func (vm *VM) setAppRequestHandlers() {
 		},
 	)
 
-	networkHandler := newNetworkHandler(vm.blockChain, evmTrieDB, vm.networkCodec)
+	networkHandler := newNetworkHandler(vm.blockChain, vm.chaindb, evmTrieDB, vm.warpBackend, vm.networkCodec)
 	vm.Network.SetRequestHandler(networkHandler)
 }
 
@@ -624,6 +780,9 @@ func (vm *VM) Shutdown(context.Context) error {
 	if vm.ctx == nil {
 		return nil
 	}
+	if vm.cancel != nil {
+		vm.cancel()
+	}
 	vm.Network.Shutdown()
 	if err := vm.StateSyncClient.Shutdown(); err != nil {
 		log.Error("error stopping state syncer", "err", err)
@@ -636,6 +795,7 @@ func (vm *VM) Shutdown(context.Context) error {
 	return nil
 }
 
+// buildBlock builds a block to be wrapped by ChainState
 func (vm *VM) buildBlock(ctx context.Context) (snowman.Block, error) {
 	return vm.buildBlockWithContext(ctx, nil)
 }
@@ -646,10 +806,8 @@ func (vm *VM) buildBlockWithContext(ctx context.Context, proposerVMBlockCtx *blo
 	} else {
 		log.Debug("Building block without context")
 	}
-	predicateCtx := &precompileconfig.ProposerPredicateContext{
-		PrecompilePredicateContext: precompileconfig.PrecompilePredicateContext{
-			SnowCtx: vm.ctx,
-		},
+	predicateCtx := &precompileconfig.PredicateContext{
+		SnowCtx:            vm.ctx,
 		ProposerVMBlockCtx: proposerVMBlockCtx,
 	}
 
@@ -742,8 +900,7 @@ func (vm *VM) VerifyHeightIndex(context.Context) error {
 	return nil
 }
 
-// GetBlockAtHeight implements the HeightIndexedChainVM interface and returns the
-// canonical block at [blkHeight].
+// GetBlockAtHeight returns the canonical block at [blkHeight].
 // If [blkHeight] is less than the height of the last accepted block, this will return
 // the block accepted at that height. Otherwise, it may return a blkID that has not yet
 // been accepted.
@@ -767,26 +924,15 @@ func (vm *VM) Version(context.Context) (string, error) {
 //   - The handler's functionality is defined by [service]
 //     [service] should be a gorilla RPC service (see https://www.gorillatoolkit.org/pkg/rpc/v2)
 //   - The name of the service is [name]
-//   - The LockOption is the first element of [lockOption]
-//     By default the LockOption is WriteLock
-//     [lockOption] should have either 0 or 1 elements. Elements beside the first are ignored.
-func newHandler(name string, service interface{}, lockOption ...commonEng.LockOption) (*commonEng.HTTPHandler, error) {
+func newHandler(name string, service interface{}) (http.Handler, error) {
 	server := avalancheRPC.NewServer()
 	server.RegisterCodec(avalancheJSON.NewCodec(), "application/json")
 	server.RegisterCodec(avalancheJSON.NewCodec(), "application/json;charset=UTF-8")
-	if err := server.RegisterService(service, name); err != nil {
-		return nil, err
-	}
-
-	var lock commonEng.LockOption = commonEng.WriteLock
-	if len(lockOption) != 0 {
-		lock = lockOption[0]
-	}
-	return &commonEng.HTTPHandler{LockOptions: lock, Handler: server}, nil
+	return server, server.RegisterService(service, name)
 }
 
 // CreateHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler, error) {
+func (vm *VM) CreateHandlers(context.Context) (map[string]http.Handler, error) {
 	handler := rpc.NewServer(vm.config.APIMaxDuration.Duration)
 	enabledAPIs := vm.config.EthAPIs()
 	if err := attachEthService(handler, vm.eth.APIs(), enabledAPIs); err != nil {
@@ -797,7 +943,7 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	if err != nil {
 		return nil, fmt.Errorf("failed to get primary alias for chain due to %w", err)
 	}
-	apis := make(map[string]*commonEng.HTTPHandler)
+	apis := make(map[string]http.Handler)
 	if vm.config.AdminAPIEnabled {
 		adminAPI, err := newHandler("admin", NewAdminService(vm, os.ExpandEnv(fmt.Sprintf("%s_subnet_evm_performance_%s", vm.config.AdminAPIDir, primaryAlias))))
 		if err != nil {
@@ -815,43 +961,34 @@ func (vm *VM) CreateHandlers(context.Context) (map[string]*commonEng.HTTPHandler
 	}
 
 	if vm.config.WarpAPIEnabled {
-		if err := handler.RegisterName("warp", &warp.WarpAPI{Backend: vm.warpBackend}); err != nil {
+		validatorsState := warpValidators.NewState(vm.ctx)
+		if err := handler.RegisterName("warp", warp.NewAPI(vm.ctx.NetworkID, vm.ctx.SubnetID, vm.ctx.ChainID, validatorsState, vm.warpBackend, vm.client)); err != nil {
 			return nil, err
 		}
 		enabledAPIs = append(enabledAPIs, "warp")
 	}
 
 	log.Info(fmt.Sprintf("Enabled APIs: %s", strings.Join(enabledAPIs, ", ")))
-	apis[ethRPCEndpoint] = &commonEng.HTTPHandler{
-		LockOptions: commonEng.NoLock,
-		Handler:     handler,
-	}
-	apis[ethWSEndpoint] = &commonEng.HTTPHandler{
-		LockOptions: commonEng.NoLock,
-		Handler: handler.WebsocketHandlerWithDuration(
-			[]string{"*"},
-			vm.config.APIMaxDuration.Duration,
-			vm.config.WSCPURefillRate.Duration,
-			vm.config.WSCPUMaxStored.Duration,
-		),
-	}
+	apis[ethRPCEndpoint] = handler
+	apis[ethWSEndpoint] = handler.WebsocketHandlerWithDuration(
+		[]string{"*"},
+		vm.config.APIMaxDuration.Duration,
+		vm.config.WSCPURefillRate.Duration,
+		vm.config.WSCPUMaxStored.Duration,
+	)
 
 	return apis, nil
 }
 
 // CreateStaticHandlers makes new http handlers that can handle API calls
-func (vm *VM) CreateStaticHandlers(context.Context) (map[string]*commonEng.HTTPHandler, error) {
-	server := avalancheRPC.NewServer()
-	codec := cjson.NewCodec()
-	server.RegisterCodec(codec, "application/json")
-	server.RegisterCodec(codec, "application/json;charset=UTF-8")
-	serviceName := "subnetevm"
-	if err := server.RegisterService(&StaticService{}, serviceName); err != nil {
+func (vm *VM) CreateStaticHandlers(context.Context) (map[string]http.Handler, error) {
+	handler := rpc.NewServer(0)
+	if err := handler.RegisterName("static", &StaticService{}); err != nil {
 		return nil, err
 	}
 
-	return map[string]*commonEng.HTTPHandler{
-		"/rpc": {LockOptions: commonEng.NoLock, Handler: server},
+	return map[string]http.Handler{
+		"/rpc": handler,
 	}, nil
 }
 
@@ -901,7 +1038,7 @@ func (vm *VM) startContinuousProfiler() {
 // readLastAccepted reads the last accepted hash from [acceptedBlockDB] and returns the
 // last accepted block hash and height by reading directly from [vm.chaindb] instead of relying
 // on [chain].
-// Note: assumes chaindb, ethConfig, and genesisHash have been initialized.
+// Note: assumes [vm.chaindb] and [vm.genesisHash] have been initialized.
 func (vm *VM) readLastAccepted() (common.Hash, uint64, error) {
 	// Attempt to load last accepted block to determine if it is necessary to
 	// initialize state with the genesis block.
