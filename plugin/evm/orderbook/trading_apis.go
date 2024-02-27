@@ -122,13 +122,9 @@ var mapStatus = map[Status]string{
 }
 
 func (api *TradingAPI) GetTradingOrderBookDepth(ctx context.Context, market int8) TradingOrderBookDepthResponse {
-	response := TradingOrderBookDepthResponse{
-		Asks: [][]string{},
-		Bids: [][]string{},
-	}
 	depth := getDepthForMarket(api.db, Market(market))
 
-	response = transformMarketDepth(depth)
+	response := transformMarketDepth(depth)
 	response.T = time.Now().Unix()
 
 	return response
