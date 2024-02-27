@@ -23,7 +23,7 @@ import (
 
 var traderFeed event.Feed
 var marketFeed event.Feed
-var MakerbookDatabaseFile = ""
+var MakerbookDatabaseFile string
 
 type TradingAPI struct {
 	db            LimitOrderDatabase
