@@ -399,9 +399,19 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 
 	// validations passed, add to db
 	signedOrder := &Order{
+		Market:                  Market(order.AmmIndex.Int64()),
+		PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
+		Trader:                  trader,
+		BaseAssetQuantity:       order.BaseAssetQuantity,
 		FilledBaseAssetQuantity: big.NewInt(0),
+		Price:                   order.Price,
+		Salt:                    order.Salt,
+		ReduceOnly:              order.ReduceOnly,
 		BlockNumber:             big.NewInt(0),
+		RawOrder:                order,
+		OrderType:               Signed,
 	}
+
 	placeSignedOrderCounter.Inc(1)
 	api.db.AddSignedOrder(signedOrder, requiredMargin)
 
