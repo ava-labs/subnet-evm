@@ -27,6 +27,7 @@ var (
 	HandleMatchingPipelineTimerPanicsCounter = metrics.NewRegisteredCounter("handle_matching_pipeline_timer_panics", nil)
 	RPCPanicsCounter                         = metrics.NewRegisteredCounter("rpc_panic", nil)
 	AwaitSignedOrdersGossipPanicsCounter     = metrics.NewRegisteredCounter("await_signed_orders_gossip_panics", nil)
+	MakerbookFileWriteChannelPanicsCounter   = metrics.NewRegisteredCounter("makerbook_file_write_channel_panics", nil)
 
 	BuildBlockFailedWithLowBlockGasCounter = metrics.NewRegisteredCounter("build_block_failed_low_block_gas", nil)
 

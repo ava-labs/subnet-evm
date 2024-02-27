@@ -195,7 +195,7 @@ func (lop *limitOrderProcesser) GetOrderBookAPI() *orderbook.OrderBookAPI {
 
 func (lop *limitOrderProcesser) GetTradingAPI() *orderbook.TradingAPI {
 	if lop.tradingAPI == nil {
-		lop.tradingAPI = orderbook.NewTradingAPI(lop.memoryDb, lop.backend, lop.configService)
+		lop.tradingAPI = orderbook.NewTradingAPI(lop.memoryDb, lop.backend, lop.configService, lop.shutdownChan, lop.shutdownWg)
 	}
 	return lop.tradingAPI
 }

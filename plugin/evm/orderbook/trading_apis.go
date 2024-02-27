@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ava-labs/subnet-evm/eth"
@@ -26,17 +27,39 @@ var marketFeed event.Feed
 var MakerbookDatabaseFile string
 
 type TradingAPI struct {
-	db            LimitOrderDatabase
-	backend       *eth.EthAPIBackend
-	configService IConfigService
+	db                     LimitOrderDatabase
+	backend                *eth.EthAPIBackend
+	configService          IConfigService
+	makerbookFileWriteChan chan Order
+	shutdownChan           <-chan struct{}
+	shutdownWg             *sync.WaitGroup
 }
 
-func NewTradingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService) *TradingAPI {
-	return &TradingAPI{
-		db:            database,
-		backend:       backend,
-		configService: configService,
+func NewTradingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService, shutdownChan <-chan struct{}, shutdownWg *sync.WaitGroup) *TradingAPI {
+	tradingAPI := &TradingAPI{
+		db:                     database,
+		backend:                backend,
+		configService:          configService,
+		makerbookFileWriteChan: make(chan Order, 10),
+		shutdownChan:           shutdownChan,
+		shutdownWg:             shutdownWg,
 	}
+
+	shutdownWg.Add(1)
+	go func() {
+		defer shutdownWg.Done()
+		for {
+			select {
+			case order := <-tradingAPI.makerbookFileWriteChan:
+				writeOrderToFile(order)
+			case <-tradingAPI.shutdownChan:
+				close(tradingAPI.makerbookFileWriteChan)
+				return
+			}
+		}
+	}()
+
+	return tradingAPI
 }
 
 type TradingOrderBookDepthResponse struct {
@@ -398,7 +421,14 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	api.db.AddSignedOrder(signedOrder, requiredMargin)
 
 	if len(MakerbookDatabaseFile) > 0 {
-		go writeOrderToFile(order, orderId)
+		executeFuncAndRecoverPanic(func() {
+			select {
+			case api.makerbookFileWriteChan <- *signedOrder:
+				log.Info("Successfully sent to the makerbook file write channel")
+			default:
+				log.Error("Failed to send to the makerbook file write channel", "order", signedOrder.Id.String())
+			}
+		}, MakerBookFileWriteChannelPanicMessage, MakerbookFileWriteChannelPanicsCounter)
 	}
 
 	// send to trader feed - both for head and accepted block
@@ -430,20 +460,17 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 	return orderId, nil
 }
 
-func writeOrderToFile(order *hu.SignedOrder, orderId common.Hash) {
-	orderMap := order.Map()
-	orderMap["orderType"] = "signed"
-	orderMap["expireAt"] = order.ExpireAt.String()
+func writeOrderToFile(order Order) {
 	doc := map[string]interface{}{
 		"type":      "OrderAccepted",
 		"timestamp": time.Now().Unix(),
 		"trader":    order.Trader.String(),
-		"orderHash": strings.ToLower(orderId.String()),
+		"orderHash": strings.ToLower(order.Id.String()),
 		"orderType": "signed",
 		"order": map[string]interface{}{
 			"orderType":         2,
-			"expireAt":          order.ExpireAt.Uint64(),
-			"ammIndex":          order.AmmIndex.Uint64(),
+			"expireAt":          order.getExpireAt().Uint64(),
+			"ammIndex":          int(order.Market),
 			"trader":            order.Trader.String(),
 			"baseAssetQuantity": utils.BigIntToFloat(order.BaseAssetQuantity, 18),
 			"price":             utils.BigIntToFloat(order.Price, 6),
