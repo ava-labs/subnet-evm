@@ -399,6 +399,7 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 
 	// validations passed, add to db
 	signedOrder := &Order{
+		Id:                      orderId,
 		Market:                  Market(order.AmmIndex.Int64()),
 		PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
 		Trader:                  trader,
