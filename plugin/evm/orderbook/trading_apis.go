@@ -40,7 +40,7 @@ func NewTradingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, conf
 		db:                     database,
 		backend:                backend,
 		configService:          configService,
-		makerbookFileWriteChan: make(chan Order, 10),
+		makerbookFileWriteChan: make(chan Order, 100),
 		shutdownChan:           shutdownChan,
 		shutdownWg:             shutdownWg,
 	}
@@ -53,7 +53,6 @@ func NewTradingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, conf
 			case order := <-tradingAPI.makerbookFileWriteChan:
 				writeOrderToFile(order)
 			case <-tradingAPI.shutdownChan:
-				close(tradingAPI.makerbookFileWriteChan)
 				return
 			}
 		}
@@ -404,31 +403,21 @@ func (api *TradingAPI) PlaceOrder(order *hu.SignedOrder) (common.Hash, error) {
 
 	// validations passed, add to db
 	signedOrder := &Order{
-		Id:                      orderId,
-		Market:                  Market(order.AmmIndex.Int64()),
-		PositionType:            getPositionTypeBasedOnBaseAssetQuantity(order.BaseAssetQuantity),
-		Trader:                  trader,
-		BaseAssetQuantity:       order.BaseAssetQuantity,
 		FilledBaseAssetQuantity: big.NewInt(0),
-		Price:                   order.Price,
-		Salt:                    order.Salt,
-		ReduceOnly:              order.ReduceOnly,
 		BlockNumber:             big.NewInt(0),
-		RawOrder:                order,
-		OrderType:               Signed,
 	}
 	placeSignedOrderCounter.Inc(1)
 	api.db.AddSignedOrder(signedOrder, requiredMargin)
 
 	if len(MakerbookDatabaseFile) > 0 {
-		executeFuncAndRecoverPanic(func() {
+		go func() {
 			select {
 			case api.makerbookFileWriteChan <- *signedOrder:
 				log.Info("Successfully sent to the makerbook file write channel")
 			default:
 				log.Error("Failed to send to the makerbook file write channel", "order", signedOrder.Id.String())
 			}
-		}, MakerBookFileWriteChannelPanicMessage, MakerbookFileWriteChannelPanicsCounter)
+		}()
 	}
 
 	// send to trader feed - both for head and accepted block
