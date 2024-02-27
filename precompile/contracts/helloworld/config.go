@@ -5,8 +5,6 @@
 package helloworld
 
 import (
-	"math/big"
-
 	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
 
@@ -25,12 +23,13 @@ type Config struct {
 }
 
 // NewConfig returns a config for a network upgrade at [blockTimestamp] that enables
-// HelloWorld with the given [admins] as members of the allowlist .
-func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []common.Address) *Config {
+// HelloWorld with the given [admins], [enableds] and [managers] members of the allowlist .
+func NewConfig(blockTimestamp *uint64, admins []common.Address, enableds []common.Address, managers []common.Address) *Config {
 	return &Config{
 		AllowListConfig: allowlist.AllowListConfig{
 			AdminAddresses:   admins,
 			EnabledAddresses: enableds,
+			ManagerAddresses: managers,
 		},
 		Upgrade: precompileconfig.Upgrade{BlockTimestamp: blockTimestamp},
 	}
@@ -38,7 +37,7 @@ func NewConfig(blockTimestamp *big.Int, admins []common.Address, enableds []comm
 
 // NewDisableConfig returns config for a network upgrade at [blockTimestamp]
 // that disables HelloWorld.
-func NewDisableConfig(blockTimestamp *big.Int) *Config {
+func NewDisableConfig(blockTimestamp *uint64) *Config {
 	return &Config{
 		Upgrade: precompileconfig.Upgrade{
 			BlockTimestamp: blockTimestamp,
@@ -52,9 +51,9 @@ func NewDisableConfig(blockTimestamp *big.Int) *Config {
 func (*Config) Key() string { return ConfigKey }
 
 // Verify tries to verify Config and returns an error accordingly.
-func (c *Config) Verify() error {
+func (c *Config) Verify(chainConfig precompileconfig.ChainConfig) error {
 	// Verify AllowList first
-	if err := c.AllowListConfig.Verify(); err != nil {
+	if err := c.AllowListConfig.Verify(chainConfig, c.Upgrade); err != nil {
 		return err
 	}
 	// CUSTOM CODE STARTS HERE

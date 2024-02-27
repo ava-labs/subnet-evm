@@ -72,6 +72,17 @@ func PackSayHelloOutput(result string) ([]byte, error) {
 	return HelloWorldABI.PackOutput("sayHello", result)
 }
 
+// UnpackSayHelloOutput attempts to unpack given [output] into the string type output
+// assumes that [output] does not include selector (omits first 4 func signature bytes)
+func UnpackSayHelloOutput(output []byte) (string, error) {
+	res, err := HelloWorldABI.Unpack("sayHello", output)
+	if err != nil {
+		return "", err
+	}
+	unpacked := *abi.ConvertType(res[0], new(string)).(*string)
+	return unpacked, nil
+}
+
 // GetGreeting returns the value of the storage key "storageKey" in the contract storage,
 // with leading zeroes trimmed.
 // This function is mostly used for tests.
@@ -105,8 +116,16 @@ func sayHello(accessibleState contract.AccessibleState, caller common.Address, a
 
 // UnpackSetGreetingInput attempts to unpack [input] into the string type argument
 // assumes that [input] does not include selector (omits first 4 func signature bytes)
-func UnpackSetGreetingInput(input []byte) (string, error) {
-	res, err := HelloWorldABI.UnpackInput("setGreeting", input)
+// if [useStrictMode] is true, it will return an error if the length of [input] is not [common.HashLength]
+func UnpackSetGreetingInput(input []byte, useStrictMode bool) (string, error) {
+	// Initially we had this check to ensure that the input was the correct length.
+	// However solidity does not always pack the input to the correct length, and allows
+	// for extra padding bytes to be added to the end of the input. Therefore, we have removed
+	// this check with the Durango. We still need to keep this check for backwards compatibility.
+	if useStrictMode && len(input) > common.HashLength {
+		return "", ErrInputExceedsLimit
+	}
+	res, err := HelloWorldABI.UnpackInput("setGreeting", input, useStrictMode)
 	if err != nil {
 		return "", err
 	}
@@ -137,10 +156,12 @@ func setGreeting(accessibleState contract.AccessibleState, caller common.Address
 	if readOnly {
 		return nil, remainingGas, vmerrs.ErrWriteProtection
 	}
+	// do not use strict mode after Durango
+	useStrictMode := !contract.IsDurangoActivated(accessibleState)
 	// attempts to unpack [input] into the arguments to the SetGreetingInput.
 	// Assumes that [input] does not include selector
 	// You can use unpacked [inputStruct] variable in your code
-	inputStruct, err := UnpackSetGreetingInput(input)
+	inputStruct, err := UnpackSetGreetingInput(input, useStrictMode)
 	if err != nil {
 		return nil, remainingGas, err
 	}
@@ -157,9 +178,40 @@ func setGreeting(accessibleState contract.AccessibleState, caller common.Address
 	// allow list code ends here.
 
 	// CUSTOM CODE STARTS HERE
-	// Check if the input string is longer than HashLength
-	if len(inputStruct) > common.HashLength {
-		return nil, 0, ErrInputExceedsLimit
+	// With Durango, you can emit an event in your state-changing precompile functions.
+	// Note: If you have been using the precompile before Durango, you should activate it only after Durango.
+	// Activating this code before Durango will result in a consensus failure.
+	// If this is a new precompile and never deployed before Durango, you can activate it immediately by removing
+	// the if condition.
+	// This example assumes that the HelloWorld precompile contract has been deployed before Durango.
+	if contract.IsDurangoActivated(accessibleState) {
+		// We will first read the old greeting. So we should charge the gas for reading the storage.
+		if remainingGas, err = contract.DeductGas(remainingGas, contract.ReadGasCostPerSlot); err != nil {
+			return nil, 0, err
+		}
+		oldGreeting := GetGreeting(stateDB)
+
+		eventData := GreetingChangedEventData{
+			OldGreeting: oldGreeting,
+			NewGreeting: inputStruct,
+		}
+		topics, data, err := PackGreetingChangedEvent(caller, eventData)
+		if err != nil {
+			return nil, remainingGas, err
+		}
+		// Charge the gas for emitting the event.
+		eventGasCost := GetGreetingChangedEventGasCost(eventData)
+		if remainingGas, err = contract.DeductGas(remainingGas, eventGasCost); err != nil {
+			return nil, 0, err
+		}
+
+		// Emit the event
+		stateDB.AddLog(
+			ContractAddress,
+			topics,
+			data,
+			accessibleState.GetBlockContext().Number().Uint64(),
+		)
 	}
 
 	// setGreeting is the execution function

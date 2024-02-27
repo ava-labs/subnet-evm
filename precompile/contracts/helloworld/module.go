@@ -16,7 +16,7 @@ import (
 
 var _ contract.Configurator = &configurator{}
 
-// ConfigKey is the key used in json config files to specify this precompile precompileconfig.
+// ConfigKey is the key used in json config files to specify this precompile config.
 // must be unique across all precompiles.
 const ConfigKey = "helloWorldConfig"
 
@@ -46,7 +46,7 @@ func init() {
 }
 
 // MakeConfig returns a new precompile config instance.
-// This is required for Marshal/Unmarshal the precompile config.
+// This is required to Marshal/Unmarshal the precompile config.
 func (*configurator) MakeConfig() precompileconfig.Config {
 	return new(Config)
 }
@@ -55,7 +55,7 @@ func (*configurator) MakeConfig() precompileconfig.Config {
 // This function is called by the EVM once per precompile contract activation.
 // You can use this function to set up your precompile contract's initial state,
 // by using the [cfg] config and [state] stateDB.
-func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, _ contract.BlockContext) error {
+func (*configurator) Configure(chainConfig precompileconfig.ChainConfig, cfg precompileconfig.Config, state contract.StateDB, blockContext contract.ConfigurationBlockContext) error {
 	config, ok := cfg.(*Config)
 	if !ok {
 		return fmt.Errorf("incorrect config %T: %v", config, config)
@@ -71,5 +71,5 @@ func (*configurator) Configure(chainConfig contract.ChainConfig, cfg precompilec
 	// Set the initial value under [common.BytesToHash([]byte("storageKey")] to "Hello World!"
 	StoreGreeting(state, defaultGreeting)
 	// AllowList is activated for this precompile. Configuring allowlist addresses here.
-	return config.AllowListConfig.Configure(state, ContractAddress)
+	return config.AllowListConfig.Configure(chainConfig, ContractAddress, state, blockContext)
 }

@@ -1,6 +1,9 @@
 // (c) 2019-2022, Ava Labs, Inc. All rights reserved.
 // See the file LICENSE for licensing terms.
 
+import { expect } from "chai"
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { Contract } from "ethers"
 import { ethers } from "hardhat"
 import { test } from "./utils"
 
@@ -32,3 +35,29 @@ describe("ExampleHelloWorldTest", function () {
 
   test("should set and get greeting with enabled account", "step_setAndGetGreeting")
 });
+
+describe("IHelloWorld events", function () {
+  let owner: SignerWithAddress
+  let contract: Contract
+  let defaultGreeting = "Hello, World!"
+  before(async function () {
+    owner = await ethers.getSigner(ADMIN_ADDRESS);
+    contract = await ethers.getContractAt("IHelloWorld", HELLO_WORLD_ADDRESS, owner)
+
+    // reset greeting
+    let tx = await contract.setGreeting(defaultGreeting)
+    await tx.wait()
+  });
+
+  it("should emit GreetingChanged event", async function () {
+    let newGreeting = "helloprecompile"
+    await expect(contract.setGreeting(newGreeting)
+    )
+    .to.emit(contract, "GreetingChanged").withArgs(owner.address,
+      // old greeting
+      defaultGreeting,
+      // new greeting
+      newGreeting
+    )
+  })
+})
