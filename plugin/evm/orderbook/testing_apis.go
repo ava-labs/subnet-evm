@@ -24,12 +24,11 @@ type TestingAPI struct {
 	hubbleDB      database.Database
 }
 
-func NewTestingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService, hubbleDB database.Database) *TestingAPI {
+func NewTestingAPI(database LimitOrderDatabase, backend *eth.EthAPIBackend, configService IConfigService) *TestingAPI {
 	return &TestingAPI{
 		db:            database,
 		backend:       backend,
 		configService: configService,
-		hubbleDB:      hubbleDB,
 	}
 }
 

@@ -52,7 +52,6 @@ type limitOrderProcesser struct {
 	contractEventProcessor   *orderbook.ContractEventsProcessor
 	matchingPipeline         *orderbook.MatchingPipeline
 	filterAPI                *filters.FilterAPI
-	hubbleDB                 database.Database
 	configService            orderbook.IConfigService
 	blockBuilder             *blockBuilder
 	isValidator              bool
@@ -101,7 +100,6 @@ func NewLimitOrderProcesser(ctx *snow.Context, txPool *txpool.TxPool, shutdownCh
 		shutdownWg:              shutdownWg,
 		backend:                 backend,
 		memoryDb:                memoryDb,
-		hubbleDB:                hubbleDB,
 		blockChain:              blockChain,
 		limitOrderTxProcessor:   lotp,
 		contractEventProcessor:  contractEventProcessor,
@@ -125,7 +123,7 @@ func (lop *limitOrderProcesser) ListenAndProcessTransactions(blockBuilder *block
 
 		if lop.loadFromSnapshotEnabled {
 			// first load the last snapshot containing finalised data till block x and query the logs of [x+1, latest]
-			acceptedBlockNumber, err := lop.loadMemoryDBSnapshot()
+			acceptedBlockNumber, err := lop.loadMemoryDBSnapshotFromFile()
 			if err != nil {
 				log.Error("ListenAndProcessTransactions - error in loading snapshot", "err", err)
 			} else {
@@ -201,7 +199,7 @@ func (lop *limitOrderProcesser) GetTradingAPI() *orderbook.TradingAPI {
 }
 
 func (lop *limitOrderProcesser) GetTestingAPI() *orderbook.TestingAPI {
-	return orderbook.NewTestingAPI(lop.memoryDb, lop.backend, lop.configService, lop.hubbleDB)
+	return orderbook.NewTestingAPI(lop.memoryDb, lop.backend, lop.configService)
 }
 
 func (lop *limitOrderProcesser) listenAndStoreLimitOrderTransactions() {
@@ -349,49 +347,6 @@ func (lop *limitOrderProcesser) runMatchingTimer() {
 			}
 		}
 	}, orderbook.RunMatchingPipelinePanicMessage, orderbook.RunMatchingPipelinePanicsCounter)
-}
-
-func (lop *limitOrderProcesser) loadMemoryDBSnapshot() (acceptedBlockNumber uint64, err error) {
-	acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromFile()
-	if err != nil || acceptedBlockNumber == 0 {
-		acceptedBlockNumber, err = lop.loadMemoryDBSnapshotFromHubbleDB()
-	}
-	return acceptedBlockNumber, err
-}
-
-func (lop *limitOrderProcesser) loadMemoryDBSnapshotFromHubbleDB() (uint64, error) {
-	snapshotFound, err := lop.hubbleDB.Has([]byte(memoryDBSnapshotKey))
-	if err != nil {
-		return 0, fmt.Errorf("Error in checking snapshot in hubbleDB: err=%v", err)
-	}
-
-	if !snapshotFound {
-		return 0, nil
-	}
-
-	memorySnapshotBytes, err := lop.hubbleDB.Get([]byte(memoryDBSnapshotKey))
-	if err != nil {
-		return 0, fmt.Errorf("Error in fetching snapshot from hubbleDB; err=%v", err)
-	}
-
-	buf := bytes.NewBuffer(memorySnapshotBytes)
-	var snapshot orderbook.Snapshot
-	err = gob.NewDecoder(buf).Decode(&snapshot)
-	if err != nil {
-		return 0, fmt.Errorf("Error in snapshot parsing from hubbleDB; err=%v", err)
-	}
-
-	if snapshot.AcceptedBlockNumber != nil && snapshot.AcceptedBlockNumber.Uint64() > 0 {
-		err = lop.memoryDb.LoadFromSnapshot(snapshot)
-		if err != nil {
-			return 0, fmt.Errorf("Error in loading snapshot from hubbleDB: err=%v", err)
-		} else {
-			log.Info("memory DB snapshot loaded from hubbleDB", "acceptedBlockNumber", snapshot.AcceptedBlockNumber)
-			return snapshot.AcceptedBlockNumber.Uint64(), nil
-		}
-	} else {
-		return 0, nil
-	}
 }
 
 func (lop *limitOrderProcesser) loadMemoryDBSnapshotFromFile() (uint64, error) {
