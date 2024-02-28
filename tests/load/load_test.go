@@ -70,9 +70,8 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 			utils.NewTmpnetNetwork(
 				nodes,
 				tmpnet.FlagsMap{
-					// The default tmpnet log level (info/debug) induces too much overhead for load testing.
-					config.LogDisplayLevelKey: "error",
-					config.LogLevelKey:        "info",
+					// The default tmpnet log level (debug) induces too much overhead for load testing.
+					config.LogLevelKey: "info",
 				},
 				utils.NewTmpnetSubnet(subnetAName, genesisPath, chainConfig, nodes...),
 			),

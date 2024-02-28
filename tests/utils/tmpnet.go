@@ -28,6 +28,8 @@ func NewTmpnetNetwork(nodes []*tmpnet.Node, flags tmpnet.FlagsMap, subnets ...*t
 	defaultFlags := tmpnet.FlagsMap{}
 	defaultFlags.SetDefaults(flags)
 	defaultFlags.SetDefaults(tmpnet.FlagsMap{
+		// Remove when vendored tmpnet default is `off`. tmpnet nodes are run headless so stdout logging is unnecessary.
+		config.LogDisplayLevelKey:            "off",
 		config.ProposerVMUseCurrentHeightKey: true,
 	})
 	return &tmpnet.Network{
