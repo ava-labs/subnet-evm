@@ -262,13 +262,13 @@ func (c *Config) SetDefaults() {
 	c.AcceptorQueueLimit = defaultAcceptorQueueLimit
 	c.CommitInterval = defaultCommitInterval
 	c.SnapshotWait = defaultSnapshotWait
-	c.RegossipFrequency.Duration = defaultRegossipFrequency
 	c.PushGossipNumValidators = defaultPushGossipNumValidators
 	c.PushGossipNumPeers = defaultPushGossipNumPeers
 	c.PushRegossipNumValidators = defaultPushRegossipNumValidators
 	c.PushRegossipNumPeers = defaultPushRegossipNumPeers
 	c.PushGossipFrequency.Duration = defaultPushGossipFrequency
 	c.PullGossipFrequency.Duration = defaultPullGossipFrequency
+	c.RegossipFrequency.Duration = defaultRegossipFrequency
 	c.OfflinePruningBloomFilterSize = defaultOfflinePruningBloomFilterSize
 	c.LogLevel = defaultLogLevel
 	c.LogJSONFormat = defaultLogJSONFormat
