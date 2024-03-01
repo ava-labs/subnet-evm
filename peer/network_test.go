@@ -906,14 +906,6 @@ func (t testAppSender) SendCrossChainAppError(ctx context.Context, chainID ids.I
 	panic("not implemented")
 }
 
-func (t testAppSender) SendAppError(ctx context.Context, nodeID ids.NodeID, requestID uint32, errorCode int32, errorMessage string) error {
-	panic("not implemented")
-}
-
-func (t testAppSender) SendCrossChainAppError(ctx context.Context, chainID ids.ID, requestID uint32, errorCode int32, errorMessage string) error {
-	panic("not implemented")
-}
-
 type HelloRequest struct {
 	Message string `serialize:"true"`
 }

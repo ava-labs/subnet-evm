@@ -130,3 +130,21 @@ func TestMempoolEthTxsAppGossipHandling(t *testing.T) {
 	// wait for transaction to be re-gossiped
 	attemptAwait(t, &wg, 5*time.Second)
 }
+
+func attemptAwait(t *testing.T, wg *sync.WaitGroup, delay time.Duration) {
+	ticker := make(chan struct{})
+
+	// Wait for [wg] and then close [ticket] to indicate that
+	// the wait group has finished.
+	go func() {
+		wg.Wait()
+		close(ticker)
+	}()
+
+	select {
+	case <-time.After(delay):
+		t.Fatal("Timed out waiting for wait group to complete")
+	case <-ticker:
+		// The wait group completed without issue
+	}
+}
