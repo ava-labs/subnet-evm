@@ -25,8 +25,8 @@ import (
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 	"github.com/ava-labs/avalanchego/utils/set"
 
-	"github.com/ava-labs/subnet-evm/tests"
-	"github.com/ava-labs/subnet-evm/tests/utils"
+	"github.com/ethereum/go-ethereum/tests"
+	"github.com/ethereum/go-ethereum/tests/utils"
 )
 
 const (

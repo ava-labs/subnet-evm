@@ -11,7 +11,7 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/tests/fixture/tmpnet"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm"
+	"github.com/ethereum/go-ethereum/plugin/evm"
 )
 
 func NewTmpnetNodes(count int) []*tmpnet.Node {
