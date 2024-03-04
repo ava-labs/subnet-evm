@@ -35,12 +35,13 @@ const (
 	defaultMaxBlocksPerRequest                        = 0 // Default to no maximum on the number of blocks per getLogs request
 	defaultContinuousProfilerFrequency                = 15 * time.Minute
 	defaultContinuousProfilerMaxFiles                 = 5
-	defaultRegossipFrequency                          = 1 * time.Minute
-	defaultRegossipMaxTxs                             = 16
-	defaultRegossipTxsPerAddress                      = 1
-	defaultPriorityRegossipFrequency                  = 1 * time.Second
-	defaultPriorityRegossipMaxTxs                     = 32
-	defaultPriorityRegossipTxsPerAddress              = 16
+	defaultPushGossipNumValidators                    = 100
+	defaultPushGossipNumPeers                         = 0
+	defaultPushRegossipNumValidators                  = 10
+	defaultPushRegossipNumPeers                       = 0
+	defaultPushGossipFrequency                        = 100 * time.Millisecond
+	defaultPullGossipFrequency                        = 1 * time.Second
+	defaultRegossipFrequency                          = 30 * time.Second
 	defaultOfflinePruningBloomFilterSize       uint64 = 512 // Default size (MB) for the offline pruner to use
 	defaultLogLevel                                   = "info"
 	defaultLogJSONFormat                              = false
@@ -131,14 +132,13 @@ type Config struct {
 	// API Settings
 	LocalTxsEnabled bool `json:"local-txs-enabled"`
 
-	TxPoolJournal      string   `json:"tx-pool-journal"`
-	TxPoolRejournal    Duration `json:"tx-pool-rejournal"`
 	TxPoolPriceLimit   uint64   `json:"tx-pool-price-limit"`
 	TxPoolPriceBump    uint64   `json:"tx-pool-price-bump"`
 	TxPoolAccountSlots uint64   `json:"tx-pool-account-slots"`
 	TxPoolGlobalSlots  uint64   `json:"tx-pool-global-slots"`
 	TxPoolAccountQueue uint64   `json:"tx-pool-account-queue"`
 	TxPoolGlobalQueue  uint64   `json:"tx-pool-global-queue"`
+	TxPoolLifetime     Duration `json:"tx-pool-lifetime"`
 
 	APIMaxDuration           Duration      `json:"api-max-duration"`
 	WSCPURefillRate          Duration      `json:"ws-cpu-refill-rate"`
@@ -154,14 +154,14 @@ type Config struct {
 	KeystoreInsecureUnlockAllowed bool   `json:"keystore-insecure-unlock-allowed"`
 
 	// Gossip Settings
-	RemoteGossipOnlyEnabled       bool             `json:"remote-gossip-only-enabled"`
-	RegossipFrequency             Duration         `json:"regossip-frequency"`
-	RegossipMaxTxs                int              `json:"regossip-max-txs"`
-	RegossipTxsPerAddress         int              `json:"regossip-txs-per-address"`
-	PriorityRegossipFrequency     Duration         `json:"priority-regossip-frequency"`
-	PriorityRegossipMaxTxs        int              `json:"priority-regossip-max-txs"`
-	PriorityRegossipTxsPerAddress int              `json:"priority-regossip-txs-per-address"`
-	PriorityRegossipAddresses     []common.Address `json:"priority-regossip-addresses"`
+	PushGossipNumValidators   int              `json:"push-gossip-num-validators"`
+	PushGossipNumPeers        int              `json:"push-gossip-num-peers"`
+	PushRegossipNumValidators int              `json:"push-regossip-num-validators"`
+	PushRegossipNumPeers      int              `json:"push-regossip-num-peers"`
+	PushGossipFrequency       Duration         `json:"push-gossip-frequency"`
+	PullGossipFrequency       Duration         `json:"pull-gossip-frequency"`
+	RegossipFrequency         Duration         `json:"regossip-frequency"`
+	PriorityRegossipAddresses []common.Address `json:"priority-regossip-addresses"`
 
 	// Log
 	LogLevel      string `json:"log-level"`
@@ -237,14 +237,13 @@ func (c *Config) SetDefaults() {
 	c.RPCTxFeeCap = defaultRpcTxFeeCap
 	c.MetricsExpensiveEnabled = defaultMetricsExpensiveEnabled
 
-	c.TxPoolJournal = legacypool.DefaultConfig.Journal
-	c.TxPoolRejournal = Duration{legacypool.DefaultConfig.Rejournal}
 	c.TxPoolPriceLimit = legacypool.DefaultConfig.PriceLimit
 	c.TxPoolPriceBump = legacypool.DefaultConfig.PriceBump
 	c.TxPoolAccountSlots = legacypool.DefaultConfig.AccountSlots
 	c.TxPoolGlobalSlots = legacypool.DefaultConfig.GlobalSlots
 	c.TxPoolAccountQueue = legacypool.DefaultConfig.AccountQueue
 	c.TxPoolGlobalQueue = legacypool.DefaultConfig.GlobalQueue
+	c.TxPoolLifetime.Duration = legacypool.DefaultConfig.Lifetime
 
 	c.APIMaxDuration.Duration = defaultApiMaxDuration
 	c.WSCPURefillRate.Duration = defaultWsCpuRefillRate
@@ -261,12 +260,13 @@ func (c *Config) SetDefaults() {
 	c.AcceptorQueueLimit = defaultAcceptorQueueLimit
 	c.CommitInterval = defaultCommitInterval
 	c.SnapshotWait = defaultSnapshotWait
+	c.PushGossipNumValidators = defaultPushGossipNumValidators
+	c.PushGossipNumPeers = defaultPushGossipNumPeers
+	c.PushRegossipNumValidators = defaultPushRegossipNumValidators
+	c.PushRegossipNumPeers = defaultPushRegossipNumPeers
+	c.PushGossipFrequency.Duration = defaultPushGossipFrequency
+	c.PullGossipFrequency.Duration = defaultPullGossipFrequency
 	c.RegossipFrequency.Duration = defaultRegossipFrequency
-	c.RegossipMaxTxs = defaultRegossipMaxTxs
-	c.RegossipTxsPerAddress = defaultRegossipTxsPerAddress
-	c.PriorityRegossipFrequency.Duration = defaultPriorityRegossipFrequency
-	c.PriorityRegossipMaxTxs = defaultPriorityRegossipMaxTxs
-	c.PriorityRegossipTxsPerAddress = defaultPriorityRegossipTxsPerAddress
 	c.OfflinePruningBloomFilterSize = defaultOfflinePruningBloomFilterSize
 	c.LogLevel = defaultLogLevel
 	c.LogJSONFormat = defaultLogJSONFormat

@@ -73,6 +73,12 @@ type Settings struct {
 	MaxBlocksPerRequest int64 // Maximum number of blocks to serve per getLogs request
 }
 
+// PushGossiper sends pushes pending transactions to peers until they are
+// removed from the mempool.
+type PushGossiper interface {
+	Add(*types.Transaction)
+}
+
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
 	config *Config
@@ -81,6 +87,7 @@ type Ethereum struct {
 	txPool *txpool.TxPool
 
 	blockchain *core.BlockChain
+	gossiper   PushGossiper
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -121,6 +128,7 @@ func roundUpCacheSize(input int, allocSize int) int {
 func New(
 	stack *node.Node,
 	config *Config,
+	gossiper PushGossiper,
 	chainDb ethdb.Database,
 	settings Settings,
 	lastAcceptedHash common.Hash,
@@ -154,6 +162,7 @@ func New(
 
 	eth := &Ethereum{
 		config:            config,
+		gossiper:          gossiper,
 		chainDb:           chainDb,
 		eventMux:          new(event.TypeMux),
 		accountManager:    stack.AccountManager(),
@@ -232,7 +241,6 @@ func New(
 	config.BlobPool.Datadir = ""
 	blobPool := blobpool.New(config.BlobPool, &chainWithFinalBlock{eth.blockchain})
 
-	config.TxPool.Journal = ""
 	legacyPool := legacypool.New(config.TxPool, eth.blockchain)
 
 	eth.txPool, err = txpool.New(new(big.Int).SetUint64(config.TxPool.PriceLimit), eth.blockchain, []txpool.SubPool{legacyPool, blobPool})

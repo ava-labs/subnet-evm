@@ -99,7 +99,6 @@ func setupPoolWithConfig(t *testing.T, config *params.ChainConfig, fundedAddress
 	chain, err := core.NewBlockChain(diskdb, core.DefaultCacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
 	require.NoError(t, err)
 	testTxPoolConfig := legacypool.DefaultConfig
-	testTxPoolConfig.Journal = ""
 	legacyPool := legacypool.New(testTxPoolConfig, chain)
 
 	txPool, err := txpool.New(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), chain, []txpool.SubPool{legacyPool})
