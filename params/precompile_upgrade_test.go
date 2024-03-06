@@ -6,10 +6,10 @@ package params
 import (
 	"testing"
 
+	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/precompile/contracts/deployerallowlist"
-	"github.com/ethereum/go-ethereum/precompile/contracts/txallowlist"
-	"github.com/ethereum/go-ethereum/utils"
 	"github.com/stretchr/testify/require"
 )
 

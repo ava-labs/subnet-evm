@@ -6,8 +6,8 @@ package txallowlist
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
 )
 
 func TestTxAllowListRun(t *testing.T) {

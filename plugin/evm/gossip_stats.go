@@ -3,7 +3,7 @@
 
 package evm
 
-import "github.com/ethereum/go-ethereum/metrics"
+import "github.com/ava-labs/subnet-evm/metrics"
 
 var _ GossipStats = &gossipStats{}
 

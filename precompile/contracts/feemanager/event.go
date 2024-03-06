@@ -7,9 +7,9 @@ package feemanager
 import (
 	"math/big"
 
+	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/commontype"
-	"github.com/ethereum/go-ethereum/precompile/contract"
 )
 
 // FeeConfigChangedEventGasCost is the gas cost of a FeeConfigChanged event.
