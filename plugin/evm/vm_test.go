@@ -208,7 +208,7 @@ func GenesisVM(t *testing.T,
 	ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, genesisJSON)
 	appSender := &commonEng.SenderTest{T: t}
 	appSender.CantSendAppGossip = true
-	appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
+	appSender.SendAppGossipF = func(context.Context, []byte, int, int, int) error { return nil }
 	err := vm.Initialize(
 		context.Background(),
 		ctx,
@@ -304,7 +304,7 @@ func TestVMUpgrades(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			_, vm, _, _ := GenesisVM(t, true, test.genesis, "", "")
 
-			if gasPrice := vm.txPool.GasPrice(); gasPrice.Cmp(test.expectedGasPrice) != 0 {
+			if gasPrice := vm.txPool.GasTip(); gasPrice.Cmp(test.expectedGasPrice) != 0 {
 				t.Fatalf("Expected pool gas price to be %d but found %d", test.expectedGasPrice, gasPrice)
 			}
 			defer func() {
@@ -1994,7 +1994,7 @@ func TestConfigureLogLevel(t *testing.T) {
 			ctx, dbManager, genesisBytes, issuer, _ := setupGenesis(t, test.genesisJSON)
 			appSender := &commonEng.SenderTest{T: t}
 			appSender.CantSendAppGossip = true
-			appSender.SendAppGossipF = func(context.Context, []byte) error { return nil }
+			appSender.SendAppGossipF = func(context.Context, []byte, int, int, int) error { return nil }
 			err := vm.Initialize(
 				context.Background(),
 				ctx,
@@ -2082,7 +2082,7 @@ func TestBuildSubnetEVMBlock(t *testing.T) {
 		}
 		txs[i] = signedTx
 	}
-	errs := vm.txPool.AddRemotes(txs)
+	errs := vm.txPool.AddRemotesSync(txs)
 	for i, err := range errs {
 		if err != nil {
 			t.Fatalf("Failed to add tx at index %d: %s", i, err)
@@ -2644,7 +2644,7 @@ func TestFeeManagerChangeFee(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = vm.txPool.AddRemote(signedTx2)
+	err = vm.txPool.AddRemotesSync([]*types.Transaction{signedTx2})[0]
 	require.ErrorIs(t, err, txpool.ErrUnderpriced)
 }
 

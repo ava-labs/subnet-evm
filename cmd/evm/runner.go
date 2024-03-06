@@ -39,6 +39,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/cmd/evm/internal/compiler"
+	"github.com/ava-labs/subnet-evm/cmd/utils"
 	"github.com/ava-labs/subnet-evm/core"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
@@ -49,7 +50,6 @@ import (
 	"github.com/ava-labs/subnet-evm/internal/flags"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/urfave/cli/v2"
@@ -138,6 +138,7 @@ func runCmd(ctx *cli.Context) error {
 		receiver      = common.BytesToAddress([]byte("receiver"))
 		genesisConfig *core.Genesis
 		preimages     = ctx.Bool(DumpFlag.Name)
+		blobHashes    []common.Hash // TODO (MariusVanDerWijden) implement blob hashes in state tests
 	)
 	if ctx.Bool(MachineFlag.Name) {
 		tracer = logger.NewJSONLogger(logconfig, os.Stdout)
@@ -227,6 +228,7 @@ func runCmd(ctx *cli.Context) error {
 		Time:        genesisConfig.Timestamp,
 		Coinbase:    genesisConfig.Coinbase,
 		BlockNumber: new(big.Int).SetUint64(genesisConfig.Number),
+		BlobHashes:  blobHashes,
 		EVMConfig: vm.Config{
 			Tracer: tracer,
 		},
@@ -288,8 +290,7 @@ func runCmd(ctx *cli.Context) error {
 	output, leftOverGas, stats, err := timedExec(bench, execFunc)
 
 	if ctx.Bool(DumpFlag.Name) {
-		statedb.Commit(true, false)
-		statedb.IntermediateRoot(true)
+		statedb.Commit(genesisConfig.Number, true, false)
 		fmt.Println(string(statedb.Dump(nil)))
 	}
 
