@@ -778,7 +778,7 @@ func (vm *VM) setAppRequestHandlers() {
 		vm.chaindb,
 		&trie.Config{
 			HashDB: &hashdb.Config{
-				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB, // XXX
+				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
 			},
 		},
 	)

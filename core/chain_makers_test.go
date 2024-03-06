@@ -63,7 +63,6 @@ func ExampleGenerateChain() {
 	// each block and adds different features to gen based on the
 	// block index.
 	signer := types.HomesteadSigner{}
-	// XXX: Why is this 5 in geth?
 	chain, _, err := GenerateChain(gspec.Config, genesis, dummy.NewCoinbaseFaker(), genDb, 3, 10, func(i int, gen *BlockGen) {
 		switch i {
 		case 0:

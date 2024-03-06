@@ -1285,10 +1285,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	}
 	// If node is running in path mode, skip explicit gc operation
 	// which is unnecessary in this mode.
-	// XXX
-	// if bc.triedb.Scheme() == rawdb.PathScheme {
-	// 	return nil
-	// }
+	if bc.triedb.Scheme() == rawdb.PathScheme {
+		return nil
+	}
 
 	// Note: if InsertTrie must be the last step in verification that can return an error.
 	// This allows [stateManager] to assume that if it inserts a trie without returning an

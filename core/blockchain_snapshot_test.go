@@ -108,10 +108,6 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 		}
 		startPoint = point
 
-		// XXX
-		// if basic.commitBlock > 0 && basic.commitBlock == point {
-		// 	chain.TrieDB().Commit(blocks[point-1].Root(), false)
-		// }
 		if basic.snapshotBlock > 0 && basic.snapshotBlock == point {
 			// Flushing from 0 to snapshotBlock into the disk
 			for i := uint64(0); i < point; i++ {
@@ -524,11 +520,6 @@ func TestHighCommitCrashWithNewSnapshot(t *testing.T) {
 	// Expected head block     : C4
 	// Expected snapshot disk  : C4
 	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
-		expHead := uint64(0)
-		if scheme == rawdb.PathScheme {
-			expHead = uint64(4)
-		}
-		_ = expHead // XXX: expHead is not used
 		test := &crashSnapshotTest{
 			snapshotTestBasic{
 				scheme:             scheme,
