@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
@@ -39,6 +40,7 @@ import (
 
 // snapshotTestBasic wraps the common testing fields in the snapshot tests.
 type snapshotTestBasic struct {
+	scheme        string // Disk scheme used for storing trie nodes
 	chainBlocks   int    // Number of blocks to generate for the canonical chain
 	snapshotBlock uint64 // Block number of the relevant snapshot disk layer
 
@@ -48,6 +50,7 @@ type snapshotTestBasic struct {
 
 	// share fields, set in runtime
 	datadir string
+	ancient string
 	db      ethdb.Database
 	genDb   ethdb.Database
 	engine  consensus.Engine
@@ -59,9 +62,11 @@ type snapshotTestBasic struct {
 func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Block) {
 	// Create a temporary persistent database
 	datadir := t.TempDir()
+	ancient := path.Join(datadir, "ancient")
 
 	db, err := rawdb.Open(rawdb.OpenOptions{
 		Directory: datadir,
+		Ephemeral: true,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create persistent database: %v", err)
@@ -73,13 +78,8 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 			Config:  params.TestChainConfig,
 		}
 		engine = dummy.NewFullFaker()
-
-		// Snapshot is enabled, the first snapshot is created from the Genesis.
-		// The snapshot memory allowance is 256MB, it means no snapshot flush
-		// will happen during the block insertion.
-		cacheConfig = DefaultCacheConfig
 	)
-	chain, err := NewBlockChain(db, cacheConfig, gspec, engine, vm.Config{}, common.Hash{}, false)
+	chain, err := NewBlockChain(db, DefaultCacheConfigWithScheme(basic.scheme), gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("Failed to create chain: %v", err)
 	}
@@ -98,6 +98,10 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 		}
 		startPoint = point
 
+		// XXX
+		// if basic.commitBlock > 0 && basic.commitBlock == point {
+		// 	chain.TrieDB().Commit(blocks[point-1].Root(), false)
+		// }
 		if basic.snapshotBlock > 0 && basic.snapshotBlock == point {
 			// Flushing from 0 to snapshotBlock into the disk
 			for i := uint64(0); i < point; i++ {
@@ -120,6 +124,7 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 
 	// Set runtime fields
 	basic.datadir = datadir
+	basic.ancient = ancient
 	basic.db = db
 	basic.genDb = genDb
 	basic.engine = engine
@@ -201,6 +206,7 @@ func (basic *snapshotTestBasic) teardown() {
 	basic.db.Close()
 	basic.genDb.Close()
 	os.RemoveAll(basic.datadir)
+	os.RemoveAll(basic.ancient)
 }
 
 // snapshotTest is a test case type for normal snapshot recovery.
@@ -217,7 +223,7 @@ func (snaptest *snapshotTest) test(t *testing.T) {
 
 	// Restart the chain normally
 	chain.Stop()
-	newchain, err := NewBlockChain(snaptest.db, DefaultCacheConfig, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
+	newchain, err := NewBlockChain(snaptest.db, DefaultCacheConfigWithScheme(snaptest.scheme), snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
@@ -226,7 +232,7 @@ func (snaptest *snapshotTest) test(t *testing.T) {
 	snaptest.verify(t, newchain, blocks)
 }
 
-// crashSnapshotTest is a test case type for innormal snapshot recovery.
+// crashSnapshotTest is a test case type for irregular snapshot recovery.
 // It can be used for testing that restart Geth after the crash.
 type crashSnapshotTest struct {
 	snapshotTestBasic
@@ -242,10 +248,12 @@ func (snaptest *crashSnapshotTest) test(t *testing.T) {
 	db := chain.db
 	db.Close()
 	chain.stopWithoutSaving()
+	chain.triedb.Close()
 
 	// Start a new blockchain back up and see where the repair leads us
 	newdb, err := rawdb.Open(rawdb.OpenOptions{
 		Directory: snaptest.datadir,
+		Ephemeral: true,
 	})
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
@@ -256,13 +264,13 @@ func (snaptest *crashSnapshotTest) test(t *testing.T) {
 	// the crash, we do restart twice here: one after the crash and one
 	// after the normal stop. It's used to ensure the broken snapshot
 	// can be detected all the time.
-	newchain, err := NewBlockChain(newdb, DefaultCacheConfig, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
+	newchain, err := NewBlockChain(newdb, DefaultCacheConfigWithScheme(snaptest.scheme), snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
 	newchain.Stop()
 
-	newchain, err = NewBlockChain(newdb, DefaultCacheConfig, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
+	newchain, err = NewBlockChain(newdb, DefaultCacheConfigWithScheme(snaptest.scheme), snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
@@ -289,7 +297,7 @@ func (snaptest *gappedSnapshotTest) test(t *testing.T) {
 
 	// Insert blocks without enabling snapshot if gapping is required.
 	chain.Stop()
-	gappedBlocks, _, _ := GenerateChain(params.TestChainConfig, blocks[len(blocks)-1], snaptest.engine, snaptest.genDb, snaptest.gapped, 10, func(i int, b *BlockGen) {})
+	gappedBlocks, _, _ := GenerateChain(snaptest.gspec.Config, blocks[len(blocks)-1], snaptest.engine, snaptest.genDb, snaptest.gapped, 10, func(i int, b *BlockGen) {})
 
 	// Insert a few more blocks without enabling snapshot
 	var cacheConfig = &CacheConfig{
@@ -298,6 +306,7 @@ func (snaptest *gappedSnapshotTest) test(t *testing.T) {
 		SnapshotLimit:  0,
 		Pruning:        true,
 		CommitInterval: 4096,
+		StateScheme:    snaptest.scheme,
 	}
 	newchain, err := NewBlockChain(snaptest.db, cacheConfig, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
 	if err != nil {
@@ -307,7 +316,35 @@ func (snaptest *gappedSnapshotTest) test(t *testing.T) {
 	newchain.Stop()
 
 	// Restart the chain with enabling the snapshot
-	newchain, err = NewBlockChain(snaptest.db, DefaultCacheConfig, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
+	newchain, err = NewBlockChain(snaptest.db, DefaultCacheConfigWithScheme(snaptest.scheme), snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
+	if err != nil {
+		t.Fatalf("Failed to recreate chain: %v", err)
+	}
+	defer newchain.Stop()
+
+	snaptest.verify(t, newchain, blocks)
+}
+
+// setHeadSnapshotTest is the test type used to test this scenario:
+// - have a complete snapshot
+// - set the head to a lower point
+// - restart
+type setHeadSnapshotTest struct {
+	snapshotTestBasic
+	setHead uint64 // Block number to set head back to
+}
+
+func (snaptest *setHeadSnapshotTest) test(t *testing.T) {
+	// It's hard to follow the test case, visualize the input
+	// log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+	// fmt.Println(tt.dump())
+	chain, blocks := snaptest.prepare(t)
+
+	// Rewind the chain if setHead operation is required.
+	// chain.SetHead(snaptest.setHead)
+	chain.Stop()
+
+	newchain, err := NewBlockChain(snaptest.db, DefaultCacheConfigWithScheme(snaptest.scheme), snaptest.gspec, snaptest.engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
@@ -342,22 +379,25 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 		SnapshotLimit:  0,
 		Pruning:        true,
 		CommitInterval: 4096,
+		StateScheme:    snaptest.scheme,
 	}
 	newchain, err := NewBlockChain(snaptest.db, config, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
-	newBlocks, _, _ := GenerateChain(params.TestChainConfig, blocks[len(blocks)-1], snaptest.engine, snaptest.genDb, snaptest.newBlocks, 10, func(i int, b *BlockGen) {})
+	newBlocks, _, _ := GenerateChain(snaptest.gspec.Config, blocks[len(blocks)-1], snaptest.engine, snaptest.genDb, snaptest.newBlocks, 10, func(i int, b *BlockGen) {})
 	newchain.InsertChain(newBlocks)
 	newchain.Stop()
 
-	// Restart the chain, the wiper should starts working
+	// Restart the chain, the wiper should start working
 	config = &CacheConfig{
 		TrieCleanLimit: 256,
 		TrieDirtyLimit: 256,
 		SnapshotLimit:  256,
 		Pruning:        true,
 		CommitInterval: 4096,
+		SnapshotWait:   false, // Don't wait rebuild
+		StateScheme:    snaptest.scheme,
 	}
 	tmp, err := NewBlockChain(snaptest.db, config, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
 	if err != nil {
@@ -365,14 +405,15 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 	}
 
 	// Simulate the blockchain crash.
+	tmp.triedb.Close()
 	tmp.stopWithoutSaving()
 
-	newchain, err = NewBlockChain(snaptest.db, DefaultCacheConfig, snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
+	newchain, err = NewBlockChain(snaptest.db, DefaultCacheConfigWithScheme(snaptest.scheme), snaptest.gspec, snaptest.engine, vm.Config{}, snaptest.lastAcceptedHash, false)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}
-	defer newchain.Stop()
 	snaptest.verify(t, newchain, blocks)
+	newchain.Stop()
 }
 
 // Tests a Geth restart with valid snapshot. Before the shutdown, all snapshot
@@ -392,17 +433,20 @@ func TestRestartWithNewSnapshot(t *testing.T) {
 	// Expected head header    : C8
 	// Expected head block     : C4
 	// Expected snapshot disk  : C4
-	test := &snapshotTest{
-		snapshotTestBasic{
-			chainBlocks:        8,
-			snapshotBlock:      4,
-			expCanonicalBlocks: 8,
-			expHeadBlock:       4,
-			expSnapshotBottom:  4, // Initial disk layer built from genesis
-		},
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
+		test := &snapshotTest{
+			snapshotTestBasic{
+				scheme:             scheme,
+				chainBlocks:        8,
+				snapshotBlock:      4,
+				expCanonicalBlocks: 8,
+				expHeadBlock:       4,
+				expSnapshotBottom:  4, // Initial disk layer built from genesis
+			},
+		}
+		test.test(t)
+		test.teardown()
 	}
-	test.test(t)
-	test.teardown()
 }
 
 // Tests a Geth was crashed and restarts with a broken snapshot. In this case the
@@ -425,17 +469,20 @@ func TestNoCommitCrashWithNewSnapshot(t *testing.T) {
 	//
 	// Expected head block     : C4
 	// Expected snapshot disk  : C4
-	test := &crashSnapshotTest{
-		snapshotTestBasic{
-			chainBlocks:        8,
-			snapshotBlock:      4,
-			expCanonicalBlocks: 8,
-			expHeadBlock:       4,
-			expSnapshotBottom:  4, // Last committed disk layer, wait recovery
-		},
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
+		test := &crashSnapshotTest{
+			snapshotTestBasic{
+				scheme:             scheme,
+				chainBlocks:        8,
+				snapshotBlock:      4,
+				expCanonicalBlocks: 8,
+				expHeadBlock:       4,
+				expSnapshotBottom:  4, // Last committed disk layer, wait recovery
+			},
+		}
+		test.test(t)
+		test.teardown()
 	}
-	test.test(t)
-	test.teardown()
 }
 
 // Tests a Geth was crashed and restarts with a broken snapshot. In this case the
@@ -458,17 +505,20 @@ func TestLowCommitCrashWithNewSnapshot(t *testing.T) {
 	//
 	// Expected head block     : C4
 	// Expected snapshot disk  : C4
-	test := &crashSnapshotTest{
-		snapshotTestBasic{
-			chainBlocks:        8,
-			snapshotBlock:      4,
-			expCanonicalBlocks: 8,
-			expHeadBlock:       4,
-			expSnapshotBottom:  4, // Last committed disk layer, wait recovery
-		},
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
+		test := &crashSnapshotTest{
+			snapshotTestBasic{
+				scheme:             scheme,
+				chainBlocks:        8,
+				snapshotBlock:      4,
+				expCanonicalBlocks: 8,
+				expHeadBlock:       4,
+				expSnapshotBottom:  4, // Last committed disk layer, wait recovery
+			},
+		}
+		test.test(t)
+		test.teardown()
 	}
-	test.test(t)
-	test.teardown()
 }
 
 // Tests a Geth was crashed and restarts with a broken snapshot. In this case
@@ -491,17 +541,25 @@ func TestHighCommitCrashWithNewSnapshot(t *testing.T) {
 	//
 	// Expected head block     : C4
 	// Expected snapshot disk  : C4
-	test := &crashSnapshotTest{
-		snapshotTestBasic{
-			chainBlocks:        8,
-			snapshotBlock:      4,
-			expCanonicalBlocks: 8,
-			expHeadBlock:       4,
-			expSnapshotBottom:  4, // Last committed disk layer, wait recovery
-		},
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
+		expHead := uint64(0)
+		if scheme == rawdb.PathScheme {
+			expHead = uint64(4)
+		}
+		_ = expHead // XXX: expHead is not used
+		test := &crashSnapshotTest{
+			snapshotTestBasic{
+				scheme:             scheme,
+				chainBlocks:        8,
+				snapshotBlock:      4,
+				expCanonicalBlocks: 8,
+				expHeadBlock:       4,
+				expSnapshotBottom:  4, // Last committed disk layer, wait recovery
+			},
+		}
+		test.test(t)
+		test.teardown()
 	}
-	test.test(t)
-	test.teardown()
 }
 
 // Tests a Geth was running with snapshot enabled. Then restarts without
@@ -520,18 +578,21 @@ func TestGappedNewSnapshot(t *testing.T) {
 	//
 	// Expected head block     : G
 	// Expected snapshot disk  : G
-	test := &gappedSnapshotTest{
-		snapshotTestBasic: snapshotTestBasic{
-			chainBlocks:        8,
-			snapshotBlock:      0,
-			expCanonicalBlocks: 10,
-			expHeadBlock:       0,
-			expSnapshotBottom:  0, // Rebuilt snapshot from the latest HEAD
-		},
-		gapped: 2,
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
+		test := &gappedSnapshotTest{
+			snapshotTestBasic: snapshotTestBasic{
+				scheme:             scheme,
+				chainBlocks:        8,
+				snapshotBlock:      0,
+				expCanonicalBlocks: 10,
+				expHeadBlock:       0,
+				expSnapshotBottom:  0, // Rebuilt snapshot from the latest HEAD
+			},
+			gapped: 2,
+		}
+		test.test(t)
+		test.teardown()
 	}
-	test.test(t)
-	test.teardown()
 }
 
 // Tests the Geth was running with a complete snapshot and then imports a few
@@ -550,16 +611,19 @@ func TestRecoverSnapshotFromWipingCrash(t *testing.T) {
 	//
 	// Expected head block     : C4
 	// Expected snapshot disk  : C4
-	test := &wipeCrashSnapshotTest{
-		snapshotTestBasic: snapshotTestBasic{
-			chainBlocks:        8,
-			snapshotBlock:      4,
-			expCanonicalBlocks: 10,
-			expHeadBlock:       4,
-			expSnapshotBottom:  4,
-		},
-		newBlocks: 2,
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
+		test := &wipeCrashSnapshotTest{
+			snapshotTestBasic: snapshotTestBasic{
+				scheme:             scheme,
+				chainBlocks:        8,
+				snapshotBlock:      4,
+				expCanonicalBlocks: 10,
+				expHeadBlock:       4,
+				expSnapshotBottom:  4,
+			},
+			newBlocks: 2,
+		}
+		test.test(t)
+		test.teardown()
 	}
-	test.test(t)
-	test.teardown()
 }

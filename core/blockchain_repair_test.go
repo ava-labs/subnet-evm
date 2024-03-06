@@ -29,7 +29,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/stretchr/testify/require"
 )
 
 // rewindTest is a test case for chain rollback upon user request.
@@ -491,6 +494,12 @@ func testLongReorgedDeepRepair(t *testing.T, snapshots bool) {
 }
 
 func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
+	for _, scheme := range []string{rawdb.HashScheme, rawdb.PathScheme} {
+		testRepairWithScheme(t, tt, snapshots, scheme)
+	}
+}
+
+func testRepairWithScheme(t *testing.T, tt *rewindTest, snapshots bool, scheme string) {
 	// It's hard to follow the test case, visualize the input
 	//log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 	// fmt.Println(tt.dump(true))
@@ -500,6 +509,7 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 
 	db, err := rawdb.Open(rawdb.OpenOptions{
 		Directory: datadir,
+		Ephemeral: true,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create persistent database: %v", err)
@@ -507,22 +517,31 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	defer db.Close() // Might double close, should be fine
 
 	// Initialize a fresh chain
+	chainConfig := *params.TestChainConfig
+	chainConfig.FeeConfig.MinBaseFee = big.NewInt(1)
 	var (
-		gspec = &Genesis{
-			BaseFee: big.NewInt(params.TestInitialBaseFee),
-			Config:  params.TestChainConfig,
+		require = require.New(t)
+		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
+		gspec   = &Genesis{
+			BaseFee: chainConfig.FeeConfig.MinBaseFee,
+			Config:  &chainConfig,
+			Alloc:   GenesisAlloc{addr1: {Balance: big.NewInt(params.Ether)}},
 		}
+		signer = types.LatestSigner(gspec.Config)
 		engine = dummy.NewFullFaker()
 		config = &CacheConfig{
 			TrieCleanLimit:            256,
 			TrieDirtyLimit:            256,
 			TriePrefetcherParallelism: 4,
 			SnapshotLimit:             0, // Disable snapshot by default
+			StateScheme:               scheme,
 		}
 	)
 	defer engine.Close()
 	if snapshots {
 		config.SnapshotLimit = 256
+		config.SnapshotWait = true
 	}
 	chain, err := NewBlockChain(db, config, gspec, engine, vm.Config{}, common.Hash{}, false)
 	if err != nil {
@@ -534,17 +553,29 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	// If sidechain blocks are needed, make a light chain and import it
 	var sideblocks types.Blocks
 	if tt.sidechainBlocks > 0 {
-		sideblocks, _, _ = GenerateChain(gspec.Config, gspec.ToBlock(), engine, rawdb.NewMemoryDatabase(), tt.sidechainBlocks, 10, func(i int, b *BlockGen) {
+		genDb := rawdb.NewMemoryDatabase()
+		gspec.MustCommit(genDb, trie.NewDatabase(genDb, nil))
+		sideblocks, _, err = GenerateChain(gspec.Config, gspec.ToBlock(), engine, genDb, tt.sidechainBlocks, 10, func(i int, b *BlockGen) {
 			b.SetCoinbase(common.Address{0x01})
+			tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x01}, big.NewInt(10000), params.TxGas, common.Big1, nil), signer, key1)
+			require.NoError(err)
+			b.AddTx(tx)
 		})
+		require.NoError(err)
 		if _, err := chain.InsertChain(sideblocks); err != nil {
 			t.Fatalf("Failed to import side chain: %v", err)
 		}
 	}
-	canonblocks, _, _ := GenerateChain(gspec.Config, gspec.ToBlock(), engine, rawdb.NewMemoryDatabase(), tt.canonicalBlocks, 10, func(i int, b *BlockGen) {
+	genDb := rawdb.NewMemoryDatabase()
+	gspec.MustCommit(genDb, trie.NewDatabase(genDb, nil))
+	canonblocks, _, err := GenerateChain(gspec.Config, gspec.ToBlock(), engine, genDb, tt.canonicalBlocks, 10, func(i int, b *BlockGen) {
 		b.SetCoinbase(common.Address{0x02})
 		b.SetDifficulty(big.NewInt(1000000))
+		tx, err := types.SignTx(types.NewTransaction(b.TxNonce(addr1), common.Address{0x02}, big.NewInt(10000), params.TxGas, common.Big1, nil), signer, key1)
+		require.NoError(err)
+		b.AddTx(tx)
 	})
+	require.NoError(err)
 	if _, err := chain.InsertChain(canonblocks[:tt.commitBlock]); err != nil {
 		t.Fatalf("Failed to import canonical chain start: %v", err)
 	}
@@ -564,12 +595,14 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	}
 
 	// Pull the plug on the database, simulating a hard crash
+	chain.triedb.Close()
 	db.Close()
 	chain.stopWithoutSaving()
 
 	// Start a new blockchain back up and see where the repair leads us
 	db, err = rawdb.Open(rawdb.OpenOptions{
 		Directory: datadir,
+		Ephemeral: true,
 	})
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent database: %v", err)

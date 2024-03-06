@@ -37,6 +37,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/peer"
 	"github.com/ethereum/go-ethereum/plugin/evm/message"
+	"github.com/ethereum/go-ethereum/trie/triedb/hashdb"
 
 	"github.com/ethereum/go-ethereum/rpc"
 	statesyncclient "github.com/ethereum/go-ethereum/sync/client"
@@ -773,10 +774,12 @@ func (vm *VM) setAppRequestHandlers() {
 	// Create separate EVM TrieDB (read only) for serving leafs requests.
 	// We create a separate TrieDB here, so that it has a separate cache from the one
 	// used by the node when processing blocks.
-	evmTrieDB := trie.NewDatabaseWithConfig(
+	evmTrieDB := trie.NewDatabase(
 		vm.chaindb,
 		&trie.Config{
-			Cache: vm.config.StateSyncServerTrieCache,
+			HashDB: &hashdb.Config{
+				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB, // XXX
+			},
 		},
 	)
 
