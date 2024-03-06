@@ -75,13 +75,6 @@ type backend interface {
 	Close() error
 }
 
-type cache interface {
-	HasGet([]byte, []byte) ([]byte, bool)
-	Del([]byte)
-	Set([]byte, []byte)
-	SaveToFileConcurrent(dir string, threads int) error
-}
-
 // Database is the wrapper of the underlying backend which is shared by different
 // types of node backend as an entrypoint. It's responsible for all interactions
 // relevant with trie nodes and node preimages.

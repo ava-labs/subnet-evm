@@ -335,34 +335,6 @@ func (snaptest *gappedSnapshotTest) test(t *testing.T) {
 	snaptest.verify(t, newchain, blocks)
 }
 
-// setHeadSnapshotTest is the test type used to test this scenario:
-// - have a complete snapshot
-// - set the head to a lower point
-// - restart
-type setHeadSnapshotTest struct {
-	snapshotTestBasic
-	setHead uint64 // Block number to set head back to
-}
-
-func (snaptest *setHeadSnapshotTest) test(t *testing.T) {
-	// It's hard to follow the test case, visualize the input
-	// log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
-	// fmt.Println(tt.dump())
-	chain, blocks := snaptest.prepare(t)
-
-	// Rewind the chain if setHead operation is required.
-	// chain.SetHead(snaptest.setHead)
-	chain.Stop()
-
-	newchain, err := NewBlockChain(snaptest.db, DefaultCacheConfigWithScheme(snaptest.scheme), snaptest.gspec, snaptest.engine, vm.Config{}, common.Hash{}, false)
-	if err != nil {
-		t.Fatalf("Failed to recreate chain: %v", err)
-	}
-	defer newchain.Stop()
-
-	snaptest.verify(t, newchain, blocks)
-}
-
 // wipeCrashSnapshotTest is the test type used to test this scenario:
 // - have a complete snapshot
 // - restart, insert more blocks without enabling the snapshot
