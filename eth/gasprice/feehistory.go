@@ -31,7 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"slices"
+	"sort"
 
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/rpc"
@@ -46,16 +46,26 @@ var (
 )
 
 // txGasAndReward is sorted in ascending order based on reward
-type txGasAndReward struct {
-	gasUsed uint64
-	reward  *big.Int
-}
+type (
+	txGasAndReward struct {
+		gasUsed uint64
+		reward  *big.Int
+	}
+	sortGasAndReward []txGasAndReward
+	slimBlock        struct {
+		GasUsed  uint64
+		GasLimit uint64
+		BaseFee  *big.Int
+		Txs      []txGasAndReward
+	}
+)
 
-type slimBlock struct {
-	GasUsed  uint64
-	GasLimit uint64
-	BaseFee  *big.Int
-	Txs      []txGasAndReward
+func (s sortGasAndReward) Len() int { return len(s) }
+func (s sortGasAndReward) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s sortGasAndReward) Less(i, j int) bool {
+	return s[i].reward.Cmp(s[j].reward) < 0
 }
 
 // processBlock prepares a [slimBlock] from a retrieved block and list of
@@ -67,14 +77,12 @@ func processBlock(block *types.Block, receipts types.Receipts) *slimBlock {
 	}
 	sb.GasUsed = block.GasUsed()
 	sb.GasLimit = block.GasLimit()
-	sorter := make([]txGasAndReward, len(block.Transactions()))
+	sorter := make(sortGasAndReward, len(block.Transactions()))
 	for i, tx := range block.Transactions() {
 		reward, _ := tx.EffectiveGasTip(sb.BaseFee)
 		sorter[i] = txGasAndReward{gasUsed: receipts[i].GasUsed, reward: reward}
 	}
-	slices.SortStableFunc(sorter, func(a, b txGasAndReward) int {
-		return a.reward.Cmp(b.reward)
-	})
+	sort.Stable(sorter)
 	sb.Txs = sorter
 	return &sb
 }

@@ -32,7 +32,6 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
@@ -86,7 +85,7 @@ type NumberHash struct {
 	Hash   common.Hash
 }
 
-// ReadAllHashesInRange retrieves all the hashes assigned to blocks at certain
+// ReadAllHashesInRange retrieves all the hashes assigned to blocks at a certain
 // heights, both canonical and reorged forks included.
 // This method considers both limits to be _inclusive_.
 func ReadAllHashesInRange(db ethdb.Iteratee, first, last uint64) []*NumberHash {
@@ -205,11 +204,12 @@ func WriteHeadBlockHash(db ethdb.KeyValueWriter, hash common.Hash) {
 
 // ReadHeaderRLP retrieves a block header in its raw RLP database encoding.
 func ReadHeaderRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
+	// Then try to look up the data in leveldb.
 	data, _ := db.Get(headerKey(number, hash))
 	if len(data) > 0 {
 		return data
 	}
-	return nil
+	return nil // Can't find the data anywhere.
 }
 
 // HasHeader verifies the existence of a block header corresponding to the hash.
@@ -273,11 +273,12 @@ func deleteHeaderWithoutNumber(db ethdb.KeyValueWriter, hash common.Hash, number
 
 // ReadBodyRLP retrieves the block body (transactions and uncles) in RLP encoding.
 func ReadBodyRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
+	// Then try to look up the data in leveldb.
 	data, _ := db.Get(blockBodyKey(number, hash))
 	if len(data) > 0 {
 		return data
 	}
-	return nil
+	return nil // Can't find the data anywhere.
 }
 
 // ReadCanonicalBodyRLP retrieves the block body (transactions and uncles) for the canonical
@@ -347,11 +348,12 @@ func HasReceipts(db ethdb.Reader, hash common.Hash, number uint64) bool {
 
 // ReadReceiptsRLP retrieves all the transaction receipts belonging to a block in RLP encoding.
 func ReadReceiptsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
+	// Then try to look up the data in leveldb.
 	data, _ := db.Get(blockReceiptsKey(number, hash))
 	if len(data) > 0 {
 		return data
 	}
-	return nil
+	return nil // Can't find the data anywhere.
 }
 
 // ReadRawReceipts retrieves all the transaction receipts belonging to a block.
@@ -395,19 +397,13 @@ func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, time uint64,
 		return nil
 	}
 	header := ReadHeader(db, hash, number)
-
 	var baseFee *big.Int
 	if header == nil {
 		baseFee = big.NewInt(0)
 	} else {
 		baseFee = header.BaseFee
 	}
-	// Compute effective blob gas price.
-	var blobGasPrice *big.Int
-	if header != nil && header.ExcessBlobGas != nil {
-		blobGasPrice = eip4844.CalcBlobFee(*header.ExcessBlobGas)
-	}
-	if err := receipts.DeriveFields(config, hash, number, time, baseFee, blobGasPrice, body.Transactions); err != nil {
+	if err := receipts.DeriveFields(config, hash, number, time, baseFee, body.Transactions); err != nil {
 		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
 		return nil
 	}

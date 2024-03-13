@@ -30,8 +30,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/txpool/blobpool"
-	"github.com/ava-labs/subnet-evm/core/txpool/legacypool"
+	"github.com/ava-labs/subnet-evm/core/txpool"
 	"github.com/ava-labs/subnet-evm/eth/gasprice"
 	"github.com/ava-labs/subnet-evm/miner"
 	"github.com/ethereum/go-ethereum/common"
@@ -62,8 +61,7 @@ func NewDefaultConfig() Config {
 		SnapshotCache:             256,
 		AcceptedCacheSize:         32,
 		Miner:                     miner.Config{},
-		TxPool:                    legacypool.DefaultConfig,
-		BlobPool:                  blobpool.DefaultConfig,
+		TxPool:                    txpool.DefaultConfig,
 		RPCGasCap:                 25000000,
 		RPCEVMTimeout:             5 * time.Second,
 		GPO:                       DefaultFullGPOConfig,
@@ -98,6 +96,8 @@ type Config struct {
 
 	// TrieDB and snapshot options
 	TrieCleanCache            int
+	TrieCleanJournal          string
+	TrieCleanRejournal        time.Duration
 	TrieDirtyCache            int
 	TrieDirtyCommitTarget     int
 	TriePrefetcherParallelism int
@@ -112,8 +112,7 @@ type Config struct {
 	Miner miner.Config
 
 	// Transaction pool options
-	TxPool   legacypool.Config
-	BlobPool blobpool.Config
+	TxPool txpool.Config
 
 	// Gas Price Oracle options
 	GPO gasprice.Config

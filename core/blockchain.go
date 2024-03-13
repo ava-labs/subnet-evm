@@ -41,7 +41,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus"
-	"github.com/ava-labs/subnet-evm/consensus/misc/eip4844"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/state"
 	"github.com/ava-labs/subnet-evm/core/state/snapshot"
@@ -102,8 +101,6 @@ var (
 
 	errFutureBlockUnsupported  = errors.New("future block insertion not supported")
 	errCacheConfigNotSpecified = errors.New("must specify cache config")
-	errInvalidOldChain         = errors.New("invalid old chain")
-	errInvalidNewChain         = errors.New("invalid new chain")
 )
 
 const (
@@ -146,7 +143,7 @@ const (
 
 	// trieCleanCacheStatsNamespace is the namespace to surface stats from the trie
 	// clean cache's underlying fastcache.
-	trieCleanCacheStatsNamespace = "hashdb/memcache/clean/fastcache"
+	trieCleanCacheStatsNamespace = "trie/memcache/clean/fastcache"
 )
 
 // cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
@@ -166,23 +163,25 @@ type cacheableCoinbaseConfig struct {
 // CacheConfig contains the configuration values for the trie database
 // that's resident in a blockchain.
 type CacheConfig struct {
-	TrieCleanLimit                  int     // Memory allowance (MB) to use for caching trie nodes in memory
-	TrieDirtyLimit                  int     // Memory limit (MB) at which to block on insert and force a flush of dirty trie nodes to disk
-	TrieDirtyCommitTarget           int     // Memory limit (MB) to target for the dirties cache before invoking commit
-	TriePrefetcherParallelism       int     // Max concurrent disk reads trie prefetcher should perform at once
-	CommitInterval                  uint64  // Commit the trie every [CommitInterval] blocks.
-	Pruning                         bool    // Whether to disable trie write caching and GC altogether (archive node)
-	AcceptorQueueLimit              int     // Blocks to queue before blocking during acceptance
-	PopulateMissingTries            *uint64 // If non-nil, sets the starting height for re-generating historical tries.
-	PopulateMissingTriesParallelism int     // Number of readers to use when trying to populate missing tries.
-	AllowMissingTries               bool    // Whether to allow an archive node to run with pruning enabled
-	SnapshotDelayInit               bool    // Whether to initialize snapshots on startup or wait for external call
-	SnapshotLimit                   int     // Memory allowance (MB) to use for caching snapshot entries in memory
-	SnapshotVerify                  bool    // Verify generated snapshots
-	Preimages                       bool    // Whether to store preimage of trie key to the disk
-	AcceptedCacheSize               int     // Depth of accepted headers cache and accepted logs cache at the accepted tip
-	TxLookupLimit                   uint64  // Number of recent blocks for which to maintain transaction lookup indices
-	SkipTxIndexing                  bool    // Whether to skip transaction indexing
+	TrieCleanLimit                  int           // Memory allowance (MB) to use for caching trie nodes in memory
+	TrieCleanJournal                string        // Disk journal for saving clean cache entries.
+	TrieCleanRejournal              time.Duration // Time interval to dump clean cache to disk periodically
+	TrieDirtyLimit                  int           // Memory limit (MB) at which to block on insert and force a flush of dirty trie nodes to disk
+	TrieDirtyCommitTarget           int           // Memory limit (MB) to target for the dirties cache before invoking commit
+	TriePrefetcherParallelism       int           // Max concurrent disk reads trie prefetcher should perform at once
+	CommitInterval                  uint64        // Commit the trie every [CommitInterval] blocks.
+	Pruning                         bool          // Whether to disable trie write caching and GC altogether (archive node)
+	AcceptorQueueLimit              int           // Blocks to queue before blocking during acceptance
+	PopulateMissingTries            *uint64       // If non-nil, sets the starting height for re-generating historical tries.
+	PopulateMissingTriesParallelism int           // Number of readers to use when trying to populate missing tries.
+	AllowMissingTries               bool          // Whether to allow an archive node to run with pruning enabled
+	SnapshotDelayInit               bool          // Whether to initialize snapshots on startup or wait for external call
+	SnapshotLimit                   int           // Memory allowance (MB) to use for caching snapshot entries in memory
+	SnapshotVerify                  bool          // Verify generated snapshots
+	Preimages                       bool          // Whether to store preimage of trie key to the disk
+	AcceptedCacheSize               int           // Depth of accepted headers cache and accepted logs cache at the accepted tip
+	TxLookupLimit                   uint64        // Number of recent blocks for which to maintain transaction lookup indices
+	SkipTxIndexing                  bool          // Whether to skip transaction indexing
 
 	SnapshotNoBuild bool // Whether the background generation is allowed
 	SnapshotWait    bool // Wait for snapshot construction on startup. TODO(karalabe): This is a dirty hack for testing, nuke it
@@ -316,6 +315,7 @@ func NewBlockChain(
 	// Open trie database with provided config
 	triedb := trie.NewDatabaseWithConfig(db, &trie.Config{
 		Cache:       cacheConfig.TrieCleanLimit,
+		Journal:     cacheConfig.TrieCleanJournal,
 		Preimages:   cacheConfig.Preimages,
 		StatsPrefix: trieCleanCacheStatsNamespace,
 	})
@@ -415,6 +415,17 @@ func NewBlockChain(
 
 	// Start processing accepted blocks effects in the background
 	go bc.startAcceptor()
+
+	// If periodic cache journal is required, spin it up.
+	if bc.cacheConfig.TrieCleanRejournal > 0 && len(bc.cacheConfig.TrieCleanJournal) > 0 {
+		log.Info("Starting to save trie clean cache periodically", "journalDir", bc.cacheConfig.TrieCleanJournal, "freq", bc.cacheConfig.TrieCleanRejournal)
+
+		bc.wg.Add(1)
+		go func() {
+			defer bc.wg.Done()
+			bc.triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
+		}()
+	}
 
 	// Start tx indexer/unindexer if required.
 	if bc.cacheConfig.TxLookupLimit != 0 {
@@ -790,7 +801,7 @@ func (bc *BlockChain) ExportCallback(callback func(block *types.Block) error, fi
 			return fmt.Errorf("export failed on #%d: not found", nr)
 		}
 		if nr > first && block.ParentHash() != parentHash {
-			return errors.New("export failed: chain reorg during export")
+			return fmt.Errorf("export failed: chain reorg during export")
 		}
 		parentHash = block.Hash()
 		if err := callback(block); err != nil {
@@ -978,6 +989,7 @@ func (bc *BlockChain) Stop() {
 	if err := bc.stateCache.TrieDB().Close(); err != nil {
 		log.Error("Failed to close trie db", "err", err)
 	}
+
 	log.Info("Blockchain stopped")
 }
 
@@ -1217,9 +1229,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	// diff layer for the block.
 	var err error
 	if bc.snaps == nil {
-		_, err = state.Commit(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), true)
+		_, err = state.Commit(bc.chainConfig.IsEIP158(block.Number()), true)
 	} else {
-		_, err = state.CommitWithSnap(block.NumberU64(), bc.chainConfig.IsEIP158(block.Number()), bc.snaps, block.Hash(), block.ParentHash(), true)
+		_, err = state.CommitWithSnap(bc.chainConfig.IsEIP158(block.Number()), bc.snaps, block.Hash(), block.ParentHash(), true)
 	}
 	if err != nil {
 		return err
@@ -1446,15 +1458,8 @@ func (bc *BlockChain) insertBlock(block *types.Block, writes bool) error {
 // collectUnflattenedLogs collects the logs that were generated or removed during
 // the processing of a block.
 func (bc *BlockChain) collectUnflattenedLogs(b *types.Block, removed bool) [][]*types.Log {
-	var blobGasPrice *big.Int
-	excessBlobGas := b.ExcessBlobGas()
-	if excessBlobGas != nil {
-		blobGasPrice = eip4844.CalcBlobFee(*excessBlobGas)
-	}
 	receipts := rawdb.ReadRawReceipts(bc.db, b.Hash(), b.NumberU64())
-	if err := receipts.DeriveFields(bc.chainConfig, b.Hash(), b.NumberU64(), b.Time(), b.BaseFee(), blobGasPrice, b.Transactions()); err != nil {
-		log.Error("Failed to derive block receipts fields", "hash", b.Hash(), "number", b.NumberU64(), "err", err)
-	}
+	receipts.DeriveFields(bc.chainConfig, b.Hash(), b.NumberU64(), b.Time(), b.BaseFee(), b.Transactions())
 
 	// Note: gross but this needs to be initialized here because returning nil will be treated specially as an incorrect
 	// error case downstream.
@@ -1462,10 +1467,11 @@ func (bc *BlockChain) collectUnflattenedLogs(b *types.Block, removed bool) [][]*
 	for i, receipt := range receipts {
 		receiptLogs := make([]*types.Log, len(receipt.Logs))
 		for i, log := range receipt.Logs {
+			l := *log
 			if removed {
-				log.Removed = true
+				l.Removed = true
 			}
-			receiptLogs[i] = log
+			receiptLogs[i] = &l
 		}
 		logs[i] = receiptLogs
 	}
@@ -1507,10 +1513,10 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 		}
 	}
 	if oldBlock == nil {
-		return errInvalidOldChain
+		return errors.New("invalid old chain")
 	}
 	if newBlock == nil {
-		return errInvalidNewChain
+		return errors.New("invalid new chain")
 	}
 	// Both sides of the reorg are at the same number, reduce both until the common
 	// ancestor is found
@@ -1527,11 +1533,11 @@ func (bc *BlockChain) reorg(oldHead *types.Header, newHead *types.Block) error {
 		// Step back with both chains
 		oldBlock = bc.GetBlock(oldBlock.ParentHash(), oldBlock.NumberU64()-1)
 		if oldBlock == nil {
-			return errInvalidOldChain
+			return fmt.Errorf("invalid old chain")
 		}
 		newBlock = bc.GetBlock(newBlock.ParentHash(), newBlock.NumberU64()-1)
 		if newBlock == nil {
-			return errInvalidNewChain
+			return fmt.Errorf("invalid new chain")
 		}
 	}
 
@@ -1766,9 +1772,9 @@ func (bc *BlockChain) reprocessBlock(parent *types.Block, current *types.Block) 
 	// If snapshots are enabled, call CommitWithSnaps to explicitly create a snapshot
 	// diff layer for the block.
 	if bc.snaps == nil {
-		return statedb.Commit(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), false)
+		return statedb.Commit(bc.chainConfig.IsEIP158(current.Number()), false)
 	}
-	return statedb.CommitWithSnap(current.NumberU64(), bc.chainConfig.IsEIP158(current.Number()), bc.snaps, current.Hash(), current.ParentHash(), false)
+	return statedb.CommitWithSnap(bc.chainConfig.IsEIP158(current.Number()), bc.snaps, current.Hash(), current.ParentHash(), false)
 }
 
 // initSnapshot instantiates a Snapshot instance and adds it to [bc]

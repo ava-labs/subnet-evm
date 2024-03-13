@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -472,12 +473,15 @@ func TestLeafsRequestHandler_OnLeafsRequest(t *testing.T) {
 					}
 					// modify one entry of 1 in 4 segments
 					if i%(segmentLen*4) == 0 {
-						acc, err := types.FullAccount(it.Account())
-						if err != nil {
+						var acc snapshot.Account
+						if err := rlp.DecodeBytes(it.Account(), &acc); err != nil {
 							t.Fatalf("could not parse snapshot account: %v", err)
 						}
 						acc.Nonce++
-						bytes := types.SlimAccountRLP(*acc)
+						bytes, err := rlp.EncodeToBytes(acc)
+						if err != nil {
+							t.Fatalf("coult not encode snapshot account to bytes: %v", err)
+						}
 						rawdb.WriteAccountSnapshot(memdb, it.Hash(), bytes)
 					}
 					i++

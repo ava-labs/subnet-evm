@@ -29,7 +29,6 @@ package trie
 import (
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
-	"github.com/ava-labs/subnet-evm/trie/triedb/pathdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 )
 
@@ -37,9 +36,10 @@ import (
 func newTestDatabase(diskdb ethdb.Database, scheme string) *Database {
 	db := prepare(diskdb, nil)
 	if scheme == rawdb.HashScheme {
-		db.backend = hashdb.New(diskdb, nil, mptResolver{})
-	} else {
-		db.backend = pathdb.New(diskdb, &pathdb.Config{}) // disable clean/dirty cache
+		db.backend = hashdb.New(diskdb, db.cleans, mptResolver{})
 	}
+	//} else {
+	//	db.backend = snap.New(diskdb, db.cleans, nil)
+	//}
 	return db
 }

@@ -386,12 +386,12 @@ func (api *FilterAPI) NewFilter(crit FilterCriteria) (rpc.ID, error) {
 	if api.sys.backend.IsAllowUnfinalizedQueries() {
 		logsSub, err = api.events.SubscribeLogs(interfaces.FilterQuery(crit), logs)
 		if err != nil {
-			return "", err
+			return rpc.ID(""), err
 		}
 	} else {
 		logsSub, err = api.events.SubscribeAcceptedLogs(interfaces.FilterQuery(crit), logs)
 		if err != nil {
-			return "", err
+			return rpc.ID(""), err
 		}
 	}
 

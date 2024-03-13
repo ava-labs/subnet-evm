@@ -21,7 +21,6 @@ import (
 
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/trie"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -39,7 +38,7 @@ type testAccount struct {
 func makeTestState() (ethdb.Database, Database, common.Hash, []*testAccount) {
 	// Create an empty state
 	db := rawdb.NewMemoryDatabase()
-	sdb := NewDatabaseWithConfig(db, &trie.Config{Preimages: true})
+	sdb := NewDatabase(db)
 	state, _ := New(types.EmptyRootHash, sdb, nil)
 
 	// Fill it with some arbitrary data
@@ -61,13 +60,13 @@ func makeTestState() (ethdb.Database, Database, common.Hash, []*testAccount) {
 		if i%5 == 0 {
 			for j := byte(0); j < 5; j++ {
 				hash := crypto.Keccak256Hash([]byte{i, i, i, i, i, j, j})
-				obj.SetState(hash, hash)
+				obj.SetState(sdb, hash, hash)
 			}
 		}
 		state.updateStateObject(obj)
 		accounts = append(accounts, acc)
 	}
-	root, _ := state.Commit(0, false, false)
+	root, _ := state.Commit(false, false)
 
 	// Return the generated state
 	return db, sdb, root, accounts

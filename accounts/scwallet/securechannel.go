@@ -34,7 +34,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
-	"errors"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -136,7 +135,7 @@ func (s *SecureChannelSession) Pair(pairingPassword []byte) error {
 // Unpair disestablishes an existing pairing.
 func (s *SecureChannelSession) Unpair() error {
 	if s.PairingKey == nil {
-		return errors.New("cannot unpair: not paired")
+		return fmt.Errorf("cannot unpair: not paired")
 	}
 
 	_, err := s.transmitEncrypted(claSCWallet, insUnpair, s.PairingIndex, 0, []byte{})
@@ -152,7 +151,7 @@ func (s *SecureChannelSession) Unpair() error {
 // Open initializes the secure channel.
 func (s *SecureChannelSession) Open() error {
 	if s.iv != nil {
-		return errors.New("session already opened")
+		return fmt.Errorf("session already opened")
 	}
 
 	response, err := s.open()
@@ -226,7 +225,7 @@ func (s *SecureChannelSession) pair(p1 uint8, data []byte) (*responseAPDU, error
 // transmitEncrypted sends an encrypted message, and decrypts and returns the response.
 func (s *SecureChannelSession) transmitEncrypted(cla, ins, p1, p2 byte, data []byte) (*responseAPDU, error) {
 	if s.iv == nil {
-		return nil, errors.New("channel not open")
+		return nil, fmt.Errorf("channel not open")
 	}
 
 	data, err := s.encryptAPDU(data)
@@ -265,7 +264,7 @@ func (s *SecureChannelSession) transmitEncrypted(cla, ins, p1, p2 byte, data []b
 		return nil, err
 	}
 	if !bytes.Equal(s.iv, rmac) {
-		return nil, errors.New("invalid MAC in response")
+		return nil, fmt.Errorf("invalid MAC in response")
 	}
 
 	rapdu := &responseAPDU{}
@@ -330,7 +329,7 @@ func unpad(data []byte, terminator byte) ([]byte, error) {
 			return nil, fmt.Errorf("expected end of padding, got %d", data[len(data)-i])
 		}
 	}
-	return nil, errors.New("expected end of padding, got 0")
+	return nil, fmt.Errorf("expected end of padding, got 0")
 }
 
 // updateIV is an internal method that updates the initialization vector after

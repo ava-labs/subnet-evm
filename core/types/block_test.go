@@ -28,16 +28,17 @@ package types
 
 import (
 	"bytes"
+	"hash"
 	"math/big"
 	"reflect"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/internal/blocktest"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"golang.org/x/crypto/sha3"
 )
 
 func TestBlockEncoding(t *testing.T) {
@@ -237,6 +238,31 @@ func BenchmarkEncodeBlock(b *testing.B) {
 	}
 }
 
+// testHasher is the helper tool for transaction/receipt list hashing.
+// The original hasher is trie, in order to get rid of import cycle,
+// use the testing hasher instead.
+type testHasher struct {
+	hasher hash.Hash
+}
+
+func newHasher() *testHasher {
+	return &testHasher{hasher: sha3.NewLegacyKeccak256()}
+}
+
+func (h *testHasher) Reset() {
+	h.hasher.Reset()
+}
+
+func (h *testHasher) Update(key, val []byte) error {
+	h.hasher.Write(key)
+	h.hasher.Write(val)
+	return nil
+}
+
+func (h *testHasher) Hash() common.Hash {
+	return common.BytesToHash(h.hasher.Sum(nil))
+}
+
 func makeBenchBlock() *Block {
 	var (
 		key, _   = crypto.GenerateKey()
@@ -275,7 +301,7 @@ func makeBenchBlock() *Block {
 			Extra:      []byte("benchmark uncle"),
 		}
 	}
-	return NewBlock(header, txs, uncles, receipts, blocktest.NewHasher())
+	return NewBlock(header, txs, uncles, receipts, newHasher())
 }
 
 func TestSubnetEVMBlockEncoding(t *testing.T) {

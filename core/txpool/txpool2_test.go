@@ -23,7 +23,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-package legacypool
+package txpool
 
 import (
 	"crypto/ecdsa"
@@ -43,7 +43,7 @@ func pricedValuedTransaction(nonce uint64, value int64, gaslimit uint64, gaspric
 	return tx
 }
 
-func count(t *testing.T, pool *LegacyPool) (pending int, queued int) {
+func count(t *testing.T, pool *TxPool) (pending int, queued int) {
 	t.Helper()
 	pending, queued = pool.stats()
 	if err := validatePoolInternals(pool); err != nil {
@@ -52,7 +52,7 @@ func count(t *testing.T, pool *LegacyPool) (pending int, queued int) {
 	return pending, queued
 }
 
-func fillPool(t testing.TB, pool *LegacyPool) {
+func fillPool(t testing.TB, pool *TxPool) {
 	t.Helper()
 	// Create a number of test accounts, fund them and make transactions
 	executableTxs := types.Transactions{}
@@ -66,8 +66,8 @@ func fillPool(t testing.TB, pool *LegacyPool) {
 		}
 	}
 	// Import the batch and verify that limits have been enforced
-	pool.addRemotesSync(executableTxs)
-	pool.addRemotesSync(nonExecutableTxs)
+	pool.AddRemotesSync(executableTxs)
+	pool.AddRemotesSync(nonExecutableTxs)
 	pending, queued := pool.Stats()
 	slots := pool.all.Slots()
 	// sanity-check that the test prerequisites are ok (pending full)
@@ -89,13 +89,12 @@ func TestTransactionFutureAttack(t *testing.T) {
 
 	// Create the pool to test the limit enforcement with
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	blockchain := newTestBlockChain(eip1559Config, 1000000, statedb, new(event.Feed))
+	blockchain := newTestBlockChain(1000000, statedb, new(event.Feed))
 	config := testTxPoolConfig
 	config.GlobalQueue = 100
 	config.GlobalSlots = 100
-	pool := New(config, blockchain)
-	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
-	defer pool.Close()
+	pool := NewTxPool(config, eip1559Config, blockchain)
+	defer pool.Stop()
 	fillPool(t, pool)
 	pending, _ := pool.Stats()
 	// Now, future transaction attack starts, let's add a bunch of expensive non-executables, and see if the pending-count drops
@@ -107,7 +106,7 @@ func TestTransactionFutureAttack(t *testing.T) {
 			futureTxs = append(futureTxs, pricedTransaction(1000+uint64(j), 100000, big.NewInt(500), key))
 		}
 		for i := 0; i < 5; i++ {
-			pool.addRemotesSync(futureTxs)
+			pool.AddRemotesSync(futureTxs)
 			newPending, newQueued := count(t, pool)
 			t.Logf("pending: %d queued: %d, all: %d\n", newPending, newQueued, pool.all.Slots())
 		}
@@ -126,10 +125,9 @@ func TestTransactionFuture1559(t *testing.T) {
 	t.Parallel()
 	// Create the pool to test the pricing enforcement with
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	blockchain := newTestBlockChain(eip1559Config, 1000000, statedb, new(event.Feed))
-	pool := New(testTxPoolConfig, blockchain)
-	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
-	defer pool.Close()
+	blockchain := newTestBlockChain(1000000, statedb, new(event.Feed))
+	pool := NewTxPool(testTxPoolConfig, eip1559Config, blockchain)
+	defer pool.Stop()
 
 	// Create a number of test accounts, fund them and make transactions
 	fillPool(t, pool)
@@ -143,7 +141,7 @@ func TestTransactionFuture1559(t *testing.T) {
 		for j := 0; j < int(pool.config.GlobalSlots+pool.config.GlobalQueue); j++ {
 			futureTxs = append(futureTxs, dynamicFeeTx(1000+uint64(j), 100000, big.NewInt(200), big.NewInt(101), key))
 		}
-		pool.addRemotesSync(futureTxs)
+		pool.AddRemotesSync(futureTxs)
 	}
 	newPending, _ := pool.Stats()
 	// Pending should not have been touched
@@ -159,10 +157,9 @@ func TestTransactionZAttack(t *testing.T) {
 	t.Parallel()
 	// Create the pool to test the pricing enforcement with
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	blockchain := newTestBlockChain(eip1559Config, 1000000, statedb, new(event.Feed))
-	pool := New(testTxPoolConfig, blockchain)
-	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
-	defer pool.Close()
+	blockchain := newTestBlockChain(1000000, statedb, new(event.Feed))
+	pool := NewTxPool(testTxPoolConfig, eip1559Config, blockchain)
+	defer pool.Stop()
 	// Create a number of test accounts, fund them and make transactions
 	fillPool(t, pool)
 
@@ -194,7 +191,7 @@ func TestTransactionZAttack(t *testing.T) {
 		key, _ := crypto.GenerateKey()
 		pool.currentState.AddBalance(crypto.PubkeyToAddress(key.PublicKey), big.NewInt(100000000000))
 		futureTxs = append(futureTxs, pricedTransaction(1000+uint64(j), 21000, big.NewInt(500), key))
-		pool.addRemotesSync(futureTxs)
+		pool.AddRemotesSync(futureTxs)
 	}
 
 	overDraftTxs := types.Transactions{}
@@ -205,11 +202,11 @@ func TestTransactionZAttack(t *testing.T) {
 			overDraftTxs = append(overDraftTxs, pricedValuedTransaction(uint64(j), 600000000000, 21000, big.NewInt(500), key))
 		}
 	}
-	pool.addRemotesSync(overDraftTxs)
-	pool.addRemotesSync(overDraftTxs)
-	pool.addRemotesSync(overDraftTxs)
-	pool.addRemotesSync(overDraftTxs)
-	pool.addRemotesSync(overDraftTxs)
+	pool.AddRemotesSync(overDraftTxs)
+	pool.AddRemotesSync(overDraftTxs)
+	pool.AddRemotesSync(overDraftTxs)
+	pool.AddRemotesSync(overDraftTxs)
+	pool.AddRemotesSync(overDraftTxs)
 
 	newPending, newQueued := count(t, pool)
 	newIvPending := countInvalidPending()
@@ -227,13 +224,12 @@ func TestTransactionZAttack(t *testing.T) {
 func BenchmarkFutureAttack(b *testing.B) {
 	// Create the pool to test the limit enforcement with
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	blockchain := newTestBlockChain(eip1559Config, 1000000, statedb, new(event.Feed))
+	blockchain := newTestBlockChain(1000000, statedb, new(event.Feed))
 	config := testTxPoolConfig
 	config.GlobalQueue = 100
 	config.GlobalSlots = 100
-	pool := New(config, blockchain)
-	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
-	defer pool.Close()
+	pool := NewTxPool(config, eip1559Config, blockchain)
+	defer pool.Stop()
 	fillPool(b, pool)
 
 	key, _ := crypto.GenerateKey()
@@ -245,6 +241,6 @@ func BenchmarkFutureAttack(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < 5; i++ {
-		pool.addRemotesSync(futureTxs)
+		pool.AddRemotesSync(futureTxs)
 	}
 }
