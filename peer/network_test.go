@@ -882,10 +882,6 @@ func (t testAppSender) SendCrossChainAppResponse(_ context.Context, chainID ids.
 	return t.sendCrossChainAppResponseFn(chainID, requestID, appResponseBytes)
 }
 
-func (t testAppSender) SendAppGossipSpecific(context.Context, set.Set[ids.NodeID], []byte) error {
-	panic("not implemented")
-}
-
 func (t testAppSender) SendAppRequest(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, message []byte) error {
 	return t.sendAppRequestFn(ctx, nodeIDs, requestID, message)
 }

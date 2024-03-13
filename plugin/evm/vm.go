@@ -688,8 +688,9 @@ func (vm *VM) initBlockBuilding() error {
 	}()
 
 	pushGossipParams := gossip.BranchingFactor{
-		Validators: vm.config.PushGossipNumValidators,
-		Peers:      vm.config.PushGossipNumPeers,
+		StakePercentage: vm.config.PushGossipPercentStake,
+		Validators:      vm.config.PushGossipNumValidators,
+		Peers:           vm.config.PushGossipNumPeers,
 	}
 	pushRegossipParams := gossip.BranchingFactor{
 		Validators: vm.config.PushRegossipNumValidators,
