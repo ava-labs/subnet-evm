@@ -687,8 +687,9 @@ func (vm *VM) initBlockBuilding() error {
 	}()
 
 	pushGossipParams := gossip.BranchingFactor{
-		Validators: vm.config.PushGossipNumValidators,
-		Peers:      vm.config.PushGossipNumPeers,
+		StakePercentage: vm.config.PushGossipPercentStake,
+		Validators:      vm.config.PushGossipNumValidators,
+		Peers:           vm.config.PushGossipNumPeers,
 	}
 	pushRegossipParams := gossip.BranchingFactor{
 		Validators: vm.config.PushRegossipNumValidators,
@@ -700,6 +701,7 @@ func (vm *VM) initBlockBuilding() error {
 		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
+			vm.validators,
 			ethTxGossipClient,
 			ethTxGossipMetrics,
 			pushGossipParams,
@@ -714,6 +716,27 @@ func (vm *VM) initBlockBuilding() error {
 		vm.ethTxPushGossiper.Set(ethTxPushGossiper)
 	}
 
+<<<<<<< HEAD
+=======
+	if vm.atomicTxPushGossiper == nil {
+		vm.atomicTxPushGossiper, err = gossip.NewPushGossiper[*GossipAtomicTx](
+			atomicTxGossipMarshaller,
+			vm.mempool,
+			vm.validators,
+			atomicTxGossipClient,
+			atomicTxGossipMetrics,
+			pushGossipParams,
+			pushRegossipParams,
+			pushGossipDiscardedElements,
+			txGossipTargetMessageSize,
+			vm.config.RegossipFrequency.Duration,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to initialize atomic tx push gossiper: %w", err)
+		}
+	}
+
+>>>>>>> 16cf2556ea (Integrate stake weighted gossip selection (#511))
 	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
 	gossipStats := NewGossipStats()
 	vm.builder = vm.NewBlockBuilder(vm.toEngine)

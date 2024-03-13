@@ -79,7 +79,12 @@ func TestEthTxGossip(t *testing.T) {
 		return 0, nil
 	}
 	validatorState.GetValidatorSetF = func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-		return map[ids.NodeID]*validators.GetValidatorOutput{requestingNodeID: nil}, nil
+		return map[ids.NodeID]*validators.GetValidatorOutput{
+			requestingNodeID: {
+				NodeID: requestingNodeID,
+				Weight: 1,
+			},
+		}, nil
 	}
 
 	// Ask the VM for any new transactions. We should get nothing at first.
@@ -145,10 +150,161 @@ func TestEthTxGossip(t *testing.T) {
 	wg.Wait()
 }
 
+<<<<<<< HEAD
+=======
+func TestAtomicTxGossip(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+	snowCtx := utils.TestSnowContext()
+	snowCtx.AVAXAssetID = ids.GenerateTestID()
+	snowCtx.XChainID = ids.GenerateTestID()
+	validatorState := &validators.TestState{
+		GetSubnetIDF: func(context.Context, ids.ID) (ids.ID, error) {
+			return ids.Empty, nil
+		},
+	}
+	snowCtx.ValidatorState = validatorState
+	memory := atomic.NewMemory(memdb.New())
+	snowCtx.SharedMemory = memory.NewSharedMemory(ids.Empty)
+
+	pk, err := secp256k1.NewPrivateKey()
+	require.NoError(err)
+	address := GetEthAddress(pk)
+	genesis := newPrefundedGenesis(100_000_000_000_000_000, address)
+	genesisBytes, err := genesis.MarshalJSON()
+	require.NoError(err)
+
+	responseSender := &common.FakeSender{
+		SentAppResponse: make(chan []byte, 1),
+	}
+	vm := &VM{
+		p2pSender:          responseSender,
+		ethTxGossipHandler: &p2p.NoOpHandler{},
+		ethTxPullGossiper:  &gossip.NoOpGossiper{},
+	}
+
+	require.NoError(vm.Initialize(
+		ctx,
+		snowCtx,
+		memdb.New(),
+		genesisBytes,
+		nil,
+		nil,
+		make(chan common.Message),
+		nil,
+		&common.SenderTest{},
+	))
+	require.NoError(vm.SetState(ctx, snow.NormalOp))
+
+	defer func() {
+		require.NoError(vm.Shutdown(ctx))
+	}()
+
+	// sender for the peer requesting gossip from [vm]
+	peerSender := &common.FakeSender{
+		SentAppRequest: make(chan []byte, 1),
+	}
+	network, err := p2p.NewNetwork(logging.NoLog{}, peerSender, prometheus.NewRegistry(), "")
+	require.NoError(err)
+	client := network.NewClient(atomicTxGossipProtocol)
+
+	// we only accept gossip requests from validators
+	requestingNodeID := ids.GenerateTestNodeID()
+	require.NoError(vm.Network.Connected(ctx, requestingNodeID, nil))
+	validatorState.GetCurrentHeightF = func(context.Context) (uint64, error) {
+		return 0, nil
+	}
+	validatorState.GetValidatorSetF = func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+		return map[ids.NodeID]*validators.GetValidatorOutput{
+			requestingNodeID: {
+				NodeID: requestingNodeID,
+				Weight: 1,
+			},
+		}, nil
+	}
+
+	// Ask the VM for any new transactions. We should get nothing at first.
+	emptyBloomFilter, err := gossip.NewBloomFilter(prometheus.NewRegistry(), "", txGossipBloomMinTargetElements, txGossipBloomTargetFalsePositiveRate, txGossipBloomResetFalsePositiveRate)
+	require.NoError(err)
+	emptyBloomFilterBytes, _ := emptyBloomFilter.Marshal()
+	request := &sdk.PullGossipRequest{
+		Filter: emptyBloomFilterBytes,
+		Salt:   agoUtils.RandomBytes(32),
+	}
+
+	requestBytes, err := proto.Marshal(request)
+	require.NoError(err)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	onResponse := func(_ context.Context, nodeID ids.NodeID, responseBytes []byte, err error) {
+		require.NoError(err)
+
+		response := &sdk.PullGossipResponse{}
+		require.NoError(proto.Unmarshal(responseBytes, response))
+		require.Empty(response.Gossip)
+		wg.Done()
+	}
+	require.NoError(client.AppRequest(ctx, set.Of(vm.ctx.NodeID), requestBytes, onResponse))
+	require.NoError(vm.AppRequest(ctx, requestingNodeID, 1, time.Time{}, <-peerSender.SentAppRequest))
+	require.NoError(network.AppResponse(ctx, snowCtx.NodeID, 1, <-responseSender.SentAppResponse))
+	wg.Wait()
+
+	// Issue a tx to the VM
+	utxo, err := addUTXO(
+		memory,
+		snowCtx,
+		ids.GenerateTestID(),
+		0,
+		snowCtx.AVAXAssetID,
+		100_000_000_000,
+		pk.PublicKey().Address(),
+	)
+	require.NoError(err)
+	tx, err := vm.newImportTxWithUTXOs(vm.ctx.XChainID, address, initialBaseFee, secp256k1fx.NewKeychain(pk), []*avax.UTXO{utxo})
+	require.NoError(err)
+	require.NoError(vm.mempool.AddLocalTx(tx))
+
+	// wait so we aren't throttled by the vm
+	time.Sleep(5 * time.Second)
+
+	// Ask the VM for new transactions. We should get the newly issued tx.
+	wg.Add(1)
+
+	marshaller := GossipAtomicTxMarshaller{}
+	onResponse = func(_ context.Context, nodeID ids.NodeID, responseBytes []byte, err error) {
+		require.NoError(err)
+
+		response := &sdk.PullGossipResponse{}
+		require.NoError(proto.Unmarshal(responseBytes, response))
+		require.Len(response.Gossip, 1)
+
+		gotTx, err := marshaller.UnmarshalGossip(response.Gossip[0])
+		require.NoError(err)
+		require.Equal(tx.ID(), gotTx.GossipID())
+
+		wg.Done()
+	}
+	require.NoError(client.AppRequest(ctx, set.Of(vm.ctx.NodeID), requestBytes, onResponse))
+	require.NoError(vm.AppRequest(ctx, requestingNodeID, 3, time.Time{}, <-peerSender.SentAppRequest))
+	require.NoError(network.AppResponse(ctx, snowCtx.NodeID, 3, <-responseSender.SentAppResponse))
+	wg.Wait()
+}
+
+// Tests that a tx is gossiped when it is issued
+>>>>>>> 16cf2556ea (Integrate stake weighted gossip selection (#511))
 func TestEthTxPushGossipOutbound(t *testing.T) {
 	require := require.New(t)
 	ctx := context.Background()
 	snowCtx := utils.TestSnowContext()
+	snowCtx.ValidatorState = &validators.TestState{
+		GetCurrentHeightF: func(context.Context) (uint64, error) {
+			return 0, nil
+		},
+		GetValidatorSetF: func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
+			return nil, nil
+		},
+	}
 	sender := &common.FakeSender{
 		SentAppGossip: make(chan []byte, 1),
 	}
