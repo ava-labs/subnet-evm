@@ -6,6 +6,7 @@ package params
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/ava-labs/avalanchego/version"
 	"github.com/ava-labs/subnet-evm/utils"
@@ -59,10 +60,10 @@ func (m *NetworkUpgrades) setDefaults(networkID uint32) {
 func (m *NetworkUpgrades) VerifyNetworkUpgrades(networkID uint32) error {
 	defaults := getDefaultNetworkUpgrades(networkID)
 	if isNilOrSmaller(m.SubnetEVMTimestamp, *defaults.SubnetEVMTimestamp) {
-		return fmt.Errorf("SubnetEVM fork block timestamp (%v) must be greater than or equal to %v", m.SubnetEVMTimestamp, *defaults.SubnetEVMTimestamp)
+		return fmt.Errorf("SubnetEVM fork block timestamp (%v) must be greater than or equal to %v", nilOrValueStr(m.SubnetEVMTimestamp), *defaults.SubnetEVMTimestamp)
 	}
 	if isNilOrSmaller(m.DurangoTimestamp, *defaults.DurangoTimestamp) {
-		return fmt.Errorf("Durango fork block timestamp (%v) must be greater than or equal to %v", m.DurangoTimestamp, *defaults.DurangoTimestamp)
+		return fmt.Errorf("Durango fork block timestamp (%v) must be greater than or equal to %v", nilOrValueStr(m.DurangoTimestamp), *defaults.DurangoTimestamp)
 	}
 	return nil
 }
@@ -77,6 +78,7 @@ func (m *NetworkUpgrades) Override(o *NetworkUpgrades) {
 }
 
 // getDefaultNetworkUpgrades returns the network upgrades for the specified network ID.
+// These should not return nil values.
 func getDefaultNetworkUpgrades(networkID uint32) NetworkUpgrades {
 	return NetworkUpgrades{
 		SubnetEVMTimestamp: utils.NewUint64(0),
@@ -89,4 +91,11 @@ func isNilOrSmaller(a *uint64, b uint64) bool {
 		return true
 	}
 	return *a < b
+}
+
+func nilOrValueStr(a *uint64) string {
+	if a == nil {
+		return "nil"
+	}
+	return strconv.FormatUint(*a, 10)
 }

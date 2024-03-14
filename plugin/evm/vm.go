@@ -360,8 +360,11 @@ func (vm *VM) Initialize(
 
 	if g.Config.UpgradeConfig.NetworkUpgradeOverrides != nil {
 		overrides := g.Config.UpgradeConfig.NetworkUpgradeOverrides
-		if err := overrides.VerifyNetworkUpgrades(chainCtx.NetworkID); err != nil {
-			return fmt.Errorf("failed to verify network upgrade overrides: %w", err)
+		marshaled, err := json.Marshal(overrides)
+		if err != nil {
+			log.Warn("Failed to marshal network upgrade overrides", "error", err, "overrides", overrides)
+		} else {
+			log.Info("Applying network upgrade overrides", "overrides", string(marshaled))
 		}
 		g.Config.Override(overrides)
 	}
