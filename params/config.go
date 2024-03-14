@@ -477,12 +477,12 @@ func checkForks(forks []fork, blockFork bool) error {
 			// Next one must be higher number
 			if lastFork.timestamp == nil && cur.timestamp != nil {
 				return fmt.Errorf("unsupported fork ordering: %v not enabled, but %v enabled at %v",
-					lastFork.name, cur.name, cur.timestamp)
+					lastFork.name, cur.name, *cur.timestamp)
 			}
 			if lastFork.timestamp != nil && cur.timestamp != nil {
 				if *lastFork.timestamp > *cur.timestamp {
 					return fmt.Errorf("unsupported fork ordering: %v enabled at %v, but %v enabled at %v",
-						lastFork.name, lastFork.timestamp, cur.name, cur.timestamp)
+						lastFork.name, *lastFork.timestamp, cur.name, *cur.timestamp)
 				}
 			}
 		}
