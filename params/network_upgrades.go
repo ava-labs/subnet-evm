@@ -23,57 +23,57 @@ type NetworkUpgrades struct {
 	DurangoTimestamp *uint64 `json:"durangoTimestamp,omitempty"`
 }
 
-func (s *NetworkUpgrades) Equal(other *NetworkUpgrades) bool {
-	return reflect.DeepEqual(s, other)
+func (n *NetworkUpgrades) Equal(other *NetworkUpgrades) bool {
+	return reflect.DeepEqual(n, other)
 }
 
-func (m *NetworkUpgrades) CheckNetworkUpgradesCompatible(newcfg *NetworkUpgrades, time uint64) *ConfigCompatError {
-	if isForkTimestampIncompatible(m.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, time) {
-		return newTimestampCompatError("SubnetEVM fork block timestamp", m.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
+func (n *NetworkUpgrades) CheckNetworkUpgradesCompatible(newcfg *NetworkUpgrades, time uint64) *ConfigCompatError {
+	if isForkTimestampIncompatible(n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp, time) {
+		return newTimestampCompatError("SubnetEVM fork block timestamp", n.SubnetEVMTimestamp, newcfg.SubnetEVMTimestamp)
 	}
-	if isForkTimestampIncompatible(m.DurangoTimestamp, newcfg.DurangoTimestamp, time) {
-		return newTimestampCompatError("Durango fork block timestamp", m.DurangoTimestamp, newcfg.DurangoTimestamp)
+	if isForkTimestampIncompatible(n.DurangoTimestamp, newcfg.DurangoTimestamp, time) {
+		return newTimestampCompatError("Durango fork block timestamp", n.DurangoTimestamp, newcfg.DurangoTimestamp)
 	}
 	return nil
 }
 
-func (m *NetworkUpgrades) forkOrder() []fork {
+func (n *NetworkUpgrades) forkOrder() []fork {
 	return []fork{
-		{name: "subnetEVMTimestamp", timestamp: m.SubnetEVMTimestamp},
-		{name: "durangoTimestamp", timestamp: m.DurangoTimestamp},
+		{name: "subnetEVMTimestamp", timestamp: n.SubnetEVMTimestamp},
+		{name: "durangoTimestamp", timestamp: n.DurangoTimestamp},
 	}
 }
 
 // setDefaults sets the default values for the network upgrades.
 // This overrides deactivating the network upgrade by providing a timestamp of nil value.
-func (m *NetworkUpgrades) setDefaults(networkID uint32) {
+func (n *NetworkUpgrades) setDefaults(networkID uint32) {
 	defaults := getDefaultNetworkUpgrades(networkID)
-	if m.SubnetEVMTimestamp == nil {
-		m.SubnetEVMTimestamp = defaults.SubnetEVMTimestamp
+	if n.SubnetEVMTimestamp == nil {
+		n.SubnetEVMTimestamp = defaults.SubnetEVMTimestamp
 	}
-	if m.DurangoTimestamp == nil {
-		m.DurangoTimestamp = defaults.DurangoTimestamp
+	if n.DurangoTimestamp == nil {
+		n.DurangoTimestamp = defaults.DurangoTimestamp
 	}
 }
 
-// verify checks that the network upgrades are well formed.
-func (m *NetworkUpgrades) VerifyNetworkUpgrades(networkID uint32) error {
+// VerifyNetworkUpgrades checks that the network upgrades are well formed.
+func (n *NetworkUpgrades) VerifyNetworkUpgrades(networkID uint32) error {
 	defaults := getDefaultNetworkUpgrades(networkID)
-	if isNilOrSmaller(m.SubnetEVMTimestamp, *defaults.SubnetEVMTimestamp) {
-		return fmt.Errorf("SubnetEVM fork block timestamp (%v) must be greater than or equal to %v", nilOrValueStr(m.SubnetEVMTimestamp), *defaults.SubnetEVMTimestamp)
+	if isNilOrSmaller(n.SubnetEVMTimestamp, *defaults.SubnetEVMTimestamp) {
+		return fmt.Errorf("SubnetEVM fork block timestamp (%v) must be greater than or equal to %v", nilOrValueStr(n.SubnetEVMTimestamp), *defaults.SubnetEVMTimestamp)
 	}
-	if isNilOrSmaller(m.DurangoTimestamp, *defaults.DurangoTimestamp) {
-		return fmt.Errorf("Durango fork block timestamp (%v) must be greater than or equal to %v", nilOrValueStr(m.DurangoTimestamp), *defaults.DurangoTimestamp)
+	if isNilOrSmaller(n.DurangoTimestamp, *defaults.DurangoTimestamp) {
+		return fmt.Errorf("Durango fork block timestamp (%v) must be greater than or equal to %v", nilOrValueStr(n.DurangoTimestamp), *defaults.DurangoTimestamp)
 	}
 	return nil
 }
 
-func (m *NetworkUpgrades) Override(o *NetworkUpgrades) {
+func (n *NetworkUpgrades) Override(o *NetworkUpgrades) {
 	if o.SubnetEVMTimestamp != nil {
-		m.SubnetEVMTimestamp = o.SubnetEVMTimestamp
+		n.SubnetEVMTimestamp = o.SubnetEVMTimestamp
 	}
 	if o.DurangoTimestamp != nil {
-		m.DurangoTimestamp = o.DurangoTimestamp
+		n.DurangoTimestamp = o.DurangoTimestamp
 	}
 }
 
