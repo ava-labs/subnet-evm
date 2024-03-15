@@ -207,7 +207,6 @@ func TestNetworkUpgradesOverriden(t *testing.T) {
 	require.True(t, vm.chainConfig.IsSubnetEVM(2))
 	require.False(t, vm.chainConfig.IsDurango(0))
 	require.True(t, vm.chainConfig.IsDurango(5))
-
 }
 
 func mustMarshal(t *testing.T, v interface{}) string {
