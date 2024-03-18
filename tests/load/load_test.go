@@ -68,6 +68,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		env = e2e.NewTestEnvironment(
 			flagVars,
 			utils.NewTmpnetNetwork(
+				"subnet-evm-small-load",
 				nodes,
 				tmpnet.FlagsMap{
 					// The default tmpnet log level (debug) induces too much overhead for load testing.

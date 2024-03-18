@@ -24,7 +24,7 @@ func NewTmpnetNodes(count int) []*tmpnet.Node {
 	return nodes
 }
 
-func NewTmpnetNetwork(nodes []*tmpnet.Node, flags tmpnet.FlagsMap, subnets ...*tmpnet.Subnet) *tmpnet.Network {
+func NewTmpnetNetwork(owner string, nodes []*tmpnet.Node, flags tmpnet.FlagsMap, subnets ...*tmpnet.Subnet) *tmpnet.Network {
 	defaultFlags := tmpnet.FlagsMap{}
 	defaultFlags.SetDefaults(flags)
 	defaultFlags.SetDefaults(tmpnet.FlagsMap{
@@ -33,6 +33,7 @@ func NewTmpnetNetwork(nodes []*tmpnet.Node, flags tmpnet.FlagsMap, subnets ...*t
 		config.ProposerVMUseCurrentHeightKey: true,
 	})
 	return &tmpnet.Network{
+		Owner:        owner,
 		DefaultFlags: defaultFlags,
 		Nodes:        nodes,
 		Subnets:      subnets,

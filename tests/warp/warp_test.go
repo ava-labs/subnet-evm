@@ -104,6 +104,7 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	env := e2e.NewTestEnvironment(
 		flagVars,
 		utils.NewTmpnetNetwork(
+			"subnet-evm-warp-e2e",
 			nodes,
 			tmpnet.FlagsMap{},
 			utils.NewTmpnetSubnet(subnetAName, genesisPath, chainConfig, nodes...),
