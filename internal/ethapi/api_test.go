@@ -377,6 +377,7 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i i
 			t.Fatalf("block %d: failed to accept into chain: %v", block.NumberU64(), err)
 		}
 	}
+	chain.DrainAcceptorQueue()
 
 	backend := &testBackend{db: db, chain: chain}
 	return backend
@@ -1908,9 +1909,7 @@ func TestRPCGetTransactionReceipt(t *testing.T) {
 			continue
 		}
 		want, have := tt.want, string(data)
-		fmt.Printf("%d: have: %s\n", i, have)
-		_ = want
-		// require.JSONEqf(t, want, have, "test %d: json not match, want: %s, have: %s", i, want, have)
+		require.JSONEqf(t, want, have, "test %d: json not match, want: %s, have: %s", i, want, have)
 	}
 }
 

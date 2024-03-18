@@ -261,6 +261,7 @@ func (db *Database) Reference(child common.Hash, parent common.Hash) {
 	db.reference(child, parent)
 }
 
+// reference is the private locked version of Reference.
 func (db *Database) reference(child common.Hash, parent common.Hash) {
 	// If the node does not exist, it's a node pulled from disk, skip
 	node, ok := db.dirties[child]

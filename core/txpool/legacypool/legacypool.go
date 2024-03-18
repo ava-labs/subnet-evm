@@ -161,7 +161,9 @@ type Config struct {
 
 // DefaultConfig contains the default configurations for the transaction pool.
 var DefaultConfig = Config{
-	Journal:   "transactions.rlp",
+	// If we re-enable txpool journaling, we should also add the saved local
+	// transactions to the p2p gossip on startup.
+	Journal:   "",
 	Rejournal: time.Hour,
 
 	PriceLimit: 1,
@@ -172,7 +174,7 @@ var DefaultConfig = Config{
 	AccountQueue: 64,
 	GlobalQueue:  1024,
 
-	Lifetime: 3 * time.Hour,
+	Lifetime: 10 * time.Minute,
 }
 
 // sanitize checks the provided user configurations and changes anything that's
@@ -638,18 +640,19 @@ func (pool *LegacyPool) PendingFrom(addrs []common.Address, enforceTips bool) ma
 }
 
 // IteratePending iterates over [pool.pending] until [f] returns false.
-// The caller must not modify [tx].
-func (pool *LegacyPool) IteratePending(f func(tx *txpool.Transaction) bool) {
+// The caller must not modify [tx]. Returns false if iteration was interrupted.
+func (pool *LegacyPool) IteratePending(f func(tx *txpool.Transaction) bool) bool {
 	pool.mu.RLock()
 	defer pool.mu.RUnlock()
 
 	for _, list := range pool.pending {
 		for _, tx := range list.txs.items {
 			if !f(&txpool.Transaction{Tx: tx}) {
-				return
+				return false
 			}
 		}
 	}
+	return true
 }
 
 // Locals retrieves the accounts currently considered local by the pool.
@@ -707,7 +710,7 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 
 	opts := &txpool.ValidationOptionsWithState{
 		State: pool.currentState,
-		Rules: pool.chainconfig.AvalancheRules(
+		Rules: pool.chainconfig.Rules(
 			pool.currentHead.Load().Number,
 			pool.currentHead.Load().Time,
 		),
@@ -1176,16 +1179,6 @@ func (pool *LegacyPool) Has(hash common.Hash) bool {
 
 func (pool *LegacyPool) HasLocal(hash common.Hash) bool {
 	return pool.all.GetLocal(hash) != nil
-}
-
-// RemoveTx removes a single transaction from the queue, moving all subsequent
-// transactions back to the future queue.
-func (pool *LegacyPool) RemoveTx(hash common.Hash) {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
-	// XXX: check that passing true to unreserve is correct
-	pool.removeTx(hash, true, true)
 }
 
 // removeTx removes a single transaction from the queue, moving all subsequent

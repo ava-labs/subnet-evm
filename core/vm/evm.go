@@ -31,14 +31,31 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	"github.com/ava-labs/subnet-evm/constants"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/modules"
 	"github.com/ava-labs/subnet-evm/predicate"
 	"github.com/ava-labs/subnet-evm/vmerrs"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
 )
+
+var (
+	_ contract.BlockContext = &BlockContext{}
+)
+
+// IsProhibited returns true if [addr] is in the prohibited list of addresses which should
+// not be allowed as an EOA or newly created contract address.
+func IsProhibited(addr common.Address) bool {
+	if addr == constants.BlackholeAddr {
+		return true
+	}
+
+	return modules.ReservedAddress(addr)
+}
 
 type (
 	// CanTransferFunc is the signature of a transfer guard function
@@ -175,7 +192,7 @@ type ChainConfig interface {
 	IsSubnetEVM(timestamp uint64) bool
 	IsCancun(blockNum *big.Int, timestamp uint64) bool
 	IsPrecompileEnabled(addr common.Address, timestamp uint64) bool
-	AvalancheRules(blockNum *big.Int, timestamp uint64) params.Rules
+	Rules(blockNum *big.Int, timestamp uint64) params.Rules
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -187,7 +204,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, statedb StateDB, chainConfig
 		StateDB:     statedb,
 		Config:      config,
 		chainConfig: chainConfig,
-		chainRules:  chainConfig.AvalancheRules(blockCtx.BlockNumber, blockCtx.Time),
+		chainRules:  chainConfig.Rules(blockCtx.BlockNumber, blockCtx.Time),
 	}
 	evm.interpreter = NewEVMInterpreter(evm)
 	return evm
@@ -220,7 +237,8 @@ func (evm *EVM) Interpreter() *EVMInterpreter {
 func (evm *EVM) SetBlockContext(blockCtx BlockContext) {
 	evm.Context = blockCtx
 	num := blockCtx.BlockNumber
-	evm.chainRules = evm.chainConfig.AvalancheRules(num, blockCtx.Time)
+	timestamp := blockCtx.Time
+	evm.chainRules = evm.chainConfig.Rules(num, timestamp)
 }
 
 // Call executes the contract associated with the addr with the given input as

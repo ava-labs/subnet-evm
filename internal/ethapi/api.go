@@ -1649,7 +1649,7 @@ type AccessListBackend interface {
 }
 
 type chainConfig interface {
-	AvalancheRules(blockNum *big.Int, timestamp uint64) params.Rules
+	Rules(blockNum *big.Int, timestamp uint64) params.Rules
 }
 
 func CreateAccessList(
@@ -1663,7 +1663,7 @@ func CreateAccessList(
 		to = crypto.CreateAddress(args.from(), uint64(*args.Nonce))
 	}
 	// Retrieve the precompiles since they don't need to be added to the access list
-	precompiles := vm.ActivePrecompiles(chainConfig.AvalancheRules(header.Number, header.Time))
+	precompiles := vm.ActivePrecompiles(chainConfig.Rules(header.Number, header.Time))
 
 	// Create an initial tracer
 	prevTracer := logger.NewAccessListTracer(nil, args.from(), to, precompiles)
@@ -1677,8 +1677,7 @@ func CreateAccessList(
 
 		// Copy the original db so we don't modify it
 		statedb := db.Copy()
-		// Set the access list tracer to the last al
-
+		// Set the accesslist to the last al
 		args.AccessList = &accessList
 		msg, err := args.ToMessage(b.RPCGasCap(), header.BaseFee)
 		if err != nil {
@@ -1877,12 +1876,11 @@ func (s *TransactionAPI) GetTransactionReceipt(ctx context.Context, hash common.
 	if err != nil {
 		return nil, err
 	}
-
 	receipts, err := s.b.GetReceipts(ctx, blockHash)
 	if err != nil {
 		return nil, err
 	}
-	if len(receipts) <= int(index) {
+	if uint64(len(receipts)) <= index {
 		return nil, nil
 	}
 	receipt := receipts[index]
@@ -1911,6 +1909,7 @@ func marshalReceipt(receipt *types.Receipt, blockHash common.Hash, blockNumber u
 		"type":              hexutil.Uint(tx.Type()),
 		"effectiveGasPrice": (*hexutil.Big)(receipt.EffectiveGasPrice),
 	}
+
 	// Assign receipt status or post state.
 	if len(receipt.PostState) > 0 {
 		fields["root"] = hexutil.Bytes(receipt.PostState)
@@ -2274,7 +2273,6 @@ func (api *DebugAPI) PrintBlock(ctx context.Context, number uint64) (string, err
 
 // NetAPI offers network related RPC methods
 type NetAPI struct {
-	// net            *p2p.Server
 	networkVersion uint64
 }
 

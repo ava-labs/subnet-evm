@@ -1487,8 +1487,8 @@ func (p *BlobPool) PendingFrom(addrs []common.Address, enforceTips bool) map[com
 }
 
 // IteratePending iterates over [pool.pending] until [f] returns false.
-// The caller must not modify [tx].
-func (pool *BlobPool) IteratePending(f func(tx *txpool.Transaction) bool) {
+// The caller must not modify [tx]. Returns false if iteration was interrupted.
+func (pool *BlobPool) IteratePending(f func(tx *txpool.Transaction) bool) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
@@ -1499,10 +1499,11 @@ func (pool *BlobPool) IteratePending(f func(tx *txpool.Transaction) bool) {
 				continue
 			}
 			if !f(tx) {
-				return
+				return false
 			}
 		}
 	}
+	return true
 }
 
 func (p *BlobPool) SetMinFee(minFee *big.Int) {}

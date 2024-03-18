@@ -90,7 +90,6 @@ type TxPool struct {
 	quit chan chan error         // Quit channel to tear down the head updater
 
 	gasTip    atomic.Pointer[big.Int] // Remember last value set so it can be retrieved
-	headFeed  event.Feed
 	reorgFeed event.Feed
 }
 
@@ -115,7 +114,16 @@ func New(gasTip *big.Int, chain BlockChain, subpools []SubPool) (*TxPool, error)
 			return nil, err
 		}
 	}
-	go pool.loop(head, chain)
+
+	// Subscribe to chain head events to trigger subpool resets
+	var (
+		newHeadCh  = make(chan core.ChainHeadEvent)
+		newHeadSub = chain.SubscribeChainHeadEvent(newHeadCh)
+	)
+	go func() {
+		pool.loop(head, newHeadCh)
+		newHeadSub.Unsubscribe()
+	}()
 	return pool, nil
 }
 
@@ -193,14 +201,7 @@ func (p *TxPool) Close() error {
 // loop is the transaction pool's main event loop, waiting for and reacting to
 // outside blockchain events as well as for various reporting and transaction
 // eviction events.
-func (p *TxPool) loop(head *types.Header, chain BlockChain) {
-	// Subscribe to chain head events to trigger subpool resets
-	var (
-		newHeadCh  = make(chan core.ChainHeadEvent)
-		newHeadSub = chain.SubscribeChainHeadEvent(newHeadCh)
-	)
-	defer newHeadSub.Unsubscribe()
-
+func (p *TxPool) loop(head *types.Header, newHeadCh <-chan core.ChainHeadEvent) {
 	// Track the previous and current head to feed to an idle reset
 	var (
 		oldHead = head
@@ -225,8 +226,8 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 					for _, subpool := range p.subpools {
 						subpool.Reset(oldHead, newHead)
 					}
-					resetDone <- newHead
 					p.reorgFeed.Send(core.NewTxPoolReorgEvent{Head: newHead})
+					resetDone <- newHead
 				}(oldHead, newHead)
 
 			default:
@@ -238,7 +239,6 @@ func (p *TxPool) loop(head *types.Header, chain BlockChain) {
 		case event := <-newHeadCh:
 			// Chain moved forward, store the head for later consumption
 			newHead = event.Block.Header()
-			p.headFeed.Send(core.NewTxPoolHeadEvent{Head: newHead})
 
 		case head := <-resetDone:
 			// Previous reset finished, update the old head and allow a new reset
@@ -415,14 +415,8 @@ func (p *TxPool) PendingFrom(addrs []common.Address, enforceTips bool) map[commo
 // IteratePending iterates over [pool.pending] until [f] returns false.
 // The caller must not modify [tx].
 func (p *TxPool) IteratePending(f func(tx *Transaction) bool) {
-	shouldContinue := true
-	callback := func(tx *Transaction) bool {
-		shouldContinue = f(tx)
-		return shouldContinue
-	}
 	for _, subpool := range p.subpools {
-		subpool.IteratePending(callback)
-		if !shouldContinue {
+		if !subpool.IteratePending(f) {
 			return
 		}
 	}
@@ -440,12 +434,6 @@ func (p *TxPool) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscrip
 		subs = append(subs, sub)
 	}
 	return p.subs.Track(event.JoinSubscriptions(subs...))
-}
-
-// SubscribeNewHeadEvent registers a subscription of NewHeadEvent and
-// starts sending event to the given channel.
-func (p *TxPool) SubscribeNewHeadEvent(ch chan<- core.NewTxPoolHeadEvent) event.Subscription {
-	return p.subs.Track(p.headFeed.Subscribe(ch))
 }
 
 // SubscribeNewReorgEvent registers a subscription of NewReorgEvent and

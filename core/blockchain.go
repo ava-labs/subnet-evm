@@ -146,7 +146,7 @@ const (
 
 	// trieCleanCacheStatsNamespace is the namespace to surface stats from the trie
 	// clean cache's underlying fastcache.
-	trieCleanCacheStatsNamespace = "trie/memcache/clean/fastcache"
+	trieCleanCacheStatsNamespace = "hashdb/memcache/clean/fastcache"
 )
 
 // cacheableFeeConfig encapsulates fee configuration itself and the block number that it has changed at,
@@ -166,25 +166,23 @@ type cacheableCoinbaseConfig struct {
 // CacheConfig contains the configuration values for the trie database
 // that's resident in a blockchain.
 type CacheConfig struct {
-	TrieCleanLimit                  int           // Memory allowance (MB) to use for caching trie nodes in memory
-	TrieCleanJournal                string        // Disk journal for saving clean cache entries.
-	TrieCleanRejournal              time.Duration // Time interval to dump clean cache to disk periodically
-	TrieDirtyLimit                  int           // Memory limit (MB) at which to block on insert and force a flush of dirty trie nodes to disk
-	TrieDirtyCommitTarget           int           // Memory limit (MB) to target for the dirties cache before invoking commit
-	TriePrefetcherParallelism       int           // Max concurrent disk reads trie prefetcher should perform at once
-	CommitInterval                  uint64        // Commit the trie every [CommitInterval] blocks.
-	Pruning                         bool          // Whether to disable trie write caching and GC altogether (archive node)
-	AcceptorQueueLimit              int           // Blocks to queue before blocking during acceptance
-	PopulateMissingTries            *uint64       // If non-nil, sets the starting height for re-generating historical tries.
-	PopulateMissingTriesParallelism int           // Number of readers to use when trying to populate missing tries.
-	AllowMissingTries               bool          // Whether to allow an archive node to run with pruning enabled
-	SnapshotDelayInit               bool          // Whether to initialize snapshots on startup or wait for external call
-	SnapshotLimit                   int           // Memory allowance (MB) to use for caching snapshot entries in memory
-	SnapshotVerify                  bool          // Verify generated snapshots
-	Preimages                       bool          // Whether to store preimage of trie key to the disk
-	AcceptedCacheSize               int           // Depth of accepted headers cache and accepted logs cache at the accepted tip
-	TxLookupLimit                   uint64        // Number of recent blocks for which to maintain transaction lookup indices
-	SkipTxIndexing                  bool          // Whether to skip transaction indexing
+	TrieCleanLimit                  int     // Memory allowance (MB) to use for caching trie nodes in memory
+	TrieDirtyLimit                  int     // Memory limit (MB) at which to block on insert and force a flush of dirty trie nodes to disk
+	TrieDirtyCommitTarget           int     // Memory limit (MB) to target for the dirties cache before invoking commit
+	TriePrefetcherParallelism       int     // Max concurrent disk reads trie prefetcher should perform at once
+	CommitInterval                  uint64  // Commit the trie every [CommitInterval] blocks.
+	Pruning                         bool    // Whether to disable trie write caching and GC altogether (archive node)
+	AcceptorQueueLimit              int     // Blocks to queue before blocking during acceptance
+	PopulateMissingTries            *uint64 // If non-nil, sets the starting height for re-generating historical tries.
+	PopulateMissingTriesParallelism int     // Number of readers to use when trying to populate missing tries.
+	AllowMissingTries               bool    // Whether to allow an archive node to run with pruning enabled
+	SnapshotDelayInit               bool    // Whether to initialize snapshots on startup or wait for external call
+	SnapshotLimit                   int     // Memory allowance (MB) to use for caching snapshot entries in memory
+	SnapshotVerify                  bool    // Verify generated snapshots
+	Preimages                       bool    // Whether to store preimage of trie key to the disk
+	AcceptedCacheSize               int     // Depth of accepted headers cache and accepted logs cache at the accepted tip
+	TxLookupLimit                   uint64  // Number of recent blocks for which to maintain transaction lookup indices
+	SkipTxIndexing                  bool    // Whether to skip transaction indexing
 
 	SnapshotNoBuild bool // Whether the background generation is allowed
 	SnapshotWait    bool // Wait for snapshot construction on startup. TODO(karalabe): This is a dirty hack for testing, nuke it
@@ -318,7 +316,6 @@ func NewBlockChain(
 	// Open trie database with provided config
 	triedb := trie.NewDatabaseWithConfig(db, &trie.Config{
 		Cache:       cacheConfig.TrieCleanLimit,
-		Journal:     cacheConfig.TrieCleanJournal,
 		Preimages:   cacheConfig.Preimages,
 		StatsPrefix: trieCleanCacheStatsNamespace,
 	})
@@ -418,17 +415,6 @@ func NewBlockChain(
 
 	// Start processing accepted blocks effects in the background
 	go bc.startAcceptor()
-
-	// If periodic cache journal is required, spin it up.
-	if bc.cacheConfig.TrieCleanRejournal > 0 && len(bc.cacheConfig.TrieCleanJournal) > 0 {
-		log.Info("Starting to save trie clean cache periodically", "journalDir", bc.cacheConfig.TrieCleanJournal, "freq", bc.cacheConfig.TrieCleanRejournal)
-
-		bc.wg.Add(1)
-		go func() {
-			defer bc.wg.Done()
-			bc.triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
-		}()
-	}
 
 	// Start tx indexer/unindexer if required.
 	if bc.cacheConfig.TxLookupLimit != 0 {
