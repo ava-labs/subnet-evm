@@ -63,7 +63,7 @@ func (evm *EVM) GetSnowContext() *snow.Context {
 }
 
 func (evm *EVM) DeployerAllowed(addr common.Address) bool {
-	rules := evm.chainConfig.AvalancheRules(evm.Context.BlockNumber, evm.Context.Time)
+	rules := evm.chainConfig.Rules(evm.Context.BlockNumber, evm.Context.Time)
 	if rules.IsPrecompileEnabled(deployerallowlist.ContractAddress) {
 		allowListRole := deployerallowlist.GetContractDeployerAllowListStatus(evm.StateDB, evm.TxContext.Origin)
 		if !allowListRole.IsEnabled() {
@@ -74,7 +74,7 @@ func (evm *EVM) DeployerAllowed(addr common.Address) bool {
 }
 
 func (evm *EVM) CustomPrecompiles(addr common.Address) (vm.RunFunc, bool) {
-	rules := evm.chainConfig.AvalancheRules(evm.Context.BlockNumber, evm.Context.Time)
+	rules := evm.chainConfig.Rules(evm.Context.BlockNumber, evm.Context.Time)
 	if _, ok := rules.ActivePrecompiles[addr]; !ok {
 		return nil, false
 	}
