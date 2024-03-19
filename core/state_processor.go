@@ -27,6 +27,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -169,7 +170,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, blockContext 
 		return nil, err
 	}
 	// Create a new context to be used in the EVM environment
-	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, config, cfg)
+	vmenv := vm.NewEVM(blockContext, vm.TxContext{BlobHashes: tx.BlobHashes()}, statedb, config, cfg)
 	return applyTransaction(msg, config, gp, statedb, header.Number, header.Hash(), tx, usedGas, vmenv)
 }
 
@@ -190,14 +191,22 @@ func ApplyPrecompileActivations(c *params.ChainConfig, parentTimestamp *uint64, 
 			// (or deconfigure it if it is being disabled.)
 			if activatingConfig.IsDisabled() {
 				log.Info("Disabling precompile", "name", module.ConfigKey)
-				statedb.Suicide(module.Address)
+				statedb.SelfDestruct(module.Address)
 				// Calling Finalise here effectively commits Suicide call and wipes the contract state.
 				// This enables re-configuration of the same contract state in the same block.
 				// Without an immediate Finalise call after the Suicide, a reconfigured precompiled state can be wiped out
 				// since Suicide will be committed after the reconfiguration.
 				statedb.Finalise(true)
 			} else {
-				log.Info("Activating new precompile", "name", module.ConfigKey, "config", activatingConfig)
+				var printIntf interface{}
+				marshalled, err := json.Marshal(activatingConfig)
+				if err == nil {
+					printIntf = string(marshalled)
+				} else {
+					printIntf = activatingConfig
+				}
+
+				log.Info("Activating new precompile", "name", module.ConfigKey, "config", printIntf)
 				// Set the nonce of the precompile's address (as is done when a contract is created) to ensure
 				// that it is marked as non-empty and will not be cleaned up when the statedb is finalized.
 				statedb.SetNonce(module.Address, 1)

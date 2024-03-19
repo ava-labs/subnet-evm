@@ -19,7 +19,6 @@ import (
 	avalanchegoMetrics "github.com/ava-labs/avalanchego/api/metrics"
 	"github.com/ava-labs/avalanchego/network/p2p"
 	"github.com/ava-labs/avalanchego/network/p2p/gossip"
-	avalanchegoConstants "github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -81,6 +80,7 @@ import (
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 
+	avalancheUtils "github.com/ava-labs/avalanchego/utils"
 	avalancheJSON "github.com/ava-labs/avalanchego/utils/json"
 )
 
@@ -109,6 +109,7 @@ const (
 	ethTxGossipProtocol = 0x0
 
 	// gossip constants
+	pushGossipDiscardedElements          = 16_384
 	txGossipBloomMinTargetElements       = 8 * 1024
 	txGossipBloomTargetFalsePositiveRate = 0.01
 	txGossipBloomResetFalsePositiveRate  = 0.05
@@ -117,8 +118,7 @@ const (
 	maxValidatorSetStaleness             = time.Minute
 	txGossipThrottlingPeriod             = 10 * time.Second
 	txGossipThrottlingLimit              = 2
-	gossipFrequency                      = 10 * time.Second
-	txGossipPollSize                     = 10
+	txGossipPollSize                     = 1
 )
 
 // Define the API endpoints for the VM
@@ -213,8 +213,6 @@ type VM struct {
 
 	builder *blockBuilder
 
-	gossiper Gossiper
-
 	clock mockable.Clock
 
 	shutdownChan chan struct{}
@@ -247,8 +245,8 @@ type VM struct {
 	// Initialize only sets these if nil so they can be overridden in tests
 	p2pSender          commonEng.AppSender
 	ethTxGossipHandler p2p.Handler
+	ethTxPushGossiper  avalancheUtils.Atomic[*gossip.PushGossiper[*GossipEthTx]]
 	ethTxPullGossiper  gossip.Gossiper
-	ethTxPushGossiper  gossip.Accumulator[*GossipEthTx]
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -327,18 +325,12 @@ func (vm *VM) Initialize(
 		g.Config = params.SubnetEVMDefaultChainConfig
 	}
 
-	mandatoryNetworkUpgrades := params.GetMandatoryNetworkUpgrades(chainCtx.NetworkID)
-	if avalanchegoConstants.ProductionNetworkIDs.Contains(chainCtx.NetworkID) {
-		// We enforce network upgrades here, regardless of the chain config
-		// provided in the genesis file
-		g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
-	} else {
-		// If we are not enforcing, then apply those only if they are not
-		// already set in the genesis file
-		if g.Config.MandatoryNetworkUpgrades == (params.MandatoryNetworkUpgrades{}) {
-			g.Config.MandatoryNetworkUpgrades = mandatoryNetworkUpgrades
-		}
+	// Set the Avalanche Context on the ChainConfig
+	g.Config.AvalancheContext = params.AvalancheContext{
+		SnowCtx: chainCtx,
 	}
+
+	g.Config.SetNetworkUpgradeDefaults()
 
 	// Load airdrop file if provided
 	if vm.config.AirdropFile != "" {
@@ -347,10 +339,7 @@ func (vm *VM) Initialize(
 			return fmt.Errorf("could not read airdrop file '%s': %w", vm.config.AirdropFile, err)
 		}
 	}
-	// Set the Avalanche Context on the ChainConfig
-	g.Config.AvalancheContext = params.AvalancheContext{
-		SnowCtx: chainCtx,
-	}
+
 	vm.syntacticBlockValidator = NewBlockValidator()
 
 	if g.Config.FeeConfig == commontype.EmptyFeeConfig {
@@ -367,6 +356,17 @@ func (vm *VM) Initialize(
 			return fmt.Errorf("failed to parse upgrade bytes: %w", err)
 		}
 		g.Config.UpgradeConfig = upgradeConfig
+	}
+
+	if g.Config.UpgradeConfig.NetworkUpgradeOverrides != nil {
+		overrides := g.Config.UpgradeConfig.NetworkUpgradeOverrides
+		marshaled, err := json.Marshal(overrides)
+		if err != nil {
+			log.Warn("Failed to marshal network upgrade overrides", "error", err, "overrides", overrides)
+		} else {
+			log.Info("Applying network upgrade overrides", "overrides", string(marshaled))
+		}
+		g.Config.Override(overrides)
 	}
 
 	if err := g.Verify(); err != nil {
@@ -390,14 +390,13 @@ func (vm *VM) Initialize(
 
 	vm.ethConfig.TxPool.Locals = vm.config.PriorityRegossipAddresses
 	vm.ethConfig.TxPool.NoLocals = !vm.config.LocalTxsEnabled
-	vm.ethConfig.TxPool.Journal = vm.config.TxPoolJournal
-	vm.ethConfig.TxPool.Rejournal = vm.config.TxPoolRejournal.Duration
 	vm.ethConfig.TxPool.PriceLimit = vm.config.TxPoolPriceLimit
 	vm.ethConfig.TxPool.PriceBump = vm.config.TxPoolPriceBump
 	vm.ethConfig.TxPool.AccountSlots = vm.config.TxPoolAccountSlots
 	vm.ethConfig.TxPool.GlobalSlots = vm.config.TxPoolGlobalSlots
 	vm.ethConfig.TxPool.AccountQueue = vm.config.TxPoolAccountQueue
 	vm.ethConfig.TxPool.GlobalQueue = vm.config.TxPoolGlobalQueue
+	vm.ethConfig.TxPool.Lifetime = vm.config.TxPoolLifetime.Duration
 
 	vm.ethConfig.AllowUnfinalizedQueries = vm.config.AllowUnfinalizedQueries
 	vm.ethConfig.AllowUnprotectedTxs = vm.config.AllowUnprotectedTxs
@@ -405,8 +404,6 @@ func (vm *VM) Initialize(
 	vm.ethConfig.Preimages = vm.config.Preimages
 	vm.ethConfig.Pruning = vm.config.Pruning
 	vm.ethConfig.TrieCleanCache = vm.config.TrieCleanCache
-	vm.ethConfig.TrieCleanJournal = vm.config.TrieCleanJournal
-	vm.ethConfig.TrieCleanRejournal = vm.config.TrieCleanRejournal.Duration
 	vm.ethConfig.TrieDirtyCache = vm.config.TrieDirtyCache
 	vm.ethConfig.TrieDirtyCommitTarget = vm.config.TrieDirtyCommitTarget
 	vm.ethConfig.TriePrefetcherParallelism = vm.config.TriePrefetcherParallelism
@@ -536,6 +533,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.eth, err = eth.New(
 		node,
 		&vm.ethConfig,
+		&EthPushGossiper{vm: vm},
 		vm.chaindb,
 		vm.config.EthBackendSettings(),
 		lastAcceptedHash,
@@ -547,7 +545,7 @@ func (vm *VM) initializeChain(lastAcceptedHash common.Hash, ethConfig ethconfig.
 	vm.eth.SetEtherbase(ethConfig.Miner.Etherbase)
 	vm.txPool = vm.eth.TxPool()
 	vm.txPool.SetMinFee(vm.chainConfig.FeeConfig.MinBaseFee)
-	vm.txPool.SetGasPrice(big.NewInt(0))
+	vm.txPool.SetGasTip(big.NewInt(0))
 	vm.blockChain = vm.eth.BlockChain()
 	vm.miner = vm.eth.Miner()
 
@@ -674,30 +672,11 @@ func (vm *VM) initBlockBuilding() error {
 	vm.cancel = cancel
 
 	ethTxGossipMarshaller := GossipEthTxMarshaller{}
-
 	ethTxGossipClient := vm.Network.NewClient(ethTxGossipProtocol, p2p.WithValidatorSampling(vm.validators))
-
 	ethTxGossipMetrics, err := gossip.NewMetrics(vm.sdkMetrics, ethTxGossipNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to initialize eth tx gossip metrics: %w", err)
 	}
-
-	if vm.ethTxPushGossiper == nil {
-		vm.ethTxPushGossiper = gossip.NewPushGossiper[*GossipEthTx](
-			ethTxGossipMarshaller,
-			ethTxGossipClient,
-			ethTxGossipMetrics,
-			txGossipTargetMessageSize,
-		)
-	}
-
-	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
-	gossipStats := NewGossipStats()
-	vm.gossiper = vm.createGossiper(gossipStats, vm.ethTxPushGossiper)
-	vm.builder = vm.NewBlockBuilder(vm.toEngine)
-	vm.builder.awaitSubmittedTxs()
-	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
-
 	ethTxPool, err := NewGossipEthTxPool(vm.txPool, vm.sdkMetrics)
 	if err != nil {
 		return err
@@ -707,6 +686,40 @@ func (vm *VM) initBlockBuilding() error {
 		ethTxPool.Subscribe(ctx)
 		vm.shutdownWg.Done()
 	}()
+
+	pushGossipParams := gossip.BranchingFactor{
+		Validators: vm.config.PushGossipNumValidators,
+		Peers:      vm.config.PushGossipNumPeers,
+	}
+	pushRegossipParams := gossip.BranchingFactor{
+		Validators: vm.config.PushRegossipNumValidators,
+		Peers:      vm.config.PushRegossipNumPeers,
+	}
+
+	ethTxPushGossiper := vm.ethTxPushGossiper.Get()
+	if ethTxPushGossiper == nil {
+		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
+			ethTxGossipMarshaller,
+			ethTxPool,
+			ethTxGossipClient,
+			ethTxGossipMetrics,
+			pushGossipParams,
+			pushRegossipParams,
+			pushGossipDiscardedElements,
+			txGossipTargetMessageSize,
+			vm.config.RegossipFrequency.Duration,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to initialize eth tx push gossiper: %w", err)
+		}
+		vm.ethTxPushGossiper.Set(ethTxPushGossiper)
+	}
+
+	// NOTE: gossip network must be initialized first otherwise ETH tx gossip will not work.
+	gossipStats := NewGossipStats()
+	vm.builder = vm.NewBlockBuilder(vm.toEngine)
+	vm.builder.awaitSubmittedTxs()
+	vm.Network.SetGossipHandler(NewGossipHandler(vm, gossipStats))
 
 	if vm.ethTxGossipHandler == nil {
 		vm.ethTxGossipHandler = newTxGossipHandler[*GossipEthTx](
@@ -742,9 +755,13 @@ func (vm *VM) initBlockBuilding() error {
 		}
 	}
 
-	vm.shutdownWg.Add(1)
+	vm.shutdownWg.Add(2)
 	go func() {
-		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, gossipFrequency)
+		gossip.Every(ctx, vm.ctx.Log, ethTxPushGossiper, vm.config.PushGossipFrequency.Duration)
+		vm.shutdownWg.Done()
+	}()
+	go func() {
+		gossip.Every(ctx, vm.ctx.Log, vm.ethTxPullGossiper, vm.config.PullGossipFrequency.Duration)
 		vm.shutdownWg.Done()
 	}()
 

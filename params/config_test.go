@@ -151,21 +151,21 @@ func TestCheckCompatible(t *testing.T) {
 
 func TestConfigRules(t *testing.T) {
 	c := &ChainConfig{
-		MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
+		NetworkUpgrades: NetworkUpgrades{
 			SubnetEVMTimestamp: utils.NewUint64(500),
 		},
 	}
 
 	var stamp uint64
-	if r := c.AvalancheRules(big.NewInt(0), stamp); r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), stamp); r.IsSubnetEVM {
 		t.Errorf("expected %v to not be subnet-evm", stamp)
 	}
 	stamp = 500
-	if r := c.AvalancheRules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), stamp); !r.IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 	stamp = math.MaxInt64
-	if r := c.AvalancheRules(big.NewInt(0), stamp); !r.IsSubnetEVM {
+	if r := c.Rules(big.NewInt(0), stamp); !r.IsSubnetEVM {
 		t.Errorf("expected %v to be subnet-evm", stamp)
 	}
 }
@@ -250,10 +250,10 @@ func TestActivePrecompiles(t *testing.T) {
 		},
 	}
 
-	rules0 := config.AvalancheRules(common.Big0, 0)
+	rules0 := config.Rules(common.Big0, 0)
 	require.True(t, rules0.IsPrecompileEnabled(nativeminter.Module.Address))
 
-	rules1 := config.AvalancheRules(common.Big0, 1)
+	rules1 := config.Rules(common.Big0, 1)
 	require.False(t, rules1.IsPrecompileEnabled(nativeminter.Module.Address))
 }
 
@@ -272,7 +272,7 @@ func TestChainConfigMarshalWithUpgrades(t *testing.T) {
 			PetersburgBlock:     big.NewInt(0),
 			IstanbulBlock:       big.NewInt(0),
 			MuirGlacierBlock:    big.NewInt(0),
-			MandatoryNetworkUpgrades: MandatoryNetworkUpgrades{
+			NetworkUpgrades: NetworkUpgrades{
 				SubnetEVMTimestamp: utils.NewUint64(0),
 				DurangoTimestamp:   utils.NewUint64(0),
 			},

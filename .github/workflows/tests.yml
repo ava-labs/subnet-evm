@@ -1,0 +1,180 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+
+env:
+  tmpnet_data_path: ~/.tmpnet/networks/1000
+  min_go_version: '~1.21.7'
+
+jobs:
+  lint_test:
+    name: Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/lint_allowed_geth_imports.sh
+        shell: bash
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.min_go_version }}
+          check-latest: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+          working-directory: .
+          args: --timeout 10m
+      - name: Run shellcheck
+        shell: bash
+        run: scripts/shellcheck.sh
+
+  unit_test:
+    name: Golang Unit Tests
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.min_go_version }}
+          check-latest: true
+      - run: go mod download
+        shell: bash
+      - run: ./scripts/build.sh ./build/subnetevm
+        shell: bash
+      - run: ./scripts/build_test.sh -race
+        shell: bash
+      - run: ./scripts/coverage.sh
+        shell: bash
+
+  e2e_precompile:
+    name: e2e precompile tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.min_go_version }}
+          check-latest: true
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18.15"
+      - name: NPM Clean Install
+        run: npm ci
+        working-directory: ./contracts
+      - name: Hardhat Clean
+        run: npx hardhat clean
+        working-directory: ./contracts
+      - name: Hardhat Compile
+        run: npx hardhat compile
+        working-directory: ./contracts
+      - name: Install AvalancheGo Release
+        shell: bash
+        run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
+      - name: Build Subnet-EVM Plugin Binary
+        shell: bash
+        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+      - name: Run E2E Precompile Tests
+        shell: bash
+        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego DATA_DIR=/tmp/e2e-test/precompile-data ./scripts/run_ginkgo_precompile.sh
+      - name: Upload Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: subnet-evm-e2e-logs-precompile
+          path: /tmp/e2e-test/precompile-data
+          retention-days: 5
+  e2e_warp:
+    name: e2e warp tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.min_go_version }}
+          check-latest: true
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18.15"
+      - name: NPM Clean Install
+        run: npm ci
+        working-directory: ./contracts
+      - name: Hardhat Clean
+        run: npx hardhat clean
+        working-directory: ./contracts
+      - name: Hardhat Compile
+        run: npx hardhat compile
+        working-directory: ./contracts
+      - name: Install AvalancheGo Release
+        shell: bash
+        run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
+      - name: Build Subnet-EVM Plugin Binary
+        shell: bash
+        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+      - name: Run Warp E2E Tests
+        shell: bash
+        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_warp.sh
+      - name: Upload tmpnet network dir for warp testing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: warp-tmpnet-data
+          path: ${{ env.tmpnet_data_path }}
+          if-no-files-found: error
+  e2e_load:
+    name: e2e load tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.min_go_version }}
+          check-latest: true
+      - name: Install AvalancheGo Release
+        shell: bash
+        run: BASEDIR=/tmp/e2e-test AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/install_avalanchego_release.sh
+      - name: Build Subnet-EVM Plugin Binary
+        shell: bash
+        run: ./scripts/build.sh /tmp/e2e-test/avalanchego/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy
+      - name: Run E2E Load Tests
+        shell: bash
+        run: AVALANCHEGO_BUILD_PATH=/tmp/e2e-test/avalanchego ./scripts/run_ginkgo_load.sh
+      - name: Upload tmpnet network dir for load testing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-tmpnet-data
+          path: ${{ env.tmpnet_data_path }}
+          if-no-files-found: error
+  mock_gen:
+    name: MockGen Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.min_go_version }}
+          check-latest: true
+      - shell: bash
+        run: scripts/mock.gen.sh
+      - shell: bash
+        run: .github/workflows/check-clean-branch.sh
