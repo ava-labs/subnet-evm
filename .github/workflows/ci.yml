@@ -164,13 +164,3 @@ jobs:
           name: load-tmpnet-data
           path: ${{ env.tmpnet_data_path }}
           if-no-files-found: error
-
-  build_image:
-    name: Build Docker Image
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo ${{ secrets.docker_pass }} | docker login --username ${{ secrets.docker_username }} --password-stdin
-        shell: bash
-      - run: CURRENT_BRANCH=${{ github.head_ref || github.ref_name }} PUSH_DOCKER_IMAGE=true ./scripts/build_image.sh
-        shell: bash
