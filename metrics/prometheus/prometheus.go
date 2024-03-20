@@ -73,8 +73,6 @@ func (g gatherer) Gather() ([]*dto.MetricFamily, error) {
 					},
 				}},
 			})
-		case metrics.GaugeInfo:
-			// XXX
 		case metrics.GaugeFloat64:
 			val := m.Snapshot().Value()
 			mfs = append(mfs, &dto.MetricFamily{

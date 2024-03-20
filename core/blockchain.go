@@ -61,8 +61,6 @@ import (
 )
 
 var (
-	chainInfoGauge = metrics.NewRegisteredGaugeInfo("chain/info", nil)
-
 	accountReadTimer         = metrics.NewRegisteredCounter("chain/account/reads", nil)
 	accountHashTimer         = metrics.NewRegisteredCounter("chain/account/hashes", nil)
 	accountUpdateTimer       = metrics.NewRegisteredCounter("chain/account/updates", nil)
@@ -403,9 +401,6 @@ func NewBlockChain(
 	}
 
 	bc.currentBlock.Store(nil)
-
-	// Update chain info data metrics
-	chainInfoGauge.Update(metrics.GaugeInfoValue{"chain_id": bc.chainConfig.ChainID.String()})
 
 	// Create the state manager
 	bc.stateManager = NewTrieWriter(bc.triedb, cacheConfig)
