@@ -272,6 +272,11 @@ func (vm *VM) Initialize(
 	if err := vm.config.Validate(); err != nil {
 		return err
 	}
+	// We should deprecate config flags as the first thing, before we do anything else
+	// because this can set old flags to new flags. log the message after we have
+	// initialized the logger.
+	deprecateMsg := vm.config.Deprecate()
+
 	vm.ctx = chainCtx
 
 	// Create logger
@@ -288,6 +293,10 @@ func (vm *VM) Initialize(
 	vm.logger = subnetEVMLogger
 
 	log.Info("Initializing Subnet EVM VM", "Version", Version, "Config", vm.config)
+
+	if deprecateMsg != "" {
+		log.Warn("Deprecation Warning", "msg", deprecateMsg)
+	}
 
 	if len(fxs) > 0 {
 		return errUnsupportedFXs
