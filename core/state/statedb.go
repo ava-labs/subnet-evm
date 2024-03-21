@@ -1019,7 +1019,7 @@ func (s *StateDB) clearJournalAndRefund() {
 // storage iteration and constructs trie node deletion markers by creating
 // stack trie with iterated slots.
 func (s *StateDB) fastDeleteStorage(addrHash common.Hash, root common.Hash) (bool, common.StorageSize, map[common.Hash][]byte, *trienode.NodeSet, error) {
-	iter, _ := s.snap.StorageIterator(addrHash, common.Hash{}) // XXX
+	iter, _ := s.snap.StorageIterator(addrHash, common.Hash{})
 	defer iter.Release()
 
 	var (

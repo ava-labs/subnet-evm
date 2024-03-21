@@ -1165,7 +1165,7 @@ func TestDeleteStorage(t *testing.T) {
 		value := common.Hash(uint256.NewInt(uint64(10 * i)).Bytes32())
 		state.SetState(addr, slot, value)
 	}
-	root, _ := state.Commit(0, true, false)
+	root, _ := state.CommitWithSnap(0, true, snaps, common.Hash{}, common.Hash{}, false)
 	// Init phase done, create two states, one with snap and one without
 	fastState, _ := New(root, db, snaps)
 	slowState, _ := New(root, db, nil)
