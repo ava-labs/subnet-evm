@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
-	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/set"
 
 	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
