@@ -157,7 +157,6 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 	}
 
 	vm := &VM{
-		p2pSender:         sender,
 		ethTxPullGossiper: gossip.NoOpGossiper{},
 	}
 
@@ -170,7 +169,7 @@ func TestEthTxPushGossipOutbound(t *testing.T) {
 		nil,
 		make(chan common.Message),
 		nil,
-		&common.FakeSender{},
+		sender,
 	))
 	require.NoError(vm.SetState(ctx, snow.NormalOp))
 
@@ -211,7 +210,6 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 
 	sender := &common.SenderTest{}
 	vm := &VM{
-		p2pSender:         sender,
 		ethTxPullGossiper: gossip.NoOpGossiper{},
 	}
 
@@ -224,7 +222,7 @@ func TestEthTxPushGossipInbound(t *testing.T) {
 		nil,
 		make(chan common.Message),
 		nil,
-		&common.FakeSender{},
+		sender,
 	))
 	require.NoError(vm.SetState(ctx, snow.NormalOp))
 
