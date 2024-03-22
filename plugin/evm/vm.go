@@ -701,6 +701,7 @@ func (vm *VM) initBlockBuilding() error {
 		ethTxPushGossiper, err = gossip.NewPushGossiper[*GossipEthTx](
 			ethTxGossipMarshaller,
 			ethTxPool,
+			vm.validators,
 			ethTxGossipClient,
 			ethTxGossipMetrics,
 			pushGossipParams,

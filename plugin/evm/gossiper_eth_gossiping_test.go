@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
+	commonEng "github.com/ava-labs/avalanchego/snow/engine/common"
 	"github.com/ava-labs/avalanchego/utils/set"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -105,7 +106,7 @@ func TestMempoolEthTxsAppGossipHandling(t *testing.T) {
 		return nil
 	}
 	wg.Add(1)
-	sender.SendAppGossipF = func(context.Context, []byte, int, int, int) error {
+	sender.SendAppGossipF = func(context.Context, commonEng.SendConfig, []byte) error {
 		wg.Done()
 		return nil
 	}
