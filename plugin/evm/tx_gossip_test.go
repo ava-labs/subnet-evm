@@ -79,7 +79,10 @@ func TestEthTxGossip(t *testing.T) {
 		return 0, nil
 	}
 	validatorState.GetValidatorSetF = func(context.Context, uint64, ids.ID) (map[ids.NodeID]*validators.GetValidatorOutput, error) {
-		return map[ids.NodeID]*validators.GetValidatorOutput{requestingNodeID: nil}, nil
+		return map[ids.NodeID]*validators.GetValidatorOutput{requestingNodeID: &validators.GetValidatorOutput{
+			NodeID: requestingNodeID,
+			Weight: 1,
+		}}, nil
 	}
 
 	// Ask the VM for any new transactions. We should get nothing at first.
