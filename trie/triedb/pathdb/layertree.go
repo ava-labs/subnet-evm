@@ -143,7 +143,10 @@ func (tree *layerTree) cap(root common.Hash, layers int) error {
 		}
 		// Replace the entire layer tree with the flat base
 		// tree.layers = map[common.Hash]layer{base.rootHash(): base}
-		// XXX
+		//
+		// Note: The original code above is replaced with the code below
+		// since we need to keep the children of the base layer, as these
+		// layers may be accessed by blocks in processing.
 		children := make(map[common.Hash][]common.Hash)
 		for root, layer := range tree.layers {
 			if dl, ok := layer.(*diffLayer); ok {
