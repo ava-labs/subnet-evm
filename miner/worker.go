@@ -102,7 +102,7 @@ type worker struct {
 	mu         sync.RWMutex   // The lock used to protect the coinbase and extra fields
 	coinbase   common.Address
 	clock      *mockable.Clock // Allows us mock the clock for testing
-	beaconRoot *common.Hash    // XXX: this is not set anywhere
+	beaconRoot *common.Hash    // TODO: not set anywhere, retained for upstream compatibility and future use
 }
 
 func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, clock *mockable.Clock) *worker {
@@ -183,7 +183,7 @@ func (w *worker) commitNewWork(predicateContext *precompileconfig.PredicateConte
 		}
 		header.BlobGasUsed = new(uint64)
 		header.ExcessBlobGas = &excessBlobGas
-		header.ParentBeaconRoot = w.beaconRoot // XXX: this is not set anywhere
+		header.ParentBeaconRoot = w.beaconRoot
 	}
 
 	if w.coinbase == (common.Address{}) {
