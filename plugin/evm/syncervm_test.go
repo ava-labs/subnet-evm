@@ -434,6 +434,17 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	require.True(syncerVM.blockChain.HasState(syncerVM.blockChain.LastAcceptedBlock().Root()), "unavailable state for last accepted block")
 	assertSyncPerformedHeights(t, syncerVM.chaindb, map[uint64]struct{}{retrievedSummary.Height(): {}})
 
+	lastNumber := syncerVM.blockChain.LastAcceptedBlock().NumberU64()
+	// check the last block is indexed
+	block := rawdb.ReadBlock(syncerVM.chaindb, rawdb.ReadCanonicalHash(syncerVM.chaindb, lastNumber), lastNumber)
+	if block.Transactions().Len() == 0 {
+		return
+	}
+	for _, tx := range block.Transactions() {
+		index := rawdb.ReadTxLookupEntry(syncerVM.chaindb, tx.Hash())
+		require.NotNilf(index, "Miss transaction indices, number %d hash %s", lastNumber, tx.Hash().Hex())
+	}
+
 	blocksToBuild := 10
 	txsPerBlock := 10
 	toAddress := testEthAddrs[1] // arbitrary choice
