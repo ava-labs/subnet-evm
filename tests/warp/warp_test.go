@@ -94,11 +94,6 @@ func TestE2E(t *testing.T) {
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 	// Run only once in the first ginkgo process
 
-	chainConfig := tmpnet.FlagsMap{
-		"log-level":        "debug",
-		"warp-api-enabled": true,
-	}
-
 	nodes := utils.NewTmpnetNodes(tmpnet.DefaultNodeCount)
 
 	env := e2e.NewTestEnvironment(
@@ -107,8 +102,8 @@ var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
 			"subnet-evm-warp-e2e",
 			nodes,
 			tmpnet.FlagsMap{},
-			utils.NewTmpnetSubnet(subnetAName, genesisPath, chainConfig, nodes...),
-			utils.NewTmpnetSubnet(subnetBName, genesisPath, chainConfig, nodes...),
+			utils.NewTmpnetSubnet(subnetAName, genesisPath, utils.DefaultChainConfig, nodes...),
+			utils.NewTmpnetSubnet(subnetBName, genesisPath, utils.DefaultChainConfig, nodes...),
 		),
 	)
 
