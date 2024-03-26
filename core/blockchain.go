@@ -503,7 +503,6 @@ func (bc *BlockChain) dispatchTxUnindexer() {
 	defer sub.Unsubscribe()
 	log.Info("Initialized transaction unindexer", "limit", txLookupLimit)
 
-	// XXX
 	// Launch the initial processing if chain is not empty. This step is
 	// useful in these scenarios that chain has no progress and indexer
 	// is never triggered.
@@ -545,14 +544,21 @@ func (bc *BlockChain) dispatchTxUnindexer() {
 // - updating the acceptor tip index
 func (bc *BlockChain) writeBlockAcceptedIndices(b *types.Block) error {
 	batch := bc.db.NewBatch()
+	if err := bc.batchBlockAcceptedIndices(batch, b); err != nil {
+		return err
+	}
+	if err := batch.Write(); err != nil {
+		return fmt.Errorf("%w: failed to write accepted indices entries batch", err)
+	}
+	return nil
+}
+
+func (bc *BlockChain) batchBlockAcceptedIndices(batch ethdb.Batch, b *types.Block) error {
 	if !bc.cacheConfig.SkipTxIndexing {
 		rawdb.WriteTxLookupEntriesByBlock(batch, b)
 	}
 	if err := rawdb.WriteAcceptorTip(batch, b.Hash()); err != nil {
 		return fmt.Errorf("%w: failed to write acceptor tip key", err)
-	}
-	if err := batch.Write(); err != nil {
-		return fmt.Errorf("%w: failed to write tx lookup entries batch", err)
 	}
 	return nil
 }
@@ -2174,7 +2180,9 @@ func (bc *BlockChain) ResetToStateSyncedBlock(block *types.Block) error {
 
 	// Update head block and snapshot pointers on disk
 	batch := bc.db.NewBatch()
-	rawdb.WriteAcceptorTip(batch, block.Hash())
+	if err := bc.batchBlockAcceptedIndices(batch, block); err != nil {
+		return err
+	}
 	rawdb.WriteHeadBlockHash(batch, block.Hash())
 	rawdb.WriteHeadHeaderHash(batch, block.Hash())
 	rawdb.WriteSnapshotBlockHash(batch, block.Hash())
