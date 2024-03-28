@@ -12,7 +12,7 @@ fi
 # Avalanche root directory
 SUBNET_EVM_PATH=$(
   cd "$(dirname "${BASH_SOURCE[0]}")"
-  cd .. && pwd
+  cd .. && .. && pwd
 )
 
 # Load the versions
