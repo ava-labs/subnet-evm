@@ -60,7 +60,7 @@ func (n *NetworkUpgrades) setDefaults(networkID uint32) {
 	// If the network upgrade is set to 0, we also treat it as nil and set it default.
 	// This is because in prior versions, upgrades were not modifiable and were directly set to their default values.
 	// Most of the tools and configurations just provide these as 0, so it is safer to treat 0 as nil and set to default
-	// to prevent premature activations of the network upgrades.
+	// to prevent premature activations of the network upgrades for live networks.
 	if n.SubnetEVMTimestamp == nil || *n.SubnetEVMTimestamp == 0 {
 		n.SubnetEVMTimestamp = defaults.SubnetEVMTimestamp
 	}
