@@ -101,10 +101,9 @@ func (n *NetworkUpgrades) Override(o *NetworkUpgrades) {
 	if o.DurangoTimestamp != nil {
 		n.DurangoTimestamp = o.DurangoTimestamp
 	}
-	// EUpgradeTimestamp is not overridable for now
-	// if o.EUpgradeTimestamp != nil {
-	// 	n.EUpgradeTimestamp = o.EUpgradeTimestamp
-	// }
+	if o.EUpgradeTimestamp != nil {
+		n.EUpgradeTimestamp = o.EUpgradeTimestamp
+	}
 }
 
 // IsSubnetEVM returns whether [time] represents a block
@@ -167,4 +166,9 @@ func verifyWithDefault(configTimestamp *uint64, defaultTimestamp *uint64) error 
 		return fmt.Errorf("provided timestamp (%d) must be greater than or equal to the default timestamp (%d)", *configTimestamp, defaultTimestamp)
 	}
 	return nil
+}
+
+// SetMappedUpgrades sets the mapped upgrades (usually Avalanche > EVM upgrades) for the chain config.
+func (c *ChainConfig) SetMappedUpgrades() {
+	c.CancunTime = utils.NewUint64(*c.EUpgradeTimestamp)
 }

@@ -243,42 +243,6 @@ func (c *ChainConfig) Description() string {
 	return banner
 }
 
-func (c *ChainConfig) SetNetworkUpgradeDefaults() {
-	if c.HomesteadBlock == nil {
-		c.HomesteadBlock = big.NewInt(0)
-	}
-	if c.EIP150Block == nil {
-		c.EIP150Block = big.NewInt(0)
-	}
-	if c.EIP155Block == nil {
-		c.EIP155Block = big.NewInt(0)
-	}
-	if c.EIP158Block == nil {
-		c.EIP158Block = big.NewInt(0)
-	}
-	if c.ByzantiumBlock == nil {
-		c.ByzantiumBlock = big.NewInt(0)
-	}
-	if c.ConstantinopleBlock == nil {
-		c.ConstantinopleBlock = big.NewInt(0)
-	}
-	if c.PetersburgBlock == nil {
-		c.PetersburgBlock = big.NewInt(0)
-	}
-	if c.IstanbulBlock == nil {
-		c.IstanbulBlock = big.NewInt(0)
-	}
-	if c.MuirGlacierBlock == nil {
-		c.MuirGlacierBlock = big.NewInt(0)
-	}
-
-	c.NetworkUpgrades.setDefaults(c.SnowCtx.NetworkID)
-
-	// if c.CancunTime == nil {
-	// 	c.CancunTime = c.EUpgrade
-	// }
-}
-
 // IsHomestead returns whether num is either equal to the homestead block or greater.
 func (c *ChainConfig) IsHomestead(num *big.Int) bool {
 	return utils.IsBlockForked(c.HomesteadBlock, num)

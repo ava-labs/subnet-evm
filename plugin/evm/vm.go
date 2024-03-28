@@ -369,6 +369,8 @@ func (vm *VM) Initialize(
 		g.Config.Override(overrides)
 	}
 
+	g.Config.SetMappedUpgrades()
+
 	if err := g.Verify(); err != nil {
 		return fmt.Errorf("failed to verify genesis: %w", err)
 	}
