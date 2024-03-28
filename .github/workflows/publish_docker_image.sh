@@ -23,6 +23,8 @@ if [[ $CURRENT_BRANCH == "master" ]]; then
   docker tag "$DOCKERHUB_REPO:$BUILD_IMAGE_ID" "$DOCKERHUB_REPO:latest"
 fi
 
+ docker tag "$DOCKERHUB_REPO:$BUILD_IMAGE_ID" "$DOCKERHUB_REPO:$CURRENT_BRANCH"
+
 echo "Pushing $DOCKERHUB_REPO:$BUILD_IMAGE_ID"
 
 echo "$DOCKER_PASS" | docker login --username "$DOCKER_USERNAME" --password-stdin
