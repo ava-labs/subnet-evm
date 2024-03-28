@@ -27,4 +27,4 @@ echo "Pushing $DOCKERHUB_REPO:$BUILD_IMAGE_ID"
 
 echo "$DOCKER_PASS" | docker login --username "$DOCKER_USERNAME" --password-stdin
 
-docker push "$DOCKERHUB_REPO:$BUILD_IMAGE_ID"
+docker push -a "$DOCKERHUB_REPO"
