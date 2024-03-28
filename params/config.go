@@ -31,7 +31,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ava-labs/avalanchego/utils/constants"
 	"github.com/ava-labs/subnet-evm/commontype"
@@ -105,12 +104,9 @@ var (
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
 		MuirGlacierBlock:    big.NewInt(0),
-		NetworkUpgrades: NetworkUpgrades{
-			SubnetEVMTimestamp: utils.NewUint64(0),
-			DurangoTimestamp:   utils.NewUint64(0),
-		},
-		GenesisPrecompiles: Precompiles{},
-		UpgradeConfig:      UpgradeConfig{},
+		NetworkUpgrades:     TestNetworkUpgrades,
+		GenesisPrecompiles:  Precompiles{},
+		UpgradeConfig:       UpgradeConfig{},
 	}
 
 	TestSubnetEVMConfig = &ChainConfig{
@@ -155,15 +151,6 @@ var (
 
 	TestRules = TestChainConfig.Rules(new(big.Int), 0)
 )
-
-func getUpgradeTime(networkID uint32, upgradeTimes map[uint32]time.Time) *uint64 {
-	if upgradeTime, ok := upgradeTimes[networkID]; ok {
-		return utils.TimeToNewUint64(upgradeTime)
-	}
-	// If the upgrade time isn't specified, default being enabled in the
-	// genesis.
-	return utils.NewUint64(0)
-}
 
 // ChainConfig is the core config which determines the blockchain settings.
 //
@@ -227,8 +214,7 @@ func (c *ChainConfig) Description() string {
 	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)\n", ptrToString(c.CancunTime))
 
 	banner += "Avalanche Upgrades (timestamp based):\n"
-	banner += fmt.Sprintf(" - SubnetEVM Timestamp:           @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.10.0)\n", ptrToString(c.SubnetEVMTimestamp))
-	banner += fmt.Sprintf(" - Durango Timestamp:            @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.11.0)\n", ptrToString(c.DurangoTimestamp))
+	banner += c.NetworkUpgrades.Description()
 	banner += "\n"
 
 	precompileUpgradeBytes, err := json.Marshal(c.GenesisPrecompiles)
@@ -338,19 +324,6 @@ func (c *ChainConfig) IsPetersburg(num *big.Int) bool {
 // IsIstanbul returns whether num is either equal to the Istanbul fork block or greater.
 func (c *ChainConfig) IsIstanbul(num *big.Int) bool {
 	return utils.IsBlockForked(c.IstanbulBlock, num)
-}
-
-// IsSubnetEVM returns whether [time] represents a block
-// with a timestamp after the SubnetEVM upgrade time.
-func (c *ChainConfig) IsSubnetEVM(time uint64) bool {
-	return utils.IsTimestampForked(c.SubnetEVMTimestamp, time)
-}
-
-// TODO: move avalanche hardforks to network_upgrades.go
-// IsDurango returns whether [time] represents a block
-// with a timestamp after the Durango upgrade time.
-func (c *ChainConfig) IsDurango(time uint64) bool {
-	return utils.IsTimestampForked(c.DurangoTimestamp, time)
 }
 
 // IsCancun returns whether [time] represents a block
@@ -676,8 +649,7 @@ type Rules struct {
 	IsCancun                                                bool
 
 	// Rules for Avalanche releases
-	IsSubnetEVM bool
-	IsDurango   bool
+	AvalancheRules
 
 	// ActivePrecompiles maps addresses to stateful precompiled contracts that are enabled
 	// for this rule set.
@@ -723,8 +695,7 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 func (c *ChainConfig) Rules(blockNum *big.Int, timestamp uint64) Rules {
 	rules := c.rules(blockNum, timestamp)
 
-	rules.IsSubnetEVM = c.IsSubnetEVM(timestamp)
-	rules.IsDurango = c.IsDurango(timestamp)
+	rules.AvalancheRules = c.GetAvalancheRules(timestamp)
 
 	// Initialize the stateful precompiles that should be enabled at [blockTimestamp].
 	rules.ActivePrecompiles = make(map[common.Address]precompileconfig.Config)

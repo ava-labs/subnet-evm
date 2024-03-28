@@ -6,6 +6,7 @@ package params
 import (
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/ava-labs/avalanchego/snow"
 )
@@ -144,4 +145,13 @@ func (c *ChainConfig) ToWithUpgradesJSON() *ChainConfigWithUpgradesJSON {
 		ChainConfig:   *c,
 		UpgradeConfig: c.UpgradeConfig,
 	}
+}
+
+func getUpgradeTime(networkID uint32, upgradeTimes map[uint32]time.Time) uint64 {
+	if upgradeTime, ok := upgradeTimes[networkID]; ok {
+		return uint64(upgradeTime.Unix())
+	}
+	// If the upgrade time isn't specified, default being enabled in the
+	// genesis.
+	return 0
 }
