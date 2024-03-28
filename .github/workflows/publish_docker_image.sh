@@ -10,10 +10,7 @@ if [[ -z "$DOCKER_USERNAME"  ]]; then
 fi
 
 # Avalanche root directory
-SUBNET_EVM_PATH=$(
-  cd "$(dirname "${BASH_SOURCE[0]}")"
-  cd .. && .. && pwd
-)
+SUBNET_EVM_PATH=$( cd "$( dirname "${BASH_SOURCE[0]}" )"; cd ../.. && pwd )
 
 # Load the versions
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
