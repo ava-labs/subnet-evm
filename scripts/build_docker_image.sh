@@ -12,7 +12,7 @@ source "$SUBNET_EVM_PATH"/scripts/constants.sh
 source "$SUBNET_EVM_PATH"/scripts/versions.sh
 
 # WARNING: this will use the most recent commit even if there are un-committed changes present
-BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}-avalanchego-${AVALANCHE_VERSION}"}
+BUILD_IMAGE_ID=${BUILD_IMAGE_ID:-"${CURRENT_BRANCH}"}
 
 echo "Building Docker Image: $DOCKERHUB_REPO:$BUILD_IMAGE_ID based of AvalancheGo@$AVALANCHE_VERSION"
 docker build -t "$DOCKERHUB_REPO:$BUILD_IMAGE_ID" "$SUBNET_EVM_PATH" -f "$SUBNET_EVM_PATH/Dockerfile" \
