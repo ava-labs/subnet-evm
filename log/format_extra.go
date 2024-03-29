@@ -24,15 +24,8 @@ func SubnetEVMTermFormat(alias string) log.Format {
 		for _, prefix := range locationTrims {
 			location = strings.TrimPrefix(location, prefix)
 		}
-		// Maintain the maximum location length for fancyer alignment
-		align := int(locationLength.Load())
-		if align < len(location) {
-			align = len(location)
-			locationLength.Store(uint32(align))
-		}
-		padding := strings.Repeat(" ", align-len(location))
 
-		fmt.Fprintf(b, "[%s] %s %s %s %s %s ", r.Time.Format(termTimeFormat), lvl, prefix, location, padding, msg)
+		fmt.Fprintf(b, "[%s] %s %s %s %s ", r.Time.Format(termTimeFormat), lvl, prefix, location, msg)
 		// try to justify the log output for short messages
 		length := utf8.RuneCountInString(msg)
 		if len(r.Ctx) > 0 && length < termMsgJust {
