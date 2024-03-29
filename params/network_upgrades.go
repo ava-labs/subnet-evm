@@ -142,8 +142,3 @@ func verifyWithDefault(configTimestamp *uint64, defaultTimestamp *uint64) error 
 	}
 	return nil
 }
-
-// SetMappedUpgrades sets the mapped upgrades (usually Avalanche > EVM upgrades) for the chain config.
-func (c *ChainConfig) SetMappedUpgrades() {
-	// c.CancunTime = utils.NewUint64(*c.EUpgradeTimestamp)
-}

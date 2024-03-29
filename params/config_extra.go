@@ -180,6 +180,11 @@ func (c *ChainConfig) SetNetworkUpgradeDefaults() {
 	c.NetworkUpgrades.setDefaults(c.SnowCtx.NetworkID)
 }
 
+// SetMappedUpgrades sets the mapped upgrades (usually Avalanche > EVM upgrades) for the chain config.
+func (c *ChainConfig) SetEVMUpgrades(avalancheUpgrades NetworkUpgrades) {
+	// c.CancunTime = utils.NewUint64(*avalancheUpgrades.EUpgradeTimestamp)
+}
+
 func getUpgradeTime(networkID uint32, upgradeTimes map[uint32]time.Time) uint64 {
 	if upgradeTime, ok := upgradeTimes[networkID]; ok {
 		return uint64(upgradeTime.Unix())
