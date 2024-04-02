@@ -503,7 +503,7 @@ func (bc *BlockChain) dispatchTxUnindexer() {
 	defer sub.Unsubscribe()
 	log.Info("Initialized transaction unindexer", "limit", txLookupLimit)
 
-	// XXX
+	// TODO: Uncomment this code when the tx-unindexer fix is ready.
 	// Launch the initial processing if chain is not empty. This step is
 	// useful in these scenarios that chain has no progress and indexer
 	// is never triggered.
