@@ -181,6 +181,12 @@ func (n *network) sendAppRequest(ctx context.Context, nodeID ids.NodeID, request
 		return nil
 	}
 
+	// If the context was cancelled, we can skip sending this request.
+	if err := ctx.Err(); err != nil {
+		n.activeAppRequests.Release(1)
+		return err
+	}
+
 	log.Debug("sending request to peer", "nodeID", nodeID, "requestLen", len(request))
 	n.peers.TrackPeer(nodeID)
 
@@ -234,6 +240,12 @@ func (n *network) SendCrossChainRequest(ctx context.Context, chainID ids.ID, req
 	if n.closed.Get() {
 		n.activeCrossChainRequests.Release(1)
 		return nil
+	}
+
+	// If the context was cancelled, we can skip sending this request.
+	if err := ctx.Err(); err != nil {
+		n.activeCrossChainRequests.Release(1)
+		return err
 	}
 
 	requestID := n.nextRequestID()
