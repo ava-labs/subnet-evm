@@ -111,7 +111,7 @@ type GossipEthTxPool struct {
 }
 
 func (g *GossipEthTxPool) Subscribe(ctx context.Context) {
-	g.mempool.SubscribeNewTxsEvent(g.pendingTxs)
+	g.mempool.SubscribeTransactions(g.pendingTxs, false) // XXX: passing reorgs = false
 
 	for {
 		select {

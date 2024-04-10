@@ -34,7 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-//go:generate go run github.com/ethereum/go-ethereum/rlp/rlpgen -type StateAccount -out gen_account_rlp.go
+//go:generate go run github.com/ava-labs/subnet-evm/rlp/rlpgen -type StateAccount -out gen_account_rlp.go
 
 // StateAccount is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
@@ -97,7 +97,7 @@ func SlimAccountRLP(account StateAccount) []byte {
 	return data
 }
 
-// FullAccount decodes the data on the 'slim RLP' format and return
+// FullAccount decodes the data on the 'slim RLP' format and returns
 // the consensus format account.
 func FullAccount(data []byte) (*StateAccount, error) {
 	var slim SlimAccount
