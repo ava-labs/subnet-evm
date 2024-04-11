@@ -171,6 +171,7 @@ func TestServerBatchResponseSizeLimit(t *testing.T) {
 		batch  []BatchElem
 		client = DialInProc(server)
 	)
+	defer client.Close()
 	for i := 0; i < 5; i++ {
 		batch = append(batch, BatchElem{
 			Method: "test_echo",
