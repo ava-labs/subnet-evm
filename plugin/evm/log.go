@@ -72,12 +72,12 @@ func (s *SubnetEVMLogger) SetLogLevel(level string) error {
 
 // locationTrims are trimmed for display to avoid unwieldy log lines.
 var locationTrims = []string{
-	"github.com/ava-labs/subnet-evm/",
+	"subnet-evm/",
 }
 
 func trimPrefixes(s string) string {
 	for _, prefix := range locationTrims {
-		idx := strings.Index(s, prefix)
+		idx := strings.LastIndex(s, prefix)
 		if idx >= 0 {
 			s = s[idx+len(prefix):]
 		}
