@@ -1,14 +1,14 @@
 module github.com/ava-labs/subnet-evm
 
-go 1.21.9
+go 1.21
 
 require (
 	github.com/VictoriaMetrics/fastcache v1.12.1
-	github.com/ava-labs/avalanchego v1.11.5-0.20240412192521-e2d4a569c60f
+	github.com/ava-labs/avalanchego v1.11.5-0.20240410013217-90bf5247bee8
 	github.com/cespare/cp v0.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set/v2 v2.1.0
-	github.com/docker/docker v24.0.5+incompatible
+	github.com/docker/docker v26.0.1+incompatible
 	github.com/dop251/goja v0.0.0-20230806174421-c933cf95e127
 	github.com/ethereum/go-ethereum v1.13.8
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
@@ -54,7 +54,7 @@ require (
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
-	github.com/ava-labs/coreth v0.13.3-rc.0 // indirect
+	github.com/ava-labs/coreth v0.13.3-rc.0.0.20240410012447-4bb2db47edc9 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
