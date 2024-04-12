@@ -2012,7 +2012,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		addr := crypto.CreateAddress(from, tx.Nonce())
 		log.Info("Submitted contract creation", "hash", tx.Hash().Hex(), "from", from, "nonce", tx.Nonce(), "contract", addr.Hex(), "value", tx.Value(), "type", tx.Type(), "gasFeeCap", tx.GasFeeCap(), "gasTipCap", tx.GasTipCap(), "gasPrice", tx.GasPrice())
 	} else {
-		log.Info("Submitted transaction", "hash", tx.Hash().Hex(), "from", from, "nonce", tx.Nonce(), "recipient", tx.To(), "value", tx.Value(), "type", tx.Type(), "gasFeeCap", tx.GasFeeCap(), "gasTipCap", tx.GasTipCap(), "gasPrice", tx.GasPrice())
+		log.Info("Submitted transaction", "hash", tx.Hash().Hex(), "from", from, "nonce", tx.Nonce(), "recipient", tx.To(), "value", tx.Value(), "type", tx.Type(), "gasFeeCap", tx.GasFeeCap(), "gasTipCap", tx.GasTipCap(), "gasPrice", tx.GasPrice(), "gas", tx.Gas())
 	}
 	return tx.Hash(), nil
 }

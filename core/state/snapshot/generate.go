@@ -32,6 +32,8 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/exp/slog"
+
 	"github.com/ava-labs/subnet-evm/core/rawdb"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/trie"
@@ -73,7 +75,7 @@ func (gs *generatorStats) Debug(msg string, root common.Hash, marker []byte) {
 
 // log creates an contextual log with the given message and the context pulled
 // from the internally maintained statistics.
-func (gs *generatorStats) log(level log.Lvl, msg string, root common.Hash, marker []byte) {
+func (gs *generatorStats) log(level slog.Level, msg string, root common.Hash, marker []byte) {
 	var ctx []interface{}
 	if root != (common.Hash{}) {
 		ctx = append(ctx, []interface{}{"root", root}...)
@@ -114,11 +116,11 @@ func (gs *generatorStats) log(level log.Lvl, msg string, root common.Hash, marke
 		log.Debug(msg, ctx...)
 	case log.LvlInfo:
 		log.Info(msg, ctx...)
-	case log.LvlWarn:
+	case log.LevelWarn:
 		log.Warn(msg, ctx...)
-	case log.LvlError:
+	case log.LevelError:
 		log.Error(msg, ctx...)
-	case log.LvlCrit:
+	case log.LevelCrit:
 		log.Crit(msg, ctx...)
 	default:
 		log.Error(fmt.Sprintf("log with invalid log level %s: %s", level, msg), ctx...)
