@@ -5,16 +5,19 @@ package evm
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"runtime"
+	"strings"
 
+	"github.com/ava-labs/subnet-evm/log"
 	"github.com/ava-labs/subnet-evm/utils"
-	"github.com/ethereum/go-ethereum/log"
-
+	gethlog "github.com/ethereum/go-ethereum/log"
 	"golang.org/x/exp/slog"
 )
 
 type SubnetEVMLogger struct {
-	log.Logger
+	gethlog.Logger
 
 	logLevel *slog.LevelVar
 }
@@ -26,27 +29,33 @@ func InitLogger(alias string, level string, jsonFormat bool, writer io.Writer) (
 
 	var handler slog.Handler
 	if jsonFormat {
-		handler = &withLevel{
-			Handler: log.JSONHandler(writer),
-			level:   logLevel,
-		}
+		chainStr := fmt.Sprintf("%s Chain", alias)
+		handler = log.JSONHandlerWithLevel(writer, logLevel)
+		handler = &addContext{Handler: handler, logger: chainStr}
 	} else {
 		useColor := false
-		handler = &withLevel{
-			Handler: log.NewTerminalHandler(writer, useColor),
-			level:   logLevel,
+		chainStr := fmt.Sprintf("<%s Chain> ", alias)
+		termHandler := log.NewTerminalHandlerWithLevel(writer, logLevel, useColor)
+		termHandler.Prefix = func(r slog.Record) string {
+			file, line := getSource(r)
+			if file != "" {
+				return fmt.Sprintf("%s%s:%d ", chainStr, file, line)
+			}
+			return chainStr
 		}
+		handler = termHandler
 	}
 
 	// Create handler
 	c := SubnetEVMLogger{
-		Logger:   log.NewLogger(handler),
+		Logger:   gethlog.NewLogger(handler),
 		logLevel: logLevel,
 	}
 
 	if err := c.SetLogLevel(level); err != nil {
 		return SubnetEVMLogger{}, err
 	}
+	gethlog.SetDefault(c.Logger)
 	return c, nil
 }
 
@@ -61,11 +70,38 @@ func (s *SubnetEVMLogger) SetLogLevel(level string) error {
 	return nil
 }
 
-type withLevel struct {
-	slog.Handler
-	level slog.Leveler
+// locationTrims are trimmed for display to avoid unwieldy log lines.
+var locationTrims = []string{
+	"github.com/ava-labs/subnet-evm/",
 }
 
-func (h *withLevel) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.level.Level() >= level
+func trimPrefixes(s string) string {
+	for _, prefix := range locationTrims {
+		idx := strings.Index(s, prefix)
+		if idx >= 0 {
+			s = s[idx+len(prefix):]
+		}
+	}
+	return s
+}
+
+func getSource(r slog.Record) (string, int) {
+	frames := runtime.CallersFrames([]uintptr{r.PC})
+	frame, _ := frames.Next()
+	return trimPrefixes(frame.File), frame.Line
+}
+
+type addContext struct {
+	slog.Handler
+
+	logger string
+}
+
+func (a *addContext) Handle(ctx context.Context, r slog.Record) error {
+	r.Add(slog.String("logger", a.logger))
+	file, line := getSource(r)
+	if file != "" {
+		r.Add(slog.String("caller", fmt.Sprintf("%s:%d", file, line)))
+	}
+	return a.Handler.Handle(ctx, r)
 }
