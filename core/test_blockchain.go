@@ -1653,9 +1653,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 // CheckTxIndices checks that the transaction indices are correctly stored in the database ([tail, head]).
 func CheckTxIndices(t *testing.T, expectedTail *uint64, head uint64, db ethdb.Database, allowNilBlocks bool) {
 	var tailValue uint64
-	if expectedTail == nil {
-		tailValue = 0
-	} else {
+	if expectedTail != nil {
 		tailValue = *expectedTail
 	}
 	checkTxIndicesHelper(t, expectedTail, tailValue, head, head, db, allowNilBlocks)
@@ -1668,12 +1666,10 @@ func CheckTxIndices(t *testing.T, expectedTail *uint64, head uint64, db ethdb.Da
 // [head] is the block number of the head block.
 func checkTxIndicesHelper(t *testing.T, expectedTail *uint64, indexedFrom uint64, indexedTo uint64, head uint64, db ethdb.Database, allowNilBlocks bool) {
 	require := require.New(t)
-	var tailValue uint64
 	if expectedTail == nil {
 		require.Nil(rawdb.ReadTxIndexTail(db))
-		tailValue = 0
 	} else {
-		tailValue = *expectedTail
+		tailValue := *expectedTail
 
 		require.Eventually(
 			func() bool {
@@ -1686,9 +1682,6 @@ func checkTxIndicesHelper(t *testing.T, expectedTail *uint64, indexedFrom uint64
 	for i := uint64(0); i <= head; i++ {
 		block := rawdb.ReadBlock(db, rawdb.ReadCanonicalHash(db, i), i)
 		if block == nil && allowNilBlocks {
-			continue
-		}
-		if block.Transactions().Len() == 0 {
 			continue
 		}
 		for _, tx := range block.Transactions() {
