@@ -594,7 +594,7 @@ func TestTransactionIndices(t *testing.T) {
 	chain.DrainAcceptorQueue()
 
 	lastAcceptedBlock := blocks[len(blocks)-1]
-	require.Equal(t, lastAcceptedBlock.Hash(), chain.CurrentHeader().Hash())
+	require.Equal(lastAcceptedBlock.Hash(), chain.CurrentHeader().Hash())
 
 	CheckTxIndices(t, nil, lastAcceptedBlock.NumberU64(), chain.db, false) // check all indices has been indexed
 	chain.Stop()

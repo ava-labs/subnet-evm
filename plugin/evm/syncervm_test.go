@@ -42,10 +42,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-const (
-	exceedParent = 10
-)
-
 func TestSkipStateSync(t *testing.T) {
 	rand.Seed(1)
 	test := syncTest{
