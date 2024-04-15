@@ -1467,45 +1467,6 @@ func (p *BlobPool) PendingWithBaseFee(enforceTips bool, baseFee *big.Int) map[co
 	return p.Pending(enforceTips)
 }
 
-// PendingFrom returns the same set of transactions that would be returned from Pending restricted to only
-// transactions from [addrs].
-func (p *BlobPool) PendingFrom(addrs []common.Address, enforceTips bool) map[common.Address][]*txpool.LazyTransaction {
-	// Track the amount of time waiting to retrieve the list of pending blob txs
-	// from the pool and the amount of time actually spent on assembling the data.
-	// The latter will be pretty much moot, but we've kept it to have symmetric
-	// across all user operations.
-	pendStart := time.Now()
-	p.lock.RLock()
-	pendwaitHist.Update(time.Since(pendStart).Nanoseconds())
-	defer p.lock.RUnlock()
-
-	defer func(start time.Time) {
-		pendtimeHist.Update(time.Since(start).Nanoseconds())
-	}(time.Now())
-
-	pending := make(map[common.Address][]*txpool.LazyTransaction)
-	for _, addr := range addrs {
-		txs, ok := p.index[addr]
-		if !ok {
-			continue
-		}
-		var lazies []*txpool.LazyTransaction
-		for _, tx := range txs {
-			lazies = append(lazies, &txpool.LazyTransaction{
-				Pool:      p,
-				Hash:      tx.hash,
-				Time:      time.Now(), // TODO(karalabe): Maybe save these and use that?
-				GasFeeCap: tx.execFeeCap.ToBig(),
-				GasTipCap: tx.execTipCap.ToBig(),
-			})
-		}
-		if len(lazies) > 0 {
-			pending[addr] = lazies
-		}
-	}
-	return pending
-}
-
 // IteratePending iterates over [pool.pending] until [f] returns false.
 // The caller must not modify [tx]. Returns false if iteration was interrupted.
 func (pool *BlobPool) IteratePending(f func(tx *types.Transaction) bool) bool {

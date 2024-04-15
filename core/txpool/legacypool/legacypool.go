@@ -607,49 +607,6 @@ func (pool *LegacyPool) PendingWithBaseFee(enforceTips bool, baseFee *big.Int) m
 	return pending
 }
 
-// PendingFrom returns the same set of transactions that would be returned from Pending restricted to only
-// transactions from [addrs].
-func (pool *LegacyPool) PendingFrom(addrs []common.Address, enforceTips bool) map[common.Address][]*txpool.LazyTransaction {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
-	pending := make(map[common.Address][]*txpool.LazyTransaction, len(pool.pending))
-	for _, addr := range addrs {
-		list, ok := pool.pending[addr]
-		if !ok {
-			continue
-		}
-		txs := list.Flatten()
-
-		// If the miner requests tip enforcement, cap the lists now
-		if enforceTips && !pool.locals.contains(addr) {
-			for i, tx := range txs {
-				if tx.EffectiveGasTipIntCmp(pool.gasTip.Load(), pool.priced.urgent.baseFee) < 0 {
-					txs = txs[:i]
-					break
-				}
-			}
-		}
-		if len(txs) > 0 {
-			lazies := make([]*txpool.LazyTransaction, len(txs))
-			for i := 0; i < len(txs); i++ {
-				lazies[i] = &txpool.LazyTransaction{
-					Pool:      pool,
-					Hash:      txs[i].Hash(),
-					Tx:        txs[i],
-					Time:      txs[i].Time(),
-					GasFeeCap: txs[i].GasFeeCap(),
-					GasTipCap: txs[i].GasTipCap(),
-					Gas:       txs[i].Gas(),
-					BlobGas:   txs[i].BlobGas(),
-				}
-			}
-			pending[addr] = lazies
-		}
-	}
-	return pending
-}
-
 // IteratePending iterates over [pool.pending] until [f] returns false.
 // The caller must not modify [tx]. Returns false if iteration was interrupted.
 func (pool *LegacyPool) IteratePending(f func(tx *types.Transaction) bool) bool {

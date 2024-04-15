@@ -398,18 +398,6 @@ func (p *TxPool) PendingSize(enforceTips bool) int {
 	return count
 }
 
-// PendingFrom returns the same set of transactions that would be returned from Pending restricted to only
-// transactions from [addrs].
-func (p *TxPool) PendingFrom(addrs []common.Address, enforceTips bool) map[common.Address][]*LazyTransaction {
-	txs := make(map[common.Address][]*LazyTransaction)
-	for _, subpool := range p.subpools {
-		for addr, set := range subpool.PendingFrom(addrs, enforceTips) {
-			txs[addr] = set
-		}
-	}
-	return txs
-}
-
 // IteratePending iterates over [pool.pending] until [f] returns false.
 // The caller must not modify [tx].
 func (p *TxPool) IteratePending(f func(tx *types.Transaction) bool) {

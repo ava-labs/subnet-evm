@@ -122,7 +122,6 @@ type SubPool interface {
 	// account and sorted by nonce.
 	Pending(enforceTips bool) map[common.Address][]*LazyTransaction
 	PendingWithBaseFee(enforceTips bool, baseFee *big.Int) map[common.Address][]*LazyTransaction
-	PendingFrom(addrs []common.Address, enforceTips bool) map[common.Address][]*LazyTransaction
 	IteratePending(f func(tx *types.Transaction) bool) bool // Returns false if iteration was interrupted.
 
 	// SubscribeTransactions subscribes to new transaction events. The subscriber
