@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -697,6 +696,7 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	require.NoError(err)
 	currentBlockNumber := chain.CurrentBlock().Number.Uint64()
 	checkTxIndicesHelper(t, nil, currentBlockNumber+1, currentBlockNumber+1, currentBlockNumber, chainDB, false) // check all indices has been skipped
+	chain.Stop()
 
 	// test2: specify lookuplimit with tx index skipping enabled. Blocks should not be indexed but tail should be updated.
 	conf.TxLookupLimit = 2
@@ -705,6 +705,7 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	currentBlockNumber = chain.CurrentBlock().Number.Uint64()
 	tail := currentBlockNumber - conf.TxLookupLimit + 1
 	checkTxIndicesHelper(t, &tail, currentBlockNumber+1, currentBlockNumber+1, currentBlockNumber, chainDB, false) // check all indices has been skipped
+	chain.Stop()
 
 	// test3: tx index skipping and unindexer disabled. Blocks should be indexed and tail should be updated.
 	conf.TxLookupLimit = 0
@@ -714,6 +715,7 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	require.NoError(err)
 	currentBlockNumber = chain.CurrentBlock().Number.Uint64()
 	checkTxIndicesHelper(t, nil, 0, currentBlockNumber, currentBlockNumber, chainDB, false) // check all indices has been indexed
+	chain.Stop()
 
 	// now change tx index skipping to true and check that the indices are skipped for the last block
 	// and old indices are removed up to the tail, but [tail, current) indices are still there.
@@ -724,6 +726,7 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	currentBlockNumber = chain.CurrentBlock().Number.Uint64()
 	tail = currentBlockNumber - conf.TxLookupLimit + 1
 	checkTxIndicesHelper(t, &tail, tail, currentBlockNumber-1, currentBlockNumber, chainDB, false)
+	chain.Stop()
 }
 
 // TestCanonicalHashMarker tests all the canonical hash markers are updated/deleted
@@ -1196,10 +1199,7 @@ func createAndInsertChain(db ethdb.Database, cacheConfig *CacheConfig, gspec *Ge
 			return nil, err
 		}
 	}
-
 	chain.DrainAcceptorQueue()
-	time.Sleep(500 * time.Millisecond) // Wait for indices initialisation
 
-	chain.Stop()
 	return chain, nil
 }
