@@ -1662,12 +1662,10 @@ func CheckTxIndices(t *testing.T, expectedTail *uint64, head uint64, db ethdb.Da
 
 func checkTxIndicesHelper(t *testing.T, expectedTail *uint64, indexedFrom uint64, indexedTo uint64, head uint64, db ethdb.Database, allowNilBlocks bool) {
 	require := require.New(t)
-	var tailValue uint64
 	if expectedTail == nil {
 		require.Nil(rawdb.ReadTxIndexTail(db))
-		tailValue = 0
 	} else {
-		tailValue = *expectedTail
+		tailValue := *expectedTail
 
 		require.Eventually(
 			func() bool {
