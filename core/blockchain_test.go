@@ -538,7 +538,6 @@ func TestUngracefulAsyncShutdown(t *testing.T) {
 	}
 }
 
-// TODO: simplify the unindexer logic and this test.
 func TestTransactionIndices(t *testing.T) {
 	// Configure and generate a sample block chain
 	require := require.New(t)
@@ -568,40 +567,6 @@ func TestTransactionIndices(t *testing.T) {
 	})
 	require.NoError(err)
 
-	check := func(tail *uint64, chain *BlockChain) {
-		stored := rawdb.ReadTxIndexTail(chain.db)
-		var tailValue uint64
-		if tail == nil {
-			require.Nil(stored)
-			tailValue = 0
-		} else {
-			require.EqualValues(*tail, *stored, "expected tail %d, got %d", *tail, *stored)
-			tailValue = *tail
-		}
-
-		for i := tailValue; i <= chain.CurrentBlock().Number.Uint64(); i++ {
-			block := rawdb.ReadBlock(chain.db, rawdb.ReadCanonicalHash(chain.db, i), i)
-			if block.Transactions().Len() == 0 {
-				continue
-			}
-			for _, tx := range block.Transactions() {
-				index := rawdb.ReadTxLookupEntry(chain.db, tx.Hash())
-				require.NotNilf(index, "Miss transaction indices, number %d hash %s", i, tx.Hash().Hex())
-			}
-		}
-
-		for i := uint64(0); i < tailValue; i++ {
-			block := rawdb.ReadBlock(chain.db, rawdb.ReadCanonicalHash(chain.db, i), i)
-			if block.Transactions().Len() == 0 {
-				continue
-			}
-			for _, tx := range block.Transactions() {
-				index := rawdb.ReadTxLookupEntry(chain.db, tx.Hash())
-				require.Nilf(index, "Transaction indices should be deleted, number %d hash %s", i, tx.Hash().Hex())
-			}
-		}
-	}
-
 	conf := &CacheConfig{
 		TrieCleanLimit:            256,
 		TrieDirtyLimit:            256,
@@ -628,10 +593,11 @@ func TestTransactionIndices(t *testing.T) {
 	}
 	chain.DrainAcceptorQueue()
 
-	chain.Stop()
-	check(nil, chain) // check all indices has been indexed
+	lastAcceptedBlock := blocks[len(blocks)-1]
+	require.Equal(t, lastAcceptedBlock.Hash(), chain.CurrentHeader().Hash())
 
-	lastAcceptedHash := chain.CurrentHeader().Hash()
+	CheckTxIndices(t, nil, lastAcceptedBlock.NumberU64(), chain.db, false) // check all indices has been indexed
+	chain.Stop()
 
 	// Reconstruct a block chain which only reserves limited tx indices
 	// 128 blocks were previously indexed. Now we add a new block at each test step.
@@ -646,38 +612,45 @@ func TestTransactionIndices(t *testing.T) {
 		t.Run(fmt.Sprintf("test-%d, limit: %d", i+1, l), func(t *testing.T) {
 			conf.TxLookupLimit = l
 
-			chain, err := createBlockChain(chainDB, conf, gspec, lastAcceptedHash)
+			chain, err := createBlockChain(chainDB, conf, gspec, lastAcceptedBlock.Hash())
 			require.NoError(err)
+
+			tail := getTail(l, lastAcceptedBlock.NumberU64())
+			// check if startup indices are correct
+			CheckTxIndices(t, tail, lastAcceptedBlock.NumberU64(), chain.db, false)
 
 			newBlks := blocks2[i : i+1]
 			_, err = chain.InsertChain(newBlks) // Feed chain a higher block to trigger indices updater.
 			require.NoError(err)
 
-			err = chain.Accept(newBlks[0]) // Accept the block to trigger indices updater.
+			lastAcceptedBlock = newBlks[0]
+			err = chain.Accept(lastAcceptedBlock) // Accept the block to trigger indices updater.
 			require.NoError(err)
-
 			chain.DrainAcceptorQueue()
-			time.Sleep(50 * time.Millisecond) // Wait for indices initialisation
 
+			tail = getTail(l, lastAcceptedBlock.NumberU64())
+			// check if indices are updated correctly
+			CheckTxIndices(t, tail, lastAcceptedBlock.NumberU64(), chain.db, false)
 			chain.Stop()
-			var tail *uint64
-			if l == 0 {
-				tail = nil
-			} else {
-				var tl uint64
-				if chain.CurrentBlock().Number.Uint64() > l {
-					// tail should be the first block number which is indexed
-					// i.e the first block number that's in the lookup range
-					tl = chain.CurrentBlock().Number.Uint64() - l + 1
-				}
-				tail = &tl
-			}
-
-			check(tail, chain)
-
-			lastAcceptedHash = chain.CurrentHeader().Hash()
 		})
 	}
+}
+
+func getTail(limit uint64, lastAccepted uint64) *uint64 {
+	var tail *uint64
+	if limit == 0 {
+		tail = nil
+	} else {
+		var tl uint64
+		if lastAccepted > limit {
+			// tail should be the oldest block number which is indexed
+			// i.e the first block number that's in the lookup range
+			tl = lastAccepted - limit + 1
+		}
+		tail = &tl
+	}
+
+	return tail
 }
 
 func TestTransactionSkipIndexing(t *testing.T) {

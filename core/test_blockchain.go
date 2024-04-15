@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/commontype"
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
@@ -23,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type ChainTest struct {
@@ -1646,4 +1648,40 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 
 	// This tests that the precompiles work as expected when they are enabled
 	checkBlockChainState(t, blockchain, gspec, chainDB, create, checkState)
+}
+
+func CheckTxIndices(t *testing.T, expectedTail *uint64, head uint64, db ethdb.Database, allowNilBlocks bool) {
+	require := require.New(t)
+	var tailValue uint64
+	if expectedTail == nil {
+		require.Nil(rawdb.ReadTxIndexTail(db))
+		tailValue = 0
+	} else {
+		tailValue = *expectedTail
+
+		require.Eventually(
+			func() bool {
+				stored := *rawdb.ReadTxIndexTail(db)
+				return tailValue == stored
+			},
+			10*time.Second, 100*time.Millisecond, "expected tail to be %d eventually", tailValue)
+	}
+
+	for i := uint64(0); i <= head; i++ {
+		block := rawdb.ReadBlock(db, rawdb.ReadCanonicalHash(db, i), i)
+		if block == nil && allowNilBlocks {
+			continue
+		}
+		if block.Transactions().Len() == 0 {
+			continue
+		}
+		for _, tx := range block.Transactions() {
+			index := rawdb.ReadTxLookupEntry(db, tx.Hash())
+			if i < tailValue {
+				require.Nilf(index, "Transaction indices should be deleted, number %d hash %s", i, tx.Hash().Hex())
+			} else {
+				require.NotNilf(index, "Missing transaction indices, number %d hash %s", i, tx.Hash().Hex())
+			}
+		}
+	}
 }
