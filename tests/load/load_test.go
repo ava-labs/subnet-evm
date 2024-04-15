@@ -5,6 +5,7 @@ package load
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,6 +60,10 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 		genesisPath := filepath.Join(repoRootPath, "tests/load/genesis/genesis.json")
 
 		nodes := utils.NewTmpnetNodes(nodeCount)
+		// Enable local transactions for load testing, this avoids transactions
+		// getting dropped once they are submitted to a node.
+		chainConfig := maps.Clone(utils.DefaultChainConfig)
+		chainConfig[utils.LocalTxsEnabledKey] = true
 
 		env = e2e.NewTestEnvironment(
 			flagVars,
@@ -66,7 +71,7 @@ var _ = ginkgo.Describe("[Load Simulator]", ginkgo.Ordered, func() {
 				"subnet-evm-small-load",
 				nodes,
 				tmpnet.FlagsMap{},
-				utils.NewTmpnetSubnet(subnetAName, genesisPath, utils.DefaultChainConfig, nodes...),
+				utils.NewTmpnetSubnet(subnetAName, genesisPath, chainConfig, nodes...),
 			),
 		)
 	})
