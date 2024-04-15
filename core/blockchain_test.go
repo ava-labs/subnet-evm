@@ -637,20 +637,16 @@ func TestTransactionIndices(t *testing.T) {
 }
 
 func getTail(limit uint64, lastAccepted uint64) *uint64 {
-	var tail *uint64
 	if limit == 0 {
-		tail = nil
-	} else {
-		var tl uint64
-		if lastAccepted > limit {
-			// tail should be the oldest block number which is indexed
-			// i.e the first block number that's in the lookup range
-			tl = lastAccepted - limit + 1
-		}
-		tail = &tl
+		return nil
 	}
-
-	return tail
+	var tail uint64
+	if lastAccepted > limit {
+		// tail should be the oldest block number which is indexed
+		// i.e the first block number that's in the lookup range
+		tail = lastAccepted - limit + 1
+	}
+	return &tail
 }
 
 func TestTransactionSkipIndexing(t *testing.T) {
