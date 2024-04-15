@@ -450,9 +450,6 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 	lastNumber := syncerVM.blockChain.LastAcceptedBlock().NumberU64()
 	// check the last block is indexed
 	block := rawdb.ReadBlock(syncerVM.chaindb, rawdb.ReadCanonicalHash(syncerVM.chaindb, lastNumber), lastNumber)
-	if block.Transactions().Len() == 0 {
-		return
-	}
 	for _, tx := range block.Transactions() {
 		index := rawdb.ReadTxLookupEntry(syncerVM.chaindb, tx.Hash())
 		require.NotNilf(index, "Miss transaction indices, number %d hash %s", lastNumber, tx.Hash().Hex())
@@ -484,7 +481,6 @@ func testSyncerVM(t *testing.T, vmSetup *syncVMSetup, test syncTest) {
 		tail := syncerVM.blockChain.LastAcceptedBlock().NumberU64() - syncerVM.ethConfig.TxLookupLimit + 1
 
 		syncerVM.blockChain.DrainAcceptorQueue()
-		time.Sleep(50 * time.Millisecond) // Wait for indices initialisation
 
 		core.CheckTxIndices(t, &tail, syncerVM.blockChain.LastAcceptedBlock().NumberU64(), syncerVM.chaindb, true)
 	}

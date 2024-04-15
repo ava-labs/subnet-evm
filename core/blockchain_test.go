@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -1202,7 +1201,6 @@ func createAndInsertChain(db ethdb.Database, cacheConfig *CacheConfig, gspec *Ge
 	}
 
 	chain.DrainAcceptorQueue()
-	time.Sleep(1000 * time.Millisecond) // Wait for indices initialisation
 
 	chain.Stop()
 	return chain, nil
