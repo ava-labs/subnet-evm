@@ -1682,9 +1682,6 @@ func checkTxIndicesHelper(t *testing.T, expectedTail *uint64, indexedFrom uint64
 		if block == nil && allowNilBlocks {
 			continue
 		}
-		if block.Transactions().Len() == 0 {
-			continue
-		}
 		for _, tx := range block.Transactions() {
 			index := rawdb.ReadTxLookupEntry(db, tx.Hash())
 			if i < indexedFrom {
