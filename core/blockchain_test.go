@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/subnet-evm/consensus/dummy"
 	"github.com/ava-labs/subnet-evm/core/rawdb"
@@ -701,8 +702,8 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	conf.TxLookupLimit = 2
 	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks2[0:1], chain.CurrentHeader().Hash())
 	require.NoError(err)
-	tail := chain.CurrentBlock().Number.Uint64() - conf.TxLookupLimit + 1
 	currentBlockNumber = chain.CurrentBlock().Number.Uint64()
+	tail := currentBlockNumber - conf.TxLookupLimit + 1
 	checkTxIndicesHelper(t, &tail, currentBlockNumber+1, currentBlockNumber+1, currentBlockNumber, chainDB, false) // check all indices has been skipped
 
 	// test3: tx index skipping and unindexer disabled. Blocks should be indexed and tail should be updated.
@@ -720,8 +721,8 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	conf.SkipTxIndexing = true
 	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks2[0:1], chain.CurrentHeader().Hash())
 	require.NoError(err)
-	tail = chain.CurrentBlock().Number.Uint64() - conf.TxLookupLimit + 1
 	currentBlockNumber = chain.CurrentBlock().Number.Uint64()
+	tail = currentBlockNumber - conf.TxLookupLimit + 1
 	checkTxIndicesHelper(t, &tail, tail, currentBlockNumber-1, currentBlockNumber, chainDB, false)
 }
 
@@ -1197,6 +1198,7 @@ func createAndInsertChain(db ethdb.Database, cacheConfig *CacheConfig, gspec *Ge
 	}
 
 	chain.DrainAcceptorQueue()
+	time.Sleep(500 * time.Millisecond) // Wait for indices initialisation
 
 	chain.Stop()
 	return chain, nil
