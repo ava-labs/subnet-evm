@@ -1651,6 +1651,16 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 }
 
 func CheckTxIndices(t *testing.T, expectedTail *uint64, head uint64, db ethdb.Database, allowNilBlocks bool) {
+	var tailValue uint64
+	if expectedTail == nil {
+		tailValue = 0
+	} else {
+		tailValue = *expectedTail
+	}
+	checkTxIndicesHelper(t, expectedTail, tailValue, head, head, db, allowNilBlocks)
+}
+
+func checkTxIndicesHelper(t *testing.T, expectedTail *uint64, indexedFrom uint64, indexedTo uint64, head uint64, db ethdb.Database, allowNilBlocks bool) {
 	require := require.New(t)
 	var tailValue uint64
 	if expectedTail == nil {
@@ -1677,9 +1687,9 @@ func CheckTxIndices(t *testing.T, expectedTail *uint64, head uint64, db ethdb.Da
 		}
 		for _, tx := range block.Transactions() {
 			index := rawdb.ReadTxLookupEntry(db, tx.Hash())
-			if i < tailValue {
+			if i < indexedFrom {
 				require.Nilf(index, "Transaction indices should be deleted, number %d hash %s", i, tx.Hash().Hex())
-			} else {
+			} else if i <= indexedTo {
 				require.NotNilf(index, "Missing transaction indices, number %d hash %s", i, tx.Hash().Hex())
 			}
 		}

@@ -682,51 +682,6 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	})
 	require.NoError(err)
 
-	checkRemoved := func(tail *uint64, to uint64, chain *BlockChain) {
-		stored := rawdb.ReadTxIndexTail(chain.db)
-		var tailValue uint64
-		if tail == nil {
-			require.Nil(stored)
-			tailValue = 0
-		} else {
-			require.EqualValues(*tail, *stored, "expected tail %d, got %d", *tail, *stored)
-			tailValue = *tail
-		}
-
-		for i := tailValue; i < to; i++ {
-			block := rawdb.ReadBlock(chain.db, rawdb.ReadCanonicalHash(chain.db, i), i)
-			if block.Transactions().Len() == 0 {
-				continue
-			}
-			for _, tx := range block.Transactions() {
-				index := rawdb.ReadTxLookupEntry(chain.db, tx.Hash())
-				require.NotNilf(index, "Miss transaction indices, number %d hash %s", i, tx.Hash().Hex())
-			}
-		}
-
-		for i := uint64(0); i < tailValue; i++ {
-			block := rawdb.ReadBlock(chain.db, rawdb.ReadCanonicalHash(chain.db, i), i)
-			if block.Transactions().Len() == 0 {
-				continue
-			}
-			for _, tx := range block.Transactions() {
-				index := rawdb.ReadTxLookupEntry(chain.db, tx.Hash())
-				require.Nilf(index, "Transaction indices should be deleted, number %d hash %s", i, tx.Hash().Hex())
-			}
-		}
-
-		for i := to; i <= chain.CurrentBlock().Number.Uint64(); i++ {
-			block := rawdb.ReadBlock(chain.db, rawdb.ReadCanonicalHash(chain.db, i), i)
-			if block.Transactions().Len() == 0 {
-				continue
-			}
-			for _, tx := range block.Transactions() {
-				index := rawdb.ReadTxLookupEntry(chain.db, tx.Hash())
-				require.Nilf(index, "Transaction indices should be skipped, number %d hash %s", i, tx.Hash().Hex())
-			}
-		}
-	}
-
 	conf := &CacheConfig{
 		TrieCleanLimit:            256,
 		TrieDirtyLimit:            256,
@@ -744,14 +699,16 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	chainDB := rawdb.NewMemoryDatabase()
 	chain, err := createAndInsertChain(chainDB, conf, gspec, blocks, common.Hash{})
 	require.NoError(err)
-	checkRemoved(nil, 0, chain) // check all indices has been skipped
+	currentBlockNumber := chain.CurrentBlock().Number.Uint64()
+	checkTxIndicesHelper(t, nil, currentBlockNumber+1, currentBlockNumber+1, currentBlockNumber, chainDB, false) // check all indices has been skipped
 
 	// test2: specify lookuplimit with tx index skipping enabled. Blocks should not be indexed but tail should be updated.
 	conf.TxLookupLimit = 2
 	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks2[0:1], chain.CurrentHeader().Hash())
 	require.NoError(err)
 	tail := chain.CurrentBlock().Number.Uint64() - conf.TxLookupLimit + 1
-	checkRemoved(&tail, 0, chain)
+	currentBlockNumber = chain.CurrentBlock().Number.Uint64()
+	checkTxIndicesHelper(t, &tail, currentBlockNumber+1, currentBlockNumber+1, currentBlockNumber, chainDB, false) // check all indices has been skipped
 
 	// test3: tx index skipping and unindexer disabled. Blocks should be indexed and tail should be updated.
 	conf.TxLookupLimit = 0
@@ -759,7 +716,8 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	chainDB = rawdb.NewMemoryDatabase()
 	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks, common.Hash{})
 	require.NoError(err)
-	checkRemoved(nil, chain.CurrentBlock().Number.Uint64()+1, chain) // check all indices has been indexed
+	currentBlockNumber = chain.CurrentBlock().Number.Uint64()
+	checkTxIndicesHelper(t, nil, 0, currentBlockNumber, currentBlockNumber, chainDB, false) // check all indices has been indexed
 
 	// now change tx index skipping to true and check that the indices are skipped for the last block
 	// and old indices are removed up to the tail, but [tail, current) indices are still there.
@@ -768,7 +726,8 @@ func TestTransactionSkipIndexing(t *testing.T) {
 	chain, err = createAndInsertChain(chainDB, conf, gspec, blocks2[0:1], chain.CurrentHeader().Hash())
 	require.NoError(err)
 	tail = chain.CurrentBlock().Number.Uint64() - conf.TxLookupLimit + 1
-	checkRemoved(&tail, chain.CurrentBlock().Number.Uint64(), chain)
+	currentBlockNumber = chain.CurrentBlock().Number.Uint64()
+	checkTxIndicesHelper(t, &tail, tail, currentBlockNumber-1, currentBlockNumber, chainDB, false)
 }
 
 // TestCanonicalHashMarker tests all the canonical hash markers are updated/deleted
