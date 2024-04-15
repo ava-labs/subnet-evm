@@ -1652,9 +1652,7 @@ func TestStatefulPrecompiles(t *testing.T, create func(db ethdb.Database, gspec 
 
 func CheckTxIndices(t *testing.T, expectedTail *uint64, head uint64, db ethdb.Database, allowNilBlocks bool) {
 	var tailValue uint64
-	if expectedTail == nil {
-		tailValue = 0
-	} else {
+	if expectedTail != nil {
 		tailValue = *expectedTail
 	}
 	checkTxIndicesHelper(t, expectedTail, tailValue, head, head, db, allowNilBlocks)
