@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ava-labs/subnet-evm/core/state/snapshot"
+	syncclient "github.com/ava-labs/subnet-evm/sync/client"
+	"github.com/ava-labs/subnet-evm/triedb"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
 	"github.com/ethereum/go-ethereum/ethdb"
-	syncclient "github.com/ethereum/go-ethereum/sync/client"
-	"github.com/ethereum/go-ethereum/triedb"
 	"golang.org/x/sync/errgroup"
 )
 

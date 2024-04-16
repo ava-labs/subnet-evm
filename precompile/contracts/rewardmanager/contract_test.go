@@ -10,14 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/ethereum/go-ethereum/commontype"
-	"github.com/ethereum/go-ethereum/constants"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/precompile/allowlist"
-	"github.com/ethereum/go-ethereum/precompile/contract"
-	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
-	"github.com/ethereum/go-ethereum/precompile/testutils"
-	"github.com/ethereum/go-ethereum/vmerrs"
+	"github.com/ava-labs/subnet-evm/commontype"
+	"github.com/ava-labs/subnet-evm/constants"
+	"github.com/ava-labs/subnet-evm/core/state"
+	"github.com/ava-labs/subnet-evm/precompile/allowlist"
+	"github.com/ava-labs/subnet-evm/precompile/contract"
+	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
+	"github.com/ava-labs/subnet-evm/precompile/testutils"
+	"github.com/ava-labs/subnet-evm/vmerrs"
 )
 
 var (

@@ -22,7 +22,7 @@ package core
 import (
 	"testing"
 
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ava-labs/subnet-evm/core/types"
 )
 
 // XXX: should we have the tests in this file?
