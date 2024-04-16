@@ -179,7 +179,6 @@ func UnpackSyncPerformedKey(key []byte) uint64 {
 
 // GetLatestSyncPerformed returns the latest block number state synced performed to.
 func GetLatestSyncPerformed(db ethdb.Iteratee) uint64 {
-	// XXX: assuming this is not sorted
 	it := NewSyncPerformedIterator(db)
 	defer it.Release()
 
