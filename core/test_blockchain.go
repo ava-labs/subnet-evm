@@ -1669,13 +1669,14 @@ func checkTxIndicesHelper(t *testing.T, expectedTail *uint64, indexedFrom uint64
 	if expectedTail == nil {
 		require.Nil(rawdb.ReadTxIndexTail(db))
 	} else {
+		var stored uint64
 		tailValue := *expectedTail
 		require.Eventually(
 			func() bool {
-				stored := *rawdb.ReadTxIndexTail(db)
+				stored = *rawdb.ReadTxIndexTail(db)
 				return tailValue == stored
 			},
-			10*time.Second, 100*time.Millisecond, "expected tail to be %d eventually", tailValue)
+			10*time.Second, 100*time.Millisecond, "expected tail to be %d eventually (was %d)", tailValue, stored)
 	}
 
 	for i := uint64(0); i <= head; i++ {
