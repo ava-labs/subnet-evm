@@ -100,7 +100,6 @@ type stEnv struct {
 	ParentBeaconBlockRoot *common.Hash                        `json:"parentBeaconBlockRoot"`
 }
 
-//nolint:unused
 type stEnvMarshaling struct {
 	Coinbase            common.UnprefixedAddress
 	Difficulty          *math.HexOrDecimal256
