@@ -331,10 +331,6 @@ func (t *StateTest) RunNoVerify(subtest StateSubtest, vmconfig vm.Config, snapsh
 	return state, root, err
 }
 
-func (t *StateTest) gasLimit(subtest StateSubtest) uint64 {
-	return t.json.Tx.GasLimit[t.json.Post[subtest.Fork][subtest.Index].Indexes.Gas]
-}
-
 func (t *StateTest) genesis(config *params.ChainConfig) *core.Genesis {
 	genesis := &core.Genesis{
 		Config:     config,
