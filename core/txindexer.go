@@ -17,7 +17,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -180,18 +179,6 @@ func (indexer *txIndexer) report(head uint64, tail *uint64) TxIndexProgress {
 	return TxIndexProgress{
 		Indexed:   indexed,
 		Remaining: remaining,
-	}
-}
-
-// txIndexProgress retrieves the tx indexing progress, or an error if the
-// background tx indexer is already stopped.
-func (indexer *txIndexer) txIndexProgress() (TxIndexProgress, error) {
-	ch := make(chan TxIndexProgress, 1)
-	select {
-	case indexer.progress <- ch:
-		return <-ch, nil
-	case <-indexer.closed:
-		return TxIndexProgress{}, errors.New("indexer is closed")
 	}
 }
 
