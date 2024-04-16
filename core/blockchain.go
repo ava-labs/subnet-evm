@@ -442,6 +442,7 @@ func (bc *BlockChain) unindexBlocks(tail uint64, head uint64, done chan struct{}
 		txUnindexTimer.Inc(time.Since(start).Milliseconds())
 		bc.txIndexTailLock.Unlock()
 		close(done)
+		bc.wg.Done()
 	}()
 
 	if head-txLookupLimit+1 >= tail {
@@ -483,6 +484,7 @@ func (bc *BlockChain) maintainTxIndex() {
 	if head := bc.CurrentBlock(); head != nil && head.Number.Uint64() > txLookupLimit {
 		done = make(chan struct{})
 		tail := rawdb.ReadTxIndexTail(bc.db)
+		bc.wg.Add(1)
 		go bc.unindexBlocks(*tail, head.Number.Uint64(), done)
 	}
 
@@ -498,6 +500,7 @@ func (bc *BlockChain) maintainTxIndex() {
 				done = make(chan struct{})
 				// Note: tail will not be nil since it is initialized in this function.
 				tail := rawdb.ReadTxIndexTail(bc.db)
+				bc.wg.Add(1)
 				go bc.unindexBlocks(*tail, headNum, done)
 			}
 		case <-done:
