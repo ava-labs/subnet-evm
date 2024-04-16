@@ -1,13 +1,3 @@
-// (c) 2023, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2017 The go-ethereum Authors
 // This file is part of go-ethereum.
 //
@@ -32,13 +22,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/state/snapshot"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
-	"github.com/ava-labs/subnet-evm/tests"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/eth/tracers/logger"
+	"github.com/ethereum/go-ethereum/tests"
 	"github.com/urfave/cli/v2"
 )
 
@@ -100,26 +89,27 @@ func runStateTest(fname string, cfg vm.Config, jsonOut, dump bool) error {
 	if err != nil {
 		return err
 	}
-	var tests map[string]tests.StateTest
-	if err := json.Unmarshal(src, &tests); err != nil {
+	var testsByName map[string]tests.StateTest
+	if err := json.Unmarshal(src, &testsByName); err != nil {
 		return err
 	}
+
 	// Iterate over all the tests, run them and aggregate the results
-	results := make([]StatetestResult, 0, len(tests))
-	for key, test := range tests {
+	results := make([]StatetestResult, 0, len(testsByName))
+	for key, test := range testsByName {
 		for _, st := range test.Subtests() {
 			// Run the test and aggregate the result
 			result := &StatetestResult{Name: key, Fork: st.Fork, Pass: true}
-			test.Run(st, cfg, false, rawdb.HashScheme, func(err error, snaps *snapshot.Tree, statedb *state.StateDB) {
+			test.Run(st, cfg, false, rawdb.HashScheme, func(err error, tstate *tests.StateTestState) {
 				var root common.Hash
-				if statedb != nil {
-					root = statedb.IntermediateRoot(false)
+				if tstate.StateDB != nil {
+					root = tstate.StateDB.IntermediateRoot(false)
 					result.Root = &root
 					if jsonOut {
 						fmt.Fprintf(os.Stderr, "{\"stateRoot\": \"%#x\"}\n", root)
 					}
 					if dump { // Dump any state to aid debugging
-						cpy, _ := state.New(root, statedb.Database(), nil)
+						cpy, _ := state.New(root, tstate.StateDB.Database(), nil)
 						dump := cpy.RawDump(nil)
 						result.State = &dump
 					}

@@ -1,13 +1,3 @@
-// (c) 2019-2020, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2017 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -29,15 +19,15 @@ package snapshot
 import (
 	crand "crypto/rand"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/holiman/uint256"
 )
 
 // randomHash generates a random blob of data and returns it as a hash.
@@ -52,7 +42,7 @@ func randomHash() common.Hash {
 // randomAccount generates a random account and returns it RLP encoded.
 func randomAccount() []byte {
 	a := &types.StateAccount{
-		Balance:  big.NewInt(rand.Int63()),
+		Balance:  uint256.NewInt(rand.Uint64()),
 		Nonce:    rand.Uint64(),
 		Root:     randomHash(),
 		CodeHash: types.EmptyCodeHash[:],
@@ -610,19 +600,19 @@ func TestRebloomOnFlatten(t *testing.T) {
 			t.Fatal("snapshot should be a diffLayer")
 		}
 
-		if hitsA != dl.diffed.Contains(accountBloomHasher(addrA)) {
+		if hitsA != dl.diffed.ContainsHash(accountBloomHash(addrA)) {
 			t.Errorf("expected bloom filter to return %t but got %t", hitsA, !hitsA)
 		}
 
-		if hitsB != dl.diffed.Contains(accountBloomHasher(addrB)) {
+		if hitsB != dl.diffed.ContainsHash(accountBloomHash(addrB)) {
 			t.Errorf("expected bloom filter to return %t but got %t", hitsB, !hitsB)
 		}
 
-		if hitsC != dl.diffed.Contains(accountBloomHasher(addrC)) {
+		if hitsC != dl.diffed.ContainsHash(accountBloomHash(addrC)) {
 			t.Errorf("expected bloom filter to return %t but got %t", hitsC, !hitsC)
 		}
 
-		if hitsD != dl.diffed.Contains(accountBloomHasher(addrD)) {
+		if hitsD != dl.diffed.ContainsHash(accountBloomHash(addrD)) {
 			t.Errorf("expected bloom filter to return %t but got %t", hitsD, !hitsD)
 		}
 	}

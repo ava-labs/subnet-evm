@@ -6,11 +6,11 @@ package deployerallowlist
 import (
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/precompile/testutils"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/precompile/allowlist"
+	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
+	"github.com/ethereum/go-ethereum/precompile/testutils"
+	"github.com/ethereum/go-ethereum/utils"
 	"go.uber.org/mock/gomock"
 )
 

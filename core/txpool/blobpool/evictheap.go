@@ -1,13 +1,3 @@
-// (c) 2024, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2023 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -40,7 +30,7 @@ import (
 // transaction from each account to determine which account to evict from.
 //
 // The heap internally tracks a slice of cheapest transactions from each account
-// and a mapping from addresses to indices for direct removals/udates.
+// and a mapping from addresses to indices for direct removals/updates.
 //
 // The goal of the heap is to decide which account has the worst bottleneck to
 // evict transactions from.

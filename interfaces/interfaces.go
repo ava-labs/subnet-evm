@@ -1,13 +1,3 @@
-// (c) 2019-2020, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2016 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -32,8 +22,8 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 // NotFound is returned by API methods if the requested item does not exist.
@@ -115,6 +105,10 @@ type CallMsg struct {
 	Data      []byte          // input data, usually an ABI-encoded contract method invocation
 
 	AccessList types.AccessList // EIP-2930 access list.
+
+	// For BlobTxType
+	BlobGasFeeCap *big.Int
+	BlobHashes    []common.Hash
 }
 
 // A ContractCaller provides contract calls, essentially transactions that are executed by
@@ -174,6 +168,16 @@ type GasPricer interface {
 	SuggestGasPrice(ctx context.Context) (*big.Int, error)
 }
 
+// GasPricer1559 provides access to the EIP-1559 gas price oracle.
+type GasPricer1559 interface {
+	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
+}
+
+// FeeHistoryReader provides access to the fee history oracle.
+type FeeHistoryReader interface {
+	FeeHistory(ctx context.Context, blockCount uint64, lastBlock *big.Int, rewardPercentiles []float64) (*FeeHistory, error)
+}
+
 // FeeHistory provides recent fee market data that consumers can use to determine
 // a reasonable maxPriorityFeePerGas value.
 type FeeHistory struct {
@@ -207,4 +211,14 @@ type GasEstimator interface {
 // pending state.
 type PendingStateEventer interface {
 	SubscribePendingTransactions(ctx context.Context, ch chan<- *types.Transaction) (Subscription, error)
+}
+
+// BlockNumberReader provides access to the current block number.
+type BlockNumberReader interface {
+	BlockNumber(ctx context.Context) (uint64, error)
+}
+
+// ChainIDReader provides access to the chain ID.
+type ChainIDReader interface {
+	ChainID(ctx context.Context) (*big.Int, error)
 }

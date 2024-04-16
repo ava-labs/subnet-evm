@@ -1,13 +1,3 @@
-// (c) 2020-2021, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2020 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -32,10 +22,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/trie/testutil"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/trie/testutil"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/exp/slices"
 )
@@ -233,7 +223,7 @@ func TestStackTrieInsertAndHash(t *testing.T) {
 
 func TestSizeBug(t *testing.T) {
 	st := NewStackTrie(nil)
-	nt := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase(), nil))
+	nt := NewEmpty(newTestDatabase(rawdb.NewMemoryDatabase(), rawdb.HashScheme))
 
 	leaf := common.FromHex("290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563")
 	value := common.FromHex("94cf40d0d2b44f2b66e07cace1372ca42b73cf21a3")
@@ -248,7 +238,7 @@ func TestSizeBug(t *testing.T) {
 
 func TestEmptyBug(t *testing.T) {
 	st := NewStackTrie(nil)
-	nt := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase(), nil))
+	nt := NewEmpty(newTestDatabase(rawdb.NewMemoryDatabase(), rawdb.HashScheme))
 
 	//leaf := common.FromHex("290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563")
 	//value := common.FromHex("94cf40d0d2b44f2b66e07cace1372ca42b73cf21a3")
@@ -274,7 +264,7 @@ func TestEmptyBug(t *testing.T) {
 
 func TestValLength56(t *testing.T) {
 	st := NewStackTrie(nil)
-	nt := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase(), nil))
+	nt := NewEmpty(newTestDatabase(rawdb.NewMemoryDatabase(), rawdb.HashScheme))
 
 	//leaf := common.FromHex("290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563")
 	//value := common.FromHex("94cf40d0d2b44f2b66e07cace1372ca42b73cf21a3")
@@ -299,7 +289,7 @@ func TestValLength56(t *testing.T) {
 // which causes a lot of node-within-node. This case was found via fuzzing.
 func TestUpdateSmallNodes(t *testing.T) {
 	st := NewStackTrie(nil)
-	nt := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase(), nil))
+	nt := NewEmpty(newTestDatabase(rawdb.NewMemoryDatabase(), rawdb.HashScheme))
 	kvs := []struct {
 		K string
 		V string
@@ -327,7 +317,7 @@ func TestUpdateSmallNodes(t *testing.T) {
 func TestUpdateVariableKeys(t *testing.T) {
 	t.SkipNow()
 	st := NewStackTrie(nil)
-	nt := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase(), nil))
+	nt := NewEmpty(newTestDatabase(rawdb.NewMemoryDatabase(), rawdb.HashScheme))
 	kvs := []struct {
 		K string
 		V string

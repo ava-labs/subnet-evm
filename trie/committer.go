@@ -1,13 +1,3 @@
-// (c) 2020-2021, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2020 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -29,8 +19,8 @@ package trie
 import (
 	"fmt"
 
-	"github.com/ava-labs/subnet-evm/trie/trienode"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/trie/trienode"
 )
 
 // committer is the tool used for the trie Commit operation. The committer will
@@ -164,12 +154,12 @@ func (c *committer) store(path []byte, n node) node {
 	return hash
 }
 
-// mptResolver the children resolver in merkle-patricia-tree.
-type mptResolver struct{}
+// MerkleResolver the children resolver in merkle-patricia-tree.
+type MerkleResolver struct{}
 
 // ForEach implements childResolver, decodes the provided node and
 // traverses the children inside.
-func (resolver mptResolver) ForEach(node []byte, onChild func(common.Hash)) {
+func (resolver MerkleResolver) ForEach(node []byte, onChild func(common.Hash)) {
 	forGatherChildren(mustDecodeNodeUnsafe(nil, node), onChild)
 }
 

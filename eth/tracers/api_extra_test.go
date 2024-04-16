@@ -12,16 +12,16 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/eth/tracers/logger"
-	"github.com/ava-labs/subnet-evm/internal/ethapi"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/txallowlist"
-	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/eth/tracers/logger"
+	"github.com/ethereum/go-ethereum/internal/ethapi"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/precompile/contracts/txallowlist"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,7 +33,7 @@ func TestTraceBlockPrecompileActivation(t *testing.T) {
 	copyConfig := *params.TestChainConfig
 	genesis := &core.Genesis{
 		Config: &copyConfig,
-		Alloc: core.GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
@@ -139,7 +139,7 @@ func TestTraceTransactionPrecompileActivation(t *testing.T) {
 	copyConfig := *params.TestChainConfig
 	genesis := &core.Genesis{
 		Config: &copyConfig,
-		Alloc: core.GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(params.Ether)},
 			accounts[2].addr: {Balance: big.NewInt(params.Ether)},
@@ -203,7 +203,7 @@ func TestTraceChainPrecompileActivation(t *testing.T) {
 	copyConfig := *params.TestChainConfig
 	genesis := &core.Genesis{
 		Config: &copyConfig,
-		Alloc: core.GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(5 * params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(5 * params.Ether)},
 			accounts[2].addr: {Balance: big.NewInt(5 * params.Ether)},
@@ -300,7 +300,7 @@ func TestTraceCallWithOverridesStateUpgrade(t *testing.T) {
 	copyConfig := *params.TestChainConfig
 	genesis := &core.Genesis{
 		Config: &copyConfig,
-		Alloc: core.GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(5 * params.Ether)},
 			accounts[1].addr: {Balance: big.NewInt(5 * params.Ether)},
 			accounts[2].addr: {Balance: big.NewInt(5 * params.Ether)},

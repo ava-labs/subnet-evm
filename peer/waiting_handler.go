@@ -6,7 +6,7 @@ package peer
 import (
 	"context"
 
-	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ethereum/go-ethereum/plugin/evm/message"
 )
 
 var _ message.ResponseHandler = &waitingResponseHandler{}

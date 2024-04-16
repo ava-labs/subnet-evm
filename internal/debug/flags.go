@@ -1,13 +1,3 @@
-// (c) 2019-2020, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2016 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -36,7 +26,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/ava-labs/subnet-evm/internal/flags"
+	"github.com/ethereum/go-ethereum/internal/flags"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/fjl/memsize/memsizeui"
 	"github.com/mattn/go-colorable"
@@ -176,22 +166,12 @@ var Flags = []cli.Flag{
 }
 
 var (
-	glogger                *log.GlogHandler
-	logOutputFile          io.WriteCloser
-	defaultTerminalHandler *log.TerminalHandler
+	glogger       *log.GlogHandler
+	logOutputFile io.WriteCloser
 )
 
 func init() {
-	defaultTerminalHandler = log.NewTerminalHandler(os.Stderr, false)
-	glogger = log.NewGlogHandler(defaultTerminalHandler)
-	glogger.Verbosity(log.LvlInfo)
-	log.SetDefault(log.NewLogger(glogger))
-}
-
-func ResetLogging() {
-	if defaultTerminalHandler != nil {
-		defaultTerminalHandler.ResetFieldPadding()
-	}
+	glogger = log.NewGlogHandler(log.NewTerminalHandler(os.Stderr, false))
 }
 
 // Setup initializes profiling and logging based on the CLI flags.

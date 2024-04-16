@@ -1,13 +1,3 @@
-// (c) 2020-2021, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -31,8 +21,8 @@ import (
 	"container/heap"
 	"errors"
 
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 // NodeResolver is used for looking up trie nodes before reaching into the real
@@ -133,7 +123,7 @@ type NodeIterator interface {
 	// accesses and returning them from memory.
 	//
 	// Before adding a similar mechanism to any other place in Geth, consider
-	// making trie.Database an interface and wrapping at that level. It's a huge
+	// making triedb.Database an interface and wrapping at that level. It's a huge
 	// refactor, but it could be worth it if another occurrence arises.
 	AddResolver(NodeResolver)
 }

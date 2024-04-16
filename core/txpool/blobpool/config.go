@@ -1,13 +1,3 @@
-// (c) 2024, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2022 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -40,8 +30,8 @@ type Config struct {
 // DefaultConfig contains the default configurations for the transaction pool.
 var DefaultConfig = Config{
 	Datadir:   "blobpool",
-	Datacap:   10 * 1024 * 1024 * 1024,
-	PriceBump: 100, // either have patience or be aggressive, no mushy ground
+	Datacap:   10 * 1024 * 1024 * 1024 / 4, // TODO(karalabe): /4 handicap for rollout, gradually bump back up to 10GB
+	PriceBump: 100,                         // either have patience or be aggressive, no mushy ground
 }
 
 // sanitize checks the provided user configurations and changes anything that's

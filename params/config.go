@@ -1,13 +1,3 @@
-// (c) 2019-2020, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2016 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -33,11 +23,11 @@ import (
 	"math/big"
 
 	"github.com/ava-labs/avalanchego/utils/constants"
-	"github.com/ava-labs/subnet-evm/commontype"
-	"github.com/ava-labs/subnet-evm/precompile/modules"
-	"github.com/ava-labs/subnet-evm/precompile/precompileconfig"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/commontype"
+	"github.com/ethereum/go-ethereum/precompile/modules"
+	"github.com/ethereum/go-ethereum/precompile/precompileconfig"
+	"github.com/ethereum/go-ethereum/utils"
 )
 
 const maxJSONLen = 64 * 1024 * 1024 // 64MB
@@ -213,7 +203,8 @@ func (c *ChainConfig) Description() string {
 	}
 
 	banner += "Hard forks (timestamp based):\n"
-	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)\n", ptrToString(c.CancunTime))
+	banner += fmt.Sprintf(" - Cancun Timestamp:              @%-10v (https://github.com/ava-labs/avalanchego/releases/tag/v1.12.0)\n", ptrToString(c.CancunTime)) /// XXX: should we link the ethereum execution spec here instead
+	banner += fmt.Sprintf(" - Verkle Timestamp:              @%-10v", ptrToString(c.VerkleTime))
 
 	banner += "Avalanche Upgrades (timestamp based):\n"
 	banner += c.NetworkUpgrades.Description()
@@ -619,6 +610,7 @@ type Rules struct {
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
 	IsCancun                                                bool
+	IsVerkle                                                bool
 
 	// Rules for Avalanche releases
 	AvalancheRules
@@ -659,6 +651,7 @@ func (c *ChainConfig) rules(num *big.Int, timestamp uint64) Rules {
 		IsPetersburg:     c.IsPetersburg(num),
 		IsIstanbul:       c.IsIstanbul(num),
 		IsCancun:         c.IsCancun(num, timestamp),
+		IsVerkle:         c.IsVerkle(num, timestamp),
 	}
 }
 

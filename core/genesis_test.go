@@ -1,13 +1,3 @@
-// (c) 2019-2021, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2017 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -33,25 +23,26 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/consensus/dummy"
-	"github.com/ava-labs/subnet-evm/core/rawdb"
-	"github.com/ava-labs/subnet-evm/core/state"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/core/vm"
-	"github.com/ava-labs/subnet-evm/params"
-	"github.com/ava-labs/subnet-evm/precompile/allowlist"
-	"github.com/ava-labs/subnet-evm/precompile/contracts/deployerallowlist"
-	"github.com/ava-labs/subnet-evm/trie"
-	"github.com/ava-labs/subnet-evm/trie/triedb/pathdb"
-	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/consensus/dummy"
+	"github.com/ethereum/go-ethereum/core/rawdb"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/precompile/allowlist"
+	"github.com/ethereum/go-ethereum/precompile/contracts/deployerallowlist"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
+	"github.com/ethereum/go-ethereum/triedb/pathdb"
+	"github.com/ethereum/go-ethereum/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupGenesisBlock(db ethdb.Database, triedb *trie.Database, genesis *Genesis, lastAcceptedHash common.Hash) (*params.ChainConfig, common.Hash, error) {
+func setupGenesisBlock(db ethdb.Database, triedb *triedb.Database, genesis *Genesis, lastAcceptedHash common.Hash) (*params.ChainConfig, common.Hash, error) {
 	return SetupGenesisBlock(db, triedb, genesis, lastAcceptedHash, false)
 }
 
@@ -75,7 +66,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 		customghash = common.HexToHash("0x4a12fe7bf8d40d152d7e9de22337b115186a4662aa3a97217b36146202bbfc66")
 		customg     = Genesis{
 			Config: &preSubnetConfig,
-			Alloc: GenesisAlloc{
+			Alloc: types.GenesisAlloc{
 				{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 			},
 			GasLimit: preSubnetConfig.FeeConfig.GasLimit.Uint64(),
@@ -97,7 +88,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 		{
 			name: "genesis without ChainConfig",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				return setupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), new(Genesis), common.Hash{})
+				return setupGenesisBlock(db, triedb.NewDatabase(db, newDbConfig(scheme)), new(Genesis), common.Hash{})
 			},
 			wantErr:    errGenesisNoConfig,
 			wantConfig: nil,
@@ -105,7 +96,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 		{
 			name: "no block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				return setupGenesisBlock(db, trie.NewDatabase(db, newDbConfig(scheme)), nil, common.Hash{})
+				return setupGenesisBlock(db, triedb.NewDatabase(db, newDbConfig(scheme)), nil, common.Hash{})
 			},
 			wantErr:    ErrNoGenesis,
 			wantConfig: nil,
@@ -113,7 +104,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 		{
 			name: "custom block in DB, genesis == nil",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				tdb := trie.NewDatabase(db, newDbConfig(scheme))
+				tdb := triedb.NewDatabase(db, newDbConfig(scheme))
 				customg.Commit(db, tdb)
 				return setupGenesisBlock(db, tdb, nil, common.Hash{})
 			},
@@ -123,7 +114,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 		{
 			name: "compatible config in DB",
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
-				tdb := trie.NewDatabase(db, newDbConfig(scheme))
+				tdb := triedb.NewDatabase(db, newDbConfig(scheme))
 				oldcustomg.Commit(db, tdb)
 				return setupGenesisBlock(db, tdb, &customg, customghash)
 			},
@@ -135,7 +126,7 @@ func testSetupGenesis(t *testing.T, scheme string) {
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				// Commit the 'old' genesis block with SubnetEVM transition at 90.
 				// Advance to block #4, past the SubnetEVM transition block of customg.
-				tdb := trie.NewDatabase(db, newDbConfig(scheme))
+				tdb := triedb.NewDatabase(db, newDbConfig(scheme))
 				genesis, err := oldcustomg.Commit(db, tdb)
 				if err != nil {
 					t.Fatal(err)
@@ -224,7 +215,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 
 			genesis := &Genesis{
 				Config: config,
-				Alloc: GenesisAlloc{
+				Alloc: types.GenesisAlloc{
 					{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 				},
 				GasLimit: config.FeeConfig.GasLimit.Uint64(),
@@ -235,7 +226,7 @@ func TestStatefulPrecompilesConfigure(t *testing.T) {
 			genesisBlock := genesis.ToBlock()
 			genesisRoot := genesisBlock.Root()
 
-			_, _, err := setupGenesisBlock(db, trie.NewDatabase(db, trie.HashDefaults), genesis, genesisBlock.Hash())
+			_, _, err := setupGenesisBlock(db, triedb.NewDatabase(db, triedb.HashDefaults), genesis, genesisBlock.Hash())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -257,7 +248,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	customg := Genesis{
 		Config: params.TestChainConfig,
-		Alloc: GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
 		GasLimit: params.TestChainConfig.FeeConfig.GasLimit.Uint64(),
@@ -297,7 +288,7 @@ func TestPrecompileActivationAfterHeaderBlock(t *testing.T) {
 	require.Less(bc.lastAccepted.Time(), *contractDeployerConfig.Timestamp())
 
 	// This should not return any error since the last accepted block is before the activation block.
-	config, _, err := setupGenesisBlock(db, trie.NewDatabase(db, nil), &customg, bc.lastAccepted.Hash())
+	config, _, err := setupGenesisBlock(db, triedb.NewDatabase(db, nil), &customg, bc.lastAccepted.Hash())
 	require.NoError(err)
 	if !reflect.DeepEqual(config, customg.Config) {
 		t.Errorf("returned %v\nwant     %v", config, customg.Config)
@@ -309,14 +300,14 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 	config := *params.TestChainConfig
 	genesis := &Genesis{
 		Config: &config,
-		Alloc: GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
 		GasLimit: config.FeeConfig.GasLimit.Uint64(),
 	}
 
 	db := rawdb.NewMemoryDatabase()
-	trieDB := trie.NewDatabase(db, trie.HashDefaults)
+	trieDB := triedb.NewDatabase(db, triedb.HashDefaults)
 	genesisBlock := genesis.MustCommit(db, trieDB)
 
 	_, _, err := SetupGenesisBlock(db, trieDB, genesis, genesisBlock.Hash(), false)
@@ -346,11 +337,11 @@ func TestGenesisWriteUpgradesRegression(t *testing.T) {
 	require.NoError(err)
 }
 
-func newDbConfig(scheme string) *trie.Config {
+func newDbConfig(scheme string) *triedb.Config {
 	if scheme == rawdb.HashScheme {
-		return trie.HashDefaults
+		return triedb.HashDefaults
 	}
-	return &trie.Config{PathDB: pathdb.Defaults}
+	return &triedb.Config{PathDB: pathdb.Defaults}
 }
 
 func TestVerkleGenesisCommit(t *testing.T) {
@@ -375,7 +366,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 		Config:     verkleConfig,
 		Timestamp:  verkleTime,
 		Difficulty: big.NewInt(0),
-		Alloc: GenesisAlloc{
+		Alloc: types.GenesisAlloc{
 			{1}: {Balance: big.NewInt(1), Storage: map[common.Hash]common.Hash{{1}: {1}}},
 		},
 	}
@@ -387,7 +378,7 @@ func TestVerkleGenesisCommit(t *testing.T) {
 	}
 
 	db := rawdb.NewMemoryDatabase()
-	triedb := trie.NewDatabase(db, &trie.Config{IsVerkle: true, PathDB: pathdb.Defaults})
+	triedb := triedb.NewDatabase(db, &triedb.Config{IsVerkle: true, PathDB: pathdb.Defaults})
 	block := genesis.MustCommit(db, triedb)
 	if !bytes.Equal(block.Root().Bytes(), expected) {
 		t.Fatalf("invalid genesis state root, expected %x, got %x", expected, got)

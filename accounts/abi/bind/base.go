@@ -1,13 +1,3 @@
-// (c) 2019-2020, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -34,12 +24,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ava-labs/subnet-evm/accounts/abi"
-	"github.com/ava-labs/subnet-evm/core/types"
-	"github.com/ava-labs/subnet-evm/interfaces"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/interfaces"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 const basefeeWiggleMultiplier = 2
@@ -387,7 +378,8 @@ func (c *BoundContract) estimateGasLimit(opts *TransactOpts, contract *common.Ad
 
 func (c *BoundContract) getNonce(opts *TransactOpts) (uint64, error) {
 	if opts.Nonce == nil {
-		return c.transactor.AcceptedNonceAt(ensureContext(opts.Context), opts.From)
+		pendingBlock := big.NewInt(int64(rpc.PendingBlockNumber))
+		return c.transactor.NonceAt(ensureContext(opts.Context), opts.From, pendingBlock)
 	} else {
 		return opts.Nonce.Uint64(), nil
 	}

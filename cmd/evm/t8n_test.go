@@ -1,13 +1,3 @@
-// (c) 2023, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2021 The go-ethereum Authors
 // This file is part of go-ethereum.
 //
@@ -34,9 +24,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/cmd/evm/internal/t8ntool"
-	"github.com/ava-labs/subnet-evm/internal/cmdtest"
-	"github.com/ava-labs/subnet-evm/internal/reexec"
+	"github.com/ethereum/go-ethereum/cmd/evm/internal/t8ntool"
+	"github.com/ethereum/go-ethereum/internal/cmdtest"
+	"github.com/ethereum/go-ethereum/internal/reexec"
 )
 
 func TestMain(m *testing.M) {

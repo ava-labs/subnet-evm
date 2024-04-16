@@ -1,13 +1,3 @@
-// (c) 2019-2022, Ava Labs, Inc.
-//
-// This file is a derived work, based on the go-ethereum library whose original
-// notices appear below.
-//
-// It is distributed under a license compatible with the licensing terms of the
-// original code from which it is derived.
-//
-// Much love to the original authors for their work.
-// **********
 // Copyright 2020 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
@@ -33,8 +23,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 func TestChainIterator(t *testing.T) {
@@ -179,11 +169,11 @@ func TestIndexTransactions(t *testing.T) {
 	indexTransactionsForTesting(chainDb, 0, 5, nil, nil)
 	verify(0, 11, true, 0)
 
-	UnindexTransactions(chainDb, 0, 5, nil)
+	UnindexTransactions(chainDb, 0, 5, nil, false)
 	verify(5, 11, true, 5)
 	verify(0, 5, false, 5)
 
-	UnindexTransactions(chainDb, 5, 11, nil)
+	UnindexTransactions(chainDb, 5, 11, nil, false)
 	verify(0, 11, false, 11)
 
 	// Testing corner cases
