@@ -428,7 +428,20 @@ func NewBlockChain(
 	// Start tx indexer/unindexer if required.
 	if bc.cacheConfig.TxLookupLimit != 0 {
 		bc.wg.Add(1)
-		go bc.maintainTxIndex()
+		go func() {
+			defer bc.wg.Done()
+			var (
+				headCh = make(chan ChainEvent, 1) // Buffered to avoid locking up the event feed
+				sub    = bc.SubscribeChainAcceptedEvent(headCh)
+			)
+			if sub == nil {
+				log.Warn("could not create chain accepted subscription to unindex txs")
+				return
+			}
+			defer sub.Unsubscribe()
+
+			bc.maintainTxIndex(headCh)
+		}()
 	}
 	return bc, nil
 }
@@ -455,8 +468,7 @@ func (bc *BlockChain) unindexBlocks(tail uint64, head uint64, done chan struct{}
 // transaction index. This does not support reconstruction of removed indexes.
 // Invariant: If TxLookupLimit is 0, it means all tx indices will be preserved.
 // Meaning that this function should never be called.
-func (bc *BlockChain) maintainTxIndex() {
-	defer bc.wg.Done()
+func (bc *BlockChain) maintainTxIndex(headCh <-chan ChainEvent) {
 	txLookupLimit := bc.cacheConfig.TxLookupLimit
 
 	// If the user just upgraded to a new version which supports transaction
@@ -467,15 +479,8 @@ func (bc *BlockChain) maintainTxIndex() {
 
 	// Any reindexing done, start listening to chain events and moving the index window
 	var (
-		done   chan struct{}              // Non-nil if background unindexing or reindexing routine is active.
-		headCh = make(chan ChainEvent, 1) // Buffered to avoid locking up the event feed
+		done chan struct{} // Non-nil if background unindexing or reindexing routine is active.
 	)
-	sub := bc.SubscribeChainAcceptedEvent(headCh)
-	if sub == nil {
-		log.Warn("could not create chain accepted subscription to unindex txs")
-		return
-	}
-	defer sub.Unsubscribe()
 	log.Info("Initialized transaction unindexer", "limit", txLookupLimit)
 
 	// Launch the initial processing if chain is not empty. This step is
