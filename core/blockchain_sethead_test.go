@@ -35,8 +35,6 @@ import (
 	"github.com/ava-labs/subnet-evm/core/types"
 )
 
-// XXX: should we have the tests in this file?
-
 // verifyNoGaps checks that there are no gaps after the initial set of blocks in
 // the database and errors if found.
 func verifyNoGaps(t *testing.T, chain *BlockChain, canonical bool, inserted types.Blocks) {

@@ -107,7 +107,6 @@ func TestStateProcessorErrors(t *testing.T) {
 	}
 
 	{ // Tests against a 'recent' chain definition
-		// XXX: why is this different than upstream?
 		var (
 			db    = rawdb.NewMemoryDatabase()
 			gspec = &Genesis{

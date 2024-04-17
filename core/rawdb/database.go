@@ -461,4 +461,4 @@ func ClearPrefix(db ethdb.KeyValueStore, prefix []byte, keyLen int) error {
 	return batch.Write()
 }
 
-/// XXX: Consider adding ReadChainMetadata
+/// TODO: Consider adding ReadChainMetadata

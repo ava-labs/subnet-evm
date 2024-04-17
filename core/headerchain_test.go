@@ -80,7 +80,7 @@ func TestHeaderInsertion(t *testing.T) {
 		}
 	)
 	genesis := gspec.ToBlock()
-	chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false) // XXX: Why is this NewHeaderChain upstream?
+	chain, err := NewBlockChain(db, DefaultCacheConfig, gspec, dummy.NewCoinbaseFaker(), vm.Config{}, common.Hash{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}

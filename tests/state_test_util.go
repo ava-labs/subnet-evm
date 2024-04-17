@@ -500,8 +500,7 @@ func (st *StateTestState) Close() {
 	}
 	if st.Snapshots != nil {
 		// Need to call Disable here to quit the snapshot generator goroutine.
-		// XXX: Is this needed?
-		// st.Snapshots.Disable()
+		st.Snapshots.AbortGeneration()
 		st.Snapshots.Release()
 		st.Snapshots = nil
 	}
