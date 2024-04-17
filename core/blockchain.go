@@ -429,8 +429,8 @@ func NewBlockChain(
 	if bc.cacheConfig.TxLookupLimit != 0 {
 		bc.wg.Add(1)
 		var (
-				headCh = make(chan ChainEvent, 1) // Buffered to avoid locking up the event feed
-				sub    = bc.SubscribeChainAcceptedEvent(headCh)
+			headCh = make(chan ChainEvent, 1) // Buffered to avoid locking up the event feed
+			sub    = bc.SubscribeChainAcceptedEvent(headCh)
 		)
 		go func() {
 			defer bc.wg.Done()
