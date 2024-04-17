@@ -139,7 +139,6 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 			return nil, err
 		}
 	}
-	backend.Start()
 	return &Backend{
 		eth:    backend,
 		client: simClient{ethclient.NewClient(rpc.DialInProc(server))},
@@ -153,14 +152,8 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 func (n *Backend) Close() error {
 	if n.client.Client != nil {
 		n.client.Close()
-		n.client = simClient{}
 	}
-	if n.eth != nil {
-		n.eth.Stop()
-	}
-	if n.server != nil {
-		n.server.Stop()
-	}
+	n.server.Stop()
 	return nil
 }
 
@@ -176,6 +169,10 @@ func (n *Backend) Commit(accept bool) common.Hash {
 func (n *Backend) buildBlock(accept bool, gap uint64) (common.Hash, error) {
 	chain := n.eth.BlockChain()
 	parent := chain.CurrentBlock()
+
+	if err := n.eth.TxPool().Sync(); err != nil {
+		return common.Hash{}, err
+	}
 
 	n.clock.Set(time.Unix(int64(parent.Time+gap), 0))
 	block, err := n.eth.Miner().GenerateBlock(nil)
@@ -239,6 +236,11 @@ func (n *Backend) Rollback() {
 // to simulate live network behavior.
 func (n *Backend) Fork(parentHash common.Hash) error {
 	chain := n.eth.BlockChain()
+
+	if chain.CurrentBlock().Hash() == parentHash {
+		return nil
+	}
+
 	parent := chain.GetBlockByHash(parentHash)
 	if parent == nil {
 		return errors.New("parent block not found")
@@ -251,14 +253,18 @@ func (n *Backend) Fork(parentHash common.Hash) error {
 	if err := n.eth.BlockChain().SetPreference(parent); err != nil {
 		return err
 	}
-	for reorg := range ch {
-		// Wait for tx pool to reorg, then flush the tx pool
-		if reorg.Head.Hash() == parent.Hash() {
-			n.Rollback()
-			return nil
+	for {
+		select {
+		case reorg := <-ch:
+			// Wait for tx pool to reorg, then flush the tx pool
+			if reorg.Head.Hash() == parent.Hash() {
+				n.Rollback()
+				return nil
+			}
+		case <-time.After(2 * time.Second):
+			return errors.New("fork not accepted")
 		}
 	}
-	return errors.New("fork not accepted")
 }
 
 // AdjustTime changes the block timestamp and creates a new block.
