@@ -67,10 +67,6 @@ func (mt *mockTransactor) NonceAt(ctx context.Context, account common.Address, b
 	return 0, nil
 }
 
-func (mt *mockTransactor) AcceptedNonceAt(ctx context.Context, account common.Address) (uint64, error) {
-	return 0, nil
-}
-
 func (mt *mockTransactor) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	mt.suggestGasPriceCalled = true
 	return mt.gasPrice, nil
