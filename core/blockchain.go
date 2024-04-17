@@ -428,12 +428,12 @@ func NewBlockChain(
 	// Start tx indexer/unindexer if required.
 	if bc.cacheConfig.TxLookupLimit != 0 {
 		bc.wg.Add(1)
-		go func() {
-			defer bc.wg.Done()
-			var (
+		var (
 				headCh = make(chan ChainEvent, 1) // Buffered to avoid locking up the event feed
 				sub    = bc.SubscribeChainAcceptedEvent(headCh)
-			)
+		)
+		go func() {
+			defer bc.wg.Done()
 			if sub == nil {
 				log.Warn("could not create chain accepted subscription to unindex txs")
 				return
