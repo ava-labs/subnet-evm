@@ -55,6 +55,7 @@ import (
 	"github.com/ava-labs/subnet-evm/internal/blocktest"
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/rpc"
+	"github.com/ava-labs/subnet-evm/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -787,12 +788,15 @@ func TestEstimateGas(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
+	// Enable BLOBHASH opcode in Cancun
+	cfg := *params.TestChainConfig
+	cfg.CancunTime = utils.NewUint64(0)
 	t.Parallel()
 	// Initialize test accounts
 	var (
 		accounts = newAccounts(3)
 		genesis  = &core.Genesis{
-			Config: params.TestChainConfig,
+			Config: &cfg,
 			Alloc: types.GenesisAlloc{
 				accounts[0].addr: {Balance: big.NewInt(params.Ether)},
 				accounts[1].addr: {Balance: big.NewInt(params.Ether)},
@@ -1014,7 +1018,7 @@ func TestSignTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expect := `{"type":"0x2","chainId":"0x1","nonce":"0x0","to":"0x703c4b2bd70c169f5717101caee543299fc946c7","gas":"0x5208","gasPrice":null,"maxPriorityFeePerGas":"0x0","maxFeePerGas":"0x684ee180","value":"0x1","input":"0x","accessList":[],"v":"0x0","r":"0x8fabeb142d585dd9247f459f7e6fe77e2520c88d50ba5d220da1533cea8b34e1","s":"0x582dd68b21aef36ba23f34e49607329c20d981d30404daf749077f5606785ce7","yParity":"0x0","hash":"0x93927839207cfbec395da84b8a2bc38b7b65d2cb2819e9fef1f091f5b1d4cc8f"}`
+	expect := `{"type":"0x2","chainId":"0x1","nonce":"0x0","to":"0x703c4b2bd70c169f5717101caee543299fc946c7","gas":"0x5208","gasPrice":null,"maxPriorityFeePerGas":"0x0","maxFeePerGas":"0xba43b7400","value":"0x1","input":"0x","accessList":[],"v":"0x0","r":"0xa7bbf5672b6f78e934bd380aad0b2626d5337e96c12f1e755fa5522ba7a314bd","s":"0x4d661f8c7b850b7dc3ce1c8c7b443a4434a22fe3ad14cc463205e0259546f0c8","yParity":"0x0","hash":"0x0333d97cbdababb6af7cc55a6f64d47711b8e18a93d7343657508a454407a82c"}`
 	if !bytes.Equal(tx, []byte(expect)) {
 		t.Errorf("result mismatch. Have:\n%s\nWant:\n%s\n", tx, expect)
 	}
@@ -1031,7 +1035,7 @@ func TestSignBlobTransaction(t *testing.T) {
 			Alloc:  types.GenesisAlloc{},
 		}
 	)
-	b := newTestBackend(t, 1, genesis, dummy.NewFaker(), func(i int, b *core.BlockGen) {
+	b := newTestBackend(t, 1, genesis, dummy.NewCoinbaseFaker(), func(i int, b *core.BlockGen) {
 		// b.SetPoS()
 	})
 	api := NewTransactionAPI(b, nil)
@@ -1065,7 +1069,7 @@ func TestSendBlobTransaction(t *testing.T) {
 			Alloc:  types.GenesisAlloc{},
 		}
 	)
-	b := newTestBackend(t, 1, genesis, dummy.NewFaker(), func(i int, b *core.BlockGen) {
+	b := newTestBackend(t, 1, genesis, dummy.NewCoinbaseFaker(), func(i int, b *core.BlockGen) {
 		// b.SetPoS()
 	})
 	api := NewTransactionAPI(b, nil)
@@ -1102,7 +1106,7 @@ func TestFillBlobTransaction(t *testing.T) {
 		emptyBlobProof, _              = kzg4844.ComputeBlobProof(emptyBlob, emptyBlobCommit)
 		emptyBlobHash      common.Hash = kzg4844.CalcBlobHashV1(sha256.New(), &emptyBlobCommit)
 	)
-	b := newTestBackend(t, 1, genesis, dummy.NewFaker(), func(i int, b *core.BlockGen) {
+	b := newTestBackend(t, 1, genesis, dummy.NewCoinbaseFaker(), func(i int, b *core.BlockGen) {
 		// b.SetPoS()
 	})
 	api := NewTransactionAPI(b, nil)

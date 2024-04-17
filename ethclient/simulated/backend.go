@@ -73,6 +73,7 @@ type Backend struct {
 	eth    *eth.Ethereum
 	client simClient
 	clock  *mockable.Clock
+	server *rpc.Server
 }
 
 // NewBackend creates a new simulated blockchain that can be used as a backend for
@@ -95,6 +96,7 @@ func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config,
 	}
 	ethConf.AllowUnfinalizedQueries = true
 	ethConf.Miner.Etherbase = constants.BlackholeAddr
+	ethConf.Miner.AllowDuplicateBlocks = true
 	ethConf.GPO.MinPrice = new(big.Int).SetUint64(ethConf.TxPool.PriceLimit) // XXX: this constraint should be enforced
 	ethConf.TxPool.NoLocals = true
 
@@ -131,7 +133,7 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 	if err != nil {
 		return nil, err
 	}
-	server := rpc.NewServer(0) // XXX: need to stop this server
+	server := rpc.NewServer(0)
 	for _, api := range backend.APIs() {
 		if err := server.RegisterName(api.Namespace, api.Service); err != nil {
 			return nil, err
@@ -142,6 +144,7 @@ func newWithNode(stack *node.Node, conf *eth.Config, blockPeriod uint64) (*Backe
 		eth:    backend,
 		client: simClient{ethclient.NewClient(rpc.DialInProc(server))},
 		clock:  clock,
+		server: server,
 	}, nil
 }
 
@@ -154,6 +157,9 @@ func (n *Backend) Close() error {
 	}
 	if n.eth != nil {
 		n.eth.Stop()
+	}
+	if n.server != nil {
+		n.server.Stop()
 	}
 	return nil
 }
@@ -168,13 +174,14 @@ func (n *Backend) Commit(accept bool) common.Hash {
 }
 
 func (n *Backend) buildBlock(accept bool, gap uint64) (common.Hash, error) {
-	parent := n.eth.BlockChain().CurrentBlock()
+	chain := n.eth.BlockChain()
+	parent := chain.CurrentBlock()
+
 	n.clock.Set(time.Unix(int64(parent.Time+gap), 0))
 	block, err := n.eth.Miner().GenerateBlock(nil)
 	if err != nil {
 		return common.Hash{}, err
 	}
-	chain := n.eth.BlockChain()
 	if err := chain.InsertBlock(block); err != nil {
 		return common.Hash{}, err
 	}
@@ -211,7 +218,11 @@ func (n *Backend) acceptAncestors(block *types.Block) error {
 
 // Rollback removes all pending transactions, reverting to the last committed state.
 func (n *Backend) Rollback() {
-
+	// Flush all transactions from the transaction pools
+	maxUint256 := new(big.Int).Sub(new(big.Int).Lsh(common.Big1, 256), common.Big1)
+	original := n.eth.TxPool().GasTip()
+	n.eth.TxPool().SetGasTip(maxUint256)
+	n.eth.TxPool().SetGasTip(original)
 }
 
 // Fork creates a side-chain that can be used to simulate reorgs.
@@ -227,7 +238,27 @@ func (n *Backend) Rollback() {
 // There is a % chance that the side chain becomes canonical at the same length
 // to simulate live network behavior.
 func (n *Backend) Fork(parentHash common.Hash) error {
-	return nil
+	chain := n.eth.BlockChain()
+	parent := chain.GetBlockByHash(parentHash)
+	if parent == nil {
+		return errors.New("parent block not found")
+	}
+
+	ch := make(chan core.NewTxPoolReorgEvent, 1)
+	sub := n.eth.TxPool().SubscribeNewReorgEvent(ch)
+	defer sub.Unsubscribe()
+
+	if err := n.eth.BlockChain().SetPreference(parent); err != nil {
+		return err
+	}
+	for reorg := range ch {
+		// Wait for tx pool to reorg, then flush the tx pool
+		if reorg.Head.Hash() == parent.Hash() {
+			n.Rollback()
+			return nil
+		}
+	}
+	return errors.New("fork not accepted")
 }
 
 // AdjustTime changes the block timestamp and creates a new block.

@@ -27,8 +27,10 @@ import (
 	"github.com/ava-labs/subnet-evm/accounts/abi/bind"
 	"github.com/ava-labs/subnet-evm/core/types"
 	"github.com/ava-labs/subnet-evm/params"
+	"github.com/ava-labs/subnet-evm/rpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 )
 
 var _ bind.ContractBackend = (Client)(nil)
@@ -149,7 +151,6 @@ func TestSendTransaction(t *testing.T) {
 //     Since Commit() was called 2n+1 times in total,
 //     having a chain length of just n+1 means that a reorg occurred.
 func TestFork(t *testing.T) {
-	t.Skip() // XXX: should not be skipped
 	t.Parallel()
 	testAddr := crypto.PubkeyToAddress(testKey.PublicKey)
 	sim := simTestBackend(testAddr)
@@ -198,7 +199,6 @@ func TestFork(t *testing.T) {
 //  5. Mine a block, Re-send the transaction and mine another one.
 //  6. Check that the TX is now included in block 2.
 func TestForkResendTx(t *testing.T) {
-	t.Skip() // XXX: should not be skipped
 	t.Parallel()
 	testAddr := crypto.PubkeyToAddress(testKey.PublicKey)
 	sim := simTestBackend(testAddr)
@@ -219,10 +219,15 @@ func TestForkResendTx(t *testing.T) {
 	sim.Commit(false)
 
 	// 3.
-	receipt, _ := client.TransactionReceipt(ctx, tx.Hash())
-	if h := receipt.BlockNumber.Uint64(); h != 1 {
-		t.Errorf("TX included in wrong block: %d", h)
-	}
+	// Note this test is revised from upstream since we cannot get the receipt
+	// for a pending transaction. (Receipts only written for accepted blocks).
+	require := require.New(t)
+	pendingBlockNum := big.NewInt(int64(rpc.PendingBlockNumber))
+	b1, err := client.BlockByNumber(ctx, pendingBlockNum)
+	require.NoError(err)
+	require.Len(b1.Transactions(), 1)
+	require.Equal(tx.Hash(), b1.Transactions()[0].Hash())
+	require.Equal(uint64(1), b1.NumberU64())
 
 	// 4.
 	if err := sim.Fork(parent.Hash()); err != nil {
@@ -234,8 +239,8 @@ func TestForkResendTx(t *testing.T) {
 	if err := client.SendTransaction(ctx, tx); err != nil {
 		t.Fatalf("sending transaction: %v", err)
 	}
-	sim.Commit(false)
-	receipt, _ = client.TransactionReceipt(ctx, tx.Hash())
+	sim.Commit(true)
+	receipt, _ := client.TransactionReceipt(ctx, tx.Hash())
 	if h := receipt.BlockNumber.Uint64(); h != 2 {
 		t.Errorf("TX included in wrong block: %d", h)
 	}
@@ -290,7 +295,6 @@ func TestCommitReturnValue(t *testing.T) {
 // TestAdjustTimeAfterFork ensures that after a fork, AdjustTime uses the pending fork
 // block's parent rather than the canonical head's parent.
 func TestAdjustTimeAfterFork(t *testing.T) {
-	t.Skip() // XXX: should not be skipped
 	t.Parallel()
 	testAddr := crypto.PubkeyToAddress(testKey.PublicKey)
 	sim := simTestBackend(testAddr)

@@ -111,6 +111,8 @@ func New(gasTip uint64, chain BlockChain, subpools []SubPool) (*TxPool, error) {
 		term:         make(chan struct{}),
 		sync:         make(chan chan error),
 	}
+	pool.gasTip.Store(new(big.Int).SetUint64(gasTip))
+
 	for i, subpool := range subpools {
 		if err := subpool.Init(gasTip, head, pool.reserver(i, subpool)); err != nil {
 			for j := i - 1; j >= 0; j-- {
