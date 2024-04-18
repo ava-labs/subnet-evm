@@ -1531,7 +1531,6 @@ func TestRepricing(t *testing.T) {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
 }
-
 func TestMinGasPriceEnforced(t *testing.T) {
 	t.Parallel()
 
