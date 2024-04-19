@@ -59,7 +59,6 @@ type snapshotTestBasic struct {
 
 	// share fields, set in runtime
 	datadir string
-	ancient string
 	db      ethdb.Database
 	genDb   ethdb.Database
 	engine  consensus.Engine
