@@ -1575,7 +1575,6 @@ func TestMinGasPriceEnforced(t *testing.T) {
 	}
 }
 
-
 // Tests that setting the transaction pool gas price to a higher value correctly
 // discards everything cheaper (legacy & dynamic fee) than that and moves any
 // gapped transactions back from the pending pool to the queue.
