@@ -68,7 +68,7 @@ func TestStateSyncFromScratch(t *testing.T) {
 
 func TestStateSyncFromScratchExceedParent(t *testing.T) {
 	rand.Seed(1)
-	numToGen := parentsToGet + uint64(100)
+	numToGen := parentsToGet + uint64(32)
 	test := syncTest{
 		syncableInterval:   numToGen,
 		stateSyncMinBlocks: 50, // must be less than [syncableInterval] to perform sync
