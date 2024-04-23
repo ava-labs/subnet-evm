@@ -1575,6 +1575,7 @@ func TestMinGasPriceEnforced(t *testing.T) {
 		t.Fatalf("Min tip enforced with locals enabled, error: %v", err)
 	}
 }
+
 // Tests that setting the transaction pool gas price to a higher value correctly
 // discards everything cheaper (legacy & dynamic fee) than that and moves any
 // gapped transactions back from the pending pool to the queue.
