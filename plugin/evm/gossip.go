@@ -122,6 +122,10 @@ func (g *GossipEthTxPool) IsSubscribed() bool {
 
 func (g *GossipEthTxPool) Subscribe(ctx context.Context) {
 	sub := g.mempool.SubscribeNewTxsEvent(g.pendingTxs)
+	if sub == nil {
+		log.Warn("failed to subscribe to new txs event")
+		return
+	}
 	g.subscribed.CompareAndSwap(false, true)
 	defer func() {
 		sub.Unsubscribe()
