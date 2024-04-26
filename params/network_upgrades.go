@@ -67,7 +67,7 @@ func (n *NetworkUpgrades) setDefaults(networkID uint32) {
 	// If the network upgrade is set to 0, we also treat it as nil and set it default.
 	// This is because in prior versions, upgrades were not modifiable and were directly set to their default values.
 	// Most of the tools and configurations just provide these as 0, so it is safer to treat 0 as nil and set to default
-	// to prevent premature activations of the network upgrades.
+	// to prevent premature activations of the network upgrades for live networks.
 	if n.SubnetEVMTimestamp == nil || *n.SubnetEVMTimestamp == 0 {
 		n.SubnetEVMTimestamp = defaults.SubnetEVMTimestamp
 	}
@@ -166,9 +166,4 @@ func verifyWithDefault(configTimestamp *uint64, defaultTimestamp *uint64) error 
 		return fmt.Errorf("provided timestamp (%d) must be greater than or equal to the default timestamp (%d)", *configTimestamp, defaultTimestamp)
 	}
 	return nil
-}
-
-// SetMappedUpgrades sets the mapped upgrades (usually Avalanche > EVM upgrades) for the chain config.
-func (c *ChainConfig) SetMappedUpgrades() {
-	c.CancunTime = utils.NewUint64(*c.EUpgradeTimestamp)
 }

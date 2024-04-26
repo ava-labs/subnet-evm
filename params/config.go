@@ -380,6 +380,7 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "petersburgBlock", block: c.PetersburgBlock},
 		{name: "istanbulBlock", block: c.IstanbulBlock},
 		{name: "muirGlacierBlock", block: c.MuirGlacierBlock, optional: true},
+		{name: "cancunTime", timestamp: c.CancunTime},
 	}
 
 	// Check that forks are enabled in order

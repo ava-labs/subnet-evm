@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ava-labs/avalanchego/snow"
+	"github.com/ava-labs/subnet-evm/utils"
 )
 
 // UpgradeConfig includes the following configs that may be specified in upgradeBytes:
@@ -178,6 +179,11 @@ func (c *ChainConfig) SetNetworkUpgradeDefaults() {
 	}
 
 	c.NetworkUpgrades.setDefaults(c.SnowCtx.NetworkID)
+}
+
+// SetMappedUpgrades sets the mapped upgrades (usually Avalanche > EVM upgrades) for the chain config.
+func (c *ChainConfig) SetEVMUpgrades(avalancheUpgrades NetworkUpgrades) {
+	c.CancunTime = utils.NewUint64(*avalancheUpgrades.EUpgradeTimestamp)
 }
 
 func getUpgradeTime(networkID uint32, upgradeTimes map[uint32]time.Time) uint64 {

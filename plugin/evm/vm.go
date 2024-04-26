@@ -36,6 +36,7 @@ import (
 	"github.com/ava-labs/subnet-evm/params"
 	"github.com/ava-labs/subnet-evm/peer"
 	"github.com/ava-labs/subnet-evm/plugin/evm/message"
+	"github.com/ava-labs/subnet-evm/trie/triedb/hashdb"
 
 	"github.com/ava-labs/subnet-evm/rpc"
 	statesyncclient "github.com/ava-labs/subnet-evm/sync/client"
@@ -270,6 +271,11 @@ func (vm *VM) Initialize(
 	if err := vm.config.Validate(); err != nil {
 		return err
 	}
+	// We should deprecate config flags as the first thing, before we do anything else
+	// because this can set old flags to new flags. log the message after we have
+	// initialized the logger.
+	deprecateMsg := vm.config.Deprecate()
+
 	vm.ctx = chainCtx
 
 	// Create logger
@@ -286,6 +292,10 @@ func (vm *VM) Initialize(
 	vm.logger = subnetEVMLogger
 
 	log.Info("Initializing Subnet EVM VM", "Version", Version, "Config", vm.config)
+
+	if deprecateMsg != "" {
+		log.Warn("Deprecation Warning", "msg", deprecateMsg)
+	}
 
 	if len(fxs) > 0 {
 		return errUnsupportedFXs
@@ -369,7 +379,7 @@ func (vm *VM) Initialize(
 		g.Config.Override(overrides)
 	}
 
-	g.Config.SetMappedUpgrades()
+	g.Config.SetEVMUpgrades(g.Config.NetworkUpgrades)
 
 	if err := g.Verify(); err != nil {
 		return fmt.Errorf("failed to verify genesis: %w", err)
@@ -778,10 +788,12 @@ func (vm *VM) setAppRequestHandlers() {
 	// Create separate EVM TrieDB (read only) for serving leafs requests.
 	// We create a separate TrieDB here, so that it has a separate cache from the one
 	// used by the node when processing blocks.
-	evmTrieDB := trie.NewDatabaseWithConfig(
+	evmTrieDB := trie.NewDatabase(
 		vm.chaindb,
 		&trie.Config{
-			Cache: vm.config.StateSyncServerTrieCache,
+			HashDB: &hashdb.Config{
+				CleanCacheSize: vm.config.StateSyncServerTrieCache * units.MiB,
+			},
 		},
 	)
 
